@@ -1,5 +1,5 @@
 ﻿Store Format
- =========
+=========
 
 JDBM4 storage has two different areas: the index and data files. The index file is a list of 8-byte-long addresses pointing into the data file.
 The data file contains raw record data.
@@ -18,7 +18,7 @@ When `RecordManager` returns `recid`  it actually returns a location in the inde
 
 Each address is 8-byte-long, so the index file offset is calculated by multiplying recid with eight:
 
-   index-file-offset = recid * 8
+    index-file-offset = recid * 8
 
 Some starting index positions are reserved for internal use. Those still contain 8-byte-long addresses, but point to
 internal data, such as the list of free records.   `Recid` returned by `RecordManager` will be always greater than 2555.
@@ -55,11 +55,11 @@ It  is very low-level and tightly integrated into RecordManager, to minimise the
 
 Each Long Stack has:
 
-** Long Stack Recid ** in Index File which contains address to Head Record. Each Long Stack is identified by this recid.
+**Long Stack Recid** in Index File which contains address to Head Record. Each Long Stack is identified by this recid.
 
-** Head  Record ** containing most recently inserted  numbers. It is located in the Data File. It is referenced from the Index File.
+**Head  Record** containing most recently inserted  numbers. It is located in the Data File. It is referenced from the Index File.
 
-** Previous Records ** contains previously inserted numbers. It is located in the Data File and is basically a Linked List of records starting at Head Record.
+**Previous Records** contains previously inserted numbers. It is located in the Data File and is basically a Linked List of records starting at Head Record.
 
 Numbers are grouped into records, each containing 100 numbers. Records are chained, as the reverse-linked list starting at Head Record.
 
