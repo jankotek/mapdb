@@ -3,20 +3,20 @@ JDBM4 provides HashMap and TreeMap backed by disk storage. It is fast and easy t
 Currently there is only early development version. There is not even user friendly API yet.
 Only ConcurrentHashMap is implemented. To test it use following code:
 
-  import net.kotek.jdbm.*;
-  RecordStore db = new RecordStoreCache("filename",true);
-  HashMap2 map = new HashMap2(db,0L);
-  //do something with map
-  db.close()
+    import net.kotek.jdbm.*;
+    RecordStore db = new RecordStoreCache("filename",true);
+    HashMap2 map = new HashMap2(db,0L);
+    //do something with map
+    db.close()
 
 To reopen map you need to save its rootRecid between sessions:
 
-  long rootRecid = map.rootRecid; //save this number somewhere
-  //restart JVM or whatever, and latter reopen map:
-  RecordStore db = new RecordStoreCache("filename",true);
-  HashMap2 map = new HashMap2(db,rootRecid);
-  //do something with map, it is populated with previous data
-  db.close()	
+    long rootRecid = map.rootRecid; //save this number somewhere
+    //restart JVM or whatever, and latter reopen map:
+    RecordStore db = new RecordStoreCache("filename",true);
+    HashMap2 map = new HashMap2(db,rootRecid);
+    //do something with map, it is populated with previous data
+    db.close()
   
 
 What works (or should)
