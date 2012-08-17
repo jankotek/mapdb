@@ -7,7 +7,7 @@ Only ConcurrentHashMap is implemented. To test it use following code:
     RecordStore db = new RecordStoreCache("filename",true);
     HashMap2 map = new HashMap2(db,0L);
     //do something with map
-    db.close()
+    db.close();
 
 To reopen map you need to save its rootRecid between sessions:
 
@@ -16,7 +16,7 @@ To reopen map you need to save its rootRecid between sessions:
     RecordStore db = new RecordStoreCache("filename",true);
     HashMap2 map = new HashMap2(db,rootRecid);
     //do something with map, it is populated with previous data
-    db.close()
+    db.close();
   
 
 What works (or should)
