@@ -36,5 +36,24 @@ public class JunkTest  extends JdbmTestCase{
 
     }
 
+    @Test public void test2(){
+
+        RecordStore db = new RecordStoreCache("filename",true);
+        HashMap2 map = new HashMap2(db,0L);
+        map.put(11,222);
+//do something with map
+        db.close();
+
+        long rootRecid = map.rootRecid; //save this number somewhere
+//restart JVM or whatever, and latter reopen map:
+        db = new RecordStoreCache("filename",true);
+        map = new HashMap2(db,rootRecid);
+        System.out.println(map.get(11));
+//do something with map, it is populated with previous data
+        db.close();
+    }
+
+
+
 
 }
