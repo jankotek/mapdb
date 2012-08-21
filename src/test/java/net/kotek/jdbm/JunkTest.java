@@ -39,7 +39,7 @@ public class JunkTest  extends JdbmTestCase{
     @Test public void test2(){
 
         RecordStore db = new RecordStoreCache("filename",true);
-        HashMap2 map = new HashMap2(db,0L);
+        HashMap2 map = new HashMap2(db, true);
         map.put(11,222);
 //do something with map
         db.close();

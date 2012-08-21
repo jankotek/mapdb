@@ -5,7 +5,7 @@ Only ConcurrentHashMap is implemented. To test it use following code:
 
     import net.kotek.jdbm.*;
     RecordStore db = new RecordStoreCache("filename",true);
-    HashMap2 map = new HashMap2(db,0L);
+    HashMap2 map = new HashMap2(db,true);
     //do something with map
     db.close();
 

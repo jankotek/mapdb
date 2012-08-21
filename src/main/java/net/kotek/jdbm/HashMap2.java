@@ -29,6 +29,9 @@ public class HashMap2<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
     static final int BUCKET_OVERFLOW = 4;
 
+    private final boolean hasValues;
+
+
 
     protected static class LinkedNode<K,V>{
         K key;
@@ -42,28 +45,39 @@ public class HashMap2<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         }
     }
 
-    final Serializer<long[]> ROOT_SERIALIZER = new Serializer<long[]>() {
+
+    static class HashRoot implements Serializer<HashRoot>{
+        long[] segmentRecids;
+        boolean hasValues;
+
         @Override
-        public void serialize(DataOutput out, long[] value) throws IOException {
-            for(int i =0;i<16;i++)
-                JdbmUtil.packLong(out,value[i]);
+        public void serialize(DataOutput out, HashRoot value) throws IOException {
+            out.writeBoolean(value.hasValues);
+            for(int i=0;i<16;i++){
+                JdbmUtil.packLong(out,value.segmentRecids[i]);
+            }
         }
 
         @Override
-        public long[] deserialize(DataInput in, int available) throws IOException {
-            final long[] ret = new long[16];
-            for(int i=0;i<16;i++)
-                ret[i] = JdbmUtil.unpackLong(in);
-            return ret;
+        public HashRoot deserialize(DataInput in, int available) throws IOException {
+            HashRoot r = new HashRoot();
+            r.hasValues = in.readBoolean();
+            r.segmentRecids = new long[16];
+            for(int i=0;i<16;i++){
+                r.segmentRecids[i] = JdbmUtil.unpackLong(in);
+            }
+            return r;
         }
-    };
+    }
+
 
     final Serializer<LinkedNode<K,V>> LN_SERIALIZER = new Serializer<LinkedNode<K,V>>() {
         @Override
         public void serialize(DataOutput out, LinkedNode<K,V> value) throws IOException {
             JdbmUtil.packLong(out,value.next);
             KV_SERIALIZER.serialize(out,value.key);
-            KV_SERIALIZER.serialize(out,value.value);
+            if(hasValues)
+                KV_SERIALIZER.serialize(out,value.value);
         }
 
         @Override
@@ -71,7 +85,7 @@ public class HashMap2<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             return new LinkedNode<K, V>(
                     JdbmUtil.unpackLong(in),
                     (K) KV_SERIALIZER.deserialize(in,-1),
-                    (V) KV_SERIALIZER.deserialize(in,-1)
+                    hasValues? (V) KV_SERIALIZER.deserialize(in,-1) : (V)JdbmUtil.EMPTY_STRING
             );
         }
     };
@@ -133,27 +147,37 @@ public class HashMap2<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     protected final long[] segmentRecids;
 
     protected final ReentrantReadWriteLock[] segmentLocks = new ReentrantReadWriteLock[16];
-
+    {
+        for(int i=0;i< 16;i++)  segmentLocks[i]=new ReentrantReadWriteLock();
+    }
 
     protected final RecordManager recman;
     public final long rootRecid;
 
 
-    public HashMap2(RecordManager recman, long rootRecid) {
+    /** used to create new HashMap2 in store */
+    public HashMap2(RecordManager recman, boolean hasValues) {
         this.recman = recman;
+        this.hasValues = hasValues;
+        //prealocate segmentRecids, so we dont have to lock on those latter
+        segmentRecids = new long[16];
+        for(int i=0;i<16;i++)
+            segmentRecids[i] = recman.recordPut(null, Serializer.NULL_SERIALIZER);
+        HashRoot r = new HashRoot();
+        r.hasValues = hasValues;
+        r.segmentRecids = segmentRecids;
+        this.rootRecid = recman.recordPut(r, r);
+    }
 
-        for(int i=0;i< 16;i++)  segmentLocks[i]=new ReentrantReadWriteLock();
-
-        if(rootRecid == 0){
-            //prealocate segmentRecids, so we dont have to lock on those latter
-            segmentRecids = new long[16];
-            for(int i=0;i<16;i++)
-                segmentRecids[i] = recman.recordPut(null, Serializer.NULL_SERIALIZER);
-            this.rootRecid = recman.recordPut(segmentRecids, ROOT_SERIALIZER);
-        }else{
-            this.rootRecid = rootRecid;
-            segmentRecids = recman.recordGet(rootRecid, ROOT_SERIALIZER);
-        }
+    /** used to load existing HashMap2 from store */
+    public HashMap2(RecordManager recman, long rootRecid) {
+        if(CC.ASSERT && rootRecid == 0) throw new IllegalArgumentException("recid is 0");
+        this.recman = recman;
+        this.rootRecid = rootRecid;
+        //load all fields from store
+        HashRoot r = recman.recordGet(rootRecid, new HashRoot());
+        this.segmentRecids = r.segmentRecids;
+        this.hasValues = r.hasValues;
     }
 
 
@@ -585,16 +609,19 @@ public class HashMap2<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         @Override
         public boolean add(K k) {
-            throw new UnsupportedOperationException();
+            if(HashMap2.this.hasValues)
+                throw new UnsupportedOperationException();
+            else
+                return HashMap2.this.put(k, (V) JdbmUtil.EMPTY_STRING) == null;
         }
 
         @Override
         public boolean remove(Object o) {
-            if(o instanceof Entry){
-                Entry e = (Entry) o;
-                return HashMap2.this.remove(((Entry) o).getKey(),((Entry) o).getValue());
-            }
-            return false;
+//            if(o instanceof Entry){
+//                Entry e = (Entry) o;
+//                return HashMap2.this.remove(((Entry) o).getKey(),((Entry) o).getValue());
+//            }
+            return HashMap2.this.remove(o)!=null;
 
         }
 

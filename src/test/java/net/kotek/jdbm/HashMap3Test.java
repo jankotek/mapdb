@@ -47,7 +47,7 @@ public class HashMap3Test extends ConcurrentMapInterfaceTest<Integer, String> {
 
     @Override
     protected ConcurrentMap<Integer, String> makeEmptyMap() throws UnsupportedOperationException {
-        return new HashMap2<Integer,String>(r,0L);
+        return new HashMap2<Integer,String>(r,true);
     }
 
     @Override

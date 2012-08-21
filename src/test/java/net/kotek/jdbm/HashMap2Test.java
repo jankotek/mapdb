@@ -49,10 +49,10 @@ public class HashMap2Test extends JdbmTestCase {
                             TreeMap m = new TreeMap();
                             HashMap2.LinkedNode node =
                                     (HashMap2.LinkedNode) recman.recordGet
-                                            (r2>>>1,new HashMap2(recman,0L).LN_SERIALIZER );
+                                            (r2>>>1,new HashMap2(recman,true).LN_SERIALIZER );
                             while(node!=null){
                                 m.put(node.key, node.value);
-                                node = (HashMap2.LinkedNode) recman.recordGet (node.next,new HashMap2(recman,0L).LN_SERIALIZER );
+                                node = (HashMap2.LinkedNode) recman.recordGet (node.next,new HashMap2(recman,true).LN_SERIALIZER );
                             }
                             for(Object k:m.keySet()){
                                 s+= k+","+m.get(k)+",";
@@ -101,7 +101,7 @@ public class HashMap2Test extends JdbmTestCase {
 
         DataOutput2 out = new DataOutput2();
 
-        Serializer ln_serializer = new HashMap2(recman, 0).LN_SERIALIZER;
+        Serializer ln_serializer = new HashMap2(recman, true).LN_SERIALIZER;
         ln_serializer.serialize(out, n);
 
         DataInput2 in = swap(out);
@@ -115,7 +115,7 @@ public class HashMap2Test extends JdbmTestCase {
 
     @Test public void test_simple_put(){
 
-        HashMap2  m = new HashMap2(recman,0L);
+        HashMap2  m = new HashMap2(recman,true);
 
         m.put(111L, 222L);
         m.put(333L, 444L);
@@ -130,7 +130,7 @@ public class HashMap2Test extends JdbmTestCase {
     }
 
     @Test public void test_hash_collision(){
-        HashMap2 m = new HashMap2(recman,0L){
+        HashMap2 m = new HashMap2(recman,true){
             @Override
             protected int hash(Object key) {
                 return 0;
@@ -151,7 +151,7 @@ public class HashMap2Test extends JdbmTestCase {
     }
 
     @Test public void test_hash_dir_expand(){
-        HashMap2 m = new HashMap2(recman,0L){
+        HashMap2 m = new HashMap2(recman,true){
             @Override
             protected int hash(Object key) {
                 return 0;
@@ -225,7 +225,7 @@ public class HashMap2Test extends JdbmTestCase {
 
 
     @Test public void test_delete(){
-        HashMap2 m = new HashMap2(recman,0L){
+        HashMap2 m = new HashMap2(recman,true){
             @Override
             protected int hash(Object key) {
                 return 0;
@@ -253,7 +253,7 @@ public class HashMap2Test extends JdbmTestCase {
     }
 
     @Test public void clear(){
-        HashMap2 m = new HashMap2(recman,0L);
+        HashMap2 m = new HashMap2(recman,true);
         for(Integer i=0;i<1e5;i++){
             m.put(i,i);
         }
@@ -264,7 +264,7 @@ public class HashMap2Test extends JdbmTestCase {
 
     @Test //(timeout = 10000)
      public void testIteration(){
-        HashMap2 m = new HashMap2<Integer, Integer>(recman, 0L){
+        HashMap2 m = new HashMap2<Integer, Integer>(recman, true){
             @Override
             protected int hash(Object key) {
                 return ((Integer)key).intValue();
