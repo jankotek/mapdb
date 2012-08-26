@@ -31,8 +31,6 @@ public class HashMap2<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
     private final boolean hasValues;
 
-
-
     protected static class LinkedNode<K,V>{
         K key;
         V value;

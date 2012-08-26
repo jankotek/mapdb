@@ -1,6 +1,5 @@
 package net.kotek.jdbm;
 
-import javax.swing.plaf.basic.BasicInternalFrameTitlePane;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -139,5 +138,52 @@ public interface Serializer<A> {
 
     /** basic serializer for most classes in 'java.lang' and 'java.util' packages*/
     Serializer BASIC_SERIALIZER = new SerializerBase();
+
+    /** key serializer for BTreeMap, which applies delta compression on positive Long[]*/
+    Serializer<Long[]> BTREE_LONG_KEY_SERIALIZER = new Serializer<Long[]>() {
+        @Override
+        public void serialize(DataOutput out, Long[] value) throws IOException {
+            JdbmUtil.packLong(out, value[0]);
+            for(int i=1;i<value.length;i++){
+                JdbmUtil.packLong(out, (value[i] - value[i-1]));
+            }
+        }
+
+        @Override
+        public Long[] deserialize(DataInput in, int available) throws IOException {
+            //available in this case indicates number if items in array
+            Long[] ret = new Long[available];
+            long v = 0;
+            for(int i = 0; i<available;i++){
+                v = v+ JdbmUtil.unpackLong(in);
+                ret[i] = v;
+            }
+            return ret;
+        }
+    };
+
+    /** key serializer for BTreeMap, which applies delta compression on positive Integer[]*/
+    Serializer<Integer[]> BTREE_INTEGER_KEY_SERIALIZER = new Serializer<Integer[]>() {
+        @Override
+        public void serialize(DataOutput out, Integer[] value) throws IOException {
+            JdbmUtil.packInt(out, value[0]);
+            for(int i=1;i<value.length;i++){
+                JdbmUtil.packInt(out, (value[i] - value[i-1]));
+            }
+        }
+
+        @Override
+        public Integer[] deserialize(DataInput in, int available) throws IOException {
+            //available in this case indicates number if items in array
+            Integer[] ret = new Integer[available];
+            int v = 0;
+            for(int i = 0; i<available;i++){
+                v = v + JdbmUtil.unpackInt(in);
+                ret[i] = v;
+            }
+            return ret;
+        }
+    };
+
 }
 

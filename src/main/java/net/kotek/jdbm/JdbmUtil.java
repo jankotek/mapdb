@@ -2,7 +2,10 @@ package net.kotek.jdbm;
 
 import java.io.DataInput;
 import java.io.DataOutput;
+import java.io.IOError;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.Comparator;
 import java.util.logging.Logger;
 
 /**
@@ -11,6 +14,13 @@ import java.util.logging.Logger;
 final public class JdbmUtil {
 
     static final Logger LOG = Logger.getLogger("JDBM");
+
+    public static final Comparator<Comparable> COMPARABLE_COMPARATOR = new Comparator<Comparable>() {
+        @Override
+        public int compare(Comparable o1, Comparable o2) {
+            return o1 == null && o2 != null ? -1 : (o1 != null && o2 == null ? 1 : o1.compareTo(o2));
+        }
+    };
 
     public static final String EMPTY_STRING = "";
     public static final String UTF8 = "UTF8";
@@ -112,5 +122,18 @@ final public class JdbmUtil {
         h += (h <<   2) + (h << 14);
         return h ^ (h >>> 16);
 
+    }
+
+    /** clone value using serialization */
+    public static <E> E clone(E value, Serializer<E> serializer){
+        try{
+            DataOutput2 out = new DataOutput2();
+            serializer.serialize(out,value);
+            DataInput2 in = new DataInput2(ByteBuffer.wrap(out.copyBytes()), 0);
+
+            return serializer.deserialize(in,-1);
+        }catch(IOException ee){
+            throw new IOError(ee);
+        }
     }
 }

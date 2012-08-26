@@ -38,7 +38,7 @@ public class RecordStoreAsyncWriteTest extends JdbmTestCase{
      public void concurrent_updates_test() throws InterruptedException {
 
 
-        final int threadNum = 64;
+        final int threadNum = 16;
         final int updates = 10000;
         final CountDownLatch latch = new CountDownLatch(threadNum);
         final Map<Integer,Long> recids = new ConcurrentHashMap<Integer, Long>();

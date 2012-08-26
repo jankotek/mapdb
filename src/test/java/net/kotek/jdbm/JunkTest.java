@@ -10,7 +10,6 @@ import java.io.RandomAccessFile;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 
-import static org.junit.Assert.assertEquals;
 
 public class JunkTest  extends JdbmTestCase{
 
