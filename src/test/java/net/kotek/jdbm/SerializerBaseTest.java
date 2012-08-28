@@ -16,6 +16,7 @@
 package net.kotek.jdbm;
 
 import junit.framework.TestCase;
+import org.junit.Ignore;
 
 import java.io.*;
 import java.math.BigDecimal;
@@ -23,6 +24,8 @@ import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.*;
+
+import static java.util.Arrays.asList;
 
 @SuppressWarnings("unchecked")
 public class SerializerBaseTest extends TestCase {
@@ -35,8 +38,8 @@ public class SerializerBaseTest extends TestCase {
         return in.copyBytes();
     }
 
-    private Object deserialize(byte[] buf) throws IOException {
-        return ser.deserialize(new DataInput2(ByteBuffer.wrap(buf),0),-1);
+    private <E> E deserialize(byte[] buf) throws IOException {
+        return (E) ser.deserialize(new DataInput2(ByteBuffer.wrap(buf),0),-1);
     }
 
 
@@ -160,6 +163,17 @@ public class SerializerBaseTest extends TestCase {
         byte[] buf = serialize(bigString);
         String l2 = (String) deserialize(buf);
         assertEquals(l2, bigString);
+    }
+
+
+    public void testObjectArrayArray() throws IOException {
+        Object[][] arr = new Object[][] {
+                {(int)25, (short)20, (short)32, (short)16, (short)20},
+        };
+        Object[][] arr2 = deserialize(serialize(arr));
+
+        for(int i=0;i<arr.length;i++)
+            assertEquals(asList(arr[i]), asList(arr2[i]));
     }
 
 
