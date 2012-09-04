@@ -5,6 +5,7 @@ import java.io.DataOutput;
 import java.io.IOError;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.logging.Logger;
 
@@ -18,9 +19,17 @@ final public class JdbmUtil {
     public static final Comparator<Comparable> COMPARABLE_COMPARATOR = new Comparator<Comparable>() {
         @Override
         public int compare(Comparable o1, Comparable o2) {
+            return o1.compareTo(o2);
+        }
+    };
+
+    public static final Comparator<Comparable> COMPARABLE_COMPARATOR_WITH_NULLS = new Comparator<Comparable>() {
+        @Override
+        public int compare(Comparable o1, Comparable o2) {
             return o1 == null && o2 != null ? -1 : (o1 != null && o2 == null ? 1 : o1.compareTo(o2));
         }
     };
+
 
     public static final String EMPTY_STRING = "";
     public static final String UTF8 = "UTF8";
@@ -37,7 +46,7 @@ final public class JdbmUtil {
     static public void packLong(DataOutput os, long value) throws IOException {
 
         if (CC.ASSERT && value < 0) {
-            throw new IllegalArgumentException("negative value: v=" + value);
+            throw new IllegalArgumentException("negative value: keys=" + value);
         }
 
         while ((value & ~0x7FL) != 0) {
@@ -80,9 +89,8 @@ final public class JdbmUtil {
      */
 
     static public void packInt(DataOutput os, int value) throws IOException {
-
         if (CC.ASSERT && value < 0) {
-            throw new IllegalArgumentException("negative value: v=" + value);
+            throw new IllegalArgumentException("negative value: keys=" + value);
         }
 
         while ((value & ~0x7F) != 0) {
@@ -94,9 +102,6 @@ final public class JdbmUtil {
     }
 
     static public int unpackInt(DataInput is) throws IOException {
-
-
-
         for (int offset = 0, result = 0; offset < 32; offset += 7) {
             int b = is.readUnsignedByte();
             result |= (b & 0x7F) << offset;
@@ -110,8 +115,7 @@ final public class JdbmUtil {
     }
 
 
-    public static int longHash(long key) {
-
+    public static int longHash(final long key) {
         int h = (int)(key ^ (key >>> 32));
         // Spread bits to regularize both segment and index locations,
         // using variant of single-word Wang/Jenkins hash.
@@ -135,5 +139,24 @@ final public class JdbmUtil {
         }catch(IOException ee){
             throw new IOError(ee);
         }
+    }
+
+    /** expand array size by 1, and put value at given position. No items from original array are lost*/
+    public static Object[] arrayPut(final Object[] array, final int pos, final Object value){
+        final Object[] ret = Arrays.copyOf(array, array.length+1);
+        if(pos<array.length){
+            System.arraycopy(array, pos, ret, pos+1, array.length-pos);
+        }
+        ret[pos] = value;
+        return ret;
+    }
+
+    public static long[] arrayLongPut(final long[] array, final int pos, final long value) {
+        final long[] ret = Arrays.copyOf(array,array.length+1);
+        if(pos<array.length){
+            System.arraycopy(array,pos,ret,pos+1,array.length-pos);
+        }
+        ret[pos] = value;
+        return ret;
     }
 }

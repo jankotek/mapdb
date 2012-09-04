@@ -16,7 +16,6 @@
 package net.kotek.jdbm;
 
 import junit.framework.TestCase;
-import org.junit.Ignore;
 
 import java.io.*;
 import java.math.BigDecimal;
@@ -24,8 +23,6 @@ import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.*;
-
-import static java.util.Arrays.asList;
 
 @SuppressWarnings("unchecked")
 public class SerializerBaseTest extends TestCase {
@@ -38,8 +35,8 @@ public class SerializerBaseTest extends TestCase {
         return in.copyBytes();
     }
 
-    private <E> E deserialize(byte[] buf) throws IOException {
-        return (E) ser.deserialize(new DataInput2(ByteBuffer.wrap(buf),0),-1);
+    private Object deserialize(byte[] buf) throws IOException {
+        return ser.deserialize(new DataInput2(ByteBuffer.wrap(buf),0),-1);
     }
 
 
@@ -163,17 +160,6 @@ public class SerializerBaseTest extends TestCase {
         byte[] buf = serialize(bigString);
         String l2 = (String) deserialize(buf);
         assertEquals(l2, bigString);
-    }
-
-
-    public void testObjectArrayArray() throws IOException {
-        Object[][] arr = new Object[][] {
-                {(int)25, (short)20, (short)32, (short)16, (short)20},
-        };
-        Object[][] arr2 = deserialize(serialize(arr));
-
-        for(int i=0;i<arr.length;i++)
-            assertEquals(asList(arr[i]), asList(arr2[i]));
     }
 
 
@@ -416,6 +402,19 @@ public class SerializerBaseTest extends TestCase {
         assertEquals(Locale.SIMPLIFIED_CHINESE, deserialize(serialize(Locale.SIMPLIFIED_CHINESE)));
 
     }
+//
+//    public void testUUID() throws IOException, ClassNotFoundException {
+//        //try a bunch of UUIDs.
+//        for(int i = 0; i < 1000;i++)
+//        {
+//            UUID uuid = UUID.randomUUID();
+//            SimpleEntry a = new SimpleEntry(uuid, "11");
+//
+//            SimpleEntry b = (SimpleEntry) deserialize(serialize(a));
+//            assertEquals(b, a);
+//        }
+//    }
+
 
 //    enum Order
 //    {

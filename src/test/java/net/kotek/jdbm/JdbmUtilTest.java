@@ -5,6 +5,9 @@ import org.junit.Test;
 
 import java.nio.ByteBuffer;
 
+import static java.util.Arrays.asList;
+import static org.junit.Assert.assertEquals;
+
 public class JdbmUtilTest  {
 
 
@@ -27,7 +30,7 @@ public class JdbmUtilTest  {
 
     }
 
-    public void testPackLong() throws Exception {
+    @Test public void testPackLong() throws Exception {
 
         DataOutput2 out = new DataOutput2();
         DataInput2 in = new DataInput2(ByteBuffer.wrap(out.buf,0, out.pos),0);
@@ -42,7 +45,15 @@ public class JdbmUtilTest  {
             Assert.assertEquals(i, i2);
 
         }
-
     }
+
+    @Test public void testArrayPut(){
+        assertEquals(asList(1,2,3,4,5), asList(JdbmUtil.arrayPut(new Integer[]{1,2,4,5}, 2,3)));
+        assertEquals(asList(1,2,3,4,5), asList(JdbmUtil.arrayPut(new Integer[]{2,3,4,5}, 0,1)));
+        assertEquals(asList(1,2,3,4,5), asList(JdbmUtil.arrayPut(new Integer[]{1,2,3,4}, 4,5)));
+    }
+
+
+
 
 }

@@ -20,12 +20,15 @@ abstract public class JdbmTestCase {
 
     String fileName;
 
+    File testDir;
+
     RecordStore recman;
 
      @Before
      public void setUp() throws Exception {
-        new File("testdb").mkdirs();
-        fileName = "testdb/test"+Math.random();
+        testDir = new File(new File(System.getProperty("java.io.tmpdir")), "testdb");
+        testDir.mkdirs();
+        fileName = testDir.getPath()+"test"+Math.random();
 
         recman = openRecordManager();
     }
@@ -36,7 +39,7 @@ abstract public class JdbmTestCase {
 
     @After
     public void tearDown() throws Exception {
-        for(File f:new File("testdb").listFiles()){
+        for(File f:testDir.listFiles()){
             if(!f.delete())f.deleteOnExit();
         }
     }

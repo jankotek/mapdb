@@ -15,7 +15,6 @@
  ******************************************************************************/
 package net.kotek.jdbm;
 
-import java.io.File;
 import java.util.concurrent.ConcurrentMap;
 
 public class HashMap3Test extends ConcurrentMapInterfaceTest<Integer, String> {
@@ -27,7 +26,9 @@ public class HashMap3Test extends ConcurrentMapInterfaceTest<Integer, String> {
     RecordStore r;
 
     public void setUp() throws Exception {
-        r = new RecordStoreCache("testdb/"+System.currentTimeMillis(), false);
+        JdbmTestCase c = new JdbmTestCase(){};
+        c.setUp();
+        r = new RecordStoreCache(c.fileName, false);
     }
 
     @Override

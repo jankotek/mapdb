@@ -94,7 +94,7 @@ interface SerializationHeader {
 
 
     int  TREEMAP = 107;
-    int  NOTUSED_HASHMAP_255 = 108;
+    int  UUID = 108;
     int  HASHMAP = 109;
 
     int  LINKEDHASHMAP = 111;
@@ -117,6 +117,11 @@ interface SerializationHeader {
 
     int  CLASS = 126;
     int  DATE = 127;
+
+
+
+    int NEG_INFINITY = 128;
+    int POS_INFINITY = 129;
 
 
     /**

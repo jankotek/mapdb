@@ -255,7 +255,19 @@ public class SerializerBase implements Serializer{
             out.write(DATE);
             out.writeLong(((Date) obj).getTime());
             return;
+        } else if (clazz == UUID.class) {
+            out.write(UUID);
+            out.writeLong(((UUID)obj).getMostSignificantBits());
+            out.writeLong(((UUID)obj).getLeastSignificantBits());
+            return;
+        } else if(obj == BTreeMap.POS_INFINITY){
+            out.write(POS_INFINITY);
+            return;
+        } else if(obj == BTreeMap.NEG_INFINITY){
+            out.write(NEG_INFINITY);
+            return;
         }
+
 
 
 
@@ -831,6 +843,12 @@ public class SerializerBase implements Serializer{
                 break;
             case LOCALE :
                 ret = new Locale(is.readUTF(),is.readUTF(),is.readUTF());
+                break;
+            case POS_INFINITY:
+                ret = BTreeMap.POS_INFINITY;
+                break;
+            case NEG_INFINITY:
+                ret = BTreeMap.NEG_INFINITY;
                 break;
             case JAVA_SERIALIZATION:
                 throw new InternalError("Wrong header, data were probably serialized with OutputStream, not with JDBM serialization");
