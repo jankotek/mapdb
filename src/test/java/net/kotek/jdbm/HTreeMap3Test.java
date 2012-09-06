@@ -17,9 +17,9 @@ package net.kotek.jdbm;
 
 import java.util.concurrent.ConcurrentMap;
 
-public class HashMap3Test extends ConcurrentMapInterfaceTest<Integer, String> {
+public class HTreeMap3Test extends ConcurrentMapInterfaceTest<Integer, String> {
 
-    public HashMap3Test() {
+    public HTreeMap3Test() {
         super(false, false, true, true, true, true);
     }
 
@@ -48,7 +48,7 @@ public class HashMap3Test extends ConcurrentMapInterfaceTest<Integer, String> {
 
     @Override
     protected ConcurrentMap<Integer, String> makeEmptyMap() throws UnsupportedOperationException {
-        return new HashMap2<Integer,String>(r,true);
+        return new HTreeMap<Integer,String>(r,true);
     }
 
     @Override

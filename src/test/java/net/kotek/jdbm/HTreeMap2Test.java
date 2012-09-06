@@ -8,10 +8,10 @@ import java.util.*;
 import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 
-public class HashMap2Test extends JdbmTestCase {
+public class HTreeMap2Test extends JdbmTestCase {
 
 
-    void printMap(HashMap2 m){
+    void printMap(HTreeMap m){
         System.out.println(toString(m.segmentRecids, recman));
     }
 
@@ -28,7 +28,7 @@ public class HashMap2Test extends JdbmTestCase {
     static private String recursiveToString(long r, String prefix, RecordStore recman) {
         prefix+="  ";
         String s="";
-        long[][] nn = recman.recordGet(r, HashMap2.DIR_SERIALIZER);
+        long[][] nn = recman.recordGet(r, HTreeMap.DIR_SERIALIZER);
         if(nn==null){
             s+=prefix+"null,\n";
         }else{
@@ -47,12 +47,12 @@ public class HashMap2Test extends JdbmTestCase {
                         }else{
                             s+=prefix+"    "+"Array.asList(";
                             TreeMap m = new TreeMap();
-                            HashMap2.LinkedNode node =
-                                    (HashMap2.LinkedNode) recman.recordGet
-                                            (r2>>>1,new HashMap2(recman,true).LN_SERIALIZER );
+                            HTreeMap.LinkedNode node =
+                                    (HTreeMap.LinkedNode) recman.recordGet
+                                            (r2>>>1,new HTreeMap(recman,true).LN_SERIALIZER );
                             while(node!=null){
                                 m.put(node.key, node.value);
-                                node = (HashMap2.LinkedNode) recman.recordGet (node.next,new HashMap2(recman,true).LN_SERIALIZER );
+                                node = (HTreeMap.LinkedNode) recman.recordGet (node.next,new HTreeMap(recman,true).LN_SERIALIZER );
                             }
                             for(Object k:m.keySet()){
                                 s+= k+","+m.get(k)+",";
@@ -79,11 +79,11 @@ public class HashMap2Test extends JdbmTestCase {
         l[6] = new long[] {1,2,3,4,5,6,7,8};
 
         DataOutput2 out = new DataOutput2();
-        HashMap2.DIR_SERIALIZER.serialize(out,l);
+        HTreeMap.DIR_SERIALIZER.serialize(out,l);
 
         DataInput2 in = swap(out);
 
-        long[][] b = HashMap2.DIR_SERIALIZER.deserialize(in, -1);
+        long[][] b = HTreeMap.DIR_SERIALIZER.deserialize(in, -1);
 
         assertEquals(null, b[0]);
         assertEquals(null, b[1]);
@@ -97,16 +97,16 @@ public class HashMap2Test extends JdbmTestCase {
     }
 
     @Test public void ln_serialization() throws IOException {
-        HashMap2.LinkedNode n = new HashMap2.LinkedNode(123456, 123L, 456L);
+        HTreeMap.LinkedNode n = new HTreeMap.LinkedNode(123456, 123L, 456L);
 
         DataOutput2 out = new DataOutput2();
 
-        Serializer ln_serializer = new HashMap2(recman, true).LN_SERIALIZER;
+        Serializer ln_serializer = new HTreeMap(recman, true).LN_SERIALIZER;
         ln_serializer.serialize(out, n);
 
         DataInput2 in = swap(out);
 
-        HashMap2.LinkedNode n2  = (HashMap2.LinkedNode) ln_serializer.deserialize(in, -1);
+        HTreeMap.LinkedNode n2  = (HTreeMap.LinkedNode) ln_serializer.deserialize(in, -1);
 
         assertEquals(123456, n2.next);
         assertEquals(123L,n2.key);
@@ -115,7 +115,7 @@ public class HashMap2Test extends JdbmTestCase {
 
     @Test public void test_simple_put(){
 
-        HashMap2  m = new HashMap2(recman,true);
+        HTreeMap m = new HTreeMap(recman,true);
 
         m.put(111L, 222L);
         m.put(333L, 444L);
@@ -130,7 +130,7 @@ public class HashMap2Test extends JdbmTestCase {
     }
 
     @Test public void test_hash_collision(){
-        HashMap2 m = new HashMap2(recman,true){
+        HTreeMap m = new HTreeMap(recman,true){
             @Override
             protected int hash(Object key) {
                 return 0;
@@ -151,19 +151,19 @@ public class HashMap2Test extends JdbmTestCase {
     }
 
     @Test public void test_hash_dir_expand(){
-        HashMap2 m = new HashMap2(recman,true){
+        HTreeMap m = new HTreeMap(recman,true){
             @Override
             protected int hash(Object key) {
                 return 0;
             }
         };
 
-        for(long i = 0;i<HashMap2.BUCKET_OVERFLOW;i++){
+        for(long i = 0;i< HTreeMap.BUCKET_OVERFLOW;i++){
             m.put(i,i);
         }
 
         //segment should not be expanded
-        long[][] l = recman.recordGet(m.segmentRecids[0],HashMap2.DIR_SERIALIZER);
+        long[][] l = recman.recordGet(m.segmentRecids[0], HTreeMap.DIR_SERIALIZER);
         assertNotNull(l[0]);
         assertEquals(1, l[0][0]&1);  //last bite indicates leaf
         for(int j=1;j<8;j++){ //all others should be null
@@ -171,20 +171,20 @@ public class HashMap2Test extends JdbmTestCase {
         }
         long recid = l[0][0]>>>1;
 
-        for(long i = HashMap2.BUCKET_OVERFLOW -1; i>=0; i--){
+        for(long i = HTreeMap.BUCKET_OVERFLOW -1; i>=0; i--){
             assertTrue(recid!=0);
-            HashMap2.LinkedNode  n = (HashMap2.LinkedNode) recman.recordGet(recid, m.LN_SERIALIZER);
+            HTreeMap.LinkedNode  n = (HTreeMap.LinkedNode) recman.recordGet(recid, m.LN_SERIALIZER);
             assertEquals(i, n.key);
             assertEquals(i, n.value);
             recid = n.next;
         }
 
         //adding one more item should trigger dir expansion to next level
-        m.put((long)HashMap2.BUCKET_OVERFLOW, (long)HashMap2.BUCKET_OVERFLOW);
+        m.put((long) HTreeMap.BUCKET_OVERFLOW, (long) HTreeMap.BUCKET_OVERFLOW);
 
         recid = m.segmentRecids[0];
 
-        l = recman.recordGet(recid, HashMap2.DIR_SERIALIZER);
+        l = recman.recordGet(recid, HTreeMap.DIR_SERIALIZER);
         assertNotNull(l[0]);
         for(int j=1;j<8;j++){ //all others should be null
            assertEquals(null, l[j]);
@@ -198,7 +198,7 @@ public class HashMap2Test extends JdbmTestCase {
         recid = l[0][0]>>>1;
 
 
-        l = recman.recordGet(recid, HashMap2.DIR_SERIALIZER);
+        l = recman.recordGet(recid, HTreeMap.DIR_SERIALIZER);
         assertNotNull(l[0]);
         for(int j=1;j<8;j++){ //all others should be null
             assertEquals(null, l[j]);
@@ -211,9 +211,9 @@ public class HashMap2Test extends JdbmTestCase {
 
         recid = l[0][0]>>>1;
 
-        for(long i = 0; i<=HashMap2.BUCKET_OVERFLOW; i++){
+        for(long i = 0; i<= HTreeMap.BUCKET_OVERFLOW; i++){
             assertTrue(recid!=0);
-            HashMap2.LinkedNode n = (HashMap2.LinkedNode) recman.recordGet(recid, m.LN_SERIALIZER);
+            HTreeMap.LinkedNode n = (HTreeMap.LinkedNode) recman.recordGet(recid, m.LN_SERIALIZER);
 
             assertNotNull(n);
             assertEquals(i, n.key);
@@ -225,7 +225,7 @@ public class HashMap2Test extends JdbmTestCase {
 
 
     @Test public void test_delete(){
-        HashMap2 m = new HashMap2(recman,true){
+        HTreeMap m = new HTreeMap(recman,true){
             @Override
             protected int hash(Object key) {
                 return 0;
@@ -253,7 +253,7 @@ public class HashMap2Test extends JdbmTestCase {
     }
 
     @Test public void clear(){
-        HashMap2 m = new HashMap2(recman,true);
+        HTreeMap m = new HTreeMap(recman,true);
         for(Integer i=0;i<1e5;i++){
             m.put(i,i);
         }
@@ -264,7 +264,7 @@ public class HashMap2Test extends JdbmTestCase {
 
     @Test //(timeout = 10000)
      public void testIteration(){
-        HashMap2 m = new HashMap2<Integer, Integer>(recman, true){
+        HTreeMap m = new HTreeMap<Integer, Integer>(recman, true){
             @Override
             protected int hash(Object key) {
                 return ((Integer)key).intValue();
@@ -307,7 +307,7 @@ public class HashMap2Test extends JdbmTestCase {
 
         int countSegments = 0;
         for(long segmentRecid:m.segmentRecids){
-            if(recman.recordGet(segmentRecid, HashMap2.DIR_SERIALIZER)!=null)
+            if(recman.recordGet(segmentRecid, HTreeMap.DIR_SERIALIZER)!=null)
                 countSegments++;
         }
 

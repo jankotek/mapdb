@@ -32,7 +32,7 @@ import static org.junit.Assert.*;
  * Tests for HashSet which comes with JDBM. Original code comes from Apache Harmony,
  * Modified by Jan Kotek for use in JDBM
  */
-public class HashSet2Test extends JdbmTestCase {
+public class HTreeSet2Test extends JdbmTestCase {
 
     Set hs;
 
@@ -49,7 +49,7 @@ public class HashSet2Test extends JdbmTestCase {
      */
     @Test public void test_Constructor() {
         // Test for method java.util.HashSet()
-        Set hs2 = new HashMap2(recman, false).keySet();
+        Set hs2 = new HTreeMap(recman, false).keySet();
         assertEquals("Created incorrect HashSet", 0, hs2.size());
     }
 
@@ -98,7 +98,7 @@ public class HashSet2Test extends JdbmTestCase {
      */
     @Test public void test_isEmpty() {
         // Test for method boolean java.util.HashSet.isEmpty()
-        assertTrue("Empty set returned false", new HashMap2(recman, false).keySet().isEmpty());
+        assertTrue("Empty set returned false", new HTreeMap(recman, false).keySet().isEmpty());
         assertTrue("Non-empty set returned true", !hs.isEmpty());
     }
 
@@ -147,7 +147,7 @@ public class HashSet2Test extends JdbmTestCase {
      */
     @Before public void setUp() throws Exception {
         super.setUp();
-        hs = new HashMap2(recman, false).keySet();
+        hs = new HTreeMap(recman, false).keySet();
         for (int i = 0; i < objArray.length; i++)
             hs.add(objArray[i]);
     }

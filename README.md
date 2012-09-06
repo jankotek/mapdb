@@ -5,7 +5,7 @@ Only ConcurrentHashMap is implemented. To test it use following code:
 
     import net.kotek.jdbm.*;
     RecordStore db = new RecordStoreCache("filename",true);
-    HashMap2 map = new HashMap2(db,true);
+    HTreeMap map = new HTreeMap(db,true);
     //do something with map
     db.close();
 
@@ -14,7 +14,7 @@ To reopen map you need to save its rootRecid between sessions:
     long rootRecid = map.rootRecid; //save this number somewhere
     //restart JVM or whatever, and latter reopen map:
     RecordStore db = new RecordStoreCache("filename",true);
-    HashMap2 map = new HashMap2(db,rootRecid);
+    HTreeMap map = new HTreeMap(db,rootRecid);
     //do something with map, it is populated with previous data
     db.close();
   

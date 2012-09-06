@@ -21,7 +21,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *
  * @author Jan Kotek
  */
-public class HashMap2<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K, V> {
+public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K, V> {
 
     /** default serializer used for key and values */
     private static final Serializer KV_SERIALIZER = Serializer.BASIC_SERIALIZER;
@@ -153,8 +153,8 @@ public class HashMap2<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     public final long rootRecid;
 
 
-    /** used to create new HashMap2 in store */
-    public HashMap2(RecordManager recman, boolean hasValues) {
+    /** used to create new HTreeMap in store */
+    public HTreeMap(RecordManager recman, boolean hasValues) {
         this.recman = recman;
         this.hasValues = hasValues;
         //prealocate segmentRecids, so we dont have to lock on those latter
@@ -167,8 +167,8 @@ public class HashMap2<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         this.rootRecid = recman.recordPut(r, r);
     }
 
-    /** used to load existing HashMap2 from store */
-    public HashMap2(RecordManager recman, long rootRecid) {
+    /** used to load existing HTreeMap from store */
+    public HTreeMap(RecordManager recman, long rootRecid) {
         if(CC.ASSERT && rootRecid == 0) throw new IllegalArgumentException("recid is 0");
         this.recman = recman;
         this.rootRecid = rootRecid;
@@ -587,17 +587,17 @@ public class HashMap2<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         @Override
         public int size() {
-            return HashMap2.this.size();
+            return HTreeMap.this.size();
         }
 
         @Override
         public boolean isEmpty() {
-            return HashMap2.this.isEmpty();
+            return HTreeMap.this.isEmpty();
         }
 
         @Override
         public boolean contains(Object o) {
-            return HashMap2.this.containsKey(o);
+            return HTreeMap.this.containsKey(o);
         }
 
         @Override
@@ -607,26 +607,26 @@ public class HashMap2<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         @Override
         public boolean add(K k) {
-            if(HashMap2.this.hasValues)
+            if(HTreeMap.this.hasValues)
                 throw new UnsupportedOperationException();
             else
-                return HashMap2.this.put(k, (V) JdbmUtil.EMPTY_STRING) == null;
+                return HTreeMap.this.put(k, (V) JdbmUtil.EMPTY_STRING) == null;
         }
 
         @Override
         public boolean remove(Object o) {
 //            if(o instanceof Entry){
 //                Entry e = (Entry) o;
-//                return HashMap2.this.remove(((Entry) o).getKey(),((Entry) o).getValue());
+//                return HTreeMap.this.remove(((Entry) o).getKey(),((Entry) o).getValue());
 //            }
-            return HashMap2.this.remove(o)!=null;
+            return HTreeMap.this.remove(o)!=null;
 
         }
 
 
         @Override
         public void clear() {
-            HashMap2.this.clear();
+            HTreeMap.this.clear();
         }
     };
 
@@ -639,17 +639,17 @@ public class HashMap2<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         @Override
         public int size() {
-            return HashMap2.this.size();
+            return HTreeMap.this.size();
         }
 
         @Override
         public boolean isEmpty() {
-            return HashMap2.this.isEmpty();
+            return HTreeMap.this.isEmpty();
         }
 
         @Override
         public boolean contains(Object o) {
-            return HashMap2.this.containsValue(o);
+            return HTreeMap.this.containsValue(o);
         }
 
 
@@ -670,19 +670,19 @@ public class HashMap2<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         @Override
         public int size() {
-            return HashMap2.this.size();
+            return HTreeMap.this.size();
         }
 
         @Override
         public boolean isEmpty() {
-            return HashMap2.this.isEmpty();
+            return HTreeMap.this.isEmpty();
         }
 
         @Override
         public boolean contains(Object o) {
             if(o instanceof  Entry){
                 Entry e = (Entry) o;
-                Object val = HashMap2.this.get(e.getKey());
+                Object val = HTreeMap.this.get(e.getKey());
                 return val!=null && val.equals(e.getValue());
             }else
                 return false;
@@ -699,7 +699,7 @@ public class HashMap2<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             K key = kvEntry.getKey();
             V value = kvEntry.getValue();
             if(key==null || value == null) throw new NullPointerException();
-            HashMap2.this.put(key, value);
+            HTreeMap.this.put(key, value);
             return true;
         }
 
@@ -709,7 +709,7 @@ public class HashMap2<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 Entry e = (Entry) o;
                 Object key = e.getKey();
                 if(key == null) return false;
-                return HashMap2.this.remove(key, e.getValue());
+                return HTreeMap.this.remove(key, e.getValue());
             }
             return false;
 
@@ -718,7 +718,7 @@ public class HashMap2<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         @Override
         public void clear() {
-            HashMap2.this.clear();
+            HTreeMap.this.clear();
         }
     };
 
@@ -762,7 +762,7 @@ public class HashMap2<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 throw new IllegalStateException();
 
             lastReturnedKey = null;
-            HashMap2.this.remove(keyToRemove);
+            HTreeMap.this.remove(keyToRemove);
         }
 
         public boolean hasNext(){
@@ -921,12 +921,12 @@ public class HashMap2<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         @Override
         public V getValue() {
-            return HashMap2.this.get(key);
+            return HTreeMap.this.get(key);
         }
 
         @Override
         public V setValue(V value) {
-            return HashMap2.this.put(key,value);
+            return HTreeMap.this.put(key,value);
         }
 
         @Override
@@ -936,7 +936,7 @@ public class HashMap2<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         @Override
         public int hashCode() {
-            final V value = HashMap2.this.get(key);
+            final V value = HTreeMap.this.get(key);
             return (key == null ? 0 : key.hashCode()) ^
                     (value == null ? 0 : value.hashCode());
         }
@@ -946,7 +946,7 @@ public class HashMap2<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     @Override
     public V putIfAbsent(K key, V value) {
         if(key==null||value==null) throw new NullPointerException();
-        final int segment = HashMap2.this.hash(key) >>>28;
+        final int segment = HTreeMap.this.hash(key) >>>28;
         try{
             segmentLocks[segment].writeLock().lock();
 
@@ -963,7 +963,7 @@ public class HashMap2<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     @Override
     public boolean remove(Object key, Object value) {
         if(key==null||value==null) throw new NullPointerException();
-        final int segment = HashMap2.this.hash(key) >>>28;
+        final int segment = HTreeMap.this.hash(key) >>>28;
         try{
             segmentLocks[segment].writeLock().lock();
 
@@ -981,7 +981,7 @@ public class HashMap2<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     @Override
     public boolean replace(K key, V oldValue, V newValue) {
         if(key==null||oldValue==null||newValue==null) throw new NullPointerException();
-        final int segment = HashMap2.this.hash(key) >>>28;
+        final int segment = HTreeMap.this.hash(key) >>>28;
         try{
             segmentLocks[segment].writeLock().lock();
 
@@ -999,7 +999,7 @@ public class HashMap2<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     @Override
     public V replace(K key, V value) {
         if(key==null||value==null) throw new NullPointerException();
-        final int segment = HashMap2.this.hash(key) >>>28;
+        final int segment = HTreeMap.this.hash(key) >>>28;
         try{
             segmentLocks[segment].writeLock().lock();
 
