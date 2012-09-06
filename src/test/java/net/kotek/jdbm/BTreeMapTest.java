@@ -7,7 +7,7 @@ import java.util.*;
 
 public class BTreeMapTest extends JdbmTestCase{
 
-    class TNode{
+    static class TNode{
         List nodes;
         TNode(Object... args){
             this.nodes = Arrays.asList(args);
@@ -46,15 +46,15 @@ public class BTreeMapTest extends JdbmTestCase{
         }
     }
 
-    void print(BTreeMap m){
+    static void print(BTreeMap m){
         System.out.println(TNode(m));
     }
 
-    TNode TNode(BTreeMap m){
+    static TNode TNode(BTreeMap m){
         return TNodeRecur(m, m.rootRecid);
     }
 
-    private TNode TNodeRecur(BTreeMap m, long recid) {
+    static  private TNode TNodeRecur(BTreeMap m, long recid) {
         TNode ret = new TNode();
         ret.nodes = new ArrayList();
         BTreeMap.BNode n = (BTreeMap.BNode) m.recman.recordGet(recid, m.NODE_SERIALIZER);
@@ -208,11 +208,41 @@ public class BTreeMapTest extends JdbmTestCase{
             m.put(i*10,i*10+1);
         }
 
-
         for(int i=0;i<10000;i++){
             assertEquals(i%10==0?i+1:null, m.get(i));
         }
+    }
 
+    @Test public void test_empty_iterator(){
+        BTreeMap m = new BTreeMap(recman,6);
+        assertFalse(m.keySet().iterator().hasNext());
+        assertFalse(m.values().iterator().hasNext());
+    }
+
+    @Test public void test_key_iterator(){
+        BTreeMap m = new BTreeMap(recman,6);
+        for(int i = 0;i<20;i++){
+            m.put(i,i*10);
+        }
+
+        Iterator iter = m.keySet().iterator();
+
+        for(int i = 0;i<20;i++){
+            assertTrue(iter.hasNext());
+            assertEquals(i,iter.next());
+        }
+        assertFalse(iter.hasNext());
+    }
+
+    @Test public void test_size(){
+        BTreeMap m = new BTreeMap(recman,6);
+        assertTrue(m.isEmpty());
+        assertEquals(0,m.size());
+        for(int i = 1;i<30;i++){
+            m.put(i,i);
+            assertEquals(i,m.size());
+            assertFalse(m.isEmpty());
+        }
     }
 
 }

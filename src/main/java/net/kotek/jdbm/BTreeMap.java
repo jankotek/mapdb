@@ -5,11 +5,12 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Concurrent B-linked-tree.
  */
-public class BTreeMap<K,V> {
+public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSortedMap<K,V>, ConcurrentMap<K,V> {
 
     protected static final Serializer SERIALIZER = Serializer.BASIC_SERIALIZER;
 
@@ -20,6 +21,7 @@ public class BTreeMap<K,V> {
     protected static final Object POS_INFINITY = new Object(){
         @Override public String toString() { return "pos_infinity"; }
     };
+
 
     protected long rootRecid;
 
@@ -32,6 +34,7 @@ public class BTreeMap<K,V> {
     protected final RecordManager recman;
 
     protected final long treeRecid;
+
 
 
     static class Root{
@@ -65,6 +68,10 @@ public class BTreeMap<K,V> {
 
         @Override public long[] child() { return child;}
 
+        @Override public String toString(){
+            return "Dir(K"+Arrays.toString(v)+", C"+Arrays.toString(child)+")";
+        }
+
     }
 
     final static class LeafNode implements BNode{
@@ -86,6 +93,11 @@ public class BTreeMap<K,V> {
         @Override public Object highKey() {return keys[keys.length-1];}
 
         @Override public long[] child() { return null;}
+
+        @Override public String toString(){
+            return "Leaf(K"+Arrays.toString(keys)+", V"+Arrays.toString(vals)+", L="+next+")";
+        }
+
 
     }
 
@@ -195,7 +207,9 @@ public class BTreeMap<K,V> {
         return i;
     }
 
-    public V get(K v){
+    public V get(Object key){
+        if(key==null) return null;
+        K v = (K) key;
         long current = rootRecid;
         BNode A = recman.recordGet(current, NODE_SERIALIZER);
 
@@ -228,7 +242,14 @@ public class BTreeMap<K,V> {
     }
 
 
-    public V put(K v, V value){
+    @Override
+    public V put(K key, V value){
+        return put2(key,value, false);
+    }
+
+    protected V put2(K v, final V value, final boolean putOnlyIfAbsent){
+        if(v == null) throw new IllegalArgumentException("null key");
+        if(value == null) throw new IllegalArgumentException("null value");
 
         Deque<Long> stack = new LinkedList<Long>();
         long current = rootRecid;
@@ -254,7 +275,13 @@ public class BTreeMap<K,V> {
                 A = recman.recordGet(current, NODE_SERIALIZER);
                 int pos = findChildren(v, A.keys());
                 if(pos<A.keys().length-1 && v.equals(A.keys()[pos])){
+
                     V oldVal = (V) A.vals()[pos];
+                    if(putOnlyIfAbsent){
+                        //is not absent, so quit
+                        unlockNode(current);
+                        return oldVal;
+                    }
                     //insert new
                     Object[] vals = Arrays.copyOf(A.vals(), A.vals().length);
                     vals[pos] = value;
@@ -350,12 +377,386 @@ public class BTreeMap<K,V> {
                     unlockNode(current);
                     return null;
                 }
-
             }
+        }
+    }
 
+
+    abstract class BTreeIterator{
+        LeafNode currentLeaf;
+        K lastReturnedKey;
+        int currentPos;
+
+        BTreeIterator(){
+            //find left-most leaf
+            BNode node = recman.recordGet(rootRecid, NODE_SERIALIZER);
+            while(!node.isLeaf()){
+                node = recman.recordGet(node.child()[0],NODE_SERIALIZER);
+            }
+            currentLeaf = (LeafNode) node;
+            //handle empty map
+            if(currentLeaf.keys.length==2 && currentLeaf.keys[0] == NEG_INFINITY && currentLeaf.keys[1]==POS_INFINITY)
+                currentLeaf = null;
+            else
+                //handle negative infinity
+                currentPos = currentLeaf.keys[0] == NEG_INFINITY? 1: 0;
+        }
+
+        public boolean hasNext(){
+            return currentLeaf!=null;
+        }
+
+        public void remove(){
+            BTreeMap.this.remove(lastReturnedKey);
+        }
+
+        protected void moveToNext(){
+            if(currentLeaf==null) return;
+            lastReturnedKey = (K) currentLeaf.keys[currentPos];
+            currentPos++;
+            if(currentPos == currentLeaf.keys.length-1 ){
+                //move to next leaf
+                if(currentLeaf.next==0){
+                    //end was reached
+                    currentPos = 0;
+                    currentLeaf = null;
+                }else{
+                    currentLeaf = (LeafNode) recman.recordGet(currentLeaf.next, NODE_SERIALIZER);
+                    currentPos = 0;
+                }
+            }
+        }
+    }
+
+    class BTreeKeyIterator extends BTreeIterator implements Iterator<K>{
+
+        @Override
+        public K next() {
+            if(currentLeaf == null) throw new NoSuchElementException();
+            K ret = (K) currentLeaf.keys[currentPos];
+            moveToNext();
+            return ret;
+        }
+    }
+
+    class BTreeValueIterator extends BTreeIterator implements Iterator<V>{
+
+        @Override
+        public V next() {
+            if(currentLeaf == null) throw new NoSuchElementException();
+            V ret = (V) currentLeaf.vals[currentPos];
+            moveToNext();
+            return ret;
+        }
+    }
+
+    class BTreeEntryIterator extends BTreeIterator implements  Iterator<Entry<K, V>>{
+
+        @Override
+        public Entry<K, V> next() {
+            if(currentLeaf == null) throw new NoSuchElementException();
+            K ret = (K) currentLeaf.keys[currentPos];
+            moveToNext();
+            return new BTreeEntry(ret);
 
         }
 
+
+    };
+
+    class BTreeEntry implements Entry<K,V>{
+
+        final K key;
+
+        BTreeEntry(K key) {
+            this.key = key;
+        }
+
+        @Override
+        public K getKey() {
+            return key;
+        }
+
+        @Override
+        public V getValue() {
+            return BTreeMap.this.get(key);
+        }
+
+        @Override
+        public V setValue(V value) {
+            return BTreeMap.this.put(key, value);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return (o instanceof Entry) && key.equals(((Entry) o).getKey());
+        }
+
+        @Override
+        public int hashCode() {
+            final V value = BTreeMap.this.get(key);
+            return (key == null ? 0 : key.hashCode()) ^
+                    (value == null ? 0 : value.hashCode());
+        }
+
+    }
+
+    @Override
+    public boolean containsKey(Object key) {
+        return get(key)!=null;
+    }
+
+    @Override
+    public boolean containsValue(Object value){
+        return values.contains(value);
+    }
+
+    public V remove(Object key) {
+        //TODO btree remove
+        throw new UnsupportedOperationException("not implemented yet");
+    }
+
+
+    @Override
+    public void clear() {
+        //TODO clear
+    }
+
+    final private Set<K> keySet = new AbstractSet<K>(){
+
+        @Override
+        public boolean isEmpty() {
+            return BTreeMap.this.isEmpty();
+        }
+
+        @Override
+        public int size() {
+            return BTreeMap.this.size();
+        }
+
+        @Override
+        public boolean contains(Object o) {
+            return BTreeMap.this.containsKey(o);
+        }
+
+        @Override
+        public Iterator<K> iterator() {
+            return new BTreeKeyIterator();
+        }
+
+        @Override
+        public boolean add(K k) {
+            return false;
+        }
+
+        @Override
+        public boolean remove(Object o) {
+            return BTreeMap.this.remove(o)!=null;
+        }
+
+        @Override
+        public void clear() {
+            BTreeMap.this.clear();
+        }
+    };
+
+    @Override
+    public Set<K> keySet() {
+        return keySet;
+    }
+
+    final private Collection<V> values = new AbstractCollection<V>() {
+        @Override
+        public int size() {
+            return BTreeMap.this.size();
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return BTreeMap.this.isEmpty();
+        }
+
+
+        @Override
+        public Iterator<V> iterator() {
+            return new BTreeValueIterator();
+        }
+
+
+        @Override
+        public boolean add(V v) {
+            return false;
+        }
+
+        @Override
+        public boolean remove(Object o) {
+            return false;
+        }
+
+
+        @Override
+        public void clear() {
+            BTreeMap.this.clear();
+        }
+    };
+
+    @Override
+    public Collection<V> values() {
+        return values;
+    }
+
+    private final Set<Entry<K, V>> entrySet = new AbstractSet<Entry<K, V>>(){
+
+        @Override
+        public int size() {
+            return BTreeMap.this.size();
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return BTreeMap.this.isEmpty();
+        }
+
+        @Override
+        public boolean contains(Object o) {
+            if(o instanceof  Entry){
+                Entry e = (Entry) o;
+                Object val = BTreeMap.this.get(e.getKey());
+                return val!=null && val.equals(e.getValue());
+            }else
+                return false;
+        }
+
+        @Override
+        public Iterator<Entry<K, V>> iterator() {
+            return new BTreeEntryIterator();
+        }
+
+        @Override
+        public boolean add(Entry<K, V> kvEntry) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean remove(Object o) {
+            return false;  //To change body of implemented methods use File | Settings | File Templates.
+        }
+
+
+        @Override
+        public void clear() {
+            BTreeMap.this.clear();
+        }
+    };
+
+    @Override
+    public Set<Entry<K, V>> entrySet() {
+        return entrySet;
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return !keySet.iterator().hasNext();
+    }
+
+    @Override
+    public int size(){
+        long size = 0;
+        Iterator iter = keySet.iterator();
+        while(iter.hasNext()){
+            iter.next();
+            size++;
+        }
+        return (int) size;
+    }
+
+    @Override
+    public V putIfAbsent(K key, V value) {
+        if(key == null || value == null) throw new NullPointerException();
+        return put2(key, value, true);
+    }
+
+    @Override
+    public boolean remove(Object key, Object value) {
+        if(key == null || value == null) throw new NullPointerException();
+        return false;   //TODO concurrent stuff
+    }
+
+    @Override
+    public boolean replace(K key, V oldValue, V newValue) {
+        if(key == null || oldValue == null || newValue == null ) throw new NullPointerException();
+
+        long current = rootRecid;
+        BNode node = recman.recordGet(current, NODE_SERIALIZER);
+        //dive until leaf is found
+        while(!node.isLeaf()){
+            current = nextDir((DirNode) node, key);
+            node = recman.recordGet(current, NODE_SERIALIZER);
+        }
+
+        lockNode(current);
+        LeafNode leaf = (LeafNode) recman.recordGet(current, NODE_SERIALIZER);
+
+        int pos = findChildren(key, node.keys());
+        while(pos==leaf.keys.length){
+            //follow leaf link until necessary
+            lockNode(leaf.next);
+            unlockNode(current);
+            current = leaf.next;
+            leaf = (LeafNode) recman.recordGet(current, NODE_SERIALIZER);
+            pos = findChildren(key, node.keys());
+        }
+
+        if(key.equals(leaf.keys[pos]) && oldValue.equals(leaf.vals[pos])){
+            Object[] vals = Arrays.copyOf(leaf.vals, leaf.vals.length);
+            vals[pos] = newValue;
+            leaf = new LeafNode(Arrays.copyOf(leaf.keys, leaf.keys.length), vals, leaf.next);
+            recman.recordUpdate(current, leaf, NODE_SERIALIZER);
+            unlockNode(current);
+            return true;
+        }else{
+            unlockNode(current);
+            return false;
+        }
+    }
+
+    @Override
+    public V replace(K key, V value) {
+        if(key == null || value == null) throw new NullPointerException();
+
+        long current = rootRecid;
+        BNode node = recman.recordGet(current, NODE_SERIALIZER);
+        //dive until leaf is found
+        while(!node.isLeaf()){
+            current = nextDir((DirNode) node, key);
+            node = recman.recordGet(current, NODE_SERIALIZER);
+        }
+
+        lockNode(current);
+        LeafNode leaf = (LeafNode) recman.recordGet(current, NODE_SERIALIZER);
+
+        int pos = findChildren(key, node.keys());
+        while(pos==leaf.keys.length){
+            //follow leaf link until necessary
+            lockNode(leaf.next);
+            unlockNode(current);
+            current = leaf.next;
+            leaf = (LeafNode) recman.recordGet(current, NODE_SERIALIZER);
+            pos = findChildren(key, node.keys());
+        }
+
+        if(key.equals(leaf.keys[pos])){
+            Object[] vals = Arrays.copyOf(leaf.vals, leaf.vals.length);
+            V oldVal = (V) vals[pos];
+            vals[pos] = value;
+            leaf = new LeafNode(Arrays.copyOf(leaf.keys, leaf.keys.length), vals, leaf.next);
+            recman.recordUpdate(current, leaf, NODE_SERIALIZER);
+            unlockNode(current);
+            return oldVal;
+        }else{
+            unlockNode(current);
+            return null;
+        }
     }
 
 }
