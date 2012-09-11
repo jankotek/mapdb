@@ -88,8 +88,6 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         }
     };
 
-    final static boolean readonly = false;
-
 
     static final Serializer<long[][]>DIR_SERIALIZER = new Serializer<long[][]>() {
         @Override
@@ -289,9 +287,6 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
     @Override
     public V put(final K key, final V value){
-        if (readonly)
-            throw new UnsupportedOperationException("readonly");
-
         if (key == null)
             throw new IllegalArgumentException("null key");
 
@@ -398,8 +393,6 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
     @Override
     public V remove(Object key){
-        if (readonly)
-            throw new UnsupportedOperationException("readonly");
 
         final int h = hash(key);
         final int segment = h >>>28;

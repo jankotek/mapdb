@@ -7,63 +7,21 @@ import java.util.*;
 
 public class BTreeMapTest extends JdbmTestCase{
 
-    static class TNode{
-        List nodes;
-        TNode(Object... args){
-            this.nodes = Arrays.asList(args);
-        }
 
-        public String toString(){
-            String ret = "new TNode(";
-            Iterator i = nodes.iterator();
-            while(i.hasNext()){
-                Object next = i.next();
-                if(next instanceof TNode){
-                    ret+="  "+next.toString()+", ";
-                }else{
-                    ret+="  "+next.toString()+", ";
-                }
-            }
-            ret+=")\n ";
-            return ret;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            TNode tNode = (TNode) o;
-
-            if (nodes != null ? !nodes.equals(tNode.nodes) : tNode.nodes != null) return false;
-
-            return true;
-        }
-
-        @Override
-        public int hashCode() {
-            return nodes != null ? nodes.hashCode() : 0;
-        }
+    public static void print(BTreeMap m) {
+        printRecur(m, m.rootRecid, "");
     }
 
-    static void print(BTreeMap m){
-        System.out.println(TNode(m));
-    }
-
-    static TNode TNode(BTreeMap m){
-        return TNodeRecur(m, m.rootRecid);
-    }
-
-    static  private TNode TNodeRecur(BTreeMap m, long recid) {
-        TNode ret = new TNode();
-        ret.nodes = new ArrayList();
+    private static void printRecur(BTreeMap m, long recid, String s) {
+        if(s.length()>100) throw new InternalError();
         BTreeMap.BNode n = (BTreeMap.BNode) m.recman.recordGet(recid, m.NODE_SERIALIZER);
-        for(int i=0;i<n.keys().length;i++){
-            ret.nodes.add(n.keys()[i]);
-            if(!n.isLeaf() && n.child()[i]!=0)
-                ret.nodes.add(TNodeRecur(m,n.child()[i]));
+        System.out.println(s+recid+"-"+n);
+        if(!n.isLeaf()){
+            for(long recid2 : n.child()){
+                if(recid2!=0)
+                    printRecur(m, recid2, s+"  ");
+            }
         }
-        return ret;
     }
 
 
@@ -245,5 +203,17 @@ public class BTreeMapTest extends JdbmTestCase{
         }
     }
 
+    @Test public void delete(){
+        BTreeMap m = new BTreeMap(recman,5);
+        m.put(10,10);
+        //m.put(20,20);
+        m.put(22,22);
+        //m.put(30,30);
+        m.put(42,42);
+        print(m);
+    }
+
+
 }
+
 
