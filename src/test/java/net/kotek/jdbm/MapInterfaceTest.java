@@ -257,6 +257,7 @@ public abstract class MapInterfaceTest<K, V> extends TestCase {
 
         if (supportsClear) {
             map.clear();
+            assertEquals(0, map.size());
             assertTrue(map.isEmpty());
         } else {
             try {

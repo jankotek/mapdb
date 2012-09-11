@@ -205,12 +205,15 @@ public class BTreeMapTest extends JdbmTestCase{
 
     @Test public void delete(){
         BTreeMap m = new BTreeMap(recman,5);
-        m.put(10,10);
-        //m.put(20,20);
-        m.put(22,22);
-        //m.put(30,30);
-        m.put(42,42);
-        print(m);
+        for(int i:new int[]{
+                10, 20, 42,
+                //44, 68, 20, 93, 85, 71, 62, 77, 4, 37, 66
+        }){
+            m.put(i,i);
+        }
+        assertEquals(10, m.remove(10));
+        assertEquals(20, m.remove(20));
+        assertEquals(42, m.remove(42));
     }
 
 
