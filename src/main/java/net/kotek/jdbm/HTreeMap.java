@@ -705,7 +705,6 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 return HTreeMap.this.remove(key, e.getValue());
             }
             return false;
-
         }
 
 

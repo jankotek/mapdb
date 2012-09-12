@@ -1,7 +1,6 @@
 package net.kotek.jdbm;
 
 
-import javax.swing.plaf.basic.BasicInternalFrameTitlePane;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -11,9 +10,10 @@ import java.util.concurrent.ConcurrentMap;
 /**
  * Concurrent B-linked-tree.
  */
-public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSortedMap<K,V>, ConcurrentMap<K,V> {
+public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
+        ConcurrentSortedMap<K,V>, ConcurrentMap<K,V>, SortedMap<K,V> {
 
-    protected static final Serializer SERIALIZER = Serializer.BASIC_SERIALIZER;
+    protected final Serializer SERIALIZER = Serializer.BASIC_SERIALIZER;
 
     //TODO infinity objects can be replaced with nulls? but what if key was deleted?
     protected static final Object NEG_INFINITY = new Object(){
@@ -30,12 +30,13 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
 
     protected final LongConcurrentHashMap<Thread> nodeWriteLocks = new LongConcurrentHashMap<Thread>();
 
-    protected final int k;
+    protected final int maxNodeSize;
 
     protected final RecordManager recman;
 
     protected final long treeRecid;
 
+    protected final boolean hasValues;
 
 
     static class Root{
@@ -52,25 +53,25 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
     }
 
     final static class DirNode implements BNode{
-        final Object[] v;
+        final Object[] keys;
         final long[] child;
 
-        DirNode(Object[] v, long[] child) {
-            this.v = v;
+        DirNode(Object[] keys, long[] child) {
+            this.keys = keys;
             this.child = child;
         }
 
         @Override public boolean isLeaf() { return false;}
 
-        @Override public Object[] keys() { return v;}
+        @Override public Object[] keys() { return keys;}
         @Override public Object[] vals() { return null;}
 
-        @Override public Object highKey() {return v[v.length-1];}
+        @Override public Object highKey() {return keys[keys.length-1];}
 
         @Override public long[] child() { return child;}
 
         @Override public String toString(){
-            return "Dir(K"+Arrays.toString(v)+", C"+Arrays.toString(child)+")";
+            return "Dir(K"+Arrays.toString(keys)+", C"+Arrays.toString(child)+")";
         }
 
     }
@@ -103,8 +104,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
     }
 
 
-
-    final Serializer<BNode> NODE_SERIALIZER = new Serializer<BNode>() {
+    final Serializer<BNode> nodeSerializer = new Serializer<BNode>() {
         @Override
         public void serialize(DataOutput out, BNode value) throws IOException {
             final boolean isLeaf = value.isLeaf();
@@ -113,7 +113,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
             //first byte encodes if is leaf (first bite) and length (last seven bites)
             if(CC.ASSERT && value.keys().length>127) throw new InternalError();
             if(CC.ASSERT && !isLeaf && value.child().length!= value.keys().length) throw new InternalError();
-            if(CC.ASSERT && isLeaf && value.vals().length!= value.keys().length) throw new InternalError();
+            if(CC.ASSERT && isLeaf && hasValues && value.vals().length!= value.keys().length) throw new InternalError();
 
             final int header = (isLeaf?0x80:0)  | value.keys().length;
             out.write(header);
@@ -132,7 +132,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
                 SERIALIZER.serialize(out, key);
             }
 
-            if(isLeaf)
+            if(isLeaf && hasValues)
                 for(Object val:value.vals()){
                     SERIALIZER.serialize(out,val);
                 }
@@ -151,9 +151,12 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
                 Object[] keys = new  Object[size];
                 for(int i=0;i<size;i++)
                     keys[i] = SERIALIZER.deserialize(in,-1);
-                Object[] vals = new Object[size];
-                for(int i=0;i<size;i++){
-                    vals[i] = SERIALIZER.deserialize(in, -1);
+                Object[] vals  = null;
+                if(hasValues){
+                    vals = new Object[size];
+                    for(int i=0;i<size;i++){
+                        vals[i] = SERIALIZER.deserialize(in, -1);
+                    }
                 }
                 return new LeafNode(keys, vals, next);
             }else{
@@ -170,12 +173,16 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
 
 
     /** constructor used to create new tree*/
-    public BTreeMap(RecordManager recman, int maxNodeSize) {
+    public BTreeMap(RecordManager recman, int maxNodeSize, boolean hasValues) {
+        if(maxNodeSize%2!=0) throw new IllegalArgumentException("maxNodeSize must be dividable by 2");
+        if(maxNodeSize<6) throw new IllegalArgumentException("maxNodeSize too low");
+        if(maxNodeSize>126) throw new IllegalArgumentException("maxNodeSize too high");
         this.recman = recman;
         LeafNode emptyRoot = new LeafNode(new Object[]{NEG_INFINITY, POS_INFINITY}, new Object[]{null, null}, 0);
-        this.rootRecid = recman.recordPut(emptyRoot, NODE_SERIALIZER);
+        this.rootRecid = recman.recordPut(emptyRoot, nodeSerializer);
         this.treeRecid = 0;
-        this.k = maxNodeSize/2;
+        this.maxNodeSize = maxNodeSize;
+        this.hasValues = hasValues;
     }
 
 
@@ -212,12 +219,12 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
         if(key==null) return null;
         K v = (K) key;
         long current = rootRecid;
-        BNode A = recman.recordGet(current, NODE_SERIALIZER);
+        BNode A = recman.recordGet(current, nodeSerializer);
 
         //dive until  leaf
         while(!A.isLeaf()){
             current = nextDir((DirNode) A, v);
-            A = recman.recordGet(current, NODE_SERIALIZER);
+            A = recman.recordGet(current, nodeSerializer);
         }
 
         //now at leaf level
@@ -225,19 +232,22 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
         int pos = findChildren(v, leaf.keys);
         while(pos == leaf.keys.length){
             //follow next link on leaf until necessary
-            leaf = (LeafNode) recman.recordGet(leaf.next, NODE_SERIALIZER);
+            leaf = (LeafNode) recman.recordGet(leaf.next, nodeSerializer);
             pos = findChildren(v, leaf.keys);
         }
 
+        if(pos == 1 && leaf.keys.length==2){
+            return null; //empty node
+        }
         //finish search
         if(v.equals(leaf.keys[pos]))
-            return (V) leaf.vals[pos];
+            return (V) (hasValues? leaf.vals[pos] : JdbmUtil.EMPTY_STRING);
         else
             return null;
     }
 
     protected long nextDir(DirNode d, Object key) {
-        int pos = findChildren(key, d.v) - 1;
+        int pos = findChildren(key, d.keys) - 1;
         if(pos<0) pos = 0;
         return d.child[pos];
     }
@@ -255,7 +265,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
         Deque<Long> stack = new LinkedList<Long>();
         long current = rootRecid;
 
-        BNode A = recman.recordGet(current, NODE_SERIALIZER);
+        BNode A = recman.recordGet(current, nodeSerializer);
         while(!A.isLeaf()){
             long t = current;
             current = nextDir((DirNode) A, v);
@@ -264,7 +274,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
             }else{
                 stack.push(t);
             }
-            A = recman.recordGet(current, NODE_SERIALIZER);
+            A = recman.recordGet(current, nodeSerializer);
         }
         int level = 1;
 
@@ -273,21 +283,25 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
             boolean found = true;
             do{
                 lockNode(current);
-                A = recman.recordGet(current, NODE_SERIALIZER);
+                A = recman.recordGet(current, nodeSerializer);
                 int pos = findChildren(v, A.keys());
                 if(pos<A.keys().length-1 && v.equals(A.keys()[pos])){
 
-                    V oldVal = (V) A.vals()[pos];
+                    V oldVal = (V) (hasValues? A.vals()[pos] : JdbmUtil.EMPTY_STRING);
                     if(putOnlyIfAbsent){
                         //is not absent, so quit
                         unlockNode(current);
                         return oldVal;
                     }
                     //insert new
-                    Object[] vals = Arrays.copyOf(A.vals(), A.vals().length);
-                    vals[pos] = value;
+                    Object[] vals = null;
+                    if(hasValues){
+                        Arrays.copyOf(A.vals(), A.vals().length);
+                        vals[pos] = value;
+                    }
+
                     A = new LeafNode(Arrays.copyOf(A.keys(), A.keys().length), vals, ((LeafNode)A).next);
-                    recman.recordUpdate(current, A, NODE_SERIALIZER);
+                    recman.recordUpdate(current, A, nodeSerializer);
                     //already in here
                     unlockNode(current);
                     return oldVal;
@@ -302,7 +316,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
                     while(pos2 == A.keys().length){
                         //TODO lock?
                         current = ((LeafNode)A).next;
-                        A = recman.recordGet(current, NODE_SERIALIZER);
+                        A = recman.recordGet(current, nodeSerializer);
                     }
                 }
 
@@ -311,20 +325,20 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
 
 
             // can be new item inserted into A without splitting it?
-            if(A.keys().length<k*2){
+            if(A.keys().length - (A.isLeaf()?2:1)<maxNodeSize){
                 int pos = findChildren(v, A.keys());
                 Object[] keys = JdbmUtil.arrayPut(A.keys(), pos, v);
 
                 if(A.isLeaf()){
-                    Object[] vals = JdbmUtil.arrayPut(A.vals(), pos, value);
+                    Object[] vals = hasValues? JdbmUtil.arrayPut(A.vals(), pos, value): null;
                     LeafNode n = new LeafNode(keys, vals, ((LeafNode)A).next);
-                    recman.recordUpdate(current, n, NODE_SERIALIZER);
+                    recman.recordUpdate(current, n, nodeSerializer);
                 }else{
                     if(CC.ASSERT && p==0)
                         throw new InternalError();
                     long[] child = JdbmUtil.arrayLongPut(A.child(), pos, p);
                     DirNode d = new DirNode(keys, child);
-                    recman.recordUpdate(current, d, NODE_SERIALIZER);
+                    recman.recordUpdate(current, d, nodeSerializer);
                 }
 
                 unlockNode(current);
@@ -335,13 +349,17 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
 
                 final int pos = findChildren(v, A.keys());
                 final Object[] keys = JdbmUtil.arrayPut(A.keys(), pos, v);
-                final Object[] vals = A.isLeaf()? JdbmUtil.arrayPut(A.vals(), pos, value) : null;
+                final Object[] vals = (A.isLeaf() && hasValues)? JdbmUtil.arrayPut(A.vals(), pos, value) : null;
                 final long[] child = A.isLeaf()? null : JdbmUtil.arrayLongPut(A.child(), pos, p);
                 final int splitPos = keys.length/2;
                 BNode B;
                 if(A.isLeaf()){
-                    Object[] vals2 = Arrays.copyOfRange(vals, splitPos, vals.length);
-                    vals2[0] = null;
+                    Object[] vals2 = null;
+                    if(hasValues){
+                        Arrays.copyOfRange(vals, splitPos, vals.length);
+                        vals2[0] = null;
+                    }
+
                     B = new LeafNode(
                                 Arrays.copyOfRange(keys, splitPos, keys.length),
                                 vals2,
@@ -350,12 +368,16 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
                     B = new DirNode(Arrays.copyOfRange(keys, splitPos, keys.length),
                                 Arrays.copyOfRange(child, splitPos, keys.length));
                 }
-                long q = recman.recordPut(B, NODE_SERIALIZER);
+                long q = recman.recordPut(B, nodeSerializer);
                 if(A.isLeaf()){  //  splitPos+1 is there so A gets new high  value (key)
                     Object[] keys2 = Arrays.copyOf(keys, splitPos+2);
                     keys2[keys2.length-1] = keys2[keys2.length-2];
-                    Object[] vals2 = Arrays.copyOf(vals, splitPos+2);
-                    vals2[vals2.length-1] = null;
+                    Object[] vals2 = null;
+                    if(hasValues){
+                        Arrays.copyOf(vals, splitPos+2);
+                        vals2[vals2.length-1] = null;
+                    }
+
                     //TODO check high/low keys overlap
                     A = new LeafNode(keys2, vals2, q);
                 }else{
@@ -363,7 +385,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
                     child2[splitPos] = q;
                     A = new DirNode(Arrays.copyOf(keys, splitPos+1), child2);
                 }
-                recman.recordUpdate(current, A, NODE_SERIALIZER);
+                recman.recordUpdate(current, A, nodeSerializer);
 
                 if(!isRoot){
                     unlockNode(current);
@@ -380,7 +402,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
                     BNode R = new DirNode(
                             new Object[]{A.keys()[0], A.highKey(), B.highKey()},
                             new long[]{current,q, 0});
-                    rootRecid = recman.recordPut(R, NODE_SERIALIZER);
+                    rootRecid = recman.recordPut(R, nodeSerializer);
                     //TODO update tree levels
                     unlockNode(current);
                     return null;
@@ -397,23 +419,21 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
 
         BTreeIterator(){
             //find left-most leaf
-            BNode node = recman.recordGet(rootRecid, NODE_SERIALIZER);
+            BNode node = recman.recordGet(rootRecid, nodeSerializer);
             while(!node.isLeaf()){
-                node = recman.recordGet(node.child()[0],NODE_SERIALIZER);
+                node = recman.recordGet(node.child()[0], nodeSerializer);
             }
             currentLeaf = (LeafNode) node;
+            currentPos = 1;
 
-            //handle empty map
-            if(currentLeaf.keys.length==2 && currentLeaf.keys[0] == NEG_INFINITY && currentLeaf.keys[1]==POS_INFINITY)
-                currentLeaf = null;
-            else
-                //handle negative infinity
-                currentPos = currentLeaf.keys[0] == NEG_INFINITY? 1: 0;
-
-            while(currentLeaf!=null && currentLeaf.keys().length==2 && currentLeaf.next!=0){
-                currentLeaf = (LeafNode) recman.recordGet(currentLeaf.next, NODE_SERIALIZER);
+            while(currentLeaf.keys.length==2){
+                //follow link until leaf is not empty
+                if(currentLeaf.next == 0){
+                    currentLeaf = null;
+                    return;
+                }
+                currentLeaf = (LeafNode) recman.recordGet(currentLeaf.next, nodeSerializer);
             }
-
         }
 
         public boolean hasNext(){
@@ -421,25 +441,31 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
         }
 
         public void remove(){
+            if(lastReturnedKey==null) throw new IllegalStateException();
             BTreeMap.this.remove(lastReturnedKey);
+            lastReturnedKey = null;
         }
 
         protected void moveToNext(){
             if(currentLeaf==null) return;
             lastReturnedKey = (K) currentLeaf.keys[currentPos];
             currentPos++;
-            if(currentPos == currentLeaf.keys.length-1 ){
+            if(currentPos == currentLeaf.keys.length-1){
                 //move to next leaf
                 if(currentLeaf.next==0){
-                    //end was reached
-                    currentPos = 0;
                     currentLeaf = null;
-                }else{
-                    currentLeaf = (LeafNode) recman.recordGet(currentLeaf.next, NODE_SERIALIZER);
-                    while(currentLeaf!=null && currentLeaf.keys().length==2 && currentLeaf.next!=0){
-                        currentLeaf = (LeafNode) recman.recordGet(currentLeaf.next, NODE_SERIALIZER);
+                    currentPos=-1;
+                    return;
+                }
+                currentPos = 1;
+                currentLeaf = (LeafNode) recman.recordGet(currentLeaf.next, nodeSerializer);
+                while(currentLeaf.keys.length==2){
+                    if(currentLeaf.next ==0){
+                        currentLeaf = null;
+                        currentPos=-1;
+                        return;
                     }
-                    currentPos = 1;
+                    currentLeaf = (LeafNode) recman.recordGet(currentLeaf.next, nodeSerializer);
                 }
             }
         }
@@ -451,34 +477,37 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
 
     private V remove2(Object key, Object value) {
         long current = rootRecid;
-        BNode A = recman.recordGet(current, NODE_SERIALIZER);
+        BNode A = recman.recordGet(current, nodeSerializer);
         while(!A.isLeaf()){
             current = nextDir((DirNode) A, key);
-            A = recman.recordGet(current, NODE_SERIALIZER);
+            A = recman.recordGet(current, nodeSerializer);
         }
-
 
         while(true){
 
             lockNode(current);
-            A = recman.recordGet(current, NODE_SERIALIZER);
+            A = recman.recordGet(current, nodeSerializer);
             int pos = findChildren(key, A.keys());
-            if(pos<A.vals().length&& key.equals(A.keys()[pos])){
+            if(pos<A.keys().length&& key.equals(A.keys()[pos])){
                 //delete from node
-                V oldVal = (V) A.vals()[pos];
+                Object oldVal = hasValues? A.vals()[pos] : JdbmUtil.EMPTY_STRING;
                 if(value!=null && !value.equals(oldVal)) return null;
 
                 Object[] keys2 = new Object[A.keys().length-1];
-                Object[] vals2 = new Object[A.vals().length-1];
                 System.arraycopy(A.keys(),0,keys2, 0, pos);
-                System.arraycopy(A.vals(),0,vals2, 0, pos);
                 System.arraycopy(A.keys(), pos+1, keys2, pos, keys2.length-pos);
-                System.arraycopy(A.vals(), pos+1, vals2, pos, vals2.length-pos);
+
+                Object[] vals2 = null;
+                if(hasValues){
+                    vals2 = new Object[A.vals().length-1];
+                    System.arraycopy(A.vals(),0,vals2, 0, pos);
+                    System.arraycopy(A.vals(), pos+1, vals2, pos, vals2.length-pos);
+                }
 
                 A = new LeafNode(keys2, vals2, ((LeafNode)A).next);
-                recman.recordUpdate(current, A, NODE_SERIALIZER);
+                recman.recordUpdate(current, A, nodeSerializer);
                 unlockNode(current);
-                return oldVal;
+                return (V) oldVal;
             }else{
                 unlockNode(current);
                 //follow link until necessary
@@ -487,7 +516,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
                     while(pos2 == A.keys().length){
                         //TODO lock?
                         current = ((LeafNode)A).next;
-                        A = recman.recordGet(current, NODE_SERIALIZER);
+                        A = recman.recordGet(current, nodeSerializer);
                     }
                 }else{
                     return null;
@@ -528,6 +557,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
             moveToNext();
             return ret;
         }
+
     }
 
     class BTreeEntryIterator extends BTreeIterator implements  Iterator<Entry<K, V>>{
@@ -617,7 +647,10 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
 
         @Override
         public boolean add(K k) {
-            return false;
+            if(BTreeMap.this.hasValues)
+                throw new UnsupportedOperationException();
+            else
+                return BTreeMap.this.put(k, (V) JdbmUtil.EMPTY_STRING) == null;
         }
 
         @Override
@@ -630,6 +663,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
             BTreeMap.this.clear();
         }
     };
+
 
     @Override
     public Set<K> keySet() {
@@ -659,10 +693,6 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
             return false;
         }
 
-        @Override
-        public boolean remove(Object o) {
-            return false;
-        }
 
 
         @Override
@@ -710,9 +740,14 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
 
         @Override
         public boolean remove(Object o) {
-            return false;  //To change body of implemented methods use File | Settings | File Templates.
+            if(o instanceof Entry){
+                Entry e = (Entry) o;
+                Object key = e.getKey();
+                if(key == null) return false;
+                return BTreeMap.this.remove(key, e.getValue());
+            }
+            return false;
         }
-
 
         @Override
         public void clear() {
@@ -758,15 +793,15 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
         if(key == null || oldValue == null || newValue == null ) throw new NullPointerException();
 
         long current = rootRecid;
-        BNode node = recman.recordGet(current, NODE_SERIALIZER);
+        BNode node = recman.recordGet(current, nodeSerializer);
         //dive until leaf is found
         while(!node.isLeaf()){
             current = nextDir((DirNode) node, key);
-            node = recman.recordGet(current, NODE_SERIALIZER);
+            node = recman.recordGet(current, nodeSerializer);
         }
 
         lockNode(current);
-        LeafNode leaf = (LeafNode) recman.recordGet(current, NODE_SERIALIZER);
+        LeafNode leaf = (LeafNode) recman.recordGet(current, nodeSerializer);
 
         int pos = findChildren(key, node.keys());
         while(pos==leaf.keys.length){
@@ -774,7 +809,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
             lockNode(leaf.next);
             unlockNode(current);
             current = leaf.next;
-            leaf = (LeafNode) recman.recordGet(current, NODE_SERIALIZER);
+            leaf = (LeafNode) recman.recordGet(current, nodeSerializer);
             pos = findChildren(key, node.keys());
         }
 
@@ -782,7 +817,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
             Object[] vals = Arrays.copyOf(leaf.vals, leaf.vals.length);
             vals[pos] = newValue;
             leaf = new LeafNode(Arrays.copyOf(leaf.keys, leaf.keys.length), vals, leaf.next);
-            recman.recordUpdate(current, leaf, NODE_SERIALIZER);
+            recman.recordUpdate(current, leaf, nodeSerializer);
             unlockNode(current);
             return true;
         }else{
@@ -796,15 +831,15 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
         if(key == null || value == null) throw new NullPointerException();
 
         long current = rootRecid;
-        BNode node = recman.recordGet(current, NODE_SERIALIZER);
+        BNode node = recman.recordGet(current, nodeSerializer);
         //dive until leaf is found
         while(!node.isLeaf()){
             current = nextDir((DirNode) node, key);
-            node = recman.recordGet(current, NODE_SERIALIZER);
+            node = recman.recordGet(current, nodeSerializer);
         }
 
         lockNode(current);
-        LeafNode leaf = (LeafNode) recman.recordGet(current, NODE_SERIALIZER);
+        LeafNode leaf = (LeafNode) recman.recordGet(current, nodeSerializer);
 
         int pos = findChildren(key, node.keys());
         while(pos==leaf.keys.length){
@@ -812,7 +847,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
             lockNode(leaf.next);
             unlockNode(current);
             current = leaf.next;
-            leaf = (LeafNode) recman.recordGet(current, NODE_SERIALIZER);
+            leaf = (LeafNode) recman.recordGet(current, nodeSerializer);
             pos = findChildren(key, node.keys());
         }
 
@@ -821,7 +856,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
             V oldVal = (V) vals[pos];
             vals[pos] = value;
             leaf = new LeafNode(Arrays.copyOf(leaf.keys, leaf.keys.length), vals, leaf.next);
-            recman.recordUpdate(current, leaf, NODE_SERIALIZER);
+            recman.recordUpdate(current, leaf, nodeSerializer);
             unlockNode(current);
             return oldVal;
         }else{
@@ -830,4 +865,45 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements ConcurrentSorted
         }
     }
 
+
+    @Override
+    public Comparator<? super K> comparator() {
+        return comparator;
+    }
+
+    @Override
+    public SortedMap<K, V> subMap(K fromKey, K toKey) {
+        throw new InternalError("not yet implemented");
+    }
+
+    @Override
+    public SortedMap<K, V> headMap(K toKey) {
+        throw new InternalError("not yet implemented");
+    }
+
+    @Override
+    public SortedMap<K, V> tailMap(K fromKey) {
+        throw new InternalError("not yet implemented");
+    }
+
+    @Override
+    public K firstKey() {
+        BNode n = recman.recordGet(rootRecid, nodeSerializer);
+        while(!n.isLeaf()){
+            n = recman.recordGet(n.child()[0], nodeSerializer);
+        }
+        LeafNode l = (LeafNode) n;
+        //follow link until necessary
+        while(l.keys.length==2){
+            if(l.next==0) return null;
+            l = (LeafNode) recman.recordGet(l.next, nodeSerializer);
+        }
+        return (K) l.keys[1];
+    }
+
+    @Override
+    public K lastKey() {
+        throw new InternalError("not yet implemented");
+        //TODO last key, not so simple with empty leaf nodes
+    }
 }

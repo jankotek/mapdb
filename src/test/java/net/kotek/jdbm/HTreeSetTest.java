@@ -32,7 +32,7 @@ import static org.junit.Assert.*;
  * Tests for HashSet which comes with JDBM. Original code comes from Apache Harmony,
  * Modified by Jan Kotek for use in JDBM
  */
-public class HTreeSet2Test extends JdbmTestCase {
+public class HTreeSetTest extends JdbmTestCase {
 
     Set hs;
 
@@ -89,7 +89,7 @@ public class HTreeSet2Test extends JdbmTestCase {
         // Test for method boolean java.util.HashSet.contains(java.lang.Object)
         assertTrue("Returned false for valid object", hs.contains(objArray[90]));
         assertTrue("Returned true for invalid Object", !hs
-                .contains(new Object()));
+                .contains(-111111));
 
     }
 

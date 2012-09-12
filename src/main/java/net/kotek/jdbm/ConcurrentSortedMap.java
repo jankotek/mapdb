@@ -1,5 +1,6 @@
 package net.kotek.jdbm;
 
+import java.util.SortedMap;
 import java.util.concurrent.ConcurrentMap;
 
 /**
@@ -10,5 +11,5 @@ import java.util.concurrent.ConcurrentMap;
  * Also NavigableMap requires bidirectional iterators which B-Linked-Tree
  * used in BTreeMap does not provide
  */
-public interface ConcurrentSortedMap<K, V> extends ConcurrentMap<K,V>{
+public interface ConcurrentSortedMap<K, V> extends ConcurrentMap<K,V>, SortedMap<K,V>{
 }

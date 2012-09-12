@@ -17,6 +17,7 @@
 
 package net.kotek.jdbm;
 
+import java.io.IOException;
 import java.util.concurrent.ConcurrentMap;
 
 public class BTreeMapTest2 extends ConcurrentMapInterfaceTest<Integer, String> {
@@ -50,14 +51,15 @@ public class BTreeMapTest2 extends ConcurrentMapInterfaceTest<Integer, String> {
 
     @Override
     protected ConcurrentMap<Integer, String> makeEmptyMap() throws UnsupportedOperationException {
-        return new BTreeMap<Integer,String>(r,6);
+        return new BTreeMap<Integer,String>(r,6,true);
     }
 
     @Override
     protected ConcurrentMap<Integer, String> makePopulatedMap() throws UnsupportedOperationException {
         ConcurrentMap<Integer, String> map = makeEmptyMap();
-        for (int i = 0; i < 100; i++)
+        for (int i = 0; i < 100; i++){
             map.put(i, "aa" + i);
+        }
         return map;
     }
 
