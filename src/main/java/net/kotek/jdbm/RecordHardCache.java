@@ -3,12 +3,12 @@ package net.kotek.jdbm;
 
 
 /**
- * Store which caches created objects using hard reference.
+ * Cache created objects using hard reference.
  * It auto-clears on low memory to prevent OutOfMemoryException.
  *
  * @author Jan Kotek
  */
-public class RecordStoreCache extends RecordStoreAsyncWrite{
+public class RecordHardCache implements RecordManager{
 
     protected final LongConcurrentHashMap<Object> cache = new LongConcurrentHashMap<Object>();
 
@@ -21,27 +21,28 @@ public class RecordStoreCache extends RecordStoreAsyncWrite{
             //TODO clear() may have high overhead, maybe just create new map instance
         }
     };
+    protected final RecordManager recman;
 
-    public RecordStoreCache(String fileName, boolean lazySerialization) {
-        super(fileName, lazySerialization);
+    public RecordHardCache(RecordManager recman) {
+        this.recman = recman;
         MemoryLowWarningSystem.addListener(lowMemoryListener);
     }
 
     @Override
     public <A> void recordUpdate(long recid, A value, Serializer<A> serializer) {
         cache.put(recid, value!=null?value:NULL);
-        super.recordUpdate(recid, value, serializer);
+        recman.recordUpdate(recid, value, serializer);
     }
 
     @Override
     public void recordDelete(long recid) {
         cache.remove(recid);
-        super.recordDelete(recid);
+        recman.recordDelete(recid);
     }
 
     @Override
     public <A> long recordPut(A value, Serializer<A> serializer) {
-        final long recid = super.recordPut(value, serializer);
+        final long recid = recman.recordPut(value, serializer);
         cache.put(recid,value!=null?value:NULL);
         return recid;
     }
@@ -51,7 +52,7 @@ public class RecordStoreCache extends RecordStoreAsyncWrite{
         A v = (A) cache.get(recid);
         if(v==NULL) return null;
         if(v!=null) return v;
-        v =  super.recordGet(recid, serializer);
+        v =  recman.recordGet(recid, serializer);
         cache.put(recid, v!=null?v:NULL);
         return v;
     }
@@ -59,7 +60,7 @@ public class RecordStoreCache extends RecordStoreAsyncWrite{
     @Override
     public void close() {
         MemoryLowWarningSystem.removeListener(lowMemoryListener);
-        super.close();
+        recman.close();
     }
 
 

@@ -13,8 +13,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class RecordStore implements RecordManager {
 
-    private final File dataFile;
-    private final File indexFile;
+    protected final boolean inMemory;
 
     private FileChannel dataFileChannel;
     private FileChannel indexFileChannel;
@@ -82,28 +81,31 @@ public class RecordStore implements RecordManager {
 
 
     public RecordStore(String fileName) {
-        this.dataFile = new File(fileName+".d");
-        this.indexFile = new File(fileName+".i");
+        this.inMemory = fileName ==null;
         try{
             writeLock_lock();
 
-            dataFileChannel = new RandomAccessFile(dataFile, "rw").getChannel();
-            indexFileChannel = new RandomAccessFile(indexFile, "rw").getChannel();
 
-            if(!dataFile.exists() || dataFileChannel.size()==0){
+            File dataFile = inMemory? null : new File(fileName+".d");
+            File indexFile = inMemory? null : new File(fileName+".i");
+
+            if(inMemory){
+                dataBufs[0] = ByteBuffer.allocate(1<<16);
+                indexBufs[0] = ByteBuffer.allocate(1<<16);
+                writeInitValues();
+
+            }else if(!dataFile.exists() || dataFile.length()==0){
                 //store does not exist, create files
+                dataFileChannel = new RandomAccessFile(dataFile, "rw").getChannel();
+                indexFileChannel =new RandomAccessFile(indexFile, "rw").getChannel();
 
                 dataBufs[0] =  dataFileChannel.map(FileChannel.MapMode.READ_WRITE, 0, BUF_GROWTH);
                 indexBufs[0] =  indexFileChannel.map(FileChannel.MapMode.READ_WRITE, 0,BUF_GROWTH);
-
-                //write headers
-                dataBufs[0].putLong(0, HEADER);
-                indexValPut(0L,HEADER);
-
-                //and set current sizes
-                indexValPut(RECID_CURRENT_PHYS_FILE_SIZE, 8L);
-                indexValPut(RECID_CURRENT_INDEX_FILE_SIZE, INDEX_OFFSET_START * 8);
+                writeInitValues();
             }else{
+                dataFileChannel = new RandomAccessFile(dataFile, "rw").getChannel();
+                indexFileChannel =new RandomAccessFile(indexFile, "rw").getChannel();
+
                 //store exists, open
                 final long dataFileSize = dataFileChannel.size();
                 final long indexFileSize = indexFileChannel.size();
@@ -152,6 +154,16 @@ public class RecordStore implements RecordManager {
             writeLock_unlock();
         }
 
+    }
+
+    private void writeInitValues() {
+        //write headers
+        dataBufs[0].putLong(0, HEADER);
+        indexValPut(0L,HEADER);
+
+        //and set current sizes
+        indexValPut(RECID_CURRENT_PHYS_FILE_SIZE, 8L);
+        indexValPut(RECID_CURRENT_INDEX_FILE_SIZE, INDEX_OFFSET_START * 8);
     }
 
 
@@ -222,10 +234,18 @@ public class RecordStore implements RecordManager {
                 indexBufs[indexSlot] =  indexBuf;
             }else if(indexSize%BUF_SIZE>=indexBuf.capacity()){
                 //grow buffer
-                indexBuf = indexFileChannel.map(
+                if(inMemory){
+                    int newSize = Math.min(BUF_SIZE, indexBuf.capacity()*2);
+                    ByteBuffer newBuf = ByteBuffer.allocate(newSize);
+                    indexBuf.rewind();
+                    newBuf.put(indexBuf);
+                    indexBuf = newBuf;
+                }else{
+                    indexBuf = indexFileChannel.map(
                         FileChannel.MapMode.READ_WRITE,
                         (indexSize/BUF_SIZE)*BUF_SIZE,
                         indexBuf.capacity() + BUF_GROWTH);
+                }
                 if(CC.ASSERT && indexBuf.capacity()>BUF_SIZE) throw new InternalError();
 //                        //force old buffer to be written
 //                        if(indexBuf instanceof MappedByteBuffer){
@@ -352,10 +372,12 @@ public class RecordStore implements RecordManager {
             indexBufs = null;
 
 //            dataFileChannel.force(true);
-            dataFileChannel.close();
+            if(dataFileChannel!=null)
+                dataFileChannel.close();
             dataFileChannel = null;
 //            indexFileChannel.force(true);
-            indexFileChannel.close();
+            if(indexFileChannel!=null)
+                indexFileChannel.close();
             indexFileChannel = null;
 
         }catch(IOException e){
@@ -513,15 +535,25 @@ public class RecordStore implements RecordManager {
                 //TODO optimize remap to grow slower
                 int newCapacity = dataBuf.capacity();
                 while(physFileSize%BUF_SIZE+requiredSize>newCapacity){
-                    newCapacity+=BUF_GROWTH;
+                    if(inMemory)
+                        newCapacity*=2;
+                    else
+                        newCapacity+=BUF_GROWTH;
                 }
 
                 newCapacity = Math.min(BUF_SIZE, newCapacity);
 
-                final ByteBuffer dataBuf2 =
-                            dataFileChannel.map(FileChannel.MapMode.READ_WRITE,
-                                    ((physFileSize/BUF_SIZE)*BUF_SIZE),
-                                    newCapacity);
+
+                ByteBuffer dataBuf2;
+                if(inMemory){
+                    dataBuf2 = ByteBuffer.allocate(newCapacity);
+                    dataBuf.rewind();
+                    dataBuf2.put(dataBuf);
+                }else{
+                    dataBuf2 = dataFileChannel.map(FileChannel.MapMode.READ_WRITE,
+                            ((physFileSize/BUF_SIZE)*BUF_SIZE),
+                            newCapacity);
+                }
                 dataBufs[((int) (physFileSize / BUF_SIZE))]  = dataBuf2;
 
 //                //force old buffer to be written

@@ -254,7 +254,7 @@ public class HTreeMap2Test extends JdbmTestCase {
 
     @Test public void clear(){
         HTreeMap m = new HTreeMap(recman,true);
-        for(Integer i=0;i<1e5;i++){
+        for(Integer i=0;i<100;i++){
             m.put(i,i);
         }
         m.clear();

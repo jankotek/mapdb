@@ -23,13 +23,7 @@ public class HTreeMap3Test extends ConcurrentMapInterfaceTest<Integer, String> {
         super(false, false, true, true, true, true);
     }
 
-    RecordStore r;
-
-    public void setUp() throws Exception {
-        JdbmTestCase c = new JdbmTestCase(){};
-        c.setUp();
-        r = new RecordStoreCache(c.fileName, false);
-    }
+    RecordStore r = new RecordStore(null);
 
     @Override
     protected Integer getKeyNotInPopulatedMap() throws UnsupportedOperationException {

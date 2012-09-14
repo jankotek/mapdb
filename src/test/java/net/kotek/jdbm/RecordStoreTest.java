@@ -296,6 +296,19 @@ public class RecordStoreTest extends JdbmTestCase {
         }
     }
 
+    @Test public void in_memory_test(){
+        RecordStore recman = new RecordStore(null);
+        Map<Long, Integer> recids = new HashMap<Long,Integer>();
+        for(int i = 0;i<100000;i++){
+            long recid = recman.recordPut(i, Serializer.BASIC_SERIALIZER);
+            recids.put(recid, i);
+        }
+        for(Long recid: recids.keySet()){
+            assertEquals(recids.get(recid), recman.recordGet(recid, Serializer.BASIC_SERIALIZER));
+        }
+    }
+
+
 
 
 }

@@ -17,7 +17,6 @@
 
 package net.kotek.jdbm;
 
-import java.io.IOException;
 import java.util.concurrent.ConcurrentMap;
 
 public class BTreeMapTest2 extends ConcurrentMapInterfaceTest<Integer, String> {
@@ -26,13 +25,8 @@ public class BTreeMapTest2 extends ConcurrentMapInterfaceTest<Integer, String> {
         super(false, false, true, true, true, true);
     }
 
-    RecordStore r;
+    RecordManager r = new RecordStore(null);
 
-    public void setUp() throws Exception {
-        JdbmTestCase c = new JdbmTestCase(){};
-        c.setUp();
-        r = new RecordStoreCache(c.fileName, false);
-    }
 
     @Override
     protected Integer getKeyNotInPopulatedMap() throws UnsupportedOperationException {

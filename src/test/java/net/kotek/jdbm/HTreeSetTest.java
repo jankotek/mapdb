@@ -32,7 +32,9 @@ import static org.junit.Assert.*;
  * Tests for HashSet which comes with JDBM. Original code comes from Apache Harmony,
  * Modified by Jan Kotek for use in JDBM
  */
-public class HTreeSetTest extends JdbmTestCase {
+public class HTreeSetTest{
+
+    RecordManager recman = new RecordStore(null);
 
     Set hs;
 
@@ -146,7 +148,6 @@ public class HTreeSetTest extends JdbmTestCase {
      * is called before a test is executed.
      */
     @Before public void setUp() throws Exception {
-        super.setUp();
         hs = new HTreeMap(recman, false).keySet();
         for (int i = 0; i < objArray.length; i++)
             hs.add(objArray[i]);

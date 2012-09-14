@@ -5,8 +5,9 @@ import static org.junit.Assert.*;
 import java.io.*;
 import java.util.*;
 
-public class BTreeMapTest extends JdbmTestCase{
+public class BTreeMapTest{
 
+    RecordManager recman = new RecordStore(null);
 
     public static void print(BTreeMap m) {
         printRecur(m, m.rootRecid, "");
@@ -126,29 +127,6 @@ public class BTreeMapTest extends JdbmTestCase{
         assertEquals(null, m.get(29));
         assertEquals(30, m.get(30));
         assertEquals(null, m.get(31));
-    }
-
-    @Test public void get_dive_link(){
-        BTreeMap m = new BTreeMap(recman,32,true);
-
-        BTreeMap.LeafNode n3 = new BTreeMap.LeafNode(new Object[]{60,70,BTreeMap.POS_INFINITY}, new Object[]{60,70, null}, 0);
-        long r3 = recman.recordPut(n3, m.nodeSerializer);
-
-        BTreeMap.LeafNode n2 = new BTreeMap.LeafNode(new Object[]{40,50}, new Object[]{40,50}, r3);
-        long r2 = recman.recordPut(n2, m.nodeSerializer);
-
-        BTreeMap.LeafNode n1 = new BTreeMap.LeafNode(new Object[]{BTreeMap.NEG_INFINITY, 10,20,30}, new Object[]{null, 10,20,30}, r2);
-        long r1 = recman.recordPut(n1, m.nodeSerializer);
-
-        BTreeMap.DirNode d = new BTreeMap.DirNode(new Object[]{BTreeMap.NEG_INFINITY, 60, BTreeMap.POS_INFINITY},
-                new long[]{r1,r3,0});
-
-        m.rootRecid = recman.recordPut(d, m.nodeSerializer);
-
-        for(int i=1;i<79;i++){
-            Integer expected = i%10==0 ? i : null;
-            assertEquals(expected, m.get(i));
-        }
     }
 
     @Test public void root_leaf_insert(){

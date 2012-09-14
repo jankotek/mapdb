@@ -37,7 +37,7 @@ public class JunkTest  extends JdbmTestCase{
 
     @Test public void test2(){
 
-        RecordStore db = new RecordStoreCache("filename",true);
+        RecordStore db = new RecordStoreAsyncWrite("filename",true);
         HTreeMap map = new HTreeMap(db, true);
         map.put(11,222);
 //do something with map
@@ -45,7 +45,7 @@ public class JunkTest  extends JdbmTestCase{
 
         long rootRecid = map.rootRecid; //save this number somewhere
 //restart JVM or whatever, and latter reopen map:
-        db = new RecordStoreCache("filename",true);
+        db = new RecordStoreAsyncWrite("filename",true);
         map = new HTreeMap(db,rootRecid);
         System.out.println(map.get(11));
 //do something with map, it is populated with previous data

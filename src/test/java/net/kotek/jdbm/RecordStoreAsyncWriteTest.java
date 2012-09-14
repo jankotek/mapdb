@@ -14,14 +14,11 @@ public class RecordStoreAsyncWriteTest extends JdbmTestCase{
 
     @Override
     protected RecordStore openRecordManager() {
-//        return new RecordStoreAsyncWrite(fileName, false);
-        return new RecordStoreCache(fileName,true);
+        return new RecordStoreAsyncWrite(fileName,true);
     }
 
 
     @Test public void write_fetch_update_delete(){
-
-
         long recid = recman.recordPut("aaa",Serializer.STRING_SERIALIZER);
         Assert.assertEquals("aaa",recman.recordGet(recid, Serializer.STRING_SERIALIZER));
         reopenStore();
@@ -39,7 +36,7 @@ public class RecordStoreAsyncWriteTest extends JdbmTestCase{
 
 
         final int threadNum = 16;
-        final int updates = 10000;
+        final int updates = 1000;
         final CountDownLatch latch = new CountDownLatch(threadNum);
         final Map<Integer,Long> recids = new ConcurrentHashMap<Integer, Long>();
 

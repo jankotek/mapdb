@@ -39,6 +39,7 @@ abstract public class JdbmTestCase {
 
     @After
     public void tearDown() throws Exception {
+        recman.close();
         for(File f:testDir.listFiles()){
             if(!f.delete())f.deleteOnExit();
         }

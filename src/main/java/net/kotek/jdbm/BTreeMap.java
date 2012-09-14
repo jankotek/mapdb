@@ -34,8 +34,6 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
 
     protected final RecordManager recman;
 
-    protected final long treeRecid;
-
     protected final boolean hasValues;
 
 
@@ -109,7 +107,6 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
         public void serialize(DataOutput out, BNode value) throws IOException {
             final boolean isLeaf = value.isLeaf();
 
-
             //first byte encodes if is leaf (first bite) and length (last seven bites)
             if(CC.ASSERT && value.keys().length>127) throw new InternalError();
             if(CC.ASSERT && !isLeaf && value.child().length!= value.keys().length) throw new InternalError();
@@ -177,12 +174,11 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
         if(maxNodeSize%2!=0) throw new IllegalArgumentException("maxNodeSize must be dividable by 2");
         if(maxNodeSize<6) throw new IllegalArgumentException("maxNodeSize too low");
         if(maxNodeSize>126) throw new IllegalArgumentException("maxNodeSize too high");
+        this.hasValues = hasValues;
         this.recman = recman;
+        this.maxNodeSize = maxNodeSize;
         LeafNode emptyRoot = new LeafNode(new Object[]{NEG_INFINITY, POS_INFINITY}, new Object[]{null, null}, 0);
         this.rootRecid = recman.recordPut(emptyRoot, nodeSerializer);
-        this.treeRecid = 0;
-        this.maxNodeSize = maxNodeSize;
-        this.hasValues = hasValues;
     }
 
 
@@ -296,7 +292,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
                     //insert new
                     Object[] vals = null;
                     if(hasValues){
-                        Arrays.copyOf(A.vals(), A.vals().length);
+                        vals = Arrays.copyOf(A.vals(), A.vals().length);
                         vals[pos] = value;
                     }
 
@@ -356,7 +352,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
                 if(A.isLeaf()){
                     Object[] vals2 = null;
                     if(hasValues){
-                        Arrays.copyOfRange(vals, splitPos, vals.length);
+                        vals2 = Arrays.copyOfRange(vals, splitPos, vals.length);
                         vals2[0] = null;
                     }
 
@@ -374,7 +370,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
                     keys2[keys2.length-1] = keys2[keys2.length-2];
                     Object[] vals2 = null;
                     if(hasValues){
-                        Arrays.copyOf(vals, splitPos+2);
+                        vals2 = Arrays.copyOf(vals, splitPos+2);
                         vals2[vals2.length-1] = null;
                     }
 
