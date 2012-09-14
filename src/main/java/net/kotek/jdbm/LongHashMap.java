@@ -193,6 +193,7 @@ class LongHashMap<V> implements Serializable, LongMap<V> {
 
 
     @Override
+    @SuppressWarnings("unchecked")
     public void clear() {
         if (elementCount > 0) {            
             elementCount = 0;            
@@ -204,13 +205,6 @@ class LongHashMap<V> implements Serializable, LongMap<V> {
         computeMaxSize();
     }
     // END android-changed
-
-    /**
-     * Returns a shallow copy of this map.
-     *
-     * @return a shallow copy of this map.
-     * @since Android 1.0
-     */
 
 
     private void computeMaxSize() {
@@ -309,10 +303,10 @@ class LongHashMap<V> implements Serializable, LongMap<V> {
         int length = (capacity == 0 ? 1 : capacity << 1);
 
         Entry<V>[] newData = newElementArray(length);
-        for (int i = 0; i < elementData.length; i++) {
-            Entry<V> entry = elementData[i];
+        for (Entry<V> anElementData : elementData) {
+            Entry<V> entry = anElementData;
             while (entry != null) {
-                int index = ((int) JdbmUtil.longHash(entry.key) & 0x7FFFFFFF) % length;
+                int index = (JdbmUtil.longHash(entry.key) & 0x7FFFFFFF) % length;
                 Entry<V> next = entry.next;
                 entry.next = newData[index];
                 newData[index] = entry;
@@ -389,7 +383,7 @@ class LongHashMap<V> implements Serializable, LongMap<V> {
     }
 
     /**
-     * @returns iterator over values in map
+     * @return iterator over values in map
      */
     @Override
     public Iterator<V> valuesIterator() {

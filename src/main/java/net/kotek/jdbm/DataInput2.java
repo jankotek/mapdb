@@ -61,8 +61,8 @@ public class DataInput2 implements DataInput {
 
     @Override
     public int readUnsignedShort() throws IOException {
-        return (((int) (buf.get(pos++) & 0xff) << 8) |
-                ((int) (buf.get(pos++) & 0xff)));
+        return (( (buf.get(pos++) & 0xff) << 8) |
+                ( (buf.get(pos++) & 0xff)));
     }
 
     @Override

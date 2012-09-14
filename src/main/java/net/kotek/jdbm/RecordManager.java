@@ -13,6 +13,10 @@ public interface RecordManager {
 
     void recordDelete(long recid);
 
+    Long getNamedRecid(String name);
+
+    void setNamedRecid(String name, Long recid);
+
     void close();
 
 }

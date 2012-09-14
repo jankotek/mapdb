@@ -171,7 +171,7 @@ class LongConcurrentHashMap< V>
         }
 
         @SuppressWarnings("unchecked")
-        static final <V> HashEntry<V>[] newArray(int i) {
+        static <V> HashEntry<V>[] newArray(int i) {
             return new HashEntry[i];
         }
     }
@@ -262,7 +262,7 @@ class LongConcurrentHashMap< V>
         }
 
         @SuppressWarnings("unchecked")
-        static final <K,V> Segment<V>[] newArray(int i) {
+        static <V> Segment<V>[] newArray(int i) {
             return new Segment[i];
         }
 
@@ -332,9 +332,9 @@ class LongConcurrentHashMap< V>
         boolean containsValue(Object value) {
             if (count != 0) { // read-volatile
                 HashEntry<V>[] tab = table;
-                int len = tab.length;
-                for (int i = 0 ; i < len; i++) {
-                    for (HashEntry<V> e = tab[i]; e != null; e = e.next) {
+                //int len = tab.length;
+                for (HashEntry<V> aTab : tab) {
+                    for (HashEntry<V> e = aTab; e != null; e = e.next) {
                         V v = e.value;
                         if (v == null) // recheck
                             v = readValueUnderLock(e);
@@ -437,11 +437,9 @@ class LongConcurrentHashMap< V>
             HashEntry<V>[] newTable = HashEntry.newArray(oldCapacity<<1);
             threshold = (int)(newTable.length * loadFactor);
             int sizeMask = newTable.length - 1;
-            for (int i = 0; i < oldCapacity ; i++) {
+            for (HashEntry<V> e : oldTable) {
                 // We need to guarantee that any existing reads of old Map can
                 //  proceed. So we cannot yet null out each bin.
-                HashEntry<V> e = oldTable[i];
-
                 if (e != null) {
                     HashEntry<V> next = e.next;
                     int idx = e.hash & sizeMask;
@@ -470,7 +468,7 @@ class LongConcurrentHashMap< V>
                             int k = p.hash & sizeMask;
                             HashEntry<V> n = newTable[k];
                             newTable[k] = new HashEntry<V>(p.key, p.hash,
-                                                             n, p.value);
+                                    n, p.value);
                         }
                     }
                 }
@@ -677,12 +675,9 @@ class LongConcurrentHashMap< V>
         }
         if (check != sum) { // Resort to locking all segments
             sum = 0;
-            for (int i = 0; i < segments.length; ++i)
-                segments[i].lock();
-            for (int i = 0; i < segments.length; ++i)
-                sum += segments[i].count;
-            for (int i = 0; i < segments.length; ++i)
-                segments[i].unlock();
+            for (Segment<V> segment : segments) segment.lock();
+            for (Segment<V> segment : segments) sum += segment.count;
+            for (Segment<V> segment : segments) segment.unlock();
         }
         if (sum > Integer.MAX_VALUE)
             return Integer.MAX_VALUE;
@@ -752,10 +747,10 @@ class LongConcurrentHashMap< V>
 
         // Try a few times without locking
         for (int k = 0; k < RETRIES_BEFORE_LOCK; ++k) {
-            int sum = 0;
+            //int sum = 0;
             int mcsum = 0;
             for (int i = 0; i < segments.length; ++i) {
-                int c = segments[i].count;
+                //int c = segments[i].count;
                 mcsum += mc[i] = segments[i].modCount;
                 if (segments[i].containsValue(value))
                     return true;
@@ -763,7 +758,7 @@ class LongConcurrentHashMap< V>
             boolean cleanSweep = true;
             if (mcsum != 0) {
                 for (int i = 0; i < segments.length; ++i) {
-                    int c = segments[i].count;
+                    //int c = segments[i].count;
                     if (mc[i] != segments[i].modCount) {
                         cleanSweep = false;
                         break;
@@ -774,19 +769,17 @@ class LongConcurrentHashMap< V>
                 return false;
         }
         // Resort to locking all segments
-        for (int i = 0; i < segments.length; ++i)
-            segments[i].lock();
+        for (Segment<V> segment : segments) segment.lock();
         boolean found = false;
         try {
-            for (int i = 0; i < segments.length; ++i) {
-                if (segments[i].containsValue(value)) {
+            for (Segment<V> segment : segments) {
+                if (segment.containsValue(value)) {
                     found = true;
                     break;
                 }
             }
         } finally {
-            for (int i = 0; i < segments.length; ++i)
-                segments[i].unlock();
+            for (Segment<V> segment : segments) segment.unlock();
         }
         return found;
     }
@@ -866,9 +859,7 @@ class LongConcurrentHashMap< V>
      */
     public boolean remove(long key, Object value) {
         final int hash = JdbmUtil.longHash(key);
-        if (value == null)
-            return false;
-        return segmentFor(hash).remove(key, hash, value) != null;
+        return value != null && segmentFor(hash).remove(key, hash, value) != null;
     }
 
     /**
@@ -901,8 +892,7 @@ class LongConcurrentHashMap< V>
      * Removes all of the mappings from this map.
      */
     public void clear() {
-        for (int i = 0; i < segments.length; ++i)
-            segments[i].clear();
+        for (Segment<V> segment : segments) segment.clear();
     }
 
 

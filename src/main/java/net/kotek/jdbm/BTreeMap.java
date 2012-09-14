@@ -10,10 +10,12 @@ import java.util.concurrent.ConcurrentMap;
 /**
  * Concurrent B-linked-tree.
  */
+@SuppressWarnings("unchecked")
 public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
         ConcurrentSortedMap<K,V>, ConcurrentMap<K,V>, SortedMap<K,V> {
 
-    protected final Serializer SERIALIZER = Serializer.BASIC_SERIALIZER;
+    protected final Serializer<Object> SERIALIZER = Serializer.BASIC_SERIALIZER;
+    public static final int DEFAULT_MAX_NODE_SIZE = 32;
 
     //TODO infinity objects can be replaced with nulls? but what if key was deleted?
     protected static final Object NEG_INFINITY = new Object(){
@@ -26,7 +28,8 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
 
     protected long rootRecid;
 
-    protected final Comparator comparator =  JdbmUtil.COMPARABLE_COMPARATOR;
+    //TODO comparator
+    protected final Comparator comparator = JdbmUtil.COMPARABLE_COMPARATOR;
 
     protected final LongConcurrentHashMap<Thread> nodeWriteLocks = new LongConcurrentHashMap<Thread>();
 
@@ -37,8 +40,29 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
     protected final boolean hasValues;
 
 
-    static class Root{
+    protected long treeRecid;
+
+
+    static class BTreeRoot implements Serializer<BTreeRoot>{
         long rootRecid;
+        boolean hasValues;
+        int maxNodeSize;
+
+        @Override
+        public void serialize(DataOutput out, BTreeRoot value) throws IOException {
+            out.writeLong(rootRecid);
+            out.writeBoolean(hasValues);
+            out.writeInt(maxNodeSize);
+        }
+
+        @Override
+        public BTreeRoot deserialize(DataInput in, int available) throws IOException {
+            BTreeRoot ret = new BTreeRoot();
+            ret.rootRecid = in.readLong();
+            ret.hasValues = in.readBoolean();
+            ret.maxNodeSize = in.readInt();
+            return ret;
+        }
     }
 
 
@@ -179,6 +203,33 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
         this.maxNodeSize = maxNodeSize;
         LeafNode emptyRoot = new LeafNode(new Object[]{NEG_INFINITY, POS_INFINITY}, new Object[]{null, null}, 0);
         this.rootRecid = recman.recordPut(emptyRoot, nodeSerializer);
+
+        saveTreeInfo();
+    }
+
+    protected void saveTreeInfo() {
+        BTreeRoot r = new BTreeRoot();
+        r.hasValues = hasValues;
+        r.rootRecid = rootRecid;
+        r.maxNodeSize = maxNodeSize;
+        if(treeRecid == 0){
+            treeRecid = recman.recordPut(r,r);
+        }else{
+            recman.recordUpdate(treeRecid,r,r);
+        }
+    }
+
+
+    /**
+     * Constructor used to load existing tree
+     */
+    public BTreeMap(RecordManager recman, long recid) {
+        this.recman = recman;
+        this.treeRecid = recid;
+        BTreeRoot r = recman.recordGet(recid, new BTreeRoot());
+        this.hasValues = r.hasValues;
+        this.rootRecid = r.rootRecid;
+        this.maxNodeSize = r.maxNodeSize;
     }
 
 
@@ -399,6 +450,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
                             new Object[]{A.keys()[0], A.highKey(), B.highKey()},
                             new long[]{current,q, 0});
                     rootRecid = recman.recordPut(R, nodeSerializer);
+                    saveTreeInfo();
                     //TODO update tree levels
                     unlockNode(current);
                     return null;
@@ -408,7 +460,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
     }
 
 
-    abstract class BTreeIterator{
+    class BTreeIterator{
         LeafNode currentLeaf;
         K lastReturnedKey;
         int currentPos;
@@ -566,9 +618,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
             return new BTreeEntry(ret);
 
         }
-
-
-    };
+    }
 
     class BTreeEntry implements Entry<K,V>{
 
@@ -619,7 +669,8 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
 
 
 
-    final private Set<K> keySet = new AbstractSet<K>(){
+
+    final private SortedSet<K> keySet = new AbstractSet2<K>(){
 
         @Override
         public boolean isEmpty() {
@@ -658,11 +709,41 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
         public void clear() {
             BTreeMap.this.clear();
         }
+
+        @Override
+        public Comparator<? super K> comparator() {
+            return BTreeMap.this.comparator();
+        }
+
+        @Override
+        public SortedSet<K> subSet(K fromElement, K toElement) {
+            return subMap(fromElement, toElement).keySet();
+        }
+
+        @Override
+        public SortedSet<K> headSet(K toElement) {
+            return headMap(toElement).keySet();
+        }
+
+        @Override
+        public SortedSet<K> tailSet(K fromElement) {
+            return tailMap(fromElement).keySet();
+        }
+
+        @Override
+        public K first() {
+            return firstKey();
+        }
+
+        @Override
+        public K last() {
+            return lastKey();
+        }
     };
 
 
     @Override
-    public Set<K> keySet() {
+    public SortedSet<K> keySet() {
         return keySet;
     }
 
@@ -702,7 +783,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
         return values;
     }
 
-    private final Set<Entry<K, V>> entrySet = new AbstractSet<Entry<K, V>>(){
+    private final SortedSet<Entry<K, V>> entrySet = new AbstractSet2<Entry<K, V>>(){
 
         @Override
         public int size() {
@@ -739,8 +820,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
             if(o instanceof Entry){
                 Entry e = (Entry) o;
                 Object key = e.getKey();
-                if(key == null) return false;
-                return BTreeMap.this.remove(key, e.getValue());
+                return key != null && BTreeMap.this.remove(key, e.getValue());
             }
             return false;
         }
@@ -749,10 +829,45 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
         public void clear() {
             BTreeMap.this.clear();
         }
+
+        @Override
+        public Comparator<? super Entry<K, V>> comparator() {
+            return new Comparator<Entry<K,V>>() {
+                @Override
+                public int compare(Entry<K, V> o1, Entry<K, V> o2) {
+                    return BTreeMap.this.comparator().compare(o1.getKey(), o2.getKey());
+                }
+            };
+        }
+
+        @Override
+        public SortedSet<Entry<K, V>> subSet(Entry<K, V> fromElement, Entry<K, V> toElement) {
+            return subMap(fromElement.getKey(), toElement.getKey()).entrySet();
+        }
+
+        @Override
+        public SortedSet<Entry<K, V>> headSet(Entry<K, V> toElement) {
+            return headMap(toElement.getKey()).entrySet();
+        }
+
+        @Override
+        public SortedSet<Entry<K, V>> tailSet(Entry<K, V> fromElement) {
+            return tailMap(fromElement.getKey()).entrySet();
+        }
+
+        @Override
+        public Entry<K, V> first() {
+            return new BTreeEntry(firstKey());
+        }
+
+        @Override
+        public Entry<K, V> last() {
+            return new BTreeEntry(lastKey());
+        }
     };
 
     @Override
-    public Set<Entry<K, V>> entrySet() {
+    public SortedSet<Entry<K, V>> entrySet() {
         return entrySet;
     }
 
@@ -764,9 +879,9 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
     @Override
     public int size(){
         long size = 0;
-        Iterator iter = keySet.iterator();
+        BTreeIterator iter = new BTreeIterator();
         while(iter.hasNext()){
-            iter.next();
+            iter.moveToNext();
             size++;
         }
         return (int) size;
@@ -868,17 +983,17 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
     }
 
     @Override
-    public SortedMap<K, V> subMap(K fromKey, K toKey) {
+    public ConcurrentSortedMap<K, V> subMap(K fromKey, K toKey) {
         throw new InternalError("not yet implemented");
     }
 
     @Override
-    public SortedMap<K, V> headMap(K toKey) {
+    public ConcurrentSortedMap<K, V> headMap(K toKey) {
         throw new InternalError("not yet implemented");
     }
 
     @Override
-    public SortedMap<K, V> tailMap(K fromKey) {
+    public ConcurrentSortedMap<K, V> tailMap(K fromKey) {
         throw new InternalError("not yet implemented");
     }
 
@@ -901,5 +1016,8 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
     public K lastKey() {
         throw new InternalError("not yet implemented");
         //TODO last key, not so simple with empty leaf nodes
+    }
+
+    private abstract class AbstractSet2<E> extends AbstractSet<E> implements SortedSet<E> {
     }
 }

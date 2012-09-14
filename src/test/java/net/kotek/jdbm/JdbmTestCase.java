@@ -41,7 +41,7 @@ abstract public class JdbmTestCase {
     public void tearDown() throws Exception {
         recman.close();
         for(File f:testDir.listFiles()){
-            if(!f.delete())f.deleteOnExit();
+            if(f!=null && !f.delete())f.deleteOnExit();
         }
     }
 
@@ -99,8 +99,8 @@ abstract public class JdbmTestCase {
     }
 
     int readUnsignedShort(ByteBuffer buf, long pos) throws IOException {
-        return (((int) (buf.get((int) pos) & 0xff) << 8) |
-                ((int) (buf.get((int) (pos+1)) & 0xff)));
+        return (( (buf.get((int) pos) & 0xff) << 8) |
+                ( (buf.get((int) (pos+1)) & 0xff)));
     }
 
 

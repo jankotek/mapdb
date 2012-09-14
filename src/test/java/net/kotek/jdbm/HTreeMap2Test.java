@@ -6,8 +6,8 @@ import java.io.IOException;
 import java.util.*;
 
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
 
+@SuppressWarnings("unchecked")
 public class HTreeMap2Test extends JdbmTestCase {
 
 
@@ -267,7 +267,7 @@ public class HTreeMap2Test extends JdbmTestCase {
         HTreeMap m = new HTreeMap<Integer, Integer>(recman, true){
             @Override
             protected int hash(Object key) {
-                return ((Integer)key).intValue();
+                return (Integer) key;
             }
         };
 

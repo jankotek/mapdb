@@ -12,9 +12,17 @@ import static org.junit.Assert.*;
 public class RecordStoreTest extends JdbmTestCase {
 
 
+    @SuppressWarnings("all")
+    @Test public void testSomeAssertions(){
+        if(RecordStore.BUF_SIZE%RecordStore.BUF_GROWTH!=0) throw new InternalError();
+        if(RecordStore.BUF_GROWTH<RecordStore.MAX_RECORD_SIZE) throw new InternalError();
+        if(RecordStore.BUF_GROWTH%8!=0) throw new InternalError();
+
+    }
+
     @Test public void testSetGet(){
 
-        long recid  = recman.recordPut(Long.valueOf(10000), Serializer.LONG_SERIALIZER);
+        long recid  = recman.recordPut((long) 10000, Serializer.LONG_SERIALIZER);
 
         Long  s2 = recman.recordGet(recid, Serializer.LONG_SERIALIZER);
 
@@ -194,6 +202,7 @@ public class RecordStoreTest extends JdbmTestCase {
 
         byte[] zero = new byte[RecordStore.NUMBER_OF_PHYS_FREE_SLOT*8];
 
+        @SuppressWarnings("all")
         final int inc = CC.FULL_TEST ? 1 : 111;
 
 

@@ -3,7 +3,6 @@ package net.kotek.jdbm;
 import java.io.IOError;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Iterator;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -23,9 +22,9 @@ import java.util.logging.Level;
 public class RecordStoreAsyncWrite extends RecordStore{
 
 
-    private long allocatedIndexFileSize;
+    //private long allocatedIndexFileSize;
 
-    private final boolean lazySerialization;
+    protected final boolean asyncSerialization;
 
     /** indicates deleted record */
     protected static final Object DELETED = new Object();
@@ -38,12 +37,13 @@ public class RecordStoreAsyncWrite extends RecordStore{
 
     final protected Object writerNotify = new Object();
 
-    protected final Thread writerThread = new Thread("JDBM writter"){
+    protected final Thread writerThread = new Thread("JDBM writer"){
         public void run(){
             writerThreadRun();
         }
     };
 
+    @SuppressWarnings("unchecked")
     private void writerThreadRun() {
         while(true)try{
             while(writes.isEmpty() && newRecids.remainingCapacity()==0){
@@ -65,7 +65,7 @@ public class RecordStoreAsyncWrite extends RecordStore{
                 if(value==DELETED){
                     RecordStoreAsyncWrite.super.recordDelete(recid);
                 }else{
-                    byte[] data = lazySerialization ? ((SerRec)value).serialize() : (byte[]) value;
+                    byte[] data = asyncSerialization ? ((SerRec)value).serialize() : (byte[]) value;
                     RecordStoreAsyncWrite.super.forceRecordUpdateOnGivenRecid(recid, data);
                 }
                 //Record will be only removed if value was not updated.
@@ -93,10 +93,11 @@ public class RecordStoreAsyncWrite extends RecordStore{
     private ArrayBlockingQueue<Long> newRecids = new ArrayBlockingQueue<Long>(128);
 
 
-    public RecordStoreAsyncWrite(String fileName, boolean lazySerialization) {
+    public RecordStoreAsyncWrite(String fileName, boolean asyncSerialization) {
         super(fileName);
-        this.lazySerialization = lazySerialization;
-        allocatedIndexFileSize = indexValGet(RECID_CURRENT_INDEX_FILE_SIZE);
+        this.asyncSerialization = asyncSerialization;
+        //TODO cache index file size
+        //allocatedIndexFileSize = indexValGet(RECID_CURRENT_INDEX_FILE_SIZE);
 
         writerThread.setDaemon(true);
         writerThread.start();
@@ -106,8 +107,8 @@ public class RecordStoreAsyncWrite extends RecordStore{
     @Override
     public <A> void recordUpdate(long recid, A value, Serializer<A> serializer) {
         Object v;
-        if(lazySerialization){
-            v = new SerRec(value, serializer);
+        if(asyncSerialization){
+            v = new SerRec<A>(value, serializer);
         }else{
             DataOutput2 out = new DataOutput2();
             try {
@@ -134,8 +135,8 @@ public class RecordStoreAsyncWrite extends RecordStore{
     public <A> long recordPut(A value, Serializer<A> serializer) {
         try{
             Object v;
-            if(lazySerialization){
-                v = new SerRec(value,serializer);
+            if(asyncSerialization){
+                v = new SerRec<A>(value,serializer);
             }else{
                 DataOutput2 out = new DataOutput2();
                 serializer.serialize(out, value);
@@ -155,12 +156,13 @@ public class RecordStoreAsyncWrite extends RecordStore{
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <A> A recordGet(long recid, Serializer<A> serializer) {
         Object d = writes.get(recid);
         if(d == DELETED){
             return null;
         }else if(d!=null){
-            if(lazySerialization)
+            if(asyncSerialization)
                 return (A) ((SerRec)d).value;
             try {
                 byte[] b = (byte[]) d;
@@ -197,6 +199,8 @@ public class RecordStoreAsyncWrite extends RecordStore{
         super.close();
     }
 
+
+    @SuppressWarnings("all")
     private final AtomicInteger writeLocksCounter = CC.ASSERT? new AtomicInteger(0) : null;
 
     @Override
@@ -235,12 +239,12 @@ public class RecordStoreAsyncWrite extends RecordStore{
     }
 
 
-    protected static class SerRec {
+    protected static class SerRec<E> {
 
-        final Object value;
-        final Serializer serializer;
+        final E value;
+        final Serializer<E> serializer;
 
-        private SerRec(Object value, Serializer serializer) {
+        private SerRec(E value, Serializer<E> serializer) {
             this.value = value;
             this.serializer = serializer;
         }

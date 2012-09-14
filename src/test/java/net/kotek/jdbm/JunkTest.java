@@ -11,6 +11,7 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 
 
+@SuppressWarnings("unchecked")
 public class JunkTest  extends JdbmTestCase{
 
 

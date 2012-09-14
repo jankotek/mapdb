@@ -41,6 +41,16 @@ public class RecordHardCache implements RecordManager{
     }
 
     @Override
+    public Long getNamedRecid(String name) {
+        return recman.getNamedRecid(name);
+    }
+
+    @Override
+    public void setNamedRecid(String name, Long recid) {
+        recman.setNamedRecid(name, recid);
+    }
+
+    @Override
     public <A> long recordPut(A value, Serializer<A> serializer) {
         final long recid = recman.recordPut(value, serializer);
         cache.put(recid,value!=null?value:NULL);
@@ -48,6 +58,7 @@ public class RecordHardCache implements RecordManager{
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <A> A recordGet(long recid, Serializer<A> serializer) {
         A v = (A) cache.get(recid);
         if(v==NULL) return null;

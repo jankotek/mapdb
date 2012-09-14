@@ -65,7 +65,7 @@ public class RecordStoreAsyncWriteTest extends JdbmTestCase{
 
         Assert.assertEquals(recids.size(),threadNum);
         for(int i = 0;i<threadNum; i++){
-            long recid = recids.get(Integer.valueOf(i));
+            long recid = recids.get(i);
 
             String expectedStr ="";
             for(int j=0;j<updates;j++)

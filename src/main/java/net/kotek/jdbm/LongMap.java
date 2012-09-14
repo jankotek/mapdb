@@ -61,7 +61,7 @@ interface LongMap<V> {
 
 
     /**
-     * @returns iterator over values in map
+     * @return iterator over values in map
      */
     Iterator<V> valuesIterator();
 

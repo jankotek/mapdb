@@ -10,11 +10,9 @@ package net.kotek.jdbm;
 
 import junit.framework.*;
 import java.util.*;
-import java.io.*;
 
+@SuppressWarnings("unchecked")
 public class LongConcurrentHashMapTest extends TestCase{
-
-
 
     /**
      * Create a map from Integers 1-5 to Strings "A"-"E".
@@ -92,7 +90,6 @@ public class LongConcurrentHashMapTest extends TestCase{
     public void testGet() {
         LongConcurrentHashMap map = map5();
         assertEquals("A", (String)map.get(1));
-        LongConcurrentHashMap empty = new LongConcurrentHashMap();
         assertNull(map.get(-1));
     }
 

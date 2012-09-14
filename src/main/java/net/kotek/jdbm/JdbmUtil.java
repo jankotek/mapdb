@@ -12,9 +12,11 @@ import java.util.logging.Logger;
 /**
  * Various IO related utilities
  */
+@SuppressWarnings("unchecked")
 final public class JdbmUtil {
 
     static final Logger LOG = Logger.getLogger("JDBM");
+
 
     public static final Comparator<Comparable> COMPARABLE_COMPARATOR = new Comparator<Comparable>() {
         @Override
@@ -39,36 +41,36 @@ final public class JdbmUtil {
      * Pack  non-negative long into output stream.
      * It will occupy 1-10 bytes depending on value (lower values occupy smaller space)
      *
-     * @param os
-     * @param value
+     * @param out DataOutput to put value into
+     * @param value to be serialized, must be non-negative
      * @throws java.io.IOException
      */
-    static public void packLong(DataOutput os, long value) throws IOException {
+    static public void packLong(DataOutput out, long value) throws IOException {
 
         if (CC.ASSERT && value < 0) {
             throw new IllegalArgumentException("negative value: keys=" + value);
         }
 
         while ((value & ~0x7FL) != 0) {
-            os.write((((int) value & 0x7F) | 0x80));
+            out.write((((int) value & 0x7F) | 0x80));
             value >>>= 7;
         }
-        os.write((byte) value);
+        out.write((byte) value);
     }
 
 
     /**
      * Unpack positive long value from the input stream.
      *
-     * @param is The input stream.
+     * @param in The input stream.
      * @return The long value.
      * @throws java.io.IOException
      */
-    static public long unpackLong(DataInput is) throws IOException {
+    static public long unpackLong(DataInput in) throws IOException {
 
         long result = 0;
         for (int offset = 0; offset < 64; offset += 7) {
-            long b = is.readUnsignedByte();
+            long b = in.readUnsignedByte();
             result |= (b & 0x7F) << offset;
             if ((b & 0x80) == 0) {
                 return result;
@@ -83,22 +85,22 @@ final public class JdbmUtil {
      * Pack  non-negative long into output stream.
      * It will occupy 1-5 bytes depending on value (lower values occupy smaller space)
      *
-     * @param os
-     * @param value
+     * @param in DataOutput to put value into
+     * @param value to be serialized, must be non-negative
      * @throws IOException
      */
 
-    static public void packInt(DataOutput os, int value) throws IOException {
+    static public void packInt(DataOutput in, int value) throws IOException {
         if (CC.ASSERT && value < 0) {
             throw new IllegalArgumentException("negative value: keys=" + value);
         }
 
         while ((value & ~0x7F) != 0) {
-            os.write(((value & 0x7F) | 0x80));
+            in.write(((value & 0x7F) | 0x80));
             value >>>= 7;
         }
 
-        os.write((byte) value);
+        in.write((byte) value);
     }
 
     static public int unpackInt(DataInput is) throws IOException {

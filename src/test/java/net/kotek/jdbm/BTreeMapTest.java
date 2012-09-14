@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 import java.io.*;
 import java.util.*;
 
+@SuppressWarnings("unchecked")
 public class BTreeMapTest{
 
     RecordManager recman = new RecordStore(null);

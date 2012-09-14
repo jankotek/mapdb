@@ -6,9 +6,10 @@ import java.io.IOError;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
-import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class RecordStore implements RecordManager {
@@ -44,6 +45,7 @@ public class RecordStore implements RecordManager {
     static final int RECID_FREE_INDEX_SLOTS = 3;
 
     //TODO slots 4 to 18 are currently unused
+    static final int RECID_NAMED_RECODS = 4;
     /**
      * This recid is reserved for user usage. You may put whatever you want here
      * It is only used by JDBM during unit tests, not at production
@@ -72,15 +74,14 @@ public class RecordStore implements RecordManager {
     /** offset in index file from which normal physid starts */
     static final int INDEX_OFFSET_START = RECID_FREE_PHYS_RECORDS_START +NUMBER_OF_PHYS_FREE_SLOT;
 
-    static{
-        if(CC.ASSERT && BUF_SIZE%BUF_GROWTH!=0) throw new InternalError();
-        if(CC.ASSERT && BUF_GROWTH<MAX_RECORD_SIZE) throw new InternalError();
-        if(CC.ASSERT && BUF_GROWTH%8!=0) throw new InternalError();
-    }
+
+
 
 
 
     public RecordStore(String fileName) {
+
+
         this.inMemory = fileName ==null;
         try{
             writeLock_lock();
@@ -164,6 +165,8 @@ public class RecordStore implements RecordManager {
         //and set current sizes
         indexValPut(RECID_CURRENT_PHYS_FILE_SIZE, 8L);
         indexValPut(RECID_CURRENT_INDEX_FILE_SIZE, INDEX_OFFSET_START * 8);
+
+        forceRecordUpdateOnGivenRecid(RECID_NAMED_RECODS, new byte[]{});
     }
 
 
@@ -351,6 +354,29 @@ public class RecordStore implements RecordManager {
         }
     }
 
+    @Override
+    @SuppressWarnings("unchecked")
+    public Long getNamedRecid(String name) {
+        Map<String, Long> recids = (Map<String, Long>) recordGet(RECID_NAMED_RECODS, Serializer.BASIC_SERIALIZER);
+        if(recids == null) return null;
+        return recids.get(name);
+    }
+
+    protected final Object nameRecidLock = new Object();
+
+    @Override
+    @SuppressWarnings("unchecked")
+   public void setNamedRecid(String name, Long recid) {
+        synchronized (nameRecidLock){
+            Map<String, Long> recids = (Map<String, Long>) recordGet(RECID_NAMED_RECODS, Serializer.BASIC_SERIALIZER);
+            if(recids == null) recids = new HashMap<String, Long>();
+            if(recid!=null)
+                recids.put(name, recid);
+            else
+                recids.remove(name);
+            recordUpdate(RECID_NAMED_RECODS, recids, Serializer.BASIC_SERIALIZER);
+        }
+    }
 
 
     @Override

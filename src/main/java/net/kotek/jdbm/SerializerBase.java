@@ -13,6 +13,7 @@ import static net.kotek.jdbm.SerializationHeader.*;
  *
  * @author Jan Kotek
  */
+@SuppressWarnings("unchecked")
 public class SerializerBase implements Serializer{
 
     /**
@@ -57,7 +58,7 @@ public class SerializerBase implements Serializer{
          * This search is VERY FAST compared to Maps, it does not allocate
          * new instances or uses method calls.
          *
-         * @param obj
+         * @param obj to find in list
          * @return index of object in list or -1 if not found
          */
         int identityIndexOf(Object obj) {
@@ -101,7 +102,7 @@ public class SerializerBase implements Serializer{
             out.write(NULL);
             return;
         } else if (clazz == Boolean.class) {
-            if (((Boolean) obj).booleanValue())
+            if ((Boolean) obj)
                 out.write(BOOLEAN_TRUE);
             else
                 out.write(BOOLEAN_FALSE);
@@ -284,7 +285,7 @@ public class SerializerBase implements Serializer{
             if (packableLongs) {
                 //check if it contains packable longs
                 for (Object o : b) {
-                    if (o != null && (o.getClass() != Long.class || (((Long) o).longValue() < 0 && ((Long) o).longValue() != Long.MAX_VALUE))) {
+                    if (o != null && (o.getClass() != Long.class || ((Long) o < 0 && (Long) o != Long.MAX_VALUE))) {
                         packableLongs = false;
                         break;
                     }
@@ -299,7 +300,7 @@ public class SerializerBase implements Serializer{
                     if (o == null)
                         JdbmUtil.packLong(out, 0);
                     else
-                        JdbmUtil.packLong(out, ((Long) o).longValue() + 1);
+                        JdbmUtil.packLong(out, (Long) o + 1);
                 }
 
             } else {
@@ -324,7 +325,7 @@ public class SerializerBase implements Serializer{
             if (packableLongs) {
                 //packable Longs is special case,  it is often used in JDBM to reference fields
                 for (Object o : l) {
-                    if (o != null && (o.getClass() != Long.class || (((Long) o).longValue() < 0 && ((Long) o).longValue() != Long.MAX_VALUE))) {
+                    if (o != null && (o.getClass() != Long.class || ((Long) o < 0 && (Long) o != Long.MAX_VALUE))) {
                         packableLongs = false;
                         break;
                     }
@@ -337,7 +338,7 @@ public class SerializerBase implements Serializer{
                     if (o == null)
                         JdbmUtil.packLong(out, 0);
                     else
-                        JdbmUtil.packLong(out, ((Long) o).longValue() + 1);
+                        JdbmUtil.packLong(out, (Long) o + 1);
                 }
             } else {
                 serializeCollection(ARRAYLIST, out, obj, objectStack);
@@ -441,7 +442,7 @@ public class SerializerBase implements Serializer{
             JdbmUtil.packInt(da, obj.length);
             for (long l : obj)
                 da.write((int) l);
-        } else if (0 <= min && max <= Long.MAX_VALUE) {
+        } else if (0 <= min) {
             da.write(ARRAY_LONG_PACKED);
             JdbmUtil.packInt(da, obj.length);
             for (long l : obj)
@@ -488,7 +489,7 @@ public class SerializerBase implements Serializer{
             JdbmUtil.packInt(da, obj.length);
             for (int i : obj)
                 da.write(i);
-        } else if (0 <= min && max <= Integer.MAX_VALUE) {
+        } else if (0 <= min) {
             da.write(ARRAY_INT_PACKED);
             JdbmUtil.packInt(da, obj.length);
             for (int l : obj)
@@ -592,6 +593,7 @@ public class SerializerBase implements Serializer{
 
     @Override
     public Object deserialize(DataInput is, int capacity) throws IOException {
+        if(capacity==0) return null;
         return deserialize(is, null);
     }
 
@@ -612,115 +614,115 @@ public class SerializerBase implements Serializer{
                 ret = Boolean.FALSE;
                 break;
             case INTEGER_MINUS_1:
-                ret = Integer.valueOf(-1);
+                ret = -1;
                 break;
             case INTEGER_0:
-                ret = Integer.valueOf(0);
+                ret = 0;
                 break;
             case INTEGER_1:
-                ret = Integer.valueOf(1);
+                ret = 1;
                 break;
             case INTEGER_2:
-                ret = Integer.valueOf(2);
+                ret = 2;
                 break;
             case INTEGER_3:
-                ret = Integer.valueOf(3);
+                ret = 3;
                 break;
             case INTEGER_4:
-                ret = Integer.valueOf(4);
+                ret = 4;
                 break;
             case INTEGER_5:
-                ret = Integer.valueOf(5);
+                ret = 5;
                 break;
             case INTEGER_6:
-                ret = Integer.valueOf(6);
+                ret = 6;
                 break;
             case INTEGER_7:
-                ret = Integer.valueOf(7);
+                ret = 7;
                 break;
             case INTEGER_8:
-                ret = Integer.valueOf(8);
+                ret = 8;
                 break;
             case INTEGER_MINUS_MAX:
-                ret = Integer.valueOf(Integer.MIN_VALUE);
+                ret = Integer.MIN_VALUE;
                 break;
             case INTEGER_255:
-                ret = Integer.valueOf(is.readUnsignedByte());
+                ret = is.readUnsignedByte();
                 break;
             case INTEGER_PACK_NEG:
-                ret = Integer.valueOf(-JdbmUtil.unpackInt(is));
+                ret = -JdbmUtil.unpackInt(is);
                 break;
             case INTEGER_PACK:
-                ret = Integer.valueOf(JdbmUtil.unpackInt(is));
+                ret = JdbmUtil.unpackInt(is);
                 break;
             case LONG_MINUS_1:
-                ret = Long.valueOf(-1);
+                ret = (long) -1;
                 break;
             case LONG_0:
-                ret = Long.valueOf(0);
+                ret = (long) 0;
                 break;
             case LONG_1:
-                ret = Long.valueOf(1);
+                ret = (long) 1;
                 break;
             case LONG_2:
-                ret = Long.valueOf(2);
+                ret = (long) 2;
                 break;
             case LONG_3:
-                ret = Long.valueOf(3);
+                ret = (long) 3;
                 break;
             case LONG_4:
-                ret = Long.valueOf(4);
+                ret = (long) 4;
                 break;
             case LONG_5:
-                ret = Long.valueOf(5);
+                ret = (long) 5;
                 break;
             case LONG_6:
-                ret = Long.valueOf(6);
+                ret = (long) 6;
                 break;
             case LONG_7:
-                ret = Long.valueOf(7);
+                ret = (long) 7;
                 break;
             case LONG_8:
-                ret = Long.valueOf(8);
+                ret = (long) 8;
                 break;
             case LONG_255:
-                ret = Long.valueOf(is.readUnsignedByte());
+                ret = (long) is.readUnsignedByte();
                 break;
             case LONG_PACK_NEG:
-                ret = Long.valueOf(-JdbmUtil.unpackLong(is));
+                ret = -JdbmUtil.unpackLong(is);
                 break;
             case LONG_PACK:
-                ret = Long.valueOf(JdbmUtil.unpackLong(is));
+                ret = JdbmUtil.unpackLong(is);
                 break;
             case LONG_MINUS_MAX:
-                ret = Long.valueOf(Long.MIN_VALUE);
+                ret = Long.MIN_VALUE;
                 break;
             case SHORT_MINUS_1:
-                ret = Short.valueOf((short) -1);
+                ret = (short) -1;
                 break;
             case SHORT_0:
-                ret = Short.valueOf((short) 0);
+                ret = (short) 0;
                 break;
             case SHORT_1:
-                ret = Short.valueOf((short) 1);
+                ret = (short) 1;
                 break;
             case SHORT_255:
-                ret = Short.valueOf((short) is.readUnsignedByte());
+                ret = (short) is.readUnsignedByte();
                 break;
             case SHORT_FULL:
-                ret = Short.valueOf(is.readShort());
+                ret = is.readShort();
                 break;
             case BYTE_MINUS_1:
-                ret = Byte.valueOf((byte) -1);
+                ret = (byte) -1;
                 break;
             case BYTE_0:
-                ret = Byte.valueOf((byte) 0);
+                ret = (byte) 0;
                 break;
             case BYTE_1:
-                ret = Byte.valueOf((byte) 1);
+                ret = (byte) 1;
                 break;
             case BYTE_FULL:
-                ret = Byte.valueOf(is.readByte());
+                ret = is.readByte();
                 break;
             case SHORT_ARRAY:
                 int size = JdbmUtil.unpackInt(is);
@@ -748,43 +750,43 @@ public class SerializerBase implements Serializer{
                 for(int i=0;i<size;i++) ((char[])ret)[i] = is.readChar();
                 break;
             case CHAR:
-                ret = Character.valueOf(is.readChar());
+                ret = is.readChar();
                 break;
             case FLOAT_MINUS_1:
-                ret = Float.valueOf(-1);
+                ret = (float) -1;
                 break;
             case FLOAT_0:
-                ret = Float.valueOf(0);
+                ret = (float) 0;
                 break;
             case FLOAT_1:
-                ret = Float.valueOf(1);
+                ret = (float) 1;
                 break;
             case FLOAT_255:
-                ret = Float.valueOf(is.readUnsignedByte());
+                ret = (float) is.readUnsignedByte();
                 break;
             case FLOAT_SHORT:
-                ret = Float.valueOf(is.readShort());
+                ret = (float) is.readShort();
                 break;
             case FLOAT_FULL:
-                ret = Float.valueOf(is.readFloat());
+                ret = is.readFloat();
                 break;
             case DOUBLE_MINUS_1:
-                ret = Double.valueOf(-1);
+                ret = (double) -1;
                 break;
             case DOUBLE_0:
-                ret = Double.valueOf(0);
+                ret = (double) 0;
                 break;
             case DOUBLE_1:
-                ret = Double.valueOf(1);
+                ret = (double) 1;
                 break;
             case DOUBLE_255:
-                ret = Double.valueOf(is.readUnsignedByte());
+                ret = (double) is.readUnsignedByte();
                 break;
             case DOUBLE_SHORT:
-                ret = Double.valueOf(is.readShort());
+                ret = (double) is.readShort();
                 break;
             case DOUBLE_FULL:
-                ret = Double.valueOf(is.readDouble());
+                ret = is.readDouble();
                 break;
             case BIGINTEGER:
                 ret = new BigInteger(deserializeArrayByteInt(is));
@@ -1077,7 +1079,7 @@ public class SerializerBase implements Serializer{
             if (l == 0)
                 s[i] = null;
             else
-                s[i] = Long.valueOf(l - 1);
+                s[i] = l - 1;
         }
         return s;
     }
@@ -1104,7 +1106,7 @@ public class SerializerBase implements Serializer{
             if (l == 0)
                 s.add(null);
             else
-                s.add(Long.valueOf(l - 1));
+                s.add(l - 1);
         }
         return s;
     }

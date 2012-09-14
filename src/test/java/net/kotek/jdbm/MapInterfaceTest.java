@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
 
-import com.sun.servicetag.SystemEnvironment;
 import junit.framework.TestCase;
 
 /**
@@ -871,7 +870,7 @@ public abstract class MapInterfaceTest<K, V> extends TestCase {
             assertEquals(entry.getValue(), map.get(entry.getKey()));
         }
 
-        K unmappedKey = null;
+        K unmappedKey;
         try {
             unmappedKey = getKeyNotInPopulatedMap();
         } catch (UnsupportedOperationException e) {
@@ -882,7 +881,7 @@ public abstract class MapInterfaceTest<K, V> extends TestCase {
 
     public void testGetForEmptyMap() {
         final Map<K, V> map;
-        K unmappedKey = null;
+        K unmappedKey;
         try {
             map = makeEmptyMap();
             unmappedKey = getKeyNotInPopulatedMap();

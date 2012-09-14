@@ -9,6 +9,7 @@ import java.util.TreeSet;
 
 public class SerializationHeaderTest extends TestCase {
 
+    @SuppressWarnings("unchecked")
     public void testUnique() throws IllegalAccessException {
         Class c = SerializationHeader.class;
         Set<Integer> s = new TreeSet<Integer>();

@@ -3,6 +3,9 @@ package net.kotek.jdbm;
 
 import org.junit.Before;
 
+import java.util.Collections;
+
+@SuppressWarnings("unchecked")
 public class BTreeSetTest extends HTreeSetTest{
 
     /**
@@ -13,7 +16,6 @@ public class BTreeSetTest extends HTreeSetTest{
     public void setUp() throws Exception {
         super.setUp();
         hs = new BTreeMap(recman, 6, false).keySet();
-        for (int i = 0; i < objArray.length; i++)
-            hs.add(objArray[i]);
+        Collections.addAll(hs, objArray);
     }
 }

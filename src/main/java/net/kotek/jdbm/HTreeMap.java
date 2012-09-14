@@ -21,6 +21,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *
  * @author Jan Kotek
  */
+@SuppressWarnings("unchecked")
 public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K, V> {
 
     /** default serializer used for key and values */
@@ -29,7 +30,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
     static final int BUCKET_OVERFLOW = 4;
 
-    private final boolean hasValues;
+    protected final boolean hasValues;
 
     protected static class LinkedNode<K,V>{
         K key;
@@ -561,9 +562,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
     @Override
     public boolean containsValue(Object value) {
-        Iterator<V> vals = values().iterator();
-        while(vals.hasNext()){
-            if(vals.next().equals(value)) return true;
+        for (V v : values()) {
+            if (v.equals(value)) return true;
         }
         return false;
     }
