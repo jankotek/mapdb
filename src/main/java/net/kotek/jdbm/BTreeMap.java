@@ -309,7 +309,9 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
         if(v == null) throw new IllegalArgumentException("null key");
         if(value == null) throw new IllegalArgumentException("null value");
 
-        LongStack stack = new LongStack();
+        int stackPos = -1;
+        long[] stackVals = new long[4];
+
         long current = rootRecid;
 
         BNode A = recman.recordGet(current, nodeSerializer);
@@ -319,7 +321,11 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
             if(current == A.child()[A.child().length-1]){
                 //is link, do nothing
             }else{
-                stack.push(t);
+                //stack push t
+                stackPos++;
+                if(stackVals.length == stackPos) //grow if needed
+                    stackVals = Arrays.copyOf(stackVals, stackVals.length*2);
+                stackVals[stackPos] = t;
             }
             A = recman.recordGet(current, nodeSerializer);
         }
@@ -439,8 +445,8 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
                     p = q;
                     v = (K) A.highKey();
                     level = level+1;
-                    if(!stack.isEmpty()){
-                        current = stack.pop();
+                    if(stackPos!=-1){ //if stack is not empty
+                        current = stackVals[stackPos--];
                     }else{
                         current = -1; //TODO pointer to left most node at level level
                         throw new InternalError();
@@ -1021,26 +1027,4 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
     private abstract class AbstractSet2<E> extends AbstractSet<E> implements SortedSet<E> {
     }
 
-    private final class LongStack {
-
-        int pos = -1;
-        long[] vals = new long[4];
-
-
-        public boolean isEmpty() {
-            return pos == -1;
-        }
-
-        public void push(long value) {
-            pos++;
-            if(vals.length == pos){
-                vals = Arrays.copyOf(vals, vals.length*2);
-            }
-            vals[pos] = value;
-        }
-
-        public long pop() {
-            return vals[pos--];
-        }
-    }
 }
