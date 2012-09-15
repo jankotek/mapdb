@@ -42,7 +42,7 @@ public class DBMaker {
      *
      * @return this builder
      */
-    public DBMaker disableTransactions(){
+    public DBMaker transactionDisable(){
         this.transactionsEnabled = false;
         return this;
     }
@@ -56,7 +56,7 @@ public class DBMaker {
      *
      * @return this builder
      */
-    public DBMaker disableCache(){
+    public DBMaker cacheDisable(){
         this.cacheEnabled = false;
         return this;
     }
@@ -73,7 +73,7 @@ public class DBMaker {
      *
      * @return this builder
      */
-    public DBMaker disableAsyncWrite(){
+    public DBMaker asyncWriteDisable(){
         this.asyncWriteEnabled = false;
         return this;
     }
@@ -106,7 +106,7 @@ public class DBMaker {
      *
      * @return this builder
      */
-    public DBMaker disableAsyncSerialization(){
+    public DBMaker asyncSerializationDisable(){
         this.asyncSerializationEnabled = false;
         return this;
     }
@@ -116,7 +116,7 @@ public class DBMaker {
     public DB make(){
         if(transactionsEnabled)
             throw new IllegalAccessError(
-                    "Transactions are not implemented yet, please call 'DBMaker.disableTransactions()'");
+                    "Transactions are not implemented yet, please call 'DBMaker.transactionDisable()'");
 
         RecordManager recman = asyncWriteEnabled ?
                 new RecordStoreAsyncWrite(file, asyncSerializationEnabled) :

@@ -20,7 +20,7 @@ public class DBMakerTest{
     public void testNewMemoryDB() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
-                .disableTransactions()
+                .transactionDisable()
                 .make();
         verifyDB(db);
     }
@@ -40,8 +40,8 @@ public class DBMakerTest{
     public void testDisableCache() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
-                .disableTransactions()
-                .disableCache()
+                .transactionDisable()
+                .cacheDisable()
                 .make();
         verifyDB(db);
         assertFalse(db.recman.getClass() == RecordHardCache.class);
@@ -52,8 +52,8 @@ public class DBMakerTest{
     public void testDisableAsyncWrite() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
-                .disableTransactions()
-                .disableAsyncWrite()
+                .transactionDisable()
+                .asyncWriteDisable()
                 .make();
         verifyDB(db);
         assertTrue(db.recman.getClass() == RecordHardCache.class);
@@ -65,8 +65,8 @@ public class DBMakerTest{
     public void testDisableAsyncSerialization() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
-                .disableTransactions()
-                .disableAsyncSerialization()
+                .transactionDisable()
+                .asyncSerializationDisable()
                 .make();
         verifyDB(db);
         assertTrue(db.recman.getClass() == RecordHardCache.class);
@@ -80,7 +80,7 @@ public class DBMakerTest{
     public void testMake() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
-                .disableTransactions()
+                .transactionDisable()
                 .make();
         verifyDB(db);
         //check default values are set
