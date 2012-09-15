@@ -309,7 +309,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
         if(v == null) throw new IllegalArgumentException("null key");
         if(value == null) throw new IllegalArgumentException("null value");
 
-        Deque<Long> stack = new LinkedList<Long>();
+        LongStack stack = new LongStack();
         long current = rootRecid;
 
         BNode A = recman.recordGet(current, nodeSerializer);
@@ -1019,5 +1019,28 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
     }
 
     private abstract class AbstractSet2<E> extends AbstractSet<E> implements SortedSet<E> {
+    }
+
+    private final class LongStack {
+
+        int pos = -1;
+        long[] vals = new long[4];
+
+
+        public boolean isEmpty() {
+            return pos == -1;
+        }
+
+        public void push(long value) {
+            pos++;
+            if(vals.length == pos){
+                vals = Arrays.copyOf(vals, vals.length*2);
+            }
+            vals[pos] = value;
+        }
+
+        public long pop() {
+            return vals[pos--];
+        }
     }
 }

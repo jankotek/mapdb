@@ -54,7 +54,7 @@ public class RecordStoreAsyncWrite extends RecordStore{
                 }
 
                 //TODO this just sucks, proper notify()
-                Thread.sleep(100);
+                Thread.yield();
             }
 
 

@@ -65,7 +65,7 @@ public class DBMaker {
      * By default all modifications are queued and written into disk on Background Writer Thread.
      * So all modifications are performed in asynchronous mode and do not block.
      * <p/>
-     * It is possible to disable Backround Writer Thread, but this greatly hurts concurrency.
+     * It is possible to disable Background Writer Thread, but this greatly hurts concurrency.
      * Without async writes, all threads blocks until all previous writes are not finished (single big lock).
      *
      * <p/>
