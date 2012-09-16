@@ -7,9 +7,15 @@ easy to optimize and has minimal overhead. It is also very 'hackable' and can be
 own purposes. JDBM is tiny, yet it easily handles 1e9 records in multi-terabyte store and scales well
 in multi-threaded environment.
 
-JDBM is opensource and free-as-beer under Apache License 2.0. There is no catch and no strings attached.
-(It is also beer-ware, if you like it, you should come to Galway and buy me a beer :-) ).
+JDBM is opensource and free-as-beer under Apache License. There is no catch and no strings attached.
+It is also beer-ware, if you like it, you should come to Galway and buy me a beer :-).
 
+News
+----
+16 Sep 2012 - [JDBM4 now open for public](http://kotek.net/blog/JDBM4_now_open_for_public). Now it is stable enough, take it for quick spin!
+
+Under development
+-----------------
 JDBM4 is currently under development. It is usable, but some stuff is not implemented yet:
 
 * Transactions
@@ -19,7 +25,8 @@ JDBM4 is currently under development. It is usable, but some stuff is not implem
 * Defrag
 
 
-An usage example:
+Usage example
+------------
 
 
         import net.kotek.jdbm.*;
@@ -33,8 +40,6 @@ An usage example:
         map.put(2,"some other string");
 
         db.close(); //make sure db is correctly closed!!
-
-Maven repository with weekly snapshots is coming soon!
 
 
 
