@@ -44,7 +44,7 @@ public class DBMakerTest{
                 .cacheDisable()
                 .make();
         verifyDB(db);
-        assertFalse(db.recman.getClass() == RecordHardCache.class);
+        assertFalse(db.recman.getClass() == RecordCacheHashTable.class);
         assertTrue(db.recman.getClass() == RecordStoreAsyncWrite.class);
     }
 
@@ -56,8 +56,8 @@ public class DBMakerTest{
                 .asyncWriteDisable()
                 .make();
         verifyDB(db);
-        assertTrue(db.recman.getClass() == RecordHardCache.class);
-        assertTrue(((RecordHardCache)db.recman).recman.getClass() == RecordStore.class);
+        assertTrue(db.recman.getClass() == RecordCacheHashTable.class);
+        assertTrue(((RecordCacheHashTable)db.recman).recman.getClass() == RecordStore.class);
 
     }
 
@@ -69,9 +69,9 @@ public class DBMakerTest{
                 .asyncSerializationDisable()
                 .make();
         verifyDB(db);
-        assertTrue(db.recman.getClass() == RecordHardCache.class);
-        assertTrue(((RecordHardCache)db.recman).recman.getClass() == RecordStoreAsyncWrite.class);
-        RecordStoreAsyncWrite r = (RecordStoreAsyncWrite) ((RecordHardCache)db.recman).recman;
+        assertTrue(db.recman.getClass() == RecordCacheHashTable.class);
+        assertTrue(((RecordCacheHashTable)db.recman).recman.getClass() == RecordStoreAsyncWrite.class);
+        RecordStoreAsyncWrite r = (RecordStoreAsyncWrite) ((RecordCacheHashTable)db.recman).recman;
         assertFalse(r.asyncSerialization);
 
     }
@@ -84,10 +84,34 @@ public class DBMakerTest{
                 .make();
         verifyDB(db);
         //check default values are set
-        assertTrue(db.recman.getClass() == RecordHardCache.class);
-        assertTrue(((RecordHardCache)db.recman).recman.getClass() == RecordStoreAsyncWrite.class);
-        RecordStoreAsyncWrite r = (RecordStoreAsyncWrite) ((RecordHardCache)db.recman).recman;
+        assertTrue(db.recman.getClass() == RecordCacheHashTable.class);
+        assertEquals(1024 * 32, ((RecordCacheHashTable) db.recman).cacheMaxSize);
+        assertTrue(((RecordCacheHashTable)db.recman).recman.getClass() == RecordStoreAsyncWrite.class);
+        RecordStoreAsyncWrite r = (RecordStoreAsyncWrite) ((RecordCacheHashTable)db.recman).recman;
         assertTrue(r.asyncSerialization);
 
     }
+
+    @Test
+    public void testCacheHardRefEnable() throws Exception {
+        DB db = DBMaker
+                .newMemoryDB()
+                .transactionDisable()
+                .cacheHardRefEnable()
+                .make();
+        verifyDB(db);
+        assertTrue(db.recman.getClass() == RecordCacheHardRef.class);
+    }
+
+    @Test
+    public void testCacheSize() throws Exception {
+        DB db = DBMaker
+                .newMemoryDB()
+                .transactionDisable()
+                .cacheSize(1000)
+                .make();
+        verifyDB(db);
+        assertEquals(1000, ((RecordCacheHashTable) db.recman).cacheMaxSize);
+    }
+
 }

@@ -5,13 +5,25 @@ package net.kotek.jdbm;
  */
 public class DBMaker {
 
+
+    private static final byte CACHE_DISABLE = 0;
+    private static final byte CACHE_FIXED_HASH_TABLE = 1;
+    private static final byte CACHE_HARD_REF = 2;
+
+
+    protected byte cache = CACHE_FIXED_HASH_TABLE;
+    protected int cacheSize = 1024*32;
+
     /** file to open, if null opens in memory store */
     protected String file;
 
     protected boolean transactionsEnabled = true;
-    protected boolean cacheEnabled = true;
+
     protected boolean asyncWriteEnabled = true;
     protected boolean asyncSerializationEnabled = true;
+
+
+
 
 
     /** use static factory methods, or make subclass */
@@ -57,9 +69,42 @@ public class DBMaker {
      * @return this builder
      */
     public DBMaker cacheDisable(){
-        this.cacheEnabled = false;
+        this.cache = CACHE_DISABLE;
         return this;
     }
+
+    /**
+     * Enables unbounded hard reference cache.
+     * This cache is good if you have lot of available memory.
+     * <p/>
+     * All fetched records are added to HashMap and stored with hard reference.
+     * To prevent OutOfMemoryExceptions JDBM monitors free memory,
+     * if it is bellow 25% cache is cleared.
+     *
+     * @return this builder
+     */
+    public DBMaker cacheHardRefEnable(){
+        this.cache = CACHE_HARD_REF;
+        return this;
+    }
+
+
+    /**
+     * Set cache size. Interpretations depends on cache type.
+     * For fixed size caches (such as FixedHashTable cache) it is maximal number of items in cache.
+     * <p/>
+     * For unbounded caches (such as HardRef cache) it is initial capacity of underlying table (HashMap).
+     * <p/>
+     * Default cache size is 32768.
+     *
+     * @param size new cache size
+     * @return this builder
+     */
+    public DBMaker cacheSize(int cacheSize){
+        this.cacheSize = cacheSize;
+        return this;
+    }
+
 
     /**
      * By default all modifications are queued and written into disk on Background Writer Thread.
@@ -86,7 +131,7 @@ public class DBMaker {
      * node has to be serialized only once. Without Async Serialization node is serialized each time
      * node is updated.
      * <p/>
-     * On other side Async Serialization moves allo serialization into single thread. This
+     * On other side Async Serialization moves all serialization into single thread. This
      * hurts performance with many concurrent-independent updates.
      * <p/>
      * Async Serialization may also produce some unexpected results when your data classes are not
@@ -121,9 +166,13 @@ public class DBMaker {
         RecordManager recman = asyncWriteEnabled ?
                 new RecordStoreAsyncWrite(file, asyncSerializationEnabled) :
                 new RecordStore(file);
-
-        if(cacheEnabled)
-            recman = new RecordHardCache(recman);
+        if(cache == CACHE_DISABLE){
+            //do not wrap recman in cache
+        }if(cache == CACHE_FIXED_HASH_TABLE){
+            recman = new RecordCacheHashTable(recman,cacheSize);
+        }else if (cache == CACHE_HARD_REF){
+            recman = new RecordCacheHardRef(recman,cacheSize);
+        }
 
         return new DB(recman);
     }

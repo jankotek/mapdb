@@ -8,9 +8,9 @@ package net.kotek.jdbm;
  *
  * @author Jan Kotek
  */
-public class RecordHardCache implements RecordManager{
+public class RecordCacheHardRef implements RecordManager{
 
-    protected final LongConcurrentHashMap<Object> cache = new LongConcurrentHashMap<Object>();
+    protected final LongConcurrentHashMap<Object> cache;
 
     protected static final Object NULL = new Object();
 
@@ -23,7 +23,8 @@ public class RecordHardCache implements RecordManager{
     };
     protected final RecordManager recman;
 
-    public RecordHardCache(RecordManager recman) {
+    public RecordCacheHardRef(RecordManager recman, int initialCapacity) {
+        this.cache = new LongConcurrentHashMap<Object>(initialCapacity);
         this.recman = recman;
         MemoryLowWarningSystem.addListener(lowMemoryListener);
     }
