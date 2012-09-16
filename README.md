@@ -2,7 +2,7 @@ JDBM provides HashMap and TreeMap backed by disk storage. It is fast, scalable a
 It has minimalistic design with standalone jar taking only 160KB. Yet it is packed with features such as instance cache,
 space efficient serialization, transactions and concurrently scalable BTree/HTree.
 
-JDBM is very fast (with disk store it can outperform some in-memory databases). Thanks to its compact design it is
+JDBM is very fast (even on-disk can outperform some in-memory dbs). Thanks to its compact design it is
 easy to optimize and has minimal overhead. It is also very 'hackable' and can be easily bended for your
 own purposes. JDBM is tiny, yet it easily handles 1e9 records in multi-terabyte store and scales well
 in multi-threaded environment.
