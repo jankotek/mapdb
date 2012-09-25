@@ -3,6 +3,7 @@ package net.kotek.jdbm.examples;
 import net.kotek.jdbm.DB;
 import net.kotek.jdbm.DBMaker;
 
+import java.io.File;
 import java.util.Map;
 
 /**
@@ -11,7 +12,7 @@ import java.util.Map;
 public class E02_HugeInsert {
 
     public static void main(String[] args){
-        DB db = DBMaker.newFileDB("/tmp/db")
+        DB db = DBMaker.newFileDB(new File("/tmp/db"))
                 .transactionDisable() //transactions are not implemented yet
                 .make();
 

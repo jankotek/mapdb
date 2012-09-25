@@ -1,11 +1,13 @@
 package net.kotek.jdbm;
 
+import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 
 /**
@@ -19,8 +21,10 @@ import java.util.logging.Level;
  *
  * @author Jan Kotek
  */
-public class RecordStoreAsyncWrite extends RecordStore{
+public class RecordAsyncWrite implements RecordManager{
 
+
+    protected final ReentrantReadWriteLock grandLock = new ReentrantReadWriteLock();
 
     //private long allocatedIndexFileSize;
 
@@ -36,6 +40,8 @@ public class RecordStoreAsyncWrite extends RecordStore{
     private CountDownLatch shutdownResponse = new CountDownLatch(1);
 
     final protected Object writerNotify = new Object();
+
+    protected RecordManager recman;
 
     protected final Thread writerThread = new Thread("JDBM writer"){
         public void run(){
@@ -58,15 +64,18 @@ public class RecordStoreAsyncWrite extends RecordStore{
             }
 
 
+            try{
+                grandLock.writeLock().lock();
+
             LongMap.LongMapIterator<Object> iter = writes.longMapIterator();
             while(iter.moveToNext()){
                 final long recid = iter.key();
                 final Object value = iter.value();
                 if(value==DELETED){
-                    RecordStoreAsyncWrite.super.recordDelete(recid);
+                    recman.recordDelete(recid);
                 }else{
                     byte[] data = asyncSerialization ? ((SerRec)value).serialize() : (byte[]) value;
-                    RecordStoreAsyncWrite.super.forceRecordUpdateOnGivenRecid(recid, data);
+                    recman.recordUpdate(recid, data, Serializer.BYTE_ARRAY_SERIALIZER);
                 }
                 //Record will be only removed if value was not updated.
                 //If value was updated during write, equality check will fail, and it will stay there
@@ -75,13 +84,11 @@ public class RecordStoreAsyncWrite extends RecordStore{
             }
 
             int toFetch = newRecids.remainingCapacity();
-            try{
-                writeLock_lock();
-                for(int i=0;i<toFetch;i++){
-                    newRecids.put(freeRecidTake());
-                }
+            for(int i=0;i<toFetch;i++){
+                newRecids.put(recman.recordPut(null, Serializer.NULL_SERIALIZER));
+            }
             }finally {
-                writeLock_unlock();
+                grandLock.writeLock().unlock();
             }
 
 
@@ -93,8 +100,8 @@ public class RecordStoreAsyncWrite extends RecordStore{
     private ArrayBlockingQueue<Long> newRecids = new ArrayBlockingQueue<Long>(128);
 
 
-    public RecordStoreAsyncWrite(String fileName, boolean asyncSerialization) {
-        super(fileName);
+    public RecordAsyncWrite(RecordManager recman, boolean asyncSerialization) {
+        this.recman = recman;
         this.asyncSerialization = asyncSerialization;
         //TODO cache index file size
         //allocatedIndexFileSize = indexValGet(RECID_CURRENT_INDEX_FILE_SIZE);
@@ -129,6 +136,27 @@ public class RecordStoreAsyncWrite extends RecordStore{
     public void recordDelete(long recid) {
         if(CC.ASSERT&& recid == 0) throw new InternalError();
         writes.put(recid, DELETED);
+    }
+
+    @Override
+    public Long getNamedRecid(String name) {
+    try{
+        grandLock.writeLock().lock();
+        return recman.getNamedRecid(name);
+    }finally {
+        grandLock.writeLock().unlock();
+    }
+
+}
+
+    @Override
+    public void setNamedRecid(String name, Long recid) {
+        try{
+            grandLock.writeLock().lock();
+            recman.setNamedRecid(name, recid);
+        }finally {
+            grandLock.writeLock().unlock();
+        }
     }
 
     @Override
@@ -172,7 +200,13 @@ public class RecordStoreAsyncWrite extends RecordStore{
             }
         }
 
-        return super.recordGet(recid, serializer);
+        try{
+            grandLock.readLock().lock();
+            return recman.recordGet(recid, serializer);
+        }finally {
+            grandLock.readLock().unlock();
+        }
+
     }
 
     @Override
@@ -185,58 +219,16 @@ public class RecordStoreAsyncWrite extends RecordStore{
             throw new RuntimeException(e);
         }
 
-        //put all remaining unused recids into free list
-        try{
-            writeLock_lock();
-            for(long recid:newRecids){
-                freeRecidPut(recid);
-            }
-        }finally {
-            writeLock_unlock();
+        //deallocate all unused recids
+        for(long recid:newRecids){
+            recman.recordDelete(recid);
         }
 
-
-        super.close();
+        //TODO commit here?
+        recman.close();
+        recman = null;
     }
 
-
-    @SuppressWarnings("all")
-    private final AtomicInteger writeLocksCounter = CC.ASSERT? new AtomicInteger(0) : null;
-
-    @Override
-    protected void writeLock_lock() {
-        if(CC.ASSERT &&writeLocksCounter!=null){
-            int c = writeLocksCounter.incrementAndGet();
-            if(c!=1) throw new InternalError("more then one writer");
-        }
-    }
-
-    @Override
-    protected void writeLock_unlock() {
-        if(CC.ASSERT &&writeLocksCounter!=null){
-            int c = writeLocksCounter.decrementAndGet();
-            if(c!=0) throw new InternalError("more then one writer");
-        }
-
-    }
-
-    @Override
-    protected void writeLock_checkLocked() {
-        if(CC.ASSERT &&writeLocksCounter!=null){
-            if(writeLocksCounter.get()!=1)
-                throw new InternalError("more then one writer");
-        }
-    }
-
-    @Override
-    protected void readLock_unlock() {
-        //do nothing, background thread and cache takes care of write synchronization
-    }
-
-    @Override
-    protected void readLock_lock() {
-        //do nothing, background thread and cache takes care of write synchronization
-    }
 
 
     protected static class SerRec<E> {

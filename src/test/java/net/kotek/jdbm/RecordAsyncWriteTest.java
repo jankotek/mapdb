@@ -1,8 +1,11 @@
 package net.kotek.jdbm;
 
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
@@ -10,15 +13,23 @@ import java.util.concurrent.CountDownLatch;
 /**
  * @author Jan Kotek
  */
-public class RecordStoreAsyncWriteTest extends JdbmTestCase{
+public class RecordAsyncWriteTest {
+    File f;
+    RecordAsyncWrite recman;
 
-    @Override
-    protected RecordStore openRecordManager() {
-        return new RecordStoreAsyncWrite(fileName,true);
+    @Before public void reopenStore() throws IOException {
+         if(f==null)
+            f = File.createTempFile("test","test");
+         if(recman!=null)
+             recman.close();
+         recman =  new RecordAsyncWrite(new RecordStore(f,false,false), true);
     }
 
 
-    @Test public void write_fetch_update_delete(){
+
+
+
+    @Test public void write_fetch_update_delete() throws IOException {
         long recid = recman.recordPut("aaa",Serializer.STRING_SERIALIZER);
         Assert.assertEquals("aaa",recman.recordGet(recid, Serializer.STRING_SERIALIZER));
         reopenStore();
@@ -32,7 +43,7 @@ public class RecordStoreAsyncWriteTest extends JdbmTestCase{
 
 
     @Test(timeout = 0xFFFF)
-     public void concurrent_updates_test() throws InterruptedException {
+     public void concurrent_updates_test() throws InterruptedException, IOException {
 
 
         final int threadNum = 16;

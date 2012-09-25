@@ -3,6 +3,7 @@ package net.kotek.jdbm.examples;
 import net.kotek.jdbm.DB;
 import net.kotek.jdbm.DBMaker;
 
+import java.io.File;
 import java.util.Map;
 
 /**
@@ -11,7 +12,7 @@ import java.util.Map;
 public class E03_HugeRead {
 
     public static void main(String[] args){
-    DB db = DBMaker.newFileDB("/tmp/db2")
+    DB db = DBMaker.newFileDB(new File("/tmp/db2"))
             .transactionDisable() //transactions are not implemented yet
                     //.asyncWriteDisable()
             .make();

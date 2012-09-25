@@ -2,12 +2,14 @@ package net.kotek.jdbm.examples;
 
 import net.kotek.jdbm.*;
 
+import java.io.File;
+
 
 public class E01_BasicExample {
 
     public static void main(String[] args){
 
-        DB db = DBMaker.newFileDB("filename")
+        DB db = DBMaker.newFileDB(new File("filename"))
                     .transactionDisable() //transactions are not implemented yet
                     .make();
 

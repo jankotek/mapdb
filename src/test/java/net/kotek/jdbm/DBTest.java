@@ -10,7 +10,7 @@ import static junit.framework.Assert.*;
 @SuppressWarnings("unchecked")
 public class DBTest {
 
-    RecordManager recman = new RecordStore(null);
+    RecordManager recman = new RecordStore(null,false,true);
     DB db = new DB(recman);
 
     @Test

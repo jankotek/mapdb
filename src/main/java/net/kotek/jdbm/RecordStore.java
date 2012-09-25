@@ -10,17 +10,11 @@ import java.nio.channels.FileChannel;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class RecordStore implements RecordManager {
 
-    protected final boolean inMemory;
-
-    private FileChannel dataFileChannel;
-    private FileChannel indexFileChannel;
-
-    protected ByteBuffer[] dataBufs = new ByteBuffer[8];
-    protected ByteBuffer[] indexBufs = new ByteBuffer[8];
 
     static final int  BUF_SIZE = 1<<30;
     static final int BUF_SIZE_RECID = BUF_SIZE/8;
@@ -32,7 +26,7 @@ public class RecordStore implements RecordManager {
 
 
 
-    final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+
 
     /** File header. First 4 bytes are 'JDBM', last two bytes are store format version */
     static final long HEADER = (long)'J' <<(8*7)  + (long)'D' <<(8*6) + (long)'B' <<(8*5) + (long)'M' <<(8*4) + CC.STORE_FORMAT_VERSION;
@@ -75,20 +69,40 @@ public class RecordStore implements RecordManager {
     static final int INDEX_OFFSET_START = RECID_FREE_PHYS_RECORDS_START +NUMBER_OF_PHYS_FREE_SLOT;
 
 
+    private final AtomicInteger writeLocksCounter;
+
+
+    protected final boolean inMemory;
+
+    protected FileChannel dataFileChannel;
+    protected FileChannel indexFileChannel;
+
+
+    protected ByteBuffer[] dataBufs = new ByteBuffer[8];
+    protected ByteBuffer[] indexBufs = new ByteBuffer[8];
+
+    protected final boolean transactionsEnabled;
+    protected final boolean enableLocks;
+
+    protected final LongConcurrentHashMap<Long> recordsInTransaction;
+    final ReentrantReadWriteLock lock;
 
 
 
 
-    public RecordStore(String fileName) {
-
-
-        this.inMemory = fileName ==null;
+    public RecordStore(File indexFile, boolean transactionsEnabled, boolean enableLocks) {
+        this.transactionsEnabled = transactionsEnabled;
+        this.enableLocks = enableLocks;
+        lock = enableLocks? new ReentrantReadWriteLock() : null;
+        writeLocksCounter = CC.ASSERT && !enableLocks? new AtomicInteger(0) : null;
+        this.recordsInTransaction = transactionsEnabled ? new LongConcurrentHashMap<Long>() : null;
+        this.inMemory = indexFile == null;
         try{
             writeLock_lock();
 
 
-            File dataFile = inMemory? null : new File(fileName+".d");
-            File indexFile = inMemory? null : new File(fileName+".i");
+            File dataFile = inMemory? null : new File(indexFile.getPath()+".d");
+
 
             if(inMemory){
                 dataBufs[0] = ByteBuffer.allocate(1<<16);
@@ -106,6 +120,7 @@ public class RecordStore implements RecordManager {
             }else{
                 dataFileChannel = new RandomAccessFile(dataFile, "rw").getChannel();
                 indexFileChannel =new RandomAccessFile(indexFile, "rw").getChannel();
+
 
                 //store exists, open
                 final long dataFileSize = dataFileChannel.size();
@@ -158,6 +173,7 @@ public class RecordStore implements RecordManager {
     }
 
     private void writeInitValues() {
+        writeLock_checkLocked();
         //write headers
         dataBufs[0].putLong(0, HEADER);
         indexValPut(0L,HEADER);
@@ -653,31 +669,48 @@ public class RecordStore implements RecordManager {
 
 
     protected void writeLock_lock() {
-        lock.writeLock().lock();
+        if(enableLocks)
+            lock.writeLock().lock();
+        else if(CC.ASSERT && !enableLocks){
+            int c = writeLocksCounter.incrementAndGet();
+            if(c!=1) throw new InternalError("more then one writer");
+        }
+
+
     }
 
     protected void writeLock_unlock() {
-        lock.writeLock().unlock();
+        if(enableLocks)
+            lock.writeLock().unlock();
+        else if(CC.ASSERT && !enableLocks){
+            int c = writeLocksCounter.decrementAndGet();
+            if(c!=0) throw new InternalError("more then one writer");
+        }
+
     }
 
     protected void writeLock_checkLocked() {
-        if(CC.ASSERT && !lock.writeLock().isHeldByCurrentThread()) throw new IllegalAccessError("no write lock");
+        if(CC.ASSERT && enableLocks && !lock.writeLock().isHeldByCurrentThread())
+            throw new IllegalAccessError("no write lock");
+        if(CC.ASSERT && ! enableLocks && writeLocksCounter.get()!=1)
+            throw new InternalError("more then one writer");
     }
 
 
 
     protected void readLock_unlock() {
-        lock.readLock().unlock();
+        if(enableLocks)
+            lock.readLock().unlock();
     }
 
     protected void readLock_lock() {
-        lock.readLock().lock();
+        if(enableLocks)
+            lock.readLock().lock();
     }
 
 
     protected void forceRecordUpdateOnGivenRecid(final long recid, final byte[] value) {
-        try{
-            writeLock_lock();
+        writeLock_checkLocked();
             //check file size
             final long currentIndexFileSize = indexValGet(RECID_CURRENT_INDEX_FILE_SIZE);
             if(recid * 8 >currentIndexFileSize){
@@ -699,8 +732,5 @@ public class RecordStore implements RecordManager {
             //and set old phys record as free
             if(oldIndexValue!=0)
                 freePhysRecPut(oldIndexValue);
-        }finally {
-            writeLock_unlock();
-        }
     }
 }

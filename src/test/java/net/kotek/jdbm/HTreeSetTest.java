@@ -36,7 +36,7 @@ import static org.junit.Assert.*;
 @SuppressWarnings("unchecked")
 public class HTreeSetTest{
 
-    RecordManager recman = new RecordStore(null);
+    RecordManager recman = new RecordStore(null,false,true);
 
     Set hs;
 

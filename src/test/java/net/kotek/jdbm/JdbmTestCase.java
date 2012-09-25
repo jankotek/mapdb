@@ -18,7 +18,7 @@ import java.util.TreeMap;
 abstract public class JdbmTestCase {
 
 
-    String fileName;
+    File fileName;
 
     File testDir;
 
@@ -28,13 +28,13 @@ abstract public class JdbmTestCase {
      public void setUp() throws Exception {
         testDir = new File(new File(System.getProperty("java.io.tmpdir")), "testdb");
         testDir.mkdirs();
-        fileName = testDir.getPath()+"test"+Math.random();
+        fileName = new File(testDir.getPath()+"test"+Math.random());
 
         recman = openRecordManager();
     }
 
     protected RecordStore openRecordManager() {
-        return new RecordStore(fileName);
+        return new RecordStore(fileName,false,true);
     }
 
     @After

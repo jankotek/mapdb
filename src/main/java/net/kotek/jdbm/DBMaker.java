@@ -1,5 +1,7 @@
 package net.kotek.jdbm;
 
+import java.io.File;
+
 /**
  * A builder class for creating and opening a database.
  */
@@ -15,7 +17,7 @@ public class DBMaker {
     protected int cacheSize = 1024*32;
 
     /** file to open, if null opens in memory store */
-    protected String file;
+    protected File file;
 
     protected boolean transactionsEnabled = true;
 
@@ -37,7 +39,7 @@ public class DBMaker {
     }
 
     /** Creates or open database stored in file. */
-    public static DBMaker newFileDB(String file){
+    public static DBMaker newFileDB(File file){
         DBMaker m = new DBMaker();
         m.file = file;
         return  m;
@@ -97,7 +99,7 @@ public class DBMaker {
      * <p/>
      * Default cache size is 32768.
      *
-     * @param size new cache size
+     * @param cacheSize new cache size
      * @return this builder
      */
     public DBMaker cacheSize(int cacheSize){
@@ -159,13 +161,12 @@ public class DBMaker {
 
     /** constructs DB using current settings */
     public DB make(){
-        if(transactionsEnabled)
-            throw new IllegalAccessError(
-                    "Transactions are not implemented yet, please call 'DBMaker.transactionDisable()'");
 
-        RecordManager recman = asyncWriteEnabled ?
-                new RecordStoreAsyncWrite(file, asyncSerializationEnabled) :
-                new RecordStore(file);
+        RecordManager recman = new RecordStore(file, transactionsEnabled, !asyncSerializationEnabled);
+
+        if(asyncWriteEnabled)
+            recman = new RecordAsyncWrite(recman, asyncSerializationEnabled);
+
         if(cache == CACHE_DISABLE){
             //do not wrap recman in cache
         }if(cache == CACHE_FIXED_HASH_TABLE){
