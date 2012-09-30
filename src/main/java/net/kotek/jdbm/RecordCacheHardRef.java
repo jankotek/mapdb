@@ -75,5 +75,16 @@ public class RecordCacheHardRef implements RecordManager{
         recman.close();
     }
 
+    @Override
+    public void commit() {
+        recman.commit();
+    }
+
+    @Override
+    public void rollback() {
+        cache.clear();
+        recman.rollback();
+    }
+
 
 }

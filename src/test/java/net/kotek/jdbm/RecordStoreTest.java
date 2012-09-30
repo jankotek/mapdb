@@ -12,13 +12,6 @@ import static org.junit.Assert.*;
 public class RecordStoreTest extends JdbmTestCase {
 
 
-    @SuppressWarnings("all")
-    @Test public void testSomeAssertions(){
-        if(RecordStore.BUF_SIZE%RecordStore.BUF_GROWTH!=0) throw new InternalError();
-        if(RecordStore.BUF_GROWTH<RecordStore.MAX_RECORD_SIZE) throw new InternalError();
-        if(RecordStore.BUF_GROWTH%8!=0) throw new InternalError();
-
-    }
 
     @Test public void testSetGet(){
 
@@ -93,11 +86,11 @@ public class RecordStoreTest extends JdbmTestCase {
     @Test public void test_index_stores_record_size() throws IOException {
 
         final long recid = recman.recordPut(1, Serializer.INTEGER_SERIALIZER);
-        assertEquals(4, readUnsignedShort(recman.indexBufs[0], recid * 8));
+        assertEquals(4, readUnsignedShort(recman.index.buffers[0], recid * 8));
         assertEquals(Integer.valueOf(1), recman.recordGet(recid, Serializer.INTEGER_SERIALIZER));
 
         recman.recordUpdate(recid, 1L, Serializer.LONG_SERIALIZER);
-        assertEquals(8, readUnsignedShort(recman.indexBufs[0], recid * 8));
+        assertEquals(8, readUnsignedShort(recman.index.buffers[0], recid * 8));
         assertEquals(Long.valueOf(1), recman.recordGet(recid, Serializer.LONG_SERIALIZER));
 
     }
@@ -106,7 +99,7 @@ public class RecordStoreTest extends JdbmTestCase {
         recman.lock.writeLock().lock();
         recman.longStackPut(RecordStore.RECID_USER_WHOTEVER, 1);
         assertEquals(RecordStore.LONG_STACK_PAGE_SIZE,
-                readUnsignedShort(recman.indexBufs[0], RecordStore.RECID_USER_WHOTEVER * 8));
+                readUnsignedShort(recman.index.buffers[0], RecordStore.RECID_USER_WHOTEVER * 8));
 
     }
 
@@ -238,9 +231,9 @@ public class RecordStoreTest extends JdbmTestCase {
 
 
                 //zero out all records
-                recman.indexBufs[0].position(RecordStore.RECID_FREE_PHYS_RECORDS_START*8);
-                recman.indexBufs[0].put(zero);
-                recman.indexBufs[0].putLong(RecordStore.RECID_CURRENT_PHYS_FILE_SIZE * 8, 8);
+                recman.index.buffers[0].position(RecordStore.RECID_FREE_PHYS_RECORDS_START*8);
+                recman.index.buffers[0].put(zero);
+                recman.index.buffers[0].putLong(RecordStore.RECID_CURRENT_PHYS_FILE_SIZE * 8, 8);
             }
         }
     }
@@ -287,7 +280,7 @@ public class RecordStoreTest extends JdbmTestCase {
         Assume.assumeTrue(CC.FULL_TEST);
 
         byte[] data = new byte[11111];
-        final long max = RecordStore.BUF_SIZE*2L/data.length;
+        final long max = ByteBuffer2.BUF_SIZE*2L/data.length;
         final Integer hash = Arrays.hashCode(data);
 
         List<Long> recids = new ArrayList<Long>();
@@ -306,7 +299,7 @@ public class RecordStoreTest extends JdbmTestCase {
     }
 
     @Test public void in_memory_test(){
-        RecordStore recman = new RecordStore(null,false,true);
+        RecordStore recman = new RecordStore(null,true);
         Map<Long, Integer> recids = new HashMap<Long,Integer>();
         for(int i = 0;i<100000;i++){
             long recid = recman.recordPut(i, Serializer.BASIC_SERIALIZER);

@@ -1,12 +1,10 @@
 package net.kotek.jdbm;
 
-import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 
@@ -108,7 +106,6 @@ public class RecordAsyncWrite implements RecordManager{
 
         writerThread.setDaemon(true);
         writerThread.start();
-
     }
 
     @Override
@@ -229,6 +226,27 @@ public class RecordAsyncWrite implements RecordManager{
         recman = null;
     }
 
+    @Override
+    public void commit() {
+        try{
+            grandLock.writeLock().lock();
+            recman.commit();
+        }finally {
+            grandLock.writeLock().unlock();
+        }
+    }
+
+    @Override
+    public void rollback() {
+        //TODO drop cache here?
+        try{
+            grandLock.writeLock().lock();
+            recman.rollback();
+        }finally {
+            grandLock.writeLock().unlock();
+        }
+
+    }
 
 
     protected static class SerRec<E> {

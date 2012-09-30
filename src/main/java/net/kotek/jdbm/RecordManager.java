@@ -80,6 +80,7 @@ public interface RecordManager {
      */
     void close();
 
-    //TODO commit method
+    void commit();
+    void rollback();
 
 }

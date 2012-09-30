@@ -22,7 +22,7 @@ public class RecordAsyncWriteTest {
             f = File.createTempFile("test","test");
          if(recman!=null)
              recman.close();
-         recman =  new RecordAsyncWrite(new RecordStore(f,false,false), true);
+         recman =  new RecordAsyncWrite(new RecordStore(f,false), true);
     }
 
 
@@ -56,7 +56,7 @@ public class RecordAsyncWriteTest {
             final int num = i;
             new Thread(new Runnable() {
                 @Override public void run() {
-                    long recid = recman.recordPut("",Serializer.STRING_SERIALIZER);
+                    long recid = recman.recordPut("START-",Serializer.STRING_SERIALIZER);
                     recids.put(num, recid);
                     for(int i = 0;i<updates; i++){
                         String str= recman.recordGet(recid, Serializer.STRING_SERIALIZER);
@@ -78,7 +78,7 @@ public class RecordAsyncWriteTest {
         for(int i = 0;i<threadNum; i++){
             long recid = recids.get(i);
 
-            String expectedStr ="";
+            String expectedStr ="START-";
             for(int j=0;j<updates;j++)
                 expectedStr +=i+",";
 

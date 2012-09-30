@@ -8,7 +8,7 @@ import java.util.*;
 @SuppressWarnings("unchecked")
 public class BTreeMapTest{
 
-    RecordManager recman = new RecordStore(null,false,true);
+    RecordManager recman = new RecordStore(null,true);
 
     public static void print(BTreeMap m) {
         printRecur(m, m.rootRecid, "");

@@ -53,6 +53,13 @@ public class JdbmUtilTest  {
         assertEquals(asList(1,2,3,4,5), asList(JdbmUtil.arrayPut(new Integer[]{1,2,3,4}, 4,5)));
     }
 
+    @Test
+    public void testNextPowTwo() throws Exception {
+        assertEquals(16, JdbmUtil.nextPowTwo(9));
+        assertEquals(8, JdbmUtil.nextPowTwo(8));
+    }
+
+
 
 
 

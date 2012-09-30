@@ -162,4 +162,13 @@ final public class JdbmUtil {
         return ret;
     }
 
+
+    /** Compute nearest bigger power of two*/
+    public static int nextPowTwo(final int value){
+        int ret = 2;
+        while(ret<value)
+            ret = ret<<1;
+        return ret;
+    }
+
 }

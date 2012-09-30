@@ -113,21 +113,4 @@ public class LongHashMapTest extends TestCase {
 
     }
 
-    public void testMemoryConsuptio() {
-        System.out.println("Memory available: " + (Runtime.getRuntime().maxMemory() / 1e6) + "MB");
-        System.out.println("Memory used: " + ((Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1e6) + "MB");
-        long counter = 0;
-        LongHashMap<String> e = new LongHashMap<String>();
-        //LongKeyChainedHashMap<String> e = new LongKeyChainedHashMap<String>();
-        //LongTreeMap<String> e = new LongTreeMap<String>();
-        while (counter < 1e6) {
-            counter++;
-            e.put(counter, "");
-        }
-        System.out.println(counter + " items");
-        System.out.println("Memory used: " + ((Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1e6) + "MB");
-
-
-    }
-
 }

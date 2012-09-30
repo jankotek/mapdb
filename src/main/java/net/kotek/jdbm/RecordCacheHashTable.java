@@ -40,6 +40,7 @@ public class RecordCacheHashTable implements RecordManager {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <A> A recordGet(long recid, Serializer<A> serializer) {
         final int pos = Math.abs(JdbmUtil.longHash(recid))%cacheMaxSize;
         HashItem item = items[pos];
@@ -83,6 +84,18 @@ public class RecordCacheHashTable implements RecordManager {
         //dereference to prevent memory leaks
         recman = null;
         items = null;
+    }
+
+    @Override
+    public void commit() {
+        recman.commit();
+    }
+
+    @Override
+    public void rollback() {
+        for(int i = 0;i<items.length;i++)
+            items[i] = null;
+        recman.rollback();
     }
 
 }

@@ -34,7 +34,7 @@ abstract public class JdbmTestCase {
     }
 
     protected RecordStore openRecordManager() {
-        return new RecordStore(fileName,false,true);
+        return new RecordStore(fileName,true);
     }
 
     @After
@@ -60,11 +60,11 @@ abstract public class JdbmTestCase {
 
     int countIndexRecords(){
         int ret = 0;
-        final long indexFileSize = recman.indexBufs[0].getLong(RecordStore.RECID_CURRENT_INDEX_FILE_SIZE*8);
+        final long indexFileSize = recman.index.buffers[0].getLong(RecordStore.RECID_CURRENT_INDEX_FILE_SIZE*8);
         for(int pos = RecordStore.INDEX_OFFSET_START * 8;
             pos<indexFileSize;
             pos+=8){
-            if(0!=recman.indexValGet(pos / 8)){
+            if(0!=recman.index.getLong(pos)){
                 ret++;
             }
         }
@@ -72,26 +72,26 @@ abstract public class JdbmTestCase {
     }
 
     long getIndexRecord(long recid){
-        return recman.indexValGet(recid);
+        return recman.index.getLong(recid*8);
     }
 
     List<Long> getLongStack(long recid){
         ArrayList<Long> ret =new ArrayList<Long>();
 
-        long pagePhysid = recman.indexValGet(recid) & RecordStore.PHYS_OFFSET_MASK;
+        long pagePhysid = recman.index.getLong(recid*8) & RecordStore.PHYS_OFFSET_MASK;
 
-        ByteBuffer dataBuf = recman.dataBufs[((int) (pagePhysid / RecordStore.BUF_SIZE))];
+        ByteBuffer dataBuf = recman.phys.buffers[((int) (pagePhysid / ByteBuffer2.BUF_SIZE))];
 
         while(pagePhysid!=0){
-            final byte numberOfRecordsInPage = dataBuf.get((int) (pagePhysid% RecordStore.BUF_SIZE));
+            final byte numberOfRecordsInPage = dataBuf.get((int) (pagePhysid% ByteBuffer2.BUF_SIZE));
 
             for(int rec = numberOfRecordsInPage; rec>0;rec--){
-                final long l = dataBuf.getLong((int) (pagePhysid% RecordStore.BUF_SIZE+ rec*8));
+                final long l = dataBuf.getLong((int) (pagePhysid% ByteBuffer2.BUF_SIZE+ rec*8));
                 ret.add(l);
             }
 
             //read location of previous page
-            pagePhysid = dataBuf.getLong((int)(pagePhysid% RecordStore.BUF_SIZE)) & RecordStore.PHYS_OFFSET_MASK;
+            pagePhysid = dataBuf.getLong((int)(pagePhysid% ByteBuffer2.BUF_SIZE)) & RecordStore.PHYS_OFFSET_MASK;
         }
 
 
@@ -114,7 +114,7 @@ abstract public class JdbmTestCase {
 
     final Map<Long, Integer> getDataContent(){
         Map<Long,Integer> ret = new TreeMap<Long, Integer>();
-        final long indexFileSize = recman.indexBufs[0].getLong(RecordStore.RECID_CURRENT_INDEX_FILE_SIZE*8);
+        final long indexFileSize = recman.index.buffers[0].getLong(RecordStore.RECID_CURRENT_INDEX_FILE_SIZE*8);
         for(long recid = RecordStore.INDEX_OFFSET_START ;
             recid*8<indexFileSize;
             recid++){

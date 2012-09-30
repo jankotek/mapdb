@@ -162,7 +162,9 @@ public class DBMaker {
     /** constructs DB using current settings */
     public DB make(){
 
-        RecordManager recman = new RecordStore(file, transactionsEnabled, !asyncSerializationEnabled);
+        RecordManager recman = transactionsEnabled?
+                new RecordStoreTrans(file, !asyncSerializationEnabled):
+                new RecordStore(file, !asyncSerializationEnabled);
 
         if(asyncWriteEnabled)
             recman = new RecordAsyncWrite(recman, asyncSerializationEnabled);
