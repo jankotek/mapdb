@@ -65,11 +65,12 @@ public final class ByteBuffer2 {
         int buffersPos = (int) (offset/BUF_SIZE);
 
         //check for most common case, this is already mapped
-        if(buffers[buffersPos]!=null && buffers[buffersPos].capacity()>=offset%BUF_SIZE)
+        if(buffersPos<buffers.length && buffers[buffersPos]!=null &&
+                buffers[buffersPos].capacity()>=offset%BUF_SIZE)
             return;
 
         //grow array if necessary
-        if(buffers.length<buffersPos){
+        if(buffersPos>=buffers.length){
             buffers = Arrays.copyOf(buffers, Math.max(buffersPos,  buffers.length*2));
         }
 
