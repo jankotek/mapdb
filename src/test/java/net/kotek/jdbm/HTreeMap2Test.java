@@ -15,7 +15,7 @@ public class HTreeMap2Test extends JdbmTestCase {
         System.out.println(toString(m.segmentRecids, recman));
     }
 
-    static String toString(long[] rootRecids, RecordStore recman){
+    static String toString(long[] rootRecids, RecordManager recman){
         String s = "Arrays.asList(\n";
         for(long r:rootRecids){
             s+= (r==0)?null:recursiveToString(r,"", recman);
@@ -25,7 +25,7 @@ public class HTreeMap2Test extends JdbmTestCase {
         return s;
     }
 
-    static private String recursiveToString(long r, String prefix, RecordStore recman) {
+    static private String recursiveToString(long r, String prefix, RecordManager recman) {
         prefix+="  ";
         String s="";
         long[][] nn = recman.recordGet(r, HTreeMap.DIR_SERIALIZER);

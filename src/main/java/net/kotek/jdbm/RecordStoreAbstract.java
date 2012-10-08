@@ -30,11 +30,6 @@ public abstract class RecordStoreAbstract implements  RecordManager{
 
     //TODO slots 4 to 18 are currently unused
 
-    /**
-     * This recid is reserved for user usage. You may put whatever you want here
-     * It is only used by JDBM during unit tests, not at production
-     * */
-    static final int RECID_USER_WHOTEVER =4;
 
     static final int RECID_NAMED_RECODS = 19;
 
@@ -47,7 +42,7 @@ public abstract class RecordStoreAbstract implements  RecordManager{
     /** must be smaller then 127 */
     static final byte LONG_STACK_NUM_OF_RECORDS_PER_PAGE = 100;
 
-    static final int LONG_STACK_PAGE_SIZE =  1 + 8 + LONG_STACK_NUM_OF_RECORDS_PER_PAGE * 8;
+    static final int LONG_STACK_PAGE_SIZE =   8 + LONG_STACK_NUM_OF_RECORDS_PER_PAGE * 8;
 
     /** offset in index file from which normal physid starts */
     static final int INDEX_OFFSET_START = RECID_FREE_PHYS_RECORDS_START +NUMBER_OF_PHYS_FREE_SLOT;
@@ -62,9 +57,11 @@ public abstract class RecordStoreAbstract implements  RecordManager{
 
     protected ByteBuffer2 phys;
     protected ByteBuffer2 index;
+    protected final File indexFile;
 
 
     public RecordStoreAbstract(File indexFile, boolean enableLocks) {
+        this.indexFile = indexFile;
         this.enableLocks = enableLocks;
         this.lock = enableLocks? new ReentrantReadWriteLock() : null;
         this.inMemory = indexFile == null;
@@ -76,8 +73,8 @@ public abstract class RecordStoreAbstract implements  RecordManager{
             File dataFile = inMemory? null : new File(indexFile.getPath()+".p");
 
             if(inMemory){
-                phys = new ByteBuffer2(true, null, null);
-                index = new ByteBuffer2(true, null, null);
+                phys = new ByteBuffer2(true, null, null,"phys");
+                index = new ByteBuffer2(true, null, null,"index");
                 writeInitValues();
 
             }else{
@@ -89,8 +86,8 @@ public abstract class RecordStoreAbstract implements  RecordManager{
                 checkFileBeforeOpening(dataFile, dataRaf);
                 boolean existed = indexFile.exists() && indexFile.length()>0;
 
-                phys = new ByteBuffer2(false, dataRaf.getChannel(), FileChannel.MapMode.READ_WRITE);
-                index = new ByteBuffer2(false, indexRaf.getChannel(), FileChannel.MapMode.READ_WRITE);
+                phys = new ByteBuffer2(false, dataRaf.getChannel(), FileChannel.MapMode.READ_WRITE,"phys");
+                index = new ByteBuffer2(false, indexRaf.getChannel(), FileChannel.MapMode.READ_WRITE,"index");
 
                 if(!existed){
                     //store does not exist, create files

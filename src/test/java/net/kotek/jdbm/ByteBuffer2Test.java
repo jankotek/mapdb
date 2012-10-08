@@ -22,7 +22,7 @@ public class ByteBuffer2Test {
         File ff = File.createTempFile("byte-buffer-test","");
         ff.deleteOnExit();
         FileChannel ff2 = new RandomAccessFile(ff,"rw").getChannel();
-        b = new ByteBuffer2(false, ff2, FileChannel.MapMode.READ_WRITE);
+        b = new ByteBuffer2(false, ff2, FileChannel.MapMode.READ_WRITE,"test");
     }
 
     @Test

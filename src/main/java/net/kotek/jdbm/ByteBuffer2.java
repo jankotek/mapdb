@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Arrays;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * JDBM abstraction over ByteBuffer.
@@ -15,6 +17,10 @@ import java.util.Arrays;
  * Also ByteBuffer is not grow-able, this solves it.
  */
 public final class ByteBuffer2 {
+
+    static final Logger LOG = CC.BB_LOG_WRITES? Logger.getLogger(ByteBuffer2.class.getName()) : null;
+
+    final String logFileName;
 
     static final int  BUF_SIZE = 1<<30;
 
@@ -29,11 +35,12 @@ public final class ByteBuffer2 {
     final protected boolean inMemory;
 
 
-    public ByteBuffer2(boolean inMemory, FileChannel fileChannel, FileChannel.MapMode mapMode){
+    public ByteBuffer2(boolean inMemory, FileChannel fileChannel, FileChannel.MapMode mapMode, String logFileName){
         try{
         this.fileChannel = fileChannel;
         this.inMemory = inMemory;
         this.mapMode = mapMode;
+        this.logFileName = CC.BB_LOG_WRITES? logFileName : null;
         if(inMemory){
             buffers = new ByteBuffer[]{ByteBuffer.allocate(INITIAL_SIZE)};
         }else{
@@ -57,11 +64,16 @@ public final class ByteBuffer2 {
     }
 
 
-    protected ByteBuffer getByteBuffer(long offset) {
+    protected ByteBuffer internalByteBuffer(long offset) {
         return buffers[((int) (offset / BUF_SIZE))];
     }
 
     public void ensureAvailable(long offset) throws IOException {
+
+        if(CC.BB_LOG_WRITES && LOG.isLoggable(Level.FINEST))
+            LOG.finest(logFileName+":ensureAvailable: "+offset);
+
+
         int buffersPos = (int) (offset/BUF_SIZE);
 
         //check for most common case, this is already mapped
@@ -94,12 +106,18 @@ public final class ByteBuffer2 {
     }
 
     public void putLong(long offset, long value){
-        ByteBuffer b = getByteBuffer(offset);
+        if(CC.BB_LOG_WRITES && LOG.isLoggable(Level.FINEST))
+            LOG.finest(logFileName+":putLong: "+offset+" - "+(value>>>48)+" - "+value);
+
+        ByteBuffer b = internalByteBuffer(offset);
         b.putLong((int) (offset%BUF_SIZE), value);
     }
 
     public void putUnsignedByte(long offset, byte value){
-        ByteBuffer b = getByteBuffer(offset);
+        if(CC.BB_LOG_WRITES && LOG.isLoggable(Level.FINEST))
+            LOG.finest(logFileName+":putUnsignedByte: "+offset+" - "+value);
+
+        ByteBuffer b = internalByteBuffer(offset);
         b.put((int) (offset % BUF_SIZE), value);
     }
 
@@ -108,32 +126,37 @@ public final class ByteBuffer2 {
     }
 
     public void putData(long offset, byte[] value, int size) {
-        ByteBuffer b = getByteBuffer(offset);
+        if(CC.BB_LOG_WRITES && LOG.isLoggable(Level.FINEST))
+            LOG.finest(logFileName+":putData: "+offset+" - "+size + " - "+Arrays.toString(Arrays.copyOf(value, size)));
+        ByteBuffer b = internalByteBuffer(offset);
         b.position((int) (offset%BUF_SIZE));
         b.put(value,0,size);
     }
 
     public void putUnsignedShort(long offset, int value) {
-        ByteBuffer b = getByteBuffer(offset);
+        if(CC.BB_LOG_WRITES && LOG.isLoggable(Level.FINEST))
+            LOG.finest(logFileName+":putUnsignedShort: "+offset+" - "+value);
+
+        ByteBuffer b = internalByteBuffer(offset);
         b.putShort((int) (offset%BUF_SIZE), (short)value);
     }
 
 
     public long getLong(long offset){
-        ByteBuffer b = getByteBuffer(offset);
+        ByteBuffer b = internalByteBuffer(offset);
         return b.getLong((int) (offset%BUF_SIZE));
     }
 
     public int getUnsignedByte(long offset){
         int pos = (int) (offset%BUF_SIZE);
-        ByteBuffer b = getByteBuffer(offset);
+        ByteBuffer b = internalByteBuffer(offset);
         return b.get(pos) & 0xff;
     }
 
 
     public int getUnsignedShort(long offset) throws IOException {
         int pos = (int) (offset%BUF_SIZE);
-        ByteBuffer b = getByteBuffer(offset);
+        ByteBuffer b = internalByteBuffer(offset);
         return (( (b.get(pos++) & 0xff) << 8) |
                 ( (b.get(pos) & 0xff)));
     }
@@ -141,7 +164,7 @@ public final class ByteBuffer2 {
 
     public DataInput2 getDataInput(final long offset, final int size){
 
-        final ByteBuffer b = getByteBuffer(offset);
+        final ByteBuffer b = internalByteBuffer(offset);
         return new DataInput2(b, (int) (offset%BUF_SIZE));
     }
 
@@ -153,5 +176,6 @@ public final class ByteBuffer2 {
         }
         buffers = null;
     }
+
 
 }

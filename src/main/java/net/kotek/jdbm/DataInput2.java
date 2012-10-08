@@ -7,7 +7,7 @@ import java.nio.ByteBuffer;
 /**
  * Wraps ByteBuffer and provides DataInput
  */
-public class DataInput2 implements DataInput {
+public final class DataInput2 implements DataInput {
 
     ByteBuffer buf;
     int pos;

@@ -22,7 +22,7 @@ abstract public class JdbmTestCase {
 
     File testDir;
 
-    RecordStore recman;
+    RecordStoreAbstract recman;
 
      @Before
      public void setUp() throws Exception {
@@ -33,7 +33,7 @@ abstract public class JdbmTestCase {
         recman = openRecordManager();
     }
 
-    protected RecordStore openRecordManager() {
+    protected RecordStoreAbstract openRecordManager() {
         return new RecordStore(fileName,true);
     }
 

@@ -13,9 +13,9 @@ interface CC {
     boolean ASSERT = true;
 
     /**
-     * Compile without trace logging statements (Logger.debug and Logger.trace)
+     * Compile with trace logging statements (Logger.debug and Logger.trace)
      */
-    boolean TRACE = true;
+    boolean TRACE = false;
 
     /**
      * JDBM has some long running acceptance tests. For daily development it makes sense to skip those.
@@ -23,6 +23,11 @@ interface CC {
      */
     boolean FULL_TEST = false;
 
+
+    /**
+     * Log all binary writes into log.
+     */
+    boolean BB_LOG_WRITES = false;
 
 
     short STORE_FORMAT_VERSION = 10000 + 1;

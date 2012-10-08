@@ -12,10 +12,17 @@ import static org.junit.Assert.*;
 public class RecordStoreTest extends JdbmTestCase {
 
 
+    /** recid used for testing, it is actuall free slot with size 1*/
+    static final long TEST_LS_RECID = RecordStore.RECID_FREE_PHYS_RECORDS_START+1 ;
+
+    protected void commit(){
+        recman.commit();
+    }
 
     @Test public void testSetGet(){
 
         long recid  = recman.recordPut((long) 10000, Serializer.LONG_SERIALIZER);
+
 
         Long  s2 = recman.recordGet(recid, Serializer.LONG_SERIALIZER);
 
@@ -25,19 +32,23 @@ public class RecordStoreTest extends JdbmTestCase {
 
     @Test public void test_index_record_delete(){
         long recid = recman.recordPut(1000L, Serializer.LONG_SERIALIZER);
+        commit();
         assertEquals(1, countIndexRecords());
         recman.recordDelete(recid);
+        commit();
         assertEquals(0, countIndexRecords());
     }
 
     @Test public void test_index_record_delete_and_reuse(){
         long recid = recman.recordPut(1000L, Serializer.LONG_SERIALIZER);
+        commit();
         assertEquals(1, countIndexRecords());
         assertEquals(RecordStore.INDEX_OFFSET_START, recid);
         recman.recordDelete(recid);
+        commit();
         assertEquals(0, countIndexRecords());
         long recid2 = recman.recordPut(1000L, Serializer.LONG_SERIALIZER);
-
+        commit();
         //test that previously deleted index slot was reused
         assertEquals(recid, recid2);
         assertEquals(1, countIndexRecords());
@@ -86,64 +97,143 @@ public class RecordStoreTest extends JdbmTestCase {
     @Test public void test_index_stores_record_size() throws IOException {
 
         final long recid = recman.recordPut(1, Serializer.INTEGER_SERIALIZER);
+        commit();
         assertEquals(4, readUnsignedShort(recman.index.buffers[0], recid * 8));
         assertEquals(Integer.valueOf(1), recman.recordGet(recid, Serializer.INTEGER_SERIALIZER));
 
         recman.recordUpdate(recid, 1L, Serializer.LONG_SERIALIZER);
+        commit();
         assertEquals(8, readUnsignedShort(recman.index.buffers[0], recid * 8));
         assertEquals(Long.valueOf(1), recman.recordGet(recid, Serializer.LONG_SERIALIZER));
 
     }
 
-    @Test public void test_long_buffer_puts_record_size_into_index() throws IOException {
+    @Test public void test_long_stack_puts_record_size_into_index() throws IOException {
         recman.lock.writeLock().lock();
-        recman.longStackPut(RecordStore.RECID_USER_WHOTEVER, 1);
+        recman.longStackPut(TEST_LS_RECID, 1);
+        commit();
         assertEquals(RecordStore.LONG_STACK_PAGE_SIZE,
-                readUnsignedShort(recman.index.buffers[0], RecordStore.RECID_USER_WHOTEVER * 8));
+                readUnsignedShort(recman.index.buffers[0], TEST_LS_RECID * 8));
 
     }
 
-    @Test public void test_long_buffer_put_take(){
+    @Test public void test_long_stack_put_take(){
         recman.lock.writeLock().lock();
 
         final long max = 150;
         for(long i=1;i<max;i++){
-            recman.longStackPut(RecordStore.RECID_USER_WHOTEVER, i);
+            recman.longStackPut(TEST_LS_RECID, i);
         }
 
         for(long i = max-1;i>0;i--){
-            assertEquals(i, recman.longStackTake(RecordStore.RECID_USER_WHOTEVER));
+            assertEquals(i, recman.longStackTake(TEST_LS_RECID));
         }
 
-        assertEquals(0, getLongStack(RecordStore.RECID_USER_WHOTEVER).size());
+        assertEquals(0, getLongStack(TEST_LS_RECID).size());
 
         }
 
-    @Test public void test_long_buffer_put_take_simple(){
+    @Test public void test_long_stack_put_take_simple(){
         recman.lock.writeLock().lock();
-        recman.longStackPut(RecordStore.RECID_USER_WHOTEVER, 111);
-        assertEquals(111L, recman.longStackTake(RecordStore.RECID_USER_WHOTEVER));
+        recman.longStackPut(TEST_LS_RECID, 111);
+        assertEquals(111L, recman.longStackTake(TEST_LS_RECID));
     }
 
 
-    @Test public void test_basic_long_buffer(){
-
+    @Test public void test_basic_long_stack(){
         //dirty hack to make sure we have lock
         recman.lock.writeLock().lock();
         final long max = 150;
         ArrayList<Long> list = new ArrayList<Long>();
         for(long i=1;i<max;i++){
-            recman.longStackPut(RecordStore.RECID_USER_WHOTEVER, i);
+            recman.longStackPut(TEST_LS_RECID, i);
             list.add(i);
         }
 
         Collections.reverse(list);
+        commit();
 
-        assertEquals(list, getLongStack(RecordStore.RECID_USER_WHOTEVER));
+        assertEquals(list, getLongStack(TEST_LS_RECID));
     }
 
 
-    @Test  public void test_freePhysRecSize2FreeSlot_asserts(){
+    @Test public void long_stack_page_created_after_put(){
+        recman.lock.writeLock().lock();
+        recman.longStackPut(TEST_LS_RECID, 111);
+        commit();
+        long pageId = recman.index.getLong(TEST_LS_RECID*8);
+        assertEquals(RecordStore.LONG_STACK_PAGE_SIZE, pageId>>>48);
+        pageId = pageId & RecordStore.PHYS_OFFSET_MASK;
+        assertEquals(8L, pageId);
+        assertEquals(1, recman.phys.getUnsignedByte(pageId));
+        assertEquals(0, recman.phys.getLong(pageId)&RecordStore.PHYS_OFFSET_MASK);
+        assertEquals(111, recman.phys.getLong(pageId+8));
+    }
+
+    @Test public void long_stack_put_five(){
+        recman.lock.writeLock().lock();
+        recman.longStackPut(TEST_LS_RECID, 111);
+        recman.longStackPut(TEST_LS_RECID, 112);
+        recman.longStackPut(TEST_LS_RECID, 113);
+        recman.longStackPut(TEST_LS_RECID, 114);
+        recman.longStackPut(TEST_LS_RECID, 115);
+
+        commit();
+        long pageId = recman.index.getLong(TEST_LS_RECID*8);
+        assertEquals(RecordStore.LONG_STACK_PAGE_SIZE, pageId>>>48);
+        pageId = pageId & RecordStore.PHYS_OFFSET_MASK;
+        assertEquals(8L, pageId);
+        assertEquals(5, recman.phys.getUnsignedByte(pageId));
+        assertEquals(0, recman.phys.getLong(pageId)&RecordStore.PHYS_OFFSET_MASK);
+        assertEquals(111, recman.phys.getLong(pageId+8));
+        assertEquals(112, recman.phys.getLong(pageId+16));
+        assertEquals(113, recman.phys.getLong(pageId+24));
+        assertEquals(114, recman.phys.getLong(pageId+32));
+        assertEquals(115, recman.phys.getLong(pageId+40));
+    }
+
+    @Test public void long_stack_page_deleted_after_take(){
+        recman.lock.writeLock().lock();
+        recman.longStackPut(TEST_LS_RECID, 111);
+        commit();
+        assertEquals(111L, recman.longStackTake(TEST_LS_RECID));
+        commit();
+        assertEquals(0L, recman.index.getLong(TEST_LS_RECID*8));
+    }
+
+    @Test public void long_stack_page_overflow(){
+        recman.lock.writeLock().lock();
+        //fill page until near overflow
+        for(int i=0;i<RecordStore.LONG_STACK_NUM_OF_RECORDS_PER_PAGE;i++){
+            recman.longStackPut(TEST_LS_RECID, 1000L+i);
+        }
+        commit();
+
+        //check content
+        long pageId = recman.index.getLong(TEST_LS_RECID*8);
+        assertEquals(RecordStore.LONG_STACK_PAGE_SIZE, pageId>>>48);
+        pageId = pageId & RecordStore.PHYS_OFFSET_MASK;
+        assertEquals(8L, pageId);
+        assertEquals(RecordStore.LONG_STACK_NUM_OF_RECORDS_PER_PAGE, recman.phys.getUnsignedByte(pageId));
+        for(int i=0;i<RecordStore.LONG_STACK_NUM_OF_RECORDS_PER_PAGE;i++){
+            assertEquals(1000L+i, recman.phys.getLong(pageId+8+i*8));
+        }
+
+        //add one more item, this will trigger page overflow
+        recman.longStackPut(TEST_LS_RECID, 11L);
+        commit();
+        //check page overflowed
+        pageId = recman.index.getLong(TEST_LS_RECID*8);
+        assertEquals(RecordStore.LONG_STACK_PAGE_SIZE, pageId>>>48);
+        pageId = pageId & RecordStore.PHYS_OFFSET_MASK;
+        assertEquals(8L+RecordStore.LONG_STACK_PAGE_SIZE, pageId);
+        assertEquals(1, recman.phys.getUnsignedByte(pageId));
+        assertEquals(8L, recman.phys.getLong(pageId)&RecordStore.PHYS_OFFSET_MASK);
+        assertEquals(11L, recman.phys.getLong(pageId+8));
+    }
+
+
+    @Test public void test_freePhysRecSize2FreeSlot_asserts(){
         if(!CC.ASSERT) return;
         try{
             recman.freePhysRecSize2FreeSlot(RecordStore.MAX_RECORD_SIZE + 1);
@@ -160,7 +250,7 @@ public class RecordStoreTest extends JdbmTestCase {
         }
     }
 
-    @Test  public void test_freePhysRecSize2FreeSlot_incremental(){
+    @Test public void test_freePhysRecSize2FreeSlot_incremental(){
         int oldSlot = -1;
         for(int size = 1;size<= RecordStore.MAX_RECORD_SIZE;size++){
             int slot = recman.freePhysRecSize2FreeSlot(size);
@@ -191,53 +281,7 @@ public class RecordStoreTest extends JdbmTestCase {
         assertEquals(arrayList(), getLongStack(RecordStore.RECID_FREE_PHYS_RECORDS_START + recman.freePhysRecSize2FreeSlot(size)));
     }
 
-    @Test public void test_freePhys_Put_and_Take_2(){
-
-        byte[] zero = new byte[RecordStore.NUMBER_OF_PHYS_FREE_SLOT*8];
-
-        @SuppressWarnings("all")
-        final int inc = CC.FULL_TEST ? 1 : 111;
-
-
-        recman.lock.writeLock().lock();
-
-        for(int origSize =1;origSize<=1500;origSize+=inc){
-            for(int newSize = 1;newSize<=origSize;newSize+=inc){
-
-                final long offset = 111111;
-                final long indexVal = ((long)origSize)<<48 | offset;
-
-                recman.freePhysRecPut(indexVal);
-
-                //check it is in list
-                assertEquals(arrayList(indexVal),
-                        getLongStack(RecordStore.RECID_FREE_PHYS_RECORDS_START
-                                + recman.freePhysRecSize2FreeSlot(origSize)));
-
-                //require new record
-                final long newIndexVal = recman.freePhysRecTake(newSize);
-
-                assertEquals(((long) newSize) << 48 | offset, newIndexVal);
-
-                //find remaining free record if any
-                if(origSize!=newSize){
-                    final int rsize = origSize - newSize;
-                    final int rslot = recman.freePhysRecSize2FreeSlot(rsize);
-                    final long rIndexVal = (offset + newSize) | (((long)rsize)<<48);
-                    assertEquals(new Long(rIndexVal),
-                            getLongStack(RecordStore.RECID_FREE_PHYS_RECORDS_START + rslot).get(0));
-                }
-
-
-
-                //zero out all records
-                recman.index.buffers[0].position(RecordStore.RECID_FREE_PHYS_RECORDS_START*8);
-                recman.index.buffers[0].put(zero);
-                recman.index.buffers[0].putLong(RecordStore.RECID_CURRENT_PHYS_FILE_SIZE * 8, 8);
-            }
-        }
-    }
-
+    //TODO test randomly put and delete values
 
 
     @Test public void test_2GB_over() throws IOException {

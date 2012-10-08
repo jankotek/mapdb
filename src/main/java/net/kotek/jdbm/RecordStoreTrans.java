@@ -1,8 +1,8 @@
 package net.kotek.jdbm;
 
-import java.io.File;
-import java.io.IOError;
-import java.io.IOException;
+import java.io.*;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.util.Arrays;
 
 /**
@@ -12,15 +12,16 @@ import java.util.Arrays;
  */
 public class RecordStoreTrans extends RecordStoreAbstract implements RecordManager{
 
-    protected static final long WRITE_INDEX_LONG = 1 <<48;
-    protected static final long WRITE_INDEX_LONG_ZERO = 2 <<48;
-    protected static final long WRITE_PHYS_LONG = 3 <<48;
-    protected static final long WRITE_PHYS_BYTE = 4 <<48;
-    protected static final long WRITE_PHYS_ARRAY = 5 <<48;
+    protected static final long WRITE_INDEX_LONG = 1L <<48;
+    protected static final long WRITE_INDEX_LONG_ZERO = 2L <<48;
+    protected static final long WRITE_PHYS_LONG = 3L <<48;
+    protected static final long WRITE_PHYS_BYTE = 4L <<48;
+    protected static final long WRITE_PHYS_ARRAY = 5L <<48;
+    protected static final long WRITE_SEAL = 111L <<48;
 
 
-    protected ByteBuffer2 transLog = new ByteBuffer2(true, null,null);
-    protected long transLogOffset = 0;
+    protected ByteBuffer2 transLog;
+    protected long transLogOffset;
 
 
     protected long indexSize;
@@ -34,8 +35,15 @@ public class RecordStoreTrans extends RecordStoreAbstract implements RecordManag
 
     public RecordStoreTrans(File indexFile, boolean enableLocks) {
         super(indexFile,  enableLocks);
-        reloadIndexFile();
+        try{
+            writeLock_lock();
+            reloadIndexFile();
+            replayLogFile();
+        }finally{
+            writeLock_unlock();
+        }
     }
+
 
     protected void reloadIndexFile() {
         transLogOffset = 0;
@@ -46,8 +54,8 @@ public class RecordStoreTrans extends RecordStoreAbstract implements RecordManag
         physSize = index.getLong(RECID_CURRENT_PHYS_FILE_SIZE*8);
         writeLock_checkLocked();
         for(int i = RECID_FREE_INDEX_SLOTS;i<INDEX_OFFSET_START; i++){
-            longStackCurrentPage[i] = index.getLong(i*8);
-            longStackCurrentPageSize[i] = phys.getUnsignedByte(longStackCurrentPage[i] & PHYS_OFFSET_MASK);
+            longStackCurrentPage[i] = index.getLong(i*8) & PHYS_OFFSET_MASK;
+            longStackCurrentPageSize[i] = phys.getUnsignedByte(longStackCurrentPage[i] );
             longStackAdded[i] = null;
             longStackAddedSize[i] = 0;
         }
@@ -74,7 +82,7 @@ public class RecordStoreTrans extends RecordStoreAbstract implements RecordManag
                 long nextPage = phys.getLong(pageOffset)&PHYS_OFFSET_MASK;
                 freePhysRecPut(indexValue);
 
-                longStackCurrentPage[r] = nextPage;
+                longStackCurrentPage[r] = nextPage==0?-1:nextPage;
                 longStackCurrentPageSize[r] = (nextPage==0)? 0 :
                         phys.getUnsignedByte(nextPage);
             }
@@ -302,8 +310,192 @@ public class RecordStoreTrans extends RecordStoreAbstract implements RecordManag
 
     @Override
     public void commit() {
-        //TODO commit
+        try{
+            writeLock_lock();
+
+            //update LongStack sizes and page addresses
+            for(int recid=RECID_FREE_INDEX_SLOTS; recid<longStackAddedSize.length; recid++){
+                //compare and update if needed
+                long newPage = longStackCurrentPage[recid];
+                if(newPage == 0) continue;
+                long realPage = index.getLong(recid*8);
+                if(realPage !=newPage){
+                    if(newPage==-1)
+                        writeIndexValToTransLog(recid, 0);
+                    else
+                        writeIndexValToTransLog(recid, newPage | (1L*LONG_STACK_PAGE_SIZE)<<48);
+                }
+
+                if(newPage!=-1){
+                    int realPageCount = phys.getUnsignedByte(newPage);
+                    if(realPageCount!= longStackCurrentPageSize[recid]){
+                        transLog.putLong(transLogOffset,WRITE_PHYS_BYTE | newPage);
+                        transLogOffset+=8;
+                        transLog.putUnsignedByte(transLogOffset, (byte) realPageCount);
+                        transLogOffset+=1;
+                    }
+                }
+
+            }
+
+
+
+            //count number of pages to preallocate
+            int pagesNeeded = 0;
+            int oldFreePhysLongStackAddedSize = longStackAddedSize[RECID_FREE_PHYS_RECORDS_START + LONG_STACK_PAGE_SIZE];
+            for(int recid = RECID_FREE_INDEX_SLOTS;recid<longStackAdded.length;recid++ ){
+                int addedCount = longStackAddedSize[recid];
+                if(addedCount!=0){
+                    pagesNeeded += 1 + (addedCount-1)/LONG_STACK_NUM_OF_RECORDS_PER_PAGE;
+                }
+            }
+            if(oldFreePhysLongStackAddedSize != longStackAddedSize[RECID_FREE_PHYS_RECORDS_START + LONG_STACK_PAGE_SIZE]){
+                throw new InternalError();
+            }
+
+
+            //preallocate pages
+            long[] preallocPages = new long[pagesNeeded];
+            for(int i=0; i<pagesNeeded;i++){
+                preallocPages[i] = freePhysRecTake(LONG_STACK_PAGE_SIZE) & PHYS_OFFSET_MASK;
+            }
+
+            int preallocPagesPos = 0;
+
+
+            //now write values added into long stacks
+            for(int recid=RECID_FREE_INDEX_SLOTS; recid<longStackAdded.length; recid++){
+                if(longStackAddedSize[recid]==0) continue;
+                long page = longStackCurrentPage[recid];
+                int pageSize = longStackCurrentPageSize[recid];
+                if(page==0){
+                    //use preallocated page
+                    page = preallocPages[preallocPagesPos++];
+                    writeIndexValToTransLog(recid, (((long)LONG_STACK_PAGE_SIZE)<<48) | page);
+                    pageSize=0;
+                }
+
+                for(int pos=0; pos<longStackAddedSize[recid]; pos++){
+                    if(pageSize == LONG_STACK_NUM_OF_RECORDS_PER_PAGE){
+                        //overflow to next page
+                        long oldPage = page;
+                        //get new page and write reference to old one
+                        page = preallocPages[preallocPagesPos++];
+                        transLog.putLong(transLogOffset, WRITE_PHYS_LONG | page);
+                        transLogOffset+=8;
+                        transLog.putLong(transLogOffset, oldPage);
+                        transLogOffset+=8;
+                        //update index reference to this new page
+                        writeIndexValToTransLog(recid, page | (((long)LONG_STACK_PAGE_SIZE)<<48));
+                        //reset counter
+                        pageSize = 0;
+                    }
+
+                    //write new page size
+                    transLog.putLong(transLogOffset,WRITE_PHYS_BYTE | page);
+                    transLogOffset+=8;
+                    transLog.putUnsignedByte(transLogOffset, (byte) (++pageSize));
+                    transLogOffset+=1;
+
+                    //write long value
+                    long value = longStackAdded[recid][pos];
+                    transLog.putLong(transLogOffset, WRITE_PHYS_LONG | (page+ (pageSize)*8));
+                    transLogOffset+=8;
+                    transLog.putLong(transLogOffset, value);
+                    transLogOffset+=8;
+
+                }
+            }
+
+
+            //update physical and logical filesize
+            writeIndexValToTransLog(RECID_CURRENT_PHYS_FILE_SIZE, physSize);
+            writeIndexValToTransLog(RECID_CURRENT_INDEX_FILE_SIZE, indexSize);
+
+
+            //seal log file
+            transLog.putLong(transLogOffset, WRITE_SEAL);
+            transLogOffset+=8;
+
+            replayLogFile();
+            reloadIndexFile();
+
+//        }catch(IOException e){
+//            throw new IOError(e);
+        }finally{
+            writeLock_unlock();
+        }
     }
+
+    protected void replayLogFile() {
+        try {
+            writeLock_checkLocked();
+            transLogOffset = 0;
+
+            if(transLog==null){
+                if(inMemory){
+                    transLog = new ByteBuffer2(true, null, null,"trans");
+                    return;
+                }else{
+                    RandomAccessFile r =  new RandomAccessFile(new File(indexFile.getPath()+".t"),"rw");
+                    transLog = new ByteBuffer2(false,r.getChannel(), FileChannel.MapMode.READ_WRITE,"trans");
+                    if(r.length()==0)
+                        return;
+                }
+            }
+
+            long ins = transLog.getLong(transLogOffset);
+            transLogOffset+=8;
+
+            while(ins!=WRITE_SEAL && ins!=0){
+
+                final long offset = ins&PHYS_OFFSET_MASK;
+                ins -=offset;
+
+                if(ins == WRITE_INDEX_LONG_ZERO){
+                    index.putLong(offset, 0L);
+                }else if(ins == WRITE_INDEX_LONG){
+                    final long value = transLog.getLong(transLogOffset);
+                    transLogOffset+=8;
+                    index.putLong(offset, value);
+                }else if(ins == WRITE_PHYS_LONG){
+                    final long value = transLog.getLong(transLogOffset);
+                    transLogOffset+=8;
+                    phys.putLong(offset, value);
+                }else if(ins == WRITE_PHYS_BYTE){
+                    final int value = transLog.getUnsignedByte(transLogOffset);
+                    transLogOffset+=1;
+                    phys.putUnsignedByte(offset, (byte) value);
+                }else if(ins == WRITE_PHYS_ARRAY){
+                    final int size = transLog.getUnsignedShort(transLogOffset);
+                    transLogOffset+=2;
+
+                    //transfer byte[] directly from log file without copying into memory
+                    final ByteBuffer blog = transLog.internalByteBuffer(transLogOffset);
+                    int pos = (int) (transLogOffset% ByteBuffer2.BUF_SIZE);
+                    blog.position(pos);
+                    blog.limit(pos+size);
+                    final ByteBuffer bphys = phys.internalByteBuffer(offset);
+                    bphys.position((int) (offset% ByteBuffer2.BUF_SIZE));
+                    bphys.put(blog);
+                    transLogOffset+=size;
+                    blog.clear();
+                    bphys.clear();
+
+                }else{
+                    throw new InternalError("unknown trans log instruction: "+(ins>>>48));
+                }
+
+                ins = transLog.getLong(transLogOffset);
+                transLogOffset+=8;
+            }
+            transLogOffset=0;
+        } catch (IOException e) {
+            throw new IOError(e);
+        }
+
+    }
+
 
     @Override
     public void rollback() {
