@@ -92,8 +92,8 @@ public class ByteBuffer2Test {
         assertEquals(0, ByteBuffer2.BUF_SIZE%ByteBuffer2.BUF_SIZE_INC);
         assertEquals(0, ByteBuffer2.BUF_SIZE%8);
         assertEquals(0, ByteBuffer2.BUF_SIZE_INC%8);
-        assertTrue(RecordStoreAbstract.INDEX_OFFSET_START*8<ByteBuffer2.INITIAL_SIZE);
-        assertTrue(ByteBuffer2.BUF_SIZE_INC>RecordStore.MAX_RECORD_SIZE);
+        assertTrue(Storage.INDEX_OFFSET_START*8<ByteBuffer2.INITIAL_SIZE);
+        assertTrue(ByteBuffer2.BUF_SIZE_INC> StorageDirect.MAX_RECORD_SIZE);
     }
 
 

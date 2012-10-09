@@ -1,6 +1,9 @@
 package net.kotek.jdbm;
 
 import java.io.File;
+import java.io.IOError;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 
 /**
  * A builder class for creating and opening a database.
@@ -8,24 +11,29 @@ import java.io.File;
 public class DBMaker {
 
 
-    private static final byte CACHE_DISABLE = 0;
-    private static final byte CACHE_FIXED_HASH_TABLE = 1;
-    private static final byte CACHE_HARD_REF = 2;
+    protected static final byte CACHE_DISABLE = 0;
+    protected static final byte CACHE_FIXED_HASH_TABLE = 1;
+    protected static final byte CACHE_HARD_REF = 2;
 
 
-    protected byte cache = CACHE_FIXED_HASH_TABLE;
-    protected int cacheSize = 1024*32;
+    protected byte _cache = CACHE_FIXED_HASH_TABLE;
+    protected int _cacheSize = 1024*32;
 
     /** file to open, if null opens in memory store */
-    protected File file;
+    protected File _file;
 
-    protected boolean transactionsEnabled = true;
+    protected boolean _transactionsEnabled = true;
 
-    protected boolean asyncWriteEnabled = true;
-    protected boolean asyncSerializationEnabled = true;
+    protected boolean _asyncWriteEnabled = true;
+    protected boolean _asyncSerializationEnabled = true;
 
+    protected boolean _deleteFilesAfterClose = false;
+    protected boolean _readOnly = false;
+    protected boolean _closeOnJvmShutdown = false;
 
+    protected boolean _compressionEnabled = false;
 
+    protected byte[] _xteaEncryptionKey = null;
 
 
     /** use static factory methods, or make subclass */
@@ -34,14 +42,28 @@ public class DBMaker {
     /** Creates new in-memory database. Changes are lost after JVM exits*/
     public static DBMaker newMemoryDB(){
         DBMaker m = new DBMaker();
-        m.file = null;
+        m._file = null;
         return  m;
+    }
+
+
+    /**
+     * Creates new database in temporary folder.
+     *
+     * @return
+     */
+    public static DBMaker newTempFileDB() {
+        try {
+            return newFileDB(File.createTempFile("JDBM-temp","db"));
+        } catch (IOException e) {
+            throw new IOError(e);
+        }
     }
 
     /** Creates or open database stored in file. */
     public static DBMaker newFileDB(File file){
         DBMaker m = new DBMaker();
-        m.file = file;
+        m._file = file;
         return  m;
     }
 
@@ -57,7 +79,7 @@ public class DBMaker {
      * @return this builder
      */
     public DBMaker transactionDisable(){
-        this.transactionsEnabled = false;
+        this._transactionsEnabled = false;
         return this;
     }
 
@@ -71,7 +93,7 @@ public class DBMaker {
      * @return this builder
      */
     public DBMaker cacheDisable(){
-        this.cache = CACHE_DISABLE;
+        this._cache = CACHE_DISABLE;
         return this;
     }
 
@@ -86,7 +108,7 @@ public class DBMaker {
      * @return this builder
      */
     public DBMaker cacheHardRefEnable(){
-        this.cache = CACHE_HARD_REF;
+        this._cache = CACHE_HARD_REF;
         return this;
     }
 
@@ -103,7 +125,7 @@ public class DBMaker {
      * @return this builder
      */
     public DBMaker cacheSize(int cacheSize){
-        this.cacheSize = cacheSize;
+        this._cacheSize = cacheSize;
         return this;
     }
 
@@ -121,7 +143,7 @@ public class DBMaker {
      * @return this builder
      */
     public DBMaker asyncWriteDisable(){
-        this.asyncWriteEnabled = false;
+        this._asyncWriteEnabled = false;
         return this;
     }
 
@@ -154,30 +176,148 @@ public class DBMaker {
      * @return this builder
      */
     public DBMaker asyncSerializationDisable(){
-        this.asyncSerializationEnabled = false;
+        this._asyncSerializationEnabled = false;
         return this;
     }
+
+
+    /**
+     * Try to delete files after DB is closed.
+     * File deletion may silently fail, especially on Windows where buffer needs to be unmapped file delete.
+     *
+     * @return this builder
+     */
+    public DBMaker deleteFilesAfterClose(){
+        this._deleteFilesAfterClose = true;
+        return this;
+    }
+
+    /**
+     * Adds JVM shutdown hook and closes DB just before JVM;
+     *
+     * @return this builder
+     */
+    public DBMaker closeOnJvmShutdown(){
+        this._closeOnJvmShutdown = true;
+        return this;
+    }
+
+    /**
+     * Enables record compression.
+     * <p/>
+     * Make sure you enable this every time you reopen store, otherwise record de-serialization fails unpredictably.
+     *
+     * @return this builder
+     */
+    public DBMaker compressionEnable(){
+        this._compressionEnabled = true;
+        return this;
+    }
+
+
+    /**
+     * Encrypt storage using XTEA algorithm.
+     * <p/>
+     * XTEA is sound encryption algorithm. However implementation in JDBM was not peer-reviewed.
+     * JDBM only encrypts records data, so attacker may see number of records and their sizes.
+     * <p/>
+     * Make sure you enable this every time you reopen store, otherwise record de-serialization fails unpredictably.
+     *
+     * @param password for encryption
+     * @return this builder
+     */
+    public DBMaker encryptionEnable(String password){
+        try {
+            return encryptionEnable(password.getBytes(JdbmUtil.UTF8));
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
+    /**
+     * Encrypt storage using XTEA algorithm.
+     * <p/>
+     * XTEA is sound encryption algorithm. However implementation in JDBM was not peer-reviewed.
+     * JDBM only encrypts records data, so attacker may see number of records and their sizes.
+     * <p/>
+     * Make sure you enable this every time you reopen store, otherwise record de-serialization fails unpredictably.
+     *
+     * @param password for encryption
+     * @return this builder
+     */
+    public DBMaker encryptionEnable(byte[] password){
+        _xteaEncryptionKey = password;
+        return this;
+    }
+
+
+    /**
+     * Open store in read-only mode. Any modification attempd will throw
+     * <code>UnsupportedOperationException("Read-only")</code>
+     *
+     * @return this builder
+     */
+    public DBMaker readOnly(){
+        this._readOnly = true;
+        return this;
+    }
+
+
+
 
 
     /** constructs DB using current settings */
     public DB make(){
 
-        RecordManager recman = transactionsEnabled?
-                new RecordStoreTrans(file, !asyncSerializationEnabled):
-                new RecordStore(file, !asyncSerializationEnabled);
 
-        if(asyncWriteEnabled)
-            recman = new RecordAsyncWrite(recman, asyncSerializationEnabled);
+        if(_readOnly && _file==null)
+            throw new UnsupportedOperationException("Can not open in-memory DB in read-only mode.");
 
-        if(cache == CACHE_DISABLE){
-            //do not wrap recman in cache
-        }if(cache == CACHE_FIXED_HASH_TABLE){
-            recman = new RecordCacheHashTable(recman,cacheSize);
-        }else if (cache == CACHE_HARD_REF){
-            recman = new RecordCacheHardRef(recman,cacheSize);
+        if(_readOnly && !_file.exists()){
+            throw new UnsupportedOperationException("Can not open non-existing file in read-only mode.");
         }
 
-        return new DB(recman);
+        RecordManager recman = _transactionsEnabled?
+                new StorageTrans(_file, !_asyncSerializationEnabled, _deleteFilesAfterClose,_readOnly):
+                new StorageDirect(_file, !_asyncSerializationEnabled, _deleteFilesAfterClose,_readOnly);
+
+        if(_asyncWriteEnabled && !_readOnly)
+            recman = new AsyncWriteWrapper(recman, _asyncSerializationEnabled);
+
+        if(_xteaEncryptionKey!=null){
+            recman = new ByteTransformWrapper(recman, new EncryptionXTEA(_xteaEncryptionKey));
+        }
+
+        if(_compressionEnabled){
+            recman = new ByteTransformWrapper(recman, new CompressLZFSerializer());
+        }
+
+
+        if(_cache == CACHE_DISABLE){
+            //do not wrap recman in cache
+        }if(_cache == CACHE_FIXED_HASH_TABLE){
+            recman = new CacheHashTable(recman,_cacheSize);
+        }else if (_cache == CACHE_HARD_REF){
+            recman = new CacheHardRef(recman,_cacheSize);
+        }
+
+        if(_readOnly)
+            recman = new ReadOnlyWrapper(recman);
+
+
+        final DB db = new DB(recman);
+        if(_closeOnJvmShutdown){
+            Runtime.getRuntime().addShutdownHook(new Thread("JDBM shutdown") {
+                public void run() {
+                    if (db.recman != null) {
+                        db.close();
+                    }
+                }
+            });
+        }
+
+        return db;
     }
 
 

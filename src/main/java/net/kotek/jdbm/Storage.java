@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-public abstract class RecordStoreAbstract implements  RecordManager{
+public abstract class Storage implements  RecordManager{
 
 
 
@@ -46,11 +46,14 @@ public abstract class RecordStoreAbstract implements  RecordManager{
 
     /** offset in index file from which normal physid starts */
     static final int INDEX_OFFSET_START = RECID_FREE_PHYS_RECORDS_START +NUMBER_OF_PHYS_FREE_SLOT;
+    public static final String DATA_FILE_EXT = ".p";
 
 
     private final AtomicInteger writeLocksCounter;
     protected final boolean enableLocks;
     protected final boolean inMemory;
+    protected final boolean deleteFilesOnExit;
+    protected final boolean readOnly;
 
     protected final ReentrantReadWriteLock lock;
 
@@ -60,9 +63,13 @@ public abstract class RecordStoreAbstract implements  RecordManager{
     protected final File indexFile;
 
 
-    public RecordStoreAbstract(File indexFile, boolean enableLocks) {
+
+
+    public Storage(File indexFile, boolean enableLocks, boolean deleteFilesAfterClose, boolean readOnly) {
         this.indexFile = indexFile;
         this.enableLocks = enableLocks;
+        this.deleteFilesOnExit = deleteFilesAfterClose;
+        this.readOnly = readOnly;
         this.lock = enableLocks? new ReentrantReadWriteLock() : null;
         this.inMemory = indexFile == null;
         writeLocksCounter = CC.ASSERT && !enableLocks? new AtomicInteger(0) : null;
@@ -70,11 +77,15 @@ public abstract class RecordStoreAbstract implements  RecordManager{
         try{
             writeLock_lock();
 
-            File dataFile = inMemory? null : new File(indexFile.getPath()+".p");
+            File dataFile = inMemory? null : new File(indexFile.getPath()+ DATA_FILE_EXT);
 
             if(inMemory){
-                phys = new ByteBuffer2(true, null, null,"phys");
-                index = new ByteBuffer2(true, null, null,"index");
+                phys = new ByteBuffer2(true, null,
+                        readOnly? FileChannel.MapMode.READ_ONLY : FileChannel.MapMode.READ_WRITE,
+                        "phys");
+                index = new ByteBuffer2(true, null,
+                        readOnly? FileChannel.MapMode.READ_ONLY : FileChannel.MapMode.READ_WRITE,
+                        "index");
                 writeInitValues();
 
             }else{
@@ -86,8 +97,12 @@ public abstract class RecordStoreAbstract implements  RecordManager{
                 checkFileBeforeOpening(dataFile, dataRaf);
                 boolean existed = indexFile.exists() && indexFile.length()>0;
 
-                phys = new ByteBuffer2(false, dataRaf.getChannel(), FileChannel.MapMode.READ_WRITE,"phys");
-                index = new ByteBuffer2(false, indexRaf.getChannel(), FileChannel.MapMode.READ_WRITE,"index");
+                phys = new ByteBuffer2(false, dataRaf.getChannel(),
+                        readOnly? FileChannel.MapMode.READ_ONLY : FileChannel.MapMode.READ_WRITE,
+                        "phys");
+                index = new ByteBuffer2(false, indexRaf.getChannel(),
+                        readOnly? FileChannel.MapMode.READ_ONLY : FileChannel.MapMode.READ_WRITE,
+                        "index");
 
                 if(!existed){
                     //store does not exist, create files
@@ -217,6 +232,11 @@ public abstract class RecordStoreAbstract implements  RecordManager{
 
             phys.close();
             index.close();
+
+            if(deleteFilesOnExit && indexFile!=null){
+                indexFile.delete();
+                new File(indexFile.getPath()+DATA_FILE_EXT).delete();
+            }
 
         }catch(IOException e){
             throw new IOError(e);

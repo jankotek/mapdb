@@ -22,7 +22,7 @@ abstract public class JdbmTestCase {
 
     File testDir;
 
-    RecordStoreAbstract recman;
+    Storage recman;
 
      @Before
      public void setUp() throws Exception {
@@ -33,8 +33,8 @@ abstract public class JdbmTestCase {
         recman = openRecordManager();
     }
 
-    protected RecordStoreAbstract openRecordManager() {
-        return new RecordStore(fileName,true);
+    protected Storage openRecordManager() {
+        return new StorageDirect(fileName,true,false, false);
     }
 
     @After
@@ -60,8 +60,8 @@ abstract public class JdbmTestCase {
 
     int countIndexRecords(){
         int ret = 0;
-        final long indexFileSize = recman.index.buffers[0].getLong(RecordStore.RECID_CURRENT_INDEX_FILE_SIZE*8);
-        for(int pos = RecordStore.INDEX_OFFSET_START * 8;
+        final long indexFileSize = recman.index.buffers[0].getLong(StorageDirect.RECID_CURRENT_INDEX_FILE_SIZE*8);
+        for(int pos = StorageDirect.INDEX_OFFSET_START * 8;
             pos<indexFileSize;
             pos+=8){
             if(0!=recman.index.getLong(pos)){
@@ -78,7 +78,7 @@ abstract public class JdbmTestCase {
     List<Long> getLongStack(long recid){
         ArrayList<Long> ret =new ArrayList<Long>();
 
-        long pagePhysid = recman.index.getLong(recid*8) & RecordStore.PHYS_OFFSET_MASK;
+        long pagePhysid = recman.index.getLong(recid*8) & StorageDirect.PHYS_OFFSET_MASK;
 
         ByteBuffer dataBuf = recman.phys.buffers[((int) (pagePhysid / ByteBuffer2.BUF_SIZE))];
 
@@ -91,7 +91,7 @@ abstract public class JdbmTestCase {
             }
 
             //read location of previous page
-            pagePhysid = dataBuf.getLong((int)(pagePhysid% ByteBuffer2.BUF_SIZE)) & RecordStore.PHYS_OFFSET_MASK;
+            pagePhysid = dataBuf.getLong((int)(pagePhysid% ByteBuffer2.BUF_SIZE)) & StorageDirect.PHYS_OFFSET_MASK;
         }
 
 
@@ -114,8 +114,8 @@ abstract public class JdbmTestCase {
 
     final Map<Long, Integer> getDataContent(){
         Map<Long,Integer> ret = new TreeMap<Long, Integer>();
-        final long indexFileSize = recman.index.buffers[0].getLong(RecordStore.RECID_CURRENT_INDEX_FILE_SIZE*8);
-        for(long recid = RecordStore.INDEX_OFFSET_START ;
+        final long indexFileSize = recman.index.buffers[0].getLong(StorageDirect.RECID_CURRENT_INDEX_FILE_SIZE*8);
+        for(long recid = StorageDirect.INDEX_OFFSET_START ;
             recid*8<indexFileSize;
             recid++){
             Integer val = recman.recordGet(recid, Serializer.HASH_DESERIALIZER);

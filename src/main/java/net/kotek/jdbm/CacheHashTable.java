@@ -7,7 +7,7 @@ package net.kotek.jdbm;
  * <p/>
  * This is simple, concurrent, small-overhead, random cache.
  */
-public class RecordCacheHashTable implements RecordManager {
+public class CacheHashTable implements RecordManager {
 
     protected RecordManager recman;
 
@@ -26,7 +26,7 @@ public class RecordCacheHashTable implements RecordManager {
 
 
 
-    public RecordCacheHashTable(RecordManager recman, int cacheMaxSize) {
+    public CacheHashTable(RecordManager recman, int cacheMaxSize) {
         this.recman = recman;
         this.items = new HashItem[cacheMaxSize];
         this.cacheMaxSize = cacheMaxSize;

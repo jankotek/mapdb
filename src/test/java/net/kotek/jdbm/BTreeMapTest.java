@@ -1,14 +1,16 @@
 package net.kotek.jdbm;
 
-import org.junit.*;
+import org.junit.Test;
+
+import java.io.IOException;
+import java.util.Iterator;
+
 import static org.junit.Assert.*;
-import java.io.*;
-import java.util.*;
 
 @SuppressWarnings("unchecked")
 public class BTreeMapTest{
 
-    RecordManager recman = new RecordStore(null,true);
+    RecordManager recman = new StorageDirect(null,true,true,false);
 
     public static void print(BTreeMap m) {
         printRecur(m, m.rootRecid, "");

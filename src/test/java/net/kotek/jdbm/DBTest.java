@@ -1,16 +1,18 @@
 package net.kotek.jdbm;
 
+import org.junit.Test;
+
 import java.util.Map;
 import java.util.Set;
 
-import org.junit.Test;
-import static junit.framework.Assert.*;
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertTrue;
 
 
 @SuppressWarnings("unchecked")
 public class DBTest {
 
-    RecordManager recman = new RecordStore(null,true);
+    RecordManager recman = new StorageDirect(null,true,true,false);
     DB db = new DB(recman);
 
     @Test

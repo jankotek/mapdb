@@ -8,8 +8,9 @@
 
 package net.kotek.jdbm;
 
-import junit.framework.*;
-import java.util.*;
+import junit.framework.TestCase;
+
+import java.util.Iterator;
 
 @SuppressWarnings("unchecked")
 public class LongConcurrentHashMapTest extends TestCase{

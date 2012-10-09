@@ -15,11 +15,11 @@
  ******************************************************************************/
 package net.kotek.jdbm;
 
+import junit.framework.TestCase;
+
 import java.util.Iterator;
 import java.util.Random;
 import java.util.TreeMap;
-
-import junit.framework.TestCase;
 
 public class LongHashMapTest extends TestCase {
 

@@ -7,18 +7,20 @@ import java.io.File;
 import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
-public class RecordStoreTransTest extends RecordStoreTest{
+
+public class StorageTransTest extends StorageDirectTest {
     
-    final int stackId = RecordStore.RECID_FREE_PHYS_RECORDS_START+1;
+    final int stackId = StorageDirect.RECID_FREE_PHYS_RECORDS_START+1;
 
-    protected RecordStoreAbstract openRecordManager() {
-        return new RecordStoreTrans(fileName,true);
+    protected Storage openRecordManager() {
+        return new StorageTrans(fileName,true,false,false);
     }
 
 
     @Test public void long_stack_basic(){
-        RecordStoreTrans t = new RecordStoreTrans(null, false);
+        StorageTrans t = new StorageTrans(null, false,true,false);
         t.longStackPut(stackId,111L);
         t.longStackPut(stackId,112L);
         t.longStackPut(stackId,113L);
@@ -39,13 +41,13 @@ public class RecordStoreTransTest extends RecordStoreTest{
 
     @Test public void long_stack_reuse() throws IOException {
         File f = File.createTempFile("test","test");
-        RecordStore r = new RecordStore(f, false);
+        StorageDirect r = new StorageDirect(f, false,false,false);
         for(int i=1;i<1000;i++){
             r.longStackPut(stackId,i);
         }
         r.close();
 
-        RecordStoreTrans t = new RecordStoreTrans(f,false);
+        StorageTrans t = new StorageTrans(f,false,true,false);
         for(int i=999;i!=0;i--){
             assertEquals(i, t.longStackTake(stackId));
         }
@@ -53,10 +55,10 @@ public class RecordStoreTransTest extends RecordStoreTest{
 
     @Test public void transaction_basics() throws IOException {
         File f = File.createTempFile("test","test");
-        RecordStore r = new RecordStore(f, false);
+        StorageDirect r = new StorageDirect(f, false,false,false);
         long recid = r.recordPut("aa",Serializer.STRING_SERIALIZER);
         r.close();
-        RecordStoreTrans t = new RecordStoreTrans(f,false);
+        StorageTrans t = new StorageTrans(f,false,true,false);
         assertEquals("aa", t.recordGet(recid, Serializer.STRING_SERIALIZER));
         t.recordUpdate(recid,"bb", Serializer.STRING_SERIALIZER);
         assertEquals("bb", t.recordGet(recid, Serializer.STRING_SERIALIZER));
@@ -76,53 +78,62 @@ public class RecordStoreTransTest extends RecordStoreTest{
 
     @Test public void persisted() throws IOException {
         File f = File.createTempFile("test","test");
-        RecordStoreTrans t = new RecordStoreTrans(f,false);
+        StorageTrans t = new StorageTrans(f,false,false,false);
         final long recid = t.recordPut("aa",Serializer.STRING_SERIALIZER);
         t.commit();
         t.close();
-        t = new RecordStoreTrans(f,false);
+        t = new StorageTrans(f,false,false,false);
         assertEquals("aa", t.recordGet(recid, Serializer.STRING_SERIALIZER));
 
         t.recordUpdate(recid, "bb", Serializer.STRING_SERIALIZER);
         t.commit();
         t.close();
-        t = new RecordStoreTrans(f,false);
+        t = new StorageTrans(f,false,false,false);
         assertEquals("bb", t.recordGet(recid, Serializer.STRING_SERIALIZER));
 
         t.recordDelete(recid);
         t.commit();
         t.close();
-        t = new RecordStoreTrans(f,false);
+        t = new StorageTrans(f,false,true, false);
         assertEquals(null,t.recordGet(recid,Serializer.STRING_SERIALIZER));
 
     }
 
     @Test public void long_stack_put_take() throws IOException {
         File f = File.createTempFile("test","test");
-        RecordStoreTrans t = new RecordStoreTrans(f,false);
-        t.longStackPut(RecordStoreAbstract.RECID_FREE_PHYS_RECORDS_START+1, 112L);
+        StorageTrans t = new StorageTrans(f,false,false, false);
+        t.longStackPut(Storage.RECID_FREE_PHYS_RECORDS_START+1, 112L);
         t.commit();
         t.close();
-        t = new RecordStoreTrans(f,false);
-        assertEquals(112L, t.longStackTake(RecordStoreAbstract.RECID_FREE_PHYS_RECORDS_START + 1));
+        t = new StorageTrans(f,false,false,false);
+        assertEquals(112L, t.longStackTake(Storage.RECID_FREE_PHYS_RECORDS_START + 1));
 
         t.commit();
         t.close();
-        t = new RecordStoreTrans(f,false);
-        assertEquals(0L, t.longStackTake(RecordStoreAbstract.RECID_FREE_PHYS_RECORDS_START+1));
+        t = new StorageTrans(f,false,true, false);
+        assertEquals(0L, t.longStackTake(Storage.RECID_FREE_PHYS_RECORDS_START+1));
     }
 
     @Test public void index_page_created_from_empty() throws IOException {
         File f = File.createTempFile("test","test");
-        RecordStoreTrans t = new RecordStoreTrans(f,false);
-        t.longStackPut(RecordStoreAbstract.RECID_FREE_PHYS_RECORDS_START+1, 112L);
+        StorageTrans t = new StorageTrans(f,false,false,false);
+        t.longStackPut(Storage.RECID_FREE_PHYS_RECORDS_START+1, 112L);
         t.commit();
         t.close();
-        t = new RecordStoreTrans(f,false);
-
+        t = new StorageTrans(f,false,true,false);
 
     }
 
+
+    @Test public void delete_file_on_exit() throws IOException {
+        File f = File.createTempFile("test","test");
+        StorageTrans t = new StorageTrans(f,false,true,false);
+        t.recordPut("t",Serializer.STRING_SERIALIZER);
+        t.close();
+        assertFalse(f.exists());
+        assertFalse(new File(f.getPath()+Storage.DATA_FILE_EXT).exists());
+        assertFalse(new File(f.getPath()+StorageTrans.TRANS_LOG_FILE_EXT).exists());
+    }
 
 
 }

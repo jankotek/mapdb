@@ -1,16 +1,19 @@
 package net.kotek.jdbm;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOError;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Arrays;
 
 /**
- * RecordStore which provides transactions.
+ * StorageDirect which provides transactions.
  * Index file data are stored in memory+trans log, phys file data are stored only in transaction log.
  *
  */
-public class RecordStoreTrans extends RecordStoreAbstract implements RecordManager{
+public class StorageTrans extends Storage implements RecordManager{
 
     protected static final long WRITE_INDEX_LONG = 1L <<48;
     protected static final long WRITE_INDEX_LONG_ZERO = 2L <<48;
@@ -18,6 +21,7 @@ public class RecordStoreTrans extends RecordStoreAbstract implements RecordManag
     protected static final long WRITE_PHYS_BYTE = 4L <<48;
     protected static final long WRITE_PHYS_ARRAY = 5L <<48;
     protected static final long WRITE_SEAL = 111L <<48;
+    public static final String TRANS_LOG_FILE_EXT = ".t";
 
 
     protected ByteBuffer2 transLog;
@@ -33,8 +37,8 @@ public class RecordStoreTrans extends RecordStoreAbstract implements RecordManag
     protected final long[][] longStackAdded = new long[INDEX_OFFSET_START][];
     protected final int[] longStackAddedSize = new int[INDEX_OFFSET_START];
 
-    public RecordStoreTrans(File indexFile, boolean enableLocks) {
-        super(indexFile,  enableLocks);
+    public StorageTrans(File indexFile, boolean enableLocks, boolean deleteFilesAfterClose, boolean readOnly) {
+        super(indexFile,  enableLocks, deleteFilesAfterClose, readOnly);
         try{
             writeLock_lock();
             reloadIndexFile();
@@ -305,6 +309,17 @@ public class RecordStoreTrans extends RecordStoreAbstract implements RecordManag
     public void close() {
         super.close();
 
+        try{
+            transLog.close();
+            transLog = null;
+            if(deleteFilesOnExit && indexFile!=null){
+                new File(indexFile.getPath()+TRANS_LOG_FILE_EXT).delete();
+            }
+
+        }catch(IOException e){
+            throw new IOError(e);
+        }
+
         //delete log?
     }
 
@@ -434,11 +449,11 @@ public class RecordStoreTrans extends RecordStoreAbstract implements RecordManag
 
             if(transLog==null){
                 if(inMemory){
-                    transLog = new ByteBuffer2(true, null, null,"trans");
+                    transLog = new ByteBuffer2(true, null, readOnly ? FileChannel.MapMode.READ_ONLY : FileChannel.MapMode.READ_WRITE,"trans");
                     return;
                 }else{
-                    RandomAccessFile r =  new RandomAccessFile(new File(indexFile.getPath()+".t"),"rw");
-                    transLog = new ByteBuffer2(false,r.getChannel(), FileChannel.MapMode.READ_WRITE,"trans");
+                    RandomAccessFile r =  new RandomAccessFile(new File(indexFile.getPath()+TRANS_LOG_FILE_EXT),"rw");
+                    transLog = new ByteBuffer2(false,r.getChannel(), readOnly ? FileChannel.MapMode.READ_ONLY : FileChannel.MapMode.READ_WRITE,"trans");
                     if(r.length()==0)
                         return;
                 }

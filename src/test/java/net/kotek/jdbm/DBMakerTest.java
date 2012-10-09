@@ -2,6 +2,8 @@ package net.kotek.jdbm;
 
 import org.junit.Test;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Map;
 
 import static org.junit.Assert.*;
@@ -44,8 +46,8 @@ public class DBMakerTest{
                 .cacheDisable()
                 .make();
         verifyDB(db);
-        assertFalse(db.recman.getClass() == RecordCacheHashTable.class);
-        assertTrue(db.recman.getClass() == RecordAsyncWrite.class);
+        assertFalse(db.recman.getClass() == CacheHashTable.class);
+        assertTrue(db.recman.getClass() == AsyncWriteWrapper.class);
     }
 
     @Test
@@ -56,8 +58,8 @@ public class DBMakerTest{
                 .asyncWriteDisable()
                 .make();
         verifyDB(db);
-        assertTrue(db.recman.getClass() == RecordCacheHashTable.class);
-        assertTrue(((RecordCacheHashTable)db.recman).recman.getClass() == RecordStore.class);
+        assertTrue(db.recman.getClass() == CacheHashTable.class);
+        assertTrue(((CacheHashTable)db.recman).recman.getClass() == StorageDirect.class);
 
     }
 
@@ -69,9 +71,9 @@ public class DBMakerTest{
                 .asyncSerializationDisable()
                 .make();
         verifyDB(db);
-        assertTrue(db.recman.getClass() == RecordCacheHashTable.class);
-        assertTrue(((RecordCacheHashTable)db.recman).recman.getClass() == RecordAsyncWrite.class);
-        RecordAsyncWrite r = (RecordAsyncWrite) ((RecordCacheHashTable)db.recman).recman;
+        assertTrue(db.recman.getClass() == CacheHashTable.class);
+        assertTrue(((CacheHashTable)db.recman).recman.getClass() == AsyncWriteWrapper.class);
+        AsyncWriteWrapper r = (AsyncWriteWrapper) ((CacheHashTable)db.recman).recman;
         assertFalse(r.asyncSerialization);
 
     }
@@ -84,10 +86,10 @@ public class DBMakerTest{
                 .make();
         verifyDB(db);
         //check default values are set
-        assertTrue(db.recman.getClass() == RecordCacheHashTable.class);
-        assertEquals(1024 * 32, ((RecordCacheHashTable) db.recman).cacheMaxSize);
-        assertTrue(((RecordCacheHashTable)db.recman).recman.getClass() == RecordAsyncWrite.class);
-        RecordAsyncWrite r = (RecordAsyncWrite) ((RecordCacheHashTable)db.recman).recman;
+        assertTrue(db.recman.getClass() == CacheHashTable.class);
+        assertEquals(1024 * 32, ((CacheHashTable) db.recman).cacheMaxSize);
+        assertTrue(((CacheHashTable)db.recman).recman.getClass() == AsyncWriteWrapper.class);
+        AsyncWriteWrapper r = (AsyncWriteWrapper) ((CacheHashTable)db.recman).recman;
         assertTrue(r.asyncSerialization);
 
     }
@@ -100,7 +102,7 @@ public class DBMakerTest{
                 .cacheHardRefEnable()
                 .make();
         verifyDB(db);
-        assertTrue(db.recman.getClass() == RecordCacheHardRef.class);
+        assertTrue(db.recman.getClass() == CacheHardRef.class);
     }
 
     @Test
@@ -111,7 +113,29 @@ public class DBMakerTest{
                 .cacheSize(1000)
                 .make();
         verifyDB(db);
-        assertEquals(1000, ((RecordCacheHashTable) db.recman).cacheMaxSize);
+        assertEquals(1000, ((CacheHashTable) db.recman).cacheMaxSize);
     }
 
+    @Test public void read_only() throws IOException {
+        File f = File.createTempFile("test", "test");
+        DB db = DBMaker.newFileDB(f).make();
+        db.close();
+        db = DBMaker
+                .newFileDB(f)
+                .deleteFilesAfterClose()
+                .readOnly()
+                .transactionDisable()
+                .make();
+        assertTrue(db.recman instanceof ReadOnlyWrapper);
+        db.close();
+    }
+
+
+    @Test public void close_on_jvm_shutdown(){
+        DBMaker
+                .newTempFileDB()
+                .closeOnJvmShutdown()
+                .deleteFilesAfterClose()
+                .make();
+    }
 }

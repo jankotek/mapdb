@@ -1,8 +1,10 @@
 package net.kotek.jdbm;
 
+
 import java.io.IOError;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Arrays;
 import java.util.logging.Level;
@@ -43,6 +45,8 @@ public final class ByteBuffer2 {
         this.logFileName = CC.BB_LOG_WRITES? logFileName : null;
         if(inMemory){
             buffers = new ByteBuffer[]{ByteBuffer.allocate(INITIAL_SIZE)};
+            if(mapMode == FileChannel.MapMode.READ_ONLY)
+                buffers[0] = buffers[0].asReadOnlyBuffer();
         }else{
             final long fileSize = fileChannel.size();
             if(fileSize>0){
@@ -51,11 +55,16 @@ public final class ByteBuffer2 {
                 for(int i=0;i<=fileSize/BUF_SIZE;i++){
                     final long offset = 1L*BUF_SIZE*i;
                     buffers[i] = fileChannel.map(mapMode, offset, Math.min(BUF_SIZE, fileSize-offset));
+                    if(mapMode == FileChannel.MapMode.READ_ONLY)
+                        buffers[i] = buffers[i].asReadOnlyBuffer();
                     //TODO what if 'fileSize % 8 != 0'?
                 }
             }else{
                 buffers = new ByteBuffer[1];
                 buffers[0] = fileChannel.map(mapMode, 0, INITIAL_SIZE);
+                if(mapMode == FileChannel.MapMode.READ_ONLY)
+                    buffers[0] = buffers[0].asReadOnlyBuffer();
+
             }
         }
         }catch(IOException e){
@@ -96,12 +105,17 @@ public final class ByteBuffer2 {
                 buffers[buffersPos].rewind();
                 newBuf.put(buffers[buffersPos]);
             }
+            if(mapMode == FileChannel.MapMode.READ_ONLY)
+                newBuf = newBuf.asReadOnlyBuffer();
             buffers[buffersPos] = newBuf;
         }else{
             //just remap file buffer
             long newBufSize =  offset%BUF_SIZE;
             newBufSize = newBufSize + newBufSize%BUF_SIZE_INC; //round to BUF_SIZE_INC
             buffers[buffersPos] = fileChannel.map(mapMode, 1L*buffersPos*BUF_SIZE, newBufSize );
+            if(mapMode == FileChannel.MapMode.READ_ONLY)
+                buffers[buffersPos] = buffers[buffersPos].asReadOnlyBuffer();
+
         }
     }
 
@@ -174,8 +188,53 @@ public final class ByteBuffer2 {
             fileChannel.close();
             fileChannel = null;
         }
+        if(mapMode!= FileChannel.MapMode.READ_ONLY)
+            sync();
+        for(ByteBuffer b:buffers){
+            if(b!=null && (b instanceof MappedByteBuffer)){
+                unmap((MappedByteBuffer)b);
+            }
+        }
         buffers = null;
     }
 
+    public void sync() {
+        for(ByteBuffer b:buffers){
+            if(b!=null && (b instanceof MappedByteBuffer)){
+                ((MappedByteBuffer)b).force();
+            }
+        }
+    }
+
+
+    /**
+     * Hack to unmap MappedByteBuffer.
+     * Unmap is necessary on Windows, otherwise file is locked until JVM exits or BB is GCed.
+     * There is no public JVM API to unmap buffer, so this tries to use SUN proprietary API for unmap.
+     * Any error is silently ignored (for example SUN API does not exist on Android).
+     */
+    public static final void unmap(MappedByteBuffer b){
+        try{
+            if(unmapHackSupported){
+                sun.misc.Cleaner cleaner = ((sun.nio.ch.DirectBuffer) b).cleaner();
+                if(cleaner!=null)
+                    cleaner.clean();
+            }
+        }catch(Exception e){
+            JdbmUtil.LOG.log(Level.FINE, "ByteBuffer Unmap failed", e);
+        }
+    }
+
+
+    private static boolean unmapHackSupported = false;
+    static{
+        //TODO check how this works on Android
+        try{
+            unmapHackSupported =
+                    Class.forName("sun.nio.ch.DirectBuffer")!=null;
+        }catch(Exception e){
+            unmapHackSupported = false;
+        }
+    }
 
 }

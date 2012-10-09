@@ -16,19 +16,12 @@
 
 package net.kotek.jdbm;
 
-import static java.util.Collections.singleton;
+import junit.framework.TestCase;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.Map.Entry;
 
-import junit.framework.TestCase;
+import static java.util.Collections.singleton;
 
 /**
  * Tests representing the contract of {@link Map}. Concrete subclasses of this
