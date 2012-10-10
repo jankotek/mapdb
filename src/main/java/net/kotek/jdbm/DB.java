@@ -1,8 +1,11 @@
 package net.kotek.jdbm;
 
 import java.lang.ref.WeakReference;
-import java.util.concurrent.*;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * A database with easy access to named maps and other collections.
@@ -162,5 +165,14 @@ public class DB {
         if(recman == null) throw new IllegalAccessError("DB was already closed");
     }
 
+    public void commit() {
+        checkNotClosed();
+        recman.commit();
+    }
+
+    public void rollback() {
+        checkNotClosed();
+        recman.rollback();
+    }
 
 }

@@ -11,15 +11,28 @@ public class E01_BasicExample {
 
     public static void main(String[] args){
 
-        DB db = DBMaker.newFileDB(new File("filename"))
-                    .transactionDisable() //transactions are not implemented yet
-                    .make();
+        //Configure and open database using builder pattern.
+        //All options are available with code auto-completion.
+        DB db = DBMaker.newFileDB(new File("testdb"))
+                .closeOnJvmShutdown()
+                .encryptionEnable("password")
+                .make();
 
-        ConcurrentSortedMap<Integer, String> map = db.getTreeMap("treeMap");
-        map.put(1,"some string");
-        map.put(2,"some other string");
+        //open an collection, TreeMap has better performance then HashMap
+        ConcurrentSortedMap<Integer,String> map = db.getTreeMap("collectionName");
 
-        db.close(); //make sure db is correctly closed!!
+        map.put(1,"one");
+        map.put(2,"two");
+        //map.keySet() is now [1,2] even before commit
+
+        db.commit();  //persist changes into disk
+
+        map.put(3,"three");
+        //map.keySet() is now [1,2,3]
+        db.rollback(); //revert recent changes
+        //map.keySet() is now [1,2]
+
+        db.close();
 
     }
 }

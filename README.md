@@ -1,46 +1,81 @@
-JDBM provides HashMap and TreeMap backed by disk storage. It is fast, scalable and easy to use embedded Java database.
-It has minimalistic design with standalone jar taking only 160KB. Yet it is packed with features such as instance cache,
-space efficient serialization, transactions and concurrently scalable BTree/HTree.
+JDBM provides TreeMap and HashMap backed by disk storage. It is a fast,
+scalable and easy to use embedded Java database. It is tiny (130KB jar),
+yet packed with features such as transactions, space efficient serialization,
+instance cache and transparent compression/encryption.
 
-JDBM is very fast (even on-disk can outperform some in-memory dbs). Thanks to its compact design it is
-easy to optimize and has minimal overhead. It is also very 'hackable' and can be easily bended for your
-own purposes. JDBM is tiny, yet it easily handles 1e9 records in multi-terabyte store and scales well
-in multi-threaded environment.
+JDBM (Java Database Manager) aims to be a simple, yet powerful database
+engine for Java. It provides great service for data processing, caching,
+visualisation and persistence. JDBM has been around since the year 1999
+and is currently at the 4th generation.
 
-JDBM is opensource and free-as-beer under Apache License. There is no catch and no strings attached.
-It is also beer-ware, if you like it, you should come to Galway and buy me a beer :-).
+Main features:
 
-News
-----
-16 Sep 2012 - [JDBM4 now open for public](http://kotek.net/blog/JDBM4_now_open_for_public). Now it is stable enough, take it for quick spin!
+* Drop-in replacement for ConcurrentTreeMap and ConcurrentHashMap.
 
-Under development
------------------
-JDBM4 is currently under development. It is usable, but some stuff is not implemented yet:
+* Outstanding performance comparable to low-level C++ DBs (TokyoDB, LevelDB)
 
-* Transactions
-* Weak/Soft/MRU cache (only hard ref cache implemented)
-* POJO serialization (only basic serializer for java.util and java.lang classes)
-* Max record size is currently 64KB.
-* Defrag
+* Scales well on multi-core CPUs (fine grained locks, concurrent trees)
+
+* Very easy configuration using builder classes
+
+* Space-efficient transparent serialization. 
+
+* Instance cache to minimise serialization overhead
+
+* Various write modes (transactional journal, direct, async or append)
+to match various requirements.
+
+* Very flexible; works equally well on an Android phone and
+a supercomputer with multi-terabyte storage.
+
+* Modular & extensible design; most features (compression, cache,
+async writes) are just `RecordManager` wrappers. Introducing
+new functionality (such as network replication) is very easy.
+
+* Highly embeddable; 130 KB no-deps jar (50KB packed), pure java,
+low memory & CPU overhead.
+
+* Transparent encryption, compression and other stuff you may expect
+from a complete database.
+
+Limitations:
+
+* JDBM allows only a single global transaction at a time. There are no
+concurrent transactions, MVCC or transaction isolations. I have some
+ideas  about how-to fix it, but no resources.
+
+* JDBM does not communicate over network. There are some thoughts
+for client-server architecture, replication and clustering; however
+this has low priority.
 
 
-Usage example
-------------
+Intro
+======
+Quick example
+-------------
+
+    import net.kotek.jdbm.*;
 
 
-        import net.kotek.jdbm.*;
+        //Configure and open database using builder pattern.
+        //All options are available with code auto-completion.
+        DB db = DBMaker.newFileDB(new File("testdb"))
+                .closeOnJvmShutdown()
+                .encryptionEnable("password")
+                .make();
 
-        DB db = DBMaker.newFileDB("filename")
-                    .transactionDisable() //transactions are not implemented yet
-                    .make();
+        //open an collection, TreeMap has better performance then HashMap
+        ConcurrentSortedMap<Integer,String> map = db.getTreeMap("collectionName");
 
-        ConcurrentSortedMap<Integer, String> map = db.getTreeMap("treeMap");
-        map.put(1,"some string");
-        map.put(2,"some other string");
+        map.put(1,"one");
+        map.put(2,"two");
+        //map.keySet() is now [1,2] even before commit
 
-        db.close(); //make sure db is correctly closed!!
+        db.commit();  //persist changes into disk
 
+        map.put(3,"three");
+        //map.keySet() is now [1,2,3]
+        db.rollback(); //revert recent changes
+        //map.keySet() is now [1,2]
 
-
-  
+        db.close();
