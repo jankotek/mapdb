@@ -54,7 +54,7 @@ Intro
 Quick example
 -------------
 
-    import net.kotek.jdbm.*;
+        import net.kotek.jdbm.*;
 
 
         //Configure and open database using builder pattern.
