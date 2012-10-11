@@ -193,7 +193,7 @@ public class SerializerBase implements Serializer{
             else if (val == 1)
                 out.write(BYTE_1);
             else {
-                out.write(SHORT_FULL);
+                out.write(BYTE_FULL);
                 out.writeByte(val);
             }
             return;
