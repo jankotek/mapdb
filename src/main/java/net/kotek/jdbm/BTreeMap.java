@@ -121,8 +121,14 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
         @Override public String toString(){
             return "Leaf(K"+Arrays.toString(keys)+", V"+Arrays.toString(vals)+", L="+next+")";
         }
+    }
+    /** Reference to record stored in database and lazily loaded on first request. */
+    protected final static class LazyRef{
+        protected final long recid;
 
-
+        public LazyRef(long recid) {
+            this.recid = recid;
+        }
     }
 
 
@@ -153,10 +159,24 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
                 SERIALIZER.serialize(out, key);
             }
 
-            if(isLeaf && hasValues)
-                for(Object val:value.vals()){
-                    SERIALIZER.serialize(out,val);
+            if(isLeaf && hasValues){
+                DataOutput2 out2 = new DataOutput2();
+                for(int i=0; i<value.vals().length; i++){
+                    Object val = value.vals()[i];
+                    out2.pos = 0;
+                    SERIALIZER.serialize(out2, val);
+                    if(out2.pos>CC.MAX_BTREE_INLINE_VALUE_SIZE){
+                        //store value as separate node
+                        long recid = recman.recordPut(out2.copyBytes(), Serializer.BYTE_ARRAY_SERIALIZER);
+                        LazyRef ref =new LazyRef(recid);
+                        value.vals()[i] = ref;
+                        SERIALIZER.serialize(out, ref);
+                    }else{
+                        out.write(out2.buf, 0, out2.pos);
+                    }
+
                 }
+            }
         }
 
         @Override
@@ -287,9 +307,12 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
             return null; //empty node
         }
         //finish search
-        if(v.equals(leaf.keys[pos]))
-            return (V) (hasValues? leaf.vals[pos] : JdbmUtil.EMPTY_STRING);
-        else
+        if(v.equals(leaf.keys[pos])){
+            Object ret = (hasValues? leaf.vals[pos] : JdbmUtil.EMPTY_STRING);
+            if(ret instanceof  LazyRef)
+                ret = recman.recordGet(((LazyRef)ret).recid, SERIALIZER);
+            return (V)ret;
+        }else
             return null;
     }
 
@@ -340,11 +363,14 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
                 int pos = findChildren(v, A.keys());
                 if(pos<A.keys().length-1 && v.equals(A.keys()[pos])){
 
-                    V oldVal = (V) (hasValues? A.vals()[pos] : JdbmUtil.EMPTY_STRING);
+                    Object oldVal =  (hasValues? A.vals()[pos] : JdbmUtil.EMPTY_STRING);
                     if(putOnlyIfAbsent){
                         //is not absent, so quit
                         unlockNode(current);
-                        return oldVal;
+                        if(oldVal instanceof  LazyRef){
+                            oldVal = recman.recordGet(((LazyRef)oldVal).recid,SERIALIZER);
+                        }
+                        return (V) oldVal;
                     }
                     //insert new
                     Object[] vals = null;
@@ -355,9 +381,15 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
 
                     A = new LeafNode(Arrays.copyOf(A.keys(), A.keys().length), vals, ((LeafNode)A).next);
                     recman.recordUpdate(current, A, nodeSerializer);
+                    //delete old lazy ref if necessary
+                    if(oldVal instanceof  LazyRef){
+                        long recid = ((LazyRef)oldVal).recid;
+                        oldVal = recman.recordGet(recid,SERIALIZER);
+                        recman.recordDelete(recid);
+                    }
                     //already in here
                     unlockNode(current);
-                    return oldVal;
+                    return (V) oldVal;
                 }
 
 
@@ -545,7 +577,11 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
             if(pos<A.keys().length&& key.equals(A.keys()[pos])){
                 //delete from node
                 Object oldVal = hasValues? A.vals()[pos] : JdbmUtil.EMPTY_STRING;
-                if(value!=null && !value.equals(oldVal)) return null;
+                Object lazyOldVal = !(oldVal instanceof LazyRef)? null :
+                        recman.recordGet(((LazyRef)oldVal).recid, SERIALIZER);
+
+                if(value!=null && !value.equals(lazyOldVal!=null? lazyOldVal: oldVal))
+                    return null;
 
                 Object[] keys2 = new Object[A.keys().length-1];
                 System.arraycopy(A.keys(),0,keys2, 0, pos);
@@ -556,6 +592,10 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
                     vals2 = new Object[A.vals().length-1];
                     System.arraycopy(A.vals(),0,vals2, 0, pos);
                     System.arraycopy(A.vals(), pos+1, vals2, pos, vals2.length-pos);
+                    if(lazyOldVal!=null){
+                        recman.recordDelete(((LazyRef)oldVal).recid);
+                        oldVal = lazyOldVal;
+                    }
                 }
 
                 A = new LeafNode(keys2, vals2, ((LeafNode)A).next);
@@ -607,9 +647,11 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
         @Override
         public V next() {
             if(currentLeaf == null) throw new NoSuchElementException();
-            V ret = (V) currentLeaf.vals[currentPos];
+            Object ret =  currentLeaf.vals[currentPos];
+            if(ret instanceof LazyRef )
+                ret = recman.recordGet(((LazyRef)ret).recid, SERIALIZER);
             moveToNext();
-            return ret;
+            return (V) ret;
         }
 
     }
@@ -930,17 +972,28 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
             pos = findChildren(key, node.keys());
         }
 
-        if(key.equals(leaf.keys[pos]) && oldValue.equals(leaf.vals[pos])){
-            Object[] vals = Arrays.copyOf(leaf.vals, leaf.vals.length);
-            vals[pos] = newValue;
-            leaf = new LeafNode(Arrays.copyOf(leaf.keys, leaf.keys.length), vals, leaf.next);
-            recman.recordUpdate(current, leaf, nodeSerializer);
-            unlockNode(current);
-            return true;
-        }else{
-            unlockNode(current);
-            return false;
+        boolean ret = false;
+        if(key.equals(leaf.keys[pos])){
+            Object val  = leaf.vals[pos];
+            Object val2 = val instanceof LazyRef?
+                    recman.recordGet(((LazyRef)val).recid, SERIALIZER):
+                    val;
+            if(oldValue.equals(val2)){
+                Object[] vals = Arrays.copyOf(leaf.vals, leaf.vals.length);
+                vals[pos] = newValue;
+                leaf = new LeafNode(Arrays.copyOf(leaf.keys, leaf.keys.length), vals, leaf.next);
+                //delete old node if lazyref
+                if(val instanceof LazyRef){
+                    recman.recordDelete(((LazyRef)val).recid);
+                }
+
+                recman.recordUpdate(current, leaf, nodeSerializer);
+
+                ret = true;
+            }
         }
+        unlockNode(current);
+        return ret;
     }
 
     @Override
@@ -968,18 +1021,24 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
             pos = findChildren(key, node.keys());
         }
 
+        Object ret = null;
         if(key.equals(leaf.keys[pos])){
             Object[] vals = Arrays.copyOf(leaf.vals, leaf.vals.length);
-            V oldVal = (V) vals[pos];
+            Object oldVal = vals[pos];
+            if(oldVal instanceof LazyRef){
+                //delete old val
+                long recid = ((LazyRef)oldVal).recid;
+                oldVal = recman.recordGet(recid,SERIALIZER);
+                recman.recordDelete(recid);
+            }
             vals[pos] = value;
             leaf = new LeafNode(Arrays.copyOf(leaf.keys, leaf.keys.length), vals, leaf.next);
             recman.recordUpdate(current, leaf, nodeSerializer);
-            unlockNode(current);
-            return oldVal;
-        }else{
-            unlockNode(current);
-            return null;
+
+            ret =  oldVal;
         }
+        unlockNode(current);
+        return (V)ret;
     }
 
 

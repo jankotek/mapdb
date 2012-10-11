@@ -1,6 +1,9 @@
 package net.kotek.jdbm;
 
-import java.io.*;
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.EOFException;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.*;
@@ -206,6 +209,10 @@ public class SerializerBase implements Serializer{
                 out.write(STRING);
                 serializeString(out, s);
             }
+            return;
+        } else if (clazz == BTreeMap.LazyRef.class) {
+            out.write(LAZY_REF);
+            JdbmUtil.packLong(out, ((BTreeMap.LazyRef)obj).recid);
             return;
         } else if (obj instanceof Class) {
             out.write(CLASS);
@@ -845,6 +852,9 @@ public class SerializerBase implements Serializer{
                 break;
             case LOCALE :
                 ret = new Locale(is.readUTF(),is.readUTF(),is.readUTF());
+                break;
+            case LAZY_REF :
+                ret = new BTreeMap.LazyRef(JdbmUtil.unpackLong(is));
                 break;
             case POS_INFINITY:
                 ret = BTreeMap.POS_INFINITY;

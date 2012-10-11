@@ -108,6 +108,7 @@ interface SerializationHeader {
 
     int  LINKEDLIST = 119;
 
+    int  LAZY_REF = 120;
 
     int  VECTOR = 121;
     int  IDENTITYHASHMAP = 122;

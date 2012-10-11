@@ -31,4 +31,13 @@ interface CC {
 
 
     short STORE_FORMAT_VERSION = 10000 + 1;
+
+
+    /**
+     * Values in BTreeMap are stored as part of nodes.
+     * However if serialized size is greater then this,
+     * value is placed as separate record and loaded
+     * on request.
+     */
+    int MAX_BTREE_INLINE_VALUE_SIZE = 32;
 }
