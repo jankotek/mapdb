@@ -116,6 +116,8 @@ public class StorageTrans extends Storage implements RecordManager{
     protected long freePhysRecTake(final int requiredSize){
         writeLock_checkLocked();
 
+        if(CC.ASSERT && requiredSize<=0) throw new InternalError();
+
         long freePhysRec = findFreePhysSlot(requiredSize);
         if(freePhysRec!=0)
             return freePhysRec;
@@ -192,8 +194,9 @@ public class StorageTrans extends Storage implements RecordManager{
         }
     }
 
-    protected void writeIndexValToTransLog(long recid, long indexValue) {
+    protected void writeIndexValToTransLog(long recid, long indexValue) throws IOException {
         //write new index value into transaction log
+        transLog.ensureAvailable(transLogOffset+16);
         transLog.putLong(transLogOffset, WRITE_INDEX_LONG | (recid * 8));
         transLogOffset+=8;
         transLog.putLong(transLogOffset, indexValue);
@@ -201,7 +204,8 @@ public class StorageTrans extends Storage implements RecordManager{
         recordIndexVals.put(recid,indexValue);
     }
 
-    protected void writeOutToTransLog(DataOutput2 out, long recid, long indexValue) {
+    protected void writeOutToTransLog(DataOutput2 out, long recid, long indexValue) throws IOException {
+        transLog.ensureAvailable(transLogOffset+10+out.pos);
         transLog.putLong(transLogOffset, WRITE_PHYS_ARRAY|(indexValue&PHYS_OFFSET_MASK));
         transLogOffset+=8;
         transLog.putUnsignedShort(transLogOffset, out.pos);
@@ -242,7 +246,6 @@ public class StorageTrans extends Storage implements RecordManager{
             DataOutput2 out = new DataOutput2();
             serializer.serialize(out,value);
 
-            //TODO special handling for zero size records
             if(CC.ASSERT && out.pos>1<<16) throw new InternalError("Record bigger then 64KB");
             try{
                 writeLock_lock();
@@ -252,10 +255,17 @@ public class StorageTrans extends Storage implements RecordManager{
                 if(oldIndexVal==null)
                     oldIndexVal = index.getLong(recid * 8);
 
-                if(oldIndexVal >>>48 == out.pos ){
+                long oldSize = oldIndexVal>>>48;
+
+                if(oldSize == 0 && out.pos==0){
+                    //do nothing
+                } else if(oldSize == out.pos ){
                     //size is the same, so just write new data
                     writeOutToTransLog(out, recid, oldIndexVal);
-
+                }else if(oldSize != 0 && out.pos==0){
+                    //new record has zero size, just delete old phys one
+                    freePhysRecPut(oldIndexVal);
+                    writeIndexValToTransLog(recid, 0L);
                 }else{
                     //size has changed, so write into new location
                     final long newIndexValue = freePhysRecTake(out.pos);
@@ -265,7 +275,7 @@ public class StorageTrans extends Storage implements RecordManager{
                     writeIndexValToTransLog(recid, newIndexValue);
 
                     //and set old phys record as free
-                    if(oldIndexVal!=0)
+                    if(oldSize!=0)
                         freePhysRecPut(oldIndexVal);
                 }
             }finally {
@@ -281,6 +291,7 @@ public class StorageTrans extends Storage implements RecordManager{
     public void recordDelete(long recid){
         try{
             writeLock_lock();
+            transLog.ensureAvailable(transLogOffset+8);
             transLog.putLong(transLogOffset, WRITE_INDEX_LONG_ZERO | (recid*8));
             transLogOffset+=8;
             longStackPut(RECID_FREE_INDEX_SLOTS,recid);
@@ -299,6 +310,8 @@ public class StorageTrans extends Storage implements RecordManager{
                 if(oldIndexVal!=0)
                     freePhysRecPut(oldIndexVal);
             }
+        }catch(IOException e){
+            throw new IOError(e);
         }finally {
             writeLock_unlock();
         }
@@ -344,6 +357,7 @@ public class StorageTrans extends Storage implements RecordManager{
                 if(newPage!=-1){
                     int realPageCount = phys.getUnsignedByte(newPage);
                     if(realPageCount!= longStackCurrentPageSize[recid]){
+                        transLog.ensureAvailable(transLogOffset+9);
                         transLog.putLong(transLogOffset,WRITE_PHYS_BYTE | newPage);
                         transLogOffset+=8;
                         transLog.putUnsignedByte(transLogOffset, (byte) realPageCount);
@@ -396,6 +410,7 @@ public class StorageTrans extends Storage implements RecordManager{
                         long oldPage = page;
                         //get new page and write reference to old one
                         page = preallocPages[preallocPagesPos++];
+                        transLog.ensureAvailable(transLogOffset+16);
                         transLog.putLong(transLogOffset, WRITE_PHYS_LONG | page);
                         transLogOffset+=8;
                         transLog.putLong(transLogOffset, oldPage);
@@ -407,6 +422,7 @@ public class StorageTrans extends Storage implements RecordManager{
                     }
 
                     //write new page size
+                    transLog.ensureAvailable(transLogOffset+9);
                     transLog.putLong(transLogOffset,WRITE_PHYS_BYTE | page);
                     transLogOffset+=8;
                     transLog.putUnsignedByte(transLogOffset, (byte) (++pageSize));
@@ -429,14 +445,15 @@ public class StorageTrans extends Storage implements RecordManager{
 
 
             //seal log file
+            transLog.ensureAvailable(transLogOffset+8);
             transLog.putLong(transLogOffset, WRITE_SEAL);
             transLogOffset+=8;
 
             replayLogFile();
             reloadIndexFile();
 
-//        }catch(IOException e){
-//            throw new IOError(e);
+        }catch(IOException e){
+            throw new IOError(e);
         }finally{
             writeLock_unlock();
         }

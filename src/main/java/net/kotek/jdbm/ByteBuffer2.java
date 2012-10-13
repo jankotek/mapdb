@@ -30,6 +30,8 @@ public final class ByteBuffer2 {
 
     static final int INITIAL_SIZE = 1024*32;
 
+    long availSizeCheck = CC.BB_CHECK_AVAILABLE_SIZE ? 0L : Long.MIN_VALUE ;
+
     /** file channel backing this ByteBuffer, null for in-memory-store */
     protected FileChannel fileChannel;
     final protected FileChannel.MapMode mapMode;
@@ -82,6 +84,9 @@ public final class ByteBuffer2 {
         if(CC.BB_LOG_WRITES && LOG.isLoggable(Level.FINEST))
             LOG.finest(logFileName+":ensureAvailable: "+offset);
 
+        if(CC.BB_CHECK_AVAILABLE_SIZE){
+            availSizeCheck = Math.max(availSizeCheck, offset);
+        }
 
         int buffersPos = (int) (offset/BUF_SIZE);
 
@@ -123,6 +128,9 @@ public final class ByteBuffer2 {
         if(CC.BB_LOG_WRITES && LOG.isLoggable(Level.FINEST))
             LOG.finest(logFileName+":putLong: "+offset+" - "+(value>>>48)+" - "+value);
 
+        if(CC.BB_CHECK_AVAILABLE_SIZE && offset+8>availSizeCheck)
+            throw new InternalError();
+
         ByteBuffer b = internalByteBuffer(offset);
         b.putLong((int) (offset%BUF_SIZE), value);
     }
@@ -130,6 +138,10 @@ public final class ByteBuffer2 {
     public void putUnsignedByte(long offset, byte value){
         if(CC.BB_LOG_WRITES && LOG.isLoggable(Level.FINEST))
             LOG.finest(logFileName+":putUnsignedByte: "+offset+" - "+value);
+
+        if(CC.BB_CHECK_AVAILABLE_SIZE && offset+1>availSizeCheck)
+            throw new InternalError();
+
 
         ByteBuffer b = internalByteBuffer(offset);
         b.put((int) (offset % BUF_SIZE), value);
@@ -142,6 +154,10 @@ public final class ByteBuffer2 {
     public void putData(long offset, byte[] value, int size) {
         if(CC.BB_LOG_WRITES && LOG.isLoggable(Level.FINEST))
             LOG.finest(logFileName+":putData: "+offset+" - "+size + " - "+Arrays.toString(Arrays.copyOf(value, size)));
+
+        if(CC.BB_CHECK_AVAILABLE_SIZE && offset+size>availSizeCheck)
+            throw new InternalError();
+
         ByteBuffer b = internalByteBuffer(offset);
         b.position((int) (offset%BUF_SIZE));
         b.put(value,0,size);
@@ -150,6 +166,9 @@ public final class ByteBuffer2 {
     public void putUnsignedShort(long offset, int value) {
         if(CC.BB_LOG_WRITES && LOG.isLoggable(Level.FINEST))
             LOG.finest(logFileName+":putUnsignedShort: "+offset+" - "+value);
+
+        if(CC.BB_CHECK_AVAILABLE_SIZE && offset+2>availSizeCheck)
+            throw new InternalError();
 
         ByteBuffer b = internalByteBuffer(offset);
         b.putShort((int) (offset%BUF_SIZE), (short)value);

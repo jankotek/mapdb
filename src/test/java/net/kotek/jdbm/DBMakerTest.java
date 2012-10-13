@@ -106,6 +106,31 @@ public class DBMakerTest{
     }
 
     @Test
+    public void testCacheWeakRefEnable() throws Exception {
+        DB db = DBMaker
+                .newMemoryDB()
+                .transactionDisable()
+                .cacheWeakRefEnable()
+                .make();
+        verifyDB(db);
+        assertTrue(db.recman.getClass() == CacheWeakSoftRef.class);
+        assertTrue(((CacheWeakSoftRef)db.recman).useWeakRef);
+    }
+
+
+    @Test
+    public void testCacheSoftRefEnable() throws Exception {
+        DB db = DBMaker
+                .newMemoryDB()
+                .transactionDisable()
+                .cacheSoftRefEnable()
+                .make();
+        verifyDB(db);
+        assertTrue(db.recman.getClass() == CacheWeakSoftRef.class);
+        assertFalse(((CacheWeakSoftRef)db.recman).useWeakRef);
+    }
+
+    @Test
     public void testCacheSize() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()

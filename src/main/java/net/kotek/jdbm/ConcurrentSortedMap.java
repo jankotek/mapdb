@@ -1,7 +1,8 @@
 package net.kotek.jdbm;
 
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Interface which mixes ConcurrentMap and SortedMap together.

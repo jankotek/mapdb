@@ -29,6 +29,8 @@ interface CC {
      */
     boolean BB_LOG_WRITES = false;
 
+    boolean BB_CHECK_AVAILABLE_SIZE = false;
+
 
     short STORE_FORMAT_VERSION = 10000 + 1;
 

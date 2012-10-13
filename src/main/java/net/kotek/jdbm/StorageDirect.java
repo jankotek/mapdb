@@ -80,16 +80,22 @@ public class StorageDirect extends Storage implements RecordManager {
            DataOutput2 out = new DataOutput2();
            serializer.serialize(out,value);
 
-           //TODO special handling for zero size records
            if(CC.ASSERT && out.pos>1<<16) throw new InternalError("Record bigger then 64KB");
            try{
                writeLock_lock();
 
                //check if size has changed
                final long oldIndexVal = index.getLong(recid * 8);
-               if(oldIndexVal >>>48 == out.pos ){
+               final long oldSize = oldIndexVal>>>48;
+               if(oldSize == 0 && out.pos==0){
+                   //do nothing
+               }if(oldSize == out.pos ){
                    //size is the same, so just write new data
                    phys.putData(oldIndexVal&PHYS_OFFSET_MASK, out);
+               }else if(oldSize != 0 && out.pos==0){
+                   //new record has zero size, just delete old phys one
+                   freePhysRecPut(oldIndexVal);
+                   index.putLong(recid * 8, 0L);
                }else{
                    //size has changed, so write into new location
                    final long newIndexValue = freePhysRecTake(out.pos);
@@ -98,7 +104,7 @@ public class StorageDirect extends Storage implements RecordManager {
                    index.putLong(recid * 8, newIndexValue);
 
                    //and set old phys record as free
-                   if(oldIndexVal!=0)
+                   if(oldSize!=0)
                         freePhysRecPut(oldIndexVal);
                }
            }finally {
@@ -146,6 +152,10 @@ public class StorageDirect extends Storage implements RecordManager {
 
 
         final int numberOfRecordsInPage = phys.getUnsignedByte(dataOffset);
+
+        if(CC.ASSERT && numberOfRecordsInPage<=0) throw new InternalError();
+        if(CC.ASSERT && numberOfRecordsInPage>LONG_STACK_NUM_OF_RECORDS_PER_PAGE) throw new InternalError();
+
         final long ret = phys.getLong (dataOffset+numberOfRecordsInPage*8);
 
         //was it only record at that page?
@@ -218,9 +228,12 @@ public class StorageDirect extends Storage implements RecordManager {
     protected long freePhysRecTake(final int requiredSize){
         writeLock_checkLocked();
 
+        if(CC.ASSERT && requiredSize<=0) throw new InternalError();
+
         long freePhysRec = findFreePhysSlot(requiredSize);
-        if(freePhysRec!=0)
+        if(freePhysRec!=0){
             return freePhysRec;
+        }
 
         try{
 

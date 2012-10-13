@@ -39,7 +39,6 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
 
     protected final boolean hasValues;
 
-
     protected long treeRecid;
 
 

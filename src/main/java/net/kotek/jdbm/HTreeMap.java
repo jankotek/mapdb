@@ -222,8 +222,12 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                     recid = recid>>>1;
                     while(recid!=0){
                         LinkedNode n = recman.recordGet(recid, LN_SERIALIZER);
-                        counter++;
-                        recid = n.next;
+                        if(n!=null){
+                            counter++;
+                            recid =  n.next;
+                        }else{
+                            recid = 0;
+                        }
                     }
                 }
             }
@@ -845,6 +849,10 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                             int arrayPos = 0;
                             while(recid!=0){
                                 LinkedNode ln = recman.recordGet(recid, LN_SERIALIZER);
+                                if(ln==null){
+                                    recid = 0;
+                                    continue;
+                                }
                                 //increase array size if needed
                                 if(arrayPos == array.length)
                                     array = Arrays.copyOf(array, array.length+2);

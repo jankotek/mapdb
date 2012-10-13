@@ -6,7 +6,6 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.logging.Level;
 
 /**
  * StorageDirect which stores all modifications in memory.
@@ -46,6 +45,7 @@ public class AsyncWriteWrapper implements RecordManager{
             writerThreadRun();
         }
     };
+    private Exception rethrow;
 
     @SuppressWarnings("unchecked")
     private void writerThreadRun() {
@@ -91,7 +91,7 @@ public class AsyncWriteWrapper implements RecordManager{
 
 
         }catch(Exception e){
-            JdbmUtil.LOG.log(Level.SEVERE, "An exception in JDBM Writer thread",e);
+           AsyncWriteWrapper.this.rethrow = new RuntimeException("an error in writter thread",e);
         }
     }
 
@@ -110,6 +110,7 @@ public class AsyncWriteWrapper implements RecordManager{
 
     @Override
     public <A> void recordUpdate(long recid, A value, Serializer<A> serializer) {
+        if(rethrow!=null) throw new RuntimeException(rethrow);
         Object v;
         if(asyncSerialization){
             v = new SerRec<A>(value, serializer);
@@ -131,6 +132,7 @@ public class AsyncWriteWrapper implements RecordManager{
 
     @Override
     public void recordDelete(long recid) {
+        if(rethrow!=null) throw new RuntimeException(rethrow);
         if(CC.ASSERT&& recid == 0) throw new InternalError();
         writes.put(recid, DELETED);
     }
@@ -158,6 +160,7 @@ public class AsyncWriteWrapper implements RecordManager{
 
     @Override
     public <A> long recordPut(A value, Serializer<A> serializer) {
+        if(rethrow!=null) throw new RuntimeException(rethrow);
         try{
             Object v;
             if(asyncSerialization){
@@ -183,6 +186,8 @@ public class AsyncWriteWrapper implements RecordManager{
     @Override
     @SuppressWarnings("unchecked")
     public <A> A recordGet(long recid, Serializer<A> serializer) {
+        if(rethrow!=null) throw new RuntimeException(rethrow);
+
         Object d = writes.get(recid);
         if(d == DELETED){
             return null;

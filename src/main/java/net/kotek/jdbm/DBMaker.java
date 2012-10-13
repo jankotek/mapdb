@@ -14,6 +14,8 @@ public class DBMaker {
     protected static final byte CACHE_DISABLE = 0;
     protected static final byte CACHE_FIXED_HASH_TABLE = 1;
     protected static final byte CACHE_HARD_REF = 2;
+    protected static final byte CACHE_WEAK_REF = 3;
+    protected static final byte CACHE_SOFT_REF = 4;
 
 
     protected byte _cache = CACHE_FIXED_HASH_TABLE;
@@ -111,6 +113,30 @@ public class DBMaker {
         this._cache = CACHE_HARD_REF;
         return this;
     }
+
+
+    /**
+     * Enables unbounded cache which uses <code>WeakReference</code>.
+     * Items are removed from cache by Garbage Collector
+     *
+     * @return this builder
+     */
+    public DBMaker cacheWeakRefEnable(){
+        this._cache = CACHE_WEAK_REF;
+        return this;
+    }
+
+    /**
+     * Enables unbounded cache which uses <code>SoftReference</code>.
+     * Items are removed from cache by Garbage Collector
+     *
+     * @return this builder
+     */
+    public DBMaker cacheSoftRefEnable(){
+        this._cache = CACHE_SOFT_REF;
+        return this;
+    }
+
 
 
     /**
@@ -300,7 +326,14 @@ public class DBMaker {
             recman = new CacheHashTable(recman,_cacheSize);
         }else if (_cache == CACHE_HARD_REF){
             recman = new CacheHardRef(recman,_cacheSize);
+        }else if (_cache == CACHE_WEAK_REF){
+            recman = new CacheWeakSoftRef(recman,true);
+        }else if (_cache == CACHE_SOFT_REF){
+            recman = new CacheWeakSoftRef(recman,false);
         }
+
+
+
 
         if(_readOnly)
             recman = new ReadOnlyWrapper(recman);
