@@ -402,18 +402,15 @@ public class SerializerBaseTest extends TestCase {
         assertEquals(Locale.SIMPLIFIED_CHINESE, deserialize(serialize(Locale.SIMPLIFIED_CHINESE)));
 
     }
-//
-//    public void testUUID() throws IOException, ClassNotFoundException {
-//        //try a bunch of UUIDs.
-//        for(int i = 0; i < 1000;i++)
-//        {
-//            UUID uuid = UUID.randomUUID();
-//            SimpleEntry a = new SimpleEntry(uuid, "11");
-//
-//            SimpleEntry b = (SimpleEntry) deserialize(serialize(a));
-//            assertEquals(b, a);
-//        }
-//    }
+
+    public void testUUID() throws IOException, ClassNotFoundException {
+        //try a bunch of UUIDs.
+        for(int i = 0; i < 1000;i++)
+        {
+            UUID uuid = UUID.randomUUID();
+            assertEquals(uuid, deserialize(serialize(uuid)));
+        }
+    }
 
 
 //    enum Order
