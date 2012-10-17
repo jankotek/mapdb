@@ -814,6 +814,11 @@ public class SerializerBase implements Serializer{
             case DATE:
                 ret = new Date(is.readLong());
                 break;
+            case UUID:
+            	long mostSigBits = is.readLong();
+            	long leastSigBits = is.readLong();
+                ret = new UUID(mostSigBits, leastSigBits);
+                break;
             case ARRAY_INT_B_255:
                 ret = deserializeArrayIntB255(is);
                 break;
