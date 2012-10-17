@@ -485,18 +485,22 @@ public class StorageTrans extends Storage implements RecordManager{
                 ins -=offset;
 
                 if(ins == WRITE_INDEX_LONG_ZERO){
+                    index.ensureAvailable(offset+8);
                     index.putLong(offset, 0L);
                 }else if(ins == WRITE_INDEX_LONG){
                     final long value = transLog.getLong(transLogOffset);
                     transLogOffset+=8;
+                    index.ensureAvailable(offset+8);
                     index.putLong(offset, value);
                 }else if(ins == WRITE_PHYS_LONG){
                     final long value = transLog.getLong(transLogOffset);
                     transLogOffset+=8;
+                    phys.ensureAvailable(offset+8);
                     phys.putLong(offset, value);
                 }else if(ins == WRITE_PHYS_BYTE){
                     final int value = transLog.getUnsignedByte(transLogOffset);
                     transLogOffset+=1;
+                    phys.ensureAvailable(offset+1);
                     phys.putUnsignedByte(offset, (byte) value);
                 }else if(ins == WRITE_PHYS_ARRAY){
                     final int size = transLog.getUnsignedShort(transLogOffset);
@@ -507,6 +511,7 @@ public class StorageTrans extends Storage implements RecordManager{
                     int pos = (int) (transLogOffset% ByteBuffer2.BUF_SIZE);
                     blog.position(pos);
                     blog.limit(pos+size);
+                    phys.ensureAvailable(offset+size);
                     final ByteBuffer bphys = phys.internalByteBuffer(offset);
                     bphys.position((int) (offset% ByteBuffer2.BUF_SIZE));
                     bphys.put(blog);
