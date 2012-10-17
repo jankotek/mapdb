@@ -12,7 +12,7 @@ import static junit.framework.Assert.assertTrue;
 @SuppressWarnings("unchecked")
 public class DBTest {
 
-    RecordManager recman = new StorageDirect(null,true,true,false);
+    RecordManager recman = new StorageDirect(null,true,true,false,false);
     DB db = new DB(recman);
 
     @Test

@@ -10,7 +10,7 @@ import static org.junit.Assert.*;
 @SuppressWarnings("unchecked")
 public class BTreeMapTest{
 
-    RecordManager recman = new StorageDirect(null,true,true,false);
+    RecordManager recman = new StorageDirect(null,true,true,false,false);
 
     public static void print(BTreeMap m) {
         printRecur(m, m.rootRecid, "");

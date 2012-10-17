@@ -22,7 +22,7 @@ public class AsyncWriteWrapperTest {
             f = File.createTempFile("test","test");
          if(recman!=null)
              recman.close();
-         recman =  new AsyncWriteWrapper(new StorageDirect(f,false,false,false), true);
+         recman =  new AsyncWriteWrapper(new StorageDirect(f,false,false,false,false), true);
     }
 
 

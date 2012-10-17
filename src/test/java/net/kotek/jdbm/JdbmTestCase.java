@@ -26,7 +26,6 @@ abstract public class JdbmTestCase {
 
      @Before
      public void setUp() throws Exception {
-        testDir = new File(new File(System.getProperty("java.io.tmpdir")), "testdb");
         testDir.mkdirs();
         fileName = new File(testDir.getPath()+"test"+Math.random());
 
@@ -34,7 +33,7 @@ abstract public class JdbmTestCase {
     }
 
     protected Storage openRecordManager() {
-        return new StorageDirect(fileName,true,false, false);
+        return new StorageDirect(fileName,true,false, false,false);
     }
 
     @After

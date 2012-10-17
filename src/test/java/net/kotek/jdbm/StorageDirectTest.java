@@ -297,12 +297,19 @@ public class StorageDirectTest extends JdbmTestCase {
             recids.add(recid);
         }
 
+
+        Map<Long,Integer> m2 = getDataContent();
+
         Map<Long,Integer> m1 = new TreeMap<Long, Integer>();
         for(Long l:recids){
             m1.put(l,dataHash);
         }
 
-        Map<Long,Integer> m2 = getDataContent();
+//        for(Long key:m1.keySet()){
+//            if(!m1.get(key).equals(m2.get(key)))
+//                System.out.println(key);
+//        }
+
 
         assertEquals(m1.size(), m2.size());
         assertTrue(m1.equals(m2));
@@ -343,7 +350,7 @@ public class StorageDirectTest extends JdbmTestCase {
     }
 
     @Test public void in_memory_test(){
-        StorageDirect recman = new StorageDirect(null,true,true,false);
+        StorageDirect recman = new StorageDirect(null,true,true,false,false);
         Map<Long, Integer> recids = new HashMap<Long,Integer>();
         for(int i = 0;i<1000;i++){
             long recid = recman.recordPut(i, Serializer.BASIC_SERIALIZER);

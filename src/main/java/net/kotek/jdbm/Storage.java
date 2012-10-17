@@ -54,6 +54,7 @@ public abstract class Storage implements  RecordManager{
     protected final boolean inMemory;
     protected final boolean deleteFilesOnExit;
     protected final boolean readOnly;
+    protected final boolean appendOnly;
 
     protected final ReentrantReadWriteLock lock;
 
@@ -65,11 +66,12 @@ public abstract class Storage implements  RecordManager{
 
 
 
-    public Storage(File indexFile, boolean enableLocks, boolean deleteFilesAfterClose, boolean readOnly) {
+    public Storage(File indexFile, boolean enableLocks, boolean deleteFilesAfterClose, boolean readOnly, boolean appendOnly) {
         this.indexFile = indexFile;
         this.enableLocks = enableLocks;
         this.deleteFilesOnExit = deleteFilesAfterClose;
         this.readOnly = readOnly;
+        this.appendOnly = appendOnly;
         this.lock = enableLocks? new ReentrantReadWriteLock() : null;
         this.inMemory = indexFile == null;
         writeLocksCounter = CC.ASSERT && !enableLocks? new AtomicInteger(0) : null;

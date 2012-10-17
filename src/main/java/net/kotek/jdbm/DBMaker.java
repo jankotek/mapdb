@@ -37,6 +37,8 @@ public class DBMaker {
 
     protected byte[] _xteaEncryptionKey = null;
 
+    protected boolean _appendOnlyEnabled = false;
+
 
     /** use static factory methods, or make subclass */
     protected DBMaker(){}
@@ -291,6 +293,29 @@ public class DBMaker {
 
 
 
+    /**
+     * In 'appendOnly' mode existing free space is not reused,
+     * but records are added to the end of the store.
+     * <p/>
+     * This slightly improves write performance as store does not have
+     * to traverse list of free records to find and reuse existing position.
+     * <p/>
+     * It also decreases chance for store corruption, as existing data
+     * are not overwriten with new record.
+     * <p/>
+     * When this mode is used for longer time, store becomes fragmented.
+     * It is necessary to run defragmentation then.
+     *
+     * @return this builder
+     */
+    public DBMaker appendOnlyEnable(){
+        this._appendOnlyEnabled = true;
+        return this;
+    }
+
+
+
+
 
 
     /** constructs DB using current settings */
@@ -305,8 +330,8 @@ public class DBMaker {
         }
 
         RecordManager recman = _transactionsEnabled?
-                new StorageTrans(_file, !_asyncWriteEnabled, _deleteFilesAfterClose,_readOnly):
-                new StorageDirect(_file, !_asyncWriteEnabled, _deleteFilesAfterClose,_readOnly);
+                new StorageTrans(_file, !_asyncWriteEnabled, _deleteFilesAfterClose,_readOnly, _appendOnlyEnabled):
+                new StorageDirect(_file, !_asyncWriteEnabled, _deleteFilesAfterClose,_readOnly, _appendOnlyEnabled);
 
         if(_asyncWriteEnabled && !_readOnly)
             recman = new AsyncWriteWrapper(recman, _asyncSerializationEnabled);
