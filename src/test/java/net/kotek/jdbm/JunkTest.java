@@ -1,7 +1,6 @@
 package net.kotek.jdbm;
 
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Test;
 
 import java.io.File;
@@ -18,7 +17,6 @@ public class JunkTest  extends JdbmTestCase{
     @Test
     public void test_mapped_byte_buffer_reopen() throws IOException {
 
-        Assume.assumeTrue(false);
 
         File f = File.createTempFile("whatever","ads");
         f.deleteOnExit();

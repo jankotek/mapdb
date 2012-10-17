@@ -13,6 +13,11 @@ interface CC {
     boolean ASSERT = true;
 
     /**
+     * Compile with more assertions, this may slow down JDBM significantly
+     */
+    boolean PARANOID = false;
+
+    /**
      * Compile with trace logging statements (Logger.debug and Logger.trace)
      */
     boolean TRACE = false;
@@ -21,7 +26,7 @@ interface CC {
      * JDBM has some long running acceptance tests. For daily development it makes sense to skip those.
      * This flag controls whatever all tests are run.
      */
-    boolean FULL_TEST = false;
+    boolean FULL_TEST = true;
 
 
     /**
@@ -30,6 +35,8 @@ interface CC {
     boolean BB_LOG_WRITES = false;
 
     boolean BB_CHECK_AVAILABLE_SIZE = false;
+
+    boolean BTREEMAP_LOG_NODE_LOCKS = false;
 
 
     short STORE_FORMAT_VERSION = 10000 + 1;

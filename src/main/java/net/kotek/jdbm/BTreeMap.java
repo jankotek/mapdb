@@ -65,15 +65,17 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
     }
 
 
-    interface BNode{
+    protected interface BNode{
         boolean isLeaf();
         Object[] keys();
         Object[] vals();
         Object highKey();
         long[] child();
+
+        long next();
     }
 
-    final static class DirNode implements BNode{
+    protected final static class DirNode implements BNode{
         final Object[] keys;
         final long[] child;
 
@@ -91,13 +93,15 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
 
         @Override public long[] child() { return child;}
 
+        @Override public long next() {return child[child().length-1];}
+
         @Override public String toString(){
             return "Dir(K"+Arrays.toString(keys)+", C"+Arrays.toString(child)+")";
         }
 
     }
 
-    final static class LeafNode implements BNode{
+    protected final static class LeafNode implements BNode{
         final Object[] keys;
         final Object[] vals;
         final long next;
@@ -116,6 +120,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
         @Override public Object highKey() {return keys[keys.length-1];}
 
         @Override public long[] child() { return null;}
+        @Override public long next() {return next;}
 
         @Override public String toString(){
             return "Leaf(K"+Arrays.toString(keys)+", V"+Arrays.toString(vals)+", L="+next+")";
@@ -253,16 +258,42 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
 
 
     protected void unlockNode(final long nodeRecid) {
+        if(CC.BTREEMAP_LOG_NODE_LOCKS)
+            JdbmUtil.LOG.finest("BTreeMap UNLOCK R:"+nodeRecid+" T:"+Thread.currentThread().getId());
+
         final Thread t = nodeWriteLocks.remove(nodeRecid);
         if(t!=Thread.currentThread())
             throw new InternalError("unlocked wrong thread");
+
+    }
+
+    protected void assertNoLocks(){
+        if(CC.PARANOID){
+            LongMap.LongMapIterator<Thread> i = nodeWriteLocks.longMapIterator();
+            while(i.moveToNext()){
+                if(i.value()==Thread.currentThread()){
+                    throw new InternalError("Node "+i.key()+" is still locked");
+                }
+            }
+        }
     }
 
     protected void lockNode(final long nodeRecid) {
+        if(CC.BTREEMAP_LOG_NODE_LOCKS)
+            JdbmUtil.LOG.finest("BTreeMap TRYLOCK R:"+nodeRecid+" T:"+Thread.currentThread().getId());
+
         //feel free to rewrite, if you know better (more efficient) way
+        if(CC.ASSERT && nodeWriteLocks.get(nodeRecid)==Thread.currentThread()){
+            //check node is not already locked by this thread
+            throw new InternalError("node already locked by current thread: "+nodeRecid);
+        }
+
         while(nodeWriteLocks.putIfAbsent(nodeRecid, Thread.currentThread()) != null){
             Thread.yield();
         }
+        if(CC.BTREEMAP_LOG_NODE_LOCKS)
+            JdbmUtil.LOG.finest("BTreeMap LOCK R:"+nodeRecid+" T:"+Thread.currentThread().getId());
+
     }
 
     /**
@@ -354,10 +385,12 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
         int level = 1;
 
         long p=0;
+
         while(true){
-            boolean found = true;
+            boolean found;
             do{
                 lockNode(current);
+                found = true;
                 A = recman.recordGet(current, nodeSerializer);
                 int pos = findChildren(v, A.keys());
                 if(pos<A.keys().length-1 && v.equals(A.keys()[pos])){
@@ -369,6 +402,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
                         if(oldVal instanceof  LazyRef){
                             oldVal = recman.recordGet(((LazyRef)oldVal).recid,SERIALIZER);
                         }
+                        assertNoLocks();
                         return (V) oldVal;
                     }
                     //insert new
@@ -388,25 +422,28 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
                     }
                     //already in here
                     unlockNode(current);
+                    assertNoLocks();
                     return (V) oldVal;
                 }
-
 
                 if(A.highKey() != POS_INFINITY && comparator.compare(v, A.highKey())>0){
                     //follow link until necessary
                     unlockNode(current);
                     found = false;
                     int pos2 = findChildren(v, A.keys());
-                    while(pos2 == A.keys().length){
+                    while(A!=null && pos2 == A.keys().length){
                         //TODO lock?
-                        current = ((LeafNode)A).next;
+                        long next = A.next();
+
+                        if(next==0) break;
+                        current = next;
                         A = recman.recordGet(current, nodeSerializer);
                     }
+
                 }
 
 
             }while(!found);
-
 
             // can be new item inserted into A without splitting it?
             if(A.keys().length - (A.isLeaf()?2:1)<maxNodeSize){
@@ -426,6 +463,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
                 }
 
                 unlockNode(current);
+                assertNoLocks();
                 return null;
             }else{
                 //node is not safe, it requires splitting
@@ -490,6 +528,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
                     saveTreeInfo();
                     //TODO update tree levels
                     unlockNode(current);
+                    assertNoLocks();
                     return null;
                 }
             }
