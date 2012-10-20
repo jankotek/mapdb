@@ -26,6 +26,7 @@ abstract public class JdbmTestCase {
 
      @Before
      public void setUp() throws Exception {
+        testDir = new File(new File(System.getProperty("java.io.tmpdir")), "testdb");
         testDir.mkdirs();
         fileName = new File(testDir.getPath()+"test"+Math.random());
 

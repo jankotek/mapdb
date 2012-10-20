@@ -12,6 +12,9 @@ public class StorageDirect extends Storage implements RecordManager {
                          boolean deleteFilesAfterClose,
                          boolean readOnly, boolean appendOnly) {
         super(indexFile, enableLocks, deleteFilesAfterClose, readOnly, appendOnly);
+        if(indexFile!=null && new File(indexFile.getPath()+StorageTrans.TRANS_LOG_FILE_EXT).exists()){
+            throw new IllegalAccessError("Log file found. Reopen with transaction enabled, to finish transaction log replay!");
+        }
     }
 
     @Override

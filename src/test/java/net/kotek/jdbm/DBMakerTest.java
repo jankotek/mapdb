@@ -149,7 +149,6 @@ public class DBMakerTest{
                 .newFileDB(f)
                 .deleteFilesAfterClose()
                 .readOnly()
-                .transactionDisable()
                 .make();
         assertTrue(db.recman instanceof ReadOnlyWrapper);
         db.close();

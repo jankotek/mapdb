@@ -321,6 +321,7 @@ public class StorageDirectTest extends JdbmTestCase {
     @Test public void test_store_reopen(){
         long recid = recman.recordPut("aaa", Serializer.STRING_SERIALIZER);
 
+        recman.commit();
         reopenStore();
 
         String aaa = recman.recordGet(recid, Serializer.STRING_SERIALIZER);

@@ -20,7 +20,10 @@ public class StorageTrans extends Storage implements RecordManager{
     protected static final long WRITE_PHYS_LONG = 3L <<48;
     protected static final long WRITE_PHYS_BYTE = 4L <<48;
     protected static final long WRITE_PHYS_ARRAY = 5L <<48;
+    /** last instruction in log file */
     protected static final long WRITE_SEAL = 111L <<48;
+    /** added to offset 8 into log file, indicates that it was sucesfully written*/
+    protected static final long LOG_SEAL = 4566556446554645L;
     public static final String TRANS_LOG_FILE_EXT = ".t";
 
 
@@ -43,7 +46,8 @@ public class StorageTrans extends Storage implements RecordManager{
         try{
             writeLock_lock();
             reloadIndexFile();
-            replayLogFile();
+            if(!inMemory)
+                replayLogFile();
         }finally{
             writeLock_unlock();
         }
@@ -63,6 +67,21 @@ public class StorageTrans extends Storage implements RecordManager{
             longStackCurrentPageSize[i] = phys.getUnsignedByte(longStackCurrentPage[i] );
             longStackAdded[i] = null;
             longStackAddedSize[i] = 0;
+        }
+    }
+
+    protected void openLogIfNeeded(){
+        if(transLog==null)try{
+            FileChannel ch = inMemory ? null :
+                    new RandomAccessFile(indexFile.getPath()+TRANS_LOG_FILE_EXT,"rw").getChannel();
+            transLog = new ByteBuffer2(inMemory,ch,
+                     FileChannel.MapMode.READ_WRITE, "trans");
+
+            transLog.putLong(0, HEADER);
+            transLog.putLong(8, 0L);
+            transLogOffset = 16;
+        }catch(IOException e){
+            throw new IOError(e);
         }
     }
 
@@ -198,6 +217,7 @@ public class StorageTrans extends Storage implements RecordManager{
 
     protected void writeIndexValToTransLog(long recid, long indexValue) throws IOException {
         //write new index value into transaction log
+        openLogIfNeeded();
         transLog.ensureAvailable(transLogOffset+16);
         transLog.putLong(transLogOffset, WRITE_INDEX_LONG | (recid * 8));
         transLogOffset+=8;
@@ -207,6 +227,7 @@ public class StorageTrans extends Storage implements RecordManager{
     }
 
     protected void writeOutToTransLog(DataOutput2 out, long recid, long indexValue) throws IOException {
+        openLogIfNeeded();
         transLog.ensureAvailable(transLogOffset+10+out.pos);
         transLog.putLong(transLogOffset, WRITE_PHYS_ARRAY|(indexValue&PHYS_OFFSET_MASK));
         transLogOffset+=8;
@@ -293,6 +314,7 @@ public class StorageTrans extends Storage implements RecordManager{
     public void recordDelete(long recid){
         try{
             writeLock_lock();
+            openLogIfNeeded();
             transLog.ensureAvailable(transLogOffset+8);
             transLog.putLong(transLogOffset, WRITE_INDEX_LONG_ZERO | (recid*8));
             transLogOffset+=8;
@@ -325,7 +347,10 @@ public class StorageTrans extends Storage implements RecordManager{
         super.close();
 
         try{
-            transLog.close();
+            if(transLog!=null){
+                transLog.sync();
+                transLog.close();
+            }
             transLog = null;
             if(deleteFilesOnExit && indexFile!=null){
                 new File(indexFile.getPath()+TRANS_LOG_FILE_EXT).delete();
@@ -450,6 +475,11 @@ public class StorageTrans extends Storage implements RecordManager{
             transLog.ensureAvailable(transLogOffset+8);
             transLog.putLong(transLogOffset, WRITE_SEAL);
             transLogOffset+=8;
+            //flush log file
+            transLog.sync();
+            //and write mark it was sealed
+            transLog.putLong(8, LOG_SEAL);
+            transLog.sync();
 
             replayLogFile();
             reloadIndexFile();
@@ -461,23 +491,48 @@ public class StorageTrans extends Storage implements RecordManager{
         }
     }
 
-    protected void replayLogFile() {
+    protected void replayLogFile(){
         try {
             writeLock_checkLocked();
             transLogOffset = 0;
 
-            if(transLog==null){
-                if(inMemory){
-                    transLog = new ByteBuffer2(true, null, readOnly ? FileChannel.MapMode.READ_ONLY : FileChannel.MapMode.READ_WRITE,"trans");
-                    return;
-                }else{
-                    RandomAccessFile r =  new RandomAccessFile(new File(indexFile.getPath()+TRANS_LOG_FILE_EXT),"rw");
-                    transLog = new ByteBuffer2(false,r.getChannel(), readOnly ? FileChannel.MapMode.READ_ONLY : FileChannel.MapMode.READ_WRITE,"trans");
-                    if(r.length()==0)
-                        return;
-                }
+            if(transLog!=null && !inMemory){
+                transLog.sync();
+                transLog.close();
+                transLog = null;
             }
 
+            File logFile = inMemory? null:
+                    new File(indexFile.getPath()+TRANS_LOG_FILE_EXT);
+
+            if(!inMemory){
+                if(!logFile.exists()){
+                    return;
+                }
+                if(logFile.length()<=16){
+                    logFile.delete();
+                    return;
+                }
+
+                transLog = new ByteBuffer2(false, new RandomAccessFile(logFile,"r").getChannel(),
+                        FileChannel.MapMode.READ_ONLY, "trans");
+            }
+
+
+
+            //read headers
+            if(transLog.getLong(0)!=HEADER || transLog.getLong(8) !=LOG_SEAL){
+                //wrong headers, discard log
+                transLog.close();
+                transLog = null;
+                if(logFile!=null)
+                    logFile.delete();
+                return;
+            }
+
+
+            //all good, start replay
+            transLogOffset=16;
             long ins = transLog.getLong(transLogOffset);
             transLogOffset+=8;
 
@@ -529,6 +584,17 @@ public class StorageTrans extends Storage implements RecordManager{
                 transLogOffset+=8;
             }
             transLogOffset=0;
+
+            //flush dbs
+            phys.sync();
+            index.sync();
+            //and discard log
+            transLog.close();
+            transLog = null;
+            if(logFile!=null)
+                logFile.delete();
+
+
         } catch (IOException e) {
             throw new IOError(e);
         }
@@ -538,6 +604,19 @@ public class StorageTrans extends Storage implements RecordManager{
 
     @Override
     public void rollback() {
+        try{
+        //discard trans log
+        if(transLog!=null){
+            transLog.close();
+            transLog = null;
+            if(indexFile!=null)
+                new File(indexFile.getPath()+TRANS_LOG_FILE_EXT).delete();
+        }
+
+
+        }catch(IOException e){
+            throw new IOError(e);
+        }
         reloadIndexFile();
     }
 }

@@ -26,7 +26,7 @@ interface CC {
      * JDBM has some long running acceptance tests. For daily development it makes sense to skip those.
      * This flag controls whatever all tests are run.
      */
-    boolean FULL_TEST = true;
+    boolean FULL_TEST = false;
 
 
     /**
