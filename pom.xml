@@ -4,7 +4,7 @@
 
     <groupId>net.kotek</groupId>
     <artifactId>jdbm</artifactId>
-    <version>4.001-alpha</version>
+    <version>4.000-SNAPSHOT</version>
     <name>JDBM</name>
     <description>JDBM provides TreeMap and HashMap backed by disk storage. It is a fast,
         scalable and easy to use embedded Java database.</description>
