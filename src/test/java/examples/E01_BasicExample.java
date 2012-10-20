@@ -1,4 +1,4 @@
-package net.kotek.jdbm.examples;
+package examples;
 
 import net.kotek.jdbm.ConcurrentSortedMap;
 import net.kotek.jdbm.DB;

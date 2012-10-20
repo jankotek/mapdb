@@ -297,6 +297,7 @@ public class StorageDirectTest extends JdbmTestCase {
             recids.add(recid);
         }
 
+        recman.commit();
 
         Map<Long,Integer> m2 = getDataContent();
 
