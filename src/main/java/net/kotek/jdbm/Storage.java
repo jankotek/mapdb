@@ -50,7 +50,7 @@ public abstract class Storage implements  RecordManager{
 
 
     private final AtomicInteger writeLocksCounter;
-    protected final boolean enableLocks;
+    protected final boolean disableLocks;
     protected final boolean inMemory;
     protected final boolean deleteFilesOnExit;
     protected final boolean readOnly;
@@ -66,15 +66,15 @@ public abstract class Storage implements  RecordManager{
 
 
 
-    public Storage(File indexFile, boolean enableLocks, boolean deleteFilesAfterClose, boolean readOnly, boolean appendOnly) {
+    public Storage(File indexFile, boolean disableLocks, boolean deleteFilesAfterClose, boolean readOnly, boolean appendOnly) {
         this.indexFile = indexFile;
-        this.enableLocks = enableLocks;
+        this.disableLocks = disableLocks;
         this.deleteFilesOnExit = deleteFilesAfterClose;
         this.readOnly = readOnly;
         this.appendOnly = appendOnly;
-        this.lock = enableLocks? new ReentrantReadWriteLock() : null;
+        this.lock = disableLocks? null: new ReentrantReadWriteLock();
         this.inMemory = indexFile == null;
-        writeLocksCounter = CC.ASSERT && !enableLocks? new AtomicInteger(0) : null;
+        writeLocksCounter = CC.ASSERT && disableLocks? new AtomicInteger(0) : null;
 
         try{
             writeLock_lock();
@@ -171,9 +171,9 @@ public abstract class Storage implements  RecordManager{
     }
 
     protected void writeLock_lock() {
-        if(enableLocks)
+        if(!disableLocks)
             lock.writeLock().lock();
-        else if(CC.ASSERT && !enableLocks){
+        else if(CC.ASSERT && disableLocks){
             int c = writeLocksCounter.incrementAndGet();
             if(c!=1) throw new InternalError("more then one writer");
         }
@@ -182,9 +182,9 @@ public abstract class Storage implements  RecordManager{
     }
 
     protected void writeLock_unlock() {
-        if(enableLocks)
+        if(!disableLocks)
             lock.writeLock().unlock();
-        else if(CC.ASSERT && !enableLocks){
+        else if(CC.ASSERT && disableLocks){
             int c = writeLocksCounter.decrementAndGet();
             if(c!=0) throw new InternalError("more then one writer");
         }
@@ -192,25 +192,25 @@ public abstract class Storage implements  RecordManager{
     }
 
     protected void writeLock_checkLocked() {
-        if(CC.ASSERT && enableLocks && !lock.writeLock().isHeldByCurrentThread())
+        if(CC.ASSERT && !disableLocks && !lock.writeLock().isHeldByCurrentThread())
             throw new IllegalAccessError("no write lock");
-        if(CC.ASSERT && ! enableLocks && writeLocksCounter.get()>1)
+        if(CC.ASSERT && disableLocks && writeLocksCounter.get()>1)
             throw new InternalError("more then one writer");
     }
 
 
 
     protected void readLock_unlock() {
-        if(CC.ASSERT && ! enableLocks && writeLocksCounter.get()!=0)
+        if(CC.ASSERT && disableLocks && writeLocksCounter.get()!=0)
             throw new InternalError("writer operates");
-        if(enableLocks)
+        if(!disableLocks)
             lock.readLock().unlock();
     }
 
     protected void readLock_lock() {
-        if(enableLocks)
+        if(!disableLocks)
             lock.readLock().lock();
-        if(CC.ASSERT && ! enableLocks && writeLocksCounter.get()!=0)
+        if(CC.ASSERT && disableLocks && writeLocksCounter.get()!=0)
             throw new InternalError("writer operates");
 
     }

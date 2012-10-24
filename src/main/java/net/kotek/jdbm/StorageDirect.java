@@ -8,10 +8,14 @@ import java.io.IOException;
 public class StorageDirect extends Storage implements RecordManager {
 
 
-    public StorageDirect(File indexFile, boolean enableLocks,
+    public StorageDirect(File indexFile){
+        this(indexFile, false, false, false, false);
+    }
+
+    public StorageDirect(File indexFile, boolean disableLocks,
                          boolean deleteFilesAfterClose,
                          boolean readOnly, boolean appendOnly) {
-        super(indexFile, enableLocks, deleteFilesAfterClose, readOnly, appendOnly);
+        super(indexFile, disableLocks, deleteFilesAfterClose, readOnly, appendOnly);
         if(indexFile!=null && new File(indexFile.getPath()+StorageTrans.TRANS_LOG_FILE_EXT).exists()){
             throw new IllegalAccessError("Log file found. Reopen with transaction enabled, to finish transaction log replay!");
         }

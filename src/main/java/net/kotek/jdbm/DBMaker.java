@@ -330,8 +330,8 @@ public class DBMaker {
         }
 
         RecordManager recman = _transactionsEnabled?
-                new StorageTrans(_file, !_asyncWriteEnabled, _deleteFilesAfterClose,_readOnly, _appendOnlyEnabled):
-                new StorageDirect(_file, !_asyncWriteEnabled, _deleteFilesAfterClose,_readOnly, _appendOnlyEnabled);
+                new StorageTrans(_file, _asyncWriteEnabled, _deleteFilesAfterClose,_readOnly, _appendOnlyEnabled):
+                new StorageDirect(_file, _asyncWriteEnabled, _deleteFilesAfterClose,_readOnly, _appendOnlyEnabled);
 
         if(_asyncWriteEnabled && !_readOnly)
             recman = new AsyncWriteWrapper(recman, _asyncSerializationEnabled);

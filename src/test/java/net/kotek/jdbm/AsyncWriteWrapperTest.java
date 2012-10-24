@@ -10,19 +10,19 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 
+import static junit.framework.Assert.assertNotNull;
+
 /**
  * @author Jan Kotek
  */
-public class AsyncWriteWrapperTest {
-    File f;
+public class AsyncWriteWrapperTest extends TestFile{
     AsyncWriteWrapper recman;
 
     @Before public void reopenStore() throws IOException {
-         if(f==null)
-            f = File.createTempFile("test","test");
-         if(recman!=null)
-             recman.close();
-         recman =  new AsyncWriteWrapper(new StorageDirect(f,false,false,false,false), true);
+        assertNotNull(index);
+        if(recman!=null)
+           recman.close();
+        recman =  new AsyncWriteWrapper(new StorageDirect(index,false,false,false,false), true);
     }
 
 
@@ -34,8 +34,8 @@ public class AsyncWriteWrapperTest {
         Assert.assertEquals("aaa",recman.recordGet(recid, Serializer.STRING_SERIALIZER));
         reopenStore();
         Assert.assertEquals("aaa",recman.recordGet(recid, Serializer.STRING_SERIALIZER));
-        recman.recordUpdate(recid,"bbb",Serializer.STRING_SERIALIZER);
-        Assert.assertEquals("bbb",recman.recordGet(recid, Serializer.STRING_SERIALIZER));
+        recman.recordUpdate(recid, "bbb", Serializer.STRING_SERIALIZER);
+        Assert.assertEquals("bbb", recman.recordGet(recid, Serializer.STRING_SERIALIZER));
         reopenStore();
         Assert.assertEquals("bbb",recman.recordGet(recid, Serializer.STRING_SERIALIZER));
 

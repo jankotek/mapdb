@@ -1,9 +1,6 @@
 package net.kotek.jdbm;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOError;
-import java.io.IOException;
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -169,6 +166,22 @@ final public class JdbmUtil {
         while(ret<value)
             ret = ret<<1;
         return ret;
+    }
+
+    /**
+     * Create temporary file in temp folder. All associated db files will be deleted on JVM exit.
+     */
+    public static File tempDbFile() {
+        try{
+            File index = File.createTempFile("jdbmTest","db");
+            index.deleteOnExit();
+            new File(index.getPath()+Storage.DATA_FILE_EXT).deleteOnExit();
+            new File(index.getPath()+StorageTrans.TRANS_LOG_FILE_EXT).deleteOnExit();
+
+            return index;
+        }catch(IOException e){
+            throw new IOError(e);
+        }
     }
 
 }

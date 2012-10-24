@@ -8,7 +8,7 @@ import java.util.*;
 import static org.junit.Assert.*;
 
 @SuppressWarnings("unchecked")
-public class HTreeMap2Test extends JdbmTestCase {
+public class HTreeMap2Test extends StorageTestCase {
 
 
     void printMap(HTreeMap m){

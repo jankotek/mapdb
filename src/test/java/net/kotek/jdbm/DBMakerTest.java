@@ -142,7 +142,7 @@ public class DBMakerTest{
     }
 
     @Test public void read_only() throws IOException {
-        File f = File.createTempFile("test", "test");
+        File f = JdbmUtil.tempDbFile();
         DB db = DBMaker.newFileDB(f).make();
         db.close();
         db = DBMaker

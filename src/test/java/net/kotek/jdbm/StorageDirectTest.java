@@ -9,7 +9,7 @@ import java.util.*;
 
 import static org.junit.Assert.*;
 
-public class StorageDirectTest extends JdbmTestCase {
+public class StorageDirectTest extends StorageTestCase {
 
 
     /** recid used for testing, it is actually free slot with size 1*/
@@ -352,7 +352,7 @@ public class StorageDirectTest extends JdbmTestCase {
     }
 
     @Test public void in_memory_test(){
-        StorageDirect recman = new StorageDirect(null,true,true,false,false);
+        StorageDirect recman = new StorageDirect(null,false,true,false,false);
         Map<Long, Integer> recids = new HashMap<Long,Integer>();
         for(int i = 0;i<1000;i++){
             long recid = recman.recordPut(i, Serializer.BASIC_SERIALIZER);

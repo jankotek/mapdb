@@ -15,34 +15,18 @@ import java.util.TreeMap;
 /**
  * JUnit test case which provides JDBM specific staff
  */
-abstract public class JdbmTestCase {
+abstract public class StorageTestCase extends TestFile{
 
-
-    File fileName;
-
-    File testDir;
 
     Storage recman;
 
      @Before
      public void setUp() throws Exception {
-        testDir = new File(new File(System.getProperty("java.io.tmpdir")), "testdb");
-        testDir.mkdirs();
-        fileName = new File(testDir.getPath()+"test"+Math.random());
-
         recman = openRecordManager();
     }
 
     protected Storage openRecordManager() {
-        return new StorageDirect(fileName,true,false, false,false);
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        recman.close();
-        for(File f:testDir.listFiles()){
-            if(f!=null && !f.delete())f.deleteOnExit();
-        }
+        return (Storage) new StorageDirect(index);
     }
 
 

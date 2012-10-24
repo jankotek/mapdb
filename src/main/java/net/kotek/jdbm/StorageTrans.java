@@ -40,9 +40,13 @@ public class StorageTrans extends Storage implements RecordManager{
     protected final long[][] longStackAdded = new long[INDEX_OFFSET_START][];
     protected final int[] longStackAddedSize = new int[INDEX_OFFSET_START];
 
-    public StorageTrans(File indexFile, boolean enableLocks, boolean deleteFilesAfterClose,
+    public StorageTrans(File indexFile){
+        this(indexFile, false, false, false, false);
+    }
+
+    public StorageTrans(File indexFile, boolean disableLocks, boolean deleteFilesAfterClose,
                         boolean readOnly, boolean appendOnly) {
-        super(indexFile,  enableLocks, deleteFilesAfterClose, readOnly, appendOnly);
+        super(indexFile,  disableLocks, deleteFilesAfterClose, readOnly, appendOnly);
         try{
             writeLock_lock();
             reloadIndexFile();

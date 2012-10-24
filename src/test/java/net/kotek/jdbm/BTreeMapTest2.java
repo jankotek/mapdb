@@ -25,7 +25,7 @@ public class BTreeMapTest2 extends ConcurrentMapInterfaceTest<Integer, String> {
         super(false, false, true, true, true, true);
     }
 
-    RecordManager r = new StorageDirect(null,true,true,false,false);
+    RecordManager r = new StorageDirect(null,false,true,false,false);
 
 
     @Override

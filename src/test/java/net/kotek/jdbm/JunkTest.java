@@ -11,7 +11,7 @@ import java.nio.channels.FileChannel;
 
 
 
-public class JunkTest  extends JdbmTestCase{
+public class JunkTest{
 
 
     @Test
