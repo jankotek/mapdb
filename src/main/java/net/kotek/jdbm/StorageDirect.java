@@ -135,6 +135,8 @@ public class StorageDirect extends Storage implements RecordManager {
             longStackPut(RECID_FREE_INDEX_SLOTS,recid);
             if(oldIndexVal!=0)
                 freePhysRecPut(oldIndexVal);
+        }catch(IOException e){
+            throw new IOError(e);
         }finally {
             writeLock_unlock();
         }
@@ -152,7 +154,7 @@ public class StorageDirect extends Storage implements RecordManager {
 
 
     @Override
-   protected long longStackTake(final long listRecid) {
+   protected long longStackTake(final long listRecid) throws IOException {
         final long dataOffset = index.getLong(listRecid * 8) &PHYS_OFFSET_MASK;
         if(dataOffset == 0)
             return 0; //there is no such list, so just return 0
@@ -188,8 +190,8 @@ public class StorageDirect extends Storage implements RecordManager {
 
     }
 
-    @Override
-    protected void longStackPut(final long listRecid, final long offset) {
+   @Override
+   protected void longStackPut(final long listRecid, final long offset) throws IOException {
        writeLock_checkLocked();
 
        //index position was cleared, put into free index list
@@ -234,7 +236,7 @@ public class StorageDirect extends Storage implements RecordManager {
 
 
 
-    protected long freePhysRecTake(final int requiredSize){
+    protected long freePhysRecTake(final int requiredSize) throws IOException {
         writeLock_checkLocked();
 
         if(CC.ASSERT && requiredSize<=0) throw new InternalError();
@@ -245,7 +247,7 @@ public class StorageDirect extends Storage implements RecordManager {
             return freePhysRec;
         }
 
-        try{
+
 
         //No free records found, so lets increase the file size.
         //We need to take case of growing ByteBuffers.
@@ -282,9 +284,6 @@ public class StorageDirect extends Storage implements RecordManager {
 
             //and finally return position at beginning of new buffer
             return (((long)requiredSize)<<48) | nextBufferStartOffset;
-        }
-        }catch(IOException e){
-            throw new IOError(e);
         }
 
     }

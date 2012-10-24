@@ -117,7 +117,7 @@ public class StorageDirectTest extends StorageTestCase {
 
     }
 
-    @Test public void test_long_stack_put_take(){
+    @Test public void test_long_stack_put_take() throws IOException {
         recman.lock.writeLock().lock();
 
         final long max = 150;
@@ -133,14 +133,14 @@ public class StorageDirectTest extends StorageTestCase {
 
         }
 
-    @Test public void test_long_stack_put_take_simple(){
+    @Test public void test_long_stack_put_take_simple() throws IOException {
         recman.lock.writeLock().lock();
         recman.longStackPut(TEST_LS_RECID, 111);
         assertEquals(111L, recman.longStackTake(TEST_LS_RECID));
     }
 
 
-    @Test public void test_basic_long_stack(){
+    @Test public void test_basic_long_stack() throws IOException {
         //dirty hack to make sure we have lock
         recman.lock.writeLock().lock();
         final long max = 150;
@@ -157,7 +157,7 @@ public class StorageDirectTest extends StorageTestCase {
     }
 
 
-    @Test public void long_stack_page_created_after_put(){
+    @Test public void long_stack_page_created_after_put() throws IOException {
         recman.lock.writeLock().lock();
         recman.longStackPut(TEST_LS_RECID, 111);
         commit();
@@ -170,7 +170,7 @@ public class StorageDirectTest extends StorageTestCase {
         assertEquals(111, recman.phys.getLong(pageId+8));
     }
 
-    @Test public void long_stack_put_five(){
+    @Test public void long_stack_put_five() throws IOException {
         recman.lock.writeLock().lock();
         recman.longStackPut(TEST_LS_RECID, 111);
         recman.longStackPut(TEST_LS_RECID, 112);
@@ -192,7 +192,7 @@ public class StorageDirectTest extends StorageTestCase {
         assertEquals(115, recman.phys.getLong(pageId+40));
     }
 
-    @Test public void long_stack_page_deleted_after_take(){
+    @Test public void long_stack_page_deleted_after_take() throws IOException {
         recman.lock.writeLock().lock();
         recman.longStackPut(TEST_LS_RECID, 111);
         commit();
@@ -201,7 +201,7 @@ public class StorageDirectTest extends StorageTestCase {
         assertEquals(0L, recman.index.getLong(TEST_LS_RECID*8));
     }
 
-    @Test public void long_stack_page_overflow(){
+    @Test public void long_stack_page_overflow() throws IOException {
         recman.lock.writeLock().lock();
         //fill page until near overflow
         for(int i=0;i< StorageDirect.LONG_STACK_NUM_OF_RECORDS_PER_PAGE;i++){
@@ -268,7 +268,7 @@ public class StorageDirectTest extends StorageTestCase {
         assertEquals(slotMax, slotMaxMinus1 + 1);
     }
 
-    @Test  public void test_freePhys_PutAndTake(){
+    @Test  public void test_freePhys_PutAndTake() throws IOException {
         recman.lock.writeLock().lock();
 
         final long offset = 1111000;

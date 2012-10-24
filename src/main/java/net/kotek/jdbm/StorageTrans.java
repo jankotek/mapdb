@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.Arrays;
 
 /**
  * StorageDirect which provides transactions.
@@ -18,8 +17,7 @@ public class StorageTrans extends Storage implements RecordManager{
     protected static final long WRITE_INDEX_LONG = 1L <<48;
     protected static final long WRITE_INDEX_LONG_ZERO = 2L <<48;
     protected static final long WRITE_PHYS_LONG = 3L <<48;
-    protected static final long WRITE_PHYS_BYTE = 4L <<48;
-    protected static final long WRITE_PHYS_ARRAY = 5L <<48;
+    protected static final long WRITE_PHYS_ARRAY = 4L <<48;
     /** last instruction in log file */
     protected static final long WRITE_SEAL = 111L <<48;
     /** added to offset 8 into log file, indicates that it was sucesfully written*/
@@ -35,10 +33,9 @@ public class StorageTrans extends Storage implements RecordManager{
     protected long physSize;
     protected final LongHashMap<Long> recordLogRefs = new LongHashMap<Long>();
     protected final LongHashMap<Long> recordIndexVals = new LongHashMap<Long>();
-    protected final long[] longStackCurrentPage = new long[INDEX_OFFSET_START];
-    protected final int[] longStackCurrentPageSize = new int[INDEX_OFFSET_START];
-    protected final long[][] longStackAdded = new long[INDEX_OFFSET_START][];
-    protected final int[] longStackAddedSize = new int[INDEX_OFFSET_START];
+    protected final LongHashMap<long[]> longStackPages = new LongHashMap<long[]>();
+
+
 
     public StorageTrans(File indexFile){
         this(indexFile, false, false, false, false);
@@ -63,15 +60,10 @@ public class StorageTrans extends Storage implements RecordManager{
         writeLock_checkLocked();
         recordLogRefs.clear();
         recordIndexVals.clear();
+        longStackPages.clear();
         indexSize = index.getLong(RECID_CURRENT_INDEX_FILE_SIZE *8);
         physSize = index.getLong(RECID_CURRENT_PHYS_FILE_SIZE*8);
         writeLock_checkLocked();
-        for(int i = RECID_FREE_INDEX_SLOTS;i<INDEX_OFFSET_START; i++){
-            longStackCurrentPage[i] = index.getLong(i*8) & PHYS_OFFSET_MASK;
-            longStackCurrentPageSize[i] = phys.getUnsignedByte(longStackCurrentPage[i] );
-            longStackAdded[i] = null;
-            longStackAddedSize[i] = 0;
-        }
     }
 
     protected void openLogIfNeeded(){
@@ -89,99 +81,9 @@ public class StorageTrans extends Storage implements RecordManager{
         }
     }
 
-    @Override
-    protected long longStackTake(long listRecid) {
-        writeLock_checkLocked();
-        final int r = (int) listRecid;
-        if(longStackAddedSize[r]!=0){
-            int offset = --longStackAddedSize[r];
-            final long ret = longStackAdded[r][offset];
-            if(offset!=0)
-                longStackAdded[r][offset]=0;
-            else
-                longStackAdded[r]=null;
-            return ret;
-        }else if(longStackCurrentPage[r]!=0){
-            long pageOffset = longStackCurrentPage[r]&PHYS_OFFSET_MASK;
-            long ret = phys.getLong(pageOffset + 8 * (longStackCurrentPageSize[r]--));
-            if(longStackCurrentPageSize[r]==0){
-                //LongStack page is empty, so delete it and move to next
-                final long indexValue = longStackCurrentPage[r] | (LONG_STACK_PAGE_SIZE <<48);
-                long nextPage = phys.getLong(pageOffset)&PHYS_OFFSET_MASK;
-                freePhysRecPut(indexValue);
-
-                longStackCurrentPage[r] = nextPage==0?-1:nextPage;
-                longStackCurrentPageSize[r] = (nextPage==0)? 0 :
-                        phys.getUnsignedByte(nextPage);
-            }
-            return ret;
-        }
-        return 0;
-    }
-
-    @Override
-    protected void longStackPut(long listRecid, long offset) {
-        writeLock_checkLocked();
-        final int r = (int) listRecid;
-        //add to in-memory stack
-        if(longStackAdded[r]==null){
-            longStackAdded[r] = new long[]{offset,0,0,0};
-            longStackAddedSize[r]=1;
-            return;
-        }
-        if(longStackAdded[r].length==longStackAddedSize[r]){
-            //grow
-            longStackAdded[r] = Arrays.copyOf(longStackAdded[r], longStackAdded[r].length*2);
-        }
-        longStackAdded[r][longStackAddedSize[r]++] = offset;
-    }
 
 
-    protected long freePhysRecTake(final int requiredSize){
-        writeLock_checkLocked();
 
-        if(CC.ASSERT && requiredSize<=0) throw new InternalError();
-
-        long freePhysRec = appendOnly? 0L :
-                findFreePhysSlot(requiredSize);
-        if(freePhysRec!=0)
-            return freePhysRec;
-
-
-            //No free records found, so lets increase the file size.
-            //We need to take case of growing ByteBuffers.
-            // Also max size of ByteBuffer is 2GB, so we need to use multiple ones
-
-
-            if(CC.ASSERT && physSize <=0) throw new InternalError("illegal file size:"+physSize);
-
-            //check if new record would be overflowing BUF_SIZE
-            if(physSize%ByteBuffer2.BUF_SIZE+requiredSize<=ByteBuffer2.BUF_SIZE){
-                //no, so just increase file size
-                long oldPhysSize = physSize;
-                physSize +=requiredSize;
-                //and return this
-                return (((long)requiredSize)<<48) | oldPhysSize;
-            }else{
-                //new size is overlapping 2GB ByteBuffer size
-                //so we need to create empty record for 'padding' size to 2GB
-
-                final long  freeSizeToCreate = ByteBuffer2.BUF_SIZE -  physSize%ByteBuffer2.BUF_SIZE;
-                if(CC.ASSERT && freeSizeToCreate == 0) throw new InternalError();
-
-                final long nextBufferStartOffset = physSize + freeSizeToCreate;
-                if(CC.ASSERT && nextBufferStartOffset%ByteBuffer2.BUF_SIZE!=0) throw new InternalError();
-
-                //increase the disk size
-
-                //mark 'padding' free record
-                freePhysRecPut(freeSizeToCreate<<48|physSize);
-                physSize +=requiredSize+freeSizeToCreate;
-                //and finally return position at beginning of new buffer
-                return (((long)requiredSize)<<48) | nextBufferStartOffset;
-            }
-
-    }
 
     @Override
     public <A> long recordPut(A value, Serializer<A> serializer) {
@@ -278,9 +180,7 @@ public class StorageTrans extends Storage implements RecordManager{
                 writeLock_lock();
 
                 //check if size has changed
-                Long oldIndexVal = recordIndexVals.get(recid);
-                if(oldIndexVal==null)
-                    oldIndexVal = index.getLong(recid * 8);
+                long oldIndexVal = getIndexLong(recid);
 
                 long oldSize = oldIndexVal>>>48;
 
@@ -312,6 +212,12 @@ public class StorageTrans extends Storage implements RecordManager{
             throw new IOError(e);
         }
 
+    }
+
+    private long getIndexLong(long recid) {
+        Long v = recordIndexVals.get(recid);
+        return (v!=null) ? v :
+             index.getLong(recid * 8);
     }
 
     @Override
@@ -372,103 +278,19 @@ public class StorageTrans extends Storage implements RecordManager{
         try{
             writeLock_lock();
 
-            //update LongStack sizes and page addresses
-            for(int recid=RECID_FREE_INDEX_SLOTS; recid<longStackAddedSize.length; recid++){
-                //compare and update if needed
-                long newPage = longStackCurrentPage[recid];
-                if(newPage == 0) continue;
-                long realPage = index.getLong(recid*8);
-                if(realPage !=newPage){
-                    if(newPage==-1)
-                        writeIndexValToTransLog(recid, 0);
-                    else
-                        writeIndexValToTransLog(recid, newPage | (1L*LONG_STACK_PAGE_SIZE)<<48);
-                }
-
-                if(newPage!=-1){
-                    int realPageCount = phys.getUnsignedByte(newPage);
-                    if(realPageCount!= longStackCurrentPageSize[recid]){
-                        transLog.ensureAvailable(transLogOffset+9);
-                        transLog.putLong(transLogOffset,WRITE_PHYS_BYTE | newPage);
-                        transLogOffset+=8;
-                        transLog.putUnsignedByte(transLogOffset, (byte) realPageCount);
-                        transLogOffset+=1;
-                    }
-                }
-
-            }
-
-
-
-            //count number of pages to preallocate
-            int pagesNeeded = 0;
-            int oldFreePhysLongStackAddedSize = longStackAddedSize[RECID_FREE_PHYS_RECORDS_START + LONG_STACK_PAGE_SIZE];
-            for(int recid = RECID_FREE_INDEX_SLOTS;recid<longStackAdded.length;recid++ ){
-                int addedCount = longStackAddedSize[recid];
-                if(addedCount!=0){
-                    pagesNeeded += 1 + (addedCount-1)/LONG_STACK_NUM_OF_RECORDS_PER_PAGE;
-                }
-            }
-            if(oldFreePhysLongStackAddedSize != longStackAddedSize[RECID_FREE_PHYS_RECORDS_START + LONG_STACK_PAGE_SIZE]){
-                throw new InternalError();
-            }
-
-
-            //preallocate pages
-            long[] preallocPages = new long[pagesNeeded];
-            for(int i=0; i<pagesNeeded;i++){
-                preallocPages[i] = freePhysRecTake(LONG_STACK_PAGE_SIZE) & PHYS_OFFSET_MASK;
-            }
-
-            int preallocPagesPos = 0;
-
-
-            //now write values added into long stacks
-            for(int recid=RECID_FREE_INDEX_SLOTS; recid<longStackAdded.length; recid++){
-                if(longStackAddedSize[recid]==0) continue;
-                long page = longStackCurrentPage[recid];
-                int pageSize = longStackCurrentPageSize[recid];
-                if(page==0){
-                    //use preallocated page
-                    page = preallocPages[preallocPagesPos++];
-                    writeIndexValToTransLog(recid, (((long)LONG_STACK_PAGE_SIZE)<<48) | page);
-                    pageSize=0;
-                }
-
-                for(int pos=0; pos<longStackAddedSize[recid]; pos++){
-                    if(pageSize == LONG_STACK_NUM_OF_RECORDS_PER_PAGE){
-                        //overflow to next page
-                        long oldPage = page;
-                        //get new page and write reference to old one
-                        page = preallocPages[preallocPagesPos++];
-                        transLog.ensureAvailable(transLogOffset+16);
-                        transLog.putLong(transLogOffset, WRITE_PHYS_LONG | page);
-                        transLogOffset+=8;
-                        transLog.putLong(transLogOffset, oldPage);
-                        transLogOffset+=8;
-                        //update index reference to this new page
-                        writeIndexValToTransLog(recid, page | (((long)LONG_STACK_PAGE_SIZE)<<48));
-                        //reset counter
-                        pageSize = 0;
-                    }
-
-                    //write new page size
-                    transLog.ensureAvailable(transLogOffset+9);
-                    transLog.putLong(transLogOffset,WRITE_PHYS_BYTE | page);
+            //dump long stack pages
+            LongMap.LongMapIterator<long[]> iter = longStackPages.longMapIterator();
+            while(iter.moveToNext()){
+                transLog.ensureAvailable(transLogOffset+8+2+LONG_STACK_PAGE_SIZE);
+                transLog.putLong(transLogOffset, WRITE_PHYS_ARRAY|iter.key());
+                transLogOffset+=8;
+                transLog.putUnsignedShort(transLogOffset, LONG_STACK_PAGE_SIZE);
+                transLogOffset+=2;
+                for(long l:iter.value()){
+                    transLog.putLong(transLogOffset, l);
                     transLogOffset+=8;
-                    transLog.putUnsignedByte(transLogOffset, (byte) (++pageSize));
-                    transLogOffset+=1;
-
-                    //write long value
-                    long value = longStackAdded[recid][pos];
-                    transLog.putLong(transLogOffset, WRITE_PHYS_LONG | (page+ (pageSize)*8));
-                    transLogOffset+=8;
-                    transLog.putLong(transLogOffset, value);
-                    transLogOffset+=8;
-
                 }
             }
-
 
             //update physical and logical filesize
             writeIndexValToTransLog(RECID_CURRENT_PHYS_FILE_SIZE, physSize);
@@ -558,11 +380,6 @@ public class StorageTrans extends Storage implements RecordManager{
                     transLogOffset+=8;
                     phys.ensureAvailable(offset+8);
                     phys.putLong(offset, value);
-                }else if(ins == WRITE_PHYS_BYTE){
-                    final int value = transLog.getUnsignedByte(transLogOffset);
-                    transLogOffset+=1;
-                    phys.ensureAvailable(offset+1);
-                    phys.putUnsignedByte(offset, (byte) value);
                 }else if(ins == WRITE_PHYS_ARRAY){
                     final int size = transLog.getUnsignedShort(transLogOffset);
                     transLogOffset+=2;
@@ -623,4 +440,151 @@ public class StorageTrans extends Storage implements RecordManager{
         }
         reloadIndexFile();
     }
+
+
+    private long[] getLongStackPage(final long physOffset, boolean read){
+        long[] buf = longStackPages.get(physOffset);
+        if(buf == null){
+            buf = new long[LONG_STACK_NUM_OF_RECORDS_PER_PAGE+1];
+            if(read)
+                for(int i=0;i<buf.length;i++){
+                    buf[i] = phys.getLong(physOffset+i*8);
+                }
+            longStackPages.put(physOffset,buf);
+        }
+        return buf;
+    }
+
+    @Override
+    protected long longStackTake(final long listRecid) throws IOException {
+        final long dataOffset = getIndexLong(listRecid) & PHYS_OFFSET_MASK;
+        if(dataOffset == 0)
+            return 0; //there is no such list, so just return 0
+
+        writeLock_checkLocked();
+
+        long[] buf = getLongStackPage(dataOffset,true);
+
+        final int numberOfRecordsInPage = (int) (buf[0]>>>(8*7));
+
+        if(CC.ASSERT && numberOfRecordsInPage<=0) throw new InternalError();
+        if(CC.ASSERT && numberOfRecordsInPage>LONG_STACK_NUM_OF_RECORDS_PER_PAGE) throw new InternalError();
+
+        final long ret = buf[numberOfRecordsInPage];
+
+        final long previousListPhysid = buf[0] & PHYS_OFFSET_MASK;
+
+        //was it only record at that page?
+        if(numberOfRecordsInPage == 1){
+            //yes, delete this page
+            long value = previousListPhysid !=0 ?
+                    previousListPhysid | (((long) LONG_STACK_PAGE_SIZE) << 48) :
+                    0L;
+            //update index so it points to previous (or none)
+            writeIndexValToTransLog(listRecid, value);
+
+            //put space used by this page into free list
+            longStackPages.remove(dataOffset); //TODO write zeroes to phys file
+            freePhysRecPut(dataOffset | (((long)LONG_STACK_PAGE_SIZE)<<48));
+        }else{
+            //no, it was not last record at this page, so just decrement the counter
+            buf[0] = previousListPhysid | ((1L*numberOfRecordsInPage-1L)<<(8*7));
+        }
+        return ret;
+
+    }
+
+    @Override
+    protected void longStackPut(final long listRecid, final long offset) throws IOException {
+        writeLock_checkLocked();
+
+        //index position was cleared, put into free index list
+        final long listPhysid2 =getIndexLong(listRecid) & PHYS_OFFSET_MASK;
+
+        if(listPhysid2 == 0){ //empty list?
+            //yes empty, create new page and fill it with values
+            final long listPhysid = freePhysRecTake(LONG_STACK_PAGE_SIZE) &PHYS_OFFSET_MASK;
+            long[] buf = getLongStackPage(listPhysid,false);
+            if(CC.ASSERT && listPhysid == 0) throw new InternalError();
+            //set number of free records in this page to 1
+            buf[0] = 1L<<(8*7);
+            //set  record
+            buf[1] = offset;
+            //and update index file with new page location
+            writeIndexValToTransLog(listRecid, (((long) LONG_STACK_PAGE_SIZE) << 48) | listPhysid);
+        }else{
+            long[] buf = getLongStackPage(listPhysid2,true);
+            final int numberOfRecordsInPage = (int) (buf[0]>>>(8*7));
+            if(numberOfRecordsInPage == LONG_STACK_NUM_OF_RECORDS_PER_PAGE){ //is current page full?
+                //yes it is full, so we need to allocate new page and write our number there
+                final long listPhysid = freePhysRecTake(LONG_STACK_PAGE_SIZE) &PHYS_OFFSET_MASK;
+                long[] bufNew = getLongStackPage(listPhysid,false);
+                if(CC.ASSERT && listPhysid == 0) throw new InternalError();
+                //final ByteBuffer dataBuf = dataBufs[((int) (listPhysid / BUF_SIZE))];
+                //set location to previous page
+                //set number of free records in this page to 1
+                bufNew[0] = listPhysid2 | (1L<<(8*7));
+                //set free record
+                bufNew[1] = offset;
+                //and update index file with new page location
+                writeIndexValToTransLog(listRecid,(((long) LONG_STACK_PAGE_SIZE) << 48) | listPhysid);
+            }else{
+                //there is space on page, so just write released recid and increase the counter
+                buf[1+numberOfRecordsInPage] = offset;
+                buf[0] = (buf[0]&PHYS_OFFSET_MASK) | ((1L*numberOfRecordsInPage+1L)<<(8*7));
+            }
+        }
+    }
+
+
+
+    protected long freePhysRecTake(final int requiredSize) throws IOException {
+        writeLock_checkLocked();
+
+        if(CC.ASSERT && requiredSize<=0) throw new InternalError();
+
+        long freePhysRec = appendOnly? 0L:
+                findFreePhysSlot(requiredSize);
+        if(freePhysRec!=0){
+            return freePhysRec;
+        }
+
+        //No free records found, so lets increase the file size.
+        //We need to take case of growing ByteBuffers.
+        // Also max size of ByteBuffer is 2GB, so we need to use multiple ones
+
+        final long oldFileSize = physSize;
+        if(CC.ASSERT && oldFileSize <=0) throw new InternalError("illegal file size:"+oldFileSize);
+
+        //check if new record would be overflowing BUF_SIZE
+        if(oldFileSize%ByteBuffer2.BUF_SIZE+requiredSize<=ByteBuffer2.BUF_SIZE){
+            //no, so just increase file size
+            physSize+=requiredSize;
+            //so just increase buffer size
+
+            //and return this
+            return (((long)requiredSize)<<48) | oldFileSize;
+        }else{
+            //new size is overlapping 2GB ByteBuffer size
+            //so we need to create empty record for 'padding' size to 2GB
+
+            final long  freeSizeToCreate = ByteBuffer2.BUF_SIZE -  oldFileSize%ByteBuffer2.BUF_SIZE;
+            if(CC.ASSERT && freeSizeToCreate == 0) throw new InternalError();
+
+            final long nextBufferStartOffset = oldFileSize + freeSizeToCreate;
+            if(CC.ASSERT && nextBufferStartOffset%ByteBuffer2.BUF_SIZE!=0) throw new InternalError();
+
+            //increase the disk size
+            physSize += freeSizeToCreate + requiredSize;
+
+            //mark 'padding' free record
+            freePhysRecPut(freeSizeToCreate<<48|oldFileSize);
+
+            //and finally return position at beginning of new buffer
+            return (((long)requiredSize)<<48) | nextBufferStartOffset;
+        }
+
+    }
+
+
 }

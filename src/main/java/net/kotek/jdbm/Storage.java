@@ -262,13 +262,13 @@ public abstract class Storage implements  RecordManager{
     }
 
 
-    abstract protected long longStackTake(final long listRecid);
+    abstract protected long longStackTake(final long listRecid) throws IOException;
 
-    abstract protected void longStackPut(final long listRecid, final long offset);
+    abstract protected void longStackPut(final long listRecid, final long offset) throws IOException;
 
-    abstract protected long freePhysRecTake(final int requiredSize);
+    abstract protected long freePhysRecTake(final int requiredSize) throws IOException;
 
-    protected void freePhysRecPut(final long indexValue){
+    protected void freePhysRecPut(final long indexValue) throws IOException {
         if(CC.ASSERT && (indexValue &PHYS_OFFSET_MASK)==0) throw new InternalError("zero indexValue: ");
         final int size =  (int) (indexValue>>>48);
 
@@ -276,7 +276,7 @@ public abstract class Storage implements  RecordManager{
         longStackPut(listRecid, indexValue);
     }
 
-    protected long findFreePhysSlot(int requiredSize) {
+    protected long findFreePhysSlot(int requiredSize) throws IOException {
         int slot = freePhysRecSize2FreeSlot(requiredSize);
         //check if this slot can contain smaller records,
         if(requiredSize>1 && slot==freePhysRecSize2FreeSlot(requiredSize-1))

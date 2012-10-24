@@ -391,9 +391,32 @@ class LongHashMap<V> implements Serializable, LongMap<V> {
 
     }
 
+
+    static class LongMapIterator2<V> extends HashMapIterator<V> implements LongMapIterator<V>{
+
+        LongMapIterator2(LongHashMap m) {
+            super(m);
+        }
+
+        @Override public boolean moveToNext() {
+            if(!hasNext())return false;
+            next();
+            return true;
+        }
+
+        @Override public long key() {
+            return lastEntry.key;
+        }
+
+        @Override public V value() {
+            return lastEntry.value;
+        }
+    }
+
+
     @Override
     public LongMapIterator<V> longMapIterator() {
-        return null; //TODO implement
+        return new LongMapIterator2<V>(this);
     }
 
 

@@ -20,24 +20,6 @@ public class StorageTransTest extends StorageDirectTest {
     }
 
 
-    @Test public void long_stack_basic(){
-        StorageTrans t = new StorageTrans(null, true,true,false,false);
-        t.longStackPut(stackId,111L);
-        t.longStackPut(stackId,112L);
-        t.longStackPut(stackId,113L);
-        t.longStackPut(stackId,114L);
-        t.longStackPut(stackId,115L);
-        commit();
-
-        assertEquals(115L, t.longStackTake(stackId));
-        assertEquals(114L, t.longStackTake(stackId));
-        assertEquals(113L, t.longStackTake(stackId));
-        assertEquals(112L, t.longStackTake(stackId));
-        assertEquals(111L, t.longStackTake(stackId));
-        assertEquals(0L, t.longStackTake(stackId));
-        assertEquals(null, t.longStackAdded[stackId]);
-        assertEquals(0, t.longStackAddedSize[stackId]);
-    }
 
 
     @Test public void long_stack_reuse() throws IOException {
