@@ -18,6 +18,8 @@ public class StorageTrans extends Storage implements RecordManager{
     protected static final long WRITE_INDEX_LONG_ZERO = 2L <<48;
     protected static final long WRITE_PHYS_LONG = 3L <<48;
     protected static final long WRITE_PHYS_ARRAY = 4L <<48;
+
+    protected static final long WRITE_SKIP_BUFFER = 444L <<48;
     /** last instruction in log file */
     protected static final long WRITE_SEAL = 111L <<48;
     /** added to offset 8 into log file, indicates that it was sucesfully written*/
@@ -31,9 +33,9 @@ public class StorageTrans extends Storage implements RecordManager{
 
     protected long indexSize;
     protected long physSize;
-    protected final LongHashMap<Long> recordLogRefs = new LongHashMap<Long>();
-    protected final LongHashMap<Long> recordIndexVals = new LongHashMap<Long>();
-    protected final LongHashMap<long[]> longStackPages = new LongHashMap<long[]>();
+    protected final LongMap<Long> recordLogRefs = new LongConcurrentHashMap<Long>();
+    protected final LongMap<Long> recordIndexVals = new LongConcurrentHashMap<Long>();
+    protected final LongMap<long[]> longStackPages = new LongConcurrentHashMap<long[]>();
 
 
 
@@ -112,12 +114,24 @@ public class StorageTrans extends Storage implements RecordManager{
                 //write new phys data into trans log
                 writeOutToTransLog(out, recid, indexValue);
 
+                checkBufferRounding();
+
                 return recid;
             }finally {
                 writeLock_unlock();
             }
         }catch(IOException e){
             throw new IOError(e);
+        }
+    }
+
+    protected void checkBufferRounding() throws IOException {
+        if(transLogOffset%ByteBuffer2.BUF_SIZE > ByteBuffer2.BUF_SIZE - MAX_RECORD_SIZE*2){
+            //position is to close to end of ByteBuffer (1GB)
+            //so start writting into new buffer
+            transLog.ensureAvailable(transLogOffset+8);
+            transLog.putLong(transLogOffset,WRITE_SKIP_BUFFER);
+            transLogOffset += ByteBuffer2.BUF_SIZE-transLogOffset%ByteBuffer2.BUF_SIZE;
         }
     }
 
@@ -205,6 +219,8 @@ public class StorageTrans extends Storage implements RecordManager{
                     if(oldSize!=0)
                         freePhysRecPut(oldIndexVal);
                 }
+
+                checkBufferRounding();
             }finally {
                 writeLock_unlock();
             }
@@ -225,25 +241,21 @@ public class StorageTrans extends Storage implements RecordManager{
         try{
             writeLock_lock();
             openLogIfNeeded();
+
             transLog.ensureAvailable(transLogOffset+8);
             transLog.putLong(transLogOffset, WRITE_INDEX_LONG_ZERO | (recid*8));
             transLogOffset+=8;
             longStackPut(RECID_FREE_INDEX_SLOTS,recid);
             recordLogRefs.put(recid, Long.MIN_VALUE);
             //check if is in transaction
-            Long transIndexVal = recordIndexVals.get(recid);
-            if(transIndexVal!=null){
-                //is in transaction, so remove from transaction and wipe data
-                recordIndexVals.put(recid,0L);
+            long oldIndexVal = getIndexLong(recid);
+            recordIndexVals.put(recid,0L);
+            if(oldIndexVal!=0)
+                freePhysRecPut(oldIndexVal);
 
-                if(transIndexVal.longValue()!=0)
-                    freePhysRecPut(transIndexVal);
-                return;
-            }else{
-                long oldIndexVal = index.getLong(recid * 8);
-                if(oldIndexVal!=0)
-                    freePhysRecPut(oldIndexVal);
-            }
+
+            checkBufferRounding();
+
         }catch(IOException e){
             throw new IOError(e);
         }finally {
@@ -290,6 +302,7 @@ public class StorageTrans extends Storage implements RecordManager{
                     transLog.putLong(transLogOffset, l);
                     transLogOffset+=8;
                 }
+                checkBufferRounding();
             }
 
             //update physical and logical filesize
@@ -383,7 +396,6 @@ public class StorageTrans extends Storage implements RecordManager{
                 }else if(ins == WRITE_PHYS_ARRAY){
                     final int size = transLog.getUnsignedShort(transLogOffset);
                     transLogOffset+=2;
-
                     //transfer byte[] directly from log file without copying into memory
                     final ByteBuffer blog = transLog.internalByteBuffer(transLogOffset);
                     int pos = (int) (transLogOffset% ByteBuffer2.BUF_SIZE);
@@ -396,7 +408,8 @@ public class StorageTrans extends Storage implements RecordManager{
                     transLogOffset+=size;
                     blog.clear();
                     bphys.clear();
-
+                }else if(ins == WRITE_SKIP_BUFFER){
+                    transLogOffset += ByteBuffer2.BUF_SIZE-transLogOffset%ByteBuffer2.BUF_SIZE;
                 }else{
                     throw new InternalError("unknown trans log instruction: "+(ins>>>48));
                 }
@@ -467,7 +480,9 @@ public class StorageTrans extends Storage implements RecordManager{
 
         final int numberOfRecordsInPage = (int) (buf[0]>>>(8*7));
 
-        if(CC.ASSERT && numberOfRecordsInPage<=0) throw new InternalError();
+
+        if(CC.ASSERT && numberOfRecordsInPage<=0)
+            throw new InternalError();
         if(CC.ASSERT && numberOfRecordsInPage>LONG_STACK_NUM_OF_RECORDS_PER_PAGE) throw new InternalError();
 
         final long ret = buf[numberOfRecordsInPage];
@@ -578,13 +593,15 @@ public class StorageTrans extends Storage implements RecordManager{
             physSize += freeSizeToCreate + requiredSize;
 
             //mark 'padding' free record
-            freePhysRecPut(freeSizeToCreate<<48|oldFileSize);
+            freePhysRecPut((freeSizeToCreate<<48)|oldFileSize);
 
             //and finally return position at beginning of new buffer
             return (((long)requiredSize)<<48) | nextBufferStartOffset;
         }
 
     }
+
+
 
 
 }

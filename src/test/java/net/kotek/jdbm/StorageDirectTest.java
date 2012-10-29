@@ -20,12 +20,8 @@ public class StorageDirectTest extends StorageTestCase {
     }
 
     @Test public void testSetGet(){
-
         long recid  = recman.recordPut((long) 10000, Serializer.LONG_SERIALIZER);
-
-
         Long  s2 = recman.recordGet(recid, Serializer.LONG_SERIALIZER);
-
         assertEquals(s2, Long.valueOf(10000));
     }
 
@@ -39,7 +35,7 @@ public class StorageDirectTest extends StorageTestCase {
         assertEquals(0, countIndexRecords());
     }
 
-    @Test public void test_index_record_delete_and_reuse(){
+    @Test public void test_index_record_delete_and_reusef(){
         long recid = recman.recordPut(1000L, Serializer.LONG_SERIALIZER);
         commit();
         assertEquals(1, countIndexRecords());
@@ -131,7 +127,7 @@ public class StorageDirectTest extends StorageTestCase {
 
         assertEquals(0, getLongStack(TEST_LS_RECID).size());
 
-        }
+    }
 
     @Test public void test_long_stack_put_take_simple() throws IOException {
         recman.lock.writeLock().lock();
@@ -288,33 +284,34 @@ public class StorageDirectTest extends StorageTestCase {
         Assume.assumeTrue(CC.FULL_TEST);
 
        byte[] data = new byte[51111];
-       Integer dataHash = Arrays.hashCode(data);
+       int dataHash = Arrays.hashCode(data);
 
         Set<Long> recids = new TreeSet<Long>();
 
         for(int i = 0; i<1e5;i++){
             long recid = recman.recordPut(data, Serializer.BYTE_ARRAY_SERIALIZER);
             recids.add(recid);
+
+//            if(i%10000==0){
+//            System.out.println(recid);
+//            for(Long l:recids){
+//                byte[] b = recman.recordGet(l, Serializer.BYTE_ARRAY_SERIALIZER);
+//                int hash = Arrays.hashCode(b);
+//                assertEquals(l,dataHash, hash);
+//            }
+//            }
+
         }
 
         recman.commit();
 
-        Map<Long,Integer> m2 = getDataContent();
 
-        Map<Long,Integer> m1 = new TreeMap<Long, Integer>();
+
         for(Long l:recids){
-            m1.put(l,dataHash);
+            byte[] b = recman.recordGet(l, Serializer.BYTE_ARRAY_SERIALIZER);
+            int hash = Arrays.hashCode(b);
+            assertEquals(dataHash, hash);
         }
-
-//        for(Long key:m1.keySet()){
-//            if(!m1.get(key).equals(m2.get(key)))
-//                System.out.println(key);
-//        }
-
-
-        assertEquals(m1.size(), m2.size());
-        assertTrue(m1.equals(m2));
-
 
     }
 
@@ -334,7 +331,7 @@ public class StorageDirectTest extends StorageTestCase {
 
         byte[] data = new byte[11111];
         final long max = ByteBuffer2.BUF_SIZE*2L/data.length;
-        final Integer hash = Arrays.hashCode(data);
+        final int hash = Arrays.hashCode(data);
 
         List<Long> recids = new ArrayList<Long>();
 
@@ -346,8 +343,8 @@ public class StorageDirectTest extends StorageTestCase {
         reopenStore();
 
         for(long recid:recids){
-            Integer hash2 = recman.recordGet(recid, Serializer.HASH_DESERIALIZER);
-            assertEquals(hash,hash2);
+            byte[] b  = recman.recordGet(recid, Serializer.BYTE_ARRAY_SERIALIZER);
+            assertEquals(hash,Arrays.hashCode(b));
         }
     }
 

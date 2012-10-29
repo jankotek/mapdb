@@ -113,4 +113,27 @@ public class LongHashMapTest extends TestCase {
 
     }
 
+    public void testMapIter(){
+        LongHashMap<String> v = new LongHashMap<String>();
+        v.put(1L, "one");
+        v.put(2L, "two");
+        v.put(3L, "three");
+
+        TreeMap<Long, String> v2 = new TreeMap<Long, String>();
+        v2.put(1L, "one");
+        v2.put(2L, "two");
+        v2.put(3L, "three");
+
+        TreeMap<Long, String> v3 = new TreeMap<Long, String>();
+        LongMap.LongMapIterator<String> iter = v.longMapIterator();
+        while(iter.moveToNext()){
+            v3.put(iter.key(), iter.value());
+        }
+
+        assertEquals(v2,v3);
+
+
+
+    }
+
 }

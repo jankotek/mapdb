@@ -7,10 +7,7 @@ import org.junit.Before;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 /**
  * JUnit test case which provides JDBM specific staff
@@ -26,7 +23,7 @@ abstract public class StorageTestCase extends TestFile{
     }
 
     protected Storage openRecordManager() {
-        return (Storage) new StorageDirect(index);
+        return new StorageDirect(index);
     }
 
 
@@ -60,6 +57,7 @@ abstract public class StorageTestCase extends TestFile{
     }
 
     List<Long> getLongStack(long recid){
+
         ArrayList<Long> ret =new ArrayList<Long>();
 
         long pagePhysid = recman.index.getLong(recid*8) & StorageDirect.PHYS_OFFSET_MASK;
@@ -82,7 +80,7 @@ abstract public class StorageTestCase extends TestFile{
         return ret;
     }
 
-    int readUnsignedShort(ByteBuffer buf, long pos) throws IOException {
+    static int readUnsignedShort(ByteBuffer buf, long pos) throws IOException {
         return (( (buf.get((int) pos) & 0xff) << 8) |
                 ( (buf.get((int) (pos+1)) & 0xff)));
     }
@@ -92,18 +90,6 @@ abstract public class StorageTestCase extends TestFile{
         ArrayList<Long> ret = new ArrayList<Long>();
         for(Long l:vals){
             ret.add(l);
-        }
-        return ret;
-    }
-
-    final Map<Long, Integer> getDataContent(){
-        Map<Long,Integer> ret = new TreeMap<Long, Integer>();
-        final long indexFileSize = recman.index.buffers[0].getLong(StorageDirect.RECID_CURRENT_INDEX_FILE_SIZE*8);
-        for(long recid = StorageDirect.INDEX_OFFSET_START ;
-            recid*8<indexFileSize;
-            recid++){
-            Integer val = recman.recordGet(recid, Serializer.HASH_DESERIALIZER);
-            ret.put(recid, val);
         }
         return ret;
     }

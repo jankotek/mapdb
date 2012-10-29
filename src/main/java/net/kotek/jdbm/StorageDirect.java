@@ -280,7 +280,7 @@ public class StorageDirect extends Storage implements RecordManager {
             index.putLong(RECID_CURRENT_PHYS_FILE_SIZE * 8, physFileSize + freeSizeToCreate + requiredSize);
 
             //mark 'padding' free record
-            freePhysRecPut(freeSizeToCreate<<48|physFileSize);
+            freePhysRecPut((freeSizeToCreate<<48)|physFileSize);
 
             //and finally return position at beginning of new buffer
             return (((long)requiredSize)<<48) | nextBufferStartOffset;

@@ -31,7 +31,7 @@ import java.util.NoSuchElementException;
  * <p/>
  * Author of JDBM modifications: Jan Kotek
  */
-class LongHashMap<V> implements Serializable, LongMap<V> {
+public class LongHashMap<V> extends LongMap<V> implements Serializable  {
     private static final long serialVersionUID = 362499999763181265L;
 
     private int elementCount;

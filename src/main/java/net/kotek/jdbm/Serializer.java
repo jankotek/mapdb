@@ -99,21 +99,6 @@ public interface Serializer<A> {
     } ;
 
 
-    /** deserialises byte[] into integer hash, usefull for debuging */
-    Serializer<Integer> HASH_DESERIALIZER = new Serializer<Integer>() {
-        @Override
-        public void serialize(DataOutput out, Integer value) throws IOException {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Integer deserialize(DataInput in, int available) throws IOException {
-            byte[] b = new byte[available];
-            in.readFully(b);
-            return Arrays.hashCode(b);
-        }
-    };
-
     /** always writes zero length data, and always deserializes it as null */
     Serializer<Object> NULL_SERIALIZER = new Serializer<Object>() {
         @Override
