@@ -17,6 +17,10 @@ public final class DataInput2 implements DataInput {
         this.pos = pos;
     }
 
+    public DataInput2(byte[] b) {
+        this(ByteBuffer.wrap(b),0);
+    }
+
     @Override
     public void readFully(byte[] b) throws IOException {
         readFully(b, 0, b.length);

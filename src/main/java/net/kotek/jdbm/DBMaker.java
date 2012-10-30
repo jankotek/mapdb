@@ -39,6 +39,8 @@ public class DBMaker {
 
     protected boolean _appendOnlyEnabled = false;
 
+    protected boolean _checksumEnabled = false;
+
 
     /** use static factory methods, or make subclass */
     protected DBMaker(){}
@@ -263,6 +265,7 @@ public class DBMaker {
     }
 
 
+
     /**
      * Encrypt storage using XTEA algorithm.
      * <p/>
@@ -281,7 +284,21 @@ public class DBMaker {
 
 
     /**
-     * Open store in read-only mode. Any modification attempd will throw
+     * Adds CRC32 checksum at end of each record to check data integrity.
+     * It throws 'IOException("CRC32 does not match, data broken")' on de-serialization if data are corrupted
+     * <p/>
+     * Make sure you enable this every time you reopen store, otherwise record de-serialization fails.
+     *
+     * @return this builder
+     */
+    public DBMaker checksumEnable(){
+        this._checksumEnabled = true;
+        return this;
+    }
+
+
+    /**
+     * Open store in read-only mode. Any modification attempt will throw
      * <code>UnsupportedOperationException("Read-only")</code>
      *
      * @return this builder
@@ -336,13 +353,19 @@ public class DBMaker {
         if(_asyncWriteEnabled && !_readOnly)
             recman = new AsyncWriteWrapper(recman, _asyncSerializationEnabled);
 
+        if(_checksumEnabled){
+            recman = new ByteTransformWrapper(recman, new ChecksumCRC32Serializer());
+        }
+
         if(_xteaEncryptionKey!=null){
             recman = new ByteTransformWrapper(recman, new EncryptionXTEA(_xteaEncryptionKey));
         }
 
+
         if(_compressionEnabled){
             recman = new ByteTransformWrapper(recman, new CompressLZFSerializer());
         }
+
 
 
         if(_cache == CACHE_DISABLE){
@@ -357,12 +380,8 @@ public class DBMaker {
             recman = new CacheWeakSoftRef(recman,false);
         }
 
-
-
-
-        if(_readOnly)
+       if(_readOnly)
             recman = new ReadOnlyWrapper(recman);
-
 
         final DB db = new DB(recman);
         if(_closeOnJvmShutdown){

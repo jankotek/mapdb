@@ -184,4 +184,13 @@ final public class JdbmUtil {
         }
     }
 
+
+
+    /** check if Operating System is Windows */
+    public static boolean isWindows(){
+        String os = System.getProperty("os.name");
+        return os!=null && (os.toLowerCase().indexOf("win") >= 0);
+
+    }
+
 }

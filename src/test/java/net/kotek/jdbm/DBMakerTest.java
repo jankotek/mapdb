@@ -154,6 +154,59 @@ public class DBMakerTest{
         db.close();
     }
 
+    @Test public void crc32() throws IOException {
+        File f = JdbmUtil.tempDbFile();
+        DB db = DBMaker.newFileDB(f).make();
+        db.close();
+        db = DBMaker
+                .newFileDB(f)
+                .deleteFilesAfterClose()
+                .asyncWriteDisable()
+                .cacheDisable()
+
+                .checksumEnable()
+                .make();
+        assertTrue(db.recman instanceof ByteTransformWrapper);
+        assertTrue(((ByteTransformWrapper)db.recman).blockSerializer instanceof ChecksumCRC32Serializer);
+        db.close();
+    }
+
+    @Test public void encrypt() throws IOException {
+        File f = JdbmUtil.tempDbFile();
+        DB db = DBMaker.newFileDB(f).make();
+        db.close();
+        db = DBMaker
+                .newFileDB(f)
+                .deleteFilesAfterClose()
+                .cacheDisable()
+                .asyncWriteDisable()
+
+                .encryptionEnable("adqdqwd")
+                .make();
+        assertTrue(db.recman instanceof ByteTransformWrapper);
+        assertTrue(((ByteTransformWrapper)db.recman).blockSerializer instanceof EncryptionXTEA);
+        db.close();
+    }
+
+    @Test public void compress() throws IOException {
+        File f = JdbmUtil.tempDbFile();
+        DB db = DBMaker.newFileDB(f).make();
+        db.close();
+        db = DBMaker
+                .newFileDB(f)
+                .deleteFilesAfterClose()
+                .asyncWriteDisable()
+                .cacheDisable()
+
+                .compressionEnable()
+                .make();
+        assertTrue(db.recman instanceof ByteTransformWrapper);
+        assertTrue(((ByteTransformWrapper)db.recman).blockSerializer instanceof CompressLZFSerializer);
+        db.close();
+    }
+
+
+
 
     @Test public void close_on_jvm_shutdown(){
         DBMaker

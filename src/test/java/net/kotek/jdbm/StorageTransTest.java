@@ -165,7 +165,8 @@ public class StorageTransTest extends TestFile {
 
         t = new StorageTrans(index);
         assertEquals(Long.valueOf(1), t.recordGet(recid, Serializer.LONG_SERIALIZER));
-        assertFalse(log.exists());
+        if(!JdbmUtil.isWindows())
+            assertFalse(log.exists());
     }
 
     @Test public void log_discarted_on_rollback() throws IOException {
@@ -178,7 +179,8 @@ public class StorageTransTest extends TestFile {
         assertFalse(log.exists());
         assertEquals(null, t.recordGet(recid,Serializer.LONG_SERIALIZER));
         t.close();
-        assertFalse(log.exists());
+        if(!JdbmUtil.isWindows())
+            assertFalse(log.exists());
     }
 
 
