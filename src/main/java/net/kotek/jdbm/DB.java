@@ -216,14 +216,18 @@ public class DB {
         if(recman == null) throw new IllegalAccessError("DB was already closed");
     }
 
-    public void commit() {
+    synchronized public void commit() {
         checkNotClosed();
         recman.commit();
     }
 
-    public void rollback() {
+    synchronized public void rollback() {
         checkNotClosed();
         recman.rollback();
+    }
+
+    synchronized public void defrag(){
+
     }
 
 }

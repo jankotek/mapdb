@@ -33,7 +33,7 @@ public class BTreeMapTest{
     @Test public void test_leaf_node_serialization() throws IOException {
         BTreeMap m = new BTreeMap(recman, 32,true,null,null,null,null);
 
-        BTreeMap.LeafNode n = new BTreeMap.LeafNode(new Object[]{1,2,3, BTreeMap.POS_INFINITY}, new Object[]{1,2,3,null}, 111);
+        BTreeMap.LeafNode n = new BTreeMap.LeafNode(new Object[]{1,2,3, null}, new Object[]{1,2,3,null}, 111);
         BTreeMap.LeafNode n2 = (BTreeMap.LeafNode) JdbmUtil.clone(n, m.nodeSerializer);
         assertArrayEquals(n.keys(), n2.keys());
         assertEquals(n.next, n2.next);
@@ -42,7 +42,7 @@ public class BTreeMapTest{
     @Test public void test_dir_node_serialization() throws IOException {
         BTreeMap m = new BTreeMap(recman,32,true,null,null,null,null);
 
-        BTreeMap.DirNode n = new BTreeMap.DirNode(new Object[]{1,2,3, BTreeMap.POS_INFINITY}, new long[]{4,5,6,7});
+        BTreeMap.DirNode n = new BTreeMap.DirNode(new Object[]{1,2,3, null}, new long[]{4,5,6,7});
         BTreeMap.DirNode n2 = (BTreeMap.DirNode) JdbmUtil.clone(n, m.nodeSerializer);
 
         assertArrayEquals(n.keys(), n2.keys());
@@ -85,14 +85,14 @@ public class BTreeMapTest{
     @Test public void test_next_dir_infinity(){
         BTreeMap m = new BTreeMap(recman,32,true,null,null,null,null);
         BTreeMap.DirNode d = new BTreeMap.DirNode(
-                new Object[]{BTreeMap.NEG_INFINITY,62,68, 71},
+                new Object[]{null,62,68, 71},
                 new long[]{10,20,30,40});
         assertEquals(10, m.nextDir(d, 33));
         assertEquals(10, m.nextDir(d, 62));
         assertEquals(20, m.nextDir(d, 63));
 
         d = new BTreeMap.DirNode(
-                new Object[]{44,62,68, BTreeMap.POS_INFINITY},
+                new Object[]{44,62,68, null},
                 new long[]{10,20,30,40});
 
         assertEquals(10, m.nextDir(d, 62));
@@ -115,7 +115,7 @@ public class BTreeMapTest{
     @Test public void simple_root_get(){
         BTreeMap m = new BTreeMap(recman,32,true,null,null,null,null);
         BTreeMap.LeafNode l = new BTreeMap.LeafNode(
-                new Object[]{BTreeMap.NEG_INFINITY, 10,20,30, BTreeMap.POS_INFINITY},
+                new Object[]{null, 10,20,30, null},
                 new Object[]{null, 10,20,30, null},
                 0);
         m.rootRecid = recman.recordPut(l, m.nodeSerializer);
@@ -136,7 +136,7 @@ public class BTreeMapTest{
         BTreeMap m = new BTreeMap(recman,6,true,null,null,null,null);
         m.put(11,12);
         BTreeMap.LeafNode n = (BTreeMap.LeafNode) recman.recordGet(m.rootRecid, m.nodeSerializer);
-        assertArrayEquals(new Object[]{BTreeMap.NEG_INFINITY, 11, BTreeMap.POS_INFINITY}, n.keys);
+        assertArrayEquals(new Object[]{null, 11, null}, n.keys);
         assertArrayEquals(new Object[]{null, 12, null}, n.vals);
         assertEquals(0, n.next);
     }

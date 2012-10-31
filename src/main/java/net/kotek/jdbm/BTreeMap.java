@@ -17,14 +17,6 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
 
     public static final int DEFAULT_MAX_NODE_SIZE = 32;
 
-    //TODO infinity objects can be replaced with nulls? but what if key was deleted?
-    protected static final Object NEG_INFINITY = new Object(){
-        @Override public String toString() { return "neg_infinity"; }
-    };
-    protected static final Object POS_INFINITY = new Object(){
-        @Override public String toString() { return "pos_infinity"; }
-    };
-
 
     protected long rootRecid;
 
@@ -254,7 +246,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
         this.keySerializer = keySerializer==null ?  defaultSerializer :  keySerializer;
         this.valueSerializer = valueSerializer==null ? (Serializer<V>) defaultSerializer : valueSerializer;
 
-        LeafNode emptyRoot = new LeafNode(new Object[]{NEG_INFINITY, POS_INFINITY}, new Object[]{null, null}, 0);
+        LeafNode emptyRoot = new LeafNode(new Object[]{null, null}, new Object[]{null, null}, 0);
         this.rootRecid = recman.recordPut(emptyRoot, nodeSerializer);
 
         saveTreeInfo();
@@ -340,8 +332,8 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
     protected final int findChildren(final Object key, final Object[] keys) {
 
         int i = 0;
-        if(keys[0] == NEG_INFINITY) i++;
-        final int max = keys[keys.length-1] == POS_INFINITY ? keys.length-1 :  keys.length;
+        if(keys[0] == null) i++;
+        final int max = keys[keys.length-1] == null ? keys.length-1 :  keys.length;
         //TODO binary search here
         while(i!=max && comparator.compare(key, keys[i])>0){
             i++;
@@ -463,7 +455,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
                     return (V) oldVal;
                 }
 
-                if(A.highKey() != POS_INFINITY && comparator.compare(v, A.highKey())>0){
+                if(A.highKey() != null && comparator.compare(v, A.highKey())>0){
                     //follow link until necessary
                     unlockNode(current);
                     found = false;
@@ -680,7 +672,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
             }else{
                 unlockNode(current);
                 //follow link until necessary
-                if(A.highKey() != POS_INFINITY && comparator.compare(key, A.highKey())>0){
+                if(A.highKey() != null && comparator.compare(key, A.highKey())>0){
                     int pos2 = findChildren(key, A.keys());
                     while(pos2 == A.keys().length){
                         //TODO lock?

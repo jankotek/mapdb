@@ -269,12 +269,6 @@ public class SerializerBase implements Serializer{
             out.writeLong(((UUID)obj).getMostSignificantBits());
             out.writeLong(((UUID)obj).getLeastSignificantBits());
             return;
-        } else if(obj == BTreeMap.POS_INFINITY){
-            out.write(POS_INFINITY);
-            return;
-        } else if(obj == BTreeMap.NEG_INFINITY){
-            out.write(NEG_INFINITY);
-            return;
         } else if(obj == JdbmUtil.COMPARABLE_COMPARATOR){
             out.write(COMPARABLE_COMPARATOR);
             return;
@@ -869,12 +863,6 @@ public class SerializerBase implements Serializer{
                 break;
             case LAZY_REF :
                 ret = new BTreeMap.LazyRef(JdbmUtil.unpackLong(is));
-                break;
-            case POS_INFINITY:
-                ret = BTreeMap.POS_INFINITY;
-                break;
-            case NEG_INFINITY:
-                ret = BTreeMap.NEG_INFINITY;
                 break;
             case COMPARABLE_COMPARATOR:
                 ret = JdbmUtil.COMPARABLE_COMPARATOR;

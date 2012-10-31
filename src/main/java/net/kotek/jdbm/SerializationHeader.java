@@ -121,8 +121,8 @@ interface SerializationHeader {
 
 
 
-    int NEG_INFINITY = 128;
-    int POS_INFINITY = 129;
+//    int NEG_INFINITY = 128;
+//    int POS_INFINITY = 129;
 
     int COMPARABLE_COMPARATOR = 130;
     int COMPARABLE_COMPARATOR_WITH_NULLS = 131;
