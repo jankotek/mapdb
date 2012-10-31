@@ -276,4 +276,9 @@ public class AsyncWriteWrapper implements RecordManager{
 
     }
 
+    @Override
+    public long serializerRecid() {
+        return recman.serializerRecid();
+    }
+
 }

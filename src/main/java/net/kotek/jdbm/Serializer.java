@@ -116,6 +116,5 @@ public interface Serializer<A> {
     Serializer<Object> BASIC_SERIALIZER = new SerializerBase();
 
 
-
 }
 

@@ -100,4 +100,9 @@ public class ByteTransformWrapper implements RecordManager {
         recman.rollback();
     }
 
+    @Override
+    public long serializerRecid() {
+        return recman.serializerRecid();
+    }
+
 }

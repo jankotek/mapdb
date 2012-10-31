@@ -14,7 +14,7 @@ import java.util.concurrent.ConcurrentMap;
 public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
         ConcurrentSortedMap<K,V>, ConcurrentMap<K,V>, SortedMap<K,V> {
 
-    protected final Serializer<Object> SERIALIZER = Serializer.BASIC_SERIALIZER;
+
     public static final int DEFAULT_MAX_NODE_SIZE = 32;
 
     //TODO infinity objects can be replaced with nulls? but what if key was deleted?
@@ -28,8 +28,9 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
 
     protected long rootRecid;
 
-    //TODO comparator
-    protected final Comparator comparator = JdbmUtil.COMPARABLE_COMPARATOR;
+    protected final Serializer keySerializer;
+    protected final Serializer<V> valueSerializer;
+    protected final Comparator comparator;
 
     protected final LongConcurrentHashMap<Thread> nodeWriteLocks = new LongConcurrentHashMap<Thread>();
 
@@ -40,18 +41,23 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
     protected final boolean hasValues;
 
     protected long treeRecid;
+    private final BTreeRootSerializer btreeRootSerializer;
 
+    static class BTreeRootSerializer implements  Serializer<BTreeRoot>{
+        private final Serializer defaultSerializer;
 
-    static class BTreeRoot implements Serializer<BTreeRoot>{
-        long rootRecid;
-        boolean hasValues;
-        int maxNodeSize;
+        BTreeRootSerializer(Serializer defaultSerializer) {
+            this.defaultSerializer = defaultSerializer;
+        }
 
         @Override
         public void serialize(DataOutput out, BTreeRoot value) throws IOException {
-            out.writeLong(rootRecid);
-            out.writeBoolean(hasValues);
-            out.writeInt(maxNodeSize);
+            out.writeLong(value.rootRecid);
+            out.writeBoolean(value.hasValues);
+            out.writeInt(value.maxNodeSize);
+            defaultSerializer.serialize(out, value.keySerializer);
+            defaultSerializer.serialize(out, value.valueSerializer);
+            defaultSerializer.serialize(out, value.comparator);
         }
 
         @Override
@@ -60,8 +66,22 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
             ret.rootRecid = in.readLong();
             ret.hasValues = in.readBoolean();
             ret.maxNodeSize = in.readInt();
+            ret.keySerializer = (Serializer) defaultSerializer.deserialize(in, -1);
+            ret.valueSerializer = (Serializer) defaultSerializer.deserialize(in, -1);
+            ret.comparator = (Comparator) defaultSerializer.deserialize(in, -1);
             return ret;
         }
+    }
+    static class BTreeRoot{
+        long rootRecid;
+        boolean hasValues;
+        int maxNodeSize;
+        Serializer keySerializer;
+        Serializer valueSerializer;
+        Comparator comparator;
+
+
+
     }
 
 
@@ -159,23 +179,21 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
             }
 
             //write keys
-            for(Object key:value.keys()){
-                SERIALIZER.serialize(out, key);
-            }
+            keySerializer.serialize(out, (K[]) value.keys());
 
             if(isLeaf && hasValues){
                 DataOutput2 out2 = new DataOutput2();
                 for(int i=0; i<value.vals().length; i++){
                     Object val = value.vals()[i];
                     out2.pos = 0;
-                    SERIALIZER.serialize(out2, val);
+                    valueSerializer.serialize(out2, (V) val);
                     if(out2.pos>CC.MAX_BTREE_INLINE_VALUE_SIZE){
                         //store value as separate node
                         long recid = recman.recordPut(out2.copyBytes(), Serializer.BYTE_ARRAY_SERIALIZER);
-                        LazyRef ref =new LazyRef(recid);
-                        value.vals()[i] = ref;
-                        SERIALIZER.serialize(out, ref);
+                        JdbmUtil.packInt(out,0);  //zero indicates reference
+                        JdbmUtil.packLong(out,recid);
                     }else{
+                        JdbmUtil.packInt(out,out2.pos+1); //zero is reserved for reference
                         out.write(out2.buf, 0, out2.pos);
                     }
 
@@ -193,14 +211,19 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
 
             if(isLeaf){
                 long next = JdbmUtil.unpackLong(in);
-                Object[] keys = new  Object[size];
-                for(int i=0;i<size;i++)
-                    keys[i] = SERIALIZER.deserialize(in,-1);
+                Object[] keys = (Object[]) keySerializer.deserialize(in, size);
+                if(keys.length!=size) throw new InternalError();
                 Object[] vals  = null;
                 if(hasValues){
                     vals = new Object[size];
                     for(int i=0;i<size;i++){
-                        vals[i] = SERIALIZER.deserialize(in, -1);
+                        int valueSize = JdbmUtil.unpackInt(in);
+                        if(valueSize ==0){
+                            //zero is reference
+                            vals[i] = new LazyRef(JdbmUtil.unpackLong(in));
+                        }else{
+                            vals[i] = valueSerializer.deserialize(in, size-1);
+                        }
                     }
                 }
                 return new LeafNode(keys, vals, next);
@@ -208,9 +231,8 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
                 long[] child = new long[size];
                 for(int i=0;i<size;i++)
                     child[i] = JdbmUtil.unpackLong(in);
-                Object[] keys = new  Object[size];
-                for(int i=0;i<size;i++)
-                    keys[i] = SERIALIZER.deserialize(in,-1);
+                Object[] keys = (Object[]) keySerializer.deserialize(in, size);
+                if(keys.length!=size) throw new InternalError();
                 return new DirNode(keys, child);
             }
         }
@@ -218,13 +240,20 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
 
 
     /** constructor used to create new tree*/
-    public BTreeMap(RecordManager recman, int maxNodeSize, boolean hasValues) {
+    public BTreeMap(RecordManager recman, int maxNodeSize, boolean hasValues, Serializer defaultSerializer,
+                    Serializer<K[]> keySerializer, Serializer<V> valueSerializer, Comparator<K> comparator) {
         if(maxNodeSize%2!=0) throw new IllegalArgumentException("maxNodeSize must be dividable by 2");
         if(maxNodeSize<6) throw new IllegalArgumentException("maxNodeSize too low");
         if(maxNodeSize>126) throw new IllegalArgumentException("maxNodeSize too high");
+        if(defaultSerializer==null) defaultSerializer = Serializer.BASIC_SERIALIZER;
+        this.btreeRootSerializer = new BTreeRootSerializer(defaultSerializer);
         this.hasValues = hasValues;
         this.recman = recman;
         this.maxNodeSize = maxNodeSize;
+        this.comparator = comparator==null? JdbmUtil.COMPARABLE_COMPARATOR : comparator;
+        this.keySerializer = keySerializer==null ?  defaultSerializer :  keySerializer;
+        this.valueSerializer = valueSerializer==null ? (Serializer<V>) defaultSerializer : valueSerializer;
+
         LeafNode emptyRoot = new LeafNode(new Object[]{NEG_INFINITY, POS_INFINITY}, new Object[]{null, null}, 0);
         this.rootRecid = recman.recordPut(emptyRoot, nodeSerializer);
 
@@ -236,10 +265,13 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
         r.hasValues = hasValues;
         r.rootRecid = rootRecid;
         r.maxNodeSize = maxNodeSize;
+        r.keySerializer = keySerializer;
+        r.valueSerializer = valueSerializer;
+        r.comparator = comparator;
         if(treeRecid == 0){
-            treeRecid = recman.recordPut(r,r);
+            treeRecid = recman.recordPut(r,btreeRootSerializer);
         }else{
-            recman.recordUpdate(treeRecid,r,r);
+            recman.recordUpdate(treeRecid,r,btreeRootSerializer);
         }
     }
 
@@ -247,13 +279,18 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
     /**
      * Constructor used to load existing tree
      */
-    public BTreeMap(RecordManager recman, long recid) {
+    public BTreeMap(RecordManager recman, long recid, Serializer defaultSerializer) {
         this.recman = recman;
         this.treeRecid = recid;
-        BTreeRoot r = recman.recordGet(recid, new BTreeRoot());
+        if(defaultSerializer==null) defaultSerializer = Serializer.BASIC_SERIALIZER;
+        this.btreeRootSerializer = new BTreeRootSerializer(defaultSerializer);
+        BTreeRoot r = recman.recordGet(recid, btreeRootSerializer);
         this.hasValues = r.hasValues;
         this.rootRecid = r.rootRecid;
         this.maxNodeSize = r.maxNodeSize;
+        this.keySerializer = r.keySerializer;
+        this.valueSerializer = r.valueSerializer;
+        this.comparator = r.comparator;
     }
 
 
@@ -340,7 +377,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
         if(v.equals(leaf.keys[pos])){
             Object ret = (hasValues? leaf.vals[pos] : JdbmUtil.EMPTY_STRING);
             if(ret instanceof  LazyRef)
-                ret = recman.recordGet(((LazyRef)ret).recid, SERIALIZER);
+                ret = recman.recordGet(((LazyRef)ret).recid, valueSerializer);
             return (V)ret;
         }else
             return null;
@@ -400,7 +437,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
                         //is not absent, so quit
                         unlockNode(current);
                         if(oldVal instanceof  LazyRef){
-                            oldVal = recman.recordGet(((LazyRef)oldVal).recid,SERIALIZER);
+                            oldVal = recman.recordGet(((LazyRef)oldVal).recid,valueSerializer);
                         }
                         assertNoLocks();
                         return (V) oldVal;
@@ -417,7 +454,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
                     //delete old lazy ref if necessary
                     if(oldVal instanceof  LazyRef){
                         long recid = ((LazyRef)oldVal).recid;
-                        oldVal = recman.recordGet(recid,SERIALIZER);
+                        oldVal = recman.recordGet(recid,valueSerializer);
                         recman.recordDelete(recid);
                     }
                     //already in here
@@ -616,7 +653,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
                 //delete from node
                 Object oldVal = hasValues? A.vals()[pos] : JdbmUtil.EMPTY_STRING;
                 Object lazyOldVal = !(oldVal instanceof LazyRef)? null :
-                        recman.recordGet(((LazyRef)oldVal).recid, SERIALIZER);
+                        recman.recordGet(((LazyRef)oldVal).recid, valueSerializer);
 
                 if(value!=null && !value.equals(lazyOldVal!=null? lazyOldVal: oldVal))
                     return null;
@@ -687,7 +724,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
             if(currentLeaf == null) throw new NoSuchElementException();
             Object ret =  currentLeaf.vals[currentPos];
             if(ret instanceof LazyRef )
-                ret = recman.recordGet(((LazyRef)ret).recid, SERIALIZER);
+                ret = recman.recordGet(((LazyRef)ret).recid, valueSerializer);
             moveToNext();
             return (V) ret;
         }
@@ -1014,7 +1051,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
         if(key.equals(leaf.keys[pos])){
             Object val  = leaf.vals[pos];
             Object val2 = val instanceof LazyRef?
-                    recman.recordGet(((LazyRef)val).recid, SERIALIZER):
+                    recman.recordGet(((LazyRef)val).recid, valueSerializer):
                     val;
             if(oldValue.equals(val2)){
                 Object[] vals = Arrays.copyOf(leaf.vals, leaf.vals.length);
@@ -1066,7 +1103,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
             if(oldVal instanceof LazyRef){
                 //delete old val
                 long recid = ((LazyRef)oldVal).recid;
-                oldVal = recman.recordGet(recid,SERIALIZER);
+                oldVal = recman.recordGet(recid,valueSerializer);
                 recman.recordDelete(recid);
             }
             vals[pos] = value;

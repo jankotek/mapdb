@@ -25,11 +25,13 @@ public abstract class Storage implements  RecordManager{
     static final int RECID_CURRENT_PHYS_FILE_SIZE = 1;
     static final int RECID_CURRENT_INDEX_FILE_SIZE = 2;
 
+
     /** offset in index file which points to FREEINDEX list (free slots in index file) */
     static final int RECID_FREE_INDEX_SLOTS = 3;
 
-    //TODO slots 4 to 18 are currently unused
+    static final int RECID_SERIALIZER = 4;
 
+    //TODO slots 5 to 18 are currently unused
 
     static final int RECID_NAMED_RECODS = 19;
 
@@ -134,6 +136,12 @@ public abstract class Storage implements  RecordManager{
 
     private void writeInitValues() {
         writeLock_checkLocked();
+
+        //zero out all index values
+        for(int i=1;i<INDEX_OFFSET_START;i++){
+            index.putLong(i*8, 0L);
+        }
+
         //write headers
         phys.putLong(0, HEADER);
         index.putLong(0L,HEADER);
@@ -306,6 +314,12 @@ public abstract class Storage implements  RecordManager{
         }
         return 0;
 
+    }
+
+
+    @Override
+    public long serializerRecid() {
+        return RECID_SERIALIZER;
     }
 
 

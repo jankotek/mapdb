@@ -45,7 +45,7 @@ public class BTreeMapTest2 extends ConcurrentMapInterfaceTest<Integer, String> {
 
     @Override
     protected ConcurrentMap<Integer, String> makeEmptyMap() throws UnsupportedOperationException {
-        return new BTreeMap<Integer,String>(r,6,true);
+        return new BTreeMap<Integer,String>(r,6,true,null,null,null,null);
     }
 
     @Override

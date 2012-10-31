@@ -33,7 +33,8 @@ public class SerializerBase implements Serializer{
         private K[] elementData = (K[]) new Object[8];
 
         K get(int index) {
-            if (index >= size) throw new IndexOutOfBoundsException();
+            if (index >= size)
+                throw new IndexOutOfBoundsException();
             return elementData[index];
         }
 
@@ -274,16 +275,28 @@ public class SerializerBase implements Serializer{
         } else if(obj == BTreeMap.NEG_INFINITY){
             out.write(NEG_INFINITY);
             return;
+        } else if(obj == JdbmUtil.COMPARABLE_COMPARATOR){
+            out.write(COMPARABLE_COMPARATOR);
+            return;
+        } else if(obj == JdbmUtil.COMPARABLE_COMPARATOR_WITH_NULLS){
+            out.write(COMPARABLE_COMPARATOR_WITH_NULLS);
+            return;
+        } else if(obj == Serializer.BASIC_SERIALIZER){
+            out.write(SerializationHeader.BASIC_SERIALIZER);
+            return;
+        } else if(obj == this){
+            out.write(THIS_SERIALIZER);
+            return;
         }
 
 
 
 
-//        /** classes bellow need object stack, so initialize it if not alredy initialized*/
-//        if (objectStack == null) {
-//            objectStack = new FastArrayList();
-//            objectStack.add(obj);
-//        }
+        /** classes bellow need object stack, so initialize it if not alredy initialized*/
+        if (objectStack == null) {
+            objectStack = new FastArrayList();
+            objectStack.add(obj);
+        }
 
 
         if (obj instanceof Object[]) {
@@ -392,12 +405,11 @@ public class SerializerBase implements Serializer{
             out.writeUTF(l.getCountry());
             out.writeUTF(l.getVariant());
         } else {
-            out.write(POJO);
-            throw new InternalError("POJO serialization not supported yet");
-            //writeObject(out, obj, objectStack);
+            serializeUnknownObject(out, obj, objectStack);
         }
 
     }
+
 
 
     static void serializeString(DataOutput out, String obj) throws IOException {
@@ -807,7 +819,6 @@ public class SerializerBase implements Serializer{
             case STRING_EMPTY:
                 ret = JdbmUtil.EMPTY_STRING;
                 break;
-
             case CLASS:
                 ret = deserializeClass(is);
                 break;
@@ -815,9 +826,7 @@ public class SerializerBase implements Serializer{
                 ret = new Date(is.readLong());
                 break;
             case UUID:
-            	long mostSigBits = is.readLong();
-            	long leastSigBits = is.readLong();
-                ret = new UUID(mostSigBits, leastSigBits);
+                ret = new UUID(is.readLong(), is.readLong());
                 break;
             case ARRAY_INT_B_255:
                 ret = deserializeArrayIntB255(is);
@@ -867,9 +876,20 @@ public class SerializerBase implements Serializer{
             case NEG_INFINITY:
                 ret = BTreeMap.NEG_INFINITY;
                 break;
+            case COMPARABLE_COMPARATOR:
+                ret = JdbmUtil.COMPARABLE_COMPARATOR;
+                break;
+            case COMPARABLE_COMPARATOR_WITH_NULLS:
+                ret = JdbmUtil.COMPARABLE_COMPARATOR_WITH_NULLS;
+                break;
+            case SerializationHeader.BASIC_SERIALIZER:
+                ret = Serializer.BASIC_SERIALIZER;
+                break;
+            case THIS_SERIALIZER:
+                ret = this;
+                break;
             case JAVA_SERIALIZATION:
-                throw new InternalError("Wrong header, data were probably serialized with OutputStream, not with JDBM serialization");
-
+                throw new InternalError("Wrong header, data were probably serialized with java.lang.ObjectOutputStream, not with JDBM serialization");
             case -1:
                 throw new EOFException();
 
@@ -935,7 +955,8 @@ public class SerializerBase implements Serializer{
                 break;
 
             default:
-                throw new InternalError("Unknown serialization header: " + head);
+                ret = deserializeUnknownHeader(is, head, objectStack);
+                break;
         }
 
         if (head != OBJECT_STACK && objectStack.size() == oldObjectStackSize) {
@@ -946,6 +967,7 @@ public class SerializerBase implements Serializer{
 
         return ret;
     }
+
 
 
     private Class deserializeClass(DataInput is) throws IOException {
@@ -1081,8 +1103,10 @@ public class SerializerBase implements Serializer{
 //        Object[] s = (Object[]) Array.newInstance(clazz, size);
 //        objectStack.add(s);
         Object[] s = new Object[size];
-        for (int i = 0; i < size; i++)
+        objectStack.add(s);
+        for (int i = 0; i < size; i++){
             s[i] = deserialize(is, objectStack);
+        }
         return s;
     }
 
@@ -1247,7 +1271,14 @@ public class SerializerBase implements Serializer{
         return s;
     }
 
-
+    /** override this method to extend SerializerBase functionality*/
+    protected void serializeUnknownObject(DataOutput out, Object obj, FastArrayList objectStack) throws IOException {
+        throw new InternalError("Could not deserialize unknown object: "+obj.getClass().getName());
+    }
+    /** override this method to extend SerializerBase functionality*/
+    protected Object deserializeUnknownHeader(DataInput is, int head, FastArrayList objectStack) throws IOException {
+        throw new InternalError("Unknown serialization header: " + head);
+    }
 
 
 }

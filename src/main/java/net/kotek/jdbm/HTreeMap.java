@@ -24,13 +24,13 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 @SuppressWarnings("unchecked")
 public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K, V> {
 
-    /** default serializer used for key and values */
-    private static final Serializer KV_SERIALIZER = Serializer.BASIC_SERIALIZER;
-
 
     static final int BUCKET_OVERFLOW = 4;
 
     protected final boolean hasValues;
+    protected final Serializer<K> keySerializer;
+    protected final Serializer<V> valueSerializer;
+
 
     protected static class LinkedNode<K,V>{
         K key;
@@ -44,10 +44,13 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         }
     }
 
+    static class HashRootSerializer implements Serializer<HashRoot>{
+        //used jus
+        private Serializer defaultSerializer;
 
-    static class HashRoot implements Serializer<HashRoot>{
-        long[] segmentRecids;
-        boolean hasValues;
+        public HashRootSerializer(Serializer defaultSerializer) {
+            this.defaultSerializer = defaultSerializer;
+        }
 
         @Override
         public void serialize(DataOutput out, HashRoot value) throws IOException {
@@ -55,6 +58,9 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             for(int i=0;i<16;i++){
                 JdbmUtil.packLong(out,value.segmentRecids[i]);
             }
+            defaultSerializer.serialize(out,value.keySerializer);
+            defaultSerializer.serialize(out,value.valueSerializer);
+
         }
 
         @Override
@@ -65,8 +71,18 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             for(int i=0;i<16;i++){
                 r.segmentRecids[i] = JdbmUtil.unpackLong(in);
             }
+            r.keySerializer = (Serializer) defaultSerializer.deserialize(in, -1);
+            r.valueSerializer = (Serializer) defaultSerializer.deserialize(in, -1);
             return r;
         }
+
+    }
+
+    static class HashRoot{
+        long[] segmentRecids;
+        boolean hasValues;
+        Serializer keySerializer;
+        Serializer valueSerializer;
     }
 
 
@@ -74,17 +90,17 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         @Override
         public void serialize(DataOutput out, LinkedNode<K,V> value) throws IOException {
             JdbmUtil.packLong(out,value.next);
-            KV_SERIALIZER.serialize(out,value.key);
+            keySerializer.serialize(out,value.key);
             if(hasValues)
-                KV_SERIALIZER.serialize(out,value.value);
+                valueSerializer.serialize(out,value.value);
         }
 
         @Override
         public LinkedNode<K,V> deserialize(DataInput in, int available) throws IOException {
             return new LinkedNode<K, V>(
                     JdbmUtil.unpackLong(in),
-                    (K) KV_SERIALIZER.deserialize(in,-1),
-                    hasValues? (V) KV_SERIALIZER.deserialize(in,-1) : (V)JdbmUtil.EMPTY_STRING
+                    (K) keySerializer.deserialize(in,-1),
+                    hasValues? (V) valueSerializer.deserialize(in,-1) : (V)JdbmUtil.EMPTY_STRING
             );
         }
     };
@@ -153,9 +169,13 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
 
     /** used to create new HTreeMap in store */
-    public HTreeMap(RecordManager recman, boolean hasValues) {
+    public HTreeMap(RecordManager recman, boolean hasValues, Serializer defaultSerializer, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
         this.recman = recman;
         this.hasValues = hasValues;
+        if(defaultSerializer == null) defaultSerializer = Serializer.BASIC_SERIALIZER;
+        this.keySerializer = keySerializer==null ? (Serializer<K>) defaultSerializer : keySerializer;
+        this.valueSerializer = valueSerializer==null ? (Serializer<V>) defaultSerializer : valueSerializer;
+
         //prealocate segmentRecids, so we dont have to lock on those latter
         segmentRecids = new long[16];
         for(int i=0;i<16;i++)
@@ -163,18 +183,23 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         HashRoot r = new HashRoot();
         r.hasValues = hasValues;
         r.segmentRecids = segmentRecids;
-        this.rootRecid = recman.recordPut(r, r);
+        r.keySerializer = this.keySerializer;
+        r.valueSerializer = this.valueSerializer;
+        this.rootRecid = recman.recordPut(r, new HashRootSerializer(defaultSerializer));
     }
 
     /** used to load existing HTreeMap from store */
-    public HTreeMap(RecordManager recman, long rootRecid) {
+    public HTreeMap(RecordManager recman, long rootRecid, Serializer defaultSerializer) {
         if(CC.ASSERT && rootRecid == 0) throw new IllegalArgumentException("recid is 0");
         this.recman = recman;
         this.rootRecid = rootRecid;
         //load all fields from store
-        HashRoot r = recman.recordGet(rootRecid, new HashRoot());
+        if(defaultSerializer==null) defaultSerializer = Serializer.BASIC_SERIALIZER;
+        HashRoot r = recman.recordGet(rootRecid, new HashRootSerializer(defaultSerializer));
         this.segmentRecids = r.segmentRecids;
         this.hasValues = r.hasValues;
+        this.keySerializer = r.keySerializer;
+        this.valueSerializer = r.valueSerializer;
     }
 
 

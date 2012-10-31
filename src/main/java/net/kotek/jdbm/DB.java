@@ -1,10 +1,7 @@
 package net.kotek.jdbm;
 
 import java.lang.ref.WeakReference;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
+import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 
 /**
@@ -16,8 +13,17 @@ public class DB {
     protected RecordManager recman;
     protected Map<String, WeakReference<?>> collections = new HashMap<String, WeakReference<?>>();
 
-    public DB(RecordManager recman){
+    protected Serializer defaultSerializer;
+
+    public DB(final RecordManager recman){
         this.recman = recman;
+        final ArrayList classInfos = recman.recordGet(recman.serializerRecid(), SerializerPojo.serializer);
+        this.defaultSerializer = new SerializerPojo(classInfos){
+            @Override
+            protected void saveClassInfo() {
+                recman.recordUpdate(recman.serializerRecid(), registered, SerializerPojo.serializer);
+            }
+        };
     }
 
     /**
@@ -37,17 +43,26 @@ public class DB {
         Long recid = recman.getNamedRecid(name);
         if(recid!=null){
             //open existing map
-            ret = new HTreeMap<K,V>(recman, recid);
+            ret = new HTreeMap<K,V>(recman, recid,defaultSerializer);
             if(CC.ASSERT && !ret.hasValues) throw new ClassCastException("Collection is Set, not Map");
         }else{
             //create new map
-            ret = new HTreeMap<K,V>(recman,true);
+            ret = new HTreeMap<K,V>(recman,true,defaultSerializer,null, null);
             recman.setNamedRecid(name, ret.rootRecid);
         }
         collections.put(name, new WeakReference<Object>(ret));
         return ret;
     }
 
+
+    synchronized public <K,V> ConcurrentMap<K,V> createHashMap(
+            String name, Serializer<K> keySerializer, Serializer<V> valueSerializer){
+        checkNameNotExists(name);
+        HTreeMap<K,V> ret = new HTreeMap<K,V>(recman, true, defaultSerializer, keySerializer, valueSerializer);
+        recman.setNamedRecid(name, ret.rootRecid);
+        collections.put(name, new WeakReference<Object>(ret));
+        return ret;
+    }
 
     /**
      *  Opens existing or creates new Hash Tree Set.
@@ -63,18 +78,27 @@ public class DB {
         Long recid = recman.getNamedRecid(name);
         if(recid!=null){
             //open existing map
-            HTreeMap<K,Object> m = new HTreeMap<K,Object>(recman, recid);
+            HTreeMap<K,Object> m = new HTreeMap<K,Object>(recman, recid, defaultSerializer);
             if(CC.ASSERT && m.hasValues) throw new ClassCastException("Collection is Map, not Set");
             ret = m.keySet();
         }else{
             //create new map
-            HTreeMap<K,Object> m = new HTreeMap<K,Object>(recman, false);
+            HTreeMap<K,Object> m = new HTreeMap<K,Object>(recman, false, defaultSerializer, null, null);
             ret = m.keySet();
             recman.setNamedRecid(name, m.rootRecid);
         }
         collections.put(name, new WeakReference<Object>(ret));
         return ret;
+    }
 
+
+    synchronized public <K> Set<K> createHashSet(String name, Serializer<K> serializer){
+        checkNameNotExists(name);
+        HTreeMap<K,Object> ret = new HTreeMap<K,Object>(recman, true, defaultSerializer, serializer, null);
+        recman.setNamedRecid(name, ret.rootRecid);
+        Set<K> ret2 = ret.keySet();
+        collections.put(name, new WeakReference<Object>(ret2));
+        return ret2;
     }
 
     /**
@@ -95,16 +119,27 @@ public class DB {
         Long recid = recman.getNamedRecid(name);
         if(recid!=null){
             //open existing map
-            ret = new BTreeMap<K,V>(recman, recid);
+            ret = new BTreeMap<K,V>(recman, recid,defaultSerializer);
             if(CC.ASSERT && !ret.hasValues) throw new ClassCastException("Collection is Set, not Map");
         }else{
             //create new map
-            ret = new BTreeMap<K,V>(recman,BTreeMap.DEFAULT_MAX_NODE_SIZE, true);
+            ret = new BTreeMap<K,V>(recman,BTreeMap.DEFAULT_MAX_NODE_SIZE, true, defaultSerializer, null, null, null);
             recman.setNamedRecid(name, ret.treeRecid);
         }
         collections.put(name, new WeakReference<Object>(ret));
         return ret;
     }
+
+
+    synchronized public <K,V> ConcurrentSortedMap<K,V> createTreeMap(
+            String name, int nodeSize, Serializer<K[]> keySerializer, Serializer<V> valueSerializer, Comparator<K> comparator){
+        checkNameNotExists(name);
+        BTreeMap<K,V> ret = new BTreeMap<K,V>(recman, nodeSize, true, defaultSerializer, keySerializer, valueSerializer, comparator);
+        recman.setNamedRecid(name, ret.rootRecid);
+        collections.put(name, new WeakReference<Object>(ret));
+        return ret;
+    }
+
 
     /**
      * Opens existing or creates new B-linked-tree Set.
@@ -120,12 +155,12 @@ public class DB {
         Long recid = recman.getNamedRecid(name);
         if(recid!=null){
             //open existing map
-            BTreeMap<K,Object> m = new BTreeMap<K,Object>(recman,  recid);
+            BTreeMap<K,Object> m = new BTreeMap<K,Object>(recman,  recid, defaultSerializer);
             if(CC.ASSERT && m.hasValues) throw new ClassCastException("Collection is Map, not Set");
             ret = m.keySet();
         }else{
             //create new map
-            BTreeMap<K,Object> m =  new BTreeMap<K,Object>(recman,BTreeMap.DEFAULT_MAX_NODE_SIZE,false);
+            BTreeMap<K,Object> m =  new BTreeMap<K,Object>(recman,BTreeMap.DEFAULT_MAX_NODE_SIZE,false, defaultSerializer, null, null, null);
             recman.setNamedRecid(name, m.treeRecid);
             ret = m.keySet();
         }
@@ -133,6 +168,21 @@ public class DB {
         collections.put(name, new WeakReference<Object>(ret));
         return ret;
     }
+
+    synchronized public <K> Set<K> createTreeSet(String name, int nodeSize, Serializer<K[]> serializer, Comparator<K> comparator){
+        checkNameNotExists(name);
+        BTreeMap<K,Object> ret = new BTreeMap<K,Object>(recman, nodeSize, true, defaultSerializer, serializer, null, comparator);
+        recman.setNamedRecid(name, ret.rootRecid);
+        Set<K> ret2 = ret.keySet();
+        collections.put(name, new WeakReference<Object>(ret2));
+        return ret2;
+    }
+
+    protected void checkNameNotExists(String name) {
+        if(recman.getNamedRecid(name)!=null)
+            throw new IllegalArgumentException("Name already used: "+name);
+    }
+
 
     /**
      * Closes database.
@@ -145,6 +195,7 @@ public class DB {
         //dereference db to prevent memory leaks
         recman = null;
         collections = null;
+        defaultSerializer = null;
     }
 
     /**

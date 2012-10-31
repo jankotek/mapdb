@@ -24,6 +24,8 @@ import java.nio.ByteBuffer;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.*;
 
+import static org.junit.Assert.assertArrayEquals;
+
 @SuppressWarnings("unchecked")
 public class SerializerBaseTest extends TestCase {
 
@@ -38,8 +40,6 @@ public class SerializerBaseTest extends TestCase {
     private Object deserialize(byte[] buf) throws IOException {
         return ser.deserialize(new DataInput2(ByteBuffer.wrap(buf),0),-1);
     }
-
-
 
     public void testInt() throws IOException{
         int[] vals = {
@@ -412,55 +412,12 @@ public class SerializerBaseTest extends TestCase {
         }
     }
 
-
-//    enum Order
-//    {
-//        ASCENDING,
-//        DESCENDING
-//    }
-//    public void testEnum() throws Exception{
-//        Order o = Order.ASCENDING;
-//        o = (Order) deserialize(serialize(o));
-//        assertEquals(o,Order.ASCENDING );
-//        assertEquals(o.ordinal(),Order.ASCENDING .ordinal());
-//        assertEquals(o.name(),Order.ASCENDING .name());
-//
-//        o = Order.DESCENDING;
-//        o = (Order) deserialize(serialize(o));
-//        assertEquals(o,Order.DESCENDING );
-//        assertEquals(o.ordinal(),Order.DESCENDING .ordinal());
-//        assertEquals(o.name(),Order.DESCENDING .name());
-//
-//    }
+    public void testArray(){
+        Object[] o = new Object[]{"A",Long.valueOf(1),Long.valueOf(2),Long.valueOf(3), Long.valueOf(3)};
+        Object[] o2 = (Object[]) JdbmUtil.clone(o, Serializer.BASIC_SERIALIZER);
+        assertArrayEquals(o,o2);
+    }
 
 
-//    static class Extr implements  Externalizable{
-//
-//        int aaa = 11;
-//        String  l = "agfa";
-//
-//        public void writeExternal(ObjectOutput out) throws IOException {
-//            out.writeObject(l);
-//            out.writeInt(aaa);
-//
-//        }
-//
-//        public void readExternal(ObjectInput in) throws IOException{
-//            l = (String) in.readObject();
-//            aaa = in.readInt()+1;
-//
-//        }
-//    }
-//
-//    public void testExternalizable() throws Exception{
-//        Extr e = new Extr();
-//        e.aaa = 15;
-//        e.l = "pakla";
-//
-//        e = (Extr) deserialize(serialize(e));
-//        assertEquals(e.aaa,16); //was incremented during serialization
-//        assertEquals(e.l,"pakla");
-//
-//    }
 
 }

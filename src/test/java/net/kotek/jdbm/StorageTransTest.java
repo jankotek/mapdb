@@ -119,7 +119,8 @@ public class StorageTransTest extends TestFile {
         long recid1 = t.recordPut("t",Serializer.STRING_SERIALIZER);
         assertTrue(log.exists());
         t.commit();
-        assertFalse(log.exists());
+        if(!JdbmUtil.isWindows())
+            assertFalse(log.exists());
         long recid2 = t.recordPut("t",Serializer.STRING_SERIALIZER);
         assertTrue(log.exists());
         t.index.sync();
@@ -133,7 +134,8 @@ public class StorageTransTest extends TestFile {
         assertEquals("t",t2.recordGet(recid1, Serializer.STRING_SERIALIZER));
         assertEquals(null,t2.recordGet(recid2, Serializer.STRING_SERIALIZER));
 
-        assertFalse(log.exists());
+        if(!JdbmUtil.isWindows())
+            assertFalse(log.exists());
 
     }
 

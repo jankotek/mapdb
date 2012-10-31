@@ -49,10 +49,10 @@ public class HTreeMap2Test extends StorageTestCase {
                             TreeMap m = new TreeMap();
                             HTreeMap.LinkedNode node =
                                     (HTreeMap.LinkedNode) recman.recordGet
-                                            (r2>>>1,new HTreeMap(recman,true).LN_SERIALIZER );
+                                            (r2>>>1,new HTreeMap(recman,true,null, null, null).LN_SERIALIZER );
                             while(node!=null){
                                 m.put(node.key, node.value);
-                                node = (HTreeMap.LinkedNode) recman.recordGet (node.next,new HTreeMap(recman,true).LN_SERIALIZER );
+                                node = (HTreeMap.LinkedNode) recman.recordGet (node.next,new HTreeMap(recman,true,null,null, null).LN_SERIALIZER );
                             }
                             for(Object k:m.keySet()){
                                 s+= k+","+m.get(k)+",";
@@ -101,7 +101,7 @@ public class HTreeMap2Test extends StorageTestCase {
 
         DataOutput2 out = new DataOutput2();
 
-        Serializer ln_serializer = new HTreeMap(recman, true).LN_SERIALIZER;
+        Serializer ln_serializer = new HTreeMap(recman, true,null,null,null).LN_SERIALIZER;
         ln_serializer.serialize(out, n);
 
         DataInput2 in = swap(out);
@@ -115,7 +115,7 @@ public class HTreeMap2Test extends StorageTestCase {
 
     @Test public void test_simple_put(){
 
-        HTreeMap m = new HTreeMap(recman,true);
+        HTreeMap m = new HTreeMap(recman,true,null,null,null);
 
         m.put(111L, 222L);
         m.put(333L, 444L);
@@ -130,7 +130,7 @@ public class HTreeMap2Test extends StorageTestCase {
     }
 
     @Test public void test_hash_collision(){
-        HTreeMap m = new HTreeMap(recman,true){
+        HTreeMap m = new HTreeMap(recman,true,null,null,null){
             @Override
             protected int hash(Object key) {
                 return 0;
@@ -151,7 +151,7 @@ public class HTreeMap2Test extends StorageTestCase {
     }
 
     @Test public void test_hash_dir_expand(){
-        HTreeMap m = new HTreeMap(recman,true){
+        HTreeMap m = new HTreeMap(recman,true,null,null, null){
             @Override
             protected int hash(Object key) {
                 return 0;
@@ -225,7 +225,7 @@ public class HTreeMap2Test extends StorageTestCase {
 
 
     @Test public void test_delete(){
-        HTreeMap m = new HTreeMap(recman,true){
+        HTreeMap m = new HTreeMap(recman,true,null,null,null){
             @Override
             protected int hash(Object key) {
                 return 0;
@@ -253,7 +253,7 @@ public class HTreeMap2Test extends StorageTestCase {
     }
 
     @Test public void clear(){
-        HTreeMap m = new HTreeMap(recman,true);
+        HTreeMap m = new HTreeMap(recman,true,null,null,null);
         for(Integer i=0;i<100;i++){
             m.put(i,i);
         }
@@ -264,7 +264,7 @@ public class HTreeMap2Test extends StorageTestCase {
 
     @Test //(timeout = 10000)
      public void testIteration(){
-        HTreeMap m = new HTreeMap<Integer, Integer>(recman, true){
+        HTreeMap m = new HTreeMap<Integer, Integer>(recman, true,null,null,null){
             @Override
             protected int hash(Object key) {
                 return (Integer) key;

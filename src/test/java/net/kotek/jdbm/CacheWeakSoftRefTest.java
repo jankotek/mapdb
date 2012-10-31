@@ -44,7 +44,11 @@ public class CacheWeakSoftRefTest {
         }
         Thread t = recman.queueThread;
         db.close();
-        Thread.sleep(100);
+        int counter = 10000;
+        while(Thread.State.TERMINATED!=t.getState() && counter>0){
+            Thread.sleep(1);
+            counter--;
+        }
         assertEquals(Thread.State.TERMINATED, t.getState());
     }
 }

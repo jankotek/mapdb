@@ -40,6 +40,7 @@ low memory & CPU overhead.
 
 * Transparent encryption, compression and other stuff you may expect
 from a complete database.
+
 Intro
 ======
 
@@ -80,32 +81,32 @@ Troubleshooting
 JDBM uses chained exception so user does not have to write try catch blocks.
 IOException is usually wrapped in IOError which is unchecked. So please always check root exception in chain.
 
-*java.lang.OutOfMemoryError: Map failed*
+**java.lang.OutOfMemoryError: Map failed** -
 JDBM can not map file into memory. Make sure you are using latest JVM (7+).
 Common problem on Windows (use Linux).
 
-**InternalError, Error, AssertionFailedError, IllegalArgumentException, StackOverflowError and so on**
+**InternalError, Error, AssertionFailedError, IllegalArgumentException, StackOverflowError and so on** -
 There was an problem in JDBM. It is possible that file store was corrupted thanks to an internal error or disk failure.
 Disabling cache  `DBMaker.cacheDisable()` or async writes `DBMaker.asyncWriteDisable()` may workaround the problem.
 Please [create new bug report](https://github.com/jankotek/JDBM4/issues/new) with code to reproduce this issue.
 
-**OutOfMemoryError: GC overhead limit exceeded**
+**OutOfMemoryError: GC overhead limit exceeded** -
 Your app is creating new object instances faster then GC can collect them.
 When using Soft/Weak cache use Hard cache to reduce GC overhead (is auto cleared when free memory is low).
 There is JVM parameter to disable this assertion.
 
-*Can not delete db files on Windows*
+**Can not delete db files on Windows** -
 Common problem with memory mapped files on Windows (use Linux). Make sure DB is closed correctly. Also use newest JVM.
 
-*Computer becomes very slow during DB writes*
+**Computer becomes very slow during DB writes** -
 JDBM uses all available CPU to speedup writes. Try to insert Thread.sleep(1) into your code, or lower thread priority.
 
-**File locking, OverlappingFileLockException, some IOError**
+**File locking, OverlappingFileLockException, some IOError** -
 You are trying to open file already opened by another JDBM. Make sure that you `DB.close()` store correctly.
 Some operating systems (Windows) may leave file lock even after JVM is terminated.
 You may also try to open database in read-only mode.
 
-**Strange behavior in collections**
+**Strange behavior in collections** -
 Maps and Sets in JDBM should be drop-in replacement for `java.util` collections. So any significant difference is  a bug.
 Please [create new bug report](https://github.com/jankotek/JDBM4/issues/new) with code to reproduce issue.
 

@@ -83,4 +83,6 @@ public interface RecordManager {
     void commit();
     void rollback();
 
+    long serializerRecid();
+
 }

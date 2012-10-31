@@ -98,4 +98,10 @@ public class CacheHashTable implements RecordManager {
         recman.rollback();
     }
 
+    @Override
+    public long serializerRecid() {
+        return recman.serializerRecid();
+    }
+
+
 }

@@ -124,6 +124,11 @@ interface SerializationHeader {
     int NEG_INFINITY = 128;
     int POS_INFINITY = 129;
 
+    int COMPARABLE_COMPARATOR = 130;
+    int COMPARABLE_COMPARATOR_WITH_NULLS = 131;
+    int BASIC_SERIALIZER = 132;
+    int THIS_SERIALIZER = 133;
+
 
     /**
      * used for reference to already serialized object in object graph

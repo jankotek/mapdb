@@ -58,4 +58,10 @@ public class ReadOnlyWrapper implements RecordManager{
     public void rollback() {
         throw new UnsupportedOperationException("Read-only");
     }
+
+    @Override
+    public long serializerRecid() {
+        return recman.serializerRecid();
+    }
+
 }

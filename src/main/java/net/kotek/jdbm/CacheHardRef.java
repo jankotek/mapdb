@@ -87,4 +87,10 @@ public class CacheHardRef implements RecordManager{
     }
 
 
+    @Override
+    public long serializerRecid() {
+        return recman.serializerRecid();
+    }
+
+
 }

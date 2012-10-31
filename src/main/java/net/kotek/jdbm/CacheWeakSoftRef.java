@@ -160,4 +160,10 @@ public class CacheWeakSoftRef implements RecordManager{
         items.clear();
         recman.rollback();
     }
+
+    @Override
+    public long serializerRecid() {
+        return recman.serializerRecid();
+    }
+
 }
