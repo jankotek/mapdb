@@ -330,15 +330,26 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
      * If all items are smaller it returns `keys.length`
      */
     protected final int findChildren(final Object key, final Object[] keys) {
+        int left = 0;
+        if(keys[0] == null) left++;
+        int right = keys[keys.length-1] == null ? keys.length-1 :  keys.length;
 
-        int i = 0;
-        if(keys[0] == null) i++;
-        final int max = keys[keys.length-1] == null ? keys.length-1 :  keys.length;
-        //TODO binary search here
-        while(i!=max && comparator.compare(key, keys[i])>0){
-            i++;
+        int middle;
+
+        // binary search
+        while (true) {
+            middle = (left + right) / 2;
+            if(keys[middle]==null) return middle; //null is positive infinitive
+            if (comparator.compare(keys[middle], key) < 0) {
+                left = middle + 1;
+            } else {
+                right = middle;
+            }
+            if (left >= right) {
+                return  right;
+            }
         }
-        return i;
+
     }
 
     public V get(Object key){
