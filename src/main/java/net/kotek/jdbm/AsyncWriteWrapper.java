@@ -224,6 +224,10 @@ public class AsyncWriteWrapper implements RecordManager{
     @Override
     public void close() {
         shutdownSignal = true;
+        synchronized (writerNotify){
+            writerNotify.notify();
+        }
+
         //wait until writer thread finishes and exits
         try {
             shutdownResponse.await();
