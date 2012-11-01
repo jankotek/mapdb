@@ -57,8 +57,9 @@ public class AsyncWriteWrapper implements RecordManager{
                     return;
                 }
 
-                //TODO this just sucks, proper notify()
-                Thread.yield();
+                synchronized (writerNotify){
+                    writerNotify.wait();
+                }
             }
 
 
@@ -124,6 +125,9 @@ public class AsyncWriteWrapper implements RecordManager{
             v = out.copyBytes();
         }
         Object previous = writes.put(recid,v);
+        synchronized (writerNotify){
+            writerNotify.notify();
+        }
 
         if(previous== DELETED){
             throw new IllegalArgumentException("Recid was deleted: "+recid);
@@ -135,6 +139,9 @@ public class AsyncWriteWrapper implements RecordManager{
         if(rethrow!=null) throw new RuntimeException(rethrow);
         if(CC.ASSERT&& recid == 0) throw new InternalError();
         writes.put(recid, DELETED);
+        synchronized (writerNotify){
+            writerNotify.notify();
+        }
     }
 
     @Override
@@ -173,6 +180,9 @@ public class AsyncWriteWrapper implements RecordManager{
 
             final long newRecid = newRecids.take();
             writes.put(newRecid, v);
+            synchronized (writerNotify){
+                writerNotify.notify();
+            }
         return newRecid;
         } catch (IOException e) {
             throw new IOError(e);
