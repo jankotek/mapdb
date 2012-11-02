@@ -133,10 +133,10 @@ Support
 =======
 JDBM has three places for supporting users. For anything with stack-trace you should create
 [new bug report](https://github.com/jankotek/JDBM4/issues/new).
-Small feature request also goes into bug tracker.
-Also use bug-tracker for trivial questions (how to open collection?) because incomplete documentation is a bug.
+Small feature request goes into bug tracker.
+Use it also for trivial questions (how to open collection?) because incomplete documentation is a bug.
 
-There is [mail-group](mailto:jdbm@googlegroups.com) with archive [group archive](http://groups.google.com/group/jdbm).
+There is [mail-group](mailto:jdbm@googlegroups.com) with [archive](http://groups.google.com/group/jdbm).
 You should use it for more general discussion (can JDBM support transactional software memory?).
 Also questions about performance and data-modeling should go into mail-group.
 
