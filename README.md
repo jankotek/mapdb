@@ -43,8 +43,30 @@ from a complete database.
 
 Intro
 ======
+JDBM uses Maven build system. There is snapshot repository updated every a few days.
+To use it add code bellow to your `pom.xml'. You may also download binaries
+[directly](https://oss.sonatype.org/content/repositories/snapshots/net/kotek/jdbm/4.000-SNAPSHOT/).
 
-JDBM is in [maven-central repository](http://search.maven.org/#browse%7C-92308161), but snapshot are usually more stable.
+    <repositories>
+        <repository>
+            <id>jdbm-snapshots</id>
+            <url>https://oss.sonatype.org/content/repositories/releases</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+        </repository>
+    </repositories>
+
+    <dependencies>
+        <dependency>
+            <groupId>net.kotek</groupId>
+            <artifactId>jdbm</artifactId>
+            <version>4.000-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
+
+
+JDBM is also in [maven central repository](http://search.maven.org/#browse%7C-92308161) but snapshot are usually more stable.
 
 Quick example:
 
@@ -112,19 +134,20 @@ Please [create new bug report](https://github.com/jankotek/JDBM4/issues/new) wit
 
 Support
 =======
-Anything with stack-trace and reproduction code goes into [new bug report](https://github.com/jankotek/JDBM4/issues/new).
+JDBM has three places for supporting users. For anything with stack-trace you should create
+[new bug report](https://github.com/jankotek/JDBM4/issues/new).
+Small feature request also goes into bug tracker.
+Also use bug-tracker for trivial questions (how to open collection?) because incomplete documentation is a bug.
 
-Answers for trivial questions (how I open database?) are in documentation.
-If documentation does not provide answer, it is a bug, please create [new bug report](https://github.com/jankotek/JDBM4/issues/new).
-
-For small improvements (add method, new wrapper) [create bug report](https://github.com/jankotek/JDBM4/issues/new).
-
-There is [mail-group](mailto:jdbm@googlegroups.com) for discussion, general problems (performance, data-modeling) and
-suggestions. You may also browse [group archive](http://groups.google.com/group/jdbm).
-
-JDBM does not have commercial support (it is my hobby project). However you may always
-[buy me a gift](http://www.amazon.co.uk/gp/registry/registry.html?ie=UTF8&id=2CIB8H24EE6R3&type=wishlist)
-to get my attention.
+There is [mail-group](mailto:jdbm@googlegroups.com) with archive [group archive](http://groups.google.com/group/jdbm).
+You should use it for more general discussion (can JDBM support transactional software memory?).
+Also questions about performance and data-modeling should go into mail-group.
 
 Last option is to [contact me directly](mailto:jan at kotek dot net).
-However I prefer public bug tracker and mail-conference, so other people may also find solution.
+I prefer public bug tracker and mail-group so others can find answers as well.
+Unless you specify your question as confidential, I may forward it to public mail-group.
+
+JDBM is a hobby project and time I can spend on it is limited.
+Please always attach code to illustrate/reproduce your problem, so I can fix it efficiently.
+You can also [buy me a gift](http://www.amazon.co.uk/gp/registry/registry.html?ie=UTF8&id=2CIB8H24EE6R3&type=wishlist)
+to get your problem solved faster.
