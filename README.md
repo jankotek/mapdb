@@ -131,7 +131,7 @@ Please [create new bug report](https://github.com/jankotek/JDBM4/issues/new) wit
 
 Support
 =======
-JDBM has three places for supporting users. For anything with stack-trace you should create
+JDBM has three places where you may find help. For anything with stack-trace you should create
 [new bug report](https://github.com/jankotek/JDBM4/issues/new).
 Small feature request goes into bug tracker.
 Use it also for trivial questions (how to open collection?) because incomplete documentation is a bug.
