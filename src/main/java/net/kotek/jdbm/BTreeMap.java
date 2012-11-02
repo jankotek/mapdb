@@ -6,13 +6,14 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentNavigableMap;
 
 /**
  * Concurrent B-linked-tree.
  */
 @SuppressWarnings("unchecked")
-public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
-        ConcurrentSortedMap<K,V>, ConcurrentMap<K,V>, SortedMap<K,V> {
+public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
+        ConcurrentNavigableMap<K,V>{
 
 
     public static final int DEFAULT_MAX_NODE_SIZE = 32;
@@ -796,7 +797,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
 
 
 
-    final private SortedSet<K> keySet = new AbstractSet2<K>(){
+    final private NavigableSet<K> keySet = new AbstractSet2<K>(){
 
         @Override
         public boolean isEmpty() {
@@ -814,8 +815,63 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
         }
 
         @Override
+        public K lower(K k) {
+            return notYetImplemented();
+        }
+
+        @Override
+        public K floor(K k) {
+            return notYetImplemented();
+        }
+
+        @Override
+        public K ceiling(K k) {
+            return notYetImplemented();
+        }
+
+        @Override
+        public K higher(K k) {
+            return notYetImplemented();
+        }
+
+        @Override
+        public K pollFirst() {
+            return notYetImplemented();
+        }
+
+        @Override
+        public K pollLast() {
+            return notYetImplemented();
+        }
+
+        @Override
         public Iterator<K> iterator() {
             return new BTreeKeyIterator();
+        }
+
+        @Override
+        public NavigableSet<K> descendingSet() {
+            throw new UnsupportedOperationException("Descending iteration not supported.");
+        }
+
+        @Override
+        public Iterator<K> descendingIterator() {
+            throw new UnsupportedOperationException("Descending iteration not supported.");
+        }
+
+        @Override
+        public NavigableSet<K> subSet(K fromElement, boolean fromInclusive, K toElement, boolean toInclusive) {
+            return notYetImplemented();
+        }
+
+        @Override
+        public NavigableSet<K> headSet(K toElement, boolean inclusive) {
+            return subSet(null, true, toElement, inclusive);
+        }
+
+        @Override
+        public NavigableSet<K> tailSet(K fromElement, boolean inclusive) {
+            return subSet(fromElement, inclusive, null, false);
         }
 
         @Override
@@ -869,8 +925,13 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
 
 
     @Override
-    public SortedSet<K> keySet() {
+    public NavigableSet<K> keySet() {
         return keySet;
+    }
+
+    @Override
+    public NavigableSet<K> descendingKeySet() {
+        throw new UnsupportedOperationException("Descending iteration not supported.");
     }
 
     final private Collection<V> values = new AbstractCollection<V>() {
@@ -909,7 +970,7 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
         return values;
     }
 
-    private final SortedSet<Entry<K, V>> entrySet = new AbstractSet2<Entry<K, V>>(){
+    private final SortedSet<Entry<K, V>> entrySet = new AbstractSet3<Entry<K, V>>(){
 
         @Override
         public int size() {
@@ -935,7 +996,6 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
         public Iterator<Entry<K, V>> iterator() {
             return new BTreeEntryIterator();
         }
-
         @Override
         public boolean add(Entry<K, V> kvEntry) {
             throw new UnsupportedOperationException();
@@ -968,17 +1028,17 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
 
         @Override
         public SortedSet<Entry<K, V>> subSet(Entry<K, V> fromElement, Entry<K, V> toElement) {
-            return subMap(fromElement.getKey(), toElement.getKey()).entrySet();
+            return (SortedSet<Entry<K, V>>) subMap(fromElement.getKey(), toElement.getKey()).entrySet();
         }
 
         @Override
         public SortedSet<Entry<K, V>> headSet(Entry<K, V> toElement) {
-            return headMap(toElement.getKey()).entrySet();
+            return (SortedSet<Entry<K, V>>) headMap(toElement.getKey()).entrySet();
         }
 
         @Override
         public SortedSet<Entry<K, V>> tailSet(Entry<K, V> fromElement) {
-            return tailMap(fromElement.getKey()).entrySet();
+            return (SortedSet<Entry<K, V>>) tailMap(fromElement.getKey()).entrySet();
         }
 
         @Override
@@ -1126,18 +1186,8 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
     }
 
     @Override
-    public ConcurrentSortedMap<K, V> subMap(K fromKey, K toKey) {
-        throw new InternalError("not yet implemented");
-    }
-
-    @Override
-    public ConcurrentSortedMap<K, V> headMap(K toKey) {
-        throw new InternalError("not yet implemented");
-    }
-
-    @Override
-    public ConcurrentSortedMap<K, V> tailMap(K fromKey) {
-        throw new InternalError("not yet implemented");
+    public ConcurrentNavigableMap<K, V> subMap(K fromKey, boolean fromInclusive, K toKey, boolean toInclusive) {
+        return notYetImplemented();
     }
 
     @Override
@@ -1157,11 +1207,16 @@ public class BTreeMap<K,V> extends  AbstractMap<K,V> implements
 
     @Override
     public K lastKey() {
-        throw new InternalError("not yet implemented");
+        return notYetImplemented();
         //TODO last key, not so simple with empty leaf nodes
     }
 
-    private abstract class AbstractSet2<E> extends AbstractSet<E> implements SortedSet<E> {
+
+    private abstract class AbstractSet2<E> extends AbstractSet<E> implements NavigableSet<E> {
     }
+
+    private abstract class AbstractSet3<E> extends AbstractSet<E> implements SortedSet<E> {
+    }
+
 
 }

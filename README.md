@@ -59,7 +59,7 @@ Quick example:
                 .make();
 
         //open an collection, TreeMap has better performance then HashMap
-        ConcurrentSortedMap<Integer,String> map = db.getTreeMap("collectionName");
+        ConcurrentNavigableMap<Integer,String> map = db.getTreeMap("collectionName");
 
         map.put(1,"one");
         map.put(2,"two");

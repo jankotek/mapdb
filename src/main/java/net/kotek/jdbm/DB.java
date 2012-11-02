@@ -3,6 +3,7 @@ package net.kotek.jdbm;
 import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentNavigableMap;
 
 /**
  * A database with easy access to named maps and other collections.
@@ -112,7 +113,7 @@ public class DB {
      * @param <V> value
      * @return map
      */
-    synchronized public <K,V> ConcurrentSortedMap<K,V> getTreeMap(String name){
+    synchronized public <K,V> ConcurrentNavigableMap<K,V> getTreeMap(String name){
         checkNotClosed();
         BTreeMap<K,V> ret = (BTreeMap<K,V>) getFromWeakCollection(name);
         if(ret!=null) return ret;
@@ -131,7 +132,7 @@ public class DB {
     }
 
 
-    synchronized public <K,V> ConcurrentSortedMap<K,V> createTreeMap(
+    synchronized public <K,V> ConcurrentNavigableMap<K,V> createTreeMap(
             String name, int nodeSize, Serializer<K[]> keySerializer, Serializer<V> valueSerializer, Comparator<K> comparator){
         checkNameNotExists(name);
         BTreeMap<K,V> ret = new BTreeMap<K,V>(recman, nodeSize, true, defaultSerializer, keySerializer, valueSerializer, comparator);
@@ -148,9 +149,9 @@ public class DB {
      * @param <K> values in set
      * @return set
      */
-    synchronized public <K> SortedSet<K> getTreeSet(String name){
+    synchronized public <K> NavigableSet<K> getTreeSet(String name){
         checkNotClosed();
-        SortedSet<K> ret = (SortedSet<K>) getFromWeakCollection(name);
+        NavigableSet<K> ret = (NavigableSet<K>) getFromWeakCollection(name);
         if(ret!=null) return ret;
         Long recid = recman.getNamedRecid(name);
         if(recid!=null){
@@ -169,11 +170,11 @@ public class DB {
         return ret;
     }
 
-    synchronized public <K> Set<K> createTreeSet(String name, int nodeSize, Serializer<K[]> serializer, Comparator<K> comparator){
+    synchronized public <K> NavigableSet<K> createTreeSet(String name, int nodeSize, Serializer<K[]> serializer, Comparator<K> comparator){
         checkNameNotExists(name);
         BTreeMap<K,Object> ret = new BTreeMap<K,Object>(recman, nodeSize, true, defaultSerializer, serializer, null, comparator);
         recman.setNamedRecid(name, ret.rootRecid);
-        Set<K> ret2 = ret.keySet();
+        NavigableSet<K> ret2 = ret.keySet();
         collections.put(name, new WeakReference<Object>(ret2));
         return ret2;
     }

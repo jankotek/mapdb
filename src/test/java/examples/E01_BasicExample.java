@@ -1,10 +1,11 @@
 package examples;
 
-import net.kotek.jdbm.ConcurrentSortedMap;
 import net.kotek.jdbm.DB;
 import net.kotek.jdbm.DBMaker;
 
 import java.io.File;
+import java.util.Map;
+import java.util.concurrent.ConcurrentNavigableMap;
 
 
 public class E01_BasicExample {
@@ -19,7 +20,7 @@ public class E01_BasicExample {
                 .make();
 
         //open an collection, TreeMap has better performance then HashMap
-        ConcurrentSortedMap<Integer,String> map = db.getTreeMap("collectionName");
+        ConcurrentNavigableMap<Integer,String> map = db.getTreeMap("collectionName");
 
         map.put(1,"one");
         map.put(2,"two");
