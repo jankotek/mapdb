@@ -58,7 +58,7 @@ public class AsyncWriteWrapper implements RecordManager{
                 }
 
                 synchronized (writerNotify){
-                    writerNotify.wait();
+                    writerNotify.wait(1000); //TODO deadlock was reported here (remove 1000)
                 }
             }
 
