@@ -44,7 +44,7 @@ from a complete database.
 Intro
 ======
 JDBM uses Maven build system. There is snapshot repository updated every a few days.
-To use it add code bellow to your `pom.xml'. You may also download binaries
+To use it add code bellow to your `pom.xml`. You may also download binaries
 [directly](https://oss.sonatype.org/content/repositories/snapshots/net/kotek/jdbm/4.000-SNAPSHOT/).
 
     <repositories>
