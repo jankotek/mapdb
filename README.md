@@ -51,9 +51,6 @@ To use it add code bellow to your `pom.xml`. You may also download binaries
         <repository>
             <id>jdbm-snapshots</id>
             <url>https://oss.sonatype.org/content/repositories/releases</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
         </repository>
     </repositories>
 
