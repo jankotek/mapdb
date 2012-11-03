@@ -1,12 +1,12 @@
-JDBM provides TreeMap and HashMap backed by disk storage. It is a fast,
+MapDB provides concurrent TreeMap and HashMap backed by disk storage. It is a fast,
 scalable and easy to use embedded Java database. It is tiny (160KB jar),
 yet packed with features such as transactions, space efficient serialization,
 instance cache and transparent compression/encryption.
+It also has outstanding performance rivaled only by C++ embedded db engines.
 
-JDBM (Java Database Manager) aims to be a simple, yet powerful database
-engine for Java. It provides great service for data processing, caching,
-visualisation and persistence. JDBM has been around since the year 1999
-and is currently at the 4th generation.
+News
+=====
+3/11/2012 - JDBM4 project was [renamed to MapDB](http://kotek.net/blog/JDBM4_renamed_to_MapDB)
 
 Main features:
 ==============
@@ -17,7 +17,7 @@ Main features:
 
 * Scales well on multi-core CPUs (fine grained locks, concurrent trees)
 
-* Very easy configuration using builder classes
+* Very easy configuration using builder class
 
 * Space-efficient transparent serialization. 
 
@@ -26,7 +26,7 @@ Main features:
 * Various write modes (transactional journal, direct, async or append)
 to match various requirements.
 
-* ACID transactions (only one-global transaction at a time; JDBM does not have concurrent transactions).
+* ACID transactions (only one-global transaction at a time; MapDB does not have concurrent transactions).
 
 * Very flexible; works equally well on an Android phone and
 a supercomputer with multi-terabyte storage.
@@ -43,7 +43,7 @@ from a complete database.
 
 Intro
 ======
-JDBM uses Maven build system. There is snapshot repository updated every a few days.
+MapDB uses Maven build system. There is snapshot repository updated every a few days.
 To use it add code bellow to your `pom.xml`. You may also download binaries
 [directly](https://oss.sonatype.org/content/repositories/snapshots/net/kotek/jdbm/4.000-SNAPSHOT/).
 
@@ -63,11 +63,9 @@ To use it add code bellow to your `pom.xml`. You may also download binaries
     </dependencies>
 
 
-JDBM is also in [maven central repository](http://search.maven.org/#browse%7C-92308161) but snapshot are usually more stable.
-
 Quick example:
 
-        import net.kotek.jdbm.*;
+        import org.mapdb.*;
 
 
         //Configure and open database using builder pattern.
@@ -97,15 +95,15 @@ Quick example:
 Troubleshooting
 ===============
 
-JDBM uses chained exception so user does not have to write try catch blocks.
+MapDB uses chained exception so user does not have to write try catch blocks.
 IOException is usually wrapped in IOError which is unchecked. So please always check root exception in chain.
 
 **java.lang.OutOfMemoryError: Map failed** -
-JDBM can not map file into memory. Make sure you are using latest JVM (7+).
+MapDB can not map file into memory. Make sure you are using latest JVM (7+).
 Common problem on Windows (use Linux).
 
 **InternalError, Error, AssertionFailedError, IllegalArgumentException, StackOverflowError and so on** -
-There was an problem in JDBM. It is possible that file store was corrupted thanks to an internal error or disk failure.
+There was an problem in MapDB. It is possible that file store was corrupted thanks to an internal error or disk failure.
 Disabling cache  `DBMaker.cacheDisable()` or async writes `DBMaker.asyncWriteDisable()` may workaround the problem.
 Please [create new bug report](https://github.com/jankotek/JDBM4/issues/new) with code to reproduce this issue.
 
@@ -118,33 +116,33 @@ There is JVM parameter to disable this assertion.
 Common problem with memory mapped files on Windows (use Linux). Make sure DB is closed correctly. Also use newest JVM.
 
 **Computer becomes very slow during DB writes** -
-JDBM uses all available CPU to speedup writes. Try to insert Thread.sleep(1) into your code, or lower thread priority.
+MapDB uses all available CPU to speedup writes. Try to insert Thread.sleep(1) into your code, or lower thread priority.
 
 **File locking, OverlappingFileLockException, some IOError** -
-You are trying to open file already opened by another JDBM. Make sure that you `DB.close()` store correctly.
+You are trying to open file already opened by another MapDB. Make sure that you `DB.close()` store correctly.
 Some operating systems (Windows) may leave file lock even after JVM is terminated.
 You may also try to open database in read-only mode.
 
 **Strange behavior in collections** -
-Maps and Sets in JDBM should be drop-in replacement for `java.util` collections. So any significant difference is  a bug.
+Maps and Sets in MapDB should be drop-in replacement for `java.util` collections. So any significant difference is  a bug.
 Please [create new bug report](https://github.com/jankotek/JDBM4/issues/new) with code to reproduce issue.
 
 Support
 =======
-JDBM has three places where you may find a help. For anything with stack-trace you should create
+MapDB has three places where you may find a help. For anything with stack-trace you should create
 [new bug report](https://github.com/jankotek/JDBM4/issues/new).
 Small feature request goes into bug tracker.
 Use it also for trivial questions (how to open collection?) because incomplete documentation is a bug.
 
 There is [mail-group](mailto:jdbm@googlegroups.com) with [archive](http://groups.google.com/group/jdbm).
-You should use it for more general discussion (can JDBM support transactional software memory?).
+You should use it for more general discussion (can MapDB support transactional software memory?).
 Also questions about performance and data-modeling should go into mail-group.
 
 Last option is to [contact me directly](mailto:jan at kotek dot net).
 I prefer public bug tracker and mail-group so others can find answers as well.
 Unless you specify your question as confidential, I may forward it to public mail-group.
 
-JDBM is a hobby project and time I can spend on it is limited.
+MapDB is a hobby project and time I can spend on it is limited.
 Please always attach code to illustrate/reproduce your problem, so I can fix it efficiently.
 You can also [buy me a gift](http://www.amazon.co.uk/gp/registry/registry.html?ie=UTF8&id=2CIB8H24EE6R3&type=wishlist)
 to get your problem solved faster.

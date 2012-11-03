@@ -1,7 +1,7 @@
 package examples;
 
-import net.kotek.jdbm.DB;
-import net.kotek.jdbm.DBMaker;
+import org.mapdb.DB;
+import org.mapdb.DBMaker;
 
 import java.io.File;
 import java.util.Map;

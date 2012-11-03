@@ -1,8 +1,7 @@
 package benchmark;
 
-import net.kotek.jdbm.DB;
-import net.kotek.jdbm.DBMaker;
-import net.kotek.jdbm.JdbmUtil;
+import org.mapdb.DB;
+import org.mapdb.DBMaker;
 
 import java.io.File;
 import java.util.Map;
@@ -18,31 +17,33 @@ import java.util.logging.Logger;
 public class MassiveInsert {
 
     final static int threads = 4 ;
-    final static long max = (long) 1e9;
+    final static long max = (long) 1e10;
 
 
 
     public static void main(String[] args) throws InterruptedException {
 
-        long t = System.currentTimeMillis();
+        final long t = System.currentTimeMillis();
 
         final DB db = DBMaker
-                .newFileDB(new File("/media/big/db"))
+                .newFileDB(new File("/media/hugo/dbr"))
                 //.newMemoryDB()
                 .closeOnJvmShutdown()
-                .deleteFilesAfterClose()
+//                .deleteFilesAfterClose()
 //                .appendOnlyEnable()
                 .transactionDisable()
 //                .asyncSerializationDisable()
                 .make();
 
-        //final Map m = db.getTreeMap("treeMap");
-        final Map m = db.getHashMap("hashMap");
+        final Map m = db.getTreeMap("treeMap");
+        //final Map m = db.getHashMap("hashMap");
 
         final ExecutorService exec = Executors.newFixedThreadPool(threads);
         final AtomicLong counter = new AtomicLong(0);
 
+
         final Logger log = Logger.getLogger("test");
+        final AtomicLong order = new AtomicLong(10000000);
 
         for(int i=0;i<threads;i++){
             final int threadNum = i;
@@ -51,7 +52,12 @@ public class MassiveInsert {
                     for(long j=threadNum;j<max;j+=threads){
                         //log.fine(""+Thread.currentThread().getId()+" - "+j);
                         m.put(j, Long.toHexString(j));
-                        counter.incrementAndGet();
+                        long c = counter.incrementAndGet();
+                        if(c%order.get()==0){
+                            long time = System.currentTimeMillis() - t;
+                            System.out.println(c+" - "+time/1000+ " - "+(1000*c/time)+" rec/sec");
+                            order.set(order.get()*10);
+                        }
                     }
                 }
             });
@@ -61,8 +67,6 @@ public class MassiveInsert {
         exec.shutdown();
 
         while(!exec.awaitTermination(10, TimeUnit.SECONDS)){
-            long t2 = System.currentTimeMillis()-t;
-            System.out.println(counter.get()+" - "+t2/1000+ " - "+(1000*counter.get()/t2)+" rec/sec");
         }
         db.close();
         System.out.println("DONE");
