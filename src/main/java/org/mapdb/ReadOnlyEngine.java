@@ -1,16 +1,16 @@
 package org.mapdb;
 
 /**
- * Wraps an <code>RecordManager</code> and throws
+ * Wraps an <code>Engine</code> and throws
  * <code>UnsupportedOperationException("Read-only")</code>
  * on any modification attempt.
  */
-public class ReadOnlyWrapper implements RecordManager{
+public class ReadOnlyEngine implements Engine {
 
-    protected RecordManager recman;
+    protected Engine engine;
 
-    public ReadOnlyWrapper(RecordManager recman){
-        this.recman = recman;
+    public ReadOnlyEngine(Engine engine){
+        this.engine = engine;
     }
 
     @Override
@@ -20,7 +20,7 @@ public class ReadOnlyWrapper implements RecordManager{
 
     @Override
     public <A> A recordGet(long recid, Serializer<A> serializer) {
-        return recman.recordGet(recid, serializer);
+        return engine.recordGet(recid, serializer);
     }
 
     @Override
@@ -35,7 +35,7 @@ public class ReadOnlyWrapper implements RecordManager{
 
     @Override
     public Long getNamedRecid(String name) {
-        return recman.getNamedRecid(name);
+        return engine.getNamedRecid(name);
     }
 
     @Override
@@ -45,8 +45,8 @@ public class ReadOnlyWrapper implements RecordManager{
 
     @Override
     public void close() {
-        recman.close();
-        recman = null;
+        engine.close();
+        engine = null;
     }
 
     @Override
@@ -61,7 +61,7 @@ public class ReadOnlyWrapper implements RecordManager{
 
     @Override
     public long serializerRecid() {
-        return recman.serializerRecid();
+        return engine.serializerRecid();
     }
 
 }

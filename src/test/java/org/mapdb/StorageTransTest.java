@@ -188,58 +188,58 @@ public class StorageTransTest extends TestFile {
 
 
     @Test public void test_long_stack_puts_record_size_into_index() throws IOException {
-        StorageTrans recman = new StorageTrans(index);
-        recman.lock.writeLock().lock();
-        recman.longStackPut(stackId, 1);
-        assertEquals(Storage.LONG_STACK_PAGE_SIZE,recman.recordIndexVals.get(stackId)>>>48);
+        StorageTrans engine = new StorageTrans(index);
+        engine.lock.writeLock().lock();
+        engine.longStackPut(stackId, 1);
+        assertEquals(Storage.LONG_STACK_PAGE_SIZE,engine.recordIndexVals.get(stackId)>>>48);
     }
 
     @Test public void test_long_stack_put_take() throws IOException {
-        StorageTrans recman = new StorageTrans(index);
-        recman.lock.writeLock().lock();
+        StorageTrans engine = new StorageTrans(index);
+        engine.lock.writeLock().lock();
 
         final long max = 150;
         for(long i=1;i<max;i++){
-            recman.longStackPut(stackId, i);
+            engine.longStackPut(stackId, i);
         }
 
         for(long i = max-1;i>0;i--){
-            assertEquals(i, recman.longStackTake(stackId));
+            assertEquals(i, engine.longStackTake(stackId));
         }
 
-        assertEquals(Long.valueOf(0), recman.recordIndexVals.get(stackId));
+        assertEquals(Long.valueOf(0), engine.recordIndexVals.get(stackId));
     }
 
     @Test public void test_long_stack_put_take_simple() throws IOException {
-        StorageTrans recman = new StorageTrans(index);
-        recman.lock.writeLock().lock();
-        recman.longStackPut(stackId, 111);
-        long pageId = recman.recordIndexVals.get(stackId)&Storage.PHYS_OFFSET_MASK;
-        assertEquals(1L<<(8*7), recman.longStackPages.get(pageId)[0]);
-        assertEquals(111L, recman.longStackTake(stackId));
-        assertNull(recman.longStackPages.get(pageId));
-        assertEquals(Long.valueOf(0), recman.recordIndexVals.get(stackId));
+        StorageTrans engine = new StorageTrans(index);
+        engine.lock.writeLock().lock();
+        engine.longStackPut(stackId, 111);
+        long pageId = engine.recordIndexVals.get(stackId)&Storage.PHYS_OFFSET_MASK;
+        assertEquals(1L<<(8*7), engine.longStackPages.get(pageId)[0]);
+        assertEquals(111L, engine.longStackTake(stackId));
+        assertNull(engine.longStackPages.get(pageId));
+        assertEquals(Long.valueOf(0), engine.recordIndexVals.get(stackId));
     }
 
 
     @Test public void test_basic_long_stack() throws IOException {
-        StorageTrans recman = new StorageTrans(index);
+        StorageTrans engine = new StorageTrans(index);
         //dirty hack to make sure we have lock
-        recman.lock.writeLock().lock();
+        engine.lock.writeLock().lock();
         final long max = 150;
         ArrayList<Long> list = new ArrayList<Long>();
         for(long i=1;i<max;i++){
-            recman.longStackPut(stackId, i);
+            engine.longStackPut(stackId, i);
             list.add(i);
         }
 
         Collections.reverse(list);
 
         ArrayList<Long> list2 = new ArrayList<Long>();
-        long pageId = recman.recordIndexVals.get(stackId)&Storage.PHYS_OFFSET_MASK;
+        long pageId = engine.recordIndexVals.get(stackId)&Storage.PHYS_OFFSET_MASK;
 
         while(true){
-            long[] page = recman.longStackPages.get(pageId);
+            long[] page = engine.longStackPages.get(pageId);
             long count = page[0]>>>(7*8);
             for(int i = (int) count; i>0; i--){
                 list2.add(page[i]);
@@ -252,34 +252,34 @@ public class StorageTransTest extends TestFile {
 
 
     @Test public void long_stack_page_created_after_put() throws IOException {
-        StorageTrans recman = new StorageTrans(index);
-        recman.lock.writeLock().lock();
-        recman.longStackPut(stackId, 111);
+        StorageTrans engine = new StorageTrans(index);
+        engine.lock.writeLock().lock();
+        engine.longStackPut(stackId, 111);
 
-        long pageId = recman.recordIndexVals.get(stackId);
+        long pageId = engine.recordIndexVals.get(stackId);
         assertEquals(StorageDirect.LONG_STACK_PAGE_SIZE, pageId>>>48);
         pageId = pageId & StorageDirect.PHYS_OFFSET_MASK;
         assertEquals(8L, pageId);
-        long[] b = recman.longStackPages.get(pageId);
+        long[] b = engine.longStackPages.get(pageId);
         assertEquals(1, b[0]>>>(7*8));
         assertEquals(0, b[0] & StorageDirect.PHYS_OFFSET_MASK);
         assertEquals(111, b[1]);
     }
 
     @Test public void long_stack_put_five() throws IOException {
-        StorageTrans recman = new StorageTrans(index);
-        recman.lock.writeLock().lock();
-        recman.longStackPut(stackId, 111);
-        recman.longStackPut(stackId, 112);
-        recman.longStackPut(stackId, 113);
-        recman.longStackPut(stackId, 114);
-        recman.longStackPut(stackId, 115);
+        StorageTrans engine = new StorageTrans(index);
+        engine.lock.writeLock().lock();
+        engine.longStackPut(stackId, 111);
+        engine.longStackPut(stackId, 112);
+        engine.longStackPut(stackId, 113);
+        engine.longStackPut(stackId, 114);
+        engine.longStackPut(stackId, 115);
 
-        long pageId = recman.recordIndexVals.get(stackId);
+        long pageId = engine.recordIndexVals.get(stackId);
         assertEquals(StorageDirect.LONG_STACK_PAGE_SIZE, pageId>>>48);
         pageId = pageId & StorageDirect.PHYS_OFFSET_MASK;
         assertEquals(8L, pageId);
-        long[] b = recman.longStackPages.get(pageId);
+        long[] b = engine.longStackPages.get(pageId);
         assertEquals(5, b[0]>>>(7*8));
         assertEquals(0, b[0] & StorageDirect.PHYS_OFFSET_MASK);
         assertEquals(111, b[1]);
@@ -291,45 +291,45 @@ public class StorageTransTest extends TestFile {
     }
 
     @Test public void long_stack_page_deleted_after_take() throws IOException {
-        StorageTrans recman = new StorageTrans(index);
-        recman.lock.writeLock().lock();
-        recman.longStackPut(stackId, 111);
-        long pageId =recman.recordIndexVals.get(stackId) & Storage.PHYS_OFFSET_MASK;
-        assertNotNull(recman.longStackPages.get(pageId));
-        assertEquals(111L, recman.longStackTake(stackId));
-        assertNull(recman.longStackPages.get(pageId));
-        assertEquals(Long.valueOf(0),recman.recordIndexVals.get(stackId));
+        StorageTrans engine = new StorageTrans(index);
+        engine.lock.writeLock().lock();
+        engine.longStackPut(stackId, 111);
+        long pageId =engine.recordIndexVals.get(stackId) & Storage.PHYS_OFFSET_MASK;
+        assertNotNull(engine.longStackPages.get(pageId));
+        assertEquals(111L, engine.longStackTake(stackId));
+        assertNull(engine.longStackPages.get(pageId));
+        assertEquals(Long.valueOf(0),engine.recordIndexVals.get(stackId));
     }
 
     @Test public void long_stack_page_overflow() throws IOException {
-        StorageTrans recman = new StorageTrans(index);
-        recman.lock.writeLock().lock();
+        StorageTrans engine = new StorageTrans(index);
+        engine.lock.writeLock().lock();
         //fill page until near overflow
         for(int i=0;i< StorageDirect.LONG_STACK_NUM_OF_RECORDS_PER_PAGE;i++){
-            recman.longStackPut(stackId, 1000L+i);
+            engine.longStackPut(stackId, 1000L+i);
         }
 
 
         //check content
-        long pageId = recman.recordIndexVals.get(stackId);
+        long pageId = engine.recordIndexVals.get(stackId);
         assertEquals(StorageDirect.LONG_STACK_PAGE_SIZE, pageId>>>48);
         pageId = pageId & StorageDirect.PHYS_OFFSET_MASK;
         assertEquals(8L, pageId);
-        long[] b = recman.longStackPages.get(pageId);
+        long[] b = engine.longStackPages.get(pageId);
         assertEquals(StorageDirect.LONG_STACK_NUM_OF_RECORDS_PER_PAGE, b[0]>>>(7*8));
         for(int i=0;i< StorageDirect.LONG_STACK_NUM_OF_RECORDS_PER_PAGE;i++){
             assertEquals(1000L+i, b[i+1]);
         }
 
         //add one more item, this will trigger page overflow
-        recman.longStackPut(stackId, 11L);
+        engine.longStackPut(stackId, 11L);
 
         //check page overflowed
-        pageId = recman.recordIndexVals.get(stackId);
+        pageId = engine.recordIndexVals.get(stackId);
         assertEquals(StorageDirect.LONG_STACK_PAGE_SIZE, pageId>>>48);
         pageId = pageId & StorageDirect.PHYS_OFFSET_MASK;
         assertEquals(8L+ StorageDirect.LONG_STACK_PAGE_SIZE, pageId);
-        b = recman.longStackPages.get(pageId);
+        b = engine.longStackPages.get(pageId);
         assertEquals(1, b[0]>>>(7*8));
         assertEquals(8L, b[0] & StorageDirect.PHYS_OFFSET_MASK);
         assertEquals(11L, b[1]);

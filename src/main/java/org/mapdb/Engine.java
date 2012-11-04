@@ -1,18 +1,18 @@
 package org.mapdb;
 
 /**
- * RecordManager is center-piece for managing records in JDBM.
+ * Engine is center-piece for managing records in JDBM.
  * It is responsible for retrieving and storing records
  * from disk store or cache.
  * <p/>
- * RecordManager may be used for extending JDBM4
- * For example, instance cache is implemented as RecordManager wrapper.
+ * Engine may be used for extending JDBM4
+ * For example, instance cache is implemented as Engine wrapper.
  * JDBM4 can use alternative record store, so that other databases, such as LevelDB,
  * Kyoto etc can now take advantage of JDBM4 maps, instance cache and advanced serialization.
  *
  * @author Jan Kotek
  */
-public interface RecordManager {
+public interface Engine {
 
     /**
      * Adds new records into store/cache,
@@ -76,7 +76,7 @@ public interface RecordManager {
     /**
      * Close store/cache.
      * This method must be called before JVM exits.
-     * RecordManager can no longer be used, after it was closed.
+     * Engine can no longer be used, after it was closed.
      */
     void close();
 

@@ -7,9 +7,9 @@ package org.mapdb;
  * <p/>
  * This is simple, concurrent, small-overhead, random cache.
  */
-public class CacheHashTable implements RecordManager {
+public class CacheHashTable implements Engine {
 
-    protected RecordManager recman;
+    protected Engine engine;
 
     protected HashItem[] items;
     protected final int cacheMaxSize;
@@ -26,15 +26,15 @@ public class CacheHashTable implements RecordManager {
 
 
 
-    public CacheHashTable(RecordManager recman, int cacheMaxSize) {
-        this.recman = recman;
+    public CacheHashTable(Engine engine, int cacheMaxSize) {
+        this.engine = engine;
         this.items = new HashItem[cacheMaxSize];
         this.cacheMaxSize = cacheMaxSize;
     }
 
     @Override
     public <A> long recordPut(A value, Serializer<A> serializer) {
-        final long recid = recman.recordPut(value, serializer);
+        final long recid = engine.recordPut(value, serializer);
         items[Math.abs(JdbmUtil.longHash(recid))%cacheMaxSize] = new HashItem(recid, value);
         return recid;
     }
@@ -48,7 +48,7 @@ public class CacheHashTable implements RecordManager {
             return (A) item.val;
 
         //not in cache, fetch and add
-        final A value = recman.recordGet(recid, serializer);
+        final A value = engine.recordGet(recid, serializer);
         if(value!=null)
             items[pos] = new HashItem(recid, value);
         return value;
@@ -57,7 +57,7 @@ public class CacheHashTable implements RecordManager {
     @Override
     public <A> void recordUpdate(long recid, A value, Serializer<A> serializer) {
         items[Math.abs(Math.abs(JdbmUtil.longHash(recid)))%cacheMaxSize] = new HashItem(recid, value);
-        recman.recordUpdate(recid, value, serializer);
+        engine.recordUpdate(recid, value, serializer);
     }
 
     @Override
@@ -70,37 +70,37 @@ public class CacheHashTable implements RecordManager {
 
     @Override
     public Long getNamedRecid(String name) {
-        return recman.getNamedRecid(name);
+        return engine.getNamedRecid(name);
     }
 
     @Override
     public void setNamedRecid(String name, Long recid) {
-        recman.setNamedRecid(name, recid);
+        engine.setNamedRecid(name, recid);
     }
 
     @Override
     public void close() {
-        recman.close();
+        engine.close();
         //dereference to prevent memory leaks
-        recman = null;
+        engine = null;
         items = null;
     }
 
     @Override
     public void commit() {
-        recman.commit();
+        engine.commit();
     }
 
     @Override
     public void rollback() {
         for(int i = 0;i<items.length;i++)
             items[i] = null;
-        recman.rollback();
+        engine.rollback();
     }
 
     @Override
     public long serializerRecid() {
-        return recman.serializerRecid();
+        return engine.serializerRecid();
     }
 
 

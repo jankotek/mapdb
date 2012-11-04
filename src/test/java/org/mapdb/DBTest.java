@@ -1,9 +1,6 @@
 package org.mapdb;
 
 import org.junit.Test;
-import org.mapdb.DB;
-import org.mapdb.RecordManager;
-import org.mapdb.StorageDirect;
 
 import java.util.Map;
 import java.util.Set;
@@ -15,8 +12,8 @@ import static junit.framework.Assert.assertTrue;
 @SuppressWarnings("unchecked")
 public class DBTest {
 
-    RecordManager recman = new StorageDirect(null);
-    DB db = new DB(recman);
+    Engine engine = new StorageDirect(null);
+    DB db = new DB(engine);
 
     @Test
     public void testGetHashMap() throws Exception {
@@ -24,7 +21,7 @@ public class DBTest {
         m1.put(1,2);
         m1.put(3,4);
         assertTrue(m1 == db.getHashMap("test"));
-        assertEquals(m1, new DB(recman).getHashMap("test"));
+        assertEquals(m1, new DB(engine).getHashMap("test"));
     }
 
 
@@ -35,7 +32,7 @@ public class DBTest {
         m1.add(1);
         m1.add(2);
         assertTrue(m1 == db.getHashSet("test"));
-        assertEquals(m1, new DB(recman).getHashSet("test"));
+        assertEquals(m1, new DB(engine).getHashSet("test"));
     }
 
     @Test
@@ -44,7 +41,7 @@ public class DBTest {
         m1.put(1,2);
         m1.put(3,4);
         assertTrue(m1 == db.getTreeMap("test"));
-        assertEquals(m1, new DB(recman).getTreeMap("test"));
+        assertEquals(m1, new DB(engine).getTreeMap("test"));
     }
 
     @Test
@@ -53,7 +50,7 @@ public class DBTest {
         m1.add(1);
         m1.add(2);
         assertTrue(m1 == db.getTreeSet("test"));
-        assertEquals(m1, new DB(recman).getTreeSet("test"));
+        assertEquals(m1, new DB(engine).getTreeSet("test"));
     }
 
     @Test(expected = IllegalAccessError.class)

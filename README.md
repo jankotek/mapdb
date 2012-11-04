@@ -32,7 +32,7 @@ to match various requirements.
 a supercomputer with multi-terabyte storage.
 
 * Modular & extensible design; most features (compression, cache,
-async writes) are just `RecordManager` wrappers. Introducing
+async writes) are just `Engine` wrappers. Introducing
 new functionality (such as network replication) is very easy.
 
 * Highly embeddable; 130 KB no-deps jar (50KB packed), pure java,

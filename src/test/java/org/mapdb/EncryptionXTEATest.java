@@ -1,7 +1,6 @@
 package org.mapdb;
 
 import org.junit.Test;
-import org.mapdb.*;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -24,7 +23,7 @@ public class EncryptionXTEATest {
                 .cacheDisable()
                 .asyncWriteDisable()
                 .make();
-        long recid = d.recman.recordPut("testar",Serializer.STRING_SERIALIZER);
-        assertEquals("testar",d.recman.recordGet(recid, Serializer.STRING_SERIALIZER));
+        long recid = d.engine.recordPut("testar",Serializer.STRING_SERIALIZER);
+        assertEquals("testar",d.engine.recordGet(recid, Serializer.STRING_SERIALIZER));
     }
 }

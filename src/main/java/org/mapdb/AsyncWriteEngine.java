@@ -18,7 +18,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *
  * @author Jan Kotek
  */
-public class AsyncWriteWrapper implements RecordManager{
+public class AsyncWriteEngine implements Engine {
 
 
     protected final ReentrantReadWriteLock grandLock = new ReentrantReadWriteLock();
@@ -38,7 +38,7 @@ public class AsyncWriteWrapper implements RecordManager{
 
     final protected Object writerNotify = new Object();
 
-    protected RecordManager recman;
+    protected Engine engine;
 
     protected final Thread writerThread = new Thread("JDBM writer"){
         public void run(){
@@ -71,10 +71,10 @@ public class AsyncWriteWrapper implements RecordManager{
                 final long recid = iter.key();
                 final Object value = iter.value();
                 if(value==DELETED){
-                    recman.recordDelete(recid);
+                    engine.recordDelete(recid);
                 }else{
                     byte[] data = asyncSerialization ? ((SerRec)value).serialize() : (byte[]) value;
-                    recman.recordUpdate(recid, data, Serializer.BYTE_ARRAY_SERIALIZER);
+                    engine.recordUpdate(recid, data, Serializer.BYTE_ARRAY_SERIALIZER);
                 }
                 //Record will be only removed if value was not updated.
                 //If value was updated during write, equality check will fail, and it will stay there
@@ -84,7 +84,7 @@ public class AsyncWriteWrapper implements RecordManager{
 
             int toFetch = newRecids.remainingCapacity();
             for(int i=0;i<toFetch;i++){
-                newRecids.put(recman.recordPut(null, Serializer.NULL_SERIALIZER));
+                newRecids.put(engine.recordPut(null, Serializer.NULL_SERIALIZER));
             }
             }finally {
                 grandLock.writeLock().unlock();
@@ -92,15 +92,15 @@ public class AsyncWriteWrapper implements RecordManager{
 
 
         }catch(Exception e){
-           AsyncWriteWrapper.this.rethrow = new RuntimeException("an error in writter thread",e);
+           AsyncWriteEngine.this.rethrow = new RuntimeException("an error in writter thread",e);
         }
     }
 
     private ArrayBlockingQueue<Long> newRecids = new ArrayBlockingQueue<Long>(128);
 
 
-    public AsyncWriteWrapper(RecordManager recman, boolean asyncSerialization) {
-        this.recman = recman;
+    public AsyncWriteEngine(Engine engine, boolean asyncSerialization) {
+        this.engine = engine;
         this.asyncSerialization = asyncSerialization;
         //TODO cache index file size
         //allocatedIndexFileSize = indexValGet(RECID_CURRENT_INDEX_FILE_SIZE);
@@ -148,7 +148,7 @@ public class AsyncWriteWrapper implements RecordManager{
     public Long getNamedRecid(String name) {
     try{
         grandLock.writeLock().lock();
-        return recman.getNamedRecid(name);
+        return engine.getNamedRecid(name);
     }finally {
         grandLock.writeLock().unlock();
     }
@@ -159,7 +159,7 @@ public class AsyncWriteWrapper implements RecordManager{
     public void setNamedRecid(String name, Long recid) {
         try{
             grandLock.writeLock().lock();
-            recman.setNamedRecid(name, recid);
+            engine.setNamedRecid(name, recid);
         }finally {
             grandLock.writeLock().unlock();
         }
@@ -214,7 +214,7 @@ public class AsyncWriteWrapper implements RecordManager{
 
         try{
             grandLock.readLock().lock();
-            return recman.recordGet(recid, serializer);
+            return engine.recordGet(recid, serializer);
         }finally {
             grandLock.readLock().unlock();
         }
@@ -237,19 +237,19 @@ public class AsyncWriteWrapper implements RecordManager{
 
         //deallocate all unused recids
         for(long recid:newRecids){
-            recman.recordDelete(recid);
+            engine.recordDelete(recid);
         }
 
         //TODO commit here?
-        recman.close();
-        recman = null;
+        engine.close();
+        engine = null;
     }
 
     @Override
     public void commit() {
         try{
             grandLock.writeLock().lock();
-            recman.commit();
+            engine.commit();
         }finally {
             grandLock.writeLock().unlock();
         }
@@ -260,7 +260,7 @@ public class AsyncWriteWrapper implements RecordManager{
         //TODO drop cache here?
         try{
             grandLock.writeLock().lock();
-            recman.rollback();
+            engine.rollback();
         }finally {
             grandLock.writeLock().unlock();
         }
@@ -292,7 +292,7 @@ public class AsyncWriteWrapper implements RecordManager{
 
     @Override
     public long serializerRecid() {
-        return recman.serializerRecid();
+        return engine.serializerRecid();
     }
 
 }

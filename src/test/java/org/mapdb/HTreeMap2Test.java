@@ -12,23 +12,23 @@ public class HTreeMap2Test extends StorageTestCase {
 
 
     void printMap(HTreeMap m){
-        System.out.println(toString(m.segmentRecids, recman));
+        System.out.println(toString(m.segmentRecids, engine));
     }
 
-    static String toString(long[] rootRecids, RecordManager recman){
+    static String toString(long[] rootRecids, Engine engine){
         String s = "Arrays.asList(\n";
         for(long r:rootRecids){
-            s+= (r==0)?null:recursiveToString(r,"", recman);
+            s+= (r==0)?null:recursiveToString(r,"", engine);
         }
         //s=s.substring(0,s.length()-2);
         s+=");";
         return s;
     }
 
-    static private String recursiveToString(long r, String prefix, RecordManager recman) {
+    static private String recursiveToString(long r, String prefix, Engine engine) {
         prefix+="  ";
         String s="";
-        long[][] nn = recman.recordGet(r, HTreeMap.DIR_SERIALIZER);
+        long[][] nn = engine.recordGet(r, HTreeMap.DIR_SERIALIZER);
         if(nn==null){
             s+=prefix+"null,\n";
         }else{
@@ -43,16 +43,16 @@ public class HTreeMap2Test extends StorageTestCase {
                         s+=prefix+"    "+"null,\n";
                     }else{
                         if((r2&1)==0){
-                            s+=recursiveToString(r2>>>1, prefix+"    ", recman);
+                            s+=recursiveToString(r2>>>1, prefix+"    ", engine);
                         }else{
                             s+=prefix+"    "+"Array.asList(";
                             TreeMap m = new TreeMap();
                             HTreeMap.LinkedNode node =
-                                    (HTreeMap.LinkedNode) recman.recordGet
-                                            (r2>>>1,new HTreeMap(recman,true,null, null, null).LN_SERIALIZER );
+                                    (HTreeMap.LinkedNode) engine.recordGet
+                                            (r2>>>1,new HTreeMap(engine,true,null, null, null).LN_SERIALIZER );
                             while(node!=null){
                                 m.put(node.key, node.value);
-                                node = (HTreeMap.LinkedNode) recman.recordGet (node.next,new HTreeMap(recman,true,null,null, null).LN_SERIALIZER );
+                                node = (HTreeMap.LinkedNode) engine.recordGet (node.next,new HTreeMap(engine,true,null,null, null).LN_SERIALIZER );
                             }
                             for(Object k:m.keySet()){
                                 s+= k+","+m.get(k)+",";
@@ -101,7 +101,7 @@ public class HTreeMap2Test extends StorageTestCase {
 
         DataOutput2 out = new DataOutput2();
 
-        Serializer ln_serializer = new HTreeMap(recman, true,null,null,null).LN_SERIALIZER;
+        Serializer ln_serializer = new HTreeMap(engine, true,null,null,null).LN_SERIALIZER;
         ln_serializer.serialize(out, n);
 
         DataInput2 in = swap(out);
@@ -115,7 +115,7 @@ public class HTreeMap2Test extends StorageTestCase {
 
     @Test public void test_simple_put(){
 
-        HTreeMap m = new HTreeMap(recman,true,null,null,null);
+        HTreeMap m = new HTreeMap(engine,true,null,null,null);
 
         m.put(111L, 222L);
         m.put(333L, 444L);
@@ -130,7 +130,7 @@ public class HTreeMap2Test extends StorageTestCase {
     }
 
     @Test public void test_hash_collision(){
-        HTreeMap m = new HTreeMap(recman,true,null,null,null){
+        HTreeMap m = new HTreeMap(engine,true,null,null,null){
             @Override
             protected int hash(Object key) {
                 return 0;
@@ -151,7 +151,7 @@ public class HTreeMap2Test extends StorageTestCase {
     }
 
     @Test public void test_hash_dir_expand(){
-        HTreeMap m = new HTreeMap(recman,true,null,null, null){
+        HTreeMap m = new HTreeMap(engine,true,null,null, null){
             @Override
             protected int hash(Object key) {
                 return 0;
@@ -163,7 +163,7 @@ public class HTreeMap2Test extends StorageTestCase {
         }
 
         //segment should not be expanded
-        long[][] l = recman.recordGet(m.segmentRecids[0], HTreeMap.DIR_SERIALIZER);
+        long[][] l = engine.recordGet(m.segmentRecids[0], HTreeMap.DIR_SERIALIZER);
         assertNotNull(l[0]);
         assertEquals(1, l[0][0]&1);  //last bite indicates leaf
         for(int j=1;j<8;j++){ //all others should be null
@@ -173,7 +173,7 @@ public class HTreeMap2Test extends StorageTestCase {
 
         for(long i = HTreeMap.BUCKET_OVERFLOW -1; i>=0; i--){
             assertTrue(recid!=0);
-            HTreeMap.LinkedNode  n = (HTreeMap.LinkedNode) recman.recordGet(recid, m.LN_SERIALIZER);
+            HTreeMap.LinkedNode  n = (HTreeMap.LinkedNode) engine.recordGet(recid, m.LN_SERIALIZER);
             assertEquals(i, n.key);
             assertEquals(i, n.value);
             recid = n.next;
@@ -184,7 +184,7 @@ public class HTreeMap2Test extends StorageTestCase {
 
         recid = m.segmentRecids[0];
 
-        l = recman.recordGet(recid, HTreeMap.DIR_SERIALIZER);
+        l = engine.recordGet(recid, HTreeMap.DIR_SERIALIZER);
         assertNotNull(l[0]);
         for(int j=1;j<8;j++){ //all others should be null
            assertEquals(null, l[j]);
@@ -198,7 +198,7 @@ public class HTreeMap2Test extends StorageTestCase {
         recid = l[0][0]>>>1;
 
 
-        l = recman.recordGet(recid, HTreeMap.DIR_SERIALIZER);
+        l = engine.recordGet(recid, HTreeMap.DIR_SERIALIZER);
         assertNotNull(l[0]);
         for(int j=1;j<8;j++){ //all others should be null
             assertEquals(null, l[j]);
@@ -213,7 +213,7 @@ public class HTreeMap2Test extends StorageTestCase {
 
         for(long i = 0; i<= HTreeMap.BUCKET_OVERFLOW; i++){
             assertTrue(recid!=0);
-            HTreeMap.LinkedNode n = (HTreeMap.LinkedNode) recman.recordGet(recid, m.LN_SERIALIZER);
+            HTreeMap.LinkedNode n = (HTreeMap.LinkedNode) engine.recordGet(recid, m.LN_SERIALIZER);
 
             assertNotNull(n);
             assertEquals(i, n.key);
@@ -225,7 +225,7 @@ public class HTreeMap2Test extends StorageTestCase {
 
 
     @Test public void test_delete(){
-        HTreeMap m = new HTreeMap(recman,true,null,null,null){
+        HTreeMap m = new HTreeMap(engine,true,null,null,null){
             @Override
             protected int hash(Object key) {
                 return 0;
@@ -253,7 +253,7 @@ public class HTreeMap2Test extends StorageTestCase {
     }
 
     @Test public void clear(){
-        HTreeMap m = new HTreeMap(recman,true,null,null,null);
+        HTreeMap m = new HTreeMap(engine,true,null,null,null);
         for(Integer i=0;i<100;i++){
             m.put(i,i);
         }
@@ -264,7 +264,7 @@ public class HTreeMap2Test extends StorageTestCase {
 
     @Test //(timeout = 10000)
      public void testIteration(){
-        HTreeMap m = new HTreeMap<Integer, Integer>(recman, true,null,null,null){
+        HTreeMap m = new HTreeMap<Integer, Integer>(engine, true,null,null,null){
             @Override
             protected int hash(Object key) {
                 return (Integer) key;
@@ -307,7 +307,7 @@ public class HTreeMap2Test extends StorageTestCase {
 
         int countSegments = 0;
         for(long segmentRecid:m.segmentRecids){
-            if(recman.recordGet(segmentRecid, HTreeMap.DIR_SERIALIZER)!=null)
+            if(engine.recordGet(segmentRecid, HTreeMap.DIR_SERIALIZER)!=null)
                 countSegments++;
         }
 

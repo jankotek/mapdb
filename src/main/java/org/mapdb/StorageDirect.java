@@ -5,7 +5,7 @@ import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
 
-public class StorageDirect extends Storage implements RecordManager {
+public class StorageDirect extends Storage implements Engine {
 
 
     public StorageDirect(File indexFile){

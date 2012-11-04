@@ -5,7 +5,7 @@ public class StorageTransTest2 extends StorageDirectTest {
     
 
 
-    protected StorageTrans openRecordManager() {
+    protected StorageTrans openEngine() {
         return new StorageTrans(index);
     }
 

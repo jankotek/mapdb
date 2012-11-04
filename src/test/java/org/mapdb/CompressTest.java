@@ -1,7 +1,6 @@
 package org.mapdb;
 
 import org.junit.Test;
-import org.mapdb.*;
 
 import java.io.IOException;
 
@@ -19,26 +18,26 @@ public class CompressTest{
 
     @Test
     public void check_instance() throws Exception {
-        assertTrue(db.recman instanceof ByteTransformWrapper);
-        assertTrue(((ByteTransformWrapper)db.recman).blockSerializer instanceof  CompressLZFSerializer);
+        assertTrue(db.engine instanceof ByteTransformEngine);
+        assertTrue(((ByteTransformEngine)db.engine).blockSerializer instanceof  CompressLZFSerializer);
     }
 
 
     @Test
     public void check_null() throws Exception {
-        long recid = db.recman.recordPut(null,Serializer.NULL_SERIALIZER);
+        long recid = db.engine.recordPut(null,Serializer.NULL_SERIALIZER);
         assertTrue(recid!=0);
-        assertNull(db.recman.recordGet(recid, Serializer.BASIC_SERIALIZER));
+        assertNull(db.engine.recordGet(recid, Serializer.BASIC_SERIALIZER));
     }
 
     @Test
     public void put_get_update() throws Exception {
-        long recid = db.recman.recordPut("aaaa",Serializer.STRING_SERIALIZER);
-        assertEquals("aaaa",db.recman.recordGet(recid, Serializer.STRING_SERIALIZER));
-        db.recman.recordUpdate(recid, "bbbb",Serializer.STRING_SERIALIZER);
-        assertEquals("bbbb",db.recman.recordGet(recid, Serializer.STRING_SERIALIZER));
-        db.recman.recordDelete(recid);
-        assertEquals(null,db.recman.recordGet(recid, Serializer.STRING_SERIALIZER));
+        long recid = db.engine.recordPut("aaaa",Serializer.STRING_SERIALIZER);
+        assertEquals("aaaa",db.engine.recordGet(recid, Serializer.STRING_SERIALIZER));
+        db.engine.recordUpdate(recid, "bbbb",Serializer.STRING_SERIALIZER);
+        assertEquals("bbbb",db.engine.recordGet(recid, Serializer.STRING_SERIALIZER));
+        db.engine.recordDelete(recid);
+        assertEquals(null,db.engine.recordGet(recid, Serializer.STRING_SERIALIZER));
 
     }
 

@@ -13,21 +13,21 @@ import java.util.*;
 abstract public class StorageTestCase extends TestFile{
 
 
-    Storage recman;
+    Storage engine;
 
      @Before
      public void setUp() throws Exception {
-        recman = openRecordManager();
+        engine = openEngine();
     }
 
-    protected Storage openRecordManager() {
+    protected Storage openEngine() {
         return new StorageDirect(index);
     }
 
 
     void reopenStore() {
-        recman.close();
-        recman = openRecordManager();
+        engine.close();
+        engine = openEngine();
     }
 
 
@@ -39,11 +39,11 @@ abstract public class StorageTestCase extends TestFile{
 
     int countIndexRecords(){
         int ret = 0;
-        final long indexFileSize = recman.index.buffers[0].getLong(StorageDirect.RECID_CURRENT_INDEX_FILE_SIZE*8);
+        final long indexFileSize = engine.index.buffers[0].getLong(StorageDirect.RECID_CURRENT_INDEX_FILE_SIZE*8);
         for(int pos = StorageDirect.INDEX_OFFSET_START * 8;
             pos<indexFileSize;
             pos+=8){
-            if(0!=recman.index.getLong(pos)){
+            if(0!= engine.index.getLong(pos)){
                 ret++;
             }
         }
@@ -51,16 +51,16 @@ abstract public class StorageTestCase extends TestFile{
     }
 
     long getIndexRecord(long recid){
-        return recman.index.getLong(recid*8);
+        return engine.index.getLong(recid*8);
     }
 
     List<Long> getLongStack(long recid){
 
         ArrayList<Long> ret =new ArrayList<Long>();
 
-        long pagePhysid = recman.index.getLong(recid*8) & StorageDirect.PHYS_OFFSET_MASK;
+        long pagePhysid = engine.index.getLong(recid*8) & StorageDirect.PHYS_OFFSET_MASK;
 
-        ByteBuffer dataBuf = recman.phys.buffers[((int) (pagePhysid / ByteBuffer2.BUF_SIZE))];
+        ByteBuffer dataBuf = engine.phys.buffers[((int) (pagePhysid / ByteBuffer2.BUF_SIZE))];
 
         while(pagePhysid!=0){
             final byte numberOfRecordsInPage = dataBuf.get((int) (pagePhysid% ByteBuffer2.BUF_SIZE));

@@ -164,13 +164,13 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         for(int i=0;i< 16;i++)  segmentLocks[i]=new ReentrantReadWriteLock();
     }
 
-    protected final RecordManager recman;
+    protected final Engine engine;
     public final long rootRecid;
 
 
     /** used to create new HTreeMap in store */
-    public HTreeMap(RecordManager recman, boolean hasValues, Serializer defaultSerializer, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
-        this.recman = recman;
+    public HTreeMap(Engine engine, boolean hasValues, Serializer defaultSerializer, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
+        this.engine = engine;
         this.hasValues = hasValues;
         if(defaultSerializer == null) defaultSerializer = Serializer.BASIC_SERIALIZER;
         this.keySerializer = keySerializer==null ? (Serializer<K>) defaultSerializer : keySerializer;
@@ -179,23 +179,23 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         //prealocate segmentRecids, so we dont have to lock on those latter
         segmentRecids = new long[16];
         for(int i=0;i<16;i++)
-            segmentRecids[i] = recman.recordPut(null, Serializer.NULL_SERIALIZER);
+            segmentRecids[i] = engine.recordPut(null, Serializer.NULL_SERIALIZER);
         HashRoot r = new HashRoot();
         r.hasValues = hasValues;
         r.segmentRecids = segmentRecids;
         r.keySerializer = this.keySerializer;
         r.valueSerializer = this.valueSerializer;
-        this.rootRecid = recman.recordPut(r, new HashRootSerializer(defaultSerializer));
+        this.rootRecid = engine.recordPut(r, new HashRootSerializer(defaultSerializer));
     }
 
     /** used to load existing HTreeMap from store */
-    public HTreeMap(RecordManager recman, long rootRecid, Serializer defaultSerializer) {
+    public HTreeMap(Engine engine, long rootRecid, Serializer defaultSerializer) {
         if(CC.ASSERT && rootRecid == 0) throw new IllegalArgumentException("recid is 0");
-        this.recman = recman;
+        this.engine = engine;
         this.rootRecid = rootRecid;
         //load all fields from store
         if(defaultSerializer==null) defaultSerializer = Serializer.BASIC_SERIALIZER;
-        HashRoot r = recman.recordGet(rootRecid, new HashRootSerializer(defaultSerializer));
+        HashRoot r = engine.recordGet(rootRecid, new HashRootSerializer(defaultSerializer));
         this.segmentRecids = r.segmentRecids;
         this.hasValues = r.hasValues;
         this.keySerializer = r.keySerializer;
@@ -231,7 +231,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     }
 
     private long recursiveDirCount(final long dirRecid) {
-        long[][] dir = recman.recordGet(dirRecid, DIR_SERIALIZER);
+        long[][] dir = engine.recordGet(dirRecid, DIR_SERIALIZER);
         if(dir==null) return 0 ;
         long counter = 0;
         for(long[] subdir:dir){
@@ -246,7 +246,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                     //reference to linked list, count it
                     recid = recid>>>1;
                     while(recid!=0){
-                        LinkedNode n = recman.recordGet(recid, LN_SERIALIZER);
+                        LinkedNode n = engine.recordGet(recid, LN_SERIALIZER);
                         if(n!=null){
                             counter++;
                             recid =  n.next;
@@ -268,7 +268,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 segmentLocks[i].readLock().lock();
 
                 long dirRecid = segmentRecids[i];
-                long[][] dir = recman.recordGet(dirRecid, DIR_SERIALIZER);
+                long[][] dir = engine.recordGet(dirRecid, DIR_SERIALIZER);
                 if(dir!=null) return false;
             }finally {
                 segmentLocks[i].readLock().unlock();
@@ -288,7 +288,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             segmentLocks[segment].readLock().lock();
             long recid = segmentRecids[segment];
             for(int level=3;level>=0;level--){
-                long[][] dir = recman.recordGet(recid, DIR_SERIALIZER);
+                long[][] dir = engine.recordGet(recid, DIR_SERIALIZER);
                 if(dir == null) return null;
                 int slot = (h>>>(level*7 )) & 0x7F;
                 if(CC.ASSERT && slot>=128) throw new InternalError();
@@ -298,7 +298,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 if((recid&1)!=0){ //last bite indicates if referenced record is LinkedNode
                     recid = recid>>>1;
                     while(true){
-                        LinkedNode<K,V> ln = recman.recordGet(recid, LN_SERIALIZER);
+                        LinkedNode<K,V> ln = engine.recordGet(recid, LN_SERIALIZER);
                         if(ln == null) return null;
                         if(ln.key.equals(o)) return ln.value;
                         if(ln.next==0) return null;
@@ -331,7 +331,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
             int level = 3;
             while(true){
-                long[][] dir = recman.recordGet(dirRecid, DIR_SERIALIZER);
+                long[][] dir = engine.recordGet(dirRecid, DIR_SERIALIZER);
                 final int slot =  (h>>>(7*level )) & 0x7F;
                 if(CC.ASSERT && slot>127) throw new InternalError();
 
@@ -356,7 +356,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                     recid = recid>>>1;
 
                     //traverse linked list, try to replace previous value
-                    LinkedNode<K,V> ln = recman.recordGet(recid, LN_SERIALIZER);
+                    LinkedNode<K,V> ln = engine.recordGet(recid, LN_SERIALIZER);
 
                     while(ln!=null){
                         if(ln.key.equals(key)){
@@ -364,11 +364,11 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                             ln.key = key;
                             V oldVal = ln.value;
                             ln.value = value;
-                            recman.recordUpdate(recid, ln, LN_SERIALIZER);
+                            engine.recordUpdate(recid, ln, LN_SERIALIZER);
                             return oldVal;
                         }
                         recid = ln.next;
-                        ln = recid==0? null : recman.recordGet(recid, LN_SERIALIZER);
+                        ln = recid==0? null : engine.recordGet(recid, LN_SERIALIZER);
                         counter++;
                     }
                     //key was not found at linked list, so just append it to beginning
@@ -383,35 +383,35 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                         //add newly inserted record
                         int pos =(h >>>(7*(level-1) )) & 0x7F;
                         nextDir[pos/8] = new long[8];
-                        nextDir[pos/8][pos%8] = (recman.recordPut(new LinkedNode<K,V>(0, key, value), LN_SERIALIZER) <<1) | 1;
+                        nextDir[pos/8][pos%8] = (engine.recordPut(new LinkedNode<K,V>(0, key, value), LN_SERIALIZER) <<1) | 1;
                     }
 
 
                     //redistribute linked bucket into new dir
                     long nodeRecid = dir[slot/8][slot%8]>>>1;
                     while(nodeRecid!=0){
-                        LinkedNode<K,V> n = recman.recordGet(nodeRecid, LN_SERIALIZER);
+                        LinkedNode<K,V> n = engine.recordGet(nodeRecid, LN_SERIALIZER);
                         final long nextRecid = n.next;
                         int pos = (hash(n.key) >>>(7*(level -1) )) & 0x7F;
                         if(nextDir[pos/8]==null) nextDir[pos/8] = new long[8];
                         n.next = nextDir[pos/8][pos%8]>>>1;
                         nextDir[pos/8][pos%8] = (nodeRecid<<1) | 1;
-                        recman.recordUpdate(nodeRecid, n,LN_SERIALIZER);
+                        engine.recordUpdate(nodeRecid, n, LN_SERIALIZER);
                         nodeRecid = nextRecid;
                     }
 
                     //insert nextDir and update parent dir
-                    long nextDirRecid = recman.recordPut(nextDir, DIR_SERIALIZER);
+                    long nextDirRecid = engine.recordPut(nextDir, DIR_SERIALIZER);
                     int parentPos = (h>>>(7*level )) & 0x7F;
                     dir[parentPos/8][parentPos%8] = (nextDirRecid<<1) | 0;
-                    recman.recordUpdate(dirRecid, dir, DIR_SERIALIZER);
+                    engine.recordUpdate(dirRecid, dir, DIR_SERIALIZER);
                     return null;
                 }else{
                     // record does not exist in linked list, so create new one
                     recid = dir[slot/8][slot%8]>>>1;
-                    long newRecid = recman.recordPut(new LinkedNode<K,V>(recid, key,value), LN_SERIALIZER);
+                    long newRecid = engine.recordPut(new LinkedNode<K,V>(recid, key,value), LN_SERIALIZER);
                     dir[slot/8][slot%8] = (newRecid<<1) | 1;
-                    recman.recordUpdate(dirRecid, dir,DIR_SERIALIZER);
+                    engine.recordUpdate(dirRecid, dir, DIR_SERIALIZER);
                     return null;
                 }
             }
@@ -434,7 +434,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             dirRecids[level] = segmentRecids[segment];
 
             while(true){
-                long[][] dir = recman.recordGet(dirRecids[level], DIR_SERIALIZER);
+                long[][] dir = engine.recordGet(dirRecids[level], DIR_SERIALIZER);
                 final int slot =  (h>>>(7*level )) & 0x7F;
                 if(CC.ASSERT && slot>127) throw new InternalError();
 
@@ -459,7 +459,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                     recid = recid>>>1;
 
                     //traverse linked list, try to remove node
-                    LinkedNode<K,V> ln = recman.recordGet(recid, LN_SERIALIZER);
+                    LinkedNode<K,V> ln = engine.recordGet(recid, LN_SERIALIZER);
                     LinkedNode<K,V> prevLn = null;
                     long prevRecid = 0;
                     while(ln!=null){
@@ -473,22 +473,22 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
                                 }else{
                                     dir[slot/8][slot%8] = (ln.next<<1)|1;
-                                    recman.recordUpdate(dirRecids[level], dir, DIR_SERIALIZER);
+                                    engine.recordUpdate(dirRecids[level], dir, DIR_SERIALIZER);
                                 }
 
                             }else{
                                 //referenced from LinkedNode
                                 prevLn.next = ln.next;
-                                recman.recordUpdate(prevRecid, prevLn, LN_SERIALIZER);
+                                engine.recordUpdate(prevRecid, prevLn, LN_SERIALIZER);
                             }
                             //found, remove this node
-                            recman.recordDelete(recid);
+                            engine.recordDelete(recid);
                             return ln.value;
                         }
                         prevRecid = recid;
                         prevLn = ln;
                         recid = ln.next;
-                        ln = recid==0? null : recman.recordGet(recid, LN_SERIALIZER);
+                        ln = recid==0? null : engine.recordGet(recid, LN_SERIALIZER);
                         counter++;
                     }
                     //key was not found at linked list, so it does not exist
@@ -529,19 +529,19 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             //delete from parent dir
             if(level==3){
                 //parent is segment, recid of this dir can not be modified,  so just update to null
-                recman.recordUpdate(dirRecids[level], null, DIR_SERIALIZER);
+                engine.recordUpdate(dirRecids[level], null, DIR_SERIALIZER);
             }else{
-                recman.recordDelete(dirRecids[level]);
+                engine.recordDelete(dirRecids[level]);
 
-                final long[][] parentDir = recman.recordGet(dirRecids[level + 1], DIR_SERIALIZER);
+                final long[][] parentDir = engine.recordGet(dirRecids[level + 1], DIR_SERIALIZER);
                 final int parentPos = (h >>> (7 * (level + 1))) & 0x7F;
                 recursiveDirDelete(h,level+1,dirRecids, parentDir, parentPos);
                 //parentDir[parentPos/8][parentPos%8] = 0;
-                //recman.recordUpdate(dirRecids[level + 1],parentDir,DIR_SERIALIZER);
+                //engine.recordUpdate(dirRecids[level + 1],parentDir,DIR_SERIALIZER);
 
             }
         }else{
-            recman.recordUpdate(dirRecids[level], dir, DIR_SERIALIZER);
+            engine.recordUpdate(dirRecids[level], dir, DIR_SERIALIZER);
         }
     }
 
@@ -554,7 +554,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             recursiveDirClear(dirRecid);
 
             //set dir to null, as segment recid is immutable
-            recman.recordUpdate(dirRecid, null, DIR_SERIALIZER);
+            engine.recordUpdate(dirRecid, null, DIR_SERIALIZER);
 
         }finally {
             segmentLocks[i].writeLock().unlock();
@@ -562,7 +562,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     }
 
     private void recursiveDirClear(final long dirRecid) {
-        final long[][] dir = recman.recordGet(dirRecid,DIR_SERIALIZER);
+        final long[][] dir = engine.recordGet(dirRecid,DIR_SERIALIZER);
         if(dir == null) return;
         for(long[] subdir:dir){
             if(subdir==null) continue;
@@ -573,13 +573,13 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                     recid = recid>>>1;
                     //recursively remove dir
                     recursiveDirClear(recid);
-                    recman.recordDelete(recid);
+                    engine.recordDelete(recid);
                 }else{
                     //linked list to delete
                     recid = recid>>>1;
                     while(recid!=0){
-                        LinkedNode n = recman.recordGet(recid, LN_SERIALIZER);
-                        recman.recordDelete(recid);
+                        LinkedNode n = engine.recordGet(recid, LN_SERIALIZER);
+                        engine.recordDelete(recid);
                         recid = n.next;
                     }
                 }
@@ -813,7 +813,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 int level = 3;
                 //dive into tree, finding last hash position
                 while(true){
-                    long[][] dir = recman.recordGet(dirRecid, DIR_SERIALIZER);
+                    long[][] dir = engine.recordGet(dirRecid, DIR_SERIALIZER);
                     int pos = (lastHash>>>(7 * level)) & 0x7F;
 
                     //check if we need to expand deeper
@@ -859,7 +859,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         }
 
         private Object[] findNextLinkedNodeRecur(long dirRecid, int newHash, int level){
-            long[][] dir = recman.recordGet(dirRecid, DIR_SERIALIZER);
+            long[][] dir = engine.recordGet(dirRecid, DIR_SERIALIZER);
             if(dir == null) return null;
             int pos = (newHash>>>(level*7))  & 0x7F;
             boolean first = true;
@@ -873,7 +873,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                             Object[] array = new Object[2];
                             int arrayPos = 0;
                             while(recid!=0){
-                                LinkedNode ln = recman.recordGet(recid, LN_SERIALIZER);
+                                LinkedNode ln = engine.recordGet(recid, LN_SERIALIZER);
                                 if(ln==null){
                                     recid = 0;
                                     continue;

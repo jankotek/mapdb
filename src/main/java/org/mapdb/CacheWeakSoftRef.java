@@ -8,7 +8,7 @@ import java.lang.ref.WeakReference;
  * Instance cache which uses <code>SoftReference</code> or <code>WeakReference</code>
  * Items can be removed from cache by Garbage Collector if
  */
-public class CacheWeakSoftRef implements RecordManager{
+public class CacheWeakSoftRef implements Engine {
 
 
 
@@ -59,11 +59,11 @@ public class CacheWeakSoftRef implements RecordManager{
     protected LongConcurrentHashMap<CacheItem> items = new LongConcurrentHashMap<CacheItem>();
 
 
-    protected RecordManager recman;
+    protected Engine engine;
     final protected boolean useWeakRef;
 
-    public CacheWeakSoftRef(RecordManager recman, boolean useWeakRef){
-        this.recman = recman;
+    public CacheWeakSoftRef(Engine engine, boolean useWeakRef){
+        this.engine = engine;
         this.useWeakRef = useWeakRef;
 
         queueThread.setDaemon(true);
@@ -89,7 +89,7 @@ public class CacheWeakSoftRef implements RecordManager{
 
     @Override
     public <A> long recordPut(A value, Serializer<A> serializer) {
-        long recid = recman.recordPut(value, serializer);
+        long recid = engine.recordPut(value, serializer);
         items.put(recid, useWeakRef?
                 new CacheWeakItem(value, queue, recid) :
                 new CacheSoftItem(value, queue, recid));
@@ -108,7 +108,7 @@ public class CacheWeakSoftRef implements RecordManager{
             }
         }
 
-        Object value = recman.recordGet(recid, serializer);
+        Object value = engine.recordGet(recid, serializer);
         if(value!=null){
             items.put(recid, useWeakRef?
                     new CacheWeakItem(value, queue, recid) :
@@ -122,28 +122,28 @@ public class CacheWeakSoftRef implements RecordManager{
         items.put(recid, useWeakRef?
                 new CacheWeakItem(value, queue, recid) :
                 new CacheSoftItem(value, queue, recid));
-        recman.recordUpdate(recid, value, serializer);
+        engine.recordUpdate(recid, value, serializer);
     }
 
     @Override
     public void recordDelete(long recid) {
         items.remove(recid);
-        recman.recordDelete(recid);
+        engine.recordDelete(recid);
     }
 
     @Override
     public Long getNamedRecid(String name) {
-        return recman.getNamedRecid(name);
+        return engine.getNamedRecid(name);
     }
 
     @Override
     public void setNamedRecid(String name, Long recid) {
-        recman.setNamedRecid(name, recid);
+        engine.setNamedRecid(name, recid);
     }
 
     @Override
     public void close() {
-        recman = null;
+        engine = null;
         items = null;
         queue = null;
         queueThread.interrupt();
@@ -152,18 +152,18 @@ public class CacheWeakSoftRef implements RecordManager{
 
     @Override
     public void commit() {
-        recman.commit();
+        engine.commit();
     }
 
     @Override
     public void rollback() {
         items.clear();
-        recman.rollback();
+        engine.rollback();
     }
 
     @Override
     public long serializerRecid() {
-        return recman.serializerRecid();
+        return engine.serializerRecid();
     }
 
 }

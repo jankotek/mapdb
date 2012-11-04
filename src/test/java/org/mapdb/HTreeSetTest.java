@@ -20,9 +20,6 @@ package org.mapdb;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mapdb.HTreeMap;
-import org.mapdb.RecordManager;
-import org.mapdb.StorageDirect;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -39,7 +36,7 @@ import static org.junit.Assert.assertTrue;
 @SuppressWarnings("unchecked")
 public class HTreeSetTest{
 
-    RecordManager recman = new StorageDirect(null);
+    Engine engine = new StorageDirect(null);
 
     Set hs;
 
@@ -53,7 +50,7 @@ public class HTreeSetTest{
 
     @Test public void test_Constructor() {
         // Test for method java.util.HashSet()
-        Set hs2 = new HTreeMap(recman, false,null,null,null).keySet();
+        Set hs2 = new HTreeMap(engine, false,null,null,null).keySet();
         assertEquals("Created incorrect HashSet", 0, hs2.size());
     }
 
@@ -90,7 +87,7 @@ public class HTreeSetTest{
 
     @Test public void test_isEmpty() {
         // Test for method boolean java.util.HashSet.isEmpty()
-        assertTrue("Empty set returned false", new HTreeMap(recman, false,null,null,null).keySet().isEmpty());
+        assertTrue("Empty set returned false", new HTreeMap(engine, false,null,null,null).keySet().isEmpty());
         assertTrue("Non-empty set returned true", !hs.isEmpty());
     }
 
@@ -129,7 +126,7 @@ public class HTreeSetTest{
      * is called before a test is executed.
      */
     @Before public void setUp() throws Exception {
-        hs = new HTreeMap(recman, false,null,null,null).keySet();
+        hs = new HTreeMap(engine, false,null,null,null).keySet();
         Collections.addAll(hs, objArray);
     }
 

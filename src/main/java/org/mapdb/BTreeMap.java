@@ -76,7 +76,7 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
 
     protected final int maxNodeSize;
 
-    protected final RecordManager recman;
+    protected final Engine engine;
 
     protected final boolean hasValues;
 
@@ -229,7 +229,7 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
                     valueSerializer.serialize(out2, (V) val);
                     if(out2.pos>CC.MAX_BTREE_INLINE_VALUE_SIZE){
                         //store value as separate node
-                        long recid = recman.recordPut(out2.copyBytes(), Serializer.BYTE_ARRAY_SERIALIZER);
+                        long recid = engine.recordPut(out2.copyBytes(), Serializer.BYTE_ARRAY_SERIALIZER);
                         JdbmUtil.packInt(out,0);  //zero indicates reference
                         JdbmUtil.packLong(out,recid);
                     }else{
@@ -280,7 +280,7 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
 
 
     /** constructor used to create new tree*/
-    public BTreeMap(RecordManager recman, int maxNodeSize, boolean hasValues, Serializer defaultSerializer,
+    public BTreeMap(Engine engine, int maxNodeSize, boolean hasValues, Serializer defaultSerializer,
                     Serializer<K[]> keySerializer, Serializer<V> valueSerializer, Comparator<K> comparator) {
         if(maxNodeSize%2!=0) throw new IllegalArgumentException("maxNodeSize must be dividable by 2");
         if(maxNodeSize<6) throw new IllegalArgumentException("maxNodeSize too low");
@@ -288,14 +288,14 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
         if(defaultSerializer==null) defaultSerializer = Serializer.BASIC_SERIALIZER;
         this.btreeRootSerializer = new BTreeRootSerializer(defaultSerializer);
         this.hasValues = hasValues;
-        this.recman = recman;
+        this.engine = engine;
         this.maxNodeSize = maxNodeSize;
         this.comparator = comparator==null? JdbmUtil.COMPARABLE_COMPARATOR : comparator;
         this.keySerializer = keySerializer==null ?  defaultSerializer :  keySerializer;
         this.valueSerializer = valueSerializer==null ? (Serializer<V>) defaultSerializer : valueSerializer;
 
         LeafNode emptyRoot = new LeafNode(new Object[]{null, null}, new Object[]{null, null}, 0);
-        this.rootRecid = recman.recordPut(emptyRoot, nodeSerializer);
+        this.rootRecid = engine.recordPut(emptyRoot, nodeSerializer);
 
         saveTreeInfo();
     }
@@ -309,9 +309,9 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
         r.valueSerializer = valueSerializer;
         r.comparator = comparator;
         if(treeRecid == 0){
-            treeRecid = recman.recordPut(r,btreeRootSerializer);
+            treeRecid = engine.recordPut(r,btreeRootSerializer);
         }else{
-            recman.recordUpdate(treeRecid,r,btreeRootSerializer);
+            engine.recordUpdate(treeRecid, r, btreeRootSerializer);
         }
     }
 
@@ -319,12 +319,12 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
     /**
      * Constructor used to load existing tree
      */
-    public BTreeMap(RecordManager recman, long recid, Serializer defaultSerializer) {
-        this.recman = recman;
+    public BTreeMap(Engine engine, long recid, Serializer defaultSerializer) {
+        this.engine = engine;
         this.treeRecid = recid;
         if(defaultSerializer==null) defaultSerializer = Serializer.BASIC_SERIALIZER;
         this.btreeRootSerializer = new BTreeRootSerializer(defaultSerializer);
-        BTreeRoot r = recman.recordGet(recid, btreeRootSerializer);
+        BTreeRoot r = engine.recordGet(recid, btreeRootSerializer);
         this.hasValues = r.hasValues;
         this.rootRecid = r.rootRecid;
         this.maxNodeSize = r.maxNodeSize;
@@ -404,12 +404,12 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
         if(key==null) return null;
         K v = (K) key;
         long current = rootRecid;
-        BNode A = recman.recordGet(current, nodeSerializer);
+        BNode A = engine.recordGet(current, nodeSerializer);
 
         //dive until  leaf
         while(!A.isLeaf()){
             current = nextDir((DirNode) A, v);
-            A = recman.recordGet(current, nodeSerializer);
+            A = engine.recordGet(current, nodeSerializer);
         }
 
         //now at leaf level
@@ -417,7 +417,7 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
         int pos = findChildren(v, leaf.keys);
         while(pos == leaf.keys.length){
             //follow next link on leaf until necessary
-            leaf = (LeafNode) recman.recordGet(leaf.next, nodeSerializer);
+            leaf = (LeafNode) engine.recordGet(leaf.next, nodeSerializer);
             pos = findChildren(v, leaf.keys);
         }
 
@@ -428,7 +428,7 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
         if(v.equals(leaf.keys[pos])){
             Object ret = (hasValues? leaf.vals[pos] : JdbmUtil.EMPTY_STRING);
             if(ret instanceof  LazyRef)
-                ret = recman.recordGet(((LazyRef)ret).recid, valueSerializer);
+                ret = engine.recordGet(((LazyRef)ret).recid, valueSerializer);
             return (V)ret;
         }else
             return null;
@@ -455,7 +455,7 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
 
         long current = rootRecid;
 
-        BNode A = recman.recordGet(current, nodeSerializer);
+        BNode A = engine.recordGet(current, nodeSerializer);
         while(!A.isLeaf()){
             long t = current;
             current = nextDir((DirNode) A, v);
@@ -468,7 +468,7 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
                     stackVals = Arrays.copyOf(stackVals, stackVals.length*2);
                 stackVals[stackPos] = t;
             }
-            A = recman.recordGet(current, nodeSerializer);
+            A = engine.recordGet(current, nodeSerializer);
         }
         int level = 1;
 
@@ -479,7 +479,7 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
             do{
                 lockNode(current);
                 found = true;
-                A = recman.recordGet(current, nodeSerializer);
+                A = engine.recordGet(current, nodeSerializer);
                 int pos = findChildren(v, A.keys());
                 if(pos<A.keys().length-1 && v.equals(A.keys()[pos])){
 
@@ -488,7 +488,7 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
                         //is not absent, so quit
                         unlockNode(current);
                         if(oldVal instanceof  LazyRef){
-                            oldVal = recman.recordGet(((LazyRef)oldVal).recid,valueSerializer);
+                            oldVal = engine.recordGet(((LazyRef)oldVal).recid,valueSerializer);
                         }
                         assertNoLocks();
                         return (V) oldVal;
@@ -501,12 +501,12 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
                     }
 
                     A = new LeafNode(Arrays.copyOf(A.keys(), A.keys().length), vals, ((LeafNode)A).next);
-                    recman.recordUpdate(current, A, nodeSerializer);
+                    engine.recordUpdate(current, A, nodeSerializer);
                     //delete old lazy ref if necessary
                     if(oldVal instanceof  LazyRef){
                         long recid = ((LazyRef)oldVal).recid;
-                        oldVal = recman.recordGet(recid,valueSerializer);
-                        recman.recordDelete(recid);
+                        oldVal = engine.recordGet(recid,valueSerializer);
+                        engine.recordDelete(recid);
                     }
                     //already in here
                     unlockNode(current);
@@ -525,7 +525,7 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
 
                         if(next==0) break;
                         current = next;
-                        A = recman.recordGet(current, nodeSerializer);
+                        A = engine.recordGet(current, nodeSerializer);
                     }
 
                 }
@@ -541,13 +541,13 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
                 if(A.isLeaf()){
                     Object[] vals = hasValues? JdbmUtil.arrayPut(A.vals(), pos, value): null;
                     LeafNode n = new LeafNode(keys, vals, ((LeafNode)A).next);
-                    recman.recordUpdate(current, n, nodeSerializer);
+                    engine.recordUpdate(current, n, nodeSerializer);
                 }else{
                     if(CC.ASSERT && p==0)
                         throw new InternalError();
                     long[] child = JdbmUtil.arrayLongPut(A.child(), pos, p);
                     DirNode d = new DirNode(keys, child);
-                    recman.recordUpdate(current, d, nodeSerializer);
+                    engine.recordUpdate(current, d, nodeSerializer);
                 }
 
                 unlockNode(current);
@@ -578,7 +578,7 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
                     B = new DirNode(Arrays.copyOfRange(keys, splitPos, keys.length),
                                 Arrays.copyOfRange(child, splitPos, keys.length));
                 }
-                long q = recman.recordPut(B, nodeSerializer);
+                long q = engine.recordPut(B, nodeSerializer);
                 if(A.isLeaf()){  //  splitPos+1 is there so A gets new high  value (key)
                     Object[] keys2 = Arrays.copyOf(keys, splitPos+2);
                     keys2[keys2.length-1] = keys2[keys2.length-2];
@@ -595,7 +595,7 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
                     child2[splitPos] = q;
                     A = new DirNode(Arrays.copyOf(keys, splitPos+1), child2);
                 }
-                recman.recordUpdate(current, A, nodeSerializer);
+                engine.recordUpdate(current, A, nodeSerializer);
 
                 if(!isRoot){
                     unlockNode(current);
@@ -612,7 +612,7 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
                     BNode R = new DirNode(
                             new Object[]{A.keys()[0], A.highKey(), B.highKey()},
                             new long[]{current,q, 0});
-                    rootRecid = recman.recordPut(R, nodeSerializer);
+                    rootRecid = engine.recordPut(R, nodeSerializer);
                     saveTreeInfo();
                     //TODO update tree levels
                     unlockNode(current);
@@ -631,9 +631,9 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
 
         BTreeIterator(){
             //find left-most leaf
-            BNode node = recman.recordGet(rootRecid, nodeSerializer);
+            BNode node = engine.recordGet(rootRecid, nodeSerializer);
             while(!node.isLeaf()){
-                node = recman.recordGet(node.child()[0], nodeSerializer);
+                node = engine.recordGet(node.child()[0], nodeSerializer);
             }
             currentLeaf = (LeafNode) node;
             currentPos = 1;
@@ -644,7 +644,7 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
                     currentLeaf = null;
                     return;
                 }
-                currentLeaf = (LeafNode) recman.recordGet(currentLeaf.next, nodeSerializer);
+                currentLeaf = (LeafNode) engine.recordGet(currentLeaf.next, nodeSerializer);
             }
         }
 
@@ -670,14 +670,14 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
                     return;
                 }
                 currentPos = 1;
-                currentLeaf = (LeafNode) recman.recordGet(currentLeaf.next, nodeSerializer);
+                currentLeaf = (LeafNode) engine.recordGet(currentLeaf.next, nodeSerializer);
                 while(currentLeaf.keys.length==2){
                     if(currentLeaf.next ==0){
                         currentLeaf = null;
                         currentPos=-1;
                         return;
                     }
-                    currentLeaf = (LeafNode) recman.recordGet(currentLeaf.next, nodeSerializer);
+                    currentLeaf = (LeafNode) engine.recordGet(currentLeaf.next, nodeSerializer);
                 }
             }
         }
@@ -689,22 +689,22 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
 
     private V remove2(Object key, Object value) {
         long current = rootRecid;
-        BNode A = recman.recordGet(current, nodeSerializer);
+        BNode A = engine.recordGet(current, nodeSerializer);
         while(!A.isLeaf()){
             current = nextDir((DirNode) A, key);
-            A = recman.recordGet(current, nodeSerializer);
+            A = engine.recordGet(current, nodeSerializer);
         }
 
         while(true){
 
             lockNode(current);
-            A = recman.recordGet(current, nodeSerializer);
+            A = engine.recordGet(current, nodeSerializer);
             int pos = findChildren(key, A.keys());
             if(pos<A.keys().length&& key.equals(A.keys()[pos])){
                 //delete from node
                 Object oldVal = hasValues? A.vals()[pos] : JdbmUtil.EMPTY_STRING;
                 Object lazyOldVal = !(oldVal instanceof LazyRef)? null :
-                        recman.recordGet(((LazyRef)oldVal).recid, valueSerializer);
+                        engine.recordGet(((LazyRef)oldVal).recid, valueSerializer);
 
                 if(value!=null && !value.equals(lazyOldVal!=null? lazyOldVal: oldVal))
                     return null;
@@ -719,13 +719,13 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
                     System.arraycopy(A.vals(),0,vals2, 0, pos);
                     System.arraycopy(A.vals(), pos+1, vals2, pos, vals2.length-pos);
                     if(lazyOldVal!=null){
-                        recman.recordDelete(((LazyRef)oldVal).recid);
+                        engine.recordDelete(((LazyRef)oldVal).recid);
                         oldVal = lazyOldVal;
                     }
                 }
 
                 A = new LeafNode(keys2, vals2, ((LeafNode)A).next);
-                recman.recordUpdate(current, A, nodeSerializer);
+                engine.recordUpdate(current, A, nodeSerializer);
                 unlockNode(current);
                 return (V) oldVal;
             }else{
@@ -736,7 +736,7 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
                     while(pos2 == A.keys().length){
                         //TODO lock?
                         current = ((LeafNode)A).next;
-                        A = recman.recordGet(current, nodeSerializer);
+                        A = engine.recordGet(current, nodeSerializer);
                     }
                 }else{
                     return null;
@@ -775,7 +775,7 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
             if(currentLeaf == null) throw new NoSuchElementException();
             Object ret =  currentLeaf.vals[currentPos];
             if(ret instanceof LazyRef )
-                ret = recman.recordGet(((LazyRef)ret).recid, valueSerializer);
+                ret = engine.recordGet(((LazyRef)ret).recid, valueSerializer);
             moveToNext();
             return (V) ret;
         }
@@ -1137,15 +1137,15 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
         if(key == null || oldValue == null || newValue == null ) throw new NullPointerException();
 
         long current = rootRecid;
-        BNode node = recman.recordGet(current, nodeSerializer);
+        BNode node = engine.recordGet(current, nodeSerializer);
         //dive until leaf is found
         while(!node.isLeaf()){
             current = nextDir((DirNode) node, key);
-            node = recman.recordGet(current, nodeSerializer);
+            node = engine.recordGet(current, nodeSerializer);
         }
 
         lockNode(current);
-        LeafNode leaf = (LeafNode) recman.recordGet(current, nodeSerializer);
+        LeafNode leaf = (LeafNode) engine.recordGet(current, nodeSerializer);
 
         int pos = findChildren(key, node.keys());
         while(pos==leaf.keys.length){
@@ -1153,7 +1153,7 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
             lockNode(leaf.next);
             unlockNode(current);
             current = leaf.next;
-            leaf = (LeafNode) recman.recordGet(current, nodeSerializer);
+            leaf = (LeafNode) engine.recordGet(current, nodeSerializer);
             pos = findChildren(key, node.keys());
         }
 
@@ -1161,7 +1161,7 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
         if(key.equals(leaf.keys[pos])){
             Object val  = leaf.vals[pos];
             Object val2 = val instanceof LazyRef?
-                    recman.recordGet(((LazyRef)val).recid, valueSerializer):
+                    engine.recordGet(((LazyRef)val).recid, valueSerializer):
                     val;
             if(oldValue.equals(val2)){
                 Object[] vals = Arrays.copyOf(leaf.vals, leaf.vals.length);
@@ -1169,10 +1169,10 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
                 leaf = new LeafNode(Arrays.copyOf(leaf.keys, leaf.keys.length), vals, leaf.next);
                 //delete old node if lazyref
                 if(val instanceof LazyRef){
-                    recman.recordDelete(((LazyRef)val).recid);
+                    engine.recordDelete(((LazyRef) val).recid);
                 }
 
-                recman.recordUpdate(current, leaf, nodeSerializer);
+                engine.recordUpdate(current, leaf, nodeSerializer);
 
                 ret = true;
             }
@@ -1186,15 +1186,15 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
         if(key == null || value == null) throw new NullPointerException();
 
         long current = rootRecid;
-        BNode node = recman.recordGet(current, nodeSerializer);
+        BNode node = engine.recordGet(current, nodeSerializer);
         //dive until leaf is found
         while(!node.isLeaf()){
             current = nextDir((DirNode) node, key);
-            node = recman.recordGet(current, nodeSerializer);
+            node = engine.recordGet(current, nodeSerializer);
         }
 
         lockNode(current);
-        LeafNode leaf = (LeafNode) recman.recordGet(current, nodeSerializer);
+        LeafNode leaf = (LeafNode) engine.recordGet(current, nodeSerializer);
 
         int pos = findChildren(key, node.keys());
         while(pos==leaf.keys.length){
@@ -1202,7 +1202,7 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
             lockNode(leaf.next);
             unlockNode(current);
             current = leaf.next;
-            leaf = (LeafNode) recman.recordGet(current, nodeSerializer);
+            leaf = (LeafNode) engine.recordGet(current, nodeSerializer);
             pos = findChildren(key, node.keys());
         }
 
@@ -1213,12 +1213,12 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
             if(oldVal instanceof LazyRef){
                 //delete old val
                 long recid = ((LazyRef)oldVal).recid;
-                oldVal = recman.recordGet(recid,valueSerializer);
-                recman.recordDelete(recid);
+                oldVal = engine.recordGet(recid,valueSerializer);
+                engine.recordDelete(recid);
             }
             vals[pos] = value;
             leaf = new LeafNode(Arrays.copyOf(leaf.keys, leaf.keys.length), vals, leaf.next);
-            recman.recordUpdate(current, leaf, nodeSerializer);
+            engine.recordUpdate(current, leaf, nodeSerializer);
 
             ret =  oldVal;
         }
@@ -1239,15 +1239,15 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
 
     @Override
     public K firstKey() {
-        BNode n = recman.recordGet(rootRecid, nodeSerializer);
+        BNode n = engine.recordGet(rootRecid, nodeSerializer);
         while(!n.isLeaf()){
-            n = recman.recordGet(n.child()[0], nodeSerializer);
+            n = engine.recordGet(n.child()[0], nodeSerializer);
         }
         LeafNode l = (LeafNode) n;
         //follow link until necessary
         while(l.keys.length==2){
             if(l.next==0) return null;
-            l = (LeafNode) recman.recordGet(l.next, nodeSerializer);
+            l = (LeafNode) engine.recordGet(l.next, nodeSerializer);
         }
         return (K) l.keys[1];
     }

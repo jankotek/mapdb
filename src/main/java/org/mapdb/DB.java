@@ -11,18 +11,18 @@ import java.util.concurrent.ConcurrentNavigableMap;
 @SuppressWarnings("unchecked")
 public class DB {
 
-    protected RecordManager recman;
+    protected Engine engine;
     protected Map<String, WeakReference<?>> collections = new HashMap<String, WeakReference<?>>();
 
     protected Serializer defaultSerializer;
 
-    public DB(final RecordManager recman){
-        this.recman = recman;
-        final ArrayList classInfos = recman.recordGet(recman.serializerRecid(), SerializerPojo.serializer);
+    public DB(final Engine engine){
+        this.engine = engine;
+        final ArrayList classInfos = engine.recordGet(engine.serializerRecid(), SerializerPojo.serializer);
         this.defaultSerializer = new SerializerPojo(classInfos){
             @Override
             protected void saveClassInfo() {
-                recman.recordUpdate(recman.serializerRecid(), registered, SerializerPojo.serializer);
+                engine.recordUpdate(engine.serializerRecid(), registered, SerializerPojo.serializer);
             }
         };
     }
@@ -41,15 +41,15 @@ public class DB {
         checkNotClosed();
         HTreeMap<K,V> ret = (HTreeMap<K, V>) getFromWeakCollection(name);
         if(ret!=null) return ret;
-        Long recid = recman.getNamedRecid(name);
+        Long recid = engine.getNamedRecid(name);
         if(recid!=null){
             //open existing map
-            ret = new HTreeMap<K,V>(recman, recid,defaultSerializer);
+            ret = new HTreeMap<K,V>(engine, recid,defaultSerializer);
             if(CC.ASSERT && !ret.hasValues) throw new ClassCastException("Collection is Set, not Map");
         }else{
             //create new map
-            ret = new HTreeMap<K,V>(recman,true,defaultSerializer,null, null);
-            recman.setNamedRecid(name, ret.rootRecid);
+            ret = new HTreeMap<K,V>(engine,true,defaultSerializer,null, null);
+            engine.setNamedRecid(name, ret.rootRecid);
         }
         collections.put(name, new WeakReference<Object>(ret));
         return ret;
@@ -59,8 +59,8 @@ public class DB {
     synchronized public <K,V> ConcurrentMap<K,V> createHashMap(
             String name, Serializer<K> keySerializer, Serializer<V> valueSerializer){
         checkNameNotExists(name);
-        HTreeMap<K,V> ret = new HTreeMap<K,V>(recman, true, defaultSerializer, keySerializer, valueSerializer);
-        recman.setNamedRecid(name, ret.rootRecid);
+        HTreeMap<K,V> ret = new HTreeMap<K,V>(engine, true, defaultSerializer, keySerializer, valueSerializer);
+        engine.setNamedRecid(name, ret.rootRecid);
         collections.put(name, new WeakReference<Object>(ret));
         return ret;
     }
@@ -76,17 +76,17 @@ public class DB {
         checkNotClosed();
         Set<K> ret = (Set<K>) getFromWeakCollection(name);
         if(ret!=null) return ret;
-        Long recid = recman.getNamedRecid(name);
+        Long recid = engine.getNamedRecid(name);
         if(recid!=null){
             //open existing map
-            HTreeMap<K,Object> m = new HTreeMap<K,Object>(recman, recid, defaultSerializer);
+            HTreeMap<K,Object> m = new HTreeMap<K,Object>(engine, recid, defaultSerializer);
             if(CC.ASSERT && m.hasValues) throw new ClassCastException("Collection is Map, not Set");
             ret = m.keySet();
         }else{
             //create new map
-            HTreeMap<K,Object> m = new HTreeMap<K,Object>(recman, false, defaultSerializer, null, null);
+            HTreeMap<K,Object> m = new HTreeMap<K,Object>(engine, false, defaultSerializer, null, null);
             ret = m.keySet();
-            recman.setNamedRecid(name, m.rootRecid);
+            engine.setNamedRecid(name, m.rootRecid);
         }
         collections.put(name, new WeakReference<Object>(ret));
         return ret;
@@ -95,8 +95,8 @@ public class DB {
 
     synchronized public <K> Set<K> createHashSet(String name, Serializer<K> serializer){
         checkNameNotExists(name);
-        HTreeMap<K,Object> ret = new HTreeMap<K,Object>(recman, true, defaultSerializer, serializer, null);
-        recman.setNamedRecid(name, ret.rootRecid);
+        HTreeMap<K,Object> ret = new HTreeMap<K,Object>(engine, true, defaultSerializer, serializer, null);
+        engine.setNamedRecid(name, ret.rootRecid);
         Set<K> ret2 = ret.keySet();
         collections.put(name, new WeakReference<Object>(ret2));
         return ret2;
@@ -117,15 +117,15 @@ public class DB {
         checkNotClosed();
         BTreeMap<K,V> ret = (BTreeMap<K,V>) getFromWeakCollection(name);
         if(ret!=null) return ret;
-        Long recid = recman.getNamedRecid(name);
+        Long recid = engine.getNamedRecid(name);
         if(recid!=null){
             //open existing map
-            ret = new BTreeMap<K,V>(recman, recid,defaultSerializer);
+            ret = new BTreeMap<K,V>(engine, recid,defaultSerializer);
             if(CC.ASSERT && !ret.hasValues) throw new ClassCastException("Collection is Set, not Map");
         }else{
             //create new map
-            ret = new BTreeMap<K,V>(recman,BTreeMap.DEFAULT_MAX_NODE_SIZE, true, defaultSerializer, null, null, null);
-            recman.setNamedRecid(name, ret.treeRecid);
+            ret = new BTreeMap<K,V>(engine,BTreeMap.DEFAULT_MAX_NODE_SIZE, true, defaultSerializer, null, null, null);
+            engine.setNamedRecid(name, ret.treeRecid);
         }
         collections.put(name, new WeakReference<Object>(ret));
         return ret;
@@ -135,8 +135,8 @@ public class DB {
     synchronized public <K,V> ConcurrentNavigableMap<K,V> createTreeMap(
             String name, int nodeSize, Serializer<K[]> keySerializer, Serializer<V> valueSerializer, Comparator<K> comparator){
         checkNameNotExists(name);
-        BTreeMap<K,V> ret = new BTreeMap<K,V>(recman, nodeSize, true, defaultSerializer, keySerializer, valueSerializer, comparator);
-        recman.setNamedRecid(name, ret.rootRecid);
+        BTreeMap<K,V> ret = new BTreeMap<K,V>(engine, nodeSize, true, defaultSerializer, keySerializer, valueSerializer, comparator);
+        engine.setNamedRecid(name, ret.rootRecid);
         collections.put(name, new WeakReference<Object>(ret));
         return ret;
     }
@@ -153,16 +153,16 @@ public class DB {
         checkNotClosed();
         NavigableSet<K> ret = (NavigableSet<K>) getFromWeakCollection(name);
         if(ret!=null) return ret;
-        Long recid = recman.getNamedRecid(name);
+        Long recid = engine.getNamedRecid(name);
         if(recid!=null){
             //open existing map
-            BTreeMap<K,Object> m = new BTreeMap<K,Object>(recman,  recid, defaultSerializer);
+            BTreeMap<K,Object> m = new BTreeMap<K,Object>(engine,  recid, defaultSerializer);
             if(CC.ASSERT && m.hasValues) throw new ClassCastException("Collection is Map, not Set");
             ret = m.keySet();
         }else{
             //create new map
-            BTreeMap<K,Object> m =  new BTreeMap<K,Object>(recman,BTreeMap.DEFAULT_MAX_NODE_SIZE,false, defaultSerializer, null, null, null);
-            recman.setNamedRecid(name, m.treeRecid);
+            BTreeMap<K,Object> m =  new BTreeMap<K,Object>(engine,BTreeMap.DEFAULT_MAX_NODE_SIZE,false, defaultSerializer, null, null, null);
+            engine.setNamedRecid(name, m.treeRecid);
             ret = m.keySet();
         }
 
@@ -172,15 +172,15 @@ public class DB {
 
     synchronized public <K> NavigableSet<K> createTreeSet(String name, int nodeSize, Serializer<K[]> serializer, Comparator<K> comparator){
         checkNameNotExists(name);
-        BTreeMap<K,Object> ret = new BTreeMap<K,Object>(recman, nodeSize, true, defaultSerializer, serializer, null, comparator);
-        recman.setNamedRecid(name, ret.rootRecid);
+        BTreeMap<K,Object> ret = new BTreeMap<K,Object>(engine, nodeSize, true, defaultSerializer, serializer, null, comparator);
+        engine.setNamedRecid(name, ret.rootRecid);
         NavigableSet<K> ret2 = ret.keySet();
         collections.put(name, new WeakReference<Object>(ret2));
         return ret2;
     }
 
     protected void checkNameNotExists(String name) {
-        if(recman.getNamedRecid(name)!=null)
+        if(engine.getNamedRecid(name)!=null)
             throw new IllegalArgumentException("Name already used: "+name);
     }
 
@@ -192,9 +192,9 @@ public class DB {
      * !! it is necessary to call this method before JVM exits!!
      */
     synchronized public void close(){
-        recman.close();
+        engine.close();
         //dereference db to prevent memory leaks
-        recman = null;
+        engine = null;
         collections = null;
         defaultSerializer = null;
     }
@@ -214,17 +214,17 @@ public class DB {
 
 
     protected void checkNotClosed() {
-        if(recman == null) throw new IllegalAccessError("DB was already closed");
+        if(engine == null) throw new IllegalAccessError("DB was already closed");
     }
 
     synchronized public void commit() {
         checkNotClosed();
-        recman.commit();
+        engine.commit();
     }
 
     synchronized public void rollback() {
         checkNotClosed();
-        recman.rollback();
+        engine.rollback();
     }
 
     synchronized public void defrag(){

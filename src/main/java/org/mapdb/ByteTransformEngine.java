@@ -9,14 +9,14 @@ import java.nio.ByteBuffer;
  *
  */
 
-public class ByteTransformWrapper implements RecordManager {
+public class ByteTransformEngine implements Engine {
 
 
-    protected RecordManager recman;
+    protected Engine engine;
     protected Serializer<byte[]> blockSerializer;
 
-    public ByteTransformWrapper(RecordManager recman, Serializer<byte[]> blockSerializer) {
-        this.recman = recman;
+    public ByteTransformEngine(Engine engine, Serializer<byte[]> blockSerializer) {
+        this.engine = engine;
         this.blockSerializer = blockSerializer;
     }
 
@@ -25,14 +25,14 @@ public class ByteTransformWrapper implements RecordManager {
         //serialize to byte array, and pass it down with alternative serializer
         try {
             if(value ==null){
-                return recman.recordPut(null, blockSerializer);
+                return engine.recordPut(null, blockSerializer);
             }
 
             DataOutput2 out = new DataOutput2();
             serializer.serialize(out,value);
             byte[] b = out.copyBytes();
 
-            return recman.recordPut(b, blockSerializer);
+            return engine.recordPut(b, blockSerializer);
         } catch (IOException e) {
             throw new IOError(e);
         }
@@ -42,7 +42,7 @@ public class ByteTransformWrapper implements RecordManager {
     public <A> A recordGet(long recid, Serializer<A> serializer) {
         //get decompressed array
         try {
-            byte[] b = recman.recordGet(recid, blockSerializer);
+            byte[] b = engine.recordGet(recid, blockSerializer);
             if(b==null) return null;
 
             //deserialize
@@ -62,7 +62,7 @@ public class ByteTransformWrapper implements RecordManager {
             serializer.serialize(out,value);
             byte[] b = out.copyBytes();
 
-            recman.recordUpdate(recid, b, blockSerializer);
+            engine.recordUpdate(recid, b, blockSerializer);
         } catch (IOException e) {
             throw new IOError(e);
         }
@@ -70,39 +70,39 @@ public class ByteTransformWrapper implements RecordManager {
 
     @Override
     public void recordDelete(long recid) {
-        recman.recordDelete(recid);
+        engine.recordDelete(recid);
     }
 
     @Override
     public Long getNamedRecid(String name) {
-        return recman.getNamedRecid(name);
+        return engine.getNamedRecid(name);
     }
 
     @Override
     public void setNamedRecid(String name, Long recid) {
-        recman.setNamedRecid(name, recid);
+        engine.setNamedRecid(name, recid);
     }
 
     @Override
     public void close() {
-        recman.close();
-        recman = null;
+        engine.close();
+        engine = null;
         blockSerializer = null;
     }
 
     @Override
     public void commit() {
-        recman.commit();
+        engine.commit();
     }
 
     @Override
     public void rollback() {
-        recman.rollback();
+        engine.rollback();
     }
 
     @Override
     public long serializerRecid() {
-        return recman.serializerRecid();
+        return engine.serializerRecid();
     }
 
 }

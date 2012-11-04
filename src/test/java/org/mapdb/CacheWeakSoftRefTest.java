@@ -1,9 +1,6 @@
 package org.mapdb;
 
 import org.junit.Test;
-import org.mapdb.CacheWeakSoftRef;
-import org.mapdb.DB;
-import org.mapdb.DBMaker;
 
 import java.util.Map;
 
@@ -38,14 +35,14 @@ public class CacheWeakSoftRefTest {
         for(Integer i = 0;i<1000;i++){
             m.put(i,i);
         }
-        CacheWeakSoftRef recman = (CacheWeakSoftRef)db.recman;
-        assertTrue(recman.items.size()!=0);
+        CacheWeakSoftRef engine = (CacheWeakSoftRef)db.engine;
+        assertTrue(engine.items.size()!=0);
 
         for(Integer i = 0;i<1000;i++){
             Integer a = m.remove(i);
             assertEquals(i, a);
         }
-        Thread t = recman.queueThread;
+        Thread t = engine.queueThread;
         db.close();
         int counter = 10000;
         while(Thread.State.TERMINATED!=t.getState() && counter>0){

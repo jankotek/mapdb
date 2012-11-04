@@ -12,7 +12,7 @@ import java.nio.channels.FileChannel;
  * Index file data are stored in memory+trans log, phys file data are stored only in transaction log.
  *
  */
-public class StorageTrans extends Storage implements RecordManager{
+public class StorageTrans extends Storage implements Engine {
 
     protected static final long WRITE_INDEX_LONG = 1L <<48;
     protected static final long WRITE_INDEX_LONG_ZERO = 2L <<48;

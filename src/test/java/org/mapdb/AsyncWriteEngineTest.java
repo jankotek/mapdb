@@ -14,14 +14,14 @@ import static junit.framework.Assert.assertNotNull;
 /**
  * @author Jan Kotek
  */
-public class AsyncWriteWrapperTest extends TestFile{
-    AsyncWriteWrapper recman;
+public class AsyncWriteEngineTest extends TestFile{
+    AsyncWriteEngine engine;
 
     @Before public void reopenStore() throws IOException {
         assertNotNull(index);
-        if(recman!=null)
-           recman.close();
-        recman =  new AsyncWriteWrapper(new StorageDirect(index,false,false,false,false), true);
+        if(engine !=null)
+           engine.close();
+        engine =  new AsyncWriteEngine(new StorageDirect(index,false,false,false,false), true);
     }
 
 
@@ -29,14 +29,14 @@ public class AsyncWriteWrapperTest extends TestFile{
 
 
     @Test public void write_fetch_update_delete() throws IOException {
-        long recid = recman.recordPut("aaa",Serializer.STRING_SERIALIZER);
-        Assert.assertEquals("aaa",recman.recordGet(recid, Serializer.STRING_SERIALIZER));
+        long recid = engine.recordPut("aaa",Serializer.STRING_SERIALIZER);
+        Assert.assertEquals("aaa", engine.recordGet(recid, Serializer.STRING_SERIALIZER));
         reopenStore();
-        Assert.assertEquals("aaa",recman.recordGet(recid, Serializer.STRING_SERIALIZER));
-        recman.recordUpdate(recid, "bbb", Serializer.STRING_SERIALIZER);
-        Assert.assertEquals("bbb", recman.recordGet(recid, Serializer.STRING_SERIALIZER));
+        Assert.assertEquals("aaa", engine.recordGet(recid, Serializer.STRING_SERIALIZER));
+        engine.recordUpdate(recid, "bbb", Serializer.STRING_SERIALIZER);
+        Assert.assertEquals("bbb", engine.recordGet(recid, Serializer.STRING_SERIALIZER));
         reopenStore();
-        Assert.assertEquals("bbb",recman.recordGet(recid, Serializer.STRING_SERIALIZER));
+        Assert.assertEquals("bbb", engine.recordGet(recid, Serializer.STRING_SERIALIZER));
 
     }
 
@@ -55,12 +55,12 @@ public class AsyncWriteWrapperTest extends TestFile{
             final int num = i;
             new Thread(new Runnable() {
                 @Override public void run() {
-                    long recid = recman.recordPut("START-",Serializer.STRING_SERIALIZER);
+                    long recid = engine.recordPut("START-",Serializer.STRING_SERIALIZER);
                     recids.put(num, recid);
                     for(int i = 0;i<updates; i++){
-                        String str= recman.recordGet(recid, Serializer.STRING_SERIALIZER);
+                        String str= engine.recordGet(recid, Serializer.STRING_SERIALIZER);
                         str +=num+",";
-                        recman.recordUpdate(recid, str,Serializer.STRING_SERIALIZER);
+                        engine.recordUpdate(recid, str, Serializer.STRING_SERIALIZER);
                     }
                     latch.countDown();
                 }
@@ -81,7 +81,7 @@ public class AsyncWriteWrapperTest extends TestFile{
             for(int j=0;j<updates;j++)
                 expectedStr +=i+",";
 
-            String v = recman.recordGet(recid, Serializer.STRING_SERIALIZER);
+            String v = engine.recordGet(recid, Serializer.STRING_SERIALIZER);
             Assert.assertEquals(expectedStr, v);
         }
 

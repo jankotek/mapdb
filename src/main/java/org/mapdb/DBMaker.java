@@ -346,48 +346,48 @@ public class DBMaker {
             throw new UnsupportedOperationException("Can not open non-existing file in read-only mode.");
         }
 
-        RecordManager recman = _transactionsEnabled?
+        Engine engine = _transactionsEnabled?
                 new StorageTrans(_file, _asyncWriteEnabled, _deleteFilesAfterClose,_readOnly, _appendOnlyEnabled):
                 new StorageDirect(_file, _asyncWriteEnabled, _deleteFilesAfterClose,_readOnly, _appendOnlyEnabled);
 
         if(_asyncWriteEnabled && !_readOnly)
-            recman = new AsyncWriteWrapper(recman, _asyncSerializationEnabled);
+            engine = new AsyncWriteEngine(engine, _asyncSerializationEnabled);
 
         if(_checksumEnabled){
-            recman = new ByteTransformWrapper(recman, new ChecksumCRC32Serializer());
+            engine = new ByteTransformEngine(engine, new ChecksumCRC32Serializer());
         }
 
         if(_xteaEncryptionKey!=null){
-            recman = new ByteTransformWrapper(recman, new EncryptionXTEA(_xteaEncryptionKey));
+            engine = new ByteTransformEngine(engine, new EncryptionXTEA(_xteaEncryptionKey));
         }
 
 
         if(_compressionEnabled){
-            recman = new ByteTransformWrapper(recman, new CompressLZFSerializer());
+            engine = new ByteTransformEngine(engine, new CompressLZFSerializer());
         }
 
 
 
         if(_cache == CACHE_DISABLE){
-            //do not wrap recman in cache
+            //do not wrap engine in cache
         }if(_cache == CACHE_FIXED_HASH_TABLE){
-            recman = new CacheHashTable(recman,_cacheSize);
+            engine = new CacheHashTable(engine,_cacheSize);
         }else if (_cache == CACHE_HARD_REF){
-            recman = new CacheHardRef(recman,_cacheSize);
+            engine = new CacheHardRef(engine,_cacheSize);
         }else if (_cache == CACHE_WEAK_REF){
-            recman = new CacheWeakSoftRef(recman,true);
+            engine = new CacheWeakSoftRef(engine,true);
         }else if (_cache == CACHE_SOFT_REF){
-            recman = new CacheWeakSoftRef(recman,false);
+            engine = new CacheWeakSoftRef(engine,false);
         }
 
        if(_readOnly)
-            recman = new ReadOnlyWrapper(recman);
+            engine = new ReadOnlyEngine(engine);
 
-        final DB db = new DB(recman);
+        final DB db = new DB(engine);
         if(_closeOnJvmShutdown){
             Runtime.getRuntime().addShutdownHook(new Thread("JDBM shutdown") {
                 public void run() {
-                    if (db.recman != null) {
+                    if (db.engine != null) {
                         db.close();
                     }
                 }

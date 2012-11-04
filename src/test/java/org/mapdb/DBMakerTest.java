@@ -1,7 +1,6 @@
 package org.mapdb;
 
 import org.junit.Test;
-import org.mapdb.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -47,8 +46,8 @@ public class DBMakerTest{
                 .cacheDisable()
                 .make();
         verifyDB(db);
-        assertFalse(db.recman.getClass() == CacheHashTable.class);
-        assertTrue(db.recman.getClass() == AsyncWriteWrapper.class);
+        assertFalse(db.engine.getClass() == CacheHashTable.class);
+        assertTrue(db.engine.getClass() == AsyncWriteEngine.class);
     }
 
     @Test
@@ -59,8 +58,8 @@ public class DBMakerTest{
                 .asyncWriteDisable()
                 .make();
         verifyDB(db);
-        assertTrue(db.recman.getClass() == CacheHashTable.class);
-        assertTrue(((CacheHashTable)db.recman).recman.getClass() == StorageDirect.class);
+        assertTrue(db.engine.getClass() == CacheHashTable.class);
+        assertTrue(((CacheHashTable)db.engine).engine.getClass() == StorageDirect.class);
 
     }
 
@@ -72,9 +71,9 @@ public class DBMakerTest{
                 .asyncSerializationDisable()
                 .make();
         verifyDB(db);
-        assertTrue(db.recman.getClass() == CacheHashTable.class);
-        assertTrue(((CacheHashTable)db.recman).recman.getClass() == AsyncWriteWrapper.class);
-        AsyncWriteWrapper r = (AsyncWriteWrapper) ((CacheHashTable)db.recman).recman;
+        assertTrue(db.engine.getClass() == CacheHashTable.class);
+        assertTrue(((CacheHashTable)db.engine).engine.getClass() == AsyncWriteEngine.class);
+        AsyncWriteEngine r = (AsyncWriteEngine) ((CacheHashTable)db.engine).engine;
         assertFalse(r.asyncSerialization);
 
     }
@@ -87,10 +86,10 @@ public class DBMakerTest{
                 .make();
         verifyDB(db);
         //check default values are set
-        assertTrue(db.recman.getClass() == CacheHashTable.class);
-        assertEquals(1024 * 32, ((CacheHashTable) db.recman).cacheMaxSize);
-        assertTrue(((CacheHashTable)db.recman).recman.getClass() == AsyncWriteWrapper.class);
-        AsyncWriteWrapper r = (AsyncWriteWrapper) ((CacheHashTable)db.recman).recman;
+        assertTrue(db.engine.getClass() == CacheHashTable.class);
+        assertEquals(1024 * 32, ((CacheHashTable) db.engine).cacheMaxSize);
+        assertTrue(((CacheHashTable)db.engine).engine.getClass() == AsyncWriteEngine.class);
+        AsyncWriteEngine r = (AsyncWriteEngine) ((CacheHashTable)db.engine).engine;
         assertTrue(r.asyncSerialization);
 
     }
@@ -103,7 +102,7 @@ public class DBMakerTest{
                 .cacheHardRefEnable()
                 .make();
         verifyDB(db);
-        assertTrue(db.recman.getClass() == CacheHardRef.class);
+        assertTrue(db.engine.getClass() == CacheHardRef.class);
     }
 
     @Test
@@ -114,8 +113,8 @@ public class DBMakerTest{
                 .cacheWeakRefEnable()
                 .make();
         verifyDB(db);
-        assertTrue(db.recman.getClass() == CacheWeakSoftRef.class);
-        assertTrue(((CacheWeakSoftRef)db.recman).useWeakRef);
+        assertTrue(db.engine.getClass() == CacheWeakSoftRef.class);
+        assertTrue(((CacheWeakSoftRef)db.engine).useWeakRef);
     }
 
 
@@ -127,8 +126,8 @@ public class DBMakerTest{
                 .cacheSoftRefEnable()
                 .make();
         verifyDB(db);
-        assertTrue(db.recman.getClass() == CacheWeakSoftRef.class);
-        assertFalse(((CacheWeakSoftRef)db.recman).useWeakRef);
+        assertTrue(db.engine.getClass() == CacheWeakSoftRef.class);
+        assertFalse(((CacheWeakSoftRef)db.engine).useWeakRef);
     }
 
     @Test
@@ -139,7 +138,7 @@ public class DBMakerTest{
                 .cacheSize(1000)
                 .make();
         verifyDB(db);
-        assertEquals(1000, ((CacheHashTable) db.recman).cacheMaxSize);
+        assertEquals(1000, ((CacheHashTable) db.engine).cacheMaxSize);
     }
 
     @Test public void read_only() throws IOException {
@@ -151,7 +150,7 @@ public class DBMakerTest{
                 .deleteFilesAfterClose()
                 .readOnly()
                 .make();
-        assertTrue(db.recman instanceof ReadOnlyWrapper);
+        assertTrue(db.engine instanceof ReadOnlyEngine);
         db.close();
     }
 
@@ -167,8 +166,8 @@ public class DBMakerTest{
 
                 .checksumEnable()
                 .make();
-        assertTrue(db.recman instanceof ByteTransformWrapper);
-        assertTrue(((ByteTransformWrapper)db.recman).blockSerializer instanceof ChecksumCRC32Serializer);
+        assertTrue(db.engine instanceof ByteTransformEngine);
+        assertTrue(((ByteTransformEngine)db.engine).blockSerializer instanceof ChecksumCRC32Serializer);
         db.close();
     }
 
@@ -184,8 +183,8 @@ public class DBMakerTest{
 
                 .encryptionEnable("adqdqwd")
                 .make();
-        assertTrue(db.recman instanceof ByteTransformWrapper);
-        assertTrue(((ByteTransformWrapper)db.recman).blockSerializer instanceof EncryptionXTEA);
+        assertTrue(db.engine instanceof ByteTransformEngine);
+        assertTrue(((ByteTransformEngine)db.engine).blockSerializer instanceof EncryptionXTEA);
         db.close();
     }
 
@@ -201,8 +200,8 @@ public class DBMakerTest{
 
                 .compressionEnable()
                 .make();
-        assertTrue(db.recman instanceof ByteTransformWrapper);
-        assertTrue(((ByteTransformWrapper)db.recman).blockSerializer instanceof CompressLZFSerializer);
+        assertTrue(db.engine instanceof ByteTransformEngine);
+        assertTrue(((ByteTransformEngine)db.engine).blockSerializer instanceof CompressLZFSerializer);
         db.close();
     }
 

@@ -8,7 +8,7 @@ package org.mapdb;
  *
  * @author Jan Kotek
  */
-public class CacheHardRef implements RecordManager{
+public class CacheHardRef implements Engine {
 
     protected final LongConcurrentHashMap<Object> cache;
 
@@ -21,39 +21,39 @@ public class CacheHardRef implements RecordManager{
             //TODO clear() may have high overhead, maybe just create new map instance
         }
     };
-    protected final RecordManager recman;
+    protected final Engine engine;
 
-    public CacheHardRef(RecordManager recman, int initialCapacity) {
+    public CacheHardRef(Engine engine, int initialCapacity) {
         this.cache = new LongConcurrentHashMap<Object>(initialCapacity);
-        this.recman = recman;
+        this.engine = engine;
         MemoryLowWarningSystem.addListener(lowMemoryListener);
     }
 
     @Override
     public <A> void recordUpdate(long recid, A value, Serializer<A> serializer) {
         cache.put(recid, value!=null?value:NULL);
-        recman.recordUpdate(recid, value, serializer);
+        engine.recordUpdate(recid, value, serializer);
     }
 
     @Override
     public void recordDelete(long recid) {
         cache.remove(recid);
-        recman.recordDelete(recid);
+        engine.recordDelete(recid);
     }
 
     @Override
     public Long getNamedRecid(String name) {
-        return recman.getNamedRecid(name);
+        return engine.getNamedRecid(name);
     }
 
     @Override
     public void setNamedRecid(String name, Long recid) {
-        recman.setNamedRecid(name, recid);
+        engine.setNamedRecid(name, recid);
     }
 
     @Override
     public <A> long recordPut(A value, Serializer<A> serializer) {
-        final long recid = recman.recordPut(value, serializer);
+        final long recid = engine.recordPut(value, serializer);
         cache.put(recid,value!=null?value:NULL);
         return recid;
     }
@@ -64,7 +64,7 @@ public class CacheHardRef implements RecordManager{
         A v = (A) cache.get(recid);
         if(v==NULL) return null;
         if(v!=null) return v;
-        v =  recman.recordGet(recid, serializer);
+        v =  engine.recordGet(recid, serializer);
         cache.put(recid, v!=null?v:NULL);
         return v;
     }
@@ -72,24 +72,24 @@ public class CacheHardRef implements RecordManager{
     @Override
     public void close() {
         MemoryLowWarningSystem.removeListener(lowMemoryListener);
-        recman.close();
+        engine.close();
     }
 
     @Override
     public void commit() {
-        recman.commit();
+        engine.commit();
     }
 
     @Override
     public void rollback() {
         cache.clear();
-        recman.rollback();
+        engine.rollback();
     }
 
 
     @Override
     public long serializerRecid() {
-        return recman.serializerRecid();
+        return engine.serializerRecid();
     }
 
 
