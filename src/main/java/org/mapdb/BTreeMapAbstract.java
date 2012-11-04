@@ -1,3 +1,13 @@
+
+/*
+ * NOTE: some code (and javadoc) used in this class
+ * comes from Apache Harmony with following copyright:
+ *
+ * Written by Doug Lea with assistance from members of JCP JSR-166
+ * Expert Group and released to the public domain, as explained at
+ * http://creativecommons.org/licenses/publicdomain
+ */
+
 package org.mapdb;
 
 import java.util.AbstractMap;

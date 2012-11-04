@@ -1,3 +1,14 @@
+
+/*
+ * NOTE: some code (and javadoc) used in this class
+ * comes from Apache Harmony with following copyright:
+ *
+ * Written by Doug Lea with assistance from members of JCP JSR-166
+ * Expert Group and released to the public domain, as explained at
+ * http://creativecommons.org/licenses/publicdomain
+ */
+
+
 package org.mapdb;
 
 
@@ -8,7 +19,44 @@ import java.util.*;
 import java.util.concurrent.ConcurrentNavigableMap;
 
 /**
- * Concurrent B-linked-tree.
+ * A scalable concurrent {@link ConcurrentNavigableMap} implementation.
+ * The map is sorted according to the {@linkplain Comparable natural
+ * ordering} of its keys, or by a {@link Comparator} provided at map
+ * creation time.
+ *
+ * <p>Insertion, removal,
+ * update, and access operations safely execute concurrently by
+ * multiple threads.  Iterators are <i>weakly consistent</i>, returning
+ * elements reflecting the state of the map at some point at or since
+ * the creation of the iterator.  They do <em>not</em> throw {@link
+ * ConcurrentModificationException}, and may proceed concurrently with
+ * other operations. Ascending key ordered views and their iterators
+ * are faster than descending ones.
+ *
+ * <p>All <tt>Map.Entry</tt> pairs returned by methods in this class
+ * and its views represent snapshots of mappings at the time they were
+ * produced. They do <em>not</em> support the <tt>Entry.setValue</tt>
+ * method. (Note however that it is possible to change mappings in the
+ * associated map using <tt>put</tt>, <tt>putIfAbsent</tt>, or
+ * <tt>replace</tt>, depending on exactly which effect you need.)
+ *
+ * <p>Beware that, unlike in most collections, the <tt>size</tt>
+ * method is <em>not</em> a constant-time operation. Because of the
+ * asynchronous nature of these maps, determining the current number
+ * of elements requires a traversal of the elements.  Additionally,
+ * the bulk operations <tt>putAll</tt>, <tt>equals</tt>, and
+ * <tt>clear</tt> are <em>not</em> guaranteed to be performed
+ * atomically. For example, an iterator operating concurrently with a
+ * <tt>putAll</tt> operation might view only some of the added
+ * elements.
+ *
+ * <p>This class and its views and iterators implement all of the
+ * <em>optional</em> methods of the {@link Map} and {@link Iterator}
+ * interfaces. Like most other concurrent collections, this class does
+ * <em>not</em> permit the use of <tt>null</tt> keys or values because some
+ * null return values cannot be reliably distinguished from the absence of
+ * elements.
+ *
  */
 @SuppressWarnings("unchecked")
 public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
