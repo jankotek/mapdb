@@ -192,7 +192,6 @@ public abstract class ConcurrentMapInterfaceTest<K, V>
       }
     }
     assertEquals(initialSize, map.size());
-    System.out.println(map.toString());
     assertInvariants(map);
   }
 

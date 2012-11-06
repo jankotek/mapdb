@@ -81,7 +81,16 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     protected final boolean hasValues;
 
     protected long treeRecid;
+
     private final BTreeRootSerializer btreeRootSerializer;
+
+
+    private final KeySet keySet;
+
+    private final EntrySet entrySet = new EntrySet(this);
+
+    private final Values values = new Values(this);
+
 
     static class BTreeRootSerializer implements  Serializer<BTreeRoot>{
         private final Serializer defaultSerializer;
@@ -98,6 +107,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             defaultSerializer.serialize(out, value.keySerializer);
             defaultSerializer.serialize(out, value.valueSerializer);
             defaultSerializer.serialize(out, value.comparator);
+
         }
 
         @Override
@@ -294,6 +304,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         this.keySerializer = keySerializer==null ?  defaultSerializer :  keySerializer;
         this.valueSerializer = valueSerializer==null ? (Serializer<V>) defaultSerializer : valueSerializer;
 
+        this.keySet = new KeySet(this, hasValues);
+
         LeafNode emptyRoot = new LeafNode(new Object[]{null, null}, new Object[]{null, null}, 0);
         this.rootRecid = engine.recordPut(emptyRoot, nodeSerializer);
 
@@ -331,6 +343,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         this.keySerializer = r.keySerializer;
         this.valueSerializer = r.valueSerializer;
         this.comparator = r.comparator;
+
+        this.keySet = new KeySet(this, hasValues);
     }
 
 
@@ -750,7 +764,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
     @Override
     public void clear() {
-        Iterator iter = keySet().iterator();
+        Iterator iter = keyIterator();
         while(iter.hasNext()){
             iter.next();
             iter.remove();
@@ -800,136 +814,6 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
 
 
-    final private NavigableSet<K> keySet = new AbstractSet2<K>(){
-
-        @Override
-        public boolean isEmpty() {
-            return BTreeMap.this.isEmpty();
-        }
-
-        @Override
-        public int size() {
-            return BTreeMap.this.size();
-        }
-
-        @Override
-        public boolean contains(Object o) {
-            return BTreeMap.this.containsKey(o);
-        }
-
-        @Override
-        public K lower(K k) {
-            return notYetImplemented();
-        }
-
-        @Override
-        public K floor(K k) {
-            return notYetImplemented();
-        }
-
-        @Override
-        public K ceiling(K k) {
-            return notYetImplemented();
-        }
-
-        @Override
-        public K higher(K k) {
-            return notYetImplemented();
-        }
-
-        @Override
-        public K pollFirst() {
-            return notYetImplemented();
-        }
-
-        @Override
-        public K pollLast() {
-            return notYetImplemented();
-        }
-
-        @Override
-        public Iterator<K> iterator() {
-            return new BTreeKeyIterator();
-        }
-
-        @Override
-        public NavigableSet<K> descendingSet() {
-            throw new UnsupportedOperationException("Descending iteration not supported.");
-        }
-
-        @Override
-        public Iterator<K> descendingIterator() {
-            throw new UnsupportedOperationException("Descending iteration not supported.");
-        }
-
-        @Override
-        public NavigableSet<K> subSet(K fromElement, boolean fromInclusive, K toElement, boolean toInclusive) {
-            return notYetImplemented();
-        }
-
-        @Override
-        public NavigableSet<K> headSet(K toElement, boolean inclusive) {
-            return subSet(null, true, toElement, inclusive);
-        }
-
-        @Override
-        public NavigableSet<K> tailSet(K fromElement, boolean inclusive) {
-            return subSet(fromElement, inclusive, null, false);
-        }
-
-        @Override
-        public boolean add(K k) {
-            if(BTreeMap.this.hasValues)
-                throw new UnsupportedOperationException();
-            else
-                return BTreeMap.this.put(k, (V) JdbmUtil.EMPTY_STRING) == null;
-        }
-
-        @Override
-        public boolean remove(Object o) {
-            return BTreeMap.this.remove(o)!=null;
-        }
-
-        @Override
-        public void clear() {
-            BTreeMap.this.clear();
-        }
-
-        @Override
-        public Comparator<? super K> comparator() {
-            return BTreeMap.this.comparator();
-        }
-
-        @Override
-        public SortedSet<K> subSet(K fromElement, K toElement) {
-            return subMap(fromElement, toElement).keySet();
-        }
-
-        @Override
-        public SortedSet<K> headSet(K toElement) {
-            return headMap(toElement).keySet();
-        }
-
-        @Override
-        public SortedSet<K> tailSet(K fromElement) {
-            return tailMap(fromElement).keySet();
-        }
-
-        @Override
-        public K first() {
-            return firstKey();
-        }
-
-        @Override
-        public K last() {
-            return lastKey();
-        }
-    };
-
-    @Override
-    public NavigableSet<K> keySet() {
-        return keySet;
-    }
 
     protected Entry<K, V> makeEntry(Object key, Object value) {
         if(value instanceof  LazyRef){
@@ -938,137 +822,10 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         return new SimpleImmutableEntry<K, V>((K)key,  (V)value);
     }
 
-    @Override
-    public NavigableSet<K> descendingKeySet() {
-        throw new UnsupportedOperationException("Descending iteration not supported.");
-    }
-
-    final private Collection<V> values = new AbstractCollection<V>() {
-        @Override
-        public int size() {
-            return BTreeMap.this.size();
-        }
-
-        @Override
-        public boolean isEmpty() {
-            return BTreeMap.this.isEmpty();
-        }
-
-
-        @Override
-        public Iterator<V> iterator() {
-            return new BTreeValueIterator();
-        }
-
-
-        @Override
-        public boolean add(V v) {
-            return false;
-        }
-
-
-
-        @Override
-        public void clear() {
-            BTreeMap.this.clear();
-        }
-    };
-
-    @Override
-    public Collection<V> values() {
-        return values;
-    }
-
-    private final SortedSet<Entry<K, V>> entrySet = new AbstractSet3<Entry<K, V>>(){
-
-        @Override
-        public int size() {
-            return BTreeMap.this.size();
-        }
-
-        @Override
-        public boolean isEmpty() {
-            return BTreeMap.this.isEmpty();
-        }
-
-        @Override
-        public boolean contains(Object o) {
-            if(o instanceof  Entry){
-                Entry e = (Entry) o;
-                Object val = BTreeMap.this.get(e.getKey());
-                return val!=null && val.equals(e.getValue());
-            }else
-                return false;
-        }
-
-        @Override
-        public Iterator<Entry<K, V>> iterator() {
-            return new BTreeEntryIterator();
-        }
-        @Override
-        public boolean add(Entry<K, V> kvEntry) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean remove(Object o) {
-            if(o instanceof Entry){
-                Entry e = (Entry) o;
-                Object key = e.getKey();
-                return key != null && BTreeMap.this.remove(key, e.getValue());
-            }
-            return false;
-        }
-
-        @Override
-        public void clear() {
-            BTreeMap.this.clear();
-        }
-
-        @Override
-        public Comparator<? super Entry<K, V>> comparator() {
-            return new Comparator<Entry<K,V>>() {
-                @Override
-                public int compare(Entry<K, V> o1, Entry<K, V> o2) {
-                    return BTreeMap.this.comparator().compare(o1.getKey(), o2.getKey());
-                }
-            };
-        }
-
-        @Override
-        public SortedSet<Entry<K, V>> subSet(Entry<K, V> fromElement, Entry<K, V> toElement) {
-            return (SortedSet<Entry<K, V>>) subMap(fromElement.getKey(), toElement.getKey()).entrySet();
-        }
-
-        @Override
-        public SortedSet<Entry<K, V>> headSet(Entry<K, V> toElement) {
-            return (SortedSet<Entry<K, V>>) headMap(toElement.getKey()).entrySet();
-        }
-
-        @Override
-        public SortedSet<Entry<K, V>> tailSet(Entry<K, V> fromElement) {
-            return (SortedSet<Entry<K, V>>) tailMap(fromElement.getKey()).entrySet();
-        }
-
-        @Override
-        public Entry<K, V> first() {
-            return firstEntry();
-        }
-
-        @Override
-        public Entry<K, V> last() {
-            return lastEntry();
-        }
-    };
-
-    @Override
-    public SortedSet<Entry<K, V>> entrySet() {
-        return entrySet;
-    }
 
     @Override
     public boolean isEmpty() {
-        return !keySet.iterator().hasNext();
+        return !keyIterator().hasNext();
     }
 
     @Override
@@ -1090,7 +847,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
     @Override
     public boolean remove(Object key, Object value) {
-        if(key == null || value == null) throw new NullPointerException();
+        if(key == null || value == null) return false;
         return remove2(key, value)!=null;
     }
 
@@ -1194,10 +951,6 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         return comparator;
     }
 
-    @Override
-    public ConcurrentNavigableMap<K, V> subMap(K fromKey, boolean fromInclusive, K toKey, boolean toInclusive) {
-        return notYetImplemented();
-    }
 
     @Override
     public Map.Entry<K,V> firstEntry() {
@@ -1217,12 +970,22 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
     @Override
     public Entry<K, V> pollFirstEntry() {
-        return notYetImplemented();
+        while(true){
+            Entry<K, V> e = firstEntry();
+            if(e==null || remove(e.getKey(),e.getValue())){
+                return e;
+            }
+        }
     }
 
     @Override
     public Entry<K, V> pollLastEntry() {
-        return notYetImplemented();
+        while(true){
+            Entry<K, V> e = lastEntry();
+            if(e==null || remove(e.getKey(),e.getValue())){
+                return e;
+            }
+        }
     }
 
 
@@ -1231,8 +994,29 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         return findSmallerRecur(n, key, inclusive);
     }
 
-    private Entry<K, V> findSmallerRecur(BNode n, K key, boolean inclusive) {
-        return notYetImplemented();
+    private Entry<K, V> findSmallerRecur(final BNode n, final K key, final boolean inclusive) {
+        if(n.isLeaf()){
+            final int p = inclusive?0:1;
+            for(int i=0;i<n.keys().length;i++){
+                //find first item not matching condition
+                Object key2 = n.keys()[i];
+                if(key2!=null && comparator.compare(key, key2) <p){
+                    //and return previous
+                    return makeEntry(n.keys()[i-1], n.vals()[i-1]);
+                }
+            }
+
+            //TODO follow next link if nothing found?
+        }else{
+            //TODO follow next
+            final int pos = findChildren(key,n.keys());
+            for(int i=pos; i>=0; i--){
+                BNode n2 = engine.recordGet(n.child()[i], nodeSerializer);
+                Entry<K,V> ret = findSmallerRecur(n2, key, inclusive);
+                if(ret == null) return ret;
+            }
+        }
+        return null;
     }
 
 
@@ -1270,31 +1054,6 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     }
 
 
-    @Override
-    public ConcurrentNavigableMap<K, V> headMap(K toKey, boolean inclusive) {
-        return subMap(null, true, toKey,  inclusive);
-    }
-
-    @Override
-    public ConcurrentNavigableMap<K, V> tailMap(K fromKey, boolean inclusive) {
-        return subMap(fromKey, inclusive, null, false);
-    }
-
-    @Override
-    public ConcurrentNavigableMap<K, V> subMap(K fromKey, K toKey) {
-        return subMap(fromKey, true, toKey, false);
-    }
-
-    @Override
-    public ConcurrentNavigableMap<K, V> headMap(K toKey) {
-        return subMap(null, true, toKey, false);
-    }
-
-    @Override
-    public ConcurrentNavigableMap<K, V> tailMap(K fromKey) {
-        return subMap(fromKey, true, null, false);
-    }
-
 
     public Map.Entry<K,V> lowerEntry(K key) {
         return findSmaller(key, false);
@@ -1321,7 +1080,32 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     }
 
     protected Entry<K, V> findLarger(K key, boolean inclusive) {
-        return notYetImplemented();
+        if(key==null) return null;
+        K v = (K) key;
+        long current = rootRecid;
+        BNode A = engine.recordGet(current, nodeSerializer);
+
+        //dive until  leaf
+        while(!A.isLeaf()){
+            current = nextDir((DirNode) A, v);
+            A = engine.recordGet(current, nodeSerializer);
+        }
+
+        //now at leaf level
+        LeafNode leaf = (LeafNode) A;
+        //follow link until first matching node is found
+        final int comp = inclusive?1:0;
+        while(true){
+            for(int i=0;i<leaf.keys.length;i++){
+                if(leaf.vals[i] == null|| leaf.keys[i]==null) continue;
+
+                if(comparator.compare(key, leaf.keys[i])<comp)
+                    return makeEntry(leaf.keys[i], leaf.vals[i]);
+            }
+            if(leaf.next==0) return null; //reached end
+            leaf = (LeafNode) engine.recordGet(leaf.next, nodeSerializer);
+        }
+
     }
 
 
@@ -1342,19 +1126,6 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
 
 
-    @Override
-    public ConcurrentNavigableMap<K, V> descendingMap() {
-        return notYetImplemented();
-    }
-
-    @Override
-    public NavigableSet<K> navigableKeySet() {
-        return notYetImplemented();
-    }
-
-    protected <E> E notYetImplemented() {
-        throw new InternalError("not yet implemented");
-    }
 
 
     @Override
@@ -1364,7 +1135,13 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
     @Override
     public boolean containsValue(Object value){
-        return values().contains(value);
+        if(value ==null) return false;
+        Iterator<V> valueIter = valueIterator();
+        while(valueIter.hasNext()){
+            if(value.equals(valueIter.next()))
+                return true;
+        }
+        return false;
     }
 
 
@@ -1381,11 +1158,669 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     }
 
 
-
-    private abstract class AbstractSet2<E> extends AbstractSet<E> implements NavigableSet<E> {
+    @Override
+    public ConcurrentNavigableMap<K,V> subMap(K fromKey,
+                                              boolean fromInclusive,
+                                              K toKey,
+                                              boolean toInclusive) {
+        if (fromKey == null || toKey == null)
+            throw new NullPointerException();
+        return new SubMap<K,V>
+                ( this, fromKey, fromInclusive, toKey, toInclusive);
     }
 
-    private abstract class AbstractSet3<E> extends AbstractSet<E> implements SortedSet<E> {
+    @Override
+    public ConcurrentNavigableMap<K,V> headMap(K toKey,
+                                               boolean inclusive) {
+        if (toKey == null)
+            throw new NullPointerException();
+        return new SubMap<K,V>
+                (this, null, false, toKey, inclusive);
+    }
+
+    @Override
+    public ConcurrentNavigableMap<K,V> tailMap(K fromKey,
+                                               boolean inclusive) {
+        if (fromKey == null)
+            throw new NullPointerException();
+        return new SubMap<K,V>
+                (this, fromKey, inclusive, null, false);
+    }
+
+    @Override
+    public ConcurrentNavigableMap<K,V> subMap(K fromKey, K toKey) {
+        return subMap(fromKey, true, toKey, false);
+    }
+
+    @Override
+    public ConcurrentNavigableMap<K,V> headMap(K toKey) {
+        return headMap(toKey, false);
+    }
+
+    @Override
+    public ConcurrentNavigableMap<K,V> tailMap(K fromKey) {
+        return tailMap(fromKey, true);
+    }
+
+
+    Iterator<K> keyIterator() {
+        return new BTreeKeyIterator();
+    }
+
+    Iterator<V> valueIterator() {
+        return new BTreeValueIterator();
+    }
+
+    Iterator<Map.Entry<K,V>> entryIterator() {
+        return new BTreeEntryIterator();
+    }
+
+
+    /* ---------------- View methods -------------- */
+
+    public NavigableSet<K> keySet() {
+        return keySet;
+    }
+
+    public NavigableSet<K> navigableKeySet() {
+        return keySet;
+    }
+
+    public Collection<V> values() {
+        return values;
+    }
+
+    public Set<Map.Entry<K,V>> entrySet() {
+        return entrySet;
+    }
+
+    public ConcurrentNavigableMap<K,V> descendingMap() {
+        throw new UnsupportedOperationException("descending not supported");
+    }
+
+    public NavigableSet<K> descendingKeySet() {
+        throw new UnsupportedOperationException("descending not supported");
+    }
+
+    static final <E> List<E> toList(Collection<E> c) {
+        // Using size() here would be a pessimization.
+        List<E> list = new ArrayList<E>();
+        for (E e : c){
+            list.add(e);
+        }
+        return list;
+    }
+
+
+
+    static final class KeySet<E> extends AbstractSet<E> implements NavigableSet<E> {
+        private final ConcurrentNavigableMap<E,Object> m;
+        private final boolean hasValues;
+        KeySet(ConcurrentNavigableMap<E,Object> map, boolean hasValues) {
+            m = map;
+            this.hasValues = hasValues;
+        }
+        public int size() { return m.size(); }
+        public boolean isEmpty() { return m.isEmpty(); }
+        public boolean contains(Object o) { return m.containsKey(o); }
+        public boolean remove(Object o) { return m.remove(o) != null; }
+        public void clear() { m.clear(); }
+        public E lower(E e) { return m.lowerKey(e); }
+        public E floor(E e) { return m.floorKey(e); }
+        public E ceiling(E e) { return m.ceilingKey(e); }
+        public E higher(E e) { return m.higherKey(e); }
+        public Comparator<? super E> comparator() { return m.comparator(); }
+        public E first() { return m.firstKey(); }
+        public E last() { return m.lastKey(); }
+        public E pollFirst() {
+            Map.Entry<E,Object> e = m.pollFirstEntry();
+            return e == null? null : e.getKey();
+        }
+        public E pollLast() {
+            Map.Entry<E,Object> e = m.pollLastEntry();
+            return e == null? null : e.getKey();
+        }
+        public Iterator<E> iterator() {
+            if (m instanceof BTreeMap)
+                return ((BTreeMap<E,Object>)m).keyIterator();
+            else
+                return ((BTreeMap.SubMap<E,Object>)m).keyIterator();
+        }
+        public boolean equals(Object o) {
+            if (o == this)
+                return true;
+            if (!(o instanceof Set))
+                return false;
+            Collection<?> c = (Collection<?>) o;
+            try {
+                return containsAll(c) && c.containsAll(this);
+            } catch (ClassCastException unused)   {
+                return false;
+            } catch (NullPointerException unused) {
+                return false;
+            }
+        }
+        public Object[] toArray()     { return toList(this).toArray();  }
+        public <T> T[] toArray(T[] a) { return toList(this).toArray(a); }
+        public Iterator<E> descendingIterator() {
+            return descendingSet().iterator();
+        }
+        public NavigableSet<E> subSet(E fromElement,
+                                      boolean fromInclusive,
+                                      E toElement,
+                                      boolean toInclusive) {
+            return new KeySet<E>(m.subMap(fromElement, fromInclusive,
+                    toElement,   toInclusive),true);
+        }
+        public NavigableSet<E> headSet(E toElement, boolean inclusive) {
+            return new KeySet<E>(m.headMap(toElement, inclusive),hasValues);
+        }
+        public NavigableSet<E> tailSet(E fromElement, boolean inclusive) {
+            return new KeySet<E>(m.tailMap(fromElement, inclusive),hasValues);
+        }
+        public NavigableSet<E> subSet(E fromElement, E toElement) {
+            return subSet(fromElement, true, toElement, false);
+        }
+        public NavigableSet<E> headSet(E toElement) {
+            return headSet(toElement, false);
+        }
+        public NavigableSet<E> tailSet(E fromElement) {
+            return tailSet(fromElement, true);
+        }
+        public NavigableSet<E> descendingSet() {
+            return new KeySet(m.descendingMap(),hasValues);
+        }
+
+        @Override
+        public boolean add(E k) {
+            if(hasValues)
+                throw new UnsupportedOperationException();
+            else
+                return m.put(k,  JdbmUtil.EMPTY_STRING) == null;
+        }
+    }
+
+    static final class Values<E> extends AbstractCollection<E> {
+        private final ConcurrentNavigableMap<Object, E> m;
+        Values(ConcurrentNavigableMap<Object, E> map) {
+            m = map;
+        }
+        public Iterator<E> iterator() {
+            if (m instanceof BTreeMap)
+                return ((BTreeMap<Object,E>)m).valueIterator();
+            else
+                return ((SubMap<Object,E>)m).valueIterator();
+        }
+        public boolean isEmpty() {
+            return m.isEmpty();
+        }
+        public int size() {
+            return m.size();
+        }
+        public boolean contains(Object o) {
+            return m.containsValue(o);
+        }
+        public void clear() {
+            m.clear();
+        }
+        public Object[] toArray()     { return toList(this).toArray();  }
+        public <T> T[] toArray(T[] a) { return toList(this).toArray(a); }
+    }
+
+    static final class EntrySet<K1,V1> extends AbstractSet<Map.Entry<K1,V1>> {
+        private final ConcurrentNavigableMap<K1, V1> m;
+        EntrySet(ConcurrentNavigableMap<K1, V1> map) {
+            m = map;
+        }
+
+        public Iterator<Map.Entry<K1,V1>> iterator() {
+            if (m instanceof BTreeMap)
+                return ((BTreeMap<K1,V1>)m).entryIterator();
+            else
+                return ((SubMap<K1,V1>)m).entryIterator();
+        }
+
+        public boolean contains(Object o) {
+            if (!(o instanceof Map.Entry))
+                return false;
+            Map.Entry<K1,V1> e = (Map.Entry<K1,V1>)o;
+            V1 v = m.get(e.getKey());
+            return v != null && v.equals(e.getValue());
+        }
+        public boolean remove(Object o) {
+            if (!(o instanceof Map.Entry))
+                return false;
+            Map.Entry<K1,V1> e = (Map.Entry<K1,V1>)o;
+            return m.remove(e.getKey(),
+                    e.getValue());
+        }
+        public boolean isEmpty() {
+            return m.isEmpty();
+        }
+        public int size() {
+            return m.size();
+        }
+        public void clear() {
+            m.clear();
+        }
+        public boolean equals(Object o) {
+            if (o == this)
+                return true;
+            if (!(o instanceof Set))
+                return false;
+            Collection<?> c = (Collection<?>) o;
+            try {
+                return containsAll(c) && c.containsAll(this);
+            } catch (ClassCastException unused)   {
+                return false;
+            } catch (NullPointerException unused) {
+                return false;
+            }
+        }
+        public Object[] toArray()     { return toList(this).toArray();  }
+        public <T> T[] toArray(T[] a) { return toList(this).toArray(a); }
+    }
+
+
+
+    static protected  class SubMap<K,V> extends AbstractMap<K,V> implements  ConcurrentNavigableMap<K,V> {
+
+        protected final BTreeMap<K,V> m;
+
+        protected final K lo;
+        protected final boolean loInclusive;
+
+        protected final K hi;
+        protected final boolean hiInclusive;
+
+        public SubMap(BTreeMap<K,V> m, K lo, boolean loInclusive, K hi, boolean hiInclusive) {
+            this.m = m;
+            this.lo = lo;
+            this.loInclusive = loInclusive;
+            this.hi = hi;
+            this.hiInclusive = hiInclusive;
+            if(CC.ASSERT && lo!=null && hi!=null && m.comparator.compare(lo, hi)>0)
+                throw new IllegalArgumentException();
+        }
+
+
+
+
+/* ----------------  Map API methods -------------- */
+
+        public boolean containsKey(Object key) {
+            if (key == null) throw new NullPointerException();
+            K k = (K)key;
+            return inBounds(k) && m.containsKey(k);
+        }
+
+        public V get(Object key) {
+            if (key == null) throw new NullPointerException();
+            K k = (K)key;
+            return ((!inBounds(k)) ? null : m.get(k));
+        }
+
+        public V put(K key, V value) {
+            checkKeyBounds(key);
+            return m.put(key, value);
+        }
+
+        public V remove(Object key) {
+            K k = (K)key;
+            return (!inBounds(k))? null : m.remove(k);
+        }
+
+        @Override
+        public int size() {
+            Iterator<K> i = keyIterator();
+            int counter = 0;
+            while(i.hasNext()){
+                counter++;
+                i.next();
+            }
+            return counter;
+        }
+
+        public boolean isEmpty() {
+            return !keyIterator().hasNext();
+        }
+
+        public boolean containsValue(Object value) {
+            if(value==null) return false;
+            Iterator<V> i = valueIterator();
+            while(i.hasNext()){
+                if(value.equals(i.next()))
+                    return true;
+            }
+            return false;
+        }
+
+        public void clear() {
+            Iterator<K> i = keyIterator();
+            while(i.hasNext()){
+                i.next();
+                i.remove();
+            }
+        }
+
+
+        /* ----------------  ConcurrentMap API methods -------------- */
+
+        public V putIfAbsent(K key, V value) {
+            checkKeyBounds(key);
+            return m.putIfAbsent(key, value);
+        }
+
+        public boolean remove(Object key, Object value) {
+            K k = (K)key;
+            return inBounds(k) && m.remove(k, value);
+        }
+
+        public boolean replace(K key, V oldValue, V newValue) {
+            checkKeyBounds(key);
+            return m.replace(key, oldValue, newValue);
+        }
+
+        public V replace(K key, V value) {
+            checkKeyBounds(key);
+            return m.replace(key, value);
+        }
+
+        /* ----------------  SortedMap API methods -------------- */
+
+        public Comparator<? super K> comparator() {
+            return m.comparator();
+        }
+
+        /* ----------------  Relational methods -------------- */
+
+        public Map.Entry<K,V> lowerEntry(K key) {
+            Entry<K,V> r = m.lowerEntry(key);
+            return r!=null && inBounds(r.getKey()) ? r : null;
+        }
+
+        public K lowerKey(K key) {
+            Entry<K,V> n = lowerEntry(key);
+            return (n == null)? null : n.getKey();
+        }
+
+        public Map.Entry<K,V> floorEntry(K key) {
+            Entry<K,V> r = m.floorEntry(key);
+            return r!=null && inBounds(r.getKey()) ? r : null;
+        }
+
+        public K floorKey(K key) {
+            Entry<K,V> n = floorEntry(key);
+            return (n == null)? null : n.getKey();
+        }
+
+        public Map.Entry<K,V> ceilingEntry(K key) {
+            Entry<K,V> r = m.ceilingEntry(key);
+            return r!=null && inBounds(r.getKey()) ? r : null;
+        }
+
+        @Override
+        public K ceilingKey(K key) {
+            Entry<K,V> k = ceilingEntry(key);
+            return k!=null? k.getKey():null;
+        }
+
+        @Override
+        public Entry<K, V> higherEntry(K key) {
+            Entry<K,V> r = m.higherEntry(key);
+            return r!=null && inBounds(r.getKey()) ? r : null;
+        }
+
+        @Override
+        public K higherKey(K key) {
+            Entry<K,V> k = higherEntry(key);
+            return k!=null? k.getKey():null;
+        }
+
+
+        public K firstKey() {
+            Entry<K,V> k = firstEntry();
+            return k!=null? k.getKey() : null;
+        }
+
+        public K lastKey() {
+            Entry<K,V> k = lastEntry();
+            return k!=null? k.getKey() : null;
+        }
+
+
+        public Map.Entry<K,V> firstEntry() {
+            Entry<K,V> k =
+                    lo==null ?
+                    m.firstEntry():
+                    m.findLarger(lo, loInclusive);
+            return k!=null && inBounds(k.getKey())? k : null;
+
+        }
+
+        public Map.Entry<K,V> lastEntry() {
+            Entry<K,V> k =
+                    hi==null ?
+                    m.lastEntry():
+                    m.findSmaller(hi, hiInclusive);
+            return k!=null && inBounds(k.getKey())? k : null;
+        }
+
+        @Override
+        public Entry<K, V> pollFirstEntry() {
+            while(true){
+                Entry<K, V> e = firstEntry();
+                if(e==null || remove(e.getKey(),e.getValue())){
+                    return e;
+                }
+            }
+        }
+
+        @Override
+        public Entry<K, V> pollLastEntry() {
+            while(true){
+                Entry<K, V> e = lastEntry();
+                if(e==null || remove(e.getKey(),e.getValue())){
+                    return e;
+                }
+            }
+        }
+
+
+
+
+        /**
+         * Utility to create submaps, where given bounds override
+         * unbounded(null) ones and/or are checked against bounded ones.
+         */
+        private SubMap<K,V> newSubMap(K fromKey,
+                                      boolean fromInclusive,
+                                      K toKey,
+                                      boolean toInclusive) {
+            if (lo != null) {
+                if (fromKey == null) {
+                    fromKey = lo;
+                    fromInclusive = loInclusive;
+                }
+                else {
+                    int c = m.comparator.compare(fromKey, lo);
+                    if (c < 0 || (c == 0 && !loInclusive && fromInclusive))
+                        throw new IllegalArgumentException("key out of range");
+                }
+            }
+            if (hi != null) {
+                if (toKey == null) {
+                    toKey = hi;
+                    toInclusive = hiInclusive;
+                }
+                else {
+                    int c = m.comparator.compare(toKey, hi);
+                    if (c > 0 || (c == 0 && !hiInclusive && toInclusive))
+                        throw new IllegalArgumentException("key out of range");
+                }
+            }
+            return new SubMap<K,V>(m, fromKey, fromInclusive,
+                    toKey, toInclusive);
+        }
+
+        public SubMap<K,V> subMap(K fromKey,
+                                  boolean fromInclusive,
+                                  K toKey,
+                                  boolean toInclusive) {
+            if (fromKey == null || toKey == null)
+                throw new NullPointerException();
+            return newSubMap(fromKey, fromInclusive, toKey, toInclusive);
+        }
+
+        public SubMap<K,V> headMap(K toKey,
+                                   boolean inclusive) {
+            if (toKey == null)
+                throw new NullPointerException();
+            return newSubMap(null, false, toKey, inclusive);
+        }
+
+        public SubMap<K,V> tailMap(K fromKey,
+                                   boolean inclusive) {
+            if (fromKey == null)
+                throw new NullPointerException();
+            return newSubMap(fromKey, inclusive, null, false);
+        }
+
+        public SubMap<K,V> subMap(K fromKey, K toKey) {
+            return subMap(fromKey, true, toKey, false);
+        }
+
+        public SubMap<K,V> headMap(K toKey) {
+            return headMap(toKey, false);
+        }
+
+        public SubMap<K,V> tailMap(K fromKey) {
+            return tailMap(fromKey, true);
+        }
+
+        public SubMap<K,V> descendingMap() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public NavigableSet<K> navigableKeySet() {
+            return new KeySet<K>((ConcurrentNavigableMap<K,Object>) this,m.hasValues);
+        }
+
+
+        /* ----------------  Utilities -------------- */
+
+
+
+        private boolean tooLow(K key) {
+            if (lo != null) {
+                int c = m.comparator.compare(key, lo);
+                if (c < 0 || (c == 0 && !loInclusive))
+                    return true;
+            }
+            return false;
+        }
+
+        private boolean tooHigh(K key) {
+            if (hi != null) {
+                int c = m.comparator.compare(key, hi);
+                if (c > 0 || (c == 0 && !hiInclusive))
+                    return true;
+            }
+            return false;
+        }
+
+        private boolean inBounds(K key) {
+            return !tooLow(key) && !tooHigh(key);
+        }
+
+        private void checkKeyBounds(K key) throws IllegalArgumentException {
+            if (key == null)
+                throw new NullPointerException();
+            if (!inBounds(key))
+                throw new IllegalArgumentException("key out of range");
+        }
+
+
+
+
+
+        @Override
+        public NavigableSet<K> keySet() {
+            return new KeySet<K>((ConcurrentNavigableMap<K,Object>) this, m.hasValues);
+        }
+
+        @Override
+        public NavigableSet<K> descendingKeySet() {
+            throw new UnsupportedOperationException("Descending not supported");
+        }
+
+
+
+        @Override
+        public Set<Entry<K, V>> entrySet() {
+            return new EntrySet<K, V>(this);
+        }
+
+
+        /*
+         * ITERATORS
+         */
+
+        abstract class Iter<E> implements Iterator<E> {
+            Entry<K,V> current = SubMap.this.firstEntry();
+            Entry<K,V> last = null;
+
+
+            public boolean hasNext() {
+                return current!=null;
+            }
+
+
+            public void advance() {
+                if(current==null) throw new NoSuchElementException();
+                last = current;
+                current = SubMap.this.higherEntry(current.getKey());
+            }
+
+            public void remove() {
+                if(last==null) throw new IllegalStateException();
+                SubMap.this.remove(last.getKey());
+                last = null;
+            }
+
+        }
+        Iterator<K> keyIterator() {
+            return new Iter<K>() {
+                @Override
+                public K next() {
+                    advance();
+                    return last.getKey();
+                }
+            };
+        }
+
+        Iterator<V> valueIterator() {
+            return new Iter<V>() {
+
+                @Override
+                public V next() {
+                    advance();
+                    return last.getValue();
+                }
+            };
+        }
+
+        Iterator<Map.Entry<K,V>> entryIterator() {
+            return new Iter<Entry<K, V>>() {
+                @Override
+                public Entry<K, V> next() {
+                    advance();
+                    return last;
+                }
+            };
+        }
+
     }
 
 
