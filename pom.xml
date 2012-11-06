@@ -28,9 +28,9 @@
     </developers>
 
     <scm>
-        <connection>scm:git:git@github.com:jankotek/JDBM4.git</connection>
-        <developerConnection>scm:git:git@github.com:jankotek/JDBM4.git</developerConnection>
-        <url>git@github.com:jankotek/JDBM4.git</url>
+        <connection>scm:git:git@github.com:jankotek/MapDB.git</connection>
+        <developerConnection>scm:git:git@github.com:jankotek/MapDB.git</developerConnection>
+        <url>git@github.com:jankotek/MapDB.git</url>
     </scm>
 
     <properties>
