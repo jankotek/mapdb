@@ -5,6 +5,10 @@ import org.junit.Test;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
+import java.util.NavigableSet;
+import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentNavigableMap;
 
 import static org.junit.Assert.*;
 
@@ -215,4 +219,29 @@ public class DBMakerTest{
                 .deleteFilesAfterClose()
                 .make();
     }
+
+    @Test public void tempTreeMap(){
+        ConcurrentNavigableMap<Long,String> m = DBMaker.newTempTreeMap();
+        m.put(111L,"wfjie");
+        assertTrue(m.getClass().getName().contains("BTreeMap"));
+    }
+
+    @Test public void tempHashMap(){
+        ConcurrentMap<Long,String> m = DBMaker.newTempHashMap();
+        m.put(111L,"wfjie");
+        assertTrue(m.getClass().getName().contains("HTreeMap"));
+    }
+
+    @Test public void tempHashSet(){
+        Set<Long> m = DBMaker.newTempHashSet();
+        m.add(111L);
+        assertTrue(m.getClass().getName().contains("HTreeMap"));
+    }
+
+    @Test public void tempTreeSet(){
+        NavigableSet<Long> m = DBMaker.newTempTreeSet();
+        m.add(111L);
+        assertTrue(m.getClass().getName().contains("BTreeMap"));
+    }
+
 }

@@ -45,6 +45,8 @@ public abstract class MapInterfaceTest<K, V> extends TestCase {
     protected final boolean allowsNullKeys;
     protected final boolean allowsNullValues;
     protected final boolean supportsIteratorRemove;
+    protected final boolean supportsEntrySetValue;
+
 
     /**
      * Creates a new, empty instance of the class under test.
@@ -98,13 +100,16 @@ public abstract class MapInterfaceTest<K, V> extends TestCase {
             boolean supportsPut,
             boolean supportsRemove,
             boolean supportsClear,
-            boolean supportsIteratorRemove) {
+            boolean supportsIteratorRemove,
+            boolean supportsEntrySetValue) {
         this.supportsPut = supportsPut;
         this.supportsRemove = supportsRemove;
         this.supportsClear = supportsClear;
         this.allowsNullKeys = allowsNullKeys;
         this.allowsNullValues = allowsNullValues;
         this.supportsIteratorRemove = supportsIteratorRemove;
+        this.supportsEntrySetValue = supportsEntrySetValue;
+
     }
 
     /**
@@ -187,7 +192,7 @@ public abstract class MapInterfaceTest<K, V> extends TestCase {
             int expectedEntrySetHash = 0;
             for (Entry<K, V> entry : entrySet) {
                 assertTrue(map.containsKey(entry.getKey()));
-                assertTrue(map.containsValue(entry.getValue()));
+                assertTrue(entry.toString(), map.containsValue(entry.getValue()));
                 int expectedHash =
                         (entry.getKey() == null ? 0 : entry.getKey().hashCode()) ^
                                 (entry.getValue() == null ? 0 : entry.getValue().hashCode());
@@ -734,7 +739,7 @@ public abstract class MapInterfaceTest<K, V> extends TestCase {
     public void testEntrySetSetValue() {
         // TODO: Investigate the extent to which, in practice, maps that support
         // put() also support Entry.setValue().
-        if (!supportsPut) {
+        if (!supportsPut || !supportsEntrySetValue) {
             return;
         }
 
@@ -759,9 +764,10 @@ public abstract class MapInterfaceTest<K, V> extends TestCase {
     }
 
     public void testEntrySetSetValueSameValue() {
+
         // TODO: Investigate the extent to which, in practice, maps that support
         // put() also support Entry.setValue().
-        if (!supportsPut) {
+        if (!supportsPut || !supportsEntrySetValue) {
             return;
         }
 

@@ -114,6 +114,34 @@ public interface Serializer<A> {
     @SuppressWarnings("unchecked")
     Serializer<Object> BASIC_SERIALIZER = new SerializerBase();
 
+    /** Basic serializer for most classes in 'java.lang' and 'java.util' packages.
+     * This serializer simulates CPU intensive (de)serialization by adding some calculations to slow down CPU.*/
+    @SuppressWarnings("unchecked")
+    Serializer<Object> SLOW_BASIC_SERIALIZER = new Serializer<Object>(){
+
+        private void slowDown(){
+            long result = 0;
+            long t = System.currentTimeMillis();
+            while(t==System.currentTimeMillis()){
+                result += 1;
+                if(result==Long.MIN_VALUE) result++;
+            }
+            if(result==Long.MIN_VALUE)
+                throw new InternalError(); //this will never happen thanks to condition in loop;
+        }
+
+        @Override
+        public void serialize(DataOutput out, Object value) throws IOException {
+            slowDown();
+            BASIC_SERIALIZER.serialize(out, value);
+        }
+
+        @Override
+        public Object deserialize(DataInput in, int available) throws IOException {
+            slowDown();
+            return BASIC_SERIALIZER.deserialize(in, available);
+        }
+    };
 
 }
 

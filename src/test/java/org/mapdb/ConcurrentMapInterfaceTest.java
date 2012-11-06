@@ -34,9 +34,9 @@ public abstract class ConcurrentMapInterfaceTest<K, V>
 
   protected ConcurrentMapInterfaceTest(boolean allowsNullKeys,
       boolean allowsNullValues, boolean supportsPut, boolean supportsRemove,
-      boolean supportsClear, boolean supportsIteratorRemove) {
+      boolean supportsClear, boolean supportsIteratorRemove, boolean supportsEntrySetValue) {
     super(allowsNullKeys, allowsNullValues, supportsPut, supportsRemove,
-        supportsClear,supportsIteratorRemove);
+        supportsClear,supportsIteratorRemove, supportsEntrySetValue);
   }
 
   /**
@@ -192,6 +192,7 @@ public abstract class ConcurrentMapInterfaceTest<K, V>
       }
     }
     assertEquals(initialSize, map.size());
+    System.out.println(map.toString());
     assertInvariants(map);
   }
 

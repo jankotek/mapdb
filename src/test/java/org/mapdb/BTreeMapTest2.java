@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentMap;
 public class BTreeMapTest2 extends ConcurrentMapInterfaceTest<Integer, String> {
 
     public BTreeMapTest2() {
-        super(false, false, true, true, true, true);
+        super(false, false, true, true, true, true, false);
     }
 
     Engine r = new StorageDirect(null,false,true,false,false);

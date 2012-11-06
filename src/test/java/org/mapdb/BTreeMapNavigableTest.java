@@ -59,7 +59,6 @@ import java.util.Map.Entry;
  * @author luc peuvrier
  * 
  */
-@Ignore
 public class BTreeMapNavigableTest extends TestCase {
 
 	private static final String MUST_NOT_CONTAINS_KD = "must not contains 'kd'";

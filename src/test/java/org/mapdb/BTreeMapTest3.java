@@ -15,12 +15,11 @@ import java.util.concurrent.ConcurrentNavigableMap;
  * @author Jared Levy
  *
  */
-@Ignore
 public class BTreeMapTest3
         extends ConcurrentMapInterfaceTest<Integer, String> {
 
     public BTreeMapTest3() {
-        super(false, false, true, true, true, true);
+        super(false, false, true, true, true, true, false);
     }
 
 

@@ -10,7 +10,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 /**
  * StorageDirect which stores all modifications in memory.
  * All changes are written into store asynchronously in background thread.
- * This store is nearly lock free and provides high concurrent scalability.
  * <p/>
  *  This store does not provide cache. Changes are stored in memory only for
  *  queue and are written to store ASAP.
@@ -36,6 +35,8 @@ public class AsyncWriteEngine implements Engine {
     private boolean shutdownSignal = false;
     private CountDownLatch shutdownResponse = new CountDownLatch(1);
 
+    protected final ReentrantReadWriteLock commitLock = new ReentrantReadWriteLock();
+
     final protected Object writerNotify = new Object();
 
     protected Engine engine;
@@ -58,7 +59,8 @@ public class AsyncWriteEngine implements Engine {
                 }
 
                 synchronized (writerNotify){
-                    writerNotify.wait(1000); //TODO deadlock was reported here (remove 1000)
+                    writerNotify.wait();
+                    //writerNotify.wait(1000); //check write conditions every N seconds to prevent possible deadlock
                 }
             }
 
@@ -96,7 +98,7 @@ public class AsyncWriteEngine implements Engine {
         }
     }
 
-    private ArrayBlockingQueue<Long> newRecids = new ArrayBlockingQueue<Long>(128);
+    protected final ArrayBlockingQueue<Long> newRecids = new ArrayBlockingQueue<Long>(128);
 
 
     public AsyncWriteEngine(Engine engine, boolean asyncSerialization) {
@@ -124,23 +126,34 @@ public class AsyncWriteEngine implements Engine {
             }
             v = out.copyBytes();
         }
-        Object previous = writes.put(recid,v);
-        synchronized (writerNotify){
-            writerNotify.notify();
+        try{
+            commitLock.readLock().lock();
+
+            Object previous = writes.put(recid,v);
+            synchronized (writerNotify){
+                writerNotify.notify();
+            }
+            if(previous== DELETED){
+                throw new IllegalArgumentException("Recid was deleted: "+recid);
+            }
+        }finally{
+            commitLock.readLock().unlock();
         }
 
-        if(previous== DELETED){
-            throw new IllegalArgumentException("Recid was deleted: "+recid);
-        }
     }
 
     @Override
     public void recordDelete(long recid) {
         if(rethrow!=null) throw new RuntimeException(rethrow);
         if(CC.ASSERT&& recid == 0) throw new InternalError();
-        writes.put(recid, DELETED);
-        synchronized (writerNotify){
-            writerNotify.notify();
+        try{
+            commitLock.readLock().lock();
+            writes.put(recid, DELETED);
+            synchronized (writerNotify){
+                writerNotify.notify();
+            }
+        }finally{
+            commitLock.readLock().unlock();
         }
     }
 
@@ -178,12 +191,18 @@ public class AsyncWriteEngine implements Engine {
                 v= out.copyBytes();
             }
 
-            final long newRecid = newRecids.take();
-            writes.put(newRecid, v);
-            synchronized (writerNotify){
-                writerNotify.notify();
+            try{
+                commitLock.readLock().lock();
+                final long newRecid = newRecids.take();
+                writes.put(newRecid, v);
+                synchronized (writerNotify){
+                    writerNotify.notify();
+                }
+                return newRecid;
+            }finally{
+                commitLock.readLock().unlock();
             }
-        return newRecid;
+
         } catch (IOException e) {
             throw new IOError(e);
         }catch(InterruptedException e){
@@ -249,9 +268,16 @@ public class AsyncWriteEngine implements Engine {
     public void commit() {
         try{
             grandLock.writeLock().lock();
-            engine.commit();
+            try{
+                commitLock.writeLock().lock();
+                engine.commit();
+            }finally{
+                commitLock.writeLock().unlock();
+            }
+
         }finally {
             grandLock.writeLock().unlock();
+
         }
     }
 
@@ -260,7 +286,12 @@ public class AsyncWriteEngine implements Engine {
         //TODO drop cache here?
         try{
             grandLock.writeLock().lock();
-            engine.rollback();
+            try{
+                commitLock.writeLock().lock();
+                engine.rollback();
+            }finally{
+                commitLock.writeLock().unlock();
+            }
         }finally {
             grandLock.writeLock().unlock();
         }

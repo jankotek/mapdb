@@ -4,6 +4,10 @@ import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.NavigableSet;
+import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentNavigableMap;
 
 /**
  * A builder class for creating and opening a database.
@@ -52,6 +56,66 @@ public class DBMaker {
         return  m;
     }
 
+
+    /**
+     * Create new BTreeMap backed by temporary file storage.
+     * This is quick way to create 'throw away' collection.
+     *
+     * </p>Storage is created in temp folder and deleted on JVM shutdown
+     */
+    public static <K,V> ConcurrentNavigableMap<K,V> newTempTreeMap(){
+        return newTempFileDB()
+                .deleteFilesAfterClose()
+                .closeOnJvmShutdown()
+                .transactionDisable()
+                .make()
+                .getTreeMap("temp");
+    }
+
+    /**
+     * Create new HTreeMap backed by temporary file storage.
+     * This is quick way to create 'throw away' collection.
+     *
+     * </p>Storage is created in temp folder and deleted on JVM shutdown
+     */
+    public static <K,V> ConcurrentMap<K,V> newTempHashMap(){
+        return newTempFileDB()
+                .deleteFilesAfterClose()
+                .closeOnJvmShutdown()
+                .transactionDisable()
+                .make()
+                .getHashMap("temp");
+    }
+
+    /**
+     * Create new TreeSet backed by temporary file storage.
+     * This is quick way to create 'throw away' collection.
+     *
+     * </p>Storage is created in temp folder and deleted on JVM shutdown
+     */
+    public static <K> NavigableSet<K> newTempTreeSet(){
+        return newTempFileDB()
+                .deleteFilesAfterClose()
+                .closeOnJvmShutdown()
+                .transactionDisable()
+                .make()
+                .getTreeSet("temp");
+    }
+
+    /**
+     * Create new HashSet backed by temporary file storage.
+     * This is quick way to create 'throw away' collection.
+     *
+     * </p>Storage is created in temp folder and deleted on JVM shutdown
+     */
+    public static <K> Set<K> newTempHashSet(){
+        return newTempFileDB()
+                .deleteFilesAfterClose()
+                .closeOnJvmShutdown()
+                .transactionDisable()
+                .make()
+                .getHashSet("temp");
+    }
 
     /**
      * Creates new database in temporary folder.

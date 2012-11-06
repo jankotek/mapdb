@@ -6,7 +6,6 @@ import org.mapdb.DBMaker;
 
 import java.util.*;
 
-@Ignore
 public  class BTreeMapNavigable2Test extends TestCase
 {
 	static NavigableMap<Integer, String> map;
@@ -200,23 +199,22 @@ public  class BTreeMapNavigable2Test extends TestCase
 		assertEquals(e.getValue(), "ten");
 	}
 	
-//
-//  TODO implement this
-//	public void testDescendingMap()
-//	{
-//		NavigableMap<Integer, String> desMap = map.descendingMap();
-//		Set<AbstractMap.Entry<Integer,String>> entrySet1 = map.entrySet();
-//		Set<AbstractMap.Entry<Integer,String>> entrySet2 = desMap.entrySet();
-//		AbstractMap.Entry<Integer,String>[] arr1 = entrySet1.toArray(new AbstractMap.Entry[0]);
-//		AbstractMap.Entry<Integer,String>[] arr2 = entrySet2.toArray(new AbstractMap.Entry[0]);
-//
-//		int size = arr1.length;
-//		assertEquals(arr1.length, arr2.length);
-//		for (int i = 0; i < arr1.length; i++)
-//		{
-//			assertEquals(arr1[i], arr2[size-1-i]);
-//		}
-//	}
+    @Ignore
+	public void testDescendingMap()
+	{
+		NavigableMap<Integer, String> desMap = map.descendingMap();
+		Set<AbstractMap.Entry<Integer,String>> entrySet1 = map.entrySet();
+		Set<AbstractMap.Entry<Integer,String>> entrySet2 = desMap.entrySet();
+		AbstractMap.Entry<Integer,String>[] arr1 = entrySet1.toArray(new AbstractMap.Entry[0]);
+		AbstractMap.Entry<Integer,String>[] arr2 = entrySet2.toArray(new AbstractMap.Entry[0]);
+
+		int size = arr1.length;
+		assertEquals(arr1.length, arr2.length);
+		for (int i = 0; i < arr1.length; i++)
+		{
+			assertEquals(arr1[i], arr2[size-1-i]);
+		}
+	}
 	
 	
 	public void testNavigableKeySet()
@@ -233,22 +231,21 @@ public  class BTreeMapNavigable2Test extends TestCase
 		assertNull(map.get(2));
 	}
 
-//  TODO implement this
-//
-//	public void testDescendingKeySet()
-//	{
-//		Set<Integer> keySet1 = map.keySet();
-//		Set<Integer> keySet2 = map.descendingKeySet();
-//
-//		Integer[] arr1 = keySet1.toArray(new Integer[0]);
-//		Integer[] arr2 = keySet2.toArray(new Integer[0]);
-//		int size = arr1.length;
-//		assertEquals(arr1.length, arr2.length);
-//		for (int i = 0; i < size; i++)
-//		{
-//			assertEquals(arr1[i],arr2[size-1-i]);
-//		}
-//	}
+
+	public void testDescendingKeySet()
+	{
+		Set<Integer> keySet1 = map.keySet();
+		Set<Integer> keySet2 = map.descendingKeySet();
+
+		Integer[] arr1 = keySet1.toArray(new Integer[0]);
+		Integer[] arr2 = keySet2.toArray(new Integer[0]);
+		int size = arr1.length;
+		assertEquals(arr1.length, arr2.length);
+		for (int i = 0; i < size; i++)
+		{
+			assertEquals(arr1[i],arr2[size-1-i]);
+		}
+	}
 	
 	
 	public void testSubMap()

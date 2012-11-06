@@ -59,8 +59,8 @@ import java.util.concurrent.ConcurrentNavigableMap;
  *
  */
 @SuppressWarnings("unchecked")
-public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
-        ConcurrentNavigableMap<K,V>{
+public class BTreeMap<K,V> extends AbstractMap<K,V>
+        implements ConcurrentNavigableMap<K,V>{
 
 
     public static final int DEFAULT_MAX_NODE_SIZE = 32;
@@ -364,6 +364,7 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
             //check node is not already locked by this thread
             throw new InternalError("node already locked by current thread: "+nodeRecid);
         }
+
 
         while(nodeWriteLocks.putIfAbsent(nodeRecid, Thread.currentThread()) != null){
             Thread.yield();
@@ -788,58 +789,13 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
         public Entry<K, V> next() {
             if(currentLeaf == null) throw new NoSuchElementException();
             K ret = (K) currentLeaf.keys[currentPos];
+            Object val = currentLeaf.vals[currentPos];
             moveToNext();
-            return new BTreeEntry(ret);
+            return makeEntry(ret, val);
 
         }
     }
 
-    class BTreeEntry implements Entry<K,V>{
-
-        final K key;
-
-        BTreeEntry(K key) {
-            this.key = key;
-        }
-
-        @Override
-        public K getKey() {
-            return key;
-        }
-
-        @Override
-        public V getValue() {
-            return BTreeMap.this.get(key);
-        }
-
-        @Override
-        public V setValue(V value) {
-            return BTreeMap.this.put(key, value);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            return (o instanceof Entry) && key.equals(((Entry) o).getKey());
-        }
-
-        @Override
-        public int hashCode() {
-            final V value = BTreeMap.this.get(key);
-            return (key == null ? 0 : key.hashCode()) ^
-                    (value == null ? 0 : value.hashCode());
-        }
-
-    }
-
-    @Override
-    public boolean containsKey(Object key) {
-        return get(key)!=null;
-    }
-
-    @Override
-    public boolean containsValue(Object value){
-        return values.contains(value);
-    }
 
 
 
@@ -970,10 +926,16 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
         }
     };
 
-
     @Override
     public NavigableSet<K> keySet() {
         return keySet;
+    }
+
+    protected Entry<K, V> makeEntry(Object key, Object value) {
+        if(value instanceof  LazyRef){
+            value = engine.recordGet(((LazyRef)value).recid, valueSerializer);
+        }
+        return new SimpleImmutableEntry<K, V>((K)key,  (V)value);
     }
 
     @Override
@@ -1090,12 +1052,12 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
 
         @Override
         public Entry<K, V> first() {
-            return new BTreeEntry(firstKey());
+            return firstEntry();
         }
 
         @Override
         public Entry<K, V> last() {
-            return new BTreeEntry(lastKey());
+            return lastEntry();
         }
     };
 
@@ -1238,7 +1200,7 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
     }
 
     @Override
-    public K firstKey() {
+    public Map.Entry<K,V> firstEntry() {
         BNode n = engine.recordGet(rootRecid, nodeSerializer);
         while(!n.isLeaf()){
             n = engine.recordGet(n.child()[0], nodeSerializer);
@@ -1249,14 +1211,175 @@ public class BTreeMap<K,V> extends  BTreeMapAbstract<K,V> implements
             if(l.next==0) return null;
             l = (LeafNode) engine.recordGet(l.next, nodeSerializer);
         }
-        return (K) l.keys[1];
+        return makeEntry(l.keys[1], l.vals[1]);
+    }
+
+
+    @Override
+    public Entry<K, V> pollFirstEntry() {
+        return notYetImplemented();
+    }
+
+    @Override
+    public Entry<K, V> pollLastEntry() {
+        return notYetImplemented();
+    }
+
+
+    protected Entry<K,V> findSmaller(K key,boolean inclusive){
+        BNode n = engine.recordGet(rootRecid, nodeSerializer);
+        return findSmallerRecur(n, key, inclusive);
+    }
+
+    private Entry<K, V> findSmallerRecur(BNode n, K key, boolean inclusive) {
+        return notYetImplemented();
+    }
+
+
+    @Override
+    public Map.Entry<K,V> lastEntry() {
+        BNode n = engine.recordGet(rootRecid, nodeSerializer);
+        return lastEntryRecur(n);
+    }
+
+
+    private Map.Entry<K,V> lastEntryRecur(BNode n){
+        if(n.isLeaf()){
+            //follow next node if available
+            if(n.next()!=0){
+                BNode n2 = engine.recordGet(n.next(), nodeSerializer);
+                return lastEntryRecur(n2);
+            }
+
+            //iterate over keys to find last non null key
+            for(int i=n.keys().length-1; i>=0;i--){
+                Object k = n.keys()[i];
+                if(k!=null) return makeEntry(k, n.vals()[i]);
+            }
+        }else{
+            //dir node, dive deeper
+            for(int i=n.child().length-1; i>=0;i--){
+                long childRecid = n.child()[i];
+                if(childRecid==0) continue;
+                BNode n2 = engine.recordGet(childRecid, nodeSerializer);
+                Entry<K,V> ret = lastEntryRecur(n2);
+                if(ret!=null) return ret;
+            }
+        }
+        return null;
+    }
+
+
+    @Override
+    public ConcurrentNavigableMap<K, V> headMap(K toKey, boolean inclusive) {
+        return subMap(null, true, toKey,  inclusive);
+    }
+
+    @Override
+    public ConcurrentNavigableMap<K, V> tailMap(K fromKey, boolean inclusive) {
+        return subMap(fromKey, inclusive, null, false);
+    }
+
+    @Override
+    public ConcurrentNavigableMap<K, V> subMap(K fromKey, K toKey) {
+        return subMap(fromKey, true, toKey, false);
+    }
+
+    @Override
+    public ConcurrentNavigableMap<K, V> headMap(K toKey) {
+        return subMap(null, true, toKey, false);
+    }
+
+    @Override
+    public ConcurrentNavigableMap<K, V> tailMap(K fromKey) {
+        return subMap(fromKey, true, null, false);
+    }
+
+
+    public Map.Entry<K,V> lowerEntry(K key) {
+        return findSmaller(key, false);
+    }
+
+
+
+    public K lowerKey(K key) {
+        Entry<K,V> n = lowerEntry(key);
+        return (n == null)? null : n.getKey();
+    }
+
+    public Map.Entry<K,V> floorEntry(K key) {
+        return findSmaller(key, true);
+    }
+
+    public K floorKey(K key) {
+        Entry<K,V> n = floorEntry(key);
+        return (n == null)? null : n.getKey();
+    }
+
+    public Map.Entry<K,V> ceilingEntry(K key) {
+        return findLarger(key, true);
+    }
+
+    protected Entry<K, V> findLarger(K key, boolean inclusive) {
+        return notYetImplemented();
+    }
+
+
+    public K ceilingKey(K key) {
+        Entry<K,V> n = ceilingEntry(key);
+        return (n == null)? null : n.getKey();
+    }
+
+
+    public Map.Entry<K,V> higherEntry(K key) {
+        return findLarger(key, false);
+    }
+
+    public K higherKey(K key) {
+        Entry<K,V> n = higherEntry(key);
+        return (n == null)? null : n.getKey();
+    }
+
+
+
+    @Override
+    public ConcurrentNavigableMap<K, V> descendingMap() {
+        return notYetImplemented();
+    }
+
+    @Override
+    public NavigableSet<K> navigableKeySet() {
+        return notYetImplemented();
+    }
+
+    protected <E> E notYetImplemented() {
+        throw new InternalError("not yet implemented");
+    }
+
+
+    @Override
+    public boolean containsKey(Object key) {
+        return get(key)!=null;
+    }
+
+    @Override
+    public boolean containsValue(Object value){
+        return values().contains(value);
+    }
+
+
+    @Override
+    public K firstKey() {
+        Entry<K,V> e = firstEntry();
+        return e==null? null : e.getKey();
     }
 
     @Override
     public K lastKey() {
-        return notYetImplemented();
-        //TODO last key, not so simple with empty leaf nodes
+        Entry<K,V> e = lastEntry();
+        return e==null? null : e.getKey();
     }
+
 
 
     private abstract class AbstractSet2<E> extends AbstractSet<E> implements NavigableSet<E> {

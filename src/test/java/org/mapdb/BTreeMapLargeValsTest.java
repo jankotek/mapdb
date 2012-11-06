@@ -24,7 +24,7 @@ public class BTreeMapLargeValsTest extends ConcurrentMapInterfaceTest<Integer, S
     final String aa = "aiopjdqwoidjiweqpofjoiaergopieraiopgjajeiorgjoiaergiojareiogopij32-p909-iarvp9iaervijoksarfe";
 
     public BTreeMapLargeValsTest() {
-        super(false, false, true, true, true, true);
+        super(false, false, true, true, true, true,false);
     }
 
     Engine r = new StorageDirect(null,false,true,false,false);

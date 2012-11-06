@@ -3,7 +3,6 @@ package org.mapdb;
 
 import org.junit.Ignore;
 
-@Ignore
 public class BTreeMapNavigableSubMapExclusiveTest extends BTreeMapNavigable2Test{
 
     public void setUp() throws Exception {

@@ -74,6 +74,8 @@ public abstract class LongMap<V> {
         boolean moveToNext();
         long key();
         V value();
+
+        void remove();
     }
 
     public String toString(){

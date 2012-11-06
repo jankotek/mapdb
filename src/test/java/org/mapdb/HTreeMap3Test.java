@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentMap;
 public class HTreeMap3Test extends ConcurrentMapInterfaceTest<Integer, String> {
 
     public HTreeMap3Test() {
-        super(false, false, true, true, true, true);
+        super(false, false, true, true, true, true,true);
     }
 
     StorageDirect r = new StorageDirect(null);

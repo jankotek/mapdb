@@ -2,6 +2,7 @@ package benchmark;
 
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
+import org.mapdb.JdbmUtil;
 
 import java.io.File;
 import java.util.Map;
@@ -17,7 +18,7 @@ import java.util.logging.Logger;
 public class MassiveInsert {
 
     final static int threads = 4 ;
-    final static long max = (long) 1e10;
+    final static long max = (long) 1e7;
 
 
 
@@ -26,10 +27,10 @@ public class MassiveInsert {
         final long t = System.currentTimeMillis();
 
         final DB db = DBMaker
-                .newFileDB(new File("/media/hugo/dbr"))
+                .newFileDB(JdbmUtil.tempDbFile())
                 //.newMemoryDB()
                 .closeOnJvmShutdown()
-//                .deleteFilesAfterClose()
+                .deleteFilesAfterClose()
 //                .appendOnlyEnable()
                 .transactionDisable()
 //                .asyncSerializationDisable()

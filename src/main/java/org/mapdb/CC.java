@@ -5,7 +5,7 @@ package org.mapdb;
  * Static final booleans to enable/disable features you want.
  * Compiler and dead code elimination will take care of removing unwanted features from bytecode.
  */
-interface CC {
+public interface CC {
 
     /**
      * Compile with assertions.
