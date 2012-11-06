@@ -267,16 +267,23 @@ public class AsyncWriteEngine implements Engine {
     @Override
     public void commit() {
         try{
-            grandLock.writeLock().lock();
+            commitLock.writeLock().lock();
+
             try{
-                commitLock.writeLock().lock();
+                //wait until queue is empty
+                while(!writes.isEmpty()){
+                     Thread.yield();
+                }
+
+                grandLock.writeLock().lock();
                 engine.commit();
             }finally{
-                commitLock.writeLock().unlock();
+                grandLock.writeLock().unlock();
             }
 
         }finally {
-            grandLock.writeLock().unlock();
+            commitLock.writeLock().unlock();
+
 
         }
     }
