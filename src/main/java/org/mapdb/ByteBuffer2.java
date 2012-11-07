@@ -23,6 +23,7 @@ public final class ByteBuffer2 {
     static final Logger LOG = CC.BB_LOG_WRITES? Logger.getLogger(ByteBuffer2.class.getName()) : null;
 
     final String logFileName;
+    final boolean ifInMemoryUseDirectBuffer;
 
     static final int  BUF_SIZE = 1<<30;
 
@@ -39,14 +40,19 @@ public final class ByteBuffer2 {
     final protected boolean inMemory;
 
 
-    public ByteBuffer2(boolean inMemory, FileChannel fileChannel, FileChannel.MapMode mapMode, String logFileName){
+    public ByteBuffer2(boolean inMemory, FileChannel fileChannel, FileChannel.MapMode mapMode,
+                       String logFileName, boolean ifInMemoryUseDirectBuffer){
         try{
         this.fileChannel = fileChannel;
         this.inMemory = inMemory;
         this.mapMode = mapMode;
+        this.ifInMemoryUseDirectBuffer = ifInMemoryUseDirectBuffer;
         this.logFileName = CC.BB_LOG_WRITES? logFileName : null;
         if(inMemory){
-            buffers = new ByteBuffer[]{ByteBuffer.allocate(INITIAL_SIZE)};
+            ByteBuffer b0 = ifInMemoryUseDirectBuffer?
+                    ByteBuffer.allocateDirect(INITIAL_SIZE) :
+                    ByteBuffer.allocate(INITIAL_SIZE);
+            buffers = new ByteBuffer[]{b0};
             if(mapMode == FileChannel.MapMode.READ_ONLY)
                 buffers[0] = buffers[0].asReadOnlyBuffer();
         }else{
@@ -104,7 +110,9 @@ public final class ByteBuffer2 {
         if(inMemory){
             final int newBufSize = JdbmUtil.nextPowTwo((int) (offset%BUF_SIZE));
             //double size of existing in-memory-buffer
-            ByteBuffer newBuf = ByteBuffer.allocate(newBufSize);
+            ByteBuffer newBuf = ifInMemoryUseDirectBuffer?
+                    ByteBuffer.allocateDirect(newBufSize):
+                    ByteBuffer.allocate(newBufSize);
             if(buffers[buffersPos]!=null){
                 //copy old buffer if it exists
                 buffers[buffersPos].rewind();

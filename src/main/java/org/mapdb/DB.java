@@ -124,7 +124,7 @@ public class DB {
             if(CC.ASSERT && !ret.hasValues) throw new ClassCastException("Collection is Set, not Map");
         }else{
             //create new map
-            ret = new BTreeMap<K,V>(engine,BTreeMap.DEFAULT_MAX_NODE_SIZE, true, defaultSerializer, null, null, null);
+            ret = new BTreeMap<K,V>(engine,BTreeMap.DEFAULT_MAX_NODE_SIZE, true, false, defaultSerializer, null, null, null);
             engine.setNamedRecid(name, ret.treeRecid);
         }
         collections.put(name, new WeakReference<Object>(ret));
@@ -133,9 +133,10 @@ public class DB {
 
 
     synchronized public <K,V> ConcurrentNavigableMap<K,V> createTreeMap(
-            String name, int nodeSize, Serializer<K[]> keySerializer, Serializer<V> valueSerializer, Comparator<K> comparator){
+            String name, int nodeSize, boolean valuesStoredOutsideNodes,
+            Serializer<K[]> keySerializer, Serializer<V> valueSerializer, Comparator<K> comparator){
         checkNameNotExists(name);
-        BTreeMap<K,V> ret = new BTreeMap<K,V>(engine, nodeSize, true, defaultSerializer, keySerializer, valueSerializer, comparator);
+        BTreeMap<K,V> ret = new BTreeMap<K,V>(engine, nodeSize, true,valuesStoredOutsideNodes, defaultSerializer, keySerializer, valueSerializer, comparator);
         engine.setNamedRecid(name, ret.rootRecid);
         collections.put(name, new WeakReference<Object>(ret));
         return ret;
@@ -161,7 +162,8 @@ public class DB {
             ret = m.keySet();
         }else{
             //create new map
-            BTreeMap<K,Object> m =  new BTreeMap<K,Object>(engine,BTreeMap.DEFAULT_MAX_NODE_SIZE,false, defaultSerializer, null, null, null);
+            BTreeMap<K,Object> m =  new BTreeMap<K,Object>(engine,BTreeMap.DEFAULT_MAX_NODE_SIZE,
+                    false, false, defaultSerializer, null, null, null);
             engine.setNamedRecid(name, m.treeRecid);
             ret = m.keySet();
         }
@@ -172,7 +174,7 @@ public class DB {
 
     synchronized public <K> NavigableSet<K> createTreeSet(String name, int nodeSize, Serializer<K[]> serializer, Comparator<K> comparator){
         checkNameNotExists(name);
-        BTreeMap<K,Object> ret = new BTreeMap<K,Object>(engine, nodeSize, true, defaultSerializer, serializer, null, comparator);
+        BTreeMap<K,Object> ret = new BTreeMap<K,Object>(engine, nodeSize, true, false, defaultSerializer, serializer, null, comparator);
         engine.setNamedRecid(name, ret.rootRecid);
         NavigableSet<K> ret2 = ret.keySet();
         collections.put(name, new WeakReference<Object>(ret2));
@@ -231,4 +233,7 @@ public class DB {
 
     }
 
+    public Serializer getDefaultSerializer() {
+        return defaultSerializer;
+    }
 }

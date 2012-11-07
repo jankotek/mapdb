@@ -25,7 +25,7 @@ public class AsyncWriteEngineTest extends TestFile{
         assertNotNull(index);
         if(engine !=null)
            engine.close();
-        engine =  new AsyncWriteEngine(new StorageDirect(index,false,false,false,false), true);
+        engine =  new AsyncWriteEngine(new StorageDirect(index), true);
     }
 
 

@@ -349,7 +349,7 @@ public class StorageDirectTest extends StorageTestCase {
     }
 
     @Test public void in_memory_test(){
-        StorageDirect engine = new StorageDirect(null,false,true,false,false);
+        StorageDirect engine = new StorageDirect(null);
         Map<Long, Integer> recids = new HashMap<Long,Integer>();
         for(int i = 0;i<1000;i++){
             long recid = engine.recordPut(i, Serializer.BASIC_SERIALIZER);

@@ -80,6 +80,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
     protected final boolean hasValues;
 
+    protected final boolean valsOutsideNodes;
+
     protected long treeRecid;
 
     private final BTreeRootSerializer btreeRootSerializer;
@@ -103,6 +105,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         public void serialize(DataOutput out, BTreeRoot value) throws IOException {
             out.writeLong(value.rootRecid);
             out.writeBoolean(value.hasValues);
+            out.writeBoolean(value.valsOutsideNodes);
             out.writeInt(value.maxNodeSize);
             defaultSerializer.serialize(out, value.keySerializer);
             defaultSerializer.serialize(out, value.valueSerializer);
@@ -115,6 +118,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             BTreeRoot ret = new BTreeRoot();
             ret.rootRecid = in.readLong();
             ret.hasValues = in.readBoolean();
+            ret.valsOutsideNodes = in.readBoolean();
             ret.maxNodeSize = in.readInt();
             ret.keySerializer = (Serializer) defaultSerializer.deserialize(in, -1);
             ret.valueSerializer = (Serializer) defaultSerializer.deserialize(in, -1);
@@ -125,12 +129,31 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     static class BTreeRoot{
         long rootRecid;
         boolean hasValues;
+        boolean valsOutsideNodes;
         int maxNodeSize;
         Serializer keySerializer;
         Serializer valueSerializer;
         Comparator comparator;
 
 
+
+    }
+
+    protected static final class ValRef{
+        final long recid;
+        public ValRef(long recid) {
+            this.recid = recid;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            throw new InternalError();
+        }
+
+        @Override
+        public int hashCode() {
+            throw new InternalError();
+        }
 
     }
 
@@ -171,6 +194,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
     }
 
+
     protected final static class LeafNode implements BNode{
         final Object[] keys;
         final Object[] vals;
@@ -196,14 +220,6 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             return "Leaf(K"+Arrays.toString(keys)+", V"+Arrays.toString(vals)+", L="+next+")";
         }
     }
-    /** Reference to record stored in database and lazily loaded on first request. */
-    protected final static class LazyRef{
-        protected final long recid;
-
-        public LazyRef(long recid) {
-            this.recid = recid;
-        }
-    }
 
 
     final Serializer<BNode> nodeSerializer = new Serializer<BNode>() {
@@ -223,7 +239,6 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             if(isLeaf){
                 JdbmUtil.packLong(out,((LeafNode)value).next);
             }else{
-
                 for(long child : ((DirNode)value).child)
                     JdbmUtil.packLong(out,child);
             }
@@ -232,21 +247,14 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             keySerializer.serialize(out, (K[]) value.keys());
 
             if(isLeaf && hasValues){
-                DataOutput2 out2 = new DataOutput2();
                 for(int i=0; i<value.vals().length; i++){
                     Object val = value.vals()[i];
-                    out2.pos = 0;
-                    valueSerializer.serialize(out2, (V) val);
-                    if(out2.pos>CC.MAX_BTREE_INLINE_VALUE_SIZE){
-                        //store value as separate node
-                        long recid = engine.recordPut(out2.copyBytes(), Serializer.BYTE_ARRAY_SERIALIZER);
-                        JdbmUtil.packInt(out,0);  //zero indicates reference
+                    if(valsOutsideNodes){
+                        long recid = val!=null?  ((ValRef)val).recid :0;
                         JdbmUtil.packLong(out,recid);
                     }else{
-                        JdbmUtil.packInt(out,out2.pos+1); //zero is reserved for reference
-                        out.write(out2.buf, 0, out2.pos);
+                        valueSerializer.serialize(out, (V) val);
                     }
-
                 }
             }
         }
@@ -267,10 +275,9 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 if(hasValues){
                     vals = new Object[size];
                     for(int i=0;i<size;i++){
-                        int valueSize = JdbmUtil.unpackInt(in);
-                        if(valueSize ==0){
-                            //zero is reference
-                            vals[i] = new LazyRef(JdbmUtil.unpackLong(in));
+                        if(valsOutsideNodes){
+                            long recid = JdbmUtil.unpackLong(in);
+                            vals[i] = recid==0? null: new ValRef(recid);
                         }else{
                             vals[i] = valueSerializer.deserialize(in, size-1);
                         }
@@ -290,7 +297,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
 
     /** constructor used to create new tree*/
-    public BTreeMap(Engine engine, int maxNodeSize, boolean hasValues, Serializer defaultSerializer,
+    public BTreeMap(Engine engine, int maxNodeSize, boolean hasValues, boolean valsOutsideNodes,
+                    Serializer defaultSerializer,
                     Serializer<K[]> keySerializer, Serializer<V> valueSerializer, Comparator<K> comparator) {
         if(maxNodeSize%2!=0) throw new IllegalArgumentException("maxNodeSize must be dividable by 2");
         if(maxNodeSize<6) throw new IllegalArgumentException("maxNodeSize too low");
@@ -298,6 +306,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         if(defaultSerializer==null) defaultSerializer = Serializer.BASIC_SERIALIZER;
         this.btreeRootSerializer = new BTreeRootSerializer(defaultSerializer);
         this.hasValues = hasValues;
+        this.valsOutsideNodes = valsOutsideNodes;
         this.engine = engine;
         this.maxNodeSize = maxNodeSize;
         this.comparator = comparator==null? JdbmUtil.COMPARABLE_COMPARATOR : comparator;
@@ -315,6 +324,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     protected void saveTreeInfo() {
         BTreeRoot r = new BTreeRoot();
         r.hasValues = hasValues;
+        r.valsOutsideNodes = valsOutsideNodes;
         r.rootRecid = rootRecid;
         r.maxNodeSize = maxNodeSize;
         r.keySerializer = keySerializer;
@@ -343,6 +353,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         this.keySerializer = r.keySerializer;
         this.valueSerializer = r.valueSerializer;
         this.comparator = r.comparator;
+        this.valsOutsideNodes = r.valsOutsideNodes;
 
         this.keySet = new KeySet(this, hasValues);
     }
@@ -442,11 +453,17 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         //finish search
         if(v.equals(leaf.keys[pos])){
             Object ret = (hasValues? leaf.vals[pos] : JdbmUtil.EMPTY_STRING);
-            if(ret instanceof  LazyRef)
-                ret = engine.recordGet(((LazyRef)ret).recid, valueSerializer);
-            return (V)ret;
+            return valExpand(ret);
         }else
             return null;
+    }
+
+    protected V valExpand(Object ret) {
+        if(valsOutsideNodes && ret!=null) {
+            long recid = ((ValRef)ret).recid;
+            ret = engine.recordGet(recid, valueSerializer);
+        }
+        return (V) ret;
     }
 
     protected long nextDir(DirNode d, Object key) {
@@ -461,9 +478,14 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         return put2(key,value, false);
     }
 
-    protected V put2(K v, final V value, final boolean putOnlyIfAbsent){
+    protected V put2(K v, V value, final boolean putOnlyIfAbsent){
         if(v == null) throw new IllegalArgumentException("null key");
         if(value == null) throw new IllegalArgumentException("null value");
+
+        if(valsOutsideNodes){
+            long recid = engine.recordPut(value, valueSerializer);
+            value = (V) new ValRef(recid);
+        }
 
         int stackPos = -1;
         long[] stackVals = new long[4];
@@ -502,11 +524,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     if(putOnlyIfAbsent){
                         //is not absent, so quit
                         unlockNode(current);
-                        if(oldVal instanceof  LazyRef){
-                            oldVal = engine.recordGet(((LazyRef)oldVal).recid,valueSerializer);
-                        }
                         assertNoLocks();
-                        return (V) oldVal;
+                        return valExpand(oldVal);
                     }
                     //insert new
                     Object[] vals = null;
@@ -517,16 +536,10 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
                     A = new LeafNode(Arrays.copyOf(A.keys(), A.keys().length), vals, ((LeafNode)A).next);
                     engine.recordUpdate(current, A, nodeSerializer);
-                    //delete old lazy ref if necessary
-                    if(oldVal instanceof  LazyRef){
-                        long recid = ((LazyRef)oldVal).recid;
-                        oldVal = engine.recordGet(recid,valueSerializer);
-                        engine.recordDelete(recid);
-                    }
                     //already in here
                     unlockNode(current);
                     assertNoLocks();
-                    return (V) oldVal;
+                    return valExpand(oldVal);
                 }
 
                 if(A.highKey() != null && comparator.compare(v, A.highKey())>0){
@@ -718,10 +731,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             if(pos<A.keys().length&& key.equals(A.keys()[pos])){
                 //delete from node
                 Object oldVal = hasValues? A.vals()[pos] : JdbmUtil.EMPTY_STRING;
-                Object lazyOldVal = !(oldVal instanceof LazyRef)? null :
-                        engine.recordGet(((LazyRef)oldVal).recid, valueSerializer);
-
-                if(value!=null && !value.equals(lazyOldVal!=null? lazyOldVal: oldVal))
+                oldVal = valExpand(oldVal);
+                if(value!=null && !value.equals(oldVal))
                     return null;
 
                 Object[] keys2 = new Object[A.keys().length-1];
@@ -733,10 +744,6 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     vals2 = new Object[A.vals().length-1];
                     System.arraycopy(A.vals(),0,vals2, 0, pos);
                     System.arraycopy(A.vals(), pos+1, vals2, pos, vals2.length-pos);
-                    if(lazyOldVal!=null){
-                        engine.recordDelete(((LazyRef)oldVal).recid);
-                        oldVal = lazyOldVal;
-                    }
                 }
 
                 A = new LeafNode(keys2, vals2, ((LeafNode)A).next);
@@ -788,11 +795,9 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         @Override
         public V next() {
             if(currentLeaf == null) throw new NoSuchElementException();
-            Object ret =  currentLeaf.vals[currentPos];
-            if(ret instanceof LazyRef )
-                ret = engine.recordGet(((LazyRef)ret).recid, valueSerializer);
+            Object ret = currentLeaf.vals[currentPos];
             moveToNext();
-            return (V) ret;
+            return valExpand(ret);
         }
 
     }
@@ -805,7 +810,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             K ret = (K) currentLeaf.keys[currentPos];
             Object val = currentLeaf.vals[currentPos];
             moveToNext();
-            return makeEntry(ret, val);
+            return makeEntry(ret, valExpand(val));
 
         }
     }
@@ -816,9 +821,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
 
     protected Entry<K, V> makeEntry(Object key, Object value) {
-        if(value instanceof  LazyRef){
-            value = engine.recordGet(((LazyRef)value).recid, valueSerializer);
-        }
+        if(CC.ASSERT && value instanceof ValRef) throw new InternalError();
         return new SimpleImmutableEntry<K, V>((K)key,  (V)value);
     }
 
@@ -879,17 +882,15 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         boolean ret = false;
         if(key.equals(leaf.keys[pos])){
             Object val  = leaf.vals[pos];
-            Object val2 = val instanceof LazyRef?
-                    engine.recordGet(((LazyRef)val).recid, valueSerializer):
-                    val;
-            if(oldValue.equals(val2)){
+            val = valExpand(val);
+            if(oldValue.equals(val)){
                 Object[] vals = Arrays.copyOf(leaf.vals, leaf.vals.length);
+                if(valsOutsideNodes){
+                    long recid = engine.recordPut(newValue, valueSerializer);
+                    newValue = (V) new ValRef(recid);
+                }
                 vals[pos] = newValue;
                 leaf = new LeafNode(Arrays.copyOf(leaf.keys, leaf.keys.length), vals, leaf.next);
-                //delete old node if lazyref
-                if(val instanceof LazyRef){
-                    engine.recordDelete(((LazyRef) val).recid);
-                }
 
                 engine.recordUpdate(current, leaf, nodeSerializer);
 
@@ -929,17 +930,15 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         if(key.equals(leaf.keys[pos])){
             Object[] vals = Arrays.copyOf(leaf.vals, leaf.vals.length);
             Object oldVal = vals[pos];
-            if(oldVal instanceof LazyRef){
-                //delete old val
-                long recid = ((LazyRef)oldVal).recid;
-                oldVal = engine.recordGet(recid,valueSerializer);
-                engine.recordDelete(recid);
+            if(valsOutsideNodes && value!=null){
+                long recid = engine.recordPut(value, valueSerializer);
+                value = (V) new ValRef(recid);
             }
             vals[pos] = value;
             leaf = new LeafNode(Arrays.copyOf(leaf.keys, leaf.keys.length), vals, leaf.next);
             engine.recordUpdate(current, leaf, nodeSerializer);
 
-            ret =  oldVal;
+            ret =  valExpand(oldVal);
         }
         unlockNode(current);
         return (V)ret;
@@ -964,7 +963,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             if(l.next==0) return null;
             l = (LeafNode) engine.recordGet(l.next, nodeSerializer);
         }
-        return makeEntry(l.keys[1], l.vals[1]);
+        return makeEntry(l.keys[1], valExpand(l.vals[1]));
     }
 
 
@@ -1002,7 +1001,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 Object key2 = n.keys()[i];
                 if(key2!=null && comparator.compare(key, key2) <p){
                     //and return previous
-                    return makeEntry(n.keys()[i-1], n.vals()[i-1]);
+                    return makeEntry(n.keys()[i-1], valExpand(n.vals()[i-1]));
                 }
             }
 
@@ -1038,7 +1037,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             //iterate over keys to find last non null key
             for(int i=n.keys().length-1; i>=0;i--){
                 Object k = n.keys()[i];
-                if(k!=null) return makeEntry(k, n.vals()[i]);
+                if(k!=null) return makeEntry(k, valExpand(n.vals()[i]));
             }
         }else{
             //dir node, dive deeper

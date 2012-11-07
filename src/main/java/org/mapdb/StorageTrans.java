@@ -40,12 +40,12 @@ public class StorageTrans extends Storage implements Engine {
 
 
     public StorageTrans(File indexFile){
-        this(indexFile, false, false, false, false);
+        this(indexFile, false, false, false, false,false);
     }
 
     public StorageTrans(File indexFile, boolean disableLocks, boolean deleteFilesAfterClose,
-                        boolean readOnly, boolean appendOnly) {
-        super(indexFile,  disableLocks, deleteFilesAfterClose, readOnly, appendOnly);
+                        boolean readOnly, boolean appendOnly, boolean ifInMemoryUseDirectBuffer) {
+        super(indexFile,  disableLocks, deleteFilesAfterClose, readOnly, appendOnly, ifInMemoryUseDirectBuffer);
         try{
             writeLock_lock();
             reloadIndexFile();
@@ -73,7 +73,7 @@ public class StorageTrans extends Storage implements Engine {
             FileChannel ch = inMemory ? null :
                     new RandomAccessFile(indexFile.getPath()+TRANS_LOG_FILE_EXT,"rw").getChannel();
             transLog = new ByteBuffer2(inMemory,ch,
-                     FileChannel.MapMode.READ_WRITE, "trans");
+                     FileChannel.MapMode.READ_WRITE, "trans", ifInMemoryUseDirectBuffer);
 
             transLog.putLong(0, HEADER);
             transLog.putLong(8, 0L);
@@ -354,7 +354,7 @@ public class StorageTrans extends Storage implements Engine {
                 }
 
                 transLog = new ByteBuffer2(false, new RandomAccessFile(logFile,"r").getChannel(),
-                        FileChannel.MapMode.READ_ONLY, "trans");
+                        FileChannel.MapMode.READ_ONLY, "trans", ifInMemoryUseDirectBuffer);
             }
 
 

@@ -57,6 +57,7 @@ public abstract class Storage implements Engine {
     protected final boolean deleteFilesOnExit;
     protected final boolean readOnly;
     protected final boolean appendOnly;
+    protected final boolean ifInMemoryUseDirectBuffer;
 
     protected final ReentrantReadWriteLock lock;
 
@@ -68,14 +69,17 @@ public abstract class Storage implements Engine {
 
 
 
-    public Storage(File indexFile, boolean disableLocks, boolean deleteFilesAfterClose, boolean readOnly, boolean appendOnly) {
+    public Storage(File indexFile, boolean disableLocks, boolean deleteFilesAfterClose, boolean readOnly,
+                   boolean appendOnly, boolean ifInMemoryUseDirectBuffer) {
         this.indexFile = indexFile;
         this.disableLocks = disableLocks;
         this.deleteFilesOnExit = deleteFilesAfterClose;
         this.readOnly = readOnly;
         this.appendOnly = appendOnly;
+        this.ifInMemoryUseDirectBuffer = ifInMemoryUseDirectBuffer;
         this.lock = disableLocks? null: new ReentrantReadWriteLock();
         this.inMemory = indexFile == null;
+
         writeLocksCounter = CC.ASSERT && disableLocks? new AtomicInteger(0) : null;
 
         try{
@@ -86,10 +90,10 @@ public abstract class Storage implements Engine {
             if(inMemory){
                 phys = new ByteBuffer2(true, null,
                         readOnly? FileChannel.MapMode.READ_ONLY : FileChannel.MapMode.READ_WRITE,
-                        "phys");
+                        "phys", ifInMemoryUseDirectBuffer);
                 index = new ByteBuffer2(true, null,
                         readOnly? FileChannel.MapMode.READ_ONLY : FileChannel.MapMode.READ_WRITE,
-                        "index");
+                        "index", ifInMemoryUseDirectBuffer);
                 writeInitValues();
 
             }else{
@@ -103,10 +107,10 @@ public abstract class Storage implements Engine {
 
                 phys = new ByteBuffer2(false, dataRaf.getChannel(),
                         readOnly? FileChannel.MapMode.READ_ONLY : FileChannel.MapMode.READ_WRITE,
-                        "phys");
+                        "phys", ifInMemoryUseDirectBuffer);
                 index = new ByteBuffer2(false, indexRaf.getChannel(),
                         readOnly? FileChannel.MapMode.READ_ONLY : FileChannel.MapMode.READ_WRITE,
-                        "index");
+                        "index", ifInMemoryUseDirectBuffer);
 
                 if(!existed){
                     //store does not exist, create files

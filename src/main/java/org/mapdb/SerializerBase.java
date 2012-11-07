@@ -157,12 +157,15 @@ public class SerializerBase implements Serializer{
         } else if (clazz == BigInteger.class) {
             out.write(BIGINTEGER);
             byte[] buf = ((BigInteger) obj).toByteArray();
-            serializeByteArrayInt(out, buf);
+            JdbmUtil.packInt(out, buf.length);
+            out.write(buf);
             return;
         } else if (clazz == BigDecimal.class) {
             out.write(BIGDECIMAL);
             BigDecimal d = (BigDecimal) obj;
-            serializeByteArrayInt(out, d.unscaledValue().toByteArray());
+            byte[] buf = d.unscaledValue().toByteArray();
+            JdbmUtil.packInt(out, buf.length);
+            out.write(buf);
             JdbmUtil.packInt(out, d.scale());
             return;
         } else if (clazz == Long.class) {
@@ -211,10 +214,6 @@ public class SerializerBase implements Serializer{
                 serializeString(out, s);
             }
             return;
-        } else if (clazz == BTreeMap.LazyRef.class) {
-            out.write(LAZY_REF);
-            JdbmUtil.packLong(out, ((BTreeMap.LazyRef)obj).recid);
-            return;
         } else if (obj instanceof Class) {
             out.write(CLASS);
             out.writeUTF(((Class) obj).getName());
@@ -257,8 +256,7 @@ public class SerializerBase implements Serializer{
             return;
         } else if (obj instanceof byte[]) {
             byte[] b = (byte[]) obj;
-            out.write(ARRAY_BYTE_INT);
-            serializeByteArrayInt(out, b);
+            serializeByteArray(out, b);
             return;
         } else if (clazz == Date.class) {
             out.write(DATE);
@@ -266,8 +264,12 @@ public class SerializerBase implements Serializer{
             return;
         } else if (clazz == UUID.class) {
             out.write(UUID);
-            out.writeLong(((UUID)obj).getMostSignificantBits());
+            out.writeLong(((UUID) obj).getMostSignificantBits());
             out.writeLong(((UUID)obj).getLeastSignificantBits());
+            return;
+        } else if(clazz == SerializerCompressWrapper.class){
+            out.write(SERIALIZER_COMPRESSION_WRAPPER);
+            serialize(out, ((SerializerCompressWrapper)obj).serializer, objectStack);
             return;
         } else if(obj == JdbmUtil.COMPARABLE_COMPARATOR){
             out.write(COMPARABLE_COMPARATOR);
@@ -436,9 +438,24 @@ public class SerializerBase implements Serializer{
 
     }
 
-    private void serializeByteArrayInt(DataOutput out, byte[] b) throws IOException {
-        JdbmUtil.packInt(out, b.length);
-        out.write(b);
+    private void serializeByteArray(DataOutput out, byte[] b) throws IOException {
+        boolean allEqual = b.length>0;
+        //check if all values in byte[] are equal
+        for(int i=1;i<b.length;i++){
+            if(b[i-1]!=b[i]){
+                allEqual=false;
+                break;
+            }
+        }
+        if(allEqual){
+            out.write(ARRAY_BYTE_ALL_EQUAL);
+            JdbmUtil.packInt(out, b.length);
+            out.write(b[0]);
+        }else{
+            out.write(ARRAY_BYTE);
+            JdbmUtil.packInt(out, b.length);
+            out.write(b);
+        }
     }
 
 
@@ -802,10 +819,10 @@ public class SerializerBase implements Serializer{
                 ret = is.readDouble();
                 break;
             case BIGINTEGER:
-                ret = new BigInteger(deserializeArrayByteInt(is));
+                ret = new BigInteger(deserializeArrayByte(is));
                 break;
             case BIGDECIMAL:
-                ret = new BigDecimal(new BigInteger(deserializeArrayByteInt(is)), JdbmUtil.unpackInt(is));
+                ret = new BigDecimal(new BigInteger(deserializeArrayByte(is)), JdbmUtil.unpackInt(is));
                 break;
             case STRING:
                 ret = deserializeString(is);
@@ -855,14 +872,16 @@ public class SerializerBase implements Serializer{
             case ARRAYLIST_PACKED_LONG:
                 ret = deserializeArrayListPackedLong(is);
                 break;
-            case ARRAY_BYTE_INT:
-                ret = deserializeArrayByteInt(is);
+            case ARRAY_BYTE_ALL_EQUAL:
+                byte[] b = new byte[JdbmUtil.unpackInt(is)];
+                Arrays.fill(b, is.readByte());
+                ret = b;
+                break;
+            case ARRAY_BYTE:
+                ret =  deserializeArrayByte(is);
                 break;
             case LOCALE :
                 ret = new Locale(is.readUTF(),is.readUTF(),is.readUTF());
-                break;
-            case LAZY_REF :
-                ret = new BTreeMap.LazyRef(JdbmUtil.unpackLong(is));
                 break;
             case COMPARABLE_COMPARATOR:
                 ret = JdbmUtil.COMPARABLE_COMPARATOR;
@@ -941,7 +960,9 @@ public class SerializerBase implements Serializer{
             case PROPERTIES:
                 ret = deserializeProperties(is, objectStack);
                 break;
-
+            case SERIALIZER_COMPRESSION_WRAPPER:
+                ret = new SerializerCompressWrapper((Serializer) deserialize(is, objectStack));
+                break;
             default:
                 ret = deserializeUnknownHeader(is, head, objectStack);
                 break;
@@ -956,6 +977,11 @@ public class SerializerBase implements Serializer{
         return ret;
     }
 
+    private byte[] deserializeArrayByte(DataInput is) throws IOException {
+        byte[] bb = new byte[JdbmUtil.unpackInt(is)];
+        is.readFully(bb);
+        return bb;
+    }
 
 
     private Class deserializeClass(DataInput is) throws IOException {
@@ -967,12 +993,6 @@ public class SerializerBase implements Serializer{
     }
 
 
-    private byte[] deserializeArrayByteInt(DataInput is) throws IOException {
-        int size = JdbmUtil.unpackInt(is);
-        byte[] b = new byte[size];
-        is.readFully(b);
-        return b;
-    }
 
 
     private long[] deserializeArrayLongL(DataInput is) throws IOException {

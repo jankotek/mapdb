@@ -22,6 +22,7 @@ public class DBMaker {
     protected static final byte CACHE_SOFT_REF = 4;
 
 
+
     protected byte _cache = CACHE_FIXED_HASH_TABLE;
     protected int _cacheSize = 1024*32;
 
@@ -45,16 +46,34 @@ public class DBMaker {
 
     protected boolean _checksumEnabled = false;
 
+    protected boolean _ifInMemoryUseDirectBuffer = false;
+
 
     /** use static factory methods, or make subclass */
     protected DBMaker(){}
 
-    /** Creates new in-memory database. Changes are lost after JVM exits*/
+    /** Creates new in-memory database. Changes are lost after JVM exits.
+     * <p/>
+     * This will use HEAP memory so Garbage Collector is affected.
+     */
     public static DBMaker newMemoryDB(){
         DBMaker m = new DBMaker();
         m._file = null;
         return  m;
     }
+
+    /** Creates new in-memory database. Changes are lost after JVM exits.
+     * <p/>
+     * This will use DirectByteBuffer outside of HEAP, so Garbage Collector is not affected
+     *
+     */
+    public static DBMaker newDirectMemoryDB(){
+        DBMaker m = new DBMaker();
+        m._file = null;
+        m._ifInMemoryUseDirectBuffer = true;
+        return  m;
+    }
+
 
 
     /**
@@ -411,8 +430,8 @@ public class DBMaker {
         }
 
         Engine engine = _transactionsEnabled?
-                new StorageTrans(_file, _asyncWriteEnabled, _deleteFilesAfterClose,_readOnly, _appendOnlyEnabled):
-                new StorageDirect(_file, _asyncWriteEnabled, _deleteFilesAfterClose,_readOnly, _appendOnlyEnabled);
+                new StorageTrans(_file, _asyncWriteEnabled, _deleteFilesAfterClose,_readOnly, _appendOnlyEnabled, _ifInMemoryUseDirectBuffer):
+                new StorageDirect(_file, _asyncWriteEnabled, _deleteFilesAfterClose,_readOnly, _appendOnlyEnabled, _ifInMemoryUseDirectBuffer);
 
         if(_asyncWriteEnabled && !_readOnly)
             engine = new AsyncWriteEngine(engine, _asyncSerializationEnabled);

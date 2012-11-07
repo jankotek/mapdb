@@ -80,7 +80,8 @@ interface SerializationHeader {
     int  ARRAY_LONG_PACKED = 69;
 
     int  CHAR_ARRAY = 70;
-    int  ARRAY_BYTE_INT = 71;
+    int ARRAY_BYTE = 71;
+    int ARRAY_BYTE_ALL_EQUAL = 72;
 
     int  ARRAY_OBJECT = 73;
     //special cases for BTree values which stores references
@@ -108,7 +109,7 @@ interface SerializationHeader {
 
     int  LINKEDLIST = 119;
 
-    int  LAZY_REF = 120;
+    int  SERIALIZER_COMPRESSION_WRAPPER = 120;
 
     int  VECTOR = 121;
     int  IDENTITYHASHMAP = 122;
