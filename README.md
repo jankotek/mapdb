@@ -1,3 +1,5 @@
+MapDB
+===============
 MapDB provides concurrent TreeMap and HashMap backed by disk storage. It is a fast,
 scalable and easy to use embedded Java database. It is tiny (160KB jar),
 yet packed with features such as transactions, space efficient serialization,
@@ -91,6 +93,22 @@ Quick example:
 
         db.close();
 
+What you should know
+====================
+* Transactions can be disabled, this will speedup writes. However without transactions
+store gets corrupted easily without proper close.
+
+* MapDB relies on mapped memory heavily. NIO implementation in JDK6 seems to be failing randomly under heavy load.
+MapDB works best with JDK7
+
+* There are two collections TreeMap (B+Tree) and HashMap (HTree). TreeMap is
+optimized for small keys, HashMap works best with larger key.
+
+* MapDB does not run defrag on background. You need to call `DB.defrag()` from time to time.
+
+* MapDB uses unchecked exceptions. All `IOException` are wrapped into unchecked `IOError`.
+
+* Maximal serialized record size is 64KB. This will be fixed in future.
 
 Troubleshooting
 ===============
