@@ -59,8 +59,7 @@ public class AsyncWriteEngine implements Engine {
                 }
 
                 synchronized (writerNotify){
-                    writerNotify.wait();
-                    //writerNotify.wait(1000); //check write conditions every N seconds to prevent possible deadlock
+                    writerNotify.wait(1000); //check write conditions every N seconds to prevent possible deadlock
                 }
             }
 
