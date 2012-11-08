@@ -47,21 +47,21 @@ Intro
 ======
 MapDB uses Maven build system. There is snapshot repository updated every a few days.
 To use it add code bellow to your `pom.xml`. You may also download binaries
-[directly](https://oss.sonatype.org/content/repositories/snapshots/net/kotek/jdbm/4.000-SNAPSHOT/).
+[directly](https://oss.sonatype.org/content/repositories/snapshots/org/mapdb/0.9-SNAPSHOT/).
 
     <repositories>
         <repository>
-            <id>jdbm-snapshots</id>
+            <id>mapdb-snapshots</id>
             <url>https://oss.sonatype.org/content/repositories/releases</url>
         </repository>
     </repositories>
 
     <dependencies>
         <dependency>
-            <groupId>net.kotek</groupId>
-            <artifactId>jdbm</artifactId>
-            <version>4.000-SNAPSHOT</version>
-        </dependency>
+            <groupId>org.mapdb</groupId>
+            <artifactId>MapDB</artifactId>
+            <version>0.9-SNAPSHOT</version>
+                </dependency>
     </dependencies>
 
 
