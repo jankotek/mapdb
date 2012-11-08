@@ -271,7 +271,7 @@ public class DBMaker {
      *
      * @return this builder
      */
-    public DBMaker asyncThreadDeamonEnable(){
+    public DBMaker asyncThreadSetDeamon(){
         this._asyncThreadDeamon = true;
         return this;
     }
