@@ -226,6 +226,7 @@ public final class ByteBuffer2 {
     }
 
     public void sync() {
+        if(inMemory) return;
         for(ByteBuffer b:buffers){
             if(b!=null && (b instanceof MappedByteBuffer)){
                 ((MappedByteBuffer)b).force();
