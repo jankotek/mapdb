@@ -110,14 +110,14 @@ public class AsyncWriteEngine implements Engine {
     protected final ArrayBlockingQueue<Long> newRecids = new ArrayBlockingQueue<Long>(128);
 
 
-    public AsyncWriteEngine(Engine engine, boolean asyncSerialization, int flushDelay) {
+    public AsyncWriteEngine(Engine engine, boolean asyncSerialization, int flushDelay, boolean asyncThreadDaemon) {
         this.engine = engine;
         this.asyncSerialization = asyncSerialization;
         this.flushDelay = flushDelay;
         //TODO cache index file size
         //allocatedIndexFileSize = indexValGet(RECID_CURRENT_INDEX_FILE_SIZE);
 
-        writerThread.setDaemon(true);
+        writerThread.setDaemon(asyncThreadDaemon);
         writerThread.start();
     }
 

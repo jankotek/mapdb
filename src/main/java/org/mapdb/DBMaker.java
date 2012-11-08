@@ -34,6 +34,7 @@ public class DBMaker {
     protected boolean _asyncWriteEnabled = true;
     protected boolean _asyncSerializationEnabled = true;
     protected int _asyncFlushDelay = 0;
+    protected boolean _asyncThreadDeamon = false;
 
     protected boolean _deleteFilesAfterClose = false;
     protected boolean _readOnly = false;
@@ -262,6 +263,20 @@ public class DBMaker {
     }
 
     /**
+     * In async mode writes are done in Writer Thread.
+     * If main thread dies Writer Thread still lives and prevents JVM from exiting.
+     * This is good as it prevents data loss.
+     * However in some modes shuting down JVM may be more important than preserving data.
+     * So you may set Writer Thread to 'daemon mode' so JVM can exit
+     *
+     * @return this builder
+     */
+    public DBMaker asyncThreadDeamonEnable(){
+        this._asyncThreadDeamon = true;
+        return this;
+    }
+
+    /**
      * By default all objects are serialized in Background Writer Thread.
      * <p/>
      * This may improve performance. For example with single thread access, Async Serialization offloads
@@ -455,7 +470,7 @@ public class DBMaker {
                 new StorageDirect(_file, _asyncWriteEnabled, _deleteFilesAfterClose,_readOnly, _appendOnlyEnabled, _ifInMemoryUseDirectBuffer);
 
         if(_asyncWriteEnabled && !_readOnly)
-            engine = new AsyncWriteEngine(engine, _asyncSerializationEnabled, _asyncFlushDelay);
+            engine = new AsyncWriteEngine(engine, _asyncSerializationEnabled, _asyncFlushDelay,_asyncThreadDeamon);
 
         if(_checksumEnabled){
             engine = new ByteTransformEngine(engine, new ChecksumCRC32Serializer());

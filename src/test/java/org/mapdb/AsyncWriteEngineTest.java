@@ -24,7 +24,7 @@ public class AsyncWriteEngineTest extends TestFile{
         assertNotNull(index);
         if(engine !=null)
            engine.close();
-        engine =  new AsyncWriteEngine(new StorageDirect(index), true, 0);
+        engine =  new AsyncWriteEngine(new StorageDirect(index), true, 0, true);
     }
 
 
@@ -95,7 +95,7 @@ public class AsyncWriteEngineTest extends TestFile{
                 return super.recordPut(value, serializer);
             }
         };
-        AsyncWriteEngine a = new AsyncWriteEngine(t, true, 0);
+        AsyncWriteEngine a = new AsyncWriteEngine(t, true, 0, true);
         byte[] b = new byte[124];
 
         long max = 100;
@@ -116,7 +116,7 @@ public class AsyncWriteEngineTest extends TestFile{
 
         //now reopen db and check ths
         t = new StorageTrans(index);
-        a = new AsyncWriteEngine(t, true, 0);
+        a = new AsyncWriteEngine(t, true, 0, true);
         for(Integer i=0;i<max;i++){
             long recid = l.get(i);
             assertArrayEquals(b, (byte[]) a.recordGet(recid, Serializer.BASIC_SERIALIZER));
