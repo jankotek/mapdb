@@ -2,8 +2,6 @@ package org.mapdb;
 
 
 import junit.framework.TestCase;
-import org.mapdb.JdbmUtil;
-import org.mapdb.SerializerPojo;
 
 import java.io.Serializable;
 import java.util.AbstractMap;
@@ -21,13 +19,13 @@ public class SerializerPojoTest extends TestCase {
 
     public void testEnum() throws Exception{
         Order o = Order.ASCENDING;
-        o = (Order) JdbmUtil.clone(o,p);
+        o = (Order) Utils.clone(o, p);
         assertEquals(o,Order.ASCENDING );
         assertEquals(o.ordinal(),Order.ASCENDING .ordinal());
         assertEquals(o.name(),Order.ASCENDING .name());
 
         o = Order.DESCENDING;
-        o = (Order) JdbmUtil.clone(o,p);
+        o = (Order) Utils.clone(o, p);
         assertEquals(o,Order.DESCENDING );
         assertEquals(o.ordinal(),Order.DESCENDING .ordinal());
         assertEquals(o.name(),Order.DESCENDING .name());
@@ -221,7 +219,7 @@ public class SerializerPojoTest extends TestCase {
 
     public void testSerializable() throws Exception {
 
-        assertEquals(b, JdbmUtil.clone(b, p));
+        assertEquals(b, Utils.clone(b, p));
     }
 
 
@@ -229,7 +227,7 @@ public class SerializerPojoTest extends TestCase {
         AbstractMap.SimpleEntry b = new AbstractMap.SimpleEntry("abcd", null);
         b.setValue(b.getKey());
 
-        AbstractMap.SimpleEntry bx = (AbstractMap.SimpleEntry) JdbmUtil.clone(b, p);
+        AbstractMap.SimpleEntry bx = (AbstractMap.SimpleEntry) Utils.clone(b, p);
         assertEquals(bx, b);
         assert (bx.getKey() == bx.getValue());
 
@@ -239,7 +237,7 @@ public class SerializerPojoTest extends TestCase {
         AbstractMap.SimpleEntry b = new AbstractMap.SimpleEntry("abcd", null);
         b.setValue(b);
 
-        AbstractMap.SimpleEntry bx = (AbstractMap.SimpleEntry) JdbmUtil.clone(b, p);
+        AbstractMap.SimpleEntry bx = (AbstractMap.SimpleEntry) Utils.clone(b, p);
         assertTrue(bx == bx.getValue());
         assertEquals(bx.getKey(), "abcd");
 
@@ -251,7 +249,7 @@ public class SerializerPojoTest extends TestCase {
         l.add("123");
         l.add(l);
 
-        ArrayList l2 = (ArrayList) JdbmUtil.clone(l, p);
+        ArrayList l2 = (ArrayList) Utils.clone(l, p);
 
         assertTrue(l.size() == 2);
         assertEquals(l.get(0), "123");

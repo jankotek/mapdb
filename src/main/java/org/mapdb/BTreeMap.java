@@ -237,10 +237,10 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
             //longs go first, so it is possible to reconstruct tree without serializer
             if(isLeaf){
-                JdbmUtil.packLong(out,((LeafNode)value).next);
+                Utils.packLong(out, ((LeafNode) value).next);
             }else{
                 for(long child : ((DirNode)value).child)
-                    JdbmUtil.packLong(out,child);
+                    Utils.packLong(out, child);
             }
 
             //write keys
@@ -251,7 +251,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     Object val = value.vals()[i];
                     if(valsOutsideNodes){
                         long recid = val!=null?  ((ValRef)val).recid :0;
-                        JdbmUtil.packLong(out,recid);
+                        Utils.packLong(out, recid);
                     }else{
                         valueSerializer.serialize(out, (V) val);
                     }
@@ -268,7 +268,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             size = size & 0x7f;
 
             if(isLeaf){
-                long next = JdbmUtil.unpackLong(in);
+                long next = Utils.unpackLong(in);
                 Object[] keys = (Object[]) keySerializer.deserialize(in, size);
                 if(keys.length!=size) throw new InternalError();
                 Object[] vals  = null;
@@ -276,7 +276,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     vals = new Object[size];
                     for(int i=0;i<size;i++){
                         if(valsOutsideNodes){
-                            long recid = JdbmUtil.unpackLong(in);
+                            long recid = Utils.unpackLong(in);
                             vals[i] = recid==0? null: new ValRef(recid);
                         }else{
                             vals[i] = valueSerializer.deserialize(in, size-1);
@@ -287,7 +287,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             }else{
                 long[] child = new long[size];
                 for(int i=0;i<size;i++)
-                    child[i] = JdbmUtil.unpackLong(in);
+                    child[i] = Utils.unpackLong(in);
                 Object[] keys = (Object[]) keySerializer.deserialize(in, size);
                 if(keys.length!=size) throw new InternalError();
                 return new DirNode(keys, child);
@@ -309,7 +309,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         this.valsOutsideNodes = valsOutsideNodes;
         this.engine = engine;
         this.maxNodeSize = maxNodeSize;
-        this.comparator = comparator==null? JdbmUtil.COMPARABLE_COMPARATOR : comparator;
+        this.comparator = comparator==null? Utils.COMPARABLE_COMPARATOR : comparator;
         this.keySerializer = keySerializer==null ?  defaultSerializer :  keySerializer;
         this.valueSerializer = valueSerializer==null ? (Serializer<V>) defaultSerializer : valueSerializer;
 
@@ -361,7 +361,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
     protected void unlockNode(final long nodeRecid) {
         if(CC.BTREEMAP_LOG_NODE_LOCKS)
-            JdbmUtil.LOG.finest("BTreeMap UNLOCK R:"+nodeRecid+" T:"+Thread.currentThread().getId());
+            Utils.LOG.finest("BTreeMap UNLOCK R:"+nodeRecid+" T:"+Thread.currentThread().getId());
 
         final Thread t = nodeWriteLocks.remove(nodeRecid);
         if(t!=Thread.currentThread())
@@ -382,7 +382,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
     protected void lockNode(final long nodeRecid) {
         if(CC.BTREEMAP_LOG_NODE_LOCKS)
-            JdbmUtil.LOG.finest("BTreeMap TRYLOCK R:"+nodeRecid+" T:"+Thread.currentThread().getId());
+            Utils.LOG.finest("BTreeMap TRYLOCK R:"+nodeRecid+" T:"+Thread.currentThread().getId());
 
         //feel free to rewrite, if you know better (more efficient) way
         if(CC.ASSERT && nodeWriteLocks.get(nodeRecid)==Thread.currentThread()){
@@ -395,7 +395,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             Thread.yield();
         }
         if(CC.BTREEMAP_LOG_NODE_LOCKS)
-            JdbmUtil.LOG.finest("BTreeMap LOCK R:"+nodeRecid+" T:"+Thread.currentThread().getId());
+            Utils.LOG.finest("BTreeMap LOCK R:"+nodeRecid+" T:"+Thread.currentThread().getId());
 
     }
 
@@ -452,7 +452,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         }
         //finish search
         if(v.equals(leaf.keys[pos])){
-            Object ret = (hasValues? leaf.vals[pos] : JdbmUtil.EMPTY_STRING);
+            Object ret = (hasValues? leaf.vals[pos] : Utils.EMPTY_STRING);
             return valExpand(ret);
         }else
             return null;
@@ -520,7 +520,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 int pos = findChildren(v, A.keys());
                 if(pos<A.keys().length-1 && v.equals(A.keys()[pos])){
 
-                    Object oldVal =  (hasValues? A.vals()[pos] : JdbmUtil.EMPTY_STRING);
+                    Object oldVal =  (hasValues? A.vals()[pos] : Utils.EMPTY_STRING);
                     if(putOnlyIfAbsent){
                         //is not absent, so quit
                         unlockNode(current);
@@ -564,16 +564,16 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             // can be new item inserted into A without splitting it?
             if(A.keys().length - (A.isLeaf()?2:1)<maxNodeSize){
                 int pos = findChildren(v, A.keys());
-                Object[] keys = JdbmUtil.arrayPut(A.keys(), pos, v);
+                Object[] keys = Utils.arrayPut(A.keys(), pos, v);
 
                 if(A.isLeaf()){
-                    Object[] vals = hasValues? JdbmUtil.arrayPut(A.vals(), pos, value): null;
+                    Object[] vals = hasValues? Utils.arrayPut(A.vals(), pos, value): null;
                     LeafNode n = new LeafNode(keys, vals, ((LeafNode)A).next);
                     engine.recordUpdate(current, n, nodeSerializer);
                 }else{
                     if(CC.ASSERT && p==0)
                         throw new InternalError();
-                    long[] child = JdbmUtil.arrayLongPut(A.child(), pos, p);
+                    long[] child = Utils.arrayLongPut(A.child(), pos, p);
                     DirNode d = new DirNode(keys, child);
                     engine.recordUpdate(current, d, nodeSerializer);
                 }
@@ -586,9 +586,9 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 final boolean isRoot = (current == rootRecid);
 
                 final int pos = findChildren(v, A.keys());
-                final Object[] keys = JdbmUtil.arrayPut(A.keys(), pos, v);
-                final Object[] vals = (A.isLeaf() && hasValues)? JdbmUtil.arrayPut(A.vals(), pos, value) : null;
-                final long[] child = A.isLeaf()? null : JdbmUtil.arrayLongPut(A.child(), pos, p);
+                final Object[] keys = Utils.arrayPut(A.keys(), pos, v);
+                final Object[] vals = (A.isLeaf() && hasValues)? Utils.arrayPut(A.vals(), pos, value) : null;
+                final long[] child = A.isLeaf()? null : Utils.arrayLongPut(A.child(), pos, p);
                 final int splitPos = keys.length/2;
                 BNode B;
                 if(A.isLeaf()){
@@ -730,7 +730,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             int pos = findChildren(key, A.keys());
             if(pos<A.keys().length&& key.equals(A.keys()[pos])){
                 //delete from node
-                Object oldVal = hasValues? A.vals()[pos] : JdbmUtil.EMPTY_STRING;
+                Object oldVal = hasValues? A.vals()[pos] : Utils.EMPTY_STRING;
                 oldVal = valExpand(oldVal);
                 if(value!=null && !value.equals(oldVal))
                     return null;
@@ -1335,7 +1335,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             if(hasValues)
                 throw new UnsupportedOperationException();
             else
-                return m.put(k,  JdbmUtil.EMPTY_STRING) == null;
+                return m.put(k,  Utils.EMPTY_STRING) == null;
         }
     }
 

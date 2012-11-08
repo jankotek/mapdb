@@ -1,10 +1,6 @@
 package org.mapdb;
 
 import org.junit.Test;
-import org.mapdb.ChecksumCRC32Serializer;
-import org.mapdb.DataInput2;
-import org.mapdb.DataOutput2;
-import org.mapdb.JdbmUtil;
 
 import java.io.IOException;
 
@@ -16,7 +12,7 @@ public class ChecksumCRC32SerializerTest {
         ChecksumCRC32Serializer s = new ChecksumCRC32Serializer();
 
         byte[] b = "wwefwaefw;ef;lkwef".getBytes("UTF-8");
-        assertArrayEquals(b, JdbmUtil.clone(b, s));
+        assertArrayEquals(b, Utils.clone(b, s));
 
     }
 

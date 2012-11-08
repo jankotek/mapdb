@@ -108,7 +108,7 @@ public final class ByteBuffer2 {
 
 
         if(inMemory){
-            final int newBufSize = JdbmUtil.nextPowTwo((int) (offset%BUF_SIZE));
+            final int newBufSize = Utils.nextPowTwo((int) (offset % BUF_SIZE));
             //double size of existing in-memory-buffer
             ByteBuffer newBuf = ifInMemoryUseDirectBuffer?
                     ByteBuffer.allocateDirect(newBufSize):
@@ -249,7 +249,7 @@ public final class ByteBuffer2 {
                     cleaner.clean();
             }
         }catch(Exception e){
-            JdbmUtil.LOG.log(Level.FINE, "ByteBuffer Unmap failed", e);
+            Utils.LOG.log(Level.FINE, "ByteBuffer Unmap failed", e);
         }
     }
 

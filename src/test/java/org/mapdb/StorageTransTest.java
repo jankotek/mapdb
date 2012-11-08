@@ -119,7 +119,7 @@ public class StorageTransTest extends TestFile {
         long recid1 = t.recordPut("t",Serializer.STRING_SERIALIZER);
         assertTrue(log.exists());
         t.commit();
-        if(!JdbmUtil.isWindows())
+        if(!Utils.isWindows())
             assertFalse(log.exists());
         long recid2 = t.recordPut("t",Serializer.STRING_SERIALIZER);
         assertTrue(log.exists());
@@ -134,7 +134,7 @@ public class StorageTransTest extends TestFile {
         assertEquals("t",t2.recordGet(recid1, Serializer.STRING_SERIALIZER));
         assertEquals(null,t2.recordGet(recid2, Serializer.STRING_SERIALIZER));
 
-        if(!JdbmUtil.isWindows())
+        if(!Utils.isWindows())
             assertFalse(log.exists());
 
     }
@@ -167,7 +167,7 @@ public class StorageTransTest extends TestFile {
 
         t = new StorageTrans(index);
         assertEquals(Long.valueOf(1), t.recordGet(recid, Serializer.LONG_SERIALIZER));
-        if(!JdbmUtil.isWindows())
+        if(!Utils.isWindows())
             assertFalse(log.exists());
     }
 
@@ -181,7 +181,7 @@ public class StorageTransTest extends TestFile {
         assertFalse(log.exists());
         assertEquals(null, t.recordGet(recid,Serializer.LONG_SERIALIZER));
         t.close();
-        if(!JdbmUtil.isWindows())
+        if(!Utils.isWindows())
             assertFalse(log.exists());
     }
 

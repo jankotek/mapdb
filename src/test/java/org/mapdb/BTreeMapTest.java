@@ -34,7 +34,7 @@ public class BTreeMapTest{
         BTreeMap m = new BTreeMap(engine, 32,true,false, null,null,null,null);
 
         BTreeMap.LeafNode n = new BTreeMap.LeafNode(new Object[]{1,2,3, null}, new Object[]{1,2,3,null}, 111);
-        BTreeMap.LeafNode n2 = (BTreeMap.LeafNode) JdbmUtil.clone(n, m.nodeSerializer);
+        BTreeMap.LeafNode n2 = (BTreeMap.LeafNode) Utils.clone(n, m.nodeSerializer);
         assertArrayEquals(n.keys(), n2.keys());
         assertEquals(n.next, n2.next);
     }
@@ -43,7 +43,7 @@ public class BTreeMapTest{
         BTreeMap m = new BTreeMap(engine,32,true,false, null,null,null,null);
 
         BTreeMap.DirNode n = new BTreeMap.DirNode(new Object[]{1,2,3, null}, new long[]{4,5,6,7});
-        BTreeMap.DirNode n2 = (BTreeMap.DirNode) JdbmUtil.clone(n, m.nodeSerializer);
+        BTreeMap.DirNode n2 = (BTreeMap.DirNode) Utils.clone(n, m.nodeSerializer);
 
         assertArrayEquals(n.keys(), n2.keys());
         assertArrayEquals(n.child, n2.child);

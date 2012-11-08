@@ -28,10 +28,10 @@ public class CompressLZFSerializer implements Serializer<byte[]> {
         //check if compressed data are larger then original
         if (value.length <= len) {
             //in this case do not compress data, write 0 as indicator
-            JdbmUtil.packInt(out, 0);
+            Utils.packInt(out, 0);
             out.write(value);
         } else {
-            JdbmUtil.packInt(out, value.length); //write original decompressed size
+            Utils.packInt(out, value.length); //write original decompressed size
             out.write(outbuf, 0, len);
         }
     }
@@ -42,7 +42,7 @@ public class CompressLZFSerializer implements Serializer<byte[]> {
         //get original decompressed size
         DataInput2 in2 = (DataInput2) in;
         int origPos = in2.pos;
-        int expendedLen = JdbmUtil.unpackInt(in);
+        int expendedLen = Utils.unpackInt(in);
         byte[] inbuf = new byte[available - (in2.pos - origPos)];
         in.readFully(inbuf);
         if (expendedLen == 0) {

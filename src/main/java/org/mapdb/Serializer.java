@@ -38,7 +38,7 @@ public interface Serializer<A> {
     Serializer<String> STRING_SERIALIZER = new Serializer<String>() {
 
         public void serialize(DataOutput out, String value) throws IOException {
-            final byte[] bytes = value.getBytes(JdbmUtil.UTF8);
+            final byte[] bytes = value.getBytes(Utils.UTF8);
             out.write(bytes);
         }
 
@@ -46,7 +46,7 @@ public interface Serializer<A> {
         public String deserialize(DataInput in, int available) throws IOException {
             byte[] bytes = new byte[available];
             in.readFully(bytes);
-            return new String(bytes,JdbmUtil.UTF8);
+            return new String(bytes, Utils.UTF8);
         }
     };
 

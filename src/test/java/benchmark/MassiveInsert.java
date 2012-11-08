@@ -2,9 +2,8 @@ package benchmark;
 
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
-import org.mapdb.JdbmUtil;
+import org.mapdb.Utils;
 
-import java.io.File;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -27,7 +26,7 @@ public class MassiveInsert {
         final long t = System.currentTimeMillis();
 
         final DB db = DBMaker
-                .newFileDB(JdbmUtil.tempDbFile())
+                .newFileDB(Utils.tempDbFile())
                 //.newMemoryDB()
                 .closeOnJvmShutdown()
                 .deleteFilesAfterClose()

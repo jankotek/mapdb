@@ -50,7 +50,7 @@ public class DBMaker {
 
 
     /** use static factory methods, or make subclass */
-    protected DBMaker(){}
+    public DBMaker(){}
 
     /** Creates new in-memory database. Changes are lost after JVM exits.
      * <p/>
@@ -341,7 +341,7 @@ public class DBMaker {
      */
     public DBMaker encryptionEnable(String password){
         try {
-            return encryptionEnable(password.getBytes(JdbmUtil.UTF8));
+            return encryptionEnable(password.getBytes(Utils.UTF8));
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }

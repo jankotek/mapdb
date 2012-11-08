@@ -21,14 +21,14 @@ public class SerializerPojo extends SerializerBase{
     protected static final Serializer<ArrayList<ClassInfo>> serializer = new Serializer<ArrayList<ClassInfo>>() {
 
         public void serialize(DataOutput out, ArrayList<ClassInfo> obj) throws IOException {
-            JdbmUtil.packInt(out, obj.size());
+            Utils.packInt(out, obj.size());
             for (ClassInfo ci : obj) {
                 out.writeUTF(ci.getName());
                 out.writeBoolean(ci.isEnum);
                 out.writeBoolean(ci.isExternalizable);
                 if(ci.isExternalizable) continue; //no fields
 
-                JdbmUtil.packInt(out, ci.fields.size());
+                Utils.packInt(out, ci.fields.size());
                 for (FieldInfo fi : ci.fields) {
                     out.writeUTF(fi.getName());
                     out.writeBoolean(fi.isPrimitive());
@@ -39,7 +39,7 @@ public class SerializerPojo extends SerializerBase{
 
         public ArrayList<ClassInfo> deserialize(DataInput in, int available) throws IOException{
 
-            int size = JdbmUtil.unpackInt(in);
+            int size = Utils.unpackInt(in);
             ArrayList<ClassInfo> ret = new ArrayList<ClassInfo>(size);
 
             for (int i = 0; i < size; i++) {
@@ -47,7 +47,7 @@ public class SerializerPojo extends SerializerBase{
                 boolean isEnum = in.readBoolean();
                 boolean isExternalizable = in.readBoolean();
 
-                int fieldsNum = isExternalizable? 0 : JdbmUtil.unpackInt(in);
+                int fieldsNum = isExternalizable? 0 : Utils.unpackInt(in);
                 FieldInfo[] fields = new FieldInfo[fieldsNum];
                 for (int j = 0; j < fieldsNum; j++) {
                     fields[j] = new FieldInfo(in.readUTF(), in.readBoolean(), in.readUTF(), classForName(className));
@@ -419,7 +419,7 @@ public class SerializerPojo extends SerializerBase{
 
         //write class header
         int classId = getClassId(obj.getClass());
-        JdbmUtil.packInt(out, classId);
+        Utils.packInt(out, classId);
         ClassInfo classInfo = registered.get(classId);
 
         if(classInfo.isExternalizable){
@@ -440,11 +440,11 @@ public class SerializerPojo extends SerializerBase{
 
         if(classInfo.isEnum) {
             int ordinal = ((Enum)obj).ordinal();
-            JdbmUtil.packInt(out, ordinal);
+            Utils.packInt(out, ordinal);
         }
 
         ObjectStreamField[] fields = getFields(obj.getClass());
-        JdbmUtil.packInt(out, fields.length);
+        Utils.packInt(out, fields.length);
 
         for (ObjectStreamField f : fields) {
             //write field ID
@@ -455,7 +455,7 @@ public class SerializerPojo extends SerializerBase{
                 fieldId = classInfo.addFieldInfo(new FieldInfo(f, obj.getClass()));
                 saveClassInfo();
             }
-            JdbmUtil.packInt(out, fieldId);
+            Utils.packInt(out, fieldId);
             //and write value
             Object fieldValue = getFieldValue(classInfo.getField(fieldId), obj);
             serialize(out, fieldValue, objectStack);
@@ -469,7 +469,7 @@ public class SerializerPojo extends SerializerBase{
 
         //read class header
         try {
-            int classId = JdbmUtil.unpackInt(in);
+            int classId = Utils.unpackInt(in);
             ClassInfo classInfo = registered.get(classId);
 //            Class clazz = Class.forName(classInfo.getName());
             Class clazz = classId2class.get(classId);
@@ -480,7 +480,7 @@ public class SerializerPojo extends SerializerBase{
             Object o;
 
             if(classInfo.isEnum) {
-                int ordinal = JdbmUtil.unpackInt(in);
+                int ordinal = Utils.unpackInt(in);
                 o = clazz.getEnumConstants()[ordinal];
             }
             else {
@@ -503,9 +503,9 @@ public class SerializerPojo extends SerializerBase{
 //                }
 
             }else{
-                int fieldCount = JdbmUtil.unpackInt(in);
+                int fieldCount = Utils.unpackInt(in);
                 for (int i = 0; i < fieldCount; i++) {
-                    int fieldId = JdbmUtil.unpackInt(in);
+                    int fieldId = Utils.unpackInt(in);
                     FieldInfo f = classInfo.getField(fieldId);
                     Object fieldValue = deserialize(in, objectStack);
                     setFieldValue(f, o, fieldValue);

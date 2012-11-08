@@ -146,7 +146,7 @@ public class DBMakerTest{
     }
 
     @Test public void read_only() throws IOException {
-        File f = JdbmUtil.tempDbFile();
+        File f = Utils.tempDbFile();
         DB db = DBMaker.newFileDB(f).make();
         db.close();
         db = DBMaker
@@ -159,7 +159,7 @@ public class DBMakerTest{
     }
 
     @Test public void crc32() throws IOException {
-        File f = JdbmUtil.tempDbFile();
+        File f = Utils.tempDbFile();
         DB db = DBMaker.newFileDB(f).make();
         db.close();
         db = DBMaker
@@ -176,7 +176,7 @@ public class DBMakerTest{
     }
 
     @Test public void encrypt() throws IOException {
-        File f = JdbmUtil.tempDbFile();
+        File f = Utils.tempDbFile();
         DB db = DBMaker.newFileDB(f).make();
         db.close();
         db = DBMaker
@@ -193,7 +193,7 @@ public class DBMakerTest{
     }
 
     @Test public void compress() throws IOException {
-        File f = JdbmUtil.tempDbFile();
+        File f = Utils.tempDbFile();
         DB db = DBMaker.newFileDB(f).make();
         db.close();
         db = DBMaker

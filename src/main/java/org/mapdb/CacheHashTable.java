@@ -35,14 +35,14 @@ public class CacheHashTable implements Engine {
     @Override
     public <A> long recordPut(A value, Serializer<A> serializer) {
         final long recid = engine.recordPut(value, serializer);
-        items[Math.abs(JdbmUtil.longHash(recid))%cacheMaxSize] = new HashItem(recid, value);
+        items[Math.abs(Utils.longHash(recid))%cacheMaxSize] = new HashItem(recid, value);
         return recid;
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public <A> A recordGet(long recid, Serializer<A> serializer) {
-        final int pos = Math.abs(JdbmUtil.longHash(recid))%cacheMaxSize;
+        final int pos = Math.abs(Utils.longHash(recid))%cacheMaxSize;
         HashItem item = items[pos];
         if(item!=null && recid == item.key)
             return (A) item.val;
@@ -56,13 +56,13 @@ public class CacheHashTable implements Engine {
 
     @Override
     public <A> void recordUpdate(long recid, A value, Serializer<A> serializer) {
-        items[Math.abs(Math.abs(JdbmUtil.longHash(recid)))%cacheMaxSize] = new HashItem(recid, value);
+        items[Math.abs(Math.abs(Utils.longHash(recid)))%cacheMaxSize] = new HashItem(recid, value);
         engine.recordUpdate(recid, value, serializer);
     }
 
     @Override
     public void recordDelete(long recid) {
-        final int pos = Math.abs(JdbmUtil.longHash(recid))%cacheMaxSize;
+        final int pos = Math.abs(Utils.longHash(recid))%cacheMaxSize;
         HashItem item = items[pos];
         if(item!=null && recid == item.key)
             items[pos] = null;

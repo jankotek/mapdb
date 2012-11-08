@@ -217,7 +217,7 @@ public class LongHashMap<V> extends LongMap<V> implements Serializable  {
     @Override
     public V get(final long key) {
 
-        final int hash = JdbmUtil.longHash(key);
+        final int hash = Utils.longHash(key);
         final int index = (hash & 0x7FFFFFFF) % elementData.length;
 
         //find non null entry
@@ -259,7 +259,7 @@ public class LongHashMap<V> extends LongMap<V> implements Serializable  {
     @Override
     public V put(final long key, final V value) {
 
-        int hash = JdbmUtil.longHash(key);
+        int hash = Utils.longHash(key);
         int index = (hash & 0x7FFFFFFF) % elementData.length;
 
         //find non null entry
@@ -306,7 +306,7 @@ public class LongHashMap<V> extends LongMap<V> implements Serializable  {
         for (Entry<V> anElementData : elementData) {
             Entry<V> entry = anElementData;
             while (entry != null) {
-                int index = (JdbmUtil.longHash(entry.key) & 0x7FFFFFFF) % length;
+                int index = (Utils.longHash(entry.key) & 0x7FFFFFFF) % length;
                 Entry<V> next = entry.next;
                 entry.next = newData[index];
                 newData[index] = entry;
@@ -346,7 +346,7 @@ public class LongHashMap<V> extends LongMap<V> implements Serializable  {
     Entry<V> removeEntry(final long key) {
         Entry<V> last = null;
 
-        final int hash = JdbmUtil.longHash(key);
+        final int hash = Utils.longHash(key);
         final int index = (hash & 0x7FFFFFFF) % elementData.length;
         Entry<V> entry = elementData[index];
 

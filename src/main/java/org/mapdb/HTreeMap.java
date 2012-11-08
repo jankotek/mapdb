@@ -56,7 +56,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         public void serialize(DataOutput out, HashRoot value) throws IOException {
             out.writeBoolean(value.hasValues);
             for(int i=0;i<16;i++){
-                JdbmUtil.packLong(out,value.segmentRecids[i]);
+                Utils.packLong(out, value.segmentRecids[i]);
             }
             defaultSerializer.serialize(out,value.keySerializer);
             defaultSerializer.serialize(out,value.valueSerializer);
@@ -69,7 +69,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             r.hasValues = in.readBoolean();
             r.segmentRecids = new long[16];
             for(int i=0;i<16;i++){
-                r.segmentRecids[i] = JdbmUtil.unpackLong(in);
+                r.segmentRecids[i] = Utils.unpackLong(in);
             }
             r.keySerializer = (Serializer) defaultSerializer.deserialize(in, -1);
             r.valueSerializer = (Serializer) defaultSerializer.deserialize(in, -1);
@@ -89,7 +89,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     final Serializer<LinkedNode<K,V>> LN_SERIALIZER = new Serializer<LinkedNode<K,V>>() {
         @Override
         public void serialize(DataOutput out, LinkedNode<K,V> value) throws IOException {
-            JdbmUtil.packLong(out,value.next);
+            Utils.packLong(out, value.next);
             keySerializer.serialize(out,value.key);
             if(hasValues)
                 valueSerializer.serialize(out,value.value);
@@ -98,9 +98,9 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         @Override
         public LinkedNode<K,V> deserialize(DataInput in, int available) throws IOException {
             return new LinkedNode<K, V>(
-                    JdbmUtil.unpackLong(in),
+                    Utils.unpackLong(in),
                     (K) keySerializer.deserialize(in,-1),
-                    hasValues? (V) valueSerializer.deserialize(in,-1) : (V)JdbmUtil.EMPTY_STRING
+                    hasValues? (V) valueSerializer.deserialize(in,-1) : (V) Utils.EMPTY_STRING
             );
         }
     };
@@ -126,7 +126,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 if(value[i]!=null){
                     if(CC.ASSERT && value[i].length!=8) throw new InternalError();
                     for(long l:value[i]){
-                        JdbmUtil.packLong(out,l);
+                        Utils.packLong(out, l);
                     }
                 }
             }
@@ -144,7 +144,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 if((nulls & 1)!=0){
                     final long[] subarray = new long[8];
                     for(int j=0;j<8;j++){
-                        subarray[j] = JdbmUtil.unpackLong(in);
+                        subarray[j] = Utils.unpackLong(in);
                     }
                     ret[i] = subarray;
                 }
@@ -632,7 +632,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             if(HTreeMap.this.hasValues)
                 throw new UnsupportedOperationException();
             else
-                return HTreeMap.this.put(k, (V) JdbmUtil.EMPTY_STRING) == null;
+                return HTreeMap.this.put(k, (V) Utils.EMPTY_STRING) == null;
         }
 
         @Override

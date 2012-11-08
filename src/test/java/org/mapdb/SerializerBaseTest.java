@@ -16,7 +16,6 @@
 package org.mapdb;
 
 import junit.framework.TestCase;
-import org.mapdb.*;
 
 import java.io.*;
 import java.math.BigDecimal;
@@ -415,7 +414,7 @@ public class SerializerBaseTest extends TestCase {
 
     public void testArray(){
         Object[] o = new Object[]{"A",Long.valueOf(1),Long.valueOf(2),Long.valueOf(3), Long.valueOf(3)};
-        Object[] o2 = (Object[]) JdbmUtil.clone(o, Serializer.BASIC_SERIALIZER);
+        Object[] o2 = (Object[]) Utils.clone(o, Serializer.BASIC_SERIALIZER);
         assertArrayEquals(o,o2);
     }
 

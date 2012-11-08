@@ -92,7 +92,7 @@ public class SerializerBase implements Serializer{
             if (indexInObjectStack != -1) {
                 //object was already serialized, just write reference to it and return
                 out.write(OBJECT_STACK);
-                JdbmUtil.packInt(out, indexInObjectStack);
+                Utils.packInt(out, indexInObjectStack);
                 return;
             }
             //add this object to objectStack
@@ -157,16 +157,16 @@ public class SerializerBase implements Serializer{
         } else if (clazz == BigInteger.class) {
             out.write(BIGINTEGER);
             byte[] buf = ((BigInteger) obj).toByteArray();
-            JdbmUtil.packInt(out, buf.length);
+            Utils.packInt(out, buf.length);
             out.write(buf);
             return;
         } else if (clazz == BigDecimal.class) {
             out.write(BIGDECIMAL);
             BigDecimal d = (BigDecimal) obj;
             byte[] buf = d.unscaledValue().toByteArray();
-            JdbmUtil.packInt(out, buf.length);
+            Utils.packInt(out, buf.length);
             out.write(buf);
-            JdbmUtil.packInt(out, d.scale());
+            Utils.packInt(out, d.scale());
             return;
         } else if (clazz == Long.class) {
             final long val = (Long) obj;
@@ -227,31 +227,31 @@ public class SerializerBase implements Serializer{
         } else if (obj instanceof short[]) {
             out.write(SHORT_ARRAY);
             short[] a = (short[]) obj;
-            JdbmUtil.packInt(out,a.length);
+            Utils.packInt(out, a.length);
             for(short s:a) out.writeShort(s);
             return;
         } else if (obj instanceof boolean[]) {
             out.write(BOOLEAN_ARRAY);
             boolean[] a = (boolean[]) obj;
-            JdbmUtil.packInt(out,a.length);
+            Utils.packInt(out, a.length);
             for(boolean s:a) out.writeBoolean(s); //TODO pack 8 booleans to single byte
             return;
         } else if (obj instanceof double[]) {
             out.write(DOUBLE_ARRAY);
             double[] a = (double[]) obj;
-            JdbmUtil.packInt(out,a.length);
+            Utils.packInt(out, a.length);
             for(double s:a) out.writeDouble(s);
             return;
         } else if (obj instanceof float[]) {
             out.write(FLOAT_ARRAY);
             float[] a = (float[]) obj;
-            JdbmUtil.packInt(out,a.length);
+            Utils.packInt(out, a.length);
             for(float s:a) out.writeFloat(s);
             return;
         } else if (obj instanceof char[]) {
             out.write(CHAR_ARRAY);
             char[] a = (char[]) obj;
-            JdbmUtil.packInt(out,a.length);
+            Utils.packInt(out, a.length);
             for(char s:a) out.writeChar(s);
             return;
         } else if (obj instanceof byte[]) {
@@ -271,10 +271,10 @@ public class SerializerBase implements Serializer{
             out.write(SERIALIZER_COMPRESSION_WRAPPER);
             serialize(out, ((SerializerCompressWrapper)obj).serializer, objectStack);
             return;
-        } else if(obj == JdbmUtil.COMPARABLE_COMPARATOR){
+        } else if(obj == Utils.COMPARABLE_COMPARATOR){
             out.write(COMPARABLE_COMPARATOR);
             return;
-        } else if(obj == JdbmUtil.COMPARABLE_COMPARATOR_WITH_NULLS){
+        } else if(obj == Utils.COMPARABLE_COMPARATOR_WITH_NULLS){
             out.write(COMPARABLE_COMPARATOR_WITH_NULLS);
             return;
         } else if(obj == BASIC_SERIALIZER){
@@ -314,21 +314,21 @@ public class SerializerBase implements Serializer{
                 out.write(b.length);
                 for (Object o : b) {
                     if (o == null)
-                        JdbmUtil.packLong(out, 0);
+                        Utils.packLong(out, 0);
                     else
-                        JdbmUtil.packLong(out, (Long) o + 1);
+                        Utils.packLong(out, (Long) o + 1);
                 }
 
             } else {
                 out.write(ARRAY_OBJECT);
-                JdbmUtil.packInt(out, b.length);
+                Utils.packInt(out, b.length);
 
 //                // Write class id for components
 //                Class<?> componentType = obj.getClass().getComponentType();
 //                registerClass(componentType);
 //                //write class header
 //                int classId = getClassId(componentType);
-//                JdbmUtil.packInt(out, classId);
+//                Utils.packInt(out, classId);
 
                 for (Object o : b)
                     serialize(out, o, objectStack);
@@ -352,9 +352,9 @@ public class SerializerBase implements Serializer{
                 out.write(l.size());
                 for (Object o : l) {
                     if (o == null)
-                        JdbmUtil.packLong(out, 0);
+                        Utils.packLong(out, 0);
                     else
-                        JdbmUtil.packLong(out, (Long) o + 1);
+                        Utils.packLong(out, (Long) o + 1);
                 }
             } else {
                 serializeCollection(ARRAYLIST, out, obj, objectStack);
@@ -367,7 +367,7 @@ public class SerializerBase implements Serializer{
         } else if (clazz == TreeSet.class) {
             TreeSet l = (TreeSet) obj;
             out.write(TREESET);
-            JdbmUtil.packInt(out, l.size());
+            Utils.packInt(out, l.size());
             serialize(out, l.comparator(), objectStack);
             for (Object o : l)
                 serialize(out, o, objectStack);
@@ -378,7 +378,7 @@ public class SerializerBase implements Serializer{
         } else if (clazz == TreeMap.class) {
             TreeMap l = (TreeMap) obj;
             out.write(TREEMAP);
-            JdbmUtil.packInt(out, l.size());
+            Utils.packInt(out, l.size());
             serialize(out, l.comparator(), objectStack);
             for (Object o : l.keySet()) {
                 serialize(out, o, objectStack);
@@ -410,10 +410,10 @@ public class SerializerBase implements Serializer{
 
     static void serializeString(DataOutput out, String obj) throws IOException {
         final int len = obj.length();
-        JdbmUtil.packInt(out, len);
+        Utils.packInt(out, len);
         for (int i = 0; i < len; i++) {
             int c = (int) obj.charAt(i); //TODO investigate if c could be negative here
-            JdbmUtil.packInt(out, c);
+            Utils.packInt(out, c);
         }
 
     }
@@ -421,7 +421,7 @@ public class SerializerBase implements Serializer{
     private void serializeMap(int header, DataOutput out, Object obj, FastArrayList objectStack) throws IOException {
         Map l = (Map) obj;
         out.write(header);
-        JdbmUtil.packInt(out, l.size());
+        Utils.packInt(out, l.size());
         for (Object o : l.keySet()) {
             serialize(out, o, objectStack);
             serialize(out, l.get(o), objectStack);
@@ -431,7 +431,7 @@ public class SerializerBase implements Serializer{
     private void serializeCollection(int header, DataOutput out, Object obj, FastArrayList objectStack) throws IOException {
         Collection l = (Collection) obj;
         out.write(header);
-        JdbmUtil.packInt(out, l.size());
+        Utils.packInt(out, l.size());
 
         for (Object o : l)
             serialize(out, o, objectStack);
@@ -449,11 +449,11 @@ public class SerializerBase implements Serializer{
         }
         if(allEqual){
             out.write(ARRAY_BYTE_ALL_EQUAL);
-            JdbmUtil.packInt(out, b.length);
+            Utils.packInt(out, b.length);
             out.write(b[0]);
         }else{
             out.write(ARRAY_BYTE);
-            JdbmUtil.packInt(out, b.length);
+            Utils.packInt(out, b.length);
             out.write(b);
         }
     }
@@ -469,27 +469,27 @@ public class SerializerBase implements Serializer{
 
         if (0 <= min && max <= 255) {
             da.write(ARRAY_LONG_B);
-            JdbmUtil.packInt(da, obj.length);
+            Utils.packInt(da, obj.length);
             for (long l : obj)
                 da.write((int) l);
         } else if (0 <= min) {
             da.write(ARRAY_LONG_PACKED);
-            JdbmUtil.packInt(da, obj.length);
+            Utils.packInt(da, obj.length);
             for (long l : obj)
-                JdbmUtil.packLong(da, l);
+                Utils.packLong(da, l);
         } else if (Short.MIN_VALUE <= min && max <= Short.MAX_VALUE) {
             da.write(ARRAY_LONG_S);
-            JdbmUtil.packInt(da, obj.length);
+            Utils.packInt(da, obj.length);
             for (long l : obj)
                 da.writeShort((short) l);
         } else if (Integer.MIN_VALUE <= min && max <= Integer.MAX_VALUE) {
             da.write(ARRAY_LONG_I);
-            JdbmUtil.packInt(da, obj.length);
+            Utils.packInt(da, obj.length);
             for (long l : obj)
                 da.writeInt((int) l);
         } else {
             da.write(ARRAY_LONG_L);
-            JdbmUtil.packInt(da, obj.length);
+            Utils.packInt(da, obj.length);
             for (long l : obj)
                 da.writeLong(l);
         }
@@ -516,22 +516,22 @@ public class SerializerBase implements Serializer{
                 da.write(i);
         } else if (fitsInByte) {
             da.write(ARRAY_INT_B_INT);
-            JdbmUtil.packInt(da, obj.length);
+            Utils.packInt(da, obj.length);
             for (int i : obj)
                 da.write(i);
         } else if (0 <= min) {
             da.write(ARRAY_INT_PACKED);
-            JdbmUtil.packInt(da, obj.length);
+            Utils.packInt(da, obj.length);
             for (int l : obj)
-                JdbmUtil.packInt(da, l);
+                Utils.packInt(da, l);
         } else if (fitsInShort) {
             da.write(ARRAY_INT_S);
-            JdbmUtil.packInt(da, obj.length);
+            Utils.packInt(da, obj.length);
             for (int i : obj)
                 da.writeShort(i);
         } else {
             da.write(ARRAY_INT_I);
-            JdbmUtil.packInt(da, obj.length);
+            Utils.packInt(da, obj.length);
             for (int i : obj)
                 da.writeInt(i);
         }
@@ -567,10 +567,10 @@ public class SerializerBase implements Serializer{
             da.write(val);
         } else if (val < 0) {
             da.write(INTEGER_PACK_NEG);
-            JdbmUtil.packInt(da, -val);
+            Utils.packInt(da, -val);
         } else {
             da.write(INTEGER_PACK);
-            JdbmUtil.packInt(da, val);
+            Utils.packInt(da, val);
         }
     }
 
@@ -602,20 +602,20 @@ public class SerializerBase implements Serializer{
             da.write((int) val);
         } else if (val < 0) {
             da.write(LONG_PACK_NEG);
-            JdbmUtil.packLong(da, -val);
+            Utils.packLong(da, -val);
         } else {
             da.write(LONG_PACK);
-            JdbmUtil.packLong(da, val);
+            Utils.packLong(da, val);
         }
     }
 
 
 
     static String deserializeString(DataInput buf) throws IOException {
-        int len = JdbmUtil.unpackInt(buf);
+        int len = Utils.unpackInt(buf);
         char[] b = new char[len];
         for (int i = 0; i < len; i++)
-            b[i] = (char) JdbmUtil.unpackInt(buf);
+            b[i] = (char) Utils.unpackInt(buf);
 
         return new String(b);
     }
@@ -680,10 +680,10 @@ public class SerializerBase implements Serializer{
                 ret = is.readUnsignedByte();
                 break;
             case INTEGER_PACK_NEG:
-                ret = -JdbmUtil.unpackInt(is);
+                ret = -Utils.unpackInt(is);
                 break;
             case INTEGER_PACK:
-                ret = JdbmUtil.unpackInt(is);
+                ret = Utils.unpackInt(is);
                 break;
             case LONG_MINUS_1:
                 ret = (long) -1;
@@ -719,10 +719,10 @@ public class SerializerBase implements Serializer{
                 ret = (long) is.readUnsignedByte();
                 break;
             case LONG_PACK_NEG:
-                ret = -JdbmUtil.unpackLong(is);
+                ret = -Utils.unpackLong(is);
                 break;
             case LONG_PACK:
-                ret = JdbmUtil.unpackLong(is);
+                ret = Utils.unpackLong(is);
                 break;
             case LONG_MINUS_MAX:
                 ret = Long.MIN_VALUE;
@@ -755,27 +755,27 @@ public class SerializerBase implements Serializer{
                 ret = is.readByte();
                 break;
             case SHORT_ARRAY:
-                int size = JdbmUtil.unpackInt(is);
+                int size = Utils.unpackInt(is);
                 ret = new short[size];
                 for(int i=0;i<size;i++) ((short[])ret)[i] = is.readShort();
                 break;
             case BOOLEAN_ARRAY:
-                size = JdbmUtil.unpackInt(is);
+                size = Utils.unpackInt(is);
                 ret = new boolean[size];
                 for(int i=0;i<size;i++) ((boolean[])ret)[i] = is.readBoolean();
                 break;
             case DOUBLE_ARRAY:
-                size = JdbmUtil.unpackInt(is);
+                size = Utils.unpackInt(is);
                 ret = new double[size];
                 for(int i=0;i<size;i++) ((double[])ret)[i] = is.readDouble();
                 break;
             case FLOAT_ARRAY:
-                size = JdbmUtil.unpackInt(is);
+                size = Utils.unpackInt(is);
                 ret = new float[size];
                 for(int i=0;i<size;i++) ((float[])ret)[i] = is.readFloat();
                 break;
             case CHAR_ARRAY:
-                size = JdbmUtil.unpackInt(is);
+                size = Utils.unpackInt(is);
                 ret = new char[size];
                 for(int i=0;i<size;i++) ((char[])ret)[i] = is.readChar();
                 break;
@@ -822,13 +822,13 @@ public class SerializerBase implements Serializer{
                 ret = new BigInteger(deserializeArrayByte(is));
                 break;
             case BIGDECIMAL:
-                ret = new BigDecimal(new BigInteger(deserializeArrayByte(is)), JdbmUtil.unpackInt(is));
+                ret = new BigDecimal(new BigInteger(deserializeArrayByte(is)), Utils.unpackInt(is));
                 break;
             case STRING:
                 ret = deserializeString(is);
                 break;
             case STRING_EMPTY:
-                ret = JdbmUtil.EMPTY_STRING;
+                ret = Utils.EMPTY_STRING;
                 break;
             case CLASS:
                 ret = deserializeClass(is);
@@ -873,7 +873,7 @@ public class SerializerBase implements Serializer{
                 ret = deserializeArrayListPackedLong(is);
                 break;
             case ARRAY_BYTE_ALL_EQUAL:
-                byte[] b = new byte[JdbmUtil.unpackInt(is)];
+                byte[] b = new byte[Utils.unpackInt(is)];
                 Arrays.fill(b, is.readByte());
                 ret = b;
                 break;
@@ -884,10 +884,10 @@ public class SerializerBase implements Serializer{
                 ret = new Locale(is.readUTF(),is.readUTF(),is.readUTF());
                 break;
             case COMPARABLE_COMPARATOR:
-                ret = JdbmUtil.COMPARABLE_COMPARATOR;
+                ret = Utils.COMPARABLE_COMPARATOR;
                 break;
             case COMPARABLE_COMPARATOR_WITH_NULLS:
-                ret = JdbmUtil.COMPARABLE_COMPARATOR_WITH_NULLS;
+                ret = Utils.COMPARABLE_COMPARATOR_WITH_NULLS;
                 break;
             case SerializationHeader.BASIC_SERIALIZER:
                 ret = BASIC_SERIALIZER;
@@ -916,7 +916,7 @@ public class SerializerBase implements Serializer{
 
         switch (head) {
             case OBJECT_STACK:
-                ret = objectStack.get(JdbmUtil.unpackInt(is));
+                ret = objectStack.get(Utils.unpackInt(is));
                 break;
             case ARRAYLIST:
                 ret = deserializeArrayList(is, objectStack);
@@ -978,7 +978,7 @@ public class SerializerBase implements Serializer{
     }
 
     private byte[] deserializeArrayByte(DataInput is) throws IOException {
-        byte[] bb = new byte[JdbmUtil.unpackInt(is)];
+        byte[] bb = new byte[Utils.unpackInt(is)];
         is.readFully(bb);
         return bb;
     }
@@ -996,7 +996,7 @@ public class SerializerBase implements Serializer{
 
 
     private long[] deserializeArrayLongL(DataInput is) throws IOException {
-        int size = JdbmUtil.unpackInt(is);
+        int size = Utils.unpackInt(is);
         long[] ret = new long[size];
         for (int i = 0; i < size; i++)
             ret[i] = is.readLong();
@@ -1005,7 +1005,7 @@ public class SerializerBase implements Serializer{
 
 
     private long[] deserializeArrayLongI(DataInput is) throws IOException {
-        int size = JdbmUtil.unpackInt(is);
+        int size = Utils.unpackInt(is);
         long[] ret = new long[size];
         for (int i = 0; i < size; i++)
             ret[i] = is.readInt();
@@ -1014,7 +1014,7 @@ public class SerializerBase implements Serializer{
 
 
     private long[] deserializeArrayLongS(DataInput is) throws IOException {
-        int size = JdbmUtil.unpackInt(is);
+        int size = Utils.unpackInt(is);
         long[] ret = new long[size];
         for (int i = 0; i < size; i++)
             ret[i] = is.readShort();
@@ -1023,7 +1023,7 @@ public class SerializerBase implements Serializer{
 
 
     private long[] deserializeArrayLongB(DataInput is) throws IOException {
-        int size = JdbmUtil.unpackInt(is);
+        int size = Utils.unpackInt(is);
         long[] ret = new long[size];
         for (int i = 0; i < size; i++) {
             ret[i] = is.readUnsignedByte();
@@ -1035,7 +1035,7 @@ public class SerializerBase implements Serializer{
 
 
     private int[] deserializeArrayIntIInt(DataInput is) throws IOException {
-        int size = JdbmUtil.unpackInt(is);
+        int size = Utils.unpackInt(is);
         int[] ret = new int[size];
         for (int i = 0; i < size; i++)
             ret[i] = is.readInt();
@@ -1044,7 +1044,7 @@ public class SerializerBase implements Serializer{
 
 
     private int[] deserializeArrayIntSInt(DataInput is) throws IOException {
-        int size = JdbmUtil.unpackInt(is);
+        int size = Utils.unpackInt(is);
         int[] ret = new int[size];
         for (int i = 0; i < size; i++)
             ret[i] = is.readShort();
@@ -1053,7 +1053,7 @@ public class SerializerBase implements Serializer{
 
 
     private int[] deserializeArrayIntBInt(DataInput is) throws IOException {
-        int size = JdbmUtil.unpackInt(is);
+        int size = Utils.unpackInt(is);
         int[] ret = new int[size];
         for (int i = 0; i < size; i++) {
             ret[i] = is.readUnsignedByte();
@@ -1065,25 +1065,25 @@ public class SerializerBase implements Serializer{
 
 
     private int[] deserializeArrayIntPack(DataInput is) throws IOException {
-        int size = JdbmUtil.unpackInt(is);
+        int size = Utils.unpackInt(is);
         if (size < 0)
             throw new EOFException();
 
         int[] ret = new int[size];
         for (int i = 0; i < size; i++) {
-            ret[i] = JdbmUtil.unpackInt(is);
+            ret[i] = Utils.unpackInt(is);
         }
         return ret;
     }
 
     private long[] deserializeArrayLongPack(DataInput is) throws IOException {
-        int size = JdbmUtil.unpackInt(is);
+        int size = Utils.unpackInt(is);
         if (size < 0)
             throw new EOFException();
 
         long[] ret = new long[size];
         for (int i = 0; i < size; i++) {
-            ret[i] = JdbmUtil.unpackLong(is);
+            ret[i] = Utils.unpackLong(is);
         }
         return ret;
     }
@@ -1104,9 +1104,9 @@ public class SerializerBase implements Serializer{
 
 
     private Object[] deserializeArrayObject(DataInput is, FastArrayList objectStack) throws IOException {
-        int size = JdbmUtil.unpackInt(is);
+        int size = Utils.unpackInt(is);
 //        // Read class id for components
-//        int classId = JdbmUtil.unpackInt(is);
+//        int classId = Utils.unpackInt(is);
 //        Class clazz = classId2class.get(classId);
 //        Object[] s = (Object[]) Array.newInstance(clazz, size);
 //        objectStack.add(s);
@@ -1122,7 +1122,7 @@ public class SerializerBase implements Serializer{
         int size = is.readUnsignedByte();
         Object[] s = new Object[size];
         for (int i = 0; i < size; i++) {
-            long l = JdbmUtil.unpackLong(is);
+            long l = Utils.unpackLong(is);
             if (l == 0)
                 s[i] = null;
             else
@@ -1133,7 +1133,7 @@ public class SerializerBase implements Serializer{
 
 
     private ArrayList<Object> deserializeArrayList(DataInput is, FastArrayList objectStack) throws IOException {
-        int size = JdbmUtil.unpackInt(is);
+        int size = Utils.unpackInt(is);
         ArrayList<Object> s = new ArrayList<Object>(size);
         objectStack.add(s);
         for (int i = 0; i < size; i++) {
@@ -1149,7 +1149,7 @@ public class SerializerBase implements Serializer{
 
         ArrayList<Object> s = new ArrayList<Object>(size);
         for (int i = 0; i < size; i++) {
-            long l = JdbmUtil.unpackLong(is);
+            long l = Utils.unpackLong(is);
             if (l == 0)
                 s.add(null);
             else
@@ -1160,7 +1160,7 @@ public class SerializerBase implements Serializer{
 
 
     private java.util.LinkedList deserializeLinkedList(DataInput is, FastArrayList objectStack) throws IOException {
-        int size = JdbmUtil.unpackInt(is);
+        int size = Utils.unpackInt(is);
         java.util.LinkedList s = new java.util.LinkedList();
         objectStack.add(s);
         for (int i = 0; i < size; i++)
@@ -1170,7 +1170,7 @@ public class SerializerBase implements Serializer{
 
 
     private Vector<Object> deserializeVector(DataInput is, FastArrayList objectStack) throws IOException {
-        int size = JdbmUtil.unpackInt(is);
+        int size = Utils.unpackInt(is);
         Vector<Object> s = new Vector<Object>(size);
         objectStack.add(s);
         for (int i = 0; i < size; i++)
@@ -1180,7 +1180,7 @@ public class SerializerBase implements Serializer{
 
 
     private HashSet<Object> deserializeHashSet(DataInput is, FastArrayList objectStack) throws IOException {
-        int size = JdbmUtil.unpackInt(is);
+        int size = Utils.unpackInt(is);
         HashSet<Object> s = new HashSet<Object>(size);
         objectStack.add(s);
         for (int i = 0; i < size; i++)
@@ -1190,7 +1190,7 @@ public class SerializerBase implements Serializer{
 
 
     private LinkedHashSet<Object> deserializeLinkedHashSet(DataInput is, FastArrayList objectStack) throws IOException {
-        int size = JdbmUtil.unpackInt(is);
+        int size = Utils.unpackInt(is);
         LinkedHashSet<Object> s = new LinkedHashSet<Object>(size);
         objectStack.add(s);
         for (int i = 0; i < size; i++)
@@ -1200,7 +1200,7 @@ public class SerializerBase implements Serializer{
 
 
     private TreeSet<Object> deserializeTreeSet(DataInput is, FastArrayList objectStack) throws IOException {
-        int size = JdbmUtil.unpackInt(is);
+        int size = Utils.unpackInt(is);
         TreeSet<Object> s = new TreeSet<Object>();
         objectStack.add(s);
         Comparator comparator = (Comparator) deserialize(is, objectStack);
@@ -1214,7 +1214,7 @@ public class SerializerBase implements Serializer{
 
 
     private TreeMap<Object, Object> deserializeTreeMap(DataInput is, FastArrayList objectStack) throws IOException {
-        int size = JdbmUtil.unpackInt(is);
+        int size = Utils.unpackInt(is);
 
         TreeMap<Object, Object> s = new TreeMap<Object, Object>();
         objectStack.add(s);
@@ -1228,7 +1228,7 @@ public class SerializerBase implements Serializer{
 
 
     private HashMap<Object, Object> deserializeHashMap(DataInput is, FastArrayList objectStack) throws IOException {
-        int size = JdbmUtil.unpackInt(is);
+        int size = Utils.unpackInt(is);
 
         HashMap<Object, Object> s = new HashMap<Object, Object>(size);
         objectStack.add(s);
@@ -1238,7 +1238,7 @@ public class SerializerBase implements Serializer{
     }
 
     private IdentityHashMap<Object, Object> deserializeIdentityHashMap(DataInput is, FastArrayList objectStack) throws IOException {
-        int size = JdbmUtil.unpackInt(is);
+        int size = Utils.unpackInt(is);
 
         IdentityHashMap<Object, Object> s = new IdentityHashMap<Object, Object>(size);
         objectStack.add(s);
@@ -1248,7 +1248,7 @@ public class SerializerBase implements Serializer{
     }
 
     private LinkedHashMap<Object, Object> deserializeLinkedHashMap(DataInput is, FastArrayList objectStack) throws IOException {
-        int size = JdbmUtil.unpackInt(is);
+        int size = Utils.unpackInt(is);
 
         LinkedHashMap<Object, Object> s = new LinkedHashMap<Object, Object>(size);
         objectStack.add(s);
@@ -1259,7 +1259,7 @@ public class SerializerBase implements Serializer{
 
 
     private Hashtable<Object, Object> deserializeHashtable(DataInput is, FastArrayList objectStack) throws IOException {
-        int size = JdbmUtil.unpackInt(is);
+        int size = Utils.unpackInt(is);
 
         Hashtable<Object, Object> s = new Hashtable<Object, Object>(size);
         objectStack.add(s);
@@ -1270,7 +1270,7 @@ public class SerializerBase implements Serializer{
 
 
     private Properties deserializeProperties(DataInput is, FastArrayList objectStack) throws IOException {
-        int size = JdbmUtil.unpackInt(is);
+        int size = Utils.unpackInt(is);
 
         Properties s = new Properties();
         objectStack.add(s);

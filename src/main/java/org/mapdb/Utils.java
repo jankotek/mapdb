@@ -10,7 +10,7 @@ import java.util.logging.Logger;
  * Various IO related utilities
  */
 @SuppressWarnings("unchecked")
-final public class JdbmUtil {
+final public class Utils {
 
     static final Logger LOG = Logger.getLogger("JDBM");
 

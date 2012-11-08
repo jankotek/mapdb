@@ -45,7 +45,7 @@ public class CompressTest{
     public void short_compression() throws Exception {
         CompressLZFSerializer ser = new CompressLZFSerializer();
         byte[] b = new byte[]{1,2,3,4,5,33,3};
-        byte[] b2 = JdbmUtil.clone(b, ser);
+        byte[] b2 = Utils.clone(b, ser);
         assertArrayEquals(b,b2);
     }
 
@@ -56,7 +56,7 @@ public class CompressTest{
         b[4] = 5;
         b[1000] = 1;
 
-        assertArrayEquals(b,JdbmUtil.clone(b, ser));
+        assertArrayEquals(b, Utils.clone(b, ser));
 
         //check compressed size is actually smaller
         DataOutput2 out = new DataOutput2();
