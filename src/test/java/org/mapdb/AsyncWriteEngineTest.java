@@ -1,6 +1,5 @@
 package org.mapdb;
 
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -25,7 +24,7 @@ public class AsyncWriteEngineTest extends TestFile{
         assertNotNull(index);
         if(engine !=null)
            engine.close();
-        engine =  new AsyncWriteEngine(new StorageDirect(index), true);
+        engine =  new AsyncWriteEngine(new StorageDirect(index), true, 0);
     }
 
 
@@ -96,7 +95,7 @@ public class AsyncWriteEngineTest extends TestFile{
                 return super.recordPut(value, serializer);
             }
         };
-        AsyncWriteEngine a = new AsyncWriteEngine(t, true);
+        AsyncWriteEngine a = new AsyncWriteEngine(t, true, 0);
         byte[] b = new byte[124];
 
         long max = 100;
@@ -117,7 +116,7 @@ public class AsyncWriteEngineTest extends TestFile{
 
         //now reopen db and check ths
         t = new StorageTrans(index);
-        a = new AsyncWriteEngine(t, true);
+        a = new AsyncWriteEngine(t, true, 0);
         for(Integer i=0;i<max;i++){
             long recid = l.get(i);
             assertArrayEquals(b, (byte[]) a.recordGet(recid, Serializer.BASIC_SERIALIZER));

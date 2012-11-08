@@ -33,6 +33,7 @@ public class DBMaker {
 
     protected boolean _asyncWriteEnabled = true;
     protected boolean _asyncSerializationEnabled = true;
+    protected int _asyncFlushDelay = 0;
 
     protected boolean _deleteFilesAfterClose = false;
     protected boolean _readOnly = false;
@@ -50,7 +51,7 @@ public class DBMaker {
 
 
     /** use static factory methods, or make subclass */
-    public DBMaker(){}
+    protected DBMaker(){}
 
     /** Creates new in-memory database. Changes are lost after JVM exits.
      * <p/>
@@ -293,6 +294,26 @@ public class DBMaker {
         return this;
     }
 
+    /**
+     * Set flush iterval for write cache, by default is 0
+     * <p/>
+     * When BTreeMap is constructed from ordered set, tree node size is increasing linearly with each
+     * item added. Each time new key is added to tree node, its size changes and
+     * storage needs to find new place. So constructing BTreeMap from ordered set leads to large
+     * store fragmentation.
+     * <p/>
+     *  Setting flush interval is workaround as BTreeMap node is always updated in memory (write cache)
+     *  and only final version of node is stored on disk.
+     *
+     *
+     * @param delay flush write cache every N miliseconds
+     * @return this builder
+     */
+    public DBMaker asyncFlushDelay(int delay){
+        _asyncFlushDelay = delay;
+        return this;
+    }
+
 
     /**
      * Try to delete files after DB is closed.
@@ -434,7 +455,7 @@ public class DBMaker {
                 new StorageDirect(_file, _asyncWriteEnabled, _deleteFilesAfterClose,_readOnly, _appendOnlyEnabled, _ifInMemoryUseDirectBuffer);
 
         if(_asyncWriteEnabled && !_readOnly)
-            engine = new AsyncWriteEngine(engine, _asyncSerializationEnabled);
+            engine = new AsyncWriteEngine(engine, _asyncSerializationEnabled, _asyncFlushDelay);
 
         if(_checksumEnabled){
             engine = new ByteTransformEngine(engine, new ChecksumCRC32Serializer());

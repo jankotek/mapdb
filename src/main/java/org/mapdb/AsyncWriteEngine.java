@@ -26,6 +26,8 @@ public class AsyncWriteEngine implements Engine {
 
     protected final boolean asyncSerialization;
 
+    protected final int flushDelay;
+
     /** indicates deleted record */
     protected static final Object DELETED = new Object();
 
@@ -50,8 +52,10 @@ public class AsyncWriteEngine implements Engine {
 
     @SuppressWarnings("unchecked")
     private void writerThreadRun() {
+        long nextFlush = 0;
         while(true)try{
-            while(writes.isEmpty() && newRecids.remainingCapacity()==0){
+            while(( writes.isEmpty() || (flushDelay !=0 && nextFlush>System.currentTimeMillis()))
+                    && newRecids.remainingCapacity()==0){
                 if(writes.isEmpty() && shutdownSignal){
                     //store closed, shutdown this thread
                     shutdownResponse.countDown();
@@ -67,21 +71,27 @@ public class AsyncWriteEngine implements Engine {
             try{
                 grandLock.writeLock().lock();
 
-            LongMap.LongMapIterator<Object> iter = writes.longMapIterator();
-            while(iter.moveToNext()){
-                final long recid = iter.key();
-                final Object value = iter.value();
-                if(value==DELETED){
-                    engine.recordDelete(recid);
-                }else{
-                    byte[] data = asyncSerialization ? ((SerRec)value).serialize() : (byte[]) value;
-                    engine.recordUpdate(recid, data, Serializer.BYTE_ARRAY_SERIALIZER);
+            if(flushDelay ==0 || System.currentTimeMillis()>nextFlush){
+                LongMap.LongMapIterator<Object> iter = writes.longMapIterator();
+                while(iter.moveToNext()){
+                    final long recid = iter.key();
+                    final Object value = iter.value();
+                    if(value==DELETED){
+                        engine.recordDelete(recid);
+                    }else{
+                        byte[] data = asyncSerialization ? ((SerRec)value).serialize() : (byte[]) value;
+                        engine.recordUpdate(recid, data, Serializer.BYTE_ARRAY_SERIALIZER);
+                    }
+                    //Record will be only removed if value was not updated.
+                    //If value was updated during write, equality check will fail, and it will stay there
+                    //We just collect it at next round
+                    writes.remove(recid, value);
                 }
-                //Record will be only removed if value was not updated.
-                //If value was updated during write, equality check will fail, and it will stay there
-                //We just collect it at next round
-                writes.remove(recid, value);
             }
+            if(flushDelay !=0){
+                nextFlush = System.currentTimeMillis()+ flushDelay;
+            }
+
 
             int toFetch = newRecids.remainingCapacity();
             for(int i=0;i<toFetch;i++){
@@ -100,9 +110,10 @@ public class AsyncWriteEngine implements Engine {
     protected final ArrayBlockingQueue<Long> newRecids = new ArrayBlockingQueue<Long>(128);
 
 
-    public AsyncWriteEngine(Engine engine, boolean asyncSerialization) {
+    public AsyncWriteEngine(Engine engine, boolean asyncSerialization, int flushDelay) {
         this.engine = engine;
         this.asyncSerialization = asyncSerialization;
+        this.flushDelay = flushDelay;
         //TODO cache index file size
         //allocatedIndexFileSize = indexValGet(RECID_CURRENT_INDEX_FILE_SIZE);
 
