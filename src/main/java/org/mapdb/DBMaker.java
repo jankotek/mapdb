@@ -34,7 +34,7 @@ public class DBMaker {
     protected boolean _asyncWriteEnabled = true;
     protected boolean _asyncSerializationEnabled = true;
     protected int _asyncFlushDelay = 0;
-    protected boolean _asyncThreadDeamon = false;
+    protected boolean _asyncThreadDaemon = false;
 
     protected boolean _deleteFilesAfterClose = false;
     protected boolean _readOnly = false;
@@ -271,8 +271,8 @@ public class DBMaker {
      *
      * @return this builder
      */
-    public DBMaker asyncThreadSetDeamon(){
-        this._asyncThreadDeamon = true;
+    public DBMaker asyncThreadSetDaemon(){
+        this._asyncThreadDaemon = true;
         return this;
     }
 
@@ -470,7 +470,7 @@ public class DBMaker {
                 new StorageDirect(_file, _asyncWriteEnabled, _deleteFilesAfterClose,_readOnly, _appendOnlyEnabled, _ifInMemoryUseDirectBuffer);
 
         if(_asyncWriteEnabled && !_readOnly)
-            engine = new AsyncWriteEngine(engine, _asyncSerializationEnabled, _asyncFlushDelay,_asyncThreadDeamon);
+            engine = new AsyncWriteEngine(engine, _asyncSerializationEnabled, _asyncFlushDelay, _asyncThreadDaemon);
 
         if(_checksumEnabled){
             engine = new ByteTransformEngine(engine, new ChecksumCRC32Serializer());
