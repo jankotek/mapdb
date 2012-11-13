@@ -18,295 +18,381 @@
 package org.mapdb;
 
 import java.io.Serializable;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
+import java.util.*;
 
 /**
- * Hash Map which uses primitive long as key.
- * Main advantage is new instanceof of Long does not have to be created for each lookup.
- * <p/>
- * This code comes from Android, which in turns comes from Apache Harmony.
- * This class was modified to use primitive longs and stripped down to consume less space.
- * <p/>
- * Author of JDBM modifications: Jan Kotek
+ * LongHashMap is an implementation of LongMap without concurrency locking.
+ * This code is adoption of 'HashMap' from Apache Harmony refactored to support primitive long keys.
  */
-public class LongHashMap<V> extends LongMap<V> implements Serializable  {
-    private static final long serialVersionUID = 362499999763181265L;
+public class LongHashMap<V> extends LongMap<V> implements Serializable {
 
-    private int elementCount;
+    private static final long serialVersionUID = 362340234235222265L;
 
-    private Entry<V>[] elementData;
+    /*
+     * Actual count of entries
+     */
+    transient int elementCount;
 
-    private final float loadFactor;
+    /*
+     * The internal data structure to hold Entries
+     */
+    transient Entry<V>[] elementData;
 
-    private int threshold;
+    /*
+     * modification count, to keep track of structural modifications between the
+     * HashMap and the iterator
+     */
+    transient int modCount = 0;
 
-    private int defaultSize = 16;
+    /*
+     * default size that an HashMap created using the default constructor would
+     * have.
+     */
+    private static final int DEFAULT_SIZE = 16;
 
-    private transient Entry<V> reuseAfterDelete = null;
+    /*
+     * maximum ratio of (stored elements)/(storage size) which does not lead to
+     * rehash
+     */
+    final float loadFactor;
 
-    static final class Entry<V> implements  Serializable{
-        private static final long serialVersionUID = 362445231113181265L;
+    /*
+     * maximum number of elements that can be put in this map before having to
+     * rehash
+     */
+    int threshold;
 
+    static class Entry<V>{
+        final int origKeyHash;
+
+        final long key;
+        V value;
         Entry<V> next;
 
-        V value;
 
-        long key;
-
-        Entry(long theKey) {
+        Entry(long theKey, V theValue) {
             this.key = theKey;
-            this.value = null;
+            this.value = theValue;
+            origKeyHash = computeHashCode(theKey);
         }
 
-
+        public Entry(long key, int hash) {
+            this.key = key;
+            this.origKeyHash = hash;
+        }
     }
 
-
-    static class HashMapIterator<V> implements Iterator<V> {
+    private static class AbstractMapIterator<V>  {
         private int position = 0;
-
-
-        boolean canRemove = false;
-
-        Entry<V> entry;
-
-        Entry<V> lastEntry;
+        int expectedModCount;
+        Entry<V> futureEntry;
+        Entry<V> currentEntry;
+        Entry<V> prevEntry;
 
         final LongHashMap<V> associatedMap;
 
-        HashMapIterator(LongHashMap<V> hm) {
+        AbstractMapIterator(LongHashMap<V> hm) {
             associatedMap = hm;
+            expectedModCount = hm.modCount;
+            futureEntry = null;
         }
 
         public boolean hasNext() {
-            if (entry != null) {
+            if (futureEntry != null) {
                 return true;
             }
-
-            Entry<V>[] elementData = associatedMap.elementData;
-            int length = elementData.length;
-            int newPosition = position;
-            boolean result = false;
-
-            while (newPosition < length) {
-                if (elementData[newPosition] == null) {
-                    newPosition++;
+            while (position < associatedMap.elementData.length) {
+                if (associatedMap.elementData[position] == null) {
+                    position++;
                 } else {
-                    result = true;
-                    break;
+                    return true;
                 }
             }
-
-            position = newPosition;
-            return result;
+            return false;
         }
 
-        public V next() {
+        final void checkConcurrentMod() throws ConcurrentModificationException {
+            if (expectedModCount != associatedMap.modCount) {
+                throw new ConcurrentModificationException();
+            }
+        }
 
+        final void makeNext() {
+            checkConcurrentMod();
             if (!hasNext()) {
                 throw new NoSuchElementException();
             }
-
-            Entry<V> result;
-            Entry<V> _entry = entry;
-            if (_entry == null) {
-                result = lastEntry = associatedMap.elementData[position++];
-                entry = lastEntry.next;
+            if (futureEntry == null) {
+                currentEntry = associatedMap.elementData[position++];
+                futureEntry = currentEntry.next;
+                prevEntry = null;
             } else {
-                if (lastEntry.next != _entry) {
-                    lastEntry = lastEntry.next;
+                if(currentEntry!=null){
+                    prevEntry = currentEntry;
                 }
-                result = _entry;
-                entry = _entry.next;
+                currentEntry = futureEntry;
+                futureEntry = futureEntry.next;
             }
-            canRemove = true;
-            return result.value;
         }
 
-        public void remove() {
-            if (!canRemove) {
+        public final void remove() {
+            checkConcurrentMod();
+            if (currentEntry==null) {
                 throw new IllegalStateException();
             }
-
-            canRemove = false;
-
-            if (lastEntry.next == entry) {
-                while (associatedMap.elementData[--position] == null) {
-                    // Do nothing
-                }
-                associatedMap.elementData[position] = associatedMap.elementData[position].next;
-                entry = null;
+            if(prevEntry==null){
+                int index = currentEntry.origKeyHash & (associatedMap.elementData.length - 1);
+                associatedMap.elementData[index] = associatedMap.elementData[index].next;
             } else {
-                lastEntry.next = entry;
+                prevEntry.next = currentEntry.next;
             }
-            if (lastEntry != null) {
-                Entry<V> reuse = lastEntry;
-                lastEntry = null;
-                reuse.key = Long.MIN_VALUE;
-                reuse.value = null;
-                associatedMap.reuseAfterDelete = reuse;
-            }
-
+            currentEntry = null;
+            expectedModCount++;
+            associatedMap.modCount++;
             associatedMap.elementCount--;
+
         }
     }
 
 
+    private static class EntryIterator <V> extends AbstractMapIterator<V> implements LongMapIterator<V> {
+
+        EntryIterator (LongHashMap<V> map) {
+            super(map);
+        }
+
+
+        @Override
+        public boolean moveToNext() {
+            if(!hasNext()) return false;
+            makeNext();
+            return true;
+        }
+
+        @Override
+        public long key() {
+            return currentEntry.key;
+        }
+
+        @Override
+        public V value() {
+            return (V) currentEntry.value;
+        }
+    }
+
+
+    private static class ValueIterator <V> extends AbstractMapIterator<V> implements Iterator<V> {
+
+        ValueIterator (LongHashMap<V> map) {
+            super(map);
+        }
+
+        public V next() {
+            makeNext();
+            return currentEntry.value;
+        }
+    }
+    /**
+     * Create a new element array
+     *
+     * @param s
+     * @return Reference to the element array
+     */
     @SuppressWarnings("unchecked")
-    private Entry<V>[] newElementArray(int s) {
+    Entry<V>[] newElementArray(int s) {
         return new Entry[s];
     }
 
     /**
      * Constructs a new empty {@code HashMap} instance.
-     *
-     * @since Android 1.0
      */
     public LongHashMap() {
-        this(16);
+        this(DEFAULT_SIZE);
     }
 
     /**
      * Constructs a new {@code HashMap} instance with the specified capacity.
      *
-     * @param capacity the initial capacity of this hash map.
-     * @throws IllegalArgumentException when the capacity is less than zero.
-     * @since Android 1.0
+     * @param capacity
+     *            the initial capacity of this hash map.
+     * @throws IllegalArgumentException
+     *                when the capacity is less than zero.
      */
     public LongHashMap(int capacity) {
-        defaultSize = capacity;
-        if (capacity >= 0) {
+        this(capacity, 0.75f);  // default load factor of 0.75
+    }
+
+    /**
+     * Calculates the capacity of storage required for storing given number of
+     * elements
+     *
+     * @param x
+     *            number of elements
+     * @return storage size
+     */
+    private static final int calculateCapacity(int x) {
+        if(x >= 1 << 30){
+            return 1 << 30;
+        }
+        if(x == 0){
+            return 16;
+        }
+        x = x -1;
+        x |= x >> 1;
+        x |= x >> 2;
+        x |= x >> 4;
+        x |= x >> 8;
+        x |= x >> 16;
+        return x + 1;
+    }
+
+    /**
+     * Constructs a new {@code HashMap} instance with the specified capacity and
+     * load factor.
+     *
+     * @param capacity
+     *            the initial capacity of this hash map.
+     * @param loadFactor
+     *            the initial load factor.
+     * @throws IllegalArgumentException
+     *                when the capacity is less than zero or the load factor is
+     *                less or equal to zero.
+     */
+    public LongHashMap(int capacity, float loadFactor) {
+        if (capacity >= 0 && loadFactor > 0) {
+            capacity = calculateCapacity(capacity);
             elementCount = 0;
-            elementData = newElementArray(capacity == 0 ? 1 : capacity);
-            loadFactor = 0.75f; // Default load factor of 0.75
-            computeMaxSize();
+            elementData = newElementArray(capacity);
+            this.loadFactor = loadFactor;
+            computeThreshold();
         } else {
             throw new IllegalArgumentException();
         }
     }
 
-
-    // BEGIN android-changed
-
-
-
+    /**
+     * Removes all mappings from this hash map, leaving it empty.
+     *
+     * @see #isEmpty
+     * @see #size
+     */
     @Override
-    @SuppressWarnings("unchecked")
     public void clear() {
-        if (elementCount > 0) {            
-            elementCount = 0;            
-        }
-        if(elementData.length>1024 && elementData.length>defaultSize)
-            elementData = new Entry[defaultSize];
-        else
+        if (elementCount > 0) {
+            elementCount = 0;
             Arrays.fill(elementData, null);
-        computeMaxSize();
+            modCount++;
+        }
     }
-    // END android-changed
 
 
-    private void computeMaxSize() {
+    /**
+     * Computes the threshold for rehashing
+     */
+    private void computeThreshold() {
         threshold = (int) (elementData.length * loadFactor);
     }
 
-
-
-
+    /**
+     * Returns the value of the mapping with the specified key.
+     *
+     * @param key
+     *            the key.
+     * @return the value of the mapping with the specified key, or {@code null}
+     *         if no mapping for the specified key is found.
+     */
     @Override
-    public V get(final long key) {
+    public V get(long key) {
+        Entry<V> m = getEntry(key);
+        if (m != null) {
+            return m.value;
+        }
+        return null;
+    }
 
-        final int hash = Utils.longHash(key);
-        final int index = (hash & 0x7FFFFFFF) % elementData.length;
+    final Entry<V> getEntry(long key) {
+        int hash = computeHashCode(key);
+        int index = hash & (elementData.length - 1);
+        return findNonNullKeyEntry(key, index, hash);
+    }
 
-        //find non null entry
+    final Entry<V> findNonNullKeyEntry(long key, int index, int keyHash) {
         Entry<V> m = elementData[index];
-        while (m != null) {
-            if (key == m.key)
-                return m.value;
+        while (m != null
+                && (m.origKeyHash != keyHash || key!=m.key)) {
             m = m.next;
         }
-
-        return null;
-
+        return m;
     }
 
 
 
+    /**
+     * Returns whether this map is empty.
+     *
+     * @return {@code true} if this map has no elements, {@code false}
+     *         otherwise.
+     * @see #size()
+     */
     @Override
     public boolean isEmpty() {
         return elementCount == 0;
     }
 
     /**
-     * @return iterator over keys
+     * Maps the specified key to the specified value.
+     *
+     * @param key
+     *            the key.
+     * @param value
+     *            the value.
+     * @return the value of any previous mapping with the specified key or
+     *         {@code null} if there was no such mapping.
      */
-
-//      public Iterator<K> keyIterator(){
-//                 return new HashMapIterator<K, K, V>(
-//                            new MapEntry.Type<K, K, V>() {
-//                                public K get(Entry<K, V> entry) {
-//                                    return entry.key;
-//                                }
-//                            }, HashMap.this);
-//
-//     }
-
-
-
-
     @Override
-    public V put(final long key, final V value) {
-
-        int hash = Utils.longHash(key);
-        int index = (hash & 0x7FFFFFFF) % elementData.length;
-
-        //find non null entry
-        Entry<V> entry = elementData[index];
-        while (entry != null && key != entry.key) {
-            entry = entry.next;
-        }
-
+    public V put(long key, V value) {
+        Entry<V> entry;
+        int hash = computeHashCode(key);
+        int index = hash & (elementData.length - 1);
+        entry = findNonNullKeyEntry(key, index, hash);
         if (entry == null) {
-            if (++elementCount > threshold) {
-                rehash();
-                index = (hash & 0x7FFFFFFF) % elementData.length;
-            }
-            entry = createHashedEntry(key, index);
+           modCount++;
+           entry = createHashedEntry(key, index, hash);
+           if (++elementCount > threshold) {
+               rehash();
+           }
         }
-
 
         V result = entry.value;
         entry.value = value;
         return result;
     }
 
+    Entry<V> createEntry(long key, int index, V value) {
+        Entry<V> entry = new Entry<V>(key, value);
+        entry.next = elementData[index];
+        elementData[index] = entry;
+        return entry;
+    }
 
-    Entry<V> createHashedEntry(final long key, final int index) {
-        Entry<V> entry = reuseAfterDelete;
-        if (entry == null) {
-            entry = new Entry<V>(key);
-        } else {
-            reuseAfterDelete = null;
-            entry.key = key;
-            entry.value = null;
-        }
-
+    Entry<V> createHashedEntry(long key, int index, int hash) {
+        Entry<V> entry = new Entry<V>(key,hash);
         entry.next = elementData[index];
         elementData[index] = entry;
         return entry;
     }
 
 
-    void rehash(final int capacity) {
-        int length = (capacity == 0 ? 1 : capacity << 1);
+
+    void rehash(int capacity) {
+        int length = calculateCapacity((capacity == 0 ? 1 : capacity << 1));
 
         Entry<V>[] newData = newElementArray(length);
-        for (Entry<V> anElementData : elementData) {
-            Entry<V> entry = anElementData;
+        for (int i = 0; i < elementData.length; i++) {
+            Entry<V> entry = elementData[i];
+            elementData[i] = null;
             while (entry != null) {
-                int index = (Utils.longHash(entry.key) & 0x7FFFFFFF) % length;
+                int index = entry.origKeyHash & (length - 1);
                 Entry<V> next = entry.next;
                 entry.next = newData[index];
                 newData[index] = entry;
@@ -314,7 +400,7 @@ public class LongHashMap<V> extends LongMap<V> implements Serializable  {
             }
         }
         elementData = newData;
-        computeMaxSize();
+        computeThreshold();
     }
 
     void rehash() {
@@ -324,103 +410,97 @@ public class LongHashMap<V> extends LongMap<V> implements Serializable  {
     /**
      * Removes the mapping with the specified key from this map.
      *
-     * @param key the key of the mapping to remove.
+     * @param key
+     *            the key of the mapping to remove.
      * @return the value of the removed mapping or {@code null} if no mapping
      *         for the specified key was found.
-     * @since Android 1.0
      */
-
     @Override
-    public V remove(final long key) {
+    public V remove(long key) {
         Entry<V> entry = removeEntry(key);
-        if (entry == null)
-            return null;
-        V ret = entry.value;
-        entry.value = null;
-        entry.key = Long.MIN_VALUE;
-        reuseAfterDelete = entry;
-
-        return ret;
+        if (entry != null) {
+            return entry.value;
+        }
+        return null;
     }
 
-    Entry<V> removeEntry(final long key) {
+    /*
+     * Remove the given entry from the hashmap.
+     * Assumes that the entry is in the map.
+     */
+    final void removeEntry(Entry<V> entry) {
+        int index = entry.origKeyHash & (elementData.length - 1);
+        Entry<V> m = elementData[index];
+        if (m == entry) {
+            elementData[index] = entry.next;
+        } else {
+            while (m.next != entry) {
+                m = m.next;
+            }
+            m.next = entry.next;
+
+        }
+        modCount++;
+        elementCount--;
+    }
+
+    final Entry<V> removeEntry(long key) {
+        int index = 0;
+        Entry<V> entry;
         Entry<V> last = null;
 
-        final int hash = Utils.longHash(key);
-        final int index = (hash & 0x7FFFFFFF) % elementData.length;
-        Entry<V> entry = elementData[index];
-
-        while (true) {
-            if (entry == null) {
-                return null;
-            }
-
-            if (key == entry.key) {
-                if (last == null) {
-                    elementData[index] = entry.next;
-                } else {
-                    last.next = entry.next;
-                }
-                elementCount--;
-                return entry;
-            }
-
-            last = entry;
-            entry = entry.next;
+        int hash = computeHashCode(key);
+        index = hash & (elementData.length - 1);
+        entry = elementData[index];
+        while (entry != null && !(entry.origKeyHash == hash && key == entry.key)) {
+             last = entry;
+             entry = entry.next;
         }
+
+        if (entry == null) {
+            return null;
+        }
+        if (last == null) {
+            elementData[index] = entry.next;
+        } else {
+            last.next = entry.next;
+        }
+        modCount++;
+        elementCount--;
+        return entry;
     }
 
     /**
      * Returns the number of elements in this map.
      *
      * @return the number of elements in this map.
-     * @since Android 1.0
      */
-
     @Override
     public int size() {
         return elementCount;
     }
 
-    /**
-     * @return iterator over values in map
-     */
     @Override
     public Iterator<V> valuesIterator() {
-        return new HashMapIterator<V>(this);
-
+        return new ValueIterator<V>(this);
     }
-
-
-    static class LongMapIterator2<V> extends HashMapIterator<V> implements LongMapIterator<V>{
-
-        LongMapIterator2(LongHashMap m) {
-            super(m);
-        }
-
-        @Override public boolean moveToNext() {
-            if(!hasNext())return false;
-            next();
-            return true;
-        }
-
-        @Override public long key() {
-            return lastEntry.key;
-        }
-
-        @Override public V value() {
-            return lastEntry.value;
-        }
-    }
-
 
     @Override
     public LongMapIterator<V> longMapIterator() {
-        return new LongMapIterator2<V>(this);
+        return new EntryIterator<V>(this);
+    }
+
+    /*
+     * Contract-related functionality 
+     */
+    static int computeHashCode(long key) {
+        return Utils.longHash(key);
+    }
+
+
+    static boolean areEqualValues(Object value1, Object value2) {
+        return (value1 == value2) || value1.equals(value2);
     }
 
 
 }
-
-
-

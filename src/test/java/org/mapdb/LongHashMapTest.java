@@ -133,9 +133,15 @@ public class LongHashMapTest extends TestCase {
         }
 
         assertEquals(v2,v3);
+    }
 
-
-
+    public void test_Issue6(){
+            LongHashMap<String> t = new LongHashMap<String>();
+            t.put(6447459, "aa");
+            t.put(6382177, "bb");
+            assertEquals("aa",t.get(6447459));
+            assertEquals("bb",t.get(6382177));
+            assertEquals("LongHashMap[6382177 => bb, 6447459 => aa]",t.toString());
     }
 
 }
