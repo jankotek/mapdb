@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.mapdb</groupId>
-    <artifactId>MapDB</artifactId>
+    <artifactId>mapdb</artifactId>
     <version>0.9-SNAPSHOT</version>
     <name>JDBM</name>
     <description>MapDB provides concurrent TreeMap and HashMap backed by disk storage. It is a fast, scalable and easy to use embedded Java database.</description>

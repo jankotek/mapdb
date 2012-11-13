@@ -59,7 +59,7 @@ To use it add code bellow to your `pom.xml`. You may also download binaries
     <dependencies>
         <dependency>
             <groupId>org.mapdb</groupId>
-            <artifactId>MapDB</artifactId>
+            <artifactId>mapdb</artifactId>
             <version>0.9-SNAPSHOT</version>
                 </dependency>
     </dependencies>
