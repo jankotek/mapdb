@@ -52,7 +52,7 @@ To use it add code bellow to your `pom.xml`. You may also download binaries
     <repositories>
         <repository>
             <id>mapdb-snapshots</id>
-            <url>https://oss.sonatype.org/content/repositories/releases</url>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
         </repository>
     </repositories>
 
