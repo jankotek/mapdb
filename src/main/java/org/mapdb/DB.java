@@ -194,6 +194,7 @@ public class DB {
      * !! it is necessary to call this method before JVM exits!!
      */
     synchronized public void close(){
+        if(engine == null) return;
         engine.close();
         //dereference db to prevent memory leaks
         engine = null;
