@@ -18,13 +18,13 @@ public class StorageTransTest extends TestFile {
 
     @Test public void long_stack_reuse() throws IOException {
         
-        StorageDirect r = new StorageDirect(fac,true,false,false,false);
+        StorageDirect r = new StorageDirect(fac,true,false,false,false, false);
         for(int i=1;i<1000;i++){
             r.longStackPut(stackId,i);
         }
         r.close();
 
-        StorageTrans t = new StorageTrans(fac,true,false,false,false);
+        StorageTrans t = new StorageTrans(fac,true,false,false,false, false);
         for(int i=999;i!=0;i--){
             assertEquals(i, t.longStackTake(stackId));
         }
@@ -35,7 +35,7 @@ public class StorageTransTest extends TestFile {
         StorageDirect r = new StorageDirect(fac);
         long recid = r.recordPut("aa",Serializer.STRING_SERIALIZER);
         r.close();
-        StorageTrans t = new StorageTrans(fac,true,true,false,false);
+        StorageTrans t = new StorageTrans(fac,true,true,false,false, false);
         assertEquals("aa", t.recordGet(recid, Serializer.STRING_SERIALIZER));
         t.recordUpdate(recid,"bb", Serializer.STRING_SERIALIZER);
         assertEquals("bb", t.recordGet(recid, Serializer.STRING_SERIALIZER));
@@ -82,22 +82,22 @@ public class StorageTransTest extends TestFile {
 
     @Test public void long_stack_put_take() throws IOException {
         
-        StorageTrans t = new StorageTrans(fac,true,false,false,false);
+        StorageTrans t = new StorageTrans(fac,true,false,false,false, false);
         t.longStackPut(Storage.RECID_FREE_PHYS_RECORDS_START+1, 112L);
         t.commit();
         t.close();
-        t = new StorageTrans(fac,true,false,false,false);
+        t = new StorageTrans(fac,true,false,false,false, false);
         assertEquals(112L, t.longStackTake(Storage.RECID_FREE_PHYS_RECORDS_START + 1));
 
         t.commit();
         t.close();
-        t = new StorageTrans(fac,true,false,false,false);
+        t = new StorageTrans(fac,true,false,false,false, false);
         assertEquals(0L, t.longStackTake(Storage.RECID_FREE_PHYS_RECORDS_START+1));
     }
 
     @Test public void index_page_created_from_empty() throws IOException {
         
-        StorageTrans t = new StorageTrans(fac,true,false,false,false);
+        StorageTrans t = new StorageTrans(fac,true,false,false,false, false);
         t.longStackPut(Storage.RECID_FREE_PHYS_RECORDS_START+1, 112L);
         t.commit();
         t.close();
@@ -106,7 +106,7 @@ public class StorageTransTest extends TestFile {
 
 
     @Test public void delete_file_on_exit() throws IOException {
-        StorageTrans t = new StorageTrans(fac,false,false,true,false);
+        StorageTrans t = new StorageTrans(fac,false,false,true,false, false);
         t.recordPut("t",Serializer.STRING_SERIALIZER);
         t.close();
         assertFalse(index.exists());
@@ -174,7 +174,7 @@ public class StorageTransTest extends TestFile {
 
     @Test public void log_discarted_on_rollback() throws IOException {
         
-        StorageTrans t = new StorageTrans(fac,true,false,false,false);
+        StorageTrans t = new StorageTrans(fac,true,false,false,false, false);
 
         long recid = t.recordPut(1L, Serializer.LONG_SERIALIZER);
         assertTrue(log.exists());

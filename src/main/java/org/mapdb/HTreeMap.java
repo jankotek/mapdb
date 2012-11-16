@@ -4,6 +4,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -65,6 +66,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         @Override
         public HashRoot deserialize(DataInput in, int available) throws IOException {
+            if(available==0) return null;
             HashRoot r = new HashRoot();
             r.hasValues = in.readBoolean();
             r.segmentRecids = new long[16];
@@ -202,6 +204,31 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         this.valueSerializer = r.valueSerializer;
     }
 
+    /** hack used for Dir Name*/
+    static final Map<String, Long> preinitNamedDir(Engine engine){
+        HashRootSerializer serializer = new HashRootSerializer(Serializer.BASIC_SERIALIZER);
+        //check if record already exist
+        HashRoot r = engine.recordGet(engine.nameDirRecid(), serializer);
+        if(r!=null)
+            return new HTreeMap<String, Long>(engine, engine.nameDirRecid(), Serializer.BASIC_SERIALIZER);
+
+        if(engine.isReadOnly())
+            return Collections.unmodifiableMap(new HashMap<String, Long>());
+
+        //prealocate segmentRecids
+        long[] segmentRecids = new long[16];
+        for(int i=0;i<16;i++)
+            segmentRecids[i] = engine.recordPut(null, Serializer.NULL_SERIALIZER);
+        r = new HashRoot();
+        r.hasValues = true;
+        r.segmentRecids = segmentRecids;
+        r.keySerializer = Serializer.BASIC_SERIALIZER;
+        r.valueSerializer = Serializer.BASIC_SERIALIZER;
+        engine.recordUpdate(engine.nameDirRecid(), r, serializer);
+        //and now load it
+        return new HTreeMap<String, Long>(engine, engine.nameDirRecid(), Serializer.BASIC_SERIALIZER);
+
+    }
 
     @Override
     public boolean containsKey(final Object o){

@@ -15,7 +15,7 @@ Main features:
 
 * Drop-in replacement for ConcurrentTreeMap and ConcurrentHashMap.
 
-* Outstanding performance comparable to low-level C++ DBs (TokyoDB, LevelDB)
+* Outstanding performance comparable to low-level native DBs (TokyoCabinet, LevelDB)
 
 * Scales well on multi-core CPUs (fine grained locks, concurrent trees)
 

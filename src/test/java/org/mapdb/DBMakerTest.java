@@ -171,7 +171,7 @@ public class DBMakerTest{
                 .checksumEnable()
                 .make();
         assertTrue(db.engine instanceof ByteTransformEngine);
-        assertTrue(((ByteTransformEngine)db.engine).blockSerializer instanceof ChecksumCRC32Serializer);
+        assertTrue(((ByteTransformEngine)db.engine).blockSerializer == Serializer.CRC32_CHECKSUM);
         db.close();
     }
 

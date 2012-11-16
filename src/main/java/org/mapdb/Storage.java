@@ -3,8 +3,6 @@ package org.mapdb;
 
 import java.io.IOError;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -30,7 +28,7 @@ public abstract class Storage implements Engine {
 
     //TODO slots 5 to 18 are currently unused
 
-    static final int RECID_NAMED_RECODS = 19;
+    static final int RECID_NAME_DIR = 19;
 
 
     static final int RECID_FREE_PHYS_RECORDS_START = 20;
@@ -55,17 +53,19 @@ public abstract class Storage implements Engine {
     protected final boolean appendOnly;
     protected final boolean deleteFilesOnExit;
     protected final boolean failOnWrongHeader;
+    protected final boolean readOnly;
 
     protected Volume phys;
     protected Volume index;
 
     public Storage(Volume.VolumeFactory volFac, boolean disableLocks, boolean appendOnly,
-                   boolean deleteFilesOnExit, boolean failOnWrongHeader) {
+                   boolean deleteFilesOnExit, boolean failOnWrongHeader, boolean readOnly) {
 
         this.disableLocks = disableLocks;
         this.appendOnly = appendOnly;
         this.deleteFilesOnExit = deleteFilesOnExit;
         this.failOnWrongHeader = failOnWrongHeader;
+        this.readOnly = readOnly;
         this.lock = disableLocks? null: new ReentrantReadWriteLock();
 
 
@@ -109,33 +109,10 @@ public abstract class Storage implements Engine {
         //and set current sizes
         index.putLong(RECID_CURRENT_PHYS_FILE_SIZE * 8, 8L);
         index.putLong(RECID_CURRENT_INDEX_FILE_SIZE * 8, INDEX_OFFSET_START * 8);
-        index.putLong(RECID_NAMED_RECODS*8,0);
+        index.putLong(RECID_NAME_DIR *8,0);
     }
 
 
-    @Override
-    @SuppressWarnings("unchecked")
-    public Long getNamedRecid(String name) {
-        Map<String, Long> recids = (Map<String, Long>) recordGet(RECID_NAMED_RECODS, Serializer.BASIC_SERIALIZER);
-        if(recids == null) return null;
-        return recids.get(name);
-    }
-
-    protected final Object nameRecidLock = new Object();
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public void setNamedRecid(String name, Long recid) {
-        synchronized (nameRecidLock){
-            Map<String, Long> recids = (Map<String, Long>) recordGet(RECID_NAMED_RECODS, Serializer.BASIC_SERIALIZER);
-            if(recids == null) recids = new HashMap<String, Long>();
-            if(recid!=null)
-                recids.put(name, recid);
-            else
-                recids.remove(name);
-            recordUpdate(RECID_NAMED_RECODS, recids, Serializer.BASIC_SERIALIZER);
-        }
-    }
 
     protected void writeLock_lock() {
         if(!disableLocks)
@@ -275,9 +252,18 @@ public abstract class Storage implements Engine {
     }
 
 
-    @Override
-    public long serializerRecid() {
+    @Override public long serializerRecid() {
         return RECID_SERIALIZER;
+    }
+
+    @Override public long nameDirRecid() {
+        return RECID_NAME_DIR;
+    }
+
+
+    @Override
+    public boolean isReadOnly() {
+        return readOnly;
     }
 
 

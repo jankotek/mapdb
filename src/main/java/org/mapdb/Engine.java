@@ -57,21 +57,6 @@ public interface Engine {
     void recordDelete(long recid);
 
 
-    /**
-     * Get recid (record identifier) for given named object (such as collection or map).
-     *
-     * @param name of object
-     * @return recid matching given name, or null if not found
-     */
-    Long getNamedRecid(String name);
-
-    /**
-     * Update(or delete) recid (record identifier) associated with named object (such as collection or map).
-     *
-     * @param name of object
-     * @param recid new value for recid, or null if name-recid pair should be deleted
-     */
-    void setNamedRecid(String name, Long recid);
 
     /**
      * Close store/cache.
@@ -84,5 +69,7 @@ public interface Engine {
     void rollback();
 
     long serializerRecid();
+    long nameDirRecid();
 
+    boolean isReadOnly();
 }

@@ -41,15 +41,6 @@ public class CacheHardRef implements Engine {
         engine.recordDelete(recid);
     }
 
-    @Override
-    public Long getNamedRecid(String name) {
-        return engine.getNamedRecid(name);
-    }
-
-    @Override
-    public void setNamedRecid(String name, Long recid) {
-        engine.setNamedRecid(name, recid);
-    }
 
     @Override
     public <A> long recordPut(A value, Serializer<A> serializer) {
@@ -90,6 +81,16 @@ public class CacheHardRef implements Engine {
     @Override
     public long serializerRecid() {
         return engine.serializerRecid();
+    }
+
+    @Override
+    public long nameDirRecid() {
+        return engine.nameDirRecid();
+    }
+
+    @Override
+    public boolean isReadOnly() {
+        return engine.isReadOnly();
     }
 
 

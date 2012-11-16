@@ -37,12 +37,12 @@ public class StorageTrans extends Storage implements Engine {
 
 
     public StorageTrans(Volume.VolumeFactory volFac){
-        this(volFac, false, false, false, false);
+        this(volFac, false, false, false, false, false);
     }
 
     public StorageTrans(Volume.VolumeFactory volFac, boolean disableLocks, boolean appendOnly,
-                        boolean deleteFilesOnExit, boolean failOnWrongHeader) {
-        super(volFac,  disableLocks, appendOnly, deleteFilesOnExit, failOnWrongHeader);
+                        boolean deleteFilesOnExit, boolean failOnWrongHeader, boolean readOnly) {
+        super(volFac,  disableLocks, appendOnly, deleteFilesOnExit, failOnWrongHeader, readOnly);
         try{
             this.volFac = volFac;
             this.transLog = volFac.createTransLogVolume();

@@ -14,6 +14,8 @@ public class DB {
     protected Engine engine;
     protected Map<String, WeakReference<?>> collections = new HashMap<String, WeakReference<?>>();
 
+    protected Map<String, Long> nameDir;
+
     protected Serializer defaultSerializer;
 
     public DB(final Engine engine){
@@ -25,6 +27,10 @@ public class DB {
                 engine.recordUpdate(engine.serializerRecid(), registered, SerializerPojo.serializer);
             }
         };
+
+        //open name dir
+        nameDir = HTreeMap.preinitNamedDir(engine);
+
     }
 
     /**
@@ -41,7 +47,7 @@ public class DB {
         checkNotClosed();
         HTreeMap<K,V> ret = (HTreeMap<K, V>) getFromWeakCollection(name);
         if(ret!=null) return ret;
-        Long recid = engine.getNamedRecid(name);
+        Long recid = nameDir.get(name);
         if(recid!=null){
             //open existing map
             ret = new HTreeMap<K,V>(engine, recid,defaultSerializer);
@@ -49,7 +55,7 @@ public class DB {
         }else{
             //create new map
             ret = new HTreeMap<K,V>(engine,true,defaultSerializer,null, null);
-            engine.setNamedRecid(name, ret.rootRecid);
+            nameDir.put(name, ret.rootRecid);
         }
         collections.put(name, new WeakReference<Object>(ret));
         return ret;
@@ -60,7 +66,7 @@ public class DB {
             String name, Serializer<K> keySerializer, Serializer<V> valueSerializer){
         checkNameNotExists(name);
         HTreeMap<K,V> ret = new HTreeMap<K,V>(engine, true, defaultSerializer, keySerializer, valueSerializer);
-        engine.setNamedRecid(name, ret.rootRecid);
+        nameDir.put(name, ret.rootRecid);
         collections.put(name, new WeakReference<Object>(ret));
         return ret;
     }
@@ -76,7 +82,7 @@ public class DB {
         checkNotClosed();
         Set<K> ret = (Set<K>) getFromWeakCollection(name);
         if(ret!=null) return ret;
-        Long recid = engine.getNamedRecid(name);
+        Long recid = nameDir.get(name);
         if(recid!=null){
             //open existing map
             HTreeMap<K,Object> m = new HTreeMap<K,Object>(engine, recid, defaultSerializer);
@@ -86,7 +92,7 @@ public class DB {
             //create new map
             HTreeMap<K,Object> m = new HTreeMap<K,Object>(engine, false, defaultSerializer, null, null);
             ret = m.keySet();
-            engine.setNamedRecid(name, m.rootRecid);
+            nameDir.put(name, m.rootRecid);
         }
         collections.put(name, new WeakReference<Object>(ret));
         return ret;
@@ -96,7 +102,7 @@ public class DB {
     synchronized public <K> Set<K> createHashSet(String name, Serializer<K> serializer){
         checkNameNotExists(name);
         HTreeMap<K,Object> ret = new HTreeMap<K,Object>(engine, true, defaultSerializer, serializer, null);
-        engine.setNamedRecid(name, ret.rootRecid);
+        nameDir.put(name, ret.rootRecid);
         Set<K> ret2 = ret.keySet();
         collections.put(name, new WeakReference<Object>(ret2));
         return ret2;
@@ -117,7 +123,7 @@ public class DB {
         checkNotClosed();
         BTreeMap<K,V> ret = (BTreeMap<K,V>) getFromWeakCollection(name);
         if(ret!=null) return ret;
-        Long recid = engine.getNamedRecid(name);
+        Long recid = nameDir.get(name);
         if(recid!=null){
             //open existing map
             ret = new BTreeMap<K,V>(engine, recid,defaultSerializer);
@@ -125,7 +131,7 @@ public class DB {
         }else{
             //create new map
             ret = new BTreeMap<K,V>(engine,BTreeMap.DEFAULT_MAX_NODE_SIZE, true, false, defaultSerializer, null, null, null);
-            engine.setNamedRecid(name, ret.treeRecid);
+            nameDir.put(name, ret.treeRecid);
         }
         collections.put(name, new WeakReference<Object>(ret));
         return ret;
@@ -137,7 +143,7 @@ public class DB {
             Serializer<K[]> keySerializer, Serializer<V> valueSerializer, Comparator<K> comparator){
         checkNameNotExists(name);
         BTreeMap<K,V> ret = new BTreeMap<K,V>(engine, nodeSize, true,valuesStoredOutsideNodes, defaultSerializer, keySerializer, valueSerializer, comparator);
-        engine.setNamedRecid(name, ret.rootRecid);
+        nameDir.put(name, ret.rootRecid);
         collections.put(name, new WeakReference<Object>(ret));
         return ret;
     }
@@ -154,7 +160,7 @@ public class DB {
         checkNotClosed();
         NavigableSet<K> ret = (NavigableSet<K>) getFromWeakCollection(name);
         if(ret!=null) return ret;
-        Long recid = engine.getNamedRecid(name);
+        Long recid = nameDir.get(name);
         if(recid!=null){
             //open existing map
             BTreeMap<K,Object> m = new BTreeMap<K,Object>(engine,  recid, defaultSerializer);
@@ -164,7 +170,7 @@ public class DB {
             //create new map
             BTreeMap<K,Object> m =  new BTreeMap<K,Object>(engine,BTreeMap.DEFAULT_MAX_NODE_SIZE,
                     false, false, defaultSerializer, null, null, null);
-            engine.setNamedRecid(name, m.treeRecid);
+            nameDir.put(name, m.treeRecid);
             ret = m.keySet();
         }
 
@@ -175,14 +181,14 @@ public class DB {
     synchronized public <K> NavigableSet<K> createTreeSet(String name, int nodeSize, Serializer<K[]> serializer, Comparator<K> comparator){
         checkNameNotExists(name);
         BTreeMap<K,Object> ret = new BTreeMap<K,Object>(engine, nodeSize, true, false, defaultSerializer, serializer, null, comparator);
-        engine.setNamedRecid(name, ret.rootRecid);
+        nameDir.put(name, ret.rootRecid);
         NavigableSet<K> ret2 = ret.keySet();
         collections.put(name, new WeakReference<Object>(ret2));
         return ret2;
     }
 
     protected void checkNameNotExists(String name) {
-        if(engine.getNamedRecid(name)!=null)
+        if(nameDir.get(name)!=null)
             throw new IllegalArgumentException("Name already used: "+name);
     }
 

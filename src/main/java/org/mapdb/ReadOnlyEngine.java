@@ -33,15 +33,6 @@ public class ReadOnlyEngine implements Engine {
         throw new UnsupportedOperationException("Read-only");
     }
 
-    @Override
-    public Long getNamedRecid(String name) {
-        return engine.getNamedRecid(name);
-    }
-
-    @Override
-    public void setNamedRecid(String name, Long recid) {
-        throw new UnsupportedOperationException("Read-only");
-    }
 
     @Override
     public void close() {
@@ -62,6 +53,16 @@ public class ReadOnlyEngine implements Engine {
     @Override
     public long serializerRecid() {
         return engine.serializerRecid();
+    }
+
+    @Override
+    public long nameDirRecid() {
+        return engine.nameDirRecid();
+    }
+
+    @Override
+    public boolean isReadOnly() {
+        return true;
     }
 
 }

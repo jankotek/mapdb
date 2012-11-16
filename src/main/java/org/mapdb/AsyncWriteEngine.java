@@ -167,26 +167,6 @@ public class AsyncWriteEngine implements Engine {
         }
     }
 
-    @Override
-    public Long getNamedRecid(String name) {
-    try{
-        grandLock.writeLock().lock();
-        return engine.getNamedRecid(name);
-    }finally {
-        grandLock.writeLock().unlock();
-    }
-
-}
-
-    @Override
-    public void setNamedRecid(String name, Long recid) {
-        try{
-            grandLock.writeLock().lock();
-            engine.setNamedRecid(name, recid);
-        }finally {
-            grandLock.writeLock().unlock();
-        }
-    }
 
     @Override
     public <A> long recordPut(A value, Serializer<A> serializer) {
@@ -342,5 +322,16 @@ public class AsyncWriteEngine implements Engine {
     public long serializerRecid() {
         return engine.serializerRecid();
     }
+
+    @Override
+    public long nameDirRecid() {
+        return engine.nameDirRecid();
+    }
+
+    @Override
+    public boolean isReadOnly() {
+        return engine.isReadOnly();
+    }
+
 
 }

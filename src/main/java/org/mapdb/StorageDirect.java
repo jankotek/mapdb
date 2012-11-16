@@ -9,12 +9,12 @@ public class StorageDirect extends Storage implements Engine {
 
 
     public StorageDirect(Volume.VolumeFactory volFac){
-        this(volFac, false, false, false,false);
+        this(volFac, false, false, false,false, false);
     }
 
     public StorageDirect(Volume.VolumeFactory volFac, boolean disableLocks, boolean appendOnly,
-                         boolean deleteFilesOnExit, boolean failOnWrongHeader) {
-        super(volFac,  disableLocks, appendOnly, deleteFilesOnExit, failOnWrongHeader);
+                         boolean deleteFilesOnExit, boolean failOnWrongHeader, boolean readOnly) {
+        super(volFac,  disableLocks, appendOnly, deleteFilesOnExit, failOnWrongHeader, readOnly);
         //TODO check for log file existence and throw an error if it does exist
 //        if(volFac.transLogExist()){
 //            throw new IllegalAccessError("Log file found. Reopen with transaction enabled, to finish transaction log replay!");

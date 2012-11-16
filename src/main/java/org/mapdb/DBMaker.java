@@ -471,14 +471,14 @@ public class DBMaker {
                 new Volume.FileVolumeFactory(_readOnly, _file);
 
         Engine engine = _transactionsEnabled?
-                new StorageTrans(folFac, _asyncWriteEnabled, _appendOnlyEnabled, _deleteFilesAfterClose, _failOnWrongHeader):
-                new StorageDirect(folFac, _asyncWriteEnabled, _appendOnlyEnabled, _deleteFilesAfterClose , _failOnWrongHeader);
+                new StorageTrans(folFac, _asyncWriteEnabled, _appendOnlyEnabled, _deleteFilesAfterClose, _failOnWrongHeader, _readOnly):
+                new StorageDirect(folFac, _asyncWriteEnabled, _appendOnlyEnabled, _deleteFilesAfterClose , _failOnWrongHeader, _readOnly);
 
         if(_asyncWriteEnabled && !_readOnly)
             engine = new AsyncWriteEngine(engine, _asyncSerializationEnabled, _asyncFlushDelay, _asyncThreadDaemon);
 
         if(_checksumEnabled){
-            engine = new ByteTransformEngine(engine, new ChecksumCRC32Serializer());
+            engine = new ByteTransformEngine(engine, Serializer.CRC32_CHECKSUM);
         }
 
         if(_xteaEncryptionKey!=null){

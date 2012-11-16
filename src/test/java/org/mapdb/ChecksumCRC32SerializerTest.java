@@ -9,20 +9,19 @@ import static org.junit.Assert.*;
 public class ChecksumCRC32SerializerTest {
 
     @Test public void testSimple() throws Exception {
-        ChecksumCRC32Serializer s = new ChecksumCRC32Serializer();
 
         byte[] b = "wwefwaefw;ef;lkwef".getBytes("UTF-8");
-        assertArrayEquals(b, Utils.clone(b, s));
+        assertArrayEquals(b, Utils.clone(b, Serializer.CRC32_CHECKSUM));
 
     }
 
     @Test public void testCorrupt() throws Exception {
-        ChecksumCRC32Serializer s = new ChecksumCRC32Serializer();
+
 
         byte[] b = "wwefwaefw;ef;lkwef".getBytes("UTF-8");
 
         DataOutput2 out = new DataOutput2();
-        s.serialize(out,b);
+        Serializer.CRC32_CHECKSUM.serialize(out,b);
         byte[] b2 = out.copyBytes();
         assertEquals(b.length+4, b2.length);
 
@@ -31,7 +30,7 @@ public class ChecksumCRC32SerializerTest {
 
         DataInput2 in = new DataInput2(b2);
         try{
-            s.deserialize(in, b2.length);
+            Serializer.CRC32_CHECKSUM.deserialize(in, b2.length);
             fail();
         }catch (IOException e){
             assertTrue(e.getMessage().contains("CRC32"));
