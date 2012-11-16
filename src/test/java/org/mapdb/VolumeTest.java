@@ -1,30 +1,24 @@
 package org.mapdb;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.mapdb.*;
 
-import java.io.File;
+import org.junit.Test;
+
 import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.nio.channels.FileChannel;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 
-public class ByteBuffer2Test {
+public class VolumeTest {
 
 
-    final int beyondInc = (int) (ByteBuffer2.BUF_SIZE_INC*1.6);
-    ByteBuffer2 b;
+    final int beyondInc = (int) (1e7);
 
-    @Before public void before() throws IOException {
-        File ff = File.createTempFile("byte-buffer-test","");
-        ff.deleteOnExit();
-        FileChannel ff2 = new RandomAccessFile(ff,"rw").getChannel();
-        b = new ByteBuffer2(false, ff2, FileChannel.MapMode.READ_WRITE,"test", false);
+    Volume b = new Volume.MemoryVolume(false);
+    {
+        b.ensureAvailable(Volume.INITIAL_SIZE);
     }
+
 
     @Test
     public void testEnsureAvailable() throws Exception {
@@ -65,7 +59,7 @@ public class ByteBuffer2Test {
         DataOutput2 out = new DataOutput2();
         out.writeInt(11);
         out.writeLong(1111L);
-        b.putData(111L, out);
+        b.putData(111L, out.buf, out.pos);
 
         DataInput2 in = b.getDataInput(111L, out.pos);
         assertEquals(11, in.readInt());
@@ -90,11 +84,11 @@ public class ByteBuffer2Test {
 
 
     @Test public void testConstants(){
-        assertEquals(0, ByteBuffer2.BUF_SIZE%ByteBuffer2.BUF_SIZE_INC);
-        assertEquals(0, ByteBuffer2.BUF_SIZE%8);
-        assertEquals(0, ByteBuffer2.BUF_SIZE_INC%8);
-        assertTrue(Storage.INDEX_OFFSET_START*8< ByteBuffer2.INITIAL_SIZE);
-        assertTrue(ByteBuffer2.BUF_SIZE_INC> StorageDirect.MAX_RECORD_SIZE);
+        assertEquals(0, Volume.BUF_SIZE%Volume.MappedFileVolume.BUF_SIZE_INC);
+        assertEquals(0, Volume.BUF_SIZE%8);
+        assertEquals(0, Volume.MappedFileVolume.BUF_SIZE_INC%8);
+        assertTrue(Storage.INDEX_OFFSET_START*8< Volume.INITIAL_SIZE);
+        assertTrue(Volume.MappedFileVolume.BUF_SIZE_INC> StorageDirect.MAX_RECORD_SIZE);
     }
 
 

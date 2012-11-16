@@ -12,7 +12,7 @@ import static junit.framework.Assert.assertTrue;
 @SuppressWarnings("unchecked")
 public class DBTest {
 
-    Engine engine = new StorageDirect(null);
+    Engine engine = new StorageDirect(new Volume.MemoryVolumeFactory(false));
     DB db = new DB(engine);
 
     @Test

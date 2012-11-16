@@ -94,12 +94,12 @@ public class StorageDirectTest extends StorageTestCase {
 
         final long recid = engine.recordPut(1, Serializer.INTEGER_SERIALIZER);
         commit();
-        assertEquals(4, readUnsignedShort(engine.index.buffers[0], recid * 8));
+        assertEquals(4, engine.index.getUnsignedShort(recid * 8));
         assertEquals(Integer.valueOf(1), engine.recordGet(recid, Serializer.INTEGER_SERIALIZER));
 
         engine.recordUpdate(recid, 1L, Serializer.LONG_SERIALIZER);
         commit();
-        assertEquals(8, readUnsignedShort(engine.index.buffers[0], recid * 8));
+        assertEquals(8, engine.index.getUnsignedShort(recid * 8));
         assertEquals(Long.valueOf(1), engine.recordGet(recid, Serializer.LONG_SERIALIZER));
 
     }
@@ -109,7 +109,7 @@ public class StorageDirectTest extends StorageTestCase {
         engine.longStackPut(TEST_LS_RECID, 1);
         commit();
         assertEquals(StorageDirect.LONG_STACK_PAGE_SIZE,
-                readUnsignedShort(engine.index.buffers[0], TEST_LS_RECID * 8));
+                engine.index.getUnsignedShort(TEST_LS_RECID * 8));
 
     }
 
@@ -161,7 +161,7 @@ public class StorageDirectTest extends StorageTestCase {
         assertEquals(StorageDirect.LONG_STACK_PAGE_SIZE, pageId>>>48);
         pageId = pageId & StorageDirect.PHYS_OFFSET_MASK;
         assertEquals(8L, pageId);
-        assertEquals(1, engine.phys.getUnsignedByte(pageId));
+        assertEquals(1, engine.phys.getByte(pageId));
         assertEquals(0, engine.phys.getLong(pageId)& StorageDirect.PHYS_OFFSET_MASK);
         assertEquals(111, engine.phys.getLong(pageId+8));
     }
@@ -179,7 +179,7 @@ public class StorageDirectTest extends StorageTestCase {
         assertEquals(StorageDirect.LONG_STACK_PAGE_SIZE, pageId>>>48);
         pageId = pageId & StorageDirect.PHYS_OFFSET_MASK;
         assertEquals(8L, pageId);
-        assertEquals(5, engine.phys.getUnsignedByte(pageId));
+        assertEquals(5, engine.phys.getByte(pageId));
         assertEquals(0, engine.phys.getLong(pageId)& StorageDirect.PHYS_OFFSET_MASK);
         assertEquals(111, engine.phys.getLong(pageId+8));
         assertEquals(112, engine.phys.getLong(pageId+16));
@@ -210,7 +210,7 @@ public class StorageDirectTest extends StorageTestCase {
         assertEquals(StorageDirect.LONG_STACK_PAGE_SIZE, pageId>>>48);
         pageId = pageId & StorageDirect.PHYS_OFFSET_MASK;
         assertEquals(8L, pageId);
-        assertEquals(StorageDirect.LONG_STACK_NUM_OF_RECORDS_PER_PAGE, engine.phys.getUnsignedByte(pageId));
+        assertEquals(StorageDirect.LONG_STACK_NUM_OF_RECORDS_PER_PAGE, engine.phys.getByte(pageId));
         for(int i=0;i< StorageDirect.LONG_STACK_NUM_OF_RECORDS_PER_PAGE;i++){
             assertEquals(1000L+i, engine.phys.getLong(pageId+8+i*8));
         }
@@ -223,7 +223,7 @@ public class StorageDirectTest extends StorageTestCase {
         assertEquals(StorageDirect.LONG_STACK_PAGE_SIZE, pageId>>>48);
         pageId = pageId & StorageDirect.PHYS_OFFSET_MASK;
         assertEquals(8L+ StorageDirect.LONG_STACK_PAGE_SIZE, pageId);
-        assertEquals(1, engine.phys.getUnsignedByte(pageId));
+        assertEquals(1, engine.phys.getByte(pageId));
         assertEquals(8L, engine.phys.getLong(pageId)& StorageDirect.PHYS_OFFSET_MASK);
         assertEquals(11L, engine.phys.getLong(pageId+8));
     }
@@ -330,7 +330,7 @@ public class StorageDirectTest extends StorageTestCase {
         Assume.assumeTrue(CC.FULL_TEST);
 
         byte[] data = new byte[11111];
-        final long max = ByteBuffer2.BUF_SIZE*2L/data.length;
+        final long max = Volume.BUF_SIZE*2L/data.length;
         final int hash = Arrays.hashCode(data);
 
         List<Long> recids = new ArrayList<Long>();
@@ -349,7 +349,7 @@ public class StorageDirectTest extends StorageTestCase {
     }
 
     @Test public void in_memory_test(){
-        StorageDirect engine = new StorageDirect(null);
+        StorageDirect engine = new StorageDirect(new Volume.MemoryVolumeFactory(false));
         Map<Long, Integer> recids = new HashMap<Long,Integer>();
         for(int i = 0;i<1000;i++){
             long recid = engine.recordPut(i, Serializer.BASIC_SERIALIZER);
@@ -359,7 +359,6 @@ public class StorageDirectTest extends StorageTestCase {
             assertEquals(recids.get(recid), engine.recordGet(recid, Serializer.BASIC_SERIALIZER));
         }
     }
-
 
 
 

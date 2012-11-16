@@ -1,11 +1,7 @@
 package org.mapdb;
 
-import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 
 /**
  * StorageDirect which provides transactions.
@@ -27,7 +23,8 @@ public class StorageTrans extends Storage implements Engine {
     public static final String TRANS_LOG_FILE_EXT = ".t";
 
 
-    protected ByteBuffer2 transLog;
+    protected Volume transLog;
+    protected final Volume.VolumeFactory volFac;
     protected long transLogOffset;
 
 
@@ -39,18 +36,20 @@ public class StorageTrans extends Storage implements Engine {
 
 
 
-    public StorageTrans(File indexFile){
-        this(indexFile, false, false, false, false,false);
+    public StorageTrans(Volume.VolumeFactory volFac){
+        this(volFac, false, false, false, false);
     }
 
-    public StorageTrans(File indexFile, boolean disableLocks, boolean deleteFilesAfterClose,
-                        boolean readOnly, boolean appendOnly, boolean ifInMemoryUseDirectBuffer) {
-        super(indexFile,  disableLocks, deleteFilesAfterClose, readOnly, appendOnly, ifInMemoryUseDirectBuffer);
+    public StorageTrans(Volume.VolumeFactory volFac, boolean disableLocks, boolean appendOnly,
+                        boolean deleteFilesOnExit, boolean failOnWrongHeader) {
+        super(volFac,  disableLocks, appendOnly, deleteFilesOnExit, failOnWrongHeader);
         try{
+            this.volFac = volFac;
+            this.transLog = volFac.createTransLogVolume();
             writeLock_lock();
             reloadIndexFile();
-            if(!inMemory)
-                replayLogFile();
+            replayLogFile();
+            transLog = null;
         }finally{
             writeLock_unlock();
         }
@@ -69,18 +68,12 @@ public class StorageTrans extends Storage implements Engine {
     }
 
     protected void openLogIfNeeded(){
-        if(transLog==null)try{
-            FileChannel ch = inMemory ? null :
-                    new RandomAccessFile(indexFile.getPath()+TRANS_LOG_FILE_EXT,"rw").getChannel();
-            transLog = new ByteBuffer2(inMemory,ch,
-                     FileChannel.MapMode.READ_WRITE, "trans", ifInMemoryUseDirectBuffer);
-
-            transLog.putLong(0, HEADER);
-            transLog.putLong(8, 0L);
-            transLogOffset = 16;
-        }catch(IOException e){
-            throw new IOError(e);
-        }
+       if(transLog!=null) return;
+       transLog = volFac.createTransLogVolume();
+       transLog.ensureAvailable(16);
+       transLog.putLong(0, HEADER);
+       transLog.putLong(8, 0L);
+       transLogOffset = 16;
     }
 
 
@@ -126,12 +119,12 @@ public class StorageTrans extends Storage implements Engine {
     }
 
     protected void checkBufferRounding() throws IOException {
-        if(transLogOffset%ByteBuffer2.BUF_SIZE > ByteBuffer2.BUF_SIZE - MAX_RECORD_SIZE*2){
+        if(transLogOffset%Volume.BUF_SIZE > Volume.BUF_SIZE - MAX_RECORD_SIZE*2){
             //position is to close to end of ByteBuffer (1GB)
             //so start writting into new buffer
             transLog.ensureAvailable(transLogOffset+8);
             transLog.putLong(transLogOffset,WRITE_SKIP_BUFFER);
-            transLogOffset += ByteBuffer2.BUF_SIZE-transLogOffset%ByteBuffer2.BUF_SIZE;
+            transLogOffset += Volume.BUF_SIZE-transLogOffset%Volume.BUF_SIZE;
         }
     }
 
@@ -155,7 +148,7 @@ public class StorageTrans extends Storage implements Engine {
         transLogOffset+=2;
         final Long transLogReference = (((long)out.pos)<<48)|transLogOffset;
         recordLogRefs.put(recid, transLogReference); //store reference to transaction log, so we can load data quickly
-        transLog.putData(transLogOffset,out);
+        transLog.putData(transLogOffset,out.buf, out.pos);
         transLogOffset+=out.pos;
     }
 
@@ -268,21 +261,16 @@ public class StorageTrans extends Storage implements Engine {
     public void close() {
         super.close();
 
-        try{
-            if(transLog!=null){
-                transLog.sync();
-                transLog.close();
+        if(transLog!=null){
+             transLog.sync();
+             transLog.close();
+             if(deleteFilesOnExit){
+                transLog.deleteFile();
             }
-            transLog = null;
-            if(deleteFilesOnExit && indexFile!=null){
-                new File(indexFile.getPath()+TRANS_LOG_FILE_EXT).delete();
-            }
-
-        }catch(IOException e){
-            throw new IOError(e);
         }
 
-        //delete log?
+        transLog = null;
+        //TODO delete trans log logic
     }
 
     @Override
@@ -331,41 +319,21 @@ public class StorageTrans extends Storage implements Engine {
     }
 
     protected void replayLogFile(){
-        try {
+
             writeLock_checkLocked();
             transLogOffset = 0;
 
-            if(transLog!=null && !inMemory){
+            if(transLog!=null){
                 transLog.sync();
-                transLog.close();
-                transLog = null;
             }
-
-            File logFile = inMemory? null:
-                    new File(indexFile.getPath()+TRANS_LOG_FILE_EXT);
-
-            if(!inMemory){
-                if(!logFile.exists()){
-                    return;
-                }
-                if(logFile.length()<=16){
-                    logFile.delete();
-                    return;
-                }
-
-                transLog = new ByteBuffer2(false, new RandomAccessFile(logFile,"r").getChannel(),
-                        FileChannel.MapMode.READ_ONLY, "trans", ifInMemoryUseDirectBuffer);
-            }
-
 
 
             //read headers
             if(transLog.getLong(0)!=HEADER || transLog.getLong(8) !=LOG_SEAL){
                 //wrong headers, discard log
                 transLog.close();
+                transLog.deleteFile();
                 transLog = null;
-                if(logFile!=null)
-                    logFile.delete();
                 return;
             }
 
@@ -397,19 +365,17 @@ public class StorageTrans extends Storage implements Engine {
                     final int size = transLog.getUnsignedShort(transLogOffset);
                     transLogOffset+=2;
                     //transfer byte[] directly from log file without copying into memory
-                    final ByteBuffer blog = transLog.internalByteBuffer(transLogOffset);
-                    int pos = (int) (transLogOffset% ByteBuffer2.BUF_SIZE);
-                    blog.position(pos);
-                    blog.limit(pos+size);
-                    phys.ensureAvailable(offset+size);
-                    final ByteBuffer bphys = phys.internalByteBuffer(offset);
-                    bphys.position((int) (offset% ByteBuffer2.BUF_SIZE));
-                    bphys.put(blog);
+                    DataInput2 input = transLog.getDataInput(transLogOffset, size);
+                    synchronized (input.buf){
+                        input.buf.position(input.pos);
+                        input.buf.limit(input.pos+size);
+                        phys.ensureAvailable(offset+size);
+                        phys.putData(offset, input.buf, size);
+                        input.buf.clear();
+                    }
                     transLogOffset+=size;
-                    blog.clear();
-                    bphys.clear();
                 }else if(ins == WRITE_SKIP_BUFFER){
-                    transLogOffset += ByteBuffer2.BUF_SIZE-transLogOffset%ByteBuffer2.BUF_SIZE;
+                    transLogOffset += Volume.BUF_SIZE-transLogOffset%Volume.BUF_SIZE;
                 }else{
                     throw new InternalError("unknown trans log instruction: "+(ins>>>48));
                 }
@@ -423,34 +389,23 @@ public class StorageTrans extends Storage implements Engine {
             phys.sync();
             index.sync();
             //and discard log
+            transLog.putLong(0, 0);
+            transLog.putLong(8, 0); //destroy seal to prevent log file from being replayed
             transLog.close();
+            transLog.deleteFile();
             transLog = null;
-            if(logFile!=null)
-                logFile.delete();
-
-
-        } catch (IOException e) {
-            throw new IOError(e);
-        }
-
     }
 
 
     @Override
     public void rollback() {
-        try{
         //discard trans log
         if(transLog!=null){
             transLog.close();
+            transLog.deleteFile();
             transLog = null;
-            if(indexFile!=null)
-                new File(indexFile.getPath()+TRANS_LOG_FILE_EXT).delete();
         }
 
-
-        }catch(IOException e){
-            throw new IOError(e);
-        }
         reloadIndexFile();
     }
 
@@ -572,7 +527,7 @@ public class StorageTrans extends Storage implements Engine {
         if(CC.ASSERT && oldFileSize <=0) throw new InternalError("illegal file size:"+oldFileSize);
 
         //check if new record would be overflowing BUF_SIZE
-        if(oldFileSize%ByteBuffer2.BUF_SIZE+requiredSize<=ByteBuffer2.BUF_SIZE){
+        if(oldFileSize%Volume.BUF_SIZE+requiredSize<=Volume.BUF_SIZE){
             //no, so just increase file size
             physSize+=requiredSize;
             //so just increase buffer size
@@ -583,11 +538,11 @@ public class StorageTrans extends Storage implements Engine {
             //new size is overlapping 2GB ByteBuffer size
             //so we need to create empty record for 'padding' size to 2GB
 
-            final long  freeSizeToCreate = ByteBuffer2.BUF_SIZE -  oldFileSize%ByteBuffer2.BUF_SIZE;
+            final long  freeSizeToCreate = Volume.BUF_SIZE -  oldFileSize%Volume.BUF_SIZE;
             if(CC.ASSERT && freeSizeToCreate == 0) throw new InternalError();
 
             final long nextBufferStartOffset = oldFileSize + freeSizeToCreate;
-            if(CC.ASSERT && nextBufferStartOffset%ByteBuffer2.BUF_SIZE!=0) throw new InternalError();
+            if(CC.ASSERT && nextBufferStartOffset%Volume.BUF_SIZE!=0) throw new InternalError();
 
             //increase the disk size
             physSize += freeSizeToCreate + requiredSize;

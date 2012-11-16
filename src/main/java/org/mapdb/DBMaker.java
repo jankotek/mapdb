@@ -50,6 +50,7 @@ public class DBMaker {
 
     protected boolean _ifInMemoryUseDirectBuffer = false;
 
+    protected boolean _failOnWrongHeader = false;
 
     /** use static factory methods, or make subclass */
     protected DBMaker(){}
@@ -465,9 +466,13 @@ public class DBMaker {
             throw new UnsupportedOperationException("Can not open non-existing file in read-only mode.");
         }
 
+        Volume.VolumeFactory folFac = _file == null?
+                new Volume.MemoryVolumeFactory(_ifInMemoryUseDirectBuffer):
+                new Volume.FileVolumeFactory(_readOnly, _file);
+
         Engine engine = _transactionsEnabled?
-                new StorageTrans(_file, _asyncWriteEnabled, _deleteFilesAfterClose,_readOnly, _appendOnlyEnabled, _ifInMemoryUseDirectBuffer):
-                new StorageDirect(_file, _asyncWriteEnabled, _deleteFilesAfterClose,_readOnly, _appendOnlyEnabled, _ifInMemoryUseDirectBuffer);
+                new StorageTrans(folFac, _asyncWriteEnabled, _appendOnlyEnabled, _deleteFilesAfterClose, _failOnWrongHeader):
+                new StorageDirect(folFac, _asyncWriteEnabled, _appendOnlyEnabled, _deleteFilesAfterClose , _failOnWrongHeader);
 
         if(_asyncWriteEnabled && !_readOnly)
             engine = new AsyncWriteEngine(engine, _asyncSerializationEnabled, _asyncFlushDelay, _asyncThreadDaemon);

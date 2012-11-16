@@ -21,7 +21,7 @@ abstract public class StorageTestCase extends TestFile{
     }
 
     protected Storage openEngine() {
-        return new StorageDirect(index);
+        return new StorageDirect(fac);
     }
 
 
@@ -39,7 +39,7 @@ abstract public class StorageTestCase extends TestFile{
 
     int countIndexRecords(){
         int ret = 0;
-        final long indexFileSize = engine.index.buffers[0].getLong(StorageDirect.RECID_CURRENT_INDEX_FILE_SIZE*8);
+        final long indexFileSize = engine.index.getLong(StorageDirect.RECID_CURRENT_INDEX_FILE_SIZE*8);
         for(int pos = StorageDirect.INDEX_OFFSET_START * 8;
             pos<indexFileSize;
             pos+=8){
@@ -60,27 +60,21 @@ abstract public class StorageTestCase extends TestFile{
 
         long pagePhysid = engine.index.getLong(recid*8) & StorageDirect.PHYS_OFFSET_MASK;
 
-        ByteBuffer dataBuf = engine.phys.buffers[((int) (pagePhysid / ByteBuffer2.BUF_SIZE))];
 
         while(pagePhysid!=0){
-            final byte numberOfRecordsInPage = dataBuf.get((int) (pagePhysid% ByteBuffer2.BUF_SIZE));
+            final byte numberOfRecordsInPage = engine.phys.getByte((int) (pagePhysid% Volume.BUF_SIZE));
 
             for(int rec = numberOfRecordsInPage; rec>0;rec--){
-                final long l = dataBuf.getLong((int) (pagePhysid% ByteBuffer2.BUF_SIZE+ rec*8));
+                final long l = engine.phys.getLong((int) (pagePhysid% Volume.BUF_SIZE+ rec*8));
                 ret.add(l);
             }
 
             //read location of previous page
-            pagePhysid = dataBuf.getLong((int)(pagePhysid% ByteBuffer2.BUF_SIZE)) & StorageDirect.PHYS_OFFSET_MASK;
+            pagePhysid = engine.phys.getLong((int)(pagePhysid% Volume.BUF_SIZE)) & StorageDirect.PHYS_OFFSET_MASK;
         }
 
 
         return ret;
-    }
-
-    static int readUnsignedShort(ByteBuffer buf, long pos) throws IOException {
-        return (( (buf.get((int) pos) & 0xff) << 8) |
-                ( (buf.get((int) (pos+1)) & 0xff)));
     }
 
 

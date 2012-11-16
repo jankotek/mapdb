@@ -1,11 +1,8 @@
 package org.mapdb;
 
 
-import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.nio.channels.FileChannel;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -19,7 +16,7 @@ public abstract class Storage implements Engine {
 
 
     /** File header. First 4 bytes are 'JDBM', last two bytes are store format version */
-    static final long HEADER = (long)'J' <<(8*7)  + (long)'D' <<(8*6) + (long)'B' <<(8*5) + (long)'M' <<(8*4) + CC.STORE_FORMAT_VERSION;
+    static final long HEADER = 5646556656456456L;
 
 
     static final int RECID_CURRENT_PHYS_FILE_SIZE = 1;
@@ -51,90 +48,48 @@ public abstract class Storage implements Engine {
     public static final String DATA_FILE_EXT = ".p";
 
 
+    protected final ReentrantReadWriteLock lock;
     private final AtomicInteger writeLocksCounter;
     protected final boolean disableLocks;
-    protected final boolean inMemory;
-    protected final boolean deleteFilesOnExit;
-    protected final boolean readOnly;
+
     protected final boolean appendOnly;
-    protected final boolean ifInMemoryUseDirectBuffer;
+    protected final boolean deleteFilesOnExit;
+    protected final boolean failOnWrongHeader;
 
-    protected final ReentrantReadWriteLock lock;
+    protected Volume phys;
+    protected Volume index;
 
+    public Storage(Volume.VolumeFactory volFac, boolean disableLocks, boolean appendOnly,
+                   boolean deleteFilesOnExit, boolean failOnWrongHeader) {
 
-    protected ByteBuffer2 phys;
-    protected ByteBuffer2 index;
-    protected final File indexFile;
-
-
-
-
-    public Storage(File indexFile, boolean disableLocks, boolean deleteFilesAfterClose, boolean readOnly,
-                   boolean appendOnly, boolean ifInMemoryUseDirectBuffer) {
-        this.indexFile = indexFile;
         this.disableLocks = disableLocks;
-        this.deleteFilesOnExit = deleteFilesAfterClose;
-        this.readOnly = readOnly;
         this.appendOnly = appendOnly;
-        this.ifInMemoryUseDirectBuffer = ifInMemoryUseDirectBuffer;
+        this.deleteFilesOnExit = deleteFilesOnExit;
+        this.failOnWrongHeader = failOnWrongHeader;
         this.lock = disableLocks? null: new ReentrantReadWriteLock();
-        this.inMemory = indexFile == null;
+
 
         writeLocksCounter = CC.ASSERT && disableLocks? new AtomicInteger(0) : null;
 
         try{
             writeLock_lock();
 
-            File dataFile = inMemory? null : new File(indexFile.getPath()+ DATA_FILE_EXT);
 
-            if(inMemory){
-                phys = new ByteBuffer2(true, null,
-                        readOnly? FileChannel.MapMode.READ_ONLY : FileChannel.MapMode.READ_WRITE,
-                        "phys", ifInMemoryUseDirectBuffer);
-                index = new ByteBuffer2(true, null,
-                        readOnly? FileChannel.MapMode.READ_ONLY : FileChannel.MapMode.READ_WRITE,
-                        "index", ifInMemoryUseDirectBuffer);
-                writeInitValues();
+            phys = volFac.createPhysVolume();
+            index = volFac.createIndexVolume();
+            phys.ensureAvailable(8);
+            index.ensureAvailable(INDEX_OFFSET_START*8);
 
-            }else{
-
-                RandomAccessFile indexRaf = new RandomAccessFile(indexFile, "rw");
-                checkFileBeforeOpening(indexFile, indexRaf);
-
-                RandomAccessFile dataRaf = new RandomAccessFile(dataFile, "rw");
-                checkFileBeforeOpening(dataFile, dataRaf);
-                boolean existed = indexFile.exists() && indexFile.length()>0;
-
-                phys = new ByteBuffer2(false, dataRaf.getChannel(),
-                        readOnly? FileChannel.MapMode.READ_ONLY : FileChannel.MapMode.READ_WRITE,
-                        "phys", ifInMemoryUseDirectBuffer);
-                index = new ByteBuffer2(false, indexRaf.getChannel(),
-                        readOnly? FileChannel.MapMode.READ_ONLY : FileChannel.MapMode.READ_WRITE,
-                        "index", ifInMemoryUseDirectBuffer);
-
-                if(!existed){
-                    //store does not exist, create files
-                    writeInitValues();
-                }
+            final long header = index.getLong(0);
+            if(header!=HEADER){
+                if(failOnWrongHeader) throw new IOError(new IOException("Wrong file header"));
+                else writeInitValues();
             }
 
-        }catch (IOException e){
-            throw new IOError(e);
         }finally {
             writeLock_unlock();
         }
 
-    }
-
-    private void checkFileBeforeOpening(File indexFile, RandomAccessFile indexRaf) throws IOException {
-        if(indexFile.exists())
-            if(!indexFile.isFile() || !indexFile.canRead())
-                throw new IllegalAccessError("Could not read file: "+indexFile);
-        long len = indexFile.length();
-
-        if(len!=0&&(len<8 || indexRaf.readLong()!=HEADER)){
-            throw new IllegalArgumentException("Invalid file header: "+indexFile);
-        }
     }
 
 
@@ -246,20 +201,19 @@ public abstract class Storage implements Engine {
 
             phys.close();
             index.close();
-
-            if(deleteFilesOnExit && indexFile!=null){
-                indexFile.delete();
-                new File(indexFile.getPath()+DATA_FILE_EXT).delete();
+            if(deleteFilesOnExit){
+                phys.deleteFile();
+                index.deleteFile();
             }
+            phys = null;
+            index = null;
 
-        }catch(IOException e){
-            throw new IOError(e);
         }finally {
             writeLock_unlock();
         }
     }
 
-    protected  <A> A recordGet2(long indexValue, ByteBuffer2 data, Serializer<A> serializer) throws IOException {
+    protected  <A> A recordGet2(long indexValue, Volume data, Serializer<A> serializer) throws IOException {
         final long dataPos = indexValue & PHYS_OFFSET_MASK;
         final int dataSize = (int) (indexValue>>>48);
         if(dataPos == 0) return null;
@@ -267,7 +221,7 @@ public abstract class Storage implements Engine {
         DataInput2 in = data.getDataInput(dataPos, dataSize);
         final A value = serializer.deserialize(in,dataSize);
 
-        if(CC.ASSERT &&  in.pos != dataSize +dataPos%ByteBuffer2.BUF_SIZE)
+        if(CC.ASSERT &&  in.pos != dataSize +dataPos%Volume.BUF_SIZE)
             throw new InternalError("Data were not fully read.");
 
         return value;

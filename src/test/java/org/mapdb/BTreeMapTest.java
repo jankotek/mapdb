@@ -10,7 +10,7 @@ import static org.junit.Assert.*;
 @SuppressWarnings("unchecked")
 public class BTreeMapTest{
 
-    Engine engine = new StorageDirect(null);
+    Engine engine = new StorageDirect(new Volume.MemoryVolumeFactory(false));
 
     public static void print(BTreeMap m) {
         printRecur(m, m.rootRecid, "");

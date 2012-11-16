@@ -24,7 +24,7 @@ public class AsyncWriteEngineTest extends TestFile{
         assertNotNull(index);
         if(engine !=null)
            engine.close();
-        engine =  new AsyncWriteEngine(new StorageDirect(index), true, 0, true);
+        engine =  new AsyncWriteEngine(new StorageDirect(fac), true, 0, true);
     }
 
 
@@ -88,7 +88,7 @@ public class AsyncWriteEngineTest extends TestFile{
     
     @Test public void async_commit(){
         final AtomicLong putCounter = new AtomicLong();
-        StorageTrans t = new StorageTrans(index){
+        StorageTrans t = new StorageTrans(fac){
             @Override
             public <A> long recordPut(A value, Serializer<A> serializer) {
                 putCounter.incrementAndGet();
@@ -115,7 +115,7 @@ public class AsyncWriteEngineTest extends TestFile{
         t.close();
 
         //now reopen db and check ths
-        t = new StorageTrans(index);
+        t = new StorageTrans(fac);
         a = new AsyncWriteEngine(t, true, 0, true);
         for(Integer i=0;i<max;i++){
             long recid = l.get(i);

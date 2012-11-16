@@ -237,4 +237,8 @@ public class DB {
     public Serializer getDefaultSerializer() {
         return defaultSerializer;
     }
+
+    public Engine getEngine() {
+        return engine;
+    }
 }

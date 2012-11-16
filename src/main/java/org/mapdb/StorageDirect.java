@@ -8,19 +8,19 @@ import java.io.IOException;
 public class StorageDirect extends Storage implements Engine {
 
 
-    public StorageDirect(File indexFile){
-        this(indexFile, false, false, false, false,false);
+    public StorageDirect(Volume.VolumeFactory volFac){
+        this(volFac, false, false, false,false);
     }
 
-    public StorageDirect(File indexFile, boolean disableLocks,
-                         boolean deleteFilesAfterClose,
-                         boolean readOnly, boolean appendOnly,
-                         boolean ifInMemoryUseDirectBuffer) {
-        super(indexFile, disableLocks, deleteFilesAfterClose, readOnly, appendOnly, ifInMemoryUseDirectBuffer);
-        if(indexFile!=null && new File(indexFile.getPath()+StorageTrans.TRANS_LOG_FILE_EXT).exists()){
-            throw new IllegalAccessError("Log file found. Reopen with transaction enabled, to finish transaction log replay!");
-        }
+    public StorageDirect(Volume.VolumeFactory volFac, boolean disableLocks, boolean appendOnly,
+                         boolean deleteFilesOnExit, boolean failOnWrongHeader) {
+        super(volFac,  disableLocks, appendOnly, deleteFilesOnExit, failOnWrongHeader);
+        //TODO check for log file existence and throw an error if it does exist
+//        if(volFac.transLogExist()){
+//            throw new IllegalAccessError("Log file found. Reopen with transaction enabled, to finish transaction log replay!");
+//        }
     }
+
 
     @Override
     public <A> long recordPut(A value, Serializer<A> serializer) {
@@ -49,7 +49,7 @@ public class StorageDirect extends Storage implements Engine {
                         freePhysRecTake(out.pos):
                         0L;
 
-                phys.putData(indexValue&PHYS_OFFSET_MASK, out);
+                phys.putData(indexValue&PHYS_OFFSET_MASK, out.buf, out.pos);
                 index.putLong(recid * 8, indexValue);
 
                 return recid;
@@ -101,7 +101,7 @@ public class StorageDirect extends Storage implements Engine {
                    //do nothing
                }if(oldSize == out.pos ){
                    //size is the same, so just write new data
-                   phys.putData(oldIndexVal&PHYS_OFFSET_MASK, out);
+                   phys.putData(oldIndexVal&PHYS_OFFSET_MASK, out.buf, out.pos);
                }else if(oldSize != 0 && out.pos==0){
                    //new record has zero size, just delete old phys one
                    freePhysRecPut(oldIndexVal);
@@ -109,7 +109,7 @@ public class StorageDirect extends Storage implements Engine {
                }else{
                    //size has changed, so write into new location
                    final long newIndexValue = freePhysRecTake(out.pos);
-                   phys.putData(newIndexValue&PHYS_OFFSET_MASK, out);
+                   phys.putData(newIndexValue&PHYS_OFFSET_MASK, out.buf, out.pos);
                    //update index file with new location
                    index.putLong(recid * 8, newIndexValue);
 
@@ -258,7 +258,7 @@ public class StorageDirect extends Storage implements Engine {
         if(CC.ASSERT && physFileSize <=0) throw new InternalError("illegal file size:"+physFileSize);
 
         //check if new record would be overflowing BUF_SIZE
-        if(physFileSize%ByteBuffer2.BUF_SIZE+requiredSize<=ByteBuffer2.BUF_SIZE){
+        if(physFileSize%Volume.BUF_SIZE+requiredSize<=Volume.BUF_SIZE){
             //no, so just increase file size
             phys.ensureAvailable(physFileSize+requiredSize);
             //so just increase buffer size
@@ -270,11 +270,11 @@ public class StorageDirect extends Storage implements Engine {
             //new size is overlapping 2GB ByteBuffer size
             //so we need to create empty record for 'padding' size to 2GB
 
-            final long  freeSizeToCreate = ByteBuffer2.BUF_SIZE -  physFileSize%ByteBuffer2.BUF_SIZE;
+            final long  freeSizeToCreate = Volume.BUF_SIZE -  physFileSize%Volume.BUF_SIZE;
             if(CC.ASSERT && freeSizeToCreate == 0) throw new InternalError();
 
             final long nextBufferStartOffset = physFileSize + freeSizeToCreate;
-            if(CC.ASSERT && nextBufferStartOffset%ByteBuffer2.BUF_SIZE!=0) throw new InternalError();
+            if(CC.ASSERT && nextBufferStartOffset%Volume.BUF_SIZE!=0) throw new InternalError();
 
             //increase the disk size
             phys.ensureAvailable(physFileSize + freeSizeToCreate + requiredSize);
