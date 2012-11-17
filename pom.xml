@@ -99,7 +99,8 @@
                             <configuration>
                                 <options>
                                     <option>-allowaccessmodification</option>
-                                    <option>-keep public class * { public *; public static *; }</option>
+                                    <option>-keep public class org.mapdb.DB { public *; public static *; }</option>
+                                    <option>-keep public class org.mapdb.DBMaker { public *; public static *; }</option>
                                 </options>
                                 <libs>
                                     <lib>${java.home}/lib/rt.jar</lib>
@@ -107,7 +108,7 @@
                                 </libs>
                             </configuration>
                         </plugin>
-            -->
+                -->
         </plugins>
     </build>
 
