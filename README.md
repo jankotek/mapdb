@@ -6,7 +6,7 @@ yet packed with features such as transactions, space efficient serialization,
 instance cache and transparent compression/encryption.
 It also has outstanding performance rivaled only by C++ embedded db engines.
 
-MapDB is free as speech and free as beer under [Apache License 2.0](doc/license.txt).
+MapDB is free as speech and free as beer under [Apache License 2.0](https://github.com/jankotek/MapDB/blob/master/doc/license.txt).
 However author would appreciate
 [small donation](http://www.amazon.co.uk/gp/registry/registry.html?ie=UTF8&id=2CIB8H24EE6R3&type=wishlist),
 it would improve this project and ensure it stays free in the future.
