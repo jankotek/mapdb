@@ -70,11 +70,6 @@ public class LongHashMap<V> extends LongMap<V> implements Serializable {
         Entry<V> next;
 
 
-        Entry(long theKey, V theValue) {
-            this.key = theKey;
-            this.value = theValue;
-            origKeyHash = computeHashCode(theKey);
-        }
 
         public Entry(long key, int hash) {
             this.key = key;
@@ -311,7 +306,7 @@ public class LongHashMap<V> extends LongMap<V> implements Serializable {
     }
 
     final Entry<V> getEntry(long key) {
-        int hash = computeHashCode(key);
+        int hash = Utils.longHash(key);
         int index = hash & (elementData.length - 1);
         return findNonNullKeyEntry(key, index, hash);
     }
@@ -352,7 +347,7 @@ public class LongHashMap<V> extends LongMap<V> implements Serializable {
     @Override
     public V put(long key, V value) {
         Entry<V> entry;
-        int hash = computeHashCode(key);
+        int hash = Utils.longHash(key);
         int index = hash & (elementData.length - 1);
         entry = findNonNullKeyEntry(key, index, hash);
         if (entry == null) {
@@ -368,12 +363,6 @@ public class LongHashMap<V> extends LongMap<V> implements Serializable {
         return result;
     }
 
-    Entry<V> createEntry(long key, int index, V value) {
-        Entry<V> entry = new Entry<V>(key, value);
-        entry.next = elementData[index];
-        elementData[index] = entry;
-        return entry;
-    }
 
     Entry<V> createHashedEntry(long key, int index, int hash) {
         Entry<V> entry = new Entry<V>(key,hash);
@@ -424,32 +413,13 @@ public class LongHashMap<V> extends LongMap<V> implements Serializable {
         return null;
     }
 
-    /*
-     * Remove the given entry from the hashmap.
-     * Assumes that the entry is in the map.
-     */
-    final void removeEntry(Entry<V> entry) {
-        int index = entry.origKeyHash & (elementData.length - 1);
-        Entry<V> m = elementData[index];
-        if (m == entry) {
-            elementData[index] = entry.next;
-        } else {
-            while (m.next != entry) {
-                m = m.next;
-            }
-            m.next = entry.next;
-
-        }
-        modCount++;
-        elementCount--;
-    }
 
     final Entry<V> removeEntry(long key) {
         int index = 0;
         Entry<V> entry;
         Entry<V> last = null;
 
-        int hash = computeHashCode(key);
+        int hash = Utils.longHash(key);
         index = hash & (elementData.length - 1);
         entry = elementData[index];
         while (entry != null && !(entry.origKeyHash == hash && key == entry.key)) {
@@ -490,17 +460,8 @@ public class LongHashMap<V> extends LongMap<V> implements Serializable {
         return new EntryIterator<V>(this);
     }
 
-    /*
-     * Contract-related functionality 
-     */
-    static int computeHashCode(long key) {
-        return Utils.longHash(key);
-    }
 
 
-    static boolean areEqualValues(Object value1, Object value2) {
-        return (value1 == value2) || value1.equals(value2);
-    }
 
 
 }
