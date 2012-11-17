@@ -24,6 +24,7 @@ import java.util.NavigableSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
+import org.mapdb.EngineWrapper.*;
 
 /**
  * A builder class for creating and opening a database.

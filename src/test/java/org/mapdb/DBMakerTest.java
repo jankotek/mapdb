@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 
 import static org.junit.Assert.*;
+import org.mapdb.EngineWrapper.*;
 
 public class DBMakerTest{
 
