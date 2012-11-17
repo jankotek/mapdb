@@ -10,7 +10,7 @@ MapDB is free as speech and free as beer under [Apache License 2.0](doc/license.
 However author would appreciate
 [small donation](http://www.amazon.co.uk/gp/registry/registry.html?ie=UTF8&id=2CIB8H24EE6R3&type=wishlist),
 it would improve this project and ensure it stays free in the future.
-Right now we urgently need [decent SSD drive](http://www.amazon.co.uk/Intel-Series-240GB-Solid-State/dp/B0072R286S/ref=wl_it_dp_v_S_nC?ie=UTF8&colid=2CIB8H24EE6R3&coliid=I17CIOMF6C7R4M]
+Right now we urgently need [decent SSD drive](http://www.amazon.co.uk/Intel-Series-240GB-Solid-State/dp/B0072R286S/ref=wl_it_dp_v_S_nC?ie=UTF8&colid=2CIB8H24EE6R3&coliid=I17CIOMF6C7R4M)
 to speedup MapDB testing.
 
 News
