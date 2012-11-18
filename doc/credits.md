@@ -13,8 +13,9 @@ at [SourceForge](http://jdbm.sourceforge.net/). MapDB is complete rewrite, there
 JDBM 1.0 in MapDB. But it heavily introduced our design and feature set.
 MapDB keeps layout set in JDBM 1. Most importantly it is:
 
-* Idea of using _object instance with serializer_ rather than already _serialized byte array_ as basic record.
-This is the very basic idea which defines MapDB today.
+* Idea of passing around  *object instance with serializer* rather than *already serialized byte array*.
+This is the very basic idea which defines MapDB today. It allows instance cache, great performance and
+tight component integration.
 
 * Engine (RecordManager) as abstract component
 * Instance Cache as Engine (RecordManager) wrapper
