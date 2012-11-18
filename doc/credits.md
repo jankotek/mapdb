@@ -10,8 +10,7 @@ I am sorry if I forgot someone, please send me a line if you should be here.
 
 MapDB is loosely based on older project called JDBM. First version was started around 2001 and was released in 2005
 at [SourceForge](http://jdbm.sourceforge.net/). MapDB is complete rewrite, there is no code left from original
-JDBM 1.0 in MapDB. But it heavily introduced our design and feature set.
-MapDB keeps layout set in JDBM 1. Most importantly it is:
+JDBM 1.0 in MapDB. But it heavily influenced our design and feature set. Most importantly it is:
 
 * Idea of passing around  *object instance with serializer* rather than *already serialized byte array*.
 This is the very basic idea which defines MapDB today. It allows instance cache, great performance and
