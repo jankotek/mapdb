@@ -278,7 +278,11 @@ public class AsyncWriteEngine implements Engine {
             try{
                 //wait until queue is empty
                 while(!writes.isEmpty()){
-                     Thread.yield();
+                    try {
+                        Thread.sleep(1);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
 
                 grandLock.writeLock().lock();
