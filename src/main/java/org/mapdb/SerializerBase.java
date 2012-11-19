@@ -295,6 +295,8 @@ public class SerializerBase implements Serializer{
         } else if(obj == BASIC_SERIALIZER){
             out.write(SerializationHeader.BASIC_SERIALIZER);
             return;
+        } else if(obj == Fun.HI){
+            out.write(FUN_HI);
         } else if(obj == this){
             out.write(THIS_SERIALIZER);
             return;
@@ -415,6 +417,24 @@ public class SerializerBase implements Serializer{
             out.writeUTF(l.getLanguage());
             out.writeUTF(l.getCountry());
             out.writeUTF(l.getVariant());
+        } else if (clazz == Fun.Tuple2.class){
+            out.write(TUPLE2);
+            Fun.Tuple2 t = (Fun.Tuple2) obj;
+            serialize(out, t.a, objectStack);
+            serialize(out, t.b, objectStack);
+        } else if (clazz == Fun.Tuple2.class){
+            out.write(TUPLE3);
+            Fun.Tuple3 t = (Fun.Tuple3) obj;
+            serialize(out, t.a, objectStack);
+            serialize(out, t.b, objectStack);
+            serialize(out, t.c, objectStack);
+        } else if (clazz == Fun.Tuple4.class){
+            out.write(TUPLE4);
+            Fun.Tuple4 t = (Fun.Tuple4) obj;
+            serialize(out, t.a, objectStack);
+            serialize(out, t.b, objectStack);
+            serialize(out, t.c, objectStack);
+            serialize(out, t.d, objectStack);
         } else {
             serializeUnknownObject(out, obj, objectStack);
         }
@@ -906,6 +926,18 @@ public class SerializerBase implements Serializer{
                 break;
             case SerializationHeader.BASIC_SERIALIZER:
                 ret = BASIC_SERIALIZER;
+                break;
+            case TUPLE2:
+                ret = new Fun.Tuple2(deserialize(is, objectStack), deserialize(is, objectStack));
+                break;
+            case TUPLE3:
+                ret = new Fun.Tuple3(deserialize(is, objectStack), deserialize(is, objectStack), deserialize(is, objectStack));
+                break;
+            case TUPLE4:
+                ret = new Fun.Tuple4(deserialize(is, objectStack), deserialize(is, objectStack), deserialize(is, objectStack), deserialize(is, objectStack));
+                break;
+            case FUN_HI:
+                ret = Fun.HI;
                 break;
             case THIS_SERIALIZER:
                 ret = this;

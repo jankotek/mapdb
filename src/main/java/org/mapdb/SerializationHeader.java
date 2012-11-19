@@ -137,16 +137,19 @@ interface SerializationHeader {
 
     int  CLASS = 126;
     int  DATE = 127;
+    int FUN_HI = 128;
 
-
-
-//    int NEG_INFINITY = 128;
 //    int POS_INFINITY = 129;
 
     int COMPARABLE_COMPARATOR = 130;
     int COMPARABLE_COMPARATOR_WITH_NULLS = 131;
     int BASIC_SERIALIZER = 132;
     int THIS_SERIALIZER = 133;
+
+    int TUPLE2 = 134;
+    int TUPLE3 = 135;
+    int TUPLE4 = 136;
+
 
 
     /**
