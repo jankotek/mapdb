@@ -152,6 +152,11 @@ You may also try to open database in read-only mode.
 Maps and Sets in MapDB should be drop-in replacement for `java.util` collections. So any significant difference is  a bug.
 Please [create new bug report](https://github.com/jankotek/JDBM4/issues/new) with code to reproduce issue.
 
+**Concurrency related issues**
+If you ran into hard to replicate concurrent problem (race condition, dead lock), 
+I would suggest to record JVM execution with [Chronon](http://www.chrononsystems.com/learn-more/products-overview) 
+and submit the record together with your bug report. This would make bug-fix faster.
+
 Support
 =======
 MapDB has three places where you may find a help. For anything with stack-trace you should create
@@ -160,7 +165,7 @@ Small feature request goes into bug tracker.
 Use it also for trivial questions (how to open collection?) because incomplete documentation is a bug.
 
 There is [mail-group](mailto:jdbm@googlegroups.com) with [archive](http://groups.google.com/group/jdbm).
-You should use it for more general discussion (can MapDB support transactional software memory?).
+You should use it for more general discussion (such as "can MapDB support transactional software memory?").
 Also questions about performance and data-modeling should go into mail-group.
 
 Last option is to [contact me directly](mailto:jan at kotek dot net).
