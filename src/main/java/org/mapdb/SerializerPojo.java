@@ -128,7 +128,7 @@ public class SerializerPojo extends SerializerBase{
         }
 
         public FieldInfo[] getFields() {
-            return (FieldInfo[]) fields.toArray();
+            return fields.toArray(new FieldInfo[fields.size()]);
         }
 
         public FieldInfo getField(String name) {
