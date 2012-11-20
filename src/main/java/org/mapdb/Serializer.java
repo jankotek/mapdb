@@ -55,13 +55,15 @@ public interface Serializer<A> {
      */
     Serializer<String> STRING_SERIALIZER = new Serializer<String>() {
 
-        public void serialize(DataOutput out, String value) throws IOException {
+        @Override
+		public void serialize(DataOutput out, String value) throws IOException {
             final byte[] bytes = value.getBytes(Utils.UTF8);
             out.write(bytes);
         }
 
 
-        public String deserialize(DataInput in, int available) throws IOException {
+        @Override
+		public String deserialize(DataInput in, int available) throws IOException {
             byte[] bytes = new byte[available];
             in.readFully(bytes);
             return new String(bytes, Utils.UTF8);

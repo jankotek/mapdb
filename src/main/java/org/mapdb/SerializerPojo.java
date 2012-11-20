@@ -35,7 +35,8 @@ public class SerializerPojo extends SerializerBase{
 
     protected static final Serializer<ArrayList<ClassInfo>> serializer = new Serializer<ArrayList<ClassInfo>>() {
 
-        public void serialize(DataOutput out, ArrayList<ClassInfo> obj) throws IOException {
+        @Override
+		public void serialize(DataOutput out, ArrayList<ClassInfo> obj) throws IOException {
             Utils.packInt(out, obj.size());
             for (ClassInfo ci : obj) {
                 out.writeUTF(ci.getName());
@@ -52,7 +53,8 @@ public class SerializerPojo extends SerializerBase{
             }
         }
 
-        public ArrayList<ClassInfo> deserialize(DataInput in, int available) throws IOException{
+        @Override
+		public ArrayList<ClassInfo> deserialize(DataInput in, int available) throws IOException{
 
             int size = Utils.unpackInt(in);
             ArrayList<ClassInfo> ret = new ArrayList<ClassInfo>(size);
@@ -126,7 +128,7 @@ public class SerializerPojo extends SerializerBase{
         }
 
         public FieldInfo[] getFields() {
-            return (FieldInfo[]) fields.toArray();
+            return fields.toArray(new FieldInfo[fields.size()]);
         }
 
         public FieldInfo getField(String name) {

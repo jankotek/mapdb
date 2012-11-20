@@ -94,7 +94,8 @@ public abstract class LongMap<V> {
         void remove();
     }
 
-    public String toString(){
+    @Override
+	public String toString(){
         final StringBuilder b = new StringBuilder();
         b.append(getClass().getSimpleName());
         b.append('[');

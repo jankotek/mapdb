@@ -60,7 +60,8 @@ public class AsyncWriteEngine implements Engine {
     protected Engine engine;
 
     protected final Thread writerThread = new Thread("JDBM writer"){
-        public void run(){
+        @Override
+		public void run(){
             writerThreadRun();
         }
     };
