@@ -525,7 +525,8 @@ public class StorageTrans extends Storage implements Engine {
 
 
 
-    protected long freePhysRecTake(final int requiredSize) throws IOException {
+    @Override
+	protected long freePhysRecTake(final int requiredSize) throws IOException {
         writeLock_checkLocked();
 
         if(CC.ASSERT && requiredSize<=0) throw new InternalError();

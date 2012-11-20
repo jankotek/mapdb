@@ -581,7 +581,8 @@ public class LongConcurrentHashMap< V>
      *
      * @return <tt>true</tt> if this map contains no key-value mappings
      */
-    public boolean isEmpty() {
+    @Override
+	public boolean isEmpty() {
         final Segment<V>[] segments = this.segments;
         /*
          * We keep track of per-segment modCounts to avoid ABA
@@ -620,7 +621,8 @@ public class LongConcurrentHashMap< V>
      *
      * @return the number of key-value mappings in this map
      */
-    public int size() {
+    @Override
+	public int size() {
         final Segment<V>[] segments = this.segments;
         long sum = 0;
         long check = 0;
@@ -680,7 +682,8 @@ public class LongConcurrentHashMap< V>
      *
      * @throws NullPointerException if the specified key is null
      */
-    public V get(long key) {
+    @Override
+	public V get(long key) {
         final int hash = Utils.longHash(key);
         return segmentFor(hash).get(key, hash);
     }
@@ -790,7 +793,8 @@ public class LongConcurrentHashMap< V>
      *         <tt>null</tt> if there was no mapping for <tt>key</tt>
      * @throws NullPointerException if the specified key or value is null
      */
-    public V put(long key, V value) {
+    @Override
+	public V put(long key, V value) {
         if (value == null)
             throw new NullPointerException();
         final int hash = Utils.longHash(key);
@@ -821,7 +825,8 @@ public class LongConcurrentHashMap< V>
      *         <tt>null</tt> if there was no mapping for <tt>key</tt>
      * @throws NullPointerException if the specified key is null
      */
-    public V remove(long key) {
+    @Override
+	public V remove(long key) {
         final int hash = Utils.longHash(key);
         return segmentFor(hash).remove(key, hash, null);
     }
@@ -865,7 +870,8 @@ public class LongConcurrentHashMap< V>
     /**
      * Removes all of the mappings from this map.
      */
-    public void clear() {
+    @Override
+	public void clear() {
         for (Segment<V> segment : segments) segment.clear();
     }
 
@@ -934,14 +940,16 @@ public class LongConcurrentHashMap< V>
         extends HashIterator
         implements Iterator<Long>
     {
-        public Long next()        { return super.nextEntry().key; }
+        @Override
+		public Long next()        { return super.nextEntry().key; }
     }
 
     final class ValueIterator
         extends HashIterator
         implements Iterator<V>
     {
-        public V next()        { return super.nextEntry().value; }
+        @Override
+		public V next()        { return super.nextEntry().value; }
     }
 
 

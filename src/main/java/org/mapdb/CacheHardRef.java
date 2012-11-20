@@ -132,7 +132,8 @@ public class CacheHardRef implements Engine {
 
 
     public static final NotificationListener LISTENER = new NotificationListener() {
-        public void handleNotification(Notification n, Object hb) {
+        @Override
+		public void handleNotification(Notification n, Object hb) {
             if (n.getType().equals(
                     MemoryNotificationInfo.MEMORY_THRESHOLD_EXCEEDED)) {
 //          long maxMemory = tenuredGenPool.getUsage().getMax();
