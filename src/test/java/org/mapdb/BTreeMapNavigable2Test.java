@@ -13,6 +13,7 @@ public  class BTreeMapNavigable2Test extends TestCase
 	NavigableMap<Integer, String> map = DBMaker.newTempTreeMap();
 
 
+	@Override
 	public void setUp() throws Exception
 	{
 		map.put(1, "one");
@@ -198,8 +199,6 @@ public  class BTreeMapNavigable2Test extends TestCase
 		assertEquals(e.getKey(), (Integer)10);
 		assertEquals(e.getValue(), "ten");
 	}
-	
-
 
 	public void testDescendingMap()
 	{

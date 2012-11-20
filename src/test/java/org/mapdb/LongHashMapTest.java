@@ -94,7 +94,7 @@ public class LongHashMapTest extends TestCase {
         Iterator<String> it = v1.valuesIterator();
         while (it.hasNext()) {
             String v = it.next();
-            long key = Long.valueOf(v);
+            long key = Long.parseLong(v);
             assertEquals(v1.get(key), v);
             assertEquals("" + key, v);
             counter++;

@@ -67,9 +67,10 @@ public class CacheWeakSoftRef implements Engine {
     protected ReferenceQueue<CacheItem> queue = new ReferenceQueue<CacheItem>();
 
     protected Thread queueThread = new Thread("JDBM GC collector"){
-        public void run(){
+        @Override
+		public void run(){
             runRefQueue();
-        };
+        }
     };
 
 

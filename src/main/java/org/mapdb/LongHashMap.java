@@ -182,7 +182,8 @@ public class LongHashMap<V> extends LongMap<V> implements Serializable {
             super(map);
         }
 
-        public V next() {
+        @Override
+		public V next() {
             makeNext();
             return currentEntry.value;
         }

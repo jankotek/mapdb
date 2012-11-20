@@ -5,7 +5,8 @@ import org.junit.Ignore;
 
 public class BTreeMapNavigableSubMapExclusiveTest extends BTreeMapNavigable2Test{
 
-    public void setUp() throws Exception {
+    @Override
+	public void setUp() throws Exception {
         super.setUp();
         map.put(-1,"-one");
         map.put(0,"zero");
@@ -15,7 +16,8 @@ public class BTreeMapNavigableSubMapExclusiveTest extends BTreeMapNavigable2Test
     }
 
 
-    public void testPut(){
+    @Override
+	public void testPut(){
         //this test is not run on submaps
     }
 }

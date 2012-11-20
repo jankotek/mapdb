@@ -65,7 +65,8 @@ public class SerializerPojoTest extends TestCase {
 
     static class Bean1 implements Serializable {
 
-        public boolean equals(Object o) {
+        @Override
+		public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
 
@@ -114,7 +115,8 @@ public class SerializerPojoTest extends TestCase {
 
     static class Bean2 extends Bean1 {
 
-        public boolean equals(Object o) {
+        @Override
+		public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             if (!super.equals(o)) return false;

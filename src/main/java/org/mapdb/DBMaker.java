@@ -529,7 +529,8 @@ public class DBMaker {
         final DB db = new DB(engine);
         if(_closeOnJvmShutdown){
             Runtime.getRuntime().addShutdownHook(new Thread("JDBM shutdown") {
-                public void run() {
+                @Override
+				public void run() {
                     if (db.engine != null) {
                         db.close();
                     }
