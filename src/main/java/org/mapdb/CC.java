@@ -54,7 +54,7 @@ public interface CC {
 
     boolean BB_CHECK_AVAILABLE_SIZE = false;
 
-    boolean BTREEMAP_LOG_NODE_LOCKS = false;
+    boolean LOG_LOCKS = false;
 
 
     short STORE_FORMAT_VERSION = 10000 + 1;
