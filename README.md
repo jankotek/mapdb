@@ -152,10 +152,10 @@ You may also try to open database in read-only mode.
 Maps and Sets in MapDB should be drop-in replacement for `java.util` collections. So any significant difference is  a bug.
 Please [create new bug report](https://github.com/jankotek/JDBM4/issues/new) with code to reproduce issue.
 
-**Concurrency related issues**
-If you ran into hard to replicate concurrent problem (race condition, dead lock), 
-I would suggest to record JVM execution with [Chronon](http://www.chrononsystems.com/learn-more/products-overview) 
-and submit the record together with your bug report. This would make bug-fix faster.
+**Hard to replicate issues**
+If you ran into hard to replicate problem (race condition, sneak data corruption),
+I would strongly suggest to record JVM execution with [Chronon](http://www.chrononsystems.com/learn-more/products-overview) 
+and submit the record together with a bug report. Thanks to Chronon we can replicate and fix issues at light speed.
 
 Support
 =======
