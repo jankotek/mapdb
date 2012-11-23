@@ -196,6 +196,8 @@ public class BTreeMapTest{
         assertEquals(10, m.remove(10));
         assertEquals(20, m.remove(20));
         assertEquals(42, m.remove(42));
+
+        assertEquals(null, m.remove(42999));
     }
 
 

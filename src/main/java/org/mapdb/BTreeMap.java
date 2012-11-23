@@ -497,7 +497,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 found = true;
                 A = engine.recordGet(current, nodeSerializer);
                 int pos = findChildren(v, A.keys());
-                if(pos<A.keys().length-1 && 0==comparator.compare(v,A.keys()[pos])){
+                if(pos<A.keys().length-1 &&  v!=null && A.keys()[pos]!=null &&
+                        0==comparator.compare(v,A.keys()[pos])){
 
                     Object oldVal =  (hasValues? A.vals()[pos] : Utils.EMPTY_STRING);
                     if(putOnlyIfAbsent){
@@ -708,7 +709,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             nodeLocks.lock(current);
             A = engine.recordGet(current, nodeSerializer);
             int pos = findChildren(key, A.keys());
-            if(pos<A.keys().length&& 0==comparator.compare(key,A.keys()[pos])){
+            if(pos<A.keys().length&& key!=null && A.keys()[pos]!=null &&
+                    0==comparator.compare(key,A.keys()[pos])){
                 //delete from node
                 Object oldVal = hasValues? A.vals()[pos] : Utils.EMPTY_STRING;
                 oldVal = valExpand(oldVal);
@@ -860,7 +862,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         }
 
         boolean ret = false;
-        if(0==comparator.compare(key,leaf.keys[pos])){
+        if( key!=null && leaf.keys()[pos]!=null &&
+                0==comparator.compare(key,leaf.keys[pos])){
             Object val  = leaf.vals[pos];
             val = valExpand(val);
             if(oldValue.equals(val)){
@@ -907,7 +910,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         }
 
         Object ret = null;
-        if(0==comparator.compare(key,leaf.keys[pos])){
+        if( key!=null && leaf.keys()[pos]!=null &&
+                0==comparator.compare(key,leaf.keys[pos])){
             Object[] vals = Arrays.copyOf(leaf.vals, leaf.vals.length);
             Object oldVal = vals[pos];
             if(valsOutsideNodes && value!=null){
