@@ -38,8 +38,7 @@ public class E24_BTreeMap_MultiKey {
 
         //initialize map
         ConcurrentNavigableMap<Fun.Tuple3, Integer> map =
-                 new ConcurrentSkipListMap<Fun.Tuple3, Integer>();
-                //DBMaker.newTempTreeMap();
+                DBMaker.newTempTreeMap();
 
 
         //fill with values, use simple permutation so we dont have to include large test data.
