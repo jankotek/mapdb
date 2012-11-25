@@ -16,8 +16,13 @@
 
 package org.mapdb;
 
+
 import java.io.*;
 import java.nio.*;
+
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
 
 /**
  * EngineWrapper adapter. It implements all methods on Engine interface.
@@ -200,6 +205,60 @@ public class EngineWrapper implements Engine{
 
     }
 
+    public static class DebugEngine extends EngineWrapper{
+
+        final Queue<Record> records = new ConcurrentLinkedQueue<Record>();
+
+
+        protected static final class Record{
+            final long recid;
+            final String desc;
+//            final String thread = Thread.currentThread().getName();
+//            final Exception stackTrace = new Exception();
+
+            public Record(long recid, String desc) {
+                this.recid = recid;
+                this.desc = desc;
+            }
+        }
+
+        public DebugEngine(Engine engine) {
+            super(engine);
+        }
+
+        @Override
+        public <A> long recordPut(A value, Serializer<A> serializer) {
+            long recid =  super.recordPut(value, serializer);
+            records.add(new Record(recid,
+                    "INSERT \n  val:"+value+"\n  ser:"+serializer
+            ));
+            return recid;
+        }
+
+        @Override
+        public <A> A recordGet(long recid, Serializer<A> serializer) {
+            A ret =  super.recordGet(recid, serializer);
+            records.add(new Record(recid,
+                    "GET \n  val:"+ret+"\n  ser:"+serializer
+            ));
+            return ret;
+        }
+
+        @Override
+        public <A> void recordUpdate(long recid, A value, Serializer<A> serializer) {
+            super.recordUpdate(recid, value, serializer);
+            records.add(new Record(recid,
+                    "UPDATE \n  val:"+value+"\n  ser:"+serializer
+            ));
+
+        }
+
+        @Override
+        public void recordDelete(long recid) {
+            super.recordDelete(recid);
+            records.add(new Record(recid,"DEL"));
+        }
+    }
 
 
 }
