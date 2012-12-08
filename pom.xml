@@ -151,6 +151,29 @@
                 <version>2.12.4</version>
             </plugin>
 
+
+            <plugin>
+               <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-pmd-plugin</artifactId>
+                <version>2.7.1</version>
+                <configuration>
+                    <targetJdk>1.6</targetJdk>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>findbugs-maven-plugin</artifactId>
+                <version>2.5.2</version>
+<!--
+                <configuration>
+                    <findbugsXmlOutput>true</findbugsXmlOutput>
+                    <excludeFilterFile>${basedir}/src/findbugs/exclude-filters.xml</excludeFilterFile>
+                    <includeTests>false</includeTests>
+                </configuration>
+-->
+            </plugin>
+
             <!--Uncomment to enable code-test-coverage report. Code instrumentation will  slow down tests significantly-->
 <!--        <plugin>
                 <groupId>org.codehaus.mojo</groupId>
