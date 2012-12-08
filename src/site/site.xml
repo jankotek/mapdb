@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<project name="MapDB">
+
+    <custom>
+        <fluidoSkin>
+            <topBarEnabled>true</topBarEnabled>
+            <topBarIcon>
+                <name>MapDB</name>
+                <alt>MapDB</alt>
+                <src>images/logo.png</src>
+                <href>/index.html</href>
+            </topBarIcon>
+            <sideBarEnabled>false</sideBarEnabled>
+            <googleSearch/>
+            <sourceLineNumbersEnabled>true</sourceLineNumbersEnabled>
+            <navBarStyle>navbar-inverse </navBarStyle>
+            <gitHub>
+                <projectId>JanKotek/MapDB</projectId>
+                <ribbonOrientation>right</ribbonOrientation>
+                <ribbonColor>black</ribbonColor>
+            </gitHub>
+            <twitter>
+                <user>JanKotek</user>
+                <showUser>true</showUser>
+                <showFollowers>true</showFollowers>
+            </twitter>
+        </fluidoSkin>
+    </custom>
+
+
+    <body>
+        <head>
+            <script src='js/jquery.min.js'></script>
+            <script src='js/app.js'></script>
+        </head>
+
+        <breadcrumbs />
+        <menu name="Introduction" ref="overview.html" />
+
+        <menu name="Maven 2.0">
+            <item name="Introduction" href="index.html"/>
+            <item name="Download" href="download.html"/>
+            <item name="Release Notes" href="release-notes.html" />
+            <item name="General Information" href="about.html"/>
+            <item name="For Maven 1.x Users" href="maven1.html"/>
+            <item name="Road Map" href="roadmap.html" />
+        </menu>
+
+
+        <menu ref="reports"/>
+
+
+    </body>
+
+
+    <skin>
+        <groupId>org.apache.maven.skins</groupId>
+        <artifactId>maven-fluido-skin</artifactId>
+        <version>1.3.0</version>
+    </skin>
+
+</project>

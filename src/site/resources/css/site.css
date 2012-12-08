@@ -1,0 +1,12 @@
+
+#banner, #breadcrumbs, #poweredBy {display: none !important;}
+
+#buzz ul,li {   list-style-type: none; font-size: 11px;}
+
+#buzz ul { margin: 7px 0; }
+#buzz li { margin: 0 0 8px 0; padding-left: 34px; position: relative; min-height: 26px; }
+#buzz li a:first-child { -webkit-box-shadow: #bbbbbb, 0px, 0px, 3px; -moz-box-shadow: #bbbbbb, 0px, 0px, 3px; box-shadow: #bbbbbb, 0px, 0px, 3px; display: block; height: 26px; left: 0; position: absolute; top: 3px; width: 26px; }
+#buzz li a:first-child img { height: 26px; width: 26px; }
+
+
+.navbar-fixed-top {position:absolute !important;}
