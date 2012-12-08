@@ -122,8 +122,7 @@
                         </goals>
                         <phase>site-deploy</phase>
                         <configuration>
-                            <path>/</path>
-                            <merge>true</merge>
+                            <merge>false</merge>
                             <message>Update site</message>
                         </configuration>
                     </execution>

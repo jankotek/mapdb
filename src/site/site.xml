@@ -21,8 +21,8 @@
             </gitHub>
             <twitter>
                 <user>JanKotek</user>
-                <showUser>true</showUser>
-                <showFollowers>true</showFollowers>
+                <showUser>false</showUser>
+                <showFollowers>false</showFollowers>
             </twitter>
         </fluidoSkin>
     </custom>
