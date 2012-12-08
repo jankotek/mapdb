@@ -109,6 +109,34 @@
                     <outputEncoding>UTF-8</outputEncoding>
                 </configuration>
             </plugin>
+
+
+            <plugin>
+                <groupId>com.github.github</groupId>
+                <artifactId>site-maven-plugin</artifactId>
+                <version>0.5</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>site</goal>
+                        </goals>
+                        <phase>site-deploy</phase>
+                        <configuration>
+                            <path>/</path>
+                            <merge>true</merge>
+                            <message>Update site</message>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <artifactId>maven-site-plugin</artifactId>
+                <configuration>
+                    <skipDeploy>true</skipDeploy>
+                </configuration>
+            </plugin>
+
             <!-- uncomment to enable proguard (strip down jar)-->
             <!--
                         <plugin>
