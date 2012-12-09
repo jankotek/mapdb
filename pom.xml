@@ -45,10 +45,57 @@
             <scope>test</scope>
             <optional>false</optional>
         </dependency>
+
+
+        <!-- kotlin standard library -->
+        <dependency>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-stdlib</artifactId>
+                <version>0.4.68</version>
+                <scope>test</scope>
+        </dependency>
+
     </dependencies>
+
+
+    <!-- kotlin repositories -->
+    <repositories>
+        <repository>
+            <id>jetbrains-all</id>
+            <url>http://repository.jetbrains.com/all</url>
+        </repository>
+    </repositories>
+
+    <pluginRepositories>
+        <pluginRepository>
+            <id>jetbrains-all</id>
+            <url>http://repository.jetbrains.com/all</url>
+        </pluginRepository>
+    </pluginRepositories>
 
     <build>
         <plugins>
+
+            <!-- kotlin compiler -->
+            <plugin>
+                <artifactId>kotlin-maven-plugin</artifactId>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <version>0.4.68</version>
+
+                <executions>
+                    <execution>
+                        <id>compile</id>
+                        <phase>compile</phase>
+                        <goals> <goal>compile</goal> </goals>
+                    </execution>
+
+                    <execution>
+                        <id>test-compile</id>
+                        <phase>test-compile</phase>
+                        <goals> <goal>test-compile</goal> </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.doxia</groupId>
                 <artifactId>doxia-module-markdown</artifactId>
