@@ -457,7 +457,7 @@ public class DBMaker {
      * to traverse list of free records to find and reuse existing position.
      * <p/>
      * It also decreases chance for store corruption, as existing data
-     * are not overwriten with new record.
+     * are not overwritten with new record.
      * <p/>
      * When this mode is used for longer time, store becomes fragmented.
      * It is necessary to run defragmentation then.
