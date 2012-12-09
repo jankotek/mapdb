@@ -19,11 +19,6 @@
                 <ribbonOrientation>right</ribbonOrientation>
                 <ribbonColor>black</ribbonColor>
             </gitHub>
-            <twitter>
-                <user>JanKotek</user>
-                <showUser>false</showUser>
-                <showFollowers>false</showFollowers>
-            </twitter>
         </fluidoSkin>
     </custom>
 
