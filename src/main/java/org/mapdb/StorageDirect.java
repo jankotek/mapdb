@@ -21,7 +21,7 @@ import java.io.IOException;
 
 /**
  * Storage Engine which saves record directly into file.
- * Is used when transactions are disabled.
+ * Is used when transaction journal is disabled.
  *
  * @author
  */

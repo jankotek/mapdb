@@ -20,12 +20,12 @@ import java.io.IOError;
 import java.io.IOException;
 
 /**
- * StorageDirect which provides transactions.
- * Index file data are stored in memory+trans log, phys file data are stored only in transaction log.
+ * StorageDirect which provides transaction and journal.
+ * Index file data are stored in memory+trans journal, phys file data are stored only in transaction journal.
  *
  * @author Jan Kotek
  */
-public class StorageTrans extends Storage implements Engine {
+public class StorageJournaled extends Storage implements Engine {
 
     protected static final long WRITE_INDEX_LONG = 1L <<48;
     protected static final long WRITE_INDEX_LONG_ZERO = 2L <<48;
@@ -53,12 +53,12 @@ public class StorageTrans extends Storage implements Engine {
 
 
 
-    public StorageTrans(Volume.VolumeFactory volFac){
+    public StorageJournaled(Volume.VolumeFactory volFac){
         this(volFac, false, false, false, false, false);
     }
 
-    public StorageTrans(Volume.VolumeFactory volFac, boolean disableLocks, boolean appendOnly,
-                        boolean deleteFilesOnExit, boolean failOnWrongHeader, boolean readOnly) {
+    public StorageJournaled(Volume.VolumeFactory volFac, boolean disableLocks, boolean appendOnly,
+                            boolean deleteFilesOnExit, boolean failOnWrongHeader, boolean readOnly) {
         super(volFac,  disableLocks, appendOnly, deleteFilesOnExit, failOnWrongHeader, readOnly);
         try{
             this.volFac = volFac;

@@ -48,7 +48,7 @@ public class DBMaker {
     /** file to open, if null opens in memory store */
     protected File _file;
 
-    protected boolean _transactionsEnabled = true;
+    protected boolean _journalEnabled = true;
 
     protected boolean _asyncWriteEnabled = true;
     protected boolean _asyncSerializationEnabled = true;
@@ -108,7 +108,7 @@ public class DBMaker {
         return newTempFileDB()
                 .deleteFilesAfterClose()
                 .closeOnJvmShutdown()
-                .transactionDisable()
+                .journalDisable()
                 .make()
                 .getTreeMap("temp");
     }
@@ -123,7 +123,7 @@ public class DBMaker {
         return newTempFileDB()
                 .deleteFilesAfterClose()
                 .closeOnJvmShutdown()
-                .transactionDisable()
+                .journalDisable()
                 .make()
                 .getHashMap("temp");
     }
@@ -138,7 +138,7 @@ public class DBMaker {
         return newTempFileDB()
                 .deleteFilesAfterClose()
                 .closeOnJvmShutdown()
-                .transactionDisable()
+                .journalDisable()
                 .make()
                 .getTreeSet("temp");
     }
@@ -153,7 +153,7 @@ public class DBMaker {
         return newTempFileDB()
                 .deleteFilesAfterClose()
                 .closeOnJvmShutdown()
-                .transactionDisable()
+                .journalDisable()
                 .make()
                 .getHashSet("temp");
     }
@@ -180,17 +180,20 @@ public class DBMaker {
 
 
     /**
-     * Transactions are enabled by default (but not implemented yet).
+     * Transaction journal is enabled by default
      * You must call <db>DB.commit()</db> to save your changes.
-     * It is possible to disable transactions for better write performance
+     * It is possible to disable transaction journal for better write performance
      * In this case all integrity checks are sacrificed for faster speed.
-     * If transactions are disabled, you must call DB.close() method before exit,
+     * <p/>
+     * If transaction journal is disabled, all changes are written DIRECTLY into store.
+     * You must call DB.close() method before exit,
      * otherwise your store <b>WILL BE CORRUPTED</b>
+     *
      *
      * @return this builder
      */
-    public DBMaker transactionDisable(){
-        this._transactionsEnabled = false;
+    public DBMaker journalDisable(){
+        this._journalEnabled = false;
         return this;
     }
 
@@ -489,8 +492,8 @@ public class DBMaker {
                 new Volume.MemoryVolumeFactory(_ifInMemoryUseDirectBuffer):
                 new Volume.FileVolumeFactory(_readOnly, _file);
 
-        Engine engine = _transactionsEnabled?
-                new StorageTrans(folFac, _asyncWriteEnabled, _appendOnlyEnabled, _deleteFilesAfterClose, _failOnWrongHeader, _readOnly):
+        Engine engine = _journalEnabled ?
+                new StorageJournaled(folFac, _asyncWriteEnabled, _appendOnlyEnabled, _deleteFilesAfterClose, _failOnWrongHeader, _readOnly):
                 new StorageDirect(folFac, _asyncWriteEnabled, _appendOnlyEnabled, _deleteFilesAfterClose , _failOnWrongHeader, _readOnly);
 
         if(_asyncWriteEnabled && !_readOnly)

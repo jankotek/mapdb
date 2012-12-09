@@ -195,7 +195,7 @@ final public class Utils {
             File index = File.createTempFile("jdbmTest","db");
             index.deleteOnExit();
             new File(index.getPath()+Storage.DATA_FILE_EXT).deleteOnExit();
-            new File(index.getPath()+StorageTrans.TRANS_LOG_FILE_EXT).deleteOnExit();
+            new File(index.getPath()+ StorageJournaled.TRANS_LOG_FILE_EXT).deleteOnExit();
 
             return index;
         }catch(IOException e){

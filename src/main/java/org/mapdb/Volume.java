@@ -97,7 +97,7 @@ public abstract class Volume {
         public FileVolumeFactory(boolean readOnly, File indexFile){
             this(readOnly, indexFile,
                     new File(indexFile.getPath()+Storage.DATA_FILE_EXT),
-                    new File(indexFile.getPath()+StorageTrans.TRANS_LOG_FILE_EXT));
+                    new File(indexFile.getPath()+ StorageJournaled.TRANS_LOG_FILE_EXT));
         }
 
         public FileVolumeFactory(boolean readOnly, File indexFile, File physFile, File transLogFile) {

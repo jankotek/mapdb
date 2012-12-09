@@ -31,7 +31,7 @@ public class MassiveInsert {
                 .closeOnJvmShutdown()
                 .deleteFilesAfterClose()
 //                .appendOnlyEnable()
-                .transactionDisable()
+                .journalDisable()
 //                .asyncSerializationDisable()
                 .make();
 

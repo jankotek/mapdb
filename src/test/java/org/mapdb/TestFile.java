@@ -12,7 +12,7 @@ abstract public class TestFile {
 
     protected final File index = Utils.tempDbFile();
     protected final File data = new File(index.getPath()+ Storage.DATA_FILE_EXT);
-    protected final File log = new File(index.getPath()+ StorageTrans.TRANS_LOG_FILE_EXT);
+    protected final File log = new File(index.getPath()+ StorageJournaled.TRANS_LOG_FILE_EXT);
 
     protected final Volume.VolumeFactory fac = new Volume.FileVolumeFactory(false, index, data, log);
 

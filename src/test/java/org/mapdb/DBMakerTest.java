@@ -27,7 +27,7 @@ public class DBMakerTest{
     public void testNewMemoryDB() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
-                .transactionDisable()
+                .journalDisable()
                 .make();
         verifyDB(db);
     }
@@ -47,7 +47,7 @@ public class DBMakerTest{
     public void testDisableCache() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
-                .transactionDisable()
+                .journalDisable()
                 .cacheDisable()
                 .make();
         verifyDB(db);
@@ -59,7 +59,7 @@ public class DBMakerTest{
     public void testDisableAsyncWrite() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
-                .transactionDisable()
+                .journalDisable()
                 .asyncWriteDisable()
                 .make();
         verifyDB(db);
@@ -72,7 +72,7 @@ public class DBMakerTest{
     public void testDisableAsyncSerialization() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
-                .transactionDisable()
+                .journalDisable()
                 .asyncSerializationDisable()
                 .make();
         verifyDB(db);
@@ -87,7 +87,7 @@ public class DBMakerTest{
     public void testMake() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
-                .transactionDisable()
+                .journalDisable()
                 .make();
         verifyDB(db);
         //check default values are set
@@ -103,7 +103,7 @@ public class DBMakerTest{
     public void testCacheHardRefEnable() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
-                .transactionDisable()
+                .journalDisable()
                 .cacheHardRefEnable()
                 .make();
         verifyDB(db);
@@ -114,7 +114,7 @@ public class DBMakerTest{
     public void testCacheWeakRefEnable() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
-                .transactionDisable()
+                .journalDisable()
                 .cacheWeakRefEnable()
                 .make();
         verifyDB(db);
@@ -127,7 +127,7 @@ public class DBMakerTest{
     public void testCacheSoftRefEnable() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
-                .transactionDisable()
+                .journalDisable()
                 .cacheSoftRefEnable()
                 .make();
         verifyDB(db);
@@ -139,7 +139,7 @@ public class DBMakerTest{
     public void testCacheSize() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
-                .transactionDisable()
+                .journalDisable()
                 .cacheSize(1000)
                 .make();
         verifyDB(db);

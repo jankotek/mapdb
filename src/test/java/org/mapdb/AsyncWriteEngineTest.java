@@ -88,7 +88,7 @@ public class AsyncWriteEngineTest extends TestFile{
     
     @Test public void async_commit(){
         final AtomicLong putCounter = new AtomicLong();
-        StorageTrans t = new StorageTrans(fac){
+        StorageJournaled t = new StorageJournaled(fac){
             @Override
             public <A> long recordPut(A value, Serializer<A> serializer) {
                 putCounter.incrementAndGet();
@@ -115,7 +115,7 @@ public class AsyncWriteEngineTest extends TestFile{
         t.close();
 
         //now reopen db and check ths
-        t = new StorageTrans(fac);
+        t = new StorageJournaled(fac);
         a = new AsyncWriteEngine(t, true, 0, true);
         for(Integer i=0;i<max;i++){
             long recid = l.get(i);

@@ -13,7 +13,7 @@ public class E03_HugeRead {
 
     public static void main(String[] args){
     DB db = DBMaker.newFileDB(new File("/tmp/db2"))
-            .transactionDisable() //transactions are not implemented yet
+            .journalDisable()
                     //.asyncWriteDisable()
             .make();
 

@@ -13,7 +13,7 @@ public class E02_HugeInsert {
 
     public static void main(String[] args){
         DB db = DBMaker.newFileDB(new File("/tmp/db"))
-                .transactionDisable() //transactions are not implemented yet
+                .journalDisable()
                 .make();
 
         Map<Integer, String> map = db.getTreeMap("map");
