@@ -130,7 +130,7 @@ Common problem on Windows (use Linux).
 **InternalError, Error, AssertionFailedError, IllegalArgumentException, StackOverflowError and so on** -
 There was an problem in MapDB. It is possible that file store was corrupted thanks to an internal error or disk failure.
 Disabling cache  `DBMaker.cacheDisable()` or async writes `DBMaker.asyncWriteDisable()` may workaround the problem.
-Please [create new bug report](https://github.com/jankotek/JDBM4/issues/new) with code to reproduce this issue.
+Please [create new bug report](https://github.com/jankotek/MapDB/issues/new) with code to reproduce this issue.
 
 **OutOfMemoryError: GC overhead limit exceeded** -
 Your app is creating new object instances faster then GC can collect them.
@@ -150,7 +150,7 @@ You may also try to open database in read-only mode.
 
 **Strange behavior in collections** -
 Maps and Sets in MapDB should be drop-in replacement for `java.util` collections. So any significant difference is  a bug.
-Please [create new bug report](https://github.com/jankotek/JDBM4/issues/new) with code to reproduce issue.
+Please [create new bug report](https://github.com/jankotek/MapDB/issues/new) with code to reproduce issue.
 
 **Hard to replicate issues**
 If you ran into hard to replicate problem (race condition, sneak data corruption),
@@ -160,11 +160,11 @@ and submit the record together with a bug report. Thanks to Chronon we can repli
 Support
 =======
 MapDB has three places where you may find a help. For anything with stack-trace you should create
-[new bug report](https://github.com/jankotek/JDBM4/issues/new).
+[new bug report](https://github.com/jankotek/MapDB/issues/new).
 Small feature request goes into bug tracker.
 Use it also for trivial questions (how to open collection?) because incomplete documentation is a bug.
 
-There is [mail-group](mailto:jdbm@googlegroups.com) with [archive](http://groups.google.com/group/jdbm).
+There is [mail-group](mailto:mapdb@googlegroups.com) with [archive](http://groups.google.com/group/mapdb).
 You should use it for more general discussion (such as "can MapDB support transactional software memory?").
 Also questions about performance and data-modeling should go into mail-group.
 
