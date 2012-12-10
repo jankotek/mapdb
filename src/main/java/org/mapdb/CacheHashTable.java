@@ -37,7 +37,7 @@ public class CacheHashTable implements Engine {
     protected HashItem[] items;
     protected final int cacheMaxSize;
 
-    private class HashItem {
+    private static class HashItem {
         final long key;
         final Object val;
 
