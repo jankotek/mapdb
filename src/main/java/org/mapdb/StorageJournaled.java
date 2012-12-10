@@ -16,6 +16,8 @@
 
 package org.mapdb;
 
+import sun.util.resources.TimeZoneNames_zh_CN;
+
 import java.io.IOError;
 import java.io.IOException;
 
@@ -346,7 +348,7 @@ public class StorageJournaled extends Storage implements Engine {
 
 
             //read headers
-            if(transLog.getLong(0)!=HEADER || transLog.getLong(8) !=LOG_SEAL){
+            if(transLog.isEmpty() || transLog.getLong(0)!=HEADER || transLog.getLong(8) !=LOG_SEAL){
                 //wrong headers, discard log
                 transLog.close();
                 transLog.deleteFile();

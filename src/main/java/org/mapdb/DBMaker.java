@@ -71,6 +71,8 @@ public class DBMaker {
 
     protected boolean _failOnWrongHeader = false;
 
+    protected boolean _RAF = false;
+
     /** use static factory methods, or make subclass */
     protected DBMaker(){}
 
@@ -175,6 +177,19 @@ public class DBMaker {
     public static DBMaker newFileDB(File file){
         DBMaker m = new DBMaker();
         m._file = file;
+        return  m;
+    }
+
+    /** Creates or open database stored in file.
+     * <p/>
+     * This methods opens DB with `RandomAccessFile` mode.
+     * It does not use NIO memory mapped buffers, so is slower but safer and more compatible.
+     * Use this if you are experiencing <b>java.lang.OutOfMemoryError: Map failed** exceptions
+     */
+    public static DBMaker newRandomAccessFileDB(File file){
+        DBMaker m = new DBMaker();
+        m._file = file;
+        m._RAF = true;
         return  m;
     }
 
@@ -490,7 +505,7 @@ public class DBMaker {
 
         Volume.VolumeFactory folFac = _file == null?
                 new Volume.MemoryVolumeFactory(_ifInMemoryUseDirectBuffer):
-                new Volume.FileVolumeFactory(_readOnly, _file);
+                new Volume.FileVolumeFactory(_readOnly, _RAF,  _file);
 
         Engine engine = _journalEnabled ?
                 new StorageJournaled(folFac, _asyncWriteEnabled, _appendOnlyEnabled, _deleteFilesAfterClose, _failOnWrongHeader, _readOnly):

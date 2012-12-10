@@ -55,8 +55,11 @@ public abstract class Volume {
 
     abstract public void sync();
 
+    public abstract boolean isEmpty();
+
     public abstract void deleteFile();
 
+    public abstract boolean isSliced();
 
 
     public final void putUnsignedShort(final long offset, final int value){
@@ -78,6 +81,7 @@ public abstract class Volume {
     }
 
 
+
     /**
      * Factory which creates two/three volumes used by each MapDB Storage Engine
      */
@@ -90,18 +94,21 @@ public abstract class Volume {
     public static class FileVolumeFactory implements VolumeFactory{
 
         protected boolean readOnly;
+        protected final boolean RAF;
         protected final File indexFile;
         protected final File physFile;
         protected final File transLogFile;
 
-        public FileVolumeFactory(boolean readOnly, File indexFile){
-            this(readOnly, indexFile,
+
+        public FileVolumeFactory(boolean readOnly, boolean RAF, File indexFile){
+            this(readOnly, RAF, indexFile,
                     new File(indexFile.getPath()+Storage.DATA_FILE_EXT),
                     new File(indexFile.getPath()+ StorageJournaled.TRANS_LOG_FILE_EXT));
         }
 
-        public FileVolumeFactory(boolean readOnly, File indexFile, File physFile, File transLogFile) {
+        public FileVolumeFactory(boolean readOnly, boolean RAF, File indexFile, File physFile, File transLogFile) {
             this.readOnly = readOnly;
+            this.RAF = RAF;
             this.indexFile = indexFile;
             this.physFile = physFile;
             this.transLogFile = transLogFile;
@@ -109,17 +116,23 @@ public abstract class Volume {
 
         @Override
         public Volume createIndexVolume() {
-            return new MappedFileVolume(indexFile, readOnly);
+            return RAF ?
+                    new RandomAccessFileVolume(indexFile, readOnly):
+                    new MappedFileVolume(indexFile, readOnly);
         }
 
         @Override
         public Volume createPhysVolume() {
-            return new MappedFileVolume(physFile, readOnly);
+            return RAF ?
+                    new RandomAccessFileVolume(physFile, readOnly):
+                    new MappedFileVolume(physFile, readOnly);
         }
 
         @Override
         public Volume createTransLogVolume() {
-            return new MappedFileVolume(transLogFile, readOnly);
+            return RAF ?
+                    new RandomAccessFileVolume(transLogFile, readOnly):
+                    new MappedFileVolume(transLogFile, readOnly);
         }
 
     }
@@ -237,6 +250,16 @@ public abstract class Volume {
             return new DataInput2(b1, bufPos);
         }
 
+        @Override
+        public boolean isEmpty() {
+            return buffers[0]==null || buffers[0].capacity()==0;
+        }
+
+        @Override
+        public boolean isSliced(){
+            return true;
+        }
+
         /**
          * Hack to unmap MappedByteBuffer.
          * Unmap is necessary on Windows, otherwise file is locked until JVM exits or BB is GCed.
@@ -266,6 +289,8 @@ public abstract class Volume {
                 unmapHackSupported = false;
             }
         }
+
+
     }
 
     public static final class MappedFileVolume extends ByteBufferVolume{
@@ -332,6 +357,11 @@ public abstract class Volume {
                     ((MappedByteBuffer)b).force();
                 }
             }
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return buffers[0]==null || buffers[0].capacity()==0;
         }
 
         @Override
@@ -544,10 +574,190 @@ public abstract class Volume {
         }
 
         @Override
+        public boolean isEmpty() {
+            return logged.isEmpty();
+        }
+
+        @Override
         public void deleteFile() {
             logged.deleteFile();
         }
+
+        @Override
+        public boolean isSliced() {
+            return logged.isSliced();
+        }
     }
+
+    public static final class RandomAccessFileVolume extends Volume{
+
+        protected final File file;
+        protected final boolean readOnly;
+
+        protected RandomAccessFile raf;
+        protected long len;
+        protected long pos;
+
+        public RandomAccessFileVolume(File file, boolean readOnly) {
+            this.file = file;
+            this.readOnly = readOnly;
+
+            try {
+                this.raf = new RandomAccessFile(file, readOnly? "r":"rw");
+                this.len = raf.length();
+                this.raf.seek(0);
+                pos = 0;
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+        }
+
+        @Override
+        synchronized public void ensureAvailable(long offset) {
+            if(len<offset)
+                try {
+                    raf.setLength(offset);
+                } catch (IOException e) {
+                    throw new IOError(e);
+                }
+        }
+
+        @Override
+        synchronized public void putLong(long offset, long value) {
+            try {
+                if(pos!=offset){
+                    raf.seek(offset);
+                    pos=offset+8;
+                }
+                raf.writeLong(value);
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+        }
+
+        @Override
+        synchronized public void putByte(long offset, byte value) {
+            try {
+                if(pos!=offset){
+                    raf.seek(offset);
+                    pos=offset+1;
+                }
+                raf.writeByte(0xFF & value);
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+
+        }
+
+        @Override
+        synchronized public void putData(long offset, byte[] value, int size) {
+            try {
+                if(pos!=offset){
+                    raf.seek(offset);
+                    pos=offset+size;
+                }
+                raf.write(value,0,size);
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+        }
+
+        @Override
+        synchronized public void putData(long offset, ByteBuffer buf, int size) {
+            try {
+                if(pos!=offset){
+                    raf.seek(offset);
+                    pos=offset+size;
+                }
+                byte[] b = new byte[size];
+                buf.get(b);
+                putData(offset, b, size);
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+
+        }
+
+        @Override
+        synchronized public long getLong(long offset) {
+            try {
+                if(pos!=offset){
+                    raf.seek(offset);
+                    pos=offset+8;
+                }
+                return raf.readLong();
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+
+        }
+
+        @Override
+        synchronized public byte getByte(long offset) {
+
+            try {
+                if(pos!=offset){
+                    raf.seek(offset);
+                    pos=offset+1;
+                }
+                return raf.readByte();
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+
+        }
+
+        @Override
+        synchronized public DataInput2 getDataInput(long offset, int size) {
+            try {
+                if(pos!=offset){
+                    raf.seek(offset);
+                    pos=offset+size;
+                }
+                byte[] b = new byte[size];
+                raf.read(b);
+                return new DataInput2(b);
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+        }
+
+        @Override
+        synchronized public void close() {
+            try {
+                raf.close();
+                raf = null;
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+
+        }
+
+        @Override
+        synchronized public void sync() {
+            try {
+                raf.getFD().sync();
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return len==0;
+        }
+
+        @Override
+        synchronized public void deleteFile() {
+            file.delete();
+        }
+
+        @Override
+        public boolean isSliced(){
+            return false;
+        }
+    }
+
 
 }
 

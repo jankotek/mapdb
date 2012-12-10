@@ -14,7 +14,7 @@ abstract public class TestFile {
     protected final File data = new File(index.getPath()+ Storage.DATA_FILE_EXT);
     protected final File log = new File(index.getPath()+ StorageJournaled.TRANS_LOG_FILE_EXT);
 
-    protected final Volume.VolumeFactory fac = new Volume.FileVolumeFactory(false, index, data, log);
+    protected final Volume.VolumeFactory fac = new Volume.FileVolumeFactory(false, false, index, data, log);
 
 
     @After public void after() throws IOException {

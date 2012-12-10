@@ -3,6 +3,7 @@ package org.mapdb;
 
 import org.junit.Test;
 
+import java.io.File;
 import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
@@ -89,6 +90,17 @@ public class VolumeTest {
         assertEquals(0, Volume.MappedFileVolume.BUF_SIZE_INC%8);
         assertTrue(Storage.INDEX_OFFSET_START*8< Volume.INITIAL_SIZE);
         assertTrue(Volume.MappedFileVolume.BUF_SIZE_INC> StorageDirect.MAX_RECORD_SIZE);
+    }
+
+    @Test public void RAF_bytes(){
+        File f = Utils.tempDbFile();
+        Volume v = new Volume.RandomAccessFileVolume(f, false);
+        v.ensureAvailable(100);
+        v.putByte(1, (byte)(-120));
+        assertEquals((byte)(-120), v.getByte(1));
+        v.putByte(1, (byte)120);
+        assertEquals((byte)120, v.getByte(1));
+
     }
 
 

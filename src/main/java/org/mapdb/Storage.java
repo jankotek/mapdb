@@ -219,7 +219,7 @@ public abstract class Storage implements Engine {
         DataInput2 in = data.getDataInput(dataPos, dataSize);
         final A value = serializer.deserialize(in,dataSize);
 
-        if(CC.ASSERT &&  in.pos != dataSize +dataPos%Volume.BUF_SIZE)
+        if(CC.ASSERT &&  in.pos != dataSize + (data.isSliced()?dataPos%Volume.BUF_SIZE:0))
             throw new InternalError("Data were not fully read.");
 
         return value;
