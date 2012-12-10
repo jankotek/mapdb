@@ -511,8 +511,11 @@ public class DBMaker {
                 new StorageJournaled(folFac, _asyncWriteEnabled, _appendOnlyEnabled, _deleteFilesAfterClose, _failOnWrongHeader, _readOnly):
                 new StorageDirect(folFac, _asyncWriteEnabled, _appendOnlyEnabled, _deleteFilesAfterClose , _failOnWrongHeader, _readOnly);
 
-        if(_asyncWriteEnabled && !_readOnly)
-            engine = new AsyncWriteEngine(engine, _asyncSerializationEnabled, _asyncFlushDelay, _asyncThreadDaemon);
+        AsyncWriteEngine engineAsync = null;
+        if(_asyncWriteEnabled && !_readOnly){
+            engineAsync = new AsyncWriteEngine(engine, _asyncSerializationEnabled, _asyncFlushDelay, _asyncThreadDaemon);
+            engine = engineAsync;
+        }
 
         if(_checksumEnabled){
             engine = new ByteTransformEngine(engine, Serializer.CRC32_CHECKSUM);
@@ -541,8 +544,12 @@ public class DBMaker {
             engine = new CacheWeakSoftRef(engine,false);
         }
 
-       if(_readOnly)
+        if(_readOnly)
             engine = new ReadOnlyEngine(engine);
+
+        if(engineAsync!=null)
+            engineAsync.setParentEngineReference(engine);
+
 
         final DB db = new DB(engine);
         if(_closeOnJvmShutdown){

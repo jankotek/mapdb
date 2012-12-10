@@ -18,9 +18,11 @@ package org.mapdb;
 
 import java.io.IOError;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -57,6 +59,13 @@ public class AsyncWriteEngine implements Engine {
 
     final protected Object writerNotify = new Object();
 
+    /** Reference to an parent Engine.
+     * If this object is Garbage Collected it means no more
+     * updates and Writer thread can exit
+     * TODO I ran some tests, and parent Engine is not GCed even through there are no refs pointing to it. Investigate!
+     */
+    protected WeakReference<Object> parentEngineWeakRef;
+
     protected Engine engine;
 
     protected final Thread writerThread = new Thread("JDBM writer"){
@@ -65,7 +74,7 @@ public class AsyncWriteEngine implements Engine {
             writerThreadRun();
         }
     };
-    private Exception rethrow;
+    private Throwable rethrow;
 
     @SuppressWarnings("unchecked")
     private void writerThreadRun() {
@@ -73,7 +82,8 @@ public class AsyncWriteEngine implements Engine {
         while(true)try{
             while(( writes.isEmpty() || (flushDelay !=0 && nextFlush>System.currentTimeMillis()))
                     && newRecids.remainingCapacity()==0){
-                if(writes.isEmpty() && shutdownSignal){
+                if(writes.isEmpty() && (shutdownSignal||
+                            (parentEngineWeakRef!=null&& parentEngineWeakRef.get()==null))){
                     //store closed, shutdown this thread
                     shutdownResponse.countDown();
                     return;
@@ -119,15 +129,17 @@ public class AsyncWriteEngine implements Engine {
             }
 
 
-        }catch(Exception e){
-           AsyncWriteEngine.this.rethrow = new RuntimeException("an error in writter thread",e);
+        }catch(Throwable e){
+           AsyncWriteEngine.this.rethrow = e;
+           return;
         }
     }
 
     protected final ArrayBlockingQueue<Long> newRecids = new ArrayBlockingQueue<Long>(128);
 
 
-    public AsyncWriteEngine(Engine engine, boolean asyncSerialization, int flushDelay, boolean asyncThreadDaemon) {
+    public AsyncWriteEngine(Engine engine, boolean asyncSerialization, int flushDelay,
+                            boolean asyncThreadDaemon) {
         this.engine = engine;
         this.asyncSerialization = asyncSerialization;
         this.flushDelay = flushDelay;
@@ -138,9 +150,13 @@ public class AsyncWriteEngine implements Engine {
         writerThread.start();
     }
 
+    public void setParentEngineReference(Engine e){
+        this.parentEngineWeakRef = new WeakReference<Object>(e);
+    }
+
     @Override
     public <A> void recordUpdate(long recid, A value, Serializer<A> serializer) {
-        if(rethrow!=null) throw new RuntimeException(rethrow);
+        checkRethrow();
         Object v;
         if(asyncSerialization){
             v = new SerRec<A>(value, serializer);
@@ -169,9 +185,13 @@ public class AsyncWriteEngine implements Engine {
 
     }
 
+    protected void checkRethrow() {
+        if(rethrow!=null) throw new RuntimeException("an error in MapDB writer thread", rethrow);
+    }
+
     @Override
     public void recordDelete(long recid) {
-        if(rethrow!=null) throw new RuntimeException(rethrow);
+        checkRethrow();
         if(CC.ASSERT&& recid == 0) throw new InternalError();
         try{
             commitLock.readLock().lock();
@@ -187,7 +207,7 @@ public class AsyncWriteEngine implements Engine {
 
     @Override
     public <A> long recordPut(A value, Serializer<A> serializer) {
-        if(rethrow!=null) throw new RuntimeException(rethrow);
+        checkRethrow();
         try{
             Object v;
             if(asyncSerialization){
@@ -200,7 +220,12 @@ public class AsyncWriteEngine implements Engine {
 
             try{
                 commitLock.readLock().lock();
-                final long newRecid = newRecids.take();
+                Long newRecid = null;
+                while(newRecid==null){
+                    checkRethrow();
+                    newRecid = newRecids.poll(1, TimeUnit.SECONDS);
+
+                }
                 writes.put(newRecid, v);
                 synchronized (writerNotify){
                     writerNotify.notify();
@@ -222,7 +247,7 @@ public class AsyncWriteEngine implements Engine {
     @Override
     @SuppressWarnings("unchecked")
     public <A> A recordGet(long recid, Serializer<A> serializer) {
-        if(rethrow!=null) throw new RuntimeException(rethrow);
+        checkRethrow();
 
         Object d = writes.get(recid);
         if(d == DELETED){
