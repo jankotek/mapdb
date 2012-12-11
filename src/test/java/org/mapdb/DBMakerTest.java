@@ -136,6 +136,18 @@ public class DBMakerTest{
     }
 
     @Test
+    public void testCacheLRUEnable() throws Exception {
+        DB db = DBMaker
+                .newMemoryDB()
+                .journalDisable()
+                .cacheLRUEnable()
+                .make();
+        verifyDB(db);
+        assertTrue(db.engine.getClass() == CacheLRU.class);
+
+    }
+
+    @Test
     public void testCacheSize() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()

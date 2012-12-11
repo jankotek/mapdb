@@ -39,6 +39,7 @@ public class DBMaker {
     protected static final byte CACHE_HARD_REF = 2;
     protected static final byte CACHE_WEAK_REF = 3;
     protected static final byte CACHE_SOFT_REF = 4;
+    protected static final byte CACHE_LRU = 5;
 
 
 
@@ -261,6 +262,16 @@ public class DBMaker {
      */
     public DBMaker cacheSoftRefEnable(){
         this._cache = CACHE_SOFT_REF;
+        return this;
+    }
+
+    /**
+     * Enables Least Recently Used cache. It is fixed size cache and it removes less used items to make space.
+     *
+     * @return this builder
+     */
+    public DBMaker cacheLRUEnable(){
+        this._cache = CACHE_LRU;
         return this;
     }
 
@@ -542,6 +553,8 @@ public class DBMaker {
             engine = new CacheWeakSoftRef(engine,true);
         }else if (_cache == CACHE_SOFT_REF){
             engine = new CacheWeakSoftRef(engine,false);
+        }else if (_cache == CACHE_LRU){
+            engine = new CacheLRU(engine, _cacheSize);
         }
 
         if(_readOnly)
