@@ -25,14 +25,11 @@ package org.mapdb;
  *
  * @author Jan Kotek
  */
-public class CacheHashTable implements Engine {
+public class CacheHashTable extends EngineWrapper implements Engine {
 
     private static final int CONCURRENCY_FACTOR = 16;
 
     protected final Object[] locks;
-
-
-    protected Engine engine;
 
     protected HashItem[] items;
     protected final int cacheMaxSize;
@@ -50,7 +47,7 @@ public class CacheHashTable implements Engine {
 
 
     public CacheHashTable(Engine engine, int cacheMaxSize) {
-        this.engine = engine;
+        super(engine);
         this.items = new HashItem[cacheMaxSize];
         this.cacheMaxSize = cacheMaxSize;
         this.locks = new Object[CONCURRENCY_FACTOR];
@@ -114,30 +111,11 @@ public class CacheHashTable implements Engine {
     }
 
     @Override
-    public void commit() {
-        engine.commit();
-    }
-
-    @Override
     public void rollback() {
         for(int i = 0;i<items.length;i++)
             items[i] = null;
         engine.rollback();
     }
 
-    @Override
-    public long serializerRecid() {
-        return engine.serializerRecid();
-    }
-
-    @Override
-    public long nameDirRecid() {
-        return engine.nameDirRecid();
-    }
-
-    @Override
-    public boolean isReadOnly() {
-        return engine.isReadOnly();
-    }
 
 }

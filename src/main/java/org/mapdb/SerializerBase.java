@@ -42,7 +42,7 @@ public class SerializerBase implements Serializer{
     /**
      * Utility class similar to ArrayList, but with fast identity search.
      */
-    static class FastArrayList<K> {
+    final static class FastArrayList<K> {
 
         private int size = 0;
         private K[] elementData = (K[]) new Object[8];

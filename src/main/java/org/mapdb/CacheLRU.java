@@ -6,7 +6,7 @@ package org.mapdb;
  */
 public class CacheLRU extends EngineWrapper {
 
-    protected final LongConcurrentLRUMap cache;
+    protected LongMap cache;
 
     private static final int CONCURRENCY_FACTOR = 16;
 
@@ -14,11 +14,15 @@ public class CacheLRU extends EngineWrapper {
 
 
     public CacheLRU(Engine engine, int cacheSize) {
+        this(engine, new LongConcurrentLRUMap(cacheSize, (int) (cacheSize*0.8)));
+    }
+
+    public CacheLRU(Engine engine, LongMap cache){
         super(engine);
-        cache = new LongConcurrentLRUMap(cacheSize, (int) (cacheSize*0.8));
         for(int i=0;i<CONCURRENCY_FACTOR; i++){
             locks[i] = new Object();
         }
+        this.cache = cache;
     }
 
     @Override
@@ -52,6 +56,15 @@ public class CacheLRU extends EngineWrapper {
             cache.remove(recid);
             super.recordDelete(recid);
         }
+    }
+
+
+    @Override
+    public void close() {
+        if(cache instanceof LongConcurrentLRUMap)
+            ((LongConcurrentLRUMap)cache).destroy();
+        cache = null;
+        super.close();
     }
 
     @Override

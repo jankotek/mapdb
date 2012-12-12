@@ -144,7 +144,7 @@ public class DBMakerTest{
                 .make();
         verifyDB(db);
         assertTrue(db.engine.getClass() == CacheLRU.class);
-
+        db.close();
     }
 
     @Test

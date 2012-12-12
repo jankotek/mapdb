@@ -20,6 +20,7 @@ import java.io.IOError;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
+import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -35,7 +36,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *
  * @author Jan Kotek
  */
-public class AsyncWriteEngine implements Engine {
+public class AsyncWriteEngine extends EngineWrapper implements Engine {
 
 
     protected final ReentrantReadWriteLock grandLock = new ReentrantReadWriteLock();
@@ -65,8 +66,6 @@ public class AsyncWriteEngine implements Engine {
      * TODO I ran some tests, and parent Engine is not GCed even through there are no refs pointing to it. Investigate!
      */
     protected WeakReference<Object> parentEngineWeakRef;
-
-    protected Engine engine;
 
     protected final Thread writerThread = new Thread("JDBM writer"){
         @Override
@@ -119,11 +118,11 @@ public class AsyncWriteEngine implements Engine {
                 nextFlush = System.currentTimeMillis()+ flushDelay;
             }
 
-
             int toFetch = newRecids.remainingCapacity();
             for(int i=0;i<toFetch;i++){
                 newRecids.put(engine.recordPut(null, Serializer.NULL_SERIALIZER));
             }
+
             }finally {
                 grandLock.writeLock().unlock();
             }
@@ -140,7 +139,7 @@ public class AsyncWriteEngine implements Engine {
 
     public AsyncWriteEngine(Engine engine, boolean asyncSerialization, int flushDelay,
                             boolean asyncThreadDaemon) {
-        this.engine = engine;
+        super(engine);
         this.asyncSerialization = asyncSerialization;
         this.flushDelay = flushDelay;
         //TODO cache index file size
@@ -364,20 +363,6 @@ public class AsyncWriteEngine implements Engine {
 
     }
 
-    @Override
-    public long serializerRecid() {
-        return engine.serializerRecid();
-    }
-
-    @Override
-    public long nameDirRecid() {
-        return engine.nameDirRecid();
-    }
-
-    @Override
-    public boolean isReadOnly() {
-        return engine.isReadOnly();
-    }
 
 
 }

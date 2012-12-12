@@ -26,8 +26,10 @@ import java.lang.ref.WeakReference;
  *
  * @author Jan Kotek
  */
-public class CacheWeakSoftRef implements Engine {
+public class CacheWeakSoftRef extends EngineWrapper implements Engine {
 
+
+    protected final Locks.RecidLocks locks = new Locks.LongHashMapRecidLocks();
 
     protected interface CacheItem{
         long getRecid();
@@ -66,7 +68,7 @@ public class CacheWeakSoftRef implements Engine {
 
     protected ReferenceQueue<CacheItem> queue = new ReferenceQueue<CacheItem>();
 
-    protected Thread queueThread = new Thread("JDBM GC collector"){
+    protected Thread queueThread = new Thread("MapDB GC collector"){
         @Override
 		public void run(){
             runRefQueue();
@@ -77,11 +79,10 @@ public class CacheWeakSoftRef implements Engine {
     protected LongConcurrentHashMap<CacheItem> items = new LongConcurrentHashMap<CacheItem>();
 
 
-    protected Engine engine;
     final protected boolean useWeakRef;
 
     public CacheWeakSoftRef(Engine engine, boolean useWeakRef){
-        this.engine = engine;
+        super(engine);
         this.useWeakRef = useWeakRef;
 
         queueThread.setDaemon(true);
@@ -126,27 +127,45 @@ public class CacheWeakSoftRef implements Engine {
             }
         }
 
-        Object value = engine.recordGet(recid, serializer);
-        if(value!=null){
-            items.put(recid, useWeakRef?
+        try{
+            locks.lock(recid);
+            Object value = engine.recordGet(recid, serializer);
+            if(value!=null){
+                items.put(recid, useWeakRef?
                     new CacheWeakItem(value, queue, recid) :
                     new CacheSoftItem(value, queue, recid));
+            }
+            return (A) value;
+        }finally{
+            locks.unlock(recid);
         }
-        return (A) value;
+
     }
 
     @Override
     public <A> void recordUpdate(long recid, A value, Serializer<A> serializer) {
-        items.put(recid, useWeakRef?
+        try{
+            locks.lock(recid);
+
+            items.put(recid, useWeakRef?
                 new CacheWeakItem(value, queue, recid) :
                 new CacheSoftItem(value, queue, recid));
-        engine.recordUpdate(recid, value, serializer);
+            engine.recordUpdate(recid, value, serializer);
+        }finally {
+            locks.unlock(recid);
+        }
     }
 
     @Override
     public void recordDelete(long recid) {
-        items.remove(recid);
-        engine.recordDelete(recid);
+        try{
+            locks.lock(recid);
+            items.remove(recid);
+            engine.recordDelete(recid);
+        }finally {
+            locks.unlock(recid);
+        }
+
     }
 
 
@@ -159,30 +178,11 @@ public class CacheWeakSoftRef implements Engine {
         queueThread = null;
     }
 
-    @Override
-    public void commit() {
-        engine.commit();
-    }
 
     @Override
     public void rollback() {
         items.clear();
         engine.rollback();
-    }
-
-    @Override
-    public long serializerRecid() {
-        return engine.serializerRecid();
-    }
-
-    @Override
-    public long nameDirRecid() {
-        return engine.nameDirRecid();
-    }
-
-    @Override
-    public boolean isReadOnly() {
-        return engine.isReadOnly();
     }
 
 }

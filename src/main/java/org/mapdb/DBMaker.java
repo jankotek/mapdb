@@ -185,7 +185,7 @@ public class DBMaker {
      * <p/>
      * This methods opens DB with `RandomAccessFile` mode.
      * It does not use NIO memory mapped buffers, so is slower but safer and more compatible.
-     * Use this if you are experiencing <b>java.lang.OutOfMemoryError: Map failed** exceptions
+     * Use this if you are experiencing <b>java.lang.OutOfMemoryError: Map failed</b> exceptions
      */
     public static DBMaker newRandomAccessFileDB(File file){
         DBMaker m = new DBMaker();
@@ -197,7 +197,7 @@ public class DBMaker {
 
     /**
      * Transaction journal is enabled by default
-     * You must call <db>DB.commit()</db> to save your changes.
+     * You must call <b>DB.commit()</b> to save your changes.
      * It is possible to disable transaction journal for better write performance
      * In this case all integrity checks are sacrificed for faster speed.
      * <p/>
