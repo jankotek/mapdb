@@ -17,19 +17,24 @@ This is the very basic idea which defines MapDB today. It allows instance cache,
 tight component integration.
 
 * Engine (RecordManager) as abstract component
+
 * Instance Cache as Engine (RecordManager) wrapper
+
 * Index tree as separated class from Engine (RecordManager)
 
 Credit goes to Cees de Groot and Alex Boisvert.
 
 ### JDBM 2 and 3
-JDBM 1 stagnated since 2005, until it was restarted by Jan Kotek in 2009. JDBM 2 added Map interface and
+JDBM stagnated until it was reanimated by Jan Kotek in 2009. JDBM 2 added Map interface and
 basic serialization (`SerializerBase` in MapDB). JDBM 3 brought NIO updates, POJO serialization and many
 performance improvements. MapDB does not contain any code from JDBM 2&3 except serialization.
 
-There were many people who improved JDMB (and indirectly MapDB)
+There were many people who improved JDBM 2 & 3 (and indirectly MapDB)
+
 * Kevin Day sent many ideas and patches, most importantly delta compression in BTree and packed longs.
+
 * Bryan Thompson worked on concurrency branch of JDBM 1.0, and helped to shape JDBM
+
 * Thomas Mueller (H2 DB) for code reading and advices.
 
 
@@ -38,7 +43,9 @@ There were many people who improved JDMB (and indirectly MapDB)
 Serialization is the only code MapDB shares with JDBM 2 & 3. This  code is complex and
 initially had lot of bugs. There were MANY people who submitted bug-fixes and I am sorry for
 not listing them all. Most importantly:
+
 * Nathan Sweet wrote Kryo serialization framework which inspired our POJO serializer. We also took Long Packer utils from Kryo framework.
+
 * Roman Levenstein refactored original simple POJO serializer and greatly improved its performance.
 
 ### Collections
@@ -54,21 +61,23 @@ Credit goes to Jared Levy, George van den Driessche and other Google Collections
 
 * Long(Concurrent)HashMap and some other classes were taken from Apache Harmony and refactored for our needs.
 
-* BTreeMap uses some code  `ConcurrentSkipListMap` taken from Apache Harmony to implement all aspects of `ConcurrentNavigableMap`. Credit goes to  Doug Lea and others.
+* BTreeMap uses some code  from `ConcurrentSkipListMap` taken from Apache Harmony to implement all aspects of `ConcurrentNavigableMap`. Credit goes to  Doug Lea and others.
 
 * Luc Peuvrier wrote some unit tests for `ConcurrerentNavigableMap` interface.
 
 ### Other
 
-* Credit goes to my wife (Pinelopi) for tolerating awful amount of time I spend on this project. Also for proof reading and general advices.
+* Thanks to my wife Pinelopi for tolerating awful amount of time I spend on this project. Also for proof reading and general advices.
 
 * XTea encryption was taken from H2 Database (Thomas Mueller)
 
 * LZF compression was ported to Java by Thomas Mueller. Original C implementation was written by Marc Alexander Lehmann and Oren J. Maurice
 
-### Support
+### Donations
 
-I would love to get more support, however so far only two companies supported this project.
+So far only three companies supported this project.
+
+* Chronon Systems donated [time traveling debugger](http://chrononsystems.com/). It is great help for fixing complex and hard to reproduce concurrent issues.
 
 * EJ-Technologies donated [JProfiler](http://www.ej-technologies.com/products/jprofiler/overview.html).
 It is excellent tool and MapDB would not be possible without it.

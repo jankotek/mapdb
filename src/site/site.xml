@@ -29,22 +29,15 @@
             <script src='js/app.js'></script>
         </head>
 
-        <breadcrumbs />
-        <menu name="Introduction" ref="overview.html" />
-
-        <menu name="Maven 2.0">
+        <menu name="MapDB">
             <item name="Introduction" href="index.html"/>
-            <item name="Download" href="download.html"/>
-            <item name="Release Notes" href="release-notes.html" />
-            <item name="General Information" href="about.html"/>
-            <item name="For Maven 1.x Users" href="maven1.html"/>
-            <item name="Road Map" href="roadmap.html" />
+            <item name="Features" href="features.html" />
+            <item name="Frequently Asked Questions" href="faq.html"/>
+            <item name="Future Ideas" href="future-ideas.html"/>
+            <item name="Credits" href="credits.html" />
         </menu>
 
-
         <menu ref="reports"/>
-
-
     </body>
 
 

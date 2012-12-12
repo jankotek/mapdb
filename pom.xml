@@ -51,7 +51,7 @@
         <dependency>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-stdlib</artifactId>
-                <version>0.4.68</version>
+                <version>0.4.297</version>
                 <scope>test</scope>
         </dependency>
 
@@ -80,7 +80,7 @@
             <plugin>
                 <artifactId>kotlin-maven-plugin</artifactId>
                 <groupId>org.jetbrains.kotlin</groupId>
-                <version>0.4.68</version>
+                <version>0.4.297</version>
 
                 <executions>
                     <execution>
@@ -142,18 +142,15 @@
                 <version>3.2</version>
                 <dependencies>
                     <dependency>
-
                         <groupId>org.kohsuke</groupId>
-
                         <artifactId>doxia-module-markdown</artifactId>
-
                         <version>1.0</version>
-
                     </dependency>
                 </dependencies>
                 <configuration>
                     <inputEncoding>UTF-8</inputEncoding>
                     <outputEncoding>UTF-8</outputEncoding>
+                    <skipDeploy>true</skipDeploy>
                 </configuration>
             </plugin>
 
@@ -174,13 +171,6 @@
                         </configuration>
                     </execution>
                 </executions>
-            </plugin>
-
-            <plugin>
-                <artifactId>maven-site-plugin</artifactId>
-                <configuration>
-                    <skipDeploy>true</skipDeploy>
-                </configuration>
             </plugin>
 
             <!-- uncomment to enable proguard (strip down jar)-->

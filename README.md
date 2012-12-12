@@ -1,60 +1,20 @@
 MapDB
 ===============
-MapDB provides concurrent TreeMap and HashMap backed by disk storage. It is a fast,
-scalable and easy to use embedded Java database. It is tiny (160KB jar),
-yet packed with features such as transactions, space efficient serialization,
-instance cache and transparent compression/encryption.
-It also has outstanding performance rivaled only by C++ embedded db engines.
+
+MapDB provides concurrent TreeMap and HashMap backed by disk storage or off-heap-memory.
+It is a fast, scalable and easy to use embedded Java database engine. It is tiny (160KB jar),
+yet packed with features such as transactions, space efficient serialization, instance cache
+and transparent compression/encryption. It also has outstanding performance rivaled only by
+native embedded db engines.
 
 MapDB is free as speech and free as beer under [Apache License 2.0](https://github.com/jankotek/MapDB/blob/master/doc/license.txt).
-However author would appreciate
-[small donation](http://www.amazon.co.uk/gp/registry/registry.html?ie=UTF8&id=2CIB8H24EE6R3&type=wishlist),
-it would improve this project and ensure it stays free in the future.
-Right now we urgently need [decent SSD drive](http://www.amazon.co.uk/Intel-Series-240GB-Solid-State/dp/B0072R286S/ref=wl_it_dp_v_S_nC?ie=UTF8&colid=2CIB8H24EE6R3&coliid=I17CIOMF6C7R4M)
-to speedup MapDB testing.
-
-News
-=====
-3/11/2012 - JDBM4 project was [renamed to MapDB](http://kotek.net/blog/JDBM4_renamed_to_MapDB)
-
-Main features:
-==============
-
-* Drop-in replacement for ConcurrentTreeMap and ConcurrentHashMap.
-
-* Outstanding performance comparable to low-level native DBs (TokyoCabinet, LevelDB)
-
-* Scales well on multi-core CPUs (fine grained locks, concurrent trees)
-
-* Very easy configuration using builder class
-
-* Space-efficient transparent serialization. 
-
-* Instance cache to minimise deserialization overhead
-
-* Various write modes (transactional journal, direct, async or append)
-to match various requirements.
-
-* ACID transactions (only one-global transaction at a time; MapDB does not have concurrent transactions).
-
-* Very flexible; works equally well on an Android phone and
-a supercomputer with multi-terabyte storage.
-
-* Modular & extensible design; most features (compression, cache,
-async writes) are just `Engine` wrappers. Introducing
-new functionality (such as network replication) is very easy.
-
-* Highly embeddable; 130 KB no-deps jar (50KB packed), pure java,
-low memory & CPU overhead.
-
-* Transparent encryption, compression and other stuff you may expect
-from a complete database.
+More information can be found on [MapDB website](http://www.mapdb.org)
 
 Intro
 ======
 MapDB uses Maven build system. There is snapshot repository updated every a few days.
 To use it add code bellow to your `pom.xml`. You may also download binaries
-[directly](https://oss.sonatype.org/content/repositories/snapshots/org/mapdb/MapDB/0.9-SNAPSHOT/).
+[directly](https://oss.sonatype.org/content/repositories/snapshots/org/mapdb/MapDB/).
 
     <repositories>
         <repository>
@@ -72,107 +32,98 @@ To use it add code bellow to your `pom.xml`. You may also download binaries
     </dependencies>
 
 
-Quick example:
+Hello world; it opens TreeMap backed by file in temp directory, file is discarded after JVM exit:
 
-        import org.mapdb.*;
+    import org.mapdb.*;
+    ConcurrentSortedMap treeMap = DBMaker.newTempTreeMap()
+
+    //and now use disk based Map as any other Map
+    treeMap.put(111,"some value")
 
 
-        //Configure and open database using builder pattern.
-        //All options are available with code auto-completion.
-        DB db = DBMaker.newFileDB(new File("testdb"))
-                .closeOnJvmShutdown()
-                .encryptionEnable("password")
-                .make();
+More advanced example with configuration and journaled transaction.
+    import org.mapdb.*;
 
-        //open an collection, TreeMap has better performance then HashMap
-        ConcurrentNavigableMap<Integer,String> map = db.getTreeMap("collectionName");
+    //Configure and open database using builder pattern.
+    //All options are available with code auto-completion.
+    DB db = DBMaker.newFileDB(new File("testdb"))
+        .closeOnJvmShutdown()
+        .encryptionEnable("password")
+        .make();
 
-        map.put(1,"one");
-        map.put(2,"two");
-        //map.keySet() is now [1,2] even before commit
+    //open existing an collection (or create new)
+    ConcurrentNavigableMap<Integer,String> map = db.getTreeMap("collectionName");
 
-        db.commit();  //persist changes into disk
+    map.put(1,"one");
+    map.put(2,"two");
+    //map.keySet() is now [1,2]
 
-        map.put(3,"three");
-        //map.keySet() is now [1,2,3]
-        db.rollback(); //revert recent changes
-        //map.keySet() is now [1,2]
+    db.commit();  //persist changes into disk
 
-        db.close();
+    map.put(3,"three");
+    //map.keySet() is now [1,2,3]
+    db.rollback(); //revert recent changes
+    //map.keySet() is now [1,2]
+
+    db.close();
+
+MapDB has very power-full API.
+But for 99% cases you need just two classes:
+
+[DBMaker](http://www.mapdb.org/apidocs/org/mapdb/DBMaker.html) is builder style factory class for configuring and opening
+an database. It has handfull of static 'newXXX' method for opening database in particular storage mode.
+
+[DB](http://www.mapdb.org/apidocs/org/mapdb/DB.html) represents and storage. It has methods for accessing Maps and
+other collections. It also controls DB lifecycle with commit, rollback and close methods.
+
+
+Development
+===========
+MapDB uses Kotlin programming language for some performance unit tests.
+Simple modifications can be developed in any IDE just fine,
+but for best experience you need Intellij Idea with Kotlin plugin.
+Please follow this page [to setup Kotlin IDE](http://confluence.jetbrains.net/display/Kotlin/Getting+Started).
+
+Pull requests are welcomed. We are relaxed about documentation, examples and unit tests.
+Production code should fit MapDB style; most importantly to be compact and with unit tests.
 
 What you should know
 ====================
-* Transactions can be disabled, this will speedup writes. However without transactions
-store gets corrupted easily without proper close.
+* Transaction journal can be disabled, this will speedup writes. However without transactions
+store gets corrupted easily when not closed correctly.
 
-* MapDB relies on mapped memory heavily. NIO implementation in JDK6 seems to be failing randomly under heavy load.
-MapDB works best with JDK7
+* MapDB assumes your data-model is immutable. Mutable keys or values will work, but may lead to unexpected results.
+
+* MapDB relies on mapped memory heavily. And best NIO implementation is usually in latest JDK7.
+Sometimes upgrading JVM miraculously fixes a problem.
 
 * There are two collections TreeMap (B+Tree) and HashMap (HTree). TreeMap is
 optimized for small keys, HashMap works best with larger key.
 
-* MapDB does not run defrag on background. You need to call `DB.defrag()` from time to time.
+* MapDB does not run defrag on background. You need to call `DB.defrag()` from time to time. (TODO defrag not yet implemented)
 
 * MapDB uses unchecked exceptions. All `IOException` are wrapped into unchecked `IOError`.
 
-* Maximal serialized record size is 64KB. This will be fixed in future.
-
-Troubleshooting
-===============
-
-MapDB uses chained exception so user does not have to write try catch blocks.
-IOException is usually wrapped in IOError which is unchecked. So please always check root exception in chain.
-
-**java.lang.OutOfMemoryError: Map failed** -
-MapDB can not map file into memory. Make sure you are using latest JVM (7+).
-Common problem on Windows (use Linux).
-
-**InternalError, Error, AssertionFailedError, IllegalArgumentException, StackOverflowError and so on** -
-There was an problem in MapDB. It is possible that file store was corrupted thanks to an internal error or disk failure.
-Disabling cache  `DBMaker.cacheDisable()` or async writes `DBMaker.asyncWriteDisable()` may workaround the problem.
-Please [create new bug report](https://github.com/jankotek/MapDB/issues/new) with code to reproduce this issue.
-
-**OutOfMemoryError: GC overhead limit exceeded** -
-Your app is creating new object instances faster then GC can collect them.
-When using Soft/Weak cache use Hard cache to reduce GC overhead (is auto cleared when free memory is low).
-There is JVM parameter to disable this assertion.
-
-**Can not delete db files on Windows** -
-Common problem with memory mapped files on Windows (use Linux). Make sure DB is closed correctly. Also use newest JVM.
-
-**Computer becomes very slow during DB writes** -
-MapDB uses all available CPU to speedup writes. Try to insert Thread.sleep(1) into your code, or lower thread priority.
-
-**File locking, OverlappingFileLockException, some IOError** -
-You are trying to open file already opened by another MapDB. Make sure that you `DB.close()` store correctly.
-Some operating systems (Windows) may leave file lock even after JVM is terminated.
-You may also try to open database in read-only mode.
-
-**Strange behavior in collections** -
-Maps and Sets in MapDB should be drop-in replacement for `java.util` collections. So any significant difference is  a bug.
-Please [create new bug report](https://github.com/jankotek/MapDB/issues/new) with code to reproduce issue.
-
-**Hard to replicate issues**
-If you ran into hard to replicate problem (race condition, sneak data corruption),
-I would strongly suggest to record JVM execution with [Chronon](http://www.chrononsystems.com/learn-more/products-overview) 
-and submit the record together with a bug report. Thanks to Chronon we can replicate and fix issues at light speed.
 
 Support
 =======
-MapDB has three places where you may find a help. For anything with stack-trace you should create
-[new bug report](https://github.com/jankotek/MapDB/issues/new).
-Small feature request goes into bug tracker.
-Use it also for trivial questions (how to open collection?) because incomplete documentation is a bug.
+For anything with stack-trace you should create [new bug report](https://github.com/jankotek/MapDB/issues/new).
+Small feature request should also go into bug tracker. Please always attach code to illustrate your problem.
+Push requests with failing unit test case would be appreciated.
+
+For specific support questions such as 'how do I open...' use [StackOverflow](http://stackoverflow.com/) with 'MapDB' tag.
+We monitor these questions.
 
 There is [mail-group](mailto:mapdb@googlegroups.com) with [archive](http://groups.google.com/group/mapdb).
-You should use it for more general discussion (such as "can MapDB support transactional software memory?").
+For general discussion and abstract questions (such as "can MapDB support transactional software memory?").
 Also questions about performance and data-modeling should go into mail-group.
 
 Last option is to [contact me directly](mailto:jan at kotek dot net).
 I prefer public bug tracker and mail-group so others can find answers as well.
 Unless you specify your question as confidential, I may forward it to public mail-group.
 
-MapDB is a hobby project and time I can spend on it is limited.
+MapDB is a hobby project and my time is limited.
 Please always attach code to illustrate/reproduce your problem, so I can fix it efficiently.
-You can also [buy me a gift](http://www.amazon.co.uk/gp/registry/registry.html?ie=UTF8&id=2CIB8H24EE6R3&type=wishlist)
-to get your problem solved faster.
+If you have some exotic configuration, I may need your assistance with remote access and bug reproduction.
+For hard to reproduce problems I would strongly suggest to record JVM execution with
+[Chronon](http://www.chrononsystems.com/learn-more/products-overview) and submit the record together with a bug report.
