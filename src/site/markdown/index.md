@@ -37,9 +37,8 @@ import org.mapdb.*;
 
 //Configure and open database using builder pattern.
 DB db = DBMaker
-    .newFileDB(new File("testdb"))  // in-memory store has 'newMemoryDB()' method
-    .closeOnJvmShutdown()           //set a config option
-    //journalDisable()              //this disables transactions and makes DB faster
+    .newFileDB(new File("testdb"))
+    .closeOnJvmShutdown()
     .make();
 
 //create new collection (or open existing)
