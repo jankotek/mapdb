@@ -66,10 +66,47 @@ function buzz() {
   });
 }
 
+function news() {
+  var $news = $("#news");
+
+  if ($news.length == 0) return;
+
+  var $ul = $news.find("ul");
+  var count = 0;
+  var limit = parseInt($news.attr("data-limit"));
+  var page = $news.attr("data-page") || 1;
+  var users = {};
+
+  $.getJSON("http://search.twitter.com/search?q=from%3Amapdb+-RT&lang=en&rpp=30&format=json&page=" + page + "&callback=?", function(response) {
+    $.each(response.results, function() {
+
+      // Stop when reaching the hardcoded limit.
+      if (count++ == limit) { return false; }
+
+      // Remember this user
+      users[this.from_user] = true;
+
+      $ul.append(
+        "<li>" +
+        massageTweet(this.text) +
+        "</li>"
+      );
+    });
+  });
+
+  $news.find("> a.paging").click(function() {
+    var $news = $(this).parent();
+    $news.attr("data-page", parseInt($news.attr("data-page")) + 1);
+    news();
+    return false;
+  });
+}
+
 
 
 
 $(document).ready(function() {
+  news();
   buzz();
 })
 

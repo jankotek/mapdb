@@ -5,6 +5,13 @@
 #buzz li { margin: 0 0 8px 0; padding-left: 34px; position: relative; min-height: 26px; list-style-type: none; font-size: 11px;}
 #buzz li a:first-child { -webkit-box-shadow: #bbbbbb, 0px, 0px, 3px; -moz-box-shadow: #bbbbbb, 0px, 0px, 3px; box-shadow: #bbbbbb, 0px, 0px, 3px; display: block; height: 26px; left: 0; position: absolute; top: 3px; width: 26px; }
 #buzz li a:first-child img { height: 26px; width: 26px; }
+#news ul { margin: 7px 0; }
+#news li { margin: 0 0 8px 0; padding-left: 34px; position: relative; min-height: 26px; list-style-type: none; }
+#news li a:first-child { -webkit-box-shadow: #bbbbbb, 0px, 0px, 3px; -moz-box-shadow: #bbbbbb, 0px, 0px, 3px; box-shadow: #bbbbbb, 0px, 0px, 3px; display: block; height: 26px; left: 0; position: absolute; top: 3px; width: 26px; }
+#news li a:first-child img { height: 26px; width: 26px; }
 
+.aright {float:right; padding-right: 40px;}
 
 .navbar-fixed-top {position:absolute !important;}
+
+.brand{padding:0px 20px !important;};
