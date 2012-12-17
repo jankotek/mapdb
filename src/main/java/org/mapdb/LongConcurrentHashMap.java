@@ -802,7 +802,7 @@ public class LongConcurrentHashMap< V>
     }
 
     /**
-     * {@inheritDoc}
+     * 
      *
      * @return the previous value associated with the specified key,
      *         or <tt>null</tt> if there was no mapping for the key
@@ -832,7 +832,7 @@ public class LongConcurrentHashMap< V>
     }
 
     /**
-     * {@inheritDoc}
+     * 
      *
      * @throws NullPointerException if the specified key is null
      */
@@ -842,7 +842,7 @@ public class LongConcurrentHashMap< V>
     }
 
     /**
-     * {@inheritDoc}
+     * 
      *
      * @throws NullPointerException if any of the arguments are null
      */
@@ -854,7 +854,7 @@ public class LongConcurrentHashMap< V>
     }
 
     /**
-     * {@inheritDoc}
+     * 
      *
      * @return the previous value associated with the specified key,
      *         or <tt>null</tt> if there was no mapping for the key

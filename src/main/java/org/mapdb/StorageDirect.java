@@ -23,7 +23,7 @@ import java.io.IOException;
  * Storage Engine which saves record directly into file.
  * Is used when transaction journal is disabled.
  *
- * @author
+ * @author Jan Kotek
  */
 public class StorageDirect extends Storage implements Engine {
 
