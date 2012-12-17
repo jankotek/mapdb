@@ -15,3 +15,30 @@
 .navbar-fixed-top {position:absolute !important;}
 
 .brand{padding:0px 20px !important;};
+
+
+h1 {
+    font-weight: bold;
+    font-size: 25px;
+}
+
+
+h2 {
+    font-size: 19px;
+    margin: 0.8em 0 0.5em 0;
+    border-bottom-color: #999;
+    border-bottom-style: solid;
+    border-bottom-width: 1px;
+}
+
+h3 {
+    font-size: 16px;
+    margin: 0.8em 0 0.5em 0;
+    border-bottom-color: #444;
+    border-bottom-style: solid;
+    border-bottom-width: 1px;
+}
+
+h4 {
+    font-size: 13px;
+}
