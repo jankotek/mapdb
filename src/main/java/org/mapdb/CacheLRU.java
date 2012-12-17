@@ -8,9 +8,7 @@ public class CacheLRU extends EngineWrapper {
 
     protected LongMap cache;
 
-    private static final int CONCURRENCY_FACTOR = 16;
-
-    protected Object[] locks = new Object[CONCURRENCY_FACTOR];
+    protected final Locks.RecidLocks locks = new Locks.SegmentedRecidLocks(16);
 
 
     public CacheLRU(Engine engine, int cacheSize) {
@@ -19,9 +17,6 @@ public class CacheLRU extends EngineWrapper {
 
     public CacheLRU(Engine engine, LongMap cache){
         super(engine);
-        for(int i=0;i<CONCURRENCY_FACTOR; i++){
-            locks[i] = new Object();
-        }
         this.cache = cache;
     }
 
@@ -35,26 +30,35 @@ public class CacheLRU extends EngineWrapper {
     public <A> A recordGet(long recid, Serializer<A> serializer) {
         Object ret = cache.get(recid);
         if(ret!=null) return (A) ret;
-        synchronized (locks[((int) (recid % CONCURRENCY_FACTOR))]){
+        try{
+            locks.lock(recid);
             ret = super.recordGet(recid, serializer);
             if(ret!=null) cache.put(recid, ret);
             return (A) ret;
+        }finally {
+            locks.unlock(recid);
         }
     }
 
     @Override
     public <A> void recordUpdate(long recid, A value, Serializer<A> serializer) {
-        synchronized (locks[((int) (recid % CONCURRENCY_FACTOR))]){
+        try{
+            locks.lock(recid);
             cache.put(recid, value);
             super.recordUpdate(recid, value, serializer);
+        }finally {
+            locks.unlock(recid);
         }
     }
 
     @Override
     public void recordDelete(long recid) {
-        synchronized (locks[((int) (recid % CONCURRENCY_FACTOR))]){
+        try{
+            locks.lock(recid);
             cache.remove(recid);
             super.recordDelete(recid);
+        }finally {
+            locks.unlock(recid);
         }
     }
 

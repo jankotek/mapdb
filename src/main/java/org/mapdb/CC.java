@@ -41,15 +41,12 @@ public interface CC {
     boolean TRACE = false;
 
     /**
-     * JDBM has some long running acceptance tests. For daily development it makes sense to skip those.
+     * MapDB has some long running acceptance tests.
+     * For daily development it makes sense to skip those.
      * This flag controls whatever all tests are run.
      */
     boolean FULL_TEST = false;
 
-    /**
-     * Run micro benchmarks which are part of unit tests
-     */
-    boolean BENCH_TEST = true;
 
 
     /**

@@ -260,5 +260,9 @@ public class EngineWrapper implements Engine{
         }
     }
 
+    public Engine getWrappedEngine(){
+        return engine;
+    }
+
 
 }

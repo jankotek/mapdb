@@ -16,7 +16,7 @@
 
 package org.mapdb;
 
-import java.util.Arrays;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Contains various concurrent locking utilities
@@ -24,6 +24,7 @@ import java.util.Arrays;
 public final class Locks {
 
     private Locks(){}
+
 
 
     public interface RecidLocks{
@@ -73,6 +74,38 @@ public final class Locks {
             }
             if(CC.LOG_LOCKS)
                 Utils.LOG.finest("LOCK R:"+recid+" T:"+Thread.currentThread().getId());
+        }
+    }
+
+    public static class SegmentedRecidLocks implements RecidLocks{
+
+        protected final ReentrantLock[] locks;
+
+        protected final int numSegments;
+
+        public SegmentedRecidLocks(int numSegments) {
+            this.numSegments = numSegments;
+            locks = new ReentrantLock[numSegments];
+            for(int i=0;i<numSegments;i++)
+                locks[i] = new ReentrantLock();
+        }
+
+        @Override
+        public void unlock(long recid) {
+            locks[((int) (recid % numSegments))].unlock();
+        }
+
+        @Override
+        public void assertNoLocks() {
+            for(ReentrantLock l:locks){
+                if(l.isLocked())
+                    throw new InternalError("Some node is still locked by current thread");
+            }
+        }
+
+        @Override
+        public void lock(long recid) {
+            locks[((int) (recid % numSegments))].lock();
         }
     }
 

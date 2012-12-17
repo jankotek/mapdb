@@ -22,13 +22,16 @@ package org.mapdb;
  * Items are randomly removed and replaced by hash collisions.
  * <p/>
  * This is simple, concurrent, small-overhead, random cache.
+ * <p/>
+ * This uses `synchronized unlike `CacheHashTable` which uses `ReentrantLock`
  *
  * @author Jan Kotek
  */
-public class CacheHashTable extends EngineWrapper implements Engine {
+public class CacheHashTableSynchronized extends EngineWrapper implements Engine {
 
+    private static final int CONCURRENCY_FACTOR = 16;
 
-    protected final Locks.RecidLocks locks = new Locks.SegmentedRecidLocks(16);
+    protected final Object[] locks;
 
     protected HashItem[] items;
     protected final int cacheMaxSize;
@@ -45,10 +48,14 @@ public class CacheHashTable extends EngineWrapper implements Engine {
 
 
 
-    public CacheHashTable(Engine engine, int cacheMaxSize) {
+    public CacheHashTableSynchronized(Engine engine, int cacheMaxSize) {
         super(engine);
         this.items = new HashItem[cacheMaxSize];
         this.cacheMaxSize = cacheMaxSize;
+        this.locks = new Object[CONCURRENCY_FACTOR];
+        for(int i=0;i<locks.length;i++)
+            locks[i] = new Object();
+
     }
 
     @Override
@@ -67,44 +74,34 @@ public class CacheHashTable extends EngineWrapper implements Engine {
         if(item!=null && recid == item.key)
             return (A) item.val;
 
-        try{
-            locks.lock(recid);
+        synchronized (locks[pos % CONCURRENCY_FACTOR]){
             //not in cache, fetch and add
             final A value = engine.recordGet(recid, serializer);
             if(value!=null)
                 items[pos] = new HashItem(recid, value);
             return value;
-        }finally{
-            locks.unlock(recid);
         }
     }
 
     @Override
     public <A> void recordUpdate(long recid, A value, Serializer<A> serializer) {
         final int pos = Math.abs(Utils.longHash(recid))%cacheMaxSize;
-        try{
-            locks.lock(recid);
+        synchronized (locks[pos % CONCURRENCY_FACTOR]){
             items[pos] = new HashItem(recid, value);
             engine.recordUpdate(recid, value, serializer);
-        }finally {
-            locks.unlock(recid);
         }
     }
 
     @Override
     public void recordDelete(long recid) {
         final int pos = Math.abs(Utils.longHash(recid))%cacheMaxSize;
-        try{
-            locks.lock(recid);
+        synchronized (locks[pos % CONCURRENCY_FACTOR]){
             engine.recordDelete(recid);
             HashItem item = items[pos];
             if(item!=null && recid == item.key)
-            items[pos] = null;
-        }finally {
-            locks.unlock(recid);
+                items[pos] = null;
         }
-
-}
+    }
 
 
     @Override

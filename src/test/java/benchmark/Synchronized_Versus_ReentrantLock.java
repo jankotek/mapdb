@@ -24,7 +24,7 @@ public class Synchronized_Versus_ReentrantLock extends AbstractBenchmark{
 
     @Test
     public void test_synchronized() throws InterruptedException {
-        assumeTrue(CC.BENCH_TEST);
+        assumeTrue(CC.FULL_TEST);
         counter = 0;
         final Object lock = new Object();
         ExecutorService exec = Executors.newFixedThreadPool(threadNum);
@@ -49,7 +49,7 @@ public class Synchronized_Versus_ReentrantLock extends AbstractBenchmark{
 
     @Test
     public void test_reentrant_lock() throws InterruptedException {
-        assumeTrue(CC.BENCH_TEST);
+        assumeTrue(CC.FULL_TEST);
         counter = 0;
         final ReentrantLock lock = new ReentrantLock();
         ExecutorService exec = Executors.newFixedThreadPool(threadNum);
