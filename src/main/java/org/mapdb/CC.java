@@ -46,6 +46,11 @@ public interface CC {
      */
     boolean FULL_TEST = false;
 
+    /**
+     * Run micro benchmarks which are part of unit tests
+     */
+    boolean BENCH_TEST = true;
+
 
     /**
      * Log all binary writes into log.
@@ -67,4 +72,5 @@ public interface CC {
      * on request.
      */
     int MAX_BTREE_INLINE_VALUE_SIZE = 32;
+
 }

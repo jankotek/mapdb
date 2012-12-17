@@ -40,12 +40,18 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.8.2</version>
+            <version>4.11</version>
             <type>jar</type>
             <scope>test</scope>
             <optional>false</optional>
         </dependency>
 
+        <dependency>
+            <groupId>com.carrotsearch</groupId>
+            <artifactId>junit-benchmarks</artifactId>
+            <version>0.4.0</version>
+            <scope>test</scope>
+        </dependency>
 
         <!-- kotlin standard library -->
         <dependency>
