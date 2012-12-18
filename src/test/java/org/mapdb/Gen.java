@@ -61,7 +61,7 @@ public class Gen<T> implements TestRule {
                 try {
                     test.evaluate();
                 } catch (Throwable t) {
-                    errorCollector.addError(new AssertionError("For value: "
+                    errorCollector.addError(new Error("For value: "
                             + v, t));
                 }
             }

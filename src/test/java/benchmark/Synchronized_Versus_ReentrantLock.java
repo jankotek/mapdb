@@ -2,7 +2,6 @@ package benchmark;
 
 
 import com.carrotsearch.junitbenchmarks.AbstractBenchmark;
-import com.sun.servicetag.SystemEnvironment;
 import org.junit.Test;
 import org.mapdb.CC;
 
