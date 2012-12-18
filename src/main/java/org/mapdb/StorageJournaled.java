@@ -20,6 +20,8 @@ import sun.util.resources.TimeZoneNames_zh_CN;
 
 import java.io.IOError;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
 
 /**
  * StorageDirect which provides transaction and journal.
@@ -37,7 +39,7 @@ public class StorageJournaled extends Storage implements Engine {
     protected static final long WRITE_SKIP_BUFFER = 444L <<48;
     /** last instruction in log file */
     protected static final long WRITE_SEAL = 111L <<48;
-    /** added to offset 8 into log file, indicates that it was sucesfully written*/
+    /** added to offset 8 into log file, indicates that write was successful*/
     protected static final long LOG_SEAL = 4566556446554645L;
     public static final String TRANS_LOG_FILE_EXT = ".t";
 
@@ -49,7 +51,7 @@ public class StorageJournaled extends Storage implements Engine {
 
     protected long indexSize;
     protected long physSize;
-    protected final LongMap<Long> recordLogRefs = new LongConcurrentHashMap<Long>();
+    protected final LongMap<long[]> recordLogRefs = new LongConcurrentHashMap<long[]>();
     protected final LongMap<Long> recordIndexVals = new LongConcurrentHashMap<Long>();
     protected final LongMap<long[]> longStackPages = new LongConcurrentHashMap<long[]>();
 
@@ -104,7 +106,7 @@ public class StorageJournaled extends Storage implements Engine {
         try{
             DataOutput2 out = new DataOutput2();
             serializer.serialize(out,value);
-            if(CC.ASSERT && out.pos>1<<16) throw new InternalError("Record bigger then 64KB");
+            //TODO check record size and log warning if too big
 
             try{
                 writeLock_lock();
@@ -117,16 +119,21 @@ public class StorageJournaled extends Storage implements Engine {
                     indexSize+=8;
                 }
 
-                //get physical record
-                // first 16 bites is record size, remaining 48 bytes is record offset in phys file
-                final long indexValue = out.pos!=0?
+                if(out.pos<MAX_RECORD_SIZE){
+                    //get physical record
+                    // first 16 bites is record size, remaining 48 bytes is record offset in phys file
+                    final long indexValue = out.pos!=0?
                         freePhysRecTake(out.pos):0L;
-                writeIndexValToTransLog(recid, indexValue);
+                    writeIndexValToTransLog(recid, indexValue);
 
-                //write new phys data into trans log
-                writeOutToTransLog(out, recid, indexValue);
+                    //write new phys data into trans log
+                    writeOutToTransLog(out, recid, indexValue);
+                    checkBufferRounding();
+                }else{
+                    putLargeLinkedRecord(out, recid);
+                }
 
-                checkBufferRounding();
+
 
                 return recid;
             }finally {
@@ -137,10 +144,53 @@ public class StorageJournaled extends Storage implements Engine {
         }
     }
 
+    private void putLargeLinkedRecord(DataOutput2 out, long recid) throws IOException {
+        openLogIfNeeded();
+        //large size, needs to link multiple records together
+        //start splitting from end, so we can build up linked list
+        final int chunkSize = MAX_RECORD_SIZE-8;
+        int lastArrayPos = out.pos;
+        int arrayPos = out.pos - out.pos%chunkSize;
+        long lastChunkPhysId = 0;
+        ArrayList<Long> journalRefs = new ArrayList<Long>();
+        while(arrayPos>=0){
+            final int currentChunkSize = lastArrayPos-arrayPos;
+            byte[] b = new byte[currentChunkSize+8]; //TODO reuse byte[]
+            //append reference to prev physId
+            ByteBuffer.wrap(b).putLong(0, lastChunkPhysId);
+            //copy chunk
+            System.arraycopy(out.buf, arrayPos, b, 8, currentChunkSize);
+            //and write current chunk
+            lastChunkPhysId = freePhysRecTake(currentChunkSize+8);
+            //phys.putData(lastChunkPhysId&PHYS_OFFSET_MASK, b, b.length);
+
+            transLog.ensureAvailable(transLogOffset+10+currentChunkSize+8);
+            transLog.putLong(transLogOffset, WRITE_PHYS_ARRAY|(lastChunkPhysId&PHYS_OFFSET_MASK));
+            transLogOffset+=8;
+            transLog.putUnsignedShort(transLogOffset, currentChunkSize+8);
+            transLogOffset+=2;
+            final Long transLogReference = (((long)currentChunkSize)<<48)|(transLogOffset+8);
+            journalRefs.add(transLogReference);
+            transLog.putData(transLogOffset,b, b.length);
+            transLogOffset+=out.pos;
+
+            checkBufferRounding();
+
+            lastArrayPos = arrayPos;
+            arrayPos-=chunkSize;
+        }
+        writeIndexValToTransLog(recid, lastChunkPhysId);
+        long[] journalRefs2 = new long[journalRefs.size()];
+        for(int i=0;i<journalRefs2.length;i++){
+            journalRefs2[i] = journalRefs.get(i);
+        }
+        recordLogRefs.put(recid, journalRefs2);
+    }
+
     protected void checkBufferRounding() throws IOException {
         if(transLogOffset%Volume.BUF_SIZE > Volume.BUF_SIZE - MAX_RECORD_SIZE*2){
             //position is to close to end of ByteBuffer (1GB)
-            //so start writting into new buffer
+            //so start writing into new buffer
             transLog.ensureAvailable(transLogOffset+8);
             transLog.putLong(transLogOffset,WRITE_SKIP_BUFFER);
             transLogOffset += Volume.BUF_SIZE-transLogOffset%Volume.BUF_SIZE;
@@ -165,8 +215,8 @@ public class StorageJournaled extends Storage implements Engine {
         transLogOffset+=8;
         transLog.putUnsignedShort(transLogOffset, out.pos);
         transLogOffset+=2;
-        final Long transLogReference = (((long)out.pos)<<48)|transLogOffset;
-        recordLogRefs.put(recid, transLogReference); //store reference to transaction log, so we can load data quickly
+        final long transLogReference = (((long)out.pos)<<48)|transLogOffset;
+        recordLogRefs.put(recid, new long[]{transLogReference}); //store reference to transaction log, so we can load data quickly
         transLog.putData(transLogOffset,out.buf, out.pos);
         transLogOffset+=out.pos;
     }
@@ -177,12 +227,36 @@ public class StorageJournaled extends Storage implements Engine {
         try{
             readLock_lock();
 
-            Long indexVal = recordLogRefs.get(recid);
-            if(indexVal!=null){
-                if(indexVal.longValue() == Long.MIN_VALUE)
-                    return null; //was deleted
-                //record is in transaction log
-                return recordGet2(indexVal, transLog, serializer);
+            long[] indexVals = recordLogRefs.get(recid);
+            if(indexVals!=null){
+                if(indexVals.length==1){
+                    //single record
+                    if(indexVals[0] == Long.MIN_VALUE)
+                        return null; //was deleted
+                    //record is in transaction log
+                    return recordGet2(indexVals[0], transLog, serializer);
+                }else{
+                    //read linked record from journal
+                    //first calculate total size
+                    int size = 0;
+                    for(long physId:indexVals) size+= physId>>>48;
+                    byte[] b = new byte[size];
+                    //now load it in chunks
+                    int pos = 0;
+                    for(long physId:indexVals){
+                        int curChunkSize = (int) (physId>>>48);
+                        long offset = physId&PHYS_OFFSET_MASK;
+                        DataInput2 in = transLog.getDataInput(offset, curChunkSize);
+                        in.readFully(b,pos,curChunkSize);
+                        pos+=curChunkSize;
+                    }
+                    if(CC.ASSERT && size!=pos) throw new InternalError();
+                    //now deserialize
+                    DataInput2 in = new DataInput2(b);
+                    A ret = serializer.deserialize(in, size);
+                    if(CC.ASSERT && in.pos!=size) throw new InternalError("Data were not fully read");
+                    return ret;
+                }
             }else{
                 //not in transaction log, read from file
                 final long indexValue = index.getLong(recid*8) ;
@@ -201,36 +275,41 @@ public class StorageJournaled extends Storage implements Engine {
             DataOutput2 out = new DataOutput2();
             serializer.serialize(out,value);
 
-            if(CC.ASSERT && out.pos>1<<16) throw new InternalError("Record bigger then 64KB");
+            //TODO log warning here if record is too big
             try{
                 writeLock_lock();
 
                 //check if size has changed
                 long oldIndexVal = getIndexLong(recid);
-
                 long oldSize = oldIndexVal>>>48;
 
-                if(oldSize == 0 && out.pos==0){
-                    //do nothing
-                } else if(oldSize == out.pos ){
-                    //size is the same, so just write new data
-                    writeOutToTransLog(out, recid, oldIndexVal);
-                }else if(oldSize != 0 && out.pos==0){
-                    //new record has zero size, just delete old phys one
-                    freePhysRecPut(oldIndexVal);
-                    writeIndexValToTransLog(recid, 0L);
-                }else{
-                    //size has changed, so write into new location
-                    final long newIndexValue = freePhysRecTake(out.pos);
-
-                    writeOutToTransLog(out, recid, newIndexValue);
-                    //update index file with new location
-                    writeIndexValToTransLog(recid, newIndexValue);
-
-                    //and set old phys record as free
-                    if(oldSize!=0)
+                //check if we need to split new records into multiple one
+                if(out.pos<MAX_RECORD_SIZE){
+                    if(oldSize == 0 && out.pos==0){
+                        //do nothing
+                    } else if(oldSize == out.pos ){
+                        //size is the same, so just write new data
+                        writeOutToTransLog(out, recid, oldIndexVal);
+                    }else if(oldSize != 0 && out.pos==0){
+                        //new record has zero size, just delete old phys one
                         freePhysRecPut(oldIndexVal);
+                        writeIndexValToTransLog(recid, 0L);
+                    }else{
+                        //size has changed, so write into new location
+                        final long newIndexValue = freePhysRecTake(out.pos);
+
+                        writeOutToTransLog(out, recid, newIndexValue);
+                        //update index file with new location
+                        writeIndexValToTransLog(recid, newIndexValue);
+
+                        //and set old phys record as free
+                        unlinkPhysRecord(oldIndexVal);
+                    }
+                }else{
+                    putLargeLinkedRecord(out, recid);
+                    unlinkPhysRecord(oldIndexVal);
                 }
+
 
                 checkBufferRounding();
             }finally {
@@ -258,12 +337,11 @@ public class StorageJournaled extends Storage implements Engine {
             transLog.putLong(transLogOffset, WRITE_INDEX_LONG_ZERO | (recid*8));
             transLogOffset+=8;
             longStackPut(RECID_FREE_INDEX_SLOTS,recid);
-            recordLogRefs.put(recid, Long.MIN_VALUE);
+            recordLogRefs.put(recid, new long[]{Long.MIN_VALUE});
             //check if is in transaction
             long oldIndexVal = getIndexLong(recid);
             recordIndexVals.put(recid,0L);
-            if(oldIndexVal!=0)
-                freePhysRecPut(oldIndexVal);
+            unlinkPhysRecord(oldIndexVal);
 
 
             checkBufferRounding();
@@ -576,7 +654,10 @@ public class StorageJournaled extends Storage implements Engine {
 
     }
 
+    @Override
+    protected void unlinkPhysRecord(long indexVal) throws IOException {
+        //TODO there is disk leak with journaled mode, deletes records are not released
 
-
+    }
 
 }

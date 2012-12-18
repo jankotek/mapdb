@@ -360,6 +360,40 @@ public class StorageDirectTest extends StorageTestCase {
         }
     }
 
+    @Test public void large_record(){
+        byte[] b = new byte[100000];
+        Arrays.fill(b, (byte) 111);
+        long recid = engine.recordPut(b, Serializer.BYTE_ARRAY_SERIALIZER);
+        byte[] b2 = engine.recordGet(recid, Serializer.BYTE_ARRAY_SERIALIZER);
+        assertArrayEquals(b,b2);
+    }
+
+    @Test public void large_record_update(){
+        byte[] b = new byte[100000];
+        Arrays.fill(b, (byte) 111);
+        long recid = engine.recordPut(b, Serializer.BYTE_ARRAY_SERIALIZER);
+        Arrays.fill(b, (byte)222);
+        engine.recordUpdate(recid, b, Serializer.BYTE_ARRAY_SERIALIZER);
+        byte[] b2 = engine.recordGet(recid, Serializer.BYTE_ARRAY_SERIALIZER);
+        assertArrayEquals(b,b2);
+
+    }
+
+    @Test public void large_record_delete(){
+        byte[] b = new byte[100000];
+        Arrays.fill(b, (byte) 111);
+        long recid = engine.recordPut(b, Serializer.BYTE_ARRAY_SERIALIZER);
+        engine.recordDelete(recid);
+    }
+
+
+    @Test public void large_record_larger(){
+        byte[] b = new byte[10000000];
+        Arrays.fill(b, (byte) 111);
+        long recid = engine.recordPut(b, Serializer.BYTE_ARRAY_SERIALIZER);
+        byte[] b2 = engine.recordGet(recid, Serializer.BYTE_ARRAY_SERIALIZER);
+        assertArrayEquals(b,b2);
+    }
 
 
 }

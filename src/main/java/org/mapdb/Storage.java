@@ -19,6 +19,7 @@ package org.mapdb;
 
 import java.io.IOError;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -216,13 +217,44 @@ public abstract class Storage implements Engine {
         final int dataSize = (int) (indexValue>>>48);
         if(dataPos == 0) return null;
 
-        DataInput2 in = data.getDataInput(dataPos, dataSize);
-        final A value = serializer.deserialize(in,dataSize);
+        if(dataSize<MAX_RECORD_SIZE){
+            //single record
+            DataInput2 in = data.getDataInput(dataPos, dataSize);
+            final A value = serializer.deserialize(in,dataSize);
 
-        if(CC.ASSERT &&  in.pos != dataSize + (data.isSliced()?dataPos%Volume.BUF_SIZE:0))
-            throw new InternalError("Data were not fully read.");
+            if(CC.ASSERT &&  in.pos != dataSize + (data.isSliced()?dataPos%Volume.BUF_SIZE:0))
+                throw new InternalError("Data were not fully read.");
+            return value;
+        }else{
+            //large linked record
+            ArrayList<DataInput2> ins = new ArrayList<DataInput2>();
+            ArrayList<Integer> sizes = new ArrayList<Integer>();
+            int recSize = 0;
+            long nextLink = indexValue;
+            while(nextLink!=0){
+                int currentSize = (int) (nextLink>>>48);
+                recSize+= currentSize-8;
+                DataInput2 in = data.getDataInput(nextLink & PHYS_OFFSET_MASK, currentSize);
+                nextLink = in.readLong();
+                ins.add(in);
+                sizes.add(currentSize - 8);
+            }
+            //construct byte[]
+            byte[] b = new byte[recSize];
+            int pos = 0;
+            for(int i=0;i<ins.size();i++){
+                DataInput2 in = ins.set(i,null);
+                int size = sizes.get(i);
+                in.readFully(b, pos, size);
+                pos+=size;
+            }
+            DataInput2 in = new DataInput2(b);
+            final A value = serializer.deserialize(in,recSize);
 
-        return value;
+            if(CC.ASSERT &&  in.pos != recSize)
+                throw new InternalError("Data were not fully read.");
+            return value;
+        }
     }
 
 
@@ -288,5 +320,19 @@ public abstract class Storage implements Engine {
     }
 
 
+    protected void unlinkPhysRecord(long indexVal) throws IOException {
+        int size = (int) (indexVal >>>48);
+        if(size==0) return;
+        if(size<MAX_RECORD_SIZE){
+            freePhysRecPut(indexVal);
+        }else{
+            while(indexVal!=0){
+                //traverse linked record
+                long nextIndexVal = phys.getLong(indexVal&PHYS_OFFSET_MASK);
+                freePhysRecPut(indexVal);
+                indexVal = nextIndexVal;
+            }
+        }
 
+    }
 }

@@ -18,6 +18,7 @@ package org.mapdb;
 
 import java.io.IOError;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 /**
  * Storage Engine which saves record directly into file.
@@ -47,7 +48,7 @@ public class StorageDirect extends Storage implements Engine {
         try{
             DataOutput2 out = new DataOutput2();
             serializer.serialize(out,value);
-            if(CC.ASSERT && out.pos>1<<16) throw new InternalError("Record bigger then 64KB");
+            //TODO log warning if record is too big
 
             try{
                 writeLock_lock();
@@ -63,14 +64,18 @@ public class StorageDirect extends Storage implements Engine {
                     index.putLong(RECID_CURRENT_INDEX_FILE_SIZE * 8, indexSize + 8);
                 }
 
-                //get physical record
-                // first 16 bites is record size, remaining 48 bytes is record offset in phys file
-                final long indexValue = out.pos!=0?
-                        freePhysRecTake(out.pos):
-                        0L;
+                if(out.pos<MAX_RECORD_SIZE){
+                    //is small size and can be stored in single record
+                    //get physical record, first 16 bites is record size, remaining 48 bytes is record offset in phys file
+                    final long indexValue = out.pos!=0?
+                            freePhysRecTake(out.pos):
+                            0L;
 
-                phys.putData(indexValue&PHYS_OFFSET_MASK, out.buf, out.pos);
-                index.putLong(recid * 8, indexValue);
+                    phys.putData(indexValue&PHYS_OFFSET_MASK, out.buf, out.pos);
+                    index.putLong(recid * 8, indexValue);
+                }else{
+                    putLargeLinkedRecord(out, recid);
+                }
 
                 return recid;
             }finally {
@@ -81,8 +86,28 @@ public class StorageDirect extends Storage implements Engine {
         }
     }
 
-
-
+    private void putLargeLinkedRecord(DataOutput2 out, long recid) throws IOException {
+        //large size, needs to link multiple records together
+        //start splitting from end, so we can build up linked list
+        final int chunkSize = MAX_RECORD_SIZE-8;
+        int lastArrayPos = out.pos;
+        int arrayPos = out.pos - out.pos%chunkSize;
+        long lastChunkPhysId = 0;
+        while(arrayPos>=0){
+            final int currentChunkSize = lastArrayPos-arrayPos;
+            byte[] b = new byte[currentChunkSize+8]; //TODO reuse byte[]
+            //append reference to prev physId
+            ByteBuffer.wrap(b).putLong(0, lastChunkPhysId);
+            //copy chunk
+            System.arraycopy(out.buf, arrayPos, b, 8, currentChunkSize);
+            //and write current chunk
+            lastChunkPhysId = freePhysRecTake(currentChunkSize+8);
+            phys.putData(lastChunkPhysId&PHYS_OFFSET_MASK, b, b.length);
+            lastArrayPos = arrayPos;
+            arrayPos-=chunkSize;
+        }
+        index.putLong(recid * 8, lastChunkPhysId);
+    }
 
 
     @Override
@@ -106,56 +131,63 @@ public class StorageDirect extends Storage implements Engine {
 
     @Override
     public <A> void recordUpdate(long recid, A value, Serializer<A> serializer){
-       try{
-           DataOutput2 out = new DataOutput2();
-           serializer.serialize(out,value);
+        try{
+            DataOutput2 out = new DataOutput2();
+            serializer.serialize(out,value);
 
-           if(CC.ASSERT && out.pos>1<<16) throw new InternalError("Record bigger then 64KB");
-           try{
-               writeLock_lock();
+            //TODO log warning if record is too big
+            try{
+                writeLock_lock();
 
-               //check if size has changed
-               final long oldIndexVal = index.getLong(recid * 8);
-               final long oldSize = oldIndexVal>>>48;
-               if(oldSize == 0 && out.pos==0){
-                   //do nothing
-               }if(oldSize == out.pos ){
-                   //size is the same, so just write new data
-                   phys.putData(oldIndexVal&PHYS_OFFSET_MASK, out.buf, out.pos);
-               }else if(oldSize != 0 && out.pos==0){
-                   //new record has zero size, just delete old phys one
-                   freePhysRecPut(oldIndexVal);
-                   index.putLong(recid * 8, 0L);
-               }else{
-                   //size has changed, so write into new location
-                   final long newIndexValue = freePhysRecTake(out.pos);
-                   phys.putData(newIndexValue&PHYS_OFFSET_MASK, out.buf, out.pos);
-                   //update index file with new location
-                   index.putLong(recid * 8, newIndexValue);
 
-                   //and set old phys record as free
-                   if(oldSize!=0)
+
+                final long oldIndexVal = index.getLong(recid * 8);
+                final long oldSize = oldIndexVal>>>48;
+
+                //check if we need to split new records into multiple one
+                if(out.pos<MAX_RECORD_SIZE){
+                    //check if size has changed
+                    if(oldSize == 0 && out.pos==0){
+                        //do nothing
+                    }else if(oldSize == out.pos && oldSize!=MAX_RECORD_SIZE){
+                        //size is the same, so just write new data
+                        phys.putData(oldIndexVal&PHYS_OFFSET_MASK, out.buf, out.pos);
+                    }else if(oldSize != 0 && out.pos==0){
+                        //new record has zero size, just delete old phys one
                         freePhysRecPut(oldIndexVal);
-               }
-           }finally {
-               writeLock_unlock();
-           }
-       }catch(IOException e){
-           throw new IOError(e);
-       }
+                        index.putLong(recid * 8, 0L);
+                    }else{
+                        //size has changed, so write into new location
+                        final long newIndexValue = freePhysRecTake(out.pos);
+                        phys.putData(newIndexValue&PHYS_OFFSET_MASK, out.buf, out.pos);
+                        //update index file with new location
+                        index.putLong(recid * 8, newIndexValue);
 
-   }
+                        //and set old phys record as free
+                        unlinkPhysRecord(oldIndexVal);
+                    }
+                }else{
+                    putLargeLinkedRecord(out, recid);
+                    //and set old phys record as free
+                    unlinkPhysRecord(oldIndexVal);
+                }
+            }finally {
+                writeLock_unlock();
+            }
+        }catch(IOException e){
+            throw new IOError(e);
+        }
+    }
 
 
-   @Override
+    @Override
    public void recordDelete(long recid){
         try{
             writeLock_lock();
             final long oldIndexVal = index.getLong(recid * 8);
             index.putLong(recid * 8, 0L);
             longStackPut(RECID_FREE_INDEX_SLOTS,recid);
-            if(oldIndexVal!=0)
-                freePhysRecPut(oldIndexVal);
+            unlinkPhysRecord(oldIndexVal);
         }catch(IOException e){
             throw new IOError(e);
         }finally {
