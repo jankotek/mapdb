@@ -77,7 +77,7 @@ function news() {
   var page = $news.attr("data-page") || 1;
   var users = {};
 
-  $.getJSON("http://search.twitter.com/search?q=from%3Amapdb+-RT&lang=en&rpp=30&format=json&page=" + page + "&callback=?", function(response) {
+  $.getJSON("http://search.twitter.com/search?q=from%3Amapdbnews+-RT&lang=en&rpp=30&format=json&page=" + page + "&callback=?", function(response) {
     $.each(response.results, function() {
 
       // Stop when reaching the hardcoded limit.

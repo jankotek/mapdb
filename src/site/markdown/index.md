@@ -24,7 +24,7 @@ native embedded db engines.
          Follow news:
          <a href='https://groups.google.com/group/mapdb-news/feed/rss_v2_0_msgs.xml?num=50'>RSS</a> |
          <a href='https://groups.google.com/forum/?fromgroups#!forum/mapdb-news'>Mail-List</a> |
-         <a href='http://twitter.com/MapDB'>Twitter</a>
+         <a href='http://twitter.com/MapDBnews'>Twitter</a>
         </div>
     </td>
 </tr>
