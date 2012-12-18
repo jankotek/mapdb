@@ -27,6 +27,10 @@
         <head>
             <script src='js/jquery.min.js'></script>
             <script src='js/donate.js'></script>
+            <!--graphs -->
+            <script src='js/excanvas.js'></script>
+            <script src='js/js-class.js'></script>
+            <script src='js/bluff.js'></script>
         </head>
 
         <menu name="MapDB">
