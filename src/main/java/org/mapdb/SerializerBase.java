@@ -282,9 +282,9 @@ public class SerializerBase implements Serializer{
             out.writeLong(((UUID) obj).getMostSignificantBits());
             out.writeLong(((UUID)obj).getLeastSignificantBits());
             return;
-        } else if(clazz == SerializerCompressWrapper.class){
+        } else if(clazz == CompressLZF.SerializerCompressWrapper.class){
             out.write(SERIALIZER_COMPRESSION_WRAPPER);
-            serialize(out, ((SerializerCompressWrapper)obj).serializer, objectStack);
+            serialize(out, ((CompressLZF.SerializerCompressWrapper)obj).serializer, objectStack);
             return;
         } else if(obj == Utils.COMPARABLE_COMPARATOR){
             out.write(COMPARABLE_COMPARATOR);
@@ -1008,7 +1008,7 @@ public class SerializerBase implements Serializer{
                 ret = deserializeProperties(is, objectStack);
                 break;
             case SERIALIZER_COMPRESSION_WRAPPER:
-                ret = new SerializerCompressWrapper((Serializer) deserialize(is, objectStack));
+                ret = CompressLZF.serializerCompressWrapper((Serializer) deserialize(is, objectStack));
                 break;
             default:
                 ret = deserializeUnknownHeader(is, head, objectStack);

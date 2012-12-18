@@ -218,7 +218,7 @@ public class DBMakerTest{
                 .compressionEnable()
                 .make();
         assertTrue(db.engine instanceof ByteTransformEngine);
-        assertTrue(((ByteTransformEngine)db.engine).blockSerializer instanceof CompressLZFSerializer);
+        assertTrue(((ByteTransformEngine)db.engine).blockSerializer == CompressLZF.SERIALIZER);
         db.close();
     }
 

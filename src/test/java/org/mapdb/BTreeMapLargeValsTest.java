@@ -27,7 +27,7 @@ public class BTreeMapLargeValsTest extends ConcurrentMapInterfaceTest<Integer, S
         super(false, false, true, true, true, true,false);
     }
 
-    Engine r = new StorageDirect(new Volume.MemoryVolumeFactory(false));
+    Engine r = new StorageDirect(Volume.memoryVolumeFactory(false));
 
 
     @Override

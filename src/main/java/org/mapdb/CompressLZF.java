@@ -49,6 +49,11 @@
 
 package org.mapdb;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
+import java.util.Arrays;
+
 /**
  * <p>
  * This class implements the LZF lossless data compression algorithm. LZF is a
@@ -278,5 +283,88 @@ public final class CompressLZF{
         } while (outPos < outLen);
     }
 
+
+    public static final Serializer<byte[]> SERIALIZER = new Serializer<byte[]>() {
+
+        final ThreadLocal<CompressLZF> LZF = new ThreadLocal<CompressLZF>() {
+            @Override
+            protected CompressLZF initialValue() {
+                return new CompressLZF();
+            }
+        };
+
+        @Override
+        public void serialize(DataOutput out, byte[] value) throws IOException {
+            if (value == null) return;
+
+            CompressLZF lzf = LZF.get();
+            byte[] outbuf = new byte[value.length + 40];
+            int len = lzf.compress(value, value.length, outbuf, 0);
+            //check if compressed data are larger then original
+            if (value.length <= len) {
+                //in this case do not compress data, write 0 as indicator
+                Utils.packInt(out, 0);
+                out.write(value);
+            } else {
+                Utils.packInt(out, value.length); //write original decompressed size
+                out.write(outbuf, 0, len);
+            }
+        }
+
+        @Override
+        public byte[] deserialize(DataInput in, int available) throws IOException {
+            if (available == 0) return null;
+            //get original decompressed size
+            DataInput2 in2 = (DataInput2) in;
+            int origPos = in2.pos;
+            int expendedLen = Utils.unpackInt(in);
+            byte[] inbuf = new byte[available - (in2.pos - origPos)];
+            in.readFully(inbuf);
+            if (expendedLen == 0) {
+                //special case, data are not compressed
+                return inbuf;
+            }
+            byte[] outbuf = new byte[expendedLen + 40];
+
+            CompressLZF lzf = LZF.get();
+            lzf.expand(inbuf, 0, inbuf.length, outbuf, 0, expendedLen);
+            outbuf = Arrays.copyOf(outbuf, expendedLen);
+
+            return outbuf;
+        }
+
+
+    };
+
+    /**
+     * Wraps existing serializer and compresses its input/output
+     */
+    public static <E> Serializer<E> serializerCompressWrapper(Serializer<E> serializer) {
+        return new SerializerCompressWrapper<E>(serializer);
+    }
+
+
+    protected static class SerializerCompressWrapper<E> implements Serializer<E>{
+        protected final Serializer<E> serializer;
+        public SerializerCompressWrapper(Serializer<E> serializer) {
+            this.serializer = serializer;
+        }
+
+        @Override
+        public void serialize(DataOutput out, E value) throws IOException {
+            //serialize to byte[]
+            DataOutput2 out2 = new DataOutput2();
+            serializer.serialize(out2, value);
+            byte[] b = out2.copyBytes();
+            CompressLZF.SERIALIZER.serialize(out, b);
+        }
+
+        @Override
+        public E deserialize(DataInput in, int available) throws IOException {
+            byte[] b = CompressLZF.SERIALIZER.deserialize(in, available);
+            DataInput2 in2 = new DataInput2(b);
+            return serializer.deserialize(in2, b.length);
+        }
+    }
 
 }

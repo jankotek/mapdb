@@ -515,8 +515,8 @@ public class DBMaker {
         }
 
         Volume.VolumeFactory folFac = _file == null?
-                new Volume.MemoryVolumeFactory(_ifInMemoryUseDirectBuffer):
-                new Volume.FileVolumeFactory(_readOnly, _RAF,  _file);
+                Volume.memoryVolumeFactory(_ifInMemoryUseDirectBuffer):
+                Volume.fileVolumeFactory(_readOnly, _RAF,  _file);
 
         Engine engine = _journalEnabled ?
                 new StorageJournaled(folFac, _asyncWriteEnabled, _appendOnlyEnabled, _deleteFilesAfterClose, _failOnWrongHeader, _readOnly):
@@ -538,7 +538,7 @@ public class DBMaker {
 
 
         if(_compressionEnabled){
-            engine = new ByteTransformEngine(engine, new CompressLZFSerializer());
+            engine = new ByteTransformEngine(engine, CompressLZF.SERIALIZER);
         }
 
 

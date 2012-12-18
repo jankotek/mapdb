@@ -52,12 +52,10 @@ public class LongConcurrentLRUMap<V> extends LongMap<V> {
   private final Stats stats = new Stats();
   private final int acceptableWaterMark;
   private long oldestEntry = 0;  // not volatile, only accessed in the cleaning method
-  private final EvictionListener<V> evictionListener;
   private CleanupThread cleanupThread ;
 
   public LongConcurrentLRUMap(int upperWaterMark, final int lowerWaterMark, int acceptableWatermark,
-                              int initialSize, boolean runCleanupThread, boolean runNewThreadForCleanup,
-                              EvictionListener<V> evictionListener) {
+                              int initialSize, boolean runCleanupThread, boolean runNewThreadForCleanup) {
     if (upperWaterMark < 1) throw new IllegalArgumentException("upperWaterMark must be > 0");
     if (lowerWaterMark >= upperWaterMark)
       throw new IllegalArgumentException("lowerWaterMark must be  < upperWaterMark");
@@ -66,7 +64,6 @@ public class LongConcurrentLRUMap<V> extends LongMap<V> {
     this.upperWaterMark = upperWaterMark;
     this.lowerWaterMark = lowerWaterMark;
     this.acceptableWaterMark = acceptableWatermark;
-    this.evictionListener = evictionListener;
     if (runCleanupThread) {
       cleanupThread = new CleanupThread(this);
       cleanupThread.start();
@@ -75,7 +72,7 @@ public class LongConcurrentLRUMap<V> extends LongMap<V> {
 
   public LongConcurrentLRUMap(int size, int lowerWatermark) {
     this(size, lowerWatermark, (int) Math.floor((lowerWatermark + size) / 2),
-            (int) Math.ceil(0.75 * size), false, false, null);
+            (int) Math.ceil(0.75 * size), false, false);
   }
 
   public void setAlive(boolean live) {
@@ -646,7 +643,7 @@ public class LongConcurrentLRUMap<V> extends LongMap<V> {
     if (o == null) return;
     stats.size.decrementAndGet();
     stats.evictionCounter.incrementAndGet();
-    if(evictionListener != null) evictionListener.evictedEntry(o.key,o.value);
+    evictedEntry(o.key,o.value);
   }
 
   /**
@@ -830,7 +827,7 @@ public class LongConcurrentLRUMap<V> extends LongMap<V> {
   }
 
 
-  public static class Stats {
+  protected static class Stats {
     private final AtomicLong accessCounter = new AtomicLong(0),
             putCounter = new AtomicLong(0),
             nonLivePutCounter = new AtomicLong(0),
@@ -876,9 +873,6 @@ public class LongConcurrentLRUMap<V> extends LongMap<V> {
     }
   }
 
-  public static interface EvictionListener<V>{
-    public void evictedEntry(long key, V value);
-  }
 
   private static class CleanupThread extends Thread {
     private WeakReference<LongConcurrentLRUMap> cache;
@@ -929,5 +923,10 @@ public class LongConcurrentLRUMap<V> extends LongMap<V> {
     } finally {
       super.finalize();
     }
+  }
+
+  /** override this method to get notified about evicted entries*/
+  protected void evictedEntry(long key, V value){
+
   }
 }
