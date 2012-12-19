@@ -4,6 +4,7 @@ package org.mapdb;
  * Least Recently Used cache.
  * If cache is full it removes less used items to make a space
  */
+//TODO check all caches for null values
 public class CacheLRU extends EngineWrapper {
 
     protected LongMap cache;
@@ -25,7 +26,8 @@ public class CacheLRU extends EngineWrapper {
         long recid =  super.recordPut(value, serializer);
         try{
             locks.lock(recid);
-            cache.put(recid, value);
+            if(value!=null)
+                cache.put(recid, value);
         }finally {
             locks.unlock(recid);
         }
