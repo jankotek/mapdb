@@ -22,8 +22,14 @@ public class CacheLRU extends EngineWrapper {
 
     @Override
     public <A> long recordPut(A value, Serializer<A> serializer) {
-        //no need to synchronize as recid was no propagated outside
-        return super.recordPut(value, serializer);
+        long recid =  super.recordPut(value, serializer);
+        try{
+            locks.lock(recid);
+            cache.put(recid, value);
+        }finally {
+            locks.unlock(recid);
+        }
+        return recid;
     }
 
     @Override
@@ -57,6 +63,26 @@ public class CacheLRU extends EngineWrapper {
             locks.lock(recid);
             cache.remove(recid);
             super.recordDelete(recid);
+        }finally {
+            locks.unlock(recid);
+        }
+    }
+
+    @Override
+    public <A> boolean recordCompareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+        try{
+            locks.lock(recid);
+            Object oldValue = cache.get(recid);
+            if(oldValue!=null && (oldValue == expectedOldValue || oldValue.equals(expectedOldValue))){
+                //found matching entry in cache, so just update and return true
+                cache.put(recid, newValue);
+                engine.recordUpdate(recid, newValue, serializer);
+                return true;
+            }else{
+                boolean ret = engine.recordCompareAndSwap(recid, expectedOldValue, newValue, serializer);
+                if(ret) cache.put(recid, newValue);
+                return ret;
+            }
         }finally {
             locks.unlock(recid);
         }

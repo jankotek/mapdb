@@ -32,6 +32,12 @@ public class Gen<T> implements TestRule {
         }
     }
 
+    public Gen(List<T> vv) {
+        values = new ArrayList();
+        values.addAll(vv);
+    }
+
+
     public T get() {
         return (T) currentValue[0];
     }

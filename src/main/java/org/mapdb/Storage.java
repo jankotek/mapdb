@@ -304,6 +304,23 @@ public abstract class Storage implements Engine {
 
     }
 
+    @Override
+    public <A> boolean recordCompareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer){
+        try{
+            writeLock_lock();
+            Object oldVal = recordGet(recid, serializer);
+            if((oldVal==null && expectedOldValue==null)|| (oldVal!=null && oldVal.equals(expectedOldValue))){
+                recordUpdate(recid, newValue, serializer);
+                return true;
+            }else{
+                return false;
+            }
+        }finally{
+            writeLock_unlock();
+        }
+
+    }
+
 
     @Override public long serializerRecid() {
         return RECID_SERIALIZER;

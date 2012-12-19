@@ -62,14 +62,14 @@ public class CacheHashTableSynchronized extends EngineWrapper implements Engine 
     public <A> long recordPut(A value, Serializer<A> serializer) {
         //no need for locking, as recid is not propagated outside of method yet
         final long recid = engine.recordPut(value, serializer);
-        items[Math.abs(Utils.longHash(recid))%cacheMaxSize] = new HashItem(recid, value);
+        items[position(recid)] = new HashItem(recid, value);
         return recid;
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public <A> A recordGet(long recid, Serializer<A> serializer) {
-        final int pos = Math.abs(Utils.longHash(recid))%cacheMaxSize;
+        final int pos = position(recid);
         HashItem item = items[pos];
         if(item!=null && recid == item.key)
             return (A) item.val;
@@ -83,9 +83,13 @@ public class CacheHashTableSynchronized extends EngineWrapper implements Engine 
         }
     }
 
+    private int position(long recid) {
+        return Math.abs(Utils.longHash(recid))%cacheMaxSize;
+    }
+
     @Override
     public <A> void recordUpdate(long recid, A value, Serializer<A> serializer) {
-        final int pos = Math.abs(Utils.longHash(recid))%cacheMaxSize;
+        final int pos = position(recid);
         synchronized (locks[pos % CONCURRENCY_FACTOR]){
             items[pos] = new HashItem(recid, value);
             engine.recordUpdate(recid, value, serializer);
@@ -94,7 +98,7 @@ public class CacheHashTableSynchronized extends EngineWrapper implements Engine 
 
     @Override
     public void recordDelete(long recid) {
-        final int pos = Math.abs(Utils.longHash(recid))%cacheMaxSize;
+        final int pos = position(recid);
         synchronized (locks[pos % CONCURRENCY_FACTOR]){
             engine.recordDelete(recid);
             HashItem item = items[pos];
@@ -119,5 +123,22 @@ public class CacheHashTableSynchronized extends EngineWrapper implements Engine 
         engine.rollback();
     }
 
+    @Override
+    public <A> boolean recordCompareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+        final int pos = position(recid);
+        synchronized (locks[pos % CONCURRENCY_FACTOR]){
+            HashItem item = items[pos];
+            if(item!=null && item.key == recid && (item.val == expectedOldValue || item.val.equals(expectedOldValue))){
+                //found matching entry in cache, so just update and return true
+                items[pos] = new HashItem(recid, newValue);
+                engine.recordUpdate(recid, newValue, serializer);
+                return true;
+            }else{
+                boolean ret = engine.recordCompareAndSwap(recid, expectedOldValue, newValue, serializer);
+                if(ret) items[pos] = new HashItem(recid, newValue);
+                return ret;
+            }
+        }
+    }
 
 }

@@ -53,47 +53,78 @@ public class CacheHashTable extends EngineWrapper implements Engine {
 
     @Override
     public <A> long recordPut(A value, Serializer<A> serializer) {
-        //no need for locking, as recid is not propagated outside of method yet
+
         final long recid = engine.recordPut(value, serializer);
-        items[Math.abs(Utils.longHash(recid))%cacheMaxSize] = new HashItem(recid, value);
+        final int pos = position(recid);
+        try{
+            locks.lock(pos);
+            items[position(recid)] = new HashItem(recid, value);
+        }finally{
+            locks.unlock(pos);
+        }
         return recid;
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public <A> A recordGet(long recid, Serializer<A> serializer) {
-        final int pos = Math.abs(Utils.longHash(recid))%cacheMaxSize;
+        final int pos = position(recid);
         HashItem item = items[pos];
         if(item!=null && recid == item.key)
             return (A) item.val;
 
         try{
-            locks.lock(recid);
+            locks.lock(pos);
             //not in cache, fetch and add
             final A value = engine.recordGet(recid, serializer);
             if(value!=null)
                 items[pos] = new HashItem(recid, value);
             return value;
         }finally{
-            locks.unlock(recid);
+            locks.unlock(pos);
         }
+    }
+
+    private int position(long recid) {
+        return Math.abs(Utils.longHash(recid))%cacheMaxSize;
     }
 
     @Override
     public <A> void recordUpdate(long recid, A value, Serializer<A> serializer) {
-        final int pos = Math.abs(Utils.longHash(recid))%cacheMaxSize;
+        final int pos = position(recid);
         try{
-            locks.lock(recid);
+            locks.lock(pos);
             items[pos] = new HashItem(recid, value);
             engine.recordUpdate(recid, value, serializer);
         }finally {
-            locks.unlock(recid);
+            locks.unlock(pos);
+        }
+    }
+
+    @Override
+    public <A> boolean recordCompareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+        final int pos = position(recid);
+        try{
+            locks.lock(pos);
+            HashItem item = items[pos];
+            if(item!=null && item.key == recid && (item.val == expectedOldValue || item.val.equals(expectedOldValue))){
+                //found matching entry in cache, so just update and return true
+                items[pos] = new HashItem(recid, newValue);
+                engine.recordUpdate(recid, newValue, serializer);
+                return true;
+            }else{
+                boolean ret = engine.recordCompareAndSwap(recid, expectedOldValue, newValue, serializer);
+                if(ret) items[pos] = new HashItem(recid, newValue);
+                return ret;
+            }
+        }finally {
+            locks.unlock(pos);
         }
     }
 
     @Override
     public void recordDelete(long recid) {
-        final int pos = Math.abs(Utils.longHash(recid))%cacheMaxSize;
+        final int pos = position(recid);
         try{
             locks.lock(recid);
             engine.recordDelete(recid);

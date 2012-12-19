@@ -53,6 +53,11 @@ public class EngineWrapper implements Engine{
     }
 
     @Override
+    public <A> boolean recordCompareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+        return engine.recordCompareAndSwap(recid, expectedOldValue, newValue, serializer);
+    }
+
+    @Override
     public void recordDelete(long recid) {
         engine.recordDelete(recid);
     }
@@ -101,6 +106,11 @@ public class EngineWrapper implements Engine{
         }
 
         @Override
+        public <A> boolean recordCompareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+            throw new UnsupportedOperationException("Read-only");
+        }
+
+        @Override
         public <A> long recordPut(A value, Serializer<A> serializer) {
             throw new UnsupportedOperationException("Read-only");
         }
@@ -139,6 +149,8 @@ public class EngineWrapper implements Engine{
      * Wrapper which transform binary data. Useful for compression or encryption
      */
     public static class ByteTransformEngine extends  EngineWrapper {
+
+        //TODO compare and swap
 
         protected Serializer<byte[]> blockSerializer;
 
@@ -206,6 +218,8 @@ public class EngineWrapper implements Engine{
     }
 
     public static class DebugEngine extends EngineWrapper{
+
+        //TODO CAS
 
         final Queue<Record> records = new ConcurrentLinkedQueue<Record>();
 

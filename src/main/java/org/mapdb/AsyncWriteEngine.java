@@ -239,9 +239,23 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
         }catch(InterruptedException e){
             throw new RuntimeException(e);
         }
-
-
     }
+
+    @Override
+    public <A> boolean recordCompareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+        try{
+            grandLock.writeLock().lock();
+            Object oldVal = recordGet(recid, serializer);
+            if((oldVal==null && expectedOldValue==null)|| (oldVal!=null && oldVal.equals(expectedOldValue))){
+                recordUpdate(recid, newValue, serializer);
+                return true;
+            }else
+                return false;
+        }finally{
+            grandLock.writeLock().unlock();
+        }
+    }
+
 
     @Override
     @SuppressWarnings("unchecked")
@@ -362,7 +376,6 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
         }
 
     }
-
 
 
 }

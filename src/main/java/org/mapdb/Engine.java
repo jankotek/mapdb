@@ -64,6 +64,20 @@ public interface Engine {
 
 
     /**
+     * Updates existing record in atomic (Compare And Swap) manner.
+     * This writes new value only if old one is matching expected.
+     *
+     *
+     * @param recid (record identifier) under which record was persisted.
+     * @param expectedOldValue old value to be compared with existing record
+     * @param newValue to be written if values are matching
+     * @param serializer used to serialize record from binary form
+     * @param <A>
+     * @return true if newValue was written
+     */
+    <A> boolean recordCompareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer);
+
+    /**
      * Remove existing record from store/cache
      *
      * @param recid (record identifier) under which was record persisted

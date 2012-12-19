@@ -109,9 +109,7 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
     @Override
     public <A> long recordPut(A value, Serializer<A> serializer) {
         long recid = engine.recordPut(value, serializer);
-        items.put(recid, useWeakRef?
-                new CacheWeakItem(value, queue, recid) :
-                new CacheSoftItem(value, queue, recid));
+        putItemIntoCache(recid, value);
         return recid;
     }
 
@@ -130,11 +128,8 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
         try{
             locks.lock(recid);
             Object value = engine.recordGet(recid, serializer);
-            if(value!=null){
-                items.put(recid, useWeakRef?
-                    new CacheWeakItem(value, queue, recid) :
-                    new CacheSoftItem(value, queue, recid));
-            }
+            if(value!=null) putItemIntoCache(recid, value);
+
             return (A) value;
         }finally{
             locks.unlock(recid);
@@ -146,14 +141,17 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
     public <A> void recordUpdate(long recid, A value, Serializer<A> serializer) {
         try{
             locks.lock(recid);
-
-            items.put(recid, useWeakRef?
-                new CacheWeakItem(value, queue, recid) :
-                new CacheSoftItem(value, queue, recid));
+            putItemIntoCache(recid, value);
             engine.recordUpdate(recid, value, serializer);
         }finally {
             locks.unlock(recid);
         }
+    }
+
+    private <A> void putItemIntoCache(long recid, A value) {
+        items.put(recid, useWeakRef?
+            new CacheWeakItem(value, queue, recid) :
+            new CacheSoftItem(value, queue, recid));
     }
 
     @Override
@@ -166,6 +164,28 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
             locks.unlock(recid);
         }
 
+    }
+
+    @Override
+    public <A> boolean recordCompareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+        try{
+            locks.lock(recid);
+            CacheItem item = items.get(recid);
+            Object oldValue = item.get();
+            if(item!=null && oldValue!=null && item.getRecid() == recid &&
+                    (oldValue == expectedOldValue || oldValue.equals(expectedOldValue))){
+                //found matching entry in cache, so just update and return true
+                putItemIntoCache(recid, newValue);
+                engine.recordUpdate(recid, newValue, serializer);
+                return true;
+            }else{
+                boolean ret = engine.recordCompareAndSwap(recid, expectedOldValue, newValue, serializer);
+                if(ret) putItemIntoCache(recid, newValue);
+                return ret;
+            }
+        }finally {
+            locks.unlock(recid);
+        }
     }
 
 

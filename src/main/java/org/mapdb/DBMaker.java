@@ -499,12 +499,13 @@ public class DBMaker {
     }
 
 
-
-
-
-
     /** constructs DB using current settings */
     public DB make(){
+        return new DB(makeEngine());
+    }
+
+    /** constructs Engine using current settings */
+    public Engine makeEngine(){
 
 
         if(_readOnly && _file==null)
@@ -563,20 +564,18 @@ public class DBMaker {
         if(engineAsync!=null)
             engineAsync.setParentEngineReference(engine);
 
-
-        final DB db = new DB(engine);
         if(_closeOnJvmShutdown){
+            final Engine engine2 = engine;
             Runtime.getRuntime().addShutdownHook(new Thread("JDBM shutdown") {
                 @Override
 				public void run() {
-                    if (db.engine != null) {
-                        db.close();
-                    }
+                    //TODO handle already closed engine
+                    engine2.close();
                 }
             });
         }
 
-        return db;
+        return engine;
     }
 
 
