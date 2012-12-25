@@ -86,6 +86,7 @@ public class AtomicBooleanTest extends TestCase{
      * toString returns current value.
      */
     public void testToString() {
+        Atomic.Boolean ai = Atomic.getBoolean(db, "test2");
         assertEquals(ai.toString(), Boolean.toString(false));
         ai.set(true);
         assertEquals(ai.toString(), Boolean.toString(true));
