@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 /**
- * Wraps ByteBuffer and provides DataInput
+ * Wraps ByteBuffers and provides DataInput
  *
  * @author Jan Kotek
  */

@@ -270,7 +270,7 @@ public class StorageDirect extends Storage implements Engine {
 
                 final long listPhysid = freePhysRecTake(LONG_STACK_PAGE_SIZE) &PHYS_OFFSET_MASK;
                 if(CC.ASSERT && listPhysid == 0) throw new InternalError();
-                //final ByteBuffer dataBuf = dataBufs[((int) (listPhysid / BUF_SIZE))];
+                //final ByteBuffers dataBuf = dataBufs[((int) (listPhysid / BUF_SIZE))];
                 //set location to previous page
                 phys.putLong(listPhysid, listPhysid2);
                 //set number of free records in this page to 1
@@ -305,7 +305,7 @@ public class StorageDirect extends Storage implements Engine {
 
         //No free records found, so lets increase the file size.
         //We need to take case of growing ByteBuffers.
-        // Also max size of ByteBuffer is 2GB, so we need to use multiple ones
+        // Also max size of ByteBuffers is 2GB, so we need to use multiple ones
 
         final long physFileSize = index.getLong(RECID_CURRENT_PHYS_FILE_SIZE*8);
         if(CC.ASSERT && physFileSize <=0) throw new InternalError("illegal file size:"+physFileSize);
@@ -320,7 +320,7 @@ public class StorageDirect extends Storage implements Engine {
             //and return this
             return (((long)requiredSize)<<48) | physFileSize;
         }else{
-            //new size is overlapping 2GB ByteBuffer size
+            //new size is overlapping 2GB ByteBuffers size
             //so we need to create empty record for 'padding' size to 2GB
 
             final long  freeSizeToCreate = Volume.BUF_SIZE -  physFileSize%Volume.BUF_SIZE;

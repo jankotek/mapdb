@@ -183,7 +183,7 @@ public class DBMaker {
 
     /** Creates or open database stored in file.
      * <p/>
-     * This methods opens DB with `RandomAccessFile` mode.
+     * This methods opens DB with `RAF` mode.
      * It does not use NIO memory mapped buffers, so is slower but safer and more compatible.
      * Use this if you are experiencing <b>java.lang.OutOfMemoryError: Map failed</b> exceptions
      */
