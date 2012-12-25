@@ -167,6 +167,11 @@ public class DB {
     }
 
 
+    public Map<String, Long> getNameDir(){
+        return nameDir;
+    }
+
+
     /**
      * Opens existing or creates new B-linked-tree Set.
      *

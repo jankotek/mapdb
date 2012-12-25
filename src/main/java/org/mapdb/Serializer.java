@@ -101,6 +101,19 @@ public interface Serializer<A> {
         }
     };
 
+    Serializer<Boolean> BOOLEAN_SERIALIZER = new Serializer<Boolean>() {
+        @Override
+        public void serialize(DataOutput out, Boolean value) throws IOException {
+            out.writeBoolean(value);
+        }
+
+        @Override
+        public Boolean deserialize(DataInput in, int available) throws IOException {
+            if(available==0) return null;
+            return in.readBoolean();
+        }
+    };
+
 
     Serializer<byte[] > BYTE_ARRAY_SERIALIZER = new Serializer<byte[]>() {
 
