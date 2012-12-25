@@ -4,6 +4,8 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.concurrent.ConcurrentNavigableMap;
 
 import static org.junit.Assert.*;
 
@@ -198,6 +200,25 @@ public class BTreeMapTest{
         assertEquals(42, m.remove(42));
 
         assertEquals(null, m.remove(42999));
+    }
+
+    @Test public void issue_38(){
+        Map<Integer, String[]> map = DBMaker
+                .newMemoryDB()
+                .make().getTreeMap("test");
+
+        for (int i = 0; i < 50000; i++) {
+            map.put(i, new String[5]);
+
+        }
+
+
+        for (int i = 0; i < 50000; i=i+1000) {
+            assertArrayEquals(new String[5], map.get(i));
+            assertTrue(map.get(i).toString().contains("[Ljava.lang.String"));
+        }
+
+
     }
 
 

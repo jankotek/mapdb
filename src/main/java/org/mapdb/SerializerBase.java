@@ -19,6 +19,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.EOFException;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.*;
@@ -231,7 +232,7 @@ public class SerializerBase implements Serializer{
             return;
         } else if (obj instanceof Class) {
             out.write(CLASS);
-            out.writeUTF(((Class) obj).getName());
+            serializeClass(out, (Class)obj);
             return;
         } else if (obj instanceof int[]) {
             writeIntArray(out, (int[]) obj);
@@ -315,17 +316,30 @@ public class SerializerBase implements Serializer{
         if (obj instanceof Object[]) {
             Object[] b = (Object[]) obj;
             boolean packableLongs = b.length <= 255;
+            boolean allNull = true;
             if (packableLongs) {
                 //check if it contains packable longs
                 for (Object o : b) {
-                    if (o != null && (o.getClass() != Long.class || ((Long) o < 0 && (Long) o != Long.MAX_VALUE))) {
-                        packableLongs = false;
-                        break;
+                    if(o!=null){
+                        allNull=false;
+                        if (o.getClass() != Long.class || ((Long) o < 0 && (Long) o != Long.MAX_VALUE)) {
+                            packableLongs = false;
+                        }
                     }
+
+                    if(!packableLongs && !allNull)
+                        break;
                 }
             }
+            if(allNull){
+                out.write(ARRAY_OBJECT_ALL_NULL);
+                Utils.packInt(out, b.length);
 
-            if (packableLongs) {
+                // Write classfor components
+                Class<?> componentType = obj.getClass().getComponentType();
+                serializeClass(out, componentType);
+
+            }else if (packableLongs) {
                 //packable Longs is special case,  it is often used in JDBM to reference fields
                 out.write(ARRAY_OBJECT_PACKED_LONG);
                 out.write(b.length);
@@ -340,12 +354,9 @@ public class SerializerBase implements Serializer{
                 out.write(ARRAY_OBJECT);
                 Utils.packInt(out, b.length);
 
-//                // Write class id for components
-//                Class<?> componentType = obj.getClass().getComponentType();
-//                registerClass(componentType);
-//                //write class header
-//                int classId = getClassId(componentType);
-//                Utils.packInt(out, classId);
+                // Write classfor components
+                Class<?> componentType = obj.getClass().getComponentType();
+                serializeClass(out, componentType);
 
                 for (Object o : b)
                     serialize(out, o, objectStack);
@@ -441,6 +452,11 @@ public class SerializerBase implements Serializer{
 
     }
 
+
+    protected void serializeClass(DataOutput out, Class clazz) throws IOException {
+        //TODO override in SerializerPojo
+        out.writeUTF(clazz.getName());
+    }
 
 
     static void serializeString(DataOutput out, String obj) throws IOException {
@@ -971,6 +987,9 @@ public class SerializerBase implements Serializer{
             case ARRAY_OBJECT:
                 ret = deserializeArrayObject(is, objectStack);
                 break;
+            case ARRAY_OBJECT_ALL_NULL:
+                ret = deserializeArrayObjectAllNull(is, objectStack);
+                break;
             case ARRAY_OBJECT_PACKED_LONG:
                 ret = deserializeArrayObjectPackedLong(is);
                 break;
@@ -1031,7 +1050,8 @@ public class SerializerBase implements Serializer{
     }
 
 
-    private Class deserializeClass(DataInput is) throws IOException {
+    protected  Class deserializeClass(DataInput is) throws IOException {
+        //TODO override 'deserializeClass' in SerializerPojo
         try {
             return Class.forName(is.readUTF());
         } catch (ClassNotFoundException e) {
@@ -1152,18 +1172,23 @@ public class SerializerBase implements Serializer{
 
     private Object[] deserializeArrayObject(DataInput is, FastArrayList objectStack) throws IOException {
         int size = Utils.unpackInt(is);
-//        // Read class id for components
-//        int classId = Utils.unpackInt(is);
-//        Class clazz = classId2class.get(classId);
-//        Object[] s = (Object[]) Array.newInstance(clazz, size);
-//        objectStack.add(s);
-        Object[] s = new Object[size];
+        Class clazz = deserializeClass(is);
+        Object[] s = (Object[]) Array.newInstance(clazz, size);
         objectStack.add(s);
         for (int i = 0; i < size; i++){
             s[i] = deserialize(is, objectStack);
         }
         return s;
     }
+
+    private Object[] deserializeArrayObjectAllNull(DataInput is, FastArrayList objectStack) throws IOException {
+        int size = Utils.unpackInt(is);
+        Class clazz = deserializeClass(is);
+        Object[] s = (Object[]) Array.newInstance(clazz, size);
+        objectStack.add(s);
+        return s;
+    }
+
 
     private Object[] deserializeArrayObjectPackedLong(DataInput is) throws IOException {
         int size = is.readUnsignedByte();

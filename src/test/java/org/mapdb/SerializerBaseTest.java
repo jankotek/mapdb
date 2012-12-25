@@ -25,6 +25,7 @@ import java.util.AbstractMap.SimpleEntry;
 import java.util.*;
 
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertTrue;
 
 @SuppressWarnings("unchecked")
 public class SerializerBaseTest extends TestCase {
@@ -419,5 +420,11 @@ public class SerializerBaseTest extends TestCase {
     }
 
 
+    public void test_issue_38(){
+        String[] s = new String[5];
+        String[] s2 = (String[]) Utils.clone(s, Serializer.BASIC_SERIALIZER);
+        assertArrayEquals(s, s2);
+        assertTrue(s2.toString().contains("[Ljava.lang.String"));
+    }
 
 }

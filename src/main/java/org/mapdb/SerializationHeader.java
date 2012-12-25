@@ -105,6 +105,7 @@ interface SerializationHeader {
     //special cases for BTree values which stores references
     int  ARRAY_OBJECT_PACKED_LONG = 74;
     int  ARRAYLIST_PACKED_LONG = 75;
+    int ARRAY_OBJECT_ALL_NULL = 76;
 
     int  STRING_EMPTY = 101;
     int  STRING = 103;
