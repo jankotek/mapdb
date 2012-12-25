@@ -355,7 +355,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     }
 
 
-    protected static class SerRec<E> {
+    protected static final class SerRec<E> {
 
         final E value;
         final Serializer<E> serializer;
