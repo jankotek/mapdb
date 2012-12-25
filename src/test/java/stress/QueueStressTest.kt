@@ -34,7 +34,7 @@ class QueueStressTest{
 
     Test(timeout=1000000)
             fun LinkedQueueLifo_StorageDirect(){
-        val engine = StorageDirect(Volume.memoryVolumeFactory(false));
+        val engine = StorageDirect(Volume.memoryFactory(false));
         val queue = LinkedQueueLifo<Long>(engine, Serializer.LONG_SERIALIZER,false);
         stress(queue)
     }

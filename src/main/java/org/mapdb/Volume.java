@@ -16,8 +16,9 @@
 
 package org.mapdb;
 
-import java.io.*;
-import java.nio.ByteBuffer;
+import java.io.File;
+import java.io.IOError;
+import java.io.IOException;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Arrays;
@@ -41,7 +42,7 @@ public abstract class Volume {
 
     abstract public void putData(final long offset, final byte[] value, int size);
 
-    abstract public void putData(final long offset, final ByteBuffer buf, final int size);
+    abstract public void putData(final long offset, final java.nio.ByteBuffer buf, final int size);
 
     abstract public long getLong(final long offset);
 
@@ -85,62 +86,62 @@ public abstract class Volume {
     /**
      * Factory which creates two/three volumes used by each MapDB Storage Engine
      */
-    public static interface VolumeFactory{
+    public static interface Factory {
         Volume createIndexVolume();
         Volume createPhysVolume();
         Volume createTransLogVolume();
     }
 
 
-        public static VolumeFactory fileVolumeFactory(final boolean readOnly, final boolean RAF, final File indexFile){
-            return fileVolumeFactory(readOnly, RAF, indexFile,
-                    new File(indexFile.getPath()+Storage.DATA_FILE_EXT),
-                    new File(indexFile.getPath()+ StorageJournaled.TRANS_LOG_FILE_EXT));
+        public static Factory fileFactory(final boolean readOnly, final boolean RAF, final File indexFile){
+            return fileFactory(readOnly, RAF, indexFile,
+                    new File(indexFile.getPath() + Storage.DATA_FILE_EXT),
+                    new File(indexFile.getPath() + StorageJournaled.TRANS_LOG_FILE_EXT));
         }
 
-        public static VolumeFactory fileVolumeFactory(final boolean readOnly,
-                                                      final boolean RAF,
-                                                      final File indexFile,
-                                                      final File physFile,
-                                                      final File transLogFile) {
-            return new VolumeFactory() {
+        public static Factory fileFactory(final boolean readOnly,
+                                          final boolean RAF,
+                                          final File indexFile,
+                                          final File physFile,
+                                          final File transLogFile) {
+            return new Factory() {
                 @Override
                 public Volume createIndexVolume() {
                     return RAF ?
-                            new RandomAccessFileVolume(indexFile, readOnly):
-                            new MappedFileVolume(indexFile, readOnly);
+                            new RandomAccessFile(indexFile, readOnly):
+                            new MappedFile(indexFile, readOnly);
                 }
 
                 @Override
                 public Volume createPhysVolume() {
                     return RAF ?
-                            new RandomAccessFileVolume(physFile, readOnly):
-                            new MappedFileVolume(physFile, readOnly);
+                            new RandomAccessFile(physFile, readOnly):
+                            new MappedFile(physFile, readOnly);
                 }
 
                 @Override
                 public Volume createTransLogVolume() {
                     return RAF ?
-                            new RandomAccessFileVolume(transLogFile, readOnly):
-                            new MappedFileVolume(transLogFile, readOnly);
+                            new RandomAccessFile(transLogFile, readOnly):
+                            new MappedFile(transLogFile, readOnly);
                 }
             };
         }
 
 
-        public static VolumeFactory memoryVolumeFactory(final boolean useDirectBuffer) {
-            return new VolumeFactory() {
+        public static Factory memoryFactory(final boolean useDirectBuffer) {
+            return new Factory() {
 
                 @Override public Volume createIndexVolume() {
-                    return new MemoryVolume(useDirectBuffer);
+                    return new Memory(useDirectBuffer);
                 }
 
                 @Override public Volume createPhysVolume() {
-                    return new MemoryVolume(useDirectBuffer);
+                    return new Memory(useDirectBuffer);
                 }
 
                 @Override public Volume createTransLogVolume() {
-                    return new MemoryVolume(useDirectBuffer);
+                    return new Memory(useDirectBuffer);
                 }
             };
         }
@@ -151,14 +152,14 @@ public abstract class Volume {
          * It leaves ByteBuffer details (allocation, disposal) on subclasses.
          * Most methods are final for better performance (JIT compiler can inline those).
          */
-        abstract static public class ByteBufferVolume extends Volume{
+        abstract static public class ByteBuffer extends Volume{
 
 
 
-            protected ByteBuffer[] buffers;
+            protected java.nio.ByteBuffer[] buffers;
             protected final boolean readOnly;
 
-            protected ByteBufferVolume(boolean readOnly) {
+            protected ByteBuffer(boolean readOnly) {
                 this.readOnly = readOnly;
             }
 
@@ -179,16 +180,16 @@ public abstract class Volume {
 
                 //just remap file buffer
 
-                ByteBuffer newBuf = makeNewBuffer(offset);
+                java.nio.ByteBuffer newBuf = makeNewBuffer(offset);
                 if(readOnly)
                     newBuf = newBuf.asReadOnlyBuffer();
 
                 buffers[buffersPos] = newBuf;
             }
 
-            protected abstract ByteBuffer makeNewBuffer(long offset);
+            protected abstract java.nio.ByteBuffer makeNewBuffer(long offset);
 
-            protected final ByteBuffer internalByteBuffer(long offset) {
+            protected final java.nio.ByteBuffer internalByteBuffer(long offset) {
                 return buffers[((int) (offset / BUF_SIZE))];
             }
 
@@ -203,7 +204,7 @@ public abstract class Volume {
             }
 
             @Override public final void putData(final long offset, final byte[] value, final int size) {
-                final ByteBuffer b1 = internalByteBuffer(offset);
+                final java.nio.ByteBuffer b1 = internalByteBuffer(offset);
                 final int bufPos = (int) (offset% BUF_SIZE);
 
                 synchronized (b1){
@@ -212,8 +213,8 @@ public abstract class Volume {
                 }
             }
 
-            @Override public final void putData(final long offset, final ByteBuffer buf, final int size) {
-                final ByteBuffer b1 = internalByteBuffer(offset);
+            @Override public final void putData(final long offset, final java.nio.ByteBuffer buf, final int size) {
+                final java.nio.ByteBuffer b1 = internalByteBuffer(offset);
                 final int bufPos = (int) (offset% BUF_SIZE);
                 //no overlap, so just write the value
                 synchronized (b1){
@@ -233,7 +234,7 @@ public abstract class Volume {
 
             @Override
             public final DataInput2 getDataInput(long offset, int size) {
-                final ByteBuffer b1 = internalByteBuffer(offset);
+                final java.nio.ByteBuffer b1 = internalByteBuffer(offset);
                 final int bufPos = (int) (offset% BUF_SIZE);
                 return new DataInput2(b1, bufPos);
             }
@@ -281,7 +282,7 @@ public abstract class Volume {
 
         }
 
-        public static final class MappedFileVolume extends ByteBufferVolume{
+        public static final class MappedFile extends ByteBuffer {
 
             protected final File file;
             protected final FileChannel fileChannel;
@@ -289,18 +290,18 @@ public abstract class Volume {
 
             static final int BUF_SIZE_INC = 1024*1024;
 
-            public MappedFileVolume(File file, boolean readOnly) {
+            public MappedFile(File file, boolean readOnly) {
                 super(readOnly);
                 this.file = file;
                 this.mapMode = readOnly? FileChannel.MapMode.READ_ONLY: FileChannel.MapMode.READ_WRITE;
                 try {
-                    this.fileChannel = new RandomAccessFile(file, readOnly?"r":"rw")
+                    this.fileChannel = new java.io.RandomAccessFile(file, readOnly?"r":"rw")
                             .getChannel();
 
                     final long fileSize = fileChannel.size();
                     if(fileSize>0){
                         //map existing data
-                        buffers = new ByteBuffer[(int) (1+fileSize/BUF_SIZE)];
+                        buffers = new java.nio.ByteBuffer[(int) (1+fileSize/BUF_SIZE)];
                         for(int i=0;i<=fileSize/BUF_SIZE;i++){
                             final long offset = 1L*BUF_SIZE*i;
                             buffers[i] = fileChannel.map(mapMode, offset, Math.min(BUF_SIZE, fileSize-offset));
@@ -309,7 +310,7 @@ public abstract class Volume {
                             //TODO what if 'fileSize % 8 != 0'?
                         }
                     }else{
-                        buffers = new ByteBuffer[1];
+                        buffers = new java.nio.ByteBuffer[1];
                         buffers[0] = fileChannel.map(mapMode, 0, INITIAL_SIZE);
                         if(mapMode == FileChannel.MapMode.READ_ONLY)
                             buffers[0] = buffers[0].asReadOnlyBuffer();
@@ -329,7 +330,7 @@ public abstract class Volume {
                 }
                 if(!readOnly)
                     sync();
-                for(ByteBuffer b:buffers){
+                for(java.nio.ByteBuffer b:buffers){
                     if(b!=null && (b instanceof MappedByteBuffer)){
                         unmap((MappedByteBuffer) b);
                     }
@@ -340,7 +341,7 @@ public abstract class Volume {
             @Override
             public void sync() {
                 if(readOnly) return;
-                for(ByteBuffer b:buffers){
+                for(java.nio.ByteBuffer b:buffers){
                     if(b!=null && (b instanceof MappedByteBuffer)){
                         ((MappedByteBuffer)b).force();
                     }
@@ -358,7 +359,7 @@ public abstract class Volume {
             }
 
             @Override
-            protected ByteBuffer makeNewBuffer(long offset) {
+            protected java.nio.ByteBuffer makeNewBuffer(long offset) {
                 try {
                     long newBufSize =  offset% BUF_SIZE;
                     newBufSize = newBufSize + newBufSize%BUF_SIZE_INC; //round to BUF_SIZE_INC
@@ -371,7 +372,7 @@ public abstract class Volume {
             }
         }
 
-        public static final class MemoryVolume extends ByteBufferVolume{
+        public static final class Memory extends ByteBuffer {
             protected final boolean useDirectBuffer;
 
             @Override
@@ -379,23 +380,23 @@ public abstract class Volume {
                 return super.toString()+",direct="+useDirectBuffer;
             }
 
-            public MemoryVolume(boolean useDirectBuffer) {
+            public Memory(boolean useDirectBuffer) {
                 super(false);
                 this.useDirectBuffer = useDirectBuffer;
-                ByteBuffer b0 = useDirectBuffer?
-                        ByteBuffer.allocateDirect(INITIAL_SIZE) :
-                        ByteBuffer.allocate(INITIAL_SIZE);
-                buffers = new ByteBuffer[]{b0};
+                java.nio.ByteBuffer b0 = useDirectBuffer?
+                        java.nio.ByteBuffer.allocateDirect(INITIAL_SIZE) :
+                        java.nio.ByteBuffer.allocate(INITIAL_SIZE);
+                buffers = new java.nio.ByteBuffer[]{b0};
             }
 
-            @Override protected ByteBuffer makeNewBuffer(long offset) {
+            @Override protected java.nio.ByteBuffer makeNewBuffer(long offset) {
                 final int newBufSize = Utils.nextPowTwo((int) (offset % BUF_SIZE));
                 //double size of existing in-memory-buffer
-                ByteBuffer newBuf = useDirectBuffer?
-                        ByteBuffer.allocateDirect(newBufSize):
-                        ByteBuffer.allocate(newBufSize);
+                java.nio.ByteBuffer newBuf = useDirectBuffer?
+                        java.nio.ByteBuffer.allocateDirect(newBufSize):
+                        java.nio.ByteBuffer.allocate(newBufSize);
                 final int buffersPos = (int) (offset/ BUF_SIZE);
-                final ByteBuffer oldBuffer = buffers[buffersPos];
+                final java.nio.ByteBuffer oldBuffer = buffers[buffersPos];
                 if(oldBuffer!=null){
                     //copy old buffer if it exists
                     synchronized (oldBuffer){
@@ -407,7 +408,7 @@ public abstract class Volume {
             }
 
             @Override public void close() {
-                for(ByteBuffer b:buffers){
+                for(java.nio.ByteBuffer b:buffers){
                     if(b!=null && (b instanceof MappedByteBuffer)){
                         unmap((MappedByteBuffer)b);
                     }
@@ -421,21 +422,21 @@ public abstract class Volume {
         }
 
 
-        public static final class RandomAccessFileVolume extends Volume{
+        public static final class RandomAccessFile extends Volume{
 
             protected final File file;
             protected final boolean readOnly;
 
-            protected RandomAccessFile raf;
+            protected java.io.RandomAccessFile raf;
             protected long len;
             protected long pos;
 
-            public RandomAccessFileVolume(File file, boolean readOnly) {
+            public RandomAccessFile(File file, boolean readOnly) {
                 this.file = file;
                 this.readOnly = readOnly;
 
                 try {
-                    this.raf = new RandomAccessFile(file, readOnly? "r":"rw");
+                    this.raf = new java.io.RandomAccessFile(file, readOnly? "r":"rw");
                     this.len = raf.length();
                     this.raf.seek(0);
                     pos = 0;
@@ -495,7 +496,7 @@ public abstract class Volume {
             }
 
             @Override
-            synchronized public void putData(long offset, ByteBuffer buf, int size) {
+            synchronized public void putData(long offset, java.nio.ByteBuffer buf, int size) {
                 try {
                     if(pos!=offset){
                         raf.seek(offset);

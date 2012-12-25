@@ -80,7 +80,7 @@ public abstract class Storage implements Engine {
     protected Volume phys;
     protected Volume index;
 
-    public Storage(Volume.VolumeFactory volFac, boolean disableLocks, boolean appendOnly,
+    public Storage(Volume.Factory volFac, boolean disableLocks, boolean appendOnly,
                    boolean deleteFilesOnExit, boolean failOnWrongHeader, boolean readOnly) {
 
         this.disableLocks = disableLocks;

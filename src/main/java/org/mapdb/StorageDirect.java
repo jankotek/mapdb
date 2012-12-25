@@ -29,11 +29,11 @@ import java.nio.ByteBuffer;
 public class StorageDirect extends Storage implements Engine {
 
 
-    public StorageDirect(Volume.VolumeFactory volFac){
+    public StorageDirect(Volume.Factory volFac){
         this(volFac, false, false, false,false, false);
     }
 
-    public StorageDirect(Volume.VolumeFactory volFac, boolean disableLocks, boolean appendOnly,
+    public StorageDirect(Volume.Factory volFac, boolean disableLocks, boolean appendOnly,
                          boolean deleteFilesOnExit, boolean failOnWrongHeader, boolean readOnly) {
         super(volFac,  disableLocks, appendOnly, deleteFilesOnExit, failOnWrongHeader, readOnly);
         //TODO check for log file existence and throw an error if it does exist

@@ -11,12 +11,12 @@ import java.nio.ByteBuffer;
  */
 public class LoggerVolume extends Volume{
 
-    public static class Factory implements VolumeFactory{
+    public static class Factory implements Volume.Factory {
 
-        final VolumeFactory loggedFac;
-        final VolumeFactory logFac;
+        final Volume.Factory loggedFac;
+        final Volume.Factory logFac;
 
-        public Factory(VolumeFactory loggedFac, VolumeFactory logFac) {
+        public Factory(Volume.Factory loggedFac, Volume.Factory logFac) {
             this.loggedFac = loggedFac;
             this.logFac = logFac;
         }
@@ -115,7 +115,7 @@ public class LoggerVolume extends Volume{
     }
 
     @Override
-    synchronized public void putData(long offset, ByteBuffer buf, int size) {
+    synchronized public void putData(long offset, java.nio.ByteBuffer buf, int size) {
         byte[] b = new byte[size];
         buf.get(b);
         putData(offset, b, size);

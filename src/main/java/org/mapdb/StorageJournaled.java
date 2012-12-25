@@ -16,8 +16,6 @@
 
 package org.mapdb;
 
-import sun.util.resources.TimeZoneNames_zh_CN;
-
 import java.io.IOError;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -45,7 +43,7 @@ public class StorageJournaled extends Storage implements Engine {
 
 
     protected Volume transLog;
-    protected final Volume.VolumeFactory volFac;
+    protected final Volume.Factory volFac;
     protected long transLogOffset;
 
 
@@ -57,11 +55,11 @@ public class StorageJournaled extends Storage implements Engine {
 
 
 
-    public StorageJournaled(Volume.VolumeFactory volFac){
+    public StorageJournaled(Volume.Factory volFac){
         this(volFac, false, false, false, false, false);
     }
 
-    public StorageJournaled(Volume.VolumeFactory volFac, boolean disableLocks, boolean appendOnly,
+    public StorageJournaled(Volume.Factory volFac, boolean disableLocks, boolean appendOnly,
                             boolean deleteFilesOnExit, boolean failOnWrongHeader, boolean readOnly) {
         super(volFac,  disableLocks, appendOnly, deleteFilesOnExit, failOnWrongHeader, readOnly);
         try{

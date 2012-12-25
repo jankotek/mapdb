@@ -515,9 +515,9 @@ public class DBMaker {
             throw new UnsupportedOperationException("Can not open non-existing file in read-only mode.");
         }
 
-        Volume.VolumeFactory folFac = _file == null?
-                Volume.memoryVolumeFactory(_ifInMemoryUseDirectBuffer):
-                Volume.fileVolumeFactory(_readOnly, _RAF,  _file);
+        Volume.Factory folFac = _file == null?
+                Volume.memoryFactory(_ifInMemoryUseDirectBuffer):
+                Volume.fileFactory(_readOnly, _RAF, _file);
 
         Engine engine = _journalEnabled ?
                 new StorageJournaled(folFac, _asyncWriteEnabled, _appendOnlyEnabled, _deleteFilesAfterClose, _failOnWrongHeader, _readOnly):

@@ -5,14 +5,13 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.concurrent.ConcurrentNavigableMap;
 
 import static org.junit.Assert.*;
 
 @SuppressWarnings("unchecked")
 public class BTreeMapTest{
 
-    Engine engine = new StorageDirect(Volume.memoryVolumeFactory(false));
+    Engine engine = new StorageDirect(Volume.memoryFactory(false));
 
     public static void print(BTreeMap m) {
         printRecur(m, m.rootRecid, "");

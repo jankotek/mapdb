@@ -15,7 +15,7 @@ public class VolumeTest {
 
     final int beyondInc = (int) (1e7);
 
-    Volume b = new Volume.MemoryVolume(false);
+    Volume b = new Volume.Memory(false);
     {
         b.ensureAvailable(Volume.INITIAL_SIZE);
     }
@@ -85,16 +85,16 @@ public class VolumeTest {
 
 
     @Test public void testConstants(){
-        assertEquals(0, Volume.BUF_SIZE%Volume.MappedFileVolume.BUF_SIZE_INC);
+        assertEquals(0, Volume.BUF_SIZE% Volume.MappedFile.BUF_SIZE_INC);
         assertEquals(0, Volume.BUF_SIZE%8);
-        assertEquals(0, Volume.MappedFileVolume.BUF_SIZE_INC%8);
+        assertEquals(0, Volume.MappedFile.BUF_SIZE_INC%8);
         assertTrue(Storage.INDEX_OFFSET_START*8< Volume.INITIAL_SIZE);
-        assertTrue(Volume.MappedFileVolume.BUF_SIZE_INC> StorageDirect.MAX_RECORD_SIZE);
+        assertTrue(Volume.MappedFile.BUF_SIZE_INC> StorageDirect.MAX_RECORD_SIZE);
     }
 
     @Test public void RAF_bytes(){
         File f = Utils.tempDbFile();
-        Volume v = new Volume.RandomAccessFileVolume(f, false);
+        Volume v = new Volume.RandomAccessFile(f, false);
         v.ensureAvailable(100);
         v.putByte(1, (byte)(-120));
         assertEquals((byte)(-120), v.getByte(1));

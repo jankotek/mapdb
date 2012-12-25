@@ -13,9 +13,9 @@ class CasStressTest{
     val count = 100000;
 
 
-    Test fun direct() = stress(StorageDirect(Volume.memoryVolumeFactory(false)))
+    Test fun direct() = stress(StorageDirect(Volume.memoryFactory(false)))
 
-    Test fun journaled() = stress(StorageJournaled(Volume.memoryVolumeFactory(false)))
+    Test fun journaled() = stress(StorageJournaled(Volume.memoryFactory(false)))
 
     Test fun default() = stress(DBMaker.newMemoryDB()!!.makeEngine()!!)
 

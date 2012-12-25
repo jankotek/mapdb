@@ -23,7 +23,7 @@ public class HTreeMap3Test extends ConcurrentMapInterfaceTest<Integer, String> {
         super(false, false, true, true, true, true,true);
     }
 
-    StorageDirect r = new StorageDirect(Volume.memoryVolumeFactory(false));
+    StorageDirect r = new StorageDirect(Volume.memoryFactory(false));
 
     @Override
     protected Integer getKeyNotInPopulatedMap() throws UnsupportedOperationException {
