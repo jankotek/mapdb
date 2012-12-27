@@ -44,15 +44,6 @@ public class LongConcurrentHashMapTest extends TestCase{
 
 
     /**
-     *  contains returns true for contained value
-     */
-    public void testContains() {
-        LongConcurrentHashMap map = map5();
-        assertTrue(map.contains("A"));
-        assertFalse(map.contains("Z"));
-    }
-
-    /**
      *  containsKey returns true for contained key
      */
     public void testContainsKey() {
@@ -244,18 +235,6 @@ public class LongConcurrentHashMapTest extends TestCase{
             shouldThrow();
         } catch(NullPointerException e){}
     }
-
-    /**
-     * contains(null) throws NPE
-     */
-    public void testContains_NullPointerException() {
-        try {
-            LongConcurrentHashMap c = new LongConcurrentHashMap(5);
-            c.contains(null);
-            shouldThrow();
-        } catch(NullPointerException e){}
-    }
-
 
 
 

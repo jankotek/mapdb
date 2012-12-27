@@ -19,8 +19,8 @@ public class CompressTest{
 
     @Test
     public void check_instance() throws Exception {
-        assertTrue(db.engine instanceof ByteTransformEngine);
-        assertTrue(((ByteTransformEngine)db.engine).blockSerializer ==  CompressLZF.SERIALIZER);
+        ByteTransformEngine e = (ByteTransformEngine) ((EngineWrapper)db.engine).getWrappedEngine();
+        assertTrue(e.blockSerializer ==  CompressLZF.SERIALIZER);
     }
 
 

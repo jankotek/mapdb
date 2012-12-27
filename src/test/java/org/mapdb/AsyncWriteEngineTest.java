@@ -10,6 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.LockSupport;
 
 import static org.junit.Assert.*;
 import static org.junit.Assume.assumeTrue;
@@ -24,7 +25,7 @@ public class AsyncWriteEngineTest extends TestFile{
         assertNotNull(index);
         if(engine !=null)
            engine.close();
-        engine =  new AsyncWriteEngine(new StorageDirect(fac), true, 0, true);
+        engine =  new AsyncWriteEngine(new StorageDirect(fac), false, false);
     }
 
 
@@ -43,13 +44,10 @@ public class AsyncWriteEngineTest extends TestFile{
 
     @Test(timeout = 0xFFFF)
      public void concurrent_updates_test() throws InterruptedException, IOException {
-
-
         final int threadNum = 16;
         final int updates = 1000;
         final CountDownLatch latch = new CountDownLatch(threadNum);
         final Map<Integer,Long> recids = new ConcurrentHashMap<Integer, Long>();
-
 
         for(int i = 0;i<threadNum; i++){
             final int num = i;
@@ -67,11 +65,9 @@ public class AsyncWriteEngineTest extends TestFile{
             }).start();
         }
 
-
         latch.await();
 
         reopenStore();
-
 
         assertEquals(recids.size(),threadNum);
         for(int i = 0;i<threadNum; i++){
@@ -95,7 +91,7 @@ public class AsyncWriteEngineTest extends TestFile{
                 return super.recordPut(value, serializer);
             }
         };
-        AsyncWriteEngine a = new AsyncWriteEngine(t, true, 0, true);
+        AsyncWriteEngine a = new AsyncWriteEngine(t, false, false);
         byte[] b = new byte[124];
 
         long max = 100;
@@ -108,15 +104,16 @@ public class AsyncWriteEngineTest extends TestFile{
         //make commit just after bunch of records was added,
         // we need to test that all records made it into transaction log
         a.commit();
-        assertEquals(max, putCounter.longValue() - a.newRecids.size());
-        assertTrue(a.writes.isEmpty());
+        //TODO reenable when newRecids are introduced
+        //assertEquals(max, putCounter.longValue() - a.newRecids.size());
+        assertTrue(a.writeCache.isEmpty());
         //'crash' async engine, destroy its write queue
         a.engine = null;
         t.close();
 
         //now reopen db and check ths
         t = new StorageJournaled(fac);
-        a = new AsyncWriteEngine(t, true, 0, true);
+        a = new AsyncWriteEngine(t, false, false);
         for(Integer i=0;i<max;i++){
             long recid = l.get(i);
             assertArrayEquals(b, (byte[]) a.recordGet(recid, Serializer.BASIC_SERIALIZER));

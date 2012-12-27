@@ -761,24 +761,6 @@ public class LongConcurrentHashMap< V>
         return found;
     }
 
-    /**
-     * Legacy method testing if some key maps into the specified value
-     * in this table.  This method is identical in functionality to
-     * {@link #containsValue}, and exists solely to ensure
-     * full compatibility with class {@link java.util.Hashtable},
-     * which supported this method prior to introduction of the
-     * Java Collections framework.
-
-     * @param  value a value to search for
-     * @return <tt>true</tt> if and only if some key maps to the
-     *         <tt>value</tt> argument in this table as
-     *         determined by the <tt>equals</tt> method;
-     *         <tt>false</tt> otherwise
-     * @throws NullPointerException if the specified value is null
-     */
-    public boolean contains(Object value) {
-        return containsValue(value);
-    }
 
     /**
      * Maps the specified key to the specified value in this table.

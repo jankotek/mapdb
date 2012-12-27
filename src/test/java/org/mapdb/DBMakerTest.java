@@ -51,8 +51,10 @@ public class DBMakerTest{
                 .cacheDisable()
                 .make();
         verifyDB(db);
-        assertFalse(db.engine.getClass() == CacheHashTable.class);
-        assertTrue(db.engine.getClass() == AsyncWriteEngine.class);
+        EngineWrapper w = (EngineWrapper) db.engine;
+        assertTrue(w instanceof SnapshotEngine);
+        assertFalse(w.getWrappedEngine().getClass() == CacheHashTable.class);
+        assertTrue(w.getWrappedEngine().getClass() == AsyncWriteEngine.class);
     }
 
     @Test
@@ -64,22 +66,7 @@ public class DBMakerTest{
                 .make();
         verifyDB(db);
         assertTrue(db.engine.getClass() == CacheHashTable.class);
-        assertTrue(((CacheHashTable)db.engine).engine.getClass() == StorageDirect.class);
-
-    }
-
-    @Test
-    public void testDisableAsyncSerialization() throws Exception {
-        DB db = DBMaker
-                .newMemoryDB()
-                .journalDisable()
-                .asyncSerializationDisable()
-                .make();
-        verifyDB(db);
-        assertTrue(db.engine.getClass() == CacheHashTable.class);
-        assertTrue(((CacheHashTable)db.engine).engine.getClass() == AsyncWriteEngine.class);
-        AsyncWriteEngine r = (AsyncWriteEngine) ((CacheHashTable)db.engine).engine;
-        assertFalse(r.asyncSerialization);
+        assertTrue(((CacheHashTable)db.engine).engine.getClass() == SnapshotEngine.class);
 
     }
 
@@ -93,9 +80,10 @@ public class DBMakerTest{
         //check default values are set
         assertTrue(db.engine.getClass() == CacheHashTable.class);
         assertEquals(1024 * 32, ((CacheHashTable) db.engine).cacheMaxSize);
-        assertTrue(((CacheHashTable)db.engine).engine.getClass() == AsyncWriteEngine.class);
-        AsyncWriteEngine r = (AsyncWriteEngine) ((CacheHashTable)db.engine).engine;
-        assertTrue(r.asyncSerialization);
+        EngineWrapper w = (EngineWrapper) ((CacheHashTable) db.engine).engine;
+        assertTrue(w instanceof SnapshotEngine);
+        assertTrue(w.getWrappedEngine().getClass() == AsyncWriteEngine.class);
+        AsyncWriteEngine r = (AsyncWriteEngine) w.getWrappedEngine();
 
     }
 
@@ -183,8 +171,11 @@ public class DBMakerTest{
 
                 .checksumEnable()
                 .make();
-        assertTrue(db.engine instanceof ByteTransformEngine);
-        assertTrue(((ByteTransformEngine)db.engine).blockSerializer == Serializer.CRC32_CHECKSUM);
+        EngineWrapper w = (EngineWrapper) db.engine;
+        assertTrue(w instanceof SnapshotEngine);
+
+        assertTrue(w.getWrappedEngine() instanceof ByteTransformEngine);
+        assertTrue(((ByteTransformEngine)w.getWrappedEngine()).blockSerializer == Serializer.CRC32_CHECKSUM);
         db.close();
     }
 
@@ -200,8 +191,8 @@ public class DBMakerTest{
 
                 .encryptionEnable("adqdqwd")
                 .make();
-        assertTrue(db.engine instanceof ByteTransformEngine);
-        assertTrue(((ByteTransformEngine)db.engine).blockSerializer instanceof EncryptionXTEA);
+        ByteTransformEngine e = (ByteTransformEngine) ((EngineWrapper)db.engine).getWrappedEngine();
+        assertTrue(e.blockSerializer instanceof EncryptionXTEA);
         db.close();
     }
 
@@ -217,8 +208,10 @@ public class DBMakerTest{
 
                 .compressionEnable()
                 .make();
-        assertTrue(db.engine instanceof ByteTransformEngine);
-        assertTrue(((ByteTransformEngine)db.engine).blockSerializer == CompressLZF.SERIALIZER);
+        EngineWrapper w = (EngineWrapper) db.engine;
+        assertTrue(w instanceof SnapshotEngine);
+        assertTrue(w.getWrappedEngine() instanceof ByteTransformEngine);
+        assertTrue(((ByteTransformEngine)w.getWrappedEngine()).blockSerializer == CompressLZF.SERIALIZER);
         db.close();
     }
 

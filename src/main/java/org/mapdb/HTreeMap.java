@@ -60,7 +60,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     }
 
     static class HashRootSerializer implements Serializer<HashRoot>{
-        //used jus
+
         private Serializer defaultSerializer;
 
         public HashRootSerializer(Serializer defaultSerializer) {
@@ -93,6 +93,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         }
 
     }
+
+    final Serializer defaultSerialzierForSnapshots;
 
     static class HashRoot{
         long[] segmentRecids;
@@ -189,6 +191,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         this.engine = engine;
         this.hasValues = hasValues;
         if(defaultSerializer == null) defaultSerializer = Serializer.BASIC_SERIALIZER;
+        this.defaultSerialzierForSnapshots = defaultSerializer;
         this.keySerializer = keySerializer==null ? (Serializer<K>) defaultSerializer : keySerializer;
         this.valueSerializer = valueSerializer==null ? (Serializer<V>) defaultSerializer : valueSerializer;
 
@@ -211,6 +214,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         this.rootRecid = rootRecid;
         //load all fields from store
         if(defaultSerializer==null) defaultSerializer = Serializer.BASIC_SERIALIZER;
+        this.defaultSerialzierForSnapshots = defaultSerializer;
         HashRoot r = engine.recordGet(rootRecid, new HashRootSerializer(defaultSerializer));
         this.segmentRecids = r.segmentRecids;
         this.hasValues = r.hasValues;
@@ -1078,5 +1082,12 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             segmentLocks[segment].writeLock().unlock();
         }
     }
+
+
+    public Map<K,V> snapshot(){
+        Engine snapshot = SnapshotEngine.createSnapshotFor(engine);
+        return new HTreeMap<K, V>(snapshot,rootRecid, defaultSerialzierForSnapshots);
+    }
+
 
 }

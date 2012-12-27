@@ -56,21 +56,21 @@ public class StorageJournaled extends Storage implements Engine {
 
 
     public StorageJournaled(Volume.Factory volFac){
-        this(volFac, false, false, false, false, false);
+        this(volFac, false, false, false, false);
     }
 
-    public StorageJournaled(Volume.Factory volFac, boolean disableLocks, boolean appendOnly,
+    public StorageJournaled(Volume.Factory volFac, boolean appendOnly,
                             boolean deleteFilesOnExit, boolean failOnWrongHeader, boolean readOnly) {
-        super(volFac,  disableLocks, appendOnly, deleteFilesOnExit, failOnWrongHeader, readOnly);
+        super(volFac,  appendOnly, deleteFilesOnExit, failOnWrongHeader, readOnly);
         try{
             this.volFac = volFac;
             this.transLog = volFac.createTransLogVolume();
-            writeLock_lock();
+            lock.writeLock().lock();
             reloadIndexFile();
             replayLogFile();
             transLog = null;
         }finally{
-            writeLock_unlock();
+            lock.writeLock().unlock();
         }
     }
 
@@ -107,7 +107,7 @@ public class StorageJournaled extends Storage implements Engine {
             //TODO check record size and log warning if too big
 
             try{
-                writeLock_lock();
+                lock.writeLock().lock();
                 //update index file, find free recid
                 long recid = longStackTake(RECID_FREE_INDEX_SLOTS);
                 if(recid == 0){
@@ -135,7 +135,7 @@ public class StorageJournaled extends Storage implements Engine {
 
                 return recid;
             }finally {
-                writeLock_unlock();
+                lock.writeLock().unlock();
             }
         }catch(IOException e){
             throw new IOError(e);
@@ -223,7 +223,7 @@ public class StorageJournaled extends Storage implements Engine {
     @Override
     public <A> A recordGet(long recid, Serializer<A> serializer) {
         try{
-            readLock_lock();
+            lock.readLock().lock();
 
             long[] indexVals = recordLogRefs.get(recid);
             if(indexVals!=null){
@@ -263,7 +263,7 @@ public class StorageJournaled extends Storage implements Engine {
         }catch(IOException e){
             throw new IOError(e);
         }finally{
-            readLock_unlock();
+            lock.readLock().unlock();
         }
     }
 
@@ -275,7 +275,7 @@ public class StorageJournaled extends Storage implements Engine {
 
             //TODO log warning here if record is too big
             try{
-                writeLock_lock();
+                lock.writeLock().lock();
 
                 //check if size has changed
                 long oldIndexVal = getIndexLong(recid);
@@ -311,7 +311,7 @@ public class StorageJournaled extends Storage implements Engine {
 
                 checkBufferRounding();
             }finally {
-                writeLock_unlock();
+                lock.writeLock().unlock();
             }
         }catch(IOException e){
             throw new IOError(e);
@@ -328,7 +328,7 @@ public class StorageJournaled extends Storage implements Engine {
     @Override
     public void recordDelete(long recid){
         try{
-            writeLock_lock();
+            lock.writeLock().lock();
             openLogIfNeeded();
 
             transLog.ensureAvailable(transLogOffset+8);
@@ -347,7 +347,7 @@ public class StorageJournaled extends Storage implements Engine {
         }catch(IOException e){
             throw new IOError(e);
         }finally {
-            writeLock_unlock();
+            lock.writeLock().unlock();
         }
     }
 
@@ -371,7 +371,7 @@ public class StorageJournaled extends Storage implements Engine {
     @Override
     public void commit() {
         try{
-            writeLock_lock();
+            lock.writeLock().lock();
 
             //dump long stack pages
             LongMap.LongMapIterator<long[]> iter = longStackPages.longMapIterator();
@@ -409,7 +409,7 @@ public class StorageJournaled extends Storage implements Engine {
         }catch(IOException e){
             throw new IOError(e);
         }finally{
-            writeLock_unlock();
+            lock.writeLock().unlock();
         }
     }
 

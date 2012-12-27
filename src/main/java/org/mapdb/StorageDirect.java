@@ -30,12 +30,12 @@ public class StorageDirect extends Storage implements Engine {
 
 
     public StorageDirect(Volume.Factory volFac){
-        this(volFac, false, false, false,false, false);
+        this(volFac, false, false,false, false);
     }
 
-    public StorageDirect(Volume.Factory volFac, boolean disableLocks, boolean appendOnly,
+    public StorageDirect(Volume.Factory volFac, boolean appendOnly,
                          boolean deleteFilesOnExit, boolean failOnWrongHeader, boolean readOnly) {
-        super(volFac,  disableLocks, appendOnly, deleteFilesOnExit, failOnWrongHeader, readOnly);
+        super(volFac,  appendOnly, deleteFilesOnExit, failOnWrongHeader, readOnly);
         //TODO check for log file existence and throw an error if it does exist
 //        if(volFac.transLogExist()){
 //            throw new IllegalAccessError("Log file found. Reopen with transaction enabled, to finish transaction log replay!");
@@ -51,7 +51,7 @@ public class StorageDirect extends Storage implements Engine {
             //TODO log warning if record is too big
 
             try{
-                writeLock_lock();
+                lock.writeLock().lock();
                 //update index file, find free recid
                 long recid = longStackTake(RECID_FREE_INDEX_SLOTS);
                 if(recid == 0){
@@ -79,7 +79,7 @@ public class StorageDirect extends Storage implements Engine {
 
                 return recid;
             }finally {
-                writeLock_unlock();
+                lock.writeLock().unlock();
             }
         }catch(IOException e){
             throw new IOError(e);
@@ -114,11 +114,11 @@ public class StorageDirect extends Storage implements Engine {
     public <A> A  recordGet(long recid, Serializer<A> serializer) {
         try{
             try{
-                readLock_lock();
+                lock.readLock().lock();
                 final long indexValue = index.getLong(recid * 8) ;
                 return recordGet2(indexValue, phys, serializer);
             }finally{
-                readLock_unlock();
+                lock.readLock().unlock();
             }
 
 
@@ -137,9 +137,7 @@ public class StorageDirect extends Storage implements Engine {
 
             //TODO log warning if record is too big
             try{
-                writeLock_lock();
-
-
+                lock.writeLock().lock();
 
                 final long oldIndexVal = index.getLong(recid * 8);
                 final long oldSize = oldIndexVal>>>48;
@@ -172,7 +170,7 @@ public class StorageDirect extends Storage implements Engine {
                     unlinkPhysRecord(oldIndexVal);
                 }
             }finally {
-                writeLock_unlock();
+                lock.writeLock().unlock();
             }
         }catch(IOException e){
             throw new IOError(e);
@@ -183,7 +181,7 @@ public class StorageDirect extends Storage implements Engine {
     @Override
    public void recordDelete(long recid){
         try{
-            writeLock_lock();
+            lock.writeLock().lock();
             final long oldIndexVal = index.getLong(recid * 8);
             index.putLong(recid * 8, 0L);
             longStackPut(RECID_FREE_INDEX_SLOTS,recid);
@@ -191,7 +189,7 @@ public class StorageDirect extends Storage implements Engine {
         }catch(IOException e){
             throw new IOError(e);
         }finally {
-            writeLock_unlock();
+            lock.writeLock().unlock();
         }
     }
 

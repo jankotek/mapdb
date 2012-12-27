@@ -68,9 +68,7 @@ public abstract class Storage implements Engine {
     public static final String DATA_FILE_EXT = ".p";
 
 
-    protected final ReentrantReadWriteLock lock;
-    private final AtomicInteger writeLocksCounter;
-    protected final boolean disableLocks;
+    protected final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();;
 
     protected final boolean appendOnly;
     protected final boolean deleteFilesOnExit;
@@ -80,21 +78,16 @@ public abstract class Storage implements Engine {
     protected Volume phys;
     protected Volume index;
 
-    public Storage(Volume.Factory volFac, boolean disableLocks, boolean appendOnly,
+    public Storage(Volume.Factory volFac, boolean appendOnly,
                    boolean deleteFilesOnExit, boolean failOnWrongHeader, boolean readOnly) {
 
-        this.disableLocks = disableLocks;
         this.appendOnly = appendOnly;
         this.deleteFilesOnExit = deleteFilesOnExit;
         this.failOnWrongHeader = failOnWrongHeader;
         this.readOnly = readOnly;
-        this.lock = disableLocks? null: new ReentrantReadWriteLock();
-
-
-        writeLocksCounter = CC.ASSERT && disableLocks? new AtomicInteger(0) : null;
 
         try{
-            writeLock_lock();
+            lock.writeLock().lock();
 
 
             phys = volFac.createPhysVolume();
@@ -109,7 +102,7 @@ public abstract class Storage implements Engine {
             }
 
         }finally {
-            writeLock_unlock();
+            lock.writeLock().unlock();
         }
 
     }
@@ -135,51 +128,12 @@ public abstract class Storage implements Engine {
     }
 
 
-
-    protected void writeLock_lock() {
-        if(!disableLocks)
-            lock.writeLock().lock();
-        else if(CC.ASSERT && disableLocks){
-            int c = writeLocksCounter.incrementAndGet();
-            if(c!=1) throw new InternalError("more then one writer");
-        }
-
-
-    }
-
-    protected void writeLock_unlock() {
-        if(!disableLocks)
-            lock.writeLock().unlock();
-        else if(CC.ASSERT && disableLocks){
-            int c = writeLocksCounter.decrementAndGet();
-            if(c!=0) throw new InternalError("more then one writer");
-        }
-
-    }
-
     protected void writeLock_checkLocked() {
-        if(CC.ASSERT && !disableLocks && !lock.writeLock().isHeldByCurrentThread())
+        if(CC.ASSERT && !lock.writeLock().isHeldByCurrentThread())
             throw new IllegalAccessError("no write lock");
-        if(CC.ASSERT && disableLocks && writeLocksCounter.get()>1)
-            throw new InternalError("more then one writer");
     }
 
 
-
-    protected void readLock_unlock() {
-        if(CC.ASSERT && disableLocks && writeLocksCounter.get()!=0)
-            throw new InternalError("writer operates");
-        if(!disableLocks)
-            lock.readLock().unlock();
-    }
-
-    protected void readLock_lock() {
-        if(!disableLocks)
-            lock.readLock().lock();
-        if(CC.ASSERT && disableLocks && writeLocksCounter.get()!=0)
-            throw new InternalError("writer operates");
-
-    }
 
     final int freePhysRecSize2FreeSlot(final int size){
         if(CC.ASSERT && size>MAX_RECORD_SIZE) throw new IllegalArgumentException("too big record");
@@ -196,7 +150,7 @@ public abstract class Storage implements Engine {
     @Override
     public void close() {
         try{
-            writeLock_lock();
+            lock.writeLock().lock();
 
             phys.close();
             index.close();
@@ -208,7 +162,7 @@ public abstract class Storage implements Engine {
             index = null;
 
         }finally {
-            writeLock_unlock();
+            lock.writeLock().unlock();
         }
     }
 
@@ -307,7 +261,7 @@ public abstract class Storage implements Engine {
     @Override
     public <A> boolean recordCompareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer){
         try{
-            writeLock_lock();
+            lock.writeLock().lock();
             Object oldVal = recordGet(recid, serializer);
             if((oldVal==null && expectedOldValue==null)|| (oldVal!=null && oldVal.equals(expectedOldValue))){
                 recordUpdate(recid, newValue, serializer);
@@ -316,7 +270,7 @@ public abstract class Storage implements Engine {
                 return false;
             }
         }finally{
-            writeLock_unlock();
+            lock.writeLock().unlock();
         }
 
     }

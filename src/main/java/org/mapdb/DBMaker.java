@@ -52,7 +52,6 @@ public class DBMaker {
     protected boolean _journalEnabled = true;
 
     protected boolean _asyncWriteEnabled = true;
-    protected boolean _asyncSerializationEnabled = true;
     protected int _asyncFlushDelay = 0;
     protected boolean _asyncThreadDaemon = false;
 
@@ -73,6 +72,7 @@ public class DBMaker {
     protected boolean _failOnWrongHeader = false;
 
     protected boolean _RAF = false;
+    protected boolean _powerSavingMode = false; //TODO add power saving option
 
     /** use static factory methods, or make subclass */
     protected DBMaker(){}
@@ -326,6 +326,7 @@ public class DBMaker {
     }
 
     /**
+     * //TODO put this nice comment somewhere
      * By default all objects are serialized in Background Writer Thread.
      * <p/>
      * This may improve performance. For example with single thread access, Async Serialization offloads
@@ -353,10 +354,7 @@ public class DBMaker {
      *
      * @return this builder
      */
-    public DBMaker asyncSerializationDisable(){
-        this._asyncSerializationEnabled = false;
-        return this;
-    }
+
 
     /**
      * Set flush iterval for write cache, by default is 0
@@ -520,12 +518,12 @@ public class DBMaker {
                 Volume.fileFactory(_readOnly, _RAF, _file);
 
         Engine engine = _journalEnabled ?
-                new StorageJournaled(folFac, _asyncWriteEnabled, _appendOnlyEnabled, _deleteFilesAfterClose, _failOnWrongHeader, _readOnly):
-                new StorageDirect(folFac, _asyncWriteEnabled, _appendOnlyEnabled, _deleteFilesAfterClose , _failOnWrongHeader, _readOnly);
+                new StorageJournaled(folFac,  _appendOnlyEnabled, _deleteFilesAfterClose, _failOnWrongHeader, _readOnly):
+                new StorageDirect(folFac, _appendOnlyEnabled, _deleteFilesAfterClose , _failOnWrongHeader, _readOnly);
 
         AsyncWriteEngine engineAsync = null;
         if(_asyncWriteEnabled && !_readOnly){
-            engineAsync = new AsyncWriteEngine(engine, _asyncSerializationEnabled, _asyncFlushDelay, _asyncThreadDaemon);
+            engineAsync = new AsyncWriteEngine(engine,  _asyncThreadDaemon, _powerSavingMode);
             engine = engineAsync;
         }
 
@@ -542,7 +540,7 @@ public class DBMaker {
             engine = new ByteTransformEngine(engine, CompressLZF.SERIALIZER);
         }
 
-
+        engine = new SnapshotEngine(engine, _cache==CACHE_DISABLE? 0 : 1024);
 
         if(_cache == CACHE_DISABLE){
             //do not wrap engine in cache
@@ -557,6 +555,7 @@ public class DBMaker {
         }else if (_cache == CACHE_LRU){
             engine = new CacheLRU(engine, _cacheSize);
         }
+
 
         if(_readOnly)
             engine = new ReadOnlyEngine(engine);

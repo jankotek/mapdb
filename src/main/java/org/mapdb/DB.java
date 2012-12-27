@@ -61,7 +61,7 @@ public class DB {
      * @param <V> value
      * @return map
      */
-    synchronized public <K,V> ConcurrentMap<K,V> getHashMap(String name){
+    synchronized public <K,V> HTreeMap<K,V> getHashMap(String name){
         checkNotClosed();
         HTreeMap<K,V> ret = (HTreeMap<K, V>) getFromWeakCollection(name);
         if(ret!=null) return ret;
@@ -80,7 +80,7 @@ public class DB {
     }
 
 
-    synchronized public <K,V> ConcurrentMap<K,V> createHashMap(
+    synchronized public <K,V> HTreeMap<K,V> createHashMap(
             String name, Serializer<K> keySerializer, Serializer<V> valueSerializer){
         checkNameNotExists(name);
         HTreeMap<K,V> ret = new HTreeMap<K,V>(engine, true, defaultSerializer, keySerializer, valueSerializer);
@@ -137,7 +137,7 @@ public class DB {
      * @param <V> value
      * @return map
      */
-    synchronized public <K,V> ConcurrentNavigableMap<K,V> getTreeMap(String name){
+    synchronized public <K,V> BTreeMap<K,V> getTreeMap(String name){
         checkNotClosed();
         BTreeMap<K,V> ret = (BTreeMap<K,V>) getFromWeakCollection(name);
         if(ret!=null) return ret;
@@ -156,7 +156,7 @@ public class DB {
     }
 
 
-    synchronized public <K,V> ConcurrentNavigableMap<K,V> createTreeMap(
+    synchronized public <K,V> BTreeMap<K,V> createTreeMap(
             String name, int nodeSize, boolean valuesStoredOutsideNodes,
             Serializer<K[]> keySerializer, Serializer<V> valueSerializer, Comparator<K> comparator){
         checkNameNotExists(name);
@@ -261,6 +261,11 @@ public class DB {
 
     synchronized public void defrag(){
 
+    }
+
+    synchronized public DB snapshot(){
+        Engine snapshot = SnapshotEngine.createSnapshotFor(engine);
+        return new DB (snapshot);
     }
 
     public Serializer getDefaultSerializer() {

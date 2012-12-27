@@ -112,7 +112,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
 
     static class BTreeRootSerializer implements  Serializer<BTreeRoot>{
-        private final Serializer defaultSerializer;
+        protected final Serializer defaultSerializer;
 
         BTreeRootSerializer(Serializer defaultSerializer) {
             this.defaultSerializer = defaultSerializer;
@@ -1882,5 +1882,10 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
     }
 
+
+    public NavigableMap<K,V> snapshot(){
+        Engine snapshot = SnapshotEngine.createSnapshotFor(engine);
+        return new BTreeMap<K, V>(snapshot,treeRecid, btreeRootSerializer.defaultSerializer);
+    }
 
 }
