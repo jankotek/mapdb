@@ -41,7 +41,7 @@ class CasStressTest{
     fun stress(engine:Engine){
         Assume.assumeTrue(CC.FULL_TEST);
 
-        val recid = engine.recordPut(0,Serializer.INTEGER_SERIALIZER);
+        val recid = engine.put(0,Serializer.INTEGER_SERIALIZER);
 
         val exec = Executors.newCachedThreadPool()
         for(i in 1..threadNum){
@@ -49,8 +49,8 @@ class CasStressTest{
                 for(j in 1..count){
                     var incremented = false;
                     while(!incremented){
-                        val oldVal = engine.recordGet(recid, Serializer.INTEGER_SERIALIZER)!!;
-                        incremented = engine.recordCompareAndSwap(recid, oldVal, oldVal+1, Serializer.INTEGER_SERIALIZER)
+                        val oldVal = engine.get(recid, Serializer.INTEGER_SERIALIZER)!!;
+                        incremented = engine.compareAndSwap(recid, oldVal, oldVal+1, Serializer.INTEGER_SERIALIZER)
                     }
                 }
             });
@@ -59,7 +59,7 @@ class CasStressTest{
         exec.shutdown();
         while(!exec.awaitTermination(1,TimeUnit.DAYS)){}
 
-        val finalCount = engine.recordGet(recid, Serializer.INTEGER_SERIALIZER);
+        val finalCount = engine.get(recid, Serializer.INTEGER_SERIALIZER);
         assertEquals(threadNum * count, finalCount)
         engine.close();
 

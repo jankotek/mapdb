@@ -107,14 +107,14 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
     }
 
     @Override
-    public <A> long recordPut(A value, Serializer<A> serializer) {
-        long recid = engine.recordPut(value, serializer);
+    public <A> long put(A value, Serializer<A> serializer) {
+        long recid = engine.put(value, serializer);
         putItemIntoCache(recid, value);
         return recid;
     }
 
     @Override
-    public <A> A recordGet(long recid, Serializer<A> serializer) {
+    public <A> A get(long recid, Serializer<A> serializer) {
         CacheItem item = items.get(recid);
         if(item!=null){
             Object o = item.get();
@@ -127,7 +127,7 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
 
         try{
             locks.lock(recid);
-            Object value = engine.recordGet(recid, serializer);
+            Object value = engine.get(recid, serializer);
             if(value!=null) putItemIntoCache(recid, value);
 
             return (A) value;
@@ -138,11 +138,11 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
     }
 
     @Override
-    public <A> void recordUpdate(long recid, A value, Serializer<A> serializer) {
+    public <A> void update(long recid, A value, Serializer<A> serializer) {
         try{
             locks.lock(recid);
             putItemIntoCache(recid, value);
-            engine.recordUpdate(recid, value, serializer);
+            engine.update(recid, value, serializer);
         }finally {
             locks.unlock(recid);
         }
@@ -155,11 +155,11 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
     }
 
     @Override
-    public void recordDelete(long recid) {
+    public void delete(long recid) {
         try{
             locks.lock(recid);
             items.remove(recid);
-            engine.recordDelete(recid);
+            engine.delete(recid);
         }finally {
             locks.unlock(recid);
         }
@@ -167,7 +167,7 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
     }
 
     @Override
-    public <A> boolean recordCompareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+    public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
         try{
             locks.lock(recid);
             CacheItem item = items.get(recid);
@@ -176,10 +176,10 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
                     (oldValue == expectedOldValue || oldValue.equals(expectedOldValue))){
                 //found matching entry in cache, so just update and return true
                 putItemIntoCache(recid, newValue);
-                engine.recordUpdate(recid, newValue, serializer);
+                engine.update(recid, newValue, serializer);
                 return true;
             }else{
-                boolean ret = engine.recordCompareAndSwap(recid, expectedOldValue, newValue, serializer);
+                boolean ret = engine.compareAndSwap(recid, expectedOldValue, newValue, serializer);
                 if(ret) putItemIntoCache(recid, newValue);
                 return ret;
             }

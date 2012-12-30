@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 /**
- * Wraps ByteBuffers and provides DataInput
+ * Wraps {@link ByteBuffer} and provides {@link DataInput}
  *
  * @author Jan Kotek
  */
@@ -36,6 +36,7 @@ public final class DataInput2 implements DataInput {
     }
 
     public DataInput2(byte[] b) {
+        //TODO create implementation which uses raw byte[] and replace all refs
         this(ByteBuffer.wrap(b),0);
     }
 

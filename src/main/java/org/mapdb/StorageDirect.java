@@ -44,7 +44,7 @@ public class StorageDirect extends Storage implements Engine {
 
 
     @Override
-    public <A> long recordPut(A value, Serializer<A> serializer) {
+    public <A> long put(A value, Serializer<A> serializer) {
         try{
             DataOutput2 out = new DataOutput2();
             serializer.serialize(out,value);
@@ -111,7 +111,7 @@ public class StorageDirect extends Storage implements Engine {
 
 
     @Override
-    public <A> A  recordGet(long recid, Serializer<A> serializer) {
+    public <A> A get(long recid, Serializer<A> serializer) {
         try{
             try{
                 lock.readLock().lock();
@@ -130,7 +130,7 @@ public class StorageDirect extends Storage implements Engine {
 
 
     @Override
-    public <A> void recordUpdate(long recid, A value, Serializer<A> serializer){
+    public <A> void update(long recid, A value, Serializer<A> serializer){
         try{
             DataOutput2 out = new DataOutput2();
             serializer.serialize(out,value);
@@ -179,7 +179,7 @@ public class StorageDirect extends Storage implements Engine {
 
 
     @Override
-   public void recordDelete(long recid){
+   public void delete(long recid){
         try{
             lock.writeLock().lock();
             final long oldIndexVal = index.getLong(recid * 8);
@@ -200,7 +200,7 @@ public class StorageDirect extends Storage implements Engine {
 
     @Override
     public void rollback() {
-        throw new IllegalAccessError("Can not rollback, transactions disabled.");
+        throw new UnsupportedOperationException("Can not rollback, transactions disabled.");
     }
 
 

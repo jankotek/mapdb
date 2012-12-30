@@ -20,30 +20,30 @@ public class StorageDirectTest extends StorageTestCase {
     }
 
     @Test public void testSetGet(){
-        long recid  = engine.recordPut((long) 10000, Serializer.LONG_SERIALIZER);
-        Long  s2 = engine.recordGet(recid, Serializer.LONG_SERIALIZER);
+        long recid  = engine.put((long) 10000, Serializer.LONG_SERIALIZER);
+        Long  s2 = engine.get(recid, Serializer.LONG_SERIALIZER);
         assertEquals(s2, Long.valueOf(10000));
     }
 
 
     @Test public void test_index_record_delete(){
-        long recid = engine.recordPut(1000L, Serializer.LONG_SERIALIZER);
+        long recid = engine.put(1000L, Serializer.LONG_SERIALIZER);
         commit();
         assertEquals(1, countIndexRecords());
-        engine.recordDelete(recid);
+        engine.delete(recid);
         commit();
         assertEquals(0, countIndexRecords());
     }
 
     @Test public void test_index_record_delete_and_reusef(){
-        long recid = engine.recordPut(1000L, Serializer.LONG_SERIALIZER);
+        long recid = engine.put(1000L, Serializer.LONG_SERIALIZER);
         commit();
         assertEquals(1, countIndexRecords());
         assertEquals(StorageDirect.INDEX_OFFSET_START, recid);
-        engine.recordDelete(recid);
+        engine.delete(recid);
         commit();
         assertEquals(0, countIndexRecords());
-        long recid2 = engine.recordPut(1000L, Serializer.LONG_SERIALIZER);
+        long recid2 = engine.put(1000L, Serializer.LONG_SERIALIZER);
         commit();
         //test that previously deleted index slot was reused
         assertEquals(recid, recid2);
@@ -56,17 +56,17 @@ public class StorageDirectTest extends StorageTestCase {
 
         List<Long> recids= new ArrayList<Long>();
         for(int i = 0;i<MAX;i++){
-            recids.add(engine.recordPut(0L, Serializer.LONG_SERIALIZER));
+            recids.add(engine.put(0L, Serializer.LONG_SERIALIZER));
         }
 
         for(long recid:recids){
-            engine.recordDelete(recid);
+            engine.delete(recid);
         }
 
         //now allocate again second recid list
         List<Long> recids2= new ArrayList<Long>();
         for(int i = 0;i<MAX;i++){
-            recids2.add(engine.recordPut(0L, Serializer.LONG_SERIALIZER));
+            recids2.add(engine.put(0L, Serializer.LONG_SERIALIZER));
         }
 
         //second list should be reverse of first, as Linked Offset List is LIFO
@@ -78,10 +78,10 @@ public class StorageDirectTest extends StorageTestCase {
 
 
     @Test public void test_phys_record_reused(){
-        final long recid = engine.recordPut(1L, Serializer.LONG_SERIALIZER);
+        final long recid = engine.put(1L, Serializer.LONG_SERIALIZER);
         final long physRecid = getIndexRecord(recid);
-        engine.recordDelete(recid);
-        final long recid2 = engine.recordPut(1L, Serializer.LONG_SERIALIZER);
+        engine.delete(recid);
+        final long recid2 = engine.put(1L, Serializer.LONG_SERIALIZER);
 
         assertEquals(recid, recid2);
         assertEquals(physRecid, getIndexRecord(recid));
@@ -92,15 +92,15 @@ public class StorageDirectTest extends StorageTestCase {
 
     @Test public void test_index_stores_record_size() throws IOException {
 
-        final long recid = engine.recordPut(1, Serializer.INTEGER_SERIALIZER);
+        final long recid = engine.put(1, Serializer.INTEGER_SERIALIZER);
         commit();
         assertEquals(4, engine.index.getUnsignedShort(recid * 8));
-        assertEquals(Integer.valueOf(1), engine.recordGet(recid, Serializer.INTEGER_SERIALIZER));
+        assertEquals(Integer.valueOf(1), engine.get(recid, Serializer.INTEGER_SERIALIZER));
 
-        engine.recordUpdate(recid, 1L, Serializer.LONG_SERIALIZER);
+        engine.update(recid, 1L, Serializer.LONG_SERIALIZER);
         commit();
         assertEquals(8, engine.index.getUnsignedShort(recid * 8));
-        assertEquals(Long.valueOf(1), engine.recordGet(recid, Serializer.LONG_SERIALIZER));
+        assertEquals(Long.valueOf(1), engine.get(recid, Serializer.LONG_SERIALIZER));
 
     }
 
@@ -289,13 +289,13 @@ public class StorageDirectTest extends StorageTestCase {
         Set<Long> recids = new TreeSet<Long>();
 
         for(int i = 0; i<1e5;i++){
-            long recid = engine.recordPut(data, Serializer.BYTE_ARRAY_SERIALIZER);
+            long recid = engine.put(data, Serializer.BYTE_ARRAY_SERIALIZER);
             recids.add(recid);
 
 //            if(i%10000==0){
 //            System.out.println(recid);
 //            for(Long l:recids){
-//                byte[] b = engine.recordGet(l, Serializer.BYTE_ARRAY_SERIALIZER);
+//                byte[] b = engine.get(l, Serializer.BYTE_ARRAY_SERIALIZER);
 //                int hash = Arrays.hashCode(b);
 //                assertEquals(l,dataHash, hash);
 //            }
@@ -308,7 +308,7 @@ public class StorageDirectTest extends StorageTestCase {
 
 
         for(Long l:recids){
-            byte[] b = engine.recordGet(l, Serializer.BYTE_ARRAY_SERIALIZER);
+            byte[] b = engine.get(l, Serializer.BYTE_ARRAY_SERIALIZER);
             int hash = Arrays.hashCode(b);
             assertEquals(dataHash, hash);
         }
@@ -317,12 +317,12 @@ public class StorageDirectTest extends StorageTestCase {
 
 
     @Test public void test_store_reopen(){
-        long recid = engine.recordPut("aaa", Serializer.STRING_SERIALIZER);
+        long recid = engine.put("aaa", Serializer.STRING_SERIALIZER);
 
         engine.commit();
         reopenStore();
 
-        String aaa = engine.recordGet(recid, Serializer.STRING_SERIALIZER);
+        String aaa = engine.get(recid, Serializer.STRING_SERIALIZER);
         assertEquals("aaa",aaa);
     }
 
@@ -336,14 +336,14 @@ public class StorageDirectTest extends StorageTestCase {
         List<Long> recids = new ArrayList<Long>();
 
         for(int i = 0;i<max;i++){
-            long recid = engine.recordPut(data,Serializer.BYTE_ARRAY_SERIALIZER);
+            long recid = engine.put(data, Serializer.BYTE_ARRAY_SERIALIZER);
             recids.add(recid);
         }
 
         reopenStore();
 
         for(long recid:recids){
-            byte[] b  = engine.recordGet(recid, Serializer.BYTE_ARRAY_SERIALIZER);
+            byte[] b  = engine.get(recid, Serializer.BYTE_ARRAY_SERIALIZER);
             assertEquals(hash,Arrays.hashCode(b));
         }
     }
@@ -352,29 +352,29 @@ public class StorageDirectTest extends StorageTestCase {
         StorageDirect engine = new StorageDirect(Volume.memoryFactory(false));
         Map<Long, Integer> recids = new HashMap<Long,Integer>();
         for(int i = 0;i<1000;i++){
-            long recid = engine.recordPut(i, Serializer.BASIC_SERIALIZER);
+            long recid = engine.put(i, Serializer.BASIC_SERIALIZER);
             recids.put(recid, i);
         }
         for(Long recid: recids.keySet()){
-            assertEquals(recids.get(recid), engine.recordGet(recid, Serializer.BASIC_SERIALIZER));
+            assertEquals(recids.get(recid), engine.get(recid, Serializer.BASIC_SERIALIZER));
         }
     }
 
     @Test public void large_record(){
         byte[] b = new byte[100000];
         Arrays.fill(b, (byte) 111);
-        long recid = engine.recordPut(b, Serializer.BYTE_ARRAY_SERIALIZER);
-        byte[] b2 = engine.recordGet(recid, Serializer.BYTE_ARRAY_SERIALIZER);
+        long recid = engine.put(b, Serializer.BYTE_ARRAY_SERIALIZER);
+        byte[] b2 = engine.get(recid, Serializer.BYTE_ARRAY_SERIALIZER);
         assertArrayEquals(b,b2);
     }
 
     @Test public void large_record_update(){
         byte[] b = new byte[100000];
         Arrays.fill(b, (byte) 111);
-        long recid = engine.recordPut(b, Serializer.BYTE_ARRAY_SERIALIZER);
+        long recid = engine.put(b, Serializer.BYTE_ARRAY_SERIALIZER);
         Arrays.fill(b, (byte)222);
-        engine.recordUpdate(recid, b, Serializer.BYTE_ARRAY_SERIALIZER);
-        byte[] b2 = engine.recordGet(recid, Serializer.BYTE_ARRAY_SERIALIZER);
+        engine.update(recid, b, Serializer.BYTE_ARRAY_SERIALIZER);
+        byte[] b2 = engine.get(recid, Serializer.BYTE_ARRAY_SERIALIZER);
         assertArrayEquals(b,b2);
 
     }
@@ -382,16 +382,16 @@ public class StorageDirectTest extends StorageTestCase {
     @Test public void large_record_delete(){
         byte[] b = new byte[100000];
         Arrays.fill(b, (byte) 111);
-        long recid = engine.recordPut(b, Serializer.BYTE_ARRAY_SERIALIZER);
-        engine.recordDelete(recid);
+        long recid = engine.put(b, Serializer.BYTE_ARRAY_SERIALIZER);
+        engine.delete(recid);
     }
 
 
     @Test public void large_record_larger(){
         byte[] b = new byte[10000000];
         Arrays.fill(b, (byte) 111);
-        long recid = engine.recordPut(b, Serializer.BYTE_ARRAY_SERIALIZER);
-        byte[] b2 = engine.recordGet(recid, Serializer.BYTE_ARRAY_SERIALIZER);
+        long recid = engine.put(b, Serializer.BYTE_ARRAY_SERIALIZER);
+        byte[] b2 = engine.get(recid, Serializer.BYTE_ARRAY_SERIALIZER);
         assertArrayEquals(b,b2);
     }
 

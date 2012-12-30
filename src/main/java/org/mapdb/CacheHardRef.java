@@ -25,14 +25,12 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Cache created objects using hard reference.
- * It auto-clears on low memory to prevent OutOfMemoryException.
+ * It uses JMX extension to detect when free memory is running out (less than 25%) and clears cache content than.
  *
  * @author Jan Kotek
  */
 public class CacheHardRef extends CacheLRU {
 
-
-    protected static final Object NULL = new Object();
 
     protected final Runnable lowMemoryListener = new Runnable() {
         @Override
@@ -88,6 +86,9 @@ public class CacheHardRef extends CacheLRU {
     };
 
 
+    /**
+     * add listener which is called when free memory is running low.
+     */
     public static synchronized void addMemoryLowListener(Runnable listener) {
         memoryLowListeners.add(listener);
         if(memoryLowListeners.size()==1){
@@ -98,6 +99,9 @@ public class CacheHardRef extends CacheLRU {
 
     }
 
+    /**
+     * removes free memory low listener
+     */
     public static  synchronized void  removeMemoryLowListener(Runnable listener) {
         memoryLowListeners.remove(listener);
         if(memoryLowListeners.isEmpty()){

@@ -16,6 +16,8 @@
 
 package org.mapdb;
 
+import com.sun.org.apache.bcel.internal.generic.ACONST_NULL;
+
 /**
  * Fixed size cache which uses hash table.
  * Is thread-safe and requires only minimal locking.
@@ -52,9 +54,9 @@ public class CacheHashTable extends EngineWrapper implements Engine {
     }
 
     @Override
-    public <A> long recordPut(A value, Serializer<A> serializer) {
+    public <A> long put(A value, Serializer<A> serializer) {
 
-        final long recid = engine.recordPut(value, serializer);
+        final long recid = engine.put(value, serializer);
         final int pos = position(recid);
         try{
             locks.lock(pos);
@@ -67,7 +69,7 @@ public class CacheHashTable extends EngineWrapper implements Engine {
 
     @Override
     @SuppressWarnings("unchecked")
-    public <A> A recordGet(long recid, Serializer<A> serializer) {
+    public <A> A get(long recid, Serializer<A> serializer) {
         final int pos = position(recid);
         HashItem item = items[pos];
         if(item!=null && recid == item.key)
@@ -76,7 +78,7 @@ public class CacheHashTable extends EngineWrapper implements Engine {
         try{
             locks.lock(pos);
             //not in cache, fetch and add
-            final A value = engine.recordGet(recid, serializer);
+            final A value = engine.get(recid, serializer);
             if(value!=null)
                 items[pos] = new HashItem(recid, value);
             return value;
@@ -90,19 +92,19 @@ public class CacheHashTable extends EngineWrapper implements Engine {
     }
 
     @Override
-    public <A> void recordUpdate(long recid, A value, Serializer<A> serializer) {
+    public <A> void update(long recid, A value, Serializer<A> serializer) {
         final int pos = position(recid);
         try{
             locks.lock(pos);
             items[pos] = new HashItem(recid, value);
-            engine.recordUpdate(recid, value, serializer);
+            engine.update(recid, value, serializer);
         }finally {
             locks.unlock(pos);
         }
     }
 
     @Override
-    public <A> boolean recordCompareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+    public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
         final int pos = position(recid);
         try{
             locks.lock(pos);
@@ -110,10 +112,10 @@ public class CacheHashTable extends EngineWrapper implements Engine {
             if(item!=null && item.key == recid && (item.val == expectedOldValue || item.val.equals(expectedOldValue))){
                 //found matching entry in cache, so just update and return true
                 items[pos] = new HashItem(recid, newValue);
-                engine.recordUpdate(recid, newValue, serializer);
+                engine.update(recid, newValue, serializer);
                 return true;
             }else{
-                boolean ret = engine.recordCompareAndSwap(recid, expectedOldValue, newValue, serializer);
+                boolean ret = engine.compareAndSwap(recid, expectedOldValue, newValue, serializer);
                 if(ret) items[pos] = new HashItem(recid, newValue);
                 return ret;
             }
@@ -123,11 +125,11 @@ public class CacheHashTable extends EngineWrapper implements Engine {
     }
 
     @Override
-    public void recordDelete(long recid) {
+    public void delete(long recid) {
         final int pos = position(recid);
         try{
             locks.lock(recid);
-            engine.recordDelete(recid);
+            engine.delete(recid);
             HashItem item = items[pos];
             if(item!=null && recid == item.key)
             items[pos] = null;

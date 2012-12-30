@@ -28,7 +28,7 @@ public class HTreeMap2Test extends StorageTestCase {
     static private String recursiveToString(long r, String prefix, Engine engine) {
         prefix+="  ";
         String s="";
-        long[][] nn = engine.recordGet(r, HTreeMap.DIR_SERIALIZER);
+        long[][] nn = engine.get(r, HTreeMap.DIR_SERIALIZER);
         if(nn==null){
             s+=prefix+"null,\n";
         }else{
@@ -48,11 +48,11 @@ public class HTreeMap2Test extends StorageTestCase {
                             s+=prefix+"    "+"Array.asList(";
                             TreeMap m = new TreeMap();
                             HTreeMap.LinkedNode node =
-                                    (HTreeMap.LinkedNode) engine.recordGet
-                                            (r2>>>1,new HTreeMap(engine,true,null, null, null).LN_SERIALIZER );
+                                    (HTreeMap.LinkedNode) engine.get
+                                            (r2 >>> 1, new HTreeMap(engine, true, null, null, null).LN_SERIALIZER);
                             while(node!=null){
                                 m.put(node.key, node.value);
-                                node = (HTreeMap.LinkedNode) engine.recordGet (node.next,new HTreeMap(engine,true,null,null, null).LN_SERIALIZER );
+                                node = (HTreeMap.LinkedNode) engine.get(node.next, new HTreeMap(engine, true, null, null, null).LN_SERIALIZER);
                             }
                             for(Object k:m.keySet()){
                                 s+= k+","+m.get(k)+",";
@@ -163,7 +163,7 @@ public class HTreeMap2Test extends StorageTestCase {
         }
 
         //segment should not be expanded
-        long[][] l = engine.recordGet(m.segmentRecids[0], HTreeMap.DIR_SERIALIZER);
+        long[][] l = engine.get(m.segmentRecids[0], HTreeMap.DIR_SERIALIZER);
         assertNotNull(l[0]);
         assertEquals(1, l[0][0]&1);  //last bite indicates leaf
         for(int j=1;j<8;j++){ //all others should be null
@@ -173,7 +173,7 @@ public class HTreeMap2Test extends StorageTestCase {
 
         for(long i = HTreeMap.BUCKET_OVERFLOW -1; i>=0; i--){
             assertTrue(recid!=0);
-            HTreeMap.LinkedNode  n = (HTreeMap.LinkedNode) engine.recordGet(recid, m.LN_SERIALIZER);
+            HTreeMap.LinkedNode  n = (HTreeMap.LinkedNode) engine.get(recid, m.LN_SERIALIZER);
             assertEquals(i, n.key);
             assertEquals(i, n.value);
             recid = n.next;
@@ -184,7 +184,7 @@ public class HTreeMap2Test extends StorageTestCase {
 
         recid = m.segmentRecids[0];
 
-        l = engine.recordGet(recid, HTreeMap.DIR_SERIALIZER);
+        l = engine.get(recid, HTreeMap.DIR_SERIALIZER);
         assertNotNull(l[0]);
         for(int j=1;j<8;j++){ //all others should be null
            assertEquals(null, l[j]);
@@ -198,7 +198,7 @@ public class HTreeMap2Test extends StorageTestCase {
         recid = l[0][0]>>>1;
 
 
-        l = engine.recordGet(recid, HTreeMap.DIR_SERIALIZER);
+        l = engine.get(recid, HTreeMap.DIR_SERIALIZER);
         assertNotNull(l[0]);
         for(int j=1;j<8;j++){ //all others should be null
             assertEquals(null, l[j]);
@@ -213,7 +213,7 @@ public class HTreeMap2Test extends StorageTestCase {
 
         for(long i = 0; i<= HTreeMap.BUCKET_OVERFLOW; i++){
             assertTrue(recid!=0);
-            HTreeMap.LinkedNode n = (HTreeMap.LinkedNode) engine.recordGet(recid, m.LN_SERIALIZER);
+            HTreeMap.LinkedNode n = (HTreeMap.LinkedNode) engine.get(recid, m.LN_SERIALIZER);
 
             assertNotNull(n);
             assertEquals(i, n.key);
@@ -307,7 +307,7 @@ public class HTreeMap2Test extends StorageTestCase {
 
         int countSegments = 0;
         for(long segmentRecid:m.segmentRecids){
-            if(engine.recordGet(segmentRecid, HTreeMap.DIR_SERIALIZER)!=null)
+            if(engine.get(segmentRecid, HTreeMap.DIR_SERIALIZER)!=null)
                 countSegments++;
         }
 

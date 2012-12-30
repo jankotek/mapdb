@@ -23,7 +23,7 @@ public class EncryptionXTEATest {
                 .cacheDisable()
                 .asyncWriteDisable()
                 .make();
-        long recid = d.engine.recordPut("testar",Serializer.STRING_SERIALIZER);
-        assertEquals("testar",d.engine.recordGet(recid, Serializer.STRING_SERIALIZER));
+        long recid = d.engine.put("testar", Serializer.STRING_SERIALIZER);
+        assertEquals("testar",d.engine.get(recid, Serializer.STRING_SERIALIZER));
     }
 }

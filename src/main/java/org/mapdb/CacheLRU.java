@@ -4,8 +4,10 @@ package org.mapdb;
  * Least Recently Used cache.
  * If cache is full it removes less used items to make a space
  */
-//TODO check all caches for null values
 public class CacheLRU extends EngineWrapper {
+
+    /** used instead of null value */
+    protected static final Object NULL = new Object();
 
     protected LongMap cache;
 
@@ -22,12 +24,11 @@ public class CacheLRU extends EngineWrapper {
     }
 
     @Override
-    public <A> long recordPut(A value, Serializer<A> serializer) {
-        long recid =  super.recordPut(value, serializer);
+    public <A> long put(A value, Serializer<A> serializer) {
+        long recid =  super.put(value, serializer);
         try{
             locks.lock(recid);
-            if(value!=null)
-                cache.put(recid, value);
+            cache.put(recid, value!=null? value : NULL);
         }finally {
             locks.unlock(recid);
         }
@@ -35,12 +36,12 @@ public class CacheLRU extends EngineWrapper {
     }
 
     @Override
-    public <A> A recordGet(long recid, Serializer<A> serializer) {
+    public <A> A get(long recid, Serializer<A> serializer) {
         Object ret = cache.get(recid);
-        if(ret!=null) return (A) ret;
+        if(ret!=null) return ret==NULL? null: (A) ret;
         try{
             locks.lock(recid);
-            ret = super.recordGet(recid, serializer);
+            ret = super.get(recid, serializer);
             if(ret!=null) cache.put(recid, ret);
             return (A) ret;
         }finally {
@@ -49,39 +50,40 @@ public class CacheLRU extends EngineWrapper {
     }
 
     @Override
-    public <A> void recordUpdate(long recid, A value, Serializer<A> serializer) {
+    public <A> void update(long recid, A value, Serializer<A> serializer) {
         try{
             locks.lock(recid);
-            cache.put(recid, value);
-            super.recordUpdate(recid, value, serializer);
+            cache.put(recid, value==null?NULL:value);
+            super.update(recid, value, serializer);
         }finally {
             locks.unlock(recid);
         }
     }
 
     @Override
-    public void recordDelete(long recid) {
+    public void delete(long recid) {
         try{
             locks.lock(recid);
             cache.remove(recid);
-            super.recordDelete(recid);
+            super.delete(recid);
         }finally {
             locks.unlock(recid);
         }
     }
 
     @Override
-    public <A> boolean recordCompareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+    public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
         try{
             locks.lock(recid);
             Object oldValue = cache.get(recid);
-            if(oldValue!=null && (oldValue == expectedOldValue || oldValue.equals(expectedOldValue))){
+            if(oldValue!=null && (oldValue == expectedOldValue || oldValue.equals(expectedOldValue)
+                    || (oldValue==NULL &&newValue==null))){
                 //found matching entry in cache, so just update and return true
-                cache.put(recid, newValue);
-                engine.recordUpdate(recid, newValue, serializer);
+                cache.put(recid, newValue==null?NULL:newValue);
+                engine.update(recid, newValue, serializer);
                 return true;
             }else{
-                boolean ret = engine.recordCompareAndSwap(recid, expectedOldValue, newValue, serializer);
+                boolean ret = engine.compareAndSwap(recid, expectedOldValue, newValue, serializer);
                 if(ret) cache.put(recid, newValue);
                 return ret;
             }

@@ -20,7 +20,6 @@ package org.mapdb;
 import java.io.IOError;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -166,6 +165,11 @@ public abstract class Storage implements Engine {
         }
     }
 
+    @Override
+    public boolean isClosed(){
+        return index == null;
+    }
+
     protected  <A> A recordGet2(long indexValue, Volume data, Serializer<A> serializer) throws IOException {
         final long dataPos = indexValue & PHYS_OFFSET_MASK;
         final int dataSize = (int) (indexValue>>>48);
@@ -259,12 +263,12 @@ public abstract class Storage implements Engine {
     }
 
     @Override
-    public <A> boolean recordCompareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer){
+    public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer){
         try{
             lock.writeLock().lock();
-            Object oldVal = recordGet(recid, serializer);
+            Object oldVal = get(recid, serializer);
             if((oldVal==null && expectedOldValue==null)|| (oldVal!=null && oldVal.equals(expectedOldValue))){
-                recordUpdate(recid, newValue, serializer);
+                update(recid, newValue, serializer);
                 return true;
             }else{
                 return false;

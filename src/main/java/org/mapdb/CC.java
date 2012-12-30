@@ -17,57 +17,51 @@
 package org.mapdb;
 
 /**
- * Compiler Configuration.
- * Static final booleans to enable/disable features you want.
- * Compiler and dead code elimination will take care of removing unwanted features from bytecode.
+ * Compiler Configuration. There are some static final boolean fields, which describe features MapDB was compiled with.
+ * <p/>
+ * MapDB can be compiled with/without some features. For example fine logging is useful for debuging,
+ * but should not be present in production version. Java does not have preprocessor so
+ * we use <a href="http://en.wikipedia.org/wiki/Dead_code_elimination">Dead code elimination</a> to achieve it.
+ * <p/>
+ * Typical usage:
+ * <pre>
+ *     if(CC.ASSERT && arg==null){
+ *         throw new IllegalArgumentException("Argument is null");
+ *     }
+ * </pre>
  *
  * @author  Jan Kotek
  */
 public interface CC {
 
     /**
-     * Compile with assertions.
-     */
-    boolean ASSERT = true;
-
-    /**
-     * Compile with more assertions, this may slow down JDBM significantly
-     */
-    boolean PARANOID = false;
-
-    /**
-     * Compile with trace logging statements (Logger.debug and Logger.trace)
-     */
-    boolean TRACE = false;
-
-    /**
-     * MapDB has some long running acceptance tests.
-     * For daily development it makes sense to skip those.
-     * This flag controls whatever all tests are run.
+     * MapDB has acceptance tests which may take long time to finish (<b>week!!!</b>).
+     * For daily development it makes sense to disable it..
+     * This flag controls if full test suite is ran.
      */
     boolean FULL_TEST = false;
 
 
+    /**
+     * Compile with basic assertions (boundaries, non null...).
+     */
+    boolean ASSERT = true;
 
     /**
-     * Log all binary writes into log.
+     * Compile even with more assertions and verifications.
+     * For example HashMap may check if keys implements hash function correctly.
+     * This may slow down MapDB thousands times
      */
-    boolean BB_LOG_WRITES = false;
+    boolean PARANOID = false;
 
-    boolean BB_CHECK_AVAILABLE_SIZE = false;
+    /**
+     * Compile with fine trace logging statements (Logger.debug and Logger.trace).
+     */
+    boolean LOG_TRACE = false;
 
+    /**
+     * Log lock/unlock events. Useful to diagnose deadlocks
+     */
     boolean LOG_LOCKS = false;
-
-
-    short STORE_FORMAT_VERSION = 10000 + 1;
-
-
-    /**
-     * Values in BTreeMap are stored as part of nodes.
-     * However if serialized size is greater then this,
-     * value is placed as separate record and loaded
-     * on request.
-     */
-    int MAX_BTREE_INLINE_VALUE_SIZE = 32;
 
 }

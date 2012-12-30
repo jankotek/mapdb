@@ -10,7 +10,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.LockSupport;
 
 import static org.junit.Assert.*;
 import static org.junit.Assume.assumeTrue;
@@ -30,14 +29,14 @@ public class AsyncWriteEngineTest extends TestFile{
 
 
     @Test public void write_fetch_update_delete() throws IOException {
-        long recid = engine.recordPut("aaa",Serializer.STRING_SERIALIZER);
-        assertEquals("aaa", engine.recordGet(recid, Serializer.STRING_SERIALIZER));
+        long recid = engine.put("aaa", Serializer.STRING_SERIALIZER);
+        assertEquals("aaa", engine.get(recid, Serializer.STRING_SERIALIZER));
         reopenStore();
-        assertEquals("aaa", engine.recordGet(recid, Serializer.STRING_SERIALIZER));
-        engine.recordUpdate(recid, "bbb", Serializer.STRING_SERIALIZER);
-        assertEquals("bbb", engine.recordGet(recid, Serializer.STRING_SERIALIZER));
+        assertEquals("aaa", engine.get(recid, Serializer.STRING_SERIALIZER));
+        engine.update(recid, "bbb", Serializer.STRING_SERIALIZER);
+        assertEquals("bbb", engine.get(recid, Serializer.STRING_SERIALIZER));
         reopenStore();
-        assertEquals("bbb", engine.recordGet(recid, Serializer.STRING_SERIALIZER));
+        assertEquals("bbb", engine.get(recid, Serializer.STRING_SERIALIZER));
 
     }
 
@@ -53,12 +52,12 @@ public class AsyncWriteEngineTest extends TestFile{
             final int num = i;
             new Thread(new Runnable() {
                 @Override public void run() {
-                    long recid = engine.recordPut("START-",Serializer.STRING_SERIALIZER);
+                    long recid = engine.put("START-", Serializer.STRING_SERIALIZER);
                     recids.put(num, recid);
                     for(int i = 0;i<updates; i++){
-                        String str= engine.recordGet(recid, Serializer.STRING_SERIALIZER);
+                        String str= engine.get(recid, Serializer.STRING_SERIALIZER);
                         str +=num+",";
-                        engine.recordUpdate(recid, str, Serializer.STRING_SERIALIZER);
+                        engine.update(recid, str, Serializer.STRING_SERIALIZER);
                     }
                     latch.countDown();
                 }
@@ -77,7 +76,7 @@ public class AsyncWriteEngineTest extends TestFile{
             for(int j=0;j<updates;j++)
                 expectedStr +=i+",";
 
-            String v = engine.recordGet(recid, Serializer.STRING_SERIALIZER);
+            String v = engine.get(recid, Serializer.STRING_SERIALIZER);
             assertEquals(expectedStr, v);
         }
     }
@@ -86,9 +85,9 @@ public class AsyncWriteEngineTest extends TestFile{
         final AtomicLong putCounter = new AtomicLong();
         StorageJournaled t = new StorageJournaled(fac){
             @Override
-            public <A> long recordPut(A value, Serializer<A> serializer) {
+            public <A> long put(A value, Serializer<A> serializer) {
                 putCounter.incrementAndGet();
-                return super.recordPut(value, serializer);
+                return super.put(value, serializer);
             }
         };
         AsyncWriteEngine a = new AsyncWriteEngine(t, false, false);
@@ -98,7 +97,7 @@ public class AsyncWriteEngineTest extends TestFile{
 
         ArrayList<Long> l = new ArrayList<Long>();
         for(int i=0;i<max;i++){
-            long recid = a.recordPut(b,Serializer.BASIC_SERIALIZER);
+            long recid = a.put(b, Serializer.BASIC_SERIALIZER);
             l.add(recid);
         }
         //make commit just after bunch of records was added,
@@ -116,7 +115,7 @@ public class AsyncWriteEngineTest extends TestFile{
         a = new AsyncWriteEngine(t, false, false);
         for(Integer i=0;i<max;i++){
             long recid = l.get(i);
-            assertArrayEquals(b, (byte[]) a.recordGet(recid, Serializer.BASIC_SERIALIZER));
+            assertArrayEquals(b, (byte[]) a.get(recid, Serializer.BASIC_SERIALIZER));
         }
     }
 

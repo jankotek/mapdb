@@ -38,34 +38,39 @@ public class EngineWrapper implements Engine{
     }
 
     @Override
-    public <A> long recordPut(A value, Serializer<A> serializer) {
-        return engine.recordPut(value, serializer);
+    public <A> long put(A value, Serializer<A> serializer) {
+        return engine.put(value, serializer);
     }
 
     @Override
-    public <A> A recordGet(long recid, Serializer<A> serializer) {
-        return engine.recordGet(recid, serializer);
+    public <A> A get(long recid, Serializer<A> serializer) {
+        return engine.get(recid, serializer);
     }
 
     @Override
-    public <A> void recordUpdate(long recid, A value, Serializer<A> serializer) {
-        engine.recordUpdate(recid, value, serializer);
+    public <A> void update(long recid, A value, Serializer<A> serializer) {
+        engine.update(recid, value, serializer);
     }
 
     @Override
-    public <A> boolean recordCompareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
-        return engine.recordCompareAndSwap(recid, expectedOldValue, newValue, serializer);
+    public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+        return engine.compareAndSwap(recid, expectedOldValue, newValue, serializer);
     }
 
     @Override
-    public void recordDelete(long recid) {
-        engine.recordDelete(recid);
+    public void delete(long recid) {
+        engine.delete(recid);
     }
 
     @Override
     public void close() {
         engine.close();
         engine = null;
+    }
+
+    @Override
+    public boolean isClosed() {
+        return engine==null;
     }
 
     @Override
@@ -106,22 +111,22 @@ public class EngineWrapper implements Engine{
         }
 
         @Override
-        public <A> boolean recordCompareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+        public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
             throw new UnsupportedOperationException("Read-only");
         }
 
         @Override
-        public <A> long recordPut(A value, Serializer<A> serializer) {
+        public <A> long put(A value, Serializer<A> serializer) {
             throw new UnsupportedOperationException("Read-only");
         }
 
         @Override
-        public <A> void recordUpdate(long recid, A value, Serializer<A> serializer) {
+        public <A> void update(long recid, A value, Serializer<A> serializer) {
             throw new UnsupportedOperationException("Read-only");
         }
 
         @Override
-        public void recordDelete(long recid) {
+        public void delete(long recid) {
             throw new UnsupportedOperationException("Read-only");
         }
 
@@ -160,28 +165,28 @@ public class EngineWrapper implements Engine{
         }
 
         @Override
-        public <A> long recordPut(A value, Serializer<A> serializer) {
+        public <A> long put(A value, Serializer<A> serializer) {
             //serialize to byte array, and pass it down with alternative serializer
             try {
                 if(value ==null){
-                    return engine.recordPut(null, blockSerializer);
+                    return engine.put(null, blockSerializer);
                 }
 
                 DataOutput2 out = new DataOutput2();
                 serializer.serialize(out,value);
                 byte[] b = out.copyBytes();
 
-                return engine.recordPut(b, blockSerializer);
+                return engine.put(b, blockSerializer);
             } catch (IOException e) {
                 throw new IOError(e);
             }
         }
 
         @Override
-        public <A> A recordGet(long recid, Serializer<A> serializer) {
+        public <A> A get(long recid, Serializer<A> serializer) {
             //get decompressed array
             try {
-                byte[] b = engine.recordGet(recid, blockSerializer);
+                byte[] b = engine.get(recid, blockSerializer);
                 if(b==null) return null;
 
                 //deserialize
@@ -194,14 +199,14 @@ public class EngineWrapper implements Engine{
         }
 
         @Override
-        public <A> void recordUpdate(long recid, A value, Serializer<A> serializer) {
+        public <A> void update(long recid, A value, Serializer<A> serializer) {
             //serialize to byte array, and pass it down with alternative serializer
             try {
                 DataOutput2 out = new DataOutput2();
                 serializer.serialize(out,value);
                 byte[] b = out.copyBytes();
 
-                engine.recordUpdate(recid, b, blockSerializer);
+                engine.update(recid, b, blockSerializer);
             } catch (IOException e) {
                 throw new IOError(e);
             }
@@ -241,8 +246,8 @@ public class EngineWrapper implements Engine{
         }
 
         @Override
-        public <A> long recordPut(A value, Serializer<A> serializer) {
-            long recid =  super.recordPut(value, serializer);
+        public <A> long put(A value, Serializer<A> serializer) {
+            long recid =  super.put(value, serializer);
             records.add(new Record(recid,
                     "INSERT \n  val:"+value+"\n  ser:"+serializer
             ));
@@ -250,8 +255,8 @@ public class EngineWrapper implements Engine{
         }
 
         @Override
-        public <A> A recordGet(long recid, Serializer<A> serializer) {
-            A ret =  super.recordGet(recid, serializer);
+        public <A> A get(long recid, Serializer<A> serializer) {
+            A ret =  super.get(recid, serializer);
             records.add(new Record(recid,
                     "GET \n  val:"+ret+"\n  ser:"+serializer
             ));
@@ -259,8 +264,8 @@ public class EngineWrapper implements Engine{
         }
 
         @Override
-        public <A> void recordUpdate(long recid, A value, Serializer<A> serializer) {
-            super.recordUpdate(recid, value, serializer);
+        public <A> void update(long recid, A value, Serializer<A> serializer) {
+            super.update(recid, value, serializer);
             records.add(new Record(recid,
                     "UPDATE \n  val:"+value+"\n  ser:"+serializer
             ));
@@ -268,8 +273,8 @@ public class EngineWrapper implements Engine{
         }
 
         @Override
-        public void recordDelete(long recid) {
-            super.recordDelete(recid);
+        public void delete(long recid) {
+            super.delete(recid);
             records.add(new Record(recid,"DEL"));
         }
     }

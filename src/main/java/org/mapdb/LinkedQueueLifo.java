@@ -42,7 +42,7 @@ public class LinkedQueueLifo<E> implements Queue<E> {
         this.serializer = serializer;
         this.useLocks = useLocks;
         this.locks = useLocks? new Locks.SegmentedRecidLocks(16) : null;
-        this.headRecid = engine.recordPut(ZERO, Serializer.LONG_SERIALIZER);
+        this.headRecid = engine.put(ZERO, Serializer.LONG_SERIALIZER);
     }
 
     public LinkedQueueLifo(Engine engine, Serializer serializer, boolean useLocks, long headRecid) {
@@ -85,17 +85,17 @@ public class LinkedQueueLifo<E> implements Queue<E> {
         Node n;
         do{
             if(useLocks && head!=0)locks.unlock(head);
-            head =engine.recordGet(headRecid, Serializer.LONG_SERIALIZER);
+            head =engine.get(headRecid, Serializer.LONG_SERIALIZER);
             if(ZERO.equals(head)) return null;
 
             if(useLocks && head!=0)locks.lock(head);
-            n = engine.recordGet(head, nodeSerializer);
-        }while(n==null || !engine.recordCompareAndSwap(headRecid, head, n.next , Serializer.LONG_SERIALIZER));
+            n = engine.get(head, nodeSerializer);
+        }while(n==null || !engine.compareAndSwap(headRecid, head, n.next, Serializer.LONG_SERIALIZER));
         if(useLocks && head!=0){
-            engine.recordDelete(head);
+            engine.delete(head);
             locks.unlock(head);
         }else{
-            engine.recordUpdate(head, null, nodeSerializer);
+            engine.update(head, null, nodeSerializer);
         }
         return (E) n.value;
     }
@@ -111,10 +111,10 @@ public class LinkedQueueLifo<E> implements Queue<E> {
     @Override
     public E peek() {
         while(true){
-            Long head = engine.recordGet(headRecid, Serializer.LONG_SERIALIZER);
+            Long head = engine.get(headRecid, Serializer.LONG_SERIALIZER);
             if(ZERO.equals(head)) return null;
-            Node n = engine.recordGet(head, nodeSerializer);
-            Long head2 = engine.recordGet(headRecid, Serializer.LONG_SERIALIZER);
+            Node n = engine.get(head, nodeSerializer);
+            Long head2 = engine.get(headRecid, Serializer.LONG_SERIALIZER);
             if(ZERO.equals(head2)) return null;
             if(head.equals(head2)) return (E) n.value;
         }
@@ -127,14 +127,14 @@ public class LinkedQueueLifo<E> implements Queue<E> {
 
     @Override
     public boolean add(E e) {
-        Long head = engine.recordGet(headRecid, Serializer.LONG_SERIALIZER);
+        Long head = engine.get(headRecid, Serializer.LONG_SERIALIZER);
         Node n = new Node(head, e);
-        long recid = engine.recordPut(n, nodeSerializer);
-        while(!engine.recordCompareAndSwap(headRecid, head, recid,Serializer.LONG_SERIALIZER)){
+        long recid = engine.put(n, nodeSerializer);
+        while(!engine.compareAndSwap(headRecid, head, recid, Serializer.LONG_SERIALIZER)){
             //failed to update head, so read new value and start over
-            head = engine.recordGet(headRecid, Serializer.LONG_SERIALIZER);
+            head = engine.get(headRecid, Serializer.LONG_SERIALIZER);
             n = new Node(head, e);
-            engine.recordUpdate(recid, n, nodeSerializer);
+            engine.update(recid, n, nodeSerializer);
         }
         return true;
     }
@@ -142,7 +142,7 @@ public class LinkedQueueLifo<E> implements Queue<E> {
 
     @Override
     public boolean isEmpty() {
-        Long head = engine.recordGet(headRecid, Serializer.LONG_SERIALIZER);
+        Long head = engine.get(headRecid, Serializer.LONG_SERIALIZER);
         return ZERO.equals(head);
     }
 

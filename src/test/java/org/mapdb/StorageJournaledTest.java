@@ -35,46 +35,46 @@ public class StorageJournaledTest extends TestFile {
     @Test public void transaction_basics() throws IOException {
         
         StorageDirect r = new StorageDirect(fac);
-        long recid = r.recordPut("aa",Serializer.STRING_SERIALIZER);
+        long recid = r.put("aa", Serializer.STRING_SERIALIZER);
         r.close();
         StorageJournaled t = new StorageJournaled(fac);
-        assertEquals("aa", t.recordGet(recid, Serializer.STRING_SERIALIZER));
-        t.recordUpdate(recid,"bb", Serializer.STRING_SERIALIZER);
-        assertEquals("bb", t.recordGet(recid, Serializer.STRING_SERIALIZER));
-        t.recordUpdate(recid,"ccc", Serializer.STRING_SERIALIZER);
-        assertEquals("ccc", t.recordGet(recid, Serializer.STRING_SERIALIZER));
+        assertEquals("aa", t.get(recid, Serializer.STRING_SERIALIZER));
+        t.update(recid, "bb", Serializer.STRING_SERIALIZER);
+        assertEquals("bb", t.get(recid, Serializer.STRING_SERIALIZER));
+        t.update(recid, "ccc", Serializer.STRING_SERIALIZER);
+        assertEquals("ccc", t.get(recid, Serializer.STRING_SERIALIZER));
 
-        long recid2 = t.recordPut("ZZ",Serializer.STRING_SERIALIZER);
-        assertEquals("ZZ", t.recordGet(recid2, Serializer.STRING_SERIALIZER));
-        t.recordUpdate(recid2,"ZZZ", Serializer.STRING_SERIALIZER);
-        assertEquals("ZZZ", t.recordGet(recid2, Serializer.STRING_SERIALIZER));
+        long recid2 = t.put("ZZ", Serializer.STRING_SERIALIZER);
+        assertEquals("ZZ", t.get(recid2, Serializer.STRING_SERIALIZER));
+        t.update(recid2, "ZZZ", Serializer.STRING_SERIALIZER);
+        assertEquals("ZZZ", t.get(recid2, Serializer.STRING_SERIALIZER));
 
-        t.recordDelete(recid);
-        t.recordDelete(recid2);
-        assertEquals(null, t.recordGet(recid, Serializer.STRING_SERIALIZER));
-        assertEquals(null, t.recordGet(recid2, Serializer.STRING_SERIALIZER));
+        t.delete(recid);
+        t.delete(recid2);
+        assertEquals(null, t.get(recid, Serializer.STRING_SERIALIZER));
+        assertEquals(null, t.get(recid2, Serializer.STRING_SERIALIZER));
     }
 
     @Test public void persisted() throws IOException {
         
         StorageJournaled t = new StorageJournaled(fac);
-        final long recid = t.recordPut("aa",Serializer.STRING_SERIALIZER);
+        final long recid = t.put("aa", Serializer.STRING_SERIALIZER);
         t.commit();
         t.close();
         t = new StorageJournaled(fac);
-        assertEquals("aa", t.recordGet(recid, Serializer.STRING_SERIALIZER));
+        assertEquals("aa", t.get(recid, Serializer.STRING_SERIALIZER));
 
-        t.recordUpdate(recid, "bb", Serializer.STRING_SERIALIZER);
+        t.update(recid, "bb", Serializer.STRING_SERIALIZER);
         t.commit();
         t.close();
         t = new StorageJournaled(fac);
-        assertEquals("bb", t.recordGet(recid, Serializer.STRING_SERIALIZER));
+        assertEquals("bb", t.get(recid, Serializer.STRING_SERIALIZER));
 
-        t.recordDelete(recid);
+        t.delete(recid);
         t.commit();
         t.close();
         t = new StorageJournaled(fac);
-        assertEquals(null,t.recordGet(recid,Serializer.STRING_SERIALIZER));
+        assertEquals(null,t.get(recid, Serializer.STRING_SERIALIZER));
 
     }
 
@@ -113,7 +113,7 @@ public class StorageJournaledTest extends TestFile {
 
     @Test public void delete_file_on_exit() throws IOException {
         StorageJournaled t = new StorageJournaled(fac,false,true,false,false);
-        t.recordPut("t",Serializer.STRING_SERIALIZER);
+        t.put("t", Serializer.STRING_SERIALIZER);
         t.close();
         assertFalse(index.exists());
         assertFalse(data.exists());
@@ -123,12 +123,12 @@ public class StorageJournaledTest extends TestFile {
 
     @Test public void log_discarted_after_failed_transaction_reopened() throws IOException {
         StorageJournaled t = new StorageJournaled(fac);
-        long recid1 = t.recordPut("t",Serializer.STRING_SERIALIZER);
+        long recid1 = t.put("t", Serializer.STRING_SERIALIZER);
         assertTrue(log.exists());
         t.commit();
         if(!Utils.isWindows())
             assertFalse(log.exists());
-        long recid2 = t.recordPut("t",Serializer.STRING_SERIALIZER);
+        long recid2 = t.put("t", Serializer.STRING_SERIALIZER);
         assertTrue(log.exists());
         t.index.sync();
         t.index.close();
@@ -138,8 +138,8 @@ public class StorageJournaledTest extends TestFile {
         assertEquals(0L, t.transLog.getLong(8));
         t.transLog.close();
         StorageJournaled t2 = new StorageJournaled(fac);
-        assertEquals("t",t2.recordGet(recid1, Serializer.STRING_SERIALIZER));
-        assertEquals(null,t2.recordGet(recid2, Serializer.STRING_SERIALIZER));
+        assertEquals("t",t2.get(recid1, Serializer.STRING_SERIALIZER));
+        assertEquals(null,t2.get(recid2, Serializer.STRING_SERIALIZER));
 
         if(!Utils.isWindows())
             assertFalse(log.exists());
@@ -150,7 +150,7 @@ public class StorageJournaledTest extends TestFile {
     public void fail_direct_storage_open_if_log_file_exists() throws IOException {
         
         StorageDirect d = new StorageDirect(fac);
-        d.recordPut(111L, Serializer.LONG_SERIALIZER);
+        d.put(111L, Serializer.LONG_SERIALIZER);
         d.close();
         log.createNewFile();
         d = new StorageDirect(fac);
@@ -167,13 +167,13 @@ public class StorageJournaledTest extends TestFile {
             }
         };
 
-        long recid = t.recordPut(1L, Serializer.LONG_SERIALIZER);
+        long recid = t.put(1L, Serializer.LONG_SERIALIZER);
         t.commit();
         t.close();
         assertTrue(log.exists());
 
         t = new StorageJournaled(fac);
-        assertEquals(Long.valueOf(1), t.recordGet(recid, Serializer.LONG_SERIALIZER));
+        assertEquals(Long.valueOf(1), t.get(recid, Serializer.LONG_SERIALIZER));
         if(!Utils.isWindows())
             assertFalse(log.exists());
     }
@@ -182,11 +182,11 @@ public class StorageJournaledTest extends TestFile {
         
         StorageJournaled t = new StorageJournaled(fac);
         t.lock.writeLock().lock();
-        long recid = t.recordPut(1L, Serializer.LONG_SERIALIZER);
+        long recid = t.put(1L, Serializer.LONG_SERIALIZER);
         assertTrue(log.exists());
         t.rollback();
         assertFalse(log.exists());
-        assertEquals(null, t.recordGet(recid,Serializer.LONG_SERIALIZER));
+        assertEquals(null, t.get(recid, Serializer.LONG_SERIALIZER));
         t.close();
         if(!Utils.isWindows())
             assertFalse(log.exists());

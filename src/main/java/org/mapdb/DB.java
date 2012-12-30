@@ -18,8 +18,6 @@ package org.mapdb;
 
 import java.lang.ref.WeakReference;
 import java.util.*;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ConcurrentNavigableMap;
 
 /**
  * A database with easy access to named maps and other collections.
@@ -38,11 +36,11 @@ public class DB {
 
     public DB(final Engine engine){
         this.engine = engine;
-        final ArrayList classInfos = engine.recordGet(engine.serializerRecid(), SerializerPojo.serializer);
+        final ArrayList classInfos = engine.get(engine.serializerRecid(), SerializerPojo.serializer);
         this.defaultSerializer = new SerializerPojo(classInfos){
             @Override
             protected void saveClassInfo() {
-                engine.recordUpdate(engine.serializerRecid(), registered, SerializerPojo.serializer);
+                engine.update(engine.serializerRecid(), registered, SerializerPojo.serializer);
             }
         };
 
@@ -210,6 +208,11 @@ public class DB {
         return ret2;
     }
 
+    /**
+     * Checks that object with given name does not exist yet.
+     * @param name to check
+     * @throws IllegalArgumentException if name is already used
+     */
     protected void checkNameNotExists(String name) {
         if(nameDir.get(name)!=null)
             throw new IllegalArgumentException("Name already used: "+name);

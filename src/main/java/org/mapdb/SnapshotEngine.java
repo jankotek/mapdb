@@ -3,7 +3,6 @@ package org.mapdb;
 import java.io.IOError;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -32,8 +31,8 @@ public class SnapshotEngine extends EngineWrapper{
     protected final ReentrantReadWriteLock snapshotsLock = new ReentrantReadWriteLock();
 
     @Override
-    public <A> long recordPut(A value, Serializer<A> serializer) {
-        long ret = super.recordPut(value, serializer);
+    public <A> long put(A value, Serializer<A> serializer) {
+        long ret = super.put(value, serializer);
         snapshotsLock.readLock().lock();
         try{
 
@@ -47,9 +46,9 @@ public class SnapshotEngine extends EngineWrapper{
     }
 
     @Override
-    public <A> void recordUpdate(long recid, A value, Serializer<A> serializer) {
+    public <A> void update(long recid, A value, Serializer<A> serializer) {
         updateOldRec(recid);
-        super.recordUpdate(recid, value, serializer);
+        super.update(recid, value, serializer);
     }
 
     private void updateOldRec(long recid) {
@@ -59,7 +58,7 @@ public class SnapshotEngine extends EngineWrapper{
             for(Snapshot s:snapshots){
                 if(prevValue == NOT_EXIST){
                     if(!s.oldRecords.containsKey(recid)){
-                        prevValue = super.recordGet(recid, Serializer.BYTE_ARRAY_SERIALIZER);
+                        prevValue = super.get(recid, Serializer.BYTE_ARRAY_SERIALIZER);
                         s.oldRecords.putIfAbsent(recid, prevValue);
                     }
                 }else{
@@ -72,15 +71,15 @@ public class SnapshotEngine extends EngineWrapper{
     }
 
     @Override
-    public <A> boolean recordCompareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+    public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
         updateOldRec(recid);
-        return super.recordCompareAndSwap(recid, expectedOldValue, newValue, serializer);
+        return super.compareAndSwap(recid, expectedOldValue, newValue, serializer);
     }
 
     @Override
-    public void recordDelete(long recid) {
+    public void delete(long recid) {
         updateOldRec(recid);
-        super.recordDelete(recid);
+        super.delete(recid);
     }
 
 
@@ -114,10 +113,10 @@ public class SnapshotEngine extends EngineWrapper{
         }
 
         @Override
-        public <A> A recordGet(long recid, Serializer<A> serializer) {
+        public <A> A get(long recid, Serializer<A> serializer) {
             byte[] b = oldRecords.get(recid);
             if(b==NOT_EXIST) return null;
-            else if(b==null) return super.recordGet(recid, serializer);
+            else if(b==null) return super.get(recid, serializer);
             else{
                 DataInput2 in = new DataInput2(b);
                 try {

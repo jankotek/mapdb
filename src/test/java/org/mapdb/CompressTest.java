@@ -26,19 +26,19 @@ public class CompressTest{
 
     @Test
     public void check_null() throws Exception {
-        long recid = db.engine.recordPut(null,Serializer.NULL_SERIALIZER);
+        long recid = db.engine.put(null, Serializer.NULL_SERIALIZER);
         assertTrue(recid!=0);
-        assertNull(db.engine.recordGet(recid, Serializer.BASIC_SERIALIZER));
+        assertNull(db.engine.get(recid, Serializer.BASIC_SERIALIZER));
     }
 
     @Test
     public void put_get_update() throws Exception {
-        long recid = db.engine.recordPut("aaaa",Serializer.STRING_SERIALIZER);
-        assertEquals("aaaa",db.engine.recordGet(recid, Serializer.STRING_SERIALIZER));
-        db.engine.recordUpdate(recid, "bbbb",Serializer.STRING_SERIALIZER);
-        assertEquals("bbbb",db.engine.recordGet(recid, Serializer.STRING_SERIALIZER));
-        db.engine.recordDelete(recid);
-        assertEquals(null,db.engine.recordGet(recid, Serializer.STRING_SERIALIZER));
+        long recid = db.engine.put("aaaa", Serializer.STRING_SERIALIZER);
+        assertEquals("aaaa",db.engine.get(recid, Serializer.STRING_SERIALIZER));
+        db.engine.update(recid, "bbbb", Serializer.STRING_SERIALIZER);
+        assertEquals("bbbb",db.engine.get(recid, Serializer.STRING_SERIALIZER));
+        db.engine.delete(recid);
+        assertEquals(null,db.engine.get(recid, Serializer.STRING_SERIALIZER));
 
     }
 

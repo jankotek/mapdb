@@ -21,9 +21,9 @@ import java.io.IOException;
 import java.util.Arrays;
 
 /**
-  * Provides DataOutput implementation on top of growable byte[]
+  * Provides {@link DataOutput} implementation on top of growable {@code byte[]}
  * <p/>
- *  ByteArrayOutputStream is not used as it requires byte[] copying
+ *  {@link ByteArrayOutputStream} is not used as it requires {@code byte[]} copying
  *
  * @author Jan Kotek
  */
