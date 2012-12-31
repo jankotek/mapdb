@@ -15,7 +15,7 @@ public class SimpleBench extends AbstractBenchmark{
 
     static final int size = (int) 1e5;
 
-    protected void testMap(Map m){
+    protected void testMap(Map<Object,Object> m){
         for(int i=0;i<size;i++){
             m.put(i, ""+i);
         }
@@ -75,14 +75,14 @@ public class SimpleBench extends AbstractBenchmark{
     @Test public void SkipList(){
         assumeTrue(CC.FULL_TEST);
         testMap(
-                new ConcurrentSkipListMap()
+                new ConcurrentSkipListMap<Object, Object>()
         );
     }
 
     @Test public void HashMap(){
         assumeTrue(CC.FULL_TEST);
         testMap(
-                new ConcurrentHashMap()
+                new ConcurrentHashMap<Object, Object>()
         );
     }
 

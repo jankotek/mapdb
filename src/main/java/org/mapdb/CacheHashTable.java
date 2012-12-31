@@ -16,8 +16,6 @@
 
 package org.mapdb;
 
-import com.sun.org.apache.bcel.internal.generic.ACONST_NULL;
-
 /**
  * Fixed size cache which uses hash table.
  * Is thread-safe and requires only minimal locking.

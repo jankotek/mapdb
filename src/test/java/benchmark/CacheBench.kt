@@ -20,7 +20,7 @@ class CacheBench:AbstractBenchmark(){
 
     fun benchCache(cache:Engine){
         Assume.assumeTrue(CC.FULL_TEST)
-        val map = DB(cache).getTreeMap<Int, String>("test")!!;
+        val map = DB(cache).getTreeMap<Int, String>("test");
 
         for(i in 1..size){
             map.put(i, i.toString())

@@ -5,7 +5,7 @@ import org.junit.Before;
 
 import java.util.Collections;
 
-@SuppressWarnings("unchecked")
+@SuppressWarnings({ "unchecked", "rawtypes" })
 public class BTreeSetTest extends HTreeSetTest{
 
     @Override

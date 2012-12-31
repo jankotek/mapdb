@@ -1,8 +1,5 @@
 package org.mapdb;
 
-
-import org.junit.Ignore;
-
 public class BTreeMapNavigableSubMapExclusiveTest extends BTreeMapNavigable2Test{
 
     @Override

@@ -8,12 +8,12 @@ import java.util.Map;
 
 import static org.junit.Assert.*;
 
-@SuppressWarnings("unchecked")
+@SuppressWarnings({ "unchecked", "rawtypes" })
 public class BTreeMapTest{
 
     Engine engine = new StorageDirect(Volume.memoryFactory(false));
-
-    public static void print(BTreeMap m) {
+    
+	public static void print(BTreeMap m) {
         printRecur(m, m.rootRecid, "");
     }
 
@@ -40,7 +40,8 @@ public class BTreeMapTest{
         assertEquals(n.next, n2.next);
     }
 
-    @Test public void test_dir_node_serialization() throws IOException {
+    
+	@Test public void test_dir_node_serialization() throws IOException {
         BTreeMap m = new BTreeMap(engine,32,true,false, null,null,null,null);
 
         BTreeMap.DirNode n = new BTreeMap.DirNode(new Object[]{1,2,3, null}, new long[]{4,5,6,7});

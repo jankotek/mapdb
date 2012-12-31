@@ -1,7 +1,5 @@
 package org.mapdb;
 
-import org.junit.Ignore;
-
 import java.util.*;
 import java.util.concurrent.ConcurrentNavigableMap;
 
@@ -62,7 +60,7 @@ public class BTreeMapTest3
         }
     }
 
-    @SuppressWarnings("unchecked") // Needed for null comparator
+    @SuppressWarnings({ "unchecked", "rawtypes" }) // Needed for null comparator
     public void testOrdering() {
         final SortedMap<Integer, String> map;
         try {

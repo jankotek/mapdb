@@ -9,6 +9,7 @@ import org.mapdb.DBMaker;
 import java.util.*;
 import java.util.concurrent.*;
 
+@SuppressWarnings({ "unchecked", "rawtypes" })
 public class MapLoops {
     static int nkeys       = 100000;
     static int pinsert     = 60;

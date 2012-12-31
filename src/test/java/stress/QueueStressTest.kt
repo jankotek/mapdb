@@ -14,20 +14,20 @@ class QueueStressTest{
     val maxNodeNum:Long = threadNum * (max * (max+1))/2;
 
 
-    Test fun jucConcurrentLinkedQueue() = stress(ConcurrentLinkedQueue<Long>());
+    Test fun jucConcurrentLinkedQueue() = stress(ConcurrentLinkedQueue<Long?>());
 
 
     Test(timeout=1000000)
             fun LinkedQueueLifo_noLocks(){
-        val engine = DBMaker.newMemoryDB()!!.journalDisable()!!.makeEngine()!!;
-        val queue = LinkedQueueLifo<Long>(engine, Serializer.LONG_SERIALIZER,false);
+        val engine = DBMaker.newMemoryDB().journalDisable().makeEngine();
+        val queue = LinkedQueueLifo<Long?>(engine, Serializer.LONG_SERIALIZER,false);
         stress(queue)
     }
 
     Test(timeout=1000000)
             fun LinkedQueueLifo_withLocks(){
-        val engine = DBMaker.newMemoryDB()!!.journalDisable()!!.makeEngine()!!;
-        val queue = LinkedQueueLifo<Long>(engine, Serializer.LONG_SERIALIZER,true);
+        val engine = DBMaker.newMemoryDB().journalDisable().makeEngine();
+        val queue = LinkedQueueLifo<Long?>(engine, Serializer.LONG_SERIALIZER,true);
         stress(queue)
     }
 
@@ -35,12 +35,12 @@ class QueueStressTest{
     Test(timeout=1000000)
             fun LinkedQueueLifo_StorageDirect(){
         val engine = StorageDirect(Volume.memoryFactory(false));
-        val queue = LinkedQueueLifo<Long>(engine, Serializer.LONG_SERIALIZER,false);
+        val queue = LinkedQueueLifo<Long?>(engine, Serializer.LONG_SERIALIZER,false);
         stress(queue)
     }
 
 
-    fun stress(val q:Queue<Long>){
+    fun stress(val q:Queue<Long?>){
         Assume.assumeTrue(CC.FULL_TEST);
 
         val counter = AtomicLong(0);
@@ -68,7 +68,7 @@ class QueueStressTest{
                     var updated = false;
                     while(!updated){
                         val old = counter.get();
-                        updated = counter.compareAndSet(old, old+n!!);
+                        updated = counter.compareAndSet(old, old + n!!);
                     }
                 }
             });

@@ -26,13 +26,34 @@ public final class Locks {
     private Locks(){}
 
 
-
+    /**
+     * An array of ReentrantLocks with infinitive size.
+     * Is used for per-record locking.
+     */
     public interface RecidLocks{
+        /**
+         * Unlock given recid. Throws an unspecified exception of recid is not locked
+         * @param recid number
+         */
         public void unlock(final long recid);
+
+        /**
+         * Throws an exception if current thread holds any locks.
+         * Used for assertion that all recids were properly released
+         */
         public void assertNoLocks();
+        /**
+         * Locks record with given recid. Blocks if already locked, until lock becomes available.
+         * @param recid number
+         */
         public void lock(final long recid);
     }
 
+    /**
+     * Holds all existing locks in HashMap.
+     * Lock/unlock operation looks up lock existence in map and act accordingly.
+     * Usefull if there is only handful of locks
+     */
     public static class LongHashMapRecidLocks implements RecidLocks{
 
         protected final LongConcurrentHashMap<Thread> locks = new LongConcurrentHashMap<Thread>();
@@ -77,12 +98,19 @@ public final class Locks {
         }
     }
 
+    /**
+     * Fixed size array of locks. <code>Recid % locks.length</code> (modulo)
+     * is used to determine which lock should be used.
+     */
     public static class SegmentedRecidLocks implements RecidLocks{
 
         protected final ReentrantLock[] locks;
 
         protected final int numSegments;
 
+        /**
+         * @param numSegments number of locks, larger number means better concurrency but larger memory overhead. Good value is 16
+         */
         public SegmentedRecidLocks(int numSegments) {
             this.numSegments = numSegments;
             locks = new ReentrantLock[numSegments];

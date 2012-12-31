@@ -36,10 +36,9 @@ import java.util.logging.Logger;
  *
  * MapDB note: reworked to implement LongMap. Original comes from:
  * https://svn.apache.org/repos/asf/lucene/dev/trunk/solr/core/src/java/org/apache/solr/util/LongConcurrentLRUMap.java
- *
- *
- * @since solr 1.4
+ * 
  */
+@SuppressWarnings({"unchecked","rawtypes","unused"}) //TODO unused stuff?
 public class LongConcurrentLRUMap<V> extends LongMap<V> {
   private static Logger log = Logger.getLogger(LongConcurrentLRUMap.class.getName());
 
@@ -157,7 +156,7 @@ public class LongConcurrentLRUMap<V> extends LongMap<V> {
    * The second stage is more intensive and tries to bring down the cache size
    * to the 'lowerWaterMark' config parameter.
    */
-  private void markAndSweep() {
+private void markAndSweep() {
     // if we want to keep at least 1000 entries, then timestamps of
     // current through current-1000 are guaranteed not to be the oldest (but that does
     // not mean there are 1000 entries in that group... it's acutally anywhere between
@@ -184,7 +183,6 @@ public class LongConcurrentLRUMap<V> extends LongMap<V> {
       int wantToKeep = lowerWaterMark;
       int wantToRemove = sz - lowerWaterMark;
 
-      @SuppressWarnings("unchecked") // generic array's are anoying
       CacheEntry<V>[] eset = new CacheEntry[sz];
       int eSize = 0;
 
@@ -362,19 +360,18 @@ public class LongConcurrentLRUMap<V> extends LongMap<V> {
       myMaxSize = maxSz;
     }
 
-    @SuppressWarnings("unchecked")
+    
     Iterable<CacheEntry<V>> getValues() {
       return (Iterable) Collections.unmodifiableCollection(Arrays.asList(heap));
     }
 
-    @Override
+	@Override
     protected boolean lessThan(CacheEntry a, CacheEntry b) {
       // reverse the parameter order so that the queue keeps the oldest items
       return b.lastAccessedCopy < a.lastAccessedCopy;
     }
 
     // necessary because maxSize is private in base class
-    @SuppressWarnings("unchecked")
     public CacheEntry<V> myInsertWithOverflow(CacheEntry<V> element) {
       if (size() < myMaxSize) {
         add(element);
@@ -410,7 +407,6 @@ public class LongConcurrentLRUMap<V> extends LongMap<V> {
             this(maxSize, true);
         }
 
-        @SuppressWarnings("unchecked")
         public PriorityQueue(int maxSize, boolean prepopulate) {
             size = 0;
             int heapSize;

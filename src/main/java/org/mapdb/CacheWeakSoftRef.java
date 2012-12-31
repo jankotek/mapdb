@@ -36,11 +36,11 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
         Object get();
     }
 
-    protected static final class CacheWeakItem extends WeakReference implements CacheItem{
+    protected static final class CacheWeakItem<A> extends WeakReference<A> implements CacheItem{
 
         final long recid;
 
-        public CacheWeakItem(Object referent, ReferenceQueue q, long recid) {
+        public CacheWeakItem(A referent, ReferenceQueue<A> q, long recid) {
             super(referent, q);
             this.recid = recid;
         }
@@ -51,11 +51,11 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
         }
     }
 
-    protected static final class CacheSoftItem extends SoftReference implements CacheItem{
+    protected static final class CacheSoftItem<A> extends SoftReference<A> implements CacheItem{
 
         final long recid;
 
-        public CacheSoftItem(Object referent, ReferenceQueue q, long recid) {
+        public CacheSoftItem(A referent, ReferenceQueue<A> q, long recid) {
             super(referent, q);
             this.recid = recid;
         }
@@ -66,7 +66,8 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
         }
     }
 
-    protected ReferenceQueue<CacheItem> queue = new ReferenceQueue<CacheItem>();
+    @SuppressWarnings("rawtypes")
+	protected ReferenceQueue queue = new ReferenceQueue();
 
     protected Thread queueThread = new Thread("MapDB GC collector"){
         @Override
@@ -93,7 +94,7 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
     /** Collects items from GC and removes them from cache */
     protected void runRefQueue(){
         try{
-            final ReferenceQueue<CacheItem> queue = this.queue;
+            final ReferenceQueue<?> queue = this.queue;
             final LongConcurrentHashMap<CacheItem> items = this.items;
 
             while(true){
@@ -113,7 +114,8 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
         return recid;
     }
 
-    @Override
+    @SuppressWarnings("unchecked")
+	@Override
     public <A> A get(long recid, Serializer<A> serializer) {
         CacheItem item = items.get(recid);
         if(item!=null){
@@ -148,10 +150,11 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
         }
     }
 
-    private <A> void putItemIntoCache(long recid, A value) {
+    @SuppressWarnings("unchecked")
+	private <A> void putItemIntoCache(long recid, A value) {
         items.put(recid, useWeakRef?
-            new CacheWeakItem(value, queue, recid) :
-            new CacheSoftItem(value, queue, recid));
+            new CacheWeakItem<A>(value, queue, recid) :
+            new CacheSoftItem<A>(value, queue, recid));
     }
 
     @Override

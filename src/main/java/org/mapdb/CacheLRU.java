@@ -9,16 +9,16 @@ public class CacheLRU extends EngineWrapper {
     /** used instead of null value */
     protected static final Object NULL = new Object();
 
-    protected LongMap cache;
+    protected LongMap<Object> cache;
 
     protected final Locks.RecidLocks locks = new Locks.SegmentedRecidLocks(16);
 
 
     public CacheLRU(Engine engine, int cacheSize) {
-        this(engine, new LongConcurrentLRUMap(cacheSize, (int) (cacheSize*0.8)));
+        this(engine, new LongConcurrentLRUMap<Object>(cacheSize, (int) (cacheSize*0.8)));
     }
 
-    public CacheLRU(Engine engine, LongMap cache){
+    public CacheLRU(Engine engine, LongMap<Object> cache){
         super(engine);
         this.cache = cache;
     }
@@ -35,7 +35,8 @@ public class CacheLRU extends EngineWrapper {
         return recid;
     }
 
-    @Override
+    @SuppressWarnings("unchecked")
+	@Override
     public <A> A get(long recid, Serializer<A> serializer) {
         Object ret = cache.get(recid);
         if(ret!=null) return ret==NULL? null: (A) ret;
@@ -93,7 +94,8 @@ public class CacheLRU extends EngineWrapper {
     }
 
 
-    @Override
+    @SuppressWarnings("rawtypes")
+	@Override
     public void close() {
         if(cache instanceof LongConcurrentLRUMap)
             ((LongConcurrentLRUMap)cache).destroy();

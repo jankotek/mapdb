@@ -13,9 +13,10 @@ import java.util.concurrent.ConcurrentNavigableMap;
 import static org.junit.Assert.*;
 import org.mapdb.EngineWrapper.*;
 
+@SuppressWarnings({ "unchecked", "rawtypes" })
 public class DBMakerTest{
 
-    @SuppressWarnings("unchecked")
+    
     private void verifyDB(DB db) {
         Map m = db.getHashMap("test");
         m.put(1,2);
@@ -84,6 +85,7 @@ public class DBMakerTest{
         assertTrue(w instanceof SnapshotEngine);
         assertTrue(w.getWrappedEngine().getClass() == AsyncWriteEngine.class);
         AsyncWriteEngine r = (AsyncWriteEngine) w.getWrappedEngine();
+        assertTrue(r.getWrappedEngine() instanceof Storage);
 
     }
 

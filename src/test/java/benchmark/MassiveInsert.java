@@ -9,11 +9,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.logging.Logger;
 
 /**
  * Tests massive concurrent insert
  */
+@SuppressWarnings({ "unchecked", "rawtypes" })
 public class MassiveInsert {
 
     final static int threads = 4 ;
@@ -42,7 +42,7 @@ public class MassiveInsert {
         final AtomicLong counter = new AtomicLong(0);
 
 
-        final Logger log = Logger.getLogger("test");
+        //final Logger log = Logger.getLogger("test");
         final AtomicLong order = new AtomicLong(10000000);
 
         for(int i=0;i<threads;i++){

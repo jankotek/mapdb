@@ -13,7 +13,7 @@ import org.mapdb.LongConcurrentHashMap;
 
 import java.util.Iterator;
 
-@SuppressWarnings("unchecked")
+@SuppressWarnings({ "unchecked", "rawtypes" })
 public class LongConcurrentHashMapTest extends TestCase{
 
     /**

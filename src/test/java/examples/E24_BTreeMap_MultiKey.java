@@ -6,7 +6,6 @@ import org.mapdb.Fun;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentNavigableMap;
-import java.util.concurrent.ConcurrentSkipListMap;
 
 /**
  * Demonstrates how-to use multiple value keys in BTree.
@@ -29,7 +28,8 @@ public class E24_BTreeMap_MultiKey {
      * Java Generics are buggy, so we left out some type annotations for simplicity.
      * I would recommend more civilized language with type inference such as Kotlin or Scala.
      */
-    public static void main(String[] args) {
+    @SuppressWarnings("rawtypes")
+	public static void main(String[] args) {
 
         //initial values
         String[] towns = {"Galway", "Ennis", "Gort", "Cong", "Tuam"};
@@ -77,7 +77,8 @@ public class E24_BTreeMap_MultiKey {
         //Lets iterate over 'Main Street' in all towns.
         total = 0;
         for(String town:towns){
-            Map<Fun.Tuple3, Integer> mainStreetHouses =
+            @SuppressWarnings("unused")
+			Map<Fun.Tuple3, Integer> mainStreetHouses =
                     map.subMap(
                             Fun.t3(town, "Main Street", null), //use null as LOWEST boundary for house number
                             Fun.t3(town, "Main Street", Fun.HI)
@@ -87,6 +88,7 @@ public class E24_BTreeMap_MultiKey {
             }
         }
         System.out.println("Salary sum for all Main Streets is: "+total);
+        
 
         //other example, lets remove Ennis/Shop Street from our DB
         map.subMap(

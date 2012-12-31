@@ -19,10 +19,10 @@ fun main(args : Array<String>) {
             TreeMap();
         }else if (v == "h"){
             assertHeapMemAvail(memReq)
-            DBMaker.newMemoryDB()!!.journalDisable()!!.make()!!.getTreeMap("test")!!;
+            DBMaker.newMemoryDB().journalDisable().make().getTreeMap("test");
         }else if (v == "d"){
             assertHeapMemAvail(memReq)
-            DBMaker.newDirectMemoryDB()!!.journalDisable()!!.make()!!.getTreeMap("test")!!;
+            DBMaker.newDirectMemoryDB().journalDisable().make().getTreeMap("test");
         }else{
             throw Error("Unknown option: "+v)
         }

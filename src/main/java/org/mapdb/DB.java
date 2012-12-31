@@ -16,6 +16,8 @@
 
 package org.mapdb;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.lang.ref.WeakReference;
 import java.util.*;
 
@@ -27,19 +29,30 @@ import java.util.*;
 @SuppressWarnings("unchecked")
 public class DB {
 
+    /** Engine which provides persistence for this DB*/
     protected Engine engine;
+    /** already loaded named collections. It is important to keep collections as singletons, because of 'in-memory' locking*/
     protected Map<String, WeakReference<?>> collections = new HashMap<String, WeakReference<?>>();
 
+    /** view over named records */
     protected Map<String, Long> nameDir;
 
-    protected Serializer defaultSerializer;
+    /** default serializer used for persistence. Handles POJO and other stuff which requires write-able access to Engine */
+    protected Serializer<?> defaultSerializer;
 
+    /**
+     * Construct new DB. It is just thin layer over {@link Engine} which does the real work.
+     * @param engine
+     */
     public DB(final Engine engine){
         this.engine = engine;
-        final ArrayList classInfos = engine.get(engine.serializerRecid(), SerializerPojo.serializer);
+        // load serializer
+        final ArrayList<SerializerPojo.ClassInfo> classInfos = engine.get(engine.serializerRecid(), SerializerPojo.serializer);
         this.defaultSerializer = new SerializerPojo(classInfos){
             @Override
             protected void saveClassInfo() {
+                //hook to save classes if they are updated
+                //I did not want to create direct dependency between SerialierPojo and Engine
                 engine.update(engine.serializerRecid(), registered, SerializerPojo.serializer);
             }
         };
@@ -59,6 +72,7 @@ public class DB {
      * @param <V> value
      * @return map
      */
+    @NotNull
     synchronized public <K,V> HTreeMap<K,V> getHashMap(String name){
         checkNotClosed();
         HTreeMap<K,V> ret = (HTreeMap<K, V>) getFromWeakCollection(name);
@@ -78,6 +92,18 @@ public class DB {
     }
 
 
+    /**
+     * Creates new HashMap with more specific arguments
+     *
+     * @param name of map to create
+     * @param keySerializer used to convert keys into/from binary form. Use null for default value.
+     * @param valueSerializer used to convert values into/from binary form. Use null for default value.
+     * @param <K> key type
+     * @param <V> value type
+     * @throws IllegalArgumentException if name is already used
+     * @return newly created map
+     */
+    @NotNull
     synchronized public <K,V> HTreeMap<K,V> createHashMap(
             String name, Serializer<K> keySerializer, Serializer<V> valueSerializer){
         checkNameNotExists(name);
@@ -94,6 +120,7 @@ public class DB {
      * @param <K> values in set
      * @return set
      */
+    @NotNull
     synchronized public <K> Set<K> getHashSet(String name){
         checkNotClosed();
         Set<K> ret = (Set<K>) getFromWeakCollection(name);
@@ -115,6 +142,15 @@ public class DB {
     }
 
 
+    /**
+     * Creates new HashSet
+     * @param name of set to create
+     * @param serializer used to convert keys into/from binary form. Use null for default value.
+     * @param <K> item type
+     * @throws IllegalArgumentException if name is already used
+
+     */
+    @NotNull
     synchronized public <K> Set<K> createHashSet(String name, Serializer<K> serializer){
         checkNameNotExists(name);
         HTreeMap<K,Object> ret = new HTreeMap<K,Object>(engine, true, defaultSerializer, serializer, null);
@@ -135,6 +171,7 @@ public class DB {
      * @param <V> value
      * @return map
      */
+    @NotNull
     synchronized public <K,V> BTreeMap<K,V> getTreeMap(String name){
         checkNotClosed();
         BTreeMap<K,V> ret = (BTreeMap<K,V>) getFromWeakCollection(name);
@@ -153,7 +190,20 @@ public class DB {
         return ret;
     }
 
-
+    /**
+     * Creates new TreeMap
+     * @param name of map to create
+     * @param nodeSize maximal size of node, larger node causes overflow and creation of new BTree node. Use large number for small keys, use small number for large keys.
+     * @param valuesStoredOutsideNodes if true, values are stored outside of BTree nodes. Use 'true' if your values are large.
+     * @param keySerializer used to convert keys into/from binary form. Use null for default value.
+     * @param valueSerializer used to convert values into/from binary form. Use null for default value.
+     * @param comparator used to sort keys. Use null for default value. TODO delta packing
+     * @param <K> key type
+     * @param <V> value type
+     * @throws IllegalArgumentException if name is already used
+     * @return newly created map
+     */
+    @NotNull
     synchronized public <K,V> BTreeMap<K,V> createTreeMap(
             String name, int nodeSize, boolean valuesStoredOutsideNodes,
             Serializer<K[]> keySerializer, Serializer<V> valueSerializer, Comparator<K> comparator){
@@ -165,6 +215,11 @@ public class DB {
     }
 
 
+    /**
+     * Get Named directory. Key is name, value is recid under which named record is stored
+     * @return
+     */
+    @NotNull
     public Map<String, Long> getNameDir(){
         return nameDir;
     }
@@ -177,6 +232,7 @@ public class DB {
      * @param <K> values in set
      * @return set
      */
+    @NotNull
     synchronized public <K> NavigableSet<K> getTreeSet(String name){
         checkNotClosed();
         NavigableSet<K> ret = (NavigableSet<K>) getFromWeakCollection(name);
@@ -199,6 +255,17 @@ public class DB {
         return ret;
     }
 
+    /**
+     * Creates new TreeSet.
+     * @param name of set to create
+     * @param nodeSize maximal size of node, larger node causes overflow and creation of new BTree node. Use large number for small keys, use small number for large keys.
+     * @param serializer used to convert keys into/from binary form. Use null for default value.
+     * @param comparator used to sort keys. Use null for default value. TODO delta packing
+     * @param <K>
+     * @throws IllegalArgumentException if name is already used
+     * @return
+     */
+    @NotNull
     synchronized public <K> NavigableSet<K> createTreeSet(String name, int nodeSize, Serializer<K[]> serializer, Comparator<K> comparator){
         checkNameNotExists(name);
         BTreeMap<K,Object> ret = new BTreeMap<K,Object>(engine, nodeSize, true, false, defaultSerializer, serializer, null, comparator);
@@ -248,33 +315,71 @@ public class DB {
     }
 
 
+
     protected void checkNotClosed() {
         if(engine == null) throw new IllegalAccessError("DB was already closed");
     }
 
+    /**
+     * @return true if DB is closed and can no longer be used
+     */
+    public synchronized  boolean isClosed(){
+        return engine == null;
+    }
+
+    /**
+     * Commit changes made on collections loaded by this DB
+     *
+     * @see org.mapdb.Engine#commit()
+     */
     synchronized public void commit() {
         checkNotClosed();
         engine.commit();
     }
 
+    /**
+     * Rollback changes made on collections loaded by this DB
+     *
+     * @see org.mapdb.Engine#rollback()
+     */
     synchronized public void rollback() {
         checkNotClosed();
         engine.rollback();
     }
 
-    synchronized public void defrag(){
+    /**
+     * not yet implemented
+     */
+    synchronized public void compact(){
 
     }
 
+
+    /**
+     * Make readonly snapshot view of DB and all of its collection
+     * Collections loaded by this instance are not affected (are still mutable).
+     * You have to load new collections from DB returned by this method
+     *
+     * @return readonly snapshot view
+     */
+    @NotNull
     synchronized public DB snapshot(){
         Engine snapshot = SnapshotEngine.createSnapshotFor(engine);
         return new DB (snapshot);
     }
 
-    public Serializer getDefaultSerializer() {
+    /**
+     * @return default serializer used in this DB, it handles POJO and other stuff.
+     */
+    @NotNull
+    public Serializer<?> getDefaultSerializer() {
         return defaultSerializer;
     }
 
+    /**
+     * @return underlying engine which takes care of persistence for this DB.
+     */
+    @NotNull
     public Engine getEngine() {
         return engine;
     }

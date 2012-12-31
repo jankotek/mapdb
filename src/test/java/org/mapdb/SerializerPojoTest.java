@@ -7,6 +7,7 @@ import java.io.Serializable;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 
+@SuppressWarnings({ "unchecked", "rawtypes" })
 public class SerializerPojoTest extends TestCase {
 
     SerializerPojo p = new SerializerPojo(new ArrayList<SerializerPojo.ClassInfo>());
@@ -65,7 +66,9 @@ public class SerializerPojoTest extends TestCase {
 
     static class Bean1 implements Serializable {
 
-        @Override
+    	private static final long serialVersionUID = -2549023895082866523L;
+
+		@Override
 		public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -115,7 +118,9 @@ public class SerializerPojoTest extends TestCase {
 
     static class Bean2 extends Bean1 {
 
-        @Override
+		private static final long serialVersionUID = 8376654194053933530L;
+
+		@Override
 		public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -253,9 +258,9 @@ public class SerializerPojoTest extends TestCase {
 
         ArrayList l2 = (ArrayList) Utils.clone(l, p);
 
-        assertTrue(l.size() == 2);
-        assertEquals(l.get(0), "123");
-        assertTrue(l.get(1) == l);
+        assertTrue(l2.size() == 2);
+        assertEquals(l2.get(0), "123");
+        assertTrue(l2.get(1) == l2);
     }
 // TODO commented out tests
 //    public void testPersistedSimple() throws Exception {

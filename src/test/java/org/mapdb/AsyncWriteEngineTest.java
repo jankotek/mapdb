@@ -17,6 +17,7 @@ import static org.junit.Assume.assumeTrue;
 /**
  * @author Jan Kotek
  */
+@SuppressWarnings({ "unchecked", "rawtypes" })
 public class AsyncWriteEngineTest extends TestFile{
     AsyncWriteEngine engine;
 

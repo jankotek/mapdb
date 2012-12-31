@@ -21,7 +21,7 @@ public class RecidLocksTest {
     }
 
     @Parameterized.Parameters
-    public static List params(){
+    public static List<?> params(){
         return Arrays.asList(new Object[][]{{new Locks.LongHashMapRecidLocks()}});
     }
 

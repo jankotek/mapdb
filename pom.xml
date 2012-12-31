@@ -61,6 +61,14 @@
                 <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>com.intellij</groupId>
+            <artifactId>annotations</artifactId>
+            <version>9.0.4</version>
+            <optional>true</optional>
+        </dependency>
+
+
     </dependencies>
 
 

@@ -32,7 +32,7 @@ import static org.mapdb.SerializationHeader.*;
  *
  * @author Jan Kotek
  */
-@SuppressWarnings("unchecked")
+@SuppressWarnings({ "unchecked", "rawtypes" })
 public class SerializerBase implements Serializer{
 
     /**
@@ -100,7 +100,7 @@ public class SerializerBase implements Serializer{
     }
 
 
-    public void serialize(final DataOutput out, final Object obj, FastArrayList objectStack) throws IOException {
+    public void serialize(final DataOutput out, final Object obj, FastArrayList<Object> objectStack) throws IOException {
 
         /**try to find object on stack if it exists*/
         if (objectStack != null) {
@@ -469,7 +469,7 @@ public class SerializerBase implements Serializer{
 
     }
 
-    private void serializeMap(int header, DataOutput out, Object obj, FastArrayList objectStack) throws IOException {
+    private void serializeMap(int header, DataOutput out, Object obj, FastArrayList<Object> objectStack) throws IOException {
         Map l = (Map) obj;
         out.write(header);
         Utils.packInt(out, l.size());
@@ -479,7 +479,7 @@ public class SerializerBase implements Serializer{
         }
     }
 
-    private void serializeCollection(int header, DataOutput out, Object obj, FastArrayList objectStack) throws IOException {
+    private void serializeCollection(int header, DataOutput out, Object obj, FastArrayList<Object> objectStack) throws IOException {
         Collection l = (Collection) obj;
         out.write(header);
         Utils.packInt(out, l.size());
@@ -678,7 +678,7 @@ public class SerializerBase implements Serializer{
         return deserialize(is, null);
     }
 
-    public Object deserialize(DataInput is, FastArrayList objectStack) throws IOException {
+    public Object deserialize(DataInput is, FastArrayList<Object> objectStack) throws IOException {
 
         Object ret = null;
 
@@ -1170,7 +1170,7 @@ public class SerializerBase implements Serializer{
     }
 
 
-    private Object[] deserializeArrayObject(DataInput is, FastArrayList objectStack) throws IOException {
+    private Object[] deserializeArrayObject(DataInput is, FastArrayList<Object> objectStack) throws IOException {
         int size = Utils.unpackInt(is);
         Class clazz = deserializeClass(is);
         Object[] s = (Object[]) Array.newInstance(clazz, size);
@@ -1181,7 +1181,7 @@ public class SerializerBase implements Serializer{
         return s;
     }
 
-    private Object[] deserializeArrayObjectAllNull(DataInput is, FastArrayList objectStack) throws IOException {
+    private Object[] deserializeArrayObjectAllNull(DataInput is, FastArrayList<Object> objectStack) throws IOException {
         int size = Utils.unpackInt(is);
         Class clazz = deserializeClass(is);
         Object[] s = (Object[]) Array.newInstance(clazz, size);
@@ -1204,7 +1204,7 @@ public class SerializerBase implements Serializer{
     }
 
 
-    private ArrayList<Object> deserializeArrayList(DataInput is, FastArrayList objectStack) throws IOException {
+    private ArrayList<Object> deserializeArrayList(DataInput is, FastArrayList<Object> objectStack) throws IOException {
         int size = Utils.unpackInt(is);
         ArrayList<Object> s = new ArrayList<Object>(size);
         objectStack.add(s);
@@ -1231,7 +1231,7 @@ public class SerializerBase implements Serializer{
     }
 
 
-    private java.util.LinkedList deserializeLinkedList(DataInput is, FastArrayList objectStack) throws IOException {
+    private java.util.LinkedList deserializeLinkedList(DataInput is, FastArrayList<Object> objectStack) throws IOException {
         int size = Utils.unpackInt(is);
         java.util.LinkedList s = new java.util.LinkedList();
         objectStack.add(s);
@@ -1241,7 +1241,7 @@ public class SerializerBase implements Serializer{
     }
 
 
-    private Vector<Object> deserializeVector(DataInput is, FastArrayList objectStack) throws IOException {
+    private Vector<Object> deserializeVector(DataInput is, FastArrayList<Object> objectStack) throws IOException {
         int size = Utils.unpackInt(is);
         Vector<Object> s = new Vector<Object>(size);
         objectStack.add(s);
@@ -1251,7 +1251,7 @@ public class SerializerBase implements Serializer{
     }
 
 
-    private HashSet<Object> deserializeHashSet(DataInput is, FastArrayList objectStack) throws IOException {
+    private HashSet<Object> deserializeHashSet(DataInput is, FastArrayList<Object> objectStack) throws IOException {
         int size = Utils.unpackInt(is);
         HashSet<Object> s = new HashSet<Object>(size);
         objectStack.add(s);
@@ -1261,7 +1261,7 @@ public class SerializerBase implements Serializer{
     }
 
 
-    private LinkedHashSet<Object> deserializeLinkedHashSet(DataInput is, FastArrayList objectStack) throws IOException {
+    private LinkedHashSet<Object> deserializeLinkedHashSet(DataInput is, FastArrayList<Object> objectStack) throws IOException {
         int size = Utils.unpackInt(is);
         LinkedHashSet<Object> s = new LinkedHashSet<Object>(size);
         objectStack.add(s);
@@ -1271,7 +1271,7 @@ public class SerializerBase implements Serializer{
     }
 
 
-    private TreeSet<Object> deserializeTreeSet(DataInput is, FastArrayList objectStack) throws IOException {
+    private TreeSet<Object> deserializeTreeSet(DataInput is, FastArrayList<Object> objectStack) throws IOException {
         int size = Utils.unpackInt(is);
         TreeSet<Object> s = new TreeSet<Object>();
         objectStack.add(s);
@@ -1285,7 +1285,7 @@ public class SerializerBase implements Serializer{
     }
 
 
-    private TreeMap<Object, Object> deserializeTreeMap(DataInput is, FastArrayList objectStack) throws IOException {
+    private TreeMap<Object, Object> deserializeTreeMap(DataInput is, FastArrayList<Object> objectStack) throws IOException {
         int size = Utils.unpackInt(is);
 
         TreeMap<Object, Object> s = new TreeMap<Object, Object>();
@@ -1299,7 +1299,7 @@ public class SerializerBase implements Serializer{
     }
 
 
-    private HashMap<Object, Object> deserializeHashMap(DataInput is, FastArrayList objectStack) throws IOException {
+    private HashMap<Object, Object> deserializeHashMap(DataInput is, FastArrayList<Object> objectStack) throws IOException {
         int size = Utils.unpackInt(is);
 
         HashMap<Object, Object> s = new HashMap<Object, Object>(size);
@@ -1309,7 +1309,7 @@ public class SerializerBase implements Serializer{
         return s;
     }
 
-    private IdentityHashMap<Object, Object> deserializeIdentityHashMap(DataInput is, FastArrayList objectStack) throws IOException {
+    private IdentityHashMap<Object, Object> deserializeIdentityHashMap(DataInput is, FastArrayList<Object> objectStack) throws IOException {
         int size = Utils.unpackInt(is);
 
         IdentityHashMap<Object, Object> s = new IdentityHashMap<Object, Object>(size);
@@ -1319,7 +1319,7 @@ public class SerializerBase implements Serializer{
         return s;
     }
 
-    private LinkedHashMap<Object, Object> deserializeLinkedHashMap(DataInput is, FastArrayList objectStack) throws IOException {
+    private LinkedHashMap<Object, Object> deserializeLinkedHashMap(DataInput is, FastArrayList<Object> objectStack) throws IOException {
         int size = Utils.unpackInt(is);
 
         LinkedHashMap<Object, Object> s = new LinkedHashMap<Object, Object>(size);
@@ -1330,7 +1330,7 @@ public class SerializerBase implements Serializer{
     }
 
 
-    private Hashtable<Object, Object> deserializeHashtable(DataInput is, FastArrayList objectStack) throws IOException {
+    private Hashtable<Object, Object> deserializeHashtable(DataInput is, FastArrayList<Object> objectStack) throws IOException {
         int size = Utils.unpackInt(is);
 
         Hashtable<Object, Object> s = new Hashtable<Object, Object>(size);
@@ -1341,7 +1341,7 @@ public class SerializerBase implements Serializer{
     }
 
 
-    private Properties deserializeProperties(DataInput is, FastArrayList objectStack) throws IOException {
+    private Properties deserializeProperties(DataInput is, FastArrayList<Object> objectStack) throws IOException {
         int size = Utils.unpackInt(is);
 
         Properties s = new Properties();
@@ -1352,11 +1352,11 @@ public class SerializerBase implements Serializer{
     }
 
     /** override this method to extend SerializerBase functionality*/
-    protected void serializeUnknownObject(DataOutput out, Object obj, FastArrayList objectStack) throws IOException {
+    protected void serializeUnknownObject(DataOutput out, Object obj, FastArrayList<Object> objectStack) throws IOException {
         throw new InternalError("Could not deserialize unknown object: "+obj.getClass().getName());
     }
     /** override this method to extend SerializerBase functionality*/
-    protected Object deserializeUnknownHeader(DataInput is, int head, FastArrayList objectStack) throws IOException {
+    protected Object deserializeUnknownHeader(DataInput is, int head, FastArrayList<Object> objectStack) throws IOException {
         throw new InternalError("Unknown serialization header: " + head);
     }
 

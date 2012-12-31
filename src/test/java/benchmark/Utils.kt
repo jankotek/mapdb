@@ -5,7 +5,7 @@ package benchmark
  * Package level Test Utilities
  */
 
-private val runtime = Runtime.getRuntime()!!;
+private val runtime = Runtime.getRuntime();
 
 fun assertHeapMemAvail(mem:Double){
     if(runtime.maxMemory() <mem)

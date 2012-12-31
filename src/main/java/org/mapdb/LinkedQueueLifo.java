@@ -16,28 +16,28 @@ public class LinkedQueueLifo<E> implements Queue<E> {
     protected static final Long ZERO = Long.valueOf(0L);
 
     protected final Engine engine;
-    protected final Serializer serializer;
+    protected final Serializer<E> serializer;
     protected final boolean useLocks;
     protected final Locks.RecidLocks locks;
     protected final long headRecid;
 
 
-    protected final Serializer<Node> nodeSerializer = new Serializer<Node>() {
+    protected final Serializer<Node<E>> nodeSerializer = new Serializer<Node<E>>() {
         @Override
-        public void serialize(DataOutput out, Node value) throws IOException {
+        public void serialize(DataOutput out, Node<E> value) throws IOException {
             if(value==null) return;
             Utils.packLong(out,value.next);
             serializer.serialize(out, value.value);
         }
 
         @Override
-        public Node deserialize(DataInput in, int available) throws IOException {
+        public Node<E> deserialize(DataInput in, int available) throws IOException {
             if(available==0)return null;
-            return new Node(Utils.unpackLong(in), serializer.deserialize(in,-1));
+            return new Node<E>(Utils.unpackLong(in), serializer.deserialize(in,-1));
         }
     };
 
-    public LinkedQueueLifo(Engine engine, Serializer serializer, boolean useLocks) {
+    public LinkedQueueLifo(Engine engine, Serializer<E> serializer, boolean useLocks) {
         this.engine = engine;
         this.serializer = serializer;
         this.useLocks = useLocks;
@@ -45,7 +45,7 @@ public class LinkedQueueLifo<E> implements Queue<E> {
         this.headRecid = engine.put(ZERO, Serializer.LONG_SERIALIZER);
     }
 
-    public LinkedQueueLifo(Engine engine, Serializer serializer, boolean useLocks, long headRecid) {
+    public LinkedQueueLifo(Engine engine, Serializer<E> serializer, boolean useLocks, long headRecid) {
         this.engine = engine;
         this.serializer = serializer;
         this.useLocks = useLocks;
@@ -55,11 +55,11 @@ public class LinkedQueueLifo<E> implements Queue<E> {
 
 
 
-    protected static final class Node{
+    protected static final class Node<E>{
         final protected long next;
-        final protected Object value;
+        final protected E value;
 
-        public Node(long next, Object value) {
+        public Node(long next, E value) {
             this.next = next;
             this.value = value;
         }
@@ -82,7 +82,7 @@ public class LinkedQueueLifo<E> implements Queue<E> {
     @Override
     public E poll() {
         long head = 0;
-        Node n;
+        Node<E> n;
         do{
             if(useLocks && head!=0)locks.unlock(head);
             head =engine.get(headRecid, Serializer.LONG_SERIALIZER);
@@ -113,7 +113,7 @@ public class LinkedQueueLifo<E> implements Queue<E> {
         while(true){
             Long head = engine.get(headRecid, Serializer.LONG_SERIALIZER);
             if(ZERO.equals(head)) return null;
-            Node n = engine.get(head, nodeSerializer);
+            Node<E> n = engine.get(head, nodeSerializer);
             Long head2 = engine.get(headRecid, Serializer.LONG_SERIALIZER);
             if(ZERO.equals(head2)) return null;
             if(head.equals(head2)) return (E) n.value;
@@ -128,12 +128,12 @@ public class LinkedQueueLifo<E> implements Queue<E> {
     @Override
     public boolean add(E e) {
         Long head = engine.get(headRecid, Serializer.LONG_SERIALIZER);
-        Node n = new Node(head, e);
+        Node<E> n = new Node<E>(head, e);
         long recid = engine.put(n, nodeSerializer);
         while(!engine.compareAndSwap(headRecid, head, recid, Serializer.LONG_SERIALIZER)){
             //failed to update head, so read new value and start over
             head = engine.get(headRecid, Serializer.LONG_SERIALIZER);
-            n = new Node(head, e);
+            n = new Node<E>(head, e);
             engine.update(recid, n, nodeSerializer);
         }
         return true;

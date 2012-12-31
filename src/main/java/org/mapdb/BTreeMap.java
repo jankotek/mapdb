@@ -25,10 +25,9 @@
 
 package org.mapdb;
 
+import org.jetbrains.annotations.NotNull;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentNavigableMap;
 
@@ -46,6 +45,9 @@ import java.util.concurrent.ConcurrentNavigableMap;
  * ConcurrentModificationException}, and may proceed concurrently with
  * other operations. Ascending key ordered views and their iterators
  * are faster than descending ones.
+ * <p>
+ * It is possible to obtain <i>consistent</i> iterator by using <code>snapshot()</code>
+ * method.
  *
  * <p>All <tt>Map.Entry</tt> pairs returned by methods in this class
  * and its views represent snapshots of mappings at the time they were
@@ -71,33 +73,55 @@ import java.util.concurrent.ConcurrentNavigableMap;
  * null return values cannot be reliably distinguished from the absence of
  * elements.
  *
+ * <p>Theoretical design of BTreeMap is based on <a href="http://www.cs.cornell.edu/courses/cs4411/2009sp/blink.pdf">paper</a>
+ * from Philip L. Lehman and S. Bing Yao. More practical aspects of BTreeMap implementation are based on <a href="http://www.doc.ic.ac.uk/~td202/">notes</a>
+ * and <a href="http://www.doc.ic.ac.uk/~td202/btree/">demo application</a> from Thomas Dinsdale-Young.
+ * B-Linked-Tree used here does not require locking for read. Updates locks only one, two or three nodes.
+ * <p/>
+ * This B-Linked-Tree structure does not support removal well, entry delete does not collapse tree nodes. Massive
+ * deletion causes empty nodes and performance lost. There is workaround in form of compaction process, but it is not
+ * implemented yet.
  *
  * @author Jan Kotek
  * @author some parts by Doug Lea
  */
-@SuppressWarnings("unchecked")
+@SuppressWarnings({ "unchecked", "rawtypes" })
 public class BTreeMap<K,V> extends AbstractMap<K,V>
         implements ConcurrentNavigableMap<K,V>{
 
 
-    public static final int DEFAULT_MAX_NODE_SIZE = 32;
+    /** default maximal node size */
+    protected static final int DEFAULT_MAX_NODE_SIZE = 32;
 
-
+    /** recid under which root element is persisted
+     * TODO this is mutable item, and should not be here, as it needs special handling after rollback
+     */
     protected long rootRecid;
 
+    /** Serializer used to convert keys from/into binary form.
+     * TODO delta packing on BTree keys*/
     protected final Serializer keySerializer;
+    /** Serializer used to convert keys from/into binary form*/
     protected final Serializer<V> valueSerializer;
+
+    /** keys are sorted by this*/
     protected final Comparator comparator;
 
+    /** holds node level locks*/
     protected final Locks.RecidLocks nodeLocks = new Locks.LongHashMapRecidLocks();
 
+    /** maximal node size allowed in this BTree*/
     protected final int maxNodeSize;
 
+    /** DB Engine in which entries are persisted */
     protected final Engine engine;
 
+    /** is this a Map or Set?  if false, entries do not have values, only keys are allowed*/
     protected final boolean hasValues;
 
+    /** store values as part of BTree nodes */
     protected final boolean valsOutsideNodes;
+
 
     protected long treeRecid;
 
@@ -120,6 +144,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
         @Override
         public void serialize(DataOutput out, BTreeRoot value) throws IOException {
+            //TODO header byte
             out.writeLong(value.rootRecid);
             out.writeBoolean(value.hasValues);
             out.writeBoolean(value.valsOutsideNodes);
@@ -143,6 +168,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             return ret;
         }
     }
+
+    /** data record which holds informations about this BTree. BTreeMap class is not serialized itself. */
     static class BTreeRoot{
         long rootRecid;
         boolean hasValues;
@@ -156,7 +183,10 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
     }
 
+    /** if <code>valsOutsideNodes</code> is true, this class is used instead of values.
+     * It contains reference to actual value. It also supports assertions from preventing it to leak outside of Map*/
     protected static final class ValRef{
+        /** reference to actual value */
         final long recid;
         public ValRef(long recid) {
             this.recid = recid;
@@ -175,13 +205,13 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     }
 
 
+    /** common interface for BTree node */
     protected interface BNode{
         boolean isLeaf();
         Object[] keys();
         Object[] vals();
         Object highKey();
         long[] child();
-
         long next();
     }
 
@@ -239,7 +269,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     }
 
 
-    final Serializer<BNode> nodeSerializer = new Serializer<BNode>() {
+    protected final Serializer<BNode> nodeSerializer = new Serializer<BNode>() {
         @Override
         public void serialize(DataOutput out, BNode value) throws IOException {
             final boolean isLeaf = value.isLeaf();
@@ -313,7 +343,19 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     };
 
 
-    /** constructor used to create new tree*/
+    /** Constructor used to create new BTreeMap without existing record (recid) in Engine.
+     *  This constructor creates new record and saves all configuration parameters there.
+     *  Constructor args are defining BTreeMap format, are stored in db and can not be changed latter.
+     *
+     * @param engine used for persistence
+     * @param maxNodeSize maximal BTree Node size. Node will split if number of entries is higher
+     * @param hasValues is Map or Set? If true only keys will be stored, no values
+     * @param valsOutsideNodes Store Values outside of BTree Nodes in separate record?
+     * @param defaultSerializer serialier used to serialize/deserialize other serializers. May be null for default value.
+     * @param keySerializer Serialzier used for keys. May be null for defualt value. TODO delta packing
+     * @param valueSerializer Serializer used for values. May be null for default value
+     * @param comparator Comparator to sort keys in this BTree, may be null.
+     */
     public BTreeMap(Engine engine, int maxNodeSize, boolean hasValues, boolean valsOutsideNodes,
                     Serializer defaultSerializer,
                     Serializer<K[]> keySerializer, Serializer<V> valueSerializer, Comparator<K> comparator) {
@@ -327,6 +369,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         this.engine = engine;
         this.maxNodeSize = maxNodeSize;
         this.comparator = comparator==null? Utils.COMPARABLE_COMPARATOR : comparator;
+        //TODO when delta packing implemented, add assertion for COMPARABLE_COMPARATOR
         this.keySerializer = keySerializer==null ?  defaultSerializer :  keySerializer;
         this.valueSerializer = valueSerializer==null ? (Serializer<V>) defaultSerializer : valueSerializer;
 
@@ -356,7 +399,12 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
 
     /**
-     * Constructor used to load existing tree
+     * Constructor used to load existing BTreeMap (with assigned recid).
+     * Map was already created and saved to Engine, this constructor just loads it.
+     *
+     * @param engine used for persistence
+     * @param recid under which BTreeMap was stored
+     * @param defaultSerializer used to deserialize other serializers and comparator
      */
     public BTreeMap(Engine engine, long recid, Serializer defaultSerializer) {
         this.engine = engine;
@@ -1883,6 +1931,16 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     }
 
 
+    /**
+     * Make readonly snapshot view of current Map. Snapshot is immutable and not affected by modifications made by other threads.
+     * Useful if you need consistent view on Map.
+     * <p>
+     * Maintaining snapshot have some overhead, underlying Engine is closed after Map view is GCed.
+     * Please make sure to release reference to this Map view, so snapshot view can be garbage collected.
+     *
+     * @return snapshot
+     */
+    @NotNull
     public NavigableMap<K,V> snapshot(){
         Engine snapshot = SnapshotEngine.createSnapshotFor(engine);
         return new BTreeMap<K, V>(snapshot,treeRecid, btreeRootSerializer.defaultSerializer);

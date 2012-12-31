@@ -8,7 +8,6 @@ package stress;
  * Misc utilities in JSR166 performance tests
  */
 
-import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 
 class LoopHelpers {

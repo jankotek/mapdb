@@ -3,14 +3,13 @@ package org.mapdb;
 
 import org.junit.Test;
 
-import java.util.Map;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
 import static org.mapdb.Fun.*;
 
+@SuppressWarnings({ "unchecked", "rawtypes" })
 public class FunTest {
 
     public int compare(int[] o1, int[] o2) {

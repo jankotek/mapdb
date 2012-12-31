@@ -287,6 +287,7 @@ public abstract class Volume {
             protected final File file;
             protected final FileChannel fileChannel;
             protected final FileChannel.MapMode mapMode;
+			protected final java.io.RandomAccessFile raf;
 
             static final int BUF_SIZE_INC = 1024*1024;
 
@@ -295,9 +296,9 @@ public abstract class Volume {
                 this.file = file;
                 this.mapMode = readOnly? FileChannel.MapMode.READ_ONLY: FileChannel.MapMode.READ_WRITE;
                 try {
-                    this.fileChannel = new java.io.RandomAccessFile(file, readOnly?"r":"rw")
-                            .getChannel();
-
+                	this.raf = new java.io.RandomAccessFile(file, readOnly?"r":"rw");
+                    this.fileChannel = raf.getChannel();                    
+                    
                     final long fileSize = fileChannel.size();
                     if(fileSize>0){
                         //map existing data
@@ -325,6 +326,7 @@ public abstract class Volume {
             public void close() {
                 try {
                     fileChannel.close();
+                    raf.close();
                 } catch (IOException e) {
                     throw new IOError(e);
                 }

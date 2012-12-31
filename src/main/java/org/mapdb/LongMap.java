@@ -86,6 +86,7 @@ public abstract class LongMap<V> {
     public abstract LongMapIterator<V> longMapIterator();
 
 
+    /** Iterates over LongMap key and values without boxing long keys */
     public interface LongMapIterator<V>{
         boolean moveToNext();
         long key();

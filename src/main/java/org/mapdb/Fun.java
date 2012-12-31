@@ -16,9 +16,6 @@
 
 package org.mapdb;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
 import java.io.Serializable;
 
 /**
@@ -26,6 +23,7 @@ import java.io.Serializable;
  *
  * @author Jan Kotek
  */
+@SuppressWarnings({ "unchecked", "rawtypes" })
 public final class Fun {
 
     private Fun(){}
@@ -47,7 +45,7 @@ public final class Fun {
         return new Tuple2<A, B>(a,b);
     }
 
-    public static <A,B,C> Tuple3<A,B,C> t3(Object a, Object b, Object c) {
+    public static <A,B,C> Tuple3<A,B,C> t3(A a, B b, C c) {
         return new Tuple3<A, B, C>((A)a, (B)b, (C)c);
     }
 
@@ -57,7 +55,10 @@ public final class Fun {
 
 
     static public final class Tuple2<A,B> implements Comparable, Serializable {
-        final public A a;
+		
+    	private static final long serialVersionUID = -8816277286657643283L;
+		
+		final public A a;
         final public B b;
 
         public Tuple2(A a, B b) {
@@ -109,7 +110,10 @@ public final class Fun {
     }
 
     static public class Tuple3<A,B,C> implements Comparable, Serializable{
-        final public A a;
+
+    	private static final long serialVersionUID = 11785034935947868L;
+    	
+		final public A a;
         final public B b;
         final public C c;
 
@@ -177,7 +181,10 @@ public final class Fun {
     }
 
     static public class Tuple4<A,B,C,D> implements Comparable, Serializable{
-        final public A a;
+
+    	private static final long serialVersionUID = 1630397500758650718L;
+    	
+		final public A a;
         final public B b;
         final public C c;
         final public D d;

@@ -34,14 +34,16 @@ final public class Utils {
     static final Logger LOG = Logger.getLogger("JDBM");
 
 
-    public static final Comparator<Comparable> COMPARABLE_COMPARATOR = new Comparator<Comparable>() {
+    @SuppressWarnings("rawtypes")
+	public static final Comparator<Comparable> COMPARABLE_COMPARATOR = new Comparator<Comparable>() {
         @Override
         public int compare(Comparable o1, Comparable o2) {
             return o1.compareTo(o2);
         }
     };
 
-    public static final Comparator<Comparable> COMPARABLE_COMPARATOR_WITH_NULLS = new Comparator<Comparable>() {
+    @SuppressWarnings("rawtypes")
+	public static final Comparator<Comparable> COMPARABLE_COMPARATOR_WITH_NULLS = new Comparator<Comparable>() {
         @Override
         public int compare(Comparable o1, Comparable o2) {
             return o1 == null && o2 != null ? -1 : (o1 != null && o2 == null ? 1 : o1.compareTo(o2));

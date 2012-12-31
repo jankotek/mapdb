@@ -15,6 +15,8 @@
  */
 package org.mapdb;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -25,7 +27,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 /**
  * Thread safe concurrent HashMap
  * <p/>
- * It uses full 32bit hash from start. There is no initial load factor and rehash.
+ * This map uses full 32bit hash from beginning, There is no initial load factor and rehash.
+ * Technically it is not hash table, but hash tree with nodes expanding when they become full.
  * <p/>
  * This map is suitable for number of records  1e9 and over.
  * Larger number of records will increase hash collisions and performance
@@ -36,17 +39,22 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *
  * @author Jan Kotek
  */
-@SuppressWarnings("unchecked")
+@SuppressWarnings({ "unchecked", "rawtypes" })
 public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K, V> {
 
 
-    static final int BUCKET_OVERFLOW = 4;
+    protected static final int BUCKET_OVERFLOW = 4;
 
+    /** is this a Map or Set?  if false, entries do not have values, only keys are allowed*/
     protected final boolean hasValues;
+
     protected final Serializer<K> keySerializer;
     protected final Serializer<V> valueSerializer;
 
+    protected final Serializer defaultSerialzierForSnapshots;
 
+
+    /** node which holds key-value pair */
     protected static class LinkedNode<K,V>{
         K key;
         V value;
@@ -94,7 +102,6 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
     }
 
-    final Serializer defaultSerialzierForSnapshots;
 
     static class HashRoot{
         long[] segmentRecids;
@@ -186,7 +193,17 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     public final long rootRecid;
 
 
-    /** used to create new HTreeMap in store */
+    /**
+     * Constructor used to create new HTreeMap without existing record (recid) in Engine.
+     * This constructor creates new record and saves all configuration parameters there.
+     * Constructor args are defining HTreeMap format, are stored in db and can not be changed latter.
+     *
+     * @param engine used for persistence
+     * @param hasValues is Map or Set? If true only keys will be stored, no values
+     * @param defaultSerializer serialier used to serialize/deserialize other serializers. May be null for default value.
+     * @param keySerializer Serialzier used for keys. May be null for defualt value. TODO delta packing
+     * @param valueSerializer Serializer used for values. May be null for default value
+     */
     public HTreeMap(Engine engine, boolean hasValues, Serializer defaultSerializer, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
         this.engine = engine;
         this.hasValues = hasValues;
@@ -207,7 +224,14 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         this.rootRecid = engine.put(r, new HashRootSerializer(defaultSerializer));
     }
 
-    /** used to load existing HTreeMap from store */
+    /**
+     * Constructor used to load existing HTreeMap (with assigned recid).
+     * Map was already created and saved to Engine, this constructor just loads it.
+     *
+     * @param engine used for persistence
+     * @param recid under which BTreeMap was stored
+     * @param defaultSerializer used to deserialize other serializers and comparator
+     */
     public HTreeMap(Engine engine, long rootRecid, Serializer defaultSerializer) {
         if(CC.ASSERT && rootRecid == 0) throw new IllegalArgumentException("recid is 0");
         this.engine = engine;
@@ -493,7 +517,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                     dir[slot/8] = new long[8];
                 }
 
-                int counter = 0;
+//                int counter = 0;
                 long recid = dir[slot/8][slot%8];
 
                 if(recid!=0){
@@ -535,7 +559,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                         prevLn = ln;
                         recid = ln.next;
                         ln = recid==0? null : engine.get(recid, LN_SERIALIZER);
-                        counter++;
+//                        counter++;
                     }
                     //key was not found at linked list, so it does not exist
                     return null;
@@ -1084,6 +1108,16 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     }
 
 
+    /**
+     * Make readonly snapshot view of current Map. Snapshot is immutable and not affected by modifications made by other threads.
+     * Useful if you need consistent view on Map.
+     * <p>
+     * Maintaining snapshot have some overhead, underlying Engine is closed after Map view is GCed.
+     * Please make sure to release reference to this Map view, so snapshot view can be garbage collected.
+     *
+     * @return snapshot
+     */
+    @NotNull
     public Map<K,V> snapshot(){
         Engine snapshot = SnapshotEngine.createSnapshotFor(engine);
         return new HTreeMap<K, V>(snapshot,rootRecid, defaultSerialzierForSnapshots);

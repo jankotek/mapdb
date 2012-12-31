@@ -45,7 +45,6 @@
 package org.mapdb;
 
 import junit.framework.TestCase;
-import org.junit.Ignore;
 import org.mapdb.DBMaker;
 
 import java.util.NavigableMap;

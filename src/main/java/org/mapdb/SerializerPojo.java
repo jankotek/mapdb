@@ -77,7 +77,7 @@ public class SerializerPojo extends SerializerBase{
 
     protected final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
-    private static Class classForName(String className) {
+    private static Class<?> classForName(String className) {
         try {
             return Class.forName(className);
         } catch (ClassNotFoundException e) {
@@ -172,15 +172,13 @@ public class SerializerPojo extends SerializerBase{
         private final String name;
         private final boolean primitive;
         private final String type;
-        private Class typeClass;
+        private Class<?> typeClass;
         // Class containing this field
-        private final Class clazz;
+        private final Class<?> clazz;
         private Object setter;
-        private int    setterIndex;
         private Object getter;
-        private int    getterIndex;
 
-        public FieldInfo(String name, boolean primitive, String type, Class clazz) {
+        public FieldInfo(String name, boolean primitive, String type, Class<?> clazz) {
             this.name = name;
             this.primitive = primitive;
             this.type = type;
@@ -197,9 +195,8 @@ public class SerializerPojo extends SerializerBase{
         private void initSetter() {
             // Set setter
             String setterName = "set" + firstCharCap(name);
-            String fieldSetterName = clazz.getName() + "#" + setterName;
 
-            Class aClazz = clazz;
+            Class<?> aClazz = clazz;
 
             // iterate over class hierarchy, until root class
             while (aClazz != Object.class) {
@@ -233,9 +230,8 @@ public class SerializerPojo extends SerializerBase{
         private void initGetter() {
             // Set setter
             String getterName = "get" + firstCharCap(name);
-            String fieldSetterName = clazz.getName() + "#" + getterName;
 
-            Class aClazz = clazz;
+            Class<?> aClazz = clazz;
 
             // iterate over class hierarchy, until root class
             while (aClazz != Object.class) {
@@ -266,7 +262,7 @@ public class SerializerPojo extends SerializerBase{
             }
         }
 
-        public FieldInfo(ObjectStreamField sf, Class clazz) {
+        public FieldInfo(ObjectStreamField sf, Class<?> clazz) {
             this(sf.getName(), sf.isPrimitive(), sf.getType().getName(), clazz);
         }
 
@@ -289,12 +285,12 @@ public class SerializerPojo extends SerializerBase{
 
 
     ArrayList<ClassInfo> registered;
-    Map<Class, Integer> class2classId = new HashMap<Class, Integer>();
-    Map<Integer, Class> classId2class = new HashMap<Integer, Class>();
+    Map<Class<?>, Integer> class2classId = new HashMap<Class<?>, Integer>();
+    Map<Integer, Class<?>> classId2class = new HashMap<Integer, Class<?>>();
 
 
 
-    public void registerClass(Class clazz) throws IOException {
+    public void registerClass(Class<?> clazz) throws IOException {
         if(clazz != Object.class)
             assertClassSerializable(clazz);
 
@@ -322,7 +318,7 @@ public class SerializerPojo extends SerializerBase{
 
     }
 
-    private ObjectStreamField[] getFields(Class clazz) {
+    private ObjectStreamField[] getFields(Class<?> clazz) {
         ObjectStreamField[] fields = null;
         ClassInfo classInfo = null;
         Integer classId = class2classId.get(clazz);
@@ -351,7 +347,7 @@ public class SerializerPojo extends SerializerBase{
         return fields;
     }
 
-    private void assertClassSerializable(Class clazz) throws NotSerializableException, InvalidClassException {
+    private void assertClassSerializable(Class<?> clazz) throws NotSerializableException, InvalidClassException {
         if(containsClass(clazz))
             return;
 
@@ -416,11 +412,11 @@ public class SerializerPojo extends SerializerBase{
         throw new NoSuchFieldError(object.getClass() + "." + fieldInfo.getName());
     }
 
-    public boolean containsClass(Class clazz) {
+    public boolean containsClass(Class<?> clazz) {
         return (class2classId.get(clazz) != null);
     }
 
-    public int getClassId(Class clazz) {
+    public int getClassId(Class<?> clazz) {
         Integer classId = class2classId.get(clazz);
         if(classId != null) {
             return classId;
@@ -429,7 +425,7 @@ public class SerializerPojo extends SerializerBase{
     }
 
     @Override
-    protected void serializeUnknownObject(DataOutput out, Object obj, FastArrayList objectStack) throws IOException {
+    protected void serializeUnknownObject(DataOutput out, Object obj, FastArrayList<Object> objectStack) throws IOException {
         out.write(SerializationHeader.POJO);
 
         registerClass(obj.getClass());
@@ -456,7 +452,7 @@ public class SerializerPojo extends SerializerBase{
 
 
         if(classInfo.isEnum) {
-            int ordinal = ((Enum)obj).ordinal();
+            int ordinal = ((Enum<?>)obj).ordinal();
             Utils.packInt(out, ordinal);
         }
 
@@ -481,7 +477,7 @@ public class SerializerPojo extends SerializerBase{
 
 
     @Override
-    protected Object deserializeUnknownHeader(DataInput in, int head, FastArrayList objectStack) throws IOException {
+    protected Object deserializeUnknownHeader(DataInput in, int head, FastArrayList<Object> objectStack) throws IOException {
         if(head!=SerializationHeader.POJO) throw new InternalError();
 
         //read class header
@@ -489,7 +485,7 @@ public class SerializerPojo extends SerializerBase{
             int classId = Utils.unpackInt(in);
             ClassInfo classInfo = registered.get(classId);
 //            Class clazz = Class.forName(classInfo.getName());
-            Class clazz = classId2class.get(classId);
+            Class<?> clazz = classId2class.get(classId);
             if(clazz == null)
                 clazz = Class.forName(classInfo.getName());
             assertClassSerializable(clazz);
@@ -538,19 +534,20 @@ public class SerializerPojo extends SerializerBase{
     static private sun.reflect.ReflectionFactory rf =
             sun.reflect.ReflectionFactory.getReflectionFactory();
 
-    private static Map<Class, Constructor> class2constuctor = new HashMap<Class, Constructor>();
+    private static Map<Class<?>, Constructor<?>> class2constuctor = new HashMap<Class<?>, Constructor<?>>();
 
     /**
      * Little trick to create new instance without using constructor.
      * Taken from http://www.javaspecialists.eu/archive/Issue175.html
      */
-    private static <T> T createInstance(Class<T> clazz, Class<? super T> parent) {
+    @SuppressWarnings("restriction")
+	private static <T> T createInstance(Class<T> clazz, Class<? super T> parent) {
 
         try {
-            Constructor intConstr = class2constuctor.get(clazz);
+            Constructor<?> intConstr = class2constuctor.get(clazz);
 
             if (intConstr == null) {
-                Constructor objDef = parent.getDeclaredConstructor();
+                Constructor<?> objDef = parent.getDeclaredConstructor();
                 intConstr = rf.newConstructorForSerialization(
                         clazz, objDef);
                 class2constuctor.put(clazz, intConstr);

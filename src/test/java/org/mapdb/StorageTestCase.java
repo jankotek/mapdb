@@ -3,7 +3,6 @@ package org.mapdb;
 
 import org.junit.Before;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.*;
 

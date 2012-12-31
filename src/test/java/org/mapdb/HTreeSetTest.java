@@ -33,7 +33,7 @@ import static org.junit.Assert.assertTrue;
  * Tests for HashSet which comes with JDBM. Original code comes from Apache Harmony,
  * Modified by Jan Kotek for use in JDBM
  */
-@SuppressWarnings("unchecked")
+@SuppressWarnings({"unchecked","rawtypes"})
 public class HTreeSetTest{
 
     Engine engine = new StorageDirect(Volume.memoryFactory(false));

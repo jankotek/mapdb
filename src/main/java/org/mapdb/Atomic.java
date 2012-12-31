@@ -206,9 +206,10 @@ final public class Atomic {
      * @throws IllegalArgumentException if name is already used
      * @return Atomic.Var record
      */
-    public static <E> Var<E> createVar(DB db, java.lang.String name, E  initVal, Serializer<E> serializer) {
+    @SuppressWarnings("unchecked")
+	public static <E> Var<E> createVar(DB db, java.lang.String name, E  initVal, Serializer<E> serializer) {
         db.checkNameNotExists(name);
-        if(serializer == null) serializer = db.getDefaultSerializer();
+        if(serializer == null) serializer = (Serializer<E>) db.getDefaultSerializer();
         long recid = db.getEngine().put(initVal, serializer);
         db.getNameDir().put(name, recid);
         return new Var<E>(db.getEngine(), recid, serializer);
@@ -222,9 +223,10 @@ final public class Atomic {
      * @param name of record
      * @return record
      */
-    public static <E> Var<E> getVar(DB db, java.lang.String name, Serializer<E> serializer) {
+    @SuppressWarnings("unchecked")
+	public static <E> Var<E> getVar(DB db, java.lang.String name, Serializer<E> serializer) {
         java.lang.Long recid = db.nameDir.get(name);
-        if(serializer == null) serializer = db.getDefaultSerializer();
+        if(serializer == null) serializer = (Serializer<E>) db.getDefaultSerializer();
         return  recid == null ?
                 createVar(db, name, null, serializer) :
                 new Var<E>(db.getEngine(),recid, serializer);
@@ -242,7 +244,9 @@ final public class Atomic {
      */
     public final static class Integer extends Number {
 
-        protected final Engine engine;
+		private static final long serialVersionUID = 4615119399830853054L;
+		
+		protected final Engine engine;
         protected final long recid;
 
         public Integer(Engine engine, long recid) {
@@ -421,8 +425,9 @@ final public class Atomic {
      */
     public final static class Long extends Number{
 
-
-        protected final Engine engine;
+		private static final long serialVersionUID = 2882620413591274781L;
+		
+		protected final Engine engine;
         protected final long recid;
 
         public Long(Engine engine, long recid) {

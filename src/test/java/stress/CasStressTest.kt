@@ -17,25 +17,25 @@ class CasStressTest{
 
     Test fun journaled() = stress(StorageJournaled(Volume.memoryFactory(false)))
 
-    Test fun default() = stress(DBMaker.newMemoryDB()!!.makeEngine()!!)
+    Test fun default() = stress(DBMaker.newMemoryDB().makeEngine())
 
-    Test fun defaultNoJournal() = stress(DBMaker.newMemoryDB()!!.journalDisable()!!.makeEngine()!!)
+    Test fun defaultNoJournal() = stress(DBMaker.newMemoryDB().journalDisable().makeEngine())
 
-    Test fun lruCache() = stress(DBMaker.newMemoryDB()!!.journalDisable()!!
-            .cacheLRUEnable()!!
-            .makeEngine()!!)
+    Test fun lruCache() = stress(DBMaker.newMemoryDB().journalDisable()
+            .cacheLRUEnable()
+            .makeEngine())
 
-    Test fun hardCache() = stress(DBMaker.newMemoryDB()!!.journalDisable()!!
-            .cacheHardRefEnable()!!
-            .makeEngine()!!)
+    Test fun hardCache() = stress(DBMaker.newMemoryDB().journalDisable()
+            .cacheHardRefEnable()
+            .makeEngine())
 
-    Test fun softCache() = stress(DBMaker.newMemoryDB()!!.journalDisable()!!
-            .cacheSoftRefEnable()!!
-            .makeEngine()!!)
+    Test fun softCache() = stress(DBMaker.newMemoryDB().journalDisable()
+            .cacheSoftRefEnable()
+            .makeEngine())
 
-    Test fun weakCache() = stress(DBMaker.newMemoryDB()!!.journalDisable()!!
-            .cacheWeakRefEnable()!!
-            .makeEngine()!!)
+    Test fun weakCache() = stress(DBMaker.newMemoryDB().journalDisable()
+            .cacheWeakRefEnable()
+            .makeEngine())
 
 
     fun stress(engine:Engine){

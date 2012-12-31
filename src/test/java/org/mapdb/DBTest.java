@@ -1,15 +1,14 @@
 package org.mapdb;
 
 import org.junit.Test;
+import static org.junit.Assert.*;
 
 import java.util.Map;
 import java.util.Set;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertTrue;
 
 
-@SuppressWarnings("unchecked")
+@SuppressWarnings({ "unchecked", "rawtypes" })
 public class DBTest {
 
     Engine engine = new StorageDirect(Volume.memoryFactory(false));

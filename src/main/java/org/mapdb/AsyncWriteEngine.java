@@ -35,6 +35,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
 
     protected final boolean powerSavingMode;
 
+    @SuppressWarnings({ "rawtypes" })
     protected static final class WriteItem{
         final Object value;
         final Serializer serializer;
@@ -65,7 +66,8 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
 
     /** background Writer Thread */
     protected final Thread writerThread = new Thread("MapDB writer #"+threadCounter.incrementAndGet()){
-        @Override
+        @SuppressWarnings("unchecked")
+		@Override
         public void run() {
             try{
                 for(;;){
@@ -172,7 +174,8 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
         }
     }
 
-    @Override
+    @SuppressWarnings("unchecked")
+	@Override
     public <A> A get(long recid, Serializer<A> serializer) {
         grandLock.readLock().lock();
         try{
@@ -268,7 +271,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     }
 
 
-    protected WeakReference parentEngineWeakRef = null;
+    protected WeakReference<Engine> parentEngineWeakRef = null;
 
     /**
      * Main thread may die, leaving Writer Thread orphaned.

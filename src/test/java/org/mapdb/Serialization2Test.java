@@ -1,4 +1,3 @@
-
 package org.mapdb;
 
 
@@ -8,7 +7,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.Map;
 
-import static junit.framework.Assert.assertEquals;
+import static org.junit.Assert.assertEquals;
 
 public class Serialization2Test extends TestFile {
 
@@ -53,7 +52,10 @@ public class Serialization2Test extends TestFile {
 
 
     static class AAA implements Serializable {
-        String test  = "aa";
+		
+    	private static final long serialVersionUID = 632633199013551846L;
+		
+		String test  = "aa";
     }
 
 // TODO skipped test
@@ -68,7 +70,7 @@ public class Serialization2Test extends TestFile {
 //        Map<Integer,AAA> map = db.createTreeMap("test");
 //        map.put(1,new AAA());
 //
-//        db.defrag(true);
+//        db.compact(true);
 //        db.close();
 //
 //        db = DBMaker.openFile(f)
