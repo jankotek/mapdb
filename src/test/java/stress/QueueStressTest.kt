@@ -18,14 +18,14 @@ class QueueStressTest{
 
 
     Test(timeout=1000000)
-            fun LinkedQueueLifo_noLocks(){
+    fun LinkedQueueLifo_noLocks(){
         val engine = DBMaker.newMemoryDB().journalDisable().makeEngine();
         val queue = LinkedQueueLifo<Long?>(engine, Serializer.LONG_SERIALIZER,false);
         stress(queue)
     }
 
     Test(timeout=1000000)
-            fun LinkedQueueLifo_withLocks(){
+    fun LinkedQueueLifo_withLocks(){
         val engine = DBMaker.newMemoryDB().journalDisable().makeEngine();
         val queue = LinkedQueueLifo<Long?>(engine, Serializer.LONG_SERIALIZER,true);
         stress(queue)
@@ -33,7 +33,7 @@ class QueueStressTest{
 
 
     Test(timeout=1000000)
-            fun LinkedQueueLifo_StorageDirect(){
+    fun LinkedQueueLifo_StorageDirect(){
         val engine = StorageDirect(Volume.memoryFactory(false));
         val queue = LinkedQueueLifo<Long?>(engine, Serializer.LONG_SERIALIZER,false);
         stress(queue)

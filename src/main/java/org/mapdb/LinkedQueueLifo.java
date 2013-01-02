@@ -41,7 +41,7 @@ public class LinkedQueueLifo<E> implements Queue<E> {
         this.engine = engine;
         this.serializer = serializer;
         this.useLocks = useLocks;
-        this.locks = useLocks? new Locks.SegmentedRecidLocks(16) : null;
+        this.locks = useLocks? new Locks.LongHashMapRecidLocks() : null;
         this.headRecid = engine.put(ZERO, Serializer.LONG_SERIALIZER);
     }
 
