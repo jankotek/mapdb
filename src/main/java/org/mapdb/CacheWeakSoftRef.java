@@ -174,7 +174,7 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
         try{
             locks.lock(recid);
             CacheItem item = items.get(recid);
-            Object oldValue = item.get();
+            Object oldValue = item==null? null: item.get() ;
             if(item!=null && oldValue!=null && item.getRecid() == recid &&
                     (oldValue == expectedOldValue || oldValue.equals(expectedOldValue))){
                 //found matching entry in cache, so just update and return true
