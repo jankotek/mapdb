@@ -597,8 +597,8 @@ public class DBMaker {
             Runtime.getRuntime().addShutdownHook(new Thread("JDBM shutdown") {
                 @Override
 				public void run() {
-                    //TODO handle already closed engine
-                    engine2.close();
+                    if(!engine2.isClosed())
+                        engine2.close();
                 }
             });
         }
