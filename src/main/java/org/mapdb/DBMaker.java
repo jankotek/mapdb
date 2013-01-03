@@ -552,7 +552,7 @@ public class DBMaker {
 
         AsyncWriteEngine engineAsync = null;
         if(_asyncWriteEnabled && !_readOnly){
-            engineAsync = new AsyncWriteEngine(engine,  _asyncThreadDaemon, _powerSavingMode);
+            engineAsync = new AsyncWriteEngine(engine,  _asyncThreadDaemon, _powerSavingMode, _asyncFlushDelay);
             engine = engineAsync;
         }
 

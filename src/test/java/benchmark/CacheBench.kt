@@ -15,7 +15,7 @@ class CacheBench:AbstractBenchmark(){
     fun storage() =
             AsyncWriteEngine(
                 StorageDirect(Volume.memoryFactory(useDirectMemory)),
-                true, false
+                true, false,0
             )
 
     fun benchCache(cache:Engine){

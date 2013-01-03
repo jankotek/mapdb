@@ -17,6 +17,7 @@
 package org.mapdb;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -34,6 +35,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class AsyncWriteEngine extends EngineWrapper implements Engine {
 
     protected final boolean powerSavingMode;
+    protected final int flushDelay;
 
     @SuppressWarnings({ "rawtypes" })
     protected static final class WriteItem{
@@ -70,11 +72,18 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
 		@Override
         public void run() {
             try{
+                ArrayList<Long> recids = new ArrayList<Long>();
                 for(;;){
+
                     // Take item from Queue
-                    Long recid = (powerSavingMode || parentEngineWeakRef==null)?
+                    Long recid0 = (powerSavingMode || parentEngineWeakRef==null)?
                             writeQueue.take() :
                             writeQueue.poll(1000, TimeUnit.SECONDS);
+                    recids.clear();
+                    recids.add(recid0);
+                    //writeQueue.drainTo(recids);
+                    for(Long recid:recids){
+
                     //check if this Engine was closed, in that case exit this thread
                     if(recid == SHUTDOWN) return;
 
@@ -102,8 +111,10 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
                             }
                         }
 
+
                     }finally{
                         grandLock.readLock().unlock();
+                    }
                     }
 
                     //check if we can exit, see javadoc at setParentEngineReference
@@ -113,6 +124,9 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
                         throwed = new Error("Parent engine was GCed. No more items should be added");
                         return;
                     }
+
+                    if(flushDelay>0)
+                        Thread.sleep(flushDelay);
                 }
             }catch(Throwable e){
                 //store reason why we failed, so user can be notified
@@ -156,10 +170,12 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
      * @param engine into which writes will be forward to
      * @param asyncThreadDaemon passed to {@ling Thread@setDaemon(boolean)} on Writer Thread
      * @param powerSavingMode if true, disable periodic checks if parent engine was GCed.
+     * @param flushDelay when Write Queue becomes empty, pause Writer Thread for given delay
      */
-    public AsyncWriteEngine(Engine engine, boolean asyncThreadDaemon, boolean powerSavingMode) {
+    public AsyncWriteEngine(Engine engine, boolean asyncThreadDaemon, boolean powerSavingMode, int flushDelay) {
         super(engine);
         this.powerSavingMode = powerSavingMode;
+        this.flushDelay = flushDelay;
         writerThread.setDaemon(asyncThreadDaemon);
     }
 
