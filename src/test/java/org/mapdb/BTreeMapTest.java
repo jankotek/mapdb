@@ -14,7 +14,7 @@ public class BTreeMapTest{
     Engine engine = new StorageDirect(Volume.memoryFactory(false));
     
 	public static void print(BTreeMap m) {
-        printRecur(m, m.rootRecid, "");
+        printRecur(m, m.rootRecid.get(), "");
     }
 
     private static void printRecur(BTreeMap m, long recid, String s) {
@@ -120,7 +120,9 @@ public class BTreeMapTest{
                 new Object[]{null, 10,20,30, null},
                 new Object[]{null, 10,20,30, null},
                 0);
-        m.rootRecid = engine.put(l, m.nodeSerializer);
+        long rootRecid = engine.put(l, m.nodeSerializer);
+        long rootRecidRef = engine.put(rootRecid, Serializer.LONG_SERIALIZER);
+        m.rootRecid = new Atomic.Long(engine,rootRecidRef);
 
         assertEquals(null, m.get(1));
         assertEquals(null, m.get(9));
@@ -137,7 +139,7 @@ public class BTreeMapTest{
     @Test public void root_leaf_insert(){
         BTreeMap m = new BTreeMap(engine,6,true,false, null,null,null,null);
         m.put(11,12);
-        BTreeMap.LeafNode n = (BTreeMap.LeafNode) engine.get(m.rootRecid, m.nodeSerializer);
+        BTreeMap.LeafNode n = (BTreeMap.LeafNode) engine.get(m.rootRecid.get(), m.nodeSerializer);
         assertArrayEquals(new Object[]{null, 11, null}, n.keys);
         assertArrayEquals(new Object[]{null, 12, null}, n.vals);
         assertEquals(0, n.next);
