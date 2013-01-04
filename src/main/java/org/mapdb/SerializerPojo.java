@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -33,10 +34,10 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class SerializerPojo extends SerializerBase{
 
 
-    protected static final Serializer<ArrayList<ClassInfo>> serializer = new Serializer<ArrayList<ClassInfo>>() {
+    protected static final Serializer<CopyOnWriteArrayList<ClassInfo>> serializer = new Serializer<CopyOnWriteArrayList<ClassInfo>>() {
 
         @Override
-		public void serialize(DataOutput out, ArrayList<ClassInfo> obj) throws IOException {
+		public void serialize(DataOutput out, CopyOnWriteArrayList<ClassInfo> obj) throws IOException {
             Utils.packInt(out, obj.size());
             for (ClassInfo ci : obj) {
                 out.writeUTF(ci.getName());
@@ -54,7 +55,7 @@ public class SerializerPojo extends SerializerBase{
         }
 
         @Override
-		public ArrayList<ClassInfo> deserialize(DataInput in, int available) throws IOException{
+		public CopyOnWriteArrayList<ClassInfo> deserialize(DataInput in, int available) throws IOException{
 
             int size = Utils.unpackInt(in);
             ArrayList<ClassInfo> ret = new ArrayList<ClassInfo>(size);
@@ -71,7 +72,7 @@ public class SerializerPojo extends SerializerBase{
                 }
                 ret.add(new ClassInfo(className, fields,isEnum,isExternalizable));
             }
-            return ret;
+            return new CopyOnWriteArrayList<ClassInfo>(ret);
         }
     };
 
@@ -88,9 +89,9 @@ public class SerializerPojo extends SerializerBase{
 
 
 
-    public SerializerPojo(ArrayList<ClassInfo> registered){
+    public SerializerPojo(CopyOnWriteArrayList<ClassInfo> registered){
         if(registered == null)
-            this.registered = new ArrayList<ClassInfo>();
+            this.registered = new CopyOnWriteArrayList<ClassInfo>();
         else
             this.registered = registered;
     }
@@ -284,7 +285,7 @@ public class SerializerPojo extends SerializerBase{
     }
 
 
-    ArrayList<ClassInfo> registered;
+    CopyOnWriteArrayList<ClassInfo> registered;
     Map<Class<?>, Integer> class2classId = new HashMap<Class<?>, Integer>();
     Map<Integer, Class<?>> classId2class = new HashMap<Integer, Class<?>>();
 

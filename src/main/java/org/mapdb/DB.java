@@ -20,6 +20,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.lang.ref.WeakReference;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * A database with easy access to named maps and other collections.
@@ -47,7 +48,7 @@ public class DB {
     public DB(final Engine engine){
         this.engine = engine;
         // load serializer
-        final ArrayList<SerializerPojo.ClassInfo> classInfos = engine.get(engine.serializerRecid(), SerializerPojo.serializer);
+        final CopyOnWriteArrayList<SerializerPojo.ClassInfo> classInfos = engine.get(engine.serializerRecid(), SerializerPojo.serializer);
         this.defaultSerializer = new SerializerPojo(classInfos){
             @Override
             protected void saveClassInfo() {

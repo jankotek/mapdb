@@ -6,11 +6,12 @@ import junit.framework.TestCase;
 import java.io.Serializable;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class SerializerPojoTest extends TestCase {
 
-    SerializerPojo p = new SerializerPojo(new ArrayList<SerializerPojo.ClassInfo>());
+    SerializerPojo p = new SerializerPojo(new CopyOnWriteArrayList<SerializerPojo.ClassInfo>());
 
     enum Order
     {
