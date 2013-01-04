@@ -504,12 +504,13 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         return put2(key,value, false);
     }
 
-    protected V put2(K v, V value, final boolean putOnlyIfAbsent){
+    protected V put2(K v, V value2, final boolean putOnlyIfAbsent){
         if(v == null) throw new IllegalArgumentException("null key");
-        if(value == null) throw new IllegalArgumentException("null value");
+        if(value2 == null) throw new IllegalArgumentException("null value");
 
+        V value = value2;
         if(valsOutsideNodes){
-            long recid = engine.put(value, valueSerializer);
+            long recid = engine.put(value2, valueSerializer);
             value = (V) new ValRef(recid);
         }
 
@@ -553,7 +554,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                         nodeLocks.unlock(current);
                         nodeLocks.assertNoLocks();
                         V ret =  valExpand(oldVal);
-                        notify(v,ret, value);
+                        notify(v,ret, value2);
                         return ret;
                     }
                     //insert new
@@ -569,7 +570,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     nodeLocks.unlock(current);
                     nodeLocks.assertNoLocks();
                     V ret =  valExpand(oldVal);
-                    notify(v,ret, value);
+                    notify(v,ret, value2);
                     return ret;
                 }
 
@@ -611,7 +612,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
                 nodeLocks.unlock(current);
                 nodeLocks.assertNoLocks();
-                notify(v,  null, value);
+                notify(v,  null, value2);
                 return null;
             }else{
                 //node is not safe, it requires splitting
@@ -685,7 +686,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     //TODO update tree levels
                     nodeLocks.unlock(current);
                     nodeLocks.assertNoLocks();
-                    notify(v, null, value);
+                    notify(v, null, value2);
                     return null;
                 }
             }
