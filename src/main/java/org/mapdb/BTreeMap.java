@@ -30,6 +30,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentNavigableMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * A scalable concurrent {@link ConcurrentNavigableMap} implementation.
@@ -87,7 +88,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
  */
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class BTreeMap<K,V> extends AbstractMap<K,V>
-        implements ConcurrentNavigableMap<K,V>{
+        implements ConcurrentNavigableMap<K,V>, Bind.MapWithModificationListener<K,V>{
 
 
     /** default maximal node size */
@@ -551,7 +552,9 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                         //is not absent, so quit
                         nodeLocks.unlock(current);
                         nodeLocks.assertNoLocks();
-                        return valExpand(oldVal);
+                        V ret =  valExpand(oldVal);
+                        notify(v,ret, value);
+                        return ret;
                     }
                     //insert new
                     Object[] vals = null;
@@ -565,7 +568,9 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     //already in here
                     nodeLocks.unlock(current);
                     nodeLocks.assertNoLocks();
-                    return valExpand(oldVal);
+                    V ret =  valExpand(oldVal);
+                    notify(v,ret, value);
+                    return ret;
                 }
 
                 if(A.highKey() != null && comparator.compare(v, A.highKey())>0){
@@ -606,6 +611,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
                 nodeLocks.unlock(current);
                 nodeLocks.assertNoLocks();
+                notify(v,  null, value);
                 return null;
             }else{
                 //node is not safe, it requires splitting
@@ -679,6 +685,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     //TODO update tree levels
                     nodeLocks.unlock(current);
                     nodeLocks.assertNoLocks();
+                    notify(v, null, value);
                     return null;
                 }
             }
@@ -785,6 +792,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 A = new LeafNode(keys2, vals2, ((LeafNode)A).next);
                 engine.update(current, A, nodeSerializer);
                 nodeLocks.unlock(current);
+                notify((K)key, (V)oldVal, null);
                 return (V) oldVal;
             }else{
                 nodeLocks.unlock(current);
@@ -920,8 +928,9 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 0==comparator.compare(key,leaf.keys[pos])){
             Object val  = leaf.vals[pos];
             val = valExpand(val);
-            if(oldValue.equals(val)){
+            if(oldValue.equals(val)){ //TODO use comparator here?
                 Object[] vals = Arrays.copyOf(leaf.vals, leaf.vals.length);
+                notify(key, oldValue, newValue);
                 if(valsOutsideNodes){
                     long recid = engine.put(newValue, valueSerializer);
                     newValue = (V) new ValRef(recid);
@@ -968,6 +977,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 0==comparator.compare(key,leaf.keys[pos])){
             Object[] vals = Arrays.copyOf(leaf.vals, leaf.vals.length);
             Object oldVal = vals[pos];
+            ret =  valExpand(oldVal);
+            notify(key, (V)ret, value);
             if(valsOutsideNodes && value!=null){
                 long recid = engine.put(value, valueSerializer);
                 value = (V) new ValRef(recid);
@@ -976,7 +987,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             leaf = new LeafNode(Arrays.copyOf(leaf.keys, leaf.keys.length), vals, leaf.next);
             engine.update(current, leaf, nodeSerializer);
 
-            ret =  valExpand(oldVal);
+
         }
         nodeLocks.unlock(current);
         return (V)ret;
@@ -1952,5 +1963,27 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
         return new BTreeMap<K, V>(snapshot,treeRecid, defaultSerializer);
     }
+
+
+    protected final List<Bind.MapListener<K,V>> modListeners = new CopyOnWriteArrayList<Bind.MapListener<K, V>>();
+
+    @Override
+    public void addModificationListener(Bind.MapListener<K,V> listener) {
+        modListeners.add(listener);
+    }
+
+    @Override
+    public void removeModificationListener(Bind.MapListener<K,V> listener) {
+        modListeners.remove(listener);
+    }
+
+    protected void notify(K key, V oldValue, V newValue) {
+        if(CC.ASSERT&& oldValue instanceof ValRef) throw new InternalError();
+        if(CC.ASSERT&& newValue instanceof ValRef) throw new InternalError();
+        for(Bind.MapListener<K,V> listener:modListeners){
+            listener.update(key, oldValue, newValue);
+        }
+    }
+
 
 }

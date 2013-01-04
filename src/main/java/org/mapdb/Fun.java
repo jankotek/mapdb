@@ -17,6 +17,7 @@
 package org.mapdb;
 
 import java.io.Serializable;
+import java.util.Map;
 
 /**
  * Functional stuff. Tuples, function, callback methods etc..
@@ -263,6 +264,24 @@ public final class Fun {
             return result;
         }
     }
+
+
+    public interface Function1<R,A>{
+        R run(A a);
+    }
+
+    public interface Function2<R,A,B>{
+        R run(A a, B b);
+    }
+
+    public interface Runnable2<A,B>{
+        void run(A a, B b);
+    }
+
+    public interface Runnable3<A,B,C>{
+        void run(A a, B b, C c);
+    }
+
 
 
 }

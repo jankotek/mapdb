@@ -1,7 +1,7 @@
 package benchmark
 
 import java.util.*
-import org.mapdb.DBMaker
+import org.mapdb.*
 
 
 /**

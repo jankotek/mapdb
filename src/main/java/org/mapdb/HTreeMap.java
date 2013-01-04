@@ -22,6 +22,7 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -40,7 +41,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * @author Jan Kotek
  */
 @SuppressWarnings({ "unchecked", "rawtypes" })
-public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K, V> {
+public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K, V>, Bind.MapWithModificationListener<K,V> {
 
 
     protected static final int BUCKET_OVERFLOW = 4;
@@ -52,6 +53,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     protected final Serializer<V> valueSerializer;
 
     protected final Serializer defaultSerialzierForSnapshots;
+
+
 
 
     /** node which holds key-value pair */
@@ -229,7 +232,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
      * Map was already created and saved to Engine, this constructor just loads it.
      *
      * @param engine used for persistence
-     * @param recid under which BTreeMap was stored
+     * @param rootRecid under which BTreeMap was stored
      * @param defaultSerializer used to deserialize other serializers and comparator
      */
     public HTreeMap(Engine engine, long rootRecid, Serializer defaultSerializer) {
@@ -435,6 +438,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                             V oldVal = ln.value;
                             ln.value = value;
                             engine.update(recid, ln, LN_SERIALIZER);
+                            notify(key,  oldVal, value);
                             return oldVal;
                         }
                         recid = ln.next;
@@ -475,6 +479,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                     int parentPos = (h>>>(7*level )) & 0x7F;
                     dir[parentPos/8][parentPos%8] = (nextDirRecid<<1) | 0;
                     engine.update(dirRecid, dir, DIR_SERIALIZER);
+                    notify(key, null, value);
                     return null;
                 }else{
                     // record does not exist in linked list, so create new one
@@ -482,6 +487,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                     long newRecid = engine.put(new LinkedNode<K, V>(recid, key, value), LN_SERIALIZER);
                     dir[slot/8][slot%8] = (newRecid<<1) | 1;
                     engine.update(dirRecid, dir, DIR_SERIALIZER);
+                    notify(key, null, value);
                     return null;
                 }
             }
@@ -490,6 +496,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             segmentLocks[segment].writeLock().unlock();
         }
     }
+
 
     @Override
     public V remove(Object key){
@@ -553,6 +560,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                             }
                             //found, remove this node
                             engine.delete(recid);
+                            notify((K) key, ln.value, null);
                             return ln.value;
                         }
                         prevRecid = recid;
@@ -650,6 +658,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                     while(recid!=0){
                         LinkedNode n = engine.get(recid, LN_SERIALIZER);
                         engine.delete(recid);
+                        notify((K)n.key, (V)n.value , null);
                         recid = n.next;
                     }
                 }
@@ -1123,5 +1132,23 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         return new HTreeMap<K, V>(snapshot,rootRecid, defaultSerialzierForSnapshots);
     }
 
+
+    protected final List<Bind.MapListener<K,V>> modListeners = new CopyOnWriteArrayList<Bind.MapListener<K, V>>();
+
+    @Override
+    public void addModificationListener(Bind.MapListener<K,V> listener) {
+        modListeners.add(listener);
+    }
+
+    @Override
+    public void removeModificationListener(Bind.MapListener<K,V> listener) {
+        modListeners.remove(listener);
+    }
+
+    protected void notify(K key, V oldValue, V newValue) {
+        for(Bind.MapListener<K,V> listener:modListeners){
+            listener.update(key, oldValue, newValue);
+        }
+    }
 
 }
