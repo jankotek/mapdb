@@ -2,6 +2,7 @@ package examples;
 
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
+import org.mapdb.Utils;
 
 import java.io.File;
 import java.util.concurrent.ConcurrentNavigableMap;
@@ -13,7 +14,8 @@ public class E01_BasicExample {
 
         //Configure and open database using builder pattern.
         //All options are available with code auto-completion.
-        DB db = DBMaker.newFileDB(new File("testdb"))
+        File dbFile = Utils.tempDbFile();
+        DB db = DBMaker.newFileDB(dbFile)
                 .closeOnJvmShutdown()
                 .encryptionEnable("password")
                 .make();

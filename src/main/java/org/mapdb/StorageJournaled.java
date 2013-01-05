@@ -494,6 +494,8 @@ public class StorageJournaled extends Storage implements Engine {
 
     @Override
     public void rollback() {
+        lock.writeLock().lock();
+        try{
         //discard trans log
         if(transLog!=null){
             transLog.close();
@@ -502,6 +504,10 @@ public class StorageJournaled extends Storage implements Engine {
         }
 
         reloadIndexFile();
+        }finally{
+            lock.writeLock().unlock();
+        }
+
     }
 
 
