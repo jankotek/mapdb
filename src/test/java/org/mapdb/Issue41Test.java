@@ -82,7 +82,7 @@ public class Issue41Test {
                         map.put(key, value);
                     } finally {
                         doneSignal.countDown();
-                        System.out.println("OP " + j);
+//                        System.out.println("OP " + j);
                     }
                 }
             });
@@ -117,7 +117,7 @@ public class Issue41Test {
                         }
                     } finally {
                         doneSignal.countDown();
-                        System.out.println("OP " + j);
+//                        System.out.println("OP " + j);
                     }
                 }
             });
