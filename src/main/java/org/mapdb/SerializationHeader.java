@@ -150,6 +150,7 @@ interface SerializationHeader {
     int TUPLE2 = 134;
     int TUPLE3 = 135;
     int TUPLE4 = 136;
+    int B_TREE_MAP_ROOT_HEADER = 137;
 
 
 
@@ -159,6 +160,7 @@ interface SerializationHeader {
     int OBJECT_STACK = 166;
 
     int JAVA_SERIALIZATION = 172;
+
 
 
 }

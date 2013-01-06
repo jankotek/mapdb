@@ -146,7 +146,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
         @Override
         public void serialize(DataOutput out, BTreeRoot value) throws IOException {
-            //TODO header byte
+            out.writeByte(SerializationHeader.B_TREE_MAP_ROOT_HEADER);
             out.writeLong(value.rootRecidRef);
             out.writeBoolean(value.hasValues);
             out.writeBoolean(value.valsOutsideNodes);
@@ -160,6 +160,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         @Override
         public BTreeRoot deserialize(DataInput in, int available) throws IOException {
             BTreeRoot ret = new BTreeRoot();
+            if(in.readUnsignedByte()!=SerializationHeader.B_TREE_MAP_ROOT_HEADER) throw new InternalError();
             ret.rootRecidRef = in.readLong();
             ret.hasValues = in.readBoolean();
             ret.valsOutsideNodes = in.readBoolean();
