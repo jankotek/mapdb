@@ -163,7 +163,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     /**
      * Queue of recids scheduled for writing
      */
-    protected final BlockingQueue<Long> writeQueue = new LinkedTransferQueue<Long>();
+    protected final BlockingQueue<Long> writeQueue = new LinkedBlockingQueue<Long>();
 
 
     /**
