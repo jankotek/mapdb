@@ -204,7 +204,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
      * @param engine used for persistence
      * @param hasValues is Map or Set? If true only keys will be stored, no values
      * @param defaultSerializer serialier used to serialize/deserialize other serializers. May be null for default value.
-     * @param keySerializer Serialzier used for keys. May be null for defualt value. TODO delta packing
+     * @param keySerializer Serializier used for keys. May be null for default value.
      * @param valueSerializer Serializer used for values. May be null for default value
      */
     public HTreeMap(Engine engine, boolean hasValues, Serializer defaultSerializer, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
@@ -830,8 +830,6 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
     protected  int hash(final Object key) {
         int h = key.hashCode();
-        //TODO salt
-
         // Spread bits to regularize both segment and index locations,
         // using variant of single-word Wang/Jenkins hash.
         h += (h <<  15) ^ 0xffffcd7d;

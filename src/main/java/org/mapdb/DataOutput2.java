@@ -34,7 +34,7 @@ public final class DataOutput2 implements DataOutput {
 
     DataOutput2(){
         pos = 0;
-        buf = new byte[16];
+        buf = new byte[16]; //TODO take hint from serializer for initial size
     }
 
     byte[] copyBytes(){
