@@ -49,9 +49,9 @@ public class StorageJournaled extends Storage implements Engine {
 
     protected long indexSize;
     protected long physSize;
-    protected final LongMap<long[]> recordLogRefs = new LongConcurrentHashMap<long[]>();
-    protected final LongMap<Long> recordIndexVals = new LongConcurrentHashMap<Long>();
-    protected final LongMap<long[]> longStackPages = new LongConcurrentHashMap<long[]>();
+    protected final LongMap<long[]> recordLogRefs = new LongHashMap<long[]>();
+    protected final LongMap<Long> recordIndexVals = new LongHashMap<Long>();
+    protected final LongMap<long[]> longStackPages = new LongHashMap<long[]>();
 
 
 
