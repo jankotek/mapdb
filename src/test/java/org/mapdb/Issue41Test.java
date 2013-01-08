@@ -27,7 +27,7 @@ public class Issue41Test {
 
     private static int NB_OPERATIONS = 1000;
 
-    private static File DB_PATH = Utils.tempDbFile();
+    private File DB_PATH = Utils.tempDbFile();
 
     private static String MAP_NAME = "mymap";
 
@@ -57,13 +57,7 @@ public class Issue41Test {
 
         doneSignal = new CountDownLatch(NB_OPERATIONS);
 
-        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
 
-            @Override
-            public void run() {
-                deleteDB();
-            }
-        }));
     }
 
     @Test
@@ -129,8 +123,6 @@ public class Issue41Test {
         doneSignal.await();
         threadPool.shutdown();
         db.close();
-
-        deleteDB();
     }
 
     public static class Value implements Serializable {
@@ -283,9 +275,6 @@ public class Issue41Test {
 
     }
 
-    private static void deleteDB() {
-        new File(DB_PATH.getAbsolutePath()).delete();
-        new File(DB_PATH.getAbsolutePath() + ".p").delete();
-    }
+
 
 }

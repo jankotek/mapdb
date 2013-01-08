@@ -129,13 +129,13 @@ public class AsyncWriteEngineTest extends TestFile{
         Map map = db.getTreeMap("treemap");
 
         for (int i = 0; i < COUNT; i++) {
-            if (i % 100000 == 0) {
+            if (i % 10000 == 0) {
                 db.commit();
             }
             map.put(i, (double) i);
         }
         for (int i = 0; i < COUNT; i++) {
-            if (i % 100000 == 0) {
+            if (i % 1000 == 0) {
                 db.commit();
             }
             assertEquals(map.get(i), (double) i);

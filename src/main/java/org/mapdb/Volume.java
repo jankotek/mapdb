@@ -16,6 +16,7 @@
 
 package org.mapdb;
 
+import java.io.EOFException;
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
@@ -190,7 +191,9 @@ public abstract class Volume {
             protected abstract java.nio.ByteBuffer makeNewBuffer(long offset);
 
             protected final java.nio.ByteBuffer internalByteBuffer(long offset) {
-                return buffers[((int) (offset / BUF_SIZE))];
+                final int pos = ((int) (offset / BUF_SIZE));
+                if(pos>=buffers.length) throw new IOError(new EOFException());
+                return buffers[pos];
             }
 
 
@@ -224,11 +227,19 @@ public abstract class Volume {
             }
 
             @Override final public long getLong(long offset) {
-                return internalByteBuffer(offset).getLong((int) (offset% BUF_SIZE));
+                try{
+                    return internalByteBuffer(offset).getLong((int) (offset% BUF_SIZE));
+                }catch(IndexOutOfBoundsException e){
+                    throw new IOError(new EOFException());
+                }
             }
 
             @Override public final byte getByte(long offset) {
-                return internalByteBuffer(offset).get((int) (offset% BUF_SIZE));
+                try{
+                    return internalByteBuffer(offset).get((int) (offset% BUF_SIZE));
+                }catch(IndexOutOfBoundsException e){
+                    throw new IOError(new EOFException());
+                }
             }
 
 
@@ -430,7 +441,6 @@ public abstract class Volume {
             protected final boolean readOnly;
 
             protected java.io.RandomAccessFile raf;
-            protected long len;
             protected long pos;
 
             public RandomAccessFile(File file, boolean readOnly) {
@@ -439,7 +449,6 @@ public abstract class Volume {
 
                 try {
                     this.raf = new java.io.RandomAccessFile(file, readOnly? "r":"rw");
-                    this.len = raf.length();
                     this.raf.seek(0);
                     pos = 0;
                 } catch (IOException e) {
@@ -449,12 +458,7 @@ public abstract class Volume {
 
             @Override
             synchronized public void ensureAvailable(long offset) {
-                if(len<offset)
-                    try {
-                        raf.setLength(offset);
-                    } catch (IOException e) {
-                        throw new IOError(e);
-                    }
+                //we do not have a list of ByteBuffers, so ensure size does not have to do anything
             }
 
             @Override
@@ -462,8 +466,8 @@ public abstract class Volume {
                 try {
                     if(pos!=offset){
                         raf.seek(offset);
-                        pos=offset+8;
                     }
+                    pos=offset+8;
                     raf.writeLong(value);
                 } catch (IOException e) {
                     throw new IOError(e);
@@ -475,8 +479,8 @@ public abstract class Volume {
                 try {
                     if(pos!=offset){
                         raf.seek(offset);
-                        pos=offset+1;
                     }
+                    pos=offset+1;
                     raf.writeByte(0xFF & value);
                 } catch (IOException e) {
                     throw new IOError(e);
@@ -489,8 +493,8 @@ public abstract class Volume {
                 try {
                     if(pos!=offset){
                         raf.seek(offset);
-                        pos=offset+size;
                     }
+                    pos=offset+size;
                     raf.write(value,0,size);
                 } catch (IOException e) {
                     throw new IOError(e);
@@ -502,8 +506,8 @@ public abstract class Volume {
                 try {
                     if(pos!=offset){
                         raf.seek(offset);
-                        pos=offset+size;
                     }
+                    pos=offset+size;
                     byte[] b = new byte[size];
                     buf.get(b);
                     putData(offset, b, size);
@@ -518,8 +522,8 @@ public abstract class Volume {
                 try {
                     if(pos!=offset){
                         raf.seek(offset);
-                        pos=offset+8;
                     }
+                    pos=offset+8;
                     return raf.readLong();
                 } catch (IOException e) {
                     throw new IOError(e);
@@ -533,8 +537,8 @@ public abstract class Volume {
                 try {
                     if(pos!=offset){
                         raf.seek(offset);
-                        pos=offset+1;
                     }
+                    pos=offset+1;
                     return raf.readByte();
                 } catch (IOException e) {
                     throw new IOError(e);
@@ -547,8 +551,8 @@ public abstract class Volume {
                 try {
                     if(pos!=offset){
                         raf.seek(offset);
-                        pos=offset+size;
                     }
+                    pos=offset+size;
                     byte[] b = new byte[size];
                     raf.read(b);
                     return new DataInput2(b);
@@ -579,7 +583,7 @@ public abstract class Volume {
 
             @Override
             public boolean isEmpty() {
-                return len==0;
+                return file.length()==0;
             }
 
             @Override

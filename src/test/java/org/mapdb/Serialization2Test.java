@@ -13,7 +13,7 @@ public class Serialization2Test extends TestFile {
 
 
     @Test public void test2() throws IOException {
-        DB db = DBMaker.newFileDB(index).cacheDisable().asyncWriteDisable().make();
+        DB db = DBMaker.newFileDB(index).cacheDisable().asyncWriteDisable().journalDisable().make();
 
         Serialization2Bean processView = new Serialization2Bean();
 
@@ -24,6 +24,22 @@ public class Serialization2Test extends TestFile {
         db.commit();
 
         Serialization2Bean retProcessView = (Serialization2Bean)map.get("abc");
+        assertEquals(processView, retProcessView);
+
+        db.close();
+    }
+
+
+    @Test public void test2_engine() throws IOException {
+        DB db = DBMaker.newFileDB(index).cacheDisable().asyncWriteDisable().make();
+
+        Serialization2Bean processView = new Serialization2Bean();
+
+        long recid = db.engine.put(processView, (Serializer<Object>) db.getDefaultSerializer());
+
+        db.commit();
+
+        Serialization2Bean retProcessView = (Serialization2Bean) db.engine.get(recid, db.getDefaultSerializer());
         assertEquals(processView, retProcessView);
 
         db.close();

@@ -3,11 +3,14 @@ package org.mapdb;
 
 import org.junit.Test;
 
+import java.io.EOFException;
 import java.io.File;
+import java.io.IOError;
 import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 
 public class VolumeTest {
@@ -103,5 +106,49 @@ public class VolumeTest {
 
     }
 
+
+    @Test
+    public void read_beyond_end_raf_long(){
+        try{
+            Volume v = new Volume.RandomAccessFile(Utils.tempDbFile(), false);
+            v.getLong(1000000);
+            fail();
+        }catch(IOError e){
+            assertTrue(e.getCause() instanceof  EOFException);
+        }
+    }
+
+    @Test
+    public void read_beyond_end_raf_byte(){
+        try{
+            Volume v = new Volume.RandomAccessFile(Utils.tempDbFile(), false);
+            v.getByte(1000000);
+            fail();
+        }catch(IOError e){
+            assertTrue(e.getCause() instanceof  EOFException);
+        }
+    }
+
+    @Test
+    public void read_beyond_end_mapped_long(){
+        try{
+            Volume v = new Volume.MappedFile(Utils.tempDbFile(), false);
+            v.getLong(1000000);
+            fail();
+        }catch(IOError e){
+            assertTrue(e.getCause() instanceof  EOFException);
+        }
+    }
+
+    @Test
+    public void read_beyond_end_mapped_byte(){
+        try{
+            Volume v = new Volume.MappedFile(Utils.tempDbFile(), false);
+            v.getByte(1000000);
+            fail();
+        }catch(IOError e){
+            assertTrue(e.getCause() instanceof  EOFException);
+        }
+    }
 
 }

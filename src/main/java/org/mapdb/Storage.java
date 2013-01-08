@@ -94,7 +94,7 @@ public abstract class Storage implements Engine {
             phys.ensureAvailable(8);
             index.ensureAvailable(INDEX_OFFSET_START*8);
 
-            final long header = index.getLong(0);
+            final long header = index.isEmpty()? 0 : index.getLong(0);
             if(header!=HEADER){
                 if(failOnWrongHeader) throw new IOError(new IOException("Wrong file header"));
                 else writeInitValues();
@@ -118,6 +118,8 @@ public abstract class Storage implements Engine {
         //write headers
         phys.putLong(0, HEADER);
         index.putLong(0L,HEADER);
+        if(CC.ASSERT && index.getLong(0L)!=HEADER)
+            throw new InternalError();
 
 
         //and set current sizes
