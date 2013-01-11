@@ -18,11 +18,13 @@ package org.mapdb;
 import java.io.*;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -498,7 +500,7 @@ public class SerializerPojo extends SerializerBase{
                 o = clazz.getEnumConstants()[ordinal];
             }
             else {
-                o = createInstance(clazz, Object.class);
+                o = createInstanceSkippinkConstructor(clazz);
             }
 
             objectStack.add(o);
@@ -531,34 +533,80 @@ public class SerializerPojo extends SerializerBase{
         }
     }
 
-    //TODO dependecy on nonpublic JVM API
-    static private sun.reflect.ReflectionFactory rf =
-            sun.reflect.ReflectionFactory.getReflectionFactory();
 
-    private static Map<Class<?>, Constructor<?>> class2constuctor = new HashMap<Class<?>, Constructor<?>>();
+    static private Method sunConstructor = null;
+    static private Object sunReflFac = null;
+    static private Method androidConstructor = null;
+
+    static{
+        try{
+            Class clazz = Class.forName("sun.reflect.ReflectionFactory");
+            if(clazz!=null){
+                Method getReflectionFactory = clazz.getMethod("getReflectionFactory");
+                sunReflFac = getReflectionFactory.invoke(null);
+                sunConstructor = clazz.getMethod("newConstructorForSerialization",
+                        java.lang.Class.class, java.lang.reflect.Constructor.class);
+            }
+        }catch(Exception e){
+            //ignore
+        }
+
+        if(sunConstructor == null)try{
+            //try android way
+            Method newInstance = ObjectInputStream.class.getDeclaredMethod("newInstance", Class.class, Class.class);
+            newInstance.setAccessible(true);
+            androidConstructor = newInstance;
+
+        }catch(Exception e){
+            //ignore
+        }
+
+
+    }
+
+
+    private static Map<Class<?>, Constructor<?>> class2constuctor = new ConcurrentHashMap<Class<?>, Constructor<?>>();
 
     /**
-     * Little trick to create new instance without using constructor.
-     * Taken from http://www.javaspecialists.eu/archive/Issue175.html
+     * For pojo serialization we need to instanciate class without invoking its constructor.
+     * There are two ways to do it:
+     * <p/>
+     *   Using proprietary API on Oracle JDK and OpenJDK
+     *   sun.reflect.ReflectionFactory.getReflectionFactory().newConstructorForSerialization()
+     *   more at http://www.javaspecialists.eu/archive/Issue175.html
+     * <p/>
+     *   Using 'ObjectInputStream.newInstance' on Android
+     *   http://stackoverflow.com/a/3448384
+     * <p/>
+     *   If non of these works we fallback into usual reflection which requires an no-arg constructor
      */
     @SuppressWarnings("restriction")
-	private static <T> T createInstance(Class<T> clazz, Class<? super T> parent) {
+	protected <T> T createInstanceSkippinkConstructor(Class<T> clazz)
+            throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException {
 
-        try {
+        if(sunConstructor !=null){
+            //Sun specific way
             Constructor<?> intConstr = class2constuctor.get(clazz);
 
             if (intConstr == null) {
-                Constructor<?> objDef = parent.getDeclaredConstructor();
-                intConstr = rf.newConstructorForSerialization(
-                        clazz, objDef);
+                Constructor<?> objDef = Object.class.getDeclaredConstructor();
+                intConstr = (Constructor<?>) sunConstructor.invoke(sunReflFac, clazz, objDef);
                 class2constuctor.put(clazz, intConstr);
             }
 
-            return clazz.cast(intConstr.newInstance());
-        } catch (RuntimeException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new IllegalStateException("Cannot create object", e);
+            return (T)intConstr.newInstance();
+        }else if(androidConstructor!=null){
+            //android (harmony) specific way
+            return (T)androidConstructor.invoke(null, clazz, Object.class);
+        }else{
+            //try usual generic stuff which does not skip constructor
+            Constructor<?> c = class2constuctor.get(clazz);
+            if(c==null){
+                c =clazz.getConstructor();
+                if(!c.isAccessible()) c.setAccessible(true);
+                class2constuctor.put(clazz,c);
+            }
+            return (T)c.newInstance();
         }
     }
 
