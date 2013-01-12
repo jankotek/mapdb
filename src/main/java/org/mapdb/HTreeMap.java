@@ -898,11 +898,11 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                         //increase hash by 1
                         if(level!=0){
                             lastHash = ((lastHash>>>(7 * level)) + 1) << (7*level); //should use mask and XOR
-                            if(lastHash==0){
-                                return null;
-                            }
                         }else
                             lastHash +=1;
+                        if(lastHash==0){
+                            return null;
+                        }
                         break;
                     }
 
