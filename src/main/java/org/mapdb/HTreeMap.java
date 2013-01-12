@@ -896,9 +896,12 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                     //check if we need to expand deeper
                     if(dir[pos/8]==null || dir[pos/8][pos%8]==0 || (dir[pos/8][pos%8]&1)==1) {
                         //increase hash by 1
-                        if(level!=0)
+                        if(level!=0){
                             lastHash = ((lastHash>>>(7 * level)) + 1) << (7*level); //should use mask and XOR
-                        else
+                            if(lastHash==0){
+                                return null;
+                            }
+                        }else
                             lastHash +=1;
                         break;
                     }
