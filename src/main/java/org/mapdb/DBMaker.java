@@ -115,6 +115,7 @@ public class DBMaker {
                 .deleteFilesAfterClose()
                 .closeOnJvmShutdown()
                 .journalDisable()
+                .asyncThreadDaemonEnable()
                 .make()
                 .getTreeMap("temp");
     }
@@ -131,6 +132,7 @@ public class DBMaker {
                 .deleteFilesAfterClose()
                 .closeOnJvmShutdown()
                 .journalDisable()
+                .asyncThreadDaemonEnable()
                 .make()
                 .getHashMap("temp");
     }
@@ -147,6 +149,7 @@ public class DBMaker {
                 .deleteFilesAfterClose()
                 .closeOnJvmShutdown()
                 .journalDisable()
+                .asyncThreadDaemonEnable()
                 .make()
                 .getTreeSet("temp");
     }
@@ -163,6 +166,7 @@ public class DBMaker {
                 .deleteFilesAfterClose()
                 .closeOnJvmShutdown()
                 .journalDisable()
+                .asyncThreadDaemonEnable()
                 .make()
                 .getHashSet("temp");
     }
