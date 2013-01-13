@@ -565,6 +565,11 @@ public class DBMaker {
         return new DB(makeEngine());
     }
 
+    @NotNull
+    public TxMaker makeTxMaker(){
+        return new TxMaker(makeEngine());
+    }
+
     /** constructs Engine using current settings */
     @NotNull
     public Engine makeEngine(){

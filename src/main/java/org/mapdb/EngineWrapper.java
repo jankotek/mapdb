@@ -34,6 +34,7 @@ public class EngineWrapper implements Engine{
     protected Engine engine;
 
     protected EngineWrapper(Engine engine){
+        if(engine == null) throw new IllegalArgumentException();
         this.engine = engine;
     }
 
@@ -64,7 +65,8 @@ public class EngineWrapper implements Engine{
 
     @Override
     public void close() {
-        engine.close();
+        if(engine!=null)
+            engine.close();
         engine = null;
     }
 
