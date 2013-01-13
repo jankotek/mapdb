@@ -230,7 +230,6 @@ public class StorageDirectTest extends StorageTestCase {
 
 
     @Test public void test_freePhysRecSize2FreeSlot_asserts(){
-        if(!CC.ASSERT) return;
         try{
             engine.freePhysRecSize2FreeSlot(StorageDirect.MAX_RECORD_SIZE + 1);
             fail();
@@ -281,8 +280,6 @@ public class StorageDirectTest extends StorageTestCase {
 
 
     @Test public void test_2GB_over() throws IOException {
-        Assume.assumeTrue(CC.FULL_TEST);
-
        byte[] data = new byte[51111];
        int dataHash = Arrays.hashCode(data);
 
@@ -327,7 +324,6 @@ public class StorageDirectTest extends StorageTestCase {
     }
 
     @Test  public void test_store_reopen_over_2GB(){
-        Assume.assumeTrue(CC.FULL_TEST);
 
         byte[] data = new byte[11111];
         final long max = Volume.BUF_SIZE*2L/data.length;

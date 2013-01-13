@@ -139,7 +139,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         public void serialize(DataOutput out, long[][] value) throws IOException {
             if(value == null) return;
 
-            if(CC.ASSERT && value.length!=16) throw new InternalError();
+            if(value.length!=16) throw new InternalError();
 
             //first write mask which indicate subarray nullability
             int nulls = 0;
@@ -152,7 +152,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             //write non null subarrays
             for(int i = 0;i<16;i++){
                 if(value[i]!=null){
-                    if(CC.ASSERT && value[i].length!=8) throw new InternalError();
+                    if(value[i].length!=8) throw new InternalError();
                     for(long l:value[i]){
                         Utils.packLong(out, l);
                     }
@@ -236,7 +236,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
      * @param defaultSerializer used to deserialize other serializers and comparator
      */
     public HTreeMap(Engine engine, long rootRecid, Serializer defaultSerializer) {
-        if(CC.ASSERT && rootRecid == 0) throw new IllegalArgumentException("recid is 0");
+        if(rootRecid == 0) throw new IllegalArgumentException("recid is 0");
         this.engine = engine;
         this.rootRecid = rootRecid;
         //load all fields from store
@@ -364,7 +364,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 long[][] dir = engine.get(recid, DIR_SERIALIZER);
                 if(dir == null) return null;
                 int slot = (h>>>(level*7 )) & 0x7F;
-                if(CC.ASSERT && slot>=128) throw new InternalError();
+                if(slot>=128) throw new InternalError();
                 if(dir[slot/8]==null) return null;
                 recid = dir[slot/8][slot%8];
                 if(recid == 0) return null;
@@ -406,7 +406,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             while(true){
                 long[][] dir = engine.get(dirRecid, DIR_SERIALIZER);
                 final int slot =  (h>>>(7*level )) & 0x7F;
-                if(CC.ASSERT && slot>127) throw new InternalError();
+                if(slot>127) throw new InternalError();
 
                 if(dir == null ){
                     //create new dir
@@ -513,7 +513,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             while(true){
                 long[][] dir = engine.get(dirRecids[level], DIR_SERIALIZER);
                 final int slot =  (h>>>(7*level )) & 0x7F;
-                if(CC.ASSERT && slot>127) throw new InternalError();
+                if(slot>127) throw new InternalError();
 
                 if(dir == null ){
                     //create new dir

@@ -57,7 +57,7 @@ public class StorageDirect extends Storage implements Engine {
                 if(recid == 0){
                     //could not reuse recid, so create new one
                     final long indexSize = index.getLong(RECID_CURRENT_INDEX_FILE_SIZE * 8);
-                    if(CC.ASSERT && indexSize%8!=0) throw new InternalError();
+                    if(indexSize%8!=0) throw new InternalError();
                     recid = indexSize/8;
                     //grow buffer if necessary
                     index.ensureAvailable(indexSize+8);
@@ -215,8 +215,8 @@ public class StorageDirect extends Storage implements Engine {
 
         final int numberOfRecordsInPage = phys.getUnsignedByte(dataOffset);
 
-        if(CC.ASSERT && numberOfRecordsInPage<=0) throw new InternalError();
-        if(CC.ASSERT && numberOfRecordsInPage>LONG_STACK_NUM_OF_RECORDS_PER_PAGE) throw new InternalError();
+        if(numberOfRecordsInPage<=0) throw new InternalError();
+        if(numberOfRecordsInPage>LONG_STACK_NUM_OF_RECORDS_PER_PAGE) throw new InternalError();
 
         final long ret = phys.getLong (dataOffset+numberOfRecordsInPage*8);
 
@@ -251,7 +251,7 @@ public class StorageDirect extends Storage implements Engine {
         if(listPhysid2 == 0){ //empty list?
             //yes empty, create new page and fill it with values
             final long listPhysid = freePhysRecTake(LONG_STACK_PAGE_SIZE) &PHYS_OFFSET_MASK;
-            if(CC.ASSERT && listPhysid == 0) throw new InternalError();
+            if(listPhysid == 0) throw new InternalError();
             //set previous Free Index List page to zero as this is first page
             phys.putLong(listPhysid, 0L);
             //set number of free records in this page to 1
@@ -267,7 +267,7 @@ public class StorageDirect extends Storage implements Engine {
                 //yes it is full, so we need to allocate new page and write our number there
 
                 final long listPhysid = freePhysRecTake(LONG_STACK_PAGE_SIZE) &PHYS_OFFSET_MASK;
-                if(CC.ASSERT && listPhysid == 0) throw new InternalError();
+                if(listPhysid == 0) throw new InternalError();
                 //final ByteBuffers dataBuf = dataBufs[((int) (listPhysid / BUF_SIZE))];
                 //set location to previous page
                 phys.putLong(listPhysid, listPhysid2);
@@ -291,7 +291,7 @@ public class StorageDirect extends Storage implements Engine {
 	protected long freePhysRecTake(final int requiredSize) throws IOException {
         writeLock_checkLocked();
 
-        if(CC.ASSERT && requiredSize<=0) throw new InternalError();
+        if(requiredSize<=0) throw new InternalError();
 
         long freePhysRec = appendOnly? 0L:
                 findFreePhysSlot(requiredSize);
@@ -306,7 +306,7 @@ public class StorageDirect extends Storage implements Engine {
         // Also max size of ByteBuffers is 2GB, so we need to use multiple ones
 
         final long physFileSize = index.getLong(RECID_CURRENT_PHYS_FILE_SIZE*8);
-        if(CC.ASSERT && physFileSize <=0) throw new InternalError("illegal file size:"+physFileSize);
+        if(physFileSize <=0) throw new InternalError("illegal file size:"+physFileSize);
 
         //check if new record would be overflowing BUF_SIZE
         if(physFileSize%Volume.BUF_SIZE+requiredSize<=Volume.BUF_SIZE){
@@ -322,10 +322,10 @@ public class StorageDirect extends Storage implements Engine {
             //so we need to create empty record for 'padding' size to 2GB
 
             final long  freeSizeToCreate = Volume.BUF_SIZE -  physFileSize%Volume.BUF_SIZE;
-            if(CC.ASSERT && freeSizeToCreate == 0) throw new InternalError();
+            if(freeSizeToCreate == 0) throw new InternalError();
 
             final long nextBufferStartOffset = physFileSize + freeSizeToCreate;
-            if(CC.ASSERT && nextBufferStartOffset%Volume.BUF_SIZE!=0) throw new InternalError();
+            if(nextBufferStartOffset%Volume.BUF_SIZE!=0) throw new InternalError();
 
             //increase the disk size
             phys.ensureAvailable(physFileSize + freeSizeToCreate + requiredSize);

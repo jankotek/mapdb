@@ -23,7 +23,7 @@ public class SegmentedLock {
     }
 
     public void lock(final long offset, final int len){
-        if(CC.ASSERT && len>segmentSize) throw new IllegalArgumentException();
+        if(len>segmentSize) throw new IllegalArgumentException();
 
         final long seg1 = offset%segmentSize;
         final long seg2 = (offset+len)%segmentSize;
@@ -65,7 +65,7 @@ public class SegmentedLock {
     }
 
     public void unlock(final long offset, final int len){
-        if(CC.ASSERT && len>segmentSize) throw new IllegalArgumentException();
+        if(len>segmentSize) throw new IllegalArgumentException();
 
         final long seg1 = offset%segmentSize;
         final long seg2 = (offset+len)%segmentSize;
@@ -73,7 +73,7 @@ public class SegmentedLock {
         synchronized (lockLock){
             for(int i=0;i<lockSize;i++){
                 if(seg1 == lockSegments[i]){
-                    if(CC.ASSERT && lockThreads[i]!=Thread.currentThread()) throw new InternalError();
+                    if(lockThreads[i]!=Thread.currentThread()) throw new InternalError();
 
                     //remove by swapping with last item and decreasing size
                     lockSize--;
@@ -89,7 +89,7 @@ public class SegmentedLock {
             if(seg1!=seg2){
                 for(int i=0;i<lockSize;i++){
                      if(seg2 == lockSegments[i]){
-                         if(CC.ASSERT && lockThreads[i]!=Thread.currentThread()) throw new InternalError();
+                         if(lockThreads[i]!=Thread.currentThread()) throw new InternalError();
 
                         //remove by swapping with last item and decreasing size
                         lockSize--;

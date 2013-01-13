@@ -112,7 +112,7 @@ public class StorageJournaled extends Storage implements Engine {
                 long recid = longStackTake(RECID_FREE_INDEX_SLOTS);
                 if(recid == 0){
                     //could not reuse recid, so create new one
-                    if(CC.ASSERT && indexSize%8!=0) throw new InternalError();
+                    if(indexSize%8!=0) throw new InternalError();
                     recid = indexSize/8;
                     indexSize+=8;
                 }
@@ -248,11 +248,11 @@ public class StorageJournaled extends Storage implements Engine {
                         in.readFully(b,pos,curChunkSize);
                         pos+=curChunkSize;
                     }
-                    if(CC.ASSERT && size!=pos) throw new InternalError();
+                    if(size!=pos) throw new InternalError();
                     //now deserialize
                     DataInput2 in = new DataInput2(b);
                     A ret = serializer.deserialize(in, size);
-                    if(CC.ASSERT && in.pos!=size) throw new InternalError("Data were not fully read");
+                    if(in.pos!=size) throw new InternalError("Data were not fully read");
                     return ret;
                 }
             }else{
@@ -537,9 +537,9 @@ public class StorageJournaled extends Storage implements Engine {
         final int numberOfRecordsInPage = (int) (buf[0]>>>(8*7));
 
 
-        if(CC.ASSERT && numberOfRecordsInPage<=0)
+        if(numberOfRecordsInPage<=0)
             throw new InternalError();
-        if(CC.ASSERT && numberOfRecordsInPage>LONG_STACK_NUM_OF_RECORDS_PER_PAGE) throw new InternalError();
+        if(numberOfRecordsInPage>LONG_STACK_NUM_OF_RECORDS_PER_PAGE) throw new InternalError();
 
         final long ret = buf[numberOfRecordsInPage];
 
@@ -576,7 +576,7 @@ public class StorageJournaled extends Storage implements Engine {
             //yes empty, create new page and fill it with values
             final long listPhysid = freePhysRecTake(LONG_STACK_PAGE_SIZE) &PHYS_OFFSET_MASK;
             long[] buf = getLongStackPage(listPhysid,false);
-            if(CC.ASSERT && listPhysid == 0) throw new InternalError();
+            if(listPhysid == 0) throw new InternalError();
             //set number of free records in this page to 1
             buf[0] = 1L<<(8*7);
             //set  record
@@ -590,7 +590,7 @@ public class StorageJournaled extends Storage implements Engine {
                 //yes it is full, so we need to allocate new page and write our number there
                 final long listPhysid = freePhysRecTake(LONG_STACK_PAGE_SIZE) &PHYS_OFFSET_MASK;
                 long[] bufNew = getLongStackPage(listPhysid,false);
-                if(CC.ASSERT && listPhysid == 0) throw new InternalError();
+                if(listPhysid == 0) throw new InternalError();
                 //final ByteBuffers dataBuf = dataBufs[((int) (listPhysid / BUF_SIZE))];
                 //set location to previous page
                 //set number of free records in this page to 1
@@ -613,7 +613,7 @@ public class StorageJournaled extends Storage implements Engine {
 	protected long freePhysRecTake(final int requiredSize) throws IOException {
         writeLock_checkLocked();
 
-        if(CC.ASSERT && requiredSize<=0) throw new InternalError();
+        if(requiredSize<=0) throw new InternalError();
 
         long freePhysRec = appendOnly? 0L:
                 findFreePhysSlot(requiredSize);
@@ -626,7 +626,7 @@ public class StorageJournaled extends Storage implements Engine {
         // Also max size of ByteBuffers is 2GB, so we need to use multiple ones
 
         final long oldFileSize = physSize;
-        if(CC.ASSERT && oldFileSize <=0) throw new InternalError("illegal file size:"+oldFileSize);
+        if(oldFileSize <=0) throw new InternalError("illegal file size:"+oldFileSize);
 
         //check if new record would be overflowing BUF_SIZE
         if(oldFileSize%Volume.BUF_SIZE+requiredSize<=Volume.BUF_SIZE){
@@ -641,10 +641,10 @@ public class StorageJournaled extends Storage implements Engine {
             //so we need to create empty record for 'padding' size to 2GB
 
             final long  freeSizeToCreate = Volume.BUF_SIZE -  oldFileSize%Volume.BUF_SIZE;
-            if(CC.ASSERT && freeSizeToCreate == 0) throw new InternalError();
+            if(freeSizeToCreate == 0) throw new InternalError();
 
             final long nextBufferStartOffset = oldFileSize + freeSizeToCreate;
-            if(CC.ASSERT && nextBufferStartOffset%Volume.BUF_SIZE!=0) throw new InternalError();
+            if(nextBufferStartOffset%Volume.BUF_SIZE!=0) throw new InternalError();
 
             //increase the disk size
             physSize += freeSizeToCreate + requiredSize;

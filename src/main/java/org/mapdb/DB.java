@@ -82,7 +82,7 @@ public class DB {
         if(recid!=null){
             //open existing map
             ret = new HTreeMap<K,V>(engine, recid,defaultSerializer);
-            if(CC.ASSERT && !ret.hasValues) throw new ClassCastException("Collection is Set, not Map");
+            if(!ret.hasValues) throw new ClassCastException("Collection is Set, not Map");
         }else{
             //create new map
             ret = new HTreeMap<K,V>(engine,true,defaultSerializer,null, null);
@@ -130,7 +130,7 @@ public class DB {
         if(recid!=null){
             //open existing map
             HTreeMap<K,Object> m = new HTreeMap<K,Object>(engine, recid, defaultSerializer);
-            if(CC.ASSERT && m.hasValues) throw new ClassCastException("Collection is Map, not Set");
+            if(m.hasValues) throw new ClassCastException("Collection is Map, not Set");
             ret = m.keySet();
         }else{
             //create new map
@@ -181,7 +181,7 @@ public class DB {
         if(recid!=null){
             //open existing map
             ret = new BTreeMap<K,V>(engine, recid,defaultSerializer);
-            if(CC.ASSERT && !ret.hasValues) throw new ClassCastException("Collection is Set, not Map");
+            if(!ret.hasValues) throw new ClassCastException("Collection is Set, not Map");
         }else{
             //create new map
             ret = new BTreeMap<K,V>(engine,BTreeMap.DEFAULT_MAX_NODE_SIZE, true, false, defaultSerializer, null, null, null);
@@ -242,7 +242,7 @@ public class DB {
         if(recid!=null){
             //open existing map
             BTreeMap<K,Object> m = new BTreeMap<K,Object>(engine,  recid, defaultSerializer);
-            if(CC.ASSERT && m.hasValues) throw new ClassCastException("Collection is Map, not Set");
+            if(m.hasValues) throw new ClassCastException("Collection is Map, not Set");
             ret = m.keySet();
         }else{
             //create new map

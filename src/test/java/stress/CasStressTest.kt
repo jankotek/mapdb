@@ -39,7 +39,6 @@ class CasStressTest{
 
 
     fun stress(engine:Engine){
-        Assume.assumeTrue(CC.FULL_TEST);
 
         val recid = engine.put(0,Serializer.INTEGER_SERIALIZER);
 

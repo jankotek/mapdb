@@ -25,7 +25,7 @@ package org.mapdb;
  * <p/>
  * Typical usage:
  * <pre>
- *     if(CC.ASSERT && arg==null){
+ *     if(arg==null){
  *         throw new IllegalArgumentException("Argument is null");
  *     }
  * </pre>
@@ -34,21 +34,9 @@ package org.mapdb;
  */
 public interface CC {
 
-    /**
-     * MapDB has acceptance tests which may take long time to finish (<b>week!!!</b>).
-     * For daily development it makes sense to disable it..
-     * This flag controls if full test suite is ran.
-     */
-    boolean FULL_TEST = false;
-
 
     /**
-     * Compile with basic assertions (boundaries, non null...).
-     */
-    boolean ASSERT = true;
-
-    /**
-     * Compile even with more assertions and verifications.
+     * Compile with more assertions and verifications.
      * For example HashMap may check if keys implements hash function correctly.
      * This may slow down MapDB thousands times
      */

@@ -118,7 +118,7 @@ public abstract class Storage implements Engine {
         //write headers
         phys.putLong(0, HEADER);
         index.putLong(0L,HEADER);
-        if(CC.ASSERT && index.getLong(0L)!=HEADER)
+        if(index.getLong(0L)!=HEADER)
             throw new InternalError();
 
 
@@ -130,15 +130,15 @@ public abstract class Storage implements Engine {
 
 
     protected void writeLock_checkLocked() {
-        if(CC.ASSERT && !lock.writeLock().isHeldByCurrentThread())
+        if(!lock.writeLock().isHeldByCurrentThread())
             throw new IllegalAccessError("no write lock");
     }
 
 
 
     final int freePhysRecSize2FreeSlot(final int size){
-        if(CC.ASSERT && size>MAX_RECORD_SIZE) throw new IllegalArgumentException("too big record");
-        if(CC.ASSERT && size<0) throw new IllegalArgumentException("negative size");
+        if(size>MAX_RECORD_SIZE) throw new IllegalArgumentException("too big record");
+        if(size<0) throw new IllegalArgumentException("negative size");
 
         if(size<1535)
             return size-1;
@@ -182,7 +182,7 @@ public abstract class Storage implements Engine {
             DataInput2 in = data.getDataInput(dataPos, dataSize);
             final A value = serializer.deserialize(in,dataSize);
 
-            if(CC.ASSERT &&  in.pos != dataSize + (data.isSliced()?dataPos%Volume.BUF_SIZE:0))
+            if( in.pos != dataSize + (data.isSliced()?dataPos%Volume.BUF_SIZE:0))
                 throw new InternalError("Data were not fully read.");
             return value;
         }else{
@@ -211,7 +211,7 @@ public abstract class Storage implements Engine {
             DataInput2 in = new DataInput2(b);
             final A value = serializer.deserialize(in,recSize);
 
-            if(CC.ASSERT &&  in.pos != recSize)
+            if( in.pos != recSize)
                 throw new InternalError("Data were not fully read.");
             return value;
         }
@@ -225,7 +225,7 @@ public abstract class Storage implements Engine {
     abstract protected long freePhysRecTake(final int requiredSize) throws IOException;
 
     protected void freePhysRecPut(final long indexValue) throws IOException {
-        if(CC.ASSERT && (indexValue &PHYS_OFFSET_MASK)==0) throw new InternalError("zero indexValue: ");
+        if((indexValue &PHYS_OFFSET_MASK)==0) throw new InternalError("zero indexValue: ");
         final int size =  (int) (indexValue>>>48);
 
         final long listRecid = RECID_FREE_PHYS_RECORDS_START + freePhysRecSize2FreeSlot(size);

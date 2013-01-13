@@ -65,7 +65,7 @@ final public class Utils {
      */
     static public void packLong(DataOutput out, long value) throws IOException {
 
-        if (CC.ASSERT && value < 0) {
+        if (value < 0) {
             throw new IllegalArgumentException("negative value: keys=" + value);
         }
 
@@ -94,8 +94,7 @@ final public class Utils {
                 return result;
             }
         }
-        if(CC.ASSERT) throw new Error("Malformed long.");
-        else return Long.MIN_VALUE;
+        throw new Error("Malformed long.");
     }
 
 
@@ -109,7 +108,7 @@ final public class Utils {
      */
 
     static public void packInt(DataOutput in, int value) throws IOException {
-        if (CC.ASSERT && value < 0) {
+        if (value < 0) {
             throw new IllegalArgumentException("negative value: keys=" + value);
         }
 
@@ -129,9 +128,7 @@ final public class Utils {
                 return result;
             }
         }
-        if(CC.ASSERT) throw new Error("Malformed int.");
-        else return Integer.MIN_VALUE;
-
+        throw new Error("Malformed int.");
     }
 
 

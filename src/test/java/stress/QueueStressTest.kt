@@ -41,8 +41,6 @@ class QueueStressTest{
 
 
     fun stress(val q:Queue<Long?>){
-        Assume.assumeTrue(CC.FULL_TEST);
-
         val counter = AtomicLong(0);
 
         //start producer threads

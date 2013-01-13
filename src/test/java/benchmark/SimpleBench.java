@@ -31,56 +31,56 @@ public class SimpleBench extends AbstractBenchmark{
     }
 
     @Test public void HTreeMap(){
-        assumeTrue(CC.FULL_TEST);
+
         testMap(
                 DBMaker.newMemoryDB().journalDisable().make().getHashMap("test")
         );
     }
 
     @Test public void BTreeMap(){
-        assumeTrue(CC.FULL_TEST);
+
         testMap(
                 DBMaker.newMemoryDB().journalDisable().make().getTreeMap("test")
         );
     }
 
     @Test public void HTreeMap_direct(){
-        assumeTrue(CC.FULL_TEST);
+
         testMap(
                 DBMaker.newDirectMemoryDB().journalDisable().make().getHashMap("test")
         );
     }
 
     @Test public void BTreeMap_direct(){
-        assumeTrue(CC.FULL_TEST);
+
         testMap(
                 DBMaker.newDirectMemoryDB().journalDisable().make().getTreeMap("test")
         );
     }
 
     @Test public void HTreeMap_file(){
-        assumeTrue(CC.FULL_TEST);
+
         testMap(
                 DBMaker.newTempFileDB().journalDisable().make().getHashMap("test")
         );
     }
 
     @Test public void BTreeMap_file(){
-        assumeTrue(CC.FULL_TEST);
+
         testMap(
                 DBMaker.newTempFileDB().journalDisable().make().getTreeMap("test")
         );
     }
 
     @Test public void SkipList(){
-        assumeTrue(CC.FULL_TEST);
+
         testMap(
                 new ConcurrentSkipListMap<Object, Object>()
         );
     }
 
     @Test public void HashMap(){
-        assumeTrue(CC.FULL_TEST);
+
         testMap(
                 new ConcurrentHashMap<Object, Object>()
         );

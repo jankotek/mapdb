@@ -278,9 +278,9 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             final boolean isLeaf = value.isLeaf();
 
             //first byte encodes if is leaf (first bite) and length (last seven bites)
-            if(CC.ASSERT && value.keys().length>127) throw new InternalError();
-            if(CC.ASSERT && !isLeaf && value.child().length!= value.keys().length) throw new InternalError();
-            if(CC.ASSERT && isLeaf && hasValues && value.vals().length!= value.keys().length) throw new InternalError();
+            if(value.keys().length>127) throw new InternalError();
+            if(!isLeaf && value.child().length!= value.keys().length) throw new InternalError();
+            if(isLeaf && hasValues && value.vals().length!= value.keys().length) throw new InternalError();
 
             final int header = (isLeaf?0x80:0)  | value.keys().length;
             out.write(header);
@@ -604,7 +604,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     LeafNode n = new LeafNode(keys, vals, ((LeafNode)A).next);
                     engine.update(current, n, nodeSerializer);
                 }else{
-                    if(CC.ASSERT && p==0)
+                    if(p==0)
                         throw new InternalError();
                     long[] child = Utils.arrayLongPut(A.child(), pos, p);
                     DirNode d = new DirNode(keys, child);
@@ -677,12 +677,9 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
 
                     long newRootRecid = engine.put(R, nodeSerializer);
-                    if(CC.ASSERT){
-                        long oldRootRecid = rootRecid.getAndSet(newRootRecid);
-                        if(oldRootRecid!=current) throw new InternalError();
-                    }else{
-                        rootRecid.set(newRootRecid);
-                    }
+
+                    long oldRootRecid = rootRecid.getAndSet(newRootRecid);
+                    if(oldRootRecid!=current) throw new InternalError();
 
                     //TODO update tree levels
                     nodeLocks.unlock(current);
@@ -867,7 +864,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
 
     protected Entry<K, V> makeEntry(Object key, Object value) {
-        if(CC.ASSERT && value instanceof ValRef) throw new InternalError();
+        if(value instanceof ValRef) throw new InternalError();
         return new SimpleImmutableEntry<K, V>((K)key,  (V)value);
     }
 
@@ -1535,7 +1532,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             this.loInclusive = loInclusive;
             this.hi = hi;
             this.hiInclusive = hiInclusive;
-            if(CC.ASSERT && lo!=null && hi!=null && m.comparator.compare(lo, hi)>0)
+            if(lo!=null && hi!=null && m.comparator.compare(lo, hi)>0)
                 throw new IllegalArgumentException();
         }
 
@@ -1980,8 +1977,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     }
 
     protected void notify(K key, V oldValue, V newValue) {
-        if(CC.ASSERT&& oldValue instanceof ValRef) throw new InternalError();
-        if(CC.ASSERT&& newValue instanceof ValRef) throw new InternalError();
+        if(oldValue instanceof ValRef) throw new InternalError();
+        if(newValue instanceof ValRef) throw new InternalError();
         for(Bind.MapListener<K,V> listener:modListeners){
             listener.update(key, oldValue, newValue);
         }

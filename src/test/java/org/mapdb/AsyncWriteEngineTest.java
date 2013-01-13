@@ -122,8 +122,6 @@ public class AsyncWriteEngineTest extends TestFile{
 
     @Test
     public void trans_deadlock_issue5() {
-        assumeTrue(CC.FULL_TEST);
-
         int COUNT = 10000000;
         DB db = DBMaker.newTempFileDB().make();
         Map map = db.getTreeMap("treemap");

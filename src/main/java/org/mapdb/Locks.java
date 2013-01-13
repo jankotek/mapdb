@@ -84,7 +84,7 @@ public final class Locks {
                 Utils.LOG.finest("TRYLOCK R:"+recid+" T:"+Thread.currentThread().getId());
 
             //feel free to rewrite, if you know better (more efficient) way
-            if(CC.ASSERT && locks.get(recid)==Thread.currentThread()){
+            if(locks.get(recid)==Thread.currentThread()){
                 //check node is not already locked by this thread
                 throw new InternalError("node already locked by current thread: "+recid);
             }

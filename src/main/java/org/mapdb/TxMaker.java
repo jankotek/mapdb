@@ -112,7 +112,7 @@ public class TxMaker {
                 LongMap.LongMapIterator<Fun.Tuple2<?, Serializer>> iter = modItems.longMapIterator();
                 while(iter.moveToNext()){
                     TxEngine other = globalMod.remove(iter.key());
-                    if(CC.ASSERT && other!=TxEngine.this) throw new InternalError();
+                    if(other!=TxEngine.this) throw new InternalError();
                     Fun.Tuple2<?, Serializer> t = iter.value();
                     engine.update(iter.key(), t.a, t.b);
                 }
@@ -133,7 +133,7 @@ public class TxMaker {
                 LongMap.LongMapIterator iter = modItems.longMapIterator();
                 while(iter.moveToNext()){
                     TxEngine other = globalMod.remove(iter.key());
-                    if(CC.ASSERT && other!=TxEngine.this) throw new InternalError();
+                    if(other!=TxEngine.this) throw new InternalError();
                 }
                 //delete preallocated items
                 for(long recid:newItems){
