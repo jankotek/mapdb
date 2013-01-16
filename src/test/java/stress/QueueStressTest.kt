@@ -7,40 +7,15 @@ import java.util.concurrent.*
 import org.mapdb.*
 import java.util.*
 
-class QueueStressTest{
+abstract class QueueStressTest(val q:Queue<Any?>){
 
     val threadNum:Long = 16;
     val max:Long = 1000;
     val maxNodeNum:Long = threadNum * (max * (max+1))/2;
 
 
-    Test fun jucConcurrentLinkedQueue() = stress(ConcurrentLinkedQueue<Long?>());
-
-
     Test(timeout=1000000)
-    fun LinkedQueueLifo_noLocks(){
-        val engine = DBMaker.newMemoryDB().journalDisable().makeEngine();
-        val queue = LinkedQueueLifo<Long?>(engine, Serializer.LONG_SERIALIZER,false);
-        stress(queue)
-    }
-
-    Test(timeout=1000000)
-    fun LinkedQueueLifo_withLocks(){
-        val engine = DBMaker.newMemoryDB().journalDisable().makeEngine();
-        val queue = LinkedQueueLifo<Long?>(engine, Serializer.LONG_SERIALIZER,true);
-        stress(queue)
-    }
-
-
-    Test(timeout=1000000)
-    fun LinkedQueueLifo_StorageDirect(){
-        val engine = StorageDirect(Volume.memoryFactory(false));
-        val queue = LinkedQueueLifo<Long?>(engine, Serializer.LONG_SERIALIZER,false);
-        stress(queue)
-    }
-
-
-    fun stress(val q:Queue<Long?>){
+    fun stress(){
         val counter = AtomicLong(0);
 
         //start producer threads
@@ -66,7 +41,7 @@ class QueueStressTest{
                     var updated = false;
                     while(!updated){
                         val old = counter.get();
-                        updated = counter.compareAndSet(old, old + n!!);
+                        updated = counter.compareAndSet(old, old + (n as Long));
                     }
                 }
             });
@@ -79,3 +54,32 @@ class QueueStressTest{
         assertEquals(maxNodeNum, counter.get());
     }
 }
+
+
+class QueueStress_JUC_ConcurrentLinkedQueue:QueueStressTest(ConcurrentLinkedQueue<Any?>()){}
+
+class QueueStress_LinkedQueueFifo_noLocks:QueueStressTest(
+    Queue2.Fifo<Any?>(testEngine(), Serializer.BASIC_SERIALIZER)
+){}
+
+class QueueStress_LinkedQueueLifo_noLocks:QueueStressTest(
+        Queue2.Lifo<Any?>(testEngine(), Serializer.BASIC_SERIALIZER, true)
+){}
+
+class QueueStress_LinkedQueueLifo_withLocks:QueueStressTest(
+        Queue2.Lifo<Any?>(testEngine(), Serializer.BASIC_SERIALIZER, false)
+){}
+
+
+
+class QueueStress_LinkedQueueLifo_storageDirect:QueueStressTest(
+        Queue2.Lifo<Any?>(testEngine(), Serializer.BASIC_SERIALIZER, false)
+){}
+
+
+
+class LinkedQueueLifo_StorageDirect:QueueStressTest(
+    Queue2.Lifo<Any?>(
+            StorageDirect(Volume.memoryFactory(false)),
+            Serializer.BASIC_SERIALIZER,false)
+){}

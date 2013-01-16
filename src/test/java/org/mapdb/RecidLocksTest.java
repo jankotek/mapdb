@@ -25,15 +25,6 @@ public class RecidLocksTest {
         return Arrays.asList(new Object[][]{{new Locks.LongHashMapRecidLocks()}});
     }
 
-    @Test public void perf_single(){
-        long t = System.currentTimeMillis();
-        for(int i=0;i<1e6;i++){
-            locks.lock(11111);
-            locks.unlock(11111);
-        }
-        locks.assertNoLocks();
-        TestUtils.perfResult(locks.getClass(), "perf_single", System.currentTimeMillis() - t);
-    }
 
 
 
@@ -63,6 +54,6 @@ public class RecidLocksTest {
         e.shutdown();
         e.awaitTermination(Long.MAX_VALUE, TimeUnit.HOURS);
 
-        TestUtils.perfResult(locks.getClass(),rec, System.currentTimeMillis() - t);
+        System.out.println(System.currentTimeMillis() - t);
     }
 }

@@ -46,12 +46,6 @@
             <optional>false</optional>
         </dependency>
 
-        <dependency>
-            <groupId>com.carrotsearch</groupId>
-            <artifactId>junit-benchmarks</artifactId>
-            <version>0.4.0</version>
-            <scope>test</scope>
-        </dependency>
 
         <!-- kotlin standard library -->
         <dependency>

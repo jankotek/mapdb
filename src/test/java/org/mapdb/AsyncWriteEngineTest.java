@@ -29,7 +29,8 @@ public class AsyncWriteEngineTest extends TestFile{
     }
 
 
-    @Test public void write_fetch_update_delete() throws IOException {
+    @Test(timeout = 1000000)
+    public void write_fetch_update_delete() throws IOException {
         long recid = engine.put("aaa", Serializer.STRING_SERIALIZER);
         assertEquals("aaa", engine.get(recid, Serializer.STRING_SERIALIZER));
         reopenStore();
@@ -81,8 +82,9 @@ public class AsyncWriteEngineTest extends TestFile{
             assertEquals(expectedStr, v);
         }
     }
-    
-    @Test public void async_commit(){
+
+    @Test(timeout = 1000000)
+    public void async_commit(){
         final AtomicLong putCounter = new AtomicLong();
         StorageJournaled t = new StorageJournaled(fac){
             @Override
@@ -120,7 +122,7 @@ public class AsyncWriteEngineTest extends TestFile{
         }
     }
 
-    @Test
+    @Test(timeout = 1000000)
     public void trans_deadlock_issue5() {
         int COUNT = 10000000;
         DB db = DBMaker.newTempFileDB().make();

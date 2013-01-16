@@ -53,7 +53,6 @@ public class CacheHashTable extends EngineWrapper implements Engine {
 
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
-
         final long recid = engine.put(value, serializer);
         final int pos = position(recid);
         try{
@@ -107,11 +106,17 @@ public class CacheHashTable extends EngineWrapper implements Engine {
         try{
             locks.lock(pos);
             HashItem item = items[pos];
-            if(item!=null && item.key == recid && (item.val == expectedOldValue || item.val.equals(expectedOldValue))){
-                //found matching entry in cache, so just update and return true
-                items[pos] = new HashItem(recid, newValue);
-                engine.update(recid, newValue, serializer);
-                return true;
+            if(item!=null && item.key == recid){
+                if(item.val == null && expectedOldValue!=null) return false;
+                //found in cache, so compare values
+                if(item.val == expectedOldValue || item.val.equals(expectedOldValue)){
+                    //found matching entry in cache, so just update and return true
+                    items[pos] = new HashItem(recid, newValue);
+                    engine.update(recid, newValue, serializer);
+                    return true;
+                }else{
+                    return false;
+                }
             }else{
                 boolean ret = engine.compareAndSwap(recid, expectedOldValue, newValue, serializer);
                 if(ret) items[pos] = new HashItem(recid, newValue);

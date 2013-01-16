@@ -1985,4 +1985,12 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     }
 
 
+    /**
+     * Closes underlying storage and releases all resources.
+     * Used mostly with temporary collections where engine is not accessible.
+     */
+    public void close(){
+        engine.close();
+    }
+
 }

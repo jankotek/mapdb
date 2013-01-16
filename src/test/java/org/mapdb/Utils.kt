@@ -33,6 +33,7 @@ fun assertDirectMemAvail(mem:Double){
 
 }
 
+fun testEngine():Engine = DBMaker.newMemoryDB().journalDisable().makeEngine();
 
 public inline fun runnable2<A,B>(action: (a:A?,b:B?)-> Unit): Fun.Runnable2<A?,B?> {
     return object: Fun.Runnable2<A?,B?> {

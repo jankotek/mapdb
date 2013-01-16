@@ -373,7 +373,7 @@ public class DB {
      * @return default serializer used in this DB, it handles POJO and other stuff.
      */
     @NotNull
-    public Serializer<?> getDefaultSerializer() {
+    public  Serializer getDefaultSerializer() {
         return defaultSerializer;
     }
 
