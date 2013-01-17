@@ -984,7 +984,7 @@ public class SerializerBase implements Serializer{
                 ret = deserializeArrayObjectPackedLong(is);
                 break;
             case ARRAY_OBJECT_ALL_NULL:
-                ret = deserializeArrayObjectAllNull(is, objectStack);
+                ret = deserializeArrayObjectAllNull(is);
                 break;
             case ARRAY_OBJECT_NO_REFS:
                 ret = deserializeArrayObjectNoRefs(is);
@@ -1216,11 +1216,10 @@ public class SerializerBase implements Serializer{
     }
 
 
-    private Object[] deserializeArrayObjectAllNull(DataInput is, FastArrayList<Object> objectStack) throws IOException {
+    private Object[] deserializeArrayObjectAllNull(DataInput is) throws IOException {
         int size = Utils.unpackInt(is);
         Class clazz = deserializeClass(is);
         Object[] s = (Object[]) Array.newInstance(clazz, size);
-        objectStack.add(s);
         return s;
     }
 

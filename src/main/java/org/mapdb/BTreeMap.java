@@ -2033,7 +2033,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     public void removeModificationListener(Bind.MapListener<K,V> listener) {
         synchronized (modListenersLock){
             for(int i=0;i<modListeners.length;i++){
-                if(modListeners[i]==listener) modListeners=null;
+                if(modListeners[i]==listener) modListeners[i]=null;
             }
         }
     }

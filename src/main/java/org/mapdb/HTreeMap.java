@@ -1152,7 +1152,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     public void removeModificationListener(Bind.MapListener<K,V> listener) {
         synchronized (modListenersLock){
             for(int i=0;i<modListeners.length;i++){
-                if(modListeners[i]==listener) modListeners=null;
+                if(modListeners[i]==listener) modListeners[i]=null;
             }
         }
     }
