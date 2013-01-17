@@ -35,10 +35,6 @@ import static org.mapdb.SerializationHeader.*;
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class SerializerBase implements Serializer{
 
-    /**
-     * print statistics to STDOUT
-     */
-    static final boolean DEBUG = false;
 
     /**
      * Utility class similar to ArrayList, but with fast identity search.
@@ -46,7 +42,9 @@ public class SerializerBase implements Serializer{
     final static class FastArrayList<K> {
 
         private int size = 0;
-        private K[] elementData = (K[]) new Object[8];
+        private K[] elementData = (K[]) new Object[1];
+
+        boolean forwardRefs = false;
 
         K get(int index) {
             if (index >= size)
@@ -83,8 +81,10 @@ public class SerializerBase implements Serializer{
          */
         int identityIndexOf(Object obj) {
             for (int i = 0; i < size; i++) {
-                if (obj == elementData[i])
+                if (obj == elementData[i]){
+                    forwardRefs = true;
                     return i;
+                }
             }
             return -1;
         }
@@ -283,9 +283,20 @@ public class SerializerBase implements Serializer{
             out.writeLong(((UUID) obj).getMostSignificantBits());
             out.writeLong(((UUID)obj).getLeastSignificantBits());
             return;
+        } else if(clazz == BTreeKeySerializer.BasicKeySerializer.class){
+            out.write(B_TREE_BASIC_KEY_SERIALIZER);
+            if(((BTreeKeySerializer.BasicKeySerializer)obj).defaultSerializer!=this) throw new InternalError();
+            return;
         } else if(clazz == CompressLZF.SerializerCompressWrapper.class){
             out.write(SERIALIZER_COMPRESSION_WRAPPER);
             serialize(out, ((CompressLZF.SerializerCompressWrapper)obj).serializer, objectStack);
+            return;
+
+        } else if(obj == BTreeKeySerializer.ZERO_OR_POSITIVE_LONG){
+            out.write(B_TREE_SERIALIZER_POS_LONG);
+            return;
+        } else if(obj == BTreeKeySerializer.STRING){
+            out.write(B_TREE_SERIALIZER_STRING);
             return;
         } else if(obj == Utils.COMPARABLE_COMPARATOR){
             out.write(COMPARABLE_COMPARATOR);
@@ -937,8 +948,17 @@ public class SerializerBase implements Serializer{
             case COMPARABLE_COMPARATOR:
                 ret = Utils.COMPARABLE_COMPARATOR;
                 break;
+            case B_TREE_SERIALIZER_POS_LONG:
+                ret = BTreeKeySerializer.ZERO_OR_POSITIVE_LONG;
+                break;
+            case B_TREE_SERIALIZER_STRING:
+                ret = BTreeKeySerializer.STRING;
+                break;
             case COMPARABLE_COMPARATOR_WITH_NULLS:
                 ret = Utils.COMPARABLE_COMPARATOR_WITH_NULLS;
+                break;
+            case B_TREE_BASIC_KEY_SERIALIZER:
+                ret = new BTreeKeySerializer.BasicKeySerializer(this);
                 break;
             case SerializationHeader.BASIC_SERIALIZER:
                 ret = BASIC_SERIALIZER;
@@ -960,6 +980,16 @@ public class SerializerBase implements Serializer{
                 break;
             case JAVA_SERIALIZATION:
                 throw new InternalError("Wrong header, data were probably serialized with java.lang.ObjectOutputStream, not with JDBM serialization");
+            case ARRAY_OBJECT_PACKED_LONG:
+                ret = deserializeArrayObjectPackedLong(is);
+                break;
+            case ARRAY_OBJECT_ALL_NULL:
+                ret = deserializeArrayObjectAllNull(is, objectStack);
+                break;
+            case ARRAY_OBJECT_NO_REFS:
+                ret = deserializeArrayObjectNoRefs(is);
+                break;
+
             case -1:
                 throw new EOFException();
 
@@ -986,12 +1016,6 @@ public class SerializerBase implements Serializer{
                 break;
             case ARRAY_OBJECT:
                 ret = deserializeArrayObject(is, objectStack);
-                break;
-            case ARRAY_OBJECT_ALL_NULL:
-                ret = deserializeArrayObjectAllNull(is, objectStack);
-                break;
-            case ARRAY_OBJECT_PACKED_LONG:
-                ret = deserializeArrayObjectPackedLong(is);
                 break;
             case LINKEDLIST:
                 ret = deserializeLinkedList(is, objectStack);
@@ -1180,6 +1204,17 @@ public class SerializerBase implements Serializer{
         }
         return s;
     }
+
+    private Object[] deserializeArrayObjectNoRefs(DataInput is) throws IOException {
+        int size = Utils.unpackInt(is);
+        Class clazz = deserializeClass(is);
+        Object[] s = (Object[]) Array.newInstance(clazz, size);
+        for (int i = 0; i < size; i++){
+            s[i] = deserialize(is, null);
+        }
+        return s;
+    }
+
 
     private Object[] deserializeArrayObjectAllNull(DataInput is, FastArrayList<Object> objectStack) throws IOException {
         int size = Utils.unpackInt(is);

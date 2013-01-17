@@ -207,7 +207,7 @@ public class DB {
     @NotNull
     synchronized public <K,V> BTreeMap<K,V> createTreeMap(
             String name, int nodeSize, boolean valuesStoredOutsideNodes,
-            Serializer<K[]> keySerializer, Serializer<V> valueSerializer, Comparator<K> comparator){
+            BTreeKeySerializer<K> keySerializer, Serializer<V> valueSerializer, Comparator<K> comparator){
         checkNameNotExists(name);
         BTreeMap<K,V> ret = new BTreeMap<K,V>(engine, nodeSize, true,valuesStoredOutsideNodes, defaultSerializer, keySerializer, valueSerializer, comparator);
         nameDir.put(name, ret.treeRecid);
@@ -267,7 +267,7 @@ public class DB {
      * @return
      */
     @NotNull
-    synchronized public <K> NavigableSet<K> createTreeSet(String name, int nodeSize, Serializer<K[]> serializer, Comparator<K> comparator){
+    synchronized public <K> NavigableSet<K> createTreeSet(String name, int nodeSize, BTreeKeySerializer<K> serializer, Comparator<K> comparator){
         checkNameNotExists(name);
         BTreeMap<K,Object> ret = new BTreeMap<K,Object>(engine, nodeSize, false, false, defaultSerializer, serializer, null, comparator);
         nameDir.put(name, ret.treeRecid);

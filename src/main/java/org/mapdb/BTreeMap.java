@@ -31,6 +31,7 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import static org.mapdb.SerializationHeader.*;
 
 /**
  * A scalable concurrent {@link ConcurrentNavigableMap} implementation.
@@ -91,6 +92,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         implements ConcurrentNavigableMap<K,V>, Bind.MapWithModificationListener<K,V>{
 
 
+
+
     /** default maximal node size */
     protected static final int DEFAULT_MAX_NODE_SIZE = 32;
 
@@ -103,7 +106,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
     /** Serializer used to convert keys from/into binary form.
      * TODO delta packing on BTree keys*/
-    protected final Serializer keySerializer;
+    protected final BTreeKeySerializer keySerializer;
     /** Serializer used to convert keys from/into binary form*/
     protected final Serializer<V> valueSerializer;
 
@@ -165,7 +168,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             ret.hasValues = in.readBoolean();
             ret.valsOutsideNodes = in.readBoolean();
             ret.maxNodeSize = in.readInt();
-            ret.keySerializer = (Serializer) defaultSerializer.deserialize(in, -1);
+            ret.keySerializer = (BTreeKeySerializer) defaultSerializer.deserialize(in, -1);
             ret.valueSerializer = (Serializer) defaultSerializer.deserialize(in, -1);
             ret.comparator = (Comparator) defaultSerializer.deserialize(in, -1);
             return ret;
@@ -178,7 +181,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         boolean hasValues;
         boolean valsOutsideNodes;
         int maxNodeSize;
-        Serializer keySerializer;
+        BTreeKeySerializer keySerializer;
         Serializer valueSerializer;
         Comparator comparator;
 
@@ -278,12 +281,47 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             final boolean isLeaf = value.isLeaf();
 
             //first byte encodes if is leaf (first bite) and length (last seven bites)
-            if(value.keys().length>127) throw new InternalError();
+            if(value.keys().length>255) throw new InternalError();
             if(!isLeaf && value.child().length!= value.keys().length) throw new InternalError();
             if(isLeaf && hasValues && value.vals().length!= value.keys().length) throw new InternalError();
 
-            final int header = (isLeaf?0x80:0)  | value.keys().length;
+
+            final boolean left = value.keys()[0] == null;
+            final boolean right = value.keys()[value.keys().length-1] == null;
+
+
+            final int header;
+
+            if(isLeaf)
+                if(right){
+                    if(left)
+                        header = B_TREE_NODE_LEAF_LR;
+                    else
+                        header = B_TREE_NODE_LEAF_R;
+                }else{
+                    if(left)
+                        header = B_TREE_NODE_LEAF_L;
+                    else
+                        header = B_TREE_NODE_LEAF_C;
+                }
+            else{
+                if(right){
+                    if(left)
+                        header = B_TREE_NODE_DIR_LR;
+                    else
+                        header = B_TREE_NODE_DIR_R;
+                }else{
+                    if(left)
+                        header = B_TREE_NODE_DIR_L;
+                    else
+                        header = B_TREE_NODE_DIR_C;
+                }
+            }
+
+
+
             out.write(header);
+            out.write(value.keys().length);
 
             //longs go first, so it is possible to reconstruct tree without serializer
             if(isLeaf){
@@ -293,8 +331,11 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     Utils.packLong(out, child);
             }
 
-            //write keys
-            keySerializer.serialize(out, (K[]) value.keys());
+
+
+            keySerializer.serialize(out,left?1:0,
+                    right?value.keys().length-1:value.keys().length,
+                    value.keys());
 
             if(isLeaf && hasValues){
                 for(int i=0; i<value.vals().length; i++){
@@ -311,15 +352,24 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
         @Override
         public BNode deserialize(DataInput in, int available) throws IOException {
-            int size = in.readUnsignedByte();
+            final int header = in.readUnsignedByte();
+            final int size = in.readUnsignedByte();
             //first bite indicates leaf
-            final boolean isLeaf = (size & 0x80) != 0;
-            //rest is for node size
-            size = size & 0x7f;
+            final boolean isLeaf =
+                    header == B_TREE_NODE_LEAF_C  || header == B_TREE_NODE_LEAF_L ||
+                    header == B_TREE_NODE_LEAF_LR || header == B_TREE_NODE_LEAF_R;
+            final int start =
+                (header==B_TREE_NODE_LEAF_L  || header == B_TREE_NODE_LEAF_LR || header==B_TREE_NODE_DIR_L  || header == B_TREE_NODE_DIR_LR) ?
+                1:0;
+
+            final int end =
+                (header==B_TREE_NODE_LEAF_R  || header == B_TREE_NODE_LEAF_LR || header==B_TREE_NODE_DIR_R  || header == B_TREE_NODE_DIR_LR) ?
+                size-1:size;
+
 
             if(isLeaf){
                 long next = Utils.unpackLong(in);
-                Object[] keys = (Object[]) keySerializer.deserialize(in, size);
+                Object[] keys = (Object[]) keySerializer.deserialize(in, start,end,size);
                 if(keys.length!=size) throw new InternalError();
                 Object[] vals  = null;
                 if(hasValues){
@@ -338,7 +388,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 long[] child = new long[size];
                 for(int i=0;i<size;i++)
                     child[i] = Utils.unpackLong(in);
-                Object[] keys = (Object[]) keySerializer.deserialize(in, size);
+                Object[] keys = (Object[]) keySerializer.deserialize(in, start,end,size);
                 if(keys.length!=size) throw new InternalError();
                 return new DirNode(keys, child);
             }
@@ -361,7 +411,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
      */
     public BTreeMap(Engine engine, int maxNodeSize, boolean hasValues, boolean valsOutsideNodes,
                     Serializer defaultSerializer,
-                    Serializer<K[]> keySerializer, Serializer<V> valueSerializer, Comparator<K> comparator) {
+                    BTreeKeySerializer<K> keySerializer, Serializer<V> valueSerializer, Comparator<K> comparator) {
         if(maxNodeSize%2!=0) throw new IllegalArgumentException("maxNodeSize must be dividable by 2");
         if(maxNodeSize<6) throw new IllegalArgumentException("maxNodeSize too low");
         if(maxNodeSize>126) throw new IllegalArgumentException("maxNodeSize too high");
@@ -373,7 +423,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         this.maxNodeSize = maxNodeSize;
         this.comparator = comparator==null? Utils.COMPARABLE_COMPARATOR : comparator;
         //TODO when delta packing implemented, add assertion for COMPARABLE_COMPARATOR
-        this.keySerializer = keySerializer==null ?  defaultSerializer :  keySerializer;
+        this.keySerializer = keySerializer==null ?  new BTreeKeySerializer.BasicKeySerializer(defaultSerializer) :  keySerializer;
         this.valueSerializer = valueSerializer==null ? (Serializer<V>) defaultSerializer : valueSerializer;
 
         this.keySet = new KeySet(this, hasValues);
@@ -1964,23 +2014,38 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     }
 
 
-    protected final List<Bind.MapListener<K,V>> modListeners = new CopyOnWriteArrayList<Bind.MapListener<K, V>>();
+
+    protected final Object modListenersLock = new Object();
+    protected Bind.MapListener<K,V>[] modListeners = new Bind.MapListener[0];
 
     @Override
     public void addModificationListener(Bind.MapListener<K,V> listener) {
-        modListeners.add(listener);
+        synchronized (modListenersLock){
+            Bind.MapListener<K,V>[] modListeners2 =
+                    Arrays.copyOf(modListeners,modListeners.length+1);
+            modListeners2[modListeners2.length-1] = listener;
+            modListeners = modListeners2;
+        }
+
     }
 
     @Override
     public void removeModificationListener(Bind.MapListener<K,V> listener) {
-        modListeners.remove(listener);
+        synchronized (modListenersLock){
+            for(int i=0;i<modListeners.length;i++){
+                if(modListeners[i]==listener) modListeners=null;
+            }
+        }
     }
 
     protected void notify(K key, V oldValue, V newValue) {
         if(oldValue instanceof ValRef) throw new InternalError();
         if(newValue instanceof ValRef) throw new InternalError();
-        for(Bind.MapListener<K,V> listener:modListeners){
-            listener.update(key, oldValue, newValue);
+
+        Bind.MapListener<K,V>[] modListeners2  = modListeners;
+        for(Bind.MapListener<K,V> listener:modListeners2){
+            if(listener!=null)
+                listener.update(key, oldValue, newValue);
         }
     }
 

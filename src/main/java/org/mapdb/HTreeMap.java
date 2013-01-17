@@ -1134,21 +1134,34 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     }
 
 
-    protected final List<Bind.MapListener<K,V>> modListeners = new CopyOnWriteArrayList<Bind.MapListener<K, V>>();
+    protected final Object modListenersLock = new Object();
+    protected Bind.MapListener<K,V>[] modListeners = new Bind.MapListener[0];
 
     @Override
     public void addModificationListener(Bind.MapListener<K,V> listener) {
-        modListeners.add(listener);
+        synchronized (modListenersLock){
+            Bind.MapListener<K,V>[] modListeners2 =
+                    Arrays.copyOf(modListeners,modListeners.length+1);
+            modListeners2[modListeners2.length-1] = listener;
+            modListeners = modListeners2;
+        }
+
     }
 
     @Override
     public void removeModificationListener(Bind.MapListener<K,V> listener) {
-        modListeners.remove(listener);
+        synchronized (modListenersLock){
+            for(int i=0;i<modListeners.length;i++){
+                if(modListeners[i]==listener) modListeners=null;
+            }
+        }
     }
 
     protected void notify(K key, V oldValue, V newValue) {
-        for(Bind.MapListener<K,V> listener:modListeners){
-            listener.update(key, oldValue, newValue);
+        Bind.MapListener<K,V>[] modListeners2  = modListeners;
+        for(Bind.MapListener<K,V> listener:modListeners2){
+            if(listener!=null)
+                listener.update(key, oldValue, newValue);
         }
     }
 

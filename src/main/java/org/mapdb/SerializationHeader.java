@@ -106,6 +106,7 @@ interface SerializationHeader {
     int  ARRAY_OBJECT_PACKED_LONG = 74;
     int  ARRAYLIST_PACKED_LONG = 75;
     int ARRAY_OBJECT_ALL_NULL = 76;
+    int ARRAY_OBJECT_NO_REFS = 77;
 
     int  STRING_EMPTY = 101;
     int  STRING = 103;
@@ -151,7 +152,19 @@ interface SerializationHeader {
     int TUPLE3 = 135;
     int TUPLE4 = 136;
     int B_TREE_MAP_ROOT_HEADER = 137;
+    int B_TREE_NODE_LEAF_LR = 138;
+    int B_TREE_NODE_LEAF_L = 139;
+    int B_TREE_NODE_LEAF_R = 140;
+    int B_TREE_NODE_LEAF_C = 141;
+    int B_TREE_NODE_DIR_LR = 142;
+    int B_TREE_NODE_DIR_L = 143;
+    int B_TREE_NODE_DIR_R = 144;
+    int B_TREE_NODE_DIR_C = 145;
+    int B_TREE_BASIC_KEY_SERIALIZER = 146;
 
+
+    int B_TREE_SERIALIZER_POS_LONG = 147;
+    int B_TREE_SERIALIZER_STRING = 148;
 
 
     /**

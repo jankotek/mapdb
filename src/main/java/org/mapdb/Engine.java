@@ -42,6 +42,19 @@ package org.mapdb;
  *                     [USER API]
  * </pre>
  *
+ * <p/>
+ * Engine uses 'recid' to identify records. There is zero error handling in case recid is invalid
+ * (random number or already deleted record). Passing illegal recid may result into anything
+ * (return null, throw EOF or even corrupt store). Engine is considered low-level component
+ * and it is responsibility of upper layers (collections) to ensure recid is consistent.
+ * Lack of error handling is trade of for speed (similar way as manual memory management in C++)
+ * <p/>
+ * Engine must support {@code null} record values. You may insert, update and fetch null records.
+ * Nulls play important role in recid preallocation and asynchronous writes.
+ * <p/>
+ * Recid can be reused after it was deleted. If your application relies on unique being unique,
+ * you should update record with null value, instead of delete.
+ * Null record consumes only 8 bytes in store and is preserved during defragmentation.
  *
  * @author Jan Kotek
  */
@@ -59,6 +72,10 @@ public interface Engine {
 
     /**
      * Get existing record.
+     * <p/>
+     * Recid must be a number returned by 'put' method.
+     * Behaviour for invalid recid (random number or already deleted record)
+     * is not defined, typically it returns null or throws 'EndOfFileException'
      *
      * @param recid (record identifier) under which record was persisted
      * @param serializer used to deserialize record from binary form
@@ -69,13 +86,16 @@ public interface Engine {
 
     /**
      * Update existing record with new value.
+     * <p/>
+     * Recid must be a number returned by 'put' method.
+     * Behaviour for invalid recid (random number or already deleted record)
+     * is not defined, typically it throws 'EndOfFileException',
+     * but it may also corrupt store.
      *
      * @param recid (record identifier) under which record was persisted.
      * @param value new record value to be stored
      * @param serializer used to serialize record into binary form
      * @param <A> record type
-     *
-     * TODO exception thrown if record does not exist
      */
     <A> void update(long recid, A value, Serializer<A> serializer);
 
@@ -88,6 +108,11 @@ public interface Engine {
      *    <li>Deserializing <code>oldValue</code> using <code>serializer</code> and checking <code>oldValue.equals(expectedOldValue)</code></li>
      *    <li>Serializing <code>expectedOldValue</code> using <code>serializer </code> and comparing binary array with already serialized <code>oldValue</code>
      * </ol>
+     * <p/>
+     * Recid must be a number returned by 'put' method.
+     * Behaviour for invalid recid (random number or already deleted record)
+     * is not defined, typically it throws 'EndOfFileException',
+     * but it may also corrupt store.
      *
      * @param recid (record identifier) under which record was persisted.
      * @param expectedOldValue old value to be compared with existing record
@@ -101,9 +126,13 @@ public interface Engine {
     /**
      * Remove existing record from store/cache
      *
-     * @param recid (record identifier) under which was record persisted
+     * <p/>
+     * Recid must be a number returned by 'put' method.
+     * Behaviour for invalid recid (random number or already deleted record)
+     * is not defined, typically it throws 'EndOfFileException',
+     * but it may also corrupt store.
      *
-     * TODO exception thrown if record does not exist
+     * @param recid (record identifier) under which was record persisted
      */
     void delete(long recid);
 
