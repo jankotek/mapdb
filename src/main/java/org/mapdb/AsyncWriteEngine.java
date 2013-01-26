@@ -58,6 +58,8 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
         }
     }
 
+    private final int threadNum = threadCounter.incrementAndGet();
+
     /** signals that object was deleted */
     protected static final WriteItem DELETED = new WriteItem(null, null);
     /** signals that <code>Engine</code> has been closed and Write Thread should terminate. */
@@ -67,13 +69,14 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     protected static final AtomicInteger threadCounter = new AtomicInteger();
 
     /** background Writer Thread */
-    protected final Thread writerThread = new Thread("MapDB writer #"+threadCounter.incrementAndGet()){
+    protected final Thread writerThread = new Thread("MapDB writer #"+threadNum){
         @SuppressWarnings("unchecked")
 		@Override
         public void run() {
             try{
                 ArrayList<Long> recids = new ArrayList<Long>();
                 for(;;){
+                    if(throwed!=null) return; //second thread failed
 
                     // Take item from Queue
                     Long recid0 = (powerSavingMode || parentEngineWeakRef==null)?
@@ -81,7 +84,9 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
                             writeQueue.poll(1000, TimeUnit.SECONDS);
                     recids.clear();
                     recids.add(recid0);
-                    //writeQueue.drainTo(recids);
+
+                    //TODO drain to investigate
+                    writeQueue.drainTo(recids);
                     for(Long recid:recids){
 
                     //check if this Engine was closed, in that case exit this thread
@@ -140,6 +145,31 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
         }
     };
 
+    BlockingQueue<Long> preallocRecids = new ArrayBlockingQueue<Long>(128);
+
+    /** thread which preallocate recid for `put` operation */
+    protected final Thread preallocThread = new Thread("MapDB prealloc #"+threadNum){
+        {
+            setDaemon(true);
+            //TODO better way to shutdown this thread
+            //TODO preallocated recids should be reclaimed on Engine.close()
+        }
+
+        @Override public void run() {
+            try{
+                for(;;){
+                    if(throwed!=null) return;
+                    Long recid = AsyncWriteEngine.super.put(null, Serializer.NULL_SERIALIZER);
+                    preallocRecids.put(recid);
+                }
+            }catch(Throwable e){
+                //store reason why we failed, so user can be notified
+                //TODO logging here?
+                throwed = e;
+            }
+    }
+    };
+
     /** signals that Writer Thread quit*/
     protected final CountDownLatch writerThreadDown = new CountDownLatch(1);
 
@@ -187,6 +217,19 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
 
         if(!writerThreadRunning.get() && writerThreadRunning.compareAndSet(false, true)){
             writerThread.start();
+            preallocThread.start();
+        }
+    }
+
+    @Override
+    public <A> long put(A value, Serializer<A> serializer) {
+        checkAndStartWriter();
+        try {
+            long recid = preallocRecids.take();
+            update(recid, value,serializer);
+            return recid;
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 
