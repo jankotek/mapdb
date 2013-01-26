@@ -1,21 +1,13 @@
 package org.mapdb;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.File;
-import java.io.IOException;
-import java.io.Serializable;
-import java.util.Iterator;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.io.*;
+import java.util.Iterator;
+import java.util.UUID;
+import java.util.concurrent.*;
 
 /**
  * https://github.com/jankotek/MapDB/issues/41

@@ -16,15 +16,15 @@
 
 package org.mapdb;
 
+import org.mapdb.EngineWrapper.ByteTransformEngine;
+import org.mapdb.EngineWrapper.ReadOnlyEngine;
+
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.NavigableSet;
 import java.util.Set;
-
-import org.jetbrains.annotations.NotNull;
-import org.mapdb.EngineWrapper.*;
 
 /**
  * A builder class for creating and opening a database.
@@ -33,15 +33,12 @@ import org.mapdb.EngineWrapper.*;
  */
 public class DBMaker {
 
-
     protected static final byte CACHE_DISABLE = 0;
     protected static final byte CACHE_FIXED_HASH_TABLE = 1;
     protected static final byte CACHE_HARD_REF = 2;
     protected static final byte CACHE_WEAK_REF = 3;
     protected static final byte CACHE_SOFT_REF = 4;
     protected static final byte CACHE_LRU = 5;
-
-
 
     protected byte _cache = CACHE_FIXED_HASH_TABLE;
     protected int _cacheSize = 1024*32;
@@ -81,7 +78,6 @@ public class DBMaker {
      * <p/>
      * This will use HEAP memory so Garbage Collector is affected.
      */
-    @NotNull
     public static DBMaker newMemoryDB(){
         DBMaker m = new DBMaker();
         m._file = null;
@@ -93,7 +89,6 @@ public class DBMaker {
      * This will use DirectByteBuffer outside of HEAP, so Garbage Collector is not affected
      *
      */
-    @NotNull
     public static DBMaker newDirectMemoryDB(){
         DBMaker m = new DBMaker();
         m._file = null;
@@ -109,7 +104,6 @@ public class DBMaker {
      *
      * <p>Storage is created in temp folder and deleted on JVM shutdown
      */
-    @NotNull
     public static <K,V> BTreeMap<K,V> newTempTreeMap(){
         return newTempFileDB()
                 .deleteFilesAfterClose()
@@ -126,7 +120,6 @@ public class DBMaker {
      *
      * <p>Storage is created in temp folder and deleted on JVM shutdown
      */
-    @NotNull
     public static <K,V> HTreeMap<K,V> newTempHashMap(){
         return newTempFileDB()
                 .deleteFilesAfterClose()
@@ -143,7 +136,6 @@ public class DBMaker {
      *
      * <p>Storage is created in temp folder and deleted on JVM shutdown
      */
-    @NotNull
     public static <K> NavigableSet<K> newTempTreeSet(){
         return newTempFileDB()
                 .deleteFilesAfterClose()
@@ -160,7 +152,6 @@ public class DBMaker {
      * <p>
      * Storage is created in temp folder and deleted on JVM shutdown
      */
-    @NotNull
     public static <K> Set<K> newTempHashSet(){
         return newTempFileDB()
                 .deleteFilesAfterClose()
@@ -176,7 +167,6 @@ public class DBMaker {
      *
      * @return
      */
-    @NotNull
     public static DBMaker newTempFileDB() {
         try {
             return newFileDB(File.createTempFile("JDBM-temp","db"));
@@ -186,7 +176,6 @@ public class DBMaker {
     }
 
     /** Creates or open database stored in file. */
-    @NotNull
     public static DBMaker newFileDB(File file){
         DBMaker m = new DBMaker();
         m._file = file;
@@ -199,7 +188,6 @@ public class DBMaker {
      * It does not use NIO memory mapped buffers, so is slower but safer and more compatible.
      * Use this if you are experiencing <b>java.lang.OutOfMemoryError: Map failed</b> exceptions
      */
-    @NotNull
     public static DBMaker newRandomAccessFileDB(File file){
         DBMaker m = new DBMaker();
         m._file = file;
@@ -221,7 +209,6 @@ public class DBMaker {
      *
      * @return this builder
      */
-    @NotNull
     public DBMaker journalDisable(){
         this._journalEnabled = false;
         return this;
@@ -236,7 +223,6 @@ public class DBMaker {
      *
      * @return this builder
      */
-    @NotNull
     public DBMaker cacheDisable(){
         this._cache = CACHE_DISABLE;
         return this;
@@ -252,7 +238,6 @@ public class DBMaker {
      *
      * @return this builder
      */
-    @NotNull
     public DBMaker cacheHardRefEnable(){
         this._cache = CACHE_HARD_REF;
         return this;
@@ -265,7 +250,6 @@ public class DBMaker {
      *
      * @return this builder
      */
-    @NotNull
     public DBMaker cacheWeakRefEnable(){
         this._cache = CACHE_WEAK_REF;
         return this;
@@ -277,7 +261,6 @@ public class DBMaker {
      *
      * @return this builder
      */
-    @NotNull
     public DBMaker cacheSoftRefEnable(){
         this._cache = CACHE_SOFT_REF;
         return this;
@@ -288,7 +271,6 @@ public class DBMaker {
      *
      * @return this builder
      */
-    @NotNull
     public DBMaker cacheLRUEnable(){
         this._cache = CACHE_LRU;
         return this;
@@ -307,7 +289,6 @@ public class DBMaker {
      * @param cacheSize new cache size
      * @return this builder
      */
-    @NotNull
     public DBMaker cacheSize(int cacheSize){
         this._cacheSize = cacheSize;
         return this;
@@ -326,7 +307,6 @@ public class DBMaker {
      *
      * @return this builder
      */
-    @NotNull
     public DBMaker asyncWriteDisable(){
         this._asyncWriteEnabled = false;
         return this;
@@ -341,7 +321,6 @@ public class DBMaker {
      *
      * @return this builder
      */
-    @NotNull
     public DBMaker asyncThreadDaemonEnable(){
         this._asyncThreadDaemon = true;
         return this;
@@ -393,7 +372,6 @@ public class DBMaker {
      * @param delay flush write cache every N miliseconds
      * @return this builder
      */
-    @NotNull
     public DBMaker asyncFlushDelay(int delay){
         _asyncFlushDelay = delay;
         return this;
@@ -406,7 +384,6 @@ public class DBMaker {
      *
      * @return this builder
      */
-    @NotNull
     public DBMaker deleteFilesAfterClose(){
         this._deleteFilesAfterClose = true;
         return this;
@@ -417,7 +394,6 @@ public class DBMaker {
      *
      * @return this builder
      */
-    @NotNull
     public DBMaker closeOnJvmShutdown(){
         this._closeOnJvmShutdown = true;
         return this;
@@ -430,7 +406,6 @@ public class DBMaker {
      *
      * @return this builder
      */
-    @NotNull
     public DBMaker compressionEnable(){
         this._compressionEnabled = true;
         return this;
@@ -448,7 +423,6 @@ public class DBMaker {
      * @param password for encryption
      * @return this builder
      */
-    @NotNull
     public DBMaker encryptionEnable(String password){
         try {
             return encryptionEnable(password.getBytes(Utils.UTF8));
@@ -470,7 +444,6 @@ public class DBMaker {
      * @param password for encryption
      * @return this builder
      */
-    @NotNull
     public DBMaker encryptionEnable(byte[] password){
         _xteaEncryptionKey = password;
         return this;
@@ -485,7 +458,6 @@ public class DBMaker {
      *
      * @return this builder
      */
-    @NotNull
     public DBMaker checksumEnable(){
         this._checksumEnabled = true;
         return this;
@@ -498,7 +470,6 @@ public class DBMaker {
      *
      * @return this builder
      */
-    @NotNull
     public DBMaker readOnly(){
         this._readOnly = true;
         return this;
@@ -521,7 +492,6 @@ public class DBMaker {
      *
      * @return this builder
      */
-    @NotNull
     public DBMaker appendOnlyEnable(){
         this._appendOnlyEnabled = true;
         return this;
@@ -556,7 +526,6 @@ public class DBMaker {
      *
      * @return this builder
      */
-    @NotNull
     public DBMaker powerSavingModeEnable(){
         this._powerSavingMode = true;
         return this;
@@ -564,18 +533,16 @@ public class DBMaker {
 
 
     /** constructs DB using current settings */
-    @NotNull
     public DB make(){
         return new DB(makeEngine());
     }
 
-    @NotNull
+    
     public TxMaker makeTxMaker(){
         return new TxMaker(makeEngine());
     }
 
     /** constructs Engine using current settings */
-    @NotNull
     public Engine makeEngine(){
 
 

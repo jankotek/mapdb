@@ -45,12 +45,11 @@
 package org.mapdb;
 
 import junit.framework.TestCase;
-import org.mapdb.DBMaker;
 
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.SortedMap;
-import java.util.Map.Entry;
 
 /**
  * to test {@link java.util.NavigableMap} implementation

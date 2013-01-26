@@ -15,14 +15,11 @@
  */
 package org.mapdb;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -1127,7 +1124,6 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
      *
      * @return snapshot
      */
-    @NotNull
     public Map<K,V> snapshot(){
         Engine snapshot = SnapshotEngine.createSnapshotFor(engine);
         return new HTreeMap<K, V>(snapshot,rootRecid, defaultSerialzierForSnapshots);

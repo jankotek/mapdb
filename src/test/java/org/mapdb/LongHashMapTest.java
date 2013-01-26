@@ -16,8 +16,6 @@
 package org.mapdb;
 
 import junit.framework.TestCase;
-import org.mapdb.LongHashMap;
-import org.mapdb.LongMap;
 
 import java.util.Iterator;
 import java.util.Random;

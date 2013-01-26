@@ -1,6 +1,5 @@
 package examples;
 
-import com.sun.servicetag.SystemEnvironment;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 

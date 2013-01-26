@@ -8,11 +8,9 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
-
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.Assert.*;
-import static org.junit.Assume.assumeTrue;
 
 /**
  * @author Jan Kotek
@@ -122,23 +120,4 @@ public class AsyncWriteEngineTest extends TestFile{
         }
     }
 
-    @Test(timeout = 1000000)
-    public void trans_deadlock_issue5() {
-        int COUNT = 10000000;
-        DB db = DBMaker.newTempFileDB().make();
-        Map map = db.getTreeMap("treemap");
-
-        for (int i = 0; i < COUNT; i++) {
-            if (i % 10000 == 0) {
-                db.commit();
-            }
-            map.put(i, (double) i);
-        }
-        for (int i = 0; i < COUNT; i++) {
-            if (i % 1000 == 0) {
-                db.commit();
-            }
-            assertEquals(map.get(i), (double) i);
-        }
-    }
 }

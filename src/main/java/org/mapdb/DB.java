@@ -16,8 +16,6 @@
 
 package org.mapdb;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -73,7 +71,6 @@ public class DB {
      * @param <V> value
      * @return map
      */
-    @NotNull
     synchronized public <K,V> HTreeMap<K,V> getHashMap(String name){
         checkNotClosed();
         HTreeMap<K,V> ret = (HTreeMap<K, V>) getFromWeakCollection(name);
@@ -104,7 +101,6 @@ public class DB {
      * @throws IllegalArgumentException if name is already used
      * @return newly created map
      */
-    @NotNull
     synchronized public <K,V> HTreeMap<K,V> createHashMap(
             String name, Serializer<K> keySerializer, Serializer<V> valueSerializer){
         checkNameNotExists(name);
@@ -121,7 +117,6 @@ public class DB {
      * @param <K> values in set
      * @return set
      */
-    @NotNull
     synchronized public <K> Set<K> getHashSet(String name){
         checkNotClosed();
         Set<K> ret = (Set<K>) getFromWeakCollection(name);
@@ -151,7 +146,7 @@ public class DB {
      * @throws IllegalArgumentException if name is already used
 
      */
-    @NotNull
+    
     synchronized public <K> Set<K> createHashSet(String name, Serializer<K> serializer){
         checkNameNotExists(name);
         HTreeMap<K,Object> ret = new HTreeMap<K,Object>(engine, false, defaultSerializer, serializer, null);
@@ -172,7 +167,7 @@ public class DB {
      * @param <V> value
      * @return map
      */
-    @NotNull
+    
     synchronized public <K,V> BTreeMap<K,V> getTreeMap(String name){
         checkNotClosed();
         BTreeMap<K,V> ret = (BTreeMap<K,V>) getFromWeakCollection(name);
@@ -204,7 +199,6 @@ public class DB {
      * @throws IllegalArgumentException if name is already used
      * @return newly created map
      */
-    @NotNull
     synchronized public <K,V> BTreeMap<K,V> createTreeMap(
             String name, int nodeSize, boolean valuesStoredOutsideNodes,
             BTreeKeySerializer<K> keySerializer, Serializer<V> valueSerializer, Comparator<K> comparator){
@@ -220,7 +214,6 @@ public class DB {
      * Get Named directory. Key is name, value is recid under which named record is stored
      * @return
      */
-    @NotNull
     public Map<String, Long> getNameDir(){
         return nameDir;
     }
@@ -233,7 +226,6 @@ public class DB {
      * @param <K> values in set
      * @return set
      */
-    @NotNull
     synchronized public <K> NavigableSet<K> getTreeSet(String name){
         checkNotClosed();
         NavigableSet<K> ret = (NavigableSet<K>) getFromWeakCollection(name);
@@ -266,7 +258,6 @@ public class DB {
      * @throws IllegalArgumentException if name is already used
      * @return
      */
-    @NotNull
     synchronized public <K> NavigableSet<K> createTreeSet(String name, int nodeSize, BTreeKeySerializer<K> serializer, Comparator<K> comparator){
         checkNameNotExists(name);
         BTreeMap<K,Object> ret = new BTreeMap<K,Object>(engine, nodeSize, false, false, defaultSerializer, serializer, null, comparator);
@@ -275,6 +266,16 @@ public class DB {
         collections.put(name, new WeakReference<Object>(ret2));
         return ret2;
     }
+
+//    synchronized public <E> Queue<E> getQueue(String name){
+//        Long recid = nameDir.get(name);
+//        if(recid==null){
+//
+//        }else{
+//            return new Queue2.Lifo<E>(engine, getDefaultSerializer(),  recid, true);
+//        }
+//    }
+
 
     /**
      * Checks that object with given name does not exist yet.
@@ -363,7 +364,6 @@ public class DB {
      *
      * @return readonly snapshot view
      */
-    @NotNull
     synchronized public DB snapshot(){
         Engine snapshot = SnapshotEngine.createSnapshotFor(engine);
         return new DB (snapshot);
@@ -372,7 +372,6 @@ public class DB {
     /**
      * @return default serializer used in this DB, it handles POJO and other stuff.
      */
-    @NotNull
     public  Serializer getDefaultSerializer() {
         return defaultSerializer;
     }
@@ -380,7 +379,6 @@ public class DB {
     /**
      * @return underlying engine which takes care of persistence for this DB.
      */
-    @NotNull
     public Engine getEngine() {
         return engine;
     }

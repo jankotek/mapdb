@@ -1,7 +1,6 @@
 package org.mapdb;
 
 import junit.framework.TestCase;
-import org.mapdb.SerializationHeader;
 
 import java.lang.reflect.Field;
 import java.util.Set;

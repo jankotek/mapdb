@@ -1,10 +1,11 @@
 package org.mapdb;
 
 import junit.framework.TestCase;
-import java.util.*;
 
-import org.junit.Assume;
-import org.junit.Ignore;
+import java.util.AbstractMap;
+import java.util.NavigableMap;
+import java.util.NavigableSet;
+import java.util.SortedMap;
 
 @SuppressWarnings({ "unchecked" })
 public  class BTreeMapNavigable2Test extends TestCase

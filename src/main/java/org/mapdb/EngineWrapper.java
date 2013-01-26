@@ -17,9 +17,9 @@
 package org.mapdb;
 
 
-import java.io.*;
-import java.nio.*;
-
+import java.io.IOError;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 

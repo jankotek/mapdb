@@ -6,7 +6,7 @@ package org.mapdb;/*
  * Pat Fisher, Mike Judd. 
  */
 
-import junit.framework.*;
+import junit.framework.TestCase;
 
 public class AtomicLongTest extends TestCase {
 

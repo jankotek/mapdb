@@ -15,7 +15,6 @@
  */
 package org.mapdb;
 
-import org.jetbrains.annotations.NotNull;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -35,7 +34,7 @@ public interface Serializer<A> {
      * @param out ObjectOutput to save object into
      * @param value Object to serialize
      */
-    public void serialize(@NotNull DataOutput out, A value)
+    public void serialize( DataOutput out, A value)
             throws IOException;
 
 
@@ -47,7 +46,7 @@ public interface Serializer<A> {
      * @return deserialized object
      * @throws java.io.IOException
      */
-    public A deserialize(@NotNull DataInput in, int available)
+    public A deserialize( DataInput in, int available)
             throws IOException;
 
     /**
@@ -55,7 +54,7 @@ public interface Serializer<A> {
      * Used mainly for testing.
      * Does not handle null values.
      */
-    @NotNull
+    
     Serializer<String> STRING_SERIALIZER = new Serializer<String>() {
 
         @Override
@@ -78,7 +77,7 @@ public interface Serializer<A> {
 
     /** Serializes Long into 8 bytes, used mainly for testing.
      * Does not handle null values.*/
-     @NotNull
+     
      Serializer<Long> LONG_SERIALIZER = new Serializer<Long>() {
         @Override
         public void serialize(DataOutput out, Long value) throws IOException {
@@ -93,7 +92,7 @@ public interface Serializer<A> {
 
     /** Serializes Integer into 4 bytes, used mainly for testing.
      * Does not handle null values.*/
-    @NotNull
+    
     Serializer<Integer> INTEGER_SERIALIZER = new Serializer<Integer>() {
         @Override
         public void serialize(DataOutput out, Integer value) throws IOException {
@@ -106,7 +105,7 @@ public interface Serializer<A> {
         }
     };
 
-    @NotNull
+    
     Serializer<Boolean> BOOLEAN_SERIALIZER = new Serializer<Boolean>() {
         @Override
         public void serialize(DataOutput out, Boolean value) throws IOException {
@@ -120,7 +119,7 @@ public interface Serializer<A> {
         }
     };
 
-    @NotNull
+    
     Serializer<byte[] > BYTE_ARRAY_SERIALIZER = new Serializer<byte[]>() {
 
         @Override
@@ -138,7 +137,7 @@ public interface Serializer<A> {
 
 
     /** always writes zero length data, and always deserializes it as null */
-    @NotNull
+    
     Serializer<Object> NULL_SERIALIZER = new Serializer<Object>() {
         @Override
         public void serialize(DataOutput out, Object value) throws IOException {
@@ -152,13 +151,13 @@ public interface Serializer<A> {
 
     /** basic serializer for most classes in 'java.lang' and 'java.util' packages*/
     @SuppressWarnings("unchecked")
-    @NotNull
+    
     Serializer<Object> BASIC_SERIALIZER = new SerializerBase();
 
     /** Basic serializer for most classes in 'java.lang' and 'java.util' packages.
      * This serializer simulates CPU intensive (de)serialization by adding some calculations to slow down CPU.*/
 
-    @NotNull
+    
     Serializer<Object> SLOW_BASIC_SERIALIZER = new Serializer<Object>(){
 
         private void slowDown(){
@@ -189,7 +188,7 @@ public interface Serializer<A> {
      * Adds CRC32 checksum at end of each record to check data integrity.
      * It throws 'IOException("CRC32 does not match, data broken")' on de-serialization if data are corrupted
      */
-    @NotNull
+    
     public static final Serializer<byte[]> CRC32_CHECKSUM = new Serializer<byte[]>() {
         @Override
         public void serialize(DataOutput out, byte[] value) throws IOException {

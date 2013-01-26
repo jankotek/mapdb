@@ -9,7 +9,6 @@
 package org.mapdb;
 
 import junit.framework.TestCase;
-import org.mapdb.LongConcurrentHashMap;
 
 import java.util.Iterator;
 

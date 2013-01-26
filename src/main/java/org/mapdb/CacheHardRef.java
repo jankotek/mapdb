@@ -17,10 +17,12 @@
 package org.mapdb;
 
 
-import javax.management.*;
+import javax.management.ListenerNotFoundException;
+import javax.management.Notification;
+import javax.management.NotificationEmitter;
 import javax.management.NotificationListener;
 import java.lang.management.*;
-import java.util.*;
+import java.util.Collection;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**

@@ -1,6 +1,8 @@
 package org.mapdb;
 
 import org.junit.Test;
+import org.mapdb.EngineWrapper.ByteTransformEngine;
+import org.mapdb.EngineWrapper.ReadOnlyEngine;
 
 import java.io.File;
 import java.io.IOException;
@@ -11,7 +13,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 
 import static org.junit.Assert.*;
-import org.mapdb.EngineWrapper.*;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class DBMakerTest{

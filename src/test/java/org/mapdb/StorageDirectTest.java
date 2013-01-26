@@ -1,7 +1,6 @@
 package org.mapdb;
 
 
-import org.junit.Assume;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -276,41 +275,6 @@ public class StorageDirectTest extends StorageTestCase {
         assertEquals(arrayList(), getLongStack(StorageDirect.RECID_FREE_PHYS_RECORDS_START + engine.freePhysRecSize2FreeSlot(size)));
     }
 
-    //TODO test randomly put and delete values
-
-
-    @Test public void test_2GB_over() throws IOException {
-       byte[] data = new byte[51111];
-       int dataHash = Arrays.hashCode(data);
-
-        Set<Long> recids = new TreeSet<Long>();
-
-        for(int i = 0; i<1e5;i++){
-            long recid = engine.put(data, Serializer.BYTE_ARRAY_SERIALIZER);
-            recids.add(recid);
-
-//            if(i%10000==0){
-//            System.out.println(recid);
-//            for(Long l:recids){
-//                byte[] b = engine.get(l, Serializer.BYTE_ARRAY_SERIALIZER);
-//                int hash = Arrays.hashCode(b);
-//                assertEquals(l,dataHash, hash);
-//            }
-//            }
-
-        }
-
-        engine.commit();
-
-
-
-        for(Long l:recids){
-            byte[] b = engine.get(l, Serializer.BYTE_ARRAY_SERIALIZER);
-            int hash = Arrays.hashCode(b);
-            assertEquals(dataHash, hash);
-        }
-
-    }
 
 
     @Test public void test_store_reopen(){
@@ -323,26 +287,6 @@ public class StorageDirectTest extends StorageTestCase {
         assertEquals("aaa",aaa);
     }
 
-    @Test  public void test_store_reopen_over_2GB(){
-
-        byte[] data = new byte[11111];
-        final long max = Volume.BUF_SIZE*2L/data.length;
-        final int hash = Arrays.hashCode(data);
-
-        List<Long> recids = new ArrayList<Long>();
-
-        for(int i = 0;i<max;i++){
-            long recid = engine.put(data, Serializer.BYTE_ARRAY_SERIALIZER);
-            recids.add(recid);
-        }
-
-        reopenStore();
-
-        for(long recid:recids){
-            byte[] b  = engine.get(recid, Serializer.BYTE_ARRAY_SERIALIZER);
-            assertEquals(hash,Arrays.hashCode(b));
-        }
-    }
 
     @Test public void in_memory_test(){
         StorageDirect engine = new StorageDirect(Volume.memoryFactory(false));

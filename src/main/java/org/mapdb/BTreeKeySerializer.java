@@ -1,11 +1,8 @@
 package org.mapdb;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.util.Arrays;
 
 /**
  * Custom serializer for BTreeMap keys.
@@ -44,7 +41,7 @@ public abstract class BTreeKeySerializer<K> {
     }
 
 
-    public static final @NotNull BTreeKeySerializer<Long> ZERO_OR_POSITIVE_LONG = new BTreeKeySerializer<Long>() {
+    public static final  BTreeKeySerializer<Long> ZERO_OR_POSITIVE_LONG = new BTreeKeySerializer<Long>() {
         @Override
         public void serialize(DataOutput out, int start, int end, Object[] keys) throws IOException {
             if(start>=end) return;
@@ -69,7 +66,7 @@ public abstract class BTreeKeySerializer<K> {
         }
     };
 
-    public static final @NotNull BTreeKeySerializer<String> STRING = new BTreeKeySerializer<String>() {
+    public static final  BTreeKeySerializer<String> STRING = new BTreeKeySerializer<String>() {
 
         @Override
         public void serialize(DataOutput out, int start, int end, Object[] keys) throws IOException {

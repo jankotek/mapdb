@@ -18,7 +18,10 @@
 package org.mapdb;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.Arrays;
+import java.util.ConcurrentModificationException;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 /**
  * LongHashMap is an implementation of LongMap without concurrency locking.

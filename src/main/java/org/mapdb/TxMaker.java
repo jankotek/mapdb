@@ -1,11 +1,7 @@
 package org.mapdb;
 
-import com.sun.org.apache.xpath.internal.functions.FuncTranslate;
-import org.jetbrains.annotations.NotNull;
-
 import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Transaction factory
@@ -27,7 +23,7 @@ public class TxMaker {
         this.engine = engine;
     }
 
-    @NotNull
+    
     public DB makeTx(){
         return new DB(new TxEngine(engine));
     }

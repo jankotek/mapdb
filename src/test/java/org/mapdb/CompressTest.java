@@ -1,10 +1,10 @@
 package org.mapdb;
 
 import org.junit.Test;
+import org.mapdb.EngineWrapper.ByteTransformEngine;
 
 import java.io.IOException;
 
-import org.mapdb.EngineWrapper.*;
 import static org.junit.Assert.*;
 
 public class CompressTest{

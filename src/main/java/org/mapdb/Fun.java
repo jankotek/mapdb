@@ -17,7 +17,6 @@
 package org.mapdb;
 
 import java.io.Serializable;
-import java.util.Map;
 
 /**
  * Functional stuff. Tuples, function, callback methods etc..

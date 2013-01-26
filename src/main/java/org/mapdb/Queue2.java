@@ -1,11 +1,13 @@
 package org.mapdb;
 
-import org.jetbrains.annotations.NotNull;
 
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.util.*;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.util.Queue;
 
 /**
  * Least In First Out ordered Queue.
@@ -38,11 +40,11 @@ public abstract class Queue2<E> implements Queue<E> {
     };
 
 
-    public Queue2(Engine engine, Serializer<E> serializer) {
+    public Queue2(Engine engine, Serializer<E> serializer, long headRecid) {
         this.engine = engine;
         this.serializer = serializer;
-        long recid = engine.put(0L, Serializer.LONG_SERIALIZER);
-        head = new Atomic.Long(engine,recid);
+        if(headRecid == 0) headRecid = engine.put(0L, Serializer.LONG_SERIALIZER);
+        head = new Atomic.Long(engine,headRecid);
     }
 
 
@@ -161,8 +163,8 @@ public abstract class Queue2<E> implements Queue<E> {
         protected final boolean useLocks;
         protected final Locks.RecidLocks locks;
 
-        public Lifo(Engine engine, Serializer<E> serializer, boolean useLocks) {
-            super(engine, serializer);
+        public Lifo(Engine engine, Serializer<E> serializer, long headerRecid, boolean useLocks) {
+            super(engine, serializer, headerRecid);
             this.useLocks = useLocks;
             locks = useLocks? new Locks.LongHashMapRecidLocks() : null;
         }
@@ -222,8 +224,8 @@ public abstract class Queue2<E> implements Queue<E> {
 
         protected final Atomic.Long tail;
 
-        public Fifo(Engine engine, Serializer<E> serializer) {
-            super(engine, serializer);
+        public Fifo(Engine engine, Serializer<E> serializer, long headerRecid) {
+            super(engine, serializer,headerRecid);
             long nextTail = engine.put(null, nodeSerializer);
             long recid = engine.put(nextTail, Serializer.LONG_SERIALIZER);
             tail = new Atomic.Long(engine,recid);

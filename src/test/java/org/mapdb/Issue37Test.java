@@ -1,13 +1,15 @@
 package org.mapdb;
 
 
-import java.io.*;
+import org.junit.Test;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.concurrent.*;
-
-import org.junit.Test;
+import java.util.concurrent.ConcurrentMap;
 
 import static junit.framework.TestCase.assertEquals;
 import static org.junit.Assert.assertTrue;

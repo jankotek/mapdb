@@ -1,10 +1,9 @@
 package org.mapdb;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.io.IOError;
 import java.io.IOException;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -85,7 +84,6 @@ public class SnapshotEngine extends EngineWrapper{
     }
 
 
-    @NotNull
     public Engine snapshot(){
         snapshotsLock.writeLock().lock();
         try{

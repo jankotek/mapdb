@@ -25,12 +25,13 @@
 
 package org.mapdb;
 
-import org.jetbrains.annotations.NotNull;
 
-import java.io.*;
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentNavigableMap;
-import java.util.concurrent.CopyOnWriteArrayList;
+
 import static org.mapdb.SerializationHeader.*;
 
 /**
@@ -2006,7 +2007,6 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
      *
      * @return snapshot
      */
-    @NotNull
     public NavigableMap<K,V> snapshot(){
         Engine snapshot = SnapshotEngine.createSnapshotFor(engine);
 

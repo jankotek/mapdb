@@ -3,7 +3,9 @@ package org.mapdb;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.TreeMap;
 
 import static org.junit.Assert.*;
 
