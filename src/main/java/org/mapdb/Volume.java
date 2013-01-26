@@ -392,6 +392,10 @@ public abstract class Volume {
                         mapMode,
                         offset - offset% BUF_SIZE, newBufSize );
             } catch (IOException e) {
+                if(e.getCause()!=null && e.getCause() instanceof OutOfMemoryError){
+                    throw new RuntimeException("File could not be mapped to memory, common problem on 32bit JVM. Use `DBMaker.newRandomAccessFileDB()` as workaround",e);
+                }
+
                 throw new IOError(e);
             }
         }

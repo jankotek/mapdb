@@ -1,6 +1,7 @@
 package org.mapdb;
 
 
+import org.junit.After;
 import org.junit.Before;
 
 import java.nio.ByteBuffer;
@@ -19,6 +20,13 @@ abstract public class StorageTestCase extends TestFile{
      public void setUp() throws Exception {
         engine = openEngine();
     }
+
+    @After
+    public void tearDown() throws Exception {
+        if(engine!=null && !engine.isClosed())
+            engine.close();
+    }
+
 
     protected Storage openEngine() {
         return new StorageDirect(fac);

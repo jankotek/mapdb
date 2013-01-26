@@ -170,7 +170,7 @@ public class StorageJournaled extends Storage implements Engine {
             final Long transLogReference = (((long)currentChunkSize)<<48)|(transLogOffset+8);
             journalRefs.add(transLogReference);
             transLog.putData(transLogOffset,b, b.length);
-            transLogOffset+=out.pos;
+            transLogOffset+=b.length;
 
             checkBufferRounding();
 

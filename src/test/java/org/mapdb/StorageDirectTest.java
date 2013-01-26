@@ -316,7 +316,10 @@ public class StorageDirectTest extends StorageTestCase {
         engine.update(recid, b, Serializer.BYTE_ARRAY_SERIALIZER);
         byte[] b2 = engine.get(recid, Serializer.BYTE_ARRAY_SERIALIZER);
         assertArrayEquals(b,b2);
-
+        engine.commit();
+        reopenStore();
+        b2 = engine.get(recid, Serializer.BYTE_ARRAY_SERIALIZER);
+        assertArrayEquals(b,b2);
     }
 
     @Test public void large_record_delete(){
@@ -333,6 +336,11 @@ public class StorageDirectTest extends StorageTestCase {
         long recid = engine.put(b, Serializer.BYTE_ARRAY_SERIALIZER);
         byte[] b2 = engine.get(recid, Serializer.BYTE_ARRAY_SERIALIZER);
         assertArrayEquals(b,b2);
+        engine.commit();
+        reopenStore();
+        b2 = engine.get(recid, Serializer.BYTE_ARRAY_SERIALIZER);
+        assertArrayEquals(b,b2);
+
     }
 
 
