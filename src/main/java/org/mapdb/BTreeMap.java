@@ -98,9 +98,6 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     /** default maximal node size */
     protected static final int DEFAULT_MAX_NODE_SIZE = 32;
 
-    /** recid under which root element is persisted
-     */
-    protected Atomic.Long rootRecid;
 
     /** recid under which reference to rootRecid is stored */
     protected final long rootRecidRef;
@@ -432,7 +429,6 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         LeafNode emptyRoot = new LeafNode(new Object[]{null, null}, new Object[]{null, null}, 0);
         long rootRecidVal = engine.put(emptyRoot, nodeSerializer);
         rootRecidRef = engine.put(rootRecidVal,Serializer.LONG_SERIALIZER);
-        rootRecid = new Atomic.Long(engine, rootRecidRef);
 
         BTreeRoot r = new BTreeRoot();
         r.hasValues = this.hasValues;
@@ -471,7 +467,6 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         this.valsOutsideNodes = r.valsOutsideNodes;
 
         this.keySet = new KeySet(this, hasValues);
-        this.rootRecid = new Atomic.Long(engine,rootRecidRef);
     }
 
 
@@ -507,7 +502,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 	public V get(Object key){
         if(key==null) return null;
         K v = (K) key;
-        long current = rootRecid.get();
+        final long rootRecid = engine.get(rootRecidRef, Serializer.LONG_SERIALIZER);
+        long current = rootRecid;
         BNode A = engine.get(current, nodeSerializer);
 
         //dive until  leaf
@@ -569,7 +565,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         int stackPos = -1;
         long[] stackVals = new long[4];
 
-        long current = rootRecid.get();
+        final long rootRecid = engine.get(rootRecidRef, Serializer.LONG_SERIALIZER);
+        long current = rootRecid;
 
         BNode A = engine.get(current, nodeSerializer);
         while(!A.isLeaf()){
@@ -668,7 +665,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 return null;
             }else{
                 //node is not safe, it requires splitting
-                final boolean isRoot = (current == rootRecid.get());
+                final boolean isRoot = (current == rootRecid);
 
                 final int pos = findChildren(v, A.keys());
                 final Object[] keys = Utils.arrayPut(A.keys(), pos, v);
@@ -729,8 +726,9 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
                     long newRootRecid = engine.put(R, nodeSerializer);
 
-                    long oldRootRecid = rootRecid.getAndSet(newRootRecid);
-                    if(oldRootRecid!=current) throw new InternalError();
+                    //TODO tree root locking
+                    engine.update(rootRecidRef, newRootRecid, Serializer.LONG_SERIALIZER);
+
 
                     //TODO update tree levels
                     nodeLocks.unlock(current);
@@ -750,7 +748,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
         BTreeIterator(){
             //find left-most leaf
-            BNode node = engine.get(rootRecid.get(), nodeSerializer);
+            final long rootRecid = engine.get(rootRecidRef, Serializer.LONG_SERIALIZER);
+            BNode node = engine.get(rootRecid, nodeSerializer);
             while(!node.isLeaf()){
                 node = engine.get(node.child()[0], nodeSerializer);
             }
@@ -808,7 +807,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     }
 
     private V remove2(Object key, Object value) {
-        long current = rootRecid.get();
+        final long rootRecid = engine.get(rootRecidRef, Serializer.LONG_SERIALIZER);
+        long current = rootRecid;
         BNode A = engine.get(current, nodeSerializer);
         while(!A.isLeaf()){
             current = nextDir((DirNode) A, key);
@@ -952,7 +952,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     public boolean replace(K key, V oldValue, V newValue) {
         if(key == null || oldValue == null || newValue == null ) throw new NullPointerException();
 
-        long current = rootRecid.get();
+        long rootRecid = engine.get(rootRecidRef, Serializer.LONG_SERIALIZER);
+        long current = rootRecid;
         BNode node = engine.get(current, nodeSerializer);
         //dive until leaf is found
         while(!node.isLeaf()){
@@ -1000,8 +1001,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     @Override
     public V replace(K key, V value) {
         if(key == null || value == null) throw new NullPointerException();
-
-        long current = rootRecid.get();
+        final long rootRecid = engine.get(rootRecidRef,Serializer.LONG_SERIALIZER);
+        long current = rootRecid;
         BNode node = engine.get(current, nodeSerializer);
         //dive until leaf is found
         while(!node.isLeaf()){
@@ -1052,7 +1053,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
     @Override
     public Map.Entry<K,V> firstEntry() {
-        BNode n = engine.get(rootRecid.get(), nodeSerializer);
+        final long rootRecid = engine.get(rootRecidRef, Serializer.LONG_SERIALIZER);
+        BNode n = engine.get(rootRecid, nodeSerializer);
         while(!n.isLeaf()){
             n = engine.get(n.child()[0], nodeSerializer);
         }
@@ -1088,7 +1090,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
 
     protected Entry<K,V> findSmaller(K key,boolean inclusive){
-        BNode n = engine.get(rootRecid.get(), nodeSerializer);
+        final long rootRecid = engine.get(rootRecidRef, Serializer.LONG_SERIALIZER);
+        BNode n = engine.get(rootRecid, nodeSerializer);
         return findSmallerRecur(n, key, inclusive);
     }
 
@@ -1120,7 +1123,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
     @Override
     public Map.Entry<K,V> lastEntry() {
-        BNode n = engine.get(rootRecid.get(), nodeSerializer);
+        final long rootRecid = engine.get(rootRecidRef, Serializer.LONG_SERIALIZER);
+        BNode n = engine.get(rootRecid, nodeSerializer);
         return lastEntryRecur(n);
     }
 
@@ -1181,7 +1185,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     protected Entry<K, V> findLarger(K key, boolean inclusive) {
         if(key==null) return null;
         K v = (K) key;
-        long current = rootRecid.get();
+        final long rootRecid = engine.get(rootRecidRef, Serializer.LONG_SERIALIZER);
+        long current = rootRecid;
         BNode A = engine.get(current, nodeSerializer);
 
         //dive until  leaf

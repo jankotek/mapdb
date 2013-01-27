@@ -1,5 +1,6 @@
 package org.mapdb;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -26,6 +27,30 @@ public class TxMaker {
     
     public DB makeTx(){
         return new DB(new TxEngine(engine));
+    }
+
+    public void close() {
+        engine.close();
+    }
+
+    /**
+     * Executes given block withing single transaction.
+     * If block throws {@code TxRollbackException} execution is repeated until it does not fail.
+     *
+     * @param txBlock
+     */
+    public void execute(TxBlock txBlock) {
+        for(;;){
+            DB tx = makeTx();
+            try{
+                txBlock.tx(tx);
+                if(!tx.isClosed())
+                    tx.commit();
+                return;
+            }catch(TxRollbackException e){
+                //failed, so try again
+            }
+        }
     }
 
     protected class TxEngine extends EngineWrapper{
