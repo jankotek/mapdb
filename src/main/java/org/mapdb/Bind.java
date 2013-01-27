@@ -1,6 +1,7 @@
 package org.mapdb;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Collection binding
@@ -83,7 +84,7 @@ public final class Bind {
                 }else{
                     //update, must remove old key and insert new
                     K2 oldKey = fun.run(key, oldVal);
-                    K2 newKey = fun.run(key, oldVal);
+                    K2 newKey = fun.run(key, newVal);
                     if(oldKey == newKey || oldKey.equals(newKey)) return;
                     secondary.remove(oldKey);
                     secondary.put(newKey, key);
@@ -91,6 +92,52 @@ public final class Bind {
             }
         });
     }
+
+    public static <K,V,C> void histogram(MapWithModificationListener<K,V> primary, final ConcurrentMap<C,Long> histogram,
+                                  final Fun.Function2<C, K, V> entryToCategory){
+
+        MapListener<K,V> listener = new MapListener<K, V>() {
+            @Override public void update(K key, V oldVal, V newVal) {
+                if(newVal == null){
+                    //removal
+                    C category = entryToCategory.run(key,oldVal);
+                    incrementHistogram(category, -1);
+                }else if(oldVal==null){
+                    //insert
+                    C category = entryToCategory.run(key,newVal);
+                    incrementHistogram(category, 1);
+                }else{
+                    //update, must remove old key and insert new
+                    C oldCat = entryToCategory.run(key, oldVal);
+                    C newCat = entryToCategory.run(key, newVal);
+                    if(oldCat == newCat || oldCat.equals(newCat)) return;
+                    incrementHistogram(oldCat,-1);
+                    incrementHistogram(oldCat,1);
+                }
+
+            }
+
+            /** atomically update counter in histogram*/
+            private void incrementHistogram(C category, long i) {
+                for(;;){
+                    Long oldCount = histogram.get(category);
+                    if(oldCount == null){
+                        //insert new count
+                        if(histogram.putIfAbsent(category,i) == null)
+                            return;
+                    }else{
+                        //increase existing count
+                        Long newCount = oldCount+i;
+                        if(histogram.replace(category,oldCount, newCount))
+                            return;
+                    }
+                }
+            }
+        };
+
+        primary.addModificationListener(listener);
+    }
+
 
 
 
