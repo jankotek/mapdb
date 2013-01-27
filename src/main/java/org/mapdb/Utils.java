@@ -202,13 +202,17 @@ final public class Utils {
         }
     }
 
-
-
     /** check if Operating System is Windows */
     public static boolean isWindows(){
         String os = System.getProperty("os.name");
         return os!=null && (os.toLowerCase().indexOf("win") >= 0);
 
     }
+
+    /** check if Operating System is Android */
+    public static boolean isAndroid(){
+        return "Dalvik".equalsIgnoreCase(System.getProperty("java.vm.name"));
+    }
+
 
 }

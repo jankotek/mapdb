@@ -25,8 +25,8 @@ package org.mapdb;
  * <p/>
  * Typical usage:
  * <pre>
- *     if(arg==null){
- *         throw new IllegalArgumentException("Argument is null");
+ *     if(CC.PARANOID && arg.calculateSize()!=33){  //calculateSize may take long time
+ *         throw new IllegalArgumentException("wrong size");
  *     }
  * </pre>
  *
@@ -53,3 +53,4 @@ public interface CC {
     boolean LOG_LOCKS = false;
 
 }
+

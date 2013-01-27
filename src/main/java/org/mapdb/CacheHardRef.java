@@ -17,141 +17,67 @@
 package org.mapdb;
 
 
-import javax.management.ListenerNotFoundException;
-import javax.management.Notification;
-import javax.management.NotificationEmitter;
-import javax.management.NotificationListener;
-import java.lang.management.*;
-import java.util.Collection;
-import java.util.concurrent.CopyOnWriteArrayList;
-
 /**
  * Cache created objects using hard reference.
- * It uses JMX extension to detect when free memory is running out (less than 25%) and clears cache content than.
+ * It checks free memory every N operations (1024*10). If free memory is bellow 75% it clears the cache
  *
  * @author Jan Kotek
  */
 public class CacheHardRef extends CacheLRU {
 
+    final static int CHECK_EVERY_N = 10000;
 
-    protected final Runnable lowMemoryListener = new Runnable() {
-        @Override
-        public void run() {
-            cache.clear();
-            //TODO clear() may have high overhead, maybe just create new map instance
-        }
-    };
-
+    int counter = 0;
 
     public CacheHardRef(Engine engine, int initialCapacity) {
         super(engine, new LongConcurrentHashMap<Object>(initialCapacity));
-        addMemoryLowListener(lowMemoryListener);
     }
-
 
     @Override
-    public void close() {
-        removeMemoryLowListener(lowMemoryListener);
-        super.close();
+    public <A> A get(long recid, Serializer<A> serializer) {
+        checkFreeMem();
+        return super.get(recid, serializer);
     }
 
+    private void checkFreeMem() {
+        if((counter++)%CHECK_EVERY_N==0 ){
 
+            Runtime r = Runtime.getRuntime();
+            long max = r.maxMemory();
+            if(max == Long.MAX_VALUE)
+                return;
 
+            double free = r.freeMemory();
+            double total = r.totalMemory();
+            //We believe that free refers to total not max.
+            //Increasing heap size to max would increase to max
+            free = free + (max-total);
 
-    /**
-     * This memory warning system will call the listener when we
-     * exceed the percentage of available memory specified.  There
-     * should only be one instance of this object created, since the
-     * usage threshold can only be set to one number.
-     *<p/>
-     * taken from
-     * http://www.javaspecialists.eu/archive/Issue092.html
-     * @author  Dr. Heinz M. Kabutz
-     * Updated for JDBM by Jan Kotek
-     */
-    private static  final Collection<Runnable> memoryLowListeners =
-            new CopyOnWriteArrayList<Runnable>();
+            if(CC.LOG_TRACE)
+                Utils.LOG.fine("DBCache: freemem = " +free + " = "+(free/max)+"%");
 
-
-    public static final NotificationListener LISTENER = new NotificationListener() {
-        @Override
-		public void handleNotification(Notification n, Object hb) {
-            if (n.getType().equals(
-                    MemoryNotificationInfo.MEMORY_THRESHOLD_EXCEEDED)) {
-//          long maxMemory = tenuredGenPool.getUsage().getMax();
-//          long usedMemory = tenuredGenPool.getUsage().getUsed();
-                for (Runnable listener : memoryLowListeners) {
-                    listener.run();
-                }
+            if(free<1e7 || free*4 <max){
+                cache.clear();
             }
         }
-    };
-
-
-    /**
-     * add listener which is called when free memory is running low.
-     */
-    public static synchronized void addMemoryLowListener(Runnable listener) {
-        memoryLowListeners.add(listener);
-        if(memoryLowListeners.size()==1){
-            MemoryMXBean mbean = ManagementFactory.getMemoryMXBean();
-            NotificationEmitter emitter = (NotificationEmitter) mbean;
-            emitter.addNotificationListener(LISTENER, null, null);
-        }
-
     }
 
-    /**
-     * removes free memory low listener
-     */
-    public static  synchronized void  removeMemoryLowListener(Runnable listener) {
-        memoryLowListeners.remove(listener);
-        if(memoryLowListeners.isEmpty()){
-            //unregister to save some memory
-            MemoryMXBean mbean = ManagementFactory.getMemoryMXBean();
-            NotificationEmitter emitter = (NotificationEmitter) mbean;
-            try {
-                emitter.removeNotificationListener(LISTENER);
-            } catch (ListenerNotFoundException e) {
-
-            }
-        }
-
+    @Override
+    public <A> void update(long recid, A value, Serializer<A> serializer) {
+        checkFreeMem();
+        super.update(recid, value, serializer);
     }
 
-    private static final MemoryPoolMXBean tenuredGenPool =
-            findTenuredGenPool();
-
-    private static void setPercentageUsageThreshold(double percentage) {
-        if (percentage <= 0.0 || percentage > 1.0) {
-            throw new IllegalArgumentException("Percentage not in range");
-        }
-        long maxMemory = tenuredGenPool.getUsage().getMax();
-        long warningThreshold = (long) (maxMemory * percentage);
-        tenuredGenPool.setUsageThreshold(warningThreshold);
+    @Override
+    public void delete(long recid) {
+        checkFreeMem();
+        super.delete(recid);
     }
 
-    /**
-     * Tenured Space Pool can be determined by it being of type
-     * HEAP and by it being possible to set the usage threshold.
-     */
-    private static MemoryPoolMXBean findTenuredGenPool() {
-        for (MemoryPoolMXBean pool :
-                ManagementFactory.getMemoryPoolMXBeans()) {
-            // I don't know whether this approach is better, or whether
-            // we should rather check for the pool name "Tenured Gen"?
-            if (pool.getType() == MemoryType.HEAP &&
-                    pool.isUsageThresholdSupported()) {
-                return pool;
-            }
-        }
-        throw new AssertionError("Could not find tenured space");
+    @Override
+    public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+        checkFreeMem();
+        return super.compareAndSwap(recid, expectedOldValue, newValue, serializer);
     }
-
-
-    static{
-        setPercentageUsageThreshold(0.75);
-    }
-
-
 }
+
