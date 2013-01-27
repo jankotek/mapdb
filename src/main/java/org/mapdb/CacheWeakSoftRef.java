@@ -197,8 +197,11 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
         engine = null;
         items = null;
         queue = null;
-        queueThread.interrupt();
-        queueThread = null;
+        
+        if (queueThread != null) {
+            queueThread.interrupt();
+            queueThread = null;
+        }
     }
 
 
