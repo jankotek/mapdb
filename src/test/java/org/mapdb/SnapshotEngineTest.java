@@ -45,6 +45,15 @@ public class SnapshotEngineTest{
     }
 
     @Test public void DB_snapshot(){
+        DB db = DBMaker.newMemoryDB().asyncFlushDelay(100).journalDisable().make();
+        long recid = db.getEngine().put("aa",Serializer.STRING_SERIALIZER);
+        DB db2 = db.snapshot();
+        assertEquals("aa", db2.getEngine().get(recid,Serializer.STRING_SERIALIZER));
+        db.getEngine().update(recid, "bb",Serializer.STRING_SERIALIZER);
+        assertEquals("aa", db2.getEngine().get(recid,Serializer.STRING_SERIALIZER));
+    }
+
+    @Test public void DB_snapshot2(){
         DB db = DBMaker.newMemoryDB().journalDisable().make();
         long recid = db.getEngine().put("aa",Serializer.STRING_SERIALIZER);
         DB db2 = db.snapshot();
@@ -52,6 +61,7 @@ public class SnapshotEngineTest{
         db.getEngine().update(recid, "bb",Serializer.STRING_SERIALIZER);
         assertEquals("aa", db2.getEngine().get(recid,Serializer.STRING_SERIALIZER));
     }
+
 
     @Test public void BTreeMap_snapshot(){
         BTreeMap map =

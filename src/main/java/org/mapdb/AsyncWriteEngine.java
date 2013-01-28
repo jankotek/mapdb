@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -39,91 +40,60 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
 
     @SuppressWarnings({ "rawtypes" })
     protected static final class WriteItem{
-        final Object value;
-        final Serializer serializer;
+        protected volatile Object value;
+        protected volatile Serializer serializer;
 
         public WriteItem(Object value, Serializer serializer) {
-
             this.value = value;
             this.serializer = serializer;
         }
-
-        @Override public boolean equals(Object obj){
-            if(obj instanceof WriteItem){
-                WriteItem obj2 = (WriteItem) obj;
-                return obj2.serializer == serializer && obj2.value == value;
-            }else{
-                return false;
-            }
-        }
     }
-
-    private final int threadNum = threadCounter.incrementAndGet();
-
-    /** signals that object was deleted */
-    protected static final WriteItem DELETED = new WriteItem(null, null);
-    /** signals that <code>Engine</code> has been closed and Write Thread should terminate. */
-    protected static final Long SHUTDOWN = Long.MIN_VALUE;
 
     /** thread naming utility */
     protected static final AtomicInteger threadCounter = new AtomicInteger();
 
+    private final int threadNum = threadCounter.incrementAndGet();
+
+    /** signals that object was deleted */
+    protected static final Object DELETED = new Object();
+    protected static final Object DONE = new Object();
+
+
     /** background Writer Thread */
     protected final Thread writerThread = new Thread("MapDB writer #"+threadNum){
+
+                ;
+
         @SuppressWarnings("unchecked")
 		@Override
         public void run() {
             try{
-                ArrayList<Long> recids = new ArrayList<Long>();
                 for(;;){
                     if(throwed!=null) return; //second thread failed
 
-                    // Take item from Queue
-                    Long recid0 = (powerSavingMode || parentEngineWeakRef==null)?
-                            writeQueue.take() :
-                            writeQueue.poll(1000, TimeUnit.SECONDS);
-                    recids.clear();
-                    recids.add(recid0);
+                    LongMap.LongMapIterator<WriteItem> iter = writeCache.longMapIterator();
+                    if(!iter.moveToNext()){
+                        LockSupport.parkNanos(10000); //TODO power saving notification here
+                    }else do{
 
-                    //TODO drain to investigate
-                    writeQueue.drainTo(recids);
-                    for(Long recid:recids){
-
-                    //check if this Engine was closed, in that case exit this thread
-                    if(recid == SHUTDOWN) return;
-
-                    //may be null if timeout expired
-                    if(recid != null)try{
-                        grandLock.readLock().lock();
-
+                        final long recid = iter.key();
                         //get the latest version of this item
-                        WriteItem item = writeCache.get(recid);
-                        if(item == null){
-                            //item was already written, do nothing
-                        }else{
-
-                            if(item == DELETED){
+                        final WriteItem item = iter.value();
+                        synchronized ( item){
+                            if(item.value == DONE) throw new InternalError();
+                            if(item.value == DELETED){
                                 engine.delete(recid); //item was deleted in main thread
                             }else{
                                 engine.update(recid, item.value, item.serializer);
                             }
-                            //now remove item from writeCache,
-                            // but only if it was not modified from Main Thread,
-                            // while we wrote it into engine.
-                            if(!writeCache.remove(recid, item)){
-                                //item was modified , so schedule new write
-                                writeQueue.put(recid);
-                            }
+                            item.value = DONE;
+                            iter.remove();
                         }
 
-
-                    }finally{
-                        grandLock.readLock().unlock();
-                    }
-                    }
+                    }while(iter.moveToNext());
 
                     //check if we can exit, see javadoc at setParentEngineReference
-                    if(parentEngineWeakRef!=null && parentEngineWeakRef.get()==null && writeQueue.isEmpty()){
+                    if(parentEngineWeakRef!=null && parentEngineWeakRef.get()==null && writeCache.isEmpty()){
                         //parent engine was GCed, no more items will be added and backlog is empty.
                         //No point to live anymore, so lets kill writer thread
                         throwed = new Error("Parent engine was GCed. No more items should be added");
@@ -182,18 +152,14 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
      */
     protected Throwable throwed = null;
 
-    /** Grand lock, used for CAS and other stuff. */
-    protected final ReentrantReadWriteLock grandLock = new ReentrantReadWriteLock();
+    /** lock used with commit/rollback/close operation */
+    protected final ReentrantReadWriteLock commitLock = new ReentrantReadWriteLock();
 
     /**
      * Items which are queued for writing.
      */
     protected final LongConcurrentHashMap<WriteItem> writeCache = new LongConcurrentHashMap<WriteItem>();
 
-    /**
-     * Queue of recids scheduled for writing
-     */
-    protected final BlockingQueue<Long> writeQueue = new LinkedBlockingQueue<Long>();
 
 
     /**
@@ -236,97 +202,133 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     @SuppressWarnings("unchecked")
 	@Override
     public <A> A get(long recid, Serializer<A> serializer) {
-        grandLock.readLock().lock();
+        commitLock.readLock().lock();
         try{
-            WriteItem item = writeCache.get(recid);
-            if(item == null){
-                A a =  super.get(recid, serializer);
-                item = writeCache.get(recid); //check one more time for update
-                return item==null? a : (A) item.value;
-            }else if(item == DELETED){
-                return null;
-            }else if(item.serializer == serializer){
-                return (A) item.value;
-            }else{
-                //pause until item is in cache
-                //TODO this just sucks
-                while(writeCache.containsKey(recid)){}
-                return get(recid, serializer);
+            for(;;){
+                WriteItem item = writeCache.get(recid);
+                if(item == null){
+                    return super.get(recid, serializer);
+                }else synchronized (item){
+                    if(item.value==DONE || item.serializer!=serializer) continue;
+                    else if(item.value==DELETED) return null;
+                    else return (A) item.value;
+                }
             }
         }finally{
-            grandLock.readLock().unlock();
+            commitLock.readLock().unlock();
         }
     }
 
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
         checkAndStartWriter();
-        WriteItem item = new WriteItem(value, serializer);
-        grandLock.readLock().lock();
-        try{
-            writeCache.put(recid, item);
-            writeQueue.add(recid);
+        commitLock.readLock().lock();
+        try{ for(;;){
+            WriteItem item = writeCache.get(recid);
+            if(item == null){
+                if(writeCache.putIfAbsent(recid, new WriteItem(value, serializer)) == null){
+                    return;
+                }else{
+                    continue; //there was conflict, so try again latter
+                }
+            }else{
+                synchronized (item){
+                    if(item.value==DONE) continue;
+                    item.serializer = serializer;
+                    item.value = value;
+                    return;
+                }
+            }
+        }
+
         }finally{
-            grandLock.readLock().unlock();
+            commitLock.readLock().unlock();
         }
     }
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
         checkAndStartWriter();
-        final WriteItem expectedEntry = new WriteItem(expectedOldValue, serializer);
-        final WriteItem newEntry = new WriteItem(newValue, serializer);
-        if(writeCache.replace(recid, expectedEntry, newEntry)) return true;
 
-        //simple SWAP would not work, so lock down the world and do it hard way
-        grandLock.writeLock().lock();
+        commitLock.readLock().lock();
         try{
-            //check writeCache again
-            if(writeCache.containsKey(recid)){
-                return writeCache.replace(recid, expectedEntry, newEntry);
+            for(;;){
+                WriteItem item = writeCache.get(recid);
+                if(item == null){
+                    //not in write queue, so get old value
+                    A oldValue = super.get(recid, serializer);
+                    if(oldValue == expectedOldValue || (oldValue!=null && oldValue.equals(expectedOldValue))){
+                        if(writeCache.putIfAbsent(recid, new WriteItem(newValue, serializer)) == null){
+                            return true;
+                        }else{
+                            continue; //there was conflict, so try again latter
+                        }
+                    }else{
+                        //old value did not matched, so fail
+                        return false;
+                    }
+                }else{
+                    //previous value was found in write cache, try to update it
+                    synchronized (item){
+                        if(item.value==DONE) continue;
+                        if(item.value == expectedOldValue || (item.value!=null && item.value.equals(expectedOldValue))){
+                            //match, update stuff
+                            item.serializer = serializer;
+                            item.value = newValue;
+                            return true;
+                        }else{
+                            return false;
+                        }
+                    }
+                }
+
             }
-            //no, do it hard (binary way
-            return super.compareAndSwap(recid, expectedOldValue, newValue, serializer);
         }finally{
-            grandLock.writeLock().unlock();
+            commitLock.writeLock().unlock();
         }
     }
 
     @Override
     public void delete(long recid) {
-        checkAndStartWriter();
-        grandLock.readLock().lock();
-        try{
-            writeCache.put(recid, DELETED);
-            writeQueue.add(recid);
-        }finally{
-            grandLock.readLock().unlock();
-        }
+        update(recid, DELETED, null );
     }
 
     @Override
     public void commit() {
-        //TODO flush write cache
-        super.commit();
+        commitLock.writeLock().lock();
+        try{
+            while(!writeCache.isEmpty())
+                LockSupport.parkNanos(100);
+            super.commit();
+        }finally{
+            commitLock.writeLock().unlock();
+        }
     }
 
     @Override
     public void close() {
-        if(writerThreadRunning.get()){
-            writeQueue.add(SHUTDOWN);
-            try {
-                writerThreadDown.await();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+        commitLock.writeLock().lock();
+        try{
+            while(!writeCache.isEmpty())
+                LockSupport.parkNanos(100);
+            //TODO close thread
+            super.close();
+        }finally{
+            commitLock.writeLock().unlock();
         }
-        super.close();
     }
 
     @Override
     public void rollback() {
-        //TODO drop write cache here
-        super.rollback();
+        commitLock.writeLock().lock();
+        try{
+            while(!writeCache.isEmpty())
+                LockSupport.parkNanos(100);
+            //TODO clear cache directly?
+            super.rollback();
+        }finally{
+            commitLock.writeLock().unlock();
+        }
     }
 
 
