@@ -122,7 +122,7 @@ public class BTreeMapTest{
                 new Object[]{null, 10,20,30, null},
                 0);
         long rootRecid = engine.put(l, m.nodeSerializer);
-        long rootRecidRef = engine.put(rootRecid, Serializer.LONG_SERIALIZER);
+        engine.update(m.rootRecidRef, rootRecid,  Serializer.LONG_SERIALIZER);
 
         assertEquals(null, m.get(1));
         assertEquals(null, m.get(9));
