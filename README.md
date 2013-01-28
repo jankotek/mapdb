@@ -92,10 +92,10 @@ What you should know
 * Transaction journal can be disabled, this will speedup writes. However without transactions
 store gets corrupted easily when not closed correctly.
 
-* MapDB assumes your data-model is immutable. Mutable keys or values will work, but may lead to unexpected results.
+* MapDB assumes your data-model your data model is immutable.
 
-* MapDB relies on mapped memory heavily. And best NIO implementation is usually in latest JDK7.
-Sometimes upgrading JVM miraculously fixes a problem.
+* MapDB relies on memory mapped files. On 32bit JVM you need `DBMaker.newRandomAccessFileDB()`
+to access files large 2GB.
 
 * There are two collections TreeMap (B+Tree) and HashMap (HTree). TreeMap is
 optimized for small keys, HashMap works best with larger key.
