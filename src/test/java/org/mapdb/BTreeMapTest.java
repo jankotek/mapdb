@@ -1,10 +1,12 @@
 package org.mapdb;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.NavigableMap;
 
 import static org.junit.Assert.*;
 
@@ -122,7 +124,7 @@ public class BTreeMapTest{
                 new Object[]{null, 10,20,30, null},
                 0);
         long rootRecid = engine.put(l, m.nodeSerializer);
-        engine.update(m.rootRecidRef, rootRecid,  Serializer.LONG_SERIALIZER);
+        engine.update(m.rootRecidRef, rootRecid, Serializer.LONG_SERIALIZER);
 
         assertEquals(null, m.get(1));
         assertEquals(null, m.get(9));
@@ -225,6 +227,21 @@ public class BTreeMapTest{
     }
 
 
+
+    @Ignore //TODO floorKey is broken with right most leaf
+    @Test public void floorTestFill() {
+        BTreeMap map = new BTreeMap(engine,6,true,false, null,null,null,null);
+        map.put(1, "val1");
+        map.put(2, "val2");
+        map.put(5, "val3");
+
+        assertEquals(1,map.floorKey(1));
+        assertEquals(2,map.floorKey(2));
+        assertEquals(2,map.floorKey(3));
+        assertEquals(2,map.floorKey(4));
+        assertEquals(5,map.floorKey(5));
+        assertEquals(5,map.floorKey(6));
+    }
 }
 
 
