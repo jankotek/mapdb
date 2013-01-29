@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -73,6 +74,15 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
 
                     LongMap.LongMapIterator<WriteItem> iter = writeCache.longMapIterator();
                     if(!iter.moveToNext()){
+                        commitLock.writeLock().lock();
+                        try
+                        {
+                            writeCacheEmptyCondition.signal();
+                        }
+                        finally
+                        {
+                            commitLock.writeLock().unlock();
+                        }
                         LockSupport.parkNanos(10000); //TODO power saving notification here
                     }else do{
 
@@ -153,7 +163,9 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     protected Throwable throwed = null;
 
     /** lock used with commit/rollback/close operation */
-    protected final ReentrantReadWriteLock commitLock = new ReentrantReadWriteLock();
+    private final ReentrantReadWriteLock commitLock = new ReentrantReadWriteLock();
+
+    private final Condition writeCacheEmptyCondition = commitLock.writeLock().newCondition();
 
     /**
      * Items which are queued for writing.
@@ -250,7 +262,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
         checkAndStartWriter();
 
-        commitLock.readLock().lock();
+        commitLock.writeLock().lock();
         try{
             for(;;){
                 WriteItem item = writeCache.get(recid);
@@ -297,8 +309,8 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     public void commit() {
         commitLock.writeLock().lock();
         try{
-            while(!writeCache.isEmpty())
-                LockSupport.parkNanos(100);
+            if (!writeCache.isEmpty())
+                writeCacheEmptyCondition.awaitUninterruptibly();
             super.commit();
         }finally{
             commitLock.writeLock().unlock();
@@ -309,8 +321,8 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     public void close() {
         commitLock.writeLock().lock();
         try{
-            while(!writeCache.isEmpty())
-                LockSupport.parkNanos(100);
+            if (!writeCache.isEmpty())
+                writeCacheEmptyCondition.awaitUninterruptibly();
             //TODO close thread
             super.close();
         }finally{
@@ -322,8 +334,8 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     public void rollback() {
         commitLock.writeLock().lock();
         try{
-            while(!writeCache.isEmpty())
-                LockSupport.parkNanos(100);
+            if (!writeCache.isEmpty())
+                writeCacheEmptyCondition.awaitUninterruptibly();
             //TODO clear cache directly?
             super.rollback();
         }finally{
