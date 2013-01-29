@@ -20,8 +20,8 @@ public class Secondary_Map {
 
         //Bind maps together. It is one way binding, so changes in primary are reflected in secondary
         Bind.secondaryValue(primary, secondary, new Fun.Function2<Integer, Long, String>() {
-            @Override public Integer run(Long aLong, String s) {
-                return s.length();
+            @Override public Integer run(Long key, String value) {
+                return value.length();
             }
         });
 
