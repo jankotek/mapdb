@@ -17,9 +17,11 @@ native embedded db engines.
     </td>
 </tr>
 <tr>
-    <td data-limit='5' id='news'>
+    <t>
         <h2>News</h2>
-        <ul></ul>
+        <ul>
+            <li> 30/1/2013 MapDB <a href="http://youtu.be/FdZmyEHcWLI">overview video</a>
+        </ul>
         <div class='aright'>
          Follow news:
          <a href='https://groups.google.com/group/mapdb-news/feed/rss_v2_0_msgs.xml?num=50'>RSS</a> |
