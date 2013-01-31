@@ -1,6 +1,7 @@
 package org.mapdb;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
 /**
@@ -63,12 +64,12 @@ public final class Bind {
     }
 
     public static <K,V, K2> void secondaryKey(MapWithModificationListener<K, V> map,
-                                                final Map<K2, K> secondary,
+                                                final Set<Fun.Tuple2<K2, K>> secondary,
                                                 final Fun.Function2<K2, K, V> fun){
         //fill if empty
         if(secondary.isEmpty()){
             for(Map.Entry<K,V> e:map.entrySet()){
-                secondary.put(fun.run(e.getKey(),e.getValue()), e.getKey());
+                secondary.add(Fun.t2(fun.run(e.getKey(),e.getValue()), e.getKey()));
             }
         }
         //hook listener
@@ -77,17 +78,17 @@ public final class Bind {
             public void update(K key, V oldVal, V newVal) {
                 if(newVal == null){
                     //removal
-                    secondary.remove(fun.run(key, oldVal));
+                    secondary.remove(Fun.t2(fun.run(key, oldVal), key));
                 }else if(oldVal==null){
                     //insert
-                    secondary.put(fun.run(key,newVal), key);
+                    secondary.add(Fun.t2(fun.run(key,newVal), key));
                 }else{
                     //update, must remove old key and insert new
                     K2 oldKey = fun.run(key, oldVal);
                     K2 newKey = fun.run(key, newVal);
                     if(oldKey == newKey || oldKey.equals(newKey)) return;
-                    secondary.remove(oldKey);
-                    secondary.put(newKey, key);
+                    secondary.remove(Fun.t2(oldKey, key));
+                    secondary.add(Fun.t2(newKey,key));
                 }
             }
         });
