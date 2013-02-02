@@ -228,13 +228,13 @@ public class BTreeMapTest{
 
 
 
-    @Ignore //TODO floorKey is broken with right most leaf
     @Test public void floorTestFill() {
         BTreeMap map = new BTreeMap(engine,6,true,false, null,null,null,null);
         map.put(1, "val1");
         map.put(2, "val2");
         map.put(5, "val3");
 
+        assertEquals(5,map.floorKey(5));
         assertEquals(1,map.floorKey(1));
         assertEquals(2,map.floorKey(2));
         assertEquals(2,map.floorKey(3));

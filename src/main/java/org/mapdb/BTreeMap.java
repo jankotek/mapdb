@@ -1101,7 +1101,9 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             for(int i=0;i<n.keys().length;i++){
                 //find first item not matching condition
                 Object key2 = n.keys()[i];
-                if(key2!=null && comparator.compare(key, key2) <p){
+                if((key2!=null && comparator.compare(key, key2) <p) ||
+                        (key2==null && i==n.keys().length-1) //special case for tree left most node
+                        ){
                     //and return previous
                     return makeEntry(n.keys()[i-1], valExpand(n.vals()[i-1]));
                 }
