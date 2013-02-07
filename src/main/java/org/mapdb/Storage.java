@@ -297,7 +297,7 @@ public abstract class Storage implements Engine {
     }
 
 
-    protected void unlinkPhysRecord(long indexVal) throws IOException {
+    protected void unlinkPhysRecord(long indexVal, long recid) throws IOException {
         int size = (int) (indexVal >>>48);
         if(size==0) return;
         if(size<MAX_RECORD_SIZE){

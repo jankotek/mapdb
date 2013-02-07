@@ -52,7 +52,7 @@ public class StorageJournaled extends Storage implements Engine {
     protected final LongMap<long[]> recordLogRefs = new LongHashMap<long[]>();
     protected final LongMap<Long> recordIndexVals = new LongHashMap<Long>();
     protected final LongMap<long[]> longStackPages = new LongHashMap<long[]>();
-
+    protected final LongMap<ArrayList<Long>> transLinkedPhysRecods = new LongHashMap<ArrayList<Long>>();
 
 
     public StorageJournaled(Volume.Factory volFac){
@@ -81,6 +81,7 @@ public class StorageJournaled extends Storage implements Engine {
         recordLogRefs.clear();
         recordIndexVals.clear();
         longStackPages.clear();
+        transLinkedPhysRecods.clear();
         indexSize = index.getLong(RECID_CURRENT_INDEX_FILE_SIZE *8);
         physSize = index.getLong(RECID_CURRENT_PHYS_FILE_SIZE*8);
         writeLock_checkLocked();
@@ -151,6 +152,7 @@ public class StorageJournaled extends Storage implements Engine {
         int arrayPos = out.pos - out.pos%chunkSize;
         long lastChunkPhysId = 0;
         ArrayList<Long> journalRefs = new ArrayList<Long>();
+        ArrayList<Long> physRecords = new ArrayList<Long>();
         while(arrayPos>=0){
             final int currentChunkSize = lastArrayPos-arrayPos;
             byte[] b = new byte[currentChunkSize+8]; //TODO reuse byte[]
@@ -160,6 +162,7 @@ public class StorageJournaled extends Storage implements Engine {
             System.arraycopy(out.buf, arrayPos, b, 8, currentChunkSize);
             //and write current chunk
             lastChunkPhysId = freePhysRecTake(currentChunkSize+8);
+            physRecords.add(lastChunkPhysId);
             //phys.putData(lastChunkPhysId&PHYS_OFFSET_MASK, b, b.length);
 
             transLog.ensureAvailable(transLogOffset+10+currentChunkSize+8);
@@ -177,6 +180,7 @@ public class StorageJournaled extends Storage implements Engine {
             lastArrayPos = arrayPos;
             arrayPos-=chunkSize;
         }
+        transLinkedPhysRecods.put(recid,physRecords);
         writeIndexValToTransLog(recid, lastChunkPhysId);
         long[] journalRefs2 = new long[journalRefs.size()];
         for(int i=0;i<journalRefs2.length;i++){
@@ -301,11 +305,11 @@ public class StorageJournaled extends Storage implements Engine {
                         writeIndexValToTransLog(recid, newIndexValue);
 
                         //and set old phys record as free
-                        unlinkPhysRecord(oldIndexVal);
+                        unlinkPhysRecord(oldIndexVal,recid);
                     }
                 }else{
+                    unlinkPhysRecord(oldIndexVal,recid); //unlink must be first to release currently used space
                     putLargeLinkedRecord(out, recid);
-                    unlinkPhysRecord(oldIndexVal);
                 }
 
 
@@ -339,7 +343,7 @@ public class StorageJournaled extends Storage implements Engine {
             //check if is in transaction
             long oldIndexVal = getIndexLong(recid);
             recordIndexVals.put(recid,0L);
-            unlinkPhysRecord(oldIndexVal);
+            unlinkPhysRecord(oldIndexVal,recid);
 
 
             checkBufferRounding();
@@ -659,9 +663,28 @@ public class StorageJournaled extends Storage implements Engine {
     }
 
     @Override
-    protected void unlinkPhysRecord(long indexVal) throws IOException {
-        //TODO there is disk leak with journaled mode, deletes records are not released
+    protected void unlinkPhysRecord(long indexVal, long recid) throws IOException {
+        if(indexVal == 0) return;
 
+        ArrayList<Long> linkedInTrans = transLinkedPhysRecods.remove(recid);
+        if(linkedInTrans!=null){
+            for(Long l:linkedInTrans){
+                freePhysRecPut(l);
+            }
+            return;
+        }
+
+        if((indexVal>>>48)<MAX_RECORD_SIZE){  //check size
+            //single record
+            freePhysRecPut(indexVal);
+            return;
+        }
+
+        while(indexVal!=0){
+            freePhysRecPut(indexVal);
+            final long offset = indexVal & PHYS_OFFSET_MASK;
+            indexVal = phys.getLong(offset); //read next value
+        }
     }
 
 }
