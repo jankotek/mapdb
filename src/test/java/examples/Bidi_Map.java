@@ -19,11 +19,7 @@ public class Bidi_Map {
         NavigableSet<Fun.Tuple2<String, Long>> inverseMapping = new TreeSet<Fun.Tuple2<String, Long>>();
 
         // bind inverse mapping to primary map, so it is auto-updated
-        Bind.secondaryKey(map,inverseMapping, new Fun.Function2<String, Long, String>() {
-            @Override public String run(Long key, String value) {
-                return value;
-            }
-        });
+        Bind.mapInverse(map, inverseMapping);
 
 
         map.put(10L,"value2");
@@ -31,15 +27,9 @@ public class Bidi_Map {
         map.put(1112L,"value");
         map.put(11L,"val");
 
-        //use range query on inverse set, to find all keys associated with given value
-        Set<Fun.Tuple2> keys = ((NavigableSet)inverseMapping)   //cast is workaround for broken Java generics
-                .subSet(
-                Fun.t2("value",null), //NULL represents lower bound, everything is larger than null
-                Fun.t2("value",Fun.HI) // HI is upper bound everything is smaller then HI
-        );
-
-        for(Fun.Tuple2 t : keys){
-            System.out.println("Key for 'value' is: "+t.b);
+        //now find all keys for given value
+        for(Long key: Bind.findSecondaryKeys(inverseMapping, "value")){
+            System.out.println("Key for 'value' is: "+key);
         }
 
     }

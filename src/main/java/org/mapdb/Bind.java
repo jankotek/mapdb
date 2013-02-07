@@ -1,6 +1,8 @@
 package org.mapdb;
 
+import java.util.Iterator;
 import java.util.Map;
+import java.util.NavigableSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
@@ -12,6 +14,40 @@ import java.util.concurrent.ConcurrentMap;
 public final class Bind {
 
     private Bind(){}
+
+    public static <K2,K1> Iterable<K1> findSecondaryKeys(final NavigableSet<Fun.Tuple2<K2,K1>> secondaryKeys, final K2 secondaryKey) {
+        return new Iterable<K1>(){
+            @Override
+            public Iterator<K1> iterator() {
+                //use range query to get all values
+                final Iterator<Fun.Tuple2<K2,K1>> iter =
+                    ((NavigableSet)secondaryKeys) //cast is workaround for generics
+                        .subSet(
+                                Fun.t2(secondaryKey,null), //NULL represents lower bound, everything is larger than null
+                                Fun.t2(secondaryKey,Fun.HI) // HI is upper bound everything is smaller then HI
+                        ).iterator();
+
+                return new Iterator<K1>() {
+                    @Override
+                    public boolean hasNext() {
+                        return iter.hasNext();
+                    }
+
+                    @Override
+                    public K1 next() {
+                        return iter.next().b;
+                    }
+
+                    @Override
+                    public void remove() {
+                        iter.remove();
+                    }
+                };
+            }
+        };
+
+    }
+
 
     public interface MapListener<K,V>{
         void update(K key, V oldVal, V newVal);
@@ -64,7 +100,7 @@ public final class Bind {
     }
 
     public static <K,V, K2> void secondaryKey(MapWithModificationListener<K, V> map,
-                                                final Set<Fun.Tuple2<K2, K>> secondary,
+                                                final NavigableSet<Fun.Tuple2<K2, K>> secondary,
                                                 final Fun.Function2<K2, K, V> fun){
         //fill if empty
         if(secondary.isEmpty()){
@@ -93,6 +129,16 @@ public final class Bind {
             }
         });
     }
+
+    public static <K,V> void mapInverse(MapWithModificationListener<K,V> primary,
+                                        NavigableSet<Fun.Tuple2<V, K>> inverse) {
+        Bind.secondaryKey(primary,inverse, new Fun.Function2<V, K,V>(){
+            @Override public V run(K key, V value) {
+                return value;
+            }
+        });
+    }
+
 
     public static <K,V,C> void histogram(MapWithModificationListener<K,V> primary, final ConcurrentMap<C,Long> histogram,
                                   final Fun.Function2<C, K, V> entryToCategory){
