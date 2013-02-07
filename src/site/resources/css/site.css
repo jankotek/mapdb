@@ -1,4 +1,3 @@
-
 #banner, #breadcrumbs, #poweredBy {display: none !important;}
 
 #buzz ul { margin: 7px 0; }
@@ -33,10 +32,12 @@ h2 {
 
 h3 {
     font-size: 16px;
-    margin: 0.8em 0 0.5em 0;
+    margin: 0.8em 0 0 0;
+/*
     border-bottom-color: #444;
     border-bottom-style: solid;
     border-bottom-width: 1px;
+*/
 }
 
 h4 {

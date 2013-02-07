@@ -525,7 +525,7 @@ Bluff.Base = new JS.Class({
       if (this.maximum_value === null && this.minimum_value === null)
         this.maximum_value = this.minimum_value = data_point;
       
-      // TODO Doesn't work with stacked bar graphs
+      // TO_IGNORE_DO Doesn't work with stacked bar graphs
       // Original: @maximum_value = _larger_than_max?(data_point, index) ? max(data_point, index) : @maximum_value
       this.maximum_value = this._larger_than_max(data_point) ? data_point : this.maximum_value;
       if (this.maximum_value >= 0) this._has_data = true;
@@ -698,7 +698,7 @@ Bluff.Base = new JS.Class({
       // height to 1.0 and the width to the width of the graph.
       var x_axis_label_y_coordinate = this._graph_bottom + this.klass.LABEL_MARGIN * 2 + this._marker_caps_height;
       
-      // TODO Center between graph area
+      // TO_IGNORE_DO Center between graph area
       this._d.fill = this.font_color;
       if (this.font) this._d.font = this.font;
       this._d.stroke = 'transparent';
@@ -713,7 +713,7 @@ Bluff.Base = new JS.Class({
       });
     }
     
-    // TODO Y label (not generally possible in browsers)
+    // TO_IGNORE_DO Y label (not generally possible in browsers)
   },
   
   // Draws horizontal background lines and labels
@@ -723,7 +723,7 @@ Bluff.Base = new JS.Class({
     if (this.y_axis_increment === null) {
       // Try to use a number of horizontal lines that will come out even.
       //
-      // TODO Do the same for larger numbers...100, 75, 50, 25
+      // TO_IGNORE_DO Do the same for larger numbers...100, 75, 50, 25
       if (this.marker_count === null) {
         Bluff.each([3,4,5,6,7], function(lines) {
           if (!this.marker_count && this._spread % lines === 0)
@@ -733,7 +733,7 @@ Bluff.Base = new JS.Class({
       }
       this._increment = (this._spread > 0) ? this._significant(this._spread / this.marker_count) : 1;
     } else {
-      // TODO Make this work for negative values
+      // TO_IGNORE_DO Make this work for negative values
       this.maximum_value = Math.max(Math.ceil(this.maximum_value), this.y_axis_increment);
       this.minimum_value = Math.floor(this.minimum_value);
       this._calculate_spread();
@@ -876,7 +876,7 @@ Bluff.Base = new JS.Class({
   
   // Draws column labels below graph, centered over x_offset
   //--
-  // TODO Allow WestGravity as an option
+  // TO_IGNORE_DO Allow WestGravity as an option
   _draw_label: function(x_offset, index) {
     if (this.hide_line_markers) return;
     
@@ -960,7 +960,7 @@ Bluff.Base = new JS.Class({
   
   // Use with a theme to use an image (800x600 original) background.
   _render_image_background: function(image_path) {
-    // TODO
+    // TO_IGNORE_DO
   },
   
   // Resets everything to defaults (except data).
@@ -1477,7 +1477,7 @@ Bluff.Dot = new JS.Class(Bluff.Base, {
     this._d.stroke_width = 1;
     var number_of_lines = 5;
     
-    // TODO Round maximum marker value to a round number like 100, 0.1, 0.5, etc.
+    // TO_IGNORE_DO Round maximum marker value to a round number like 100, 0.1, 0.5, etc.
     var increment = this._significant(this.maximum_value / number_of_lines);
     for (var index = 0; index <= number_of_lines; index++) {
       
@@ -1495,7 +1495,7 @@ Bluff.Dot = new JS.Class(Bluff.Base, {
         this._d.stroke    = 'transparent';
         this._d.pointsize = this._scale_fontsize(this.marker_font_size);
         this._d.gravity   = 'center';
-        // TODO Center text over line
+        // TO_IGNORE_DO Center text over line
         this._d.annotate_scaled(0, 0, // Width of box to draw text in
                                 x, this._graph_bottom + (this.klass.LABEL_MARGIN * 2.0), // Coordinates of text
                                 marker_label, this._scale);
@@ -1719,13 +1719,13 @@ Bluff.Pie = new JS.Class(Bluff.Base, {
       }
     }, this);
     
-    // TODO debug a circle where the text is drawn...
+    // TO_IGNORE_DO debug a circle where the text is drawn...
   },
   
   // Labels are drawn around a slightly wider ellipse to give room for 
   // labels on the left and right.
   _draw_label: function(center_x, center_y, angle, radius, amount, data_row, i) {
-    // TODO Don't use so many hard-coded numbers
+    // TO_IGNORE_DO Don't use so many hard-coded numbers
     var r_offset = 20.0,      // The distance out from the center of the pie to get point
         x_offset = center_x,  // + 15.0 # The label points need to be tweaked slightly
         y_offset = center_y,  // This one doesn't though
@@ -1828,7 +1828,7 @@ Bluff.SideBar = new JS.Class(Bluff.Base, {
     this._d.stroke_width = 1;
     var number_of_lines = 5;
     
-    // TODO Round maximum marker value to a round number like 100, 0.1, 0.5, etc.
+    // TO_IGNORE_DO Round maximum marker value to a round number like 100, 0.1, 0.5, etc.
     var increment = this._significant(this._spread / number_of_lines),
         line_diff, x, diff, marker_label;
     for (var index = 0; index <= number_of_lines; index++) {
@@ -1847,7 +1847,7 @@ Bluff.SideBar = new JS.Class(Bluff.Base, {
         this._d.stroke    = 'transparent';
         this._d.pointsize = this._scale_fontsize(this.marker_font_size);
         this._d.gravity   = 'center';
-        // TODO Center text over line
+        // TO_IGNORE_DO Center text over line
         this._d.annotate_scaled(
                           0, 0, // Width of box to draw text in
                           x, this._graph_bottom + (this.klass.LABEL_MARGIN * 2.0), // Coordinates of text

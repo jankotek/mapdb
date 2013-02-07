@@ -6,7 +6,8 @@ Most of MapDB was written by Jan Kotek. He started this project and pretty much 
 There were many people who contributed ideas, bug fixes and improvements.
 I am sorry if I forgot someone, please send me a line if you should be here.
 
-### JDBM 1
+JDBM 1
+------
 
 MapDB is loosely based on older project called JDBM. First version was started around 2001 and was released in 2005
 at [SourceForge](http://jdbm.sourceforge.net/). MapDB is complete rewrite, there is no code left from original
@@ -24,7 +25,8 @@ tight component integration.
 
 Credit goes to Cees de Groot and Alex Boisvert.
 
-### JDBM 2 and 3
+JDBM 2 and 3
+-------------
 JDBM stagnated until it was reanimated by Jan Kotek in 2009. JDBM 2 added Map interface and
 basic serialization (`SerializerBase` in MapDB). JDBM 3 brought NIO updates, POJO serialization and many
 performance improvements. MapDB does not contain any code from JDBM 2&3 except serialization.
@@ -38,7 +40,8 @@ There were many people who improved JDBM 2 & 3 (and indirectly MapDB)
 * Thomas Mueller (H2 DB) for code reading and advices.
 
 
-### Serialization
+Serialization
+-------------
 
 Serialization is the only code MapDB shares with JDBM 2 & 3. This  code is complex and
 initially had lot of bugs. There were MANY people who submitted bug-fixes and I am sorry for
@@ -48,7 +51,8 @@ not listing them all. Most importantly:
 
 * Roman Levenstein refactored original simple POJO serializer and greatly improved its performance.
 
-### Collections
+Collections
+-----------
 
 * Theoretical design of BTreeMap is based on [paper](http://www.cs.cornell.edu/courses/cs4411/2009sp/blink.pdf)
 from Philip L. Lehman and S. Bing Yao.
@@ -65,7 +69,8 @@ Credit goes to Jared Levy, George van den Driessche and other Google Collections
 
 * Luc Peuvrier wrote some unit tests for `ConcurrerentNavigableMap` interface.
 
-### Other
+Other
+-----
 
 * Thanks to my wife Pinelopi for tolerating awful amount of time I spend on this project. Also for proof reading and general advices.
 
@@ -73,7 +78,8 @@ Credit goes to Jared Levy, George van den Driessche and other Google Collections
 
 * LZF compression was ported to Java by Thomas Mueller. Original C implementation was written by Marc Alexander Lehmann and Oren J. Maurice
 
-### Donations
+Donations
+-----------
 
 So far only three companies supported this project.
 
