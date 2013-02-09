@@ -1065,7 +1065,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             if(l.next==0) return null;
             l = (LeafNode) engine.get(l.next, nodeSerializer);
         }
-        return makeEntry(l.keys[1], valExpand(l.vals[1]));
+        return makeEntry(l.keys[1], l.vals == null ? null : valExpand(l.vals[1]));
     }
 
 
@@ -1143,7 +1143,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             //iterate over keys to find last non null key
             for(int i=n.keys().length-1; i>=0;i--){
                 Object k = n.keys()[i];
-                if(k!=null) return makeEntry(k, valExpand(n.vals()[i]));
+                if(k!=null) return makeEntry(k, n.vals() == null ? null : valExpand(n.vals()[i]));
             }
         }else{
             //dir node, dive deeper
