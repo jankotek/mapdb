@@ -7,7 +7,6 @@ import org.mapdb.DBMaker;
 
 /*
 	Demonstrates HashMaps with non-standard types of objects as key or value.
-	Inspired by old jdbm2 examples, created by Jan Kotek.
 	
 	@author Pedro Alves
 */
@@ -29,7 +28,7 @@ public class People {
 	public static void main(String[] args) {
 		
 		// Open or create db file
-		DB db = DBMaker.newFileDB(new File("/tmp/dbCustomValue"))
+		DB db = DBMaker.newFileDB(new File("dbCustomValue"))
 				.asyncWriteDisable()
 				.make();
 		
