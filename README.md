@@ -2,13 +2,13 @@ MapDB
 ===============
 
 MapDB provides concurrent TreeMap and HashMap backed by disk storage or off-heap-memory.
-It is a fast, scalable and easy to use embedded Java database engine. It is tiny (160KB jar),
+It is a fast, scalable and easy to use embedded Java database engine. It is tiny (~250KB jar),
 yet packed with features such as transactions, space efficient serialization, instance cache
 and transparent compression/encryption. It also has outstanding performance rivaled only by
 native embedded db engines.
 
 MapDB is free as speech and free as beer under [Apache License 2.0](https://github.com/jankotek/MapDB/blob/master/doc/license.txt).
-More information can be found on [MapDB website](http://www.mapdb.org)
+More information can be found on [MapDB website](http://www.mapdb.org).
 
 Intro
 ======
@@ -16,56 +16,61 @@ MapDB uses Maven build system. There is snapshot repository updated every a few 
 To use it add code bellow to your `pom.xml`. You may also download binaries
 [directly](https://oss.sonatype.org/content/repositories/snapshots/org/mapdb/mapdb/).
 
-    <repositories>
-        <repository>
-            <id>mapdb-snapshots</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </repository>
-    </repositories>
+```xml
+<repositories>
+    <repository>
+        <id>mapdb-snapshots</id>
+        <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+    </repository>
+</repositories>
 
-    <dependencies>
-        <dependency>
-            <groupId>org.mapdb</groupId>
-            <artifactId>mapdb</artifactId>
-            <version>0.9-SNAPSHOT</version>
-                </dependency>
-    </dependencies>
+<dependencies>
+    <dependency>
+        <groupId>org.mapdb</groupId>
+        <artifactId>mapdb</artifactId>
+        <version>0.9-SNAPSHOT</version>
+    </dependency>
+</dependencies>
+```
 
+Hereafter is a simple example. It opens TreeMap backed by file in temp directory, file is discarded after JVM exit:
 
-Hello world; it opens TreeMap backed by file in temp directory, file is discarded after JVM exit:
+```java
+import org.mapdb.*;
+ConcurrentSortedMap treeMap = DBMaker.newTempTreeMap()
 
-    import org.mapdb.*;
-    ConcurrentSortedMap treeMap = DBMaker.newTempTreeMap()
-
-    //and now use disk based Map as any other Map
-    treeMap.put(111,"some value")
-
+// and now use disk based Map as any other Map
+treeMap.put(111,"some value")
+```
 
 More advanced example with configuration and journaled transaction.
-    import org.mapdb.*;
 
-    //Configure and open database using builder pattern.
-    //All options are available with code auto-completion.
-    DB db = DBMaker.newFileDB(new File("testdb"))
-        .closeOnJvmShutdown()
-        .encryptionEnable("password")
-        .make();
+```java
+import org.mapdb.*;
 
-    //open existing an collection (or create new)
-    ConcurrentNavigableMap<Integer,String> map = db.getTreeMap("collectionName");
+// configure and open database using builder pattern.
+// all options are available with code auto-completion.
+DB db = DBMaker.newFileDB(new File("testdb"))
+               .closeOnJvmShutdown()
+               .encryptionEnable("password")
+               .make();
 
-    map.put(1,"one");
-    map.put(2,"two");
-    //map.keySet() is now [1,2]
+// open existing an collection (or create new)
+ConcurrentNavigableMap<Integer,String> map = db.getTreeMap("collectionName");
 
-    db.commit();  //persist changes into disk
+map.put(1, "one");
+map.put(2, "two");
+// map.keySet() is now [1,2]
 
-    map.put(3,"three");
-    //map.keySet() is now [1,2,3]
-    db.rollback(); //revert recent changes
-    //map.keySet() is now [1,2]
+db.commit();  //persist changes into disk
 
-    db.close();
+map.put(3, "three");
+// map.keySet() is now [1,2,3]
+db.rollback(); //revert recent changes
+// map.keySet() is now [1,2]
+
+db.close();
+```
 
 MapDB has very power-full API.
 But for 99% cases you need just two classes:
@@ -100,7 +105,7 @@ to access files large 2GB.
 * There are two collections TreeMap (B+Tree) and HashMap (HTree). TreeMap is
 optimized for small keys, HashMap works best with larger key.
 
-* MapDB does not run defrag on background. You need to call `DB.defrag()` from time to time. (TODO defrag not yet implemented)
+* MapDB does not run defrag on background. You need to call `DB.compact()` from time to time.
 
 * MapDB uses unchecked exceptions. All `IOException` are wrapped into unchecked `IOError`.
 
