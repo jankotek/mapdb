@@ -33,6 +33,13 @@ public class DebugVolume extends Volume{
     }
 
     @Override
+    public void putInt(long offset, int value) {
+        out.println("putInt: "+offset+ " - "+value);
+        vol.putInt(offset, value);
+    }
+
+
+    @Override
     public void putByte(long offset, byte value) {
         out.println("putByte: "+offset+ " - "+value);
         vol.putByte(offset, value);
@@ -58,6 +65,14 @@ public class DebugVolume extends Volume{
         out.println("getLong: "+offset+" - "+ret);
         return ret;
     }
+
+    @Override
+    public int getInt(long offset) {
+        int ret = vol.getInt(offset);
+        out.println("getInt: "+offset+" - "+ret);
+        return ret;
+    }
+
 
     @Override
     public byte getByte(long offset) {

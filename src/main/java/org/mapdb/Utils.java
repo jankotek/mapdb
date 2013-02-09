@@ -215,4 +215,16 @@ final public class Utils {
     }
 
 
+    /**
+     * Check if large files can be mapped into memory.
+     * For example 32bit JVM can only address 2GB and large files can not be mapped,
+     * so for 32bit JVM this function returns false.
+     *
+     */
+    public static boolean JVMSupportsLargeMappedFiles() {
+        String prop = System.getProperty("os.arch");
+        if(prop!=null && prop.contains("64")) return true;
+        //TODO better check for 32bit JVM
+        return false;
+    }
 }

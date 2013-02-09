@@ -14,7 +14,8 @@ import static org.junit.Assert.*;
  */
 @RunWith(Parameterized.class)
 public class EnginesTest{
-    final Engine e;
+
+    protected final Engine e;
 
     public EnginesTest(Engine e) {
         this.e = e;
@@ -24,7 +25,8 @@ public class EnginesTest{
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
                 {DBMaker.newMemoryDB().makeEngine()},
-                {DBMaker.newMemoryDB().journalDisable().makeEngine()}
+                {DBMaker.newMemoryDB().journalDisable().makeEngine()},
+                {DBMaker.newAppendFileDB(Utils.tempDbFile()).makeEngine()},
         });
     }
 

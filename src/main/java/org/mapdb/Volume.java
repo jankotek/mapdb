@@ -96,6 +96,12 @@ public abstract class Volume {
         Volume createTransLogVolume();
     }
 
+    public static Volume volumeForFile(File f, boolean useRandomAccessFile, boolean readOnly) {
+        return useRandomAccessFile ?
+                new Volume.RandomAccessFile(f, readOnly):
+                new Volume.MappedFile(f, readOnly);
+    }
+
 
     public static Factory fileFactory(final boolean readOnly, final boolean RAF, final File indexFile){
         return fileFactory(readOnly, RAF, indexFile,
@@ -111,27 +117,23 @@ public abstract class Volume {
         return new Factory() {
             @Override
             public Volume createIndexVolume() {
-                return RAF ?
-                        new RandomAccessFile(indexFile, readOnly):
-                        new MappedFile(indexFile, readOnly);
+                return volumeForFile(indexFile, RAF, readOnly);
             }
 
             @Override
             public Volume createPhysVolume() {
-                return RAF ?
-                        new RandomAccessFile(physFile, readOnly):
-                        new MappedFile(physFile, readOnly);
+                return volumeForFile(physFile, RAF, readOnly);
             }
 
             @Override
             public Volume createTransLogVolume() {
-                return RAF ?
-                        new RandomAccessFile(transLogFile, readOnly):
-                        new MappedFile(transLogFile, readOnly);
+                return volumeForFile(transLogFile, RAF, readOnly);
             }
         };
     }
 
+    public abstract int getInt(long offset);
+    public abstract void putInt(long offset, int value);
 
     public static Factory memoryFactory(final boolean useDirectBuffer) {
         return new Factory() {
@@ -205,9 +207,16 @@ public abstract class Volume {
             internalByteBuffer(offset).putLong((int) (offset% BUF_SIZE), value);
         }
 
+        @Override public final void putInt(final long offset, final int value) {
+            internalByteBuffer(offset).putInt((int) (offset% BUF_SIZE), value);
+        }
+
+
         @Override public final void putByte(final long offset, final byte value) {
             internalByteBuffer(offset).put((int) (offset % BUF_SIZE), value);
         }
+
+
 
         @Override public final void putData(final long offset, final byte[] value, final int size) {
             final java.nio.ByteBuffer b1 = internalByteBuffer(offset);
@@ -236,6 +245,15 @@ public abstract class Volume {
                 throw new IOError(new EOFException());
             }
         }
+
+        @Override final public int getInt(long offset) {
+            try{
+                return internalByteBuffer(offset).getInt((int) (offset% BUF_SIZE));
+            }catch(IndexOutOfBoundsException e){
+                throw new IOError(new EOFException());
+            }
+        }
+
 
         @Override public final byte getByte(long offset) {
             try{
@@ -503,6 +521,20 @@ public abstract class Volume {
         }
 
         @Override
+        synchronized public void putInt(long offset, int value) {
+            try {
+                if(pos!=offset){
+                    raf.seek(offset);
+                }
+                pos=offset+4;
+                raf.writeInt(value);
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+        }
+
+
+        @Override
         synchronized public void putByte(long offset, byte value) {
             try {
                 if(pos!=offset){
@@ -556,8 +588,22 @@ public abstract class Volume {
             } catch (IOException e) {
                 throw new IOError(e);
             }
+        }
+
+        @Override
+        synchronized public int getInt(long offset) {
+            try {
+                if(pos!=offset){
+                    raf.seek(offset);
+                }
+                pos=offset+4;
+                return raf.readInt();
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
 
         }
+
 
         @Override
         synchronized public byte getByte(long offset) {

@@ -60,7 +60,7 @@ public class DBMaker {
 
     protected byte[] _xteaEncryptionKey = null;
 
-    protected boolean _appendOnlyEnabled = false;
+    protected boolean _freeSpaceReclaimDisabled = false;
 
     protected boolean _checksumEnabled = false;
 
@@ -70,6 +70,7 @@ public class DBMaker {
 
     protected boolean _RAF = false;
     protected boolean _powerSavingMode = false;
+    protected boolean _appendStorage;
 
     /** use static factory methods, or make subclass */
     protected DBMaker(){}
@@ -94,6 +95,21 @@ public class DBMaker {
         m._file = null;
         m._ifInMemoryUseDirectBuffer = true;
         return  m;
+    }
+
+
+    /**
+     * Creates or open append-only database stored in file.
+     * This database uses format otherthan usual file db
+     *
+     * @param file
+     * @return maker
+     */
+    public static DBMaker newAppendFileDB(File file) {
+        DBMaker m = new DBMaker();
+        m._file = file;
+        m._appendStorage = true;
+        return m;
     }
 
 
@@ -169,11 +185,12 @@ public class DBMaker {
      */
     public static DBMaker newTempFileDB() {
         try {
-            return newFileDB(File.createTempFile("JDBM-temp","db"));
+            return newFileDB(File.createTempFile("JDBM-temp","db")).randomAccessFileEnableIfNeeded();
         } catch (IOException e) {
             throw new IOError(e);
         }
     }
+
 
     /** Creates or open database stored in file. */
     public static DBMaker newFileDB(File file){
@@ -182,18 +199,6 @@ public class DBMaker {
         return  m;
     }
 
-    /** Creates or open database stored in file.
-     * <p/>
-     * This methods opens DB with `RAF` mode.
-     * It does not use NIO memory mapped buffers, so is slower but safer and more compatible.
-     * Use this if you are experiencing <b>java.lang.OutOfMemoryError: Map failed</b> exceptions
-     */
-    public static DBMaker newRandomAccessFileDB(File file){
-        DBMaker m = new DBMaker();
-        m._file = file;
-        m._RAF = true;
-        return  m;
-    }
 
 
     /**
@@ -275,8 +280,28 @@ public class DBMaker {
         this._cache = CACHE_LRU;
         return this;
     }
+    /**
+     * Enables compatibility storage mode for 32bit JVMs.
+     * <p/>
+     * By default MapDB uses memory mapped files. However 32bit JVM can only address 2GB of memory.
+     * Also some older JVMs do not handle large memory mapped files well.
+     * We can use {@code RandomAccessFile} which it is slower, but safer and more compatible.
+     * Use this if you are experiencing <b>java.lang.OutOfMemoryError: Map failed</b> exceptions
+     */
+    public DBMaker randomAccessFileEnable() {
+        this._RAF = !Utils.JVMSupportsLargeMappedFiles();
+        return this;
+    }
 
 
+    /**
+     * Check current JVM for known problems. If JVM does not handle large memory files well, this option
+     * disables memory mapped files, and use safer and slower {@code RandomAccessFile} instead.
+     */
+    public DBMaker randomAccessFileEnableIfNeeded() {
+        this._RAF = !Utils.JVMSupportsLargeMappedFiles();
+        return this;
+    }
 
     /**
      * Set cache size. Interpretations depends on cache type.
@@ -478,7 +503,7 @@ public class DBMaker {
 
 
     /**
-     * In 'appendOnly' mode existing free space is not reused,
+     * In this mode existing free space is not reused,
      * but records are added to the end of the store.
      * <p/>
      * This slightly improves write performance as store does not have
@@ -489,11 +514,14 @@ public class DBMaker {
      * <p/>
      * When this mode is used for longer time, store becomes fragmented.
      * It is necessary to run defragmentation then.
+     * <p/>
+     * NOTE: this mode is not append-only, just small setting for update-in-place storage.
+     *
      *
      * @return this builder
      */
-    public DBMaker appendOnlyEnable(){
-        this._appendOnlyEnabled = true;
+    public DBMaker freeSpaceReclaimDisable(){
+        this._freeSpaceReclaimDisabled = true;
         return this;
     }
 
@@ -553,13 +581,20 @@ public class DBMaker {
             throw new UnsupportedOperationException("Can not open non-existing file in read-only mode.");
         }
 
-        Volume.Factory folFac = _file == null?
+        Engine engine;
+
+        if(!_appendStorage){
+            Volume.Factory folFac = _file == null?
                 Volume.memoryFactory(_ifInMemoryUseDirectBuffer):
                 Volume.fileFactory(_readOnly, _RAF, _file);
 
-        Engine engine = _journalEnabled ?
-                new StorageJournaled(folFac,  _appendOnlyEnabled, _deleteFilesAfterClose, _failOnWrongHeader, _readOnly):
-                new StorageDirect(folFac, _appendOnlyEnabled, _deleteFilesAfterClose , _failOnWrongHeader, _readOnly);
+            engine = _journalEnabled ?
+                new StorageJournaled(folFac, _freeSpaceReclaimDisabled, _deleteFilesAfterClose, _failOnWrongHeader, _readOnly):
+                new StorageDirect(folFac, _freeSpaceReclaimDisabled, _deleteFilesAfterClose , _failOnWrongHeader, _readOnly);
+        }else{
+            if(_file==null) throw new UnsupportedOperationException("Append Storage format is not supported with in-memory dbs");
+            engine = new StorageAppend(_file, _RAF, _readOnly, !_journalEnabled);
+        }
 
         AsyncWriteEngine engineAsync = null;
         if(_asyncWriteEnabled && !_readOnly){

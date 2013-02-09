@@ -3,10 +3,15 @@ package org.mapdb;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Test;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 
 /**
  * JUnit test case which provides JDBM specific staff
@@ -14,12 +19,7 @@ import java.util.List;
 abstract public class StorageTestCase extends TestFile{
 
 
-    Storage engine;
-
-     @Before
-     public void setUp() throws Exception {
-        engine = openEngine();
-    }
+    Engine engine = openEngine();;
 
     @After
     public void tearDown() throws Exception {
@@ -28,7 +28,7 @@ abstract public class StorageTestCase extends TestFile{
     }
 
 
-    protected Storage openEngine() {
+    protected Engine openEngine() {
         return new StorageDirect(fac);
     }
 
@@ -45,44 +45,11 @@ abstract public class StorageTestCase extends TestFile{
     }
 
 
-    int countIndexRecords(){
-        int ret = 0;
-        final long indexFileSize = engine.index.getLong(StorageDirect.RECID_CURRENT_INDEX_FILE_SIZE*8);
-        for(int pos = StorageDirect.INDEX_OFFSET_START * 8;
-            pos<indexFileSize;
-            pos+=8){
-            if(0!= engine.index.getLong(pos)){
-                ret++;
-            }
-        }
-        return ret;
-    }
 
-    long getIndexRecord(long recid){
-        return engine.index.getLong(recid*8);
-    }
-
-    List<Long> getLongStack(long recid){
-
-        ArrayList<Long> ret =new ArrayList<Long>();
-
-        long pagePhysid = engine.index.getLong(recid*8) & StorageDirect.PHYS_OFFSET_MASK;
-
-
-        while(pagePhysid!=0){
-            final byte numberOfRecordsInPage = engine.phys.getByte((int) (pagePhysid% Volume.BUF_SIZE));
-
-            for(int rec = numberOfRecordsInPage; rec>0;rec--){
-                final long l = engine.phys.getLong((int) (pagePhysid% Volume.BUF_SIZE+ rec*8));
-                ret.add(l);
-            }
-
-            //read location of previous page
-            pagePhysid = engine.phys.getLong((int)(pagePhysid% Volume.BUF_SIZE)) & StorageDirect.PHYS_OFFSET_MASK;
-        }
-
-
-        return ret;
+    @Test public void testSetGet(){
+        long recid  = engine.put((long) 10000, Serializer.LONG_SERIALIZER);
+        Long  s2 = engine.get(recid, Serializer.LONG_SERIALIZER);
+        assertEquals(s2, Long.valueOf(10000));
     }
 
 
@@ -92,6 +59,62 @@ abstract public class StorageTestCase extends TestFile{
             ret.add(l);
         }
         return ret;
+    }
+
+
+
+    @Test
+    public void large_record(){
+        byte[] b = new byte[100000];
+        Arrays.fill(b, (byte) 111);
+        long recid = engine.put(b, Serializer.BYTE_ARRAY_SERIALIZER);
+        byte[] b2 = engine.get(recid, Serializer.BYTE_ARRAY_SERIALIZER);
+        assertArrayEquals(b,b2);
+    }
+
+    @Test public void large_record_update(){
+        byte[] b = new byte[100000];
+        Arrays.fill(b, (byte) 111);
+        long recid = engine.put(b, Serializer.BYTE_ARRAY_SERIALIZER);
+        Arrays.fill(b, (byte)222);
+        engine.update(recid, b, Serializer.BYTE_ARRAY_SERIALIZER);
+        byte[] b2 = engine.get(recid, Serializer.BYTE_ARRAY_SERIALIZER);
+        assertArrayEquals(b,b2);
+        engine.commit();
+        reopenStore();
+        b2 = engine.get(recid, Serializer.BYTE_ARRAY_SERIALIZER);
+        assertArrayEquals(b,b2);
+    }
+
+    @Test public void large_record_delete(){
+        byte[] b = new byte[100000];
+        Arrays.fill(b, (byte) 111);
+        long recid = engine.put(b, Serializer.BYTE_ARRAY_SERIALIZER);
+        engine.delete(recid);
+    }
+
+
+    @Test public void large_record_larger(){
+        byte[] b = new byte[10000000];
+        Arrays.fill(b, (byte) 111);
+        long recid = engine.put(b, Serializer.BYTE_ARRAY_SERIALIZER);
+        byte[] b2 = engine.get(recid, Serializer.BYTE_ARRAY_SERIALIZER);
+        assertArrayEquals(b,b2);
+        engine.commit();
+        reopenStore();
+        b2 = engine.get(recid, Serializer.BYTE_ARRAY_SERIALIZER);
+        assertArrayEquals(b,b2);
+
+    }
+
+
+    @Test public void test_store_reopen(){
+        long recid = engine.put("aaa", Serializer.STRING_SERIALIZER);
+        engine.commit();
+        reopenStore();
+
+        String aaa = engine.get(recid, Serializer.STRING_SERIALIZER);
+        assertEquals("aaa",aaa);
     }
 
 

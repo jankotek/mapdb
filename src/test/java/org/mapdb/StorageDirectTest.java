@@ -3,6 +3,7 @@ package org.mapdb;
 
 import org.junit.Test;
 
+import javax.swing.plaf.basic.BasicInternalFrameTitlePane;
 import java.io.IOException;
 import java.util.*;
 
@@ -11,39 +12,32 @@ import static org.junit.Assert.*;
 public class StorageDirectTest extends StorageTestCase {
 
 
+    Storage engine = (Storage) super.engine;
+
     /** recid used for testing, it is actually free slot with size 1*/
     static final long TEST_LS_RECID = StorageDirect.RECID_FREE_PHYS_RECORDS_START+1 ;
 
-    protected void commit(){
-        engine.commit();
-    }
-
-    @Test public void testSetGet(){
-        long recid  = engine.put((long) 10000, Serializer.LONG_SERIALIZER);
-        Long  s2 = engine.get(recid, Serializer.LONG_SERIALIZER);
-        assertEquals(s2, Long.valueOf(10000));
-    }
 
 
     @Test public void test_index_record_delete(){
         long recid = engine.put(1000L, Serializer.LONG_SERIALIZER);
-        commit();
+        engine.commit();
         assertEquals(1, countIndexRecords());
         engine.delete(recid);
-        commit();
+        engine.commit();
         assertEquals(0, countIndexRecords());
     }
 
     @Test public void test_index_record_delete_and_reusef(){
         long recid = engine.put(1000L, Serializer.LONG_SERIALIZER);
-        commit();
+        engine.commit();
         assertEquals(1, countIndexRecords());
         assertEquals(StorageDirect.INDEX_OFFSET_START, recid);
         engine.delete(recid);
-        commit();
+        engine.commit();
         assertEquals(0, countIndexRecords());
         long recid2 = engine.put(1000L, Serializer.LONG_SERIALIZER);
-        commit();
+        engine.commit();
         //test that previously deleted index slot was reused
         assertEquals(recid, recid2);
         assertEquals(1, countIndexRecords());
@@ -92,12 +86,12 @@ public class StorageDirectTest extends StorageTestCase {
     @Test public void test_index_stores_record_size() throws IOException {
 
         final long recid = engine.put(1, Serializer.INTEGER_SERIALIZER);
-        commit();
+        engine.commit();
         assertEquals(4, engine.index.getUnsignedShort(recid * 8));
         assertEquals(Integer.valueOf(1), engine.get(recid, Serializer.INTEGER_SERIALIZER));
 
         engine.update(recid, 1L, Serializer.LONG_SERIALIZER);
-        commit();
+        engine.commit();
         assertEquals(8, engine.index.getUnsignedShort(recid * 8));
         assertEquals(Long.valueOf(1), engine.get(recid, Serializer.LONG_SERIALIZER));
 
@@ -106,7 +100,7 @@ public class StorageDirectTest extends StorageTestCase {
     @Test public void test_long_stack_puts_record_size_into_index() throws IOException {
         engine.lock.writeLock().lock();
         engine.longStackPut(TEST_LS_RECID, 1);
-        commit();
+        engine.commit();
         assertEquals(StorageDirect.LONG_STACK_PAGE_SIZE,
                 engine.index.getUnsignedShort(TEST_LS_RECID * 8));
 
@@ -146,7 +140,7 @@ public class StorageDirectTest extends StorageTestCase {
         }
 
         Collections.reverse(list);
-        commit();
+        engine.commit();
 
         assertEquals(list, getLongStack(TEST_LS_RECID));
     }
@@ -155,14 +149,14 @@ public class StorageDirectTest extends StorageTestCase {
     @Test public void long_stack_page_created_after_put() throws IOException {
         engine.lock.writeLock().lock();
         engine.longStackPut(TEST_LS_RECID, 111);
-        commit();
+        engine.commit();
         long pageId = engine.index.getLong(TEST_LS_RECID*8);
         assertEquals(StorageDirect.LONG_STACK_PAGE_SIZE, pageId>>>48);
         pageId = pageId & StorageDirect.PHYS_OFFSET_MASK;
         assertEquals(8L, pageId);
         assertEquals(1, engine.phys.getByte(pageId));
         assertEquals(0, engine.phys.getLong(pageId)& StorageDirect.PHYS_OFFSET_MASK);
-        assertEquals(111, engine.phys.getLong(pageId+8));
+        assertEquals(111, engine.phys.getLong(pageId + 8));
     }
 
     @Test public void long_stack_put_five() throws IOException {
@@ -173,7 +167,7 @@ public class StorageDirectTest extends StorageTestCase {
         engine.longStackPut(TEST_LS_RECID, 114);
         engine.longStackPut(TEST_LS_RECID, 115);
 
-        commit();
+        engine.commit();
         long pageId = engine.index.getLong(TEST_LS_RECID*8);
         assertEquals(StorageDirect.LONG_STACK_PAGE_SIZE, pageId>>>48);
         pageId = pageId & StorageDirect.PHYS_OFFSET_MASK;
@@ -182,7 +176,7 @@ public class StorageDirectTest extends StorageTestCase {
         assertEquals(0, engine.phys.getLong(pageId)& StorageDirect.PHYS_OFFSET_MASK);
         assertEquals(111, engine.phys.getLong(pageId+8));
         assertEquals(112, engine.phys.getLong(pageId+16));
-        assertEquals(113, engine.phys.getLong(pageId+24));
+        assertEquals(113, engine.phys.getLong(pageId + 24));
         assertEquals(114, engine.phys.getLong(pageId+32));
         assertEquals(115, engine.phys.getLong(pageId+40));
     }
@@ -190,9 +184,9 @@ public class StorageDirectTest extends StorageTestCase {
     @Test public void long_stack_page_deleted_after_take() throws IOException {
         engine.lock.writeLock().lock();
         engine.longStackPut(TEST_LS_RECID, 111);
-        commit();
+        engine.commit();
         assertEquals(111L, engine.longStackTake(TEST_LS_RECID));
-        commit();
+        engine.commit();
         assertEquals(0L, engine.index.getLong(TEST_LS_RECID*8));
     }
 
@@ -202,7 +196,7 @@ public class StorageDirectTest extends StorageTestCase {
         for(int i=0;i< StorageDirect.LONG_STACK_NUM_OF_RECORDS_PER_PAGE;i++){
             engine.longStackPut(TEST_LS_RECID, 1000L+i);
         }
-        commit();
+        engine.commit();
 
         //check content
         long pageId = engine.index.getLong(TEST_LS_RECID*8);
@@ -216,7 +210,7 @@ public class StorageDirectTest extends StorageTestCase {
 
         //add one more item, this will trigger page overflow
         engine.longStackPut(TEST_LS_RECID, 11L);
-        commit();
+        engine.commit();
         //check page overflowed
         pageId = engine.index.getLong(TEST_LS_RECID*8);
         assertEquals(StorageDirect.LONG_STACK_PAGE_SIZE, pageId>>>48);
@@ -277,16 +271,6 @@ public class StorageDirectTest extends StorageTestCase {
 
 
 
-    @Test public void test_store_reopen(){
-        long recid = engine.put("aaa", Serializer.STRING_SERIALIZER);
-
-        engine.commit();
-        reopenStore();
-
-        String aaa = engine.get(recid, Serializer.STRING_SERIALIZER);
-        assertEquals("aaa",aaa);
-    }
-
 
     @Test public void in_memory_test(){
         StorageDirect engine = new StorageDirect(Volume.memoryFactory(false));
@@ -300,47 +284,44 @@ public class StorageDirectTest extends StorageTestCase {
         }
     }
 
-    @Test public void large_record(){
-        byte[] b = new byte[100000];
-        Arrays.fill(b, (byte) 111);
-        long recid = engine.put(b, Serializer.BYTE_ARRAY_SERIALIZER);
-        byte[] b2 = engine.get(recid, Serializer.BYTE_ARRAY_SERIALIZER);
-        assertArrayEquals(b,b2);
+
+    int countIndexRecords(){
+        int ret = 0;
+        final long indexFileSize = engine.index.getLong(StorageDirect.RECID_CURRENT_INDEX_FILE_SIZE*8);
+        for(int pos = StorageDirect.INDEX_OFFSET_START * 8;
+            pos<indexFileSize;
+            pos+=8){
+            if(0!= engine.index.getLong(pos)){
+                ret++;
+            }
+        }
+        return ret;
     }
 
-    @Test public void large_record_update(){
-        byte[] b = new byte[100000];
-        Arrays.fill(b, (byte) 111);
-        long recid = engine.put(b, Serializer.BYTE_ARRAY_SERIALIZER);
-        Arrays.fill(b, (byte)222);
-        engine.update(recid, b, Serializer.BYTE_ARRAY_SERIALIZER);
-        byte[] b2 = engine.get(recid, Serializer.BYTE_ARRAY_SERIALIZER);
-        assertArrayEquals(b,b2);
-        engine.commit();
-        reopenStore();
-        b2 = engine.get(recid, Serializer.BYTE_ARRAY_SERIALIZER);
-        assertArrayEquals(b,b2);
+    long getIndexRecord(long recid){
+        return engine.index.getLong(recid*8);
     }
 
-    @Test public void large_record_delete(){
-        byte[] b = new byte[100000];
-        Arrays.fill(b, (byte) 111);
-        long recid = engine.put(b, Serializer.BYTE_ARRAY_SERIALIZER);
-        engine.delete(recid);
-    }
+    List<Long> getLongStack(long recid){
+
+        ArrayList<Long> ret =new ArrayList<Long>();
+
+        long pagePhysid = engine.index.getLong(recid*8) & StorageDirect.PHYS_OFFSET_MASK;
 
 
-    @Test public void large_record_larger(){
-        byte[] b = new byte[10000000];
-        Arrays.fill(b, (byte) 111);
-        long recid = engine.put(b, Serializer.BYTE_ARRAY_SERIALIZER);
-        byte[] b2 = engine.get(recid, Serializer.BYTE_ARRAY_SERIALIZER);
-        assertArrayEquals(b,b2);
-        engine.commit();
-        reopenStore();
-        b2 = engine.get(recid, Serializer.BYTE_ARRAY_SERIALIZER);
-        assertArrayEquals(b,b2);
+        while(pagePhysid!=0){
+            final byte numberOfRecordsInPage = engine.phys.getByte((int) (pagePhysid% Volume.BUF_SIZE));
 
+            for(int rec = numberOfRecordsInPage; rec>0;rec--){
+                final long l = engine.phys.getLong((int) (pagePhysid% Volume.BUF_SIZE+ rec*8));
+                ret.add(l);
+            }
+
+            //read location of previous page
+            pagePhysid = engine.phys.getLong((int)(pagePhysid% Volume.BUF_SIZE)) & StorageDirect.PHYS_OFFSET_MASK;
+        }
+
+        return ret;
     }
 
     @Test public void compact(){

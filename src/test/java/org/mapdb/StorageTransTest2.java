@@ -2,7 +2,7 @@ package org.mapdb;
 
 
 public class StorageTransTest2 extends StorageDirectTest {
-    
+
 
 
     @Override

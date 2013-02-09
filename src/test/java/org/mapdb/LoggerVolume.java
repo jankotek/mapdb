@@ -11,6 +11,7 @@ import java.io.PrintStream;
  */
 public class LoggerVolume extends Volume{
 
+
     public static class Factory implements Volume.Factory {
 
         final Volume.Factory loggedFac;
@@ -41,6 +42,7 @@ public class LoggerVolume extends Volume{
     protected static final byte LONG = 1;
     protected static final byte BYTE = 2;
     protected static final byte BYTE_ARRAY = 3;
+    protected static final byte INT = 4;
 
     protected final Volume logged;
     protected final Volume log;
@@ -85,6 +87,22 @@ public class LoggerVolume extends Volume{
     }
 
     @Override
+    synchronized public void putInt(long offset, int value) {
+        logged.putLong(offset, value);
+
+        log.ensureAvailable(pos+1+8+4);
+        log.putByte(pos, INT);
+        pos+=1;
+        log.putLong(pos, offset);
+        pos+=8;
+        log.putInt(pos, value);
+        pos+=4;
+
+        logStackTrace();
+    }
+
+
+    @Override
     synchronized public void putByte(long offset, byte value) {
         logged.putByte(offset, value);
 
@@ -127,6 +145,12 @@ public class LoggerVolume extends Volume{
     }
 
     @Override
+    public int getInt(long offset) {
+        return logged.getInt(offset);
+    }
+
+
+    @Override
     public byte getByte(long offset) {
         return logged.getByte(offset);
     }
@@ -166,4 +190,5 @@ public class LoggerVolume extends Volume{
     public File getFile() {
         return logged.getFile();
     }
+
 }
