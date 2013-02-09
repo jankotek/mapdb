@@ -514,6 +514,18 @@ public class StorageJournaled extends Storage implements Engine {
 
     }
 
+    @Override
+    public void compact() {
+        lock.writeLock().lock();
+        try{
+            if(transLog!=null && !transLog.isEmpty())
+                throw new IllegalAccessError("Journal not empty; commit first, than compact");
+            super.compact();
+        }finally {
+            lock.writeLock().unlock();
+        }
+    }
+
 
     private long[] getLongStackPage(final long physOffset, boolean read){
         long[] buf = longStackPages.get(physOffset);

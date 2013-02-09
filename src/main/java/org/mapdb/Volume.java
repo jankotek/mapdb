@@ -83,6 +83,8 @@ public abstract class Volume {
         putByte(offset, (byte)(b & 0xff));
     }
 
+    /** returns underlying file if it exists */
+    abstract public File getFile();
 
 
     /**
@@ -384,6 +386,11 @@ public abstract class Volume {
         }
 
         @Override
+        public File getFile() {
+            return file;
+        }
+
+        @Override
         protected java.nio.ByteBuffer makeNewBuffer(long offset) {
             try {
                 long newBufSize =  offset% BUF_SIZE;
@@ -448,6 +455,11 @@ public abstract class Volume {
         @Override public void sync() {}
 
         @Override public void deleteFile() {}
+
+        @Override
+        public File getFile() {
+            return null;
+        }
     }
 
 
@@ -610,6 +622,11 @@ public abstract class Volume {
         @Override
         public boolean isSliced(){
             return false;
+        }
+
+        @Override
+        public File getFile() {
+            return file;
         }
     }
 
