@@ -28,7 +28,7 @@ public class Custom_Value {
      *   3) Even your values should implement equalsTo method for CAS (compare-and-swap) operations.
      *
      */
-    static class Person implements Serializable{
+    public static class Person implements Serializable{
         final String name;
         final String city;
 
