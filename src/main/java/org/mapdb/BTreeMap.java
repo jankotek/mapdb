@@ -89,6 +89,7 @@ import static org.mapdb.SerializationHeader.*;
  * @author some parts by Doug Lea
  */
 @SuppressWarnings({ "unchecked", "rawtypes" })
+//TODO better tests for BTreeMap without values (set)
 public class BTreeMap<K,V> extends AbstractMap<K,V>
         implements ConcurrentNavigableMap<K,V>, Bind.MapWithModificationListener<K,V>{
 
@@ -1203,11 +1204,13 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         final int comp = inclusive?1:0;
         while(true){
             for(int i=0;i<leaf.keys.length;i++){
-                if(leaf.vals[i] == null|| leaf.keys[i]==null) continue;
+                if((hasValues &&leaf.vals[i] == null) || leaf.keys[i]==null) continue;
 
                 if(comparator.compare(key, leaf.keys[i])<comp){
-                    return makeEntry(leaf.keys[i], valExpand(leaf.vals[i]));
+                    return makeEntry(leaf.keys[i], valExpand(hasValues?leaf.vals[i]:null));
                 }
+
+
             }
             if(leaf.next==0) return null; //reached end
             leaf = (LeafNode) engine.get(leaf.next, nodeSerializer);
