@@ -1,5 +1,6 @@
 package org.mapdb;
 
+import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -109,5 +110,10 @@ public class DebugVolume extends Volume{
     public boolean isSliced() {
         out.println("isSliced");
         return vol.isSliced();
+    }
+
+    @Override
+    public File getFile() {
+        return vol.getFile();
     }
 }

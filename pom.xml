@@ -56,21 +56,6 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.0</version>
                 <configuration>
-                    <source>1.4</source>
-                    <target>1.4</target>
-                </configuration>
-             </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.doxia</groupId>
-                <artifactId>doxia-module-markdown</artifactId>
-                <version>1.3</version>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>2.3.2</version>
-                <configuration>
                     <target>1.6</target>
                     <source>1.6</source>
                     <encoding>${project.build.sourceEncoding}</encoding>
@@ -99,6 +84,12 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.doxia</groupId>
+                <artifactId>doxia-module-markdown</artifactId>
+                <version>1.3</version>
             </plugin>
 
             <plugin>

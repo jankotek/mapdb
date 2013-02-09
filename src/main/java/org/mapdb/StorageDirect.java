@@ -162,12 +162,12 @@ public class StorageDirect extends Storage implements Engine {
                         index.putLong(recid * 8, newIndexValue);
 
                         //and set old phys record as free
-                        unlinkPhysRecord(oldIndexVal);
+                        unlinkPhysRecord(oldIndexVal,recid);
                     }
                 }else{
                     putLargeLinkedRecord(out, recid);
                     //and set old phys record as free
-                    unlinkPhysRecord(oldIndexVal);
+                    unlinkPhysRecord(oldIndexVal,recid);
                 }
             }finally {
                 lock.writeLock().unlock();
@@ -185,7 +185,7 @@ public class StorageDirect extends Storage implements Engine {
             final long oldIndexVal = index.getLong(recid * 8);
             index.putLong(recid * 8, 0L);
             longStackPut(RECID_FREE_INDEX_SLOTS,recid);
-            unlinkPhysRecord(oldIndexVal);
+            unlinkPhysRecord(oldIndexVal,recid);
         }catch(IOException e){
             throw new IOError(e);
         }finally {

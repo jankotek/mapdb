@@ -242,6 +242,19 @@ public class BTreeMapTest{
         assertEquals(5,map.floorKey(5));
         assertEquals(5,map.floorKey(6));
     }
+
+    @Test public void submapToString() {
+        BTreeMap map = new BTreeMap(engine,6,true,false, null,null,null,null);
+
+        for (int i = 0; i < 20; i++) {
+            map.put(i, "aa"+i);
+
+        }
+
+        Map submap = map.subMap(10, true, 13, true);
+        assertEquals("{10=aa10, 11=aa11, 12=aa12, 13=aa13}",submap.toString());
+    }
+
 }
 
 

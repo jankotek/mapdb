@@ -182,4 +182,6 @@ public interface Engine {
      * @return true if engine is read-only
      */
     boolean isReadOnly();
+
+    void compact();
 }

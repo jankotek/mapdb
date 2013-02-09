@@ -17,8 +17,10 @@
 package org.mapdb;
 
 
+import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -67,7 +69,7 @@ public abstract class Storage implements Engine {
     public static final String DATA_FILE_EXT = ".p";
 
 
-    protected final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();;
+    protected final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
     protected final boolean appendOnly;
     protected final boolean deleteFilesOnExit;
@@ -297,7 +299,7 @@ public abstract class Storage implements Engine {
     }
 
 
-    protected void unlinkPhysRecord(long indexVal) throws IOException {
+    protected void unlinkPhysRecord(long indexVal, long recid) throws IOException {
         int size = (int) (indexVal >>>48);
         if(size==0) return;
         if(size<MAX_RECORD_SIZE){
@@ -312,4 +314,70 @@ public abstract class Storage implements Engine {
         }
 
     }
+
+    @Override
+    public void compact(){
+        if(readOnly) throw new IllegalAccessError();
+        if(index.getFile()==null) throw new UnsupportedOperationException("compact not supported for memory storage yet");
+        try{
+            //create secondary files for compaction
+            //TODO RAF
+            //TODO memory based stores
+            final File indexFile = index.getFile();
+            final File physFile = phys.getFile();
+            final File indexFile2 = new File(indexFile+".compact");
+            final File physFile2 = new File(physFile+".compact");
+            final boolean isRaf = index instanceof Volume.RandomAccessFile;
+            Volume.Factory fab = Volume.fileFactory(false, isRaf, indexFile2);
+            StorageDirect store2 = new StorageDirect(fab);
+
+            //transfer stack of free recids
+            for(long recid =longStackTake(RECID_FREE_INDEX_SLOTS);
+                recid!=0; recid=longStackTake(RECID_FREE_INDEX_SLOTS)){
+                store2.longStackPut(recid, RECID_FREE_INDEX_SLOTS);
+            }
+
+            //iterate over recids and transfer physical records
+            final long indexSize = index.getLong(RECID_CURRENT_INDEX_FILE_SIZE*8)/8;
+            store2.lock.writeLock().lock();
+            for(long recid = INDEX_OFFSET_START; recid<indexSize;recid++){
+                //read data from first store
+                long physOffset = index.getLong(recid*8);
+                long physSize = physOffset >>> 48;
+                //TODO linked records larger then 64KB
+                physOffset = physOffset & PHYS_OFFSET_MASK;
+                DataInput2 in = phys.getDataInput(physOffset, (int)physSize);
+
+                //get free place in second store, and write data there
+                long physOffset2 = store2.freePhysRecTake((int)physSize) & PHYS_OFFSET_MASK;
+
+                store2.phys.ensureAvailable((physOffset2 & PHYS_OFFSET_MASK)+physSize);
+                synchronized (in.buf){
+                    //copy directly from buffer
+                    in.buf.position(in.pos);
+                    store2.phys.putData(physOffset2, in.buf, (int)physSize);
+                }
+                //write index value into second storage
+                store2.index.ensureAvailable(recid*8+8);
+                store2.index.putLong(recid*8, (physSize<<48)|physOffset2);
+            }
+            store2.lock.writeLock().unlock();
+            store2.close();
+
+            index.close();
+            phys.close();
+
+            indexFile2.renameTo(indexFile);
+            //TODO process may fail in middle of rename, analyze sequence and add recovery
+            physFile2.renameTo(physFile);
+
+            Volume.Factory fac2 = Volume.fileFactory(false, isRaf, indexFile);
+            index = fac2.createIndexVolume();
+            phys = fac2.createPhysVolume();
+
+        }catch(IOException e){
+            throw new IOError(e);
+        }
+    }
+
 }

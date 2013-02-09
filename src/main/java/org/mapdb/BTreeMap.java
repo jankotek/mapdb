@@ -1205,8 +1205,9 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             for(int i=0;i<leaf.keys.length;i++){
                 if(leaf.vals[i] == null|| leaf.keys[i]==null) continue;
 
-                if(comparator.compare(key, leaf.keys[i])<comp)
-                    return makeEntry(leaf.keys[i], leaf.vals[i]);
+                if(comparator.compare(key, leaf.keys[i])<comp){
+                    return makeEntry(leaf.keys[i], valExpand(leaf.vals[i]));
+                }
             }
             if(leaf.next==0) return null; //reached end
             leaf = (LeafNode) engine.get(leaf.next, nodeSerializer);

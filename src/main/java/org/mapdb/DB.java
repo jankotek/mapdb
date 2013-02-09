@@ -350,10 +350,14 @@ public class DB {
     }
 
     /**
-     * not yet implemented
+     * Perform storage maintenance.
+     * Typically compact underlying storage and reclaim unused space.
+     * <p/>
+     * NOTE: MapDB does not have smart defragmentation algorithms. So compaction usually recreates entire
+     * store from scratch. This may require additional disk space.
      */
     synchronized public void compact(){
-
+        engine.compact();
     }
 
 

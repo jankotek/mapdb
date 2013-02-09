@@ -29,7 +29,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  *
  * @author Jan Kotek
  */
-public class EngineWrapper implements Engine{
+public abstract class EngineWrapper implements Engine{
 
     protected Engine engine;
 
@@ -98,6 +98,11 @@ public class EngineWrapper implements Engine{
     @Override
     public boolean isReadOnly() {
         return engine.isReadOnly();
+    }
+
+    @Override
+    public void compact() {
+        engine.compact();
     }
 
     /**

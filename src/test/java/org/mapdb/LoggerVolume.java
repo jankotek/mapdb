@@ -1,6 +1,7 @@
 package org.mapdb;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.PrintStream;
 
 
@@ -159,5 +160,10 @@ public class LoggerVolume extends Volume{
     @Override
     public boolean isSliced() {
         return logged.isSliced();
+    }
+
+    @Override
+    public File getFile() {
+        return logged.getFile();
     }
 }
