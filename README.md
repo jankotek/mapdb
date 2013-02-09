@@ -84,11 +84,6 @@ other collections. It also controls DB lifecycle with commit, rollback and close
 
 Development
 ===========
-MapDB uses Kotlin programming language for some performance unit tests.
-Simple modifications can be developed in any IDE just fine,
-but for best experience you need Intellij Idea with Kotlin plugin.
-Please follow this page [to setup Kotlin IDE](http://confluence.jetbrains.net/display/Kotlin/Getting+Started).
-
 Pull requests are welcomed. We are relaxed about documentation, examples and unit tests.
 Production code should fit MapDB style; most importantly to be compact and with unit tests.
 
