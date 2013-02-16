@@ -133,7 +133,8 @@ public class LoggerVolume extends Volume{
     }
 
     @Override
-    synchronized public void putData(long offset, java.nio.ByteBuffer buf, int size) {
+    synchronized public void putData(long offset, java.nio.ByteBuffer buf) {
+        int size = buf.limit()-buf.position();
         byte[] b = new byte[size];
         buf.get(b);
         putData(offset, b, size);

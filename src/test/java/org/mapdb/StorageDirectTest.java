@@ -3,7 +3,6 @@ package org.mapdb;
 
 import org.junit.Test;
 
-import javax.swing.plaf.basic.BasicInternalFrameTitlePane;
 import java.io.IOException;
 import java.util.*;
 
@@ -32,7 +31,7 @@ public class StorageDirectTest extends StorageTestCase {
         long recid = engine.put(1000L, Serializer.LONG_SERIALIZER);
         engine.commit();
         assertEquals(1, countIndexRecords());
-        assertEquals(StorageDirect.INDEX_OFFSET_START, recid);
+        assertEquals(Engine.LAST_RESERVED_RECID+1, recid);
         engine.delete(recid);
         engine.commit();
         assertEquals(0, countIndexRecords());
@@ -41,7 +40,7 @@ public class StorageDirectTest extends StorageTestCase {
         //test that previously deleted index slot was reused
         assertEquals(recid, recid2);
         assertEquals(1, countIndexRecords());
-        assertTrue(getIndexRecord(recid) != 0);
+        assertNotEquals(0,engine.index.getLong(recid*8+Storage.INDEX_OFFSET_START*8));
     }
 
     @Test public void test_index_record_delete_and_reuse_large(){
@@ -72,12 +71,12 @@ public class StorageDirectTest extends StorageTestCase {
 
     @Test public void test_phys_record_reused(){
         final long recid = engine.put(1L, Serializer.LONG_SERIALIZER);
-        final long physRecid = getIndexRecord(recid);
+        final long physRecid = engine.index.getLong(recid*8+Storage.INDEX_OFFSET_START*8);
         engine.delete(recid);
         final long recid2 = engine.put(1L, Serializer.LONG_SERIALIZER);
 
         assertEquals(recid, recid2);
-        assertEquals(physRecid, getIndexRecord(recid));
+        assertEquals(physRecid, engine.index.getLong(recid*8+Storage.INDEX_OFFSET_START*8));
 
     }
 
@@ -87,12 +86,12 @@ public class StorageDirectTest extends StorageTestCase {
 
         final long recid = engine.put(1, Serializer.INTEGER_SERIALIZER);
         engine.commit();
-        assertEquals(4, engine.index.getUnsignedShort(recid * 8));
+        assertEquals(4, engine.index.getUnsignedShort(recid * 8+Storage.INDEX_OFFSET_START*8));
         assertEquals(Integer.valueOf(1), engine.get(recid, Serializer.INTEGER_SERIALIZER));
 
         engine.update(recid, 1L, Serializer.LONG_SERIALIZER);
         engine.commit();
-        assertEquals(8, engine.index.getUnsignedShort(recid * 8));
+        assertEquals(8, engine.index.getUnsignedShort(recid * 8+Storage.INDEX_OFFSET_START*8));
         assertEquals(Long.valueOf(1), engine.get(recid, Serializer.LONG_SERIALIZER));
 
     }
@@ -298,9 +297,6 @@ public class StorageDirectTest extends StorageTestCase {
         return ret;
     }
 
-    long getIndexRecord(long recid){
-        return engine.index.getLong(recid*8);
-    }
 
     List<Long> getLongStack(long recid){
 

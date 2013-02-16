@@ -134,7 +134,7 @@ public class StorageJournaled extends Storage implements Engine {
 
 
 
-                return recid;
+                return recid-Storage.INDEX_OFFSET_START;
             }finally {
                 lock.writeLock().unlock();
             }
@@ -226,6 +226,9 @@ public class StorageJournaled extends Storage implements Engine {
 
     @Override
     public <A> A get(long recid, Serializer<A> serializer) {
+        if(recid<=0) throw new IllegalArgumentException("recid");
+        recid+=INDEX_OFFSET_START;
+
         try{
             lock.readLock().lock();
 
@@ -273,6 +276,9 @@ public class StorageJournaled extends Storage implements Engine {
 
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
+        if(recid<=0) throw new IllegalArgumentException("recid");
+        recid+=INDEX_OFFSET_START;
+
         try{
             DataOutput2 out = new DataOutput2();
             serializer.serialize(out,value);
@@ -331,6 +337,9 @@ public class StorageJournaled extends Storage implements Engine {
 
     @Override
     public void delete(long recid){
+        if(recid<=0) throw new IllegalArgumentException("recid");
+        recid+=INDEX_OFFSET_START;
+
         try{
             lock.writeLock().lock();
             openLogIfNeeded();
@@ -469,7 +478,7 @@ public class StorageJournaled extends Storage implements Engine {
                         input.buf.position(input.pos);
                         input.buf.limit(input.pos+size);
                         phys.ensureAvailable(offset+size);
-                        phys.putData(offset, input.buf, size);
+                        phys.putData(offset, input.buf);
                         input.buf.clear();
                     }
                     transLogOffset+=size;

@@ -44,7 +44,7 @@ public abstract class Volume {
 
     abstract public void putData(final long offset, final byte[] value, int size);
 
-    abstract public void putData(final long offset, final java.nio.ByteBuffer buf, final int size);
+    abstract public void putData(final long offset, final java.nio.ByteBuffer buf);
 
     abstract public long getLong(final long offset);
 
@@ -228,7 +228,7 @@ public abstract class Volume {
             }
         }
 
-        @Override public final void putData(final long offset, final java.nio.ByteBuffer buf, final int size) {
+        @Override public final void putData(final long offset, final java.nio.ByteBuffer buf) {
             final java.nio.ByteBuffer b1 = internalByteBuffer(offset);
             final int bufPos = (int) (offset% BUF_SIZE);
             //no overlap, so just write the value
@@ -562,8 +562,9 @@ public abstract class Volume {
         }
 
         @Override
-        synchronized public void putData(long offset, java.nio.ByteBuffer buf, int size) {
+        synchronized public void putData(long offset, java.nio.ByteBuffer buf) {
             try {
+                int size = buf.limit()-buf.position();
                 if(pos!=offset){
                     raf.seek(offset);
                 }

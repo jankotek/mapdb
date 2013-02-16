@@ -18,9 +18,6 @@ public class StorageAppend implements Engine{
 
     protected final static long FILE_HEADER = 56465465456465L;
 
-    protected final static long NAME_DIR_RECID = 1;
-    protected final static long SERIALIZER_RECID = 2;
-
     protected final Object APPEND_LOCK = new Object();
     protected final static Long THUMBSTONE = Long.MIN_VALUE;
     protected final static int THUMBSTONE_SIZE = -3;
@@ -280,15 +277,6 @@ public class StorageAppend implements Engine{
 
     }
 
-    @Override
-    public long serializerRecid() {
-        return SERIALIZER_RECID;
-    }
-
-    @Override
-    public long nameDirRecid() {
-        return NAME_DIR_RECID;
-    }
 
     @Override
     public boolean isReadOnly() {

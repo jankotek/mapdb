@@ -47,11 +47,9 @@ public abstract class Storage implements Engine {
     /** offset in index file which points to FREEINDEX list (free slots in index file) */
     static final int RECID_FREE_INDEX_SLOTS = 3;
 
-    static final int RECID_SERIALIZER = 4;
 
     //TODO slots 5 to 18 are currently unused
 
-    static final int RECID_NAME_DIR = 19;
 
 
     static final int RECID_FREE_PHYS_RECORDS_START = 20;
@@ -113,7 +111,7 @@ public abstract class Storage implements Engine {
         writeLock_checkLocked();
 
         //zero out all index values
-        for(int i=1;i<INDEX_OFFSET_START;i++){
+        for(int i=1;i<=INDEX_OFFSET_START+Engine.LAST_RESERVED_RECID;i++){
             index.putLong(i*8, 0L);
         }
 
@@ -126,8 +124,7 @@ public abstract class Storage implements Engine {
 
         //and set current sizes
         index.putLong(RECID_CURRENT_PHYS_FILE_SIZE * 8, 8L);
-        index.putLong(RECID_CURRENT_INDEX_FILE_SIZE * 8, INDEX_OFFSET_START * 8);
-        index.putLong(RECID_NAME_DIR *8,0);
+        index.putLong(RECID_CURRENT_INDEX_FILE_SIZE * 8, INDEX_OFFSET_START * 8 + Engine.LAST_RESERVED_RECID*8 + 8);
     }
 
 
@@ -268,6 +265,7 @@ public abstract class Storage implements Engine {
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer){
+        if(recid<=0) throw new IllegalArgumentException("recid");
         try{
             lock.writeLock().lock();
             Object oldVal = get(recid, serializer);
@@ -283,14 +281,6 @@ public abstract class Storage implements Engine {
 
     }
 
-
-    @Override public long serializerRecid() {
-        return RECID_SERIALIZER;
-    }
-
-    @Override public long nameDirRecid() {
-        return RECID_NAME_DIR;
-    }
 
 
     @Override
@@ -325,10 +315,8 @@ public abstract class Storage implements Engine {
             //TODO memory based stores
             final File indexFile = index.getFile();
             final File physFile = phys.getFile();
-            final File indexFile2 = new File(indexFile+".compact");
-            final File physFile2 = new File(physFile+".compact");
             final boolean isRaf = index instanceof Volume.RandomAccessFile;
-            Volume.Factory fab = Volume.fileFactory(false, isRaf, indexFile2);
+            Volume.Factory fab = Volume.fileFactory(false, isRaf, new File(indexFile+".compact"));
             StorageDirect store2 = new StorageDirect(fab);
 
             //transfer stack of free recids
@@ -346,21 +334,35 @@ public abstract class Storage implements Engine {
                 long physSize = physOffset >>> 48;
                 //TODO linked records larger then 64KB
                 physOffset = physOffset & PHYS_OFFSET_MASK;
-                DataInput2 in = phys.getDataInput(physOffset, (int)physSize);
 
-                //get free place in second store, and write data there
-                long physOffset2 = store2.freePhysRecTake((int)physSize) & PHYS_OFFSET_MASK;
-
-                store2.phys.ensureAvailable((physOffset2 & PHYS_OFFSET_MASK)+physSize);
-                synchronized (in.buf){
-                    //copy directly from buffer
-                    in.buf.position(in.pos);
-                    store2.phys.putData(physOffset2, in.buf, (int)physSize);
-                }
                 //write index value into second storage
                 store2.index.ensureAvailable(recid*8+8);
-                store2.index.putLong(recid*8, (physSize<<48)|physOffset2);
+
+                //get free place in second store, and write data there
+                if(physSize!=0){
+                    DataInput2 in = phys.getDataInput(physOffset, (int)physSize);
+                    long physOffset2 =
+                         store2.freePhysRecTake((int)physSize) & PHYS_OFFSET_MASK;
+
+                    store2.phys.ensureAvailable((physOffset2 & PHYS_OFFSET_MASK)+physSize);
+                    synchronized (in.buf){
+                        //copy directly from buffer
+                        in.buf.limit((int) (in.pos+physSize));
+                        in.buf.position(in.pos);
+                        store2.phys.putData(physOffset2, in.buf);
+                    }
+                    store2.index.putLong(recid*8, (physSize<<48)|physOffset2);
+                }else{
+                    //just write zeroes
+                    store2.index.putLong(recid*8, 0);
+                }
+
+
+
             }
+
+            File indexFile2 = store2.index.getFile();
+            File physFile2 = store2.phys.getFile();
             store2.lock.writeLock().unlock();
             store2.close();
 

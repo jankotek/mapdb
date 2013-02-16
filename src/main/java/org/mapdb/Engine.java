@@ -60,6 +60,11 @@ package org.mapdb;
  */
 public interface Engine {
 
+    long NAME_DIR_RECID = 1;
+    long CLASS_INFO_RECID = 2;
+    long LAST_RESERVED_RECID = 7;
+
+
     /**
      * Insert new record.
      *
@@ -172,9 +177,6 @@ public interface Engine {
      * @throws UnsupportedOperationException if transactions are disabled
      */
     void rollback() throws UnsupportedOperationException;
-
-    long serializerRecid();
-    long nameDirRecid();
 
     /**
      * Check if you can write into this Engine. It may be readonly in some cases (snapshot, read-only files).

@@ -250,9 +250,9 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     static final Map<String, Long> preinitNamedDir(Engine engine){
         HashRootSerializer serializer = new HashRootSerializer(Serializer.BASIC_SERIALIZER);
         //check if record already exist
-        HashRoot r = engine.get(engine.nameDirRecid(), serializer);
+        HashRoot r = engine.get(Engine.NAME_DIR_RECID, serializer);
         if(r!=null)
-            return new HTreeMap<String, Long>(engine, engine.nameDirRecid(), Serializer.BASIC_SERIALIZER);
+            return new HTreeMap<String, Long>(engine, Engine.NAME_DIR_RECID, Serializer.BASIC_SERIALIZER);
 
         if(engine.isReadOnly())
             return Collections.unmodifiableMap(new HashMap<String, Long>());
@@ -266,9 +266,9 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         r.segmentRecids = segmentRecids;
         r.keySerializer = Serializer.BASIC_SERIALIZER;
         r.valueSerializer = Serializer.BASIC_SERIALIZER;
-        engine.update(engine.nameDirRecid(), r, serializer);
+        engine.update(Engine.NAME_DIR_RECID, r, serializer);
         //and now load it
-        return new HTreeMap<String, Long>(engine, engine.nameDirRecid(), Serializer.BASIC_SERIALIZER);
+        return new HTreeMap<String, Long>(engine, Engine.NAME_DIR_RECID, Serializer.BASIC_SERIALIZER);
 
     }
 

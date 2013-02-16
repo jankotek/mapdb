@@ -50,6 +50,7 @@ public class StorageDirect extends Storage implements Engine {
             serializer.serialize(out,value);
             //TODO log warning if record is too big
 
+
             try{
                 lock.writeLock().lock();
                 //update index file, find free recid
@@ -77,7 +78,7 @@ public class StorageDirect extends Storage implements Engine {
                     putLargeLinkedRecord(out, recid);
                 }
 
-                return recid;
+                return recid - INDEX_OFFSET_START;
             }finally {
                 lock.writeLock().unlock();
             }
@@ -112,6 +113,8 @@ public class StorageDirect extends Storage implements Engine {
 
     @Override
     public <A> A get(long recid, Serializer<A> serializer) {
+        if(recid<=0) throw new IllegalArgumentException("recid");
+        recid += INDEX_OFFSET_START;
         try{
             try{
                 lock.readLock().lock();
@@ -131,6 +134,8 @@ public class StorageDirect extends Storage implements Engine {
 
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer){
+        if(recid<=0) throw new IllegalArgumentException("recid");
+        recid+=INDEX_OFFSET_START;
         try{
             DataOutput2 out = new DataOutput2();
             serializer.serialize(out,value);
@@ -180,6 +185,8 @@ public class StorageDirect extends Storage implements Engine {
 
     @Override
    public void delete(long recid){
+        if(recid<=0) throw new IllegalArgumentException("recid");
+        recid+=INDEX_OFFSET_START;
         try{
             lock.writeLock().lock();
             final long oldIndexVal = index.getLong(recid * 8);

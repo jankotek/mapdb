@@ -53,10 +53,11 @@ public class DebugVolume extends Volume{
     }
 
     @Override
-    public void putData(long offset, java.nio.ByteBuffer buf, int size) {
+    public void putData(long offset, java.nio.ByteBuffer buf) {
+        int size = buf.limit()-buf.position();
         out.println("putDataBuf: "+offset+ " - "+size);
         out.println("  "+ Arrays.toString(buf.array()));
-        vol.putData(offset,buf,size);
+        vol.putData(offset,buf);
     }
 
     @Override

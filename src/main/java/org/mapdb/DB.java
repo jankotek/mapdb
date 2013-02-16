@@ -46,13 +46,13 @@ public class DB {
     public DB(final Engine engine){
         this.engine = engine;
         // load serializer
-        final CopyOnWriteArrayList<SerializerPojo.ClassInfo> classInfos = engine.get(engine.serializerRecid(), SerializerPojo.serializer);
+        final CopyOnWriteArrayList<SerializerPojo.ClassInfo> classInfos = engine.get(Engine.CLASS_INFO_RECID, SerializerPojo.serializer);
         this.defaultSerializer = new SerializerPojo(classInfos){
             @Override
             protected void saveClassInfo() {
                 //hook to save classes if they are updated
                 //I did not want to create direct dependency between SerialierPojo and Engine
-                engine.update(engine.serializerRecid(), registered, SerializerPojo.serializer);
+                engine.update(Engine.CLASS_INFO_RECID, registered, SerializerPojo.serializer);
             }
         };
 

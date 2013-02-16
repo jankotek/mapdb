@@ -3,11 +3,13 @@ package org.mapdb;
 
 import org.junit.Test;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 public class Serialization2Test extends TestFile {
 
@@ -74,31 +76,38 @@ public class Serialization2Test extends TestFile {
 		String test  = "aa";
     }
 
-// TODO skipped test
-//    @Test  public void testReopenWithDefrag(){
-//
-//        String f = newTestFile();
-//
-//        DB db = DBMaker.openFile(f)
-//                .disableTransactions()
-//                .make();
-//
-//        Map<Integer,AAA> map = db.createTreeMap("test");
-//        map.put(1,new AAA());
-//
-//        db.compact(true);
-//        db.close();
-//
-//        db = DBMaker.openFile(f)
-//                .disableTransactions()
-//                .make();
-//
-//        map = db.getTreeMap("test");
-//        assertNotNull(map.get(1));
-//        assertEquals(map.get(1).test, "aa");
-//
-//
-//        db.close();
-//    }
+
+    @Test  public void testReopenWithDefrag(){
+
+        File f = Utils.tempDbFile();
+
+        DB db = DBMaker.newFileDB(f)
+                .journalDisable()
+                .asyncWriteDisable()
+                .cacheDisable()
+                .checksumEnable()
+                .make();
+
+        Map<Integer,AAA> map = db.getTreeMap("test");
+        map.put(1,new AAA());
+
+        db.compact();
+        System.out.println(db.getEngine().get(Engine.CLASS_INFO_RECID, SerializerPojo.serializer));
+        db.close();
+
+        db = DBMaker.newFileDB(f)
+                .journalDisable()
+                .asyncWriteDisable()
+                .cacheDisable()
+                .checksumEnable()
+                .make();
+
+        map = db.getTreeMap("test");
+        assertNotNull(map.get(1));
+        assertEquals(map.get(1).test, "aa");
+
+
+        db.close();
+    }
 
 }

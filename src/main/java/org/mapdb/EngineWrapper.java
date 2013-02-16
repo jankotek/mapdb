@@ -85,15 +85,6 @@ public abstract class EngineWrapper implements Engine{
         engine.rollback();
     }
 
-    @Override
-    public long serializerRecid() {
-        return engine.serializerRecid();
-    }
-
-    @Override
-    public long nameDirRecid() {
-        return engine.nameDirRecid();
-    }
 
     @Override
     public boolean isReadOnly() {
