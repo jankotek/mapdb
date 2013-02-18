@@ -83,18 +83,7 @@ public class BTreeMapTest3
         }
     }
 
-    public void testFirstKeyEmpty() {
-        final SortedMap<Integer, String> map;
-        try {
-            map = makeEmptyMap();
-        } catch (UnsupportedOperationException e) {
-            return;
-        }
 
-        assertNull(map.firstKey());
-
-        assertInvariants(map);
-    }
 
     public void testFirstKeyNonEmpty() {
         final SortedMap<Integer, String> map;
@@ -108,16 +97,6 @@ public class BTreeMapTest3
         assertInvariants(map);
     }
 
-    public void testLastKeyEmpty() {
-        final SortedMap<Integer, String> map;
-        try {
-            map = makeEmptyMap();
-        } catch (UnsupportedOperationException e) {
-            return;
-        }
-        assertNull(map.lastKey());
-        assertInvariants(map);
-    }
 
     public void testLastKeyNonEmpty() {
         final SortedMap<Integer, String> map;

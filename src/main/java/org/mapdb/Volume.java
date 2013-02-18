@@ -197,7 +197,7 @@ public abstract class Volume {
 
         protected final java.nio.ByteBuffer internalByteBuffer(long offset) {
             final int pos = ((int) (offset / BUF_SIZE));
-            if(pos>=buffers.length) throw new IOError(new EOFException());
+            if(pos>=buffers.length) throw new IOError(new EOFException("offset: "+offset));
             return buffers[pos];
         }
 

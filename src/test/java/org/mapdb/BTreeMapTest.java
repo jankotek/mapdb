@@ -15,24 +15,6 @@ public class BTreeMapTest{
 
     Engine engine = new StorageDirect(Volume.memoryFactory(false));
     
-	public static void print(BTreeMap m) {
-        final long rootRecid = m.engine.get(m.rootRecidRef, Serializer.LONG_SERIALIZER);
-        printRecur(m, rootRecid, "");
-    }
-
-    private static void printRecur(BTreeMap m, long recid, String s) {
-        if(s.length()>100) throw new InternalError();
-        BTreeMap.BNode n = (BTreeMap.BNode) m.engine.get(recid, m.nodeSerializer);
-        System.out.println(s+recid+"-"+n);
-        if(!n.isLeaf()){
-            for(int i=0;i<n.child().length-1;i++){
-                long recid2 = n.child()[i];
-                if(recid2!=0)
-                    printRecur(m, recid2, s+"  ");
-            }
-        }
-    }
-
 
     @Test public void test_leaf_node_serialization() throws IOException {
         BTreeMap m = new BTreeMap(engine, 32,true,false, null,null,null,null);
@@ -254,6 +236,33 @@ public class BTreeMapTest{
         Map submap = map.subMap(10, true, 13, true);
         assertEquals("{10=aa10, 11=aa11, 12=aa12, 13=aa13}",submap.toString());
     }
+
+    @Test public void findSmaller(){
+        BTreeMap map = new BTreeMap(engine,6,true,false, null,null,null,null);
+
+        for(int i=0;i<10000; i+=3){
+            map.put(i, "aa"+i);
+        }
+
+        for(int i=0;i<10000; i+=1){
+            Integer s = i - i%3;
+            Map.Entry e = map.findSmaller(i,true);
+            assertEquals(s,e!=null?e.getKey():null);
+        }
+
+        assertEquals(9999, map.findSmaller(100000,true).getKey());
+
+        assertNull(map.findSmaller(0,false));
+        for(int i=1;i<10000; i+=1){
+            Integer s = i - i%3;
+            if(s==i) s-=3;
+            Map.Entry e = map.findSmaller(i,false);
+            assertEquals(s,e!=null?e.getKey():null);
+        }
+        assertEquals(9999, map.findSmaller(100000,false).getKey());
+
+    }
+
 
 }
 
