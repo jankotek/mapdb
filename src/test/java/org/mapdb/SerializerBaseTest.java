@@ -426,4 +426,17 @@ public class SerializerBaseTest extends TestCase {
         assertTrue(s2.toString().contains("[Ljava.lang.String"));
     }
 
+    public void test_multi_dim_array(){
+        int[][] arr = new int[][]{{11,22,44},{1,2,34}};
+        int[][] arr2= (int[][]) Utils.clone(arr, Serializer.BASIC_SERIALIZER);
+        assertArrayEquals(arr,arr2);
+    }
+
+    public void test_multi_dim_array2(){
+        Object[][] arr = new Object[][]{{11,22,44},{1,2,34}};
+        Object[][] arr2= (Object[][]) Utils.clone(arr, Serializer.BASIC_SERIALIZER);
+        assertArrayEquals(arr,arr2);
+    }
+
+
 }
