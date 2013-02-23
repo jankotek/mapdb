@@ -47,8 +47,8 @@ public class StorageWriteAheadTest extends TestFile {
         t.update(recid2, "ZZZ", Serializer.STRING_SERIALIZER);
         assertEquals("ZZZ", t.get(recid2, Serializer.STRING_SERIALIZER));
 
-        t.delete(recid);
-        t.delete(recid2);
+        t.delete(recid, Serializer.STRING_SERIALIZER);
+        t.delete(recid2, Serializer.STRING_SERIALIZER);
         assertEquals(null, t.get(recid, Serializer.STRING_SERIALIZER));
         assertEquals(null, t.get(recid2, Serializer.STRING_SERIALIZER));
     }
@@ -68,7 +68,7 @@ public class StorageWriteAheadTest extends TestFile {
         t = new StorageWriteAhead(fac);
         assertEquals("bb", t.get(recid, Serializer.STRING_SERIALIZER));
 
-        t.delete(recid);
+        t.delete(recid,Serializer.STRING_SERIALIZER);
         t.commit();
         t.close();
         t = new StorageWriteAhead(fac);

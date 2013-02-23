@@ -115,7 +115,7 @@ public class TxMaker {
         }
 
         @Override
-        public void delete(long recid) {
+        public <A> void delete(long recid, Serializer<A> serializer){
             if(isClosed()) throw new IllegalAccessError("already closed");
             synchronized (lock){
                 TxEngine other = globalMod.get(recid);
@@ -158,7 +158,7 @@ public class TxMaker {
                 }
                 //delete preallocated items
                 for(long recid:newItems){
-                    engine.delete(recid);
+                    engine.delete(recid, null); //TODO store serializer somewhere
                 }
                 modItems = null;
                 newItems = null;

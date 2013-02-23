@@ -69,9 +69,9 @@ public class CacheHardRef extends CacheLRU {
     }
 
     @Override
-    public void delete(long recid) {
+    public <A> void delete(long recid, Serializer<A> serializer){
         checkFreeMem();
-        super.delete(recid);
+        super.delete(recid,serializer);
     }
 
     @Override

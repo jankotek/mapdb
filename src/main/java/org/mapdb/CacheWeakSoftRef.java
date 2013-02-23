@@ -160,11 +160,11 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
     }
 
     @Override
-    public void delete(long recid) {
+    public <A> void delete(long recid, Serializer<A> serializer){
         try{
             locks.lock(recid);
             checkClosed(items).remove(recid);
-            getWrappedEngine().delete(recid);
+            getWrappedEngine().delete(recid,serializer);
         }finally {
             locks.unlock(recid);
         }

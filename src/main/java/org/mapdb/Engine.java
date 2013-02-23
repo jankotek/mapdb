@@ -138,8 +138,9 @@ public interface Engine {
      * but it may also corrupt store.
      *
      * @param recid (record identifier) under which was record persisted
+     * @param serializer which may be used in some circumstances to deserialize and store old object
      */
-    void delete(long recid);
+    <A> void delete(long recid, Serializer<A>  serializer);
 
 
 

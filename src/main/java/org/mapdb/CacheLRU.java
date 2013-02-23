@@ -62,11 +62,11 @@ public class CacheLRU extends EngineWrapper {
     }
 
     @Override
-    public void delete(long recid) {
+    public <A> void delete(long recid, Serializer<A> serializer){
         try{
             locks.lock(recid);
             checkClosed(cache).remove(recid);
-            super.delete(recid);
+            super.delete(recid,serializer);
         }finally {
             locks.unlock(recid);
         }

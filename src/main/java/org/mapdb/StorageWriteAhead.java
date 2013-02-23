@@ -336,7 +336,7 @@ public class StorageWriteAhead extends StorageDirect implements Engine {
     }
 
     @Override
-    public void delete(long recid){
+    public <A> void delete(long recid, Serializer<A>  serializer){
         if(recid<=0) throw new IllegalArgumentException("recid");
         recid+=INDEX_OFFSET_START;
 

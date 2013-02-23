@@ -130,15 +130,15 @@ public class CacheHashTable extends EngineWrapper implements Engine {
     }
 
     @Override
-    public void delete(long recid) {
+    public <A> void delete(long recid, Serializer<A> serializer){
         final int pos = position(recid);
         try{
             locks.lock(recid);
-            getWrappedEngine().delete(recid);
+            getWrappedEngine().delete(recid,serializer);
             HashItem[] items2 = checkClosed(items);
             HashItem item = items2[pos];
             if(item!=null && recid == item.key)
-            items2[pos] = null;
+            items[pos] = null;
         }finally {
             locks.unlock(recid);
         }
@@ -149,6 +149,7 @@ public class CacheHashTable extends EngineWrapper implements Engine {
     @Override
     public void close() {
         super.close();
+        //dereference to prevent memory leaks
         items = null;
     }
 

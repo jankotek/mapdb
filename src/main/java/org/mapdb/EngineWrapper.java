@@ -61,8 +61,8 @@ public abstract class EngineWrapper implements Engine{
     }
 
     @Override
-    public void delete(long recid) {
-        getWrappedEngine().delete(recid);
+    public <A> void delete(long recid, Serializer<A> serializer) {
+        getWrappedEngine().delete(recid, serializer);
     }
 
     @Override
@@ -127,7 +127,7 @@ public abstract class EngineWrapper implements Engine{
         }
 
         @Override
-        public void delete(long recid) {
+        public <A> void delete(long recid, Serializer<A> serializer){
             throw new UnsupportedOperationException("Read-only");
         }
 
@@ -277,8 +277,8 @@ public abstract class EngineWrapper implements Engine{
         }
 
         @Override
-        public void delete(long recid) {
-            super.delete(recid);
+        public <A> void delete(long recid, Serializer<A> serializer){
+            super.delete(recid,serializer);
             records.add(new Record(recid,"DEL"));
         }
     }

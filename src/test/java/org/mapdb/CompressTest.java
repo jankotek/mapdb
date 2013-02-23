@@ -37,7 +37,7 @@ public class CompressTest{
         assertEquals("aaaa",db.engine.get(recid, Serializer.STRING_SERIALIZER));
         db.engine.update(recid, "bbbb", Serializer.STRING_SERIALIZER);
         assertEquals("bbbb",db.engine.get(recid, Serializer.STRING_SERIALIZER));
-        db.engine.delete(recid);
+        db.engine.delete(recid,Serializer.STRING_SERIALIZER);
         assertEquals(null,db.engine.get(recid, Serializer.STRING_SERIALIZER));
 
     }

@@ -225,7 +225,7 @@ public class StorageAppend implements Engine{
     }
 
     @Override
-    public void delete(long recid) {
+    public <A> void delete(long recid, Serializer<A> serializer){
         //put thumbstone into log
         synchronized (APPEND_LOCK){
             currentVolume.ensureAvailable(currentFileOffset+8+4);

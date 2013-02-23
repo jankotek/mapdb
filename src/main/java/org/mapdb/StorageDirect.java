@@ -260,8 +260,8 @@ public class StorageDirect  implements Engine {
     }
 
 
-    @Override
-   public void delete(long recid){
+   @Override
+   public <A> void delete(long recid, Serializer<A> serializer){
         if(recid<=0) throw new IllegalArgumentException("recid");
         recid+=INDEX_OFFSET_START;
         try{

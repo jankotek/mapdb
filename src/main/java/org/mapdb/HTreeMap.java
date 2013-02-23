@@ -56,9 +56,9 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
     /** node which holds key-value pair */
     protected static class LinkedNode<K,V>{
-        K key;
-        V value;
-        long next;
+        final K key;
+        final V value;
+        final long next;
 
         LinkedNode(final long next, final K key, final V value ){
             this.key = key;
@@ -435,9 +435,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                     while(ln!=null){
                         if(ln.key.equals(key)){
                             //found, replace value at this node
-                            ln.key = key;
                             V oldVal = ln.value;
-                            ln.value = value;
+                            ln = new LinkedNode<K, V>(ln.next, ln.key, value);
                             engine.update(recid, ln, LN_SERIALIZER);
                             notify(key,  oldVal, value);
                             return oldVal;
@@ -469,7 +468,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                         final long nextRecid = n.next;
                         int pos = (hash(n.key) >>>(7*(level -1) )) & 0x7F;
                         if(nextDir[pos/8]==null) nextDir[pos/8] = new long[8];
-                        n.next = nextDir[pos/8][pos%8]>>>1;
+                        n = new LinkedNode<K, V>(nextDir[pos/8][pos%8]>>>1, n.key, n.value);
                         nextDir[pos/8][pos%8] = (nodeRecid<<1) | 1;
                         engine.update(nodeRecid, n, LN_SERIALIZER);
                         nodeRecid = nextRecid;
@@ -556,11 +555,11 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
                             }else{
                                 //referenced from LinkedNode
-                                prevLn.next = ln.next;
+                                prevLn = new LinkedNode<K, V>(ln.next, prevLn.key, prevLn.value);
                                 engine.update(prevRecid, prevLn, LN_SERIALIZER);
                             }
                             //found, remove this node
-                            engine.delete(recid);
+                            engine.delete(recid, LN_SERIALIZER);
                             notify((K) key, ln.value, null);
                             return ln.value;
                         }
@@ -610,7 +609,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 //parent is segment, recid of this dir can not be modified,  so just update to null
                 engine.update(dirRecids[level], null, DIR_SERIALIZER);
             }else{
-                engine.delete(dirRecids[level]);
+                engine.delete(dirRecids[level], DIR_SERIALIZER);
 
                 final long[][] parentDir = engine.get(dirRecids[level + 1], DIR_SERIALIZER);
                 final int parentPos = (h >>> (7 * (level + 1))) & 0x7F;
@@ -652,13 +651,13 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                     recid = recid>>>1;
                     //recursively remove dir
                     recursiveDirClear(recid);
-                    engine.delete(recid);
+                    engine.delete(recid, DIR_SERIALIZER);
                 }else{
                     //linked list to delete
                     recid = recid>>>1;
                     while(recid!=0){
                         LinkedNode n = engine.get(recid, LN_SERIALIZER);
-                        engine.delete(recid);
+                        engine.delete(recid,LN_SERIALIZER);
                         notify((K)n.key, (V)n.value , null);
                         recid = n.next;
                     }

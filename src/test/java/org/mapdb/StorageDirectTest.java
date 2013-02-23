@@ -22,7 +22,7 @@ public class StorageDirectTest extends StorageTestCase {
         long recid = engine.put(1000L, Serializer.LONG_SERIALIZER);
         engine.commit();
         assertEquals(1, countIndexRecords());
-        engine.delete(recid);
+        engine.delete(recid,Serializer.LONG_SERIALIZER);
         engine.commit();
         assertEquals(0, countIndexRecords());
     }
@@ -32,7 +32,7 @@ public class StorageDirectTest extends StorageTestCase {
         engine.commit();
         assertEquals(1, countIndexRecords());
         assertEquals(Engine.LAST_RESERVED_RECID+1, recid);
-        engine.delete(recid);
+        engine.delete(recid,Serializer.LONG_SERIALIZER);
         engine.commit();
         assertEquals(0, countIndexRecords());
         long recid2 = engine.put(1000L, Serializer.LONG_SERIALIZER);
@@ -52,7 +52,7 @@ public class StorageDirectTest extends StorageTestCase {
         }
 
         for(long recid:recids){
-            engine.delete(recid);
+            engine.delete(recid,Serializer.LONG_SERIALIZER);
         }
 
         //now allocate again second recid list
@@ -72,7 +72,7 @@ public class StorageDirectTest extends StorageTestCase {
     @Test public void test_phys_record_reused(){
         final long recid = engine.put(1L, Serializer.LONG_SERIALIZER);
         final long physRecid = engine.index.getLong(recid*8+StorageDirect.INDEX_OFFSET_START*8);
-        engine.delete(recid);
+        engine.delete(recid, Serializer.LONG_SERIALIZER);
         final long recid2 = engine.put(1L, Serializer.LONG_SERIALIZER);
 
         assertEquals(recid, recid2);

@@ -194,7 +194,7 @@ public abstract class Queue2<E> implements Queue<E> {
                 n = engine.get(head2, nodeSerializer);
             }while(n==null || !head.compareAndSet(head2, n.next));
             if(useLocks && head2!=0){
-                engine.delete(head2);
+                engine.delete(head2, Serializer.LONG_SERIALIZER);
                 locks.unlock(head2);
             }else{
                 engine.update(head2, null, nodeSerializer);

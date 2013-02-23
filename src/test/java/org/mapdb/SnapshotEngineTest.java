@@ -3,6 +3,8 @@ package org.mapdb;
 import org.junit.Test;
 
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static org.junit.Assert.*;
 
@@ -27,7 +29,7 @@ public class SnapshotEngineTest{
     @Test public void delete(){
         long recid = e.put(111, Serializer.INTEGER_SERIALIZER);
         Engine snapshot = e.snapshot();
-        e.delete(recid);
+        e.delete(recid,Serializer.INTEGER_SERIALIZER);
         assertEquals(Integer.valueOf(111), snapshot.get(recid, Serializer.INTEGER_SERIALIZER));
     }
 
@@ -82,5 +84,21 @@ public class SnapshotEngineTest{
         map.put("aa","bb");
         assertEquals("aa",map2.get("aa"));
     }
+
+//    @Test public void test_stress(){
+//        ExecutorService ex = Executors.newCachedThreadPool();
+//
+//        TxMaker tx = DBMaker.newMemoryDB().journalDisable().makeTxMaker();
+//
+//        DB db = tx.makeTx();
+//        final long recid =
+//
+//        final int threadNum = 32;
+//        for(int i=0;i<threadNum;i++){
+//            ex.execute(new Runnable() { @Override public void run() {
+//
+//            }});
+//        }
+//    }
 
 }

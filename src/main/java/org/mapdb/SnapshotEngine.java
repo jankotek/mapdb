@@ -4,6 +4,7 @@ import java.io.IOError;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -11,163 +12,148 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * On update it takes old value and stores it aside.
  * <p/>
  * TODO merge snapshots down with Storage for best performance
+ * TODO better concurrent scalability (uses single lock right now)
  *
  * @author Jan Kotek
  */
 public class SnapshotEngine extends EngineWrapper{
 
-    protected final static byte[] NOT_EXIST = new byte[0];
 
-    private final int cacheSize;
 
-    public SnapshotEngine(Engine engine, int cacheSize) {
+    protected final Object lock = new Object();
+
+    protected final int cacheSize;
+
+    protected final static Object NOT_EXIST = new Object();
+    protected final static Object NOT_INIT_YET = new Object();
+
+
+    protected final Set<Snapshot> snapshots = new HashSet<Snapshot>();
+
+
+    protected SnapshotEngine(Engine engine, int cacheSize) {
         super(engine);
         this.cacheSize = cacheSize;
     }
 
-    /** contains currently opened snapshots, Snapshot is removed from here after it was closed */
-    protected Collection<Snapshot> snapshots = new HashSet<Snapshot>();
+    public Engine snapshot() {
+        return new Snapshot();
+    }
 
     /** protects <code>snapshot</code> when modified */
     protected final ReentrantReadWriteLock snapshotsLock = new ReentrantReadWriteLock();
 
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
-        long ret = super.put(value, serializer);
-        snapshotsLock.readLock().lock();
-        try{
-
-            for(Snapshot s:checkClosed(snapshots)){
-                s.oldRecords.putIfAbsent(ret, NOT_EXIST);
-            }
-            return ret;
-        }finally{
-            snapshotsLock.readLock().unlock();
-        }
-    }
-
-    @Override
-    public <A> void update(long recid, A value, Serializer<A> serializer) {
-        updateOldRec(recid);
-        super.update(recid, value, serializer);
-    }
-
-    private void updateOldRec(long recid) {
-        snapshotsLock.readLock().lock();
-        try{
-            byte[] prevValue = NOT_EXIST;
-            for(Snapshot s:checkClosed(snapshots)){
-                if(prevValue == NOT_EXIST){
-                    if(!s.oldRecords.containsKey(recid)){
-                        prevValue = super.get(recid, Serializer.BYTE_ARRAY_SERIALIZER);
-                        s.oldRecords.putIfAbsent(recid, prevValue);
-                    }
-                }else{
-                    s.oldRecords.putIfAbsent(recid, prevValue);
+        synchronized (this){
+            long recid = super.put(value, serializer);
+            for(Snapshot s:snapshots){
+                if(s.oldValues.get(recid)==null){
+                    s.oldValues.put(recid, NOT_EXIST);
                 }
             }
-        }finally{
-            snapshotsLock.readLock().unlock();
+            return recid;
         }
     }
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
-        updateOldRec(recid);
-        return super.compareAndSwap(recid, expectedOldValue, newValue, serializer);
+        synchronized (lock){
+            boolean ret =  super.compareAndSwap(recid, expectedOldValue, newValue, serializer);
+            if(ret==true){
+                for(Snapshot s:snapshots){
+                    if(s.oldValues.get(recid)==null){
+                        s.oldValues.put(recid, expectedOldValue);
+                    }
+                }
+            }
+            return ret;
+        }
     }
 
     @Override
-    public void delete(long recid) {
-        updateOldRec(recid);
-        super.delete(recid);
-    }
-
-
-    public Engine snapshot(){
-        snapshotsLock.writeLock().lock();
-        try{
-            Engine ret = new Snapshot(this);
-            checkClosed(snapshots).add((Snapshot) ret);
-            if(cacheSize>0){
-                ret = new CacheHashTable(ret, cacheSize);
-                ret = new ReadOnlyEngine(ret);
-            }
-            //find async write engine if enabled, and flush write queue
-            EngineWrapper e = this;
-            while(e.getWrappedEngine() instanceof EngineWrapper){
-                e = (EngineWrapper) e.getWrappedEngine();
+    public <A> void update(long recid, A value, Serializer<A> serializer) {
+        synchronized (lock){
+            Object val = NOT_INIT_YET;
+            for(Snapshot s:snapshots){
+                if(s.oldValues.get(recid)==null){
+                    if(val == NOT_INIT_YET)
+                        val = get(recid, serializer);
+                    s.oldValues.put(recid,val);
+                }
             }
 
-            return ret;
-        }finally {
-            snapshotsLock.writeLock().unlock();
+            super.update(recid, value, serializer);
         }
     }
 
-    protected static class Snapshot extends ReadOnlyEngine{
+    @Override
+    public  <A> void delete(long recid, Serializer<A> serializer) {
+        synchronized (lock){
+            Object val = NOT_INIT_YET;
+            for(Snapshot s:snapshots){
+                if(s.oldValues.get(recid)==null){
+                    if(val == NOT_INIT_YET)
+                        val = get(recid, serializer);
+                    s.oldValues.put(recid,val);
+                }
+            }
 
-        protected LongConcurrentHashMap<byte[]> oldRecords = new LongConcurrentHashMap<byte[]>();
-
-        protected Snapshot(SnapshotEngine engine) {
-            super(engine);
+            super.delete(recid,serializer);
         }
+    }
+
+    public static Engine createSnapshotFor(Engine engine) {
+        SnapshotEngine se = null;
+        while(true){
+            if(engine instanceof SnapshotEngine){
+                se = (SnapshotEngine) engine;
+                break;
+            }else if(engine instanceof EngineWrapper){
+                engine = ((EngineWrapper)engine).getWrappedEngine();
+            }else{
+                throw new IllegalArgumentException("Could not create Snapshot for Engine: "+engine);
+            }
+        }
+
+        return se.snapshot();
+    }
+
+    protected class Snapshot extends ReadOnlyEngine{
+
+        protected LongMap oldValues = new LongHashMap();
+
+        public Snapshot() {
+            super(SnapshotEngine.this);
+            synchronized (lock){
+                snapshots.add(Snapshot.this);
+            }
+        }
+
 
         @Override
         public <A> A get(long recid, Serializer<A> serializer) {
-            byte[] b = checkClosed(oldRecords).get(recid);
-            if(b==NOT_EXIST) return null;
-            else if(b==null) return super.get(recid, serializer);
-            else{
-                DataInput2 in = new DataInput2(b);
-                try {
-                    return serializer.deserialize(in, b.length);
-                } catch (IOException e) {
-                    throw new IOError(e);
+            synchronized (lock){
+                Object ret = oldValues.get(recid);
+                if(ret!=null){
+                    if(ret==NOT_EXIST) return null;
+                    return (A) ret;
                 }
+                return SnapshotEngine.this.getWrappedEngine().get(recid, serializer);
             }
+        }
+
+        @Override
+        public boolean isClosed() {
+           return oldValues!=null;
         }
 
         @Override
         public void close() {
-            SnapshotEngine se = (SnapshotEngine) getWrappedEngine();
-            se.snapshotsLock.writeLock().lock();
-            try{
-                checkClosed(se.snapshots).remove(this);
-            }finally {
-                se.snapshotsLock.writeLock().unlock();
-            }
-            oldRecords = null;
-            super.close();
-        }
-    }
-
-    @Override
-    public void close() {
-        boolean locked = snapshotsLock.isWriteLocked();
-        if(!locked)snapshotsLock.readLock().lock();
-        try{
-            for(Snapshot s:checkClosed(snapshots)){
-                s.close();
-            }
-        }finally {
-            snapshots = null;
-            if(!locked)snapshotsLock.readLock().unlock();
-        }
-        super.close();
-    }
-
-    public static Engine createSnapshotFor(Engine engine){
-        Engine engineOrig = engine;
-        while(!(engine instanceof SnapshotEngine)){
-            if(engine instanceof EngineWrapper){
-                engine = ((EngineWrapper)engine).getWrappedEngine();
-            }else{
-                throw new InternalError("Could not create snapshot for Engine: "+engineOrig);
+            synchronized (lock){
+                oldValues = null;
+                snapshots.remove(Snapshot.this);
             }
         }
-        return ((SnapshotEngine)engine).snapshot();
     }
-
-
 }

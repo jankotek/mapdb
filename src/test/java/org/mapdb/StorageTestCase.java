@@ -90,7 +90,7 @@ abstract public class StorageTestCase extends TestFile{
         byte[] b = new byte[100000];
         Arrays.fill(b, (byte) 111);
         long recid = engine.put(b, Serializer.BYTE_ARRAY_SERIALIZER);
-        engine.delete(recid);
+        engine.delete(recid,Serializer.BYTE_ARRAY_SERIALIZER);
     }
 
 
