@@ -68,7 +68,7 @@ public class DBMakerTest{
                 .make();
         verifyDB(db);
         assertTrue(db.engine.getClass() == CacheHashTable.class);
-        assertTrue(((CacheHashTable)db.engine).engine.getClass() == SnapshotEngine.class);
+        assertTrue(((CacheHashTable)db.engine).getWrappedEngine().getClass() == SnapshotEngine.class);
 
     }
 
@@ -82,7 +82,7 @@ public class DBMakerTest{
         //check default values are set
         assertTrue(db.engine.getClass() == CacheHashTable.class);
         assertEquals(1024 * 32, ((CacheHashTable) db.engine).cacheMaxSize);
-        EngineWrapper w = (EngineWrapper) ((CacheHashTable) db.engine).engine;
+        EngineWrapper w = (EngineWrapper) ((CacheHashTable) db.engine).getWrappedEngine();
         assertTrue(w instanceof SnapshotEngine);
         assertTrue(w.getWrappedEngine().getClass() == AsyncWriteEngine.class);
         AsyncWriteEngine r = (AsyncWriteEngine) w.getWrappedEngine();

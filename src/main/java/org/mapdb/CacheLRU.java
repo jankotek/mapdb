@@ -28,7 +28,7 @@ public class CacheLRU extends EngineWrapper {
         long recid =  super.put(value, serializer);
         try{
             locks.lock(recid);
-            cache.put(recid, value!=null? value : NULL);
+            checkClosed(cache).put(recid, value!=null? value : NULL);
         }finally {
             locks.unlock(recid);
         }
@@ -43,7 +43,7 @@ public class CacheLRU extends EngineWrapper {
         try{
             locks.lock(recid);
             ret = super.get(recid, serializer);
-            if(ret!=null) cache.put(recid, ret);
+            if(ret!=null) checkClosed(cache).put(recid, ret);
             return (A) ret;
         }finally {
             locks.unlock(recid);
@@ -54,7 +54,7 @@ public class CacheLRU extends EngineWrapper {
     public <A> void update(long recid, A value, Serializer<A> serializer) {
         try{
             locks.lock(recid);
-            cache.put(recid, value==null?NULL:value);
+            checkClosed(cache).put(recid, value==null?NULL:value);
             super.update(recid, value, serializer);
         }finally {
             locks.unlock(recid);
@@ -65,7 +65,7 @@ public class CacheLRU extends EngineWrapper {
     public void delete(long recid) {
         try{
             locks.lock(recid);
-            cache.remove(recid);
+            checkClosed(cache).remove(recid);
             super.delete(recid);
         }finally {
             locks.unlock(recid);
@@ -76,16 +76,18 @@ public class CacheLRU extends EngineWrapper {
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
         try{
             locks.lock(recid);
+            Engine engine = getWrappedEngine();
+            LongMap cache2 = checkClosed(cache);
             Object oldValue = cache.get(recid);
             if(oldValue!=null && (oldValue == expectedOldValue || oldValue.equals(expectedOldValue)
                     || (oldValue==NULL &&newValue==null))){
                 //found matching entry in cache, so just update and return true
-                cache.put(recid, newValue==null?NULL:newValue);
+                cache2.put(recid, newValue==null?NULL:newValue);
                 engine.update(recid, newValue, serializer);
                 return true;
             }else{
                 boolean ret = engine.compareAndSwap(recid, expectedOldValue, newValue, serializer);
-                if(ret) cache.put(recid, newValue);
+                if(ret) cache2.put(recid, newValue);
                 return ret;
             }
         }finally {
@@ -97,8 +99,9 @@ public class CacheLRU extends EngineWrapper {
     @SuppressWarnings("rawtypes")
 	@Override
     public void close() {
-        if(cache instanceof LongConcurrentLRUMap)
-            ((LongConcurrentLRUMap)cache).destroy();
+        Object cache2 = cache;
+        if(cache2 instanceof LongConcurrentLRUMap)
+            ((LongConcurrentLRUMap)cache2).destroy();
         cache = null;
         super.close();
     }
@@ -106,7 +109,7 @@ public class CacheLRU extends EngineWrapper {
     @Override
     public void rollback() {
         //TODO locking here?
-        cache.clear();
+        checkClosed(cache).clear();
         super.rollback();
     }
 }

@@ -92,9 +92,9 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
                         synchronized ( item){
                             if(item.value == DONE) throw new InternalError();
                             if(item.value == DELETED){
-                                engine.delete(recid); //item was deleted in main thread
+                                getWrappedEngine().delete(recid); //item was deleted in main thread
                             }else{
-                                engine.update(recid, item.value, item.serializer);
+                                getWrappedEngine().update(recid, item.value, item.serializer);
                             }
                             item.value = DONE;
                             iter.remove();

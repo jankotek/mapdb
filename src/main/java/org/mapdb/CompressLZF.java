@@ -52,6 +52,7 @@ package org.mapdb;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.Arrays;
 
 /**
@@ -344,7 +345,7 @@ public final class CompressLZF{
     }
 
 
-    protected static class SerializerCompressWrapper<E> implements Serializer<E>{
+    protected static class SerializerCompressWrapper<E> implements Serializer<E>, Serializable {
         protected final Serializer<E> serializer;
         public SerializerCompressWrapper(Serializer<E> serializer) {
             this.serializer = serializer;

@@ -227,4 +227,5 @@ final public class Utils {
         //TODO better check for 32bit JVM
         return false;
     }
+
 }

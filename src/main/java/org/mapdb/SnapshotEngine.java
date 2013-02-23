@@ -37,7 +37,7 @@ public class SnapshotEngine extends EngineWrapper{
         snapshotsLock.readLock().lock();
         try{
 
-            for(Snapshot s:snapshots){
+            for(Snapshot s:checkClosed(snapshots)){
                 s.oldRecords.putIfAbsent(ret, NOT_EXIST);
             }
             return ret;
@@ -56,7 +56,7 @@ public class SnapshotEngine extends EngineWrapper{
         snapshotsLock.readLock().lock();
         try{
             byte[] prevValue = NOT_EXIST;
-            for(Snapshot s:snapshots){
+            for(Snapshot s:checkClosed(snapshots)){
                 if(prevValue == NOT_EXIST){
                     if(!s.oldRecords.containsKey(recid)){
                         prevValue = super.get(recid, Serializer.BYTE_ARRAY_SERIALIZER);
@@ -88,7 +88,7 @@ public class SnapshotEngine extends EngineWrapper{
         snapshotsLock.writeLock().lock();
         try{
             Engine ret = new Snapshot(this);
-            snapshots.add((Snapshot) ret);
+            checkClosed(snapshots).add((Snapshot) ret);
             if(cacheSize>0){
                 ret = new CacheHashTable(ret, cacheSize);
                 ret = new ReadOnlyEngine(ret);
@@ -115,7 +115,7 @@ public class SnapshotEngine extends EngineWrapper{
 
         @Override
         public <A> A get(long recid, Serializer<A> serializer) {
-            byte[] b = oldRecords.get(recid);
+            byte[] b = checkClosed(oldRecords).get(recid);
             if(b==NOT_EXIST) return null;
             else if(b==null) return super.get(recid, serializer);
             else{
@@ -130,15 +130,15 @@ public class SnapshotEngine extends EngineWrapper{
 
         @Override
         public void close() {
-            SnapshotEngine se = (SnapshotEngine) engine;
+            SnapshotEngine se = (SnapshotEngine) getWrappedEngine();
             se.snapshotsLock.writeLock().lock();
             try{
-                se.snapshots.remove(this);
+                checkClosed(se.snapshots).remove(this);
             }finally {
                 se.snapshotsLock.writeLock().unlock();
             }
-            engine = null;
             oldRecords = null;
+            super.close();
         }
     }
 
@@ -147,7 +147,7 @@ public class SnapshotEngine extends EngineWrapper{
         boolean locked = snapshotsLock.isWriteLocked();
         if(!locked)snapshotsLock.readLock().lock();
         try{
-            for(Snapshot s:snapshots){
+            for(Snapshot s:checkClosed(snapshots)){
                 s.close();
             }
         }finally {

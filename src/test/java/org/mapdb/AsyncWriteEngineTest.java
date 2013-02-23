@@ -107,8 +107,6 @@ public class AsyncWriteEngineTest extends TestFile{
         //TODO reenable when newRecids are introduced
         //assertEquals(max, putCounter.longValue() - a.newRecids.size());
         assertTrue(a.writeCache.isEmpty());
-        //'crash' async engine, destroy its write queue
-        a.engine = null;
         t.close();
 
         //now reopen db and check ths

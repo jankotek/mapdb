@@ -21,6 +21,7 @@ public class TxMaker {
 
 
     public TxMaker(Engine engine) {
+        if(engine==null) throw new IllegalArgumentException();
         this.engine = engine;
     }
 
@@ -30,7 +31,8 @@ public class TxMaker {
     }
 
     public void close() {
-        engine.close();
+        if(engine==null)
+            engine.close();
     }
 
     /**
@@ -141,8 +143,6 @@ public class TxMaker {
                 newItems = null;
 
                 engine.commit();
-
-                engine = null;
             }
 
         }
@@ -162,8 +162,6 @@ public class TxMaker {
                 }
                 modItems = null;
                 newItems = null;
-
-                engine = null;
             }
 
         }

@@ -31,7 +31,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  */
 public abstract class EngineWrapper implements Engine{
 
-    protected Engine engine;
+    private Engine engine;
 
     protected EngineWrapper(Engine engine){
         if(engine == null) throw new IllegalArgumentException();
@@ -40,33 +40,34 @@ public abstract class EngineWrapper implements Engine{
 
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
-        return engine.put(value, serializer);
+        return getWrappedEngine().put(value, serializer);
     }
 
     @Override
     public <A> A get(long recid, Serializer<A> serializer) {
-        return engine.get(recid, serializer);
+        return getWrappedEngine().get(recid, serializer);
     }
 
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
-        engine.update(recid, value, serializer);
+        getWrappedEngine().update(recid, value, serializer);
     }
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
-        return engine.compareAndSwap(recid, expectedOldValue, newValue, serializer);
+        return getWrappedEngine().compareAndSwap(recid, expectedOldValue, newValue, serializer);
     }
 
     @Override
     public void delete(long recid) {
-        engine.delete(recid);
+        getWrappedEngine().delete(recid);
     }
 
     @Override
     public void close() {
-        if(engine!=null)
-            engine.close();
+        Engine e = engine;
+        if(e!=null)
+            e.close();
         engine = null;
     }
 
@@ -77,23 +78,23 @@ public abstract class EngineWrapper implements Engine{
 
     @Override
     public void commit() {
-        engine.commit();
+        getWrappedEngine().commit();
     }
 
     @Override
     public void rollback() {
-        engine.rollback();
+        getWrappedEngine().rollback();
     }
 
 
     @Override
     public boolean isReadOnly() {
-        return engine.isReadOnly();
+        return getWrappedEngine().isReadOnly();
     }
 
     @Override
     public void compact() {
-        engine.compact();
+        getWrappedEngine().compact();
     }
 
     /**
@@ -166,15 +167,18 @@ public abstract class EngineWrapper implements Engine{
         public <A> long put(A value, Serializer<A> serializer) {
             //serialize to byte array, and pass it down with alternative serializer
             try {
+                Engine e = getWrappedEngine();
+                Serializer<byte[]> ser = checkClosed(blockSerializer);
+
                 if(value ==null){
-                    return engine.put(null, blockSerializer);
+                    return e.put(null, ser);
                 }
 
                 DataOutput2 out = new DataOutput2();
                 serializer.serialize(out,value);
                 byte[] b = out.copyBytes();
 
-                return engine.put(b, blockSerializer);
+                return e.put(b, ser);
             } catch (IOException e) {
                 throw new IOError(e);
             }
@@ -184,7 +188,7 @@ public abstract class EngineWrapper implements Engine{
         public <A> A get(long recid, Serializer<A> serializer) {
             //get decompressed array
             try {
-                byte[] b = engine.get(recid, blockSerializer);
+                byte[] b = getWrappedEngine().get(recid, checkClosed(blockSerializer));
                 if(b==null) return null;
 
                 //deserialize
@@ -204,7 +208,7 @@ public abstract class EngineWrapper implements Engine{
                 serializer.serialize(out,value);
                 byte[] b = out.copyBytes();
 
-                engine.update(recid, b, blockSerializer);
+                getWrappedEngine().update(recid, b, checkClosed(blockSerializer));
             } catch (IOException e) {
                 throw new IOError(e);
             }
@@ -278,7 +282,12 @@ public abstract class EngineWrapper implements Engine{
     }
 
     public Engine getWrappedEngine(){
-        return engine;
+        return checkClosed(engine);
+    }
+
+    protected static <V> V checkClosed(V v){
+        if(v==null) throw new IllegalAccessError("DB has been closed");
+        return v;
     }
 
 

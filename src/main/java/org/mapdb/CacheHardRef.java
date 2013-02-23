@@ -57,7 +57,7 @@ public class CacheHardRef extends CacheLRU {
                 Utils.LOG.fine("DBCache: freemem = " +free + " = "+(free/max)+"%");
 
             if(free<1e7 || free*4 <max){
-                cache.clear();
+                checkClosed(cache).clear();
             }
         }
     }

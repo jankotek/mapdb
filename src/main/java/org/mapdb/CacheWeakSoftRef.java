@@ -109,7 +109,7 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
 
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
-        long recid = engine.put(value, serializer);
+        long recid = getWrappedEngine().put(value, serializer);
         putItemIntoCache(recid, value);
         return recid;
     }
@@ -117,11 +117,12 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
     @SuppressWarnings("unchecked")
 	@Override
     public <A> A get(long recid, Serializer<A> serializer) {
-        CacheItem item = items.get(recid);
+        LongConcurrentHashMap<CacheItem> items2 = checkClosed(items);
+        CacheItem item = items2.get(recid);
         if(item!=null){
             Object o = item.get();
             if(o == null)
-                items.remove(recid);
+                items2.remove(recid);
             else{
                 return (A) o;
             }
@@ -129,7 +130,7 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
 
         try{
             locks.lock(recid);
-            Object value = engine.get(recid, serializer);
+            Object value = getWrappedEngine().get(recid, serializer);
             if(value!=null) putItemIntoCache(recid, value);
 
             return (A) value;
@@ -144,7 +145,7 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
         try{
             locks.lock(recid);
             putItemIntoCache(recid, value);
-            engine.update(recid, value, serializer);
+            getWrappedEngine().update(recid, value, serializer);
         }finally {
             locks.unlock(recid);
         }
@@ -152,17 +153,18 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
 
     @SuppressWarnings("unchecked")
 	private <A> void putItemIntoCache(long recid, A value) {
-        items.put(recid, useWeakRef?
-            new CacheWeakItem<A>(value, queue, recid) :
-            new CacheSoftItem<A>(value, queue, recid));
+        ReferenceQueue<A> q = checkClosed(queue);
+        checkClosed(items).put(recid, useWeakRef?
+            new CacheWeakItem<A>(value, q, recid) :
+            new CacheSoftItem<A>(value, q, recid));
     }
 
     @Override
     public void delete(long recid) {
         try{
             locks.lock(recid);
-            items.remove(recid);
-            engine.delete(recid);
+            checkClosed(items).remove(recid);
+            getWrappedEngine().delete(recid);
         }finally {
             locks.unlock(recid);
         }
@@ -173,16 +175,16 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
         try{
             locks.lock(recid);
-            CacheItem item = items.get(recid);
+            CacheItem item = checkClosed(items).get(recid);
             Object oldValue = item==null? null: item.get() ;
             if(item!=null && oldValue!=null && item.getRecid() == recid &&
                     (oldValue == expectedOldValue || oldValue.equals(expectedOldValue))){
                 //found matching entry in cache, so just update and return true
                 putItemIntoCache(recid, newValue);
-                engine.update(recid, newValue, serializer);
+                getWrappedEngine().update(recid, newValue, serializer);
                 return true;
             }else{
-                boolean ret = engine.compareAndSwap(recid, expectedOldValue, newValue, serializer);
+                boolean ret = getWrappedEngine().compareAndSwap(recid, expectedOldValue, newValue, serializer);
                 if(ret) putItemIntoCache(recid, newValue);
                 return ret;
             }
@@ -194,7 +196,7 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
 
     @Override
     public void close() {
-        engine = null;
+        super.close();
         items = null;
         queue = null;
         
@@ -208,7 +210,7 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
     @Override
     public void rollback() {
         items.clear();
-        engine.rollback();
+        super.rollback();
     }
 
 }

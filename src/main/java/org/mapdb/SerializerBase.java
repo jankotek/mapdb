@@ -15,10 +15,7 @@
  */
 package org.mapdb;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.EOFException;
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -35,6 +32,18 @@ import static org.mapdb.SerializationHeader.*;
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class SerializerBase implements Serializer{
 
+
+    static final private Set knownSerializable = new HashSet(Arrays.asList(
+            BTreeKeySerializer.STRING, BTreeKeySerializer.ZERO_OR_POSITIVE_LONG,
+            Utils.COMPARABLE_COMPARATOR, Utils.COMPARABLE_COMPARATOR_WITH_NULLS
+    ));
+
+    public static void assertSerializable(Object o){
+        if(o!=null && !(o instanceof Serializable)
+                && !knownSerializable.contains(o)){
+            throw new IllegalArgumentException("Not serializable: "+o.getClass());
+        }
+    }
 
     /**
      * Utility class similar to ArrayList, but with fast identity search.

@@ -53,11 +53,11 @@ public class CacheHashTable extends EngineWrapper implements Engine {
 
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
-        final long recid = engine.put(value, serializer);
+        final long recid = getWrappedEngine().put(value, serializer);
         final int pos = position(recid);
         try{
             locks.lock(pos);
-            items[position(recid)] = new HashItem(recid, value);
+            checkClosed(items)[position(recid)] = new HashItem(recid, value);
         }finally{
             locks.unlock(pos);
         }
@@ -68,16 +68,17 @@ public class CacheHashTable extends EngineWrapper implements Engine {
     @SuppressWarnings("unchecked")
     public <A> A get(long recid, Serializer<A> serializer) {
         final int pos = position(recid);
-        HashItem item = items[pos];
+        HashItem[] items2 = checkClosed(items);
+        HashItem item = items2[pos];
         if(item!=null && recid == item.key)
             return (A) item.val;
 
         try{
             locks.lock(pos);
             //not in cache, fetch and add
-            final A value = engine.get(recid, serializer);
+            final A value = getWrappedEngine().get(recid, serializer);
             if(value!=null)
-                items[pos] = new HashItem(recid, value);
+                items2[pos] = new HashItem(recid, value);
             return value;
         }finally{
             locks.unlock(pos);
@@ -93,8 +94,8 @@ public class CacheHashTable extends EngineWrapper implements Engine {
         final int pos = position(recid);
         try{
             locks.lock(pos);
-            items[pos] = new HashItem(recid, value);
-            engine.update(recid, value, serializer);
+            checkClosed(items)[pos] = new HashItem(recid, value);
+            getWrappedEngine().update(recid, value, serializer);
         }finally {
             locks.unlock(pos);
         }
@@ -104,22 +105,23 @@ public class CacheHashTable extends EngineWrapper implements Engine {
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
         final int pos = position(recid);
         try{
+            HashItem[] items2 = checkClosed(items);
             locks.lock(pos);
-            HashItem item = items[pos];
+            HashItem item = items2[pos];
             if(item!=null && item.key == recid){
                 if(item.val == null && expectedOldValue!=null) return false;
                 //found in cache, so compare values
                 if(item.val == expectedOldValue || item.val.equals(expectedOldValue)){
                     //found matching entry in cache, so just update and return true
-                    items[pos] = new HashItem(recid, newValue);
-                    engine.update(recid, newValue, serializer);
+                    items2[pos] = new HashItem(recid, newValue);
+                    getWrappedEngine().update(recid, newValue, serializer);
                     return true;
                 }else{
                     return false;
                 }
             }else{
-                boolean ret = engine.compareAndSwap(recid, expectedOldValue, newValue, serializer);
-                if(ret) items[pos] = new HashItem(recid, newValue);
+                boolean ret = getWrappedEngine().compareAndSwap(recid, expectedOldValue, newValue, serializer);
+                if(ret) items2[pos] = new HashItem(recid, newValue);
                 return ret;
             }
         }finally {
@@ -132,10 +134,11 @@ public class CacheHashTable extends EngineWrapper implements Engine {
         final int pos = position(recid);
         try{
             locks.lock(recid);
-            engine.delete(recid);
-            HashItem item = items[pos];
+            getWrappedEngine().delete(recid);
+            HashItem[] items2 = checkClosed(items);
+            HashItem item = items2[pos];
             if(item!=null && recid == item.key)
-            items[pos] = null;
+            items2[pos] = null;
         }finally {
             locks.unlock(recid);
         }
@@ -145,9 +148,7 @@ public class CacheHashTable extends EngineWrapper implements Engine {
 
     @Override
     public void close() {
-        engine.close();
-        //dereference to prevent memory leaks
-        engine = null;
+        super.close();
         items = null;
     }
 
@@ -155,7 +156,7 @@ public class CacheHashTable extends EngineWrapper implements Engine {
     public void rollback() {
         for(int i = 0;i<items.length;i++)
             items[i] = null;
-        engine.rollback();
+        super.rollback();
     }
 
 

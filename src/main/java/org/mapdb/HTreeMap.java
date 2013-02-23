@@ -207,10 +207,14 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     public HTreeMap(Engine engine, boolean hasValues, Serializer defaultSerializer, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
         this.engine = engine;
         this.hasValues = hasValues;
+        SerializerBase.assertSerializable(keySerializer);
+        SerializerBase.assertSerializable(valueSerializer);
+
         if(defaultSerializer == null) defaultSerializer = Serializer.BASIC_SERIALIZER;
         this.defaultSerialzierForSnapshots = defaultSerializer;
         this.keySerializer = keySerializer==null ? (Serializer<K>) defaultSerializer : keySerializer;
         this.valueSerializer = valueSerializer==null ? (Serializer<V>) defaultSerializer : valueSerializer;
+
 
         //prealocate segmentRecids, so we dont have to lock on those latter
         segmentRecids = new long[16];
