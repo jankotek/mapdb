@@ -166,6 +166,8 @@ interface SerializationHeader {
     int B_TREE_SERIALIZER_POS_LONG = 147;
     int B_TREE_SERIALIZER_STRING = 148;
 
+    int MAPDB_STACK = 149;
+    int MAPDB_QUEUE = 150;
 
     /**
      * used for reference to already serialized object in object graph

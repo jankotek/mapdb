@@ -272,9 +272,34 @@ public class DB {
 //        if(recid==null){
 //
 //        }else{
-//            return new Queue2.Lifo<E>(engine, getDefaultSerializer(),  recid, true);
+//            return new Queues.Lifo<E>(engine, getDefaultSerializer(),  recid, true);
 //        }
 //    }
+
+
+    synchronized public <E> Queue<E> getQueue(String name) {
+        Long recid = nameDir.get(name);
+        if(recid == null){
+            recid = Queues.createQueue(engine, getDefaultSerializer(), getDefaultSerializer());
+            nameDir.put(name,recid);
+        }
+        Queue<E> ret = Queues.getQueue(engine,getDefaultSerializer(),recid);
+        collections.put(name, new WeakReference<Object>(ret));
+        return ret;
+    }
+
+    synchronized public <E> Queue<E> getStack(String name) {
+        Long recid = nameDir.get(name);
+        if(recid == null){
+            recid = Queues.createStack(engine, getDefaultSerializer(), getDefaultSerializer(), true);
+            nameDir.put(name,recid);
+        }
+        Queue<E> ret = Queues.getStack(engine, getDefaultSerializer(),recid);
+        collections.put(name, new WeakReference<Object>(ret));
+        return ret;
+    }
+
+
 
 
     /**
@@ -386,4 +411,5 @@ public class DB {
     public Engine getEngine() {
         return engine;
     }
+
 }
