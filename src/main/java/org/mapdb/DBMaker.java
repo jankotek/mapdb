@@ -615,7 +615,7 @@ public class DBMaker {
             engine = new ByteTransformEngine(engine, CompressLZF.SERIALIZER);
         }
 
-        engine = new SnapshotEngine(engine, _cache==CACHE_DISABLE? 0 : 1024);
+        engine = new SnapshotEngine(engine);
 
         if(_cache == CACHE_DISABLE){
             //do not wrap engine in cache

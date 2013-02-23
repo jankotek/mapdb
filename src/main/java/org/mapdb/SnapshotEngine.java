@@ -1,10 +1,7 @@
 package org.mapdb;
 
-import java.io.IOError;
-import java.io.IOException;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -12,28 +9,22 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * On update it takes old value and stores it aside.
  * <p/>
  * TODO merge snapshots down with Storage for best performance
- * TODO better concurrent scalability (uses single lock right now)
  *
  * @author Jan Kotek
  */
 public class SnapshotEngine extends EngineWrapper{
 
-
-
-    protected final Object lock = new Object();
-
-    protected final int cacheSize;
+    protected final Locks.RecidLocks locks = new Locks.LongHashMapRecidLocks();
 
     protected final static Object NOT_EXIST = new Object();
     protected final static Object NOT_INIT_YET = new Object();
 
 
-    protected final Set<Snapshot> snapshots = new HashSet<Snapshot>();
+    protected final Map<Snapshot, String> snapshots = new ConcurrentHashMap<Snapshot, String>();
 
 
-    protected SnapshotEngine(Engine engine, int cacheSize) {
+    protected SnapshotEngine(Engine engine) {
         super(engine);
-        this.cacheSize = cacheSize;
     }
 
     public Engine snapshot() {
@@ -45,37 +36,40 @@ public class SnapshotEngine extends EngineWrapper{
 
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
-        synchronized (this){
-            long recid = super.put(value, serializer);
-            for(Snapshot s:snapshots){
-                if(s.oldValues.get(recid)==null){
-                    s.oldValues.put(recid, NOT_EXIST);
-                }
+        long recid = super.put(value, serializer);
+        locks.lock(recid);
+        try{
+            for(Snapshot s:snapshots.keySet()){
+                s.oldValues.putIfAbsent(recid, NOT_EXIST);
             }
             return recid;
+        }finally{
+            locks.unlock(recid);
         }
     }
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
-        synchronized (lock){
+        locks.lock(recid);
+        try{
             boolean ret =  super.compareAndSwap(recid, expectedOldValue, newValue, serializer);
             if(ret==true){
-                for(Snapshot s:snapshots){
-                    if(s.oldValues.get(recid)==null){
-                        s.oldValues.put(recid, expectedOldValue);
-                    }
+                for(Snapshot s:snapshots.keySet()){
+                    s.oldValues.putIfAbsent(recid, expectedOldValue);
                 }
             }
             return ret;
+        }finally{
+            locks.unlock(recid);
         }
     }
 
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
-        synchronized (lock){
+        locks.lock(recid);
+        try{
             Object val = NOT_INIT_YET;
-            for(Snapshot s:snapshots){
+            for(Snapshot s:snapshots.keySet()){
                 if(s.oldValues.get(recid)==null){
                     if(val == NOT_INIT_YET)
                         val = get(recid, serializer);
@@ -84,14 +78,17 @@ public class SnapshotEngine extends EngineWrapper{
             }
 
             super.update(recid, value, serializer);
+        }finally{
+            locks.unlock(recid);
         }
     }
 
     @Override
     public  <A> void delete(long recid, Serializer<A> serializer) {
-        synchronized (lock){
+        locks.lock(recid);
+        try{
             Object val = NOT_INIT_YET;
-            for(Snapshot s:snapshots){
+            for(Snapshot s:snapshots.keySet()){
                 if(s.oldValues.get(recid)==null){
                     if(val == NOT_INIT_YET)
                         val = get(recid, serializer);
@@ -100,6 +97,8 @@ public class SnapshotEngine extends EngineWrapper{
             }
 
             super.delete(recid,serializer);
+        }finally{
+            locks.unlock(recid);
         }
     }
 
@@ -121,25 +120,26 @@ public class SnapshotEngine extends EngineWrapper{
 
     protected class Snapshot extends ReadOnlyEngine{
 
-        protected LongMap oldValues = new LongHashMap();
+        protected LongConcurrentHashMap oldValues = new LongConcurrentHashMap();
 
         public Snapshot() {
             super(SnapshotEngine.this);
-            synchronized (lock){
-                snapshots.add(Snapshot.this);
-            }
+            snapshots.put(Snapshot.this, "");
         }
 
 
         @Override
         public <A> A get(long recid, Serializer<A> serializer) {
-            synchronized (lock){
+            locks.lock(recid);
+            try{
                 Object ret = oldValues.get(recid);
                 if(ret!=null){
                     if(ret==NOT_EXIST) return null;
                     return (A) ret;
                 }
                 return SnapshotEngine.this.getWrappedEngine().get(recid, serializer);
+            }finally{
+                locks.unlock(recid);
             }
         }
 
@@ -150,10 +150,8 @@ public class SnapshotEngine extends EngineWrapper{
 
         @Override
         public void close() {
-            synchronized (lock){
-                oldValues = null;
-                snapshots.remove(Snapshot.this);
-            }
+            snapshots.remove(Snapshot.this);
+            oldValues.clear();
         }
     }
 }
