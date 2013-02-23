@@ -20,6 +20,8 @@ package org.mapdb;
 import java.io.IOError;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.Iterator;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -290,5 +292,90 @@ public abstract class EngineWrapper implements Engine{
         return v;
     }
 
+
+    /**
+     * check if Record Instances were not modified while in cache.
+     * Usuful to diagnose strange problems with Instance Cache.
+     */
+    public static class ImmutabilityCheckEngine extends EngineWrapper{
+
+        protected static class Item {
+            final Serializer serializer;
+            final Object item;
+            final int oldChecksum;
+
+            public Item(Serializer serializer, Object item) {
+                if(item==null || serializer==null) throw new AssertionError("null");
+                this.serializer = serializer;
+                this.item = item;
+                oldChecksum = checksum();
+                if(oldChecksum!=checksum()) throw new AssertionError("inconsistent serialization");
+            }
+
+            private int checksum(){
+                try {
+                    DataOutput2 out = new DataOutput2();
+                    serializer.serialize(out, item);
+                    byte[] bb = out.copyBytes();
+                    return Arrays.hashCode(bb);
+                }catch(IOException e){
+                    throw new IOError(e);
+                }
+            }
+
+            void check(){
+                int newChecksum = checksum();
+                if(oldChecksum!=newChecksum) throw new AssertionError("Record instance was modified: \n  "+item+"\n  "+serializer);
+            }
+        }
+
+        protected LongConcurrentHashMap<Item> items = new LongConcurrentHashMap<Item>();
+
+        protected ImmutabilityCheckEngine(Engine engine) {
+            super(engine);
+        }
+
+        @Override
+        public <A> A get(long recid, Serializer<A> serializer) {
+            Item item = items.get(recid);
+            if(item!=null) item.check();
+            A ret = super.get(recid, serializer);
+            if(ret!=null) items.put(recid, new Item(serializer,ret));
+            return ret;
+        }
+
+        @Override
+        public <A> long put(A value, Serializer<A> serializer) {
+            long ret =  super.put(value, serializer);
+            if(value!=null) items.put(ret, new Item(serializer,value));
+            return ret;
+        }
+
+        @Override
+        public <A> void update(long recid, A value, Serializer<A> serializer) {
+            Item item = items.get(recid);
+            if(item!=null) item.check();
+            super.update(recid, value, serializer);
+            if(value!=null) items.put(recid, new Item(serializer,value));
+        }
+
+        @Override
+        public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+            Item item = items.get(recid);
+            if(item!=null) item.check();
+            boolean ret = super.compareAndSwap(recid, expectedOldValue, newValue, serializer);
+            if(ret && newValue!=null) items.put(recid, new Item(serializer,item));
+            return ret;
+        }
+
+        @Override
+        public void close() {
+            super.close();
+            for(Iterator<Item> iter = items.valuesIterator(); iter.hasNext();){
+                iter.next().check();
+            }
+            items.clear();
+        }
+    }
 
 }
