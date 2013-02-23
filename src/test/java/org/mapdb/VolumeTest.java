@@ -89,7 +89,7 @@ public class VolumeTest {
         assertEquals(0, Volume.BUF_SIZE% Volume.MappedFile.BUF_SIZE_INC);
         assertEquals(0, Volume.BUF_SIZE%8);
         assertEquals(0, Volume.MappedFile.BUF_SIZE_INC%8);
-        assertTrue(Storage.INDEX_OFFSET_START*8< Volume.INITIAL_SIZE);
+        assertTrue(StorageDirect.INDEX_OFFSET_START*8< Volume.INITIAL_SIZE);
         assertTrue(Volume.MappedFile.BUF_SIZE_INC> StorageDirect.MAX_RECORD_SIZE);
     }
 

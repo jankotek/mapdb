@@ -34,7 +34,7 @@ package org.mapdb;
  * In default configuration MapDB runs with this <code>Engine</code> stack:
  * <pre>
  *                     [DISK IO]
- *       StorageJournaled - permament record storage with journaled transactions
+ *       StorageWriteAhead - permament record storage with journaled transactions
  *       AsyncWriteEngine - asynchronous writes to storage
  *    ByteTransformEngine - compression or encryption (optional)
  *         CacheHashTable - instance cache

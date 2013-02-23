@@ -11,7 +11,7 @@ import static org.junit.Assert.*;
 public class StorageDirectTest extends StorageTestCase {
 
 
-    Storage engine = (Storage) super.engine;
+    StorageDirect engine = (StorageDirect) super.engine;
 
     /** recid used for testing, it is actually free slot with size 1*/
     static final long TEST_LS_RECID = StorageDirect.RECID_FREE_PHYS_RECORDS_START+1 ;
@@ -40,7 +40,7 @@ public class StorageDirectTest extends StorageTestCase {
         //test that previously deleted index slot was reused
         assertEquals(recid, recid2);
         assertEquals(1, countIndexRecords());
-        assertNotEquals(0,engine.index.getLong(recid*8+Storage.INDEX_OFFSET_START*8));
+        assertNotEquals(0,engine.index.getLong(recid*8+StorageDirect.INDEX_OFFSET_START*8));
     }
 
     @Test public void test_index_record_delete_and_reuse_large(){
@@ -71,12 +71,12 @@ public class StorageDirectTest extends StorageTestCase {
 
     @Test public void test_phys_record_reused(){
         final long recid = engine.put(1L, Serializer.LONG_SERIALIZER);
-        final long physRecid = engine.index.getLong(recid*8+Storage.INDEX_OFFSET_START*8);
+        final long physRecid = engine.index.getLong(recid*8+StorageDirect.INDEX_OFFSET_START*8);
         engine.delete(recid);
         final long recid2 = engine.put(1L, Serializer.LONG_SERIALIZER);
 
         assertEquals(recid, recid2);
-        assertEquals(physRecid, engine.index.getLong(recid*8+Storage.INDEX_OFFSET_START*8));
+        assertEquals(physRecid, engine.index.getLong(recid*8+StorageDirect.INDEX_OFFSET_START*8));
 
     }
 
@@ -86,12 +86,12 @@ public class StorageDirectTest extends StorageTestCase {
 
         final long recid = engine.put(1, Serializer.INTEGER_SERIALIZER);
         engine.commit();
-        assertEquals(4, engine.index.getUnsignedShort(recid * 8+Storage.INDEX_OFFSET_START*8));
+        assertEquals(4, engine.index.getUnsignedShort(recid * 8+StorageDirect.INDEX_OFFSET_START*8));
         assertEquals(Integer.valueOf(1), engine.get(recid, Serializer.INTEGER_SERIALIZER));
 
         engine.update(recid, 1L, Serializer.LONG_SERIALIZER);
         engine.commit();
-        assertEquals(8, engine.index.getUnsignedShort(recid * 8+Storage.INDEX_OFFSET_START*8));
+        assertEquals(8, engine.index.getUnsignedShort(recid * 8+StorageDirect.INDEX_OFFSET_START*8));
         assertEquals(Long.valueOf(1), engine.get(recid, Serializer.LONG_SERIALIZER));
 
     }

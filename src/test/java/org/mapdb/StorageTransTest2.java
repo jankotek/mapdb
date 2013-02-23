@@ -6,8 +6,8 @@ public class StorageTransTest2 extends StorageDirectTest {
 
 
     @Override
-	protected StorageJournaled openEngine() {
-        return new StorageJournaled(fac);
+	protected StorageWriteAhead openEngine() {
+        return new StorageWriteAhead(fac);
     }
 
 

@@ -86,7 +86,7 @@ public class DBMakerTest{
         assertTrue(w instanceof SnapshotEngine);
         assertTrue(w.getWrappedEngine().getClass() == AsyncWriteEngine.class);
         AsyncWriteEngine r = (AsyncWriteEngine) w.getWrappedEngine();
-        assertTrue(r.getWrappedEngine() instanceof Storage);
+        assertTrue(r.getWrappedEngine() instanceof StorageDirect);
 
     }
 

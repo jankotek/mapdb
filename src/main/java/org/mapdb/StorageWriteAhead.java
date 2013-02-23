@@ -27,7 +27,7 @@ import java.util.ArrayList;
  *
  * @author Jan Kotek
  */
-public class StorageJournaled extends Storage implements Engine {
+public class StorageWriteAhead extends StorageDirect implements Engine {
 
     protected static final long WRITE_INDEX_LONG = 1L <<48;
     protected static final long WRITE_INDEX_LONG_ZERO = 2L <<48;
@@ -55,12 +55,12 @@ public class StorageJournaled extends Storage implements Engine {
     protected final LongMap<ArrayList<Long>> transLinkedPhysRecods = new LongHashMap<ArrayList<Long>>();
 
 
-    public StorageJournaled(Volume.Factory volFac){
+    public StorageWriteAhead(Volume.Factory volFac){
         this(volFac, false, false, false, false);
     }
 
-    public StorageJournaled(Volume.Factory volFac, boolean appendOnly,
-                            boolean deleteFilesOnExit, boolean failOnWrongHeader, boolean readOnly) {
+    public StorageWriteAhead(Volume.Factory volFac, boolean appendOnly,
+                             boolean deleteFilesOnExit, boolean failOnWrongHeader, boolean readOnly) {
         super(volFac,  appendOnly, deleteFilesOnExit, failOnWrongHeader, readOnly);
         try{
             this.volFac = volFac;
@@ -134,7 +134,7 @@ public class StorageJournaled extends Storage implements Engine {
 
 
 
-                return recid-Storage.INDEX_OFFSET_START;
+                return recid-INDEX_OFFSET_START;
             }finally {
                 lock.writeLock().unlock();
             }
