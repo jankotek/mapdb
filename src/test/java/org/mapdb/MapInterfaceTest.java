@@ -788,6 +788,37 @@ public abstract class MapInterfaceTest<K, V> extends TestCase {
         assertEquals(oldValue, map.get(entry.getKey()));
         assertInvariants(map);
     }
+    
+    public void testEntrySetIteratorLastHashNext() {
+    	final Map<K, V> map;
+        try {
+            map = makePopulatedMap();
+        } catch (UnsupportedOperationException e) {
+            return;
+        }
+        Iterator<Entry<K, V>> iter = map.entrySet().iterator();
+        for(int i = 0; i < map.size(); i++)
+        	iter.next();
+        assertFalse(iter.hasNext());
+    }
+
+    public void testEntrySetIteratorLastNext() {
+    	final Map<K, V> map;
+        try {
+            map = makePopulatedMap();
+        } catch (UnsupportedOperationException e) {
+            return;
+        }
+        Iterator<Entry<K, V>> iter = map.entrySet().iterator();
+        for(int i = 0; i < map.size(); i++)
+        	iter.next();
+        try {
+        	iter.next();
+        }
+        catch(NoSuchElementException e) {
+        	// Expected
+        }
+    }
 
     public void testEqualsForEqualMap() {
         final Map<K, V> map;
