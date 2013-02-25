@@ -789,7 +789,7 @@ public abstract class MapInterfaceTest<K, V> extends TestCase {
         assertInvariants(map);
     }
     
-    public void testEntrySetIteratorLastHashNext() {
+    public void testEntrySetIteratorLastHasNext() {
     	final Map<K, V> map;
         try {
             map = makePopulatedMap();
@@ -1302,6 +1302,39 @@ public abstract class MapInterfaceTest<K, V> extends TestCase {
         }
         assertInvariants(map);
     }
+    
+    public void testKeySetIteratorLastHasNext() {
+    	final Map<K, V> map;
+        try {
+            map = makeEmptyMap();
+        } catch (UnsupportedOperationException e) {
+            return;
+        }
+        
+        Iterator<K> iter = map.keySet().iterator();
+        for(int i = 0; i < map.size(); i++)
+        	iter.next();
+        assertFalse(iter.hasNext());
+    }
+    
+    public void testKeySetIteratorLastNext() {
+    	final Map<K, V> map;
+        try {
+            map = makeEmptyMap();
+        } catch (UnsupportedOperationException e) {
+            return;
+        }
+        
+        Iterator<K> iter = map.keySet().iterator();
+        for(int i = 0; i < map.size(); i++)
+        	iter.next();
+        try {
+        	iter.next();
+        }
+        catch(NoSuchElementException e) {
+        	// Expected
+        }
+    }
 
     public void testValues() {
         final Map<K, V> map;
@@ -1551,6 +1584,39 @@ public abstract class MapInterfaceTest<K, V> extends TestCase {
             }
         }
         assertInvariants(map);
+    }
+    
+    public void testValuesIteratorLastHasNext() {
+    	final Map<K, V> map;
+        try {
+            map = makeEmptyMap();
+        } catch (UnsupportedOperationException e) {
+            return;
+        }
+        
+        Iterator<V> iter = map.values().iterator();
+        for(int i = 0; i < map.size(); i++)
+        	iter.next();
+        assertFalse(iter.hasNext());
+    }
+    
+    public void testValuesIteratorLastNext() {
+    	final Map<K, V> map;
+        try {
+            map = makeEmptyMap();
+        } catch (UnsupportedOperationException e) {
+            return;
+        }
+        
+        Iterator<V> iter = map.values().iterator();
+        for(int i = 0; i < map.size(); i++)
+        	iter.next();
+        try {
+        	iter.next();
+        }
+        catch(NoSuchElementException e) {
+        	// Expected
+        }
     }
 
     private static <K, V> Entry<K, V> mapEntry(K key, V value) {
