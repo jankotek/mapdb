@@ -24,11 +24,9 @@ public class CompressTest{
     }
 
 
-    @Test
+    @Test(expected = NullPointerException.class)
     public void check_null() throws Exception {
-        long recid = db.engine.put(null, Serializer.NULL_SERIALIZER);
-        assertTrue(recid!=0);
-        assertNull(db.engine.get(recid, Serializer.BASIC_SERIALIZER));
+        db.engine.put(null, Serializer.NULL_SERIALIZER);
     }
 
     @Test

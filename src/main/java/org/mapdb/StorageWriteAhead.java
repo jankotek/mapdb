@@ -102,10 +102,10 @@ public class StorageWriteAhead extends StorageDirect implements Engine {
 
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
+        if(value==null||serializer==null) throw new NullPointerException();
         try{
             DataOutput2 out = new DataOutput2();
             serializer.serialize(out,value);
-            //TODO check record size and log warning if too big
 
             try{
                 lock.writeLock().lock();
@@ -226,6 +226,7 @@ public class StorageWriteAhead extends StorageDirect implements Engine {
 
     @Override
     public <A> A get(long recid, Serializer<A> serializer) {
+        if(serializer==null)throw new NullPointerException();
         if(recid<=0) throw new IllegalArgumentException("recid");
         recid+=INDEX_OFFSET_START;
 
@@ -265,7 +266,7 @@ public class StorageWriteAhead extends StorageDirect implements Engine {
             }else{
                 //not in transaction log, read from file
                 final long indexValue = index.getLong(recid*8) ;
-                return recordGet2(indexValue, phys, serializer);
+                 return recordGet2(indexValue, phys, serializer);
             }
         }catch(IOException e){
             throw new IOError(e);
@@ -276,6 +277,7 @@ public class StorageWriteAhead extends StorageDirect implements Engine {
 
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
+        if(value==null||serializer==null) throw new NullPointerException();
         if(recid<=0) throw new IllegalArgumentException("recid");
         recid+=INDEX_OFFSET_START;
 
@@ -283,7 +285,6 @@ public class StorageWriteAhead extends StorageDirect implements Engine {
             DataOutput2 out = new DataOutput2();
             serializer.serialize(out,value);
 
-            //TODO log warning here if record is too big
             try{
                 lock.writeLock().lock();
 
@@ -337,6 +338,7 @@ public class StorageWriteAhead extends StorageDirect implements Engine {
 
     @Override
     public <A> void delete(long recid, Serializer<A>  serializer){
+        if(serializer==null) throw new NullPointerException();
         if(recid<=0) throw new IllegalArgumentException("recid");
         recid+=INDEX_OFFSET_START;
 

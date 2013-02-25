@@ -136,16 +136,17 @@ public interface Serializer<A> {
     } ;
 
 
-    /** always writes zero length data, and always deserializes it as null */
-    
+    /** always writes zero length data, and always deserializes it as an empty String */
     Serializer<Object> NULL_SERIALIZER = new Serializer<Object>() {
         @Override
         public void serialize(DataOutput out, Object value) throws IOException {
+            if(value!=Utils.EMPTY_STRING) throw new IllegalArgumentException();
         }
 
         @Override
         public Object deserialize(DataInput in, int available) throws IOException {
-            return null;
+            if(available!=0) throw new InternalError();
+            return Utils.EMPTY_STRING;
         }
     };
 
@@ -183,6 +184,7 @@ public interface Serializer<A> {
             return BASIC_SERIALIZER.deserialize(in, available);
         }
     };
+
 
     /**
      * Adds CRC32 checksum at end of each record to check data integrity.

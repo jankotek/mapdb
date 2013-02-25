@@ -6,8 +6,6 @@ package org.mapdb;
  */
 public class CacheLRU extends EngineWrapper {
 
-    /** used instead of null value */
-    protected static final Object NULL = new Object();
 
     protected LongMap<Object> cache;
 
@@ -28,7 +26,7 @@ public class CacheLRU extends EngineWrapper {
         long recid =  super.put(value, serializer);
         try{
             locks.lock(recid);
-            checkClosed(cache).put(recid, value!=null? value : NULL);
+            checkClosed(cache).put(recid, value);
         }finally {
             locks.unlock(recid);
         }
@@ -39,7 +37,7 @@ public class CacheLRU extends EngineWrapper {
 	@Override
     public <A> A get(long recid, Serializer<A> serializer) {
         Object ret = cache.get(recid);
-        if(ret!=null) return ret==NULL? null: (A) ret;
+        if(ret!=null) return (A) ret;
         try{
             locks.lock(recid);
             ret = super.get(recid, serializer);
@@ -54,7 +52,7 @@ public class CacheLRU extends EngineWrapper {
     public <A> void update(long recid, A value, Serializer<A> serializer) {
         try{
             locks.lock(recid);
-            checkClosed(cache).put(recid, value==null?NULL:value);
+            checkClosed(cache).put(recid, value);
             super.update(recid, value, serializer);
         }finally {
             locks.unlock(recid);
@@ -79,10 +77,9 @@ public class CacheLRU extends EngineWrapper {
             Engine engine = getWrappedEngine();
             LongMap cache2 = checkClosed(cache);
             Object oldValue = cache.get(recid);
-            if(oldValue!=null && (oldValue == expectedOldValue || oldValue.equals(expectedOldValue)
-                    || (oldValue==NULL &&newValue==null))){
+            if(oldValue == expectedOldValue || oldValue.equals(expectedOldValue)){
                 //found matching entry in cache, so just update and return true
-                cache2.put(recid, newValue==null?NULL:newValue);
+                cache2.put(recid, newValue);
                 engine.update(recid, newValue, serializer);
                 return true;
             }else{

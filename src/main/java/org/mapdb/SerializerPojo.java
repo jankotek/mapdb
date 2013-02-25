@@ -58,6 +58,7 @@ public class SerializerPojo extends SerializerBase{
 
         @Override
 		public CopyOnWriteArrayList<ClassInfo> deserialize(DataInput in, int available) throws IOException{
+            if(available==0) return new CopyOnWriteArrayList<ClassInfo>();
 
             int size = Utils.unpackInt(in);
             ArrayList<ClassInfo> ret = new ArrayList<ClassInfo>(size);

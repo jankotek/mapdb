@@ -30,19 +30,7 @@ public class EnginesTest{
         });
     }
 
-    @Test
-    public void casNulls(){
-        long recid = e.put(null, Serializer.BASIC_SERIALIZER);
+    @Test public void dummy(){}
 
-        assertNull(e.get(recid,Serializer.BASIC_SERIALIZER));
-        assertFalse(e.compareAndSwap(recid, "aa", null, Serializer.BASIC_SERIALIZER));
-        assertNull(e.get(recid, Serializer.BASIC_SERIALIZER));
-        assertTrue(e.compareAndSwap(recid, null, "aa", Serializer.BASIC_SERIALIZER));
-        assertEquals("aa", e.get(recid, Serializer.BASIC_SERIALIZER));
-        assertFalse(e.compareAndSwap(recid, null, "bb", Serializer.BASIC_SERIALIZER));
-        assertEquals("aa", e.get(recid, Serializer.BASIC_SERIALIZER));
-        assertTrue(e.compareAndSwap(recid, "aa", null, Serializer.BASIC_SERIALIZER));
-        assertNull(e.get(recid, Serializer.BASIC_SERIALIZER));
-    }
 
 }

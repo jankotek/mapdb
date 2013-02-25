@@ -109,7 +109,6 @@ public class CacheHashTable extends EngineWrapper implements Engine {
             locks.lock(pos);
             HashItem item = items2[pos];
             if(item!=null && item.key == recid){
-                if(item.val == null && expectedOldValue!=null) return false;
                 //found in cache, so compare values
                 if(item.val == expectedOldValue || item.val.equals(expectedOldValue)){
                     //found matching entry in cache, so just update and return true

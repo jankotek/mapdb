@@ -1,6 +1,8 @@
 package org.mapdb;
 
 
+import sun.management.snmp.jvmmib.EnumJvmMemPoolType;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -16,9 +18,6 @@ public final class Queues {
     private Queues(){}
 
 
-
-
-
     public static abstract class LockFreeQueue<E> implements java.util.Queue<E>{
 
         protected final Engine engine;
@@ -27,20 +26,28 @@ public final class Queues {
         protected final Atomic.Long head;
 
 
-        protected final Serializer<Node<E>> nodeSerializer = new Serializer<Node<E>>() {
+        protected static class NodeSerializer<E> implements Serializer<Node<E>> {
+            private final Serializer<E> serializer;
+
+            public NodeSerializer(Serializer<E> serializer) {
+                this.serializer = serializer;
+            }
+
             @Override
             public void serialize(DataOutput out, Node<E> value) throws IOException {
-                if(value==null) return;
+                if(value==Node.EMPTY) return;
                 Utils.packLong(out,value.next);
                 serializer.serialize(out, value.value);
             }
 
             @Override
             public Node<E> deserialize(DataInput in, int available) throws IOException {
-                if(available==0)return null;
+                if(available==0)return Node.EMPTY;
                 return new Node<E>(Utils.unpackLong(in), serializer.deserialize(in,-1));
             }
-        };
+        }
+
+        protected final Serializer<Node<E>> nodeSerializer;
 
 
         public LockFreeQueue(Engine engine, Serializer<E> serializer, long headRecid) {
@@ -48,6 +55,7 @@ public final class Queues {
             this.serializer = serializer;
             if(headRecid == 0) headRecid = engine.put(0L, Serializer.LONG_SERIALIZER);
             head = new Atomic.Long(engine,headRecid);
+            nodeSerializer = new NodeSerializer<E>(serializer);
         }
 
 
@@ -62,6 +70,9 @@ public final class Queues {
 
 
         protected static final class Node<E>{
+
+            protected static final Node EMPTY = new Node(0L, null);
+
             final protected long next;
             final protected E value;
 
@@ -322,10 +333,10 @@ public final class Queues {
         }
 
         public boolean add(E item){
-            final long nextTail = engine.put(null, nodeSerializer);
+            final long nextTail = engine.put((Node<E>)Node.EMPTY, nodeSerializer);
             Node<E> n = new Node<E>(nextTail, item);
             long tail2 = tail.get();
-            while(!engine.compareAndSwap(tail2, null, n, nodeSerializer)){
+            while(!engine.compareAndSwap(tail2, (Node<E>)Node.EMPTY, n, nodeSerializer)){
                 tail2 = tail.get();
             }
             head.compareAndSet(0,tail2);
@@ -346,7 +357,7 @@ public final class Queues {
                     if(size.get()==0)return null ;
                     continue;
                 }
-                if(!engine.compareAndSwap(head2,n, null, nodeSerializer))
+                if(!engine.compareAndSwap(head2,n, (Node<E>)Node.EMPTY, nodeSerializer))
                     continue;
                 if(!head.compareAndSet(head2,n.next)) throw new InternalError();
                 size.decrementAndGet();
@@ -414,7 +425,7 @@ public final class Queues {
 
     static <E> long createQueue(Engine engine, Serializer<Serializer> serializerSerializer, Serializer<E> serializer){
         long headerRecid = engine.put(0L, Serializer.LONG_SERIALIZER);
-        long nextTail = engine.put(null, Serializer.NULL_SERIALIZER);
+        long nextTail = engine.put(LockFreeQueue.Node.EMPTY, new LockFreeQueue.NodeSerializer(null));
         long nextTailRecid = engine.put(nextTail, Serializer.LONG_SERIALIZER);
         long sizeRecid = engine.put(0L, Serializer.LONG_SERIALIZER);
         QueueRoot root = new QueueRoot(headerRecid, nextTailRecid, sizeRecid, serializer);

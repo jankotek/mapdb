@@ -134,8 +134,6 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     static final Serializer<long[][]>DIR_SERIALIZER = new Serializer<long[][]>() {
         @Override
         public void serialize(DataOutput out, long[][] value) throws IOException {
-            if(value == null) return;
-
             if(value.length!=16) throw new InternalError();
 
             //first write mask which indicate subarray nullability
@@ -160,7 +158,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         @Override
         public long[][] deserialize(DataInput in, int available) throws IOException {
-            if(available==0) return null;
+
             final long[][] ret = new long[16][];
 
             //there are 16  subarrays, each bite indicates if subarray is null
@@ -219,7 +217,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         //prealocate segmentRecids, so we dont have to lock on those latter
         segmentRecids = new long[16];
         for(int i=0;i<16;i++)
-            segmentRecids[i] = engine.put(null, Serializer.NULL_SERIALIZER);
+            segmentRecids[i] = engine.put(new long[16][], DIR_SERIALIZER);
         HashRoot r = new HashRoot();
         r.hasValues = hasValues;
         r.segmentRecids = segmentRecids;
@@ -264,7 +262,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         //prealocate segmentRecids
         long[] segmentRecids = new long[16];
         for(int i=0;i<16;i++)
-            segmentRecids[i] = engine.put(null, Serializer.NULL_SERIALIZER);
+            segmentRecids[i] = engine.put(new long[16][], DIR_SERIALIZER);
         r = new HashRoot();
         r.hasValues = true;
         r.segmentRecids = segmentRecids;
@@ -305,7 +303,6 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
     private long recursiveDirCount(final long dirRecid) {
         long[][] dir = engine.get(dirRecid, DIR_SERIALIZER);
-        if(dir==null) return 0 ;
         long counter = 0;
         for(long[] subdir:dir){
             if(subdir == null) continue;
@@ -342,7 +339,10 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
                 long dirRecid = segmentRecids[i];
                 long[][] dir = engine.get(dirRecid, DIR_SERIALIZER);
-                if(dir!=null) return false;
+                for(long[] d:dir){
+                    if(d!=null) return false;
+                }
+                return true;
             }finally {
                 segmentLocks[i].readLock().unlock();
             }
@@ -607,7 +607,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             //delete from parent dir
             if(level==3){
                 //parent is segment, recid of this dir can not be modified,  so just update to null
-                engine.update(dirRecids[level], null, DIR_SERIALIZER);
+                engine.update(dirRecids[level], new long[16][], DIR_SERIALIZER);
             }else{
                 engine.delete(dirRecids[level], DIR_SERIALIZER);
 
@@ -632,7 +632,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             recursiveDirClear(dirRecid);
 
             //set dir to null, as segment recid is immutable
-            engine.update(dirRecid, null, DIR_SERIALIZER);
+            engine.update(dirRecid, new long[16][], DIR_SERIALIZER);
 
         }finally {
             segmentLocks[i].writeLock().unlock();

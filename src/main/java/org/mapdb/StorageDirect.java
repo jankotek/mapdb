@@ -122,6 +122,7 @@ public class StorageDirect  implements Engine {
 
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
+        if(value == null||serializer==null) throw new NullPointerException();
         try{
             DataOutput2 out = new DataOutput2();
             serializer.serialize(out,value);
@@ -190,6 +191,7 @@ public class StorageDirect  implements Engine {
 
     @Override
     public <A> A get(long recid, Serializer<A> serializer) {
+        if(serializer==null) throw new NullPointerException();
         if(recid<=0) throw new IllegalArgumentException("recid");
         recid += INDEX_OFFSET_START;
         try{
@@ -211,13 +213,13 @@ public class StorageDirect  implements Engine {
 
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer){
+        if(value == null||serializer==null) throw new NullPointerException();
         if(recid<=0) throw new IllegalArgumentException("recid");
         recid+=INDEX_OFFSET_START;
         try{
             DataOutput2 out = new DataOutput2();
             serializer.serialize(out,value);
 
-            //TODO log warning if record is too big
             try{
                 lock.writeLock().lock();
 
@@ -262,6 +264,7 @@ public class StorageDirect  implements Engine {
 
    @Override
    public <A> void delete(long recid, Serializer<A> serializer){
+        if(serializer==null)throw new NullPointerException();
         if(recid<=0) throw new IllegalArgumentException("recid");
         recid+=INDEX_OFFSET_START;
         try{
@@ -493,7 +496,7 @@ public class StorageDirect  implements Engine {
     protected  <A> A recordGet2(long indexValue, Volume data, Serializer<A> serializer) throws IOException {
         final long dataPos = indexValue & PHYS_OFFSET_MASK;
         final int dataSize = (int) (indexValue>>>48);
-        if(dataPos == 0) return null;
+        if(dataPos == 0) return serializer.deserialize(new DataInput2(new byte[0]),0);
 
         if(dataSize<MAX_RECORD_SIZE){
             //single record
@@ -579,6 +582,7 @@ public class StorageDirect  implements Engine {
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer){
+        if(expectedOldValue == null||newValue==null||serializer==null) throw new NullPointerException();
         if(recid<=0) throw new IllegalArgumentException("recid");
         try{
             lock.writeLock().lock();

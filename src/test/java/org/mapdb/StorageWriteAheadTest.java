@@ -72,7 +72,7 @@ public class StorageWriteAheadTest extends TestFile {
         t.commit();
         t.close();
         t = new StorageWriteAhead(fac);
-        assertEquals(null,t.get(recid, Serializer.STRING_SERIALIZER));
+        assertEquals("",t.get(recid, Serializer.STRING_SERIALIZER));
 
     }
 
@@ -137,7 +137,7 @@ public class StorageWriteAheadTest extends TestFile {
         t.transLog.close();
         StorageWriteAhead t2 = new StorageWriteAhead(fac);
         assertEquals("t",t2.get(recid1, Serializer.STRING_SERIALIZER));
-        assertEquals(null,t2.get(recid2, Serializer.STRING_SERIALIZER));
+        assertEquals("",t2.get(recid2, Serializer.STRING_SERIALIZER));
 
         if(!Utils.isWindows())
             assertFalse(log.exists());
@@ -180,11 +180,11 @@ public class StorageWriteAheadTest extends TestFile {
         
         StorageWriteAhead t = new StorageWriteAhead(fac);
         t.lock.writeLock().lock();
-        long recid = t.put(1L, Serializer.LONG_SERIALIZER);
+        long recid = t.put("AA", Serializer.STRING_SERIALIZER);
         assertTrue(log.exists());
         t.rollback();
         assertFalse(log.exists());
-        assertEquals(null, t.get(recid, Serializer.LONG_SERIALIZER));
+        assertEquals("", t.get(recid, Serializer.STRING_SERIALIZER));
         t.close();
         if(!Utils.isWindows())
             assertFalse(log.exists());

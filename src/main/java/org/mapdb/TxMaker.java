@@ -71,7 +71,7 @@ public class TxMaker {
         public <A> long put(A value, Serializer<A> serializer) {
             if(isClosed()) throw new IllegalAccessError("already closed");
             synchronized (lock){
-                long recid = engine.put(null, Serializer.NULL_SERIALIZER);
+                long recid = engine.put(Utils.EMPTY_STRING, Serializer.NULL_SERIALIZER);
                 newItems.add(recid);
                 modItems.put(recid, Fun.t2(value, (Serializer)serializer));
                 globalMod.put(recid, TxEngine.this);
@@ -158,7 +158,7 @@ public class TxMaker {
                 }
                 //delete preallocated items
                 for(long recid:newItems){
-                    engine.delete(recid, null); //TODO store serializer somewhere
+                    engine.delete(recid, Serializer.NULL_SERIALIZER);
                 }
                 modItems = null;
                 newItems = null;

@@ -10,7 +10,7 @@ import static org.junit.Assert.*;
 
 public class SnapshotEngineTest{
 
-    SnapshotEngine e = new SnapshotEngine(new StorageDirect(Volume.memoryFactory(false)),1024);
+    SnapshotEngine e = new SnapshotEngine(new StorageDirect(Volume.memoryFactory(false)));
 
     @Test public void update(){
         long recid = e.put(111, Serializer.INTEGER_SERIALIZER);

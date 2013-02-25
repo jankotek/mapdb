@@ -309,8 +309,13 @@ public class HTreeMap2Test extends StorageTestCase {
 
         int countSegments = 0;
         for(long segmentRecid:m.segmentRecids){
-            if(engine.get(segmentRecid, HTreeMap.DIR_SERIALIZER)!=null)
-                countSegments++;
+            long[][] segment = engine.get(segmentRecid, HTreeMap.DIR_SERIALIZER);
+            for(long[] s:segment){
+                if(s!=null){
+                    countSegments++;
+                    break;
+                }
+            }
         }
 
         assertEquals(3, countSegments);

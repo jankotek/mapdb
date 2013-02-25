@@ -21,6 +21,8 @@ import java.util.ArrayList;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -36,312 +38,99 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public class AsyncWriteEngine extends EngineWrapper implements Engine {
 
-    protected final boolean powerSavingMode;
-    protected final int flushDelay;
+    protected static final AtomicLong threadCounter = new AtomicLong();
+    protected final long threadNum = threadCounter.incrementAndGet();
 
-    @SuppressWarnings({ "rawtypes" })
-    protected static final class WriteItem{
-        protected volatile Object value;
-        protected volatile Serializer serializer;
+    protected final BlockingQueue<Long> newRecids = new ArrayBlockingQueue<Long>(128);
 
-        public WriteItem(Object value, Serializer serializer) {
-            this.value = value;
-            this.serializer = serializer;
-        }
-    }
+    protected volatile boolean closeInProgress = false;
+    protected final CountDownLatch shutdownCondition = new CountDownLatch(1);
 
-    /** thread naming utility */
-    protected static final AtomicInteger threadCounter = new AtomicInteger();
-
-    private final int threadNum = threadCounter.incrementAndGet();
-
-    /** signals that object was deleted */
-    protected static final Object DELETED = new Object();
-    protected static final Object DONE = new Object();
-
-
-    /** background Writer Thread */
-    protected final Thread writerThread = new Thread("MapDB writer #"+threadNum){
-
-                ;
-
-        @SuppressWarnings("unchecked")
-		@Override
-        public void run() {
-            try{
-                for(;;){
-                    if(throwed!=null) return; //second thread failed
-
-                    LongMap.LongMapIterator<WriteItem> iter = writeCache.longMapIterator();
-                    if(!iter.moveToNext()){
-                        commitLock.writeLock().lock();
-                        try
-                        {
-                            writeCacheEmptyCondition.signal();
-                        }
-                        finally
-                        {
-                            commitLock.writeLock().unlock();
-                        }
-                        LockSupport.parkNanos(10000); //TODO power saving notification here
-                    }else do{
-
-                        final long recid = iter.key();
-                        //get the latest version of this item
-                        final WriteItem item = iter.value();
-                        synchronized ( item){
-                            if(item.value == DONE) throw new InternalError();
-                            if(item.value == DELETED){
-                                getWrappedEngine().delete(recid,item.serializer); //item was deleted in main thread
-                            }else{
-                                getWrappedEngine().update(recid, item.value, item.serializer);
-                            }
-                            item.value = DONE;
-                            iter.remove();
-                        }
-
-                    }while(iter.moveToNext());
-
-                    //check if we can exit, see javadoc at setParentEngineReference
-                    if(parentEngineWeakRef!=null && parentEngineWeakRef.get()==null && writeCache.isEmpty()){
-                        //parent engine was GCed, no more items will be added and backlog is empty.
-                        //No point to live anymore, so lets kill writer thread
-                        throwed = new Error("Parent engine was GCed. No more items should be added");
-                        return;
-                    }
-
-                    if(flushDelay>0)
-                        Thread.sleep(flushDelay);
-                }
-            }catch(Throwable e){
-                //store reason why we failed, so user can be notified
-                //TODO logging here?
-                throwed = e;
-            }finally{
-                //signal Close method that Writer Thread is down
-                writerThreadDown.countDown();
-            }
-
-        }
-    };
-
-    BlockingQueue<Long> preallocRecids = new ArrayBlockingQueue<Long>(128);
-
-    /** thread which preallocate recid for `put` operation */
-    protected final Thread preallocThread = new Thread("MapDB prealloc #"+threadNum){
-        {
-            setDaemon(true);
-            //TODO better way to shutdown this thread
-            //TODO preallocated recids should be reclaimed on Engine.close()
-        }
-
+    protected final Thread newRecidsThread = new Thread("MapDB prealloc #"+threadNum){
         @Override public void run() {
             try{
-                for(;;){
-                    if(throwed!=null) return;
-                    Long recid = AsyncWriteEngine.super.put(null, Serializer.NULL_SERIALIZER);
-                    preallocRecids.put(recid);
+                while(!closeInProgress || parentEngineWeakRef.get()==null){
+                    Long newRecid = getWrappedEngine().put(Utils.EMPTY_STRING, Serializer.NULL_SERIALIZER);
+                    newRecids.put(newRecid);
                 }
-            }catch(Throwable e){
-                //store reason why we failed, so user can be notified
-                //TODO logging here?
-                throwed = e;
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }finally {
+                shutdownCondition.countDown();
             }
-    }
+
+        }
     };
 
-    /** signals that Writer Thread quit*/
-    protected final CountDownLatch writerThreadDown = new CountDownLatch(1);
+    protected final AtomicReference<LongConcurrentHashMap> m1 =
+            new AtomicReference<LongConcurrentHashMap>(new LongConcurrentHashMap());
 
-    /** indicates if Writer Thread has been started, used for lazy thread start */
-    protected final AtomicBoolean writerThreadRunning = new AtomicBoolean(false);
-
-    /**
-     * If exception is thrown in Writer Thread, it dies and exception goes here.
-     * Then it is forwarded to user every time it tries to modify records.
-     */
-    protected Throwable throwed = null;
-
-    /** lock used with commit/rollback/close operation */
-    private final ReentrantReadWriteLock commitLock = new ReentrantReadWriteLock();
-
-    private final Condition writeCacheEmptyCondition = commitLock.writeLock().newCondition();
-
-    /**
-     * Items which are queued for writing.
-     */
-    protected final LongConcurrentHashMap<WriteItem> writeCache = new LongConcurrentHashMap<WriteItem>();
+    protected final AtomicReference<LongConcurrentHashMap> m2 =
+            new AtomicReference<LongConcurrentHashMap>(new LongConcurrentHashMap());
 
 
 
-    /**
-     * @param engine into which writes will be forward to
-     * @param asyncThreadDaemon passed to {@ling Thread@setDaemon(boolean)} on Writer Thread
-     * @param powerSavingMode if true, disable periodic checks if parent engine was GCed.
-     * @param flushDelay when Write Queue becomes empty, pause Writer Thread for given delay
-     */
-    public AsyncWriteEngine(Engine engine, boolean asyncThreadDaemon, boolean powerSavingMode, int flushDelay) {
+    protected AsyncWriteEngine(Engine engine, boolean _asyncThreadDaemon, boolean _powerSavingMode, int _asyncFlushDelay) {
         super(engine);
-        this.powerSavingMode = powerSavingMode;
-        this.flushDelay = flushDelay;
-        writerThread.setDaemon(asyncThreadDaemon);
-    }
-
-    /**
-     * Check if Writer Thread was started, if not start it.
-     */
-    protected void checkAndStartWriter(){
-        if(throwed!=null) throw new RuntimeException("Writer Thread failed with an exception.",throwed);
-
-        if(!writerThreadRunning.get() && writerThreadRunning.compareAndSet(false, true)){
-            writerThread.start();
-            preallocThread.start();
+        if(_asyncThreadDaemon){
+            newRecidsThread.setDaemon(true);
         }
+        newRecidsThread.start();
     }
 
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
-        checkAndStartWriter();
         try {
-            long recid = preallocRecids.take();
-            update(recid, value,serializer);
+            Long recid = newRecids.poll(100, TimeUnit.MILLISECONDS);
+            if(recid==null)
+                return super.put(value,serializer);
+            update(recid, value, serializer);
             return recid;
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
     }
 
-    @SuppressWarnings("unchecked")
-	@Override
+    @Override
     public <A> A get(long recid, Serializer<A> serializer) {
-        commitLock.readLock().lock();
-        try{
-            for(;;){
-                WriteItem item = writeCache.get(recid);
-                if(item == null){
-                    return super.get(recid, serializer);
-                }else synchronized (item){
-                    if(item.value==DONE || item.serializer!=serializer) continue;
-                    else if(item.value==DELETED) return null;
-                    else return (A) item.value;
-                }
-            }
-        }finally{
-            commitLock.readLock().unlock();
-        }
+        return super.get(recid, serializer);
     }
 
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
-        checkAndStartWriter();
-        commitLock.readLock().lock();
-        try{ for(;;){
-            WriteItem item = writeCache.get(recid);
-            if(item == null){
-                if(writeCache.putIfAbsent(recid, new WriteItem(value, serializer)) == null){
-                    return;
-                }else{
-                    continue; //there was conflict, so try again latter
-                }
-            }else{
-                synchronized (item){
-                    if(item.value==DONE) continue;
-                    item.serializer = serializer;
-                    item.value = value;
-                    return;
-                }
-            }
-        }
-
-        }finally{
-            commitLock.readLock().unlock();
-        }
+        super.update(recid, value, serializer);
     }
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
-        checkAndStartWriter();
-
-        commitLock.writeLock().lock();
-        try{
-            for(;;){
-                WriteItem item = writeCache.get(recid);
-                if(item == null){
-                    //not in write queue, so get old value
-                    A oldValue = super.get(recid, serializer);
-                    if(oldValue == expectedOldValue || (oldValue!=null && oldValue.equals(expectedOldValue))){
-                        if(writeCache.putIfAbsent(recid, new WriteItem(newValue, serializer)) == null){
-                            return true;
-                        }else{
-                            continue; //there was conflict, so try again latter
-                        }
-                    }else{
-                        //old value did not matched, so fail
-                        return false;
-                    }
-                }else{
-                    //previous value was found in write cache, try to update it
-                    synchronized (item){
-                        if(item.value==DONE) continue;
-                        if(item.value == expectedOldValue || (item.value!=null && item.value.equals(expectedOldValue))){
-                            //match, update stuff
-                            item.serializer = serializer;
-                            item.value = newValue;
-                            return true;
-                        }else{
-                            return false;
-                        }
-                    }
-                }
-
-            }
-        }finally{
-            commitLock.writeLock().unlock();
-        }
+        return super.compareAndSwap(recid, expectedOldValue, newValue, serializer);
     }
 
     @Override
-    public <A> void delete(long recid, Serializer<A> serializer){
-        update(recid, (A) DELETED, serializer );
-    }
-
-    @Override
-    public void commit() {
-        commitLock.writeLock().lock();
-        try{
-            if (!writeCache.isEmpty())
-                writeCacheEmptyCondition.awaitUninterruptibly();
-            super.commit();
-        }finally{
-            commitLock.writeLock().unlock();
-        }
+    public <A> void delete(long recid, Serializer<A> serializer) {
+        super.delete(recid, serializer);
     }
 
     @Override
     public void close() {
-        commitLock.writeLock().lock();
-        try{
-            if (!writeCache.isEmpty())
-                writeCacheEmptyCondition.awaitUninterruptibly();
-            //TODO close thread
+        try {
+            closeInProgress = true;
+            //put preallocated recids back to store
+            for(Long recid = newRecids.poll(); recid!=null; recid = newRecids.poll()){
+                super.delete(recid, Serializer.NULL_SERIALIZER);
+            }
+            //TODO commit after returning recids?
+
+            //wait for worker threads to shutdown
+            shutdownCondition.await();
+
+
             super.close();
-        }finally{
-            commitLock.writeLock().unlock();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 
-    @Override
-    public void rollback() {
-        commitLock.writeLock().lock();
-        try{
-            if (!writeCache.isEmpty())
-                writeCacheEmptyCondition.awaitUninterruptibly();
-            //TODO clear cache directly?
-            super.rollback();
-        }finally{
-            commitLock.writeLock().unlock();
-        }
-    }
 
 
     protected WeakReference<Engine> parentEngineWeakRef = null;
