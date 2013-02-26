@@ -609,7 +609,7 @@ public class BTreeSet2Test extends JSR166TestCase {
      * Subsets of subsets subdivide correctly
      */
     public void testRecursiveSubSets() throws Exception {
-        int setSize = 10000;
+        int setSize = 1000;
 
 
         NavigableSet<Integer> set = newNavigableSet();

@@ -853,7 +853,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * Submaps of submaps subdivide correctly
      */
     public void testRecursiveSubMaps() throws Exception {
-        int mapSize = 10000;
+        int mapSize = 1000;
 
         NavigableMap<Integer, Integer> map = newBTreeMap();
         bs = new BitSet(mapSize);

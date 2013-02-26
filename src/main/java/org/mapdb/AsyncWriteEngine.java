@@ -17,13 +17,8 @@
 package org.mapdb;
 
 import java.lang.ref.WeakReference;
-import java.util.ArrayList;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -44,76 +39,191 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     protected final BlockingQueue<Long> newRecids = new ArrayBlockingQueue<Long>(128);
 
     protected volatile boolean closeInProgress = false;
-    protected final CountDownLatch shutdownCondition = new CountDownLatch(1);
+    protected final CountDownLatch shutdownCondition = new CountDownLatch(2);
+
+    protected static final Object DELETED = new Object();
+    protected static final Object WRITE_SLEEP_LOCK = new Object();
+
+    protected final Locks.RecidLocks writeLocks = new Locks.LongHashMapRecidLocks();
+
+    protected final ReentrantReadWriteLock commitLock;
+
+    protected Throwable writerFailedException = null;
+
+
+    protected final LongConcurrentHashMap<Fun.Tuple2<Object,Serializer>> items = new LongConcurrentHashMap<Fun.Tuple2<Object, Serializer>>();
 
     protected final Thread newRecidsThread = new Thread("MapDB prealloc #"+threadNum){
         @Override public void run() {
             try{
-                while(!closeInProgress || parentEngineWeakRef.get()==null){
+                for(;;){
+                    if(closeInProgress || (parentEngineWeakRef!=null && parentEngineWeakRef.get()==null) || writerFailedException!=null) return;
                     Long newRecid = getWrappedEngine().put(Utils.EMPTY_STRING, Serializer.NULL_SERIALIZER);
                     newRecids.put(newRecid);
                 }
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+            } catch (Throwable e) {
+                writerFailedException = e;
             }finally {
                 shutdownCondition.countDown();
             }
-
         }
     };
 
-    protected final AtomicReference<LongConcurrentHashMap> m1 =
-            new AtomicReference<LongConcurrentHashMap>(new LongConcurrentHashMap());
+    protected final Thread writerThread = new Thread("MapDB writer #"+threadNum){
+        @Override public void run() {
+            try{
 
-    protected final AtomicReference<LongConcurrentHashMap> m2 =
-            new AtomicReference<LongConcurrentHashMap>(new LongConcurrentHashMap());
+                for(;;){
+                    LongMap.LongMapIterator<Fun.Tuple2<Object,Serializer>> iter = items.longMapIterator();
+
+                    if(!iter.moveToNext()){
+                        //empty map, pause for a moment to give it chance to fill
+                        if(closeInProgress || (parentEngineWeakRef!=null && parentEngineWeakRef.get()==null) || writerFailedException!=null) return;
+
+                        synchronized (WRITE_SLEEP_LOCK){
+                            WRITE_SLEEP_LOCK.wait(100);
+                        }
+
+                    }else do{
+                        //iterate over items and write them
+                        long recid = iter.key();
+
+                        writeLocks.lock(recid);
+                        try{
+                            Fun.Tuple2<Object,Serializer> value = iter.value();
+                            if(value.a==DELETED){
+                                AsyncWriteEngine.super.delete(recid, value.b);
+                            }else{
+                                AsyncWriteEngine.super.update(recid, value.a, value.b);
+                            }
+                            items.remove(recid, value);
+                        }finally {
+                            writeLocks.unlock(recid);
+                        }
+                    }while(iter.moveToNext());
+
+                }
+            } catch (Throwable e) {
+                writerFailedException = e;
+            }finally {
+                shutdownCondition.countDown();
+            }
+        }
+    };
 
 
 
-    protected AsyncWriteEngine(Engine engine, boolean _asyncThreadDaemon, boolean _powerSavingMode, int _asyncFlushDelay) {
+    protected AsyncWriteEngine(Engine engine, boolean _asyncThreadDaemon, boolean _transactionsDisabled, boolean _powerSavingMode, int _asyncFlushDelay) {
         super(engine);
         if(_asyncThreadDaemon){
             newRecidsThread.setDaemon(true);
+            writerThread.setDaemon(true);
         }
+        commitLock = _transactionsDisabled? new ReentrantReadWriteLock() : null;
         newRecidsThread.start();
+        writerThread.start();
+
     }
 
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
-        try {
-            Long recid = newRecids.poll(100, TimeUnit.MILLISECONDS);
-            if(recid==null)
-                return super.put(value,serializer);
-            update(recid, value, serializer);
-            return recid;
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+        checkState();
+
+
+        if(commitLock!=null) commitLock.readLock().lock();
+        try{
+
+            try {
+                Long recid = newRecids.take();
+                update(recid, value, serializer);
+                return recid;
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }finally{
+            if(commitLock!=null) commitLock.readLock().unlock();
         }
+
+    }
+
+    protected void checkState() {
+        if(closeInProgress) throw new IllegalAccessError("db has been closed");
+        if(writerFailedException!=null) throw new RuntimeException("Writer thread failed", writerFailedException);
     }
 
     @Override
     public <A> A get(long recid, Serializer<A> serializer) {
-        return super.get(recid, serializer);
+        checkState();
+        if(commitLock!=null) commitLock.readLock().lock();
+        try{
+            writeLocks.lock(recid);
+            try{
+                Fun.Tuple2<Object,Serializer> item = items.get(recid);
+                if(item!=null){
+                    if(item.a == DELETED) return null;
+                    return (A) item.a;
+                }
+
+                return super.get(recid, serializer);
+            }finally{
+                writeLocks.unlock(recid);
+            }
+        }finally{
+            if(commitLock!=null) commitLock.readLock().unlock();
+        }
     }
 
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
-        super.update(recid, value, serializer);
+        checkState();
+        if(commitLock!=null) commitLock.readLock().lock();
+        try{
+
+            writeLocks.lock(recid);
+            try{
+                items.put(recid, new Fun.Tuple2(value,serializer));
+                synchronized (WRITE_SLEEP_LOCK){
+                    WRITE_SLEEP_LOCK.notifyAll();
+                }
+            }finally{
+                writeLocks.unlock(recid);
+            }
+        }finally{
+            if(commitLock!=null) commitLock.readLock().unlock();
+        }
+
     }
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
-        return super.compareAndSwap(recid, expectedOldValue, newValue, serializer);
+        checkState();
+        writeLocks.lock(recid);
+        try{
+            Fun.Tuple2<Object, Serializer> existing = items.get(recid);
+            A oldValue = existing!=null? (A) existing.a : super.get(recid, serializer);
+            if(oldValue == expectedOldValue || (oldValue!=null && oldValue.equals(expectedOldValue))){
+                items.put(recid, new Fun.Tuple2(newValue,serializer));
+                synchronized (WRITE_SLEEP_LOCK){
+                    WRITE_SLEEP_LOCK.notifyAll();
+                }
+                return true;
+            }else{
+                return false;
+            }
+        }finally{
+            writeLocks.unlock(recid);
+        }
     }
 
     @Override
     public <A> void delete(long recid, Serializer<A> serializer) {
-        super.delete(recid, serializer);
+        update(recid, (A) DELETED, serializer);
     }
 
     @Override
     public void close() {
         try {
+            if(closeInProgress) return;
             closeInProgress = true;
             //put preallocated recids back to store
             for(Long recid = newRecids.poll(); recid!=null; recid = newRecids.poll()){
@@ -148,4 +258,34 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
         parentEngineWeakRef = new WeakReference<Engine>(parentEngineReference);
     }
 
+    @Override
+    public void commit() {
+        checkState();
+        if(commitLock==null){
+            super.commit();
+            return;
+        }
+        commitLock.writeLock().lock();
+        try{
+            while(!items.isEmpty()) LockSupport.parkNanos(100);
+
+            super.commit();
+        }finally {
+            commitLock.writeLock().unlock();
+        }
+    }
+
+    @Override
+    public void rollback() {
+        checkState();
+        if(commitLock == null) throw new UnsupportedOperationException("transactions disabled");
+        commitLock.writeLock().lock();
+        try{
+            while(!items.isEmpty()) LockSupport.parkNanos(100);
+
+            super.commit();
+        }finally {
+            commitLock.writeLock().unlock();
+        }
+    }
 }
