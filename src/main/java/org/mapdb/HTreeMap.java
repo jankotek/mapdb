@@ -985,6 +985,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         @Override
         public K next() {
+        	if(currentLinkedList == null)
+        		throw new NoSuchElementException();
             K key = (K) currentLinkedList[currentLinkedListPos];
             moveToNext();
             return key;
@@ -995,6 +997,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         @Override
         public V next() {
+        	if(currentLinkedList == null)
+        		throw new NoSuchElementException();
             V value = (V) currentLinkedList[currentLinkedListPos+1];
             moveToNext();
             return value;
@@ -1005,6 +1009,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         @Override
         public Entry<K, V> next() {
+        	if(currentLinkedList == null)
+        		throw new NoSuchElementException();
             K key = (K) currentLinkedList[currentLinkedListPos];
             moveToNext();
             return new Entry2(key);
