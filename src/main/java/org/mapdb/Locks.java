@@ -16,6 +16,7 @@
 
 package org.mapdb;
 
+import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -91,7 +92,7 @@ public final class Locks {
 
 
             while(locks.putIfAbsent(recid, Thread.currentThread()) != null){
-                Thread.yield();
+                LockSupport.parkNanos(10);
             }
             if(CC.LOG_LOCKS)
                 Utils.LOG.finest("LOCK R:"+recid+" T:"+Thread.currentThread().getId());
