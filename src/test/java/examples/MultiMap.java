@@ -35,6 +35,7 @@ public class MultiMap {
         boolean found = multiMap.contains(Fun.t2("bb",1L));
         System.out.println("Found: " + found);
 
+        db.close();
 
     }
 }
