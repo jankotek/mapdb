@@ -52,5 +52,10 @@ public interface CC {
      */
     boolean LOG_LOCKS = false;
 
+    /**
+     * If true MapDB will display warnings if user is using MapDB API wrong way.
+     */
+    boolean LOG_HINTS = true;
+
 }
 

@@ -19,7 +19,9 @@ package org.mapdb;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
+import java.util.Map;
 import java.util.logging.Logger;
 
 /**
@@ -226,6 +228,16 @@ final public class Utils {
         if(prop!=null && prop.contains("64")) return true;
         //TODO better check for 32bit JVM
         return false;
+    }
+
+    private static boolean collectionAsMapValueLogged = false;
+
+    public static void checkMapValueIsNotCollecion(Object value){
+        if(!CC.LOG_HINTS || collectionAsMapValueLogged) return;
+        if(value instanceof Collection || value instanceof Map){
+            collectionAsMapValueLogged = true;
+            LOG.warning("You should not use collections as Map values. MapDB requires key/values to be immutable! Checkout MultiMap example for 1:N mapping.");
+        }
     }
 
 }

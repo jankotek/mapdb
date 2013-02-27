@@ -397,6 +397,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         if (value == null)
             throw new IllegalArgumentException("null value");
 
+        Utils.checkMapValueIsNotCollecion(value);
+
         final int h = hash(key);
         final int segment = h >>>28;
         try{
@@ -1057,6 +1059,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     @Override
     public V putIfAbsent(K key, V value) {
         if(key==null||value==null) throw new NullPointerException();
+        Utils.checkMapValueIsNotCollecion(value);
         final int segment = HTreeMap.this.hash(key) >>>28;
         try{
             segmentLocks[segment].writeLock().lock();

@@ -580,7 +580,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     protected V put2(K v, V value2, final boolean putOnlyIfAbsent){
         if(v == null) throw new IllegalArgumentException("null key");
         if(value2 == null) throw new IllegalArgumentException("null value");
-
+        Utils.checkMapValueIsNotCollecion(value2);
 
         V value = value2;
         if(valsOutsideNodes){
