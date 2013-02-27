@@ -1,7 +1,6 @@
 package org.mapdb;
 
 
-import sun.management.snmp.jvmmib.EnumJvmMemPoolType;
 
 import java.io.DataInput;
 import java.io.DataOutput;
