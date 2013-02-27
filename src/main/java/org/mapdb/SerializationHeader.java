@@ -141,8 +141,7 @@ interface SerializationHeader {
     int  DATE = 127;
     int FUN_HI = 128;
 
-//    int POS_INFINITY = 129;
-
+    int STRING_SERIALIZER = 129;
     int COMPARABLE_COMPARATOR = 130;
     int COMPARABLE_COMPARATOR_WITH_NULLS = 131;
     int BASIC_SERIALIZER = 132;
@@ -165,9 +164,13 @@ interface SerializationHeader {
 
     int B_TREE_SERIALIZER_POS_LONG = 147;
     int B_TREE_SERIALIZER_STRING = 148;
-
-    int MAPDB_STACK = 149;
-    int MAPDB_QUEUE = 150;
+    int B_TREE_SERIALIZER_POS_INT = 149;
+    int LONG_SERIALIZER = 150;
+    int INTEGER_SERIALIZER = 151;
+    int EMPTY_SERIALIZER = 152;
+    int CRC32_SERIALIZER = 153;
+    int MAPDB_STACK = 154;
+    int MAPDB_QUEUE = 155;
 
     /**
      * used for reference to already serialized object in object graph

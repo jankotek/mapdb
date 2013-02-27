@@ -33,9 +33,15 @@ import static org.mapdb.SerializationHeader.*;
 public class SerializerBase implements Serializer{
 
 
-    static final private Set knownSerializable = new HashSet(Arrays.asList(
-            BTreeKeySerializer.STRING, BTreeKeySerializer.ZERO_OR_POSITIVE_LONG,
-            Utils.COMPARABLE_COMPARATOR, Utils.COMPARABLE_COMPARATOR_WITH_NULLS
+    static final Set knownSerializable = new HashSet(Arrays.asList(
+            BTreeKeySerializer.STRING,
+            BTreeKeySerializer.ZERO_OR_POSITIVE_LONG,
+            BTreeKeySerializer.ZERO_OR_POSITIVE_INT,
+
+            Utils.COMPARABLE_COMPARATOR, Utils.COMPARABLE_COMPARATOR_WITH_NULLS,
+
+            Serializer.STRING_SERIALIZER, Serializer.LONG_SERIALIZER, Serializer.INTEGER_SERIALIZER,
+            Serializer.EMPTY_SERIALIZER, Serializer.BASIC_SERIALIZER, Serializer.CRC32_CHECKSUM
     ));
 
     public static void assertSerializable(Object o){
@@ -303,6 +309,24 @@ public class SerializerBase implements Serializer{
 
         } else if(obj == BTreeKeySerializer.ZERO_OR_POSITIVE_LONG){
             out.write(B_TREE_SERIALIZER_POS_LONG);
+            return;
+        } else if(obj == BTreeKeySerializer.ZERO_OR_POSITIVE_INT){
+            out.write(B_TREE_SERIALIZER_POS_INT);
+            return;
+        } else if(obj == Serializer.STRING_SERIALIZER){
+            out.write(SerializationHeader.STRING_SERIALIZER);
+            return;
+        } else if(obj == Serializer.LONG_SERIALIZER){
+            out.write(SerializationHeader.LONG_SERIALIZER);
+            return;
+        } else if(obj == Serializer.INTEGER_SERIALIZER){
+            out.write(SerializationHeader.INTEGER_SERIALIZER);
+            return;
+        } else if(obj == Serializer.EMPTY_SERIALIZER){
+            out.write(SerializationHeader.EMPTY_SERIALIZER);
+            return;
+        } else if(obj == Serializer.CRC32_CHECKSUM){
+            out.write(SerializationHeader.CRC32_SERIALIZER);
             return;
         } else if(obj == BTreeKeySerializer.STRING){
             out.write(B_TREE_SERIALIZER_STRING);
@@ -957,8 +981,23 @@ public class SerializerBase implements Serializer{
             case COMPARABLE_COMPARATOR:
                 ret = Utils.COMPARABLE_COMPARATOR;
                 break;
+            case SerializationHeader.LONG_SERIALIZER:
+                ret = LONG_SERIALIZER;
+                break;
+            case SerializationHeader.INTEGER_SERIALIZER:
+                ret = INTEGER_SERIALIZER;
+                break;
+            case SerializationHeader.EMPTY_SERIALIZER:
+                ret = EMPTY_SERIALIZER;
+                break;
+            case SerializationHeader.CRC32_SERIALIZER:
+                ret = Serializer.CRC32_CHECKSUM;
+                break;
             case B_TREE_SERIALIZER_POS_LONG:
                 ret = BTreeKeySerializer.ZERO_OR_POSITIVE_LONG;
+                break;
+            case B_TREE_SERIALIZER_POS_INT:
+                ret = BTreeKeySerializer.ZERO_OR_POSITIVE_INT;
                 break;
             case B_TREE_SERIALIZER_STRING:
                 ret = BTreeKeySerializer.STRING;
@@ -971,6 +1010,9 @@ public class SerializerBase implements Serializer{
                 break;
             case SerializationHeader.BASIC_SERIALIZER:
                 ret = BASIC_SERIALIZER;
+                break;
+            case SerializationHeader.STRING_SERIALIZER:
+                ret = Serializer.STRING_SERIALIZER;
                 break;
             case TUPLE2:
                 ret = new Fun.Tuple2(deserialize(is, objectStack), deserialize(is, objectStack));

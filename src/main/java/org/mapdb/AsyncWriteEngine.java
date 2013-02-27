@@ -57,7 +57,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
             try{
                 for(;;){
                     if(closeInProgress || (parentEngineWeakRef!=null && parentEngineWeakRef.get()==null) || writerFailedException!=null) return;
-                    Long newRecid = getWrappedEngine().put(Utils.EMPTY_STRING, Serializer.NULL_SERIALIZER);
+                    Long newRecid = getWrappedEngine().put(Utils.EMPTY_STRING, Serializer.EMPTY_SERIALIZER);
                     newRecids.put(newRecid);
                 }
             } catch (Throwable e) {
@@ -243,7 +243,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
             closeInProgress = true;
             //put preallocated recids back to store
             for(Long recid = newRecids.poll(); recid!=null; recid = newRecids.poll()){
-                super.delete(recid, Serializer.NULL_SERIALIZER);
+                super.delete(recid, Serializer.EMPTY_SERIALIZER);
             }
             //TODO commit after returning recids?
 

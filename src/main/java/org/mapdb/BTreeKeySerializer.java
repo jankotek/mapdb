@@ -10,7 +10,7 @@ import java.io.IOException;
  *
  * @param <K>
  */
-public abstract class BTreeKeySerializer<K> {
+public abstract class BTreeKeySerializer<K>{
     public abstract void serialize(DataOutput out, int start, int end, Object[] keys) throws IOException;
 
     public abstract Object[] deserialize(DataInput in, int start, int end, int size) throws IOException;
@@ -65,6 +65,32 @@ public abstract class BTreeKeySerializer<K> {
             return ret;
         }
     };
+
+    public static final  BTreeKeySerializer<Integer> ZERO_OR_POSITIVE_INT = new BTreeKeySerializer<Integer>() {
+        @Override
+        public void serialize(DataOutput out, int start, int end, Object[] keys) throws IOException {
+            if(start>=end) return;
+//            System.out.println(start+" - "+end+" - "+Arrays.toString(keys));
+            int prev = (Integer)keys[start];
+            Utils.packLong(out,prev);
+            for(int i=start+1;i<end;i++){
+                int curr = (Integer)keys[i];
+                Utils.packInt(out, curr-prev);
+                prev = curr;
+            }
+        }
+
+        @Override
+        public Object[] deserialize(DataInput in, int start, int end, int size) throws IOException {
+            Object[] ret = new Long[size];
+            int prev = 0 ;
+            for(int i = start; i<end; i++){
+                ret[i] = prev = prev + Utils.unpackInt(in);
+            }
+            return ret;
+        }
+    };
+
 
     public static final  BTreeKeySerializer<String> STRING = new BTreeKeySerializer<String>() {
 

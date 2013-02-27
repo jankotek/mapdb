@@ -25,6 +25,7 @@ import java.util.AbstractMap.SimpleEntry;
 import java.util.*;
 
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertTrue;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class SerializerBaseTest extends TestCase {
@@ -438,5 +439,11 @@ public class SerializerBaseTest extends TestCase {
         assertArrayEquals(arr,arr2);
     }
 
+
+    public void test_static_objects(){
+        for(Object o:SerializerBase.knownSerializable){
+            assertTrue(o==Utils.clone(o, Serializer.BASIC_SERIALIZER));
+        }
+    }
 
 }

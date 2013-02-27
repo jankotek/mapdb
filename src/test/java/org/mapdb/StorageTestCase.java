@@ -5,6 +5,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,7 +22,23 @@ import static org.junit.Assert.assertEquals;
 abstract public class StorageTestCase extends TestFile{
 
 
-    Engine engine = openEngine();;
+    Serializer<byte[] > BYTE_ARRAY_SERIALIZER = new Serializer<byte[]>() {
+
+        @Override
+        public void serialize(DataOutput out, byte[] value) throws IOException {
+            out.write(value);
+        }
+
+        @Override
+        public byte[] deserialize(DataInput in, int available) throws IOException {
+            byte[] ret = new byte[available];
+            in.readFully(ret);
+            return ret;
+        }
+    } ;
+
+
+    Engine engine = openEngine();
 
     @After
     public void tearDown() throws Exception {
@@ -67,42 +86,42 @@ abstract public class StorageTestCase extends TestFile{
     public void large_record(){
         byte[] b = new byte[100000];
         Arrays.fill(b, (byte) 111);
-        long recid = engine.put(b, Serializer.BYTE_ARRAY_SERIALIZER);
-        byte[] b2 = engine.get(recid, Serializer.BYTE_ARRAY_SERIALIZER);
+        long recid = engine.put(b, BYTE_ARRAY_SERIALIZER);
+        byte[] b2 = engine.get(recid, BYTE_ARRAY_SERIALIZER);
         assertArrayEquals(b,b2);
     }
 
     @Test public void large_record_update(){
         byte[] b = new byte[100000];
         Arrays.fill(b, (byte) 111);
-        long recid = engine.put(b, Serializer.BYTE_ARRAY_SERIALIZER);
+        long recid = engine.put(b, BYTE_ARRAY_SERIALIZER);
         Arrays.fill(b, (byte)222);
-        engine.update(recid, b, Serializer.BYTE_ARRAY_SERIALIZER);
-        byte[] b2 = engine.get(recid, Serializer.BYTE_ARRAY_SERIALIZER);
+        engine.update(recid, b, BYTE_ARRAY_SERIALIZER);
+        byte[] b2 = engine.get(recid, BYTE_ARRAY_SERIALIZER);
         assertArrayEquals(b,b2);
         engine.commit();
         reopenStore();
-        b2 = engine.get(recid, Serializer.BYTE_ARRAY_SERIALIZER);
+        b2 = engine.get(recid, BYTE_ARRAY_SERIALIZER);
         assertArrayEquals(b,b2);
     }
 
     @Test public void large_record_delete(){
         byte[] b = new byte[100000];
         Arrays.fill(b, (byte) 111);
-        long recid = engine.put(b, Serializer.BYTE_ARRAY_SERIALIZER);
-        engine.delete(recid,Serializer.BYTE_ARRAY_SERIALIZER);
+        long recid = engine.put(b, BYTE_ARRAY_SERIALIZER);
+        engine.delete(recid,BYTE_ARRAY_SERIALIZER);
     }
 
 
     @Test public void large_record_larger(){
         byte[] b = new byte[10000000];
         Arrays.fill(b, (byte) 111);
-        long recid = engine.put(b, Serializer.BYTE_ARRAY_SERIALIZER);
-        byte[] b2 = engine.get(recid, Serializer.BYTE_ARRAY_SERIALIZER);
+        long recid = engine.put(b, BYTE_ARRAY_SERIALIZER);
+        byte[] b2 = engine.get(recid, BYTE_ARRAY_SERIALIZER);
         assertArrayEquals(b,b2);
         engine.commit();
         reopenStore();
-        b2 = engine.get(recid, Serializer.BYTE_ARRAY_SERIALIZER);
+        b2 = engine.get(recid, BYTE_ARRAY_SERIALIZER);
         assertArrayEquals(b,b2);
 
     }

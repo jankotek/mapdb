@@ -1,6 +1,5 @@
 package org.mapdb;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -71,7 +70,7 @@ public class TxMaker {
         public <A> long put(A value, Serializer<A> serializer) {
             if(isClosed()) throw new IllegalAccessError("already closed");
             synchronized (lock){
-                long recid = engine.put(Utils.EMPTY_STRING, Serializer.NULL_SERIALIZER);
+                long recid = engine.put(Utils.EMPTY_STRING, Serializer.EMPTY_SERIALIZER);
                 newItems.add(recid);
                 modItems.put(recid, Fun.t2(value, (Serializer)serializer));
                 globalMod.put(recid, TxEngine.this);
@@ -158,7 +157,7 @@ public class TxMaker {
                 }
                 //delete preallocated items
                 for(long recid:newItems){
-                    engine.delete(recid, Serializer.NULL_SERIALIZER);
+                    engine.delete(recid, Serializer.EMPTY_SERIALIZER);
                 }
                 modItems = null;
                 newItems = null;

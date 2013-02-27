@@ -120,24 +120,10 @@ public interface Serializer<A> {
     };
 
     
-    Serializer<byte[] > BYTE_ARRAY_SERIALIZER = new Serializer<byte[]>() {
-
-        @Override
-        public void serialize(DataOutput out, byte[] value) throws IOException {
-            out.write(value);
-        }
-
-        @Override
-        public byte[] deserialize(DataInput in, int available) throws IOException {
-            byte[] ret = new byte[available];
-            in.readFully(ret);
-            return ret;
-        }
-    } ;
 
 
     /** always writes zero length data, and always deserializes it as an empty String */
-    Serializer<Object> NULL_SERIALIZER = new Serializer<Object>() {
+    Serializer<Object> EMPTY_SERIALIZER = new Serializer<Object>() {
         @Override
         public void serialize(DataOutput out, Object value) throws IOException {
             if(value!=Utils.EMPTY_STRING) throw new IllegalArgumentException();
@@ -152,38 +138,8 @@ public interface Serializer<A> {
 
     /** basic serializer for most classes in 'java.lang' and 'java.util' packages*/
     @SuppressWarnings("unchecked")
-    
     Serializer<Object> BASIC_SERIALIZER = new SerializerBase();
 
-    /** Basic serializer for most classes in 'java.lang' and 'java.util' packages.
-     * This serializer simulates CPU intensive (de)serialization by adding some calculations to slow down CPU.*/
-
-    
-    Serializer<Object> SLOW_BASIC_SERIALIZER = new Serializer<Object>(){
-
-        private void slowDown(){
-            long result = 0;
-            long t = System.currentTimeMillis();
-            while(t==System.currentTimeMillis()){
-                result += 1;
-                if(result==Long.MIN_VALUE) result++;
-            }
-            if(result==Long.MIN_VALUE)
-                throw new InternalError(); //this will never happen thanks to condition in loop;
-        }
-
-        @Override
-        public void serialize(DataOutput out, Object value) throws IOException {
-            slowDown();
-            BASIC_SERIALIZER.serialize(out, value);
-        }
-
-        @Override
-        public Object deserialize(DataInput in, int available) throws IOException {
-            slowDown();
-            return BASIC_SERIALIZER.deserialize(in, available);
-        }
-    };
 
 
     /**
