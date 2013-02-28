@@ -50,7 +50,6 @@ public class DBMaker {
 
     protected boolean _asyncWriteEnabled = true;
     protected int _asyncFlushDelay = 0;
-    protected boolean _asyncThreadDaemon = false;
 
     protected boolean _deleteFilesAfterClose = false;
     protected boolean _readOnly = false;
@@ -125,7 +124,6 @@ public class DBMaker {
                 .deleteFilesAfterClose()
                 .closeOnJvmShutdown()
                 .journalDisable()
-                .asyncThreadDaemonEnable()
                 .make()
                 .getTreeMap("temp");
     }
@@ -141,7 +139,6 @@ public class DBMaker {
                 .deleteFilesAfterClose()
                 .closeOnJvmShutdown()
                 .journalDisable()
-                .asyncThreadDaemonEnable()
                 .make()
                 .getHashMap("temp");
     }
@@ -157,7 +154,6 @@ public class DBMaker {
                 .deleteFilesAfterClose()
                 .closeOnJvmShutdown()
                 .journalDisable()
-                .asyncThreadDaemonEnable()
                 .make()
                 .getTreeSet("temp");
     }
@@ -173,7 +169,6 @@ public class DBMaker {
                 .deleteFilesAfterClose()
                 .closeOnJvmShutdown()
                 .journalDisable()
-                .asyncThreadDaemonEnable()
                 .make()
                 .getHashSet("temp");
     }
@@ -334,20 +329,6 @@ public class DBMaker {
      */
     public DBMaker asyncWriteDisable(){
         this._asyncWriteEnabled = false;
-        return this;
-    }
-
-    /**
-     * In async mode writes are done in Writer Thread.
-     * If main thread dies Writer Thread still lives and prevents JVM from exiting.
-     * This is good as it prevents data loss.
-     * However in some modes shuting down JVM may be more important than preserving data.
-     * So you may set Writer Thread to 'daemon mode' so JVM can exit
-     *
-     * @return this builder
-     */
-    public DBMaker asyncThreadDaemonEnable(){
-        this._asyncThreadDaemon = true;
         return this;
     }
 
@@ -598,7 +579,7 @@ public class DBMaker {
 
         AsyncWriteEngine engineAsync = null;
         if(_asyncWriteEnabled && !_readOnly){
-            engineAsync = new AsyncWriteEngine(engine,  _asyncThreadDaemon,!_journalEnabled,  _powerSavingMode, _asyncFlushDelay);
+            engineAsync = new AsyncWriteEngine(engine,!_journalEnabled,  _powerSavingMode, _asyncFlushDelay);
             engine = engineAsync;
         }
 

@@ -114,12 +114,12 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
 
 
 
-    protected AsyncWriteEngine(Engine engine, boolean _asyncThreadDaemon, boolean _transactionsDisabled, boolean _powerSavingMode, int _asyncFlushDelay) {
+    protected AsyncWriteEngine(Engine engine, boolean _transactionsDisabled, boolean _powerSavingMode, int _asyncFlushDelay) {
         super(engine);
-        if(_asyncThreadDaemon){
-            newRecidsThread.setDaemon(true);
-            writerThread.setDaemon(true);
-        }
+
+        newRecidsThread.setDaemon(true);
+        writerThread.setDaemon(true);
+
         commitLock = _transactionsDisabled? new ReentrantReadWriteLock() : null;
         newRecidsThread.start();
         writerThread.start();
