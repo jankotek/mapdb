@@ -8,6 +8,8 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Various queues algorithms
@@ -17,7 +19,7 @@ public final class Queues {
     private Queues(){}
 
 
-    public static abstract class LockFreeQueue<E> implements java.util.Queue<E>{
+    public static abstract class SimpleQueue<E> implements java.util.Queue<E>{
 
         protected final Engine engine;
         protected final Serializer<E> serializer;
@@ -49,7 +51,7 @@ public final class Queues {
         protected final Serializer<Node<E>> nodeSerializer;
 
 
-        public LockFreeQueue(Engine engine, Serializer<E> serializer, long headRecid) {
+        public SimpleQueue(Engine engine, Serializer<E> serializer, long headRecid) {
             this.engine = engine;
             this.serializer = serializer;
             if(headRecid == 0) headRecid = engine.put(0L, Serializer.LONG_SERIALIZER);
@@ -196,7 +198,7 @@ public final class Queues {
      *
      * @param <E>
      */
-    public static class Stack<E> extends LockFreeQueue<E> {
+    public static class Stack<E> extends SimpleQueue<E> {
 
         protected final boolean useLocks;
         protected final Locks.RecidLocks locks;
@@ -314,7 +316,7 @@ public final class Queues {
      *
      * @param <E>
      */
-    public static class Queue<E> extends LockFreeQueue<E> {
+    public static class Queue<E> extends SimpleQueue<E> {
 
         protected final Atomic.Long tail;
         protected final Atomic.Long size;
@@ -424,7 +426,7 @@ public final class Queues {
 
     static <E> long createQueue(Engine engine, Serializer<Serializer> serializerSerializer, Serializer<E> serializer){
         long headerRecid = engine.put(0L, Serializer.LONG_SERIALIZER);
-        long nextTail = engine.put(LockFreeQueue.Node.EMPTY, new LockFreeQueue.NodeSerializer(null));
+        long nextTail = engine.put(SimpleQueue.Node.EMPTY, new SimpleQueue.NodeSerializer(null));
         long nextTailRecid = engine.put(nextTail, Serializer.LONG_SERIALIZER);
         long sizeRecid = engine.put(0L, Serializer.LONG_SERIALIZER);
         QueueRoot root = new QueueRoot(headerRecid, nextTailRecid, sizeRecid, serializer);
@@ -436,6 +438,134 @@ public final class Queues {
     static <E> Queue<E> getQueue(Engine engine, Serializer<Serializer> serializerSerializer, long rootRecid){
         QueueRoot root = engine.get(rootRecid, new QueueRootSerializer(serializerSerializer));
         return new Queue<E>(engine, root.serializer, root.headerRecid, root.nextTailRecid,root.sizeRecid);
+    }
+
+    public static class CircularQueue<E> extends SimpleQueue<E> {
+
+        protected final Atomic.Long headInsert;
+        //TODO is there a way to implement this without global locks?
+        protected final Lock lock = new ReentrantLock();
+        protected final long size;
+
+        public CircularQueue(Engine engine, Serializer serializer, long headRecid, long headInsertRecid, long size) {
+            super(engine, serializer, headRecid);
+            headInsert = new Atomic.Long(engine, headInsertRecid);
+            this.size = size;
+        }
+
+        @Override
+        public boolean add(Object o) {
+            lock.lock();
+            try{
+                long nRecid = headInsert.get();
+                Node<E> n = engine.get(nRecid, nodeSerializer);
+                n = new Node<E>(n.next, (E) o);
+                engine.update(nRecid, n, nodeSerializer);
+                headInsert.set(n.next);
+                //move 'poll' head if it points to currently replaced item
+                head.compareAndSet(nRecid, n.next);
+                return true;
+            }finally {
+                lock.unlock();
+            }
+        }
+
+        @Override
+        public E poll() {
+            lock.lock();
+            try{
+                long nRecid = head.get();
+                Node<E> n = engine.get(nRecid, nodeSerializer);
+                engine.update(nRecid, new Node<E>(n.next, null), nodeSerializer);
+                head.set(n.next);
+                return n.value;
+            }finally {
+                lock.unlock();
+            }
+        }
+
+        @Override
+        public E peek() {
+            lock.lock();
+            try{
+                long nRecid = head.get();
+                Node<E> n = engine.get(nRecid, nodeSerializer);
+                return n.value;
+            }finally {
+                lock.unlock();
+            }
+        }
+    }
+
+    protected static final class CircularQueueRoot{
+        final long headerRecid;
+        final long headerInsertRecid;
+        final Serializer serializer;
+        final long sizeRecid;
+
+        public CircularQueueRoot(long headerRecid, long headerInsertRecid, long sizeRecid, Serializer serializer) {
+            this.headerRecid = headerRecid;
+            this.headerInsertRecid = headerInsertRecid;
+            this.serializer = serializer;
+            this.sizeRecid = sizeRecid;
+        }
+    }
+
+    protected static final class CircularQueueRootSerializer implements Serializer<CircularQueueRoot>{
+
+        final Serializer<Serializer> serialierSerializer;
+
+        public CircularQueueRootSerializer(Serializer<Serializer> serialierSerializer) {
+            this.serialierSerializer = serialierSerializer;
+        }
+
+        @Override
+        public void serialize(DataOutput out, CircularQueueRoot value) throws IOException {
+            out.write(SerializationHeader.MAPDB_CIRCULAR_QUEUE);
+            Utils.packLong(out, value.headerRecid);
+            Utils.packLong(out, value.headerInsertRecid);
+            Utils.packLong(out, value.sizeRecid);
+            serialierSerializer.serialize(out,value.serializer);
+        }
+
+        @Override
+        public CircularQueueRoot deserialize(DataInput in, int available) throws IOException {
+            if(in.readUnsignedByte()!=SerializationHeader.MAPDB_CIRCULAR_QUEUE) throw new InternalError();
+            return new CircularQueueRoot(
+                    Utils.unpackLong(in),
+                    Utils.unpackLong(in),
+                    Utils.unpackLong(in),
+                    serialierSerializer.deserialize(in,-1)
+            );
+        }
+    }
+
+    static <E> long createCircularQueue(Engine engine, Serializer<Serializer> serializerSerializer, Serializer<E> serializer, long size){
+        if(size<2) throw new IllegalArgumentException();
+        //insert N Nodes empty nodes into a circle
+        long prevRecid = 0;
+        long firstRecid = 0;
+        Serializer<SimpleQueue.Node> nodeSer = new SimpleQueue.NodeSerializer(serializerSerializer);
+        for(long i=0;i<size;i++){
+            SimpleQueue.Node n = new SimpleQueue.Node(prevRecid, null);
+            prevRecid = engine.put(n, nodeSer);
+            if(firstRecid==0) firstRecid = prevRecid;
+        }
+        //update first node to point to last recid
+        engine.update(firstRecid, new SimpleQueue.Node(prevRecid, null), nodeSer );
+
+        long headerRecid = engine.put(prevRecid, Serializer.LONG_SERIALIZER);
+        long headerInsertRecid = engine.put(prevRecid, Serializer.LONG_SERIALIZER);
+
+        CircularQueueRoot root = new CircularQueueRoot(headerRecid, headerInsertRecid, size, serializer);
+        CircularQueueRootSerializer rootSerializer = new CircularQueueRootSerializer(serializerSerializer);
+        return engine.put(root, rootSerializer);
+    }
+
+
+    static <E> CircularQueue<E> getCircularQueue(Engine engine, Serializer<Serializer> serializerSerializer, long rootRecid){
+        CircularQueueRoot root = engine.get(rootRecid, new CircularQueueRootSerializer(serializerSerializer));
+        return new CircularQueue<E>(engine, root.serializer, root.headerRecid, root.headerInsertRecid,root.sizeRecid);
     }
 
 

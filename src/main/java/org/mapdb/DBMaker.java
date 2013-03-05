@@ -49,7 +49,7 @@ public class DBMaker {
     protected boolean _journalEnabled = true;
 
     protected boolean _asyncWriteEnabled = true;
-    protected int _asyncFlushDelay = 0;
+    protected int _asyncFlushDelay = 100;
 
     protected boolean _deleteFilesAfterClose = false;
     protected boolean _readOnly = false;
@@ -180,7 +180,7 @@ public class DBMaker {
      */
     public static DBMaker newTempFileDB() {
         try {
-            return newFileDB(File.createTempFile("JDBM-temp","db")).randomAccessFileEnableIfNeeded();
+            return newFileDB(File.createTempFile("mapdb-temp","db"));
         } catch (IOException e) {
             throw new IOError(e);
         }
@@ -284,7 +284,7 @@ public class DBMaker {
      * Use this if you are experiencing <b>java.lang.OutOfMemoryError: Map failed</b> exceptions
      */
     public DBMaker randomAccessFileEnable() {
-        this._RAF = !Utils.JVMSupportsLargeMappedFiles();
+        this._RAF = true;
         return this;
     }
 

@@ -411,6 +411,13 @@ public abstract class Volume {
         @Override
         protected java.nio.ByteBuffer makeNewBuffer(long offset) {
             try {
+                //unmap old buffer on windows
+                int bufPos = (int) (offset/BUF_SIZE);
+                if(bufPos<buffers.length && buffers[bufPos]!=null){
+                    unmap((MappedByteBuffer) buffers[bufPos]);
+                    buffers[bufPos] = null;
+                }
+
                 long newBufSize =  offset% BUF_SIZE;
                 newBufSize = newBufSize + newBufSize%BUF_SIZE_INC; //round to BUF_SIZE_INC
                 return fileChannel.map(

@@ -75,8 +75,8 @@ public class StorageDirect  implements Engine {
     protected final boolean failOnWrongHeader;
     protected final boolean readOnly;
 
-    protected Volume phys;
-    protected Volume index;
+    volatile protected Volume phys;
+    volatile protected Volume index;
 
     public StorageDirect(Volume.Factory volFac, boolean appendOnly,
                    boolean deleteFilesOnExit, boolean failOnWrongHeader, boolean readOnly) {
@@ -627,6 +627,7 @@ public class StorageDirect  implements Engine {
     public void compact(){
         if(readOnly) throw new IllegalAccessError();
         if(index.getFile()==null) throw new UnsupportedOperationException("compact not supported for memory storage yet");
+        lock.writeLock().lock();
         try{
             //create secondary files for compaction
             //TODO RAF
@@ -645,6 +646,8 @@ public class StorageDirect  implements Engine {
 
             //iterate over recids and transfer physical records
             final long indexSize = index.getLong(RECID_CURRENT_INDEX_FILE_SIZE*8)/8;
+
+
             store2.lock.writeLock().lock();
             for(long recid = INDEX_OFFSET_START; recid<indexSize;recid++){
                 //read data from first store
@@ -674,22 +677,30 @@ public class StorageDirect  implements Engine {
                     //just write zeroes
                     store2.index.putLong(recid*8, 0);
                 }
-
-
-
             }
+
+            store2.index.putLong(RECID_CURRENT_INDEX_FILE_SIZE*8, indexSize*8);
 
             File indexFile2 = store2.index.getFile();
             File physFile2 = store2.phys.getFile();
             store2.lock.writeLock().unlock();
             store2.close();
 
+            long time = System.currentTimeMillis();
+            File indexFile_ = new File(indexFile.getPath()+"_"+time+"_orig");
+            File physFile_ = new File(physFile.getPath()+"_"+time+"_orig");
+
             index.close();
             phys.close();
+            if(!indexFile.renameTo(indexFile_))throw new InternalError();
+            if(!physFile.renameTo(physFile_))throw new InternalError();
 
-            indexFile2.renameTo(indexFile);
+            if(!indexFile2.renameTo(indexFile))throw new InternalError();
             //TODO process may fail in middle of rename, analyze sequence and add recovery
-            physFile2.renameTo(physFile);
+            if(!physFile2.renameTo(physFile))throw new InternalError();
+
+            indexFile_.delete();
+            physFile_.delete();
 
             Volume.Factory fac2 = Volume.fileFactory(false, isRaf, indexFile);
             index = fac2.createIndexVolume();
@@ -697,6 +708,8 @@ public class StorageDirect  implements Engine {
 
         }catch(IOException e){
             throw new IOError(e);
+        }finally {
+            lock.writeLock().unlock();
         }
     }
 

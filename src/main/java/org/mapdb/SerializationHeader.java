@@ -171,6 +171,7 @@ interface SerializationHeader {
     int CRC32_SERIALIZER = 153;
     int MAPDB_STACK = 154;
     int MAPDB_QUEUE = 155;
+    int MAPDB_CIRCULAR_QUEUE = 156;
 
     /**
      * used for reference to already serialized object in object graph

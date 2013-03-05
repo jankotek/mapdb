@@ -299,7 +299,41 @@ public class DB {
         return ret;
     }
 
+    synchronized public <E> Queue<E> getCircularQueue(String name) {
+        Long recid = nameDir.get(name);
+        if(recid == null){
+            recid = Queues.createCircularQueue(engine, getDefaultSerializer(), getDefaultSerializer(), 1000000);
+            nameDir.put(name,recid);
+        }
+        Queues.CircularQueue<E> ret = Queues.getCircularQueue(engine,getDefaultSerializer(),recid);
+        collections.put(name, new WeakReference<Object>(ret));
+        return ret;
 
+    }
+
+    synchronized public <E> Queue<E> createQueue(String name, Serializer<E> serializer) {
+        checkNameNotExists(name);
+        if(serializer==null) serializer=getDefaultSerializer();
+        Long recid = Queues.createQueue(engine, getDefaultSerializer(), serializer);
+        nameDir.put(name,recid);
+        return getQueue(name);
+    }
+
+    synchronized public <E> Queue<E> createStack(String name, Serializer<E> serializer, boolean useLocks) {
+        checkNameNotExists(name);
+        if(serializer==null) serializer=getDefaultSerializer();
+        Long recid = Queues.createStack(engine, getDefaultSerializer(), serializer, useLocks);
+        nameDir.put(name,recid);
+        return getStack(name);
+    }
+
+    synchronized public <E> Queue<E> createCircularQueue(String name, Serializer<E> serializer, long size) {
+        checkNameNotExists(name);
+        if(serializer==null) serializer=getDefaultSerializer();
+        Long recid = Queues.createCircularQueue(engine, getDefaultSerializer(), serializer, size);
+        nameDir.put(name,recid);
+        return getCircularQueue(name);
+    }
 
 
     /**
@@ -411,5 +445,7 @@ public class DB {
     public Engine getEngine() {
         return engine;
     }
+
+
 
 }

@@ -16,12 +16,14 @@
 
 package org.mapdb;
 
+import javax.swing.plaf.basic.BasicInternalFrameTitlePane;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 
 /**
@@ -193,7 +195,7 @@ final public class Utils {
      */
     public static File tempDbFile() {
         try{
-            File index = File.createTempFile("jdbmTest","db");
+            File index = File.createTempFile("mapdb","db");
             index.deleteOnExit();
             new File(index.getPath()+StorageDirect.DATA_FILE_EXT).deleteOnExit();
             new File(index.getPath()+ StorageWriteAhead.TRANS_LOG_FILE_EXT).deleteOnExit();
@@ -238,6 +240,36 @@ final public class Utils {
             collectionAsMapValueLogged = true;
             LOG.warning("You should not use collections as Map values. MapDB requires key/values to be immutable! Checkout MultiMap example for 1:N mapping.");
         }
+    }
+
+    public static void printer(final AtomicLong value){
+        new Thread("printer"){
+            {
+                setDaemon(true);
+            }
+
+
+            @Override
+            public void run() {
+                long startValue = value.get();
+                long startTime = System.currentTimeMillis();
+                long old = value.get();
+                while(true){
+
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        return;
+                    }
+
+                    long current = value.get();
+                    long totalSpeed = 1000*(current-startValue)/(System.currentTimeMillis()-startTime);
+                    System.out.print("total: "+current+" - items per last second: "+(current-old)+" - avg items per second: "+totalSpeed+"\r");
+                    old = current;
+                }
+
+            }
+        }.start();
     }
 
 }

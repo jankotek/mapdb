@@ -340,4 +340,28 @@ public class StorageDirectTest extends StorageTestCase {
     }
 
 
+    @Test public void compact2(){
+        Map<Long,Long> recids = new HashMap<Long, Long>();
+        for(Long l=0L;l<1000;l++){
+            recids.put(l,
+                    engine.put(l, Serializer.LONG_SERIALIZER));
+        }
+
+        engine.commit();
+        engine.compact();
+        for(Long l=1000L;l<2000;l++){
+            recids.put(l,
+                    engine.put(l, Serializer.LONG_SERIALIZER));
+        }
+
+        for(Map.Entry<Long,Long> e:recids.entrySet()){
+            Long recid= e.getValue();
+            Long value = e.getKey();
+            assertEquals(value, engine.get(recid, Serializer.LONG_SERIALIZER));
+        }
+
+
+    }
+
+
 }

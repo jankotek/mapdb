@@ -39,10 +39,9 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
 
     protected volatile boolean closeInProgress = false;
     protected final CountDownLatch shutdownCondition = new CountDownLatch(2);
+    protected final int asyncFlushDelay;
 
     protected static final Object DELETED = new Object();
-    protected final Lock writeNotifyLock = new ReentrantLock();
-    protected final Condition writeNotify = writeNotifyLock.newCondition();
     protected final Locks.RecidLocks writeLocks = new Locks.LongHashMapRecidLocks();
 
     protected final ReentrantReadWriteLock commitLock;
@@ -78,12 +77,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
                     if(!iter.moveToNext()){
                         //empty map, pause for a moment to give it chance to fill
                         if(closeInProgress || (parentEngineWeakRef!=null && parentEngineWeakRef.get()==null) || writerFailedException!=null) return;
-                        writeNotifyLock.lock();
-                        try{
-                            writeNotify.await(100,TimeUnit.MILLISECONDS);
-                        }finally {
-                            writeNotifyLock.unlock();
-                        }
+                        Thread.sleep(asyncFlushDelay);
 
                     }else do{
                         //iterate over items and write them
@@ -120,9 +114,10 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
         newRecidsThread.setDaemon(true);
         writerThread.setDaemon(true);
 
-        commitLock = _transactionsDisabled? new ReentrantReadWriteLock() : null;
+        commitLock = _transactionsDisabled? null: new ReentrantReadWriteLock();
         newRecidsThread.start();
         writerThread.start();
+        asyncFlushDelay = _asyncFlushDelay;
 
     }
 
@@ -177,27 +172,17 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
         checkState();
-        boolean notify = false;
         if(commitLock!=null) commitLock.readLock().lock();
         try{
 
             writeLocks.lock(recid);
             try{
                 items.put(recid, new Fun.Tuple2(value,serializer));
-                notify = true;
             }finally{
                 writeLocks.unlock(recid);
             }
         }finally{
             if(commitLock!=null) commitLock.readLock().unlock();
-            if(notify){
-                writeNotifyLock.lock();
-                try{
-                    writeNotify.signal();
-                }finally {
-                    writeNotifyLock.unlock();
-                }
-            }
         }
 
     }
@@ -205,28 +190,18 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
         checkState();
-        boolean notify = false;
         writeLocks.lock(recid);
         try{
             Fun.Tuple2<Object, Serializer> existing = items.get(recid);
             A oldValue = existing!=null? (A) existing.a : super.get(recid, serializer);
             if(oldValue == expectedOldValue || (oldValue!=null && oldValue.equals(expectedOldValue))){
                 items.put(recid, new Fun.Tuple2(newValue,serializer));
-                notify = true;
                 return true;
             }else{
                 return false;
             }
         }finally{
             writeLocks.unlock(recid);
-            if(notify){
-                writeNotifyLock.lock();
-                try{
-                    writeNotify.signal();
-                }finally {
-                    writeNotifyLock.unlock();
-                }
-            }
 
         }
     }
@@ -304,4 +279,5 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
             commitLock.writeLock().unlock();
         }
     }
+
 }
