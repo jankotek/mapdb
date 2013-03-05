@@ -10,7 +10,7 @@ import java.util.Collections;
 import static org.junit.Assert.*;
 
 
-public class StorageWriteAheadTest extends TestFile {
+public class StorageJournaledTest extends TestFile {
 
     final int stackId = StorageDirect.RECID_FREE_PHYS_RECORDS_START+1;
 
@@ -23,7 +23,7 @@ public class StorageWriteAheadTest extends TestFile {
         }
         r.close();
 
-        StorageWriteAhead t = new StorageWriteAhead(fac);
+        StorageJournaled t = new StorageJournaled(fac);
         t.lock.writeLock().lock();
         for(int i=999;i!=0;i--){
             assertEquals(i, t.longStackTake(stackId));
@@ -35,7 +35,7 @@ public class StorageWriteAheadTest extends TestFile {
         StorageDirect r = new StorageDirect(fac);
         long recid = r.put("aa", Serializer.STRING_SERIALIZER);
         r.close();
-        StorageWriteAhead t = new StorageWriteAhead(fac);
+        StorageJournaled t = new StorageJournaled(fac);
         assertEquals("aa", t.get(recid, Serializer.STRING_SERIALIZER));
         t.update(recid, "bb", Serializer.STRING_SERIALIZER);
         assertEquals("bb", t.get(recid, Serializer.STRING_SERIALIZER));
@@ -55,23 +55,23 @@ public class StorageWriteAheadTest extends TestFile {
 
     @Test public void persisted() throws IOException {
         
-        StorageWriteAhead t = new StorageWriteAhead(fac);
+        StorageJournaled t = new StorageJournaled(fac);
         final long recid = t.put("aa", Serializer.STRING_SERIALIZER);
         t.commit();
         t.close();
-        t = new StorageWriteAhead(fac);
+        t = new StorageJournaled(fac);
         assertEquals("aa", t.get(recid, Serializer.STRING_SERIALIZER));
 
         t.update(recid, "bb", Serializer.STRING_SERIALIZER);
         t.commit();
         t.close();
-        t = new StorageWriteAhead(fac);
+        t = new StorageJournaled(fac);
         assertEquals("bb", t.get(recid, Serializer.STRING_SERIALIZER));
 
         t.delete(recid,Serializer.STRING_SERIALIZER);
         t.commit();
         t.close();
-        t = new StorageWriteAhead(fac);
+        t = new StorageJournaled(fac);
         assertEquals("",t.get(recid, Serializer.STRING_SERIALIZER));
 
     }
@@ -82,35 +82,35 @@ public class StorageWriteAheadTest extends TestFile {
 
     @Test public void long_stack_put_take() throws IOException {
         
-        StorageWriteAhead t = new StorageWriteAhead(fac);
+        StorageJournaled t = new StorageJournaled(fac);
         t.lock.writeLock().lock();
         t.longStackPut(StorageDirect.RECID_FREE_PHYS_RECORDS_START+1, 112L);
         t.commit();
         t.close();
-        t = new StorageWriteAhead(fac);
+        t = new StorageJournaled(fac);
         t.lock.writeLock().lock();
         assertEquals(112L, t.longStackTake(StorageDirect.RECID_FREE_PHYS_RECORDS_START + 1));
 
         t.commit();
         t.close();
-        t = new StorageWriteAhead(fac);
+        t = new StorageJournaled(fac);
         t.lock.writeLock().lock();
         assertEquals(0L, t.longStackTake(StorageDirect.RECID_FREE_PHYS_RECORDS_START+1));
     }
 
     @Test public void index_page_created_from_empty() throws IOException {
         
-        StorageWriteAhead t = new StorageWriteAhead(fac);
+        StorageJournaled t = new StorageJournaled(fac);
         t.lock.writeLock().lock();
         t.longStackPut(StorageDirect.RECID_FREE_PHYS_RECORDS_START+1, 112L);
         t.commit();
         t.close();
-        t = new StorageWriteAhead(fac);
+        t = new StorageJournaled(fac);
     }
 
 
     @Test public void delete_file_on_exit() throws IOException {
-        StorageWriteAhead t = new StorageWriteAhead(fac,false,true,false,false);
+        StorageJournaled t = new StorageJournaled(fac,false,true,false,false);
         t.put("t", Serializer.STRING_SERIALIZER);
         t.close();
         assertFalse(index.exists());
@@ -120,7 +120,7 @@ public class StorageWriteAheadTest extends TestFile {
 
 
     @Test public void log_discarted_after_failed_transaction_reopened() throws IOException {
-        StorageWriteAhead t = new StorageWriteAhead(fac);
+        StorageJournaled t = new StorageJournaled(fac);
         long recid1 = t.put("t", Serializer.STRING_SERIALIZER);
         assertTrue(log.exists());
         t.commit();
@@ -135,7 +135,7 @@ public class StorageWriteAheadTest extends TestFile {
         t.transLog.sync();
         assertEquals(0L, t.transLog.getLong(8));
         t.transLog.close();
-        StorageWriteAhead t2 = new StorageWriteAhead(fac);
+        StorageJournaled t2 = new StorageJournaled(fac);
         assertEquals("t",t2.get(recid1, Serializer.STRING_SERIALIZER));
         assertEquals("",t2.get(recid2, Serializer.STRING_SERIALIZER));
 
@@ -158,7 +158,7 @@ public class StorageWriteAheadTest extends TestFile {
     @Test public void replay_log_on_reopen() throws IOException {
         
 
-        StorageWriteAhead t = new StorageWriteAhead(fac){
+        StorageJournaled t = new StorageJournaled(fac){
             @Override
             protected void replayLogFile() {
                 //do nothing!
@@ -170,7 +170,7 @@ public class StorageWriteAheadTest extends TestFile {
         t.close();
         assertTrue(log.exists());
 
-        t = new StorageWriteAhead(fac);
+        t = new StorageJournaled(fac);
         assertEquals(Long.valueOf(1), t.get(recid, Serializer.LONG_SERIALIZER));
         if(!Utils.isWindows())
             assertFalse(log.exists());
@@ -178,7 +178,7 @@ public class StorageWriteAheadTest extends TestFile {
 
     @Test public void log_discarted_on_rollback() throws IOException {
         
-        StorageWriteAhead t = new StorageWriteAhead(fac);
+        StorageJournaled t = new StorageJournaled(fac);
         t.lock.writeLock().lock();
         long recid = t.put("AA", Serializer.STRING_SERIALIZER);
         assertTrue(log.exists());
@@ -193,14 +193,14 @@ public class StorageWriteAheadTest extends TestFile {
 
 
     @Test public void test_long_stack_puts_record_size_into_index() throws IOException {
-        StorageWriteAhead engine = new StorageWriteAhead(fac);
+        StorageJournaled engine = new StorageJournaled(fac);
         engine.lock.writeLock().lock();
         engine.longStackPut(stackId, 1);
         assertEquals(StorageDirect.LONG_STACK_PAGE_SIZE,engine.recordIndexVals.get(stackId)>>>48);
     }
 
     @Test public void test_long_stack_put_take() throws IOException {
-        StorageWriteAhead engine = new StorageWriteAhead(fac);
+        StorageJournaled engine = new StorageJournaled(fac);
         engine.lock.writeLock().lock();
 
         final long max = 150;
@@ -216,7 +216,7 @@ public class StorageWriteAheadTest extends TestFile {
     }
 
     @Test public void test_long_stack_put_take_simple() throws IOException {
-        StorageWriteAhead engine = new StorageWriteAhead(fac);
+        StorageJournaled engine = new StorageJournaled(fac);
         engine.lock.writeLock().lock();
         engine.longStackPut(stackId, 111);
         long pageId = engine.recordIndexVals.get(stackId)&StorageDirect.PHYS_OFFSET_MASK;
@@ -228,7 +228,7 @@ public class StorageWriteAheadTest extends TestFile {
 
 
     @Test public void test_basic_long_stack() throws IOException {
-        StorageWriteAhead engine = new StorageWriteAhead(fac);
+        StorageJournaled engine = new StorageJournaled(fac);
         //dirty hack to make sure we have lock
         engine.lock.writeLock().lock();
         final long max = 150;
@@ -257,7 +257,7 @@ public class StorageWriteAheadTest extends TestFile {
 
 
     @Test public void long_stack_page_created_after_put() throws IOException {
-        StorageWriteAhead engine = new StorageWriteAhead(fac);
+        StorageJournaled engine = new StorageJournaled(fac);
         engine.lock.writeLock().lock();
         engine.longStackPut(stackId, 111);
 
@@ -272,7 +272,7 @@ public class StorageWriteAheadTest extends TestFile {
     }
 
     @Test public void long_stack_put_five() throws IOException {
-        StorageWriteAhead engine = new StorageWriteAhead(fac);
+        StorageJournaled engine = new StorageJournaled(fac);
         engine.lock.writeLock().lock();
         engine.longStackPut(stackId, 111);
         engine.longStackPut(stackId, 112);
@@ -296,7 +296,7 @@ public class StorageWriteAheadTest extends TestFile {
     }
 
     @Test public void long_stack_page_deleted_after_take() throws IOException {
-        StorageWriteAhead engine = new StorageWriteAhead(fac);
+        StorageJournaled engine = new StorageJournaled(fac);
         engine.lock.writeLock().lock();
         engine.longStackPut(stackId, 111);
         long pageId =engine.recordIndexVals.get(stackId) & StorageDirect.PHYS_OFFSET_MASK;
@@ -307,7 +307,7 @@ public class StorageWriteAheadTest extends TestFile {
     }
 
     @Test public void long_stack_page_overflow() throws IOException {
-        StorageWriteAhead engine = new StorageWriteAhead(fac);
+        StorageJournaled engine = new StorageJournaled(fac);
         engine.lock.writeLock().lock();
         //fill page until near overflow
         for(int i=0;i< StorageDirect.LONG_STACK_NUM_OF_RECORDS_PER_PAGE;i++){

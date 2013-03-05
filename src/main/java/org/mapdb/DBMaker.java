@@ -570,7 +570,7 @@ public class DBMaker {
                 Volume.fileFactory(_readOnly, _RAF, _file);
 
             engine = _journalEnabled ?
-                new StorageWriteAhead(folFac, _freeSpaceReclaimDisabled, _deleteFilesAfterClose, _failOnWrongHeader, _readOnly):
+                new StorageJournaled(folFac, _freeSpaceReclaimDisabled, _deleteFilesAfterClose, _failOnWrongHeader, _readOnly):
                 new StorageDirect(folFac, _freeSpaceReclaimDisabled, _deleteFilesAfterClose , _failOnWrongHeader, _readOnly);
         }else{
             if(_file==null) throw new UnsupportedOperationException("Append Storage format is not supported with in-memory dbs");

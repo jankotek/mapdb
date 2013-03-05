@@ -16,7 +16,6 @@
 
 package org.mapdb;
 
-import javax.swing.plaf.basic.BasicInternalFrameTitlePane;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -198,7 +197,7 @@ final public class Utils {
             File index = File.createTempFile("mapdb","db");
             index.deleteOnExit();
             new File(index.getPath()+StorageDirect.DATA_FILE_EXT).deleteOnExit();
-            new File(index.getPath()+ StorageWriteAhead.TRANS_LOG_FILE_EXT).deleteOnExit();
+            new File(index.getPath()+ StorageJournaled.TRANS_LOG_FILE_EXT).deleteOnExit();
 
             return index;
         }catch(IOException e){

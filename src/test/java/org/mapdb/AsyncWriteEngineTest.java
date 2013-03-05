@@ -84,7 +84,7 @@
 //    @Test(timeout = 1000000)
 //    public void async_commit(){
 //        final AtomicLong putCounter = new AtomicLong();
-//        StorageWriteAhead t = new StorageWriteAhead(fac){
+//        StorageJournaled t = new StorageJournaled(fac){
 //            @Override
 //            public <A> long put(A value, Serializer<A> serializer) {
 //                putCounter.incrementAndGet();
@@ -110,7 +110,7 @@
 //        t.close();
 //
 //        //now reopen db and check ths
-//        t = new StorageWriteAhead(fac);
+//        t = new StorageJournaled(fac);
 //        a = new AsyncWriteEngine(t, false, false, 0);
 //        for(Integer i=0;i<max;i++){
 //            long recid = l.get(i);

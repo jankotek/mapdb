@@ -102,8 +102,8 @@ public class StorageDirect  implements Engine {
             }
 
             File indexFile = index.getFile();
-            if(!(this instanceof StorageWriteAhead) && indexFile !=null
-                    && new File(indexFile.getPath()+ StorageWriteAhead.TRANS_LOG_FILE_EXT).exists()){
+            if(!(this instanceof StorageJournaled) && indexFile !=null
+                    && new File(indexFile.getPath()+ StorageJournaled.TRANS_LOG_FILE_EXT).exists()){
                 throw new IllegalAccessError("Could not open DB in Direct Mode; WriteAhead log file exists, it may contain some data.");
             }
 

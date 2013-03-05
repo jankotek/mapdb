@@ -12,7 +12,7 @@ abstract public class TestFile {
 
     protected final File index = Utils.tempDbFile();
     protected final File data = new File(index.getPath()+ StorageDirect.DATA_FILE_EXT);
-    protected final File log = new File(index.getPath()+ StorageWriteAhead.TRANS_LOG_FILE_EXT);
+    protected final File log = new File(index.getPath()+ StorageJournaled.TRANS_LOG_FILE_EXT);
 
     protected Volume.Factory fac = Volume.fileFactory(false, false, index, data, log);
 

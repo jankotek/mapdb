@@ -106,7 +106,7 @@ public abstract class Volume {
     public static Factory fileFactory(final boolean readOnly, final boolean RAF, final File indexFile){
         return fileFactory(readOnly, RAF, indexFile,
                 new File(indexFile.getPath() + StorageDirect.DATA_FILE_EXT),
-                new File(indexFile.getPath() + StorageWriteAhead.TRANS_LOG_FILE_EXT));
+                new File(indexFile.getPath() + StorageJournaled.TRANS_LOG_FILE_EXT));
     }
 
     public static Factory fileFactory(final boolean readOnly,
