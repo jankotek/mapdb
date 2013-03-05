@@ -1,5 +1,6 @@
 package org.mapdb;
 
+import javax.swing.plaf.basic.BasicInternalFrameTitlePane;
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
@@ -177,6 +178,7 @@ public class StorageAppend implements Engine{
             long fileNum = fileNum2;
 
             long fileOffset = fileNum & FILE_OFFSET_MASK;
+            if(fileOffset>MAX_FILE_SIZE) throw new InternalError();
             fileNum = fileNum>>>FILE_NUMBER_SHIFT;
             Volume v = volumes.get(fileNum);
             int size = v.getInt(fileOffset);
@@ -290,17 +292,20 @@ public class StorageAppend implements Engine{
 
     /** check if current file is too big, if yes finish it and start next file */
     protected void rollOverFile(){
-        if(currentFileOffset<MAX_FILE_SIZE) return;
+        if(currentFileOffset<MAX_FILE_SIZE-8) return;
 
         synchronized (APPEND_LOCK){
+            currentVolume.ensureAvailable(currentFileOffset+8);
             currentVolume.putLong(currentFileOffset, EOF);
             currentVolume.sync();
             currentVolumeNum++;
             currentVolume = Volume.volumeForFile(
                     getFileNum(currentVolumeNum), useRandomAccessFile, readOnly);
+            currentVolume.ensureAvailable(MAX_FILE_SIZE);
             currentVolume.putLong(0, FILE_HEADER);
             currentFileOffset = 8;
             currentVolume.sync();
+            volumes.put(currentVolumeNum,currentVolume);
         }
     }
 
