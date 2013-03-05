@@ -6,6 +6,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.swing.plaf.basic.BasicInternalFrameTitlePane;
+
+import static org.junit.Assert.fail;
+
 /**
  * https://github.com/jankotek/MapDB/issues/69
  *
@@ -21,6 +25,7 @@ public class Issue69Test {
 		db = DBMaker.newTempFileDB()
 				.journalDisable()
 				.checksumEnable()
+                .asyncWriteDisable()
 				.deleteFilesAfterClose()
 				.make();
 	}
@@ -33,6 +38,7 @@ public class Issue69Test {
 	@Test
 	public void testStackOverflowError() throws Exception {
 
+        try{
 		Map<String, String> map = db.getHashMap("test");
 
 		StringBuilder buff = new StringBuilder();
@@ -55,6 +61,17 @@ public class Issue69Test {
 			i++;
 
 		}
+        }catch(Throwable e){
+            while(e!=null){
+                for(StackTraceElement ee: e.getStackTrace()){
+                    System.out.println(ee);
+                }
+                System.out.println();
+                e = e.getCause();
+            }
+            fail();
+        }
+
 
 	}
 

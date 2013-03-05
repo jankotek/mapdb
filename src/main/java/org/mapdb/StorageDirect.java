@@ -380,7 +380,10 @@ public class StorageDirect  implements Engine {
 
         if(requiredSize<=0) throw new InternalError();
 
-        long freePhysRec = appendOnly? 0L:
+        long freePhysRec = (appendOnly
+                //TODO !HACK! to 'fix' issue 69
+                || Thread.currentThread().getStackTrace().length>256)
+                ? 0L:
                 findFreePhysSlot(requiredSize);
         if(freePhysRec!=0){
             return freePhysRec;
