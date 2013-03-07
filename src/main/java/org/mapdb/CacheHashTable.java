@@ -33,6 +33,12 @@ public class CacheHashTable extends EngineWrapper implements Engine {
     protected HashItem[] items;
     protected final int cacheMaxSize;
 
+    /**
+     * Salt added to keys before hashing, so it is harder to trigger hash collision attack.
+     */
+    protected final long hashSalt = Utils.RANDOM.nextLong();
+
+
     private static class HashItem {
         final long key;
         final Object val;
@@ -86,7 +92,7 @@ public class CacheHashTable extends EngineWrapper implements Engine {
     }
 
     private int position(long recid) {
-        return Math.abs(Utils.longHash(recid))%cacheMaxSize;
+        return Math.abs(Utils.longHash(recid^hashSalt))%cacheMaxSize;
     }
 
     @Override

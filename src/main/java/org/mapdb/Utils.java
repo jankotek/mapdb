@@ -18,10 +18,7 @@ package org.mapdb;
 
 import java.io.*;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 
@@ -56,6 +53,7 @@ final public class Utils {
 
     public static final String EMPTY_STRING = "";
     public static final String UTF8 = "UTF8";
+    public static Random RANDOM = new Random();
 
 
     /**
@@ -137,15 +135,8 @@ final public class Utils {
 
     public static int longHash(final long key) {
         int h = (int)(key ^ (key >>> 32));
-        // Spread bits to regularize both segment and index locations,
-        // using variant of single-word Wang/Jenkins hash.
-        h += (h <<  15) ^ 0xffffcd7d;
-        h ^= (h >>> 10);
-        h += (h <<   3);
-        h ^= (h >>>  6);
-        h += (h <<   2) + (h << 14);
-        return h ^ (h >>> 16);
-
+        h ^= (h >>> 20) ^ (h >>> 12);
+        return h ^ (h >>> 7) ^ (h >>> 4);
     }
 
     /** clone value using serialization */

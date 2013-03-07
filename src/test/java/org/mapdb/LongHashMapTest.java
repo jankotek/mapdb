@@ -139,7 +139,7 @@ public class LongHashMapTest extends TestCase {
             t.put(6382177, "bb");
             assertEquals("aa",t.get(6447459));
             assertEquals("bb",t.get(6382177));
-            assertEquals("LongHashMap[6382177 => bb, 6447459 => aa]",t.toString());
+            assertEquals("LongHashMap[6447459 => aa, 6382177 => bb]",t.toString());
     }
 
 }

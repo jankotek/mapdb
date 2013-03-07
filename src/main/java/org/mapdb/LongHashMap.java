@@ -59,6 +59,11 @@ public class LongHashMap<V> extends LongMap<V> implements Serializable {
      */
     final float loadFactor;
 
+    /**
+     * Salt added to keys before hashing, so it is harder to trigger hash collision attack.
+     */
+    protected final long hashSalt = Utils.RANDOM.nextLong();
+
     /*
      * maximum number of elements that can be put in this map before having to
      * rehash
@@ -310,7 +315,7 @@ public class LongHashMap<V> extends LongMap<V> implements Serializable {
     }
 
     final Entry<V> getEntry(long key) {
-        int hash = Utils.longHash(key);
+        int hash = Utils.longHash(key^hashSalt);
         int index = hash & (elementData.length - 1);
         return findNonNullKeyEntry(key, index, hash);
     }
@@ -351,7 +356,7 @@ public class LongHashMap<V> extends LongMap<V> implements Serializable {
     @Override
     public V put(long key, V value) {
         Entry<V> entry;
-        int hash = Utils.longHash(key);
+        int hash = Utils.longHash(key^hashSalt);
         int index = hash & (elementData.length - 1);
         entry = findNonNullKeyEntry(key, index, hash);
         if (entry == null) {
@@ -423,7 +428,7 @@ public class LongHashMap<V> extends LongMap<V> implements Serializable {
         Entry<V> entry;
         Entry<V> last = null;
 
-        int hash = Utils.longHash(key);
+        int hash = Utils.longHash(key^hashSalt);
         index = hash & (elementData.length - 1);
         entry = elementData[index];
         while (entry != null && !(entry.origKeyHash == hash && key == entry.key)) {

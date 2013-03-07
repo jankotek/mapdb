@@ -82,7 +82,7 @@ public class DB {
             if(!ret.hasValues) throw new ClassCastException("Collection is Set, not Map");
         }else{
             //create new map
-            ret = new HTreeMap<K,V>(engine,true,defaultSerializer,null, null);
+            ret = new HTreeMap<K,V>(engine,true,Utils.RANDOM.nextInt(), defaultSerializer,null, null);
             nameDir.put(name, ret.rootRecid);
         }
         collections.put(name, new WeakReference<Object>(ret));
@@ -104,7 +104,7 @@ public class DB {
     synchronized public <K,V> HTreeMap<K,V> createHashMap(
             String name, Serializer<K> keySerializer, Serializer<V> valueSerializer){
         checkNameNotExists(name);
-        HTreeMap<K,V> ret = new HTreeMap<K,V>(engine, true, defaultSerializer, keySerializer, valueSerializer);
+        HTreeMap<K,V> ret = new HTreeMap<K,V>(engine, true,Utils.RANDOM.nextInt(), defaultSerializer, keySerializer, valueSerializer);
         nameDir.put(name, ret.rootRecid);
         collections.put(name, new WeakReference<Object>(ret));
         return ret;
@@ -129,7 +129,7 @@ public class DB {
             ret = m.keySet();
         }else{
             //create new map
-            HTreeMap<K,Object> m = new HTreeMap<K,Object>(engine, false, defaultSerializer, null, null);
+            HTreeMap<K,Object> m = new HTreeMap<K,Object>(engine, false,Utils.RANDOM.nextInt(), defaultSerializer, null, null);
             ret = m.keySet();
             nameDir.put(name, m.rootRecid);
         }
@@ -149,7 +149,7 @@ public class DB {
     
     synchronized public <K> Set<K> createHashSet(String name, Serializer<K> serializer){
         checkNameNotExists(name);
-        HTreeMap<K,Object> ret = new HTreeMap<K,Object>(engine, false, defaultSerializer, serializer, null);
+        HTreeMap<K,Object> ret = new HTreeMap<K,Object>(engine, false,Utils.RANDOM.nextInt(), defaultSerializer, serializer, null);
         nameDir.put(name, ret.rootRecid);
         Set<K> ret2 = ret.keySet();
         collections.put(name, new WeakReference<Object>(ret2));

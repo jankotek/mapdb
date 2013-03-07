@@ -46,6 +46,12 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     /** is this a Map or Set?  if false, entries do not have values, only keys are allowed*/
     protected final boolean hasValues;
 
+    /**
+     * Salt added to hash before rehashing, so it is harder to trigger hash collision attack.
+     */
+    protected final int hashSalt;
+
+
     protected final Serializer<K> keySerializer;
     protected final Serializer<V> valueSerializer;
 
@@ -78,6 +84,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         @Override
         public void serialize(DataOutput out, HashRoot value) throws IOException {
             out.writeBoolean(value.hasValues);
+            out.writeInt(value.hashSalt);
             for(int i=0;i<16;i++){
                 Utils.packLong(out, value.segmentRecids[i]);
             }
@@ -91,6 +98,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             if(available==0) return null;
             HashRoot r = new HashRoot();
             r.hasValues = in.readBoolean();
+            r.hashSalt = in.readInt();
             r.segmentRecids = new long[16];
             for(int i=0;i<16;i++){
                 r.segmentRecids[i] = Utils.unpackLong(in);
@@ -106,6 +114,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     static class HashRoot{
         long[] segmentRecids;
         boolean hasValues;
+        int hashSalt;
         Serializer keySerializer;
         Serializer valueSerializer;
     }
@@ -202,9 +211,10 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
      * @param keySerializer Serializier used for keys. May be null for default value.
      * @param valueSerializer Serializer used for values. May be null for default value
      */
-    public HTreeMap(Engine engine, boolean hasValues, Serializer defaultSerializer, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
+    public HTreeMap(Engine engine, boolean hasValues, int hashSalt, Serializer defaultSerializer, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
         this.engine = engine;
         this.hasValues = hasValues;
+        this.hashSalt = hashSalt;
         SerializerBase.assertSerializable(keySerializer);
         SerializerBase.assertSerializable(valueSerializer);
 
@@ -220,6 +230,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             segmentRecids[i] = engine.put(new long[16][], DIR_SERIALIZER);
         HashRoot r = new HashRoot();
         r.hasValues = hasValues;
+        r.hashSalt = hashSalt;
         r.segmentRecids = segmentRecids;
         r.keySerializer = this.keySerializer;
         r.valueSerializer = this.valueSerializer;
@@ -244,6 +255,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         HashRoot r = engine.get(rootRecid, new HashRootSerializer(defaultSerializer));
         this.segmentRecids = r.segmentRecids;
         this.hasValues = r.hasValues;
+        this.hashSalt = r.hashSalt;
         this.keySerializer = r.keySerializer;
         this.valueSerializer = r.valueSerializer;
     }
@@ -831,15 +843,9 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
 
     protected  int hash(final Object key) {
-        int h = key.hashCode();
-        // Spread bits to regularize both segment and index locations,
-        // using variant of single-word Wang/Jenkins hash.
-        h += (h <<  15) ^ 0xffffcd7d;
-        h ^= (h >>> 10);
-        h += (h <<   3);
-        h ^= (h >>>  6);
-        h += (h <<   2) + (h << 14);
-        return h ^ (h >>> 16);
+        int h = key.hashCode() ^ hashSalt;
+        h ^= (h >>> 20) ^ (h >>> 12);
+        return h ^ (h >>> 7) ^ (h >>> 4);
     }
 
 
