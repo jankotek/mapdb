@@ -51,7 +51,7 @@ public class Issue69Test {
 
 			if (i % 10000 == 0) {
 				valueLength ++;
-				System.out.println("Iteration: " + i + "; Value length: " + valueLength);
+//				System.out.println("Iteration: " + i + "; Value length: " + valueLength);
 			}
 
 			String key = "key" + (int)(Math.random() * maxKeys);
