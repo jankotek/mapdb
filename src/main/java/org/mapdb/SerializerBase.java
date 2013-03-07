@@ -374,6 +374,14 @@ public class SerializerBase implements Serializer{
                     if(!packableLongs && !allNull)
                         break;
                 }
+            }else{
+                //check for all null
+                for (Object o : b) {
+                    if(o!=null){
+                        allNull=false;
+                        break;
+                    }
+                }
             }
             if(allNull){
                 out.write(ARRAY_OBJECT_ALL_NULL);

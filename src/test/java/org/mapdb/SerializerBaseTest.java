@@ -433,6 +433,18 @@ public class SerializerBaseTest extends TestCase {
         assertArrayEquals(arr,arr2);
     }
 
+    public void test_multi_dim_large_array(){
+        int[][] arr1 = new int[3000][];
+        double[][] arr2 = new double[3000][];
+        for(int i=0;i<3000;i++){
+            arr1[i]= new int[]{i,i+1};
+            arr2[i]= new double[]{i,i+1};
+        }
+        assertArrayEquals(arr1, (Object[]) Utils.clone(arr1, Serializer.BASIC_SERIALIZER));
+        assertArrayEquals(arr2, (Object[]) Utils.clone(arr2, Serializer.BASIC_SERIALIZER));
+    }
+
+
     public void test_multi_dim_array2(){
         Object[][] arr = new Object[][]{{11,22,44},{1,2,34}};
         Object[][] arr2= (Object[][]) Utils.clone(arr, Serializer.BASIC_SERIALIZER);

@@ -56,7 +56,6 @@ public class LongHashMapTest extends TestCase {
         t.put(2, "bb");
         assertEquals(1, t.size());
         assertEquals(t.get(1), null);
-        assertEquals(t.get(2), "bb");
         assertEquals(t.get(3), null);
 
     }
