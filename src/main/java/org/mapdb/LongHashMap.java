@@ -62,9 +62,9 @@ public class LongHashMap<V> extends LongMap<V> implements Serializable {
     /**
      * Salt added to keys before hashing, so it is harder to trigger hash collision attack.
      */
-    protected final long hashSalt = hashHashValue();
+    protected final long hashSalt = hashSaltValue();
 
-    protected long hashHashValue() {
+    protected long hashSaltValue() {
         return Utils.RANDOM.nextLong();
     }
 

@@ -25,7 +25,7 @@ public class LongHashMapTest extends TestCase {
 
     public void testAll() {
         LongHashMap<String> t = new LongHashMap<String>(){
-            protected long hashSaltValue(){return 0;}
+            @Override protected long hashSaltValue(){return 0;}
         };
         t.put(1, "aa");
         t.put(2, "bb");
@@ -45,11 +45,11 @@ public class LongHashMapTest extends TestCase {
 
         Iterator<String> vals = t.valuesIterator();
         assertTrue(vals.hasNext());
-        assertEquals(vals.next(), "FF");
+        assertEquals(vals.next(), "bb");
         assertTrue(vals.hasNext());
         assertEquals(vals.next(), "cc");
         assertTrue(vals.hasNext());
-        assertEquals(vals.next(), "bb");
+        assertEquals(vals.next(), "FF");
 
         assertFalse(vals.hasNext());
 
