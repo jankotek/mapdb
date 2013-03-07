@@ -4,6 +4,7 @@ import javax.swing.plaf.basic.BasicInternalFrameTitlePane;
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Append only storage. Uses different file format than Direct and Journaled storage
@@ -19,7 +20,7 @@ public class StorageAppend implements Engine{
 
     protected final static long FILE_HEADER = 56465465456465L;
 
-    protected final Object APPEND_LOCK = new Object();
+    protected final ReentrantReadWriteLock appendLock = new ReentrantReadWriteLock();
     protected final static Long THUMBSTONE = Long.MIN_VALUE;
     protected final static int THUMBSTONE_SIZE = -3;
     protected final static long EOF = -1;
@@ -134,12 +135,15 @@ public class StorageAppend implements Engine{
         try{
             DataOutput2 out = new DataOutput2();
             serializer.serialize(out, value);
-            synchronized (APPEND_LOCK){
+            appendLock.writeLock().lock();
+            try{
 
                 long newRecid = maxRecid++; //TODO free recid management
                 update2(newRecid, out);
                 rollOverFile();
                 return newRecid;
+            }finally {
+                appendLock.writeLock().unlock();
             }
         }catch(IOException e){
             throw new IOError(e);
@@ -161,6 +165,7 @@ public class StorageAppend implements Engine{
 
     @Override
     public <A> A get(long recid, Serializer<A> serializer) {
+        appendLock.readLock().lock();
         try {
             Long fileNum2 = recidsInTx.get(recid);
             if(fileNum2 == null)
@@ -181,13 +186,17 @@ public class StorageAppend implements Engine{
             if(fileOffset>MAX_FILE_SIZE) throw new InternalError();
             fileNum = fileNum>>>FILE_NUMBER_SHIFT;
             Volume v = volumes.get(fileNum);
+
             int size = v.getInt(fileOffset);
             DataInput2 input = v.getDataInput(fileOffset+4, size);
 
             return serializer.deserialize(input, size);
         } catch (IOException e) {
             throw new IOError(e);
+        }finally {
+            appendLock.readLock().unlock();
         }
+
     }
 
     @Override
@@ -195,10 +204,14 @@ public class StorageAppend implements Engine{
         try{
             DataOutput2 out = new DataOutput2();
             serializer.serialize(out, value);
-            synchronized (APPEND_LOCK){
+            appendLock.writeLock().lock();
+            try {
                 update2(recid, out);
                 rollOverFile();
+            }finally {
+                appendLock.writeLock().unlock();
             }
+
         }catch(IOException e){
             throw new IOError(e);
         }
@@ -207,7 +220,8 @@ public class StorageAppend implements Engine{
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
-        synchronized (APPEND_LOCK){
+        appendLock.writeLock().lock();
+        try{
             Object oldVal = get(recid, serializer);
             //TODO compare binary stuff?
             if((oldVal==null && expectedOldValue==null)|| (oldVal!=null && oldVal.equals(expectedOldValue))){
@@ -223,13 +237,18 @@ public class StorageAppend implements Engine{
             }else{
                 return false;
             }
+        }finally {
+            appendLock.writeLock().unlock();
         }
+
     }
 
     @Override
     public <A> void delete(long recid, Serializer<A> serializer){
         //put thumbstone into log
-        synchronized (APPEND_LOCK){
+        appendLock.writeLock().lock();
+        try{
+
             currentVolume.ensureAvailable(currentFileOffset+8+4);
             currentVolume.putLong(currentFileOffset, recid);
             currentFileOffset+=8;
@@ -237,7 +256,10 @@ public class StorageAppend implements Engine{
             currentFileOffset+=4;
             recidsInTx.put(recid, THUMBSTONE);
             rollOverFile();
+        }finally {
+            appendLock.writeLock().unlock();
         }
+
     }
 
     @Override
@@ -254,28 +276,34 @@ public class StorageAppend implements Engine{
     @Override
     public void commit() {
         //append commit mark
-        synchronized (APPEND_LOCK){
+        appendLock.writeLock().lock();
+        try{
             commitRecids(recidsInTx);
             currentVolume.ensureAvailable(currentFileOffset+8);
             currentVolume.putLong(currentFileOffset, COMMIT);
             currentFileOffset+=8;
             currentVolume.sync();
             rollOverFile();
-
+        }finally {
+            appendLock.writeLock().unlock();
         }
     }
 
     @Override
     public void rollback() throws UnsupportedOperationException {
         //append rollback mark
-        synchronized (APPEND_LOCK){
+        appendLock.writeLock().lock();
+        try{
             currentVolume.ensureAvailable(currentFileOffset+8);
             currentVolume.putLong(currentFileOffset, ROLLBACK);
             currentFileOffset+=8;
             currentVolume.sync();
             recidsInTx.clear();
             rollOverFile();
+        }finally {
+            appendLock.writeLock().unlock();
         }
+
 
     }
 
@@ -294,19 +322,19 @@ public class StorageAppend implements Engine{
     protected void rollOverFile(){
         if(currentFileOffset<MAX_FILE_SIZE-8) return;
 
-        synchronized (APPEND_LOCK){
-            currentVolume.ensureAvailable(currentFileOffset+8);
-            currentVolume.putLong(currentFileOffset, EOF);
-            currentVolume.sync();
-            currentVolumeNum++;
-            currentVolume = Volume.volumeForFile(
-                    getFileNum(currentVolumeNum), useRandomAccessFile, readOnly);
-            currentVolume.ensureAvailable(MAX_FILE_SIZE);
-            currentVolume.putLong(0, FILE_HEADER);
-            currentFileOffset = 8;
-            currentVolume.sync();
-            volumes.put(currentVolumeNum,currentVolume);
-        }
+
+        currentVolume.ensureAvailable(currentFileOffset+8);
+        currentVolume.putLong(currentFileOffset, EOF);
+        currentVolume.sync();
+        currentVolumeNum++;
+        currentVolume = Volume.volumeForFile(
+              getFileNum(currentVolumeNum), useRandomAccessFile, readOnly);
+        currentVolume.ensureAvailable(MAX_FILE_SIZE);
+        currentVolume.putLong(0, FILE_HEADER);
+        currentFileOffset = 8;
+        currentVolume.sync();
+        volumes.put(currentVolumeNum,currentVolume);
+
     }
 
 }
