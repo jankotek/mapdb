@@ -24,7 +24,9 @@ import java.util.TreeMap;
 public class LongHashMapTest extends TestCase {
 
     public void testAll() {
-        LongHashMap<String> t = new LongHashMap<String>();
+        LongHashMap<String> t = new LongHashMap<String>(){
+            protected long hashSaltValue(){return 0;}
+        };
         t.put(1, "aa");
         t.put(2, "bb");
         t.put(2, "bb");
@@ -138,7 +140,8 @@ public class LongHashMapTest extends TestCase {
             t.put(6382177, "bb");
             assertEquals("aa",t.get(6447459));
             assertEquals("bb",t.get(6382177));
-            assertEquals("LongHashMap[6447459 => aa, 6382177 => bb]",t.toString());
+            assertTrue(t.toString().contains("6382177 => bb"));
+            assertTrue(t.toString().contains("6447459 => aa"));
     }
 
 }
