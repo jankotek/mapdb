@@ -62,10 +62,10 @@ public class StorageJournaled extends StorageDirect implements Engine {
     public StorageJournaled(Volume.Factory volFac, boolean appendOnly,
                             boolean deleteFilesOnExit, boolean failOnWrongHeader, boolean readOnly) {
         super(volFac,  appendOnly, deleteFilesOnExit, failOnWrongHeader, readOnly);
+        lock.writeLock().lock();
         try{
             this.volFac = volFac;
             this.transLog = volFac.createTransLogVolume();
-            lock.writeLock().lock();
             reloadIndexFile();
             replayLogFile();
             transLog = null;
