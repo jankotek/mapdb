@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.NoSuchElementException;
 
 import static org.junit.Assert.*;
 
@@ -260,6 +261,43 @@ public class BTreeMapTest{
             assertEquals(s,e!=null?e.getKey():null);
         }
         assertEquals(9999, map.findSmaller(100000,false).getKey());
+
+    }
+
+    @Test public void NoSuchElem_After_Clear(){
+//      bug reported by :	Lazaros Tsochatzidis
+//        But after clearing the tree using:
+//
+//        public void Delete() {
+//            db.getTreeMap("Names").clear();
+//            db.compact();
+//        }
+//
+//        every next call of getLastKey() leads to the exception "NoSuchElement". Not
+//        only the first one...
+
+        DB db = DBMaker.newTempFileDB().journalDisable().make();
+        NavigableMap m = db.getTreeMap("name");
+        try{
+            m.lastKey();
+            fail();
+        }catch(NoSuchElementException e){}
+        m.put("aa","aa");
+        assertEquals("aa",m.lastKey());
+        m.put("bb","bb");
+        assertEquals("bb",m.lastKey());
+        db.getTreeMap("name").clear();
+        db.compact();
+        try{
+            Object key=m.lastKey();
+            fail(key.toString());
+        }catch(NoSuchElementException e){}
+        m.put("aa","aa");
+        assertEquals("aa",m.lastKey());
+        m.put("bb","bb");
+        assertEquals("bb",m.lastKey());
+
+
 
     }
 
