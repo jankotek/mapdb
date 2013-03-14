@@ -258,7 +258,10 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
         }
         commitLock.writeLock().lock();
         try{
-            while(!items.isEmpty()) LockSupport.parkNanos(100);
+            while(!items.isEmpty()) {
+                checkState();
+                LockSupport.parkNanos(100);
+            }
 
             super.commit();
         }finally {
