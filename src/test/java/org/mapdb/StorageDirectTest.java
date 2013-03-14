@@ -1,6 +1,7 @@
 package org.mapdb;
 
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -359,8 +360,14 @@ public class StorageDirectTest extends StorageTestCase {
             Long value = e.getKey();
             assertEquals(value, engine.get(recid, Serializer.LONG_SERIALIZER));
         }
+    }
 
-
+    @Ignore
+    @Test public void compact_large_record(){
+        byte[] b = new byte[100000];
+        long recid = engine.put(b, BYTE_ARRAY_SERIALIZER);
+        engine.compact();
+        assertArrayEquals(b, engine.get(recid, BYTE_ARRAY_SERIALIZER));
     }
 
 
