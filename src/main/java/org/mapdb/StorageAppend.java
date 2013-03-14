@@ -1,6 +1,5 @@
 package org.mapdb;
 
-import javax.swing.plaf.basic.BasicInternalFrameTitlePane;
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
@@ -36,7 +35,7 @@ public class StorageAppend implements Engine{
     protected final LongConcurrentHashMap<Long> recidsInTx = new LongConcurrentHashMap<Long>();
 
 
-    protected final Volume recidsTable = new Volume.Memory(true);
+    protected final Volume recidsTable = new Volume.MemoryVol(true);
     protected static final int MAX_FILE_SIZE = 1024 * 1024 * 10;
 
     public StorageAppend(File file, boolean useRandomAccessFile, boolean readOnly, boolean transactionsDisabled) {

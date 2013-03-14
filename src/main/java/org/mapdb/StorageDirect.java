@@ -637,7 +637,7 @@ public class StorageDirect  implements Engine {
             //TODO memory based stores
             final File indexFile = index.getFile();
             final File physFile = phys.getFile();
-            final boolean isRaf = index instanceof Volume.RandomAccessFile;
+            final boolean isRaf = index instanceof Volume.RandomAccessFileVol;
             Volume.Factory fab = Volume.fileFactory(false, isRaf, new File(indexFile+".compact"));
             StorageDirect store2 = new StorageDirect(fab);
 

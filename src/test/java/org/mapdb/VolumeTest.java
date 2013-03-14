@@ -11,22 +11,49 @@ import java.io.IOException;
 import static org.junit.Assert.*;
 
 
-public class VolumeTest {
+public abstract class VolumeTest {
 
+
+    public static class MemoryVolumeTest extends VolumeTest{
+        @Override Volume getVolume() {
+            return new Volume.MemoryVol(false);
+        }
+    }
+
+    public static class MappedFileVolumeTest extends VolumeTest{
+        @Override Volume getVolume() {
+            return new Volume.MappedFileVol(Utils.tempDbFile(), false);
+        }
+    }
+
+    public static class RandomAccessVolumeTest extends VolumeTest{
+        @Override Volume getVolume() {
+            return new Volume.RandomAccessFileVol(Utils.tempDbFile(), false);
+        }
+    }
+
+    public static class AsyncFileChannelTest extends VolumeTest{
+        @Override Volume getVolume() {
+            return new Volume.AsyncFileChannelVol(Utils.tempDbFile(), false);
+        }
+    }
+
+
+    abstract Volume getVolume();
 
     final int beyondInc = (int) (1e7);
 
-    Volume b = new Volume.Memory(false);
+    Volume b = getVolume();
     {
         b.ensureAvailable(Volume.INITIAL_SIZE);
     }
-
 
     @Test
     public void testEnsureAvailable() throws Exception {
         try{
             b.putLong(beyondInc,111L);
-            assertTrue(false);
+            if(b.isSliced())
+                fail("Should throw exception");
         }catch(Exception e){
             //ignore
         }
@@ -86,16 +113,16 @@ public class VolumeTest {
 
 
     @Test public void testConstants(){
-        assertEquals(0, Volume.BUF_SIZE% Volume.MappedFile.BUF_SIZE_INC);
+        assertEquals(0, Volume.BUF_SIZE% Volume.MappedFileVol.BUF_SIZE_INC);
         assertEquals(0, Volume.BUF_SIZE%8);
-        assertEquals(0, Volume.MappedFile.BUF_SIZE_INC%8);
+        assertEquals(0, Volume.MappedFileVol.BUF_SIZE_INC%8);
         assertTrue(StorageDirect.INDEX_OFFSET_START*8< Volume.INITIAL_SIZE);
-        assertTrue(Volume.MappedFile.BUF_SIZE_INC> StorageDirect.MAX_RECORD_SIZE);
+        assertTrue(Volume.MappedFileVol.BUF_SIZE_INC> StorageDirect.MAX_RECORD_SIZE);
     }
 
     @Test public void RAF_bytes(){
         File f = Utils.tempDbFile();
-        Volume v = new Volume.RandomAccessFile(f, false);
+        Volume v = new Volume.RandomAccessFileVol(f, false);
         v.ensureAvailable(100);
         v.putByte(1, (byte)(-120));
         assertEquals((byte)(-120), v.getByte(1));
@@ -108,7 +135,7 @@ public class VolumeTest {
     @Test
     public void read_beyond_end_raf_long(){
         try{
-            Volume v = new Volume.RandomAccessFile(Utils.tempDbFile(), false);
+            Volume v = new Volume.RandomAccessFileVol(Utils.tempDbFile(), false);
             v.getLong(1000000);
             fail();
         }catch(IOError e){
@@ -119,7 +146,7 @@ public class VolumeTest {
     @Test
     public void read_beyond_end_raf_byte(){
         try{
-            Volume v = new Volume.RandomAccessFile(Utils.tempDbFile(), false);
+            Volume v = new Volume.RandomAccessFileVol(Utils.tempDbFile(), false);
             v.getByte(1000000);
             fail();
         }catch(IOError e){
@@ -130,7 +157,7 @@ public class VolumeTest {
     @Test
     public void read_beyond_end_mapped_long(){
         try{
-            Volume v = new Volume.MappedFile(Utils.tempDbFile(), false);
+            Volume v = new Volume.MappedFileVol(Utils.tempDbFile(), false);
             v.getLong(1000000);
             fail();
         }catch(IOError e){
@@ -141,7 +168,7 @@ public class VolumeTest {
     @Test
     public void read_beyond_end_mapped_byte(){
         try{
-            Volume v = new Volume.MappedFile(Utils.tempDbFile(), false);
+            Volume v = new Volume.MappedFileVol(Utils.tempDbFile(), false);
             v.getByte(1000000);
             fail();
         }catch(IOError e){
