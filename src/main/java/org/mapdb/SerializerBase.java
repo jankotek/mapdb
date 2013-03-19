@@ -33,20 +33,21 @@ import static org.mapdb.SerializationHeader.*;
 public class SerializerBase implements Serializer{
 
 
-    static final Set knownSerializable = new HashSet(Arrays.asList(
+    static final class knownSerializable{
+        static final Set get = new HashSet(Arrays.asList(
             BTreeKeySerializer.STRING,
             BTreeKeySerializer.ZERO_OR_POSITIVE_LONG,
             BTreeKeySerializer.ZERO_OR_POSITIVE_INT,
-
             Utils.COMPARABLE_COMPARATOR, Utils.COMPARABLE_COMPARATOR_WITH_NULLS,
 
             Serializer.STRING_SERIALIZER, Serializer.LONG_SERIALIZER, Serializer.INTEGER_SERIALIZER,
             Serializer.EMPTY_SERIALIZER, Serializer.BASIC_SERIALIZER, Serializer.CRC32_CHECKSUM
     ));
+    }
 
     public static void assertSerializable(Object o){
         if(o!=null && !(o instanceof Serializable)
-                && !knownSerializable.contains(o)){
+                && !knownSerializable.get.contains(o)){
             throw new IllegalArgumentException("Not serializable: "+o.getClass());
         }
     }

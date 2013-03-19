@@ -453,7 +453,7 @@ public class SerializerBaseTest extends TestCase {
 
 
     public void test_static_objects(){
-        for(Object o:SerializerBase.knownSerializable){
+        for(Object o:SerializerBase.knownSerializable.get){
             assertTrue(o==Utils.clone(o, Serializer.BASIC_SERIALIZER));
         }
     }
