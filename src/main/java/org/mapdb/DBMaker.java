@@ -558,7 +558,7 @@ public class DBMaker {
         if(_readOnly && _file==null)
             throw new UnsupportedOperationException("Can not open in-memory DB in read-only mode.");
 
-        if(_readOnly && !_file.exists()){
+        if(_readOnly && !_file.exists() && !_appendStorage){
             throw new UnsupportedOperationException("Can not open non-existing file in read-only mode.");
         }
 

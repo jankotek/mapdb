@@ -263,6 +263,8 @@ public class StorageAppend implements Engine{
 
     @Override
     public void close() {
+        currentVolume.sync();
+        currentVolume.close();
         currentVolume = null;
         volumes = null;
     }
