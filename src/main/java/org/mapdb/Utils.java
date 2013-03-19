@@ -262,4 +262,14 @@ final public class Utils {
         }.start();
     }
 
+    public static <A> DataOutput2 serializer(Serializer<A> serializer, A value) {
+        try{
+            DataOutput2 out = new DataOutput2();
+            serializer.serialize(out,value);
+            return out;
+        }catch(IOException e){
+            throw new IOError(e);
+        }
+
+    }
 }

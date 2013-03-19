@@ -3,6 +3,8 @@ package org.mapdb;
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -19,7 +21,9 @@ public class StorageAppend implements Engine{
 
     protected final static long FILE_HEADER = 56465465456465L;
 
-    protected final ReentrantReadWriteLock appendLock = new ReentrantReadWriteLock();
+    protected static final int CONCURRENCY_FACTOR = 32;
+    protected final ReentrantReadWriteLock[] readLocks;
+    protected final Lock structuralLock = new ReentrantLock();
     protected final static Long THUMBSTONE = Long.MIN_VALUE;
     protected final static int THUMBSTONE_SIZE = -3;
     protected final static long EOF = -1;
@@ -43,6 +47,9 @@ public class StorageAppend implements Engine{
         this.useRandomAccessFile = useRandomAccessFile;
         this.readOnly = readOnly;
         //TODO special mode with transactions disabled
+
+        readLocks = new ReentrantReadWriteLock[CONCURRENCY_FACTOR];
+        for(int i=0;i<readLocks.length;i++) readLocks[i] = new ReentrantReadWriteLock();
 
         File zeroFile = getFileNum(0);
         if(zeroFile.exists()){
@@ -131,142 +138,189 @@ public class StorageAppend implements Engine{
 
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
+
+        DataOutput2 out = Utils.serializer(serializer,value);
+
+        long recid;
+        long pos;
+        long volNum;
+        Volume vol;
+        structuralLock.lock();
         try{
-            DataOutput2 out = new DataOutput2();
-            serializer.serialize(out, value);
-            appendLock.writeLock().lock();
-            try{
-
-                long newRecid = maxRecid++; //TODO free recid management
-                update2(newRecid, out);
-                rollOverFile();
-                return newRecid;
-            }finally {
-                appendLock.writeLock().unlock();
-            }
-        }catch(IOException e){
-            throw new IOError(e);
+            recid= maxRecid++; //TODO free recid management
+            pos = currentFileOffset;
+            currentFileOffset += 8 + 4 + out.pos;
+            currentVolume.ensureAvailable(currentFileOffset);
+            volNum = currentVolumeNum;
+            vol = currentVolume;
+            rollOverFile();
+        }finally {
+            structuralLock.unlock();
         }
-    }
+        Lock lock = readLocks[Utils.longHash(recid)%readLocks.length].writeLock();
+        lock.lock();
+        try{
+            vol.putLong(pos, recid);
+            pos+=8;
+            long filePos = (volNum<<FILE_NUMBER_SHIFT) | pos;
+            vol.putInt(pos,out.pos);
+            pos+=4;
+            vol.putData(pos,out.buf, out.pos);
+            recidsInTx.put(recid, filePos);
 
-    protected void update2(long recid, DataOutput2 out) {
-        currentVolume.ensureAvailable(currentFileOffset+8+4+out.pos);
-        currentVolume.putLong(currentFileOffset,recid);
-        currentFileOffset+=8;
-        long filePos = (currentVolumeNum<<FILE_NUMBER_SHIFT) | currentFileOffset;
-
-        currentVolume.putInt(currentFileOffset,out.pos);
-        currentFileOffset+=4;
-        currentVolume.putData(currentFileOffset,out.buf, out.pos);
-        currentFileOffset+=out.pos;
-        recidsInTx.put(recid, filePos);
+            return recid;
+        }finally {
+            lock.unlock();
+        }
     }
 
     @Override
     public <A> A get(long recid, Serializer<A> serializer) {
-        appendLock.readLock().lock();
+        Lock lock = readLocks[Utils.longHash(recid)%readLocks.length].readLock();
+        lock.lock();
         try {
-            Long fileNum2 = recidsInTx.get(recid);
-            if(fileNum2 == null)
-                    fileNum2 = recidsTable.getLong(recid*8);
-
-            if(fileNum2 == THUMBSTONE){  //there is warning about '==', it is ok
-                //record was deleted;
-                return null;
-            }
-
-            if(fileNum2 == 0){
-                return serializer.deserialize(new DataInput2(new byte[0]), 0);
-            }
-
-            long fileNum = fileNum2;
-
-            long fileOffset = fileNum & FILE_OFFSET_MASK;
-            if(fileOffset>MAX_FILE_SIZE) throw new InternalError();
-            fileNum = fileNum>>>FILE_NUMBER_SHIFT;
-            Volume v = volumes.get(fileNum);
-
-            int size = v.getInt(fileOffset);
-            DataInput2 input = v.getDataInput(fileOffset+4, size);
-
-            return serializer.deserialize(input, size);
+            return getNoLock(recid, serializer);
         } catch (IOException e) {
             throw new IOError(e);
         }finally {
-            appendLock.readLock().unlock();
+            lock.unlock();
         }
 
+    }
+
+    protected <A> A getNoLock(long recid, Serializer<A> serializer) throws IOException {
+        Long fileNum2 = recidsInTx.get(recid);
+        if(fileNum2 == null)
+                fileNum2 = recidsTable.getLong(recid*8);
+
+        if(fileNum2 == THUMBSTONE){  //there is warning about '==', it is ok
+            //record was deleted;
+            return null;
+        }
+
+        if(fileNum2 == 0){
+            return serializer.deserialize(new DataInput2(new byte[0]), 0);
+        }
+
+        long fileNum = fileNum2;
+
+        long fileOffset = fileNum & FILE_OFFSET_MASK;
+        if(fileOffset>MAX_FILE_SIZE) throw new InternalError();
+        fileNum = fileNum>>>FILE_NUMBER_SHIFT;
+        Volume v = volumes.get(fileNum);
+
+        int size = v.getInt(fileOffset);
+        DataInput2 input = v.getDataInput(fileOffset+4, size);
+
+        return serializer.deserialize(input, size);
     }
 
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
+        DataOutput2 out = Utils.serializer(serializer,value);
+        Lock lock = readLocks[Utils.longHash(recid)%readLocks.length].writeLock();
+        lock.lock();
         try{
-            DataOutput2 out = new DataOutput2();
-            serializer.serialize(out, value);
-            appendLock.writeLock().lock();
-            try {
-                update2(recid, out);
+
+            long pos;
+            long volNum;
+            Volume vol;
+            structuralLock.lock();
+            try{
+                pos = currentFileOffset;
+                currentFileOffset += 8 + 4 + out.pos;
+                currentVolume.ensureAvailable(currentFileOffset);
+                volNum = currentVolumeNum;
+                vol = currentVolume;
                 rollOverFile();
             }finally {
-                appendLock.writeLock().unlock();
+                structuralLock.unlock();
             }
-
-        }catch(IOException e){
-            throw new IOError(e);
+            vol.putLong(pos, recid);
+            pos+=8;
+            long filePos = (volNum<<FILE_NUMBER_SHIFT) | pos;
+            vol.putInt(pos,out.pos);
+            pos+=4;
+            vol.putData(pos,out.buf, out.pos);
+            recidsInTx.put(recid, filePos);
+        }finally {
+            lock.unlock();
         }
-
     }
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
-        appendLock.writeLock().lock();
+        Lock lock = readLocks[Utils.longHash(recid)%readLocks.length].writeLock();
+        lock.lock();
         try{
             Object oldVal = get(recid, serializer);
             //TODO compare binary stuff?
-            if((oldVal==null && expectedOldValue==null)|| (oldVal!=null && oldVal.equals(expectedOldValue))){
-                DataOutput2 out = new DataOutput2();
-                try {
-                    serializer.serialize(out, newValue); //TODO serialize outside of APPEND_LOCK
-                } catch (IOException e) {
-                    throw new IOError(e);
-                }
-                update2(recid, out);
-                rollOverFile();
-                return true;
-            }else{
+            if(!((oldVal==null && expectedOldValue==null)|| (oldVal!=null && oldVal.equals(expectedOldValue)))){
                 return false;
             }
-        }finally {
-            appendLock.writeLock().unlock();
-        }
 
+            DataOutput2 out = Utils.serializer(serializer,newValue);
+
+            long pos;
+            long volNum;
+            Volume vol;
+            structuralLock.lock();
+            try{
+                pos = currentFileOffset;
+                currentFileOffset += 8 + 4 + out.pos;
+                currentVolume.ensureAvailable(currentFileOffset);
+                volNum = currentVolumeNum;
+                vol = currentVolume;
+                rollOverFile();
+            }finally {
+                structuralLock.unlock();
+            }
+            vol.putLong(pos, recid);
+            pos+=8;
+            long filePos = (volNum<<FILE_NUMBER_SHIFT) | pos;
+            vol.putInt(pos,out.pos);
+            pos+=4;
+            vol.putData(pos,out.buf, out.pos);
+            recidsInTx.put(recid, filePos);
+            return true;
+        }finally {
+            lock.unlock();
+        }
     }
 
     @Override
     public <A> void delete(long recid, Serializer<A> serializer){
-        //put thumbstone into log
-        appendLock.writeLock().lock();
+        Lock lock = readLocks[Utils.longHash(recid)%readLocks.length].writeLock();
+        lock.lock();
         try{
+            structuralLock.lock();
+            try{
+                currentVolume.ensureAvailable(currentFileOffset+8+4);
+                currentVolume.putLong(currentFileOffset, recid);
+                currentFileOffset+=8;
+                currentVolume.putInt(currentFileOffset, THUMBSTONE_SIZE);
+                currentFileOffset+=4;
+                recidsInTx.put(recid, THUMBSTONE);
+                rollOverFile();
 
-            currentVolume.ensureAvailable(currentFileOffset+8+4);
-            currentVolume.putLong(currentFileOffset, recid);
-            currentFileOffset+=8;
-            currentVolume.putInt(currentFileOffset, THUMBSTONE_SIZE);
-            currentFileOffset+=4;
-            recidsInTx.put(recid, THUMBSTONE);
-            rollOverFile();
+            }finally{
+                structuralLock.unlock();
+            }
+
         }finally {
-            appendLock.writeLock().unlock();
+            lock.unlock();
         }
 
     }
 
     @Override
     public void close() {
+        structuralLock.lock();
         currentVolume.sync();
         currentVolume.close();
         currentVolume = null;
         volumes = null;
+        structuralLock.unlock();
     }
 
     @Override
@@ -276,8 +330,9 @@ public class StorageAppend implements Engine{
 
     @Override
     public void commit() {
+        //TODO lock all locks?
         //append commit mark
-        appendLock.writeLock().lock();
+        structuralLock.lock();
         try{
             commitRecids(recidsInTx);
             currentVolume.ensureAvailable(currentFileOffset+8);
@@ -286,14 +341,15 @@ public class StorageAppend implements Engine{
             currentVolume.sync();
             rollOverFile();
         }finally {
-            appendLock.writeLock().unlock();
+            structuralLock.unlock();
         }
     }
 
     @Override
     public void rollback() throws UnsupportedOperationException {
+        //TODO lock all locks?
         //append rollback mark
-        appendLock.writeLock().lock();
+        structuralLock.lock();
         try{
             currentVolume.ensureAvailable(currentFileOffset+8);
             currentVolume.putLong(currentFileOffset, ROLLBACK);
@@ -302,7 +358,7 @@ public class StorageAppend implements Engine{
             recidsInTx.clear();
             rollOverFile();
         }finally {
-            appendLock.writeLock().unlock();
+            structuralLock.unlock();
         }
 
 
@@ -324,12 +380,12 @@ public class StorageAppend implements Engine{
         if(currentFileOffset<MAX_FILE_SIZE-8) return;
 
 
-        currentVolume.ensureAvailable(currentFileOffset+8);
+        currentVolume.ensureAvailable(currentFileOffset + 8);
         currentVolume.putLong(currentFileOffset, EOF);
         currentVolume.sync();
         currentVolumeNum++;
         currentVolume = Volume.volumeForFile(
-              getFileNum(currentVolumeNum), useRandomAccessFile, readOnly);
+                getFileNum(currentVolumeNum), useRandomAccessFile, readOnly);
         currentVolume.ensureAvailable(MAX_FILE_SIZE);
         currentVolume.putLong(0, FILE_HEADER);
         currentFileOffset = 8;
