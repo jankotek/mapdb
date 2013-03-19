@@ -65,7 +65,6 @@ public class Custom_Value {
 		
 		// Open or create db file
 		DB db = DBMaker.newFileDB(new File("dbCustomValue"))
-				.asyncWriteDisable()
 				.make();
 		
 		// Open or create table
@@ -91,7 +90,7 @@ public class Custom_Value {
         // analyze the class structure.
         //
 
-        Serializer<Person> serializer = new Serializer<Person>(){
+        class CustomSerializer implements Serializer<Person>, Serializable{
 
             @Override
             public void serialize(DataOutput out, Person value) throws IOException {
@@ -103,7 +102,9 @@ public class Custom_Value {
             public Person deserialize(DataInput in, int available) throws IOException {
                 return new Person(in.readUTF(), in.readUTF());
             }
-        };
+        }
+
+        Serializer<Person> serializer = new CustomSerializer();
 
         DB db2 = DBMaker.newTempFileDB().make();
 

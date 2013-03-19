@@ -16,6 +16,11 @@ public class ExamplesTest {
         _TempMap.main(args);
     }
 
+    @Test public void Custom_Value(){
+        Custom_Value.main(args);
+    }
+
+
     @Test public void Bidi_Map(){
         Bidi_Map.main(args);
     }

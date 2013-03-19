@@ -172,7 +172,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
         checkState();
-        if(commitLock!=null) commitLock.readLock().lock();
+        if(commitLock!=null && serializer!=SerializerPojo.serializer) commitLock.readLock().lock();
         try{
 
             writeLocks.lock(recid);
@@ -182,7 +182,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
                 writeLocks.unlock(recid);
             }
         }finally{
-            if(commitLock!=null) commitLock.readLock().unlock();
+            if(commitLock!=null&& serializer!=SerializerPojo.serializer) commitLock.readLock().unlock();
         }
 
     }
