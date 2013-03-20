@@ -20,6 +20,7 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.LockSupport;
 import java.util.logging.Logger;
 
 /**
@@ -232,28 +233,30 @@ final public class Utils {
         }
     }
 
-    public static void printer(final AtomicLong value){
-        new Thread("printer"){
+    public static void printProgress(final AtomicLong value){
+        new Thread("printProgress"){
             {
                 setDaemon(true);
             }
 
-
             @Override
             public void run() {
                 long startValue = value.get();
-                long startTime = System.currentTimeMillis();
+                long startTime, time = System.currentTimeMillis();
+                startTime = time;
                 long old = value.get();
                 while(true){
-
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        return;
+                    time+=1000;
+                    while(time>System.currentTimeMillis()){
+                        LockSupport.parkNanos(1000*1000); //1ms
                     }
 
                     long current = value.get();
-                    long totalSpeed = 1000*(current-startValue)/(System.currentTimeMillis()-startTime);
+                    if(current<0){
+                        System.out.println("Finished, total time: "+(time-startTime)+", aprox items: "+old);
+                        return;
+                    }
+                    long totalSpeed = 1000*(current-startValue)/(time-startTime);
                     System.out.print("total: "+current+" - items per last second: "+(current-old)+" - avg items per second: "+totalSpeed+"\r");
                     old = current;
                 }

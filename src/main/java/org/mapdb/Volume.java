@@ -33,7 +33,12 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 
 /**
- * MapDB abstraction over raw storage (file, disk partition, memory etc...)
+ * MapDB abstraction over raw storage (file, disk partition, memory etc...).
+ * <p/>
+ * Implementations needs to be thread safe (especially
+ 'ensureAvailable') operation.
+ * However updates do not have to be atomic, it is clients responsibility
+ * to ensure two threads are not writing/reading into the same location.
  *
  * @author Jan Kotek
  */
@@ -141,15 +146,22 @@ public abstract class Volume {
     public static Factory memoryFactory(final boolean useDirectBuffer) {
         return new Factory() {
 
-            @Override public Volume createIndexVolume() {
-                return new MemoryVol(useDirectBuffer);
+            Volume index = null;
+            Volume phys = null;
+
+
+            @Override public synchronized  Volume createIndexVolume() {
+                if(index==null) index = new MemoryVol(useDirectBuffer);
+                return index;
             }
 
-            @Override public Volume createPhysVolume() {
-                return new MemoryVol(useDirectBuffer);
+            @Override public synchronized Volume createPhysVolume() {
+                if(phys==null) phys = new MemoryVol(useDirectBuffer);
+                return phys;
             }
 
-            @Override public Volume createTransLogVolume() {
+            @Override public synchronized Volume createTransLogVolume() {
+                //TODO journal has different lifecycle, refactor this so in-memory journal can be deleted
                 return new MemoryVol(useDirectBuffer);
             }
         };
@@ -180,8 +192,9 @@ public abstract class Volume {
 
             //check for most common case, this is already mapped
             if(buffersPos<buffers.length && buffers[buffersPos]!=null &&
-                    buffers[buffersPos].capacity()>=offset% BUF_SIZE)
+                    buffers[buffersPos].capacity()>=offset% BUF_SIZE){
                 return;
+            }
 
             growLock.lock();
             try{
@@ -190,18 +203,26 @@ public abstract class Volume {
                         buffers[buffersPos].capacity()>=offset% BUF_SIZE)
                     return;
 
+                ByteBuffer[] buffers2 = buffers;
 
                 //grow array if necessary
-                if(buffersPos>=buffers.length){
-                    buffers = Arrays.copyOf(buffers, Math.max(buffersPos, buffers.length * 2));
+                if(buffersPos>=buffers2.length){
+                    buffers2 = Arrays.copyOf(buffers2, Math.max(buffersPos, buffers2.length * 2));
                 }
 
+
                 //just remap file buffer
+                ByteBuffer oldBuffer = buffers2[buffersPos];
+                //TODO we need to unmap all oldBuffers on windows. Otherwise we will not be able to reopen and delete files on Windows
+
+
                 ByteBuffer newBuf = makeNewBuffer(offset);
                 if(readOnly)
                     newBuf = newBuf.asReadOnlyBuffer();
 
-                buffers[buffersPos] = newBuf;
+                buffers2[buffersPos] = newBuf;
+
+                buffers = buffers2;
             }finally{
                 growLock.unlock();
             }
@@ -263,6 +284,9 @@ public abstract class Volume {
         @Override final public int getInt(long offset) {
             try{
                 return internalByteBuffer(offset).getInt((int) (offset% BUF_SIZE));
+            } catch (NullPointerException e) {
+                throw new RuntimeException(""+offset,e);
+
             }catch(IndexOutOfBoundsException e){
                 throw new IOError(new EOFException());
             }
@@ -429,13 +453,6 @@ public abstract class Volume {
         @Override
         protected ByteBuffer makeNewBuffer(long offset) {
             try {
-                //unmap old buffer on windows
-                int bufPos = (int) (offset/BUF_SIZE);
-                if(bufPos<buffers.length && buffers[bufPos]!=null){
-                    unmap((MappedByteBuffer) buffers[bufPos]);
-                    buffers[bufPos] = null;
-                }
-
                 long newBufSize =  offset% BUF_SIZE;
                 newBufSize = newBufSize + newBufSize%BUF_SIZE_INC; //round to BUF_SIZE_INC
                 return fileChannel.map(
@@ -462,10 +479,11 @@ public abstract class Volume {
         public MemoryVol(boolean useDirectBuffer) {
             super(false);
             this.useDirectBuffer = useDirectBuffer;
-            ByteBuffer b0 = useDirectBuffer?
-                    ByteBuffer.allocateDirect(INITIAL_SIZE) :
-                    ByteBuffer.allocate(INITIAL_SIZE);
-            buffers = new ByteBuffer[]{b0};
+//            ByteBuffer b0 = useDirectBuffer?
+//                    ByteBuffer.allocateDirect(INITIAL_SIZE) :
+//                    ByteBuffer.allocate(INITIAL_SIZE);
+//            buffers = new ByteBuffer[]{b0};
+            buffers=new ByteBuffer[1];
         }
 
         @Override protected ByteBuffer makeNewBuffer(long offset) {
@@ -720,7 +738,7 @@ public abstract class Volume {
             try {
                 this.channel = readOnly?
                         AsynchronousFileChannel.open(file.toPath(),StandardOpenOption.READ):
-                        AsynchronousFileChannel.open(file.toPath(),StandardOpenOption.READ, StandardOpenOption.WRITE);
+                        AsynchronousFileChannel.open(file.toPath(),StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE);
 
             } catch (IOException e) {
                 throw new IOError(e);
@@ -732,12 +750,12 @@ public abstract class Volume {
             //we do not have a list of ByteBuffers, so ensure size does not have to do anything
         }
 
-
-
-        protected void await(Future<Integer> future, int size) {
+        protected void writeFully(long offset, ByteBuffer b, int size) {
             try {
-                int res = future.get();
-                if(res!=size) throw new InternalError("not enough bytes");
+                int written = 0;
+                while(written<size){
+                    written+=channel.write(b, offset+written).get();
+                }
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             } catch (ExecutionException e) {
@@ -745,36 +763,54 @@ public abstract class Volume {
             }
         }
 
+        protected void readFully(long offset, ByteBuffer b, int size) {
+            try {
+                int read = 0;
+                while(read<size){
+                    int i = channel.read(b, offset+read).get();
+                    if(i==-1) throw new IOError(new EOFException());
+                    read+=i;
+                }
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            } catch (ExecutionException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        protected void await(Future<Integer> future, int size) {
+        }
+
         @Override
         public void putByte(long offset, byte value) {
             ByteBuffer b = ByteBuffer.allocate(1);
             b.put(0, value);
-            await(channel.write(b, offset),1);
+            writeFully(offset, b, 1);
         }
         @Override
         public void putInt(long offset, int value) {
             ByteBuffer b = ByteBuffer.allocate(4);
             b.putInt(0, value);
-            await(channel.write(b, offset),4);
+            writeFully(offset, b, 4);
         }
 
         @Override
         public void putLong(long offset, long value) {
             ByteBuffer b = ByteBuffer.allocate(8);
             b.putLong(0, value);
-            await(channel.write(b, offset),8);
+            writeFully(offset, b, 8);
         }
 
         @Override
         public void putData(long offset, byte[] value, int size) {
             ByteBuffer b = ByteBuffer.wrap(value);
             b.limit(size);
-            await(channel.write(b,offset),size);
+            writeFully(offset, b, size);
         }
 
         @Override
         public void putData(long offset, ByteBuffer buf) {
-            await(channel.write(buf,offset), buf.limit() - buf.position());
+            writeFully(offset, buf, buf.limit() - buf.position());
         }
 
 
@@ -782,7 +818,7 @@ public abstract class Volume {
         @Override
         public long getLong(long offset) {
             ByteBuffer b = ByteBuffer.allocate(8);
-            await(channel.read(b, offset), 8);
+            readFully(offset, b, 8);
             b.rewind();
             return b.getLong();
         }
@@ -790,7 +826,7 @@ public abstract class Volume {
         @Override
         public byte getByte(long offset) {
             ByteBuffer b = ByteBuffer.allocate(1);
-            await(channel.read(b, offset), 1);
+            readFully(offset, b, 1);
             b.rewind();
             return b.get();
         }
@@ -798,7 +834,7 @@ public abstract class Volume {
         @Override
         public int getInt(long offset) {
             ByteBuffer b = ByteBuffer.allocate(4);
-            await(channel.read(b, offset), 4);
+            readFully(offset, b, 4);
             b.rewind();
             return b.getInt();
         }
@@ -808,7 +844,7 @@ public abstract class Volume {
         @Override
         public DataInput2 getDataInput(long offset, int size) {
             ByteBuffer b = ByteBuffer.allocate(size);
-            await(channel.read(b, offset), size);
+            readFully(offset, b, size);
             b.rewind();
             return new DataInput2(b,0);
         }
@@ -833,7 +869,7 @@ public abstract class Volume {
 
         @Override
         public boolean isEmpty() {
-            return file.length()>0;
+            return file.length()<8;
         }
 
         @Override

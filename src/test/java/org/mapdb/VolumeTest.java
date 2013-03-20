@@ -7,6 +7,9 @@ import java.io.EOFException;
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.*;
 
@@ -173,6 +176,31 @@ public abstract class VolumeTest {
             fail();
         }catch(IOError e){
             assertTrue(e.getCause() instanceof  EOFException);
+        }
+    }
+
+
+    @Test public void concurrent_write() throws InterruptedException {
+        final Volume v = getVolume();
+        final long max = 1024*8;
+        v.ensureAvailable(max);
+        ExecutorService s = Executors.newCachedThreadPool();
+        for(int i=0;i<8;i++){
+            final int threadNum = i;
+            s.execute(new Runnable() {
+                @Override public void run() {
+                    for(long offset=threadNum*4;offset<max;offset+=4*8){
+                        v.putInt(offset,111);
+                        if(offset!=0)
+                            if(v.getInt(offset-4)==-111)throw new InternalError();
+                    }
+                }
+            });
+        }
+        s.shutdown();
+        s.awaitTermination(111, TimeUnit.DAYS);
+        for(long offset=0;offset<max;offset+=4){
+            assertEquals("offset:"+offset, 111,v.getInt(offset));
         }
     }
 

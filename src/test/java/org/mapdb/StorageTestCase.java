@@ -22,7 +22,7 @@ import static org.junit.Assert.assertEquals;
 abstract public class StorageTestCase extends TestFile{
 
 
-    Serializer<byte[] > BYTE_ARRAY_SERIALIZER = new Serializer<byte[]>() {
+    public static final Serializer<byte[] > BYTE_ARRAY_SERIALIZER = new Serializer<byte[]>() {
 
         @Override
         public void serialize(DataOutput out, byte[] value) throws IOException {

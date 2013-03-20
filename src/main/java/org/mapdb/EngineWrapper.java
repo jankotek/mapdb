@@ -377,5 +377,69 @@ public abstract class EngineWrapper implements Engine{
             items.clear();
         }
     }
+    
+    
+    /** Engine wrapper with all methods synchronized on global lock, useful to diagnose concurrency issues.*/ 
+    public static class SynchronizedEngineWrapper extends EngineWrapper{
+
+        protected SynchronizedEngineWrapper(Engine engine) {
+            super(engine);
+        }
+
+        @Override
+        synchronized public <A> long put(A value, Serializer<A> serializer) {
+            return super.put(value, serializer);
+        }
+
+        @Override
+        synchronized public <A> A get(long recid, Serializer<A> serializer) {
+            return super.get(recid, serializer);
+        }
+
+        @Override
+        synchronized public <A> void update(long recid, A value, Serializer<A> serializer) {
+            super.update(recid, value, serializer);
+        }
+
+        @Override
+        synchronized public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+            return super.compareAndSwap(recid, expectedOldValue, newValue, serializer);
+        }
+
+        @Override
+        synchronized public <A> void delete(long recid, Serializer<A> serializer) {
+            super.delete(recid, serializer);
+        }
+
+        @Override
+        synchronized public void close() {
+            super.close();
+        }
+
+        @Override
+        synchronized public boolean isClosed() {
+            return super.isClosed();
+        }
+
+        @Override
+        synchronized public void commit() {
+            super.commit();
+        }
+
+        @Override
+        synchronized public void rollback() {
+            super.rollback();
+        }
+
+        @Override
+        synchronized public boolean isReadOnly() {
+            return super.isReadOnly();
+        }
+
+        @Override
+        synchronized public void compact() {
+            super.compact();
+        }
+    }
 
 }

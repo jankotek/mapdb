@@ -3,6 +3,7 @@ package org.mapdb;
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
+import java.util.BitSet;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -30,10 +31,10 @@ public class StorageAppend implements Engine{
     protected final static long COMMIT = -2;
     protected final static long ROLLBACK = -2;
 
-    protected Volume currentVolume;
-    protected long currentVolumeNum;
-    protected int currentFileOffset;
-    protected long maxRecid = 10;
+    volatile protected Volume currentVolume;
+    volatile protected long currentVolumeNum;
+    volatile protected int currentFileOffset;
+    volatile protected long maxRecid;
 
     protected LongConcurrentHashMap<Volume> volumes = new LongConcurrentHashMap<Volume>();
     protected final LongConcurrentHashMap<Long> recidsInTx = new LongConcurrentHashMap<Long>();
@@ -56,6 +57,11 @@ public class StorageAppend implements Engine{
             replayLog();
         }else{
             //create zero file
+            recidsTable.ensureAvailable(LAST_RESERVED_RECID*8+8);
+            for(long i=0;i<=LAST_RESERVED_RECID;i++){
+                recidsTable.putLong(i*8,0);
+            }
+            maxRecid=LAST_RESERVED_RECID+1;
             currentVolume = Volume.volumeForFile(zeroFile, useRandomAccessFile, readOnly);
             currentVolume.ensureAvailable(8);
             currentVolume.putLong(0, FILE_HEADER);
@@ -365,20 +371,9 @@ public class StorageAppend implements Engine{
     }
 
 
-    @Override
-    public boolean isReadOnly() {
-        return readOnly;
-    }
-
-    @Override
-    public void compact() {
-        //TODO implement compaction on StorageAppend
-    }
-
     /** check if current file is too big, if yes finish it and start next file */
     protected void rollOverFile(){
         if(currentFileOffset<MAX_FILE_SIZE-8) return;
-
 
         currentVolume.ensureAvailable(currentFileOffset + 8);
         currentVolume.putLong(currentFileOffset, EOF);
@@ -391,6 +386,45 @@ public class StorageAppend implements Engine{
         currentFileOffset = 8;
         currentVolume.sync();
         volumes.put(currentVolumeNum,currentVolume);
+    }
+
+
+    @Override
+    public boolean isReadOnly() {
+        return readOnly;
+    }
+
+    @Override
+    public void compact() {
+        //traverse list of recids, find and delete files which are not used
+        //TODO lock all locks?
+        structuralLock.lock();
+        try{
+            if(!recidsInTx.isEmpty()) throw new IllegalAccessError("Uncommited changes");
+
+            LongHashMap<Boolean> ff = new LongHashMap<Boolean>();
+            for(long recid=0;recid<maxRecid;recid++){
+                long indexVal = recidsTable.getLong(recid*8);
+                if(indexVal ==0)continue;
+                long fileNum = indexVal>>>FILE_NUMBER_SHIFT;
+                ff.put(fileNum,true);
+            }
+
+            //now traverse files and delete unused
+            LongMap.LongMapIterator<Volume> iter = volumes.longMapIterator();
+            while(iter.moveToNext()){
+                long recid = iter.key();
+                if(ff.get(recid)!=null) continue;
+                Volume v = iter.value();
+                v.close();
+                v.deleteFile();
+                iter.remove();
+            }
+
+        }finally {
+            structuralLock.unlock();
+        }
+
 
     }
 

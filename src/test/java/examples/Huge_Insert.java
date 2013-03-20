@@ -2,9 +2,12 @@ package examples;
 
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
+import org.mapdb.Utils;
 
 import java.io.File;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.LockSupport;
 
 /**
  * @author Jan Kotek
@@ -12,22 +15,25 @@ import java.util.Map;
 public class Huge_Insert {
 
     public static void main(String[] args){
-        DB db = DBMaker.newFileDB(new File("/tmp/db"))
-                .journalDisable()
+        DB db = DBMaker
+                //.newFileDB(new File("/mnt/big/db/aa"))
+                .newAppendFileDB(new File("/mnt/big/db/aa" + System.currentTimeMillis()))
                 .make();
 
-        Map<Integer, String> map = db.getTreeMap("map");
+        Map map = db
+                .getTreeMap("map");
+                //.getHashMap("map");
 
         long time = System.currentTimeMillis();
         long max = (int) 1e8;
-        long step = max/100;
-        for(int i=0;i<max;i++){
-            map.put(i, "test"+i);
-            if(i%step == 0){
-                System.out.println(100.0 * i/max);
-            }
+        AtomicLong progress = new AtomicLong(0);
+        Utils.printProgress(progress);
 
+        while(progress.incrementAndGet()<max){
+            Long val = Utils.RANDOM.nextLong();
+            map.put(val, "test"+val);
         }
+        progress.set(-1);
 
         System.out.println("Closing");
         db.close();
