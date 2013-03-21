@@ -37,7 +37,7 @@ Hereafter is a simple example. It opens TreeMap backed by file in temp directory
 
 ```java
 import org.mapdb.*;
-ConcurrentSortedMap treeMap = DBMaker.newTempTreeMap()
+ConcurrentNavigableMap treeMap = DBMaker.newTempTreeMap()
 
 // and now use disk based Map as any other Map
 treeMap.put(111,"some value")
