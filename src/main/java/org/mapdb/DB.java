@@ -82,7 +82,7 @@ public class DB {
             if(!ret.hasValues) throw new ClassCastException("Collection is Set, not Map");
         }else{
             //create new map
-            ret = new HTreeMap<K,V>(engine,true,Utils.RANDOM.nextInt(), defaultSerializer,null, null);
+            ret = new HTreeMap<K,V>(engine,true,false,Utils.RANDOM.nextInt(), defaultSerializer,null, null);
             nameDir.put(name, ret.rootRecid);
         }
         collections.put(name, new WeakReference<Object>(ret));
@@ -94,6 +94,7 @@ public class DB {
      * Creates new HashMap with more specific arguments
      *
      * @param name of map to create
+     * @param keepCounter if counter should be kept, without counter updates are faster, but entire collection needs to be traversed to count items.
      * @param keySerializer used to convert keys into/from binary form. Use null for default value.
      * @param valueSerializer used to convert values into/from binary form. Use null for default value.
      * @param <K> key type
@@ -102,9 +103,9 @@ public class DB {
      * @return newly created map
      */
     synchronized public <K,V> HTreeMap<K,V> createHashMap(
-            String name, Serializer<K> keySerializer, Serializer<V> valueSerializer){
+            String name, boolean keepCounter, Serializer<K> keySerializer, Serializer<V> valueSerializer){
         checkNameNotExists(name);
-        HTreeMap<K,V> ret = new HTreeMap<K,V>(engine, true,Utils.RANDOM.nextInt(), defaultSerializer, keySerializer, valueSerializer);
+        HTreeMap<K,V> ret = new HTreeMap<K,V>(engine, true,keepCounter,Utils.RANDOM.nextInt(), defaultSerializer, keySerializer, valueSerializer);
         nameDir.put(name, ret.rootRecid);
         collections.put(name, new WeakReference<Object>(ret));
         return ret;
@@ -129,7 +130,7 @@ public class DB {
             ret = m.keySet();
         }else{
             //create new map
-            HTreeMap<K,Object> m = new HTreeMap<K,Object>(engine, false,Utils.RANDOM.nextInt(), defaultSerializer, null, null);
+            HTreeMap<K,Object> m = new HTreeMap<K,Object>(engine, false,false, Utils.RANDOM.nextInt(), defaultSerializer, null, null);
             ret = m.keySet();
             nameDir.put(name, m.rootRecid);
         }
@@ -141,15 +142,15 @@ public class DB {
     /**
      * Creates new HashSet
      * @param name of set to create
+     * @param keepCounter if counter should be kept, without counter updates are faster, but entire collection needs to be traversed to count items.
      * @param serializer used to convert keys into/from binary form. Use null for default value.
      * @param <K> item type
      * @throws IllegalArgumentException if name is already used
-
      */
     
-    synchronized public <K> Set<K> createHashSet(String name, Serializer<K> serializer){
+    synchronized public <K> Set<K> createHashSet(String name, boolean keepCounter, Serializer<K> serializer){
         checkNameNotExists(name);
-        HTreeMap<K,Object> ret = new HTreeMap<K,Object>(engine, false,Utils.RANDOM.nextInt(), defaultSerializer, serializer, null);
+        HTreeMap<K,Object> ret = new HTreeMap<K,Object>(engine, false,keepCounter,Utils.RANDOM.nextInt(), defaultSerializer, serializer, null);
         nameDir.put(name, ret.rootRecid);
         Set<K> ret2 = ret.keySet();
         collections.put(name, new WeakReference<Object>(ret2));
@@ -179,7 +180,7 @@ public class DB {
             if(!ret.hasValues) throw new ClassCastException("Collection is Set, not Map");
         }else{
             //create new map
-            ret = new BTreeMap<K,V>(engine,BTreeMap.DEFAULT_MAX_NODE_SIZE, true, false, defaultSerializer, null, null, null);
+            ret = new BTreeMap<K,V>(engine,BTreeMap.DEFAULT_MAX_NODE_SIZE, true, false,false, defaultSerializer, null, null, null);
             nameDir.put(name, ret.treeRecid);
         }
         collections.put(name, new WeakReference<Object>(ret));
@@ -191,6 +192,7 @@ public class DB {
      * @param name of map to create
      * @param nodeSize maximal size of node, larger node causes overflow and creation of new BTree node. Use large number for small keys, use small number for large keys.
      * @param valuesStoredOutsideNodes if true, values are stored outside of BTree nodes. Use 'true' if your values are large.
+     * @param keepCounter if counter should be kept, without counter updates are faster, but entire collection needs to be traversed to count items.
      * @param keySerializer used to convert keys into/from binary form. Use null for default value.
      * @param valueSerializer used to convert values into/from binary form. Use null for default value.
      * @param comparator used to sort keys. Use null for default value. TODO delta packing
@@ -200,10 +202,10 @@ public class DB {
      * @return newly created map
      */
     synchronized public <K,V> BTreeMap<K,V> createTreeMap(
-            String name, int nodeSize, boolean valuesStoredOutsideNodes,
+            String name, int nodeSize, boolean valuesStoredOutsideNodes, boolean keepCounter,
             BTreeKeySerializer<K> keySerializer, Serializer<V> valueSerializer, Comparator<K> comparator){
         checkNameNotExists(name);
-        BTreeMap<K,V> ret = new BTreeMap<K,V>(engine, nodeSize, true,valuesStoredOutsideNodes, defaultSerializer, keySerializer, valueSerializer, comparator);
+        BTreeMap<K,V> ret = new BTreeMap<K,V>(engine, nodeSize, true,valuesStoredOutsideNodes, keepCounter,defaultSerializer, keySerializer, valueSerializer, comparator);
         nameDir.put(name, ret.treeRecid);
         collections.put(name, new WeakReference<Object>(ret));
         return ret;
@@ -239,7 +241,7 @@ public class DB {
         }else{
             //create new map
             BTreeMap<K,Object> m =  new BTreeMap<K,Object>(engine,BTreeMap.DEFAULT_MAX_NODE_SIZE,
-                    false, false, defaultSerializer, null, null, null);
+                    false, false,false, defaultSerializer, null, null, null);
             nameDir.put(name, m.treeRecid);
             ret = m.keySet();
         }
@@ -252,15 +254,16 @@ public class DB {
      * Creates new TreeSet.
      * @param name of set to create
      * @param nodeSize maximal size of node, larger node causes overflow and creation of new BTree node. Use large number for small keys, use small number for large keys.
+     * @param keepCounter if counter should be kept, without counter updates are faster, but entire collection needs to be traversed to count items.
      * @param serializer used to convert keys into/from binary form. Use null for default value.
      * @param comparator used to sort keys. Use null for default value. TODO delta packing
      * @param <K>
      * @throws IllegalArgumentException if name is already used
      * @return
      */
-    synchronized public <K> NavigableSet<K> createTreeSet(String name, int nodeSize, BTreeKeySerializer<K> serializer, Comparator<K> comparator){
+    synchronized public <K> NavigableSet<K> createTreeSet(String name,int nodeSize, boolean keepCounter, BTreeKeySerializer<K> serializer, Comparator<K> comparator){
         checkNameNotExists(name);
-        BTreeMap<K,Object> ret = new BTreeMap<K,Object>(engine, nodeSize, false, false, defaultSerializer, serializer, null, comparator);
+        BTreeMap<K,Object> ret = new BTreeMap<K,Object>(engine, nodeSize, false, false, keepCounter, defaultSerializer, serializer, null, comparator);
         nameDir.put(name, ret.treeRecid);
         NavigableSet<K> ret2 = ret.keySet();
         collections.put(name, new WeakReference<Object>(ret2));

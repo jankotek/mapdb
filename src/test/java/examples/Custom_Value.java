@@ -110,7 +110,7 @@ public class Custom_Value {
 
         DB db2 = DBMaker.newTempFileDB().make();
 
-        Map<String,Person> map2 = db2.createHashMap("map",null, serializer); //key serializer is null (use default)
+        Map<String,Person> map2 = db2.createHashMap("map", false, null, serializer); //key serializer is null (use default)
 
         map2.put("North", new Person("Yet another dwarf","Somewhere"));
 

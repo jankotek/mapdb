@@ -17,7 +17,7 @@ public class BTreeMapTest{
     
 
     @Test public void test_leaf_node_serialization() throws IOException {
-        BTreeMap m = new BTreeMap(engine, 32,true,false, null,null,null,null);
+        BTreeMap m = new BTreeMap(engine, 32,true,false,false, null,null,null,null);
 
         BTreeMap.LeafNode n = new BTreeMap.LeafNode(new Object[]{1,2,3, null}, new Object[]{1,2,3,null}, 111);
         BTreeMap.LeafNode n2 = (BTreeMap.LeafNode) Utils.clone(n, m.nodeSerializer);
@@ -27,7 +27,7 @@ public class BTreeMapTest{
 
     
 	@Test public void test_dir_node_serialization() throws IOException {
-        BTreeMap m = new BTreeMap(engine,32,true,false, null,null,null,null);
+        BTreeMap m = new BTreeMap(engine,32,true,false,false, null,null,null,null);
 
         BTreeMap.DirNode n = new BTreeMap.DirNode(new Object[]{1,2,3, null}, new long[]{4,5,6,7});
         BTreeMap.DirNode n2 = (BTreeMap.DirNode) Utils.clone(n, m.nodeSerializer);
@@ -37,7 +37,7 @@ public class BTreeMapTest{
     }
 
     @Test public void test_find_children(){
-        BTreeMap m = new BTreeMap(engine,32,true,false, null,null,null,null);
+        BTreeMap m = new BTreeMap(engine,32,true,false,false, null,null,null,null);
         assertEquals(8,m.findChildren(11, new Integer[]{1,2,3,4,5,6,7,8}));
         assertEquals(0,m.findChildren(1, new Integer[]{1,2,3,4,5,6,7,8}));
         assertEquals(0,m.findChildren(0, new Integer[]{1,2,3,4,5,6,7,8}));
@@ -50,7 +50,7 @@ public class BTreeMapTest{
 
 
     @Test public void test_next_dir(){
-        BTreeMap m = new BTreeMap(engine,32,true,false, null,null,null,null);
+        BTreeMap m = new BTreeMap(engine,32,true,false,false, null,null,null,null);
         BTreeMap.DirNode d = new BTreeMap.DirNode(new Integer[]{44,62,68, 71}, new long[]{10,20,30,40});
 
         assertEquals(10, m.nextDir(d, 62));
@@ -70,7 +70,7 @@ public class BTreeMapTest{
     }
 
     @Test public void test_next_dir_infinity(){
-        BTreeMap m = new BTreeMap(engine,32,true,false, null,null,null,null);
+        BTreeMap m = new BTreeMap(engine,32,true,false, false,null,null,null,null);
         BTreeMap.DirNode d = new BTreeMap.DirNode(
                 new Object[]{null,62,68, 71},
                 new long[]{10,20,30,40});
@@ -100,7 +100,7 @@ public class BTreeMapTest{
     }
 
     @Test public void simple_root_get(){
-        BTreeMap m = new BTreeMap(engine,32,true,false, null,null,null,null);
+        BTreeMap m = new BTreeMap(engine,32,true,false,false, null,null,null,null);
         BTreeMap.LeafNode l = new BTreeMap.LeafNode(
                 new Object[]{null, 10,20,30, null},
                 new Object[]{null, 10,20,30, null},
@@ -121,7 +121,7 @@ public class BTreeMapTest{
     }
 
     @Test public void root_leaf_insert(){
-        BTreeMap m = new BTreeMap(engine,6,true,false, null,null,null,null);
+        BTreeMap m = new BTreeMap(engine,6,true,false, false,null,null,null,null);
         m.put(11,12);
         final long rootRecid = engine.get(m.rootRecidRef, Serializer.LONG_SERIALIZER);
         BTreeMap.LeafNode n = (BTreeMap.LeafNode) engine.get(rootRecid, m.nodeSerializer);
@@ -131,7 +131,7 @@ public class BTreeMapTest{
     }
 
     @Test public void batch_insert(){
-        BTreeMap m = new BTreeMap(engine,6,true,false, null,null,null,null);
+        BTreeMap m = new BTreeMap(engine,6,true,false,false, null,null,null,null);
 
         for(int i=0;i<1000;i++){
             m.put(i*10,i*10+1);
@@ -143,13 +143,13 @@ public class BTreeMapTest{
     }
 
     @Test public void test_empty_iterator(){
-        BTreeMap m = new BTreeMap(engine,6,true,false, null,null,null,null);
+        BTreeMap m = new BTreeMap(engine,6,true,false,false, null,null,null,null);
         assertFalse(m.keySet().iterator().hasNext());
         assertFalse(m.values().iterator().hasNext());
     }
 
     @Test public void test_key_iterator(){
-        BTreeMap m = new BTreeMap(engine,6,true,false, null,null,null,null);
+        BTreeMap m = new BTreeMap(engine,6,true,false,false, null,null,null,null);
         for(int i = 0;i<20;i++){
             m.put(i,i*10);
         }
@@ -164,7 +164,7 @@ public class BTreeMapTest{
     }
 
     @Test public void test_size(){
-        BTreeMap m = new BTreeMap(engine,6,true,false, null,null,null,null);
+        BTreeMap m = new BTreeMap(engine,6,true,false,false, null,null,null,null);
         assertTrue(m.isEmpty());
         assertEquals(0,m.size());
         for(int i = 1;i<30;i++){
@@ -175,7 +175,7 @@ public class BTreeMapTest{
     }
 
     @Test public void delete(){
-        BTreeMap m = new BTreeMap(engine,6,true,false, null,null,null,null);
+        BTreeMap m = new BTreeMap(engine,6,true,false,false, null,null,null,null);
         for(int i:new int[]{
                 10, 50, 20, 42,
                 //44, 68, 20, 93, 85, 71, 62, 77, 4, 37, 66
@@ -211,7 +211,7 @@ public class BTreeMapTest{
 
 
     @Test public void floorTestFill() {
-        BTreeMap map = new BTreeMap(engine,6,true,false, null,null,null,null);
+        BTreeMap map = new BTreeMap(engine,6,true,false, false,null,null,null,null);
         map.put(1, "val1");
         map.put(2, "val2");
         map.put(5, "val3");
@@ -226,7 +226,7 @@ public class BTreeMapTest{
     }
 
     @Test public void submapToString() {
-        BTreeMap map = new BTreeMap(engine,6,true,false, null,null,null,null);
+        BTreeMap map = new BTreeMap(engine,6,true,false,false, null,null,null,null);
 
         for (int i = 0; i < 20; i++) {
             map.put(i, "aa"+i);
@@ -238,7 +238,7 @@ public class BTreeMapTest{
     }
 
     @Test public void findSmaller(){
-        BTreeMap map = new BTreeMap(engine,6,true,false, null,null,null,null);
+        BTreeMap map = new BTreeMap(engine,6,true,false,false, null,null,null,null);
 
         for(int i=0;i<10000; i+=3){
             map.put(i, "aa"+i);

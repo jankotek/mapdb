@@ -43,7 +43,7 @@ public class Issue41Test {
 
         map =
                 db.createHashMap(
-                        MAP_NAME, new Key.Serializer(), new Value.Serializer());
+                        MAP_NAME, false, new Key.Serializer(), new Value.Serializer());
 
         threadPool = Executors.newFixedThreadPool(16);
 

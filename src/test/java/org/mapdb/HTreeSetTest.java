@@ -50,7 +50,7 @@ public class HTreeSetTest{
 
     @Test public void test_Constructor() {
         // Test for method java.util.HashSet()
-        Set hs2 = new HTreeMap(engine, false,0,null,null,null).keySet();
+        Set hs2 = new HTreeMap(engine, false,false,0,null,null,null).keySet();
         assertEquals("Created incorrect HashSet", 0, hs2.size());
     }
 
@@ -87,7 +87,7 @@ public class HTreeSetTest{
 
     @Test public void test_isEmpty() {
         // Test for method boolean java.util.HashSet.isEmpty()
-        assertTrue("Empty set returned false", new HTreeMap(engine, false,0,null,null,null).keySet().isEmpty());
+        assertTrue("Empty set returned false", new HTreeMap(engine, false,false,0,null,null,null).keySet().isEmpty());
         assertTrue("Non-empty set returned true", !hs.isEmpty());
     }
 
@@ -126,7 +126,7 @@ public class HTreeSetTest{
      * is called before a test is executed.
      */
     @Before public void setUp() throws Exception {
-        hs = new HTreeMap(engine, false,0,null,null,null).keySet();
+        hs = new HTreeMap(engine, false,false,0,null,null,null).keySet();
         Collections.addAll(hs, objArray);
     }
 

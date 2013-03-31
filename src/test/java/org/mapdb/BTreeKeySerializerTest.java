@@ -14,7 +14,7 @@ public class BTreeKeySerializerTest {
         DB db = DBMaker.newMemoryDB()
                 .cacheDisable()
                 .make();
-        Map m = db.createTreeMap("test",32,false,
+        Map m = db.createTreeMap("test",32,false,false,
                 BTreeKeySerializer.ZERO_OR_POSITIVE_LONG,
                 null, null );
 
@@ -34,7 +34,7 @@ public class BTreeKeySerializerTest {
         DB db = DBMaker.newMemoryDB()
                 .cacheDisable()
                 .make();
-        Map m = db.createTreeMap("test",32,false,
+        Map m = db.createTreeMap("test",32,false, false,
                 BTreeKeySerializer.STRING,
                 null, null );
 

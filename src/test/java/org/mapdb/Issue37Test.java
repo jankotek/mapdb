@@ -25,7 +25,7 @@ public class Issue37Test {
          * Tijdelijke on-disk database gebruiken.
          */
         DB db = DBMaker.newTempFileDB().cacheDisable().make();
-        ConcurrentMap<String,String> testData = db.createHashMap("test",
+        ConcurrentMap<String,String> testData = db.createHashMap("test",false,
                 null, null);
 
         BufferedReader in = new BufferedReader(new FileReader("./src/test/resources/Issue37Data.txt"));
@@ -53,7 +53,7 @@ public class Issue37Test {
     @Test public void test3(){
 
         DB db = DBMaker.newDirectMemoryDB().writeAheadLogDisable().asyncFlushDelay(100).make();
-        ConcurrentMap<Long, Long> orders = db.createHashMap("order", null, null);
+        ConcurrentMap<Long, Long> orders = db.createHashMap("order", false, null, null);
         for(int i = 0; i < 10000; i++) {
             orders.put((long)i, (long)i);
         }

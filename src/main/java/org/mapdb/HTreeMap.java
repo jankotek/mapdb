@@ -51,6 +51,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
      */
     protected final int hashSalt;
 
+    protected final Atomic.Long counter;
 
     protected final Serializer<K> keySerializer;
     protected final Serializer<V> valueSerializer;
@@ -85,6 +86,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         public void serialize(DataOutput out, HashRoot value) throws IOException {
             out.writeBoolean(value.hasValues);
             out.writeInt(value.hashSalt);
+            out.writeLong(value.counterRecid);
             for(int i=0;i<16;i++){
                 Utils.packLong(out, value.segmentRecids[i]);
             }
@@ -99,6 +101,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             HashRoot r = new HashRoot();
             r.hasValues = in.readBoolean();
             r.hashSalt = in.readInt();
+            r.counterRecid = in.readLong();
             r.segmentRecids = new long[16];
             for(int i=0;i<16;i++){
                 r.segmentRecids[i] = Utils.unpackLong(in);
@@ -115,8 +118,10 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         long[] segmentRecids;
         boolean hasValues;
         int hashSalt;
+        long counterRecid;
         Serializer keySerializer;
         Serializer valueSerializer;
+
     }
 
 
@@ -211,12 +216,15 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
      * @param keySerializer Serializier used for keys. May be null for default value.
      * @param valueSerializer Serializer used for values. May be null for default value
      */
-    public HTreeMap(Engine engine, boolean hasValues, int hashSalt, Serializer defaultSerializer, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
+    public HTreeMap(Engine engine, boolean hasValues, boolean keepCounter, int hashSalt, Serializer defaultSerializer, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
         this.engine = engine;
         this.hasValues = hasValues;
         this.hashSalt = hashSalt;
+
+
         SerializerBase.assertSerializable(keySerializer);
         SerializerBase.assertSerializable(valueSerializer);
+
 
         if(defaultSerializer == null) defaultSerializer = Serializer.BASIC_SERIALIZER;
         this.defaultSerialzierForSnapshots = defaultSerializer;
@@ -228,13 +236,25 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         segmentRecids = new long[16];
         for(int i=0;i<16;i++)
             segmentRecids[i] = engine.put(new long[16][], DIR_SERIALIZER);
+
+        long counterRecid = 0;
+        if(keepCounter){
+            counterRecid = engine.put(0L, Serializer.LONG_SERIALIZER);
+            this.counter = new Atomic.Long(engine,counterRecid);
+            Bind.size(this,counter);
+        }else{
+            this.counter = null;
+        }
+
         HashRoot r = new HashRoot();
         r.hasValues = hasValues;
         r.hashSalt = hashSalt;
+        r.counterRecid = counterRecid;
         r.segmentRecids = segmentRecids;
         r.keySerializer = this.keySerializer;
         r.valueSerializer = this.valueSerializer;
         this.rootRecid = engine.put(r, new HashRootSerializer(defaultSerializer));
+
     }
 
     /**
@@ -258,6 +278,13 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         this.hashSalt = r.hashSalt;
         this.keySerializer = r.keySerializer;
         this.valueSerializer = r.valueSerializer;
+
+        if(r.counterRecid!=0){
+            counter = new Atomic.Long(engine,r.counterRecid);
+            Bind.size(this,counter);
+        }else{
+            this.counter = null;
+        }
     }
 
     /** hack used for Dir Name*/
@@ -293,6 +320,10 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
     @Override
     public int size() {
+        if(counter!=null)
+            return (int) counter.get(); //TODO larger then MAX_INT
+
+
         long counter = 0;
 
         //search tree, until we find first non null

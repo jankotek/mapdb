@@ -64,7 +64,7 @@ public class TreeMap_Performance_Tunning {
                         .make();
 
 
-                Map<Long,String> map = db.createTreeMap("test",nodeSize, valueOutsideOfNodes, null, null, null );
+                Map<Long,String> map = db.createTreeMap("test",nodeSize,false,  valueOutsideOfNodes, null, null, null );
 
                 long startTime = System.currentTimeMillis();
 

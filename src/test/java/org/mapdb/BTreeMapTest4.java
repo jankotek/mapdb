@@ -30,7 +30,7 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         BTreeMap ret = DBMaker.newMemoryDB()
                 .cacheDisable()
                 .asyncWriteDisable().writeAheadLogDisable().make()
-                .createTreeMap("test",6,false,null,null, null);
+                .createTreeMap("test",6,false,false, null,null, null);
         ret.putAll(map);
         return ret;
     }
@@ -39,7 +39,7 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         return DBMaker.newMemoryDB()
                 .cacheDisable()
                 .asyncWriteDisable().writeAheadLogDisable().make()
-                .createTreeMap("test",6,false,null,null, comp);
+                .createTreeMap("test",6,false,false, null,null, comp);
     }
 
     protected static <K,V> BTreeMap<K,V> newBTreeMap() {

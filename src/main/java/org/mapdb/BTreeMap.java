@@ -137,6 +137,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
     private final Values values = new Values(this);
     protected final Serializer defaultSerializer;
+    protected final Atomic.Long counter;
 
 
     static class BTreeRootSerializer implements  Serializer<BTreeRoot>{
@@ -153,6 +154,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             out.writeBoolean(value.hasValues);
             out.writeBoolean(value.valsOutsideNodes);
             out.writeInt(value.maxNodeSize);
+            out.writeLong(value.counterRecid);
             defaultSerializer.serialize(out, value.keySerializer);
             defaultSerializer.serialize(out, value.valueSerializer);
             defaultSerializer.serialize(out, value.comparator);
@@ -167,6 +169,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             ret.hasValues = in.readBoolean();
             ret.valsOutsideNodes = in.readBoolean();
             ret.maxNodeSize = in.readInt();
+            ret.counterRecid = in.readLong();
             ret.keySerializer = (BTreeKeySerializer) defaultSerializer.deserialize(in, -1);
             ret.valueSerializer = (Serializer) defaultSerializer.deserialize(in, -1);
             ret.comparator = (Comparator) defaultSerializer.deserialize(in, -1);
@@ -180,12 +183,10 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         boolean hasValues;
         boolean valsOutsideNodes;
         int maxNodeSize;
+        long counterRecid;
         BTreeKeySerializer keySerializer;
         Serializer valueSerializer;
         Comparator comparator;
-
-
-
     }
 
     /** if <code>valsOutsideNodes</code> is true, this class is used instead of values.
@@ -424,7 +425,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
      * @param valueSerializer Serializer used for values. May be null for default value
      * @param comparator Comparator to sort keys in this BTree, may be null.
      */
-    public BTreeMap(Engine engine, int maxNodeSize, boolean hasValues, boolean valsOutsideNodes,
+    public BTreeMap(Engine engine, int maxNodeSize, boolean hasValues, boolean valsOutsideNodes, boolean keepCounter,
                     Serializer defaultSerializer,
                     BTreeKeySerializer<K> keySerializer, Serializer<V> valueSerializer, Comparator<K> comparator) {
         if(maxNodeSize%2!=0) throw new IllegalArgumentException("maxNodeSize must be dividable by 2");
@@ -448,11 +449,21 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         this.keySerializer = keySerializer==null ?  new BTreeKeySerializer.BasicKeySerializer(defaultSerializer) :  keySerializer;
         this.valueSerializer = valueSerializer==null ? (Serializer<V>) defaultSerializer : valueSerializer;
 
+
         this.keySet = new KeySet(this, hasValues);
 
         LeafNode emptyRoot = new LeafNode(new Object[]{null, null}, new Object[]{null, null}, 0);
         long rootRecidVal = engine.put(emptyRoot, nodeSerializer);
         rootRecidRef = engine.put(rootRecidVal,Serializer.LONG_SERIALIZER);
+
+        long counterRecid = 0;
+        if(keepCounter){
+            counterRecid = engine.put(0L, Serializer.LONG_SERIALIZER);
+            this.counter = new Atomic.Long(engine,counterRecid);
+            Bind.size(this,counter);
+        }else{
+            this.counter = null;
+        }
 
         BTreeRoot r = new BTreeRoot();
         r.hasValues = this.hasValues;
@@ -462,7 +473,10 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         r.keySerializer =  this.keySerializer;
         r.valueSerializer =  this.valueSerializer;
         r.comparator =  this.comparator;
+        r.counterRecid = counterRecid;
         this.treeRecid = engine.put(r, new BTreeRootSerializer(this.defaultSerializer));
+
+
     }
 
 
@@ -490,7 +504,15 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         this.comparator = r.comparator;
         this.valsOutsideNodes = r.valsOutsideNodes;
 
+
         this.keySet = new KeySet(this, hasValues);
+
+        if(r.counterRecid!=0){
+            counter = new Atomic.Long(engine,r.counterRecid);
+            Bind.size(this,counter);
+        }else{
+            this.counter = null;
+        }
     }
 
 
@@ -959,6 +981,9 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
     @Override
     public int size(){
+        if(counter!=null)
+            return (int) counter.get(); //TODO larger then MAX_INT
+
         long size = 0;
         BTreeIterator iter = new BTreeIterator();
         while(iter.hasNext()){
