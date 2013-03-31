@@ -275,4 +275,13 @@ final public class Utils {
         }
 
     }
+
+    public static String randomString(int size) {
+        String chars = "0123456789abcdefghijklmnopqrstuvwxyz !@#$%^&*()_+=-{}[]:\",./<>?|\\";
+        StringBuilder b = new StringBuilder(size);
+        for(int i=0;i<size;i++){
+            b.append(chars.charAt(RANDOM.nextInt(chars.length())));
+        }
+        return b.toString();
+    }
 }
