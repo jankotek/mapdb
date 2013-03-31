@@ -35,11 +35,6 @@ public abstract class VolumeTest {
         }
     }
 
-    public static class AsyncFileChannelTest extends VolumeTest{
-        @Override Volume getVolume() {
-            return new Volume.AsyncFileChannelVol(Utils.tempDbFile(), false);
-        }
-    }
 
 
     abstract Volume getVolume();
