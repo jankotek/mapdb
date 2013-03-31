@@ -13,7 +13,7 @@ public class Huge_Read {
 
     public static void main(String[] args){
     DB db = DBMaker.newFileDB(new File("/tmp/db2"))
-            .journalDisable()
+            .writeAheadLogDisable()
                     //.asyncWriteDisable()
             .make();
 

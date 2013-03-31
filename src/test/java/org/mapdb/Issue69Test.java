@@ -6,8 +6,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.swing.plaf.basic.BasicInternalFrameTitlePane;
-
 import static org.junit.Assert.fail;
 
 /**
@@ -23,7 +21,7 @@ public class Issue69Test {
 	@Before
 	public void setUp() {
 		db = DBMaker.newTempFileDB()
-				.journalDisable()
+				.writeAheadLogDisable()
 				.checksumEnable()
                 .asyncWriteDisable()
 				.deleteFilesAfterClose()

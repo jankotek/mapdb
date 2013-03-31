@@ -11,7 +11,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 /**
  * Append only storage. Uses different file format than Direct and Journaled storage
  */
-public class StorageAppend implements Engine{
+public class StoreAppend implements Engine{
 
     protected final File file;
     protected final boolean useRandomAccessFile;
@@ -43,7 +43,7 @@ public class StorageAppend implements Engine{
     protected final Volume recidsTable = new Volume.MemoryVol(true);
     protected static final int MAX_FILE_SIZE = 1024 * 1024 * 10;
 
-    public StorageAppend(File file, boolean useRandomAccessFile, boolean readOnly, boolean transactionsDisabled) {
+    public StoreAppend(File file, boolean useRandomAccessFile, boolean readOnly, boolean transactionsDisabled) {
         this.file = file;
         this.useRandomAccessFile = useRandomAccessFile;
         this.readOnly = readOnly;
@@ -171,7 +171,7 @@ public class StorageAppend implements Engine{
             long filePos = (volNum<<FILE_NUMBER_SHIFT) | pos;
             vol.putInt(pos,out.pos);
             pos+=4;
-            vol.putData(pos,out.buf, out.pos);
+            vol.putData(pos,out.buf, 0, out.pos);
             recidsInTx.put(recid, filePos);
 
             return recid;
@@ -247,7 +247,7 @@ public class StorageAppend implements Engine{
             long filePos = (volNum<<FILE_NUMBER_SHIFT) | pos;
             vol.putInt(pos,out.pos);
             pos+=4;
-            vol.putData(pos,out.buf, out.pos);
+            vol.putData(pos,out.buf, 0, out.pos);
             recidsInTx.put(recid, filePos);
         }finally {
             lock.unlock();
@@ -286,7 +286,7 @@ public class StorageAppend implements Engine{
             long filePos = (volNum<<FILE_NUMBER_SHIFT) | pos;
             vol.putInt(pos,out.pos);
             pos+=4;
-            vol.putData(pos,out.buf, out.pos);
+            vol.putData(pos,out.buf, 0, out.pos);
             recidsInTx.put(recid, filePos);
             return true;
         }finally {

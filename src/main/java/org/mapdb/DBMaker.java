@@ -123,7 +123,7 @@ public class DBMaker {
         return newTempFileDB()
                 .deleteFilesAfterClose()
                 .closeOnJvmShutdown()
-                .journalDisable()
+                .writeAheadLogDisable()
                 .make()
                 .getTreeMap("temp");
     }
@@ -138,7 +138,7 @@ public class DBMaker {
         return newTempFileDB()
                 .deleteFilesAfterClose()
                 .closeOnJvmShutdown()
-                .journalDisable()
+                .writeAheadLogDisable()
                 .make()
                 .getHashMap("temp");
     }
@@ -153,7 +153,7 @@ public class DBMaker {
         return newTempFileDB()
                 .deleteFilesAfterClose()
                 .closeOnJvmShutdown()
-                .journalDisable()
+                .writeAheadLogDisable()
                 .make()
                 .getTreeSet("temp");
     }
@@ -168,7 +168,7 @@ public class DBMaker {
         return newTempFileDB()
                 .deleteFilesAfterClose()
                 .closeOnJvmShutdown()
-                .journalDisable()
+                .writeAheadLogDisable()
                 .make()
                 .getHashSet("temp");
     }
@@ -209,7 +209,7 @@ public class DBMaker {
      *
      * @return this builder
      */
-    public DBMaker journalDisable(){
+    public DBMaker writeAheadLogDisable(){
         this._journalEnabled = false;
         return this;
     }
@@ -570,11 +570,14 @@ public class DBMaker {
                 Volume.fileFactory(_readOnly, _RAF, _file);
 
             engine = _journalEnabled ?
-                new StorageJournaled(folFac, _freeSpaceReclaimDisabled, _deleteFilesAfterClose, _failOnWrongHeader, _readOnly):
-                new StorageDirect(folFac, _freeSpaceReclaimDisabled, _deleteFilesAfterClose , _failOnWrongHeader, _readOnly);
+                    //TODO add extra params
+                //new StoreWAL(folFac, _freeSpaceReclaimDisabled, _deleteFilesAfterClose, _failOnWrongHeader, _readOnly):
+                //new StoreDirect(folFac, _freeSpaceReclaimDisabled, _deleteFilesAfterClose , _failOnWrongHeader, _readOnly);
+                new StoreWAL(folFac,  _readOnly,_deleteFilesAfterClose):
+                new StoreDirect(folFac,  _readOnly,_deleteFilesAfterClose);
         }else{
             if(_file==null) throw new UnsupportedOperationException("Append Storage format is not supported with in-memory dbs");
-            engine = new StorageAppend(_file, _RAF, _readOnly, !_journalEnabled);
+            engine = new StoreAppend(_file, _RAF, _readOnly, !_journalEnabled);
         }
 
         AsyncWriteEngine engineAsync = null;

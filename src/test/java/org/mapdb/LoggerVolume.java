@@ -61,7 +61,7 @@ public class LoggerVolume extends Volume{
         log.ensureAvailable(pos +8 + b.length);
         log.putLong(pos, b.length);
         pos +=8;
-        log.putData(pos, b, b.length);
+        log.putData(pos, b, 0, b.length);
         pos += b.length;
 
     }
@@ -118,15 +118,15 @@ public class LoggerVolume extends Volume{
     }
 
     @Override
-    synchronized public void putData(long offset, byte[] value, int size) {
-        logged.putData(offset, value, size);
+    synchronized public void putData(long offset, byte[] value, int pos, int size) {
+        logged.putData(offset, value, 0,  size);
 
         log.ensureAvailable(pos+1+8+size);
         log.putByte(pos, BYTE_ARRAY);
         pos+=1;
         log.putLong(pos, offset);
         pos+=8;
-        log.putData(pos, value, size);
+        log.putData(pos, value, 0,  size);
         pos+=size;
 
         logStackTrace();
@@ -137,7 +137,7 @@ public class LoggerVolume extends Volume{
         int size = buf.limit()-buf.position();
         byte[] b = new byte[size];
         buf.get(b);
-        putData(offset, b, size);
+        putData(offset, b, 0, size);
     }
 
     @Override

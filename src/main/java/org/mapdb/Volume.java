@@ -45,7 +45,6 @@ import java.util.logging.Level;
 public abstract class Volume {
 
     public static final int BUF_SIZE = 1<<30;
-    public static final int INITIAL_SIZE = 1024*32;
 
     abstract public void ensureAvailable(final long offset);
 
@@ -53,7 +52,7 @@ public abstract class Volume {
     abstract public void putInt(long offset, int value);
     abstract public void putByte(final long offset, final byte value);
 
-    abstract public void putData(final long offset, final byte[] value, int size);
+    abstract public void putData(final long offset, final byte[] src, int srcPos, int srcSize);
     abstract public void putData(final long offset, final ByteBuffer buf);
 
     abstract public long getLong(final long offset);
@@ -93,6 +92,37 @@ public abstract class Volume {
         putByte(offset, (byte)(b & 0xff));
     }
 
+    /**
+     * Reads a long from the indicated position
+     */
+    public final long getSixLong(long pos) {
+        return
+                ((long) (getByte(pos + 0) & 0xff) << 40) |
+                        ((long) (getByte(pos + 1) & 0xff) << 32) |
+                        ((long) (getByte(pos + 2) & 0xff) << 24) |
+                        ((long) (getByte(pos + 3) & 0xff) << 16) |
+                        ((long) (getByte(pos + 4) & 0xff) << 8) |
+                        ((long) (getByte(pos + 5) & 0xff) << 0);
+    }
+
+    /**
+     * Writes a long to the indicated position
+     */
+    public final void putSixLong(long pos, long value) {
+        if(value<0) throw new IllegalArgumentException();
+    	if(value >> (6*8)!=0)
+    		throw new IllegalArgumentException("does not fit");
+        //TODO read/write as integer+short, might be faster
+        putByte(pos + 0, (byte) (0xff & (value >> 40)));
+        putByte(pos + 1, (byte) (0xff & (value >> 32)));
+        putByte(pos + 2, (byte) (0xff & (value >> 24)));
+        putByte(pos + 3, (byte) (0xff & (value >> 16)));
+        putByte(pos + 4, (byte) (0xff & (value >> 8)));
+        putByte(pos + 5, (byte) (0xff & (value >> 0)));
+
+    }
+
+
     /** returns underlying file if it exists */
     abstract public File getFile();
 
@@ -115,8 +145,8 @@ public abstract class Volume {
 
     public static Factory fileFactory(final boolean readOnly, final boolean RAF, final File indexFile){
         return fileFactory(readOnly, RAF, indexFile,
-                new File(indexFile.getPath() + StorageDirect.DATA_FILE_EXT),
-                new File(indexFile.getPath() + StorageJournaled.TRANS_LOG_FILE_EXT));
+                new File(indexFile.getPath() + StoreDirect.DATA_FILE_EXT),
+                new File(indexFile.getPath() + StoreWAL.TRANS_LOG_FILE_EXT));
     }
 
     public static Factory fileFactory(final boolean readOnly,
@@ -146,22 +176,15 @@ public abstract class Volume {
     public static Factory memoryFactory(final boolean useDirectBuffer) {
         return new Factory() {
 
-            Volume index = null;
-            Volume phys = null;
-
-
             @Override public synchronized  Volume createIndexVolume() {
-                if(index==null) index = new MemoryVol(useDirectBuffer);
-                return index;
+                return new MemoryVol(useDirectBuffer);
             }
 
             @Override public synchronized Volume createPhysVolume() {
-                if(phys==null) phys = new MemoryVol(useDirectBuffer);
-                return phys;
+                return new MemoryVol(useDirectBuffer);
             }
 
             @Override public synchronized Volume createTransLogVolume() {
-                //TODO journal has different lifecycle, refactor this so in-memory journal can be deleted
                 return new MemoryVol(useDirectBuffer);
             }
         };
@@ -207,7 +230,7 @@ public abstract class Volume {
 
                 //grow array if necessary
                 if(buffersPos>=buffers2.length){
-                    buffers2 = Arrays.copyOf(buffers2, Math.max(buffersPos, buffers2.length * 2));
+                    buffers2 = Arrays.copyOf(buffers2, Math.max(buffersPos+1, buffers2.length * 2));
                 }
 
 
@@ -216,7 +239,7 @@ public abstract class Volume {
                 //TODO we need to unmap all oldBuffers on windows. Otherwise we will not be able to reopen and delete files on Windows
 
 
-                ByteBuffer newBuf = makeNewBuffer(offset);
+                ByteBuffer newBuf = makeNewBuffer(offset, buffers2);
                 if(readOnly)
                     newBuf = newBuf.asReadOnlyBuffer();
 
@@ -228,7 +251,7 @@ public abstract class Volume {
             }
         }
 
-        protected abstract ByteBuffer makeNewBuffer(long offset);
+        protected abstract ByteBuffer makeNewBuffer(long offset, ByteBuffer[] buffers2);
 
         protected final ByteBuffer internalByteBuffer(long offset) {
             final int pos = ((int) (offset / BUF_SIZE));
@@ -253,13 +276,13 @@ public abstract class Volume {
 
 
 
-        @Override public final void putData(final long offset, final byte[] value, final int size) {
+        @Override public void putData(final long offset, final byte[] src, int srcPos, int srcSize){
             final ByteBuffer b1 = internalByteBuffer(offset);
             final int bufPos = (int) (offset% BUF_SIZE);
 
             synchronized (b1){
                 b1.position(bufPos);
-                b1.put(value, 0, size);
+                b1.put(src, srcPos, srcSize);
             }
         }
 
@@ -393,9 +416,9 @@ public abstract class Volume {
                     }
                 }else{
                     buffers = new ByteBuffer[1];
-                    buffers[0] = fileChannel.map(mapMode, 0, INITIAL_SIZE);
-                    if(mapMode == FileChannel.MapMode.READ_ONLY)
-                        buffers[0] = buffers[0].asReadOnlyBuffer();
+//                    buffers[0] = fileChannel.map(mapMode, 0, INITIAL_SIZE);
+//                    if(mapMode == FileChannel.MapMode.READ_ONLY)
+//                        buffers[0] = buffers[0].asReadOnlyBuffer();
 
                 }
             } catch (IOException e) {
@@ -451,7 +474,7 @@ public abstract class Volume {
         }
 
         @Override
-        protected ByteBuffer makeNewBuffer(long offset) {
+        protected ByteBuffer makeNewBuffer(long offset, ByteBuffer[] buffers2) {
             try {
                 long newBufSize =  offset% BUF_SIZE;
                 newBufSize = newBufSize + newBufSize%BUF_SIZE_INC; //round to BUF_SIZE_INC
@@ -486,14 +509,14 @@ public abstract class Volume {
             buffers=new ByteBuffer[1];
         }
 
-        @Override protected ByteBuffer makeNewBuffer(long offset) {
+        @Override protected ByteBuffer makeNewBuffer(long offset, ByteBuffer[] buffers2) {
             final int newBufSize = Utils.nextPowTwo((int) (offset % BUF_SIZE));
             //double size of existing in-memory-buffer
             ByteBuffer newBuf = useDirectBuffer?
                     ByteBuffer.allocateDirect(newBufSize):
                     ByteBuffer.allocate(newBufSize);
             final int buffersPos = (int) (offset/ BUF_SIZE);
-            final ByteBuffer oldBuffer = buffers[buffersPos];
+            final ByteBuffer oldBuffer = buffers2[buffersPos];
             if(oldBuffer!=null){
                 //copy old buffer if it exists
                 synchronized (oldBuffer){
@@ -597,13 +620,13 @@ public abstract class Volume {
         }
 
         @Override
-        synchronized public void putData(long offset, byte[] value, int size) {
+        synchronized public void putData(final long offset, final byte[] src, int srcPos, int srcSize){
             try {
                 if(pos!=offset){
                     raf.seek(offset);
                 }
-                pos=offset+size;
-                raf.write(value,0,size);
+                pos=offset+srcSize;
+                raf.write(src,srcPos,srcSize);
             } catch (IOException e) {
                 throw new IOError(e);
             }
@@ -619,7 +642,7 @@ public abstract class Volume {
                 pos=offset+size;
                 byte[] b = new byte[size];
                 buf.get(b);
-                putData(offset, b, size);
+                putData(offset, b, 0, size);
             } catch (IOException e) {
                 throw new IOError(e);
             }
@@ -802,10 +825,9 @@ public abstract class Volume {
         }
 
         @Override
-        public void putData(long offset, byte[] value, int size) {
-            ByteBuffer b = ByteBuffer.wrap(value);
-            b.limit(size);
-            writeFully(offset, b, size);
+        public void putData(final long offset, final byte[] src, int srcPos, int srcSize){
+            ByteBuffer b = ByteBuffer.wrap(src,srcPos, srcSize);
+            writeFully(offset, b, srcSize);
         }
 
         @Override

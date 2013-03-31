@@ -32,7 +32,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
     }
 
     private static BTreeMap newBTreeMap() {
-        return DBMaker.newMemoryDB().journalDisable().make().getTreeMap("test");
+        return DBMaker.newMemoryDB().writeAheadLogDisable().make().getTreeMap("test");
     }
 
     /**

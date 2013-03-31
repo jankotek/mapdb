@@ -59,7 +59,7 @@ public class TreeMap_Performance_Tunning {
                         .newFileDB(new File("/mnt/big/adsasd"))
                         .deleteFilesAfterClose()
                         .closeOnJvmShutdown()
-                        .journalDisable()
+                        .writeAheadLogDisable()
                         .cacheSize(10) //use small cache size, to simulate much larger store with relatively small cache.
                         .make();
 

@@ -29,7 +29,7 @@ public class DBMakerTest{
     public void testNewMemoryDB() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
-                .journalDisable()
+                .writeAheadLogDisable()
                 .make();
         verifyDB(db);
     }
@@ -49,7 +49,7 @@ public class DBMakerTest{
     public void testDisableCache() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
-                .journalDisable()
+                .writeAheadLogDisable()
                 .cacheDisable()
                 .make();
         verifyDB(db);
@@ -63,7 +63,7 @@ public class DBMakerTest{
     public void testDisableAsyncWrite() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
-                .journalDisable()
+                .writeAheadLogDisable()
                 .asyncWriteDisable()
                 .make();
         verifyDB(db);
@@ -76,7 +76,7 @@ public class DBMakerTest{
     public void testMake() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
-                .journalDisable()
+                .writeAheadLogDisable()
                 .make();
         verifyDB(db);
         //check default values are set
@@ -86,7 +86,7 @@ public class DBMakerTest{
         assertTrue(w instanceof SnapshotEngine);
         assertTrue(w.getWrappedEngine().getClass() == AsyncWriteEngine.class);
         AsyncWriteEngine r = (AsyncWriteEngine) w.getWrappedEngine();
-        assertTrue(r.getWrappedEngine() instanceof StorageDirect);
+        assertTrue(r.getWrappedEngine() instanceof StoreDirect);
 
     }
 
@@ -94,7 +94,7 @@ public class DBMakerTest{
     public void testCacheHardRefEnable() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
-                .journalDisable()
+                .writeAheadLogDisable()
                 .cacheHardRefEnable()
                 .make();
         verifyDB(db);
@@ -105,7 +105,7 @@ public class DBMakerTest{
     public void testCacheWeakRefEnable() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
-                .journalDisable()
+                .writeAheadLogDisable()
                 .cacheWeakRefEnable()
                 .make();
         verifyDB(db);
@@ -118,7 +118,7 @@ public class DBMakerTest{
     public void testCacheSoftRefEnable() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
-                .journalDisable()
+                .writeAheadLogDisable()
                 .cacheSoftRefEnable()
                 .make();
         verifyDB(db);
@@ -130,7 +130,7 @@ public class DBMakerTest{
     public void testCacheLRUEnable() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
-                .journalDisable()
+                .writeAheadLogDisable()
                 .cacheLRUEnable()
                 .make();
         verifyDB(db);
@@ -142,7 +142,7 @@ public class DBMakerTest{
     public void testCacheSize() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
-                .journalDisable()
+                .writeAheadLogDisable()
                 .cacheSize(1000)
                 .make();
         verifyDB(db);

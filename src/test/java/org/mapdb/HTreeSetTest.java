@@ -36,7 +36,7 @@ import static org.junit.Assert.assertTrue;
 @SuppressWarnings({"unchecked","rawtypes"})
 public class HTreeSetTest{
 
-    Engine engine = new StorageDirect(Volume.memoryFactory(false));
+    Engine engine = new StoreDirect(Volume.memoryFactory(false));
 
     Set hs;
 

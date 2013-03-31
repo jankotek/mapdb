@@ -10,7 +10,7 @@ import junit.framework.TestCase;
 
 public class AtomicIntegerTest extends TestCase {
 
-    DB db = DBMaker.newMemoryDB().journalDisable().make();
+    DB db = DBMaker.newMemoryDB().writeAheadLogDisable().make();
     Atomic.Integer ai = Atomic.createInteger(db,"test", 1);
 
     /**

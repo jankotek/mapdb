@@ -24,11 +24,6 @@ public class CompressTest{
     }
 
 
-    @Test(expected = NullPointerException.class)
-    public void check_null() throws Exception {
-        db.engine.put(null, Serializer.EMPTY_SERIALIZER);
-    }
-
     @Test
     public void put_get_update() throws Exception {
         long recid = db.engine.put("aaaa", Serializer.STRING_SERIALIZER);

@@ -7,7 +7,6 @@ import org.mapdb.Utils;
 import java.io.File;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.LockSupport;
 
 /**
  * @author Jan Kotek
@@ -17,7 +16,8 @@ public class Huge_Insert {
     public static void main(String[] args){
         DB db = DBMaker
                 //.newFileDB(new File("/mnt/big/db/aa"))
-                .newAppendFileDB(new File("/mnt/big/db/aa" + System.currentTimeMillis()))
+                .newFileDB(new File("/mnt/big/db/aa" + System.currentTimeMillis()))
+                .writeAheadLogDisable()
                 .make();
 
         Map map = db

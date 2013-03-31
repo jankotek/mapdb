@@ -48,7 +48,7 @@ public abstract class VolumeTest {
 
     Volume b = getVolume();
     {
-        b.ensureAvailable(Volume.INITIAL_SIZE);
+        b.ensureAvailable(32*1024);
     }
 
     @Test
@@ -91,7 +91,7 @@ public abstract class VolumeTest {
         DataOutput2 out = new DataOutput2();
         out.writeInt(11);
         out.writeLong(1111L);
-        b.putData(111L, out.buf, out.pos);
+        b.putData(111L, out.buf, 0, out.pos);
 
         DataInput2 in = b.getDataInput(111L, out.pos);
         assertEquals(11, in.readInt());
@@ -119,8 +119,7 @@ public abstract class VolumeTest {
         assertEquals(0, Volume.BUF_SIZE% Volume.MappedFileVol.BUF_SIZE_INC);
         assertEquals(0, Volume.BUF_SIZE%8);
         assertEquals(0, Volume.MappedFileVol.BUF_SIZE_INC%8);
-        assertTrue(StorageDirect.INDEX_OFFSET_START*8< Volume.INITIAL_SIZE);
-        assertTrue(Volume.MappedFileVol.BUF_SIZE_INC> StorageDirect.MAX_RECORD_SIZE);
+        assertTrue(Volume.MappedFileVol.BUF_SIZE_INC> StoreDirect.MAX_REC_SIZE);
     }
 
     @Test public void RAF_bytes(){
@@ -161,6 +160,7 @@ public abstract class VolumeTest {
     public void read_beyond_end_mapped_long(){
         try{
             Volume v = new Volume.MappedFileVol(Utils.tempDbFile(), false);
+            v.ensureAvailable(10);
             v.getLong(1000000);
             fail();
         }catch(IOError e){
@@ -172,6 +172,7 @@ public abstract class VolumeTest {
     public void read_beyond_end_mapped_byte(){
         try{
             Volume v = new Volume.MappedFileVol(Utils.tempDbFile(), false);
+            v.ensureAvailable(10);
             v.getByte(1000000);
             fail();
         }catch(IOError e){
@@ -201,6 +202,20 @@ public abstract class VolumeTest {
         s.awaitTermination(111, TimeUnit.DAYS);
         for(long offset=0;offset<max;offset+=4){
             assertEquals("offset:"+offset, 111,v.getInt(offset));
+        }
+    }
+
+
+    @Test public void sixLong(){
+        long[] d = {
+                1,2,3, 665,  0, 199012, 0x222222, 0x0000FFFFFFFFFFFFL
+        };
+
+        Volume v = getVolume();
+        v.ensureAvailable(16+6);
+        for(long l:d){
+            v.putSixLong(16, l);
+            assertEquals(l, v.getSixLong(16));
         }
     }
 

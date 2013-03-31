@@ -147,7 +147,7 @@ public interface Serializer<A> {
      * It throws 'IOException("CRC32 does not match, data broken")' on de-serialization if data are corrupted
      */
     
-    public static final Serializer<byte[]> CRC32_CHECKSUM = new Serializer<byte[]>() {
+    Serializer<byte[]> CRC32_CHECKSUM = new Serializer<byte[]>() {
         @Override
         public void serialize(DataOutput out, byte[] value) throws IOException {
             if(value == null || value.length==0) return;
@@ -171,6 +171,23 @@ public interface Serializer<A> {
             return value;
         }
     };
+
+
+    Serializer<byte[] > BYTE_ARRAY_SERIALIZER = new Serializer<byte[]>() {
+
+        @Override
+        public void serialize(DataOutput out, byte[] value) throws IOException {
+            out.write(value);
+        }
+
+        @Override
+        public byte[] deserialize(DataInput in, int available) throws IOException {
+            byte[] ret = new byte[available];
+            in.readFully(ret);
+            return ret;
+        }
+    } ;
+
 
 
 }

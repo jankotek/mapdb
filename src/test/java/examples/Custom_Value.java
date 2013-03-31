@@ -6,6 +6,7 @@ import java.util.Map;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.Serializer;
+import org.mapdb.Utils;
 
 /*
  *	Demonstrates HashMaps with non-standard types of objects as key or value.
@@ -62,9 +63,10 @@ public class Custom_Value {
     }
 
     public static void main(String[] args) {
-		
-		// Open or create db file
-		DB db = DBMaker.newFileDB(new File("dbCustomValue"))
+
+        // Open db in temp directory
+        File f = Utils.tempDbFile();
+		DB db = DBMaker.newFileDB(f)
 				.make();
 		
 		// Open or create table

@@ -2,40 +2,23 @@ package org.mapdb;
 
 
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.mapdb.Serializer.BYTE_ARRAY_SERIALIZER;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
 /**
  * JUnit test case which provides JDBM specific staff
  */
-abstract public class StorageTestCase extends TestFile{
+abstract public class StoreTestCase extends TestFile{
 
 
-    public static final Serializer<byte[] > BYTE_ARRAY_SERIALIZER = new Serializer<byte[]>() {
-
-        @Override
-        public void serialize(DataOutput out, byte[] value) throws IOException {
-            out.write(value);
-        }
-
-        @Override
-        public byte[] deserialize(DataInput in, int available) throws IOException {
-            byte[] ret = new byte[available];
-            in.readFully(ret);
-            return ret;
-        }
-    } ;
 
 
     Engine engine = openEngine();
@@ -48,7 +31,7 @@ abstract public class StorageTestCase extends TestFile{
 
 
     protected Engine openEngine() {
-        return new StorageDirect(fac);
+        return new StoreDirect(fac);
     }
 
 

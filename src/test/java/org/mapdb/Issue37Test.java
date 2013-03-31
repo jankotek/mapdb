@@ -52,7 +52,7 @@ public class Issue37Test {
 
     @Test public void test3(){
 
-        DB db = DBMaker.newDirectMemoryDB().journalDisable().asyncFlushDelay(100).make();
+        DB db = DBMaker.newDirectMemoryDB().writeAheadLogDisable().asyncFlushDelay(100).make();
         ConcurrentMap<Long, Long> orders = db.createHashMap("order", null, null);
         for(int i = 0; i < 10000; i++) {
             orders.put((long)i, (long)i);

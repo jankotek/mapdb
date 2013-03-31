@@ -11,11 +11,11 @@ import static org.junit.Assert.assertTrue;
 public class MapListenerTest {
 
         @Test public void hashMap(){
-            tt(DBMaker.newMemoryDB().journalDisable().make().getHashMap("test"));
+            tt(DBMaker.newMemoryDB().writeAheadLogDisable().make().getHashMap("test"));
         }
 
         @Test public void treeMap(){
-            tt(DBMaker.newMemoryDB().journalDisable().make().getTreeMap("test"));
+            tt(DBMaker.newMemoryDB().writeAheadLogDisable().make().getTreeMap("test"));
         }
 
 

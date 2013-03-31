@@ -1,6 +1,5 @@
 package org.mapdb;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -14,7 +13,7 @@ import static org.junit.Assert.*;
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class BTreeMapTest{
 
-    Engine engine = new StorageDirect(Volume.memoryFactory(false));
+    Engine engine = new StoreDirect(Volume.memoryFactory(false));
     
 
     @Test public void test_leaf_node_serialization() throws IOException {
@@ -276,7 +275,7 @@ public class BTreeMapTest{
 //        every next call of getLastKey() leads to the exception "NoSuchElement". Not
 //        only the first one...
 
-        DB db = DBMaker.newTempFileDB().journalDisable().make();
+        DB db = DBMaker.newTempFileDB().writeAheadLogDisable().make();
         NavigableMap m = db.getTreeMap("name");
         try{
             m.lastKey();

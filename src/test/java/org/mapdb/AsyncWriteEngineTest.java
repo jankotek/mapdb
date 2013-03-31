@@ -23,7 +23,7 @@
 //        assertNotNull(index);
 //        if(engine !=null)
 //           engine.close();
-//        engine =  new AsyncWriteEngine(new StorageDirect(fac), false, false, 0);
+//        engine =  new AsyncWriteEngine(new StoreDirect(fac), false, false, 0);
 //    }
 //
 //

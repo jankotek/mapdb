@@ -9,24 +9,24 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public class StorageAppendTest extends StorageTestCase {
+public class StoreAppendTest extends StoreTestCase {
 
-    StorageAppend engine = (StorageAppend) super.engine;
+    StoreAppend engine = (StoreAppend) super.engine;
 
     @Override
     protected Engine openEngine() {
-        return new StorageAppend(index, false, false, false);
+        return new StoreAppend(index, false, false, false);
     }
 
     @Test
     public void compact_file_deleted(){
         File f = Utils.tempDbFile();
-        StorageAppend engine = new StorageAppend(f, false,false,false);
+        StoreAppend engine = new StoreAppend(f, false,false,false);
         File f1 = engine.getFileNum(1);
         File f2 = engine.getFileNum(2);
         long recid = engine.put(111L, Serializer.LONG_SERIALIZER);
         Long i=0L;
-        for(;i<StorageAppend.MAX_FILE_SIZE+1000; i+=8){
+        for(;i< StoreAppend.MAX_FILE_SIZE+1000; i+=8){
             engine.update(recid, i, Serializer.LONG_SERIALIZER);
         }
         i-=8;

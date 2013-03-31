@@ -46,7 +46,7 @@ public class BTreeSet2Test extends JSR166TestCase {
     }
 
     protected <E> NavigableSet<E> newNavigableSet() {
-        return DBMaker.newMemoryDB().journalDisable()
+        return DBMaker.newMemoryDB().writeAheadLogDisable()
                 .make().getTreeSet("test");
     }
 

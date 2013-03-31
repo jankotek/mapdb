@@ -18,8 +18,6 @@ package org.mapdb;
  */
 
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -75,7 +73,7 @@ public class BTreeMapExtendTest extends TestCase {
     Object objArray[] = new Object[1000];
 
     protected static BTreeMap newBTreeMap() {
-        return DBMaker.newMemoryDB().cacheDisable().journalDisable().asyncWriteDisable().make().getTreeMap("Test");
+        return DBMaker.newMemoryDB().cacheDisable().writeAheadLogDisable().asyncWriteDisable().make().getTreeMap("Test");
     }
 
 

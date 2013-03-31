@@ -35,7 +35,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
     }
 
     private static BTreeMap newBTreeMap() {
-        return DBMaker.newMemoryDB().asyncWriteDisable().journalDisable().cacheDisable().make().getTreeMap("test");
+        return DBMaker.newMemoryDB().asyncWriteDisable().writeAheadLogDisable().cacheDisable().make().getTreeMap("test");
     }
 
 

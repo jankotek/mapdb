@@ -17,8 +17,6 @@
 
 package org.mapdb;
 
-import org.junit.Ignore;
-
 import java.io.Serializable;
 import java.text.CollationKey;
 import java.text.Collator;
@@ -31,7 +29,7 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
     protected <K,V> BTreeMap<K,V> newBTreeMap(Map map) {
         BTreeMap ret = DBMaker.newMemoryDB()
                 .cacheDisable()
-                .asyncWriteDisable().journalDisable().make()
+                .asyncWriteDisable().writeAheadLogDisable().make()
                 .createTreeMap("test",6,false,null,null, null);
         ret.putAll(map);
         return ret;
@@ -40,14 +38,14 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
     protected <K,V> BTreeMap<K,V> newBTreeMap(Comparator comp) {
         return DBMaker.newMemoryDB()
                 .cacheDisable()
-                .asyncWriteDisable().journalDisable().make()
+                .asyncWriteDisable().writeAheadLogDisable().make()
                 .createTreeMap("test",6,false,null,null, comp);
     }
 
     protected static <K,V> BTreeMap<K,V> newBTreeMap() {
         return DBMaker.newMemoryDB()
                 .cacheDisable()
-                .asyncWriteDisable().journalDisable().make()
+                .asyncWriteDisable().writeAheadLogDisable().make()
                 .getTreeMap("test");
     }
 

@@ -188,8 +188,8 @@ final public class Utils {
         try{
             File index = File.createTempFile("mapdb","db");
             index.deleteOnExit();
-            new File(index.getPath()+StorageDirect.DATA_FILE_EXT).deleteOnExit();
-            new File(index.getPath()+ StorageJournaled.TRANS_LOG_FILE_EXT).deleteOnExit();
+            new File(index.getPath()+ StoreDirect.DATA_FILE_EXT).deleteOnExit();
+            new File(index.getPath()+ StoreWAL.TRANS_LOG_FILE_EXT).deleteOnExit();
 
             return index;
         }catch(IOException e){

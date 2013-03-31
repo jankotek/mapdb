@@ -3,14 +3,12 @@ package org.mapdb;
 import org.junit.Test;
 
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import static org.junit.Assert.*;
 
 public class SnapshotEngineTest{
 
-    SnapshotEngine e = new SnapshotEngine(new StorageDirect(Volume.memoryFactory(false)));
+    SnapshotEngine e = new SnapshotEngine(new StoreWAL(Volume.memoryFactory(false)));
 
     @Test public void update(){
         long recid = e.put(111, Serializer.INTEGER_SERIALIZER);
@@ -47,7 +45,7 @@ public class SnapshotEngineTest{
     }
 
     @Test public void DB_snapshot(){
-        DB db = DBMaker.newMemoryDB().asyncFlushDelay(100).journalDisable().make();
+        DB db = DBMaker.newMemoryDB().asyncFlushDelay(100).writeAheadLogDisable().make();
         long recid = db.getEngine().put("aa",Serializer.STRING_SERIALIZER);
         DB db2 = db.snapshot();
         assertEquals("aa", db2.getEngine().get(recid,Serializer.STRING_SERIALIZER));
@@ -56,7 +54,7 @@ public class SnapshotEngineTest{
     }
 
     @Test public void DB_snapshot2(){
-        DB db = DBMaker.newMemoryDB().journalDisable().make();
+        DB db = DBMaker.newMemoryDB().writeAheadLogDisable().make();
         long recid = db.getEngine().put("aa",Serializer.STRING_SERIALIZER);
         DB db2 = db.snapshot();
         assertEquals("aa", db2.getEngine().get(recid,Serializer.STRING_SERIALIZER));
@@ -67,7 +65,7 @@ public class SnapshotEngineTest{
 
     @Test public void BTreeMap_snapshot(){
         BTreeMap map =
-                DBMaker.newMemoryDB().journalDisable()
+                DBMaker.newMemoryDB().writeAheadLogDisable()
                 .make().getTreeMap("aaa");
         map.put("aa","aa");
         Map map2 = map.snapshot();
@@ -77,7 +75,7 @@ public class SnapshotEngineTest{
 
     @Test public void HTreeMap_snapshot(){
         HTreeMap map =
-                DBMaker.newMemoryDB().journalDisable()
+                DBMaker.newMemoryDB().writeAheadLogDisable()
                 .make().getHashMap("aaa");
         map.put("aa","aa");
         Map map2 = map.snapshot();
@@ -88,7 +86,7 @@ public class SnapshotEngineTest{
 //    @Test public void test_stress(){
 //        ExecutorService ex = Executors.newCachedThreadPool();
 //
-//        TxMaker tx = DBMaker.newMemoryDB().journalDisable().makeTxMaker();
+//        TxMaker tx = DBMaker.newMemoryDB().writeAheadLogDisable().makeTxMaker();
 //
 //        DB db = tx.makeTx();
 //        final long recid =

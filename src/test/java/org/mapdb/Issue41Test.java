@@ -38,7 +38,7 @@ public class Issue41Test {
                         .cacheSoftRefEnable()
                         .closeOnJvmShutdown()
                         .deleteFilesAfterClose()
-                        .journalDisable()
+                        .writeAheadLogDisable()
                         .make();
 
         map =

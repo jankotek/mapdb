@@ -46,10 +46,10 @@ public class DebugVolume extends Volume{
     }
 
     @Override
-    public void putData(long offset, byte[] value, int size) {
-        out.println("putData: "+offset+ " - "+size);
+    public void putData(long offset, byte[] value, int pos, int size) {
+        out.println("putData: "+offset+ " - "+pos+ " - "+size);
         out.println("  "+ Arrays.toString(value));
-        vol.putData(offset,value,size);
+        vol.putData(offset,value,pos, size);
     }
 
     @Override

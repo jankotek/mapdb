@@ -10,7 +10,7 @@ import java.util.TreeMap;
 import static org.junit.Assert.*;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
-public class HTreeMap2Test extends StorageTestCase {
+public class HTreeMap2Test extends StoreTestCase {
 
 
     void printMap(HTreeMap m){
