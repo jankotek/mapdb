@@ -492,6 +492,7 @@ public abstract class Volume {
                     if(oldBuffer!=null)
                         unreleasedBuffers.put(oldBuffer, "");
                 }
+
                 long newBufSize =  offset% BUF_SIZE;
                 newBufSize = newBufSize + newBufSize%BUF_SIZE_INC; //round to BUF_SIZE_INC
                 return fileChannel.map(
