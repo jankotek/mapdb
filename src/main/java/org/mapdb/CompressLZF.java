@@ -350,7 +350,7 @@ public final class CompressLZF{
     }
 
 
-    protected static class SerializerCompressWrapper<E> implements Serializer<E>, Serializable {
+    public static class SerializerCompressWrapper<E> implements Serializer<E>, Serializable {
         protected final Serializer<E> serializer;
         public SerializerCompressWrapper(Serializer<E> serializer) {
             this.serializer = serializer;
