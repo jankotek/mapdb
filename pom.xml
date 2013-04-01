@@ -6,7 +6,7 @@
     <artifactId>mapdb</artifactId>
     <version>0.9-SNAPSHOT</version>
     <name>MapDB</name>
-    <description>MapDB provides concurrent TreeMap and HashMap backed by disk storage. It is a fast, scalable and easy to use embedded Java database.</description>
+    <description>MapDB provides concurrent Maps, Sets and Queues backed by disk storage or off-heap memory. It is a fast, scalable and easy to use embedded Java database.</description>
     <url>http://www.mapdb.org</url>
 
     <packaging>jar</packaging>
