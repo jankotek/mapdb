@@ -441,6 +441,16 @@ public class StoreWAL extends StoreDirect {
     }
 
     @Override
+    protected long longStackTake(long ioList) {
+        return 0;
+    }
+
+    @Override
+    protected void longStackPut(long ioList, long offset) {
+        //TODO long stack in WAL
+    }
+
+    @Override
     public void close() {
         structuralLock.lock();
         for(ReentrantReadWriteLock l:locks) l.writeLock().lock();
