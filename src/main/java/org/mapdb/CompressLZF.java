@@ -296,7 +296,12 @@ public final class CompressLZF{
 
         @Override
         public void serialize(DataOutput out, byte[] value) throws IOException {
-            if (value == null) return;
+            if (value == null|| value.length==0){
+                //in this case do not compress data, write 0 as indicator
+                Utils.packInt(out, 0);
+                out.write(value);
+                return;
+            }
 
             CompressLZF lzf = LZF.get();
             byte[] outbuf = new byte[value.length + 40];

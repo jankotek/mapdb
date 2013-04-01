@@ -580,12 +580,6 @@ public class DBMaker {
             engine = new StoreAppend(_file, _RAF, _readOnly, !_journalEnabled);
         }
 
-        AsyncWriteEngine engineAsync = null;
-        if(_asyncWriteEnabled && !_readOnly){
-            engineAsync = new AsyncWriteEngine(engine,!_journalEnabled,  _powerSavingMode, _asyncFlushDelay);
-            engine = engineAsync;
-        }
-
         if(_checksumEnabled){
             engine = new ByteTransformEngine(engine, Serializer.CRC32_CHECKSUM);
         }
@@ -598,6 +592,14 @@ public class DBMaker {
         if(_compressionEnabled){
             engine = new ByteTransformEngine(engine, CompressLZF.SERIALIZER);
         }
+
+
+        AsyncWriteEngine engineAsync = null;
+        if(_asyncWriteEnabled && !_readOnly){
+            engineAsync = new AsyncWriteEngine(engine,!_journalEnabled,  _powerSavingMode, _asyncFlushDelay);
+            engine = engineAsync;
+        }
+
 
         engine = new SnapshotEngine(engine);
 

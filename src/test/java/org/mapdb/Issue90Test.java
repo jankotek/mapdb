@@ -6,9 +6,17 @@ import java.io.File;
 
 public class Issue90Test {
 
-    @Test @Ignore //for now
+    @Test
     public void testCounter() throws Exception {
-        final DB mapDb = createTempMapDb();
+        File file = Utils.tempDbFile();
+
+
+        final DB mapDb =DBMaker.newAppendFileDB(file)
+                .closeOnJvmShutdown()
+                .compressionEnable()  //This is the cause of the exception. If compression is not used, no exception occurs.
+
+                .cacheDisable()
+                .make();
         final Atomic.Long myCounter = Atomic.getLong(mapDb, "MyCounter");
 
         final BTreeMap<String, Fun.Tuple2<String, Integer>> treeMap = mapDb.getTreeMap("map");
@@ -20,18 +28,5 @@ public class Issue90Test {
     }
 
 
-    private DB createTempMapDb() throws Exception {
-        final File wordDataFile = Utils.tempDbFile();
-        return createMapDB(wordDataFile);
-    }
-
-    private DB createMapDB(File file) {
-        return DBMaker.newAppendFileDB(file)
-                .closeOnJvmShutdown()
-                .compressionEnable()  //This is the cause of the exception. If compression is not used, no exception occurs.
-
-                .cacheDisable()
-                .make();
-    }
 
 }
