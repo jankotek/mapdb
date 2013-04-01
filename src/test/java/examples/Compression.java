@@ -35,7 +35,7 @@ public class Compression {
         //construct value serializier, use default serializier
         Serializer valueSerializer = db2.getDefaultSerializer();
         //but wrap it, to compress its output
-        valueSerializer = new CompressLZF.SerializerCompressWrapper(valueSerializer);
+        valueSerializer = new Serializer.CompressSerializerWrapper(valueSerializer);
 
         //now construct map, with additional options
         Map map2 = db2.createTreeMap("test", 32,

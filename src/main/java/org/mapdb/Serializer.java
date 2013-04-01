@@ -19,6 +19,7 @@ package org.mapdb;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.zip.CRC32;
 
 /**
@@ -189,6 +190,27 @@ public interface Serializer<A> {
     } ;
 
 
+    class CompressSerializerWrapper<E> implements Serializer<E>, Serializable {
+        protected final Serializer<E> serializer;
+        public CompressSerializerWrapper(Serializer<E> serializer) {
+            this.serializer = serializer;
+        }
 
+        @Override
+        public void serialize(DataOutput out, E value) throws IOException {
+            //serialize to byte[]
+            DataOutput2 out2 = new DataOutput2();
+            serializer.serialize(out2, value);
+            byte[] b = out2.copyBytes();
+            CompressLZF.SERIALIZER.serialize(out, b);
+        }
+
+        @Override
+        public E deserialize(DataInput in, int available) throws IOException {
+            byte[] b = CompressLZF.SERIALIZER.deserialize(in, available);
+            DataInput2 in2 = new DataInput2(b);
+            return serializer.deserialize(in2, b.length);
+        }
+    }
 }
 

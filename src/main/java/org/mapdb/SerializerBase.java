@@ -303,9 +303,9 @@ public class SerializerBase implements Serializer{
             out.write(B_TREE_BASIC_KEY_SERIALIZER);
             if(((BTreeKeySerializer.BasicKeySerializer)obj).defaultSerializer!=this) throw new InternalError();
             return;
-        } else if(clazz == CompressLZF.SerializerCompressWrapper.class){
+        } else if(clazz == CompressSerializerWrapper.class){
             out.write(SERIALIZER_COMPRESSION_WRAPPER);
-            serialize(out, ((CompressLZF.SerializerCompressWrapper)obj).serializer, objectStack);
+            serialize(out, ((CompressSerializerWrapper)obj).serializer, objectStack);
             return;
 
         } else if(obj == BTreeKeySerializer.ZERO_OR_POSITIVE_LONG){
@@ -1111,7 +1111,7 @@ public class SerializerBase implements Serializer{
                 ret = deserializeProperties(is, objectStack);
                 break;
             case SERIALIZER_COMPRESSION_WRAPPER:
-                ret = CompressLZF.serializerCompressWrapper((Serializer) deserialize(is, objectStack));
+                ret = CompressLZF.CompressionWrapper((Serializer) deserialize(is, objectStack));
                 break;
             default:
                 ret = deserializeUnknownHeader(is, head, objectStack);
