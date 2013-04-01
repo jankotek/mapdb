@@ -59,7 +59,7 @@ public class DBMaker {
 
     protected byte[] _xteaEncryptionKey = null;
 
-    protected boolean _freeSpaceReclaimDisabled = false;
+    protected int _freeSpaceReclaimQ = 5;
 
     protected boolean _checksumEnabled = false;
 
@@ -484,25 +484,18 @@ public class DBMaker {
 
 
     /**
-     * In this mode existing free space is not reused,
-     * but records are added to the end of the store.
-     * <p/>
-     * This slightly improves write performance as store does not have
-     * to traverse list of free records to find and reuse existing position.
-     * <p/>
-     * It also decreases chance for store corruption, as existing data
-     * are not overwritten with new record.
-     * <p/>
-     * When this mode is used for longer time, store becomes fragmented.
-     * It is necessary to run defragmentation then.
-     * <p/>
-     * NOTE: this mode is not append-only, just small setting for update-in-place storage.
+     * Set free space reclaim Q.  It is value from 0 to 10, indicating how eagerly MapDB
+     * searchs for free space inside store to reuse, before expanding store file.
+     * 0 means that no free space will be reused and store file will just grow (effectively append only).
+     * 10 means that MapDB tries really hard to reuse free space, even if it may hurt performance.
+     * Default value is 5;
      *
      *
      * @return this builder
      */
-    public DBMaker freeSpaceReclaimDisable(){
-        this._freeSpaceReclaimDisabled = true;
+    public DBMaker freeSpaceReclaimQ(int q){
+        if(q<0||q>10) throw new IllegalArgumentException("wrong Q");
+        this._freeSpaceReclaimQ = q;
         return this;
     }
 
@@ -535,10 +528,10 @@ public class DBMaker {
      *
      * @return this builder
      */
-    public DBMaker powerSavingModeEnable(){
-        this._powerSavingMode = true;
-        return this;
-    }
+//    public DBMaker powerSavingModeEnable(){
+//        this._powerSavingMode = true;
+//        return this;
+//    }
 
 
     /** constructs DB using current settings */
