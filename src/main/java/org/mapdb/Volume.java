@@ -25,6 +25,8 @@ import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Arrays;
+import java.util.Map;
+import java.util.WeakHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
@@ -391,6 +393,9 @@ public abstract class Volume {
         protected final FileChannel.MapMode mapMode;
         protected final java.io.RandomAccessFile raf;
 
+        protected final Map<ByteBuffer, String> unreleasedBuffers =
+                Utils.isWindows() ? new WeakHashMap<ByteBuffer, String>() : null;
+
         static final int BUF_SIZE_INC = 1024*1024;
 
         public MappedFileVol(File file, boolean readOnly) {
@@ -438,6 +443,14 @@ public abstract class Volume {
                     }
                 }
                 buffers = null;
+                if(unreleasedBuffers!=null){
+                    for(ByteBuffer b:unreleasedBuffers.keySet().toArray(new MappedByteBuffer[0])){
+                        if(b!=null && (b instanceof MappedByteBuffer)){
+                            unmap((MappedByteBuffer) b);
+                        }
+                    }
+                }
+
             } catch (IOException e) {
                 throw new IOError(e);
             }finally{
@@ -474,6 +487,11 @@ public abstract class Volume {
         @Override
         protected ByteBuffer makeNewBuffer(long offset, ByteBuffer[] buffers2) {
             try {
+                if(unreleasedBuffers!=null){
+                    ByteBuffer oldBuffer = buffers2[((int) (offset / BUF_SIZE))];
+                    if(oldBuffer!=null)
+                        unreleasedBuffers.put(oldBuffer, "");
+                }
                 long newBufSize =  offset% BUF_SIZE;
                 newBufSize = newBufSize + newBufSize%BUF_SIZE_INC; //round to BUF_SIZE_INC
                 return fileChannel.map(
