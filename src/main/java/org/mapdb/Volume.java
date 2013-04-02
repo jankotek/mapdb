@@ -235,8 +235,15 @@ public abstract class Volume {
 
 
                 //just remap file buffer
-                ByteBuffer oldBuffer = buffers2[buffersPos];
-                //TODO we need to unmap all oldBuffers on windows. Otherwise we will not be able to reopen and delete files on Windows
+                if( buffers2[buffersPos] == null){
+                    //make sure previous buffer is fully expanded
+                    if(buffersPos>0){
+                        ByteBuffer oldPrev = buffers2[buffersPos-1];
+                        if(oldPrev.capacity()!=BUF_SIZE){
+                            buffers2[buffersPos-1]  = makeNewBuffer(1L*buffersPos*BUF_SIZE-1,buffers2);
+                        }
+                    }
+                }
 
 
                 ByteBuffer newBuf = makeNewBuffer(offset, buffers2);

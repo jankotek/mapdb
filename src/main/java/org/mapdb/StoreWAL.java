@@ -152,6 +152,7 @@ public class StoreWAL extends StoreDirect {
 
     protected void checkLogRounding() {
         if(logSize% Volume.BUF_SIZE+MAX_REC_SIZE*2>Volume.BUF_SIZE){
+            log.ensureAvailable(logSize+1);
             log.putByte(logSize, WAL_SKIP_REST_OF_BLOCK);
             logSize += Volume.BUF_SIZE - logSize%Volume.BUF_SIZE;
         }
