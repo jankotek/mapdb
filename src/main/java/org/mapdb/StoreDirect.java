@@ -477,6 +477,7 @@ public class StoreDirect implements Engine{
                 DataOutput2 out = new DataOutput2();
                 out.buf = bb;
                 out.pos = bb.length;
+                store2.index.ensureAvailable(ioRecid+8);
                 store2.put2(out, ioRecid,indexVals);
             }
 

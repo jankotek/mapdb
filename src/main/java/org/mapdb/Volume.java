@@ -239,7 +239,7 @@ public abstract class Volume {
                     //make sure previous buffer is fully expanded
                     if(buffersPos>0){
                         ByteBuffer oldPrev = buffers2[buffersPos-1];
-                        if(oldPrev.capacity()!=BUF_SIZE){
+                        if(oldPrev == null || oldPrev.capacity()!=BUF_SIZE){
                             buffers2[buffersPos-1]  = makeNewBuffer(1L*buffersPos*BUF_SIZE-1,buffers2);
                         }
                     }
