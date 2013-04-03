@@ -82,7 +82,7 @@ public abstract class BTreeKeySerializer<K>{
 
         @Override
         public Object[] deserialize(DataInput in, int start, int end, int size) throws IOException {
-            Object[] ret = new Long[size];
+            Object[] ret = new Integer[size];
             int prev = 0 ;
             for(int i = start; i<end; i++){
                 ret[i] = prev = prev + Utils.unpackInt(in);
