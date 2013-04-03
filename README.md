@@ -19,6 +19,9 @@ Features
 
 * **Familiar** - In some way MapDB is just an alternative memory management model to Java Heap. If you are know Java concurrent  programming, you will find MapDB familiar. There is compare-and-swap (at store level), atomic variables, concurrent collections... In fact we discourage using transactions and recommend traditional concurrent programming instead.
 
+
+
+
 Intro
 ======
 MapDB has very power-full API, but for 99% cases you need just two classes: [DBMaker](http://www.mapdb.org/apidocs/org/mapdb/DBMaker.html) is builder style factory for configuring and opening a database. It has handful of static 'newXXX' methods for particular storage mode. [DB](http://www.mapdb.org/apidocs/org/mapdb/DB.html) represents storage. It has methods for accessing Maps and other collections. It also controls DB life-cycle with commit, rollback and close methods.
@@ -107,6 +110,15 @@ to access files larger than 2GB. This introduces some overhead compared to memor
 * MapDB does not run defrag on background. You need to call `DB.compact()` from time to time.
 
 * MapDB uses unchecked exceptions. All `IOException` are wrapped into unchecked `IOError`.
+
+Benchmark
+=========
+MapDB has outstanding performance rivaled only by native db engines. There is no proper benchmark yet, so here is just small example.
+
+Insert/read/update 100 000 000 records into Map in single thread. Source code is [here](https://github.com/jankotek/MapDB/blob/master/src/test/java/benchmark/Basic_SingleThread.java)
+* Sequential insert took 144 seconds. That is 695 000 inserts per second
+* Randomly read 1e8 entries from previous set takes  264 seconds. That is 379 000 reads per second
+* Randomly update 1e8 entries from previous set takes 620 seconds. That is 161 000 random updates per second.
 
 
 Support
