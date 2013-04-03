@@ -1,20 +1,41 @@
-MapDB
-===============
 
-MapDB provides concurrent TreeMap and HashMap backed by disk storage or off-heap-memory.
-It is a fast, scalable and easy to use embedded Java database engine. It is tiny (~250KB jar),
-yet packed with features such as transactions, space efficient serialization, instance cache
-and transparent compression/encryption. It also has outstanding performance rivaled only by
-native embedded db engines.
+MapDB provides concurrent Maps, Sets and Queues backed by disk storage or off-heap-memory.
+It is a fast and easy to use embedded Java database engine. MapDB is free as speech and free as beer under 
+[Apache License 2.0](https://github.com/jankotek/MapDB/blob/master/doc/license.txt).
 
-MapDB is free as speech and free as beer under [Apache License 2.0](https://github.com/jankotek/MapDB/blob/master/doc/license.txt).
-More information can be found on [MapDB website](http://www.mapdb.org).
+Features
+========
+* **Concurrent** - MapDB has record level locking and state-of-art concurrent engine. Its performance scales nearly linearly with number of cores. Even single threaded app can take advantage of asynchronous writes on background thread.
+
+* **ACID** - MapDB optionally supports ACID transactions with full MVCC isolation. MapDB uses write-ahead-log or append-only store for great write durability.
+
+* **Flexible** - MapDB can be used anywhere from in-memory cache to multi-terabyte database. It also has number of options to trade durability for write performance. It is very easy to configure MapDB to exactly fit your needs.
+
+* **Hackable** - MapDB is component based, most features (instance cache, async writes, compression) are just class wrappers. It is very easy to introduce new functionality or component into MapDB. 
+
+* **SQL Like** - MapDB was developed as faster alternative to SQL engine. It has number of features which makes transition from rational database easier: secondary indexes/collections, autoincremental sequential ID, joints, triggers composite keys...
+
+* **Low disk-space usage** - MapDB has number of features (serialization, delta key packing...) to minimize disk used by its store. It also has very fast compression and custom sterilizers. We take disk-usage seriously and do not waste single byte.
+
+* **Familiar** - In some way MapDB is just an alternative memory management model to Java Heap. If you are know Java concurrent  programming, you will find MapDB familiar. There is compare-and-swap (at store level), atomic variables, concurrent collections... In fact we discourage using transactions and recommend traditional concurrent programming instead.
 
 Intro
 ======
-MapDB uses Maven build system. There is snapshot repository updated every a few days.
-To use it add code bellow to your `pom.xml`. You may also download binaries
-[directly](https://oss.sonatype.org/content/repositories/snapshots/org/mapdb/mapdb/).
+MapDB has very power-full API, but for 99% cases you need just two classes: [DBMaker](http://www.mapdb.org/apidocs/org/mapdb/DBMaker.html) is builder style factory for configuring and opening a database. It has handful of static 'newXXX' methods for particular storage mode. [DB](http://www.mapdb.org/apidocs/org/mapdb/DB.html) represents storage. It has methods for accessing Maps and other collections. It also controls DB life-cycle with commit, rollback and close methods.
+
+Best place to checkout various features of MapDB are [Examples](https://github.com/jankotek/MapDB/tree/master/src/test/java/examples). There is also [screencast](http://www.youtube.com/watch?v=FdZmyEHcWLI) which describes most aspects of MapDB.
+
+MapDB is in Maven Central. Just add code bellow to your pom file to use it. You may also download jar files directly from [repo](http://search.maven.org/#artifactdetails%7Corg.mapdb%7Cmapdb%7C0.9.0%7Cjar).
+
+```xml
+<dependency>
+    <groupId>org.mapdb</groupId>
+    <artifactId>mapdb</artifactId>
+    <version>0.9.0</version>
+</dependency>
+```
+
+There is also repository with [daily builds](https://oss.sonatype.org/content/repositories/snapshots/org/mapdb/mapdb/):
 
 ```xml
 <repositories>
@@ -28,7 +49,7 @@ To use it add code bellow to your `pom.xml`. You may also download binaries
     <dependency>
         <groupId>org.mapdb</groupId>
         <artifactId>mapdb</artifactId>
-        <version>0.9-SNAPSHOT</version>
+        <version>0.9.1-SNAPSHOT</version>
     </dependency>
 </dependencies>
 ```
@@ -43,7 +64,7 @@ ConcurrentNavigableMap treeMap = DBMaker.newTempTreeMap()
 treeMap.put(111,"some value")
 ```
 
-More advanced example with configuration and journaled transaction.
+More advanced example with configuration and write-ahead-log transaction.
 
 ```java
 import org.mapdb.*;
@@ -72,33 +93,16 @@ db.rollback(); //revert recent changes
 db.close();
 ```
 
-MapDB has very power-full API.
-But for 99% cases you need just two classes:
-
-[DBMaker](http://www.mapdb.org/apidocs/org/mapdb/DBMaker.html) is builder style factory class for configuring and opening
-an database. It has handfull of static 'newXXX' method for opening database in particular storage mode.
-
-[DB](http://www.mapdb.org/apidocs/org/mapdb/DB.html) represents and storage. It has methods for accessing Maps and
-other collections. It also controls DB lifecycle with commit, rollback and close methods.
-
-
-Development
-===========
-Pull requests are welcomed. We are relaxed about documentation, examples and unit tests.
-Production code should fit MapDB style; most importantly to be compact and with unit tests.
-
 What you should know
 ====================
-* Transaction journal can be disabled, this will speedup writes. However without transactions
+* Transactions (write-ahead-log) can be disabled, this will speedup writes. However without transactions
 store gets corrupted easily when not closed correctly.
 
-* MapDB assumes your data-model your data model is immutable.
+* Keys and values must be immutable. MapDB may serialize them on background thread, put them into instance cache... 
+Modifying an object after it was stored is bad idea.
 
 * MapDB relies on memory mapped files. On 32bit JVM you need `DBMaker.newRandomAccessFileDB()`
-to access files large 2GB.
-
-* There are two collections TreeMap (B+Tree) and HashMap (HTree). TreeMap is
-optimized for small keys, HashMap works best with larger key.
+to access files larger than 2GB. This introduces some overhead compared to memory mapped files.
 
 * MapDB does not run defrag on background. You need to call `DB.compact()` from time to time.
 
@@ -107,23 +111,24 @@ optimized for small keys, HashMap works best with larger key.
 
 Support
 =======
-For anything with stack-trace you should create [new bug report](https://github.com/jankotek/MapDB/issues/new).
-Small feature request should also go into bug tracker. Please always attach code to illustrate your problem.
-Push requests with failing unit test case would be appreciated.
+There is [mail-group](mailto:mapdb@googlegroups.com) with [archive](http://groups.google.com/group/mapdb). Ask here 
+support questions such as 'how do I open db'.
 
-For specific support questions such as 'how do I open...' use [StackOverflow](http://stackoverflow.com/) with 'MapDB' tag.
-We monitor these questions.
+Anything with stack-trace should go to [new bug report](https://github.com/jankotek/MapDB/issues/new). 
 
-There is [mail-group](mailto:mapdb@googlegroups.com) with [archive](http://groups.google.com/group/mapdb).
-For general discussion and abstract questions (such as "can MapDB support transactional software memory?").
-Also questions about performance and data-modeling should go into mail-group.
+Before creating report:
+
+* check if it is not already fixed in snapshot repository
+
+* try alternative configurations (disable cache, disable async write thread...) 
+
+* try to use your own serializer, to make sure problem is not in serializer
+
+MapDB is a hobby project and my time is limited.
+Please always attach code to illustrate/reproduce your problem, so I can fix it efficiently. Push requests with failing unit test case would be appreciated. For hard to reproduce problems I would strongly suggest to record JVM execution with
+[Chronon](http://www.chrononsystems.com/learn-more/products-overview) and submit the record together with a bug report. This will make sure your 
+bug will get fixed promptly.
 
 Last option is to [contact me directly](mailto:jan at kotek dot net).
 I prefer public bug tracker and mail-group so others can find answers as well.
 Unless you specify your question as confidential, I may forward it to public mail-group.
-
-MapDB is a hobby project and my time is limited.
-Please always attach code to illustrate/reproduce your problem, so I can fix it efficiently.
-If you have some exotic configuration, I may need your assistance with remote access and bug reproduction.
-For hard to reproduce problems I would strongly suggest to record JVM execution with
-[Chronon](http://www.chrononsystems.com/learn-more/products-overview) and submit the record together with a bug report.
