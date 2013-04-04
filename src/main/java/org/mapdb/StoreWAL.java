@@ -311,6 +311,7 @@ public class StoreWAL extends StoreDirect {
         structuralLock.lock();
         for(ReentrantReadWriteLock l:locks) l.writeLock().lock();
         try{
+            if(log==null) return; //no modifications
             //update physical and logical filesize
 
             log.ensureAvailable(logSize + 17 + 17 + 1);
