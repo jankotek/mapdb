@@ -1,11 +1,12 @@
-
 MapDB provides concurrent Maps, Sets and Queues backed by disk storage or off-heap-memory.
-It is a fast and easy to use embedded Java database engine. MapDB is free as speech and free as beer under 
+It is a fast and easy to use embedded Java database engine. This project is more than 12 years old (you may know it under old name JDBM). MapDB is free as speech and free as beer under 
 [Apache License 2.0](https://github.com/jankotek/MapDB/blob/master/doc/license.txt).
 
 Features
 ========
 * **Concurrent** - MapDB has record level locking and state-of-art concurrent engine. Its performance scales nearly linearly with number of cores. Even single threaded app can take advantage of asynchronous writes on background thread.
+
+* **Fast** - MapDB has outstanding performance rivaled only by native DBs. It is result of more than decade of optimalizations and rewrites.
 
 * **ACID** - MapDB optionally supports ACID transactions with full MVCC isolation. MapDB uses write-ahead-log or append-only store for great write durability.
 
@@ -15,7 +16,7 @@ Features
 
 * **SQL Like** - MapDB was developed as faster alternative to SQL engine. It has number of features which makes transition from rational database easier: secondary indexes/collections, autoincremental sequential ID, joints, triggers composite keys...
 
-* **Low disk-space usage** - MapDB has number of features (serialization, delta key packing...) to minimize disk used by its store. It also has very fast compression and custom sterilizers. We take disk-usage seriously and do not waste single byte.
+* **Low disk-space usage** - MapDB has number of features (serialization, delta key packing...) to minimize disk used by its store. It also has very fast compression and custom serializers. We take disk-usage seriously and do not waste single byte.
 
 * **Familiar** - In some way MapDB is just an alternative memory management model to Java Heap. If you are know Java concurrent  programming, you will find MapDB familiar. There is compare-and-swap (at store level), atomic variables, concurrent collections... In fact we discourage using transactions and recommend traditional concurrent programming instead.
 
