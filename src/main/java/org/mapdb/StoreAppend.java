@@ -86,12 +86,12 @@ public class StoreAppend implements Engine{
             //replay file and rebuild recid index table
             LongHashMap<Long> recidsTable2 = new LongHashMap<Long>();
             if(!currentVolume.isEmpty()){
-                int pos =0;
-                long header = currentVolume.getLong(pos); pos+=8;
+                currentFileOffset =0;
+                long header = currentVolume.getLong(currentFileOffset); currentFileOffset+=8;
                 if(header!=FILE_HEADER) throw new InternalError();
 
                 for(;;){
-                    long recid = currentVolume.getLong(pos); pos+=8;
+                    long recid = currentVolume.getLong(currentFileOffset); currentFileOffset+=8;
                     maxRecid = Math.max(recid, maxRecid);
 
                     if(recid == EOF || recid == 0){
@@ -106,11 +106,11 @@ public class StoreAppend implements Engine{
                         continue;
                     }
 
-                    long filePos = (fileNum<<FILE_NUMBER_SHIFT) | pos;
-                    int size = currentVolume.getInt(pos); pos+=4;
+                    long filePos = (fileNum<<FILE_NUMBER_SHIFT) | currentFileOffset;
+                    int size = currentVolume.getInt(currentFileOffset); currentFileOffset+=4;
                     if(size!=THUMBSTONE_SIZE){
                         //skip data
-                        pos+=size;
+                        currentFileOffset+=size;
                         //store location within the log files in memory
                         recidsTable2.put(recid, filePos);
                     }else{
@@ -196,8 +196,10 @@ public class StoreAppend implements Engine{
 
     protected <A> A getNoLock(long recid, Serializer<A> serializer) throws IOException {
         Long fileNum2 = recidsInTx.get(recid);
-        if(fileNum2 == null)
+        if(fileNum2 == null){
+                recidsTable.ensureAvailable(recid*8+8);
                 fileNum2 = recidsTable.getLong(recid*8);
+        }
 
         if(fileNum2 == THUMBSTONE){  //there is warning about '==', it is ok
             //record was deleted;
