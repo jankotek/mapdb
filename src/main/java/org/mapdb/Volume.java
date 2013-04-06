@@ -494,17 +494,11 @@ public abstract class Volume {
         @Override
         protected ByteBuffer makeNewBuffer(long offset, ByteBuffer[] buffers2) {
             try {
-                if(unreleasedBuffers!=null){
-                    ByteBuffer oldBuffer = buffers2[((int) (offset / BUF_SIZE))];
-                    if(oldBuffer!=null)
-                        unreleasedBuffers.put(oldBuffer, "");
-                }
-
                 long newBufSize =  offset% BUF_SIZE;
                 newBufSize = newBufSize + newBufSize%BUF_SIZE_INC; //round to BUF_SIZE_INC
-                return fileChannel.map(
-                        mapMode,
-                        offset - offset% BUF_SIZE, newBufSize );
+                ByteBuffer buf =  fileChannel.map( mapMode, offset - offset% BUF_SIZE, newBufSize );
+                if(unreleasedBuffers!=null) unreleasedBuffers.put(buf, "");
+                return buf;
             } catch (IOException e) {
                 if(e.getCause()!=null && e.getCause() instanceof OutOfMemoryError){
                     throw new RuntimeException("File could not be mapped to memory, common problem on 32bit JVM. Use `DBMaker.newRandomAccessFileDB()` as workaround",e);
