@@ -461,6 +461,9 @@ public class StoreWAL extends StoreDirect {
                 }
             }
 
+            index.sync();
+            phys.sync();
+
             index.close();
             phys.close();
             if(deleteFilesAfterClose){

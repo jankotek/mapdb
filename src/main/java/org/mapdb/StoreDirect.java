@@ -393,6 +393,8 @@ public class StoreDirect implements Engine{
             index.putLong(IO_INDEX_SIZE,indexSize);
         }
 
+        index.sync();
+        phys.sync();
         index.close();
         phys.close();
         if(deleteFilesAfterClose){
