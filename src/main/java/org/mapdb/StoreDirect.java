@@ -492,12 +492,12 @@ public class StoreDirect implements Engine{
 
             index.close();
             phys.close();
-            if(!indexFile.renameTo(indexFile_))throw new InternalError();
-            if(!physFile.renameTo(physFile_))throw new InternalError();
+            if(!indexFile.renameTo(indexFile_))throw new InternalError("could not rename file");
+            if(!physFile.renameTo(physFile_))throw new InternalError("could not rename file");
 
-            if(!indexFile2.renameTo(indexFile))throw new InternalError();
+            if(!indexFile2.renameTo(indexFile))throw new InternalError("could not rename file");
             //TODO process may fail in middle of rename, analyze sequence and add recovery
-            if(!physFile2.renameTo(physFile))throw new InternalError();
+            if(!physFile2.renameTo(physFile))throw new InternalError("could not rename file");
 
             indexFile_.delete();
             physFile_.delete();
