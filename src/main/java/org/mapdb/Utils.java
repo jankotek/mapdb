@@ -21,6 +21,8 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Logger;
 
 /**
@@ -283,5 +285,92 @@ final public class Utils {
             b.append(chars.charAt(RANDOM.nextInt(chars.length())));
         }
         return b.toString();
+    }
+
+    public static ReentrantReadWriteLock[] newReadWriteLocks(int size) {
+        ReentrantReadWriteLock[] locks = new ReentrantReadWriteLock[size];
+        for(int i=0;i<locks.length;i++) locks[i] = new ReentrantReadWriteLock();
+        return locks;
+    }
+
+    public static ReentrantLock[] newLocks(int size) {
+        ReentrantLock[] locks = new ReentrantLock[size];
+        for(int i=0;i<locks.length;i++) locks[i] = new ReentrantLock();
+        return locks;
+    }
+
+    public static void lock(ReentrantLock[] locks, long recid) {
+        locks[Utils.longHash(recid)%locks.length].lock();
+    }
+
+    public static void lockAll(ReentrantLock[] locks) {
+        for(ReentrantLock lock:locks)lock.lock();
+    }
+
+    public static void unlockAll(ReentrantLock[] locks) {
+        for(ReentrantLock lock:locks)lock.unlock();
+    }
+
+
+    public static void unlock(ReentrantLock[] locks, long recid) {
+        locks[Utils.longHash(recid)%locks.length].unlock();
+    }
+
+
+    public static void readLock(ReentrantReadWriteLock[] locks, long recid) {
+        locks[Utils.longHash(recid)%locks.length].readLock().lock();
+    }
+
+    public static void readUnlock(ReentrantReadWriteLock[] locks, long recid) {
+        locks[Utils.longHash(recid)%locks.length].readLock().unlock();
+    }
+
+    public static void writeLock(ReentrantReadWriteLock[] locks, long recid) {
+        locks[Utils.longHash(recid)%locks.length].writeLock().lock();
+    }
+
+    public static void writeUnlock(ReentrantReadWriteLock[] locks, long recid) {
+        locks[Utils.longHash(recid)%locks.length].writeLock().unlock();
+    }
+
+    public static void writeLockAll(ReentrantReadWriteLock[] locks) {
+        for(ReentrantReadWriteLock l:locks) l.writeLock().lock();
+    }
+
+    public static void writeUnlockAll(ReentrantReadWriteLock[] locks) {
+        for(ReentrantReadWriteLock l:locks) l.writeLock().unlock();
+    }
+
+
+    public static void lock(LongConcurrentHashMap<Thread> locks, long recid){
+        //feel free to rewrite, if you know better (more efficient) way
+        if(locks.get(recid)==Thread.currentThread()){
+            //check node is not already locked by this thread
+            throw new InternalError("node already locked by current thread: "+recid);
+        }
+
+        while(locks.putIfAbsent(recid, Thread.currentThread()) != null){
+            LockSupport.parkNanos(10);
+        }
+    }
+
+
+
+    public static void unlock(LongConcurrentHashMap<Thread> locks,final long recid) {
+        final Thread t = locks.remove(recid);
+        if(t!=Thread.currentThread())
+            throw new InternalError("unlocked wrong thread");
+
+    }
+
+    public static void assertNoLocks(LongConcurrentHashMap<Thread> locks){
+        if(CC.PARANOID){
+            LongMap.LongMapIterator<Thread> i = locks.longMapIterator();
+            while(i.moveToNext()){
+                if(i.value()==Thread.currentThread()){
+                    throw new InternalError("Node "+i.key()+" is still locked");
+                }
+            }
+        }
     }
 }

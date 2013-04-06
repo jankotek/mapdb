@@ -1,5 +1,7 @@
 package org.mapdb;
 
+import java.util.concurrent.locks.ReentrantLock;
+
 /**
  * Least Recently Used cache.
  * If cache is full it removes less used items to make a space
@@ -9,7 +11,7 @@ public class CacheLRU extends EngineWrapper {
 
     protected LongMap<Object> cache;
 
-    protected final Locks.RecidLocks locks = new Locks.SegmentedRecidLocks(16);
+    protected final ReentrantLock[] locks = Utils.newLocks(32);
 
 
     public CacheLRU(Engine engine, int cacheSize) {
@@ -25,10 +27,10 @@ public class CacheLRU extends EngineWrapper {
     public <A> long put(A value, Serializer<A> serializer) {
         long recid =  super.put(value, serializer);
         try{
-            locks.lock(recid);
+            Utils.lock(locks,recid);
             checkClosed(cache).put(recid, value);
         }finally {
-            locks.unlock(recid);
+            Utils.unlock(locks,recid);
         }
         return recid;
     }
@@ -39,41 +41,41 @@ public class CacheLRU extends EngineWrapper {
         Object ret = cache.get(recid);
         if(ret!=null) return (A) ret;
         try{
-            locks.lock(recid);
+            Utils.lock(locks,recid);
             ret = super.get(recid, serializer);
             if(ret!=null) checkClosed(cache).put(recid, ret);
             return (A) ret;
         }finally {
-            locks.unlock(recid);
+            Utils.unlock(locks,recid);
         }
     }
 
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
         try{
-            locks.lock(recid);
+            Utils.lock(locks,recid);
             checkClosed(cache).put(recid, value);
             super.update(recid, value, serializer);
         }finally {
-            locks.unlock(recid);
+            Utils.unlock(locks,recid);
         }
     }
 
     @Override
     public <A> void delete(long recid, Serializer<A> serializer){
         try{
-            locks.lock(recid);
+            Utils.lock(locks,recid);
             checkClosed(cache).remove(recid);
             super.delete(recid,serializer);
         }finally {
-            locks.unlock(recid);
+            Utils.unlock(locks,recid);
         }
     }
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
         try{
-            locks.lock(recid);
+            Utils.lock(locks,recid);
             Engine engine = getWrappedEngine();
             LongMap cache2 = checkClosed(cache);
             Object oldValue = cache.get(recid);
@@ -88,7 +90,7 @@ public class CacheLRU extends EngineWrapper {
                 return ret;
             }
         }finally {
-            locks.unlock(recid);
+            Utils.unlock(locks,recid);
         }
     }
 

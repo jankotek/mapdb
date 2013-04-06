@@ -162,14 +162,13 @@ public class StoreWAL extends StoreDirect {
     @Override
     public <A> A get(long recid, Serializer<A> serializer) {
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock = locks[Utils.longHash(recid)%CONCURRENCY_FACTOR].readLock();
-        lock.lock();
+        Utils.readLock(locks,recid);
         try{
             return get2(ioRecid, serializer);
         }catch(IOException e){
             throw new IOError(e);
         }finally{
-            lock.unlock();
+            Utils.readUnlock(locks,recid);
         }
     }
 
@@ -213,8 +212,7 @@ public class StoreWAL extends StoreDirect {
     public <A> void update(long recid, A value, Serializer<A> serializer) {
         DataOutput2 out = serialize(value, serializer);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock = locks[Utils.longHash(recid)%CONCURRENCY_FACTOR].writeLock();
-        lock.lock();
+        Utils.writeLock(locks,recid);
         try{
             final long[] physPos;
             final long[] logPos;
@@ -236,15 +234,14 @@ public class StoreWAL extends StoreDirect {
 
             modified.put(ioRecid,logPos);
         }finally{
-            lock.unlock();
+            Utils.writeUnlock(locks,recid);
         }
     }
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock = locks[Utils.longHash(recid)%CONCURRENCY_FACTOR].writeLock();
-        lock.lock();
+        Utils.writeLock(locks,recid);
         try{
 
             A oldVal = get2(ioRecid,serializer);
@@ -276,7 +273,7 @@ public class StoreWAL extends StoreDirect {
         }catch(IOException e){
             throw new IOError(e);
         }finally{
-            lock.unlock();
+            Utils.writeUnlock(locks,recid);
         }
 
     }
@@ -284,8 +281,7 @@ public class StoreWAL extends StoreDirect {
     @Override
     public <A> void delete(long recid, Serializer<A> serializer) {
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock = locks[Utils.longHash(recid)%CONCURRENCY_FACTOR].writeLock();
-        lock.lock();
+        Utils.writeLock(locks,recid);
         try{
             structuralLock.lock();
             final long logPos;
@@ -302,14 +298,14 @@ public class StoreWAL extends StoreDirect {
             walIndexVal(logPos,ioRecid,0);
             modified.put(ioRecid,TOMBSTONE);
         }finally {
-            lock.unlock();
+            Utils.writeUnlock(locks,recid);
         }
         }
 
     @Override
     public void commit() {
         structuralLock.lock();
-        for(ReentrantReadWriteLock l:locks) l.writeLock().lock();
+        Utils.writeLockAll(locks);
         try{
             if(log==null) return; //no modifications
             //update physical and logical filesize
@@ -332,7 +328,7 @@ public class StoreWAL extends StoreDirect {
             reloadIndexFile();
 
         }finally {
-            for(ReentrantReadWriteLock l:locks) l.writeLock().unlock();
+            Utils.writeUnlockAll(locks);
             structuralLock.unlock();
         }
     }
@@ -426,7 +422,7 @@ public class StoreWAL extends StoreDirect {
     @Override
     public void rollback() throws UnsupportedOperationException {
         structuralLock.lock();
-        for(ReentrantReadWriteLock l:locks) l.writeLock().lock();
+        Utils.writeLockAll(locks);
         try{
             //discard trans log
             if(log !=null){
@@ -437,7 +433,7 @@ public class StoreWAL extends StoreDirect {
 
             reloadIndexFile();
         }finally {
-            for(ReentrantReadWriteLock l:locks) l.writeLock().unlock();
+            Utils.writeUnlockAll(locks);
             structuralLock.unlock();
         }
     }
@@ -455,7 +451,7 @@ public class StoreWAL extends StoreDirect {
     @Override
     public void close() {
         structuralLock.lock();
-        for(ReentrantReadWriteLock l:locks) l.writeLock().lock();
+        Utils.writeLockAll(locks);
         try{
             if(log !=null){
                 log.sync();
@@ -474,7 +470,7 @@ public class StoreWAL extends StoreDirect {
             index = null;
             phys = null;
         }finally {
-            for(ReentrantReadWriteLock l:locks) l.writeLock().unlock();
+            Utils.writeUnlockAll(locks);
             structuralLock.unlock();
         }
     }

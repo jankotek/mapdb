@@ -19,7 +19,6 @@ import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -56,15 +55,14 @@ public class StoreDirect implements Engine{
 
     public static final String DATA_FILE_EXT = ".p";
 
-    protected static final int CONCURRENCY_FACTOR = 32;
 
     static final int LONG_STACK_PER_PAGE = 204;
 
     static final int LONG_STACK_PAGE_SIZE =   8 + LONG_STACK_PER_PAGE * 6;
 
 
-    protected final ReentrantReadWriteLock[] locks;
-    protected final ReentrantLock structuralLock;
+    protected final ReentrantReadWriteLock[] locks = Utils.newReadWriteLocks(32);
+    protected final ReentrantLock structuralLock = new ReentrantLock();
 
     protected Volume index;
     protected Volume phys;
@@ -80,9 +78,6 @@ public class StoreDirect implements Engine{
         this.readOnly = readOnly;
         this.deleteFilesAfterClose = deleteFilesAfterClose;
 
-        locks = new ReentrantReadWriteLock[CONCURRENCY_FACTOR];
-        for(int i=0;i<locks.length;i++) locks[i] = new ReentrantReadWriteLock();
-        structuralLock = new ReentrantLock();
 
         index = volFac.createIndexVolume();
         phys = volFac.createPhysVolume();
@@ -176,14 +171,13 @@ public class StoreDirect implements Engine{
     @Override
     public <A> A get(long recid, Serializer<A> serializer) {
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock = locks[Utils.longHash(recid)%CONCURRENCY_FACTOR].readLock();
-        lock.lock();
+        Utils.readLock(locks, recid);
         try{
             return get2(ioRecid,serializer);
         }catch(IOException e){
             throw new IOError(e);
         }finally{
-            lock.unlock();
+            Utils.readUnlock(locks, recid);
         }
     }
 
@@ -234,8 +228,7 @@ public class StoreDirect implements Engine{
 
         final long ioRecid = IO_USER_START + recid*8;
 
-        final Lock lock = locks[Utils.longHash(recid)%CONCURRENCY_FACTOR].writeLock();
-        lock.lock();
+        Utils.writeLock(locks, recid);
         try{
             final long[] indexVals;
             structuralLock.lock();
@@ -247,15 +240,14 @@ public class StoreDirect implements Engine{
 
             put2(out, ioRecid, indexVals);
         }finally{
-            lock.unlock();
+            Utils.writeUnlock(locks, recid);
         }
     }
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock = locks[Utils.longHash(recid)%CONCURRENCY_FACTOR].writeLock();
-        lock.lock();
+        Utils.writeLock(locks, recid);
         try{
             /*
              * deserialize old value
@@ -287,15 +279,14 @@ public class StoreDirect implements Engine{
         }catch(IOException e){
             throw new IOError(e);
         }finally{
-            lock.unlock();
+            Utils.writeUnlock(locks, recid);
         }
     }
 
     @Override
     public <A> void delete(long recid, Serializer<A> serializer) {
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock = locks[Utils.longHash(recid)%CONCURRENCY_FACTOR].writeLock();
-        lock.lock();
+        Utils.writeLock(locks, recid);
         try{
             //get index val and zero it out
             final long indexVal = index.getLong(ioRecid);
@@ -343,11 +334,12 @@ public class StoreDirect implements Engine{
             }
 
         }finally{
-            lock.unlock();
+            Utils.writeUnlock(locks, recid);
         }
     }
 
     protected long[] physAllocate(int size, boolean ensureAvail) {
+        if(size==0L) return new long[]{0L};
         //append to end of file
         if(size<MAX_REC_SIZE){
             long indexVal = freePhysTake(size,ensureAvail);
@@ -395,7 +387,7 @@ public class StoreDirect implements Engine{
     @Override
     public void close() {
         structuralLock.lock();
-        for(ReentrantReadWriteLock l:locks) l.writeLock().lock();
+        Utils.writeLockAll(locks);
         if(!readOnly){
             index.putLong(IO_PHYS_SIZE,physSize);
             index.putLong(IO_INDEX_SIZE,indexSize);
@@ -409,7 +401,7 @@ public class StoreDirect implements Engine{
         }
         index = null;
         phys = null;
-        for(ReentrantReadWriteLock l:locks) l.writeLock().unlock();
+        Utils.writeUnlockAll(locks);
         structuralLock.unlock();
     }
 
@@ -629,6 +621,8 @@ public class StoreDirect implements Engine{
     }
 
     protected long freePhysTake(int size, boolean ensureAvail) {
+        if(size==0)throw new IllegalArgumentException();
+
         //check free space
         long ret =  longStackTake(size2ListIoRecid(size));
         if(ret!=0) return ret;

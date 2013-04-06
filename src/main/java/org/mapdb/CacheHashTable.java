@@ -16,6 +16,8 @@
 
 package org.mapdb;
 
+import java.util.concurrent.locks.ReentrantLock;
+
 /**
  * Fixed size cache which uses hash table.
  * Is thread-safe and requires only minimal locking.
@@ -28,7 +30,7 @@ package org.mapdb;
 public class CacheHashTable extends EngineWrapper implements Engine {
 
 
-    protected final Locks.RecidLocks locks = new Locks.SegmentedRecidLocks(16);
+    protected final ReentrantLock[] locks = Utils.newLocks(32);
 
     protected HashItem[] items;
     protected final int cacheMaxSize;
@@ -62,10 +64,10 @@ public class CacheHashTable extends EngineWrapper implements Engine {
         final long recid = getWrappedEngine().put(value, serializer);
         final int pos = position(recid);
         try{
-            locks.lock(pos);
+            Utils.lock(locks,pos);
             checkClosed(items)[position(recid)] = new HashItem(recid, value);
         }finally{
-            locks.unlock(pos);
+            Utils.unlock(locks,pos);
         }
         return recid;
     }
@@ -80,14 +82,14 @@ public class CacheHashTable extends EngineWrapper implements Engine {
             return (A) item.val;
 
         try{
-            locks.lock(pos);
+            Utils.lock(locks,pos);
             //not in cache, fetch and add
             final A value = getWrappedEngine().get(recid, serializer);
             if(value!=null)
                 items2[pos] = new HashItem(recid, value);
             return value;
         }finally{
-            locks.unlock(pos);
+            Utils.unlock(locks,pos);
         }
     }
 
@@ -99,11 +101,11 @@ public class CacheHashTable extends EngineWrapper implements Engine {
     public <A> void update(long recid, A value, Serializer<A> serializer) {
         final int pos = position(recid);
         try{
-            locks.lock(pos);
+            Utils.lock(locks,pos);
             checkClosed(items)[pos] = new HashItem(recid, value);
             getWrappedEngine().update(recid, value, serializer);
         }finally {
-            locks.unlock(pos);
+            Utils.unlock(locks,pos);
         }
     }
 
@@ -112,7 +114,7 @@ public class CacheHashTable extends EngineWrapper implements Engine {
         final int pos = position(recid);
         try{
             HashItem[] items2 = checkClosed(items);
-            locks.lock(pos);
+            Utils.lock(locks,pos);
             HashItem item = items2[pos];
             if(item!=null && item.key == recid){
                 //found in cache, so compare values
@@ -130,7 +132,7 @@ public class CacheHashTable extends EngineWrapper implements Engine {
                 return ret;
             }
         }finally {
-            locks.unlock(pos);
+            Utils.unlock(locks,pos);
         }
     }
 
@@ -138,14 +140,14 @@ public class CacheHashTable extends EngineWrapper implements Engine {
     public <A> void delete(long recid, Serializer<A> serializer){
         final int pos = position(recid);
         try{
-            locks.lock(recid);
+            Utils.lock(locks,pos);
             getWrappedEngine().delete(recid,serializer);
             HashItem[] items2 = checkClosed(items);
             HashItem item = items2[pos];
             if(item!=null && recid == item.key)
             items[pos] = null;
         }finally {
-            locks.unlock(recid);
+            Utils.unlock(locks,pos);
         }
 
 }

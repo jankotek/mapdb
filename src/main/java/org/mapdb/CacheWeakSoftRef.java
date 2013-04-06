@@ -19,6 +19,7 @@ package org.mapdb;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Instance cache which uses <code>SoftReference</code> or <code>WeakReference</code>
@@ -29,7 +30,7 @@ import java.lang.ref.WeakReference;
 public class CacheWeakSoftRef extends EngineWrapper implements Engine {
 
 
-    protected final Locks.RecidLocks locks = new Locks.LongHashMapRecidLocks();
+    protected final ReentrantLock[] locks = Utils.newLocks(32);
 
     protected interface CacheItem{
         long getRecid();
@@ -129,13 +130,13 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
         }
 
         try{
-            locks.lock(recid);
+            Utils.lock(locks,recid);
             Object value = getWrappedEngine().get(recid, serializer);
             if(value!=null) putItemIntoCache(recid, value);
 
             return (A) value;
         }finally{
-            locks.unlock(recid);
+            Utils.unlock(locks,recid);
         }
 
     }
@@ -143,11 +144,11 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
         try{
-            locks.lock(recid);
+            Utils.lock(locks,recid);
             putItemIntoCache(recid, value);
             getWrappedEngine().update(recid, value, serializer);
         }finally {
-            locks.unlock(recid);
+            Utils.unlock(locks,recid);
         }
     }
 
@@ -162,11 +163,11 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
     @Override
     public <A> void delete(long recid, Serializer<A> serializer){
         try{
-            locks.lock(recid);
+            Utils.lock(locks,recid);
             checkClosed(items).remove(recid);
             getWrappedEngine().delete(recid,serializer);
         }finally {
-            locks.unlock(recid);
+            Utils.unlock(locks,recid);
         }
 
     }
@@ -174,7 +175,7 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
         try{
-            locks.lock(recid);
+            Utils.lock(locks,recid);
             CacheItem item = checkClosed(items).get(recid);
             Object oldValue = item==null? null: item.get() ;
             if(item!=null && item.getRecid() == recid &&
@@ -189,7 +190,7 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
                 return ret;
             }
         }finally {
-            locks.unlock(recid);
+            Utils.unlock(locks,recid);
         }
     }
 

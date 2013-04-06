@@ -42,7 +42,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     protected final int asyncFlushDelay;
 
     protected static final Object DELETED = new Object();
-    protected final Locks.RecidLocks writeLocks = new Locks.LongHashMapRecidLocks();
+    protected final ReentrantLock[] writeLocks = Utils.newLocks(32);
 
     protected final ReentrantReadWriteLock commitLock;
 
@@ -76,14 +76,35 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
 
                     if(!iter.moveToNext()){
                         //empty map, pause for a moment to give it chance to fill
-                        if(closeInProgress || (parentEngineWeakRef!=null && parentEngineWeakRef.get()==null) || writerFailedException!=null) return;
+                        if( (parentEngineWeakRef!=null && parentEngineWeakRef.get()==null) || writerFailedException!=null) return;
                         Thread.sleep(asyncFlushDelay);
-
+                        if(closeInProgress){
+                            //lock world and write everything
+                            Utils.lockAll(writeLocks);
+                            try{
+                                while(!items.isEmpty()){
+                                    iter = items.longMapIterator();
+                                    while(iter.moveToNext()){
+                                        long recid = iter.key();
+                                        Fun.Tuple2<Object,Serializer> value = iter.value();
+                                        if(value.a==DELETED){
+                                            AsyncWriteEngine.super.delete(recid, value.b);
+                                        }else{
+                                            AsyncWriteEngine.super.update(recid, value.a, value.b);
+                                        }
+                                        items.remove(recid, value);
+                                    }
+                                }
+                                return;
+                            }finally{
+                                Utils.unlockAll(writeLocks);
+                            }
+                        }
                     }else do{
                         //iterate over items and write them
                         long recid = iter.key();
 
-                        writeLocks.lock(recid);
+                        Utils.lock(writeLocks,recid);
                         try{
                             Fun.Tuple2<Object,Serializer> value = iter.value();
                             if(value.a==DELETED){
@@ -93,7 +114,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
                             }
                             items.remove(recid, value);
                         }finally {
-                            writeLocks.unlock(recid);
+                            Utils.unlock(writeLocks, recid);
                         }
                     }while(iter.moveToNext());
 
@@ -123,14 +144,10 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
 
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
-        checkState();
-
-
         if(commitLock!=null) commitLock.readLock().lock();
         try{
-
             try {
-                Long recid = newRecids.take();
+                Long recid = newRecids.take(); //TODO possible deadlock while closing
                 update(recid, value, serializer);
                 return recid;
             } catch (InterruptedException e) {
@@ -149,11 +166,11 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
 
     @Override
     public <A> A get(long recid, Serializer<A> serializer) {
-        checkState();
         if(commitLock!=null) commitLock.readLock().lock();
         try{
-            writeLocks.lock(recid);
+            Utils.lock(writeLocks,recid);
             try{
+                checkState();
                 Fun.Tuple2<Object,Serializer> item = items.get(recid);
                 if(item!=null){
                     if(item.a == DELETED) return null;
@@ -162,7 +179,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
 
                 return super.get(recid, serializer);
             }finally{
-                writeLocks.unlock(recid);
+                Utils.unlock(writeLocks,recid);
             }
         }finally{
             if(commitLock!=null) commitLock.readLock().unlock();
@@ -171,15 +188,16 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
 
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
-        checkState();
+
         if(commitLock!=null && serializer!=SerializerPojo.serializer) commitLock.readLock().lock();
         try{
 
-            writeLocks.lock(recid);
+            Utils.lock(writeLocks, recid);
             try{
+                checkState();
                 items.put(recid, new Fun.Tuple2(value,serializer));
             }finally{
-                writeLocks.unlock(recid);
+                Utils.unlock(writeLocks, recid);
             }
         }finally{
             if(commitLock!=null&& serializer!=SerializerPojo.serializer) commitLock.readLock().unlock();
@@ -189,9 +207,10 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
-        checkState();
-        writeLocks.lock(recid);
+        //TODO commit lock?
+        Utils.lock(writeLocks, recid);
         try{
+            checkState();
             Fun.Tuple2<Object, Serializer> existing = items.get(recid);
             A oldValue = existing!=null? (A) existing.a : super.get(recid, serializer);
             if(oldValue == expectedOldValue || (oldValue!=null && oldValue.equals(expectedOldValue))){
@@ -201,7 +220,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
                 return false;
             }
         }finally{
-            writeLocks.unlock(recid);
+            Utils.unlock(writeLocks, recid);
 
         }
     }
