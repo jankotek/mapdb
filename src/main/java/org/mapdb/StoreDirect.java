@@ -191,13 +191,11 @@ public class StoreDirect implements Engine{
         long indexVal = index.getLong(ioRecid);
 
         int size = (int) ((indexVal&MASK_SIZE)>>>48);
-        int start;
         DataInput2 di;
         long offset = indexVal&MASK_OFFSET;
         if((indexVal&MASK_IS_LINKED)==0){
             //read single record
             di = phys.getDataInput(offset, size);
-            start = (int) (offset% Volume.BUF_SIZE);
 
         }else{
             //is linked, first construct buffer we will read data to
@@ -221,11 +219,11 @@ public class StoreDirect implements Engine{
             if(pos!=totalSize) throw new InternalError();
             di = new DataInput2(buf);
             size = totalSize;
-            start = 0;
         }
+        int start = di.pos;
         A ret = serializer.deserialize(di,size);
-        if(size+start>di.pos) throw new InternalError("data were not fully read, check your serializier");
-        if(size+start<di.pos) throw new InternalError("data were read beyond record size, check your serializier");
+        if(size+start>di.pos)throw new InternalError("data were not fully read, check your serializier");
+        if(size+start<di.pos)throw new InternalError("data were read beyond record size, check your serializier");
         return ret;
     }
 
