@@ -2,8 +2,7 @@ package org.mapdb;
 
 import java.io.IOError;
 import java.io.IOException;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.Arrays;
 
 /**
  * Write-Ahead-Log
@@ -31,6 +30,9 @@ public class StoreWAL extends StoreDirect {
     protected long logSize;
 
     protected final LongConcurrentHashMap<long[]> modified = new LongConcurrentHashMap<long[]>();
+    protected final LongMap<long[]> longStackPages = new LongHashMap<long[]>();
+    protected final long[] indexVals = new long[IO_USER_START/8];
+    protected final boolean[] indexValsModified = new boolean[indexVals.length];
 
 
     public StoreWAL(Volume.Factory volFac) {
@@ -50,6 +52,10 @@ public class StoreWAL extends StoreDirect {
         modified.clear();
         indexSize = index.getLong(IO_INDEX_SIZE);
         physSize = index.getLong(IO_PHYS_SIZE);
+        for(int i = IO_FREE_RECID;i<IO_USER_START;i+=8){
+            indexVals[i/8] = index.getLong(i);
+        }
+        Arrays.fill(indexValsModified, false);
     }
 
     protected void openLogIfNeeded(){
@@ -291,6 +297,7 @@ public class StoreWAL extends StoreDirect {
                 checkLogRounding();
                 logSize+=1+8+8; //space used for index val
                 log.ensureAvailable(logSize);
+                longStackPut(IO_FREE_RECID, ioRecid);
 
             }finally {
                 structuralLock.unlock();
@@ -307,14 +314,46 @@ public class StoreWAL extends StoreDirect {
         structuralLock.lock();
         Utils.writeLockAll(locks);
         try{
-            if(log==null) return; //no modifications
+            if(!longStackPages.isEmpty() && log==null) openLogIfNeeded();
+
+            if(log==null){
+                return; //no modifications
+            }
             //update physical and logical filesize
+
+            //dump long stack pages
+            LongMap.LongMapIterator<long[]> iter = longStackPages.longMapIterator();
+            while(iter.moveToNext()){
+                log.ensureAvailable(logSize+1+8+LONG_STACK_PAGE_SIZE);
+                log.putByte(logSize, WAL_PHYS_ARRAY);
+                logSize+=1;
+                log.putLong(logSize, (((long)LONG_STACK_PAGE_SIZE)<<48)|iter.key());
+                logSize+=8;
+                //first long in array
+                long[] array = iter.value();
+                log.putLong(logSize,array[0]);
+                logSize+=8;
+                for(int i=0;i<LONG_STACK_PER_PAGE;i++){
+                    log.putSixLong(logSize,array[i+1]);
+                    logSize+=6;
+                }
+                checkLogRounding();
+            }
+
 
             log.ensureAvailable(logSize + 17 + 17 + 1);
             walIndexVal(logSize,IO_PHYS_SIZE, physSize);
             logSize+=17;
             walIndexVal(logSize,IO_INDEX_SIZE, indexSize);
             logSize+=17;
+
+            for(int i=IO_FREE_RECID;i<IO_USER_START;i+=8){
+                if(!indexValsModified[i/8]) continue;
+                log.ensureAvailable(logSize + 17);
+                walIndexVal(logSize, i,indexVals[i/8]);
+                logSize+=17;
+            }
+
             //seal log file
             log.putByte(logSize, WAL_SEAL);
             logSize+=1;
@@ -438,14 +477,107 @@ public class StoreWAL extends StoreDirect {
         }
     }
 
+    private long[] getLongStackPage(final long physOffset, boolean read){
+        long[] buf = longStackPages.get(physOffset);
+        if(buf == null){
+            buf = new long[LONG_STACK_PER_PAGE+1];
+            if(read){
+                buf[0] = phys.getLong(physOffset);
+                for(int i=1;i<buf.length;i++){
+                    buf[i] = phys.getSixLong(physOffset + 2 + i * 6);
+                }
+            }
+            longStackPages.put(physOffset,buf);
+        }
+        return buf;
+    }
+
+
     @Override
     protected long longStackTake(long ioList) {
-        return 0;
+        final long physOffset = indexVals[((int) (ioList / 8))] &MASK_OFFSET;
+        if(physOffset == 0) return 0; //empty
+
+        long[] buf = getLongStackPage(physOffset,true);
+
+        final int numberOfRecordsInPage = (int) (buf[0]>>>(8*7));
+
+
+        if(numberOfRecordsInPage<=0)
+            throw new InternalError();
+        if(numberOfRecordsInPage>LONG_STACK_PER_PAGE) throw new InternalError();
+
+        final long ret = buf[numberOfRecordsInPage];
+
+        final long previousListPhysid = buf[0] & MASK_OFFSET;
+
+        //was it only record at that page?
+        if(numberOfRecordsInPage == 1){
+            //yes, delete this page
+            long value = previousListPhysid !=0 ?
+                    previousListPhysid | (((long) LONG_STACK_PAGE_SIZE) << 48) :
+                    0L;
+            //update index so it points to previous (or none)
+            int ii = ((int) (ioList / 8));
+            indexVals[ii] = value;
+            indexValsModified[ii] = true;
+
+            //put space used by this page into free list
+            longStackPages.remove(physOffset); //TODO write zeroes to phys file
+
+            freePhysPut(physOffset | (((long)LONG_STACK_PAGE_SIZE)<<48));
+        }else{
+            //no, it was not last record at this page, so just decrement the counter
+            buf[0] = previousListPhysid | ((1L*numberOfRecordsInPage-1L)<<(8*7));
+        }
+        return ret;
+
     }
 
     @Override
     protected void longStackPut(long ioList, long offset) {
-        //TODO long stack in WAL
+        if(offset>>>48!=0) throw new IllegalArgumentException();
+        //index position was cleared, put into free index list
+        final long listPhysid2 = indexVals[((int) (ioList / 8))] &MASK_OFFSET;
+
+        if(listPhysid2 == 0){ //empty list?
+            //yes empty, create new page and fill it with values
+            final long listPhysid = freePhysTake(LONG_STACK_PAGE_SIZE,false) &MASK_OFFSET;
+            long[] buf = getLongStackPage(listPhysid,false);
+            if(listPhysid == 0) throw new InternalError();
+            //set number of free records in this page to 1
+            buf[0] = 1L<<(8*7);
+            //set  record
+            buf[1] = offset;
+            //and update index file with new page location
+            int ii = ((int) (ioList / 8));
+            indexVals[ii] =  (((long) LONG_STACK_PAGE_SIZE) << 48) | listPhysid;
+            indexValsModified[ii] = true;
+        }else{
+            long[] buf = getLongStackPage(listPhysid2,true);
+            final int numberOfRecordsInPage = (int) (buf[0]>>>(8*7));
+            if(numberOfRecordsInPage == LONG_STACK_PER_PAGE){ //is current page full?
+                //yes it is full, so we need to allocate new page and write our number there
+                final long listPhysid = freePhysTake(LONG_STACK_PAGE_SIZE, false) &MASK_OFFSET;
+                long[] bufNew = getLongStackPage(listPhysid,false);
+                if(listPhysid == 0) throw new InternalError();
+                //final ByteBuffers dataBuf = dataBufs[((int) (listPhysid / BUF_SIZE))];
+                //set location to previous page
+                //set number of free records in this page to 1
+                bufNew[0] = listPhysid2 | (1L<<(8*7));
+                //set free record
+                bufNew[1] = offset;
+                //and update index file with new page location
+                int ii = ((int) (ioList / 8));
+                indexVals[ii] =  (((long) LONG_STACK_PAGE_SIZE) << 48) | listPhysid;
+                indexValsModified[ii] = true;
+            }else{
+                //there is space on page, so just write released recid and increase the counter
+                buf[1+numberOfRecordsInPage] = offset;
+                buf[0] = (buf[0]&MASK_OFFSET) | ((1L*numberOfRecordsInPage+1L)<<(8*7));
+            }
+        }
+
     }
 
     @Override
@@ -477,4 +609,18 @@ public class StoreWAL extends StoreDirect {
             structuralLock.unlock();
         }
     }
+
+    @Override
+    public void compact() {
+
+        try{
+            if(log!=null && !log.isEmpty()) //TODO thread unsafe?
+                throw new IllegalAccessError("WAL not empty; commit first, than compact");
+            super.compact();
+        }finally {
+
+        }
+    }
+
+
 }

@@ -554,7 +554,7 @@ public class StoreDirect implements Engine{
 
 
     protected void longStackPut(final long ioList, long offset){
-        offset = offset & MASK_OFFSET;
+        if(offset>>>48!=0) throw new IllegalArgumentException();
         if(!structuralLock.isLocked())throw new InternalError();
         if(ioList<IO_FREE_RECID || ioList>=IO_USER_START) throw new InternalError("wrong ioList: "+ioList);
 

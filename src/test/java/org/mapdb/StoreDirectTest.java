@@ -11,15 +11,15 @@ import java.util.List;
 import static org.junit.Assert.*;
 import static org.mapdb.StoreDirect.*;
 
-public class StoreDirectTest extends EngineTest<StoreDirect>{
+public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
 
     Volume.Factory fac = Volume.fileFactory(false,false,Utils.tempDbFile());
 
     static final long IO_RECID = StoreDirect.IO_FREE_RECID+32;
 
-    @Override protected StoreDirect openEngine() {
-        return new StoreDirect(fac,false,false);
+    @Override protected E openEngine() {
+        return (E) new StoreDirect(fac,false,false);
     }
 
     int countIndexRecords(){

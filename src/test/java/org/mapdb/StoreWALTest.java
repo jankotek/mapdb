@@ -1,6 +1,6 @@
 package org.mapdb;
 
-public class StoreWALTest extends EngineTest<StoreWAL>{
+public class StoreWALTest extends StoreDirectTest<StoreWAL>{
 
     Volume.Factory fac = Volume.fileFactory(false,false,Utils.tempDbFile());
 

@@ -121,6 +121,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
     @Test public void compact_large_record(){
         byte[] b = new byte[100000];
         long recid = e.put(b, Serializer.BYTE_ARRAY_SERIALIZER);
+        e.commit();
         e.compact();
         assertArrayEquals(b, e.get(recid, Serializer.BYTE_ARRAY_SERIALIZER));
     }
