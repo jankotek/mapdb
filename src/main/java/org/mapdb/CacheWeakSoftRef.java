@@ -96,6 +96,7 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
     protected void runRefQueue(){
         try{
             final ReferenceQueue<?> queue = this.queue;
+            if(queue == null)return;
             final LongConcurrentHashMap<CacheItem> items = this.items;
 
             while(true){
