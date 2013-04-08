@@ -613,13 +613,12 @@ public class StoreWAL extends StoreDirect {
     @Override
     public void compact() {
 
-        try{
-            if(log!=null && !log.isEmpty()) //TODO thread unsafe?
-                throw new IllegalAccessError("WAL not empty; commit first, than compact");
-            super.compact();
-        }finally {
+        //TODO lock it down here
+        if(log!=null && !log.isEmpty()) //TODO thread unsafe?
+            throw new IllegalAccessError("WAL not empty; commit first, than compact");
+        super.compact();
+        reloadIndexFile();
 
-        }
     }
 
 

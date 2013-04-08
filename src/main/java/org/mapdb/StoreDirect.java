@@ -228,11 +228,23 @@ public class StoreDirect implements Engine{
 
         final long ioRecid = IO_USER_START + recid*8;
 
+
         Utils.writeLock(locks, recid);
         try{
-            final long[] indexVals;
+            long indexVal = index.getLong(ioRecid);
+            long[] indexVals = getLinkedRecordsIndexVals(indexVal);
             structuralLock.lock();
             try{
+                //free first record pointed from indexVal
+                freePhysPut(indexVal);
+
+                //if there are more linked records, free those as well
+                if(indexVals!=null){
+                    for(int i=0;i<indexVals.length && indexVals[i]!=0;i++){
+                        freePhysPut(indexVals[i]);
+                    }
+                }
+
                 indexVals = physAllocate(out.pos,true);
             }finally {
                 structuralLock.unlock();
@@ -266,9 +278,21 @@ public class StoreDirect implements Engine{
              */
             DataOutput2 out = serialize(newValue, serializer);
 
-            final long[] indexVals;
+            long indexVal = index.getLong(ioRecid);
+            long[] indexVals = getLinkedRecordsIndexVals(indexVal);
+
             structuralLock.lock();
             try{
+                //free first record pointed from indexVal
+                freePhysPut(indexVal);
+
+                //if there are more linked records, free those as well
+                if(indexVals!=null){
+                    for(int i=0;i<indexVals.length && indexVals[i]!=0;i++){
+                        freePhysPut(indexVals[i]);
+                    }
+                }
+
                 indexVals = physAllocate(out.pos,true);
             }finally {
                 structuralLock.unlock();
@@ -292,28 +316,7 @@ public class StoreDirect implements Engine{
             final long indexVal = index.getLong(ioRecid);
             index.putLong(ioRecid,0L);
 
-            long[] linkedRecords = null;
-            int linkedPos = 0;
-            if((indexVal&MASK_IS_LINKED)!=0){
-                //record is composed of multiple linked records, so collect all of them
-                linkedRecords = new long[2];
-
-                //traverse linked records
-                long linkedVal = phys.getLong(indexVal&MASK_OFFSET);
-                for(;;){
-                    if(linkedPos==linkedRecords.length) //grow if necessary
-                        linkedRecords = Arrays.copyOf(linkedRecords, linkedRecords.length*2);
-                    //store last linkedVal
-                    linkedRecords[linkedPos] = linkedVal;
-
-                    if((linkedVal&MASK_IS_LINKED)==0){
-                        break; //this is last linked record, so break
-                    }
-                    //move and read to next
-                    linkedPos++;
-                    linkedVal = phys.getLong(linkedVal&MASK_OFFSET);
-                }
-            }
+            long[] linkedRecords = getLinkedRecordsIndexVals(indexVal);
 
             //now lock everything and mark free space
             structuralLock.lock();
@@ -325,7 +328,7 @@ public class StoreDirect implements Engine{
 
                 //if there are more linked records, free those as well
                 if(linkedRecords!=null){
-                    for(int i=0;i<linkedPos;i++){
+                    for(int i=0; i<linkedRecords.length &&linkedRecords[i]!=0;i++){
                         freePhysPut(linkedRecords[i]);
                     }
                 }
@@ -336,6 +339,33 @@ public class StoreDirect implements Engine{
         }finally{
             Utils.writeUnlock(locks, recid);
         }
+    }
+
+    private long[] getLinkedRecordsIndexVals(long indexVal) {
+        long[] linkedRecords = null;
+
+        int linkedPos = 0;
+        if((indexVal&MASK_IS_LINKED)!=0){
+            //record is composed of multiple linked records, so collect all of them
+            linkedRecords = new long[2];
+
+            //traverse linked records
+            long linkedVal = phys.getLong(indexVal&MASK_OFFSET);
+            for(;;){
+                if(linkedPos==linkedRecords.length) //grow if necessary
+                    linkedRecords = Arrays.copyOf(linkedRecords, linkedRecords.length * 2);
+                //store last linkedVal
+                linkedRecords[linkedPos] = linkedVal;
+
+                if((linkedVal&MASK_IS_LINKED)==0){
+                    break; //this is last linked record, so break
+                }
+                //move and read to next
+                linkedPos++;
+                linkedVal = phys.getLong(linkedVal&MASK_OFFSET);
+            }
+        }
+        return linkedRecords;
     }
 
     protected long[] physAllocate(int size, boolean ensureAvail) {
@@ -465,12 +495,16 @@ public class StoreDirect implements Engine{
 
             for(long ioRecid = IO_USER_START; ioRecid<indexSize;ioRecid+=8){
                 byte[] bb = get2(ioRecid,Serializer.BYTE_ARRAY_SERIALIZER);
-                long[] indexVals = store2.physAllocate(bb.length,true);
-                DataOutput2 out = new DataOutput2();
-                out.buf = bb;
-                out.pos = bb.length;
                 store2.index.ensureAvailable(ioRecid+8);
-                store2.put2(out, ioRecid,indexVals);
+                if(bb==null||bb.length==0){
+                    store2.index.putLong(ioRecid,0);
+                }else{
+                    long[] indexVals = store2.physAllocate(bb.length,true);
+                    DataOutput2 out = new DataOutput2();
+                    out.buf = bb;
+                    out.pos = bb.length;
+                    store2.put2(out, ioRecid,indexVals);
+                }
             }
 
 
@@ -497,8 +531,14 @@ public class StoreDirect implements Engine{
             physFile_.delete();
 
             Volume.Factory fac2 = Volume.fileFactory(false, isRaf, indexFile);
+
             index = fac2.createIndexVolume();
             phys = fac2.createPhysVolume();
+
+            physSize = store2.physSize;
+            index.putLong(IO_PHYS_SIZE, physSize);
+            index.putLong(IO_INDEX_SIZE, indexSize);
+            index.putLong(IO_INDEX_SIZE, indexSize);
 
         }catch(IOException e){
             throw new IOError(e);

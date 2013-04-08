@@ -65,6 +65,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
     @Test public void compact0(){
         Long v1 = 129031920390121423L;
         Long v2 = 909090901290129990L;
+        Long v3 = 998898989L;
         long recid1 = e.put(v1, Serializer.LONG_SERIALIZER);
         long recid2 = e.put(v2, Serializer.LONG_SERIALIZER);
 
@@ -73,6 +74,14 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
         assertEquals(v1, e.get(recid1,Serializer.LONG_SERIALIZER));
         assertEquals(v2, e.get(recid2,Serializer.LONG_SERIALIZER));
+        long recid3 = e.put(v3, Serializer.LONG_SERIALIZER);
+        assertEquals(v1, e.get(recid1,Serializer.LONG_SERIALIZER));
+        assertEquals(v2, e.get(recid2,Serializer.LONG_SERIALIZER));
+        assertEquals(v3, e.get(recid3,Serializer.LONG_SERIALIZER));
+        e.commit();
+        assertEquals(v1, e.get(recid1,Serializer.LONG_SERIALIZER));
+        assertEquals(v2, e.get(recid2,Serializer.LONG_SERIALIZER));
+        assertEquals(v3, e.get(recid3,Serializer.LONG_SERIALIZER));
 
     }
 

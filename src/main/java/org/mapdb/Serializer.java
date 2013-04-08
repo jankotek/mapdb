@@ -178,11 +178,13 @@ public interface Serializer<A> {
 
         @Override
         public void serialize(DataOutput out, byte[] value) throws IOException {
+            if(value==null||value.length==0) return;
             out.write(value);
         }
 
         @Override
         public byte[] deserialize(DataInput in, int available) throws IOException {
+            if(available==0) return null;
             byte[] ret = new byte[available];
             in.readFully(ret);
             return ret;
