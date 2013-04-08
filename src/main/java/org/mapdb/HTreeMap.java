@@ -385,7 +385,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 for(long[] d:dir){
                     if(d!=null) return false;
                 }
-                return true;
+
             }finally {
                 segmentLocks[i].readLock().unlock();
             }

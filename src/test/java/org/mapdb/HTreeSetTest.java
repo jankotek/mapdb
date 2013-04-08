@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
 
+import static junit.framework.TestCase.assertFalse;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -128,6 +129,21 @@ public class HTreeSetTest{
     @Before public void setUp() throws Exception {
         hs = new HTreeMap(engine, false,false,0,null,null,null).keySet();
         Collections.addAll(hs, objArray);
+    }
+
+    @Test public void issue116_isEmpty(){
+        Set s = DBMaker.newFileDB(Utils.tempDbFile())
+                .writeAheadLogDisable()
+                .make()
+                .getHashSet("name");
+        assertTrue(s.isEmpty());
+        assertEquals(0,s.size());
+        s.add("aa");
+        assertEquals(1,s.size());
+        assertFalse(s.isEmpty());
+        s.remove("aa");
+        assertTrue(s.isEmpty());
+        assertEquals(0,s.size());
     }
 
 }
