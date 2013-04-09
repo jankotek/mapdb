@@ -1,27 +1,21 @@
-MapDB provides concurrent Maps, Sets and Queues backed by disk storage or off-heap-memory.
-It is a fast and easy to use embedded Java database engine. This project is more than 12 years old (you may know it under old name JDBM). MapDB is free as speech and free as beer under 
+MapDB provides concurrent Maps, Sets and Queues backed by disk storage or off-heap-memory. It is a fast and easy to use embedded Java database engine. This project is more than 12 years old, you may know it under name JDBM. MapDB is free as speech and free as beer under 
 [Apache License 2.0](https://github.com/jankotek/MapDB/blob/master/doc/license.txt).
 
 Features
 ========
-* **Concurrent** - MapDB has record level locking and state-of-art concurrent engine. Its performance scales nearly linearly with number of cores. Even single threaded app can take advantage of asynchronous writes on background thread.
+* **Concurrent** - MapDB has record level locking and state-of-art concurrent engine. Its performance scales nearly linearly with number of cores. Data can be written by multiple parallel threads.
 
-* **Fast** - MapDB has outstanding performance rivaled only by native DBs. It is result of more than decade of optimalizations and rewrites.
+* **Fast** - MapDB has outstanding performance rivaled only by native DBs. It is result of more than a decade of optimizations and rewrites.
 
 * **ACID** - MapDB optionally supports ACID transactions with full MVCC isolation. MapDB uses write-ahead-log or append-only store for great write durability.
 
-* **Flexible** - MapDB can be used anywhere from in-memory cache to multi-terabyte database. It also has number of options to trade durability for write performance. It is very easy to configure MapDB to exactly fit your needs.
+* **Flexible** - MapDB can be used everywhere from in-memory cache to multi-terabyte database. It also has number of options to trade durability for write performance. This makes it very easy to configure MapDB to exactly fit your needs.
 
 * **Hackable** - MapDB is component based, most features (instance cache, async writes, compression) are just class wrappers. It is very easy to introduce new functionality or component into MapDB. 
 
-* **SQL Like** - MapDB was developed as faster alternative to SQL engine. It has number of features which makes transition from rational database easier: secondary indexes/collections, autoincremental sequential ID, joints, triggers composite keys...
+* **SQL Like** - MapDB was developed as faster alternative to SQL engine. It has number of features which makes transition from relational database easier: secondary indexes/collections, autoincremental sequential ID, joints, triggers, composite keys...
 
 * **Low disk-space usage** - MapDB has number of features (serialization, delta key packing...) to minimize disk used by its store. It also has very fast compression and custom serializers. We take disk-usage seriously and do not waste single byte.
-
-* **Familiar** - In some way MapDB is just an alternative memory management model to Java Heap. If you are know Java concurrent  programming, you will find MapDB familiar. There is compare-and-swap (at store level), atomic variables, concurrent collections... In fact we discourage using transactions and recommend traditional concurrent programming instead.
-
-
-
 
 Intro
 ======
@@ -99,18 +93,15 @@ db.close();
 
 What you should know
 ====================
-* Transactions (write-ahead-log) can be disabled, this will speedup writes. However without transactions
-store gets corrupted easily when not closed correctly.
+* Transactions (write-ahead-log) can be disabled with <a href=’http://www.mapdb.org/apidocs/org/mapdb/DBMaker.html#writeAheadLogDisable()’>DBMaker.writeAheadLogDisable()</a>, this will speedup writes. However without transactions store gets corrupted easily when not closed correctly.
 
-* Keys and values must be immutable. MapDB may serialize them on background thread, put them into instance cache... 
-Modifying an object after it was stored is bad idea.
+* Keys and values must be immutable. MapDB may serialize them on background thread, put them into instance cache... Modifying an object after it was stored is a bad idea.
 
-* MapDB relies on memory mapped files. On 32bit JVM you need `DBMaker.newRandomAccessFileDB()`
-to access files larger than 2GB. This introduces some overhead compared to memory mapped files.
+* MapDB relies on memory mapped files. On 32bit JVM you will need <a href=’http://www.mapdb.org/apidocs/org/mapdb/DBMaker.html#randomAccessFileEnable()’>DBMaker.randomAccessFileEnable()</a> configuration option to access files larger than 2GB. This introduces overhead compared to memory mapped files.
 
 * MapDB does not run defrag on background. You need to call `DB.compact()` from time to time.
 
-* MapDB uses unchecked exceptions. All `IOException` are wrapped into unchecked `IOError`.
+* MapDB uses unchecked exceptions. All `IOException` are wrapped into unchecked `IOError`. MapDB has weak error handling and assumes disk failure can not be recovered at runtime. However this does not affects data safety, if you use durable commits. 
 
 Benchmark
 =========
@@ -137,11 +128,8 @@ Before creating report:
 
 * try to use your own serializer, to make sure problem is not in serializer
 
-MapDB is a hobby project and my time is limited.
-Please always attach code to illustrate/reproduce your problem, so I can fix it efficiently. Push requests with failing unit test case would be appreciated. For hard to reproduce problems I would strongly suggest to record JVM execution with
+MapDB is a hobby project and my time is limited.Please always attach code to illustrate/reproduce your problem, so I can fix it efficiently. For hard to reproduce problems I would strongly suggest to record JVM execution with
 [Chronon](http://www.chrononsystems.com/learn-more/products-overview) and submit the record together with a bug report. This will make sure your 
 bug will get fixed promptly.
 
-Last option is to [contact me directly](mailto:jan at kotek dot net).
-I prefer public bug tracker and mail-group so others can find answers as well.
-Unless you specify your question as confidential, I may forward it to public mail-group.
+Last option is to [contact me directly](mailto:jan at kotek dot net). I prefer public bug tracker and mail-group so others can find answers as well. Unless you specify your question as confidential, I may forward it to public mail-group.
