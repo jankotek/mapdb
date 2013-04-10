@@ -19,7 +19,7 @@ public class Issue78Test {
     public void tearDown() {
     }
 
-    @Test(expected = RuntimeException.class, timeout = 1000)
+    @Test(expected = RuntimeException.class, timeout = 10000)
     public void testIssue() {
         DB db = DBMaker.newTempFileDB().make();
         HTreeMap<String, NotSerializable> usersMap = db.getHashMap("values");

@@ -23,7 +23,7 @@ public class AsyncWriteEngineTest extends TestFile{
         assertNotNull(index);
         if(engine !=null)
            engine.close();
-        engine =  new AsyncWriteEngine(new StoreDirect(fac), false, false, 0);
+        engine =  new AsyncWriteEngine(new StoreDirect(fac),  0);
     }
 
 
@@ -91,7 +91,7 @@ public class AsyncWriteEngineTest extends TestFile{
                 return super.put(value, serializer);
             }
         };
-        AsyncWriteEngine a = new AsyncWriteEngine(t, false, false, 0);
+        AsyncWriteEngine a = new AsyncWriteEngine(t, 0);
         byte[] b = new byte[124];
 
         long max = 100;
@@ -111,7 +111,7 @@ public class AsyncWriteEngineTest extends TestFile{
 
         //now reopen db and check ths
         t = new StoreWAL(fac);
-        a = new AsyncWriteEngine(t, false, false, 0);
+        a = new AsyncWriteEngine(t,  0);
         for(Integer i=0;i<max;i++){
             long recid = l.get(i);
             assertArrayEquals(b, (byte[]) a.get(recid, Serializer.BASIC_SERIALIZER));

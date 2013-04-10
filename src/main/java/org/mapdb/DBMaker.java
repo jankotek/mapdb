@@ -68,7 +68,7 @@ public class DBMaker {
     protected boolean _failOnWrongHeader = false;
 
     protected boolean _RAF = false;
-    protected boolean _powerSavingMode = false;
+
     protected boolean _appendStorage;
 
     /** use static factory methods, or make subclass */
@@ -589,7 +589,7 @@ public class DBMaker {
 
         AsyncWriteEngine engineAsync = null;
         if(_asyncWriteEnabled && !_readOnly){
-            engineAsync = new AsyncWriteEngine(engine,!_journalEnabled,  _powerSavingMode, _asyncFlushDelay);
+            engineAsync = new AsyncWriteEngine(engine, _asyncFlushDelay);
             engine = engineAsync;
         }
 
@@ -613,9 +613,6 @@ public class DBMaker {
 
         if(_readOnly)
             engine = new ReadOnlyEngine(engine);
-
-        if(engineAsync!=null)
-            engineAsync.setParentEngineReference(engine);
 
         if(_closeOnJvmShutdown){
             final Engine engine2 = engine;
