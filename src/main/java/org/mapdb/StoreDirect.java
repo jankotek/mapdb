@@ -341,7 +341,7 @@ public class StoreDirect implements Engine{
         }
     }
 
-    private long[] getLinkedRecordsIndexVals(long indexVal) {
+    protected long[] getLinkedRecordsIndexVals(long indexVal) {
         long[] linkedRecords = null;
 
         int linkedPos = 0;

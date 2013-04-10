@@ -222,9 +222,30 @@ public class StoreWAL extends StoreDirect {
         try{
             final long[] physPos;
             final long[] logPos;
+
+            long indexVal = 0;
+            long[] linkedRecords = getLinkedRecordsFromLog(ioRecid);
+            if(linkedRecords==null){
+                indexVal = index.getLong(ioRecid);
+                linkedRecords = getLinkedRecordsIndexVals(indexVal);
+            }
+
             structuralLock.lock();
             try{
                 openLogIfNeeded();
+
+                //free first record pointed from indexVal
+                if(indexVal!=0)
+                    freePhysPut(indexVal);
+
+                //if there are more linked records, free those as well
+                if(linkedRecords!=null){
+                    for(int i=0; i<linkedRecords.length &&linkedRecords[i]!=0;i++){
+                        freePhysPut(linkedRecords[i]);
+                    }
+                }
+
+
                 //first get space in phys
                 physPos = physAllocate(out.pos,false);
                 //now get space in log
@@ -258,9 +279,30 @@ public class StoreWAL extends StoreDirect {
 
             final long[] physPos;
             final long[] logPos;
+
+            long indexVal = 0;
+            long[] linkedRecords = getLinkedRecordsFromLog(ioRecid);
+            if(linkedRecords==null){
+                indexVal = index.getLong(ioRecid);
+                linkedRecords = getLinkedRecordsIndexVals(indexVal);
+            }
+
             structuralLock.lock();
             try{
                 openLogIfNeeded();
+
+                //free first record pointed from indexVal
+                if(indexVal!=0)
+                    freePhysPut(indexVal);
+
+                //if there are more linked records, free those as well
+                if(linkedRecords!=null){
+                    for(int i=0; i<linkedRecords.length &&linkedRecords[i]!=0;i++){
+                        freePhysPut(linkedRecords[i]);
+                    }
+                }
+
+
                 //first get space in phys
                 physPos = physAllocate(out.pos,false);
                 //now get space in log
@@ -289,8 +331,15 @@ public class StoreWAL extends StoreDirect {
         final long ioRecid = IO_USER_START + recid*8;
         Utils.writeLock(locks,recid);
         try{
-            structuralLock.lock();
             final long logPos;
+
+            long indexVal = 0;
+            long[] linkedRecords = getLinkedRecordsFromLog(ioRecid);
+            if(linkedRecords==null){
+                indexVal = index.getLong(ioRecid);
+                linkedRecords = getLinkedRecordsIndexVals(indexVal);
+            }
+            structuralLock.lock();
             try{
                 openLogIfNeeded();
                 logPos = logSize;
@@ -298,6 +347,17 @@ public class StoreWAL extends StoreDirect {
                 logSize+=1+8+8; //space used for index val
                 log.ensureAvailable(logSize);
                 longStackPut(IO_FREE_RECID, ioRecid);
+
+                //free first record pointed from indexVal
+                if(indexVal!=0)
+                    freePhysPut(indexVal);
+
+                //if there are more linked records, free those as well
+                if(linkedRecords!=null){
+                    for(int i=0; i<linkedRecords.length &&linkedRecords[i]!=0;i++){
+                        freePhysPut(linkedRecords[i]);
+                    }
+                }
 
             }finally {
                 structuralLock.unlock();
@@ -578,6 +638,20 @@ public class StoreWAL extends StoreDirect {
             }
         }
 
+    }
+
+    protected long[] getLinkedRecordsFromLog(long ioRecid){
+        long[] ret0 = modified.get(ioRecid);
+        if(ret0!=null){
+            long[] ret = new long[ret0.length];
+            for(int i=0;i<ret0.length;i++){
+                long offset = ret0[i] & MASK_OFFSET;
+                //offset now points to log file, read phys offset from log file
+                ret[i] =  log.getLong(offset-8);
+            }
+            return ret;
+        }
+        return null;
     }
 
     @Override
