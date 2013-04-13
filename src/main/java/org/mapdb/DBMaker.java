@@ -570,7 +570,7 @@ public class DBMaker {
                 new StoreDirect(folFac,  _readOnly,_deleteFilesAfterClose);
         }else{
             if(_file==null) throw new UnsupportedOperationException("Append Storage format is not supported with in-memory dbs");
-            engine = new StoreAppend(_file, _RAF, _readOnly, !_journalEnabled);
+            engine = new StoreAppend(_file, _RAF, _readOnly, !_journalEnabled, _deleteFilesAfterClose);
         }
 
         if(_checksumEnabled){

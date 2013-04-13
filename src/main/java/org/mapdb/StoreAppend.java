@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
 import java.util.BitSet;
+import java.util.Iterator;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -42,11 +43,13 @@ public class StoreAppend implements Engine{
 
     protected final Volume recidsTable = new Volume.MemoryVol(true);
     protected static final int MAX_FILE_SIZE = 1024 * 1024 * 10;
+    protected final boolean deleteFilesAfterClose;
 
-    public StoreAppend(File file, boolean useRandomAccessFile, boolean readOnly, boolean transactionsDisabled) {
+    public StoreAppend(File file, boolean useRandomAccessFile, boolean readOnly, boolean transactionsDisabled,  boolean deleteFilesAfterClose) {
         this.file = file;
         this.useRandomAccessFile = useRandomAccessFile;
         this.readOnly = readOnly;
+        this.deleteFilesAfterClose = deleteFilesAfterClose;
         //TODO special mode with transactions disabled
 
         readLocks = new ReentrantReadWriteLock[CONCURRENCY_FACTOR];
@@ -326,6 +329,15 @@ public class StoreAppend implements Engine{
         structuralLock.lock();
         currentVolume.sync();
         currentVolume.close();
+
+        if(deleteFilesAfterClose)
+            currentVolume.deleteFile();
+        for(Iterator<Volume> volIter = volumes.valuesIterator();volIter.hasNext();){
+            Volume vol = volIter.next();
+            if(vol==null) continue;
+            if(deleteFilesAfterClose)vol.deleteFile();
+        }
+
         currentVolume = null;
         volumes = null;
         structuralLock.unlock();

@@ -15,13 +15,13 @@ public class StoreAppendTest extends StoreTestCase {
 
     @Override
     protected Engine openEngine() {
-        return new StoreAppend(index, false, false, false);
+        return new StoreAppend(index, false, false, false,false);
     }
 
     @Test
     public void compact_file_deleted(){
         File f = Utils.tempDbFile();
-        StoreAppend engine = new StoreAppend(f, false,false,false);
+        StoreAppend engine = new StoreAppend(f, false,false,false,false);
         File f1 = engine.getFileNum(1);
         File f2 = engine.getFileNum(2);
         long recid = engine.put(111L, Serializer.LONG_SERIALIZER);
@@ -50,4 +50,17 @@ public class StoreAppendTest extends StoreTestCase {
 
         engine.close();
     }
+
+    @Test public void delete_files_after_close(){
+        File f = Utils.tempDbFile();
+        File f2 = new File(f.getPath()+".0");
+        DB db = DBMaker.newAppendFileDB(f).deleteFilesAfterClose().make();
+
+        db.getHashMap("test").put("aa","bb");
+        db.commit();
+        assertTrue(f2.exists());
+        db.close();
+        assertFalse(f2.exists());
+    }
+
 }

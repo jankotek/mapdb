@@ -3,6 +3,7 @@ package org.mapdb;
 
 import org.junit.Test;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -320,7 +321,22 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     @Test public void test_constants(){
         assertTrue(StoreDirect.LONG_STACK_PAGE_SIZE%16==0);
 
+    }
 
+
+    @Test public void delete_files_after_close(){
+        File f = Utils.tempDbFile();
+        File phys = new File(f.getPath()+StoreDirect.DATA_FILE_EXT);
+
+        DB db = DBMaker.newFileDB(f).writeAheadLogDisable().asyncWriteDisable().deleteFilesAfterClose().make();
+
+        db.getHashMap("test").put("aa","bb");
+        db.commit();
+        assertTrue(f.exists());
+        assertTrue(phys.exists());
+        db.close();
+        assertFalse(f.exists());
+        assertFalse(phys.exists());
     }
 
 }
