@@ -144,11 +144,11 @@ public class StoreWAL extends StoreDirect {
         for(int i=0;i<physPos.length;i++){
             long size = (physPos[i]&MASK_SIZE)>>>48;
             //would overlaps Volume Block?
-            checkLogRounding();
             logSize+=1+8; //space used for WAL_PHYS_ARRAY
             ret[i] = (size<<48) | logSize;
 
             logSize+=size;
+            checkLogRounding();
 
         }
 
