@@ -1,6 +1,16 @@
 MapDB provides concurrent Maps, Sets and Queues backed by disk storage or off-heap-memory. It is a fast and easy to use embedded Java database engine. This project is more than 12 years old, you may know it under name JDBM. MapDB is free as speech and free as beer under 
 [Apache License 2.0](https://github.com/jankotek/MapDB/blob/master/doc/license.txt).
 
+News
+====
+* 2013-04-04 MapDB 0.9.1 was just released. It fixes dozen of critical bugs and upgrade is highly recommended. 
+  Release notes are [here](https://github.com/jankotek/MapDB/blob/master/release_notes.md#version-091-2013-04-14)    
+
+Follow news:
+[RSS](https://groups.google.com/group/mapdb-news/feed/rss_v2_0_msgs.xml?num=50) |
+[Mail-List](https://groups.google.com/forum/?fromgroups#!forum/mapdb-news) |
+[Twitter](http://twitter.com/MapDBnews)
+
 Features
 ========
 * **Concurrent** - MapDB has record level locking and state-of-art concurrent engine. Its performance scales nearly linearly with number of cores. Data can be written by multiple parallel threads.
@@ -23,13 +33,13 @@ MapDB has very power-full API, but for 99% cases you need just two classes: [DBM
 
 Best place to checkout various features of MapDB are [Examples](https://github.com/jankotek/MapDB/tree/master/src/test/java/examples). There is also [screencast](http://www.youtube.com/watch?v=FdZmyEHcWLI) which describes most aspects of MapDB.
 
-MapDB is in Maven Central. Just add code bellow to your pom file to use it. You may also download jar files directly from [repo](http://search.maven.org/#artifactdetails%7Corg.mapdb%7Cmapdb%7C0.9.0%7Cjar).
+MapDB is in Maven Central. Just add code bellow to your pom file to use it. You may also download jar files directly from [repo](http://search.maven.org/#artifactdetails%7Corg.mapdb%7Cmapdb%7C0.9.1%7Cjar).
 
 ```xml
 <dependency>
     <groupId>org.mapdb</groupId>
     <artifactId>mapdb</artifactId>
-    <version>0.9.0</version>
+    <version>0.9.1</version>
 </dependency>
 ```
 
@@ -47,7 +57,7 @@ There is also repository with [daily builds](https://oss.sonatype.org/content/re
     <dependency>
         <groupId>org.mapdb</groupId>
         <artifactId>mapdb</artifactId>
-        <version>0.9.1-SNAPSHOT</version>
+        <version>0.9.2-SNAPSHOT</version>
     </dependency>
 </dependencies>
 ```
