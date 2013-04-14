@@ -1,5 +1,7 @@
 
-=== Version 0.9.1 (2013-04-14) ===
+Version 0.9.1 (2013-04-14)
+--------------------------
+
 CRITICAL upgrade urgency. This release fixes number of critical bugs from first release, including data store corruption and crashes.
 
 Open issues:
@@ -26,15 +28,18 @@ Changes:
  * ADD - performance improvement if Snapshot engine is not used.
 
 
-=== Version 0.9.0 (2013-04-01) ===
+Version 0.9.0 (2013-04-01)
+-------------------------
+
 First release with stable API and storage format.
 
 
 
 Upgrade urgency levels:
 ----------------------
-LOW:      No need to upgrade unless there are new features you want to use.
-MODERATE: Program an upgrade of the server, but it's not urgent.
-HIGH:     There is a critical bug that may affect a subset of users. Upgrade!
-CRITICAL: There is a critical bug affecting MOST USERS. Upgrade ASAP.
+
+* LOW:      No need to upgrade unless there are new features you want to use.
+* MODERATE: Program an upgrade of the DB engine, but it's not urgent.
+* HIGH:     There is a critical bug that may affect a subset of users. Upgrade!
+* CRITICAL: There is a critical bug affecting MOST USERS. Upgrade ASAP.
 
