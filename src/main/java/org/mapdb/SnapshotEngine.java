@@ -20,6 +20,8 @@ public class SnapshotEngine extends EngineWrapper{
     protected final static Object NOT_EXIST = new Object();
     protected final static Object NOT_INIT_YET = new Object();
 
+    protected volatile boolean snapshotsAlreadyUsed = false;
+
 
     protected final Map<Snapshot, String> snapshots = new ConcurrentHashMap<Snapshot, String>();
 
@@ -29,6 +31,7 @@ public class SnapshotEngine extends EngineWrapper{
     }
 
     public Engine snapshot() {
+        snapshotsAlreadyUsed = true;
         return new Snapshot();
     }
 
@@ -38,8 +41,11 @@ public class SnapshotEngine extends EngineWrapper{
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
         long recid = super.put(value, serializer);
+        if(!snapshotsAlreadyUsed) return recid;
+
         Utils.lock(locks,recid);
         try{
+
             for(Snapshot s:snapshots.keySet()){
                 s.oldValues.putIfAbsent(recid, NOT_EXIST);
             }
@@ -47,10 +53,15 @@ public class SnapshotEngine extends EngineWrapper{
         }finally{
             Utils.unlock(locks,recid);
         }
+
     }
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+        if(!snapshotsAlreadyUsed){
+            return  super.compareAndSwap(recid, expectedOldValue, newValue, serializer);
+        }
+
         Utils.lock(locks,recid);
         try{
             boolean ret =  super.compareAndSwap(recid, expectedOldValue, newValue, serializer);
@@ -67,6 +78,11 @@ public class SnapshotEngine extends EngineWrapper{
 
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
+        if(!snapshotsAlreadyUsed){
+            super.update(recid, value,serializer);
+            return;
+        }
+
         Utils.lock(locks,recid);
         try{
             Object val = NOT_INIT_YET;
@@ -86,6 +102,11 @@ public class SnapshotEngine extends EngineWrapper{
 
     @Override
     public  <A> void delete(long recid, Serializer<A> serializer) {
+        if(!snapshotsAlreadyUsed){
+            super.delete(recid,serializer);
+            return;
+        }
+
         Utils.lock(locks,recid);
         try{
             Object val = NOT_INIT_YET;
@@ -97,7 +118,7 @@ public class SnapshotEngine extends EngineWrapper{
                 }
             }
 
-            super.delete(recid,serializer);
+            super.delete(recid, serializer);
         }finally{
             Utils.unlock(locks,recid);
         }
@@ -115,7 +136,6 @@ public class SnapshotEngine extends EngineWrapper{
                 throw new IllegalArgumentException("Could not create Snapshot for Engine: "+engine);
             }
         }
-
         return se.snapshot();
     }
 
