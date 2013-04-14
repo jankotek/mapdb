@@ -19,7 +19,9 @@ native embedded db engines.
 <tr>
     <td>
         <h2>News</h2>
-        <p>30/1/2013 MapDB <a href="http://youtu.be/FdZmyEHcWLI">overview video</a></p>
+        <p>2013-04-14 MapDB 0.9.1 was just released. Release notes are
+        <a href='https://github.com/jankotek/MapDB/blob/master/release_notes.md#version-091-2013-04-14'>here</a>
+        <p>2013-01-30 MapDB <a href="http://youtu.be/FdZmyEHcWLI">overview video</a></p>
 
         <div class='aright'>
          Follow news:
