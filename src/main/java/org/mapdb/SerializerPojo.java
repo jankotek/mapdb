@@ -81,7 +81,7 @@ public class SerializerPojo extends SerializerBase{
 
     protected final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
-    private static Class<?> classForName(String className) {
+    protected static Class<?> classForName(String className) {
         try {
             return Class.forName(className);
         } catch (ClassNotFoundException e) {
@@ -172,15 +172,15 @@ public class SerializerPojo extends SerializerBase{
      * Stores info about single field stored in JDBM.
      * Roughly corresponds to 'java.io.ObjectFieldClass'
      */
-    static class FieldInfo {
-        private final String name;
-        private final boolean primitive;
-        private final String type;
-        private Class<?> typeClass;
+    protected static class FieldInfo {
+        protected final String name;
+        protected final boolean primitive;
+        protected final String type;
+        protected Class<?> typeClass;
         // Class containing this field
-        private final Class<?> clazz;
-        private Object setter;
-        private Object getter;
+        protected final Class<?> clazz;
+        protected Object setter;
+        protected Object getter;
 
         public FieldInfo(String name, boolean primitive, String type, Class<?> clazz) {
             this.name = name;
@@ -196,7 +196,7 @@ public class SerializerPojo extends SerializerBase{
             initGetter();
         }
 
-        private void initSetter() {
+        protected void initSetter() {
             // Set setter
             String setterName = "set" + firstCharCap(name);
 
@@ -231,7 +231,7 @@ public class SerializerPojo extends SerializerBase{
             }
         }
 
-        private void initGetter() {
+        protected void initGetter() {
             // Set setter
             String getterName = "get" + firstCharCap(name);
 
@@ -282,15 +282,15 @@ public class SerializerPojo extends SerializerBase{
             return type;
         }
 
-        private String firstCharCap(String s) {
+        protected String firstCharCap(String s) {
             return Character.toUpperCase(s.charAt(0)) + s.substring(1);
         }
     }
 
 
-    CopyOnWriteArrayList<ClassInfo> registered;
-    Map<Class<?>, Integer> class2classId = new HashMap<Class<?>, Integer>();
-    Map<Integer, Class<?>> classId2class = new HashMap<Integer, Class<?>>();
+    protected CopyOnWriteArrayList<ClassInfo> registered;
+    protected Map<Class<?>, Integer> class2classId = new HashMap<Class<?>, Integer>();
+    protected Map<Integer, Class<?>> classId2class = new HashMap<Integer, Class<?>>();
 
 
 
@@ -322,7 +322,7 @@ public class SerializerPojo extends SerializerBase{
 
     }
 
-    private ObjectStreamField[] getFields(Class<?> clazz) {
+    protected ObjectStreamField[] getFields(Class<?> clazz) {
         ObjectStreamField[] fields = null;
         ClassInfo classInfo = null;
         Integer classId = class2classId.get(clazz);
@@ -351,7 +351,7 @@ public class SerializerPojo extends SerializerBase{
         return fields;
     }
 
-    private void assertClassSerializable(Class<?> clazz) throws NotSerializableException, InvalidClassException {
+    protected void assertClassSerializable(Class<?> clazz) throws NotSerializableException, InvalidClassException {
         if(containsClass(clazz))
             return;
 
@@ -535,9 +535,9 @@ public class SerializerPojo extends SerializerBase{
     }
 
 
-    static private Method sunConstructor = null;
-    static private Object sunReflFac = null;
-    static private Method androidConstructor = null;
+    static protected Method sunConstructor = null;
+    static protected Object sunReflFac = null;
+    static protected Method androidConstructor = null;
 
     static{
         try{
@@ -566,7 +566,7 @@ public class SerializerPojo extends SerializerBase{
     }
 
 
-    private static Map<Class<?>, Constructor<?>> class2constuctor = new ConcurrentHashMap<Class<?>, Constructor<?>>();
+    protected static Map<Class<?>, Constructor<?>> class2constuctor = new ConcurrentHashMap<Class<?>, Constructor<?>>();
 
     /**
      * For pojo serialization we need to instanciate class without invoking its constructor.
