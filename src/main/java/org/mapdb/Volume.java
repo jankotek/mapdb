@@ -284,23 +284,19 @@ public abstract class Volume {
 
 
         @Override public void putData(final long offset, final byte[] src, int srcPos, int srcSize){
-            final ByteBuffer b1 = internalByteBuffer(offset);
+            final ByteBuffer b1 = internalByteBuffer(offset).duplicate();
             final int bufPos = (int) (offset% BUF_SIZE);
 
-            synchronized (b1){
-                b1.position(bufPos);
-                b1.put(src, srcPos, srcSize);
-            }
+            b1.position(bufPos);
+            b1.put(src, srcPos, srcSize);
         }
 
         @Override public final void putData(final long offset, final ByteBuffer buf) {
-            final ByteBuffer b1 = internalByteBuffer(offset);
+            final ByteBuffer b1 = internalByteBuffer(offset).duplicate();
             final int bufPos = (int) (offset% BUF_SIZE);
             //no overlap, so just write the value
-            synchronized (b1){
-                b1.position(bufPos);
-                b1.put(buf);
-            }
+            b1.position(bufPos);
+            b1.put(buf);
         }
 
         @Override final public long getLong(long offset) {
@@ -534,13 +530,12 @@ public abstract class Volume {
                     ByteBuffer.allocateDirect(newBufSize):
                     ByteBuffer.allocate(newBufSize);
             final int buffersPos = (int) (offset/ BUF_SIZE);
-            final ByteBuffer oldBuffer = buffers2[buffersPos];
+            ByteBuffer oldBuffer = buffers2[buffersPos];
             if(oldBuffer!=null){
                 //copy old buffer if it exists
-                synchronized (oldBuffer){
-                    oldBuffer.rewind();
-                    newBuf.put(oldBuffer);
-                }
+                oldBuffer = oldBuffer.duplicate();
+                oldBuffer.rewind();
+                newBuf.put(oldBuffer);
             }
             return newBuf;
         }

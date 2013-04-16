@@ -2,6 +2,7 @@ package org.mapdb;
 
 import java.io.IOError;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 /**
@@ -486,13 +487,13 @@ public class StoreWAL extends StoreDirect {
 
                 //transfer byte[] directly from log file without copying into memory
                 DataInput2 input = log.getDataInput(logSize, size);
-                synchronized (input.buf){
-                    input.buf.position(input.pos);
-                    input.buf.limit(input.pos+size);
-                    phys.ensureAvailable(offset+size);
-                    phys.putData(offset, input.buf);
-                    input.buf.clear();
-                }
+                ByteBuffer buf = input.buf.duplicate();
+
+                buf.position(input.pos);
+                buf.limit(input.pos+size);
+                phys.ensureAvailable(offset+size);
+                phys.putData(offset, buf);
+
                 logSize+=size;
             }else if(ins == WAL_SKIP_REST_OF_BLOCK){
                 logSize += Volume.BUF_SIZE-logSize%Volume.BUF_SIZE;
