@@ -126,6 +126,7 @@ public interface Engine {
      * @param <A>
      * @return true if values matched and newValue was written
      */
+    //TODO perhaps use Future<Boolean> here?
     <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer);
 
     /**

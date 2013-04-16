@@ -58,6 +58,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     protected final int asyncFlushDelay;
 
 
+    //TODO use thread factory here
     protected final Thread newRecidsThread = new Thread("MapDB prealloc #"+threadNum){
         @Override public void run() {
             try{
@@ -74,6 +75,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
         }
     };
 
+    //TODO use thread factory here
     protected final Thread writerThread = new Thread("MapDB writer #"+threadNum){
         @Override public void run() {
             try{

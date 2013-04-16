@@ -201,7 +201,8 @@ public abstract class Volume {
 
         protected final ReentrantLock growLock = new ReentrantLock();
 
-        protected ByteBuffer[] buffers;
+        //TODO use volatile (or AtomicReference) here
+        protected volatile ByteBuffer[] buffers;
         protected final boolean readOnly;
 
         protected ByteBufferVol(boolean readOnly) {
