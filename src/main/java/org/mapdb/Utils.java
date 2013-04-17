@@ -360,8 +360,16 @@ final public class Utils {
         final Thread t = locks.remove(recid);
         if(t!=Thread.currentThread())
             throw new InternalError("unlocked wrong thread");
-
     }
+
+    public static void unlockAll(LongConcurrentHashMap<Thread> locks) {
+        final Thread t = Thread.currentThread();
+        LongMap.LongMapIterator<Thread> iter = locks.longMapIterator();
+        while(iter.moveToNext())
+            if(iter.value()==t)
+                iter.remove();
+    }
+
 
     public static void assertNoLocks(LongConcurrentHashMap<Thread> locks){
         //if(CC.PARANOID) //TODO restore to paranoid

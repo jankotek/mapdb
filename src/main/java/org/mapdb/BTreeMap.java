@@ -634,7 +634,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         int level = 1;
 
         long p=0;
-
+        try{
         while(true){
             boolean found;
             do{
@@ -785,6 +785,13 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 }
             }
         }
+        }catch(RuntimeException e){
+            Utils.unlockAll(nodeLocks);
+            throw e;
+        }catch(Exception e){
+            Utils.unlockAll(nodeLocks);
+            throw new RuntimeException(e);
+        }
     }
 
 
@@ -862,6 +869,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             A = engine.get(current, nodeSerializer);
         }
 
+        try{
         while(true){
 
             Utils.lock(nodeLocks, current);
@@ -913,7 +921,13 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 }
             }
         }
-
+        }catch(RuntimeException e){
+            Utils.unlockAll(nodeLocks);
+            throw e;
+        }catch(Exception e){
+            Utils.unlockAll(nodeLocks);
+            throw new RuntimeException(e);
+        }
     }
 
 
@@ -1022,6 +1036,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         LeafNode leaf = (LeafNode) engine.get(current, nodeSerializer);
 
         int pos = findChildren(key, node.keys());
+        try{
         while(pos==leaf.keys.length){
             //follow leaf link until necessary
             Utils.lock(nodeLocks, leaf.next);
@@ -1053,6 +1068,13 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         }
         Utils.unlock(nodeLocks, current);
         return ret;
+        }catch(RuntimeException e){
+            Utils.unlockAll(nodeLocks);
+            throw e;
+        }catch(Exception e){
+            Utils.unlockAll(nodeLocks);
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -1070,6 +1092,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         Utils.lock(nodeLocks, current);
         LeafNode leaf = (LeafNode) engine.get(current, nodeSerializer);
 
+        try{
         int pos = findChildren(key, node.keys());
         while(pos==leaf.keys.length){
             //follow leaf link until necessary
@@ -1099,6 +1122,14 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         }
         Utils.unlock(nodeLocks, current);
         return (V)ret;
+        }catch(RuntimeException e){
+            Utils.unlockAll(nodeLocks);
+            throw e;
+        }catch(Exception e){
+            Utils.unlockAll(nodeLocks);
+            throw new RuntimeException(e);
+        }
+
     }
 
 
