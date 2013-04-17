@@ -221,8 +221,8 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     public void close() {
         commitLock.writeLock().lock();
         try {
-            checkState();
             if(closeInProgress) return;
+            checkState();
             closeInProgress = true;
             //notify background threads
             itemsQueue.put(new CountDownLatch(0));
