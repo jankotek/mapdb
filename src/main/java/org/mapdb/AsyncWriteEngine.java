@@ -126,7 +126,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
 
 
 
-    protected AsyncWriteEngine(Engine engine, int _asyncFlushDelay) {
+    public AsyncWriteEngine(Engine engine, int _asyncFlushDelay) {
         super(engine);
 
         newRecidsThread.setDaemon(true);

@@ -26,7 +26,7 @@ public class SnapshotEngine extends EngineWrapper{
     protected final Map<Snapshot, String> snapshots = new ConcurrentHashMap<Snapshot, String>();
 
 
-    protected SnapshotEngine(Engine engine) {
+    public SnapshotEngine(Engine engine) {
         super(engine);
     }
 
