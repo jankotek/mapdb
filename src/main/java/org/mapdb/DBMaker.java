@@ -67,7 +67,7 @@ public class DBMaker {
 
     protected boolean _failOnWrongHeader = false;
 
-    protected boolean _RAF = false;
+    protected int _rafMode = 0;
 
     protected boolean _appendStorage;
 
@@ -278,23 +278,40 @@ public class DBMaker {
     /**
      * Enables compatibility storage mode for 32bit JVMs.
      * <p/>
-     * By default MapDB uses memory mapped files. However 32bit JVM can only address 2GB of memory.
+     * By default MapDB uses memory mapped files. However 32bit JVM can only address 4GB of memory.
      * Also some older JVMs do not handle large memory mapped files well.
-     * We can use {@code RandomAccessFile} which it is slower, but safer and more compatible.
+     * We can use {@code FileChannel} which does not use memory mapped files, but is slower.
      * Use this if you are experiencing <b>java.lang.OutOfMemoryError: Map failed</b> exceptions
+     * <p/>
+     * This options disables memory mapped files but causes storage to be slower.
      */
     public DBMaker randomAccessFileEnable() {
-        this._RAF = true;
+        _rafMode = 2;
         return this;
     }
 
+
+    /** Same as {@code randomAccessFileEnable()}, but part of storage is kept memory mapped.
+     *  This mode is good performance compromise between memory mapped files and RAF.
+     *  <p/>
+     *  Index file is typically 5% of storage. It contains small frequently read values,
+     *  which is where memory mapped file excel.
+     *  <p/>
+     *  With this mode you will experience <b>java.lang.OutOfMemoryError: Map failed</b> exceptions
+     *  eventually. But storage size limit is pushed to somewhere around 40GB.
+     *
+     */
+    public DBMaker randomAccessFileEnableKeepIndexMapped() {
+        this._rafMode = 1;
+        return this;
+    }
 
     /**
      * Check current JVM for known problems. If JVM does not handle large memory files well, this option
      * disables memory mapped files, and use safer and slower {@code RandomAccessFile} instead.
      */
     public DBMaker randomAccessFileEnableIfNeeded() {
-        this._RAF = !Utils.JVMSupportsLargeMappedFiles();
+        this._rafMode = Utils.JVMSupportsLargeMappedFiles()? 0:2;
         return this;
     }
 
@@ -560,17 +577,17 @@ public class DBMaker {
         if(!_appendStorage){
             Volume.Factory folFac = _file == null?
                 Volume.memoryFactory(_ifInMemoryUseDirectBuffer):
-                Volume.fileFactory(_readOnly, _RAF, _file);
+                Volume.fileFactory(_readOnly, _rafMode, _file);
 
             engine = _journalEnabled ?
                     //TODO add extra params
                 //new StoreWAL(folFac, _freeSpaceReclaimDisabled, _deleteFilesAfterClose, _failOnWrongHeader, _readOnly):
                 //new StoreDirect(folFac, _freeSpaceReclaimDisabled, _deleteFilesAfterClose , _failOnWrongHeader, _readOnly);
-                new StoreWAL(folFac,  _readOnly,_deleteFilesAfterClose):
-                new StoreDirect(folFac,  _readOnly,_deleteFilesAfterClose);
+                new StoreWAL(folFac,  _readOnly,_deleteFilesAfterClose, _freeSpaceReclaimQ):
+                new StoreDirect(folFac,  _readOnly,_deleteFilesAfterClose, _freeSpaceReclaimQ);
         }else{
             if(_file==null) throw new UnsupportedOperationException("Append Storage format is not supported with in-memory dbs");
-            engine = new StoreAppend(_file, _RAF, _readOnly, !_journalEnabled, _deleteFilesAfterClose);
+            engine = new StoreAppend(_file, _rafMode>0, _readOnly, !_journalEnabled, _deleteFilesAfterClose);
         }
 
         if(_checksumEnabled){

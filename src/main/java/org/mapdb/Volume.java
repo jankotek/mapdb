@@ -16,10 +16,7 @@
 
 package org.mapdb;
 
-import java.io.EOFException;
-import java.io.File;
-import java.io.IOError;
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
@@ -27,8 +24,6 @@ import java.nio.channels.FileChannel;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.WeakHashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 
@@ -95,7 +90,7 @@ public abstract class Volume {
     /**
      * Reads a long from the indicated position
      */
-    public final long getSixLong(long pos) {
+    public long getSixLong(long pos) {
         return
                 ((long) (getByte(pos + 0) & 0xff) << 40) |
                         ((long) (getByte(pos + 1) & 0xff) << 32) |
@@ -108,7 +103,7 @@ public abstract class Volume {
     /**
      * Writes a long to the indicated position
      */
-    public final void putSixLong(long pos, long value) {
+    public void putSixLong(long pos, long value) {
         if(value<0) throw new IllegalArgumentException();
     	if(value >> (6*8)!=0)
     		throw new IllegalArgumentException("does not fit");
@@ -138,36 +133,36 @@ public abstract class Volume {
 
     public static Volume volumeForFile(File f, boolean useRandomAccessFile, boolean readOnly) {
         return useRandomAccessFile ?
-                new RandomAccessFileVol(f, readOnly):
+                new FileChannelVol(f, readOnly):
                 new MappedFileVol(f, readOnly);
     }
 
 
-    public static Factory fileFactory(final boolean readOnly, final boolean RAF, final File indexFile){
-        return fileFactory(readOnly, RAF, indexFile,
+    public static Factory fileFactory(final boolean readOnly, final int rafMode, final File indexFile){
+        return fileFactory(readOnly, rafMode, indexFile,
                 new File(indexFile.getPath() + StoreDirect.DATA_FILE_EXT),
                 new File(indexFile.getPath() + StoreWAL.TRANS_LOG_FILE_EXT));
     }
 
     public static Factory fileFactory(final boolean readOnly,
-                                      final boolean RAF,
+                                      final int rafMode,
                                       final File indexFile,
                                       final File physFile,
                                       final File transLogFile) {
         return new Factory() {
             @Override
             public Volume createIndexVolume() {
-                return volumeForFile(indexFile, RAF, readOnly);
+                return volumeForFile(indexFile, rafMode>1, readOnly);
             }
 
             @Override
             public Volume createPhysVolume() {
-                return volumeForFile(physFile, RAF, readOnly);
+                return volumeForFile(physFile, rafMode>0, readOnly);
             }
 
             @Override
             public Volume createTransLogVolume() {
-                return volumeForFile(transLogFile, RAF, readOnly);
+                return volumeForFile(transLogFile, rafMode>0, readOnly);
             }
         };
     }
@@ -566,198 +561,236 @@ public abstract class Volume {
     }
 
 
-    public static final class RandomAccessFileVol extends Volume{
+    /**
+     * Volume which uses FileChannel.
+     * Uses global lock and does not use mapped memory.
+     */
+    public static final class FileChannelVol extends Volume {
 
         protected final File file;
+        protected FileChannel channel;
         protected final boolean readOnly;
 
-        protected java.io.RandomAccessFile raf;
-        protected long pos;
+        protected volatile long size;
+        protected Object growLock = new Object();
 
-        public RandomAccessFileVol(File file, boolean readOnly) {
+        public FileChannelVol(File file, boolean readOnly){
             this.file = file;
             this.readOnly = readOnly;
-
             try {
-                this.raf = new java.io.RandomAccessFile(file, readOnly? "r":"rw");
-                this.raf.seek(0);
-                pos = 0;
+                channel = new RandomAccessFile(file, readOnly?"r":"rw").getChannel();
+                size = channel.size();
             } catch (IOException e) {
                 throw new IOError(e);
             }
         }
 
         @Override
-        synchronized public void ensureAvailable(long offset) {
-            //we do not have a list of ByteBuffers, so ensure size does not have to do anything
-        }
-
-        @Override
-        synchronized public void putLong(long offset, long value) {
-            try {
-                if(pos!=offset){
-                    raf.seek(offset);
+        public void ensureAvailable(long offset) {
+            if(offset>size)synchronized (growLock){
+                try {
+                    channel.truncate(offset);
+                    size = offset;
+                } catch (IOException e) {
+                    throw new IOError(e);
                 }
-                pos=offset+8;
-                raf.writeLong(value);
-            } catch (IOException e) {
+            }
+        }
+
+        protected void writeFully(long offset, ByteBuffer buf) throws IOException {
+            int remaining = buf.limit()-buf.position();
+            while(remaining>0){
+                int write = channel.write(buf, offset);
+                if(write<0) throw new EOFException();
+                remaining-=write;
+            }
+        }
+
+        @Override
+        public final void putSixLong(long offset, long value) {
+            if(value<0) throw new IllegalArgumentException();
+            if(value >> (6*8)!=0)
+                throw new IllegalArgumentException("does not fit");
+            try{
+
+                ByteBuffer buf = ByteBuffer.allocate(6);
+                buf.put(0, (byte) (0xff & (value >> 40)));
+                buf.put(1, (byte) (0xff & (value >> 32)));
+                buf.put(2, (byte) (0xff & (value >> 24)));
+                buf.put(3, (byte) (0xff & (value >> 16)));
+                buf.put(4, (byte) (0xff & (value >> 8)));
+                buf.put(5, (byte) (0xff & (value >> 0)));
+
+                writeFully(offset, buf);
+            }catch(IOException e){
                 throw new IOError(e);
             }
         }
 
         @Override
-        synchronized public void putInt(long offset, int value) {
+        public void putLong(long offset, long value) {
+            try{
+                ByteBuffer buf = ByteBuffer.allocate(8);
+                buf.putLong(0, value);
+                writeFully(offset, buf);
+            }catch(IOException e){
+                throw new IOError(e);
+            }
+        }
+
+        @Override
+        public void putInt(long offset, int value) {
+            try{
+                ByteBuffer buf = ByteBuffer.allocate(4);
+                buf.putInt(0, value);
+                writeFully(offset, buf);
+            }catch(IOException e){
+                throw new IOError(e);
+            }
+        }
+
+        @Override
+        public void putByte(long offset, byte value) {
+            try{
+                ByteBuffer buf = ByteBuffer.allocate(1);
+                buf.put(0, value);
+                writeFully(offset, buf);
+            }catch(IOException e){
+                throw new IOError(e);
+            }
+        }
+
+        @Override
+        public void putData(long offset, byte[] src, int srcPos, int srcSize) {
+            try{
+                ByteBuffer buf = ByteBuffer.wrap(src,srcPos, srcSize);
+                writeFully(offset, buf);
+            }catch(IOException e){
+                throw new IOError(e);
+            }
+        }
+
+        @Override
+        public void putData(long offset, ByteBuffer buf) {
+            try{
+                writeFully(offset,buf);
+            }catch(IOException e){
+                throw new IOError(e);
+            }
+        }
+
+        protected void readFully(long offset, ByteBuffer buf) throws IOException {
+            int remaining = buf.limit()-buf.position();
+            while(remaining>0){
+                int read = channel.read(buf, offset);
+                if(read<0) throw new EOFException();
+                remaining-=read;
+            }
+        }
+
+        @Override
+        public final long getSixLong(long offset) {
+            try{
+                ByteBuffer buf = ByteBuffer.allocate(6);
+                readFully(offset,buf);
+                return ((long) (buf.get(0) & 0xff) << 40) |
+                        ((long) (buf.get(1) & 0xff) << 32) |
+                        ((long) (buf.get(2) & 0xff) << 24) |
+                        ((long) (buf.get(3) & 0xff) << 16) |
+                        ((long) (buf.get(4) & 0xff) << 8) |
+                        ((long) (buf.get(5) & 0xff) << 0);
+
+            }catch(IOException e){
+                throw new IOError(e);
+            }
+        }
+
+
+        @Override
+        public long getLong(long offset) {
+            try{
+                ByteBuffer buf = ByteBuffer.allocate(8);
+                readFully(offset,buf);
+                return buf.getLong(0);
+            }catch(IOException e){
+                throw new IOError(e);
+            }
+        }
+
+        @Override
+        public int getInt(long offset) {
+            try{
+                ByteBuffer buf = ByteBuffer.allocate(4);
+                readFully(offset,buf);
+                return buf.getInt(0);
+            }catch(IOException e){
+                throw new IOError(e);
+            }
+
+        }
+
+        @Override
+        public byte getByte(long offset) {
+            try{
+                ByteBuffer buf = ByteBuffer.allocate(1);
+                readFully(offset,buf);
+                return buf.get(0);
+            }catch(IOException e){
+                throw new IOError(e);
+            }
+        }
+
+        @Override
+        public DataInput2 getDataInput(long offset, int size) {
+            try{
+                ByteBuffer buf = ByteBuffer.allocate(size);
+                readFully(offset,buf);
+                return new DataInput2(buf,0);
+            }catch(IOException e){
+                throw new IOError(e);
+            }
+        }
+
+        @Override
+        public void close() {
+            try{
+                channel.close();
+                channel = null;
+            }catch(IOException e){
+                throw new IOError(e);
+            }
+        }
+
+        @Override
+        public void sync() {
+            try{
+                channel.force(true);
+            }catch(IOException e){
+                throw new IOError(e);
+            }
+        }
+
+        @Override
+        public boolean isEmpty() {
             try {
-                if(pos!=offset){
-                    raf.seek(offset);
-                }
-                pos=offset+4;
-                raf.writeInt(value);
-            } catch (IOException e) {
-                throw new IOError(e);
-            }
-        }
-
-
-        @Override
-        synchronized public void putByte(long offset, byte value) {
-            try {
-                if(pos!=offset){
-                    raf.seek(offset);
-                }
-                pos=offset+1;
-                raf.writeByte(0xFF & value);
-            } catch (IOException e) {
-                throw new IOError(e);
-            }
-
-        }
-
-        @Override
-        synchronized public void putData(final long offset, final byte[] src, int srcPos, int srcSize){
-            try {
-                if(pos!=offset){
-                    raf.seek(offset);
-                }
-                pos=offset+srcSize;
-                raf.write(src,srcPos,srcSize);
+                return channel==null || channel.size()==0;
             } catch (IOException e) {
                 throw new IOError(e);
             }
         }
 
         @Override
-        synchronized public void putData(long offset, ByteBuffer buf) {
-            try {
-                int size = buf.limit()-buf.position();
-                if(pos!=offset){
-                    raf.seek(offset);
-                }
-                pos=offset+size;
-                byte[] b = new byte[size];
-                buf.get(b);
-                putData(offset, b, 0, size);
-            } catch (IOException e) {
-                throw new IOError(e);
-            }
-
-        }
-
-        @Override
-        synchronized public long getLong(long offset) {
-            try {
-                if(pos!=offset){
-                    raf.seek(offset);
-                }
-                pos=offset+8;
-                return raf.readLong();
-            } catch (IOException e) {
-                throw new IOError(e);
-            }
-        }
-
-        @Override
-        synchronized public int getInt(long offset) {
-            try {
-                if(pos!=offset){
-                    raf.seek(offset);
-                }
-                pos=offset+4;
-                return raf.readInt();
-            } catch (IOException e) {
-                throw new IOError(e);
-            }
-
-        }
-
-
-        @Override
-        synchronized public byte getByte(long offset) {
-
-            try {
-                if(pos!=offset){
-                    raf.seek(offset);
-                }
-                pos=offset+1;
-                return raf.readByte();
-            } catch (IOException e) {
-                throw new IOError(e);
-            }
-
-        }
-
-        @Override
-        synchronized public DataInput2 getDataInput(long offset, int size) {
-            try {
-                if(pos!=offset){
-                    raf.seek(offset);
-                }
-                pos=offset+size;
-                byte[] b = new byte[size];
-                raf.read(b);
-                return new DataInput2(b);
-            } catch (IOException e) {
-                throw new IOError(e);
-            }
-        }
-
-        @Override
-        synchronized public void close() {
-            try {
-                raf.close();
-                raf = null;
-            } catch (IOException e) {
-                throw new IOError(e);
-            }
-
-        }
-
-        @Override
-        synchronized public void sync() {
-            try {
-                raf.getFD().sync();
-            } catch (IOException e) {
-                throw new IOError(e);
-            }
-        }
-
-        @Override
-        synchronized public boolean isEmpty() {
-            return file.length()==0;
-        }
-
-        @Override
-        synchronized public void deleteFile() {
+        public void deleteFile() {
             file.delete();
         }
 
         @Override
-        public boolean isSliced(){
+        public boolean isSliced() {
             return false;
         }
 
         @Override
-        synchronized public File getFile() {
+        public File getFile() {
             return file;
         }
     }

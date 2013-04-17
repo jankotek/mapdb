@@ -253,4 +253,16 @@ public class DBMakerTest{
         assertTrue(m.getClass().getName().contains("BTreeMap"));
     }
 
+    @Test public void rafEnableKeepIndexMapped(){
+        DB db = DBMaker.newFileDB(Utils.tempDbFile())
+                .randomAccessFileEnableKeepIndexMapped()
+                .make();
+        Engine e = db.getEngine();
+        while(e instanceof EngineWrapper)
+            e = ((EngineWrapper)e).getWrappedEngine();
+        StoreDirect d = (StoreDirect) e;
+        assertTrue(d.index instanceof Volume.MappedFileVol);
+        assertTrue(d.phys instanceof Volume.FileChannelVol);
+    }
+
 }

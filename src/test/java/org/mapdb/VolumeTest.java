@@ -31,7 +31,7 @@ public abstract class VolumeTest {
 
     public static class RandomAccessVolumeTest extends VolumeTest{
         @Override Volume getVolume() {
-            return new Volume.RandomAccessFileVol(Utils.tempDbFile(), false);
+            return new Volume.FileChannelVol(Utils.tempDbFile(), false);
         }
     }
 
@@ -119,7 +119,7 @@ public abstract class VolumeTest {
 
     @Test public void RAF_bytes(){
         File f = Utils.tempDbFile();
-        Volume v = new Volume.RandomAccessFileVol(f, false);
+        Volume v = new Volume.FileChannelVol(f, false);
         v.ensureAvailable(100);
         v.putByte(1, (byte)(-120));
         assertEquals((byte)(-120), v.getByte(1));
@@ -132,7 +132,7 @@ public abstract class VolumeTest {
     @Test
     public void read_beyond_end_raf_long(){
         try{
-            Volume v = new Volume.RandomAccessFileVol(Utils.tempDbFile(), false);
+            Volume v = new Volume.FileChannelVol(Utils.tempDbFile(), false);
             v.getLong(1000000);
             fail();
         }catch(IOError e){
@@ -143,7 +143,7 @@ public abstract class VolumeTest {
     @Test
     public void read_beyond_end_raf_byte(){
         try{
-            Volume v = new Volume.RandomAccessFileVol(Utils.tempDbFile(), false);
+            Volume v = new Volume.FileChannelVol(Utils.tempDbFile(), false);
             v.getByte(1000000);
             fail();
         }catch(IOError e){

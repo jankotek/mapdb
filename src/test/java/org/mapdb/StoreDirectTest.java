@@ -15,12 +15,12 @@ import static org.mapdb.StoreDirect.*;
 public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
 
-    Volume.Factory fac = Volume.fileFactory(false,false,Utils.tempDbFile());
+    Volume.Factory fac = Volume.fileFactory(false,0,Utils.tempDbFile());
 
     static final long IO_RECID = StoreDirect.IO_FREE_RECID+32;
 
     @Override protected E openEngine() {
-        return (E) new StoreDirect(fac,false,false);
+        return (E) new StoreDirect(fac);
     }
 
     int countIndexRecords(){

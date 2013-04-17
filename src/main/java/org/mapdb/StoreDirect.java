@@ -74,10 +74,16 @@ public class StoreDirect implements Engine{
 
     protected final boolean readOnly;
 
-    public StoreDirect(Volume.Factory volFac, boolean readOnly, boolean deleteFilesAfterClose) {
+    protected final boolean spaceReclaimReuse;
+    protected final boolean spaceReclaimTrack;
+
+    public StoreDirect(Volume.Factory volFac, boolean readOnly, boolean deleteFilesAfterClose,
+                       int spaceReclaimMode) {
         this.readOnly = readOnly;
         this.deleteFilesAfterClose = deleteFilesAfterClose;
 
+        this.spaceReclaimReuse = spaceReclaimMode>2;
+        this.spaceReclaimTrack = spaceReclaimMode>0;
 
         index = volFac.createIndexVolume();
         phys = volFac.createPhysVolume();
@@ -92,7 +98,7 @@ public class StoreDirect implements Engine{
     }
 
     public StoreDirect(Volume.Factory volFac) {
-        this(volFac, false,false);
+        this(volFac, false,false,5);
     }
 
     protected void checkHeaders() {
@@ -232,16 +238,19 @@ public class StoreDirect implements Engine{
         Utils.writeLock(locks, recid);
         try{
             long indexVal = index.getLong(ioRecid);
-            long[] indexVals = getLinkedRecordsIndexVals(indexVal);
+            long[] indexVals = spaceReclaimTrack ? getLinkedRecordsIndexVals(indexVal) : null;
             structuralLock.lock();
             try{
-                //free first record pointed from indexVal
-                freePhysPut(indexVal);
 
-                //if there are more linked records, free those as well
-                if(indexVals!=null){
-                    for(int i=0;i<indexVals.length && indexVals[i]!=0;i++){
-                        freePhysPut(indexVals[i]);
+                if(spaceReclaimTrack){
+                    //free first record pointed from indexVal
+                    freePhysPut(indexVal);
+
+                    //if there are more linked records, free those as well
+                    if(indexVals!=null){
+                        for(int i=0;i<indexVals.length && indexVals[i]!=0;i++){
+                            freePhysPut(indexVals[i]);
+                        }
                     }
                 }
 
@@ -279,17 +288,19 @@ public class StoreDirect implements Engine{
             DataOutput2 out = serialize(newValue, serializer);
 
             long indexVal = index.getLong(ioRecid);
-            long[] indexVals = getLinkedRecordsIndexVals(indexVal);
+            long[] indexVals = spaceReclaimTrack ? getLinkedRecordsIndexVals(indexVal) : null;
 
             structuralLock.lock();
             try{
-                //free first record pointed from indexVal
-                freePhysPut(indexVal);
+                if(spaceReclaimTrack){
+                    //free first record pointed from indexVal
+                    freePhysPut(indexVal);
 
-                //if there are more linked records, free those as well
-                if(indexVals!=null){
-                    for(int i=0;i<indexVals.length && indexVals[i]!=0;i++){
-                        freePhysPut(indexVals[i]);
+                    //if there are more linked records, free those as well
+                    if(indexVals!=null){
+                        for(int i=0;i<indexVals.length && indexVals[i]!=0;i++){
+                            freePhysPut(indexVals[i]);
+                        }
                     }
                 }
 
@@ -315,6 +326,8 @@ public class StoreDirect implements Engine{
             //get index val and zero it out
             final long indexVal = index.getLong(ioRecid);
             index.putLong(ioRecid,0L);
+
+            if(!spaceReclaimTrack) return; //free space is not tracked, so do not mark stuff as free
 
             long[] linkedRecords = getLinkedRecordsIndexVals(indexVal);
 
@@ -479,8 +492,12 @@ public class StoreDirect implements Engine{
             //TODO memory based stores
             final File indexFile = index.getFile();
             final File physFile = phys.getFile();
-            final boolean isRaf = index instanceof Volume.RandomAccessFileVol;
-            Volume.Factory fab = Volume.fileFactory(false, isRaf, new File(indexFile+".compact"));
+            int rafMode = 0;
+            if(index instanceof  Volume.FileChannelVol) rafMode=2;
+            if(index instanceof  Volume.MappedFileVol && phys instanceof Volume.FileChannelVol) rafMode = 1;
+
+            final boolean isRaf = index instanceof Volume.FileChannelVol;
+            Volume.Factory fab = Volume.fileFactory(false, rafMode, new File(indexFile+".compact"));
             StoreDirect store2 = new StoreDirect(fab);
             store2.structuralLock.lock();
 
@@ -530,7 +547,7 @@ public class StoreDirect implements Engine{
             indexFile_.delete();
             physFile_.delete();
 
-            Volume.Factory fac2 = Volume.fileFactory(false, isRaf, indexFile);
+            Volume.Factory fac2 = Volume.fileFactory(false, rafMode, indexFile);
 
             index = fac2.createIndexVolume();
             phys = fac2.createPhysVolume();
@@ -642,12 +659,15 @@ public class StoreDirect implements Engine{
 
 
     protected void freeIoRecidPut(long ioRecid) {
-        longStackPut(IO_FREE_RECID, ioRecid);
+        if(spaceReclaimTrack)
+            longStackPut(IO_FREE_RECID, ioRecid);
     }
 
     protected long freeIoRecidTake(boolean ensureAvail){
-        long ioRecid = longStackTake(IO_FREE_RECID);
-        if(ioRecid!=0) return ioRecid;
+        if(spaceReclaimTrack){
+            long ioRecid = longStackTake(IO_FREE_RECID);
+            if(ioRecid!=0) return ioRecid;
+        }
         indexSize+=8;
         if(ensureAvail)
             index.ensureAvailable(indexSize);
@@ -666,8 +686,10 @@ public class StoreDirect implements Engine{
         if(size==0)throw new IllegalArgumentException();
 
         //check free space
-        long ret =  longStackTake(size2ListIoRecid(size));
-        if(ret!=0) return ret;
+        if(spaceReclaimReuse){
+            long ret =  longStackTake(size2ListIoRecid(size));
+            if(ret!=0) return ret;
+        }
         //not available, increase file size
         if(physSize%Volume.BUF_SIZE+size>Volume.BUF_SIZE)
             physSize += Volume.BUF_SIZE - physSize%Volume.BUF_SIZE;

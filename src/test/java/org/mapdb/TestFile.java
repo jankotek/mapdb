@@ -14,7 +14,7 @@ abstract public class TestFile {
     protected final File data = new File(index.getPath()+ StoreDirect.DATA_FILE_EXT);
     protected final File log = new File(index.getPath()+ StoreWAL.TRANS_LOG_FILE_EXT);
 
-    protected Volume.Factory fac = Volume.fileFactory(false, false, index, data, log);
+    protected Volume.Factory fac = Volume.fileFactory(false, 0, index, data, log);
 
 
     @After public void after() throws IOException {
