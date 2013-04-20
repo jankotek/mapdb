@@ -205,10 +205,46 @@ public class DB {
             String name, int nodeSize, boolean valuesStoredOutsideNodes, boolean keepCounter,
             BTreeKeySerializer<K> keySerializer, Serializer<V> valueSerializer, Comparator<K> comparator){
         checkNameNotExists(name);
+        keySerializer = fillNulls(keySerializer);
         BTreeMap<K,V> ret = new BTreeMap<K,V>(engine, nodeSize, true,valuesStoredOutsideNodes, keepCounter,defaultSerializer, keySerializer, valueSerializer, comparator);
         nameDir.put(name, ret.treeRecid);
         collections.put(name, new WeakReference<Object>(ret));
         return ret;
+    }
+
+    protected <K> BTreeKeySerializer<K> fillNulls(BTreeKeySerializer<K> keySerializer) {
+        if(keySerializer instanceof BTreeKeySerializer.Tuple2KeySerializer){
+            BTreeKeySerializer.Tuple2KeySerializer s = (BTreeKeySerializer.Tuple2KeySerializer) keySerializer;
+            return new BTreeKeySerializer.Tuple2KeySerializer(
+                    s.aComparator!=null?s.aComparator:Utils.COMPARABLE_COMPARATOR,
+                    s.aSerializer!=null?s.aSerializer:defaultSerializer,
+                    s.bSerializer!=null?s.bSerializer:defaultSerializer
+            );
+        }
+        if(keySerializer instanceof BTreeKeySerializer.Tuple3KeySerializer){
+            BTreeKeySerializer.Tuple3KeySerializer s = (BTreeKeySerializer.Tuple3KeySerializer) keySerializer;
+            return new BTreeKeySerializer.Tuple3KeySerializer(
+                    s.aComparator!=null?s.aComparator:Utils.COMPARABLE_COMPARATOR,
+                    s.bComparator!=null?s.bComparator:Utils.COMPARABLE_COMPARATOR,
+                    s.aSerializer!=null?s.aSerializer:defaultSerializer,
+                    s.bSerializer!=null?s.bSerializer:defaultSerializer,
+                    s.cSerializer!=null?s.cSerializer:defaultSerializer
+            );
+        }
+        if(keySerializer instanceof BTreeKeySerializer.Tuple4KeySerializer){
+            BTreeKeySerializer.Tuple4KeySerializer s = (BTreeKeySerializer.Tuple4KeySerializer) keySerializer;
+            return new BTreeKeySerializer.Tuple4KeySerializer(
+                    s.aComparator!=null?s.aComparator:Utils.COMPARABLE_COMPARATOR,
+                    s.bComparator!=null?s.bComparator:Utils.COMPARABLE_COMPARATOR,
+                    s.cComparator!=null?s.cComparator:Utils.COMPARABLE_COMPARATOR,
+                    s.aSerializer!=null?s.aSerializer:defaultSerializer,
+                    s.bSerializer!=null?s.bSerializer:defaultSerializer,
+                    s.cSerializer!=null?s.cSerializer:defaultSerializer,
+                    s.dSerializer!=null?s.dSerializer:defaultSerializer
+            );
+        }
+
+        return keySerializer;
     }
 
 
@@ -263,6 +299,7 @@ public class DB {
      */
     synchronized public <K> NavigableSet<K> createTreeSet(String name,int nodeSize, boolean keepCounter, BTreeKeySerializer<K> serializer, Comparator<K> comparator){
         checkNameNotExists(name);
+        serializer = fillNulls(serializer);
         BTreeMap<K,Object> ret = new BTreeMap<K,Object>(engine, nodeSize, false, false, keepCounter, defaultSerializer, serializer, null, comparator);
         nameDir.put(name, ret.treeRecid);
         NavigableSet<K> ret2 = ret.keySet();

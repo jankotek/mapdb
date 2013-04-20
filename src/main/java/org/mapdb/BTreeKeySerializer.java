@@ -3,6 +3,7 @@ package org.mapdb;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.Comparator;
 
 /**
  * Custom serializer for BTreeMap keys.
@@ -14,6 +15,7 @@ public abstract class BTreeKeySerializer<K>{
     public abstract void serialize(DataOutput out, int start, int end, Object[] keys) throws IOException;
 
     public abstract Object[] deserialize(DataInput in, int start, int end, int size) throws IOException;
+
 
     static final class BasicKeySerializer extends BTreeKeySerializer<Object> {
 
@@ -178,5 +180,259 @@ public abstract class BTreeKeySerializer<K>{
         out.write(buf, 0, ignoreLeadingCount);
         out.write(buf, actualCommon, buf.length - actualCommon);
 
+    }
+
+    public static final Tuple2KeySerializer TUPLE2 = new Tuple2KeySerializer(null, null, null);
+
+    public final  static class Tuple2KeySerializer<A,B> extends  BTreeKeySerializer<Fun.Tuple2<A,B>>{
+
+        protected final Comparator<A> aComparator;
+        protected final Serializer<A> aSerializer;
+        protected final Serializer<B> bSerializer;
+
+        public Tuple2KeySerializer(Comparator<A> aComparator,Serializer aSerializer, Serializer bSerializer){
+            this.aComparator = aComparator;
+            this.aSerializer = aSerializer;
+            this.bSerializer = bSerializer;
+        }
+
+        @Override
+        public void serialize(DataOutput out, int start, int end, Object[] keys) throws IOException {
+            int acount=0;
+            for(int i=start;i<end;i++){
+                Fun.Tuple2<A,B> t = (Fun.Tuple2<A, B>) keys[i];
+                if(acount==0){
+                    //write new A
+                    aSerializer.serialize(out,t.a);
+                    //count how many A are following
+                    acount=1;
+                    while(i+acount<end && aComparator.compare(t.a, ((Fun.Tuple2<A, B>) keys[i+acount]).a)==0){
+                        acount++;
+                    }
+                    Utils.packInt(out,acount);
+                }
+                bSerializer.serialize(out,t.b);
+
+                acount--;
+            }
+        }
+
+        @Override
+        public Object[] deserialize(DataInput in, int start, int end, int size) throws IOException {
+            Object[] ret = new Object[size];
+            A a = null;
+            int acount = 0;
+
+            for(int i=start;i<end;i++){
+                if(acount==0){
+                    //read new A
+                    a = aSerializer.deserialize(in,-1);
+                    acount = Utils.unpackInt(in);
+                }
+                B b = bSerializer.deserialize(in,-1);
+                ret[i]= Fun.t2(a,b);
+                acount--;
+            }
+            if(acount!=0) throw new InternalError();
+
+            return ret;
+        }
+    }
+
+    public static final Tuple3KeySerializer TUPLE3 = new Tuple3KeySerializer(null, null, null, null, null);
+
+    public static class Tuple3KeySerializer<A,B,C> extends  BTreeKeySerializer<Fun.Tuple3<A,B,C>>{
+
+        protected final Comparator<A> aComparator;
+        protected final Comparator<B> bComparator;
+        protected final Serializer<A> aSerializer;
+        protected final Serializer<B> bSerializer;
+        protected final Serializer<C> cSerializer;
+
+        public Tuple3KeySerializer(Comparator<A> aComparator, Comparator<B> bComparator,  Serializer aSerializer,
+                                   Serializer bSerializer, Serializer cSerializer){
+            this.aComparator = aComparator;
+            this.bComparator = bComparator;
+            this.aSerializer = aSerializer;
+            this.bSerializer = bSerializer;
+            this.cSerializer = cSerializer;
+        }
+
+        @Override
+        public void serialize(DataOutput out, int start, int end, Object[] keys) throws IOException {
+            int acount=0;
+            int bcount=0;
+            for(int i=start;i<end;i++){
+                Fun.Tuple3<A,B,C> t = (Fun.Tuple3<A, B,C>) keys[i];
+                if(acount==0){
+                    //write new A
+                    aSerializer.serialize(out,t.a);
+                    //count how many A are following
+                    acount=1;
+                    while(i+acount<end && aComparator.compare(t.a, ((Fun.Tuple3<A, B, C>) keys[i+acount]).a)==0){
+                        acount++;
+                    }
+                    Utils.packInt(out,acount);
+                }
+                if(bcount==0){
+                    //write new B
+                    bSerializer.serialize(out,t.b);
+                    //count how many B are following
+                    bcount=1;
+                    while(i+bcount<end && bComparator.compare(t.b, ((Fun.Tuple3<A, B,C>) keys[i+bcount]).b)==0){
+                        bcount++;
+                    }
+                    Utils.packInt(out,bcount);
+                }
+
+
+                cSerializer.serialize(out,t.c);
+
+                acount--;
+                bcount--;
+            }
+        }
+
+        @Override
+        public Object[] deserialize(DataInput in, int start, int end, int size) throws IOException {
+            Object[] ret = new Object[size];
+            A a = null;
+            int acount = 0;
+            B b = null;
+            int bcount = 0;
+
+            for(int i=start;i<end;i++){
+                if(acount==0){
+                    //read new A
+                    a = aSerializer.deserialize(in,-1);
+                    acount = Utils.unpackInt(in);
+                }
+                if(bcount==0){
+                    //read new B
+                    b = bSerializer.deserialize(in,-1);
+                    bcount = Utils.unpackInt(in);
+                }
+                C c = cSerializer.deserialize(in,-1);
+                ret[i]= Fun.t3(a, b, c);
+                acount--;
+                bcount--;
+            }
+            if(acount!=0) throw new InternalError();
+            if(bcount!=0) throw new InternalError();
+
+            return ret;
+        }
+    }
+
+    public static final Tuple4KeySerializer TUPLE4 = new Tuple4KeySerializer(null, null, null, null, null, null, null);
+
+    public static class Tuple4KeySerializer<A,B,C,D> extends  BTreeKeySerializer<Fun.Tuple4<A,B,C,D>>{
+
+        protected final Comparator<A> aComparator;
+        protected final Comparator<B> bComparator;
+        protected final Comparator<C> cComparator;
+        protected final Serializer<A> aSerializer;
+        protected final Serializer<B> bSerializer;
+        protected final Serializer<C> cSerializer;
+        protected final Serializer<D> dSerializer;
+
+        public Tuple4KeySerializer(Comparator<A> aComparator, Comparator<B> bComparator, Comparator<C> cComparator,
+                                   Serializer aSerializer, Serializer bSerializer, Serializer cSerializer, Serializer dSerializer){
+            this.aComparator = aComparator;
+            this.bComparator = bComparator;
+            this.cComparator = cComparator;
+            this.aSerializer = aSerializer;
+            this.bSerializer = bSerializer;
+            this.cSerializer = cSerializer;
+            this.dSerializer = dSerializer;
+        }
+
+        @Override
+        public void serialize(DataOutput out, int start, int end, Object[] keys) throws IOException {
+            int acount=0;
+            int bcount=0;
+            int ccount=0;
+            for(int i=start;i<end;i++){
+                Fun.Tuple4<A,B,C,D> t = (Fun.Tuple4<A, B,C,D>) keys[i];
+                if(acount==0){
+                    //write new A
+                    aSerializer.serialize(out,t.a);
+                    //count how many A are following
+                    acount=1;
+                    while(i+acount<end && aComparator.compare(t.a, ((Fun.Tuple4<A, B, C,D>) keys[i+acount]).a)==0){
+                        acount++;
+                    }
+                    Utils.packInt(out,acount);
+                }
+                if(bcount==0){
+                    //write new B
+                    bSerializer.serialize(out,t.b);
+                    //count how many B are following
+                    bcount=1;
+                    while(i+bcount<end && bComparator.compare(t.b, ((Fun.Tuple4<A, B,C,D>) keys[i+bcount]).b)==0){
+                        bcount++;
+                    }
+                    Utils.packInt(out,bcount);
+                }
+                if(ccount==0){
+                    //write new C
+                    cSerializer.serialize(out,t.c);
+                    //count how many C are following
+                    ccount=1;
+                    while(i+ccount<end && cComparator.compare(t.c, ((Fun.Tuple4<A, B,C,D>) keys[i+ccount]).c)==0){
+                        ccount++;
+                    }
+                    Utils.packInt(out,ccount);
+                }
+
+
+                dSerializer.serialize(out,t.d);
+
+                acount--;
+                bcount--;
+                ccount--;
+            }
+        }
+
+        @Override
+        public Object[] deserialize(DataInput in, int start, int end, int size) throws IOException {
+            Object[] ret = new Object[size];
+            A a = null;
+            int acount = 0;
+            B b = null;
+            int bcount = 0;
+            C c = null;
+            int ccount = 0;
+
+
+            for(int i=start;i<end;i++){
+                if(acount==0){
+                    //read new A
+                    a = aSerializer.deserialize(in,-1);
+                    acount = Utils.unpackInt(in);
+                }
+                if(bcount==0){
+                    //read new B
+                    b = bSerializer.deserialize(in,-1);
+                    bcount = Utils.unpackInt(in);
+                }
+                if(ccount==0){
+                    //read new C
+                    c = cSerializer.deserialize(in,-1);
+                    ccount = Utils.unpackInt(in);
+                }
+
+                D d = dSerializer.deserialize(in,-1);
+                ret[i]= Fun.t4(a, b, c, d);
+                acount--;
+                bcount--;
+                ccount--;
+            }
+            if(acount!=0) throw new InternalError();
+            if(bcount!=0) throw new InternalError();
+            if(ccount!=0) throw new InternalError();
+
+            return ret;
+        }
     }
 }
