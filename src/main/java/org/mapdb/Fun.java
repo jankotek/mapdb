@@ -109,7 +109,7 @@ public final class Fun {
         }
     }
 
-    static public class Tuple3<A,B,C> implements Comparable, Serializable{
+    final static public class Tuple3<A,B,C> implements Comparable, Serializable{
 
     	private static final long serialVersionUID = 11785034935947868L;
     	
@@ -180,7 +180,7 @@ public final class Fun {
         }
     }
 
-    static public class Tuple4<A,B,C,D> implements Comparable, Serializable{
+    final static public class Tuple4<A,B,C,D> implements Comparable, Serializable{
 
     	private static final long serialVersionUID = 1630397500758650718L;
     	
