@@ -172,6 +172,9 @@ interface SerializationHeader {
     int MAPDB_STACK = 154;
     int MAPDB_QUEUE = 155;
     int MAPDB_CIRCULAR_QUEUE = 156;
+    int KEY_TUPLE2_SERIALIZER = 157;
+    int KEY_TUPLE3_SERIALIZER = 158;
+    int KEY_TUPLE4_SERIALIZER = 159;
 
     /**
      * used for reference to already serialized object in object graph

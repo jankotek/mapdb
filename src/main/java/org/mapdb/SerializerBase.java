@@ -499,6 +499,30 @@ public class SerializerBase implements Serializer{
             serialize(out, t.b, objectStack);
             serialize(out, t.c, objectStack);
             serialize(out, t.d, objectStack);
+        } else if (clazz == BTreeKeySerializer.Tuple2KeySerializer.class){
+            out.write(KEY_TUPLE2_SERIALIZER);
+            BTreeKeySerializer.Tuple2KeySerializer s = (BTreeKeySerializer.Tuple2KeySerializer) obj;
+            serialize(out, s.aComparator);
+            serialize(out, s.aSerializer);
+            serialize(out, s.bSerializer);
+        } else if (clazz == BTreeKeySerializer.Tuple3KeySerializer.class){
+            out.write(KEY_TUPLE3_SERIALIZER);
+            BTreeKeySerializer.Tuple3KeySerializer s = (BTreeKeySerializer.Tuple3KeySerializer) obj;
+            serialize(out, s.aComparator);
+            serialize(out, s.bComparator);
+            serialize(out, s.aSerializer);
+            serialize(out, s.bSerializer);
+            serialize(out, s.cSerializer);
+        } else if (clazz == BTreeKeySerializer.Tuple4KeySerializer.class){
+            out.write(KEY_TUPLE3_SERIALIZER);
+            BTreeKeySerializer.Tuple4KeySerializer s = (BTreeKeySerializer.Tuple4KeySerializer) obj;
+            serialize(out, s.aComparator);
+            serialize(out, s.bComparator);
+            serialize(out, s.cComparator);
+            serialize(out, s.aSerializer);
+            serialize(out, s.bSerializer);
+            serialize(out, s.cSerializer);
+            serialize(out, s.dSerializer);
         } else {
             serializeUnknownObject(out, obj, objectStack);
         }
@@ -1010,6 +1034,21 @@ public class SerializerBase implements Serializer{
                 break;
             case B_TREE_SERIALIZER_STRING:
                 ret = BTreeKeySerializer.STRING;
+                break;
+            case KEY_TUPLE2_SERIALIZER:
+                ret = new BTreeKeySerializer.Tuple2KeySerializer(
+                        (Comparator)deserialize(is,objectStack), (Serializer)deserialize(is,objectStack), (Serializer)deserialize(is,objectStack));
+                break;
+            case KEY_TUPLE3_SERIALIZER:
+                ret = new BTreeKeySerializer.Tuple3KeySerializer(
+                        (Comparator)deserialize(is,objectStack),(Comparator)deserialize(is,objectStack),
+                        (Serializer)deserialize(is,objectStack),(Serializer)deserialize(is,objectStack), (Serializer)deserialize(is,objectStack));
+                break;
+            case KEY_TUPLE4_SERIALIZER:
+                ret = new BTreeKeySerializer.Tuple4KeySerializer(
+                        (Comparator)deserialize(is,objectStack),(Comparator)deserialize(is,objectStack),(Comparator)deserialize(is,objectStack),
+                        (Serializer)deserialize(is,objectStack), (Serializer)deserialize(is,objectStack),
+                        (Serializer)deserialize(is,objectStack), (Serializer)deserialize(is,objectStack));
                 break;
             case COMPARABLE_COMPARATOR_WITH_NULLS:
                 ret = Utils.COMPARABLE_COMPARATOR_WITH_NULLS;
