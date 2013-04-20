@@ -1,7 +1,7 @@
 package org.mapdb;
 
-import org.junit.Ignore;
 import org.junit.Test;
+
 import java.io.File;
 
 public class Issue90Test {

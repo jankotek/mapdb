@@ -4,9 +4,11 @@ package org.mapdb;/*
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-import junit.framework.*;
-import java.util.concurrent.ConcurrentNavigableMap;
+import junit.framework.Test;
+import junit.framework.TestSuite;
+
 import java.util.*;
+import java.util.concurrent.ConcurrentNavigableMap;
 
 public class BTreeMapTest5 extends JSR166TestCase {
     public static void main(String[] args) {

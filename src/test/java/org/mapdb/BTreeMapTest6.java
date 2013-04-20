@@ -4,7 +4,9 @@ package org.mapdb;/*
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-import junit.framework.*;
+import junit.framework.Test;
+import junit.framework.TestSuite;
+
 import java.util.*;
 
 public class BTreeMapTest6 extends JSR166TestCase {

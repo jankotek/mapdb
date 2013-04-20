@@ -1,10 +1,12 @@
 package examples;
 
-import org.mapdb.*;
+import org.mapdb.Bind;
+import org.mapdb.DBMaker;
+import org.mapdb.Fun;
+import org.mapdb.HTreeMap;
 
-import javax.management.monitor.StringMonitor;
-import javax.swing.plaf.basic.BasicInternalFrameTitlePane;
-import java.util.*;
+import java.util.NavigableSet;
+import java.util.TreeSet;
 
 /**
  * Simple way to create  bidirectional map (can find key for given value) using Binding.

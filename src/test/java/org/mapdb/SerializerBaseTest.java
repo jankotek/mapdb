@@ -25,7 +25,6 @@ import java.util.AbstractMap.SimpleEntry;
 import java.util.*;
 
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertTrue;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class SerializerBaseTest extends TestCase {

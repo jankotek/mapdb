@@ -1,8 +1,12 @@
 package examples;
 
-import org.mapdb.*;
+import org.mapdb.BTreeMap;
+import org.mapdb.Bind;
+import org.mapdb.DBMaker;
+import org.mapdb.Fun;
 
-import java.util.*;
+import java.util.NavigableSet;
+import java.util.TreeSet;
 
 /**
  * Shows howto use secondary non-unique keys,

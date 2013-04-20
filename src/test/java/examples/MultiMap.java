@@ -1,6 +1,9 @@
 package examples;
 
-import org.mapdb.*;
+import org.mapdb.Bind;
+import org.mapdb.DB;
+import org.mapdb.DBMaker;
+import org.mapdb.Fun;
 
 import java.util.NavigableSet;
 

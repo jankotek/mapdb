@@ -9,9 +9,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.mapdb.Serializer.BYTE_ARRAY_SERIALIZER;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.mapdb.Serializer.BYTE_ARRAY_SERIALIZER;
 
 /**
  * JUnit test case which provides JDBM specific staff

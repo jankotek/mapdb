@@ -3,7 +3,6 @@ package org.mapdb;
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
-import java.util.BitSet;
 import java.util.Iterator;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;

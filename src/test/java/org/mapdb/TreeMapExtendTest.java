@@ -17,22 +17,11 @@ package org.mapdb;
  *  limitations under the License.
  */
 
-import java.io.Serializable;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.NavigableMap;
-import java.util.NavigableSet;
-import java.util.NoSuchElementException;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.SortedSet;
-import java.util.TreeMap;
-import java.util.Map.Entry;
-
 import junit.framework.TestCase;
+
+import java.io.Serializable;
+import java.util.*;
+import java.util.Map.Entry;
 
 
 // 

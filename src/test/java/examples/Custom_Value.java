@@ -1,12 +1,12 @@
 package examples;
 
-import java.io.*;
-import java.util.Map;
-
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.Serializer;
 import org.mapdb.Utils;
+
+import java.io.*;
+import java.util.Map;
 
 /*
  *	Demonstrates HashMaps with non-standard types of objects as key or value.

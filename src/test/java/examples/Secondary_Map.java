@@ -1,6 +1,9 @@
 package examples;
 
-import org.mapdb.*;
+import org.mapdb.Bind;
+import org.mapdb.DBMaker;
+import org.mapdb.Fun;
+import org.mapdb.HTreeMap;
 
 import java.util.HashMap;
 import java.util.Map;

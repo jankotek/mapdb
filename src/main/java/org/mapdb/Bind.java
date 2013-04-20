@@ -3,7 +3,6 @@ package org.mapdb;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NavigableSet;
-import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
 /**
