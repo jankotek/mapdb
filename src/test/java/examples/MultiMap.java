@@ -1,9 +1,6 @@
 package examples;
 
-import org.mapdb.Bind;
-import org.mapdb.DB;
-import org.mapdb.DBMaker;
-import org.mapdb.Fun;
+import org.mapdb.*;
 
 import java.util.NavigableSet;
 
@@ -22,6 +19,9 @@ public class MultiMap {
 
         //correct way is to use composite set, where 'map key' is primary key and 'map value' is secondary value
         NavigableSet<Fun.Tuple2<String,Long>> multiMap = db.getTreeSet("test");
+
+        //optionally you can use set with Delta Encoding. This may save lot of space
+        multiMap = db.createTreeSet("test2",32,false, BTreeKeySerializer.TUPLE2, null);
 
         multiMap.add(Fun.t2("aa",1L));
         multiMap.add(Fun.t2("aa",2L));

@@ -514,7 +514,7 @@ public class SerializerBase implements Serializer{
             serialize(out, s.bSerializer);
             serialize(out, s.cSerializer);
         } else if (clazz == BTreeKeySerializer.Tuple4KeySerializer.class){
-            out.write(KEY_TUPLE3_SERIALIZER);
+            out.write(KEY_TUPLE4_SERIALIZER);
             BTreeKeySerializer.Tuple4KeySerializer s = (BTreeKeySerializer.Tuple4KeySerializer) obj;
             serialize(out, s.aComparator);
             serialize(out, s.bComparator);

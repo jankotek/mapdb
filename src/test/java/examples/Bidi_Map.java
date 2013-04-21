@@ -19,6 +19,7 @@ public class Bidi_Map {
 
         // inverse mapping for primary map
         NavigableSet<Fun.Tuple2<String, Long>> inverseMapping = new TreeSet<Fun.Tuple2<String, Long>>();
+        //NOTE: you may also use Set provided by MapDB to make it persistent
 
         // bind inverse mapping to primary map, so it is auto-updated
         Bind.mapInverse(map, inverseMapping);

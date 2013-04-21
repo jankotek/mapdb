@@ -1,5 +1,7 @@
 package examples;
 
+import org.mapdb.BTreeKeySerializer;
+import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.Fun;
 
@@ -36,9 +38,11 @@ public class TreeMap_Composite_Key {
         String[] streets = {"Main street", "Shop street", "Second street", "Silver Strands"};
         int[] houseNums = {1,2,3,4,5,6,7,8,9,10};
 
+        DB db = DBMaker.newMemoryDB().make();
         //initialize map
+        // note that it uses BTreeKeySerializer.TUPLE3 to minimise disk space used by Map
         ConcurrentNavigableMap<Fun.Tuple3, Integer> map =
-                DBMaker.newTempTreeMap();
+                db.createTreeMap("test",32, false, false, BTreeKeySerializer.TUPLE3, null,null);
 
 
         //fill with values, use simple permutation so we dont have to include large test data.

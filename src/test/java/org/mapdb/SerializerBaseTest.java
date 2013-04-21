@@ -457,4 +457,11 @@ public class SerializerBaseTest extends TestCase {
         }
     }
 
+    public void test_tuple_key_serializer(){
+        assertEquals(BTreeKeySerializer.TUPLE2, Utils.clone(BTreeKeySerializer.TUPLE2,SerializerBase.BASIC_SERIALIZER));
+        assertEquals(BTreeKeySerializer.TUPLE3, Utils.clone(BTreeKeySerializer.TUPLE3,SerializerBase.BASIC_SERIALIZER));
+        assertEquals(BTreeKeySerializer.TUPLE4, Utils.clone(BTreeKeySerializer.TUPLE4,SerializerBase.BASIC_SERIALIZER));
+    }
+
 }
+
