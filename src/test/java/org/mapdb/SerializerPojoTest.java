@@ -3,9 +3,14 @@ package org.mapdb;
 
 import junit.framework.TestCase;
 
+import javax.swing.*;
+import java.io.File;
+import java.io.IOError;
+import java.io.NotSerializableException;
 import java.io.Serializable;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.GregorianCalendar;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -263,38 +268,59 @@ public class SerializerPojoTest extends TestCase {
         assertEquals(l2.get(0), "123");
         assertTrue(l2.get(1) == l2);
     }
-// TODO commented out tests
-//    public void testPersistedSimple() throws Exception {
-//
-//        String f = newTestFile();
-//        DBAbstract r1 = (DBAbstract) DBMaker.openFile(f).make();
-//        long recid = r1.insert("AA");
-//        r1.commit();
-//        r1.close();
-//
-//        DBAbstract r2 = (DBAbstract) DBMaker.openFile(f).make();
-//
-//        String a2 = r2.fetch(recid);
-//        r2.close();
-//        assertEquals("AA", a2);
-//
-//    }
-//
-//
-//    public void testPersisted() throws Exception {
-//        Bean1 b1 = new Bean1("abc", "dcd");
-//        String f = newTestFile();
-//        DBAbstract r1 = (DBAbstract) DBMaker.openFile(f).make() ;
-//        long recid = r1.insert(b1);
-//        r1.commit();
-//        r1.close();
-//
-//        DBAbstract r2 = (DBAbstract) DBMaker.openFile(f).make();
-//
-//        Bean1 b2 = (Bean1) r2.fetch(recid);
-//        r2.close();
-//        assertEquals(b1, b2);
-//
-//    }
+
+    public void testPersistedSimple() throws Exception {
+
+        File f = Utils.tempDbFile();
+        DB r1 = DBMaker.newFileDB(f).asyncWriteDisable().make();
+        long recid = r1.engine.put("AA",r1.getDefaultSerializer());
+        r1.commit();
+        r1.close();
+
+         r1 = DBMaker.newFileDB(f).asyncWriteDisable().make();
+
+        String a2 = (String) r1.engine.get(recid, r1.getDefaultSerializer());
+        r1.close();
+        assertEquals("AA", a2);
+
+    }
+
+
+    public void testPersisted() throws Exception {
+        Bean1 b1 = new Bean1("abc", "dcd");
+        File f = Utils.tempDbFile();
+        DB r1 = DBMaker.newFileDB(f).asyncWriteDisable().make();
+        long recid = r1.engine.put(b1, r1.getDefaultSerializer());
+        r1.commit();
+        r1.close();
+
+        r1 = DBMaker.newFileDB(f).asyncWriteDisable().make();
+
+        Bean1 b2 = (Bean1) r1.engine.get(recid,r1.getDefaultSerializer());
+        r1.close();
+        assertEquals(b1, b2);
+
+    }
+
+
+    public void test_write_object_assertion(){
+        try{
+            DB db = DBMaker.newMemoryDB().asyncWriteDisable().make();
+            db.engine.put(new GregorianCalendar(1,1,1), db.getDefaultSerializer());
+            fail();
+        }catch(IOError e){
+            assertTrue(e.getCause().getMessage().contains("#17"));
+        }
+
+        try{
+            DB db = DBMaker.newMemoryDB().asyncWriteDisable().make();
+            db.engine.put(new JLabel("aa"), db.getDefaultSerializer());
+            fail();
+        }catch(IOError e){
+            assertTrue(e.getCause().getMessage().contains("#17"));
+        }
+
+    }
+
 
 }

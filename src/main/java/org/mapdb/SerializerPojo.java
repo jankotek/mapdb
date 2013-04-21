@@ -357,6 +357,22 @@ public class SerializerPojo extends SerializerBase{
 
         if (!Serializable.class.isAssignableFrom(clazz))
             throw new NotSerializableException(clazz.getName());
+
+        try {
+            Method m = clazz.getDeclaredMethod("writeObject",ObjectOutputStream.class);
+            if(m!=null) throw new NotSerializableException(
+                    "Class '"+clazz.getName()+"' has 'writeObject' method, this serialization is not supported yet, see Issue #17.");
+        } catch (NoSuchMethodException e) {
+            //expected
+        }
+        try{
+            Method m = clazz.getDeclaredMethod("readObject",ObjectInputStream.class);
+            if(m!=null) throw new NotSerializableException(
+                    "Class '"+clazz.getName()+"' has 'readObject' method, this serialization is not supported yet, see Issue #17.");
+        } catch (NoSuchMethodException e) {
+            //expected
+        }
+
     }
 
     public Object getFieldValue(String fieldName, Object object) {
@@ -610,6 +626,7 @@ public class SerializerPojo extends SerializerBase{
             return (T)c.newInstance();
         }
     }
+
 
 //    protected abstract Object deserialize(DataInput in, FastArrayList objectStack) throws IOException, ClassNotFoundException;
 
