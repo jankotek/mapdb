@@ -46,7 +46,7 @@ public class DBMaker {
     /** file to open, if null opens in memory store */
     protected File _file;
 
-    protected boolean _journalEnabled = true;
+    protected boolean _writeAheadLogEnabled = true;
 
     protected boolean _asyncWriteEnabled = true;
     protected int _asyncFlushDelay = 100;
@@ -210,7 +210,7 @@ public class DBMaker {
      * @return this builder
      */
     public DBMaker writeAheadLogDisable(){
-        this._journalEnabled = false;
+        this._writeAheadLogEnabled = false;
         return this;
     }
 
@@ -579,7 +579,7 @@ public class DBMaker {
                 Volume.memoryFactory(_ifInMemoryUseDirectBuffer):
                 Volume.fileFactory(_readOnly, _rafMode, _file);
 
-            engine = _journalEnabled ?
+            engine = _writeAheadLogEnabled ?
                     //TODO add extra params
                 //new StoreWAL(folFac, _freeSpaceReclaimDisabled, _deleteFilesAfterClose, _failOnWrongHeader, _readOnly):
                 //new StoreDirect(folFac, _freeSpaceReclaimDisabled, _deleteFilesAfterClose , _failOnWrongHeader, _readOnly);
@@ -587,7 +587,7 @@ public class DBMaker {
                 new StoreDirect(folFac,  _readOnly,_deleteFilesAfterClose, _freeSpaceReclaimQ);
         }else{
             if(_file==null) throw new UnsupportedOperationException("Append Storage format is not supported with in-memory dbs");
-            engine = new StoreAppend(_file, _rafMode>0, _readOnly, !_journalEnabled, _deleteFilesAfterClose);
+            engine = new StoreAppend(_file, _rafMode>0, _readOnly, !_writeAheadLogEnabled, _deleteFilesAfterClose);
         }
 
         if(_checksumEnabled){
