@@ -1,5 +1,6 @@
 package org.mapdb;
 
+import java.util.Arrays;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -110,5 +111,11 @@ public class CacheLRU extends EngineWrapper {
         //TODO locking here?
         checkClosed(cache).clear();
         super.rollback();
+    }
+
+    @Override
+    public void clearCache() {
+        cache.clear();
+        super.clearCache();
     }
 }

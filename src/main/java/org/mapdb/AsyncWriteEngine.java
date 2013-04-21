@@ -311,4 +311,23 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
         }
     }
 
+    @Override
+    public void clearCache() {
+        commitLock.writeLock().lock();
+        try{
+            checkState();
+            //wait for response from writer thread
+            while(!items.isEmpty()){
+                checkState();
+                Thread.sleep(250);
+            }
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }finally {
+            commitLock.writeLock().unlock();
+        }
+        super.clearCache();
+    }
+
+
 }

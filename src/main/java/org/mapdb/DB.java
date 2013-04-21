@@ -45,6 +45,10 @@ public class DB {
      */
     public DB(final Engine engine){
         this.engine = engine;
+        reinit();
+    }
+
+    protected void reinit() {
         // load serializer
         final CopyOnWriteArrayList<SerializerPojo.ClassInfo> classInfos = engine.get(Engine.CLASS_INFO_RECID, SerializerPojo.serializer);
         this.defaultSerializer = new SerializerPojo(classInfos){
@@ -58,7 +62,6 @@ public class DB {
 
         //open name dir
         nameDir = HTreeMap.preinitNamedDir(engine);
-
     }
 
     /**

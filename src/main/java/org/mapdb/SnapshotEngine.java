@@ -124,6 +124,7 @@ public class SnapshotEngine extends EngineWrapper{
         }
     }
 
+
     public static Engine createSnapshotFor(Engine engine) {
         SnapshotEngine se = null;
         while(true){

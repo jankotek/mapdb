@@ -70,6 +70,9 @@ public class ExamplesTest {
         TreeMap_Composite_Key.main(args);
     }
 
+    @Test public void Pump_InMemory_Import_Than_Save_To_Disk(){
+        Pump_InMemory_Import_Than_Save_To_Disk.main(args);
+    }
 
 
 

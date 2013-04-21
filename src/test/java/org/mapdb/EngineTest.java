@@ -22,6 +22,8 @@ public abstract class EngineTest<ENGINE extends Engine>{
         e=openEngine();
     }
 
+    boolean canReopen(){return true;}
+
     ENGINE e;
     @Before public void init(){
         e = openEngine();
@@ -34,6 +36,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
     }
 
     @Test public void put_reopen_get(){
+        if(!canReopen()) return;
         Long l = 11231203099090L;
         long recid = e.put(l, Serializer.LONG_SERIALIZER);
         e.commit();
@@ -49,6 +52,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
     }
 
     @Test public void put_reopen_get_large(){
+        if(!canReopen()) return;
         byte[] b = new byte[(int) 1e6];
         Utils.RANDOM.nextBytes(b);
         long recid = e.put(b, Serializer.BYTE_ARRAY_SERIALIZER);
@@ -59,7 +63,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
 
     @Test public void first_recid(){
-        assertEquals(Engine.LAST_RESERVED_RECID+1, e.put(1,Serializer.INTEGER_SERIALIZER));
+        assertEquals(Store.LAST_RESERVED_RECID+1, e.put(1,Serializer.INTEGER_SERIALIZER));
     }
 
 

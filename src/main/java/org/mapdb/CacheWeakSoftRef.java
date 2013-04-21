@@ -215,4 +215,10 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
         super.rollback();
     }
 
+    @Override
+    public void clearCache() {
+        items.clear();
+        super.clearCache();
+    }
+
 }

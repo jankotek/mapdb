@@ -16,6 +16,7 @@
 
 package org.mapdb;
 
+import java.util.Arrays;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -165,6 +166,12 @@ public class CacheHashTable extends EngineWrapper implements Engine {
         for(int i = 0;i<items.length;i++)
             items[i] = null;
         super.rollback();
+    }
+
+    @Override
+    public void clearCache() {
+        Arrays.fill(items,null);
+        super.clearCache();
     }
 
 

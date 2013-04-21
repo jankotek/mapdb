@@ -187,5 +187,8 @@ public interface Engine {
      */
     boolean isReadOnly();
 
+    /** clears any underlying cache */
+    void clearCache();
+
     void compact();
 }

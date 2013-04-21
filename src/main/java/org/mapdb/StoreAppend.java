@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
 import java.util.Iterator;
+import java.nio.ByteBuffer;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -13,7 +14,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 
 // TODO mod operation '%' is significantly slower than bitwise and. If you use size w/ exact pow 2, bitwise and is a no-brainer for position numbers.
-public class StoreAppend implements Engine{
+public class StoreAppend implements Store{
 
     protected final File file;
     protected final boolean useRandomAccessFile;
@@ -410,6 +411,10 @@ public class StoreAppend implements Engine{
     }
 
     @Override
+    public void clearCache() {
+    }
+
+    @Override
     public void compact() {
         //traverse list of recids, find and delete files which are not used
         //TODO lock all locks?
@@ -439,8 +444,37 @@ public class StoreAppend implements Engine{
         }finally {
             structuralLock.unlock();
         }
+    }
 
+    @Override
+    public long getMaxRecid() {
+        return maxRecid;
+    }
 
+    @Override
+    public ByteBuffer getRaw(long recid) {
+        //TODO use direct BB
+        byte[] bb = get(recid, Serializer.BYTE_ARRAY_SERIALIZER);
+        if(bb==null) return null;
+        return ByteBuffer.wrap(bb);
+    }
+
+    @Override
+    public Iterator<Long> getFreeRecids() {
+        return java.util.Collections.emptyIterator(); //TODO implement after free recids are done
+    }
+
+    @Override
+    public void updateRaw(long recid, ByteBuffer data) {
+        recidsTable.ensureAvailable(recid*8+8);
+
+        byte[] b = null;
+        if(data!=null) synchronized (data){
+            b = new byte[data.remaining()];
+            data.get(b);
+        }
+        //TODO use BB without copying
+        update(recid, b, Serializer.BYTE_ARRAY_SERIALIZER);
     }
 
 }

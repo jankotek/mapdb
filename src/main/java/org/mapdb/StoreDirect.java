@@ -18,7 +18,10 @@ package org.mapdb;
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -28,7 +31,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *
  * @author Jan Kotek
  */
-public class StoreDirect implements Engine{
+public class StoreDirect implements Store{
 
     protected static final long MASK_OFFSET = 0x0000FFFFFFFFFFFFL;
 
@@ -106,7 +109,7 @@ public class StoreDirect implements Engine{
     }
 
     protected void createStructure() {
-        indexSize = IO_USER_START+Engine.LAST_RESERVED_RECID*8+8;
+        indexSize = IO_USER_START+LAST_RESERVED_RECID*8+8;
         index.ensureAvailable(indexSize);
         for(int i=0;i<indexSize;i+=8) index.putLong(i,0L);
         index.putLong(0, HEADER);
@@ -477,6 +480,10 @@ public class StoreDirect implements Engine{
     }
 
     @Override
+    public void clearCache() {
+    }
+
+    @Override
     public void compact() {
 
         if(readOnly) throw new IllegalAccessError();
@@ -711,4 +718,39 @@ public class StoreDirect implements Engine{
         }
     }
 
+    @Override
+    public long getMaxRecid() {
+        return (indexSize-IO_USER_START)/8;
+    }
+
+    @Override
+    public ByteBuffer getRaw(long recid) {
+        //TODO use direct BB
+        byte[] bb = get(recid, Serializer.BYTE_ARRAY_SERIALIZER);
+        if(bb==null) return null;
+        return ByteBuffer.wrap(bb);
+    }
+
+    @Override
+    public Iterator<Long> getFreeRecids() {
+        return Collections.emptyIterator(); //TODO iterate over stack of free recids, without modifying it
+    }
+
+    @Override
+    public void updateRaw(long recid, ByteBuffer data) {
+        long ioRecid = recid*8 + IO_USER_START;
+        if(ioRecid>=indexSize){
+            indexSize = ioRecid+8;
+            index.ensureAvailable(indexSize);
+        }
+
+        byte[] b = null;
+
+        if(data!=null) synchronized (data){
+            b = new byte[data.remaining()];
+            data.get(b);
+        }
+        //TODO use BB without copying
+        update(recid, b, Serializer.BYTE_ARRAY_SERIALIZER);
+    }
 }

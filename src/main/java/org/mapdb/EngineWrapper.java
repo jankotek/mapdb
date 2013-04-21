@@ -95,6 +95,11 @@ public abstract class EngineWrapper implements Engine{
     }
 
     @Override
+    public void clearCache() {
+        getWrappedEngine().clearCache();
+    }
+
+    @Override
     public void compact() {
         getWrappedEngine().compact();
     }
@@ -148,6 +153,7 @@ public abstract class EngineWrapper implements Engine{
         public boolean isReadOnly() {
             return true;
         }
+
 
     }
 
