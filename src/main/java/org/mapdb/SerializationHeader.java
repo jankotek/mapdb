@@ -110,6 +110,7 @@ interface SerializationHeader {
 
     int  STRING_EMPTY = 101;
     int  STRING = 103;
+    int  STRING_1 = 104;
 
     int  ARRAYLIST = 105;
 
@@ -175,6 +176,16 @@ interface SerializationHeader {
     int KEY_TUPLE2_SERIALIZER = 157;
     int KEY_TUPLE3_SERIALIZER = 158;
     int KEY_TUPLE4_SERIALIZER = 159;
+
+    int STRING_2 = 160;
+    int STRING_3 = 161;
+    int STRING_4 = 162;
+    int STRING_5 = 163;
+    int STRING_6 = 164;
+    int STRING_7 = 165;
+    int STRING_8 = 167;
+    int STRING_9 = 168;
+    int STRING_10 = 169;
 
     /**
      * used for reference to already serialized object in object graph

@@ -128,6 +128,7 @@ public final class DataInput2 implements DataInput {
 
     @Override
     public String readUTF() throws IOException {
-        return SerializerBase.deserializeString(this);
+        final int size = Utils.unpackInt(this);
+        return SerializerBase.deserializeString(this, size);
     }
 }

@@ -163,13 +163,6 @@ public class SerializerBaseTest extends TestCase {
     }
 
 
-//    public void testObject() throws ClassNotFoundException, IOException {
-//        SimpleEntry a = new SimpleEntry(1, "11");
-//        byte[] buf = serialize(a);
-//        SimpleEntry l2 = (SimpleEntry) deserialize(buf);
-//        assertEquals(l2, a);
-//    }
-
     public void testNoArgumentConstructorInJavaSerialization() throws ClassNotFoundException, IOException {
         SimpleEntry a = new SimpleEntry(1, "11");
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -461,6 +454,14 @@ public class SerializerBaseTest extends TestCase {
         assertEquals(BTreeKeySerializer.TUPLE2, Utils.clone(BTreeKeySerializer.TUPLE2,SerializerBase.BASIC_SERIALIZER));
         assertEquals(BTreeKeySerializer.TUPLE3, Utils.clone(BTreeKeySerializer.TUPLE3,SerializerBase.BASIC_SERIALIZER));
         assertEquals(BTreeKeySerializer.TUPLE4, Utils.clone(BTreeKeySerializer.TUPLE4,SerializerBase.BASIC_SERIALIZER));
+    }
+
+
+    public void test_strings_var_sizes() throws IOException {
+        for(int i=0;i<50;i++){
+            String s = Utils.randomString(i);
+            assertEquals(s, deserialize(serialize(s)));
+        }
     }
 
 }

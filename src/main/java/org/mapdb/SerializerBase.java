@@ -238,13 +238,7 @@ public class SerializerBase implements Serializer{
             out.writeChar((Character) obj);
             return;
         } else if (clazz == String.class) {
-            String s = (String) obj;
-            if (s.length() == 0) {
-                out.write(STRING_EMPTY);
-            } else {
-                out.write(STRING);
-                serializeString(out, s);
-            }
+            serializeString(out, (String)obj);
             return;
         } else if (obj instanceof Class) {
             out.write(CLASS);
@@ -538,7 +532,20 @@ public class SerializerBase implements Serializer{
 
     static void serializeString(DataOutput out, String obj) throws IOException {
         final int len = obj.length();
-        Utils.packInt(out, len);
+        switch(len){
+            case 0: out.write(STRING_EMPTY);return;
+            case 1: out.write(STRING_1);break;
+            case 2: out.write(STRING_2);break;
+            case 3: out.write(STRING_3);break;
+            case 4: out.write(STRING_4);break;
+            case 5: out.write(STRING_5);break;
+            case 6: out.write(STRING_6);break;
+            case 7: out.write(STRING_7);break;
+            case 8: out.write(STRING_8);break;
+            case 9: out.write(STRING_9);break;
+            case 10: out.write(STRING_10);break;
+            default:out.write(STRING);Utils.packInt(out, len);break;
+        }
         for (int i = 0; i < len; i++) {
             int c = (int) obj.charAt(i); //TODO investigate if c could be negative here
             Utils.packInt(out, c);
@@ -739,8 +746,7 @@ public class SerializerBase implements Serializer{
 
 
 
-    static String deserializeString(DataInput buf) throws IOException {
-        int len = Utils.unpackInt(buf);
+    static String deserializeString(DataInput buf, int len) throws IOException {
         char[] b = new char[len];
         for (int i = 0; i < len; i++)
             b[i] = (char) Utils.unpackInt(buf);
@@ -953,10 +959,40 @@ public class SerializerBase implements Serializer{
                 ret = new BigDecimal(new BigInteger(deserializeArrayByte(is)), Utils.unpackInt(is));
                 break;
             case STRING:
-                ret = deserializeString(is);
+                ret = deserializeString(is, Utils.unpackInt(is));
                 break;
             case STRING_EMPTY:
                 ret = Utils.EMPTY_STRING;
+                break;
+            case STRING_1:
+                ret = deserializeString(is, 1);
+                break;
+            case STRING_2:
+                ret = deserializeString(is, 2);
+                break;
+            case STRING_3:
+                ret = deserializeString(is, 3);
+                break;
+            case STRING_4:
+                ret = deserializeString(is, 4);
+                break;
+            case STRING_5:
+                ret = deserializeString(is, 5);
+                break;
+            case STRING_6:
+                ret = deserializeString(is, 6);
+                break;
+            case STRING_7:
+                ret = deserializeString(is, 7);
+                break;
+            case STRING_8:
+                ret = deserializeString(is, 8);
+                break;
+            case STRING_9:
+                ret = deserializeString(is, 9);
+                break;
+            case STRING_10:
+                ret = deserializeString(is, 10);
                 break;
             case CLASS:
                 ret = deserializeClass(is);

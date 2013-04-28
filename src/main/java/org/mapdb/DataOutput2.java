@@ -140,6 +140,11 @@ public final class DataOutput2 implements DataOutput {
 
     @Override
     public void writeUTF(final String s) throws IOException {
-        SerializerBase.serializeString(this, s);
+        final int len = s.length();
+        Utils.packInt(this, len);
+        for (int i = 0; i < len; i++) {
+            int c = (int) s.charAt(i); //TODO investigate if c could be negative here
+            Utils.packInt(this, c);
+        }
     }
 }
