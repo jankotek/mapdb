@@ -3,6 +3,7 @@ MapDB provides concurrent Maps, Sets and Queues backed by disk storage or off-he
 
 News
 ====
+* 2013-04-22 Blogpost outlining my future plans with MapDB [has been posted](http://www.kotek.net/blog/MapDB_Future)
 * 2013-04-14 MapDB 0.9.1 was just released. It fixes dozen of critical bugs and upgrade is highly recommended. 
   Release notes are [here](https://github.com/jankotek/MapDB/blob/master/release_notes.md#version-091-2013-04-14)    
 
