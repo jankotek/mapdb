@@ -167,30 +167,39 @@
                     <forkMode>always</forkMode>
                     <includes>
                         <include>**/*/*.*</include>
-                    </includes>
+                    </incl`udes>
                 </configuration>
             </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.9</version>
+                <!--                <reportSets>
+                                    <reportSet>
+                                        <id>html</id>
+                                        <reports>
+                                            <report>javadoc</report>
+                                        </reports>
+                                    </reportSet>
+                                </reportSets> -->
+                <configuration>
+
+                    <doclet>ch.raffael.doclets.pegdown.PegdownDoclet</doclet>
+                    <docletArtifact>
+                        <groupId>ch.raffael.pegdown-doclet</groupId>
+                        <artifactId>pegdown-doclet</artifactId>
+                        <version>1.1-SNAPSHOT</version>
+                    </docletArtifact>
+                    <useStandardDocletOptions>true</useStandardDocletOptions>
+                </configuration>
+            </plugin>
+
         </plugins>
     </build>
 
     <reporting>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.9</version>
-                <reportSets>
-                    <reportSet>
-                        <id>html</id>
-                        <reports>
-                            <report>javadoc</report>
-                        </reports>
-                    </reportSet>
-                </reportSets>
-                <configuration>
-                    <show>public</show>
-                </configuration>
-            </plugin>
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
