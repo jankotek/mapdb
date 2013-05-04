@@ -167,7 +167,7 @@
                     <forkMode>always</forkMode>
                     <includes>
                         <include>**/*/*.*</include>
-                    </incl`udes>
+                    </includes>
                 </configuration>
             </plugin>
 
