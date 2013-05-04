@@ -58,6 +58,9 @@ final public class Utils {
     public static final String UTF8 = "UTF8";
     public static Random RANDOM = new Random();
 
+    /** empty iterator (note: Collections.EMPTY_ITERATOR is Java 7 specific and should not be used)*/
+    public static final Iterator EMPTY_ITERATOR = new ArrayList(0).iterator();
+
 
     /**
      * Pack  non-negative long into output stream.

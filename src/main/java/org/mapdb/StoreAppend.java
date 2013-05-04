@@ -461,7 +461,7 @@ public class StoreAppend implements Store{
 
     @Override
     public Iterator<Long> getFreeRecids() {
-        return java.util.Collections.emptyIterator(); //TODO implement after free recids are done
+        return Utils.EMPTY_ITERATOR; //TODO implement after free recids are done
     }
 
     @Override

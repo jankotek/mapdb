@@ -733,7 +733,7 @@ public class StoreDirect implements Store{
 
     @Override
     public Iterator<Long> getFreeRecids() {
-        return Collections.emptyIterator(); //TODO iterate over stack of free recids, without modifying it
+        return Utils.EMPTY_ITERATOR; //TODO iterate over stack of free recids, without modifying it
     }
 
     @Override
