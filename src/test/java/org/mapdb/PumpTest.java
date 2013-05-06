@@ -3,10 +3,9 @@ package org.mapdb;
 
 import org.junit.Test;
 
-import java.util.Map;
+import java.util.*;
 
-import static junit.framework.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.*;
 
 public class PumpTest {
 
@@ -89,6 +88,24 @@ public class PumpTest {
                 throw new RuntimeException("Failed with "+srcc+" - "+targetc,e);
             }
         }
+
+
+    }
+
+    @Test public void presort(){
+        final Integer max = 10000;
+        List<Integer> list = new ArrayList<Integer>(max);
+        for(Integer i=0;i<max;i++) list.add(i);
+        Collections.shuffle(list);
+
+        Iterator<Integer> sorted = Pump.sort(list.iterator(),max/20,
+                Utils.COMPARABLE_COMPARATOR, Serializer.INTEGER_SERIALIZER);
+
+        Integer counter=0;
+        while(sorted.hasNext()){
+            assertEquals(counter++, sorted.next());
+        }
+        assertEquals(max,counter);
 
 
     }
