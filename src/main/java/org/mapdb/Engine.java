@@ -17,39 +17,43 @@
 package org.mapdb;
 
 /**
- * Central interface for managing records.
- * It is primitive key value store, with <code>long</code> keys and object instances values.
- * It contains basic CRUD operations.
- * <p/>
- * MapDB (unlike other DBs) does not use binary <code>byte[]</code> for its values.
- * Instead it takes object instance with serializer, and manages serialization/deserialization itself.
- * Integrating serialization into database gives us lot of flexibility.
- * <p/>
- * There is {@link Storage} class which implements basic persistence. Most of MapDB features
- * comes from {@link EngineWrapper}, they are stacked on top of each other
- * to provide asynchronous writes, instance cache, encryption etc..
- * <code>Engine</code> stack is very elegant and uniform way to handle additional functionality.
- *  Other DBs need an ORM framework to achieve similar features.
- * <p/>
- * In default configuration MapDB runs with this <code>Engine</code> stack:
- * <pre>
- *                     [DISK IO]
- *       StorageJournaled - permament record storage with journaled transactions
- *       AsyncWriteEngine - asynchronous writes to storage
- *    ByteTransformEngine - compression or encryption (optional)
- *         CacheHashTable - instance cache
- *         SnapshotEngine - support for snapshots
- *                     [USER API]
- * </pre>
+ * Centerpiece for record management, `Engine` is simple key value store.
+ * Engine is low-level interface and is not meant to be used directly
+ * by user. For most operations user should use {@link DB} class.
  *
- * <p/>
- * Engine uses 'recid' to identify records. There is zero error handling in case recid is invalid
+ * In this store key is primitive `long` number, typically pointer to index table.
+ * Value is class instance. To turn value into/from binary form serializer is
+ * required as extra argument for most operations.
+ *
+ * Unlike other DBs MapDB does not expect user to (de)serialize data before
+ * they are passed as arguments. Instead MapDB controls (de)serialization itself.
+ * This gives DB a lot of flexibility: for example instances may be held in
+ * cache to minimise number of deserializations, or modified instance can
+ * be placed into queue and asynchronously written on background thread.
+ *
+ * There is {@link Store} subinterface for raw persistence
+ * Most of MapDB features comes from {@link EngineWrapper}s, which are stacked on
+ * top of each other to provide asynchronous writes, instance cache, encryption etc..
+ * `Engine` stack is very elegant and uniform way to handle additional functionality.
+ * Other DBs need an ORM framework to achieve similar features.
+
+ * In default configuration MapDB runs with this `Engine` stack:
+ *
+ *  * **DISK** - raw file or memory
+ *  * {@link StoraWAL} - permanent record store with transactions
+ *  * {@link AsyncWriteEngine} - asynchronous writes to storage
+ *  * {@link EngineWrapper.ByteTransformEngine} - compression or encryption (optional)
+ *  * {@link CacheHashTable} - instance cache
+ *  * {@link SnapshotEngine} - support for snapshots
+ *  * **USER** - {@link DB} and collections
+ *
+ * Engine uses `recid` to identify records. There is zero error handling in case recid is invalid
  * (random number or already deleted record). Passing illegal recid may result into anything
  * (return null, throw EOF or even corrupt store). Engine is considered low-level component
  * and it is responsibility of upper layers (collections) to ensure recid is consistent.
  * Lack of error handling is trade of for speed (similar way as manual memory management in C++)
  * <p/>
- * Engine must support {@code null} record values. You may insert, update and fetch null records.
+ * Engine must support `null` record values. You may insert, update and fetch null records.
  * Nulls play important role in recid preallocation and asynchronous writes.
  * <p/>
  * Recid can be reused after it was deleted. If your application relies on unique being unique,

@@ -23,7 +23,7 @@ public class AsyncWriteEngineTest extends TestFile{
         assertNotNull(index);
         if(engine !=null)
            engine.close();
-        engine =  new AsyncWriteEngine(new StoreDirect(fac),  0);
+        engine =  new AsyncWriteEngine(new StoreDirect(fac));
     }
 
 
@@ -91,7 +91,7 @@ public class AsyncWriteEngineTest extends TestFile{
                 return super.put(value, serializer);
             }
         };
-        AsyncWriteEngine a = new AsyncWriteEngine(t, 0);
+        AsyncWriteEngine a = new AsyncWriteEngine(t);
         byte[] b = new byte[124];
 
         long max = 100;
@@ -106,12 +106,12 @@ public class AsyncWriteEngineTest extends TestFile{
         a.commit();
         //TODO reenable when newRecids are introduced
         //assertEquals(max, putCounter.longValue() - a.newRecids.size());
-        assertTrue(a.items.isEmpty());
+        assertTrue(a.writeCache.isEmpty());
         t.close();
 
         //now reopen db and check ths
         t = new StoreWAL(fac);
-        a = new AsyncWriteEngine(t,  0);
+        a = new AsyncWriteEngine(t);
         for(Integer i=0;i<max;i++){
             long recid = l.get(i);
             assertArrayEquals(b, (byte[]) a.get(recid, Serializer.BASIC_SERIALIZER));

@@ -49,7 +49,7 @@ public class DBMaker {
     protected boolean _writeAheadLogEnabled = true;
 
     protected boolean _asyncWriteEnabled = true;
-    protected int _asyncFlushDelay = 100;
+    protected int _asyncFlushDelay = CC.ASYNC_WRITE_FLUSH_DELAY;
 
     protected boolean _deleteFilesAfterClose = false;
     protected boolean _readOnly = false;
@@ -606,7 +606,7 @@ public class DBMaker {
 
         AsyncWriteEngine engineAsync = null;
         if(_asyncWriteEnabled && !_readOnly){
-            engineAsync = new AsyncWriteEngine(engine, _asyncFlushDelay);
+            engineAsync = new AsyncWriteEngine(engine, _asyncFlushDelay, CC.ASYNC_WRITE_QUEUE_SIZE, null);
             engine = engineAsync;
         }
 
