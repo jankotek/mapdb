@@ -22,6 +22,8 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.Queue;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -80,6 +82,8 @@ public class StoreDirect implements Store{
     protected final boolean spaceReclaimReuse;
     protected final boolean spaceReclaimTrack;
 
+    protected final Queue<DataOutput2> recycledDataOuts = new ArrayBlockingQueue<DataOutput2>(128);
+
     public StoreDirect(Volume.Factory volFac, boolean readOnly, boolean deleteFilesAfterClose,
                        int spaceReclaimMode) {
         this.readOnly = readOnly;
@@ -136,7 +140,7 @@ public class StoreDirect implements Store{
         }
 
         put2(out, ioRecid, indexVals);
-
+        recycledDataOuts.offer(out);
         return (ioRecid-IO_USER_START)/8;
     }
 
@@ -225,7 +229,7 @@ public class StoreDirect implements Store{
         }
         int start = di.pos;
         A ret = serializer.deserialize(di,size);
-        if(size+start>di.pos)throw new InternalError("data were not fully read, check your serializier");
+        if(size+start>di.pos)throw new InternalError("data were not fully read, check your serializier "+ioRecid);
         if(size+start<di.pos)throw new InternalError("data were read beyond record size, check your serializier");
         return ret;
     }
@@ -266,12 +270,14 @@ public class StoreDirect implements Store{
         }finally{
             Utils.writeUnlock(locks, recid);
         }
+        recycledDataOuts.offer(out);
     }
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
         final long ioRecid = IO_USER_START + recid*8;
         Utils.writeLock(locks, recid);
+        DataOutput2 out;
         try{
             /*
              * deserialize old value
@@ -288,7 +294,7 @@ public class StoreDirect implements Store{
             /*
              * write new value
              */
-            DataOutput2 out = serialize(newValue, serializer);
+             out = serialize(newValue, serializer);
 
             long indexVal = index.getLong(ioRecid);
             long[] indexVals = spaceReclaimTrack ? getLinkedRecordsIndexVals(indexVal) : null;
@@ -313,12 +319,14 @@ public class StoreDirect implements Store{
             }
 
             put2(out, ioRecid, indexVals);
-            return true;
+
         }catch(IOException e){
             throw new IOError(e);
         }finally{
             Utils.writeUnlock(locks, recid);
         }
+        recycledDataOuts.offer(out);
+        return true;
     }
 
     @Override
@@ -710,7 +718,10 @@ public class StoreDirect implements Store{
 
     protected <A> DataOutput2 serialize(A value, Serializer<A> serializer) {
         try {
-            DataOutput2 out = new DataOutput2();
+            DataOutput2 out = recycledDataOuts.poll();
+            if(out==null) out = new DataOutput2();
+            else out.pos=0;
+
             serializer.serialize(out,value);
             return out;
         } catch (IOException e) {

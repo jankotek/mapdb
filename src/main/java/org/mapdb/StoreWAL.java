@@ -98,6 +98,7 @@ public class StoreWAL extends StoreDirect {
         walPhysArray(out, physPos, logPos);
 
         modified.put(ioRecid,logPos);
+        recycledDataOuts.offer(out);
         return (ioRecid-IO_USER_START)/8;
     }
 
@@ -265,19 +266,21 @@ public class StoreWAL extends StoreDirect {
         }finally{
             Utils.writeUnlock(locks,recid);
         }
+        recycledDataOuts.offer(out);
     }
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
         final long ioRecid = IO_USER_START + recid*8;
         Utils.writeLock(locks,recid);
+        DataOutput2 out;
         try{
 
             A oldVal = get2(ioRecid,serializer);
             if((oldVal == null && expectedOldValue!=null) || (oldVal!=null && !oldVal.equals(expectedOldValue)))
                 return false;
 
-            DataOutput2 out = serialize(newValue, serializer);
+            out = serialize(newValue, serializer);
 
             final long[] physPos;
             final long[] logPos;
@@ -319,13 +322,14 @@ public class StoreWAL extends StoreDirect {
             walPhysArray(out, physPos, logPos);
 
             modified.put(ioRecid,logPos);
-            return true;
+
         }catch(IOException e){
             throw new IOError(e);
         }finally{
             Utils.writeUnlock(locks,recid);
         }
-
+        recycledDataOuts.offer(out);
+        return true;
     }
 
     @Override
