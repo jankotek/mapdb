@@ -153,8 +153,14 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             //first write mask which indicate subarray nullability
             int nulls = 0;
             for(int i = 0;i<16;i++){
-                if(value[i]!=null)
-                    nulls |= 1<<i;
+                if(value[i]!=null){
+                    for(long l:value[i]){
+                        if(l!=0){
+                            nulls |= 1<<i;
+                            break;
+                        }
+                    }
+                }
             }
             out.writeShort(nulls);
 
@@ -460,6 +466,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 }
 
                 if(dir[slot/8] == null){
+                    dir = Arrays.copyOf(dir,16);
                     dir[slot/8] = new long[8];
                 }
 
@@ -522,6 +529,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                     //insert nextDir and update parent dir
                     long nextDirRecid = engine.put(nextDir, DIR_SERIALIZER);
                     int parentPos = (h>>>(7*level )) & 0x7F;
+                    dir = Arrays.copyOf(dir,16);
+                    dir[parentPos/8] = Arrays.copyOf(dir[parentPos/8],8);
                     dir[parentPos/8][parentPos%8] = (nextDirRecid<<1) | 0;
                     engine.update(dirRecid, dir, DIR_SERIALIZER);
                     notify(key, null, value);
@@ -530,6 +539,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                     // record does not exist in linked list, so create new one
                     recid = dir[slot/8][slot%8]>>>1;
                     long newRecid = engine.put(new LinkedNode<K, V>(recid, key, value), LN_SERIALIZER);
+                    dir = Arrays.copyOf(dir,16);
+                    dir[slot/8] = Arrays.copyOf(dir[slot/8],8);
                     dir[slot/8][slot%8] = (newRecid<<1) | 1;
                     engine.update(dirRecid, dir, DIR_SERIALIZER);
                     notify(key, null, value);
@@ -566,6 +577,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 }
 
                 if(dir[slot/8] == null){
+                    dir = Arrays.copyOf(dir,16);
                     dir[slot/8] = new long[8];
                 }
 
@@ -594,6 +606,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
 
                                 }else{
+                                    dir=Arrays.copyOf(dir,16);
+                                    dir[slot/8] = Arrays.copyOf(dir[slot/8],8);
                                     dir[slot/8][slot%8] = (ln.next<<1)|1;
                                     engine.update(dirRecids[level], dir, DIR_SERIALIZER);
                                 }
@@ -628,6 +642,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
 
     private void recursiveDirDelete(int h, int level, long[] dirRecids, long[][] dir, int slot) {
+        //TODO keep dir immutable while recursive delete
         //was only item in linked list, so try to collapse the dir
         dir[slot/8][slot%8] = 0;
         //one record was zeroed out, check if subarray can be collapsed to null
