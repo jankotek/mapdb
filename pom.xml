@@ -171,18 +171,26 @@
                 </configuration>
             </plugin>
 
+
+        </plugins>
+    </build>
+
+    <reporting>
+        <plugins>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>2.9</version>
-                <!--                <reportSets>
-                                    <reportSet>
-                                        <id>html</id>
-                                        <reports>
-                                            <report>javadoc</report>
-                                        </reports>
-                                    </reportSet>
-                                </reportSets> -->
+                <reportSets>
+                    <reportSet>
+                        <id>html</id>
+                        <reports>
+                            <report>javadoc</report>
+                        </reports>
+                    </reportSet>
+                </reportSets>
+
                 <configuration>
 
                     <doclet>ch.raffael.doclets.pegdown.PegdownDoclet</doclet>
@@ -195,11 +203,6 @@
                 </configuration>
             </plugin>
 
-        </plugins>
-    </build>
-
-    <reporting>
-        <plugins>
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
