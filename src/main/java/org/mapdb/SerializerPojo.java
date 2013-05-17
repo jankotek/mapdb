@@ -554,6 +554,8 @@ public class SerializerPojo extends SerializerBase{
     static protected Method sunConstructor = null;
     static protected Object sunReflFac = null;
     static protected Method androidConstructor = null;
+    static private Method androidConstructorGinger = null;
+    static private int constructorId;
 
     static{
         try{
@@ -578,7 +580,22 @@ public class SerializerPojo extends SerializerBase{
             //ignore
         }
 
+        //this method was taken from 
+        //http://dexmaker.googlecode.com/git-history/5a7820356e68a977711afc854d6cd71296c56391/src/mockito/java/com/google/dexmaker/mockito/UnsafeAllocator.java
+        //Copyright (C) 2012 The Android Open Source Project, licenced under Apache 2 license
+        if(sunConstructor == null && androidConstructor == null)try{
+            //try android post ginger way
+            Method getConstructorId = ObjectStreamClass.class.getDeclaredMethod("getConstructorId", Class.class);
+            getConstructorId.setAccessible(true);
+            constructorId = (Integer) getConstructorId.invoke(null, Object.class);
 
+            Method newInstance = ObjectStreamClass.class.getDeclaredMethod("newInstance", Class.class, int.class);
+            newInstance.setAccessible(true);
+            androidConstructorGinger = newInstance;
+
+        }catch(Exception e){
+            //ignore
+        }
     }
 
 
@@ -615,7 +632,11 @@ public class SerializerPojo extends SerializerBase{
         }else if(androidConstructor!=null){
             //android (harmony) specific way
             return (T)androidConstructor.invoke(null, clazz, Object.class);
-        }else{
+        }else if(androidConstructorGinger!=null){
+            //android (post ginger) specific way
+            return (T)androidConstructorGinger.invoke(null, clazz, constructorId);
+        }
+        else{
             //try usual generic stuff which does not skip constructor
             Constructor<?> c = class2constuctor.get(clazz);
             if(c==null){
