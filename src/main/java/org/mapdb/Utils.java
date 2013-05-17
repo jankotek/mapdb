@@ -303,7 +303,7 @@ final public class Utils {
     }
 
     public static void lock(ReentrantLock[] locks, long recid) {
-        locks[Utils.longHash(recid)%locks.length].lock();
+        locks[Math.abs(Utils.longHash(recid)%locks.length)].lock();
     }
 
     public static void lockAll(ReentrantLock[] locks) {
@@ -316,24 +316,24 @@ final public class Utils {
 
 
     public static void unlock(ReentrantLock[] locks, long recid) {
-        locks[Utils.longHash(recid)%locks.length].unlock();
+        locks[Math.abs(Utils.longHash(recid)%locks.length)].unlock();
     }
 
 
     public static void readLock(ReentrantReadWriteLock[] locks, long recid) {
-        locks[Utils.longHash(recid)%locks.length].readLock().lock();
+        locks[Math.abs(Utils.longHash(recid)%locks.length)].readLock().lock();
     }
 
     public static void readUnlock(ReentrantReadWriteLock[] locks, long recid) {
-        locks[Utils.longHash(recid)%locks.length].readLock().unlock();
+        locks[Math.abs(Utils.longHash(recid)%locks.length)].readLock().unlock();
     }
 
     public static void writeLock(ReentrantReadWriteLock[] locks, long recid) {
-        locks[Utils.longHash(recid)%locks.length].writeLock().lock();
+        locks[Math.abs(Utils.longHash(recid)%locks.length)].writeLock().lock();
     }
 
     public static void writeUnlock(ReentrantReadWriteLock[] locks, long recid) {
-        locks[Utils.longHash(recid)%locks.length].writeLock().unlock();
+        locks[Math.abs(Utils.longHash(recid)%locks.length)].writeLock().unlock();
     }
 
     public static void writeLockAll(ReentrantReadWriteLock[] locks) {
