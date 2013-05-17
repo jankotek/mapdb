@@ -46,7 +46,7 @@ public abstract class BTreeKeySerializer<K>{
      * Basic Key Serializer which just writes data without applying any compression.
      * Is used by default if no other Key Serializer is specified.
      */
-    public static final class BasicKeySerializer extends BTreeKeySerializer<Object> {
+    public static final class BasicKeySerializer extends BTreeKeySerializer<Object> implements Serializable {
 
         protected final Serializer defaultSerializer;
 

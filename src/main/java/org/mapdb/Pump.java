@@ -3,7 +3,6 @@ package org.mapdb;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Data Pump moves data from one source to other.
@@ -165,10 +164,16 @@ public class Pump {
             @Override public E next() {
                 E oldNext = next;
 
-                int hi = findHighest(items,comparator);
-                next = (E) items[hi];
+                int low=0;
+                for(int i=1;i<items.length;i++){
+                    if(items[i]==null) continue;
+                    if(items[low]==null|| comparator.compare((E)items[i],(E)items[low])<0)
+                        low = i;
+                }
 
-                items[hi] = iterators[hi].hasNext()?iterators[hi].next():null;
+                next = (E) items[low];
+
+                items[low] = iterators[low].hasNext()?iterators[low].next():null;
 
                 return oldNext;
             }
@@ -180,16 +185,116 @@ public class Pump {
     }
 
 
-    protected static <E> int findHighest(Object[] items, Comparator<E> comparator) {
-        int min=0;
-        for(int i=1;i<items.length;i++){
-            if(items[i]==null) continue;
-            if(items[min]==null|| comparator.compare((E)items[i],(E)items[min])<0)
-                min = i;
-        }
-        return min;
+
+    private static final double NODE_LOAD = 0.75;
+
+
+    private static <E> ArrayList<E> arrayList(E item){
+        ArrayList<E> ret = new ArrayList<E>();
+        ret.add(item);
+        return ret;
     }
 
 
+    public static  <E> void buildTreeSet(Iterator<E> iterator,
+                                    DB db, String name,
+                                    int nodeSize,
+                                    boolean keepCounter,
+                                    BTreeKeySerializer serializer,
+                                    Comparator comparator) {
+        if(serializer==null) serializer = new BTreeKeySerializer.BasicKeySerializer(db.defaultSerializer);
+        if(comparator==null) comparator = Utils.COMPARABLE_COMPARATOR;
 
+        BTreeMap m = new BTreeMap(db.engine,nodeSize,false,false,keepCounter,db.defaultSerializer,
+                serializer, null, comparator);
+
+        final int nload = (int) (nodeSize * NODE_LOAD);
+        ArrayList<ArrayList<Object>> dirKeys = arrayList(arrayList(null));
+        ArrayList<ArrayList<Long>> dirRecids = arrayList(arrayList(0L));
+
+        long counter = 0;
+
+        long nextNode = 0;
+
+        //fill node with data
+        List keys = new ArrayList();
+        keys.add(null);
+        //traverse iterator
+        while(iterator.hasNext()){
+
+            for(int i=0;i<nload && iterator.hasNext();i++){
+                counter++;
+                keys.add(iterator.next());
+            }
+            //insert node
+            if(!iterator.hasNext()){
+                keys.add(null);
+            }
+
+            Collections.reverse(keys);
+
+
+            BTreeMap.LeafNode node = new BTreeMap.LeafNode(keys.toArray(),null, nextNode);
+            nextNode = db.engine.put(node,m.nodeSerializer);
+            Object nextKey = keys.get(0);
+            keys.clear();
+            keys.add(nextKey);
+            keys.add(nextKey);
+            dirKeys.get(0).add(node.keys()[0]);
+            dirRecids.get(0).add(nextNode);
+
+            //check node sizes and split them if needed
+            for(int i=0;i<dirKeys.size();i++){
+                if(dirKeys.get(i).size()<nload) continue;
+                //tree node too big so write it down and start new one
+                Collections.reverse(dirKeys.get(i));
+                Collections.reverse(dirRecids.get(i));
+                //put node into store
+                BTreeMap.DirNode dir = new BTreeMap.DirNode(dirKeys.get(i).toArray(), dirRecids.get(i));
+                long dirRecid = db.engine.put(dir,m.nodeSerializer);
+                Object dirStart = dirKeys.get(i).get(0);
+                dirKeys.get(i).clear();
+                dirKeys.get(i).add(dirStart);
+                dirRecids.get(i).clear();
+                dirRecids.get(i).add(dirRecid); //put pointer to next node
+
+                //update parent dir
+                if(dirKeys.size()==i+1){
+                    dirKeys.add(arrayList(dirStart));
+                    dirRecids.add(arrayList(dirRecid));
+                }else{
+                    dirKeys.get(i+1).add(dirStart);
+                    dirRecids.get(i+1).add(dirRecid);
+                }
+            }
+        }
+
+        //flush directory
+        for(int i=0;i<dirKeys.size()-1;i++){
+            //tree node too big so write it down and start new one
+            Collections.reverse(dirKeys.get(i));
+            Collections.reverse(dirRecids.get(i));
+            //put node into store
+            BTreeMap.DirNode dir = new BTreeMap.DirNode(dirKeys.get(i).toArray(), dirRecids.get(i));
+            long dirRecid = db.engine.put(dir,m.nodeSerializer);
+            Object dirStart = dirKeys.get(i).get(0);
+            dirKeys.get(i+1).add(dirStart);
+            dirRecids.get(i+1).add(dirRecid);
+
+        }
+
+        //and finally write root
+        final int len = dirKeys.size()-1;
+        Collections.reverse(dirKeys.get(len));
+        Collections.reverse(dirRecids.get(len));
+
+        BTreeMap.DirNode dir = new BTreeMap.DirNode(dirKeys.get(len).toArray(), dirRecids.get(len));
+        long rootRecid = db.engine.get(m.rootRecidRef,Serializer.LONG_SERIALIZER);
+        db.engine.update(rootRecid,dir,m.nodeSerializer);
+        db.nameDir.put(name,m.treeRecid);
+
+        //update counter
+        if(keepCounter)
+            m.counter.set(counter);
+    }
 }

@@ -40,7 +40,7 @@ import static org.mapdb.SerializationHeader.*;
  * ordering} of its keys, or by a {@link Comparator} provided at map
  * creation time.
  *
- * <p>Insertion, removal,
+ * Insertion, removal,
  * update, and access operations safely execute concurrently by
  * multiple threads.  Iterators are <i>weakly consistent</i>, returning
  * elements reflecting the state of the map at some point at or since
@@ -48,45 +48,47 @@ import static org.mapdb.SerializationHeader.*;
  * ConcurrentModificationException}, and may proceed concurrently with
  * other operations. Ascending key ordered views and their iterators
  * are faster than descending ones.
- * <p>
+ * 
  * It is possible to obtain <i>consistent</i> iterator by using <code>snapshot()</code>
  * method.
  *
- * <p>All <tt>Map.Entry</tt> pairs returned by methods in this class
+ * All <tt>Map.Entry</tt> pairs returned by methods in this class
  * and its views represent snapshots of mappings at the time they were
  * produced. They do <em>not</em> support the <tt>Entry.setValue</tt>
  * method. (Note however that it is possible to change mappings in the
  * associated map using <tt>put</tt>, <tt>putIfAbsent</tt>, or
  * <tt>replace</tt>, depending on exactly which effect you need.)
  *
- * <p>Beware that, unlike in most collections, the <tt>size</tt>
- * method is <em>not</em> a constant-time operation. Because of the
- * asynchronous nature of these maps, determining the current number
- * of elements requires a traversal of the elements.  Additionally,
- * the bulk operations <tt>putAll</tt>, <tt>equals</tt>, and
+ * This collection has optional size counter. If this is enabled Map size is
+ * kept in {@link Atomic.Long} variable. Keeping counter brings considerable
+ * overhead on inserts and removals.
+ * If the size counter is not enabled the <tt>size</tt> method is <em>not</em> a constant-time operation.
+ * Determining the current number of elements requires a traversal of the elements.
+ *
+ * Additionally, the bulk operations <tt>putAll</tt>, <tt>equals</tt>, and
  * <tt>clear</tt> are <em>not</em> guaranteed to be performed
  * atomically. For example, an iterator operating concurrently with a
  * <tt>putAll</tt> operation might view only some of the added
- * elements.
+ * elements. NOTE: there is an optional 
  *
- * <p>This class and its views and iterators implement all of the
+ * This class and its views and iterators implement all of the
  * <em>optional</em> methods of the {@link Map} and {@link Iterator}
  * interfaces. Like most other concurrent collections, this class does
  * <em>not</em> permit the use of <tt>null</tt> keys or values because some
  * null return values cannot be reliably distinguished from the absence of
  * elements.
  *
- * <p>Theoretical design of BTreeMap is based on <a href="http://www.cs.cornell.edu/courses/cs4411/2009sp/blink.pdf">paper</a>
+ * Theoretical design of BTreeMap is based on <a href="http://www.cs.cornell.edu/courses/cs4411/2009sp/blink.pdf">paper</a>
  * from Philip L. Lehman and S. Bing Yao. More practical aspects of BTreeMap implementation are based on <a href="http://www.doc.ic.ac.uk/~td202/">notes</a>
  * and <a href="http://www.doc.ic.ac.uk/~td202/btree/">demo application</a> from Thomas Dinsdale-Young.
- * B-Linked-Tree used here does not require locking for read. Updates locks only one, two or three nodes.
- * <p/>
- * This B-Linked-Tree structure does not support removal well, entry delete does not collapse tree nodes. Massive
+ * B-Linked-Tree used here does not require locking for read. Updates and inserts locks only one, two or three nodes.
+
+ * This B-Linked-Tree structure does not support removal well, entry deletion does not collapse tree nodes. Massive
  * deletion causes empty nodes and performance lost. There is workaround in form of compaction process, but it is not
  * implemented yet.
  *
  * @author Jan Kotek
- * @author some parts by Doug Lea
+ * @author some parts by Doug Lea and JSR-166 group
  */
 @SuppressWarnings({ "unchecked", "rawtypes" })
 //TODO better tests for BTreeMap without values (set)
@@ -140,7 +142,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     protected final Atomic.Long counter;
 
 
-    static class BTreeRootSerializer implements  Serializer<BTreeRoot>{
+    protected static class BTreeRootSerializer implements  Serializer<BTreeRoot>{
         protected final Serializer defaultSerializer;
 
         BTreeRootSerializer(Serializer defaultSerializer) {
@@ -230,6 +232,15 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             this.child = child;
         }
 
+        DirNode(Object[] keys, List<Long> child) {
+            this.keys = keys;
+            this.child = new long[child.size()];
+            for(int i=0;i<child.size();i++){
+                this.child[i] = child.get(i);
+            }
+        }
+
+
         @Override public boolean isLeaf() { return false;}
 
         @Override public Object[] keys() { return keys;}
@@ -307,7 +318,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
             final int header;
 
-            if(isLeaf)
+            if(isLeaf){
                 if(right){
                     if(left)
                         header = B_TREE_NODE_LEAF_LR;
@@ -319,7 +330,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     else
                         header = B_TREE_NODE_LEAF_C;
                 }
-            else{
+            }else{
                 if(right){
                     if(left)
                         header = B_TREE_NODE_DIR_LR;
@@ -2152,7 +2163,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     /**
      * Make readonly snapshot view of current Map. Snapshot is immutable and not affected by modifications made by other threads.
      * Useful if you need consistent view on Map.
-     * <p>
+     * 
      * Maintaining snapshot have some overhead, underlying Engine is closed after Map view is GCed.
      * Please make sure to release reference to this Map view, so snapshot view can be garbage collected.
      *

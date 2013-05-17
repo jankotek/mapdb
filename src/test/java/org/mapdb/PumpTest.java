@@ -110,4 +110,34 @@ public class PumpTest {
 
     }
 
+    @Test public void build_btfileligree(){
+        final int max = 10000;
+        List<Integer> list = new ArrayList<Integer>(max);
+        for(Integer i=max-1;i>=0;i--) list.add(i);
+
+        Engine e = new StoreHeap();
+        DB db = new DB(e);
+
+        Pump.buildTreeSet(list.iterator(), db, "test",8, false, null, null);
+//        BTreeMap m = db.createTreeMap("test2",6,false,false,null,null,null);
+//        for(Integer i:list) m.put(i,"");
+//        m.printTreeStructure();
+
+        Set s = db.getTreeSet("test");
+
+        Iterator iter =s.iterator();
+
+        Integer count = 0;
+        while(iter.hasNext()){
+            assertEquals(count++, iter.next());
+        }
+
+        for(Integer i:list){
+            assertTrue(""+i,s.contains(i));
+        }
+
+        assertEquals(max, s.size());
+    }
+
+
 }
