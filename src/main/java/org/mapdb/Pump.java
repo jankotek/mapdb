@@ -245,7 +245,7 @@ public class Pump {
 
             //check node sizes and split them if needed
             for(int i=0;i<dirKeys.size();i++){
-                if(dirKeys.get(i).size()<nload) continue;
+                if(dirKeys.get(i).size()<nload) break;
                 //tree node too big so write it down and start new one
                 Collections.reverse(dirKeys.get(i));
                 Collections.reverse(dirRecids.get(i));
