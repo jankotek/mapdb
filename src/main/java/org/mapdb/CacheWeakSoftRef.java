@@ -19,6 +19,7 @@ package org.mapdb;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -30,7 +31,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class CacheWeakSoftRef extends EngineWrapper implements Engine {
 
 
-    protected final ReentrantLock[] locks = Utils.newLocks(32);
+    protected final ReentrantLock[] locks = Utils.newLocks();
 
     protected interface CacheItem{
         long getRecid();
@@ -130,26 +131,30 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
             }
         }
 
+        final Lock lock  = locks[Utils.longHash(recid)&Utils.LOCK_MASK];
+        lock.lock();
+
         try{
-            Utils.lock(locks,recid);
             Object value = getWrappedEngine().get(recid, serializer);
             if(value!=null) putItemIntoCache(recid, value);
 
             return (A) value;
         }finally{
-            Utils.unlock(locks,recid);
+            lock.unlock();
         }
 
     }
 
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
+        final Lock lock  = locks[Utils.longHash(recid)&Utils.LOCK_MASK];
+        lock.lock();
+
         try{
-            Utils.lock(locks,recid);
             putItemIntoCache(recid, value);
             getWrappedEngine().update(recid, value, serializer);
         }finally {
-            Utils.unlock(locks,recid);
+            lock.unlock();
         }
     }
 
@@ -163,20 +168,24 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
 
     @Override
     public <A> void delete(long recid, Serializer<A> serializer){
+        final Lock lock  = locks[Utils.longHash(recid)&Utils.LOCK_MASK];
+        lock.lock();
+
         try{
-            Utils.lock(locks,recid);
             checkClosed(items).remove(recid);
             getWrappedEngine().delete(recid,serializer);
         }finally {
-            Utils.unlock(locks,recid);
+            lock.unlock();
         }
 
     }
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+        final Lock lock  = locks[Utils.longHash(recid)&Utils.LOCK_MASK];
+        lock.lock();
+
         try{
-            Utils.lock(locks,recid);
             CacheItem item = checkClosed(items).get(recid);
             Object oldValue = item==null? null: item.get() ;
             if(item!=null && item.getRecid() == recid &&
@@ -191,7 +200,7 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
                 return ret;
             }
         }finally {
-            Utils.unlock(locks,recid);
+            lock.unlock();
         }
     }
 

@@ -1,6 +1,7 @@
 package org.mapdb;
 
 import java.util.Arrays;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -12,7 +13,7 @@ public class CacheLRU extends EngineWrapper {
 
     protected LongMap<Object> cache;
 
-    protected final ReentrantLock[] locks = Utils.newLocks(32);
+    protected final ReentrantLock[] locks = Utils.newLocks();
 
 
     public CacheLRU(Engine engine, int cacheSize) {
@@ -27,11 +28,12 @@ public class CacheLRU extends EngineWrapper {
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
         long recid =  super.put(value, serializer);
+        final Lock lock  = locks[Utils.longHash(recid)&Utils.LOCK_MASK];
+        lock.lock();
         try{
-            Utils.lock(locks,recid);
             checkClosed(cache).put(recid, value);
         }finally {
-            Utils.unlock(locks,recid);
+            lock.unlock();
         }
         return recid;
     }
@@ -41,42 +43,50 @@ public class CacheLRU extends EngineWrapper {
     public <A> A get(long recid, Serializer<A> serializer) {
         Object ret = cache.get(recid);
         if(ret!=null) return (A) ret;
+        final Lock lock  = locks[Utils.longHash(recid)&Utils.LOCK_MASK];
+        lock.lock();
+
         try{
-            Utils.lock(locks,recid);
             ret = super.get(recid, serializer);
             if(ret!=null) checkClosed(cache).put(recid, ret);
             return (A) ret;
         }finally {
-            Utils.unlock(locks,recid);
+            lock.unlock();
         }
     }
 
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
+        final Lock lock  = locks[Utils.longHash(recid)&Utils.LOCK_MASK];
+        lock.lock();
+
         try{
-            Utils.lock(locks,recid);
             checkClosed(cache).put(recid, value);
             super.update(recid, value, serializer);
         }finally {
-            Utils.unlock(locks,recid);
+            lock.unlock();
         }
     }
 
     @Override
     public <A> void delete(long recid, Serializer<A> serializer){
+        final Lock lock  = locks[Utils.longHash(recid)&Utils.LOCK_MASK];
+        lock.lock();
+
         try{
-            Utils.lock(locks,recid);
             checkClosed(cache).remove(recid);
             super.delete(recid,serializer);
         }finally {
-            Utils.unlock(locks,recid);
+            lock.unlock();
         }
     }
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+        final Lock lock  = locks[Utils.longHash(recid)&Utils.LOCK_MASK];
+        lock.lock();
+
         try{
-            Utils.lock(locks,recid);
             Engine engine = getWrappedEngine();
             LongMap cache2 = checkClosed(cache);
             Object oldValue = cache.get(recid);
@@ -91,7 +101,7 @@ public class CacheLRU extends EngineWrapper {
                 return ret;
             }
         }finally {
-            Utils.unlock(locks,recid);
+            lock.unlock();
         }
     }
 

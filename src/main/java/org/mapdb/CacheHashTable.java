@@ -17,6 +17,7 @@
 package org.mapdb;
 
 import java.util.Arrays;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -31,7 +32,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class CacheHashTable extends EngineWrapper implements Engine {
 
 
-    protected final ReentrantLock[] locks = Utils.newLocks(32);
+    protected final ReentrantLock[] locks = Utils.newLocks();
 
     protected HashItem[] items;
     protected final int cacheMaxSize;
@@ -63,12 +64,13 @@ public class CacheHashTable extends EngineWrapper implements Engine {
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
         final long recid = getWrappedEngine().put(value, serializer);
-        final int pos = position(recid);
+        final Lock lock  = locks[Utils.longHash(recid)&Utils.LOCK_MASK];
+        lock.lock();
+
         try{
-            Utils.lock(locks,pos);
             checkClosed(items)[position(recid)] = new HashItem(recid, value);
         }finally{
-            Utils.unlock(locks,pos);
+            lock.unlock();
         }
         return recid;
     }
@@ -82,15 +84,17 @@ public class CacheHashTable extends EngineWrapper implements Engine {
         if(item!=null && recid == item.key)
             return (A) item.val;
 
+        final Lock lock  = locks[Utils.longHash(recid)&Utils.LOCK_MASK];
+        lock.lock();
+
         try{
-            Utils.lock(locks,pos);
             //not in cache, fetch and add
             final A value = getWrappedEngine().get(recid, serializer);
             if(value!=null)
                 items2[pos] = new HashItem(recid, value);
             return value;
         }finally{
-            Utils.unlock(locks,pos);
+            lock.unlock();
         }
     }
 
@@ -101,21 +105,25 @@ public class CacheHashTable extends EngineWrapper implements Engine {
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
         final int pos = position(recid);
+        final Lock lock  = locks[Utils.longHash(recid)&Utils.LOCK_MASK];
+        lock.lock();
+
         try{
-            Utils.lock(locks,pos);
             checkClosed(items)[pos] = new HashItem(recid, value);
             getWrappedEngine().update(recid, value, serializer);
         }finally {
-            Utils.unlock(locks,pos);
+            lock.unlock();
         }
     }
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
         final int pos = position(recid);
+        final Lock lock  = locks[Utils.longHash(recid)&Utils.LOCK_MASK];
+        lock.lock();
+
         try{
             HashItem[] items2 = checkClosed(items);
-            Utils.lock(locks,pos);
             HashItem item = items2[pos];
             if(item!=null && item.key == recid){
                 //found in cache, so compare values
@@ -133,25 +141,27 @@ public class CacheHashTable extends EngineWrapper implements Engine {
                 return ret;
             }
         }finally {
-            Utils.unlock(locks,pos);
+            lock.unlock();
         }
     }
 
     @Override
     public <A> void delete(long recid, Serializer<A> serializer){
         final int pos = position(recid);
+        final Lock lock  = locks[Utils.longHash(recid)&Utils.LOCK_MASK];
+        lock.lock();
+
         try{
-            Utils.lock(locks,pos);
             getWrappedEngine().delete(recid,serializer);
             HashItem[] items2 = checkClosed(items);
             HashItem item = items2[pos];
             if(item!=null && recid == item.key)
             items[pos] = null;
         }finally {
-            Utils.unlock(locks,pos);
+            lock.unlock();
         }
 
-}
+    }
 
 
     @Override

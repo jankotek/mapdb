@@ -203,7 +203,7 @@ public final class Queues {
         public Stack(Engine engine,  Serializer<E> serializer, long headerRecid, boolean useLocks) {
             super(engine, serializer, headerRecid);
             this.useLocks = useLocks;
-            locks = useLocks? Utils.newLocks(32) : null;
+            locks = useLocks? Utils.newLocks() : null;
         }
 
         @Override
@@ -223,16 +223,16 @@ public final class Queues {
             long head2 = 0;
             Node<E> n;
             do{
-                if(useLocks && head2!=0)Utils.lock(locks,head2);
+                if(useLocks && head2!=0)locks[Utils.longHash(head2)&Utils.LOCK_MASK].lock();
                 head2 =head.get();
-                if(head2 == 0) return null;
+                if(head2 == 0) return null; //TODO lock not released here?
 
-                if(useLocks && head2!=0)Utils.lock(locks,head2);
+                if(useLocks && head2!=0)locks[Utils.longHash(head2)&Utils.LOCK_MASK].lock();
                 n = engine.get(head2, nodeSerializer);
             }while(n==null || !head.compareAndSet(head2, n.next));
             if(useLocks && head2!=0){
                 engine.delete(head2,Serializer.LONG_SERIALIZER);
-                Utils.unlock(locks,head2);
+                locks[Utils.longHash(head2)&Utils.LOCK_MASK].unlock();
             }else{
                 engine.update(head2, null, nodeSerializer);
             }

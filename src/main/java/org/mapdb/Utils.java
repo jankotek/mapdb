@@ -58,6 +58,9 @@ final public class Utils {
     public static final String UTF8 = "UTF8";
     public static Random RANDOM = new Random();
 
+    public static final int LOCK_MASK = CC.CONCURRENCY-1;
+
+
     /** empty iterator (note: Collections.EMPTY_ITERATOR is Java 7 specific and should not be used)*/
     public static final Iterator EMPTY_ITERATOR = new ArrayList(0).iterator();
 
@@ -290,59 +293,18 @@ final public class Utils {
         return b.toString();
     }
 
-    public static ReentrantReadWriteLock[] newReadWriteLocks(int size) {
-        ReentrantReadWriteLock[] locks = new ReentrantReadWriteLock[size];
+    public static ReentrantReadWriteLock[] newReadWriteLocks() {
+        ReentrantReadWriteLock[] locks = new ReentrantReadWriteLock[CC.CONCURRENCY];
         for(int i=0;i<locks.length;i++) locks[i] = new ReentrantReadWriteLock();
         return locks;
     }
 
-    public static ReentrantLock[] newLocks(int size) {
-        ReentrantLock[] locks = new ReentrantLock[size];
+    public static ReentrantLock[] newLocks() {
+        ReentrantLock[] locks = new ReentrantLock[CC.CONCURRENCY];
         for(int i=0;i<locks.length;i++) locks[i] = new ReentrantLock();
         return locks;
     }
 
-    public static void lock(ReentrantLock[] locks, long recid) {
-        locks[Math.abs(Utils.longHash(recid)%locks.length)].lock();
-    }
-
-    public static void lockAll(ReentrantLock[] locks) {
-        for(ReentrantLock lock:locks)lock.lock();
-    }
-
-    public static void unlockAll(ReentrantLock[] locks) {
-        for(ReentrantLock lock:locks)lock.unlock();
-    }
-
-
-    public static void unlock(ReentrantLock[] locks, long recid) {
-        locks[Math.abs(Utils.longHash(recid)%locks.length)].unlock();
-    }
-
-
-    public static void readLock(ReentrantReadWriteLock[] locks, long recid) {
-        locks[Math.abs(Utils.longHash(recid)%locks.length)].readLock().lock();
-    }
-
-    public static void readUnlock(ReentrantReadWriteLock[] locks, long recid) {
-        locks[Math.abs(Utils.longHash(recid)%locks.length)].readLock().unlock();
-    }
-
-    public static void writeLock(ReentrantReadWriteLock[] locks, long recid) {
-        locks[Math.abs(Utils.longHash(recid)%locks.length)].writeLock().lock();
-    }
-
-    public static void writeUnlock(ReentrantReadWriteLock[] locks, long recid) {
-        locks[Math.abs(Utils.longHash(recid)%locks.length)].writeLock().unlock();
-    }
-
-    public static void writeLockAll(ReentrantReadWriteLock[] locks) {
-        for(ReentrantReadWriteLock l:locks) l.writeLock().lock();
-    }
-
-    public static void writeUnlockAll(ReentrantReadWriteLock[] locks) {
-        for(ReentrantReadWriteLock l:locks) l.writeLock().unlock();
-    }
 
 
     public static void lock(LongConcurrentHashMap<Thread> locks, long recid){

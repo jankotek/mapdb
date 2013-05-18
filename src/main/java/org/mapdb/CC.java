@@ -61,5 +61,13 @@ public interface CC {
     int ASYNC_WRITE_QUEUE_SIZE = 1024*10;
 
     int ASYNC_WRITE_FLUSH_DELAY = 100;
+
+    /**
+     * Concurrency level. Should be greater than number of threads accessing
+     * MapDB concurrently. On other side larger number consumes more memory
+     *
+     * This number must be power of two: `CONCURRENCY = 2^N`
+     */
+    int CONCURRENCY = 128;
 }
 

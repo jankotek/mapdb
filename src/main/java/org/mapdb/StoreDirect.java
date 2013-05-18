@@ -20,10 +20,10 @@ import java.io.IOError;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -66,7 +66,7 @@ public class StoreDirect implements Store{
     static final int LONG_STACK_PAGE_SIZE =   8 + LONG_STACK_PER_PAGE * 6;
 
 
-    protected final ReentrantReadWriteLock[] locks = Utils.newReadWriteLocks(32);
+    protected final ReentrantReadWriteLock[] locks = Utils.newReadWriteLocks();
     protected final ReentrantLock structuralLock = new ReentrantLock();
 
     protected Volume index;
@@ -184,13 +184,14 @@ public class StoreDirect implements Store{
     @Override
     public <A> A get(long recid, Serializer<A> serializer) {
         final long ioRecid = IO_USER_START + recid*8;
-        Utils.readLock(locks, recid);
+        final Lock lock  = locks[Utils.longHash(recid)&Utils.LOCK_MASK].readLock();
+        lock.lock();
         try{
             return get2(ioRecid,serializer);
         }catch(IOException e){
             throw new IOError(e);
         }finally{
-            Utils.readUnlock(locks, recid);
+            lock.unlock();
         }
     }
 
@@ -242,7 +243,8 @@ public class StoreDirect implements Store{
         final long ioRecid = IO_USER_START + recid*8;
 
 
-        Utils.writeLock(locks, recid);
+        final Lock lock  = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
+        lock.lock();
         try{
             long indexVal = index.getLong(ioRecid);
             long[] indexVals = spaceReclaimTrack ? getLinkedRecordsIndexVals(indexVal) : null;
@@ -268,7 +270,7 @@ public class StoreDirect implements Store{
 
             put2(out, ioRecid, indexVals);
         }finally{
-            Utils.writeUnlock(locks, recid);
+            lock.unlock();
         }
         recycledDataOuts.offer(out);
     }
@@ -276,7 +278,9 @@ public class StoreDirect implements Store{
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
         final long ioRecid = IO_USER_START + recid*8;
-        Utils.writeLock(locks, recid);
+        final Lock lock  = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
+        lock.lock();
+
         DataOutput2 out;
         try{
             /*
@@ -323,7 +327,7 @@ public class StoreDirect implements Store{
         }catch(IOException e){
             throw new IOError(e);
         }finally{
-            Utils.writeUnlock(locks, recid);
+            lock.unlock();
         }
         recycledDataOuts.offer(out);
         return true;
@@ -332,7 +336,8 @@ public class StoreDirect implements Store{
     @Override
     public <A> void delete(long recid, Serializer<A> serializer) {
         final long ioRecid = IO_USER_START + recid*8;
-        Utils.writeLock(locks, recid);
+        final Lock lock  = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
+        lock.lock();
         try{
             //get index val and zero it out
             final long indexVal = index.getLong(ioRecid);
@@ -361,7 +366,7 @@ public class StoreDirect implements Store{
             }
 
         }finally{
-            Utils.writeUnlock(locks, recid);
+            lock.unlock();
         }
     }
 
@@ -441,7 +446,7 @@ public class StoreDirect implements Store{
     @Override
     public void close() {
         structuralLock.lock();
-        Utils.writeLockAll(locks);
+        for(ReentrantReadWriteLock lock:locks) lock.writeLock().lock();
         if(!readOnly){
             index.putLong(IO_PHYS_SIZE,physSize);
             index.putLong(IO_INDEX_SIZE,indexSize);
@@ -457,7 +462,7 @@ public class StoreDirect implements Store{
         }
         index = null;
         phys = null;
-        Utils.writeUnlockAll(locks);
+        for(ReentrantReadWriteLock lock:locks) lock.writeLock().unlock();
         structuralLock.unlock();
     }
 
