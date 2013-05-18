@@ -277,7 +277,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
         try{
             Long recid = newRecids.poll();
             if(recid==null)
-                recid = super.put(Utils.EMPTY_ITERATOR, Serializer.EMPTY_SERIALIZER);
+                recid = super.put(Utils.EMPTY_STRING, Serializer.EMPTY_SERIALIZER);
             update(recid, value, serializer);
             return recid;
         }finally{
