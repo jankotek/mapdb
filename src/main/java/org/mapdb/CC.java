@@ -58,9 +58,9 @@ public interface CC {
     boolean LOG_HINTS = true;
 
 
-    int ASYNC_WRITE_QUEUE_SIZE = 1024*10;
-
     int ASYNC_WRITE_FLUSH_DELAY = 100;
+
+    int ASYNC_RECID_PREALLOC_QUEUE_SIZE = 128;
 
     /**
      * Concurrency level. Should be greater than number of threads accessing

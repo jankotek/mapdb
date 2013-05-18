@@ -606,7 +606,7 @@ public class DBMaker {
 
         AsyncWriteEngine engineAsync = null;
         if(_asyncWriteEnabled && !_readOnly){
-            engineAsync = new AsyncWriteEngine(engine, _asyncFlushDelay, CC.ASYNC_WRITE_QUEUE_SIZE, null);
+            engineAsync = new AsyncWriteEngine(engine, _asyncFlushDelay, null);
             engine = engineAsync;
         }
 

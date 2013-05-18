@@ -18,28 +18,29 @@ package org.mapdb;
 
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * {@link Engine} wrapper which provides asynchronous serialization and asynchronous write.
- * This class takes an object instance, passes it to background writer thread (using Write Queue)
+ * This class takes an object instance, passes it to background writer thread (using Write Cache)
  * where it is serialized and written to disk. Async write does not affect commit durability,
- * write queue is flushed into disk on each commit. Modified records are held in small instance cache,
+ * write cache is flushed into disk on each commit. Modified records are held in small instance cache,
  * until they are written into disk.
  *
  * This feature is enabled by default and can be disabled by calling {@link DBMaker#asyncWriteDisable()}.
- * Write Queue is flushed in regular intervals or when it becomes full. Flush interval is 100 ms by default and
+ * Write Cache is flushed in regular intervals or when it becomes full. Flush interval is 100 ms by default and
  * can be controlled by {@link DBMaker#asyncFlushDelay(int)}. Increasing this interval may improve performance
  * in scenarios where frequently modified items should be cached, typically {@link BTreeMap} import where keys
  * are presorted.
  *
- * Asynchronous write does not affect commit durability. Queue is flushed during each commit, rollback and close call.
- * You may also flush Write Queue manually by using {@link org.mapdb.AsyncWriteEngine#clearCache()}  method.
+ * Asynchronous write does not affect commit durability. Write Cache is flushed during each commit, rollback and close call.
+ * You may also flush Write Cache manually by using {@link org.mapdb.AsyncWriteEngine#clearCache()}  method.
  * There is global lock which prevents record being updated while commit is in progress.
  *
  * This wrapper starts two threads named `MapDB writer #N` and `MapDB prealloc #N` (where N is static counter).
- * First thread is Async Writer, it takes modified records from Write Queue and writes them into store.
+ * First thread is Async Writer, it takes modified records from Write Cache and writes them into store.
  * Second thread is Recid Preallocator, finding empty `recids` takes time so small stash is pre-allocated.
  * Those two threads are `daemon`, so they do not prevent JVM to exit.
  *
@@ -69,8 +70,6 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     /** ensures thread name is followed by number */
     private static final AtomicLong threadCounter = new AtomicLong();
 
-    /** maximal Write Queue size. */
-    protected final int queueSize;
 
     /** used to signal that object was deleted*/
     protected static final Object TOMBSTONE = new Object();
@@ -78,11 +77,8 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
 
     /** Queue of pre-allocated `recids`. Filled by `MapDB prealloc` thread
      * and consumed by {@link AsyncWriteEngine#put(Object, Serializer)} method  */
-    protected final BlockingQueue<Long> newRecids = new ArrayBlockingQueue<Long>(128);
+    protected final ArrayBlockingQueue<Long> newRecids = new ArrayBlockingQueue<Long>(CC.ASYNC_RECID_PREALLOC_QUEUE_SIZE);
 
-    /** Write Queue. Filled by {@link AsyncWriteEngine#update(long, Object, Serializer)} method
-     *  and consumed by `MapDB writer` thread  */
-    protected final BlockingQueue writeQueue;
 
     /** Associates `recid` from Write Queue with record data and serializer. */
     protected final LongConcurrentHashMap<Fun.Tuple2<Object, Serializer>> writeCache
@@ -105,6 +101,8 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     /** flush Write Queue every N milliseconds  */
     protected final int asyncFlushDelay;
 
+    protected final AtomicReference<CountDownLatch> action = new AtomicReference<CountDownLatch>(null);
+
 
     /**
      * Construct new class and starts background threads.
@@ -115,16 +113,14 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
      * @param _asyncFlushDelay flush Write Queue every N milliseconds
      * @param executor optional executor to run tasks. If null daemon threads will be created
      */
-    public AsyncWriteEngine(Engine engine, int _asyncFlushDelay, int queueSize, Executor executor) {
+    public AsyncWriteEngine(Engine engine, int _asyncFlushDelay,Executor executor) {
         super(engine);
         this.asyncFlushDelay = _asyncFlushDelay;
-        this.queueSize = queueSize;
-        this.writeQueue = new ArrayBlockingQueue(queueSize);
         startThreads(executor);
     }
 
     public AsyncWriteEngine(Engine engine) {
-        this(engine, CC.ASYNC_WRITE_FLUSH_DELAY, CC.ASYNC_WRITE_QUEUE_SIZE, null);
+        this(engine, CC.ASYNC_WRITE_FLUSH_DELAY, null);
     }
 
 
@@ -180,21 +176,42 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     /** runs on background thread. Takes records from Write Queue, serializes and writes them.*/
     protected void runWriter() {
         try{
-            for(int i=0;;i++){
+            for(;;){
                 if(threadFailedException !=null) return; //other thread has failed, no reason to continue
 
                 //if conditions are right, slow down writes a bit
-                if(i%(queueSize /10)==0 && asyncFlushDelay!=0 && writeQueue.size()< queueSize /4){
+                if(asyncFlushDelay!=0 ){
                     LockSupport.parkNanos(1000L * 1000L * asyncFlushDelay);
                 }
 
-                final Object taken = writeQueue.take();
-                if(taken instanceof CountDownLatch){
-                    //operations such as commit,close, compact or close needs to be executed in Writer Thread
-                    //for this case CountDownLatch is used, it also signals when operations has been completed
-                    //CountDownLatch is used as special case to signalise special operation
+                final CountDownLatch latch = action.getAndSet(null);
 
-                    final CountDownLatch latch = (CountDownLatch) taken;
+                do{
+                    LongMap.LongMapIterator<Fun.Tuple2<Object, Serializer>> iter = writeCache.longMapIterator();
+                    while(iter.moveToNext()){
+                        //usual write
+                        final long recid = iter.key();
+                        Fun.Tuple2<Object, Serializer> item = iter.value();
+                        if(item == null) continue; //item was already written
+                        if(item.a==TOMBSTONE){
+                            //item was not updated, but deleted
+                            AsyncWriteEngine.super.delete(recid, item.b);
+                        }else{
+                            //call update as usual
+                            AsyncWriteEngine.super.update(recid, item.a, item.b);
+                        }
+                        //record has been written to underlying Engine, so remove it from cache with CAS
+                        writeCache.remove(recid, item);
+                    }
+                }while(latch!=null && !writeCache.isEmpty());
+
+
+                //operations such as commit,close, compact or close needs to be executed in Writer Thread
+                //for this case CountDownLatch is used, it also signals when operations has been completed
+                //CountDownLatch is used as special case to signalise special operation
+                if(latch!=null){
+                    if(!writeCache.isEmpty()) throw new InternalError();
+
                     final long count = latch.getCount();
                     if(count == 0){ //close operation
                         return;
@@ -212,20 +229,6 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
                         latch.countDown();
                         latch.countDown();
                     }else{throw new InternalError();}
-                }else{
-                    //usual write
-                    long recid = (Long) taken;
-                    Fun.Tuple2<Object, Serializer> item = writeCache.get(recid);
-                    if(item == null) continue; //item was already written
-                    if(item.a==TOMBSTONE){
-                        //item was not updated, but deleted
-                        AsyncWriteEngine.super.delete(recid, item.b);
-                    }else{
-                        //call update as usual
-                        AsyncWriteEngine.super.update(recid, item.a, item.b);
-                    }
-                    //record has been written to underlying Engine, so remove it from cache
-                    writeCache.remove(recid, item);
                 }
             }
         } catch (Throwable e) {
@@ -335,9 +338,6 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
         try{
             checkState();
             writeCache.put(recid, new Fun.Tuple2(value, serializer));
-            writeQueue.put(recid);
-        }catch(InterruptedException e){
-            throw new RuntimeException(e);
         }finally{
             if(serializer!=SerializerPojo.serializer) commitLock.readLock().unlock();
         }
@@ -359,13 +359,10 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
             A oldValue = existing!=null? (A) existing.a : super.get(recid, serializer);
             if(oldValue == expectedOldValue || (oldValue!=null && oldValue.equals(expectedOldValue))){
                 writeCache.put(recid, new Fun.Tuple2(newValue, serializer));
-                writeQueue.put(recid);
                 return true;
             }else{
                 return false;
             }
-        }catch(InterruptedException e){
-            throw new RuntimeException(e);
         }finally{
             commitLock.writeLock().unlock();
         }
@@ -396,7 +393,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
             checkState();
             closeInProgress = true;
             //notify background threads
-            writeQueue.put(new CountDownLatch(0));
+            if(!action.compareAndSet(null,new CountDownLatch(0)))throw new InternalError();
             super.delete(newRecids.take(), Serializer.EMPTY_SERIALIZER);
 
             //wait for background threads to shutdown
@@ -432,7 +429,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
             checkState();
             //notify background threads
             CountDownLatch msg = new CountDownLatch(1);
-            writeQueue.put(msg);
+            if(!action.compareAndSet(null,msg))throw new InternalError();
 
             //wait for response from writer thread
             while(!msg.await(1,TimeUnit.SECONDS)){
@@ -459,7 +456,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
             checkState();
             //notify background threads
             CountDownLatch msg = new CountDownLatch(2);
-            writeQueue.put(msg);
+            if(!action.compareAndSet(null,msg))throw new InternalError();
 
             //wait for response from writer thread
             while(!msg.await(1,TimeUnit.SECONDS)){
@@ -485,7 +482,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
             checkState();
             //notify background threads
             CountDownLatch msg = new CountDownLatch(3);
-            writeQueue.put(msg);
+            if(!action.compareAndSet(null,msg))throw new InternalError();
 
             //wait for response from writer thread
             while(!msg.await(1,TimeUnit.SECONDS)){
