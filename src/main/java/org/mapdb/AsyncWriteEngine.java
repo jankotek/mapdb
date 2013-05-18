@@ -275,13 +275,11 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     public <A> long put(A value, Serializer<A> serializer) {
         commitLock.readLock().lock();
         try{
-            try {
-                Long recid = newRecids.take(); //TODO possible deadlock while closing
-                update(recid, value, serializer);
-                return recid;
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+            Long recid = newRecids.poll();
+            if(recid==null)
+                recid = super.put(Utils.EMPTY_ITERATOR, Serializer.EMPTY_SERIALIZER);
+            update(recid, value, serializer);
+            return recid;
         }finally{
             commitLock.readLock().unlock();
         }
