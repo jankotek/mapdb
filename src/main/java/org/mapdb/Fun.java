@@ -282,5 +282,24 @@ public final class Fun {
     }
 
 
+    public static <K,V> Fun.Function1<K,Fun.Tuple2<K,V>> keyExtractor(){
+        return new Fun.Function1<K, Fun.Tuple2<K, V>>() {
+            @Override
+            public K run(Fun.Tuple2<K, V> t) {
+                return t.a;
+            }
+        };
+    }
+
+    public static <K,V> Fun.Function1<V,Fun.Tuple2<K,V>> valueExtractor(){
+        return new Fun.Function1<V, Fun.Tuple2<K, V>>() {
+            @Override
+            public V run(Fun.Tuple2<K, V> t) {
+                return t.b;
+            }
+        };
+    }
+
+
 
 }

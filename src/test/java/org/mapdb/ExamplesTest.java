@@ -20,6 +20,11 @@ public class ExamplesTest {
         Compression.main(args);
     }
 
+    @Test public void Huge_Insert(){
+        Huge_Insert.main(args);
+    }
+
+
 
     @Test public void Custom_Value(){
         Custom_Value.main(args);

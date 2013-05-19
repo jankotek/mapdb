@@ -183,7 +183,7 @@ public class DB {
             if(!ret.hasValues) throw new ClassCastException("Collection is Set, not Map");
         }else{
             //create new map
-            ret = new BTreeMap<K,V>(engine,BTreeMap.DEFAULT_MAX_NODE_SIZE, true, false,false, defaultSerializer, null, null, null);
+            ret = new BTreeMap<K,V>(engine,CC.BTREE_DEFAULT_MAX_NODE_SIZE, true, false,false, defaultSerializer, null, null, null);
             nameDir.put(name, ret.treeRecid);
         }
         collections.put(name, new WeakReference<Object>(ret));
@@ -279,7 +279,7 @@ public class DB {
             ret = m.keySet();
         }else{
             //create new map
-            BTreeMap<K,Object> m =  new BTreeMap<K,Object>(engine,BTreeMap.DEFAULT_MAX_NODE_SIZE,
+            BTreeMap<K,Object> m =  new BTreeMap<K,Object>(engine,CC.BTREE_DEFAULT_MAX_NODE_SIZE,
                     false, false,false, defaultSerializer, null, null, null);
             nameDir.put(name, m.treeRecid);
             ret = m.keySet();

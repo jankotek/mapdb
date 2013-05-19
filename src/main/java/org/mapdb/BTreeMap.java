@@ -98,9 +98,6 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
 
 
-    /** default maximal node size */
-    protected static final int DEFAULT_MAX_NODE_SIZE = 32;
-
 
     /** recid under which reference to rootRecid is stored */
     protected final long rootRecidRef;

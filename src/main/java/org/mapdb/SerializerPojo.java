@@ -33,7 +33,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *
  * @author  Jan Kotek
  */
-public class SerializerPojo extends SerializerBase{
+public class SerializerPojo extends SerializerBase implements Serializable{
 
 
     protected static final Serializer<CopyOnWriteArrayList<ClassInfo>> serializer = new Serializer<CopyOnWriteArrayList<ClassInfo>>() {

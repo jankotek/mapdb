@@ -185,28 +185,233 @@ public class Pump {
     }
 
 
+    /**
+     * Build BTreeMap  from presorted data.
+     * This method is much faster than usual import using `Map.put(key,value)` method.
+     * It is because tree integrity does not have to be maintained and
+     * tree can be created in linear way with.
+     *
+     * This method expect data to be presorted in **reverse order** (highest to lowest).
+     * There are technical reason for this requirement.
+     * To sort unordered data use {@link Pump#sort(java.util.Iterator, int, java.util.Comparator, Serializer)}
+     *
+     * This method does not call commit. You should disable Write Ahead Log when this method is used {@link org.mapdb.DBMaker#writeAheadLogDisable()}
+     *
+     * @param source iterator over source data, must be reverse sorted
+     * @param db database where Map will be created
+     * @param name name of collection to create
+     * @param valueExtractor transforms items from source iterator into values. If null BTreeMap will be constructed without values (as Set)
+     * @param <K> Type of Map Keys
+     * @param <V> Type of Map Values
+     */
+    public static  <K,V> void buildTreeMap(Iterator<K> source, DB db, String name, Fun.Function1<V,K> valueExtractor){
+        buildTreeMap(source,db,name, valueExtractor, CC.BTREE_DEFAULT_MAX_NODE_SIZE, false, false,null,null,null);
+    }
 
-    private static final double NODE_LOAD = 0.75;
-
-
-    private static <E> ArrayList<E> arrayList(E item){
-        ArrayList<E> ret = new ArrayList<E>();
-        ret.add(item);
-        return ret;
+    /**
+     * Build BTreeMap from presorted data.
+     * This method is much faster than usual import using `Map.put(key,value)` method.
+     * It is because tree integrity does not have to be maintained and
+     * tree can be created in linear way with.
+     *
+     * This method expect data to be presorted in **reverse order** (highest to lowest).
+     * There are technical reason for this requirement.
+     * To sort unordered data use {@link Pump#sort(java.util.Iterator, int, java.util.Comparator, Serializer)}
+     *
+     * This method does not call commit. You should disable Write Ahead Log when this method is used {@link org.mapdb.DBMaker#writeAheadLogDisable()}
+     *
+     * @param source iterator over source data, must be reverse sorted
+     * @param db database where Map will be created
+     * @param name name of collection to create
+     * @param valueExtractor transforms items from source iterator into values. If null BTreeMap will be constructed without values (as Set)
+     * @param nodeSize maximal BTree node size before it is splited.
+     * @param valuesStoredOutsideNodes if true values will not be stored as part of BTree nodes
+     * @param keepCounter if true BTreeMap will keep track of number of its size, so `Map.size()` will not traverse all elements in map
+     * @param keySerializer serializer for keys, use null for default value
+     * @param valueSerializer serializer for value, use null for default value
+     * @param comparator comparator used to compare keys, use null for 'comparable comparator'
+     * @param <K> Type of Map Keys
+     * @param <V> Type of Map Values
+     */
+    public static  <K,V> void buildTreeMap(Iterator<K> source, DB db, String name, Fun.Function1<V,K> valueExtractor,
+                                           int nodeSize, boolean valuesStoredOutsideNodes,
+                                           boolean keepCounter,
+                                           BTreeKeySerializer<K> keySerializer,
+                                           Serializer<V> valueSerializer,
+                                           Comparator comparator){
+        buildTreeMap(source, db, name, null, valueExtractor, nodeSize, valuesStoredOutsideNodes, keepCounter,
+                keySerializer, valueSerializer, comparator);
     }
 
 
-    public static  <E> void buildTreeSet(Iterator<E> iterator,
+    /**
+     *
+     * Build BTreeMap  from presorted data.
+     * This method is much faster than usual import using `Map.put(key,value)` method.
+     * It is because tree integrity does not have to be maintained and
+     * tree can be created in linear way with.
+     *
+     * This method expect data to be presorted in **reverse order** (highest to lowest).
+     * There are technical reason for this requirement.
+     * To sort unordered data use {@link Pump#sort(java.util.Iterator, int, java.util.Comparator, Serializer)}
+     *
+     * This method does not call commit. You should disable Write Ahead Log when this method is used {@link org.mapdb.DBMaker#writeAheadLogDisable()}
+     *
+     * @param source iterator over source of data, must be reverse sorted
+     * @param db database where Map will be created
+     * @param name name of collection to create
+     * @param <K> Type of Map Keys
+     * @param <V> Type of Map Values
+     */
+    public static  <K,V> void buildTreeMap(Iterator<Fun.Tuple2<K,V>> source, DB db, String name){
+        buildTreeMap(source,db,name,CC.BTREE_DEFAULT_MAX_NODE_SIZE, false, false,null,null,null);
+    }
+
+
+    /**
+     *
+     * Build BTreeMap  from presorted data.
+     * This method is much faster than usual import using `Map.put(key,value)` method.
+     * It is because tree integrity does not have to be maintained and
+     * tree can be created in linear way with.
+     *
+     * This method expect data to be presorted in **reverse order** (highest to lowest).
+     * There are technical reason for this requirement.
+     * To sort unordered data use {@link Pump#sort(java.util.Iterator, int, java.util.Comparator, Serializer)}
+     *
+     * This method does not call commit. You should disable Write Ahead Log when this method is used {@link org.mapdb.DBMaker#writeAheadLogDisable()}
+     *
+     * @param source iterator over source of data, must be reverse sorted
+     * @param db database where Map will be created
+     * @param name name of collection to create
+     * @param nodeSize maximal BTree node size before it is splited.
+     * @param valuesStoredOutsideNodes if true values will not be stored as part of BTree nodes
+     * @param keepCounter if true BTreeMap will keep track of number of its size, so `Map.size()` will not traverse all elements in map
+     * @param keySerializer serializer for keys, use null for default value
+     * @param valueSerializer serializer for value, use null for default value
+     * @param comparator comparator used to compare keys, use null for 'comparable comparator'
+     * @param <K> Type of Map Keys
+     * @param <V> Type of Map Values
+     */
+    public static  <K,V> void buildTreeMap(Iterator<Fun.Tuple2<K,V>> source, DB db, String name,
+                                           int nodeSize, boolean valuesStoredOutsideNodes,
+                                           boolean keepCounter,
+                                           BTreeKeySerializer<K> keySerializer,
+                                           Serializer<V> valueSerializer,
+                                           Comparator comparator){
+
+        Fun.Function1<K,Fun.Tuple2<K,V>> keyExtractor = Fun.keyExtractor();
+        Fun.Function1<V,Fun.Tuple2<K,V>> valueExtractor = Fun.valueExtractor();
+
+        buildTreeMap(source,db, name, keyExtractor, valueExtractor, nodeSize,
+                valuesStoredOutsideNodes, keepCounter, keySerializer, valueSerializer,comparator);
+    }
+
+
+    /**
+     * Build TreeSet  from presorted data.
+     * This method is much faster than usual import using `Set.add(entry)` method.
+     * It is because tree integrity does not have to be maintained and
+     * tree can be created in linear way with.
+     *
+     * This method expect data to be presorted in **reverse order** (highest to lowest).
+     * There are technical reason for this requirement.
+     * To sort unordered data use {@link Pump#sort(java.util.Iterator, int, java.util.Comparator, Serializer)}
+     *
+     * This method does not call commit. You should disable Write Ahead Log when this method is used {@link org.mapdb.DBMaker#writeAheadLogDisable()}
+     *
+     * @param source iterator over source of data, must be reverse sorted
+     * @param db database where Map will be created
+     * @param name name of collection to create
+     * @param <E> type of elements held by a set
+     */
+    public static  <E> void buildTreeSet(Iterator<E> source, DB db, String name){
+        buildTreeSet(source, db,name, CC.BTREE_DEFAULT_MAX_NODE_SIZE, false, null,null);
+    }
+
+    /**
+     * Build TreeSet  from presorted data.
+     * This method is much faster than usual import using `Set.add(entry)` method.
+     * It is because tree integrity does not have to be maintained and
+     * tree can be created in linear way with.
+     *
+     * This method expect data to be presorted in **reverse order** (highest to lowest).
+     * There are technical reason for this requirement.
+     * To sort unordered data use {@link Pump#sort(java.util.Iterator, int, java.util.Comparator, Serializer)}
+     *
+     * This method does not call commit. You should disable Write Ahead Log when this method is used {@link org.mapdb.DBMaker#writeAheadLogDisable()}
+     *
+     * @param source iterator over source of data, must be reverse sorted
+     * @param db database where Map will be created
+     * @param name name of collection to create
+     * @param nodeSize maximal BTree node size before it is splited.
+     * @param keepCounter if true BTreeMap will keep track of number of its size, so `Map.size()` will not traverse all elements in map
+     * @param serializer serializer for entries, use null for default value
+     * @param comparator comparator used to compare keys, use null for 'comparable comparator'
+     * @param <E> type of elements held by a set
+     */
+    public static  <E> void buildTreeSet(Iterator<E> source,
+                                         DB db, String name,
+                                         int nodeSize,
+                                         boolean keepCounter,
+                                         BTreeKeySerializer serializer,
+                                         Comparator comparator) {
+        buildTreeMap(source, db, name, null, null, nodeSize, false, keepCounter, serializer, null, comparator);
+    }
+
+    /**
+     * Build BTreeMap (or TreeSet) from presorted data.
+     * This method is much faster than usual import using `Map.put(key,value)` method.
+     * It is because tree integrity does not have to be maintained and
+     * tree can be created in linear way with.
+     *
+     * This method expect data to be presorted in **reverse order** (highest to lowest).
+     * There are technical reason for this requirement.
+     * To sort unordered data use {@link Pump#sort(java.util.Iterator, int, java.util.Comparator, Serializer)}
+     *
+     * This method does not call commit. You should disable Write Ahead Log when this method is used {@link org.mapdb.DBMaker#writeAheadLogDisable()}
+     *
+     * @param source iterator over source data, must be reverse sorted
+     * @param db database where Map or Set will be created
+     * @param name name of collection to create
+     * @param keyExtractor transforms items from source iterator into keys. If null source items will be used directly as keys.
+     * @param valueExtractor transforms items from source iterator into values. If null BTreeMap will be constructed without values (as Set)
+     * @param nodeSize maximal BTree node size before it is splited.
+     * @param valuesStoredOutsideNodes if true values will not be stored as part of BTree nodes
+     * @param keepCounter if true BTreeMap will keep track of number of its size, so `Map.size()` will not traverse all elements in map
+     * @param keySerializer serializer for keys, use null for default value
+     * @param valueSerializer serializer for value, use null for default value
+     * @param comparator comparator used to compare keys, use null for 'comparable comparator'
+     * @param <E> Type if items returned by source iterator
+     * @param <K> Type of Map Keys
+     * @param <V> Type of Map Values
+     *
+     * @throws IllegalArgumentException if source iterator is not reverse sorted
+     */
+    public static  <E,K,V> void buildTreeMap(Iterator<E> source,
                                     DB db, String name,
+                                    Fun.Function1<K,E> keyExtractor,
+                                    Fun.Function1<V,E> valueExtractor,
+
                                     int nodeSize,
+                                    boolean valuesStoredOutsideNodes,
                                     boolean keepCounter,
-                                    BTreeKeySerializer serializer,
+                                    BTreeKeySerializer<K> keySerializer,
+                                    Serializer<V> valueSerializer,
                                     Comparator comparator) {
-        if(serializer==null) serializer = new BTreeKeySerializer.BasicKeySerializer(db.defaultSerializer);
+
+        final double NODE_LOAD = 0.75;
+
+        if(keySerializer==null) keySerializer = (BTreeKeySerializer<K>) new BTreeKeySerializer.BasicKeySerializer(db.defaultSerializer);
+        if(valueSerializer==null) valueSerializer = db.getDefaultSerializer();
         if(comparator==null) comparator = Utils.COMPARABLE_COMPARATOR;
 
-        BTreeMap m = new BTreeMap(db.engine,nodeSize,false,false,keepCounter,db.defaultSerializer,
-                serializer, null, comparator);
+        final boolean hasVals = valueExtractor!=null;
+
+        BTreeMap<K,V> m = new BTreeMap<K,V>(db.engine,nodeSize,hasVals,
+                valuesStoredOutsideNodes ,keepCounter,
+                db.defaultSerializer, keySerializer, valueSerializer,comparator);
+
 
         final int nload = (int) (nodeSize * NODE_LOAD);
         ArrayList<ArrayList<Object>> dirKeys = arrayList(arrayList(null));
@@ -217,29 +422,51 @@ public class Pump {
         long nextNode = 0;
 
         //fill node with data
-        List keys = new ArrayList();
-        keys.add(null);
+        List<K> keys = arrayList(null);
+        List<V> values = hasVals? (List<V>) arrayList(null) : null;
         //traverse iterator
-        while(iterator.hasNext()){
+        K oldKey = null;
+        while(source.hasNext()){
 
-            for(int i=0;i<nload && iterator.hasNext();i++){
+            for(int i=0;i<nload && source.hasNext();i++){
                 counter++;
-                keys.add(iterator.next());
+                E next = source.next();
+                K key = keyExtractor==null? (K) next : keyExtractor.run(next);
+                if(oldKey!=null && comparator.compare(key, oldKey)>=0)
+                    throw new IllegalArgumentException("Keys in 'source' iterator are not reverse sorted");
+                oldKey = key;
+                keys.add(key);
+                if(hasVals) values.add(valueExtractor.run(next));
             }
             //insert node
-            if(!iterator.hasNext()){
+            if(!source.hasNext()){
                 keys.add(null);
+                if(hasVals)values.add(null);
             }
 
             Collections.reverse(keys);
 
+            V nextVal = null;
+            if(hasVals){
+                Collections.reverse(values);
+                nextVal = values.get(0);
+                values.set(0, null);
+            }
 
-            BTreeMap.LeafNode node = new BTreeMap.LeafNode(keys.toArray(),null, nextNode);
+
+
+            BTreeMap.LeafNode node = new BTreeMap.LeafNode(keys.toArray(),hasVals? values.toArray() : null, nextNode);
             nextNode = db.engine.put(node,m.nodeSerializer);
-            Object nextKey = keys.get(0);
+            K nextKey = keys.get(0);
             keys.clear();
+
             keys.add(nextKey);
             keys.add(nextKey);
+            if(hasVals){
+                values.clear();
+                values.add(null);
+                values.add(nextVal);
+            }
             dirKeys.get(0).add(node.keys()[0]);
             dirRecids.get(0).add(nextNode);
 
@@ -297,4 +524,12 @@ public class Pump {
         if(keepCounter)
             m.counter.set(counter);
     }
+
+    /** create array list with single element*/
+    private static <E> ArrayList<E> arrayList(E item){
+        ArrayList<E> ret = new ArrayList<E>();
+        ret.add(item);
+        return ret;
+    }
+
 }

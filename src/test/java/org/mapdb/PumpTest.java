@@ -110,7 +110,7 @@ public class PumpTest {
 
     }
 
-    @Test public void build_btfileligree(){
+    @Test public void build_treeset(){
         final int max = 10000;
         List<Integer> list = new ArrayList<Integer>(max);
         for(Integer i=max-1;i>=0;i--) list.add(i);
@@ -119,9 +119,6 @@ public class PumpTest {
         DB db = new DB(e);
 
         Pump.buildTreeSet(list.iterator(), db, "test",8, false, null, null);
-//        BTreeMap m = db.createTreeMap("test2",6,false,false,null,null,null);
-//        for(Integer i:list) m.put(i,"");
-//        m.printTreeStructure();
 
         Set s = db.getTreeSet("test");
 
@@ -137,6 +134,55 @@ public class PumpTest {
         }
 
         assertEquals(max, s.size());
+    }
+
+    @Test public void build_treemap(){
+        final int max = 10000;
+        List<Integer> list = new ArrayList<Integer>(max);
+        for(Integer i=max-1;i>=0;i--) list.add(i);
+
+        Engine e = new StoreHeap();
+        DB db = new DB(e);
+
+        Pump.buildTreeMap(list.iterator(), db, "test", new Fun.Function1<Object, Integer>() {
+            @Override
+            public Object run(Integer integer) {
+                return integer*100;
+            }
+        });
+//        BTreeMap m = db.createTreeMap("test2",6,false,false,null,null,null);
+//        for(Integer i:list) m.put(i,"");
+//        m.printTreeStructure();
+
+        Map s = db.getTreeMap("test");
+
+        Iterator iter =s.keySet().iterator();
+
+        Integer count = 0;
+        while(iter.hasNext()){
+            assertEquals(count++, iter.next());
+        }
+
+        for(Integer i:list){
+            assertEquals(i * 100, s.get(i));
+        }
+
+        assertEquals(max, s.size());
+    }
+
+
+    @Test(expected = IllegalArgumentException.class)
+    public void build_treemap_fails_with_unsorted(){
+        List a = Arrays.asList(1,2,3,4,4,5);
+        DB db = new DB(new StoreHeap());
+        Pump.buildTreeSet(a.iterator(),db,"test");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void build_treemap_fails_with_unsorted2(){
+        List a = Arrays.asList(1,2,3,4,3,5);
+        DB db = new DB(new StoreHeap());
+        Pump.buildTreeSet(a.iterator(),db,"test");
     }
 
 
