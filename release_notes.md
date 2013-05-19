@@ -1,3 +1,26 @@
+Version 0.9.2 (2013-05-19)
+--------------------------
+
+CRITICAL upgrade urgency. This release fixes some critical bugs. It also improves performance and introduces Data Pump.
+
+Open Issues:
+ * Issue #17 - Serializer fails in some cases (writeExternal and readExternal methods)
+
+Changes:
+
+ * FIX Issue #119 - BTreeMap did not released locks with multiple transactions
+ * FIX Issue #125 - calling close twice failed.
+ * FIX race condition in HTreeMap
+ * ADD `ByteBuffer` now uses `duplicate()` instead of synchronization. Better concurrency
+ * ADD Issue #123 - Replace RandomAccessFile by FileChannel and improve performance on 32bit systems.
+ * ADD Delta Packing for tuples
+ * ADD better serialization for small strings
+ * ADD improve Javadoc, use Pegdown Doclet so Javadoc can be written in markdown
+ * ADD reuse DataOutput instances, performance improvement
+ * ADD datapump to create BTreeMap from large unsorted data set in linear time. Checkout `Huge_Insert` example
+ * ADD improve AsyncWriteEngine performance by removing Write Queue
+
+
 
 Version 0.9.1 (2013-04-14)
 --------------------------
