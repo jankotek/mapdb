@@ -34,7 +34,7 @@ import java.util.logging.Logger;
 @SuppressWarnings("unchecked")
 final public class Utils {
 
-    static final Logger LOG = Logger.getLogger("JDBM");
+    static final Logger LOG = Logger.getLogger("mapdb");
 
 
     @SuppressWarnings("rawtypes")

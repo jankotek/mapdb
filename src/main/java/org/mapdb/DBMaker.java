@@ -233,7 +233,7 @@ public class DBMaker {
      * This cache is good if you have lot of available memory.
      * <p/>
      * All fetched records are added to HashMap and stored with hard reference.
-     * To prevent OutOfMemoryExceptions JDBM monitors free memory,
+     * To prevent OutOfMemoryExceptions MapDB monitors free memory,
      * if it is bellow 25% cache is cleared.
      *
      * @return this builder
@@ -438,8 +438,8 @@ public class DBMaker {
     /**
      * Encrypt storage using XTEA algorithm.
      * <p/>
-     * XTEA is sound encryption algorithm. However implementation in JDBM was not peer-reviewed.
-     * JDBM only encrypts records data, so attacker may see number of records and their sizes.
+     * XTEA is sound encryption algorithm. However implementation in MapDB was not peer-reviewed.
+     * MapDB only encrypts records data, so attacker may see number of records and their sizes.
      * <p/>
      * Make sure you enable this every time you reopen store, otherwise record de-serialization fails unpredictably.
      *
@@ -459,8 +459,8 @@ public class DBMaker {
     /**
      * Encrypt storage using XTEA algorithm.
      * <p/>
-     * XTEA is sound encryption algorithm. However implementation in JDBM was not peer-reviewed.
-     * JDBM only encrypts records data, so attacker may see number of records and their sizes.
+     * XTEA is sound encryption algorithm. However implementation in MapDB was not peer-reviewed.
+     * MapDB only encrypts records data, so attacker may see number of records and their sizes.
      * <p/>
      * Make sure you enable this every time you reopen store, otherwise record de-serialization fails unpredictably.
      *
@@ -633,7 +633,7 @@ public class DBMaker {
 
         if(_closeOnJvmShutdown){
             final Engine engine2 = engine;
-            Runtime.getRuntime().addShutdownHook(new Thread("JDBM shutdown") {
+            Runtime.getRuntime().addShutdownHook(new Thread("MapDB shutdown") {
                 @Override
 				public void run() {
                     if(!engine2.isClosed())

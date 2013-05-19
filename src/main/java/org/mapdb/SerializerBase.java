@@ -387,7 +387,7 @@ public class SerializerBase implements Serializer{
                 serializeClass(out, componentType);
 
             }else if (packableLongs) {
-                //packable Longs is special case,  it is often used in JDBM to reference fields
+                //packable Longs is special case,  it is often used in MapDB to reference fields
                 out.write(ARRAY_OBJECT_PACKED_LONG);
                 out.write(b.length);
                 for (Object o : b) {
@@ -414,7 +414,7 @@ public class SerializerBase implements Serializer{
             ArrayList l = (ArrayList) obj;
             boolean packableLongs = l.size() < 255;
             if (packableLongs) {
-                //packable Longs is special case,  it is often used in JDBM to reference fields
+                //packable Longs is special case,  it is often used in MapDB to reference fields
                 for (Object o : l) {
                     if (o != null && (o.getClass() != Long.class || ((Long) o < 0 && (Long) o != Long.MAX_VALUE))) {
                         packableLongs = false;
@@ -1114,7 +1114,7 @@ public class SerializerBase implements Serializer{
                 ret = this;
                 break;
             case JAVA_SERIALIZATION:
-                throw new InternalError("Wrong header, data were probably serialized with java.lang.ObjectOutputStream, not with JDBM serialization");
+                throw new InternalError("Wrong header, data were probably serialized with java.lang.ObjectOutputStream, not with MapDB serialization");
             case ARRAY_OBJECT_PACKED_LONG:
                 ret = deserializeArrayObjectPackedLong(is);
                 break;

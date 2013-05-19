@@ -100,7 +100,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     }
 
     /**
-     * Stores info about single class stored in JDBM.
+     * Stores info about single class stored in MapDB.
      * Roughly corresponds to 'java.io.ObjectStreamClass'
      */
     protected static class ClassInfo {
@@ -169,7 +169,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     }
 
     /**
-     * Stores info about single field stored in JDBM.
+     * Stores info about single field stored in MapDB.
      * Roughly corresponds to 'java.io.ObjectFieldClass'
      */
     protected static class FieldInfo {
