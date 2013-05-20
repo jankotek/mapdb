@@ -42,14 +42,14 @@ public final class DataOutput2 implements DataOutput {
         this.buf = buf;
     }
 
-    byte[] copyBytes(){
+    public byte[] copyBytes(){
         return Arrays.copyOf(buf, pos);
     }
 
     /**
      * make sure there will be enought space in buffer to write N bytes
      */
-    private void ensureAvail(final int n) {
+    public void ensureAvail(final int n) {
         if (pos + n >= buf.length) {
             int newSize = Math.max(pos + n, buf.length * 2);
             buf = Arrays.copyOf(buf, newSize);
