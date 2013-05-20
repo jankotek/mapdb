@@ -27,8 +27,8 @@ import java.nio.ByteBuffer;
  */
 public final class DataInput2 implements DataInput {
 
-    ByteBuffer buf;
-    int pos;
+    public ByteBuffer buf;
+    public int pos;
 
     public DataInput2(final ByteBuffer buf, final int pos) {
         this.buf = buf;

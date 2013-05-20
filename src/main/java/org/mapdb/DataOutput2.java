@@ -29,12 +29,17 @@ import java.util.Arrays;
  */
 public final class DataOutput2 implements DataOutput {
 
-    byte[] buf;
-    int pos;
+    public byte[] buf;
+    public int pos;
 
-    DataOutput2(){
+    public DataOutput2(){
         pos = 0;
         buf = new byte[16]; //TODO take hint from serializer for initial size
+    }
+
+    public DataOutput2(byte[] buf){
+        pos=0;
+        this.buf = buf;
     }
 
     byte[] copyBytes(){
