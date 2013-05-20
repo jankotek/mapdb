@@ -32,12 +32,12 @@ public final class DataOutput2 implements DataOutput {
     byte[] buf;
     int pos;
 
-    DataOutput2(){
+    public DataOutput2(){
         pos = 0;
         buf = new byte[16]; //TODO take hint from serializer for initial size
     }
 
-    byte[] copyBytes(){
+    public byte[] copyBytes(){
         return Arrays.copyOf(buf, pos);
     }
 
