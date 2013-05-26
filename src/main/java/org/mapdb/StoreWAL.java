@@ -542,6 +542,9 @@ public class StoreWAL extends StoreDirect {
                 log = null;
             }
 
+            modified.clear();
+            longStackPages.clear();
+
             reloadIndexFile();
         }finally {
             for(ReentrantReadWriteLock lock:locks) lock.writeLock().unlock();
