@@ -97,6 +97,15 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             this.registered = new CopyOnWriteArrayList<ClassInfo>();
         else
             this.registered = registered;
+
+        for(int i=0;i<registered.size();i++)
+        {
+            ClassInfo ci = registered.get(i);
+            Class clazz = classForName(ci.getName());
+            class2classId.put(clazz, i);
+            classId2class.put(i, clazz);
+
+        }
     }
 
     /**
@@ -163,6 +172,10 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
         public void setObjectStreamFields(ObjectStreamField[] objectStreamFields) {
             this.objectStreamFields = objectStreamFields;
+        }
+
+        @Override public String toString(){
+            return super.toString()+ "["+getName()+"]";
         }
 
 

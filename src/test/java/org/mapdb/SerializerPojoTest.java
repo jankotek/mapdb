@@ -4,13 +4,11 @@ package org.mapdb;
 import junit.framework.TestCase;
 
 import javax.swing.*;
-import java.io.File;
-import java.io.IOError;
-import java.io.NotSerializableException;
-import java.io.Serializable;
+import java.io.*;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.GregorianCalendar;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -322,5 +320,39 @@ public class SerializerPojoTest extends TestCase {
 
     }
 
+
+    public static class test_pojo_reload_TestClass implements Serializable
+    {
+        private String name;
+
+        public test_pojo_reload_TestClass(String name) {
+            this.name = name;
+        }
+
+    }
+
+    /** @author Jan Sileny */
+    public  void test_pojo_reload() throws IOException {
+
+        File f = Utils.tempDbFile();
+        DB db = DBMaker.newFileDB(f).make();
+        Set set = db.getHashSet("testSerializerPojo");
+        set.add(new test_pojo_reload_TestClass("test"));
+        db.commit();
+//        System.out.println(((SerializerPojo)db.defaultSerializer).registered);
+        int prevsize = ((SerializerPojo)db.defaultSerializer).registered.size();
+
+        db.close();
+
+        db = DBMaker.newFileDB(f).deleteFilesAfterClose().make();
+        set = db.getHashSet("testSerializerPojo");
+        set.add(new test_pojo_reload_TestClass("test2"));
+        db.commit();
+        int newsize = ((SerializerPojo)db.defaultSerializer).registered.size();
+//        System.out.println(((SerializerPojo)db.defaultSerializer).registered);
+        db.close();
+
+        assertEquals(prevsize, newsize);
+    }
 
 }
