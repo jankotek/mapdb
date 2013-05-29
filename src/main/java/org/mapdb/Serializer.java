@@ -55,7 +55,6 @@ public interface Serializer<A> {
      * Used mainly for testing.
      * Does not handle null values.
      */
-    
     Serializer<String> STRING_SERIALIZER = new Serializer<String>() {
 
         @Override
@@ -67,11 +66,13 @@ public interface Serializer<A> {
 
         @Override
 		public String deserialize(DataInput in, int available) throws IOException {
+            if(available==-1) throw new IllegalArgumentException("STRING_SERIALIZER does not work with collections.");
             byte[] bytes = new byte[available];
             in.readFully(bytes);
             return new String(bytes, Utils.UTF8);
         }
     };
+
 
 
 
@@ -132,7 +133,7 @@ public interface Serializer<A> {
 
         @Override
         public Object deserialize(DataInput in, int available) throws IOException {
-            if(available!=0) throw new InternalError();
+            if(available>0) throw new InternalError();
             return Utils.EMPTY_STRING;
         }
     };
@@ -160,6 +161,7 @@ public interface Serializer<A> {
 
         @Override
         public byte[] deserialize(DataInput in, int available) throws IOException {
+            if(available==-1) throw new IllegalArgumentException("CRC32_CHECKSUM does not work with collections.");
             if(available==0) return null;
             byte[] value = new byte[available-4];
             in.readFully(value);
@@ -184,6 +186,7 @@ public interface Serializer<A> {
 
         @Override
         public byte[] deserialize(DataInput in, int available) throws IOException {
+            if(available==-1) throw new IllegalArgumentException("BYTE_ARRAY_SERIALIZER does not work with collections.");
             if(available==0) return null;
             byte[] ret = new byte[available];
             in.readFully(ret);
@@ -209,6 +212,7 @@ public interface Serializer<A> {
 
         @Override
         public E deserialize(DataInput in, int available) throws IOException {
+            if(available==-1) throw new IllegalArgumentException("Compression Serializer does not work with collections.");
             byte[] b = CompressLZF.SERIALIZER.deserialize(in, available);
             DataInput2 in2 = new DataInput2(b);
             return serializer.deserialize(in2, b.length);
