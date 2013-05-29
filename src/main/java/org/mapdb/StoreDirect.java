@@ -78,6 +78,7 @@ public class StoreDirect implements Store{
     protected final boolean deleteFilesAfterClose;
 
     protected final boolean readOnly;
+    protected final boolean syncOnCommitDisabled;
 
     protected final boolean spaceReclaimReuse;
     protected final boolean spaceReclaimTrack;
@@ -85,9 +86,10 @@ public class StoreDirect implements Store{
     protected final Queue<DataOutput2> recycledDataOuts = new ArrayBlockingQueue<DataOutput2>(128);
 
     public StoreDirect(Volume.Factory volFac, boolean readOnly, boolean deleteFilesAfterClose,
-                       int spaceReclaimMode) {
+                       int spaceReclaimMode, boolean syncOnCommitDisabled) {
         this.readOnly = readOnly;
         this.deleteFilesAfterClose = deleteFilesAfterClose;
+        this.syncOnCommitDisabled = syncOnCommitDisabled;
 
         this.spaceReclaimReuse = spaceReclaimMode>2;
         this.spaceReclaimTrack = spaceReclaimMode>0;
@@ -105,8 +107,10 @@ public class StoreDirect implements Store{
     }
 
     public StoreDirect(Volume.Factory volFac) {
-        this(volFac, false,false,5);
+        this(volFac, false,false,5,false);
     }
+
+
 
     protected void checkHeaders() {
         if(index.getLong(0)!=HEADER||phys.getLong(0)!=HEADER)throw new IOError(new IOException("storage has invalid header"));
@@ -477,9 +481,10 @@ public class StoreDirect implements Store{
             index.putLong(IO_PHYS_SIZE,physSize);
             index.putLong(IO_INDEX_SIZE,indexSize);
         }
-        index.sync();
-        phys.sync();
-
+        if(!syncOnCommitDisabled){
+            index.sync();
+            phys.sync();
+        }
     }
 
     @Override

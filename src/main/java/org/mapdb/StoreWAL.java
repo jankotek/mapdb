@@ -39,13 +39,14 @@ public class StoreWAL extends StoreDirect {
 
 
     public StoreWAL(Volume.Factory volFac) {
-        this(volFac,false,false,5);
+        this(volFac,false,false,5,false);
     }
     public StoreWAL(Volume.Factory volFac, boolean readOnly, boolean deleteFilesAfterClose,
-                    int spaceReclaimMode) {
-        super(volFac, readOnly, deleteFilesAfterClose, spaceReclaimMode);
+                    int spaceReclaimMode, boolean syncOnCommitDisabled) {
+        super(volFac, readOnly, deleteFilesAfterClose, spaceReclaimMode,syncOnCommitDisabled);
         this.volFac = volFac;
         this.log = volFac.createTransLogVolume();
+
         reloadIndexFile();
         replayLogFile();
         log = null;
@@ -430,10 +431,10 @@ public class StoreWAL extends StoreDirect {
             log.putByte(logSize, WAL_SEAL);
             logSize+=1;
             //flush log file
-            log.sync();
+            if(!syncOnCommitDisabled) log.sync();
             //and write mark it was sealed
             log.putLong(8, LOG_SEAL);
-            log.sync();
+            if(!syncOnCommitDisabled) log.sync();
 
             replayLogFile();
             reloadIndexFile();
@@ -448,7 +449,7 @@ public class StoreWAL extends StoreDirect {
 
         logSize = 0;
 
-        if(log !=null){
+        if(log !=null && !syncOnCommitDisabled){
             log.sync();
         }
 
@@ -518,8 +519,10 @@ public class StoreWAL extends StoreDirect {
         logSize=0;
 
         //flush dbs
-        phys.sync();
-        index.sync();
+        if(!syncOnCommitDisabled){
+            phys.sync();
+            index.sync();
+        }
         //and discard log
         log.putLong(0, 0);
         log.putLong(8, 0); //destroy seal to prevent log file from being replayed

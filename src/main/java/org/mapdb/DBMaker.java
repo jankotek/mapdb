@@ -65,7 +65,7 @@ public class DBMaker {
 
     protected boolean _ifInMemoryUseDirectBuffer = false;
 
-    protected boolean _failOnWrongHeader = false;
+    protected boolean _syncOnCommitDisabled = false;
 
     protected int _rafMode = 0;
 
@@ -550,6 +550,20 @@ public class DBMaker {
 //        return this;
 //    }
 
+    /**
+     * Disables file sync on commit. This way transactions are preserved (rollback works),
+     * but commits are not 'durable' and data may be lost if store is not properly closed.
+     * File store will get properly synced when closed.
+     * Disabling this will make commits faster.
+     *
+     * @return this builder
+     */
+    public DBMaker syncOnCommitDisable(){
+        this._syncOnCommitDisabled = true;
+        return this;
+    }
+
+
 
     /** constructs DB using current settings */
     public DB make(){
@@ -583,11 +597,11 @@ public class DBMaker {
                     //TODO add extra params
                 //new StoreWAL(folFac, _freeSpaceReclaimDisabled, _deleteFilesAfterClose, _failOnWrongHeader, _readOnly):
                 //new StoreDirect(folFac, _freeSpaceReclaimDisabled, _deleteFilesAfterClose , _failOnWrongHeader, _readOnly);
-                new StoreWAL(folFac,  _readOnly,_deleteFilesAfterClose, _freeSpaceReclaimQ):
-                new StoreDirect(folFac,  _readOnly,_deleteFilesAfterClose, _freeSpaceReclaimQ);
+                new StoreWAL(folFac,  _readOnly,_deleteFilesAfterClose, _freeSpaceReclaimQ,_syncOnCommitDisabled):
+                new StoreDirect(folFac,  _readOnly,_deleteFilesAfterClose, _freeSpaceReclaimQ,_syncOnCommitDisabled);
         }else{
             if(_file==null) throw new UnsupportedOperationException("Append Storage format is not supported with in-memory dbs");
-            engine = new StoreAppend(_file, _rafMode>0, _readOnly, !_writeAheadLogEnabled, _deleteFilesAfterClose);
+            engine = new StoreAppend(_file, _rafMode>0, _readOnly, !_writeAheadLogEnabled, _deleteFilesAfterClose, _syncOnCommitDisabled);
         }
 
         if(_checksumEnabled){

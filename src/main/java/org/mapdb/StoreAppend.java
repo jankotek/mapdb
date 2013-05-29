@@ -41,17 +41,25 @@ public class StoreAppend implements Store{
 
     protected LongConcurrentHashMap<Volume> volumes = new LongConcurrentHashMap<Volume>();
     protected final LongConcurrentHashMap<Long> recidsInTx = new LongConcurrentHashMap<Long>();
+    protected final boolean syncOnCommitDisabled;
+
 
 
     protected final Volume recidsTable = new Volume.MemoryVol(true);
     protected static final int MAX_FILE_SIZE = 1024 * 1024 * 10;
     protected final boolean deleteFilesAfterClose;
 
-    public StoreAppend(File file, boolean useRandomAccessFile, boolean readOnly, boolean transactionsDisabled,  boolean deleteFilesAfterClose) {
+    public StoreAppend(File file){
+        this(file,false,false,false,false,false);
+    }
+
+    public StoreAppend(File file, boolean useRandomAccessFile, boolean readOnly, boolean transactionsDisabled,
+                       boolean deleteFilesAfterClose, boolean syncOnCommitDisabled) {
         this.file = file;
         this.useRandomAccessFile = useRandomAccessFile;
         this.readOnly = readOnly;
         this.deleteFilesAfterClose = deleteFilesAfterClose;
+        this.syncOnCommitDisabled = syncOnCommitDisabled;
         //TODO special mode with transactions disabled
 
         readLocks = new ReentrantReadWriteLock[CONCURRENCY_FACTOR];
@@ -360,7 +368,7 @@ public class StoreAppend implements Store{
             currentVolume.ensureAvailable(currentFileOffset+8);
             currentVolume.putLong(currentFileOffset, COMMIT);
             currentFileOffset+=8;
-            currentVolume.sync();
+            if(!syncOnCommitDisabled) currentVolume.sync();
             rollOverFile();
         }finally {
             structuralLock.unlock();

@@ -13,13 +13,13 @@ public class StoreAppendTest extends StoreTestCase {
 
     @Override
     protected Engine openEngine() {
-        return new StoreAppend(index, false, false, false,false);
+        return new StoreAppend(index);
     }
 
     @Test
     public void compact_file_deleted(){
         File f = Utils.tempDbFile();
-        StoreAppend engine = new StoreAppend(f, false,false,false,false);
+        StoreAppend engine = new StoreAppend(f);
         File f1 = engine.getFileNum(1);
         File f2 = engine.getFileNum(2);
         long recid = engine.put(111L, Serializer.LONG_SERIALIZER);
