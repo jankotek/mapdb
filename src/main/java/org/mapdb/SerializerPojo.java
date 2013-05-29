@@ -94,9 +94,8 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
     public SerializerPojo(CopyOnWriteArrayList<ClassInfo> registered){
         if(registered == null)
-            this.registered = new CopyOnWriteArrayList<ClassInfo>();
-        else
-            this.registered = registered;
+            registered = new CopyOnWriteArrayList<ClassInfo>();
+        this.registered = registered;
 
         for(int i=0;i<registered.size();i++)
         {
