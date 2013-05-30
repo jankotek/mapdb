@@ -55,6 +55,7 @@ public class StoreWAL extends StoreDirect {
     protected void reloadIndexFile() {
         logSize = 0;
         modified.clear();
+        longStackPages.clear();
         indexSize = index.getLong(IO_INDEX_SIZE);
         physSize = index.getLong(IO_PHYS_SIZE);
         for(int i = IO_FREE_RECID;i<IO_USER_START;i+=8){
@@ -544,9 +545,6 @@ public class StoreWAL extends StoreDirect {
                 log.deleteFile();
                 log = null;
             }
-
-            modified.clear();
-            longStackPages.clear();
 
             reloadIndexFile();
         }finally {
