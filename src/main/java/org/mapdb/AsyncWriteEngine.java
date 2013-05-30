@@ -392,7 +392,9 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
             closeInProgress = true;
             //notify background threads
             if(!action.compareAndSet(null,new CountDownLatch(0)))throw new InternalError();
-            super.delete(newRecids.take(), Serializer.EMPTY_SERIALIZER);
+            Long last = newRecids.take();
+            if(last!=null)
+                super.delete(last, Serializer.EMPTY_SERIALIZER);
 
             //wait for background threads to shutdown
             activeThreadsCount.await();
