@@ -304,9 +304,14 @@ public final class CompressLZF{
 
             CompressLZF lzf = LZF.get();
             byte[] outbuf = new byte[value.length + 40];
-            int len = lzf.compress(value, value.length, outbuf, 0);
+            int len;
+            try{
+                len = lzf.compress(value, value.length, outbuf, 0);
+            }catch (ArrayIndexOutOfBoundsException e){
+                len=0; //compressed data are larger than source
+            }
             //check if compressed data are larger then original
-            if (value.length <= len) {
+            if (len == 0 || value.length <= len) {
                 //in this case do not compress data, write 0 as indicator
                 Utils.packInt(out, 0);
                 out.write(value);
