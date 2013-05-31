@@ -163,21 +163,8 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
         try{
             for(;;){
                 if(closeInProgress || threadFailedException !=null) return;
-                while(!commitLock.readLock().tryLock(1000,TimeUnit.MILLISECONDS)){
-                    if(closeInProgress || threadFailedException !=null) return;
-                }
-                if(closeInProgress || threadFailedException !=null) return;
-                Long newRecid;
-                try{
-                    newRecid = getWrappedEngine().put(Utils.EMPTY_STRING, Serializer.EMPTY_SERIALIZER);
-
-                }finally {
-                    commitLock.readLock().unlock();
-                }
-
-                while(!newRecids.offer(newRecid,1,TimeUnit.SECONDS)){
-                    if(closeInProgress || threadFailedException !=null) return;
-                }
+                Long newRecid = getWrappedEngine().put(Utils.EMPTY_STRING, Serializer.EMPTY_SERIALIZER);
+                newRecids.put(newRecid);
             }
         } catch (Throwable e) {
             threadFailedException = e;
