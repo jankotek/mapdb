@@ -32,6 +32,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * Serializer which handles POJO, object graphs etc.
  *
  * @author  Jan Kotek
+ *
+ * TODO make this class thread safe
  */
 public class SerializerPojo extends SerializerBase implements Serializable{
 
@@ -44,8 +46,8 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             for (ClassInfo ci : obj) {
                 out.writeUTF(ci.getName());
                 out.writeBoolean(ci.isEnum);
-                out.writeBoolean(ci.isExternalizable);
-                if(ci.isExternalizable) continue; //no fields
+                out.writeBoolean(ci.useObjectStream);
+                if(ci.useObjectStream) continue; //no fields
 
                 Utils.packInt(out, ci.fields.size());
                 for (FieldInfo fi : ci.fields) {
@@ -111,22 +113,22 @@ public class SerializerPojo extends SerializerBase implements Serializable{
      * Stores info about single class stored in MapDB.
      * Roughly corresponds to 'java.io.ObjectStreamClass'
      */
-    protected static class ClassInfo {
+    protected static final class ClassInfo {
 
-        private final String name;
-        private final List<FieldInfo> fields = new ArrayList<FieldInfo>();
-        private final Map<String, FieldInfo> name2fieldInfo = new HashMap<String, FieldInfo>();
-        private final Map<String, Integer> name2fieldId = new HashMap<String, Integer>();
-        private ObjectStreamField[] objectStreamFields;
+        protected final String name;
+        protected final List<FieldInfo> fields = new ArrayList<FieldInfo>();
+        protected final Map<String, FieldInfo> name2fieldInfo = new HashMap<String, FieldInfo>();
+        protected final Map<String, Integer> name2fieldId = new HashMap<String, Integer>();
+        protected ObjectStreamField[] objectStreamFields;
 
-        final boolean isEnum;
+        protected final boolean isEnum;
 
-        final boolean isExternalizable;
+        protected final boolean useObjectStream;
 
-        ClassInfo(final String name, final FieldInfo[] fields, final boolean isEnum, final boolean isExternalizable) {
+        protected ClassInfo(final String name, final FieldInfo[] fields, final boolean isEnum, final boolean isExternalizable) {
             this.name = name;
             this.isEnum = isEnum;
-            this.isExternalizable = isExternalizable;
+            this.useObjectStream = isExternalizable;
 
             for (FieldInfo f : fields) {
                 this.name2fieldId.put(f.getName(), this.fields.size());
@@ -320,13 +322,26 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             fields[i] = new FieldInfo(sf, clazz);
         }
 
-        ClassInfo i = new ClassInfo(clazz.getName(), fields,clazz.isEnum(), Externalizable.class.isAssignableFrom(clazz));
+        ClassInfo i = new ClassInfo(clazz.getName(), fields,clazz.isEnum(), usesAdvancedSerialization(clazz));
         class2classId.put(clazz, registered.size());
         classId2class.put(registered.size(), clazz);
         registered.add(i);
 
 
         saveClassInfo();
+    }
+
+    protected boolean usesAdvancedSerialization(Class<?> clazz) {
+        if(Externalizable.class.isAssignableFrom(clazz)) return true;
+        try {
+            if(clazz.getDeclaredMethod("readObject",ObjectInputStream.class)!=null) return true;
+        } catch (NoSuchMethodException e) {
+        }
+        try {
+            if(clazz.getDeclaredMethod("writeObject",ObjectOutputStream.class)!=null) return true;
+        } catch (NoSuchMethodException e) {
+        }
+        return false;
     }
 
     /** action performed after classInfo was modified, feel free to override */
@@ -369,21 +384,6 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
         if (!Serializable.class.isAssignableFrom(clazz))
             throw new NotSerializableException(clazz.getName());
-
-        try {
-            Method m = clazz.getDeclaredMethod("writeObject",ObjectOutputStream.class);
-            if(m!=null) throw new NotSerializableException(
-                    "Class '"+clazz.getName()+"' has 'writeObject' method, this serialization is not supported yet, see Issue #17.");
-        } catch (NoSuchMethodException e) {
-            //expected
-        }
-        try{
-            Method m = clazz.getDeclaredMethod("readObject",ObjectInputStream.class);
-            if(m!=null) throw new NotSerializableException(
-                    "Class '"+clazz.getName()+"' has 'readObject' method, this serialization is not supported yet, see Issue #17.");
-        } catch (NoSuchMethodException e) {
-            //expected
-        }
 
     }
 
@@ -467,19 +467,10 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         Utils.packInt(out, classId);
         ClassInfo classInfo = registered.get(classId);
 
-        if(classInfo.isExternalizable){
-            throw new InternalError("Can not serialize Externalizable class");
-//            Externalizable o = (Externalizable) obj;
-//            DataInputOutput out2 = (DataInputOutput) out;
-//            try{
-//                out2.serializer = this;
-//                out2.objectStack = objectStack;
-//                o.writeExternal(out2);
-//            }finally {
-//                out2.serializer = null;
-//                out2.objectStack = null;
-//            }
-//            return;
+        if(classInfo.useObjectStream){
+            ObjectOutputStream2 out2 = new ObjectOutputStream2((OutputStream) out);
+            out2.writeObject(obj);
+            return;
         }
 
 
@@ -524,30 +515,20 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
             Object o;
 
-            if(classInfo.isEnum) {
+            if(classInfo.useObjectStream){
+                ObjectInputStream2 in2 = new ObjectInputStream2((InputStream) in);
+                o = in2.readObject();
+            }else if(classInfo.isEnum) {
                 int ordinal = Utils.unpackInt(in);
                 o = clazz.getEnumConstants()[ordinal];
             }
-            else {
+            else{
                 o = createInstanceSkippinkConstructor(clazz);
             }
 
             objectStack.add(o);
 
-            if(classInfo.isExternalizable){
-                throw new InternalError("can not serialize Externalizable class");
-//                Externalizable oo = (Externalizable) o;
-//                DataInputOutput in2 = (DataInputOutput) in;
-//                try{
-//                    in2.serializer = this;
-//                    in2.objectStack = objectStack;
-//                    oo.readExternal(in2);
-//                }finally {
-//                    in2.serializer = null;
-//                    in2.objectStack = null;
-//                }
-
-            }else{
+            if(!classInfo.useObjectStream){
                 int fieldCount = Utils.unpackInt(in);
                 for (int i = 0; i < fieldCount; i++) {
                     int fieldId = Utils.unpackInt(in);
@@ -661,10 +642,36 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     }
 
 
-//    protected abstract Object deserialize(DataInput in, FastArrayList objectStack) throws IOException, ClassNotFoundException;
 
-//    protected abstract void serialize(DataOutput out, Object fieldValue, FastArrayList objectStack) throws IOException;
-//
+    protected final class ObjectOutputStream2 extends ObjectOutputStream{
 
 
+        protected ObjectOutputStream2(OutputStream out) throws IOException, SecurityException {
+            super(out);
+        }
+
+        @Override
+        protected void writeClassDescriptor(ObjectStreamClass desc) throws IOException {
+            Integer classId = class2classId.get(desc.forClass());
+            if(classId ==null){
+                registerClass(desc.forClass());
+                classId = class2classId.get(desc.forClass());
+            }
+            Utils.packInt(this,classId);
+        }
+    }
+
+    protected final class ObjectInputStream2 extends ObjectInputStream{
+
+        protected ObjectInputStream2(InputStream in) throws IOException, SecurityException {
+            super(in);
+        }
+
+        @Override
+        protected ObjectStreamClass readClassDescriptor() throws IOException, ClassNotFoundException {
+            Integer classId = Utils.unpackInt(this);
+            Class clazz = classId2class.get(classId);
+            return ObjectStreamClass.lookup(clazz);
+        }
+    }
 }

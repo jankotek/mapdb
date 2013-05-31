@@ -18,6 +18,7 @@ package org.mapdb;
 
 import java.io.DataInput;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 
 /**
@@ -25,7 +26,7 @@ import java.nio.ByteBuffer;
  *
  * @author Jan Kotek
  */
-public final class DataInput2 implements DataInput {
+public final class DataInput2 extends InputStream implements DataInput {
 
     public ByteBuffer buf;
     public int pos;
@@ -128,7 +129,12 @@ public final class DataInput2 implements DataInput {
 
     @Override
     public String readUTF() throws IOException {
-        final int size = Utils.unpackInt(this);
+        final int size = Utils.unpackInt((DataInput)this);
         return SerializerBase.deserializeString(this, size);
+    }
+
+    @Override
+    public int read() throws IOException {
+        return readUnsignedByte(); //TODO EOF?
     }
 }

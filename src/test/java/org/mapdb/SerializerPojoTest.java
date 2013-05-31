@@ -5,6 +5,9 @@ import junit.framework.TestCase;
 
 import javax.swing.*;
 import java.io.*;
+
+import java.nio.ByteBuffer;
+import java.util.*;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.GregorianCalendar;
@@ -21,6 +24,16 @@ public class SerializerPojoTest extends TestCase {
         ASCENDING,
         DESCENDING
     }
+    private byte[] serialize(Object i) throws IOException {
+        DataOutput2 in = new DataOutput2();
+        p.serialize(in, i);
+        return in.copyBytes();
+    }
+
+    private Object deserialize(byte[] buf) throws IOException {
+        return p.deserialize(new DataInput2(ByteBuffer.wrap(buf),0),-1);
+    }
+
 
     public void testEnum() throws Exception{
         Order o = Order.ASCENDING;
@@ -37,35 +50,37 @@ public class SerializerPojoTest extends TestCase {
 
     }
 
-// TODO Externalizable support
-//    static class Extr implements  Externalizable{
-//
-//        int aaa = 11;
-//        String  l = "agfa";
-//
-//        public void writeExternal(ObjectOutput out) throws IOException {
-//            out.writeObject(l);
-//            out.writeInt(aaa);
-//
-//        }
-//
-//        public void readExternal(ObjectInput in) throws IOException{
-//            l = (String) in.readObject();
-//            aaa = in.readInt()+1;
-//
-//        }
-//    }
-//
-//    @Test public void testExternalizable() throws Exception{
-//        Extr e = new Extr();
-//        e.aaa = 15;
-//        e.l = "pakla";
-//
-//        e = (Extr) deserialize(serialize(e));
-//        assertEquals(e.aaa,16); //was incremented during serialization
-//        assertEquals(e.l,"pakla");
-//
-//    }
+
+    static class Extr  implements  Externalizable{
+
+        public Extr(){}
+
+        int aaa = 11;
+        String  l = "agfa";
+
+        @Override public void writeExternal(ObjectOutput out) throws IOException {
+            out.writeObject(l);
+            out.writeInt(aaa);
+
+        }
+
+        @Override  public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+            l = (String) in.readObject();
+            aaa = in.readInt()+1;
+
+        }
+    }
+
+    public void testExternalizable() throws Exception{
+        Extr e = new Extr();
+        e.aaa = 15;
+        e.l = "pakla";
+
+        e = (Extr) deserialize(serialize(e));
+        assertEquals(e.aaa, 16); //was incremented during serialization
+        assertEquals(e.l,"pakla");
+
+    }
 
 
     static class Bean1 implements Serializable {
@@ -301,21 +316,16 @@ public class SerializerPojoTest extends TestCase {
     }
 
 
-    public void test_write_object_assertion(){
-        try{
-            DB db = DBMaker.newMemoryDB().asyncWriteDisable().make();
-            db.engine.put(new GregorianCalendar(1,1,1), db.getDefaultSerializer());
-            fail();
-        }catch(IOError e){
-            assertTrue(e.getCause().getMessage().contains("#17"));
-        }
+    public void test_write_object_advanced_serializationm(){
+        Object[] o = new Object[]{
+                new GregorianCalendar(1,1,1),
+                new JLabel("aa")
+        };
 
-        try{
+        for(Object oo:o){
             DB db = DBMaker.newMemoryDB().asyncWriteDisable().make();
-            db.engine.put(new JLabel("aa"), db.getDefaultSerializer());
-            fail();
-        }catch(IOError e){
-            assertTrue(e.getCause().getMessage().contains("#17"));
+            long recid = db.engine.put(oo, db.getDefaultSerializer());
+            assertEquals(oo, db.engine.get(recid, db.getDefaultSerializer()));
         }
 
     }

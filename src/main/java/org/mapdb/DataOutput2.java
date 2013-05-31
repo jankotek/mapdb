@@ -18,6 +18,7 @@ package org.mapdb;
 
 import java.io.DataOutput;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Arrays;
 
 /**
@@ -27,7 +28,7 @@ import java.util.Arrays;
  *
  * @author Jan Kotek
  */
-public final class DataOutput2 implements DataOutput {
+public final class DataOutput2 extends OutputStream implements DataOutput {
 
     public byte[] buf;
     public int pos;
@@ -146,10 +147,10 @@ public final class DataOutput2 implements DataOutput {
     @Override
     public void writeUTF(final String s) throws IOException {
         final int len = s.length();
-        Utils.packInt(this, len);
+        Utils.packInt((DataOutput)this, len);
         for (int i = 0; i < len; i++) {
             int c = (int) s.charAt(i); //TODO investigate if c could be negative here
-            Utils.packInt(this, c);
+            Utils.packInt((DataOutput)this, c);
         }
     }
 }
