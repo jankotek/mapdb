@@ -130,6 +130,8 @@ public class TxMaker {
         @Override
         public void commit() {
             synchronized (lock){
+                if(isClosed()) throw new IllegalAccessError("already closed");
+
                 //remove locally modified items from global list
                 LongMap.LongMapIterator<Fun.Tuple2<?, Serializer>> iter = modItems.longMapIterator();
                 while(iter.moveToNext()){
@@ -149,6 +151,8 @@ public class TxMaker {
         @Override
         public void rollback() {
             synchronized (lock){
+                if(isClosed()) throw new IllegalAccessError("already closed");
+
                 //remove locally modified items from global list
                 LongMap.LongMapIterator iter = modItems.longMapIterator();
                 while(iter.moveToNext()){
@@ -167,6 +171,7 @@ public class TxMaker {
 
         @Override
         public void close() {
+            if(modItems==null) return; //already closed
             rollback();
         }
     }
