@@ -1,4 +1,4 @@
-Version 0.9.3 (2013-06-03)
+Version 0.9.3 (2013-06-02)
 --------------------------
 
 CRITICAL upgrade urgency. This release fixes number of critical bugs in Write Ahead Log.
