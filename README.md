@@ -3,6 +3,7 @@ MapDB provides concurrent Maps, Sets and Queues backed by disk storage or off-he
 
 News
 ====
+* 2013-06-03 MapDB 0.9.3 was released. Fixed data corruption in Write Ahead Log and improved serialization [release notes](https://github.com/jankotek/MapDB/blob/master/release_notes.md#version-093-2013-06-03)
 * 2013-05-19 MapDB 0.9.2 was released. It fixes bugs and introduces Data Pump, [release notes](https://github.com/jankotek/MapDB/blob/master/release_notes.md#version-092-2013-05-19)
 * 2013-04-22 Blogpost outlining my future plans with MapDB [has been posted](http://www.kotek.net/blog/MapDB_Future)
 * 2013-04-14 MapDB 0.9.1 was just released. It fixes dozen of critical bugs and upgrade is highly recommended. 
@@ -35,13 +36,13 @@ MapDB has very power-full API, but for 99% cases you need just two classes: [DBM
 
 Best place to checkout various features of MapDB are [Examples](https://github.com/jankotek/MapDB/tree/master/src/test/java/examples). There is also [screencast](http://www.youtube.com/watch?v=FdZmyEHcWLI) which describes most aspects of MapDB.
 
-MapDB is in Maven Central. Just add code bellow to your pom file to use it. You may also download jar files directly from [repo](http://search.maven.org/#artifactdetails%7Corg.mapdb%7Cmapdb%7C0.9.1%7Cjar).
+MapDB is in Maven Central. Just add code bellow to your pom file to use it. You may also download jar files directly from [repo](http://search.maven.org/#browse%7C845836981).
 
 ```xml
 <dependency>
     <groupId>org.mapdb</groupId>
     <artifactId>mapdb</artifactId>
-    <version>0.9.2</version>
+    <version>0.9.3</version>
 </dependency>
 ```
 
@@ -59,7 +60,7 @@ There is also repository with [daily builds](https://oss.sonatype.org/content/re
     <dependency>
         <groupId>org.mapdb</groupId>
         <artifactId>mapdb</artifactId>
-        <version>0.9.3-SNAPSHOT</version>
+        <version>0.9.4-SNAPSHOT</version>
     </dependency>
 </dependencies>
 ```

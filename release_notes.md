@@ -1,3 +1,20 @@
+Version 0.9.3 (2013-06-03)
+--------------------------
+
+CRITICAL upgrade urgency. This release fixes number of critical bugs in Write Ahead Log.
+It also adds support for advanced Java Serialization, which was reported many times as a bug.
+
+Changes:
+ * FIX Issue #17 - Serializer fails in some cases (writeExternal and readExternal methods)
+ * FIX Issue #136 & #132 -  Data corruption in Write Ahead Log after rollback or reopen.
+ * FIX Issue #137 - Deadlock while closing AsyncWriteEngine Credit Jan Sileny
+ * FIX Issue #139 - rolled back TX should not throw exception on close.
+ * FIX Issue #135 - SerializerPojo registered classes problem. Credit Jan Sileny
+ * ADD `DBMaker.syncOnCommitDisable()` parameter
+ * ADD all stuff in `DataOutput2` and `DataInput2` is public. It also extends In/OutputStream now.
+
+
+
 Version 0.9.2 (2013-05-19)
 --------------------------
 
