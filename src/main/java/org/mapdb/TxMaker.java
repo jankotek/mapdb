@@ -171,7 +171,7 @@ public class TxMaker {
 
         @Override
         public void close() {
-            if(modItems==null) return; //already closed
+            if(modItems==null || engine == null) return; //already closed
             rollback();
         }
     }
