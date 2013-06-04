@@ -39,10 +39,10 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * You may also flush Write Cache manually by using {@link org.mapdb.AsyncWriteEngine#clearCache()}  method.
  * There is global lock which prevents record being updated while commit is in progress.
  *
- * This wrapper starts two threads named `MapDB writer #N` and `MapDB prealloc #N` (where N is static counter).
- * First thread is Async Writer, it takes modified records from Write Cache and writes them into store.
- * Second thread is Recid Preallocator, finding empty `recids` takes time so small stash is pre-allocated.
- * Those two threads are `daemon`, so they do not prevent JVM to exit.
+ * This wrapper starts one threads named `MapDB writer #N` (where N is static counter).
+ * Async Writer takes modified records from Write Cache and writes them into store.
+ * It also preallocates new recids, as finding empty `recids` takes time so small stash is pre-allocated.
+ * It runs as `daemon`, so it does not prevent JVM to exit.
  *
  * Asynchronous Writes have several advantages (especially for single threaded user). But there are two things
  * user should be aware of:
@@ -52,7 +52,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *    was serialized and you may not be sure what version was persisted
  *
  *  * Asynchronous writes have some overhead and introduce single bottle-neck. This usually not issue for
- *    single or two threadsr, but in multi-threaded environment it may decrease performance.
+ *    single or two threads, but in multi-threaded environment it may decrease performance.
  *    So in truly concurrent environments with many updates (network servers, parallel computing )
  *    you should disable Asynchronous Writes.
  *
@@ -68,14 +68,14 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class AsyncWriteEngine extends EngineWrapper implements Engine {
 
     /** ensures thread name is followed by number */
-    private static final AtomicLong threadCounter = new AtomicLong();
+    protected static final AtomicLong threadCounter = new AtomicLong();
 
 
     /** used to signal that object was deleted*/
     protected static final Object TOMBSTONE = new Object();
 
 
-    /** Queue of pre-allocated `recids`. Filled by `MapDB prealloc` thread
+    /** Queue of pre-allocated `recids`. Filled by `MapDB Writer` thread
      * and consumed by {@link AsyncWriteEngine#put(Object, Serializer)} method  */
     protected final ArrayBlockingQueue<Long> newRecids = new ArrayBlockingQueue<Long>(CC.ASYNC_RECID_PREALLOC_QUEUE_SIZE);
 
@@ -90,7 +90,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     protected final ReentrantReadWriteLock commitLock = new ReentrantReadWriteLock();
 
     /** number of active threads running, used to await thread termination on close */
-    protected final CountDownLatch activeThreadsCount = new CountDownLatch(2);
+    protected final CountDownLatch activeThreadsCount = new CountDownLatch(1);
 
     /** If background thread fails with exception, it is stored here, and rethrown to all callers.*/
     protected volatile Throwable threadFailedException = null;
@@ -132,11 +132,6 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
      */
     protected void startThreads(Executor executor) {
         //TODO background threads should exit, when `AsyncWriteEngine` was garbage-collected
-        final Runnable preallocRun = new Runnable(){
-            @Override public void run() {
-                runPrealloc();
-            }
-        };
 
         final Runnable writerRun = new Runnable(){
             @Override public void run() {
@@ -145,33 +140,15 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
         };
 
         if(executor!=null){
-            executor.execute(preallocRun);
             executor.execute(writerRun);
             return;
         }
         final long threadNum = threadCounter.incrementAndGet();
-        Thread prealloc = new Thread(preallocRun,"MapDB prealloc #"+threadNum);
-        prealloc.setDaemon(true);
-        prealloc.start();
         Thread writerThread = new Thread(writerRun,"MapDB writer #"+threadNum);
         writerThread.setDaemon(true);
         writerThread.start();
     }
 
-    /** runs on background thread, preallocates recids and puts them into Prealloc Queue */
-    protected void runPrealloc() {
-        try{
-            for(;;){
-                if(closeInProgress || threadFailedException !=null) return;
-                Long newRecid = getWrappedEngine().put(Utils.EMPTY_STRING, Serializer.EMPTY_SERIALIZER);
-                newRecids.put(newRecid);
-            }
-        } catch (Throwable e) {
-            threadFailedException = e;
-        }finally {
-            activeThreadsCount.countDown();
-        }
-    }
 
     /** runs on background thread. Takes records from Write Queue, serializes and writes them.*/
     protected void runWriter() {
@@ -204,6 +181,9 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
                         writeCache.remove(recid, item);
                     }
                 }while(latch!=null && !writeCache.isEmpty());
+
+                runWritePrealloc(); //TODO call it more frequently
+
 
 
                 //operations such as commit,close, compact or close needs to be executed in Writer Thread
@@ -238,6 +218,17 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
         }
     }
 
+    protected void runWritePrealloc() throws InterruptedException {
+        final int capacity = newRecids.remainingCapacity();
+        for(int i=0;i<capacity;i++){
+            Long newRecid = getWrappedEngine().put(Utils.EMPTY_STRING, Serializer.EMPTY_SERIALIZER);
+            if(!newRecids.offer(newRecid)){
+                getWrappedEngine().delete(newRecid,Serializer.EMPTY_SERIALIZER);
+                return;
+            }
+        }
+    }
+
 
     /** checks that background threads are ready and throws exception if not */
     protected void checkState() {
@@ -249,7 +240,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
      * {@inheritDoc}
      *
      * Recids are managed by underlying Engine. Finding free or allocating new recids
-     * may take some time, so for this reason recids are preallocated by Prealloc Thread
+     * may take some time, so for this reason recids are preallocated by Writer Thread
      * and stored in queue. This method just takes preallocated recid from queue with minimal
      * delay.
      *
@@ -260,12 +251,11 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
      @uml async-put.png
      actor user
      participant "put method" as put
-     participant "Prealloc thread" as prea
      participant "Writer Thread" as wri
-     note over prea: has preallocated \n recids in queue
+     note over wri: has preallocated \n recids in queue
      activate put
      user -> put: User calls put method
-     prea-> put: takes preallocated recid
+     wri-> put: takes preallocated recid
      put -> wri: forward record into Write Queue
      put -> user: return recid to user
      deactivate put
@@ -392,9 +382,6 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
             closeInProgress = true;
             //notify background threads
             if(!action.compareAndSet(null,new CountDownLatch(0)))throw new InternalError();
-            Long last = newRecids.take();
-            if(last!=null)
-                super.delete(last, Serializer.EMPTY_SERIALIZER);
 
             //wait for background threads to shutdown
             activeThreadsCount.await();
