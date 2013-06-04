@@ -81,13 +81,13 @@ public class TreeMap_Composite_Key {
         //Lets iterate over 'Main Street' in all towns.
         total = 0;
         for(String town:towns){
-            @SuppressWarnings("unused")
+
 			Map<Fun.Tuple3, Integer> mainStreetHouses =
                     map.subMap(
                             Fun.t3(town, "Main Street", null), //use null as LOWEST boundary for house number
                             Fun.t3(town, "Main Street", Fun.HI)
                     );
-            for(Integer salary:housesInCong.values()){
+            for(Integer salary:mainStreetHouses.values()){
                 total+=salary;
             }
         }
