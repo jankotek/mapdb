@@ -480,7 +480,7 @@ public class SerializerBase implements Serializer{
             Fun.Tuple2 t = (Fun.Tuple2) obj;
             serialize(out, t.a, objectStack);
             serialize(out, t.b, objectStack);
-        } else if (clazz == Fun.Tuple2.class){
+        } else if (clazz == Fun.Tuple3.class){
             out.write(TUPLE3);
             Fun.Tuple3 t = (Fun.Tuple3) obj;
             serialize(out, t.a, objectStack);
