@@ -368,9 +368,9 @@ public class SerializerPojo extends SerializerBase implements Serializable{
                 streamClass = ObjectStreamClass.lookup(clazz);
             }
             fields = new ObjectStreamField[fieldsList
-                    .size()];
+                    .size];
             for (int i = 0; i < fields.length; i++) {
-                fields[i] = fieldsList.get(i);
+                fields[i] = fieldsList.data[i];
             }
             if(classInfo != null)
                 classInfo.setObjectStreamFields(fields);

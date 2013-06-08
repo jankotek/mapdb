@@ -57,30 +57,22 @@ public class SerializerBase implements Serializer{
      */
     protected final static class FastArrayList<K> {
 
-        private int size = 0;
-        private K[] elementData = (K[]) new Object[1];
+        public int size = 0;
+        public K[] data = (K[]) new Object[1];
 
-        boolean forwardRefs = false;
+        public boolean forwardRefs = false;
 
-        K get(int index) {
-            if (index >= size)
-                throw new IndexOutOfBoundsException();
-            return elementData[index];
-        }
 
-        void add(K o) {
-            if (elementData.length == size) {
+        public void add(K o) {
+            if (data.length == size) {
                 //grow array if necessary
-                elementData = Arrays.copyOf(elementData, elementData.length * 2);
+                data = Arrays.copyOf(data, data.length * 2);
             }
 
-            elementData[size] = o;
+            data[size] = o;
             size++;
         }
 
-        int size() {
-            return size;
-        }
 
 
         /**
@@ -95,9 +87,9 @@ public class SerializerBase implements Serializer{
          * @param obj to find in list
          * @return index of object in list or -1 if not found
          */
-        int identityIndexOf(Object obj) {
+        public int identityIndexOf(Object obj) {
             for (int i = 0; i < size; i++) {
-                if (obj == elementData[i]){
+                if (obj == data[i]){
                     forwardRefs = true;
                     return i;
                 }
@@ -1140,11 +1132,11 @@ public class SerializerBase implements Serializer{
 
         if (objectStack == null)
             objectStack = new FastArrayList();
-        int oldObjectStackSize = objectStack.size();
+        int oldObjectStackSize = objectStack.size;
 
         switch (head) {
             case OBJECT_STACK:
-                ret = objectStack.get(Utils.unpackInt(is));
+                ret = objectStack.data[Utils.unpackInt(is)];
                 break;
             case ARRAYLIST:
                 ret = deserializeArrayList(is, objectStack);
@@ -1193,7 +1185,7 @@ public class SerializerBase implements Serializer{
                 break;
         }
 
-        if (head != OBJECT_STACK && objectStack.size() == oldObjectStackSize) {
+        if (head != OBJECT_STACK && objectStack.size == oldObjectStackSize) {
             //check if object was not already added to stack as part of collection
             objectStack.add(ret);
         }
