@@ -66,6 +66,7 @@ public interface Engine {
 
     long NAME_DIR_RECID = 1;
     long CLASS_INFO_RECID = 2;
+    long CHECK_RECORD = 3;
     long LAST_RESERVED_RECID = 7;
 
 

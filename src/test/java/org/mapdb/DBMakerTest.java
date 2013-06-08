@@ -162,7 +162,8 @@ public class DBMakerTest{
         db.close();
     }
 
-    @Test public void crc32() throws IOException {
+    @Test(expected = IllegalArgumentException.class)
+    public void reopen_wrong_crc32() throws IOException {
         File f = Utils.tempDbFile();
         DB db = DBMaker.newFileDB(f).make();
         db.close();
@@ -182,7 +183,43 @@ public class DBMakerTest{
         db.close();
     }
 
+
+    @Test public void crc32() throws IOException {
+        File f = Utils.tempDbFile();
+        DB db = DBMaker
+                .newFileDB(f)
+                .deleteFilesAfterClose()
+                .asyncWriteDisable()
+                .cacheDisable()
+
+                .checksumEnable()
+                .make();
+        EngineWrapper w = (EngineWrapper) db.engine;
+        assertTrue(w instanceof SnapshotEngine);
+
+        assertTrue(w.getWrappedEngine() instanceof ByteTransformEngine);
+        assertTrue(((ByteTransformEngine)w.getWrappedEngine()).blockSerializer == Serializer.CRC32_CHECKSUM);
+        db.close();
+    }
+
     @Test public void encrypt() throws IOException {
+        File f = Utils.tempDbFile();
+        DB db = DBMaker
+                .newFileDB(f)
+                .deleteFilesAfterClose()
+                .cacheDisable()
+                .asyncWriteDisable()
+
+                .encryptionEnable("adqdqwd")
+                .make();
+        ByteTransformEngine e = (ByteTransformEngine) ((EngineWrapper)db.engine).getWrappedEngine();
+        assertTrue(e.blockSerializer instanceof EncryptionXTEA);
+        db.close();
+    }
+
+
+    @Test(expected = IllegalArgumentException.class)
+    public void reopen_wrong_encrypt() throws IOException {
         File f = Utils.tempDbFile();
         DB db = DBMaker.newFileDB(f).make();
         db.close();
@@ -199,7 +236,26 @@ public class DBMakerTest{
         db.close();
     }
 
+
     @Test public void compress() throws IOException {
+        File f = Utils.tempDbFile();
+        DB db = DBMaker
+                .newFileDB(f)
+                .deleteFilesAfterClose()
+                .asyncWriteDisable()
+                .cacheDisable()
+
+                .compressionEnable()
+                .make();
+        EngineWrapper w = (EngineWrapper) db.engine;
+        assertTrue(w instanceof SnapshotEngine);
+        assertTrue(w.getWrappedEngine() instanceof ByteTransformEngine);
+        assertTrue(((ByteTransformEngine)w.getWrappedEngine()).blockSerializer == CompressLZF.SERIALIZER);
+        db.close();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void reopen_wrong_compress() throws IOException {
         File f = Utils.tempDbFile();
         DB db = DBMaker.newFileDB(f).make();
         db.close();
@@ -217,7 +273,6 @@ public class DBMakerTest{
         assertTrue(((ByteTransformEngine)w.getWrappedEngine()).blockSerializer == CompressLZF.SERIALIZER);
         db.close();
     }
-
 
 
 
