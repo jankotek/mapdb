@@ -369,9 +369,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             }
             fields = new ObjectStreamField[fieldsList
                     .size];
-            for (int i = 0; i < fields.length; i++) {
-                fields[i] = fieldsList.data[i];
-            }
+            System.arraycopy(fieldsList.data, 0, fields, 0, fields.length);
             if(classInfo != null)
                 classInfo.setObjectStreamFields(fields);
         }
