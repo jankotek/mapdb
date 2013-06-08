@@ -125,7 +125,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
         protected final boolean useObjectStream;
 
-        protected ClassInfo(final String name, final FieldInfo[] fields, final boolean isEnum, final boolean isExternalizable) {
+        public ClassInfo(final String name, final FieldInfo[] fields, final boolean isEnum, final boolean isExternalizable) {
             this.name = name;
             this.isEnum = isEnum;
             this.useObjectStream = isExternalizable;

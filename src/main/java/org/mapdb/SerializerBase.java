@@ -57,8 +57,13 @@ public class SerializerBase implements Serializer{
      */
     protected final static class FastArrayList<K> {
 
-        public int size = 0;
-        public K[] data = (K[]) new Object[1];
+        public int size ;
+        public K[] data ;
+
+        public FastArrayList(){
+            size=0;
+            data = (K[]) new Object[1];
+        }
 
         public boolean forwardRefs = false;
 
