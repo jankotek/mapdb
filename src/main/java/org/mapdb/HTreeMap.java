@@ -62,21 +62,21 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
 
     /** node which holds key-value pair */
-    protected static class LinkedNode<K,V>{
-        final K key;
-        final V value;
-        final long next;
+    protected static final class LinkedNode<K,V>{
+        public final K key;
+        public final V value;
+        public final long next;
 
-        LinkedNode(final long next, final K key, final V value ){
+        public LinkedNode(final long next, final K key, final V value ){
             this.key = key;
             this.value = value;
             this.next = next;
         }
     }
 
-    static class HashRootSerializer implements Serializer<HashRoot>{
+    protected static final class HashRootSerializer implements Serializer<HashRoot>{
 
-        private Serializer defaultSerializer;
+        protected Serializer defaultSerializer;
 
         public HashRootSerializer(Serializer defaultSerializer) {
             this.defaultSerializer = defaultSerializer;
@@ -114,7 +114,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     }
 
 
-    static class HashRoot{
+    protected final static class HashRoot{
         long[] segmentRecids;
         boolean hasValues;
         int hashSalt;
@@ -125,7 +125,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     }
 
 
-    final Serializer<LinkedNode<K,V>> LN_SERIALIZER = new Serializer<LinkedNode<K,V>>() {
+    protected final Serializer<LinkedNode<K,V>> LN_SERIALIZER = new Serializer<LinkedNode<K,V>>() {
         @Override
         public void serialize(DataOutput out, LinkedNode<K,V> value) throws IOException {
             Utils.packLong(out, value.next);
@@ -145,7 +145,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     };
 
 
-    static final Serializer<long[][]>DIR_SERIALIZER = new Serializer<long[][]>() {
+    protected static final Serializer<long[][]>DIR_SERIALIZER = new Serializer<long[][]>() {
         @Override
         public void serialize(DataOutput out, long[][] value) throws IOException {
             if(value.length!=16) throw new InternalError();
@@ -208,7 +208,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     }
 
     protected final Engine engine;
-    public final long rootRecid;
+    protected final long rootRecid;
 
 
     /**
