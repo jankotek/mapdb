@@ -107,8 +107,13 @@ public class StoreAppend implements Store{
                     long recid = currentVolume.getLong(currentFileOffset); currentFileOffset+=8;
                     maxRecid = Math.max(recid, maxRecid);
 
-                    if(recid == EOF || recid == 0){
+                    if(recid == EOF){
                         break; //end of file
+                    }else if(recid==0){
+                        currentFileOffset-=8;
+                        //nothing was written to this location yet
+                        //TODO if nothing was written yet there are zeros. But can we be sure there will be 0 always?
+                        break;
                     }else if(recid == COMMIT){
                         //move stuff from temporary table to currently used
                         commitRecids(recidsTable2);
