@@ -5,6 +5,8 @@ import java.io.IOError;
 import java.io.IOException;
 import java.util.Iterator;
 import java.nio.ByteBuffer;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -36,7 +38,7 @@ public class StoreAppend implements Store{
 
     volatile protected Volume currentVolume;
     volatile protected long currentVolumeNum;
-    volatile protected int currentFileOffset;
+    volatile protected long currentFileOffset;
     volatile protected long maxRecid;
 
     protected LongConcurrentHashMap<Volume> volumes = new LongConcurrentHashMap<Volume>();
@@ -46,7 +48,7 @@ public class StoreAppend implements Store{
 
 
     protected final Volume recidsTable = new Volume.MemoryVol(true);
-    protected static final int MAX_FILE_SIZE = 1024 * 1024 * 10;
+    protected static final long MAX_FILE_SIZE = 1024 * 1024 * 10;
     protected final boolean deleteFilesAfterClose;
 
     public StoreAppend(File file){
@@ -65,9 +67,11 @@ public class StoreAppend implements Store{
         readLocks = new ReentrantReadWriteLock[CONCURRENCY_FACTOR];
         for(int i=0;i<readLocks.length;i++) readLocks[i] = new ReentrantReadWriteLock();
 
-        File zeroFile = getFileNum(0);
-        if(zeroFile.exists()){
-            replayLog();
+
+        //collect list of files and sort them by filenumber
+        SortedSet<Fun.Tuple2<Long, File>> sortedFiles = listStoreFiles();
+        if(!sortedFiles.isEmpty()){
+            replayLog(sortedFiles);
         }else{
             //create zero file
             recidsTable.ensureAvailable(LAST_RESERVED_RECID*8+8);
@@ -75,7 +79,7 @@ public class StoreAppend implements Store{
                 recidsTable.putLong(i*8,0);
             }
             maxRecid=LAST_RESERVED_RECID+1;
-            currentVolume = Volume.volumeForFile(zeroFile, useRandomAccessFile, readOnly);
+            currentVolume = Volume.volumeForFile(getFileNum(0), useRandomAccessFile, readOnly);
             currentVolume.ensureAvailable(8);
             currentVolume.putLong(0, FILE_HEADER);
             currentFileOffset = 8;
@@ -87,61 +91,78 @@ public class StoreAppend implements Store{
 
     }
 
-    protected void replayLog() {
+    protected void replayLog(SortedSet<Fun.Tuple2<Long, File>> sortedFiles) {
         try{
-        for(long fileNum=0;;fileNum++){
-            File f = getFileNum(fileNum);
-            if(!f.exists()) return;
-            currentVolume = Volume.volumeForFile(f, useRandomAccessFile, readOnly);
-            volumes.put(fileNum, currentVolume);
-            currentVolumeNum = fileNum;
 
             //replay file and rebuild recid index table
             LongHashMap<Long> recidsTable2 = new LongHashMap<Long>();
-            if(!currentVolume.isEmpty()){
-                currentFileOffset =0;
-                long header = currentVolume.getLong(currentFileOffset); currentFileOffset+=8;
-                if(header!=FILE_HEADER) throw new InternalError();
 
-                for(;;){
-                    long recid = currentVolume.getLong(currentFileOffset); currentFileOffset+=8;
-                    maxRecid = Math.max(recid, maxRecid);
+            for(Fun.Tuple2<Long,File> ff:sortedFiles){
+                final File f = ff.b;
+                if(!f.exists()) continue;
+                final long fileNum = ff.a;
+                currentVolume = Volume.volumeForFile(f, useRandomAccessFile, readOnly);
+                volumes.put(fileNum, currentVolume);
+                currentVolumeNum = fileNum;
 
-                    if(recid == EOF){
-                        break; //end of file
-                    }else if(recid==0){
-                        currentFileOffset-=8;
-                        //nothing was written to this location yet
-                        //TODO if nothing was written yet there are zeros. But can we be sure there will be 0 always?
-                        break;
-                    }else if(recid == COMMIT){
-                        //move stuff from temporary table to currently used
-                        commitRecids(recidsTable2);
-                        continue;
-                    }else if(recid == ROLLBACK){
-                        //do not use last recids
-                        recidsTable2.clear();
-                        continue;
+                if(!currentVolume.isEmpty()){
+                    currentFileOffset =0;
+                    long header = currentVolume.getLong(currentFileOffset); currentFileOffset+=8;
+                    if(header!=FILE_HEADER) throw new InternalError();
+
+                    for(;;){
+                        long recid = currentVolume.getLong(currentFileOffset); currentFileOffset+=8;
+                        maxRecid = Math.max(recid, maxRecid);
+
+                        if(recid == EOF){
+                            break; //end of file
+                        }else if(recid==0){
+                            currentFileOffset-=8;
+                            //nothing was written to this location yet
+                            //TODO if nothing was written yet there are zeros. But can we be sure there will be 0 always?
+                            //TODO rollback here?
+                            break;
+                        }else if(recid == COMMIT){
+                            //move stuff from temporary table to currently used
+                            commitRecids(recidsTable2);
+                            continue;
+                        }else if(recid == ROLLBACK){
+                            //do not use last recids
+                            recidsTable2.clear();
+                            continue;
+                        }
+
+                        long filePos = (fileNum<<FILE_NUMBER_SHIFT) | currentFileOffset;
+                        int size = currentVolume.getInt(currentFileOffset); currentFileOffset+=4;
+                        if(size!=THUMBSTONE_SIZE){
+                            //skip data
+                            currentFileOffset+=size;
+                            //store location within the log files in memory
+                            recidsTable2.put(recid, filePos);
+                        }else{
+                            //record was deleted (THUMBSTONE mark)
+                            recidsTable2.put(recid, THUMBSTONE);
+                        }
                     }
 
-                    long filePos = (fileNum<<FILE_NUMBER_SHIFT) | currentFileOffset;
-                    int size = currentVolume.getInt(currentFileOffset); currentFileOffset+=4;
-                    if(size!=THUMBSTONE_SIZE){
-                        //skip data
-                        currentFileOffset+=size;
-                        //store location within the log files in memory
-                        recidsTable2.put(recid, filePos);
-                    }else{
-                        //record was deleted (THUMBSTONE mark)
-                        recidsTable2.put(recid, THUMBSTONE);
-                    }
                 }
-
             }
-        }
         }catch(IOError e){
             //TODO error is part of workflow, but maybe change workflow?
         }
+    }
+
+    protected SortedSet<Fun.Tuple2<Long, File>> listStoreFiles() {
+        final String prefix = file.getName()+".";
+        SortedSet<Fun.Tuple2<Long,File>> sortedFiles = new TreeSet<Fun.Tuple2<Long, File>>();
+        for(File f:file.getParentFile().listFiles()){
+            String name = f.getName();
+            if(!name.startsWith(prefix) || name.length()<=prefix.length()) continue;
+            String num = name.substring(prefix.length(), name.length());
+            if(!num.matches("^[0-9]+$")) continue;
+            sortedFiles.add(Fun.t2(Long.valueOf(num),f));
+        }
+        return sortedFiles;
     }
 
     protected File getFileNum(long fileNum) {
@@ -254,7 +275,7 @@ public class StoreAppend implements Store{
             structuralLock.lock();
             try{
                 pos = currentFileOffset;
-                currentFileOffset += 8 + 4 + out.pos;
+                currentFileOffset += 8L + 4L + out.pos;
                 currentVolume.ensureAvailable(currentFileOffset);
                 volNum = currentVolumeNum;
                 vol = currentVolume;
@@ -341,21 +362,27 @@ public class StoreAppend implements Store{
 
     @Override
     public void close() {
+        for(ReentrantReadWriteLock lock:readLocks)lock.writeLock().lock();
         structuralLock.lock();
-        currentVolume.sync();
-        currentVolume.close();
+        try{
+            currentVolume.sync();
+            currentVolume.close();
 
-        if(deleteFilesAfterClose)
-            currentVolume.deleteFile();
-        for(Iterator<Volume> volIter = volumes.valuesIterator();volIter.hasNext();){
-            Volume vol = volIter.next();
-            if(vol==null) continue;
-            if(deleteFilesAfterClose)vol.deleteFile();
+            if(deleteFilesAfterClose)
+                currentVolume.deleteFile();
+            for(Iterator<Volume> volIter = volumes.valuesIterator();volIter.hasNext();){
+                Volume vol = volIter.next();
+                if(vol==null) continue;
+                if(deleteFilesAfterClose)vol.deleteFile();
+            }
+
+            currentVolume = null;
+            volumes = null;
+        }finally {
+            structuralLock.unlock();
+            for(ReentrantReadWriteLock lock:readLocks)lock.writeLock().unlock();
+
         }
-
-        currentVolume = null;
-        volumes = null;
-        structuralLock.unlock();
     }
 
     @Override
@@ -436,7 +463,7 @@ public class StoreAppend implements Store{
             if(!recidsInTx.isEmpty()) throw new IllegalAccessError("Uncommited changes");
 
             LongHashMap<Boolean> ff = new LongHashMap<Boolean>();
-            for(long recid=0;recid<maxRecid;recid++){
+            for(long recid=0;recid<=maxRecid;recid++){
                 long indexVal = recidsTable.getLong(recid*8);
                 if(indexVal ==0)continue;
                 long fileNum = indexVal>>>FILE_NUMBER_SHIFT;
@@ -446,8 +473,8 @@ public class StoreAppend implements Store{
             //now traverse files and delete unused
             LongMap.LongMapIterator<Volume> iter = volumes.longMapIterator();
             while(iter.moveToNext()){
-                long recid = iter.key();
-                if(ff.get(recid)!=null) continue;
+                long fileNum = iter.key();
+                if(fileNum==currentVolumeNum || ff.get(fileNum)!=null) continue;
                 Volume v = iter.value();
                 v.close();
                 v.deleteFile();
