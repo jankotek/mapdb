@@ -365,4 +365,47 @@ public class SerializerPojoTest extends TestCase {
         assertEquals(prevsize, newsize);
     }
 
+
+    public static class test_transient implements Serializable{
+        transient int aa = 11;
+        transient String ss = "aa";
+        int bb = 11;
+    }
+
+    public void test_transient(){
+        test_transient t = new test_transient();
+        t.aa = 12;
+        t.ss = "bb";
+        t.bb = 13;
+        t = (test_transient) Utils.clone(t, p);
+        assertEquals(0,t.aa);
+        assertEquals(null,t.ss);
+        assertEquals(13,t.bb);
+    }
+
+    public void test_transient2(){
+        test_transient t = new test_transient();
+        t.aa = 12;
+        t.ss = "bb";
+        t.bb = 13;
+
+        t = outputStreamClone(t);
+        assertEquals(0,t.aa);
+        assertEquals(null,t.ss);
+        assertEquals(13,t.bb);
+    }
+
+    /** clone value using serialization */
+    public static <E> E outputStreamClone(E value){
+        try{
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            new ObjectOutputStream(out).writeObject(value);
+            ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(out.toByteArray()));
+            return (E) in.readObject();
+        }catch(Exception ee){
+            throw new IOError(ee);
+        }
+    }
+
+
 }
