@@ -803,17 +803,56 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     }
 
 
-    class BTreeIterator{
-        LeafNode currentLeaf;
-        K lastReturnedKey;
-        int currentPos;
+    protected static class BTreeIterator{
+        final BTreeMap m;
 
-        BTreeIterator(){
+        LeafNode currentLeaf;
+        Object lastReturnedKey;
+        int currentPos;
+        final Object hi;
+        final boolean hiInclusive;
+
+        /** unbounded iterator*/
+        BTreeIterator(BTreeMap m){
+            this.m = m;
+            hi=null;
+            hiInclusive=false;
+            pointToStart();
+        }
+
+        /** bounder iterator, args may be null for partially bounded*/
+        BTreeIterator(BTreeMap m, Object lo, boolean loInclusive, Object hi, boolean hiInclusive){
+            this.m = m;
+            if(lo==null){
+                pointToStart();
+            }else{
+                Fun.Tuple2<Integer, LeafNode> l = m.findLargerNode(lo, loInclusive);
+                currentPos = l!=null? l.a : -1;
+                currentLeaf = l!=null ? l.b : null;
+            }
+
+            this.hi = hi;
+            this.hiInclusive = hiInclusive;
+            if(hi!=null && currentLeaf!=null){
+                //check in bounds
+                Object key =  currentLeaf.keys[currentPos];
+                int c = m.comparator.compare(key, hi);
+                if (c > 0 || (c == 0 && !hiInclusive)){
+                    //out of high bound
+                    currentLeaf=null;
+                    currentPos=-1;
+                }
+            }
+
+        }
+
+
+        private void pointToStart() {
             //find left-most leaf
-            final long rootRecid = engine.get(rootRecidRef, Serializer.LONG_SERIALIZER);
-            BNode node = engine.get(rootRecid, nodeSerializer);
+            final long rootRecid = m.engine.get(m.rootRecidRef, Serializer.LONG_SERIALIZER);
+            BNode node = (BNode) m.engine.get(rootRecid, m.nodeSerializer);
             while(!node.isLeaf()){
-                node = engine.get(node.child()[0], nodeSerializer);
+                node = (BNode) m.engine.get(node.child()[0], m.nodeSerializer);
             }
             currentLeaf = (LeafNode) node;
             currentPos = 1;
@@ -824,9 +863,10 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     currentLeaf = null;
                     return;
                 }
-                currentLeaf = (LeafNode) engine.get(currentLeaf.next, nodeSerializer);
+                currentLeaf = (LeafNode) m.engine.get(currentLeaf.next, m.nodeSerializer);
             }
         }
+
 
         public boolean hasNext(){
             return currentLeaf!=null;
@@ -834,13 +874,13 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
         public void remove(){
             if(lastReturnedKey==null) throw new IllegalStateException();
-            BTreeMap.this.remove(lastReturnedKey);
+            m.remove(lastReturnedKey);
             lastReturnedKey = null;
         }
 
-        protected void moveToNext(){
+        protected void advance(){
             if(currentLeaf==null) return;
-            lastReturnedKey = (K) currentLeaf.keys[currentPos];
+            lastReturnedKey =  currentLeaf.keys[currentPos];
             currentPos++;
             if(currentPos == currentLeaf.keys.length-1){
                 //move to next leaf
@@ -850,14 +890,24 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     return;
                 }
                 currentPos = 1;
-                currentLeaf = (LeafNode) engine.get(currentLeaf.next, nodeSerializer);
+                currentLeaf = (LeafNode) m.engine.get(currentLeaf.next, m.nodeSerializer);
                 while(currentLeaf.keys.length==2){
                     if(currentLeaf.next ==0){
                         currentLeaf = null;
                         currentPos=-1;
                         return;
                     }
-                    currentLeaf = (LeafNode) engine.get(currentLeaf.next, nodeSerializer);
+                    currentLeaf = (LeafNode) m.engine.get(currentLeaf.next, m.nodeSerializer);
+                }
+            }
+            if(hi!=null && currentLeaf!=null){
+                //check in bounds
+                Object key =  currentLeaf.keys[currentPos];
+                int c = m.comparator.compare(key, hi);
+                if (c > 0 || (c == 0 && !hiInclusive)){
+                    //out of high bound
+                    currentLeaf=null;
+                    currentPos=-1;
                 }
             }
         }
@@ -949,38 +999,62 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     }
 
 
-    class BTreeKeyIterator extends BTreeIterator implements Iterator<K>{
+    static class BTreeKeyIterator<K> extends BTreeIterator implements Iterator<K>{
+
+        BTreeKeyIterator(BTreeMap m) {
+            super(m);
+        }
+
+        BTreeKeyIterator(BTreeMap m, Object lo, boolean loInclusive, Object hi, boolean hiInclusive) {
+            super(m, lo, loInclusive, hi, hiInclusive);
+        }
 
         @Override
         public K next() {
             if(currentLeaf == null) throw new NoSuchElementException();
             K ret = (K) currentLeaf.keys[currentPos];
-            moveToNext();
+            advance();
             return ret;
         }
     }
 
-    class BTreeValueIterator extends BTreeIterator implements Iterator<V>{
+    static  class BTreeValueIterator<V> extends BTreeIterator implements Iterator<V>{
+
+        BTreeValueIterator(BTreeMap m) {
+            super(m);
+        }
+
+        BTreeValueIterator(BTreeMap m, Object lo, boolean loInclusive, Object hi, boolean hiInclusive) {
+            super(m, lo, loInclusive, hi, hiInclusive);
+        }
 
         @Override
         public V next() {
             if(currentLeaf == null) throw new NoSuchElementException();
             Object ret = currentLeaf.vals[currentPos];
-            moveToNext();
-            return valExpand(ret);
+            advance();
+            return (V) m.valExpand(ret);
         }
 
     }
 
-    class BTreeEntryIterator extends BTreeIterator implements  Iterator<Entry<K, V>>{
+    static  class BTreeEntryIterator<K,V> extends BTreeIterator implements  Iterator<Entry<K, V>>{
+
+        BTreeEntryIterator(BTreeMap m) {
+            super(m);
+        }
+
+        BTreeEntryIterator(BTreeMap m, Object lo, boolean loInclusive, Object hi, boolean hiInclusive) {
+            super(m, lo, loInclusive, hi, hiInclusive);
+        }
 
         @Override
         public Entry<K, V> next() {
             if(currentLeaf == null) throw new NoSuchElementException();
             K ret = (K) currentLeaf.keys[currentPos];
             Object val = currentLeaf.vals[currentPos];
-            moveToNext();
-            return makeEntry(ret, valExpand(val));
+            advance();
+            return m.makeEntry(ret, m.valExpand(val));
 
         }
     }
@@ -1007,9 +1081,9 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             return (int) counter.get(); //TODO larger then MAX_INT
 
         long size = 0;
-        BTreeIterator iter = new BTreeIterator();
+        BTreeIterator iter = new BTreeIterator(this);
         while(iter.hasNext()){
-            iter.moveToNext();
+            iter.advance();
             size++;
         }
         return (int) size;
@@ -1322,6 +1396,38 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
     }
 
+    protected Fun.Tuple2<Integer,LeafNode> findLargerNode(K key, boolean inclusive) {
+        if(key==null) return null;
+        K v = (K) key;
+        final long rootRecid = engine.get(rootRecidRef, Serializer.LONG_SERIALIZER);
+        long current = rootRecid;
+        BNode A = engine.get(current, nodeSerializer);
+
+        //dive until  leaf
+        while(!A.isLeaf()){
+            current = nextDir((DirNode) A, v);
+            A = engine.get(current, nodeSerializer);
+        }
+
+        //now at leaf level
+        LeafNode leaf = (LeafNode) A;
+        //follow link until first matching node is found
+        final int comp = inclusive?1:0;
+        while(true){
+            for(int i=1;i<leaf.keys.length-1;i++){
+                if(leaf.keys[i]==null) continue;
+
+                if(comparator.compare(key, leaf.keys[i])<comp){
+                    return Fun.t2(i, leaf);
+                }
+            }
+            if(leaf.next==0) return null; //reached end
+            leaf = (LeafNode) engine.get(leaf.next, nodeSerializer);
+        }
+
+    }
+
+
     @Override
 	public K ceilingKey(K key) {
         if(key==null) throw new NullPointerException();
@@ -1421,15 +1527,15 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
 
     Iterator<K> keyIterator() {
-        return new BTreeKeyIterator();
+        return new BTreeKeyIterator(this);
     }
 
     Iterator<V> valueIterator() {
-        return new BTreeValueIterator();
+        return new BTreeValueIterator(this);
     }
 
     Iterator<Map.Entry<K,V>> entryIterator() {
-        return new BTreeEntryIterator();
+        return new BTreeEntryIterator(this);
     }
 
 
@@ -2094,64 +2200,17 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         }
 
 
-        /*
-         * ITERATORS
-         */
 
-        abstract class Iter<E> implements Iterator<E> {
-            Entry<K,V> current = SubMap.this.firstEntry();
-            Entry<K,V> last = null;
-
-
-            @Override
-			public boolean hasNext() {
-                return current!=null;
-            }
-
-
-            public void advance() {
-                if(current==null) throw new NoSuchElementException();
-                last = current;
-                current = SubMap.this.higherEntry(current.getKey());
-            }
-
-            @Override
-			public void remove() {
-                if(last==null) throw new IllegalStateException();
-                SubMap.this.remove(last.getKey());
-                last = null;
-            }
-
-        }
         Iterator<K> keyIterator() {
-            return new Iter<K>() {
-                @Override
-                public K next() {
-                    advance();
-                    return last.getKey();
-                }
-            };
+            return new BTreeKeyIterator(m,lo,loInclusive,hi,hiInclusive);
         }
 
         Iterator<V> valueIterator() {
-            return new Iter<V>() {
-
-                @Override
-                public V next() {
-                    advance();
-                    return last.getValue();
-                }
-            };
+            return new BTreeValueIterator(m,lo,loInclusive,hi,hiInclusive);
         }
 
         Iterator<Map.Entry<K,V>> entryIterator() {
-            return new Iter<Entry<K, V>>() {
-                @Override
-                public Entry<K, V> next() {
-                    advance();
-                    return last;
-                }
-            };
+            return new BTreeEntryIterator(m,lo,loInclusive,hi,hiInclusive);
         }
 
     }
