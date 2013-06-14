@@ -21,6 +21,7 @@ public class StoreAppend implements Store{
     protected final File file;
     protected final boolean useRandomAccessFile;
     protected final boolean readOnly;
+    protected final boolean syncOnCommitDisabled;
 
     protected final static long FILE_NUMBER_SHIFT = 28;
     protected final static long FILE_OFFSET_MASK = 0x0FFFFFFFL;
@@ -43,12 +44,13 @@ public class StoreAppend implements Store{
 
     protected LongConcurrentHashMap<Volume> volumes = new LongConcurrentHashMap<Volume>();
     protected final LongConcurrentHashMap<Long> recidsInTx = new LongConcurrentHashMap<Long>();
-    protected final boolean syncOnCommitDisabled;
+
 
 
 
     protected final Volume recidsTable = new Volume.MemoryVol(true);
-    protected static final long MAX_FILE_SIZE = 1024 * 1024 * 10;
+    protected final static long MAX_FILE_SIZE = 1024 * 1024 * 10;
+
     protected final boolean deleteFilesAfterClose;
 
     public StoreAppend(File file){
