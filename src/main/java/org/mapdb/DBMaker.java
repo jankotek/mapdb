@@ -67,6 +67,8 @@ public class DBMaker {
 
     protected boolean _syncOnCommitDisabled = false;
 
+    protected boolean _snapshotDisabled = false;
+
     protected int _rafMode = 0;
 
     protected boolean _appendStorage;
@@ -328,6 +330,17 @@ public class DBMaker {
      */
     public DBMaker cacheSize(int cacheSize){
         this._cacheSize = cacheSize;
+        return this;
+    }
+
+    /**
+     * MapDB supports snapshots. `SnapshotEngine` requires additional locking which has small overhead when not used.
+     * So it is possible to disable snapshots in order to maximize performance when snapshots are not used.
+     *
+     * @return this builder
+     */
+    public DBMaker snapshotDisable(){
+        this._snapshotDisabled = true;
         return this;
     }
 
@@ -625,7 +638,8 @@ public class DBMaker {
         }
 
 
-        engine = new SnapshotEngine(engine);
+        if(!_snapshotDisabled)
+            engine = new SnapshotEngine(engine);
 
         if(_cache == CACHE_DISABLE){
             //do not wrap engine in cache
