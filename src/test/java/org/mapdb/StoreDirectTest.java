@@ -14,6 +14,7 @@ import static org.mapdb.StoreDirect.*;
 
 public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
+    @Override boolean canRollback(){return false;}
 
     Volume.Factory fac = Volume.fileFactory(false,0,Utils.tempDbFile());
 

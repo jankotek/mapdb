@@ -4,11 +4,13 @@ package org.mapdb;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.mapdb.Serializer.BYTE_ARRAY_SERIALIZER;
 
 /**
  * Tests contract of various implementations of Engine interface
@@ -18,11 +20,13 @@ public abstract class EngineTest<ENGINE extends Engine>{
     protected abstract ENGINE openEngine();
 
     void reopen(){
+        if(!canReopen()) return;
         e.close();
         e=openEngine();
     }
 
     boolean canReopen(){return true;}
+    boolean canRollback(){return true;}
 
     ENGINE e;
     @Before public void init(){
@@ -139,5 +143,107 @@ public abstract class EngineTest<ENGINE extends Engine>{
         e.compact();
         assertArrayEquals(b, e.get(recid, Serializer.BYTE_ARRAY_SERIALIZER));
     }
+
+
+    @Test public void testSetGet(){
+        long recid  = e.put((long) 10000, Serializer.LONG_SERIALIZER);
+        Long  s2 = e.get(recid, Serializer.LONG_SERIALIZER);
+        assertEquals(s2, Long.valueOf(10000));
+    }
+
+
+
+    @Test
+    public void large_record(){
+        byte[] b = new byte[100000];
+        Arrays.fill(b, (byte) 111);
+        long recid = e.put(b, BYTE_ARRAY_SERIALIZER);
+        byte[] b2 = e.get(recid, BYTE_ARRAY_SERIALIZER);
+        assertArrayEquals(b,b2);
+    }
+
+    @Test public void large_record_update(){
+        byte[] b = new byte[100000];
+        Arrays.fill(b, (byte) 111);
+        long recid = e.put(b, BYTE_ARRAY_SERIALIZER);
+        Arrays.fill(b, (byte)222);
+        e.update(recid, b, BYTE_ARRAY_SERIALIZER);
+        byte[] b2 = e.get(recid, BYTE_ARRAY_SERIALIZER);
+        assertArrayEquals(b,b2);
+        e.commit();
+        reopen();
+        b2 = e.get(recid, BYTE_ARRAY_SERIALIZER);
+        assertArrayEquals(b,b2);
+    }
+
+    @Test public void large_record_delete(){
+        byte[] b = new byte[100000];
+        Arrays.fill(b, (byte) 111);
+        long recid = e.put(b, BYTE_ARRAY_SERIALIZER);
+        e.delete(recid,BYTE_ARRAY_SERIALIZER);
+    }
+
+
+    @Test public void large_record_larger(){
+        byte[] b = new byte[10000000];
+        Arrays.fill(b, (byte) 111);
+        long recid = e.put(b, BYTE_ARRAY_SERIALIZER);
+        byte[] b2 = e.get(recid, BYTE_ARRAY_SERIALIZER);
+        assertArrayEquals(b,b2);
+        e.commit();
+        reopen();
+        b2 = e.get(recid, BYTE_ARRAY_SERIALIZER);
+        assertArrayEquals(b,b2);
+
+    }
+
+
+    @Test public void test_store_reopen(){
+        long recid = e.put("aaa", Serializer.STRING_SERIALIZER);
+        e.commit();
+        reopen();
+
+        String aaa = e.get(recid, Serializer.STRING_SERIALIZER);
+        assertEquals("aaa",aaa);
+    }
+
+    @Test public void test_store_reopen_nocommit(){
+        long recid = e.put("aaa", Serializer.STRING_SERIALIZER);
+        e.commit();
+        e.update(recid,"bbb",Serializer.STRING_SERIALIZER);
+        reopen();
+
+        String expected = canRollback()&&canReopen()?"aaa":"bbb";
+        assertEquals(expected, e.get(recid, Serializer.STRING_SERIALIZER));
+    }
+
+
+    @Test public void rollback(){
+        long recid = e.put("aaa", Serializer.STRING_SERIALIZER);
+        e.commit();
+        e.update(recid, "bbb", Serializer.STRING_SERIALIZER);
+
+        if(!canRollback())return;
+        e.rollback();
+
+        assertEquals("aaa",e.get(recid, Serializer.STRING_SERIALIZER));
+
+    }
+
+    @Test public void rollback_reopen(){
+        long recid = e.put("aaa", Serializer.STRING_SERIALIZER);
+        e.commit();
+        e.update(recid, "bbb", Serializer.STRING_SERIALIZER);
+
+        if(!canRollback())return;
+        e.rollback();
+
+        assertEquals("aaa",e.get(recid, Serializer.STRING_SERIALIZER));
+        reopen();
+        assertEquals("aaa",e.get(recid, Serializer.STRING_SERIALIZER));
+
+    }
+
+
 
 }

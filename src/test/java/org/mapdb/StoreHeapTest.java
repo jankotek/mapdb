@@ -11,4 +11,7 @@ public class StoreHeapTest extends EngineTest<StoreHeap>{
 
     @Override boolean canReopen(){return false;}
 
+    @Override boolean canRollback(){return false;}
+
+
 }

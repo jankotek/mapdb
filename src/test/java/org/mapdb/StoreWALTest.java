@@ -16,6 +16,11 @@ public class StoreWALTest extends StoreDirectTest<StoreWAL>{
         return new StoreWAL(fac);
     }
 
+    @Override
+    boolean canRollback() {
+        return true;
+    }
+
     @Test
     public void delete_files_after_close2(){
         File f = Utils.tempDbFile();

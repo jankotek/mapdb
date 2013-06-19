@@ -117,9 +117,40 @@ public abstract class Volume {
 
     }
 
+    /**
+     * Writes packed long at given position and returns number of bytes used.
+     */
+    public int putPackedLong(long pos, long value) {
+
+        if (value < 0) {
+            throw new IllegalArgumentException("negative value: keys=" + value);
+        }
+        int ret = 0;
+
+        while ((value & ~0x7FL) != 0) {
+            putUnsignedByte(pos+(ret++), (((int) value & 0x7F) | 0x80));
+            value >>>= 7;
+        }
+        putUnsignedByte(pos + (ret++), (byte) value);
+        return ret;
+    }
+
+
 
     /** returns underlying file if it exists */
     abstract public File getFile();
+
+    public long getPackedLong(long pos){
+        long result = 0;
+        for (int offset = 0; offset < 64; offset += 7) {
+            long b = getUnsignedByte(pos++);
+            result |= (b & 0x7F) << offset;
+            if ((b & 0x80) == 0) {
+                return result;
+            }
+        }
+        throw new Error("Malformed long.");
+    }
 
 
     /**

@@ -3,6 +3,7 @@ package org.mapdb;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.TreeMap;
@@ -10,8 +11,9 @@ import java.util.TreeMap;
 import static org.junit.Assert.*;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
-public class HTreeMap2Test extends StoreTestCase {
+public class HTreeMap2Test {
 
+    Engine engine = DBMaker.newMemoryDB().cacheDisable().asyncWriteDisable().makeEngine();
 
     void printMap(HTreeMap m){
         System.out.println(toString(m.segmentRecids, engine));
@@ -96,7 +98,15 @@ public class HTreeMap2Test extends StoreTestCase {
         assertEquals(Arrays.toString(new long[] {1,2,3,4,5,6,7,8}), Arrays.toString(b[6]));
         assertEquals(null, b[7]);
 
+
+
     }
+
+    DataInput2 swap(DataOutput2 d){
+        byte[] b = d.copyBytes();
+        return new DataInput2(ByteBuffer.wrap(b),0);
+    }
+
 
     @Test public void ln_serialization() throws IOException {
         HTreeMap.LinkedNode n = new HTreeMap.LinkedNode(123456, 123L, 456L);

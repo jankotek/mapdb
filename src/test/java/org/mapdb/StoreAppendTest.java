@@ -4,27 +4,33 @@ package org.mapdb;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.util.Iterator;
 
 import static org.junit.Assert.*;
 
-public class StoreAppendTest extends StoreTestCase {
+public class StoreAppendTest<E extends StoreAppend> extends EngineTest<E>{
 
-    StoreAppend engine = (StoreAppend) super.engine;
+
+    File f = Utils.tempDbFile();
+
 
     @Override
-    protected Engine openEngine() {
-        return new StoreAppend(index);
+    protected E openEngine() {
+        return (E) new StoreAppend(f);
     }
 
     @Test
     public void compact_file_deleted(){
         File f = Utils.tempDbFile();
         StoreAppend engine = new StoreAppend(f);
-        File f1 = engine.getFileNum(1);
-        File f2 = engine.getFileNum(2);
+        File f1 = engine.getFileFromNum(0);
+        File f2 = engine.getFileFromNum(1);
         long recid = engine.put(111L, Serializer.LONG_SERIALIZER);
         Long i=0L;
-        for(;i< StoreAppend.MAX_FILE_SIZE+1000; i+=8){
+        for(;i< StoreAppend.FILE_MASK+1000; i+=8){
             engine.update(recid, i, Serializer.LONG_SERIALIZER);
         }
         i-=8;
@@ -59,6 +65,47 @@ public class StoreAppendTest extends StoreTestCase {
         assertTrue(f2.exists());
         db.close();
         assertFalse(f2.exists());
+    }
+
+    @Test public void header_created() throws IOException {
+        //check offset
+        assertEquals(StoreAppend.LAST_RESERVED_RECID, e.maxRecid);
+        assertEquals(1+8+2*StoreAppend.LAST_RESERVED_RECID, e.currPos);
+        RandomAccessFile raf = new RandomAccessFile(e.getFileFromNum(0),"r");
+        //check header
+        raf.seek(0);
+        assertEquals(StoreAppend.HEADER, raf.readLong());
+        //check reserved recids
+        for(int recid=1;recid<=StoreAppend.LAST_RESERVED_RECID;recid++){
+            assertEquals(0, e.index.getLong(recid*8));
+            assertEquals(recid+StoreAppend.RECIDP,raf.read()); //packed long
+            assertEquals(0+StoreAppend.SIZEP,raf.read()); //packed long
+        }
+
+        assertEquals(StoreAppend.END+StoreAppend.RECIDP,raf.read()); //packed long
+        //check recid iteration
+        assertFalse(e.getFreeRecids().hasNext());
+    }
+
+    @Test public void put(){
+        long oldPos = e.currPos;
+        Volume vol = e.currVolume;
+        assertEquals(0, vol.getUnsignedByte(oldPos));
+
+        long maxRecid = e.maxRecid;
+        long value = 11111111111111L;
+        long recid = e.put(value,Serializer.LONG_SERIALIZER);
+        assertEquals(maxRecid+1, recid);
+        assertEquals(e.maxRecid, recid);
+
+        assertEquals(recid+StoreAppend.RECIDP, vol.getPackedLong(oldPos));
+        assertEquals(8+StoreAppend.SIZEP, vol.getPackedLong(oldPos+1));
+        assertEquals(value, vol.getLong(oldPos+2));
+
+        assertEquals(Long.valueOf(oldPos+1), e.indexInTx.get(recid));
+        e.commit();
+        assertEquals(oldPos+1, e.index.getLong(recid*8));
+
     }
 
 }

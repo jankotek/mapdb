@@ -107,6 +107,17 @@ final public class Utils {
         throw new Error("Malformed long.");
     }
 
+    /** get number of bytes occupied by packed long */
+    public static int packedLongSize(long value) {
+        int ret = 1;
+        while ((value & ~0x7FL) != 0) {
+            ret++;
+            value >>>= 7;
+        }
+        return ret;
+    }
+
+
 
     /**
      * Pack  non-negative long into output stream.
@@ -347,4 +358,5 @@ final public class Utils {
             }
         }
     }
+
 }

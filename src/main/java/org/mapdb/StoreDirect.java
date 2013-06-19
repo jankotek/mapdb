@@ -767,7 +767,8 @@ public class StoreDirect implements Store{
 
         byte[] b = null;
 
-        if(data!=null) synchronized (data){
+        if(data!=null){
+            data = data.duplicate();
             b = new byte[data.remaining()];
             data.get(b);
         }
