@@ -22,11 +22,14 @@ public class Cache {
 	public Cache(int size) {
 		this.size = size;
 
-		primaryStore = DBMaker.newTempTreeMap();
+		primaryStore = DBMaker.newTempFileDB().writeAheadLogDisable()
+				.deleteFilesAfterClose().closeOnJvmShutdown()
+				.make().getTreeMap("cache");
+
 		lruMap = new LongConcurrentLRUMap<Object>(size, (int) (size * 0.8)) {
 			protected void evictedEntry(long key, Object value) {
 				primaryStore.remove(key);
-				System.out.println("EVICTING: " + key);
+				// System.out.println("EVICTING: " + key);
 			}
 		};
 
@@ -53,20 +56,41 @@ public class Cache {
 	}
 
 	public static void main(String[] args) {
-		Cache cache = new Cache();
-		for (long k = 0; k < defaultCacheSize * 2; ++k) {
+		int cacheSize = 1024000;
+		int putSize = cacheSize * 2;
+		int getSize = putSize;
+		int hit = 0, miss = 0;
+
+		long start = System.nanoTime();
+
+		Cache cache = new Cache(cacheSize);
+
+		long init = System.nanoTime();
+
+		for (long k = 0; k < putSize; ++k) {
 			cache.set(k, "value:" + k);
-			assert cache.get(1L).equals("value:" + 1);
 		}
 
-		for (long k = 1; k < defaultCacheSize + 1; ++k) {
+		long set = System.nanoTime();
+
+		for (long k = 0; k < getSize; ++k) {
 			String result = cache.get(k);
 			if (result == null || !result.equals("value:" + k)) {
 				// System.out.println("MISS:" + k);
+				miss++;
 			} else {
-				System.out.println("HIT:" + k);
+				// System.out.println("HIT:" + k);
+				hit++;
 			}
 		}
+
+		long end = System.nanoTime();
+
+		System.out.printf("cache size: %d; set: %d; get: %d\n", cacheSize, putSize, getSize);
+		System.out.printf("init time: %d\n", init - start);
+		System.out.printf("hit: %d; miss: %d; time: %d ns(set) / %d ns(get)\n ", hit, miss, (set - init) / putSize,
+				(end - set) / getSize);
+
 	}
 
 }
