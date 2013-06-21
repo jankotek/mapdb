@@ -76,7 +76,7 @@ public class StoreAppend implements Store{
     protected final LongMap<Long> indexInTx;
 
     protected final ReentrantLock structuralLock = new ReentrantLock();
-    protected final ReentrantReadWriteLock[] locks;
+    protected final ReentrantReadWriteLock[] locks = Utils.newReadWriteLocks();
 
 
 
@@ -90,8 +90,6 @@ public class StoreAppend implements Store{
         this.tx = !transactionDisabled;
         indexInTx = tx?new LongConcurrentHashMap<Long>() : null;
 
-        locks =  new ReentrantReadWriteLock[CC.CONCURRENCY];
-        for(int i=0;i< locks.length;i++) locks[i]= new ReentrantReadWriteLock();
 
         if(!file.getParentFile().exists() || !file.getParentFile().isDirectory())
             throw new IllegalArgumentException("Parent dir does not exist: "+file);
