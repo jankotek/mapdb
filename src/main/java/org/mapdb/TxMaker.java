@@ -1,5 +1,6 @@
 package org.mapdb;
 
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -59,7 +60,7 @@ public class TxMaker {
         protected LongMap<Fun.Tuple2<?, Serializer>> modItems =
                 new LongConcurrentHashMap<Fun.Tuple2<?, Serializer>>();
 
-        protected Set<Long> newItems = new LinkedHashSet<Long>();
+        protected Set<Long> newItems = Collections.synchronizedSet(new LinkedHashSet<Long>()); //TODO replace with different structure
 
 
         protected TxEngine(Engine engine) {
