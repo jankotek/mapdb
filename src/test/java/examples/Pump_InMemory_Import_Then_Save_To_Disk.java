@@ -9,7 +9,7 @@ import java.util.Map;
  * This demonstrates using Data Pump to first create store in-memory at maximal speed,
  * and than copy the store into memory
  */
-public class Pump_InMemory_Import_Than_Save_To_Disk {
+public class Pump_InMemory_Import_Then_Save_To_Disk {
 
     public static void main(String[] args) {
 

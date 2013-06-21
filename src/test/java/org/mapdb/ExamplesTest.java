@@ -76,7 +76,7 @@ public class ExamplesTest {
     }
 
     @Test public void Pump_InMemory_Import_Than_Save_To_Disk(){
-        Pump_InMemory_Import_Than_Save_To_Disk.main(args);
+        Pump_InMemory_Import_Then_Save_To_Disk.main(args);
     }
 
 
