@@ -16,7 +16,7 @@ public class TxMaker {
 
     protected final Object lock = new Object();
 
-    protected final LongMap<TxEngine> globalMod = new LongHashMap<TxEngine>();
+    protected final LongMap<TxEngine> globalMod = new LongConcurrentHashMap<TxEngine>();
 
 
     public TxMaker(Engine engine) {
@@ -57,7 +57,7 @@ public class TxMaker {
     protected class TxEngine extends EngineWrapper{
 
         protected LongMap<Fun.Tuple2<?, Serializer>> modItems =
-                new LongHashMap<Fun.Tuple2<?, Serializer>>();
+                new LongConcurrentHashMap<Fun.Tuple2<?, Serializer>>();
 
         protected Set<Long> newItems = new LinkedHashSet<Long>();
 
@@ -134,6 +134,7 @@ public class TxMaker {
 
                 //remove locally modified items from global list
                 LongMap.LongMapIterator<Fun.Tuple2<?, Serializer>> iter = modItems.longMapIterator();
+                long counter = modItems.size();
                 while(iter.moveToNext()){
                     TxEngine other = globalMod.remove(iter.key());
                     if(other!=TxEngine.this) throw new InternalError();
