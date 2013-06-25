@@ -711,5 +711,10 @@ public class StoreWAL extends StoreDirect {
 
     }
 
+    @Override
+    public boolean canRollback(){
+        return true;
+    }
+
 
 }

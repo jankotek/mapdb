@@ -585,7 +585,10 @@ public class DBMaker {
 
     
     public TxMaker makeTxMaker(){
-        return new TxMaker(makeEngine());
+        asyncWriteDisable();
+        Engine e = makeEngine();
+        if(!(e instanceof SnapshotEngine)) throw new IllegalArgumentException("Snapshot must be enabled for TxMaker");
+        return new TxMaker((SnapshotEngine) e);
     }
 
     /** constructs Engine using current settings */
@@ -638,12 +641,9 @@ public class DBMaker {
         }
 
 
-        if(!_snapshotDisabled)
-            engine = new SnapshotEngine(engine);
-
         if(_cache == CACHE_DISABLE){
             //do not wrap engine in cache
-        }if(_cache == CACHE_FIXED_HASH_TABLE){
+        }else if(_cache == CACHE_FIXED_HASH_TABLE){
             engine = new CacheHashTable(engine,_cacheSize);
         }else if (_cache == CACHE_HARD_REF){
             engine = new CacheHardRef(engine,_cacheSize);
@@ -655,6 +655,9 @@ public class DBMaker {
             engine = new CacheLRU(engine, _cacheSize);
         }
 
+
+        if(!_snapshotDisabled)
+            engine = new SnapshotEngine(engine);
 
         if(_readOnly)
             engine = new ReadOnlyEngine(engine);

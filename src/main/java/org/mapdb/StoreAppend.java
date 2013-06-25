@@ -457,6 +457,12 @@ public class StoreAppend implements Store{
     }
 
     @Override
+    public boolean canRollback(){
+        return tx;
+    }
+
+
+    @Override
     public boolean isReadOnly() {
         return readOnly;
     }

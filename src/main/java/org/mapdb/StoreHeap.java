@@ -91,6 +91,13 @@ public class StoreHeap implements Store, Serializable{
     }
 
     @Override
+    public boolean canRollback(){
+        //TODO implement rollback
+        return false;
+    }
+
+
+    @Override
     public long getMaxRecid() {
         return maxRecid.get();
     }

@@ -1,8 +1,8 @@
 package org.mapdb;
 
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Transaction factory
@@ -11,28 +11,39 @@ import java.util.Set;
  */
 public class TxMaker {
 
-    protected static final Fun.Tuple2<Object, Serializer> DELETED = new Fun.Tuple2(null, Serializer.STRING_SERIALIZER);
+    /** marker for deleted records*/
+    protected static final Object DELETED = new Object();
 
-    protected Engine engine;
+    /** parent engine under which modifications are stored */
+    protected SnapshotEngine engine;
 
-    protected final Object lock = new Object();
+    protected final ReentrantReadWriteLock commitLock = new ReentrantReadWriteLock();
 
-    protected final LongMap<TxEngine> globalMod = new LongConcurrentHashMap<TxEngine>();
+    protected LongConcurrentHashMap<Engine> globalMods = new LongConcurrentHashMap<Engine>();
+    protected volatile boolean commitPending;
 
-
-    public TxMaker(Engine engine) {
+    public TxMaker(SnapshotEngine engine) {
         if(engine==null) throw new IllegalArgumentException();
+        if(engine.isReadOnly()) throw new IllegalArgumentException("read only");
+        if(!engine.canRollback()) throw new IllegalArgumentException("no rollback");
         this.engine = engine;
     }
 
     
     public DB makeTx(){
-        return new DB(new TxEngine(engine));
+        return new DB(new TxEngine(engine.snapshot()));
     }
 
     public void close() {
-        if(engine==null)
+        if(engine == null) return;
+        commitLock.writeLock().lock();
+        try{
             engine.close();
+            engine = null;
+            globalMods = null;
+        }finally {
+            commitLock.writeLock().unlock();
+        }
     }
 
     /**
@@ -57,126 +68,222 @@ public class TxMaker {
 
     protected class TxEngine extends EngineWrapper{
 
-        protected LongMap<Fun.Tuple2<?, Serializer>> modItems =
+        /** list of modifications made by this transaction */
+        protected LongConcurrentHashMap<Fun.Tuple2<?, Serializer>> mods =
                 new LongConcurrentHashMap<Fun.Tuple2<?, Serializer>>();
 
-        protected Set<Long> newItems = Collections.synchronizedSet(new LinkedHashSet<Long>()); //TODO replace with different structure
+        protected LongConcurrentHashMap<Serializer> newRecids =
+                new LongConcurrentHashMap<Serializer>();
 
 
-        protected TxEngine(Engine engine) {
-            super(engine);
+
+        protected final ReentrantReadWriteLock[] locks = Utils.newReadWriteLocks();
+
+
+
+        protected TxEngine(Engine snapshot) {
+            super(snapshot);
         }
 
         @Override
         public <A> long put(A value, Serializer<A> serializer) {
-            if(isClosed()) throw new IllegalAccessError("already closed");
-            synchronized (lock){
-                long recid = engine.put(Utils.EMPTY_STRING, Serializer.EMPTY_SERIALIZER);
-                newItems.add(recid);
-                modItems.put(recid, Fun.t2(value, (Serializer)serializer));
-                globalMod.put(recid, TxEngine.this);
-                return recid;
+            final long recid;
+
+            //need to get new recid from underlying engine
+            commitLock.readLock().lock();
+            try{
+                commitPending = true;
+                recid = engine.put(Utils.EMPTY_STRING, Serializer.STRING_SERIALIZER);
+            }finally {
+                commitLock.readLock().unlock();
+            }
+            lockGlobalMods(recid);
+
+            Lock lock = locks[Utils.longHash(recid)%locks.length].writeLock();
+            lock.lock();
+            try{
+                //update local modifications
+                newRecids.put(recid, serializer);
+                mods.put(recid,Fun.t2(value,(Serializer)serializer));
+            }finally {
+                lock.unlock();
+            }
+            return recid;
+        }
+
+        protected void lockGlobalMods(long recid) {
+            Engine other = globalMods.putIfAbsent(recid,this);
+            if(other!=this && other!=null){
+                rollback();
+                Utils.LOG.warning("TxRollback thanks to internal error, other: "+other);
+                throw new TxRollbackException();
             }
         }
 
         @Override
         public <A> A get(long recid, Serializer<A> serializer) {
-            if(isClosed()) throw new IllegalAccessError("already closed");
-            synchronized (lock){
-                Fun.Tuple2 t = modItems.get(recid);
-                if(t!=null){
-                    return (A) t.a;
-                    //TODO compare serializers?
-                }else{
-                    return super.get(recid, serializer);
-                }
+            Lock lock = locks[Utils.longHash(recid)%locks.length].readLock();
+            lock.lock();
+            try{
+                return getNoLock(recid, serializer);
+            }finally {
+                lock.unlock();
             }
+
+        }
+
+        private <A> A getNoLock(long recid, Serializer<A> serializer) {
+            //try local mods
+            Fun.Tuple2 t = mods.get(recid);
+            if(t!=null){
+                if(t.a == DELETED) return null;
+                else return (A) t.a;
+            }
+            return super.get(recid,serializer);
         }
 
         @Override
         public <A> void update(long recid, A value, Serializer<A> serializer) {
-            if(isClosed()) throw new IllegalAccessError("already closed");
-            synchronized (lock){
-                TxEngine other = globalMod.get(recid);
-                if(other!=null && other!=TxEngine.this) {
-                    rollback();
-                    throw new TxRollbackException();
-                }
-                modItems.put(recid, new Fun.Tuple2(value, serializer));
-                globalMod.put(recid, TxEngine.this);
+            lockGlobalMods(recid);
+            Lock lock = locks[Utils.longHash(recid)%locks.length].writeLock();
+            lock.lock();
+            try{
+                //update local modifications
+                mods.put(recid,Fun.t2(value,(Serializer)serializer));
+            }finally {
+                lock.unlock();
             }
-
         }
 
         @Override
         public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
-            if(isClosed()) throw new IllegalAccessError("already closed");
-            throw new IllegalAccessError("Compare and Swap not supported in Tx mode");
-        }
-
-        @Override
-        public <A> void delete(long recid, Serializer<A> serializer){
-            if(isClosed()) throw new IllegalAccessError("already closed");
-            synchronized (lock){
-                TxEngine other = globalMod.get(recid);
-                if(other!=null && other!=TxEngine.this) {
-                    rollback();
-                    throw new TxRollbackException();
-                }
-                modItems.put(recid, DELETED);
-                globalMod.put(recid, TxEngine.this);
+            if(globalMods.get(recid)!=this){
+                rollback();
+                throw new TxRollbackException();
             }
-        }
+            Lock lock = locks[Utils.longHash(recid)%locks.length].writeLock();
+            lock.lock();
+            try{
+                Object oldVal = getNoLock(recid,serializer);
+                if(expectedOldValue==oldVal || (expectedOldValue!=null && expectedOldValue.equals(oldVal))){
+                    lockGlobalMods(recid);
 
-        @Override
-        public void commit() {
-            synchronized (lock){
-                if(isClosed()) throw new IllegalAccessError("already closed");
-
-                //remove locally modified items from global list
-                LongMap.LongMapIterator<Fun.Tuple2<?, Serializer>> iter = modItems.longMapIterator();
-                long counter = modItems.size();
-                while(iter.moveToNext()){
-                    TxEngine other = globalMod.remove(iter.key());
-                    if(other!=TxEngine.this) throw new InternalError();
-                    Fun.Tuple2<?, Serializer> t = iter.value();
-                    engine.update(iter.key(), t.a, t.b);
+                    mods.put(recid,Fun.t2(newValue,(Serializer)serializer));
+                    return true;
                 }
-                modItems = null;
-                newItems = null;
-
-                engine.commit();
+                return false;
+            }finally {
+                lock.unlock();
             }
 
         }
 
         @Override
-        public void rollback() {
-            synchronized (lock){
-                if(isClosed()) throw new IllegalAccessError("already closed");
+        public <A> void delete(long recid, Serializer<A> serializer) {
+            lockGlobalMods(recid);
 
-                //remove locally modified items from global list
-                LongMap.LongMapIterator iter = modItems.longMapIterator();
-                while(iter.moveToNext()){
-                    TxEngine other = globalMod.remove(iter.key());
-                    if(other!=TxEngine.this) throw new InternalError();
-                }
-                //delete preallocated items
-                for(long recid:newItems){
-                    engine.delete(recid, Serializer.EMPTY_SERIALIZER);
-                }
-                modItems = null;
-                newItems = null;
+            Lock lock = locks[Utils.longHash(recid)%locks.length].writeLock();
+            lock.lock();
+            try{
+                //add marked which indicates deleted
+                mods.put(recid,Fun.t2(DELETED,(Serializer)serializer));
+            }finally {
+                lock.unlock();
             }
-
         }
 
         @Override
         public void close() {
-            if(modItems==null || engine == null) return; //already closed
-            rollback();
+            mods = null;
+            newRecids = null;
+            super.close();
         }
+
+
+        @Override
+        public void commit() {
+            //replay all items in transactions
+            for(ReentrantReadWriteLock lock:locks) lock.writeLock().lock();
+
+            try{
+                super.close();
+                synchronized (commitLock){
+                    LongMap.LongMapIterator<Fun.Tuple2<?, Serializer>> iter = mods.longMapIterator();
+                    while(iter.moveToNext()){
+
+                        final long recid = iter.key();
+                        if(!globalMods.remove(recid,this)){
+                            engine.rollback();
+                            throw new InternalError("record was not modified by this transaction");
+                        }
+
+                        final Object value = iter.value().a;
+                        final Serializer serializer = iter.value().b;
+
+                        if(value==DELETED){
+                            engine.delete(recid,serializer);
+                        }else{
+                            engine.update(recid,value,serializer);
+                        }
+                    }
+                }
+                engine.commit();
+
+            }finally{
+                mods = null;
+                newRecids = null;
+
+                for(ReentrantReadWriteLock lock:locks) lock.writeLock().lock();
+            }
+        }
+
+        @Override
+        public void rollback() {
+
+            for(ReentrantReadWriteLock lock:locks) lock.writeLock().lock();
+
+            try{
+                super.close();
+                commitLock.writeLock().lock();
+                try{
+                    if(commitPending){
+                        engine.commit();
+                        commitPending = false;
+                    }
+                    LongMap.LongMapIterator<Fun.Tuple2<?, Serializer>> iter2 = mods.longMapIterator();
+                    while(iter2.moveToNext()){
+                        final long recid = iter2.key();
+                        if(!globalMods.remove(recid,this)){
+                            engine.rollback();
+                            throw new InternalError("record was not modified by this transaction");
+                        }
+                    }
+
+
+                    //remove allocated recids from store
+                    LongMap.LongMapIterator<Serializer> iter = newRecids.longMapIterator();
+                    while(iter.moveToNext()){
+                        long recid = iter.key();
+
+                        engine.delete(recid,iter.value());
+                    }
+
+                    engine.commit();
+                }finally {
+                    commitLock.writeLock().unlock();
+                }
+
+            }finally{
+                mods = null;
+                newRecids = null;
+                for(ReentrantReadWriteLock lock:locks) lock.writeLock().lock();
+            }
+        }
+
+        @Override
+        public boolean isReadOnly() {
+            return false;
+        }
+
     }
-
-
 }

@@ -192,6 +192,9 @@ public interface Engine {
      */
     boolean isReadOnly();
 
+    /** @return true if engine supports rollback*/
+    boolean canRollback();
+
     /** clears any underlying cache */
     void clearCache();
 

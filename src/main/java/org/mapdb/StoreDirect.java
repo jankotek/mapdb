@@ -498,6 +498,11 @@ public class StoreDirect implements Store{
     }
 
     @Override
+    public boolean canRollback(){
+        return false;
+    }
+
+    @Override
     public void clearCache() {
     }
 

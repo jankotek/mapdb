@@ -95,6 +95,11 @@ public abstract class EngineWrapper implements Engine{
     }
 
     @Override
+    public boolean canRollback() {
+        return getWrappedEngine().canRollback();
+    }
+
+    @Override
     public void clearCache() {
         getWrappedEngine().clearCache();
     }

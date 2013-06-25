@@ -173,6 +173,7 @@ public class CacheHashTable extends EngineWrapper implements Engine {
 
     @Override
     public void rollback() {
+        //TODO lock all in caches on rollback/commit?
         for(int i = 0;i<items.length;i++)
             items[i] = null;
         super.rollback();

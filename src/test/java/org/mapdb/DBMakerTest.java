@@ -67,8 +67,8 @@ public class DBMakerTest{
                 .asyncWriteDisable()
                 .make();
         verifyDB(db);
-        assertTrue(db.engine.getClass() == CacheHashTable.class);
-        assertTrue(((CacheHashTable)db.engine).getWrappedEngine().getClass() == SnapshotEngine.class);
+        assertTrue(db.engine.getClass() == SnapshotEngine.class);
+        assertTrue(((SnapshotEngine)db.engine).getWrappedEngine().getClass() == CacheHashTable.class);
 
     }
 
@@ -80,10 +80,10 @@ public class DBMakerTest{
                 .make();
         verifyDB(db);
         //check default values are set
-        assertTrue(db.engine.getClass() == CacheHashTable.class);
-        assertEquals(1024 * 32, ((CacheHashTable) db.engine).cacheMaxSize);
-        EngineWrapper w = (EngineWrapper) ((CacheHashTable) db.engine).getWrappedEngine();
-        assertTrue(w instanceof SnapshotEngine);
+        assertTrue(db.engine.getClass() == SnapshotEngine.class);
+        EngineWrapper w = (EngineWrapper) ((SnapshotEngine) db.engine).getWrappedEngine();
+        assertTrue(w instanceof CacheHashTable);
+        assertEquals(1024 * 32, ((CacheHashTable) w).cacheMaxSize);
         assertTrue(w.getWrappedEngine().getClass() == AsyncWriteEngine.class);
         AsyncWriteEngine r = (AsyncWriteEngine) w.getWrappedEngine();
         assertTrue(r.getWrappedEngine() instanceof StoreDirect);
@@ -96,6 +96,7 @@ public class DBMakerTest{
                 .newMemoryDB()
                 .writeAheadLogDisable()
                 .cacheHardRefEnable()
+                .snapshotDisable()
                 .make();
         verifyDB(db);
         assertTrue(db.engine.getClass() == CacheHardRef.class);
@@ -106,6 +107,7 @@ public class DBMakerTest{
         DB db = DBMaker
                 .newMemoryDB()
                 .writeAheadLogDisable()
+                .snapshotDisable()
                 .cacheWeakRefEnable()
                 .make();
         verifyDB(db);
@@ -120,6 +122,7 @@ public class DBMakerTest{
                 .newMemoryDB()
                 .writeAheadLogDisable()
                 .cacheSoftRefEnable()
+                .snapshotDisable()
                 .make();
         verifyDB(db);
         assertTrue(db.engine.getClass() == CacheWeakSoftRef.class);
@@ -131,6 +134,7 @@ public class DBMakerTest{
         DB db = DBMaker
                 .newMemoryDB()
                 .writeAheadLogDisable()
+                .snapshotDisable()
                 .cacheLRUEnable()
                 .make();
         verifyDB(db);
@@ -142,6 +146,7 @@ public class DBMakerTest{
     public void testCacheSize() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
+                .snapshotDisable()
                 .writeAheadLogDisable()
                 .cacheSize(1000)
                 .make();
