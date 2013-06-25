@@ -644,6 +644,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     private void recursiveDirDelete(int h, int level, long[] dirRecids, long[][] dir, int slot) {
         //TODO keep dir immutable while recursive delete
         //was only item in linked list, so try to collapse the dir
+        dir=Arrays.copyOf(dir,16);
+        dir[slot/8] = Arrays.copyOf(dir[slot/8],8);
         dir[slot/8][slot%8] = 0;
         //one record was zeroed out, check if subarray can be collapsed to null
         boolean allZero = true;
@@ -653,8 +655,10 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 break;
             }
         }
-        if(allZero)
+        if(allZero){
+
             dir[slot/8] = null;
+        }
         allZero = true;
         for(long[] l:dir){
             if(l!=null){
