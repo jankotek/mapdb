@@ -115,7 +115,6 @@ public class TxMaker {
             Engine other = globalMods.putIfAbsent(recid,this);
             if(other!=this && other!=null){
                 rollback();
-                Utils.LOG.warning("TxRollback thanks to internal error, other: "+other);
                 throw new TxRollbackException();
             }
         }
