@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <project name="MapDB">
 
+<!--
     <custom>
         <fluidoSkin>
             <topBarEnabled>true</topBarEnabled>
@@ -21,12 +22,59 @@
             </gitHub>
         </fluidoSkin>
     </custom>
+-->
+
+    <custom>
+        <reflowSkin>
+
+            <pages>
+                <index project="MapDB">
+                    <toc>false</toc>
+                </index>
+            </pages>
+
+            <brand>
+                <name><![CDATA[
+                <img src="images/logo.png" border="0" alt="MapDB"/>
+                <div style="font-size:12px">Java beyond heap</div>
+                ]]></name>
+                <href>http://www.mapdb.org/</href>
+            </brand>
+
+            <highlightJs>true</highlightJs>
+            <highlightJsTheme>github</highlightJsTheme>
+
+            <titleTemplate>%2$s | %1$s</titleTemplate>
+            <toc>sidebar</toc>
+            <topNav>MapDB|Documentation|Support|reports</topNav>
+            <bottomNav>
+                <column>MapDB</column>
+                <column>Documentation</column>
+                <column>Support</column>
+                <column>Author</column>
+            </bottomNav>
+            <bottomDescription><![CDATA[
+                MapDB is free as a beer under Apache license. Please support us to make sure it remains free.
+                <p>
+                <form id="donate-form" class="navbar-search pull-right" action="https://www.paypal.com/cgi-bin/webscr" method="post">
+                    <input type="hidden" name="cmd" value="_donations">
+                    <input type="hidden" name="business" value="jan&#64;kotek&#46;net">
+                    <input type="hidden" name="lc" value="US">
+                    <input type="hidden" name="currency_code" value="EUR">
+                    <input type="hidden" name="bn" value="PP-DonationsBF:btn_donate_LG.gif:NonHosted">
+                    <input type="image" src="images/donate.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
+                    <!--<img alt="" border="0" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif" width="1" height="1">-->
+                </form>
+                ]]>
+            </bottomDescription>
+        </reflowSkin>
+    </custom>
+
 
 
     <body>
         <head>
             <script src='js/jquery.min.js'></script>
-            <script src='js/donate.js'></script>
             <!--graphs -->
             <script src='js/excanvas.js'></script>
             <script src='js/js-class.js'></script>
@@ -34,10 +82,31 @@
         </head>
 
         <menu name="MapDB">
-            <item name="Introduction" href="index.html"/>
+            <item name="Index" href="index.html"/>
+            <item name="Github" href="http://www.github.com/jankotek/mapdb"/>
             <item name="Features" href="features.html" />
             <item name="Frequently Asked Questions" href="faq.html"/>
             <item name="Credits" href="credits.html" />
+        </menu>
+
+        <menu name="Documentation">
+            <item name="Intro" href="intro.html"/>
+            <item name="Overview Video" href="http://www.youtube.com/watch?v=FdZmyEHcWLI"/>
+            <item name="Examples" href="https://github.com/jankotek/MapDB/tree/master/src/test/java/examples" />
+            <item name="JavaDoc" href="apidocs/index.html"/>
+        </menu>
+
+        <menu name="Support">
+            <item name="Mail list" href="http://groups.google.com/group/mapdb"/>
+            <item name="Bug tracker" href="https://github.com/jankotek/MapDB/issues"/>
+        </menu>
+
+
+        <menu name="Author">
+            <item name="Blog" href="http://www.kotek.net/"/>
+            <item name="Twitter" href="http://www.twitter.com/jankotek"/>
+            <item name="Email" href="mailto:jan&#64;kotek&#46;net" />
+            <item name="About" href="http://www.kotek.net" />
         </menu>
 
         <menu ref="reports" name="Reports"/>
@@ -45,9 +114,9 @@
 
 
     <skin>
-        <groupId>org.apache.maven.skins</groupId>
-        <artifactId>maven-fluido-skin</artifactId>
-        <version>1.3.0</version>
+        <groupId>lt.velykis.maven.skins</groupId>
+        <artifactId>reflow-maven-skin</artifactId>
+        <version>1.0.0</version>
     </skin>
 
 </project>
