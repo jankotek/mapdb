@@ -208,6 +208,11 @@ public class TxMaker {
             try{
                 super.close();
                 synchronized (commitLock){
+                    if(commitPending){
+                        engine.commit();
+                        commitPending = false;
+                    }
+
                     LongMap.LongMapIterator<Fun.Tuple2<?, Serializer>> iter = mods.longMapIterator();
                     while(iter.moveToNext()){
 
