@@ -29,12 +29,12 @@ Highlights
 * Various write modes (transactional journal, direct, async or append)
 to match various requirements.
 
-* ACID transactions with full MVCC isolation (not yet implemented)
+* ACID transactions with full MVCC isolation
 
-* Very fast snapshots (not yet implemented)
+* Very fast snapshots
 
 * Very flexible; works equally well on an Android phone and
-a supercomputer with multi-terabyte storage (Android not yet tested).
+a supercomputer with multi-terabyte storage.
 
 * Modular & extensible design; most features (compression, cache,
 async writes) are just `Engine` wrappers. Introducing
@@ -65,17 +65,17 @@ Is activated by default with size 32768.
 ### LRU instance cache
 Fixed size cache with Least Recently Used entry removal. It uses Cleanup daemon thread.
 Has larger overhead compared to HashTable, but will have better results object deserialization
-is expensive. Is activated by [DBMaker.cacheLRUEnable()](http://www.mapdb.org/apidocs/org/mapdb/DBMaker.html#cacheLRUEnable(\))
+is expensive. Is activated by <a href="http://www.mapdb.org/apidocs/org/mapdb/DBMaker.html#cacheLRUEnable">DBMaker.cacheLRUEnable()</a>
 
 ### Weak reference instance cache
 Unbounded instance cache with entries removed after GC collection. It uses
 Weak reference so cache entry can be Garbage Collected when no longer referenced.
-It uses Cleanup daemon thread. Is activated by [DBMaker.cacheWeakRefEnable()](http://www.mapdb.org/apidocs/org/mapdb/DBMaker.html#cacheWeakRefEnable(\))
+It uses Cleanup daemon thread. Is activated by <a href="http://www.mapdb.org/apidocs/org/mapdb/DBMaker.html#cacheWeakRefEnable()">DBMaker.cacheWeakRefEnable()</a>
 
 ### Soft reference instance cache
 Unbounded instance cache with entries removed after GC collection. It uses
 Soft reference so entry cache entry can be Garbage Collected when no longer referenced.
-It uses Cleanup daemon thread. Is activated by [DBMaker.cacheSoftRefEnable()](http://www.mapdb.org/apidocs/org/mapdb/DBMaker.html#cacheSoftRefEnable(\))
+It uses Cleanup daemon thread. Is activated by <a href="http://www.mapdb.org/apidocs/org/mapdb/DBMaker.html#cacheSoftRefEnable()">DBMaker.cacheSoftRefEnable()</a>
 
 ### Hard reference instance cache
 Unbounded instance cache with all entries removed when heap memory runs low.
@@ -83,7 +83,7 @@ All cache entries are stored in HashMap with hard reference.
 To prevent OutOfMemoryError free heap memory is monitored, when it runs bellow 25%
 all entries are removed from cache.  This cache is often faster than Soft/Weak Cache,
 it requires much less Garbage Collections. Use this cache if you have large heap and want
-maximal performance. Is activated by [DBMaker.cacheHardRefEnable()](http://www.mapdb.org/apidocs/org/mapdb/DBMaker.html#cacheHardRefEnable(\))
+maximal performance. Is activated by <a href="http://www.mapdb.org/apidocs/org/mapdb/DBMaker.html#cacheHardRefEnable()">DBMaker.cacheHardRefEnable()</a>
 
 Serialization
 -------------
@@ -116,12 +116,12 @@ handling stuff like forward/backward references in process.
 MapDB stores class structure (names, fields types) on centralized space,
 this greatly reduces space overhead with larger number of records. For example take following class:
 
-   class Person{ int age = 40; String nickname = "Agent Smith"; }
+     class Person{ int age = 40; String nickname = "Agent Smith"; }
 
 Standard Java Serialization stores this class in 104 bytes with many redundant information such as
 field names:
 
-   __srorg.apache.jdbm.geecon.Person O IageL __ __ nicknametLjava/lang/String;xp(tAgent Smith
+      __srorg.apache.jdbm.geecon.Person O IageL __ __ nicknametLjava/lang/String;xp(tAgent Smith
 
 MapDB serialization stores this record with  only 15 bytes!
 
@@ -139,11 +139,11 @@ MapDB has many other small features which would not fit on this page. You may fi
 ### Transparent compression
 MapDB supports transparent compression using [LZF compressor](http://oldhome.schmorp.de/marc/liblzf.html).
 It is very fast compression with typical rates around 40%. It is tightly optimized in does not require
-much internal copying and object allocations. It can be enabled by [DBMaker.compressionEnable()](http://www.mapdb.org/apidocs/org/mapdb/DBMaker.html#compressionEnable(\))
+much internal copying and object allocations. It can be enabled by <a href="http://www.mapdb.org/apidocs/org/mapdb/DBMaker.html#compressionEnable()">DBMaker.compressionEnable()</a>
 
 ### Transparent encryption
 MapDB allows storage encryption using [XTea algorithm](http://en.wikipedia.org/wiki/XTEA).
 It is fast and sound algorithm with 256bit keys. It is highly optimized for MapDB to minimize internal copying.
 Other encryption algorithms can be used with some extra coding.
-Encryption can be enabled by [DBMaker.encryptionEnable(String password)](http://www.mapdb.org/apidocs/org/mapdb/DBMaker.html#encryptionEnable(java.lang.String\))
+Encryption can be enabled by <a href="http://www.mapdb.org/apidocs/org/mapdb/DBMaker.html#encryptionEnable(java.lang.String)">DBMaker.encryptionEnable(String password)</a>
 
