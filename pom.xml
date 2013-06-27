@@ -214,6 +214,7 @@
                         <version>1.1</version>
                     </docletArtifact>
                     <useStandardDocletOptions>true</useStandardDocletOptions>
+                    <notimestamp>true</notimestamp>
                 </configuration>
             </plugin>
 
