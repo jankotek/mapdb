@@ -5,7 +5,7 @@
     <groupId>org.mapdb</groupId>
     <artifactId>mapdb</artifactId>
     <version>0.9.4-SNAPSHOT</version>
-    <name>MapDB</name>
+    <name>mapdb</name>
     <description>MapDB provides concurrent Maps, Sets and Queues backed by disk storage or off-heap memory. It is a fast, scalable and easy to use embedded Java database.</description>
     <url>http://www.mapdb.org</url>
 
@@ -207,54 +207,16 @@
                 </reportSets>
 
                 <configuration>
-
                     <doclet>ch.raffael.doclets.pegdown.PegdownDoclet</doclet>
                     <docletArtifact>
                         <groupId>ch.raffael.pegdown-doclet</groupId>
                         <artifactId>pegdown-doclet</artifactId>
-                        <version>1.1-SNAPSHOT</version>
+                        <version>1.1</version>
                     </docletArtifact>
                     <useStandardDocletOptions>true</useStandardDocletOptions>
                 </configuration>
             </plugin>
 
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-report-plugin</artifactId>
-                <version>2.12.4</version>
-            </plugin>
-
-
-            <plugin>
-               <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-pmd-plugin</artifactId>
-                <version>2.7.1</version>
-                <configuration>
-                    <targetJdk>1.6</targetJdk>
-                </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>findbugs-maven-plugin</artifactId>
-                <version>2.5.2</version>
-<!--
-                <configuration>
-                    <findbugsXmlOutput>true</findbugsXmlOutput>
-                    <excludeFilterFile>${basedir}/src/findbugs/exclude-filters.xml</excludeFilterFile>
-                    <includeTests>false</includeTests>
-                </configuration>
--->
-            </plugin>
-
-            <!--Uncomment to enable code-test-coverage report. Code instrumentation will  slow down tests significantly-->
-<!--        <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>cobertura-maven-plugin</artifactId>
-                <version>2.2</version>
-            </plugin>
--->
         </plugins>
 
     </reporting>
