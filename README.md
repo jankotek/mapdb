@@ -147,3 +147,6 @@ MapDB is a hobby project and my time is limited.Please always attach code to ill
 bug will get fixed promptly.
 
 Last option is to [contact me directly](mailto:jan at kotek dot net). I prefer public bug tracker and mail-group so others can find answers as well. Unless you specify your question as confidential, I may forward it to public mail-group.
+
+
+![Image](https://www.google-analytics.com/__utm.gif?utmac=UA-42074659-3&raw=true)
