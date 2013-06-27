@@ -1,31 +1,12 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <project name="mapdb">
 
-<!--
-    <custom>
-        <fluidoSkin>
-            <topBarEnabled>true</topBarEnabled>
-            <topBarIcon>
-                <name>MapDB</name>
-                <alt>MapDB</alt>
-                <src>images/logo.png</src>
-                <href>/index.html</href>
-            </topBarIcon>
-            <sideBarEnabled>false</sideBarEnabled>
-            <googleSearch/>
-            <sourceLineNumbersEnabled>true</sourceLineNumbersEnabled>
-            <navBarStyle>navbar-inverse</navBarStyle>
-            <gitHub>
-                <projectId>JanKotek/MapDB</projectId>
-                <ribbonOrientation>right</ribbonOrientation>
-                <ribbonColor>black</ribbonColor>
-            </gitHub>
-        </fluidoSkin>
-    </custom>
--->
+
+    <googleAnalyticsAccountId>UA-42074659-1</googleAnalyticsAccountId>
 
     <custom>
         <reflowSkin>
+
 
             <pages>
                 <index project="mapdb">
