@@ -13,7 +13,7 @@ import static org.junit.Assert.*;
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class BTreeMapTest{
 
-    Engine engine = new StoreDirect(Volume.memoryFactory(false));
+    Engine engine = new StoreDirect(Volume.memoryFactory(false,0L));
     
 
     @Test public void test_leaf_node_serialization() throws IOException {

@@ -8,7 +8,7 @@ import static org.junit.Assert.*;
 
 public class SnapshotEngineTest{
 
-    SnapshotEngine e = new SnapshotEngine(new StoreWAL(Volume.memoryFactory(false)));
+    SnapshotEngine e = new SnapshotEngine(new StoreWAL(Volume.memoryFactory(false, 0L)));
 
     @Test public void update(){
         long recid = e.put(111, Serializer.INTEGER_SERIALIZER);

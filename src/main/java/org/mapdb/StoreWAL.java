@@ -39,11 +39,11 @@ public class StoreWAL extends StoreDirect {
 
 
     public StoreWAL(Volume.Factory volFac) {
-        this(volFac,false,false,5,false);
+        this(volFac,false,false,5,false,0L);
     }
     public StoreWAL(Volume.Factory volFac, boolean readOnly, boolean deleteFilesAfterClose,
-                    int spaceReclaimMode, boolean syncOnCommitDisabled) {
-        super(volFac, readOnly, deleteFilesAfterClose, spaceReclaimMode,syncOnCommitDisabled);
+                    int spaceReclaimMode, boolean syncOnCommitDisabled, long sizeLimit) {
+        super(volFac, readOnly, deleteFilesAfterClose, spaceReclaimMode,syncOnCommitDisabled,sizeLimit);
         this.volFac = volFac;
         this.log = volFac.createTransLogVolume();
 

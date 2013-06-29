@@ -69,6 +69,8 @@ public class DBMaker {
 
     protected boolean _snapshotDisabled = false;
 
+    protected long _sizeLimit = 0;
+
     protected int _rafMode = 0;
 
     protected boolean _appendStorage;
@@ -577,6 +579,22 @@ public class DBMaker {
     }
 
 
+    /**
+     * Sets store size limit. Disk or memory space consumed be storage should not grow over this space.
+     * Limit is not strict and does not apply to some parts such as index table. Actual store size might
+     * be 10% or more bigger.
+     *
+     *
+     * @param maxSize maximal store size in GB
+     * @return this builder
+     */
+    public DBMaker sizeLimit(double maxSize){
+        this._sizeLimit = (long) (maxSize * 1024D*1024D*1024D);
+        return this;
+    }
+
+
+
 
     /** constructs DB using current settings */
     public DB make(){
@@ -602,19 +620,19 @@ public class DBMaker {
             throw new UnsupportedOperationException("Can not open non-existing file in read-only mode.");
         }
 
+        if(_sizeLimit>0 && _appendStorage)
+            throw new UnsupportedOperationException("Append-Only store does not support Size Limit");
+
         Engine engine;
 
         if(!_appendStorage){
             Volume.Factory folFac = _file == null?
-                Volume.memoryFactory(_ifInMemoryUseDirectBuffer):
-                Volume.fileFactory(_readOnly, _rafMode, _file);
+                Volume.memoryFactory(_ifInMemoryUseDirectBuffer,_sizeLimit):
+                Volume.fileFactory(_readOnly, _rafMode, _file,_sizeLimit);
 
             engine = _writeAheadLogEnabled ?
-                    //TODO add extra params
-                //new StoreWAL(folFac, _freeSpaceReclaimDisabled, _deleteFilesAfterClose, _failOnWrongHeader, _readOnly):
-                //new StoreDirect(folFac, _freeSpaceReclaimDisabled, _deleteFilesAfterClose , _failOnWrongHeader, _readOnly);
-                new StoreWAL(folFac,  _readOnly,_deleteFilesAfterClose, _freeSpaceReclaimQ,_syncOnCommitDisabled):
-                new StoreDirect(folFac,  _readOnly,_deleteFilesAfterClose, _freeSpaceReclaimQ,_syncOnCommitDisabled);
+                new StoreWAL(folFac,  _readOnly,_deleteFilesAfterClose, _freeSpaceReclaimQ,_syncOnCommitDisabled,_sizeLimit):
+                new StoreDirect(folFac,  _readOnly,_deleteFilesAfterClose, _freeSpaceReclaimQ,_syncOnCommitDisabled,_sizeLimit);
         }else{
             if(_file==null) throw new UnsupportedOperationException("Append Storage format is not supported with in-memory dbs");
             engine = new StoreAppend(_file, _rafMode>0, _readOnly, !_writeAheadLogEnabled, _deleteFilesAfterClose, _syncOnCommitDisabled);

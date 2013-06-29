@@ -325,4 +325,16 @@ public class DBMakerTest{
         assertTrue(d.phys instanceof Volume.FileChannelVol);
     }
 
+    @Test(expected = UnsupportedOperationException.class)
+    public void limitDisabledAppend(){
+        DBMaker.newAppendFileDB(Utils.tempDbFile()).sizeLimit(1).make();
+    }
+
+    @Test()
+    public void sizeLimit(){
+        long g = 1024*1024*1024;
+        assertEquals(g/2,DBMaker.newMemoryDB().sizeLimit(0.5)._sizeLimit);
+        assertEquals(g,DBMaker.newMemoryDB().sizeLimit(1)._sizeLimit);
+    }
+
 }

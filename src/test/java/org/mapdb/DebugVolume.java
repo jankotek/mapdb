@@ -27,6 +27,12 @@ public class DebugVolume extends Volume{
     }
 
     @Override
+    public boolean tryAvailable(long offset) {
+        out.println("tryAvailable: "+offset);
+        return vol.tryAvailable(offset);
+    }
+
+    @Override
     public void putLong(long offset, long value) {
         out.println("putLong: "+offset+ " - "+value);
         vol.putLong(offset, value);

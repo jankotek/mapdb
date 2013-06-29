@@ -83,13 +83,16 @@ public class StoreDirect implements Store{
     protected final boolean spaceReclaimReuse;
     protected final boolean spaceReclaimTrack;
 
+    protected final long sizeLimit;
+
     protected final Queue<DataOutput2> recycledDataOuts = new ArrayBlockingQueue<DataOutput2>(128);
 
     public StoreDirect(Volume.Factory volFac, boolean readOnly, boolean deleteFilesAfterClose,
-                       int spaceReclaimMode, boolean syncOnCommitDisabled) {
+                       int spaceReclaimMode, boolean syncOnCommitDisabled, long sizeLimit) {
         this.readOnly = readOnly;
         this.deleteFilesAfterClose = deleteFilesAfterClose;
         this.syncOnCommitDisabled = syncOnCommitDisabled;
+        this.sizeLimit = sizeLimit;
 
         this.spaceReclaimReuse = spaceReclaimMode>2;
         this.spaceReclaimTrack = spaceReclaimMode>0;
@@ -107,7 +110,7 @@ public class StoreDirect implements Store{
     }
 
     public StoreDirect(Volume.Factory volFac) {
-        this(volFac, false,false,5,false);
+        this(volFac, false,false,5,false,0L);
     }
 
 
@@ -527,7 +530,7 @@ public class StoreDirect implements Store{
             if(index instanceof  Volume.MappedFileVol && phys instanceof Volume.FileChannelVol) rafMode = 1;
 
             final boolean isRaf = index instanceof Volume.FileChannelVol;
-            Volume.Factory fab = Volume.fileFactory(false, rafMode, new File(indexFile+".compact"));
+            Volume.Factory fab = Volume.fileFactory(false, rafMode, new File(indexFile+".compact"),sizeLimit);
             StoreDirect store2 = new StoreDirect(fab);
             store2.structuralLock.lock();
 
@@ -577,7 +580,7 @@ public class StoreDirect implements Store{
             indexFile_.delete();
             physFile_.delete();
 
-            Volume.Factory fac2 = Volume.fileFactory(false, rafMode, indexFile);
+            Volume.Factory fac2 = Volume.fileFactory(false, rafMode, indexFile,sizeLimit);
 
             index = fac2.createIndexVolume();
             phys = fac2.createPhysVolume();

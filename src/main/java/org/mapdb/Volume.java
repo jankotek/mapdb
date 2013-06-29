@@ -41,7 +41,21 @@ public abstract class Volume {
 
     public static final int BUF_SIZE = 1<<30;
 
-    abstract public void ensureAvailable(final long offset);
+    /**
+     * Check space allocated by Volume is bigger or equal to given offset.
+     * So it is safe to write into smaller offsets.
+     *
+     * @throws IOError if Volume can not be expanded beyond given offset
+     * @param offset
+     */
+    public void ensureAvailable(final long offset){
+        if(!tryAvailable(offset))
+                throw new IOError(new IOException("no free space to expand Volume"));
+    }
+
+
+    abstract public boolean tryAvailable(final long offset);
+
 
     abstract public void putLong(final long offset, final long value);
     abstract public void putInt(long offset, int value);
@@ -162,56 +176,57 @@ public abstract class Volume {
         Volume createTransLogVolume();
     }
 
-    public static Volume volumeForFile(File f, boolean useRandomAccessFile, boolean readOnly) {
+    public static Volume volumeForFile(File f, boolean useRandomAccessFile, boolean readOnly, long sizeLimit) {
         return useRandomAccessFile ?
-                new FileChannelVol(f, readOnly):
-                new MappedFileVol(f, readOnly);
+                new FileChannelVol(f, readOnly,sizeLimit):
+                new MappedFileVol(f, readOnly,sizeLimit);
     }
 
 
-    public static Factory fileFactory(final boolean readOnly, final int rafMode, final File indexFile){
-        return fileFactory(readOnly, rafMode, indexFile,
+    public static Factory fileFactory(final boolean readOnly, final int rafMode, final File indexFile, final long sizeLimit){
+        return fileFactory(readOnly, rafMode, sizeLimit, indexFile,
                 new File(indexFile.getPath() + StoreDirect.DATA_FILE_EXT),
                 new File(indexFile.getPath() + StoreWAL.TRANS_LOG_FILE_EXT));
     }
 
     public static Factory fileFactory(final boolean readOnly,
                                       final int rafMode,
+                                      final long sizeLimit,
                                       final File indexFile,
                                       final File physFile,
                                       final File transLogFile) {
         return new Factory() {
             @Override
             public Volume createIndexVolume() {
-                return volumeForFile(indexFile, rafMode>1, readOnly);
+                return volumeForFile(indexFile, rafMode>1, readOnly, sizeLimit);
             }
 
             @Override
             public Volume createPhysVolume() {
-                return volumeForFile(physFile, rafMode>0, readOnly);
+                return volumeForFile(physFile, rafMode>0, readOnly, sizeLimit);
             }
 
             @Override
             public Volume createTransLogVolume() {
-                return volumeForFile(transLogFile, rafMode>0, readOnly);
+                return volumeForFile(transLogFile, rafMode>0, readOnly, sizeLimit);
             }
         };
     }
 
 
-    public static Factory memoryFactory(final boolean useDirectBuffer) {
+    public static Factory memoryFactory(final boolean useDirectBuffer, final long sizeLimit) {
         return new Factory() {
 
             @Override public synchronized  Volume createIndexVolume() {
-                return new MemoryVol(useDirectBuffer);
+                return new MemoryVol(useDirectBuffer, sizeLimit);
             }
 
             @Override public synchronized Volume createPhysVolume() {
-                return new MemoryVol(useDirectBuffer);
+                return new MemoryVol(useDirectBuffer, sizeLimit);
             }
 
             @Override public synchronized Volume createTransLogVolume() {
-                return new MemoryVol(useDirectBuffer);
+                return new MemoryVol(useDirectBuffer, sizeLimit);
             }
         };
     }
@@ -227,23 +242,30 @@ public abstract class Volume {
 
         protected final ReentrantLock growLock = new ReentrantLock();
 
+        protected final long sizeLimit;
+        protected final boolean hasLimit;
+
         //TODO use volatile (or AtomicReference) here
         protected volatile ByteBuffer[] buffers;
         protected final boolean readOnly;
 
-        protected ByteBufferVol(boolean readOnly) {
+        protected ByteBufferVol(boolean readOnly, long sizeLimit) {
             this.readOnly = readOnly;
+            this.sizeLimit = sizeLimit;
+            this.hasLimit = sizeLimit>0;
         }
 
 
         @Override
-        public final void ensureAvailable(long offset) {
+        public final boolean tryAvailable(long offset) {
+            if(hasLimit&&offset>sizeLimit) return false;
+
             int buffersPos = (int) (offset/ BUF_SIZE);
 
             //check for most common case, this is already mapped
             if(buffersPos<buffers.length && buffers[buffersPos]!=null &&
                     buffers[buffersPos].capacity()>=offset% BUF_SIZE){
-                return;
+                return true;
             }
 
             growLock.lock();
@@ -251,7 +273,7 @@ public abstract class Volume {
                 //check second time
                 if(buffersPos<buffers.length && buffers[buffersPos]!=null &&
                         buffers[buffersPos].capacity()>=offset% BUF_SIZE)
-                    return;
+                    return true;
 
                 ByteBuffer[] buffers2 = buffers;
 
@@ -283,6 +305,7 @@ public abstract class Volume {
             }finally{
                 growLock.unlock();
             }
+            return true;
         }
 
         protected abstract ByteBuffer makeNewBuffer(long offset, ByteBuffer[] buffers2);
@@ -428,8 +451,8 @@ public abstract class Volume {
 
         static final int BUF_SIZE_INC = 1024*1024;
 
-        public MappedFileVol(File file, boolean readOnly) {
-            super(readOnly);
+        public MappedFileVol(File file, boolean readOnly, long sizeLimit) {
+            super(readOnly, sizeLimit);
             this.file = file;
             this.mapMode = readOnly? FileChannel.MapMode.READ_ONLY: FileChannel.MapMode.READ_WRITE;
             try {
@@ -540,8 +563,8 @@ public abstract class Volume {
             return super.toString()+",direct="+useDirectBuffer;
         }
 
-        public MemoryVol(boolean useDirectBuffer) {
-            super(false);
+        public MemoryVol(boolean useDirectBuffer, long sizeLimit) {
+            super(false,sizeLimit);
             this.useDirectBuffer = useDirectBuffer;
 //            ByteBuffer b0 = useDirectBuffer?
 //                    ByteBuffer.allocateDirect(INITIAL_SIZE) :
@@ -601,13 +624,17 @@ public abstract class Volume {
         protected final File file;
         protected FileChannel channel;
         protected final boolean readOnly;
+        protected final long sizeLimit;
+        protected final boolean hasLimit;
 
         protected volatile long size;
         protected Object growLock = new Object();
 
-        public FileChannelVol(File file, boolean readOnly){
+        public FileChannelVol(File file, boolean readOnly,long sizeLimit){
             this.file = file;
             this.readOnly = readOnly;
+            this.sizeLimit = sizeLimit;
+            this.hasLimit = sizeLimit>0;
             try {
                 channel = new RandomAccessFile(file, readOnly?"r":"rw").getChannel();
                 size = channel.size();
@@ -617,7 +644,8 @@ public abstract class Volume {
         }
 
         @Override
-        public void ensureAvailable(long offset) {
+        public boolean tryAvailable(long offset) {
+            if(hasLimit && offset>sizeLimit) return false;
             if(offset>size)synchronized (growLock){
                 try {
                     channel.truncate(offset);
@@ -626,6 +654,7 @@ public abstract class Volume {
                     throw new IOError(e);
                 }
             }
+            return true;
         }
 
         protected void writeFully(long offset, ByteBuffer buf) throws IOException {

@@ -25,7 +25,7 @@ public class BTreeMapTest2 extends ConcurrentMapInterfaceTest<Integer, String> {
         super(false, false, true, true, true, true, false);
     }
 
-    Engine r = new StoreDirect(Volume.memoryFactory(false));
+    Engine r = new StoreDirect(Volume.memoryFactory(false,0L));
 
 
     @Override

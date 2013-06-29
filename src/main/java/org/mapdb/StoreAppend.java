@@ -71,7 +71,7 @@ public class StoreAppend implements Store{
     protected long rollbackMaxRecid;
 
     /** index table which maps recid into position in index log */
-    protected Volume index = new Volume.MemoryVol(false); //TODO option to keep index off-heap or in file
+    protected Volume index = new Volume.MemoryVol(false,0); //TODO option to keep index off-heap or in file
     /** same as `index`, but stores uncommited modifications made in this transaction*/
     protected final LongMap<Long> indexInTx;
 
@@ -108,7 +108,7 @@ public class StoreAppend implements Store{
 
         if(sortedFiles.isEmpty()){
             //no files, create empty store
-            Volume zero = Volume.volumeForFile(getFileFromNum(0),useRandomAccessFile, readOnly);
+            Volume zero = Volume.volumeForFile(getFileFromNum(0),useRandomAccessFile, readOnly,0L);
             zero.ensureAvailable(Engine.LAST_RESERVED_RECID*8+8);
             zero.putLong(0, HEADER);
             long pos = 8;
@@ -137,7 +137,7 @@ public class StoreAppend implements Store{
             for(Fun.Tuple2<Long,File> t:sortedFiles){
                 Long num = t.a;
                 File f = t.b;
-                Volume vol = Volume.volumeForFile(f,useRandomAccessFile,readOnly);
+                Volume vol = Volume.volumeForFile(f,useRandomAccessFile,readOnly, 0L);
                 if(vol.isEmpty()||vol.getLong(0)!=HEADER){
                     throw new IOError(new IOException("File corrupted: "+f));
                 }
@@ -204,7 +204,7 @@ public class StoreAppend implements Store{
         //beyond usual file size, so create new file
         currVolume.sync();
         currFileNum++;
-        currVolume = Volume.volumeForFile(getFileFromNum(currFileNum),useRandomAccessFile, readOnly);
+        currVolume = Volume.volumeForFile(getFileFromNum(currFileNum),useRandomAccessFile, readOnly,0L);
         currVolume.ensureAvailable(8);
         currVolume.putLong(0,HEADER);
         currPos = 8;

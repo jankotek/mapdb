@@ -9,7 +9,7 @@ import static org.junit.Assert.assertTrue;
 
 public class StoreWALTest extends StoreDirectTest<StoreWAL>{
 
-    Volume.Factory fac = Volume.fileFactory(false,0,Utils.tempDbFile());
+    Volume.Factory fac = Volume.fileFactory(false,0,Utils.tempDbFile(), 0L);
 
     @Override
     protected StoreWAL openEngine() {

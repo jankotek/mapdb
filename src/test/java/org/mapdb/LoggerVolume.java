@@ -72,6 +72,11 @@ public class LoggerVolume extends Volume{
     }
 
     @Override
+    public boolean tryAvailable(long offset) {
+        return logged.tryAvailable(offset);
+    }
+
+    @Override
     synchronized public void putLong(long offset, long value) {
         logged.putLong(offset, value);
 
