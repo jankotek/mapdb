@@ -56,7 +56,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     protected final Serializer<K> keySerializer;
     protected final Serializer<V> valueSerializer;
 
-    protected final Serializer defaultSerialzierForSnapshots;
+    protected final Engine engine;
 
 
 
@@ -74,55 +74,6 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         }
     }
 
-    protected static final class HashRootSerializer implements Serializer<HashRoot>{
-
-        protected Serializer defaultSerializer;
-
-        public HashRootSerializer(Serializer defaultSerializer) {
-            this.defaultSerializer = defaultSerializer;
-        }
-
-        @Override
-        public void serialize(DataOutput out, HashRoot value) throws IOException {
-            out.writeBoolean(value.hasValues);
-            out.writeInt(value.hashSalt);
-            out.writeLong(value.counterRecid);
-            for(int i=0;i<16;i++){
-                Utils.packLong(out, value.segmentRecids[i]);
-            }
-            defaultSerializer.serialize(out,value.keySerializer);
-            defaultSerializer.serialize(out,value.valueSerializer);
-
-        }
-
-        @Override
-        public HashRoot deserialize(DataInput in, int available) throws IOException {
-            if(available==0) return null;
-            HashRoot r = new HashRoot();
-            r.hasValues = in.readBoolean();
-            r.hashSalt = in.readInt();
-            r.counterRecid = in.readLong();
-            r.segmentRecids = new long[16];
-            for(int i=0;i<16;i++){
-                r.segmentRecids[i] = Utils.unpackLong(in);
-            }
-            r.keySerializer = (Serializer) defaultSerializer.deserialize(in, -1);
-            r.valueSerializer = (Serializer) defaultSerializer.deserialize(in, -1);
-            return r;
-        }
-
-    }
-
-
-    protected final static class HashRoot{
-        long[] segmentRecids;
-        boolean hasValues;
-        int hashSalt;
-        long counterRecid;
-        Serializer keySerializer;
-        Serializer valueSerializer;
-
-    }
 
 
     protected final Serializer<LinkedNode<K,V>> LN_SERIALIZER = new Serializer<LinkedNode<K,V>>() {
@@ -207,116 +158,64 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         for(int i=0;i< 16;i++)  segmentLocks[i]=new ReentrantReadWriteLock();
     }
 
-    protected final Engine engine;
-    protected final long rootRecid;
+
 
 
     /**
-     * Constructor used to create new HTreeMap without existing record (recid) in Engine.
-     * This constructor creates new record and saves all configuration parameters there.
-     * Constructor args are defining HTreeMap format, are stored in db and can not be changed latter.
-     *
-     * @param engine used for persistence
-     * @param hasValues is Map or Set? If true only keys will be stored, no values
-     * @param defaultSerializer serialier used to serialize/deserialize other serializers. May be null for default value.
-     * @param keySerializer Serializier used for keys. May be null for default value.
-     * @param valueSerializer Serializer used for values. May be null for default value
+     * Opens HTreeMap
      */
-    public HTreeMap(Engine engine, boolean hasValues, boolean keepCounter, int hashSalt, Serializer defaultSerializer, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
-        this.engine = engine;
-        this.hasValues = hasValues;
-        this.hashSalt = hashSalt;
-
+    public HTreeMap(Engine engine,long counterRecid, int hashSalt, long[] segmentRecids,
+                    Serializer<K> keySerializer, Serializer<V> valueSerializer) {
+        if(engine==null) throw new NullPointerException();
+        if(segmentRecids==null) throw new NullPointerException();
+        if(keySerializer==null) throw new NullPointerException();
 
         SerializerBase.assertSerializable(keySerializer);
-        SerializerBase.assertSerializable(valueSerializer);
+        this.hasValues = valueSerializer!=null;
+        if(hasValues) {
+            SerializerBase.assertSerializable(valueSerializer);
+        }
 
 
-        if(defaultSerializer == null) defaultSerializer = Serializer.BASIC_SERIALIZER;
-        this.defaultSerialzierForSnapshots = defaultSerializer;
-        this.keySerializer = keySerializer==null ? (Serializer<K>) defaultSerializer : keySerializer;
-        this.valueSerializer = valueSerializer==null ? (Serializer<V>) defaultSerializer : valueSerializer;
+        if(segmentRecids.length!=16) throw new IllegalArgumentException();
 
+        this.engine = engine;
+        this.hashSalt = hashSalt;
+        this.segmentRecids = Arrays.copyOf(segmentRecids,16);
+        this.keySerializer = keySerializer;
+        this.valueSerializer = valueSerializer;
 
-        //prealocate segmentRecids, so we dont have to lock on those latter
-        segmentRecids = new long[16];
-        for(int i=0;i<16;i++)
-            segmentRecids[i] = engine.put(new long[16][], DIR_SERIALIZER);
-
-        long counterRecid = 0;
-        if(keepCounter){
-            counterRecid = engine.put(0L, Serializer.LONG_SERIALIZER);
+        if(counterRecid!=0){
             this.counter = new Atomic.Long(engine,counterRecid);
             Bind.size(this,counter);
         }else{
             this.counter = null;
         }
-
-        HashRoot r = new HashRoot();
-        r.hasValues = hasValues;
-        r.hashSalt = hashSalt;
-        r.counterRecid = counterRecid;
-        r.segmentRecids = segmentRecids;
-        r.keySerializer = this.keySerializer;
-        r.valueSerializer = this.valueSerializer;
-        this.rootRecid = engine.put(r, new HashRootSerializer(defaultSerializer));
-
     }
 
-    /**
-     * Constructor used to load existing HTreeMap (with assigned recid).
-     * Map was already created and saved to Engine, this constructor just loads it.
-     *
-     * @param engine used for persistence
-     * @param rootRecid under which BTreeMap was stored
-     * @param defaultSerializer used to deserialize other serializers and comparator
-     */
-    public HTreeMap(Engine engine, long rootRecid, Serializer defaultSerializer) {
-        if(rootRecid == 0) throw new IllegalArgumentException("recid is 0");
-        this.engine = engine;
-        this.rootRecid = rootRecid;
-        //load all fields from store
-        if(defaultSerializer==null) defaultSerializer = Serializer.BASIC_SERIALIZER;
-        this.defaultSerialzierForSnapshots = defaultSerializer;
-        HashRoot r = engine.get(rootRecid, new HashRootSerializer(defaultSerializer));
-        this.segmentRecids = r.segmentRecids;
-        this.hasValues = r.hasValues;
-        this.hashSalt = r.hashSalt;
-        this.keySerializer = r.keySerializer;
-        this.valueSerializer = r.valueSerializer;
-
-        if(r.counterRecid!=0){
-            counter = new Atomic.Long(engine,r.counterRecid);
-            Bind.size(this,counter);
-        }else{
-            this.counter = null;
-        }
+    protected static long[] preallocateSegments(Engine engine){
+        //prealocate segmentRecids, so we dont have to lock on those latter
+        long[] ret = new long[16];
+        for(int i=0;i<16;i++)
+            ret[i] = engine.put(new long[16][], DIR_SERIALIZER);
+        return ret;
     }
+
 
     /** hack used for Dir Name*/
-    static final Map<String, Long> preinitNamedDir(Engine engine){
-        HashRootSerializer serializer = new HashRootSerializer(Serializer.BASIC_SERIALIZER);
+    protected static final Map<String, Object> preinitNamedDir(Engine engine,Serializer serializer){
         //check if record already exist
-        HashRoot r = engine.get(Engine.NAME_DIR_RECID, serializer);
-        if(r!=null)
-            return new HTreeMap<String, Long>(engine, Engine.NAME_DIR_RECID, Serializer.BASIC_SERIALIZER);
+        long[] segments = (long[]) engine.get(Engine.CATALOG_RECID, Serializer.BASIC_SERIALIZER);
+        if(segments==null){
+            if(engine.isReadOnly()) //readonly so return empty readonly map
+                return Collections.unmodifiableMap(new HashMap<String, Object>());
 
-        if(engine.isReadOnly())
-            return Collections.unmodifiableMap(new HashMap<String, Long>());
+            //prealocate segmentRecids
+            segments = preallocateSegments(engine);
+            engine.update(Engine.CATALOG_RECID, segments, Serializer.BASIC_SERIALIZER);
+        }
 
-        //prealocate segmentRecids
-        long[] segmentRecids = new long[16];
-        for(int i=0;i<16;i++)
-            segmentRecids[i] = engine.put(new long[16][], DIR_SERIALIZER);
-        r = new HashRoot();
-        r.hasValues = true;
-        r.segmentRecids = segmentRecids;
-        r.keySerializer = Serializer.BASIC_SERIALIZER;
-        r.valueSerializer = Serializer.BASIC_SERIALIZER;
-        engine.update(Engine.NAME_DIR_RECID, r, serializer);
-        //and now load it
-        return new HTreeMap<String, Long>(engine, Engine.NAME_DIR_RECID, Serializer.BASIC_SERIALIZER);
-
+        return new HTreeMap(engine, 0, 0, segments, Serializer.BASIC_SERIALIZER, serializer);
     }
 
     @Override
@@ -1194,7 +1093,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
      */
     public Map<K,V> snapshot(){
         Engine snapshot = SnapshotEngine.createSnapshotFor(engine);
-        return new HTreeMap<K, V>(snapshot,rootRecid, defaultSerialzierForSnapshots);
+        return new HTreeMap<K, V>(snapshot, counter==null?0:counter.recid,
+                hashSalt, segmentRecids, keySerializer, valueSerializer);
     }
 
 

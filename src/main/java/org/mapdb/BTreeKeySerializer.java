@@ -42,6 +42,8 @@ public abstract class BTreeKeySerializer<K>{
     public abstract Object[] deserialize(DataInput in, int start, int end, int size) throws IOException;
 
 
+    public static final BTreeKeySerializer BASIC = new BTreeKeySerializer.BasicKeySerializer(Serializer.BASIC_SERIALIZER);
+
     /**
      * Basic Key Serializer which just writes data without applying any compression.
      * Is used by default if no other Key Serializer is specified.

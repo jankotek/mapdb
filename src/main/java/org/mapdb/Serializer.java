@@ -83,11 +83,13 @@ public interface Serializer<A> {
      Serializer<Long> LONG_SERIALIZER = new Serializer<Long>() {
         @Override
         public void serialize(DataOutput out, Long value) throws IOException {
-            out.writeLong(value);
+            if(value != null)
+                out.writeLong(value);
         }
 
         @Override
         public Long deserialize(DataInput in, int available) throws IOException {
+            if(available==0) return null;
             return in.readLong();
         }
     };

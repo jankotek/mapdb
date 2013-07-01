@@ -98,7 +98,7 @@ final public class Atomic {
     public static Long createLong(DB db, java.lang.String name, long  initVal) {
         db.checkNameNotExists(name);
         long recid = db.getEngine().put(initVal, Serializer.LONG_SERIALIZER);
-        db.getNameDir().put(name, recid);
+        db.getCatalog().put(name, recid);
         return new Long(db.getEngine(), recid);
     }
 
@@ -111,7 +111,7 @@ final public class Atomic {
      * @return record
      */
     public static Long getLong(DB db, java.lang.String name) {
-        java.lang.Long recid = db.nameDir.get(name);
+        java.lang.Long recid = (java.lang.Long) db.catalog.get(name);
         return  recid == null ?
             createLong(db, name, 0) :
             new Long(db.getEngine(),recid);
@@ -129,7 +129,7 @@ final public class Atomic {
     public static Integer createInteger(DB db, java.lang.String name, int  initVal) {
         db.checkNameNotExists(name);
         long recid = db.getEngine().put(initVal, Serializer.INTEGER_SERIALIZER);
-        db.getNameDir().put(name, recid);
+        db.getCatalog().put(name, recid);
         return new Integer(db.getEngine(), recid);
     }
 
@@ -142,7 +142,7 @@ final public class Atomic {
      * @return record
     */
     public static Integer getInteger(DB db, java.lang.String name) {
-        java.lang.Long recid = db.nameDir.get(name);
+        java.lang.Long recid = (java.lang.Long) db.catalog.get(name);
         return  recid == null ?
                 createInteger(db, name, 0) :
                 new Integer(db.getEngine(),recid);
@@ -160,7 +160,7 @@ final public class Atomic {
     public static Boolean createBoolean(DB db, java.lang.String name, boolean  initVal) {
         db.checkNameNotExists(name);
         long recid = db.getEngine().put(initVal, Serializer.BOOLEAN_SERIALIZER);
-        db.getNameDir().put(name, recid);
+        db.getCatalog().put(name, recid);
         return new Boolean(db.getEngine(), recid);
     }
 
@@ -173,7 +173,7 @@ final public class Atomic {
      * @return record
      */
     public static Boolean getBoolean(DB db, java.lang.String name) {
-        java.lang.Long recid = db.nameDir.get(name);
+        java.lang.Long recid = (java.lang.Long) db.catalog.get(name);
         return  recid == null ?
                 createBoolean(db, name, false) :
                 new Boolean(db.getEngine(),recid);
@@ -192,7 +192,7 @@ final public class Atomic {
         if(initVal==null) throw new IllegalArgumentException("initVal may not be null");
         db.checkNameNotExists(name);
         long recid = db.getEngine().put(initVal, Serializer.STRING_SERIALIZER);
-        db.getNameDir().put(name, recid);
+        db.getCatalog().put(name, recid);
         return new String(db.getEngine(), recid);
     }
 
@@ -205,7 +205,7 @@ final public class Atomic {
      * @return record
      */
     public static String getString(DB db, java.lang.String name) {
-        java.lang.Long recid = db.nameDir.get(name);
+        java.lang.Long recid = (java.lang.Long) db.catalog.get(name);
         return  recid == null ?
                 createString(db, name, "") :
                 new String(db.getEngine(),recid);
@@ -226,7 +226,7 @@ final public class Atomic {
         db.checkNameNotExists(name);
         if(serializer == null) serializer = (Serializer<E>) db.getDefaultSerializer();
         long recid = db.getEngine().put(initVal, serializer);
-        db.getNameDir().put(name, recid);
+        db.getCatalog().put(name, recid);
         return new Var<E>(db.getEngine(), recid, serializer);
     }
 
@@ -240,7 +240,7 @@ final public class Atomic {
      */
     @SuppressWarnings("unchecked")
 	public static <E> Var<E> getVar(DB db, java.lang.String name, Serializer<E> serializer) {
-        java.lang.Long recid = db.nameDir.get(name);
+        java.lang.Long recid = (java.lang.Long) db.catalog.get(name);
         if(serializer == null) serializer = (Serializer<E>) db.getDefaultSerializer();
         return  recid == null ?
                 createVar(db, name, null, serializer) :

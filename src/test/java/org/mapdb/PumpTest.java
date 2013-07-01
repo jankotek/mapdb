@@ -72,14 +72,14 @@ public class PumpTest {
                 DB src = makeDB(srcc);
                 DB target = makeDB(targetc);
 
-                Map m = src.getHashMap("test");
+                Map m = src.getTreeMap("test");
                 for(int i=0;i<1000;i++) m.put(i,"99090adas d"+i);
                 src.commit();
 
                 Pump.copy(src,target);
 
-                assertEquals(src.getNameDir(), target.getNameDir());
-                Map m2 = target.getHashMap("test");
+                assertEquals(src.getCatalog(), target.getCatalog());
+                Map m2 = target.getTreeMap("test");
                 assertFalse(m2.isEmpty());
                 assertEquals(m,m2);
                 src.close();

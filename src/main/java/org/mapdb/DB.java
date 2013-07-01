@@ -18,6 +18,7 @@ package org.mapdb;
 
 import java.lang.ref.WeakReference;
 import java.util.*;
+import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -34,7 +35,7 @@ public class DB {
     protected Map<String, WeakReference<?>> collections = new HashMap<String, WeakReference<?>>();
 
     /** view over named records */
-    protected Map<String, Long> nameDir;
+    protected ConcurrentNavigableMap<String, Object> catalog;
 
     /** default serializer used for persistence. Handles POJO and other stuff which requires write-able access to Engine */
     protected Serializer<?> defaultSerializer;
@@ -61,8 +62,33 @@ public class DB {
         };
 
         //open name dir
-        nameDir = HTreeMap.preinitNamedDir(engine);
+        catalog = BTreeMap.preinitCatalog(this);
     }
+
+    protected <A> A catGet(String name, A init){
+        A ret = (A) catalog.get(name);
+        return ret!=null? ret : init;
+    }
+
+
+    protected <A> A catGet(String name){
+        return (A) catalog.get(name);
+    }
+
+    protected <A> A catPut(String name, A value){
+        catalog.put(name, value);
+        return value;
+    }
+
+    protected <A> A catPut(String name, A value, A retValueIfNull){
+        if(value==null) return retValueIfNull;
+        catalog.put(name, value);
+        return value;
+    }
+
+
+
+
 
     /**
      * Opens existing or creates new Hash Tree Map.
@@ -78,16 +104,24 @@ public class DB {
         checkNotClosed();
         HTreeMap<K,V> ret = (HTreeMap<K, V>) getFromWeakCollection(name);
         if(ret!=null) return ret;
-        Long recid = nameDir.get(name);
-        if(recid!=null){
-            //open existing map
-            ret = new HTreeMap<K,V>(engine, recid,defaultSerializer);
-            if(!ret.hasValues) throw new ClassCastException("Collection is Set, not Map");
-        }else{
-            //create new map
-            ret = new HTreeMap<K,V>(engine,true,false,Utils.RANDOM.nextInt(), defaultSerializer,null, null);
-            nameDir.put(name, ret.rootRecid);
+        String type = catGet(name + ".type", null);
+        if(type==null){
+            return createHashMap(name,false,null,null);
         }
+
+
+        //check type
+        if(!"HashMap".equals(type)) throw new IllegalArgumentException("Wrong type: "+type);
+        //open existing map
+        ret = new HTreeMap<K,V>(engine,
+                (Long)catGet(name+".counterRecid"),
+                (Integer)catGet(name+".hashSalt"),
+                (long[])catGet(name+".segmentRecids"),
+                catGet(name+".keySerializer",getDefaultSerializer()),
+                catGet(name+".valueSerializer",getDefaultSerializer())
+        );
+
+
         collections.put(name, new WeakReference<Object>(ret));
         return ret;
     }
@@ -108,8 +142,17 @@ public class DB {
     synchronized public <K,V> HTreeMap<K,V> createHashMap(
             String name, boolean keepCounter, Serializer<K> keySerializer, Serializer<V> valueSerializer){
         checkNameNotExists(name);
-        HTreeMap<K,V> ret = new HTreeMap<K,V>(engine, true,keepCounter,Utils.RANDOM.nextInt(), defaultSerializer, keySerializer, valueSerializer);
-        nameDir.put(name, ret.rootRecid);
+
+
+        HTreeMap<K,V> ret = new HTreeMap<K,V>(engine,
+                catPut(name+".counterRecid",!keepCounter?0L:engine.put(0L, Serializer.LONG_SERIALIZER)),
+                catPut(name+".hashSalt",Utils.RANDOM.nextInt()),
+                catPut(name+".segmentRecids",HTreeMap.preallocateSegments(engine)),
+                catPut(name+".keySerializer",keySerializer,getDefaultSerializer()),
+                catPut(name+".valueSerializer",valueSerializer,getDefaultSerializer())
+        );
+
+        catalog.put(name + ".type", "HashMap");
         collections.put(name, new WeakReference<Object>(ret));
         return ret;
     }
@@ -125,18 +168,24 @@ public class DB {
         checkNotClosed();
         Set<K> ret = (Set<K>) getFromWeakCollection(name);
         if(ret!=null) return ret;
-        Long recid = nameDir.get(name);
-        if(recid!=null){
-            //open existing map
-            HTreeMap<K,Object> m = new HTreeMap<K,Object>(engine, recid, defaultSerializer);
-            if(m.hasValues) throw new ClassCastException("Collection is Map, not Set");
-            ret = m.keySet();
-        }else{
-            //create new map
-            HTreeMap<K,Object> m = new HTreeMap<K,Object>(engine, false,false, Utils.RANDOM.nextInt(), defaultSerializer, null, null);
-            ret = m.keySet();
-            nameDir.put(name, m.rootRecid);
+        String type = catGet(name + ".type", null);
+        if(type==null){
+            return createHashSet(name,false,null);
         }
+
+
+        //check type
+        if(!"HashSet".equals(type)) throw new IllegalArgumentException("Wrong type: "+type);
+        //open existing map
+        ret = new HTreeMap(engine,
+                (Long)catGet(name+".counterRecid"),
+                (Integer)catGet(name+".hashSalt"),
+                (long[])catGet(name+".segmentRecids"),
+                catGet(name+".serializer",getDefaultSerializer()),
+                null
+        ).keySet();
+
+
         collections.put(name, new WeakReference<Object>(ret));
         return ret;
     }
@@ -153,11 +202,20 @@ public class DB {
     
     synchronized public <K> Set<K> createHashSet(String name, boolean keepCounter, Serializer<K> serializer){
         checkNameNotExists(name);
-        HTreeMap<K,Object> ret = new HTreeMap<K,Object>(engine, false,keepCounter,Utils.RANDOM.nextInt(), defaultSerializer, serializer, null);
-        nameDir.put(name, ret.rootRecid);
-        Set<K> ret2 = ret.keySet();
-        collections.put(name, new WeakReference<Object>(ret2));
-        return ret2;
+
+
+
+        Set<K> ret = new HTreeMap<K,Object>(engine,
+                catPut(name+".counterRecid",!keepCounter?0L:engine.put(0L, Serializer.LONG_SERIALIZER)),
+                catPut(name+".hashSalt",Utils.RANDOM.nextInt()),
+                catPut(name+".segmentRecids",HTreeMap.preallocateSegments(engine)),
+                catPut(name+".serializer",serializer,getDefaultSerializer()),
+                null
+        ).keySet();
+
+        catalog.put(name + ".type", "HashSet");
+        collections.put(name, new WeakReference<Object>(ret));
+        return ret;
     }
 
     /**
@@ -176,16 +234,22 @@ public class DB {
         checkNotClosed();
         BTreeMap<K,V> ret = (BTreeMap<K,V>) getFromWeakCollection(name);
         if(ret!=null) return ret;
-        Long recid = nameDir.get(name);
-        if(recid!=null){
-            //open existing map
-            ret = new BTreeMap<K,V>(engine, recid,defaultSerializer);
-            if(!ret.hasValues) throw new ClassCastException("Collection is Set, not Map");
-        }else{
-            //create new map
-            ret = new BTreeMap<K,V>(engine,CC.BTREE_DEFAULT_MAX_NODE_SIZE, true, false,false, defaultSerializer, null, null, null);
-            nameDir.put(name, ret.treeRecid);
+        String type = catGet(name + ".type", null);
+        if(type==null){
+            return createTreeMap(name,32,false,false,null, null, null);
+
         }
+        if(!"TreeMap".equals(type)) throw new IllegalArgumentException("Wrong type: "+type);
+
+        ret = new BTreeMap<K, V>(engine,
+                (Long) catGet(name + ".rootRecidRef"),
+                catGet(name+".maxNodeSize",32),
+                catGet(name+".valuesOutsideNodes",false),
+                catGet(name+".counterRecid",0L),
+                (BTreeKeySerializer)catGet(name+".keySerializer",new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer())),
+                catGet(name+".valueSerializer",getDefaultSerializer()),
+                (Comparator)catGet(name+".comparator",Utils.COMPARABLE_COMPARATOR)
+                );
         collections.put(name, new WeakReference<Object>(ret));
         return ret;
     }
@@ -209,8 +273,18 @@ public class DB {
             BTreeKeySerializer<K> keySerializer, Serializer<V> valueSerializer, Comparator<K> comparator){
         checkNameNotExists(name);
         keySerializer = fillNulls(keySerializer);
-        BTreeMap<K,V> ret = new BTreeMap<K,V>(engine, nodeSize, true,valuesStoredOutsideNodes, keepCounter,defaultSerializer, keySerializer, valueSerializer, comparator);
-        nameDir.put(name, ret.treeRecid);
+        keySerializer = (BTreeKeySerializer)catPut(name+".keySerializer",keySerializer,new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer()));
+        valueSerializer = catPut(name+".valueSerializer",valueSerializer,getDefaultSerializer());
+        BTreeMap<K,V> ret = new BTreeMap<K,V>(engine,
+                catPut(name+".rootRecidRef", BTreeMap.createRootRef(engine,keySerializer,valueSerializer)),
+                catPut(name+".maxNodeSize",nodeSize),
+                catPut(name+".valuesOutsideNodes",valuesStoredOutsideNodes),
+                catPut(name+".counterRecid",!keepCounter?0L:engine.put(0L, Serializer.LONG_SERIALIZER)),
+                keySerializer,
+                valueSerializer,
+                (Comparator)catPut(name+".comparator",comparator,Utils.COMPARABLE_COMPARATOR)
+        );
+        catalog.put(name + ".type", "TreeMap");
         collections.put(name, new WeakReference<Object>(ret));
         return ret;
     }
@@ -255,8 +329,8 @@ public class DB {
      * Get Named directory. Key is name, value is recid under which named record is stored
      * @return
      */
-    public Map<String, Long> getNameDir(){
-        return nameDir;
+    public Map<String, Object> getCatalog(){
+        return catalog;
     }
 
 
@@ -271,22 +345,26 @@ public class DB {
         checkNotClosed();
         NavigableSet<K> ret = (NavigableSet<K>) getFromWeakCollection(name);
         if(ret!=null) return ret;
-        Long recid = nameDir.get(name);
-        if(recid!=null){
-            //open existing map
-            BTreeMap<K,Object> m = new BTreeMap<K,Object>(engine,  recid, defaultSerializer);
-            if(m.hasValues) throw new ClassCastException("Collection is Map, not Set");
-            ret = m.keySet();
-        }else{
-            //create new map
-            BTreeMap<K,Object> m =  new BTreeMap<K,Object>(engine,CC.BTREE_DEFAULT_MAX_NODE_SIZE,
-                    false, false,false, defaultSerializer, null, null, null);
-            nameDir.put(name, m.treeRecid);
-            ret = m.keySet();
+        String type = catGet(name + ".type", null);
+        if(type==null){
+            return createTreeSet(name,32,false,null, null);
+
         }
+        if(!"TreeSet".equals(type)) throw new IllegalArgumentException("Wrong type: "+type);
+
+        ret = new BTreeMap<K, Object>(engine,
+                (Long) catGet(name+".rootRecidRef"),
+                catGet(name+".maxNodeSize",32),
+                false,
+                catGet(name+".counterRecid",0L),
+                (BTreeKeySerializer) catGet(name+".keySerializer",new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer())),
+                null,
+                (Comparator) catGet(name+".comparator",Utils.COMPARABLE_COMPARATOR)
+        ).keySet();
 
         collections.put(name, new WeakReference<Object>(ret));
         return ret;
+
     }
 
     /**
@@ -303,15 +381,23 @@ public class DB {
     synchronized public <K> NavigableSet<K> createTreeSet(String name,int nodeSize, boolean keepCounter, BTreeKeySerializer<K> serializer, Comparator<K> comparator){
         checkNameNotExists(name);
         serializer = fillNulls(serializer);
-        BTreeMap<K,Object> ret = new BTreeMap<K,Object>(engine, nodeSize, false, false, keepCounter, defaultSerializer, serializer, null, comparator);
-        nameDir.put(name, ret.treeRecid);
-        NavigableSet<K> ret2 = ret.keySet();
-        collections.put(name, new WeakReference<Object>(ret2));
-        return ret2;
+        serializer = (BTreeKeySerializer)catPut(name+".keySerializer",serializer,new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer()));
+        NavigableSet<K> ret = new BTreeMap<K,Object>(engine,
+                catPut(name+".rootRecidRef", BTreeMap.createRootRef(engine,serializer, null)),
+                catPut(name+".maxNodeSize",nodeSize),
+                false,
+                catPut(name+".counterRecid",!keepCounter?0L:engine.put(0L, Serializer.LONG_SERIALIZER)),
+                serializer,
+                null,
+                (Comparator)catPut(name+".comparator",comparator,Utils.COMPARABLE_COMPARATOR)
+        ).keySet();
+        catalog.put(name + ".type", "TreeSet");
+        collections.put(name, new WeakReference<Object>(ret));
+        return ret;
     }
 
 //    synchronized public <E> Queue<E> getQueue(String name){
-//        Long recid = nameDir.get(name);
+//        Long recid = catalog.get(name);
 //        if(recid==null){
 //
 //        }else{
@@ -321,10 +407,10 @@ public class DB {
 
 
     synchronized public <E> Queue<E> getQueue(String name) {
-        Long recid = nameDir.get(name);
+        Long recid = (Long) catalog.get(name);
         if(recid == null){
             recid = Queues.createQueue(engine, getDefaultSerializer(), getDefaultSerializer());
-            nameDir.put(name,recid);
+            catalog.put(name, recid);
         }
         Queue<E> ret = Queues.getQueue(engine,getDefaultSerializer(),recid);
         collections.put(name, new WeakReference<Object>(ret));
@@ -332,10 +418,10 @@ public class DB {
     }
 
     synchronized public <E> Queue<E> getStack(String name) {
-        Long recid = nameDir.get(name);
+        Long recid = (Long) catalog.get(name);
         if(recid == null){
             recid = Queues.createStack(engine, getDefaultSerializer(), getDefaultSerializer(), true);
-            nameDir.put(name,recid);
+            catalog.put(name, recid);
         }
         Queue<E> ret = Queues.getStack(engine, getDefaultSerializer(),recid);
         collections.put(name, new WeakReference<Object>(ret));
@@ -343,10 +429,10 @@ public class DB {
     }
 
     synchronized public <E> Queue<E> getCircularQueue(String name) {
-        Long recid = nameDir.get(name);
+        Long recid = (Long) catalog.get(name);
         if(recid == null){
             recid = Queues.createCircularQueue(engine, getDefaultSerializer(), getDefaultSerializer(), 1000000);
-            nameDir.put(name,recid);
+            catalog.put(name, recid);
         }
         Queues.CircularQueue<E> ret = Queues.getCircularQueue(engine,getDefaultSerializer(),recid);
         collections.put(name, new WeakReference<Object>(ret));
@@ -358,7 +444,7 @@ public class DB {
         checkNameNotExists(name);
         if(serializer==null) serializer=getDefaultSerializer();
         Long recid = Queues.createQueue(engine, getDefaultSerializer(), serializer);
-        nameDir.put(name,recid);
+        catalog.put(name, recid);
         return getQueue(name);
     }
 
@@ -366,7 +452,7 @@ public class DB {
         checkNameNotExists(name);
         if(serializer==null) serializer=getDefaultSerializer();
         Long recid = Queues.createStack(engine, getDefaultSerializer(), serializer, useLocks);
-        nameDir.put(name,recid);
+        catalog.put(name, recid);
         return getStack(name);
     }
 
@@ -374,7 +460,7 @@ public class DB {
         checkNameNotExists(name);
         if(serializer==null) serializer=getDefaultSerializer();
         Long recid = Queues.createCircularQueue(engine, getDefaultSerializer(), serializer, size);
-        nameDir.put(name,recid);
+        catalog.put(name, recid);
         return getCircularQueue(name);
     }
 
@@ -385,7 +471,7 @@ public class DB {
      * @throws IllegalArgumentException if name is already used
      */
     protected void checkNameNotExists(String name) {
-        if(nameDir.get(name)!=null)
+        if(catalog.get(name)!=null)
             throw new IllegalArgumentException("Name already used: "+name);
     }
 

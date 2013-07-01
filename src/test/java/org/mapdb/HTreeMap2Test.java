@@ -29,6 +29,8 @@ public class HTreeMap2Test {
         return s;
     }
 
+    protected static Serializer serializer = DBMaker.newTempHashMap().LN_SERIALIZER;
+
     static private String recursiveToString(long r, String prefix, Engine engine) {
         prefix+="  ";
         String s="";
@@ -53,10 +55,10 @@ public class HTreeMap2Test {
                             TreeMap m = new TreeMap();
                             HTreeMap.LinkedNode node =
                                     (HTreeMap.LinkedNode) engine.get
-                                            (r2 >>> 1, new HTreeMap(engine, true,false,0, null, null, null).LN_SERIALIZER);
+                                            (r2 >>> 1, serializer);
                             while(node!=null){
                                 m.put(node.key, node.value);
-                                node = (HTreeMap.LinkedNode) engine.get(node.next, new HTreeMap(engine, true,false,0, null, null, null).LN_SERIALIZER);
+                                node = (HTreeMap.LinkedNode) engine.get(node.next, serializer);
                             }
                             for(Object k:m.keySet()){
                                 s+= k+","+m.get(k)+",";
@@ -113,12 +115,11 @@ public class HTreeMap2Test {
 
         DataOutput2 out = new DataOutput2();
 
-        Serializer ln_serializer = new HTreeMap(engine, true,false,0,null,null,null).LN_SERIALIZER;
-        ln_serializer.serialize(out, n);
+        serializer.serialize(out, n);
 
         DataInput2 in = swap(out);
 
-        HTreeMap.LinkedNode n2  = (HTreeMap.LinkedNode) ln_serializer.deserialize(in, -1);
+        HTreeMap.LinkedNode n2  = (HTreeMap.LinkedNode) serializer.deserialize(in, -1);
 
         assertEquals(123456, n2.next);
         assertEquals(123L,n2.key);
@@ -127,7 +128,7 @@ public class HTreeMap2Test {
 
     @Test public void test_simple_put(){
 
-        HTreeMap m = new HTreeMap(engine,true,false,0,null,null,null);
+        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC_SERIALIZER, Serializer.BASIC_SERIALIZER);
 
         m.put(111L, 222L);
         m.put(333L, 444L);
@@ -142,7 +143,7 @@ public class HTreeMap2Test {
     }
 
     @Test public void test_hash_collision(){
-        HTreeMap m = new HTreeMap(engine,true,false,0,null,null,null){
+        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC_SERIALIZER, Serializer.BASIC_SERIALIZER){
             @Override
             protected int hash(Object key) {
                 return 0;
@@ -163,7 +164,7 @@ public class HTreeMap2Test {
     }
 
     @Test public void test_hash_dir_expand(){
-        HTreeMap m = new HTreeMap(engine,true,false,0,null,null, null){
+        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC_SERIALIZER, Serializer.BASIC_SERIALIZER){
             @Override
             protected int hash(Object key) {
                 return 0;
@@ -237,7 +238,7 @@ public class HTreeMap2Test {
 
 
     @Test public void test_delete(){
-        HTreeMap m = new HTreeMap(engine,true,false,0,null,null,null){
+        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC_SERIALIZER, Serializer.BASIC_SERIALIZER){
             @Override
             protected int hash(Object key) {
                 return 0;
@@ -265,7 +266,7 @@ public class HTreeMap2Test {
     }
 
     @Test public void clear(){
-        HTreeMap m = new HTreeMap(engine,true,false,0,null,null,null);
+        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC_SERIALIZER, Serializer.BASIC_SERIALIZER);
         for(Integer i=0;i<100;i++){
             m.put(i,i);
         }
@@ -276,7 +277,7 @@ public class HTreeMap2Test {
 
     @Test //(timeout = 10000)
      public void testIteration(){
-        HTreeMap m = new HTreeMap<Integer, Integer>(engine, true,false,0,null,null,null){
+        HTreeMap m = new HTreeMap(engine, 0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC_SERIALIZER,Serializer.BASIC_SERIALIZER){
             @Override
             protected int hash(Object key) {
                 return (Integer) key;

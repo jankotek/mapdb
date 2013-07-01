@@ -402,15 +402,13 @@ public class Pump {
 
         final double NODE_LOAD = 0.75;
 
-        if(keySerializer==null) keySerializer = (BTreeKeySerializer<K>) new BTreeKeySerializer.BasicKeySerializer(db.defaultSerializer);
+        if(keySerializer==null) keySerializer = (BTreeKeySerializer<K>) new BTreeKeySerializer.BasicKeySerializer(db.getDefaultSerializer());
         if(valueSerializer==null) valueSerializer = db.getDefaultSerializer();
         if(comparator==null) comparator = Utils.COMPARABLE_COMPARATOR;
 
         final boolean hasVals = valueExtractor!=null;
 
-        BTreeMap<K,V> m = new BTreeMap<K,V>(db.engine,nodeSize,hasVals,
-                valuesStoredOutsideNodes ,keepCounter,
-                db.defaultSerializer, keySerializer, valueSerializer,comparator);
+        Serializer<BTreeMap.BNode> nodeSerializer = new BTreeMap.NodeSerializer(valuesStoredOutsideNodes,keySerializer,valueSerializer,comparator);
 
 
         final int nload = (int) (nodeSize * NODE_LOAD);
@@ -456,7 +454,7 @@ public class Pump {
 
 
             BTreeMap.LeafNode node = new BTreeMap.LeafNode(keys.toArray(),hasVals? values.toArray() : null, nextNode);
-            nextNode = db.engine.put(node,m.nodeSerializer);
+            nextNode = db.engine.put(node,nodeSerializer);
             K nextKey = keys.get(0);
             keys.clear();
 
@@ -478,7 +476,7 @@ public class Pump {
                 Collections.reverse(dirRecids.get(i));
                 //put node into store
                 BTreeMap.DirNode dir = new BTreeMap.DirNode(dirKeys.get(i).toArray(), dirRecids.get(i));
-                long dirRecid = db.engine.put(dir,m.nodeSerializer);
+                long dirRecid = db.engine.put(dir,nodeSerializer);
                 Object dirStart = dirKeys.get(i).get(0);
                 dirKeys.get(i).clear();
                 dirKeys.get(i).add(dirStart);
@@ -503,7 +501,7 @@ public class Pump {
             Collections.reverse(dirRecids.get(i));
             //put node into store
             BTreeMap.DirNode dir = new BTreeMap.DirNode(dirKeys.get(i).toArray(), dirRecids.get(i));
-            long dirRecid = db.engine.put(dir,m.nodeSerializer);
+            long dirRecid = db.engine.put(dir,nodeSerializer);
             Object dirStart = dirKeys.get(i).get(0);
             dirKeys.get(i+1).add(dirStart);
             dirRecids.get(i+1).add(dirRecid);
@@ -515,14 +513,27 @@ public class Pump {
         Collections.reverse(dirKeys.get(len));
         Collections.reverse(dirRecids.get(len));
 
-        BTreeMap.DirNode dir = new BTreeMap.DirNode(dirKeys.get(len).toArray(), dirRecids.get(len));
-        long rootRecid = db.engine.get(m.rootRecidRef,Serializer.LONG_SERIALIZER);
-        db.engine.update(rootRecid,dir,m.nodeSerializer);
-        db.nameDir.put(name,m.treeRecid);
+        //and do counter
+        long counterRecidRef = keepCounter? db.engine.put(counter, Serializer.LONG_SERIALIZER) : 0L;
 
-        //update counter
-        if(keepCounter)
-            m.counter.set(counter);
+
+        BTreeMap.DirNode dir = new BTreeMap.DirNode(dirKeys.get(len).toArray(), dirRecids.get(len));
+        long rootRecid = db.engine.put(dir, nodeSerializer);
+        long rootRecidRef = db.engine.put(rootRecid,Serializer.LONG_SERIALIZER);
+
+        Map cat = db.getCatalog();
+        cat.put(name+".type",hasVals?"TreeMap":"TreeSet");
+        cat.put(name+".rootRecidRef",rootRecidRef);
+        cat.put(name+".nodeSize",nodeSize);
+        cat.put(name+".valuesOutsideNodes",valuesStoredOutsideNodes);
+        cat.put(name+".counterRecid",counterRecidRef);
+        cat.put(name+".comparator",comparator);
+        if(hasVals){
+            cat.put(name+".keySerializer",keySerializer);
+            cat.put(name+".valueSerializer",valueSerializer);
+        }else{
+            cat.put(name+".serializer",keySerializer);
+        }
     }
 
     /** create array list with single element*/
