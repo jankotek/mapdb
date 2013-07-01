@@ -707,7 +707,7 @@ public class StoreDirect implements Store{
         return indexSize-8;
     }
 
-    protected static final long size2ListIoRecid(long size){
+    protected static long size2ListIoRecid(long size){
         return IO_FREE_RECID + 8 + ((size-1)/16)*8;
     }
     protected void freePhysPut(long indexVal) {
