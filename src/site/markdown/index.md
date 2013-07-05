@@ -1,5 +1,3 @@
-MapDB
-=====
 MapDB provides concurrent Maps, Sets and Queues backed by disk storage or off-heap-memory. It is a fast and easy to use embedded Java database engine. This project is more than 12 years old, you may know it under name JDBM. MapDB is free as speech and free as beer under
 Apache License 2.0
 

@@ -11,6 +11,7 @@
             <pages>
                 <index project="mapdb">
                     <toc>false</toc>
+                    <titleTemplate>MapDB</titleTemplate>
                 </index>
             </pages>
 
@@ -25,14 +26,15 @@
             <highlightJs>true</highlightJs>
             <highlightJsTheme>github</highlightJsTheme>
 
-            <titleTemplate>%2$s | %1$s</titleTemplate>
+            <titleTemplate>%2$s | MapDB</titleTemplate>
             <toc>sidebar</toc>
-            <topNav>MapDB|Documentation|Support</topNav>
+            <topNav>MapDB|FAQ|Documentation|Support</topNav>
             <bottomNav>
+                <!--number of cols must be 4 -->
                 <column>MapDB</column>
+                <column>FAQ</column>
                 <column>Documentation</column>
-                <column>Support</column>
-                <column>Author</column>
+                <column>Support|Author</column>
             </bottomNav>
             <bottomDescription><![CDATA[
                 MapDB is free as a beer under Apache license. Please support us to make sure it remains free.
@@ -50,7 +52,6 @@
 
     <body>
         <head>
-            <script src='js/jquery.min.js'></script>
             <!--graphs -->
             <script src='js/excanvas.js'></script>
             <script src='js/js-class.js'></script>
@@ -61,8 +62,13 @@
             <item name="Index" href="index.html"/>
             <item name="Github" href="http://www.github.com/jankotek/mapdb"/>
             <item name="Features" href="features.html" />
-            <item name="Frequently Asked Questions" href="faq.html"/>
             <item name="Credits" href="credits.html" />
+        </menu>
+
+        <menu name="FAQ">
+            <item name="General" href="faq-general.html"/>
+            <item name="Problems" href="faq-problems.html"/>
+            <item name="Performance" href="faq-performance.html"/>
         </menu>
 
         <menu name="Documentation">
@@ -71,6 +77,7 @@
             <item name="Examples" href="https://github.com/jankotek/MapDB/tree/master/src/test/java/examples" />
             <item name="JavaDoc" href="apidocs/index.html"/>
         </menu>
+
 
         <menu name="Support">
             <item name="Mail list" href="http://groups.google.com/group/mapdb"/>
