@@ -29,7 +29,90 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Storage Engine which saves record directly into file.
- * Is used when transaction journal is disabled.
+ * It has zero protection from data corruption and must be closed properly after modifications.
+ * It is  used when Write-Ahead-Log transactions are disabled.
+ *
+ *
+ * Storage format
+ * ----------------
+ * `StoreDirect` is composed of two files: Index file is sequence of 8-byte longs, it translates
+ * `recid` (offset in index file) to record size and offset in physical file. Records position
+ * may change, but it requires stable ID, so the index file is used for translation.
+ * This store uses data structure called `Long Stack` to manage (and reuse) free space, it is
+ * is linked LIFO queue of 8-byte longs.
+ *
+ * Index file
+ * --------------
+ * Index file is translation table between permanent record ID (recid) and mutable location in physical file.
+ * Index file is sequence of 8-byte longs, one for each record. It also has some extra longs to manage
+ * free space and other metainfo. Index table and physical data could be stored in single file, but
+ * keeping index table separate simplifies compaction.
+ *
+ * Basic **structure of index file** is bellow. Each slot is 8-bytes long so `offset=slot*8`
+ *
+ *  slot        | in code                       | description
+ *  ---         | ---                               | ---
+ *  0           | {@link StoreDirect#HEADER}        | File header
+ *  1           | {@link StoreDirect#IO_INDEX_SIZE} | Allocated file size of index file in bytes.
+ *  2           | {@link StoreDirect#IO_PHYS_SIZE}  | Allocated file size of physical file in bytes.
+ *  3..9        |                                   | Reserved for future use
+ *  10..14      |                                   | For usage by user
+ *  15          | {@link StoreDirect#IO_FREE_RECID} |Long Stack of deleted recids, those will be reused and returned by {@link Engine#put(Object, Serializer)}
+ *  16..4111    |                                   |Long Stack of free physical records. This contains free space released by record update or delete. Each slots corresponds to free record size. TODO check 4111 is right
+ *  4112        | {@link StoreDirect#IO_USER_START} |Record size and offset in physical file for recid=1
+ *  4113        |                                   |Record size and offset in physical file for recid=2
+ *  ...         | ...                               |... snip ...
+ *  N+4111      |                                   |Record size and offset in physical file for recid=N
+ *
+ *
+ * Long Stack
+ * ------------
+ * Long Stack is data structure used to store free records. It is LIFO queue which uses linked records to store 8-byte longs.
+ * Long Stack is identified by slot in Index File, which stores pointer to Long Stack head.  The structure of
+ * of index pointer is following:
+ *
+ *  byte    | description
+ *  ---     |---
+ *  0..1    | relative offset in head Long Stack Record to take value from. This value decreases by 8 each take
+ *  2..7    | physical file offset of head Long Stack Record, zero if Long Stack is empty
+ *
+ * Each Long Stack Record  is sequence of 8-byte longs, first slot is header. Long Stack Record structure is following:
+ *
+ *  byte    | description
+ *  ---     |---
+ *  0..1    | length of current Long Stack Record in bytes
+ *  2..7    | physical file offset of next Long Stack Record, zero of this record is last
+ *  8-15    | Long Stack value
+ *  16-23   | Long Stack value
+ *   ...    | and so on until end of Long Stack Record
+ *
+ * Physical pointer
+ * ----------------
+ * Index slot value typically contains physical pointer (information about record location and size in physical file). First 2 bytes
+ * are record size (max 65536). Then there is 6 byte offset in physical file (max store size is 281 TB).
+ * Physical file offset must always be multiple of 16, so last 4 bites are used to flag extra record information.
+ * Structure of **physical pointer**:
+ *
+ * bite     | in code                                   | description
+ *   ---    | ---                                       | ---
+ * 0-15     |`val>>>48`                                 | record size
+ * 16-59    |`val&{@link StoreDirect#MASK_OFFSET}`      | physical offset
+ * 60       |`val&{@link StoreDirect#MASK_LINKED}!=0`   | linked record flag
+ * 61       |`val&{@link StoreDirect#MASK_DISCARD}!=0`  | to be discarded while storage is offline flag
+ * 62       |`val&{@link StoreDirect#MASK_ARCHIVE}!=0`  | record modified since last backup flag
+ * 63       |                                           | not used yet
+ *
+ * Records in Physical File
+ * ---------------------------
+ * Records are stored in physical file. Maximal record size size is 64KB, so larger records must
+ * be stored in form of the linked list. Each record starts by Physical Pointer from Index File.
+ * There is flag in Physical Pointer indicating if record is linked. If record is not linked you may
+ * just read ByteBuffer from given size and offset.
+ *
+ * If record is linked, each record starts with Physical Pointer to next record. So actual data payload is record size-8.
+ * The last linked record does not have the Physical Pointer header to next record, there is MASK_LINKED flag which
+ * indicates if next record is the last one.
+ *
  *
  * @author Jan Kotek
  */
@@ -37,8 +120,10 @@ public class StoreDirect implements Store{
 
     protected static final long MASK_OFFSET = 0x0000FFFFFFFFFFFFL;
 
-    protected static final long MASK_SIZE = 0x7fff000000000000L;
-    protected static final long MASK_IS_LINKED = 0x8000000000000000L;
+    protected static final long MASK_SIZE = 0x7FFF000000000000L;
+    protected static final long MASK_LINKED = 0x8000000000000000L;
+    protected static final long MASK_DISCARD = 0x4L;
+    protected static final long MASK_ARCHIVE = 0x2L;
 
     protected static final long HEADER = 9032094932889042394L;
 
@@ -165,7 +250,7 @@ public class StoreDirect implements Store{
             for(int i=0;i<indexVals.length;i++){
                 final int c =   i==indexVals.length-1 ? 0: 8;
                 final long indexVal = indexVals[i];
-                final boolean isLast = (indexVal & MASK_IS_LINKED) ==0;
+                final boolean isLast = (indexVal & MASK_LINKED) ==0;
                 if(isLast!=(i==indexVals.length-1)) throw new InternalError();
                 final int size = (int) ((indexVal& MASK_SIZE)>>48);
                 final long offset = indexVal&MASK_OFFSET;
@@ -176,7 +261,7 @@ public class StoreDirect implements Store{
 
                 if(c>0){
                     //write position of next linked record
-                    phys.putLong(offset, indexVals[i+1]);
+                    phys.putLong(offset, indexVals[i + 1]);
                 }
             }
             if(outPos!=out.pos) throw new InternalError();
@@ -204,7 +289,7 @@ public class StoreDirect implements Store{
         int size = (int) ((indexVal&MASK_SIZE)>>>48);
         DataInput2 di;
         long offset = indexVal&MASK_OFFSET;
-        if((indexVal&MASK_IS_LINKED)==0){
+        if((indexVal& MASK_LINKED)==0){
             //read single record
             di = phys.getDataInput(offset, size);
 
@@ -228,7 +313,7 @@ public class StoreDirect implements Store{
                 offset = next&MASK_OFFSET;
                 size = (int) ((next&MASK_SIZE)>>>48);
                 //is the next part last?
-                c =  ((next&MASK_IS_LINKED)==0)? 0 : 8;
+                c =  ((next& MASK_LINKED)==0)? 0 : 8;
             }
             di = new DataInput2(buf);
             size = pos;
@@ -379,7 +464,7 @@ public class StoreDirect implements Store{
         long[] linkedRecords = null;
 
         int linkedPos = 0;
-        if((indexVal&MASK_IS_LINKED)!=0){
+        if((indexVal& MASK_LINKED)!=0){
             //record is composed of multiple linked records, so collect all of them
             linkedRecords = new long[2];
 
@@ -391,7 +476,7 @@ public class StoreDirect implements Store{
                 //store last linkedVal
                 linkedRecords[linkedPos] = linkedVal;
 
-                if((linkedVal&MASK_IS_LINKED)==0){
+                if((linkedVal& MASK_LINKED)==0){
                     break; //this is last linked record, so break
                 }
                 //move and read to next
@@ -422,7 +507,7 @@ public class StoreDirect implements Store{
                 //append to end of file
                 long indexVal = freePhysTake(allocSize, ensureAvail);
                 indexVal |= (((long)allocSize)<<48);
-                if(c!=0) indexVal|=MASK_IS_LINKED;
+                if(c!=0) indexVal|= MASK_LINKED;
                 ret[retPos++] = indexVal;
 
                 c = size<=MAX_REC_SIZE ? 0 : 8;
