@@ -87,17 +87,17 @@ public class StoreDirectFreeSpaceTest {
 
     @Test public void reuse_after_full(){
         stub.physSize = max;
-        fill(size(1600),1000);
-        check(1600,1600,1000);
+        fill(size(1600),320);
+        check(1600,1600,320);
     }
 
     //TODO this is not possible with current store design, need var-size LongStack pages
     @Ignore
     @Test public void split_after_full(){
         stub.physSize = max;
-        fill(size(3200),1000);
-        check(1600,1600,1000);
-        check(1600,1600,2600);
+        fill(size(3200),320);
+        check(1600,1600,320);
+        check(1600,1600,320+1600);
         assertLongStacksEmpty();
     }
 

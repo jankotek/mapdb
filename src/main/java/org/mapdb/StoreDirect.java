@@ -118,7 +118,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public class StoreDirect implements Store{
 
-    protected static final long MASK_OFFSET = 0x0000FFFFFFFFFFFFL;
+    protected static final long MASK_OFFSET = 0x0000FFFFFFFFFFF0L;
 
     protected static final long MASK_SIZE = 0x7FFF000000000000L;
     protected static final long MASK_LINKED = 0x8000000000000000L;

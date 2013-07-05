@@ -12,6 +12,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public class StoreWAL extends StoreDirect {
 
+    protected static final long LOG_MASK_OFFSET = 0x0000FFFFFFFFFFFFL;
+
     protected static final byte WAL_INDEX_LONG = 101;
     protected static final byte WAL_PHYS_LONG = 102;
     protected static final byte WAL_PHYS_SIX_LONG = 103;
@@ -98,7 +100,7 @@ public class StoreWAL extends StoreDirect {
         }
 
         //write data into log
-        walIndexVal((logPos[0]&MASK_OFFSET) - 1-8-8-1-8, ioRecid, physPos[0]);
+        walIndexVal((logPos[0]&LOG_MASK_OFFSET) - 1-8-8-1-8, ioRecid, physPos[0]);
         walPhysArray(out, physPos, logPos);
 
         modified.put(ioRecid,logPos);
@@ -112,7 +114,7 @@ public class StoreWAL extends StoreDirect {
 
         for(int i=0;i<logPos.length;i++){
             int c =  i==logPos.length-1 ? 0: 8;
-            long pos = logPos[i]&MASK_OFFSET;
+            long pos = logPos[i]&LOG_MASK_OFFSET;
             int size = (int) ((logPos[i]&MASK_SIZE) >>>48);
 
             log.putByte(pos -  8 - 1, WAL_PHYS_ARRAY);
@@ -195,7 +197,7 @@ public class StoreWAL extends StoreDirect {
         if(r.length==1){
             //single record
             final int size = (int) ((r[0]&MASK_SIZE)>>>48);
-            DataInput2 in = log.getDataInput(r[0]&MASK_OFFSET, size);
+            DataInput2 in = log.getDataInput(r[0]&LOG_MASK_OFFSET, size);
             return serializer.deserialize(in, size);
         }else{
             //linked record
@@ -209,7 +211,7 @@ public class StoreWAL extends StoreDirect {
             for(int i=0;i<r.length;i++){
                 int c =  i==r.length-1 ? 0: 8;
                 int size = (int) ((r[i]&MASK_SIZE)>>>48) -c;
-                log.getDataInput((r[i] & MASK_OFFSET) + c, size).readFully(b,pos,size);
+                log.getDataInput((r[i] & LOG_MASK_OFFSET) + c, size).readFully(b,pos,size);
                 pos+=size;
             }
             if(pos!=totalSize)throw new InternalError();
@@ -261,7 +263,7 @@ public class StoreWAL extends StoreDirect {
             }
 
             //write data into log
-            walIndexVal((logPos[0]&MASK_OFFSET) - 1-8-8-1-8, ioRecid, physPos[0]);
+            walIndexVal((logPos[0]&LOG_MASK_OFFSET) - 1-8-8-1-8, ioRecid, physPos[0]);
             walPhysArray(out, physPos, logPos);
 
             modified.put(ioRecid,logPos);
@@ -321,7 +323,7 @@ public class StoreWAL extends StoreDirect {
             }
 
             //write data into log
-            walIndexVal((logPos[0]&MASK_OFFSET) - 1-8-8-1-8, ioRecid, physPos[0]);
+            walIndexVal((logPos[0]&LOG_MASK_OFFSET) - 1-8-8-1-8, ioRecid, physPos[0]);
             walPhysArray(out, physPos, logPos);
 
             modified.put(ioRecid,logPos);
@@ -657,7 +659,7 @@ public class StoreWAL extends StoreDirect {
         if(ret0!=null){
             long[] ret = new long[ret0.length];
             for(int i=0;i<ret0.length;i++){
-                long offset = ret0[i] & MASK_OFFSET;
+                long offset = ret0[i] & LOG_MASK_OFFSET;
                 //offset now points to log file, read phys offset from log file
                 ret[i] =  log.getLong(offset-8);
             }
