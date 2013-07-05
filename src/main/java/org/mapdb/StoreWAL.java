@@ -115,7 +115,7 @@ public class StoreWAL extends StoreDirect {
         for(int i=0;i<logPos.length;i++){
             int c =  i==logPos.length-1 ? 0: 8;
             long pos = logPos[i]&LOG_MASK_OFFSET;
-            int size = (int) ((logPos[i]&MASK_SIZE) >>>48);
+            int size = (int) (logPos[i]>>>48);
 
             log.putByte(pos -  8 - 1, WAL_PHYS_ARRAY);
             log.putLong(pos -  8, physPos[i]);
@@ -147,7 +147,7 @@ public class StoreWAL extends StoreDirect {
 
         long[] ret = new long[physPos.length];
         for(int i=0;i<physPos.length;i++){
-            long size = (physPos[i]&MASK_SIZE)>>>48;
+            long size = physPos[i]>>>48;
             //would overlaps Volume Block?
             logSize+=1+8; //space used for WAL_PHYS_ARRAY
             ret[i] = (size<<48) | logSize;
@@ -196,7 +196,7 @@ public class StoreWAL extends StoreDirect {
         //was modified in current transaction, so read it from trans log
         if(r.length==1){
             //single record
-            final int size = (int) ((r[0]&MASK_SIZE)>>>48);
+            final int size = (int) (r[0]>>>48);
             DataInput2 in = log.getDataInput(r[0]&LOG_MASK_OFFSET, size);
             return serializer.deserialize(in, size);
         }else{
@@ -204,13 +204,13 @@ public class StoreWAL extends StoreDirect {
             int totalSize = 0;
             for(int i=0;i<r.length;i++){
                 int c =  i==r.length-1 ? 0: 8;
-                totalSize+=  (int) ((r[i]&MASK_SIZE)>>>48)-c;
+                totalSize+=  (int) (r[i]>>>48)-c;
             }
             byte[] b = new byte[totalSize];
             int pos = 0;
             for(int i=0;i<r.length;i++){
                 int c =  i==r.length-1 ? 0: 8;
-                int size = (int) ((r[i]&MASK_SIZE)>>>48) -c;
+                int size = (int) (r[i]>>>48) -c;
                 log.getDataInput((r[i] & LOG_MASK_OFFSET) + c, size).readFully(b,pos,size);
                 pos+=size;
             }
@@ -493,7 +493,7 @@ public class StoreWAL extends StoreDirect {
             }else if(ins == WAL_PHYS_ARRAY){
                 long offset = log.getLong(logSize);
                 logSize+=8;
-                final int size = (int) ((offset&MASK_SIZE)>>>48);
+                final int size = (int) (offset>>>48);
                 offset = offset&MASK_OFFSET;
 
                 //transfer byte[] directly from log file without copying into memory

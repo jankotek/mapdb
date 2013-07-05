@@ -47,7 +47,7 @@ public class StoreDirectFreeSpaceTest {
         long[] b = new long[n.length];
 
         for(int i=0;i<a.length;i++){
-            long size =  (a[i]&StoreDirect.MASK_SIZE)>>>48; //size
+            long size =  a[i]>>>48; //size
             b[i*2+1] = size;
             b[0]+=size -  (i==a.length-1 ? 0: 8);
             b[i*2+2] = a[i] & StoreDirect.MASK_OFFSET; //offset

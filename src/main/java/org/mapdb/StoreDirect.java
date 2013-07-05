@@ -120,18 +120,17 @@ public class StoreDirect implements Store{
 
     protected static final long MASK_OFFSET = 0x0000FFFFFFFFFFF0L;
 
-    protected static final long MASK_SIZE = 0x7FFF000000000000L;
-    protected static final long MASK_LINKED = 0x8000000000000000L;
+    protected static final long MASK_LINKED = 0x8L;
     protected static final long MASK_DISCARD = 0x4L;
     protected static final long MASK_ARCHIVE = 0x2L;
 
     protected static final long HEADER = 9032094932889042394L;
 
     /** maximal non linked record size */
-    protected static final int MAX_REC_SIZE = 32767;
+    protected static final int MAX_REC_SIZE = 65536-1;
 
     /** number of free physical slots */
-    protected static final int PHYS_FREE_SLOTS_COUNT = 2048;
+    protected static final int PHYS_FREE_SLOTS_COUNT = 2048*2;
 
     /** index file offset where current size of index file is stored*/
     protected static final int IO_INDEX_SIZE = 1*8;
@@ -252,7 +251,7 @@ public class StoreDirect implements Store{
                 final long indexVal = indexVals[i];
                 final boolean isLast = (indexVal & MASK_LINKED) ==0;
                 if(isLast!=(i==indexVals.length-1)) throw new InternalError();
-                final int size = (int) ((indexVal& MASK_SIZE)>>48);
+                final int size = (int) (indexVal>>>48);
                 final long offset = indexVal&MASK_OFFSET;
 
                 //write data
@@ -264,7 +263,7 @@ public class StoreDirect implements Store{
                     phys.putLong(offset, indexVals[i + 1]);
                 }
             }
-            if(outPos!=out.pos) throw new InternalError();
+              if(outPos!=out.pos) throw new InternalError();
         }
     }
 
@@ -286,7 +285,7 @@ public class StoreDirect implements Store{
     protected <A> A get2(long ioRecid,Serializer<A> serializer) throws IOException {
         long indexVal = index.getLong(ioRecid);
 
-        int size = (int) ((indexVal&MASK_SIZE)>>>48);
+        int size = (int) (indexVal>>>48);
         DataInput2 di;
         long offset = indexVal&MASK_OFFSET;
         if((indexVal& MASK_LINKED)==0){
@@ -311,7 +310,7 @@ public class StoreDirect implements Store{
                 //read next part
                 long next = phys.getLong(offset);
                 offset = next&MASK_OFFSET;
-                size = (int) ((next&MASK_SIZE)>>>48);
+                size = (int) (next>>>48);
                 //is the next part last?
                 c =  ((next& MASK_LINKED)==0)? 0 : 8;
             }
@@ -791,7 +790,7 @@ public class StoreDirect implements Store{
         return IO_FREE_RECID + 8 + ((size-1)/16)*8;
     }
     protected void freePhysPut(long indexVal) {
-        long size = (indexVal&MASK_SIZE) >>>48;
+        long size = indexVal >>>48;
         longStackPut(size2ListIoRecid(size), indexVal & MASK_OFFSET);
     }
 
