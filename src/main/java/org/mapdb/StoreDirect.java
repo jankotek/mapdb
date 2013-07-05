@@ -236,7 +236,7 @@ public class StoreDirect implements Store{
     }
 
     private void put2(DataOutput2 out, long ioRecid, long[] indexVals) {
-        index.putLong(ioRecid, indexVals[0]);
+        index.putLong(ioRecid, indexVals[0]|MASK_ARCHIVE);
         //write stuff
         if(indexVals.length==1||indexVals[1]==0){ //is more then one? ie linked
             //write single
@@ -430,7 +430,7 @@ public class StoreDirect implements Store{
         try{
             //get index val and zero it out
             final long indexVal = index.getLong(ioRecid);
-            index.putLong(ioRecid,0L);
+            index.putLong(ioRecid,0L|MASK_ARCHIVE);
 
             if(!spaceReclaimTrack) return; //free space is not tracked, so do not mark stuff as free
 

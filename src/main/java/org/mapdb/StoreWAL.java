@@ -100,7 +100,7 @@ public class StoreWAL extends StoreDirect {
         }
 
         //write data into log
-        walIndexVal((logPos[0]&LOG_MASK_OFFSET) - 1-8-8-1-8, ioRecid, physPos[0]);
+        walIndexVal((logPos[0]&LOG_MASK_OFFSET) - 1-8-8-1-8, ioRecid, physPos[0]|MASK_ARCHIVE);
         walPhysArray(out, physPos, logPos);
 
         modified.put(ioRecid,logPos);
@@ -263,7 +263,7 @@ public class StoreWAL extends StoreDirect {
             }
 
             //write data into log
-            walIndexVal((logPos[0]&LOG_MASK_OFFSET) - 1-8-8-1-8, ioRecid, physPos[0]);
+            walIndexVal((logPos[0]&LOG_MASK_OFFSET) - 1-8-8-1-8, ioRecid, physPos[0]|MASK_ARCHIVE);
             walPhysArray(out, physPos, logPos);
 
             modified.put(ioRecid,logPos);
@@ -323,7 +323,7 @@ public class StoreWAL extends StoreDirect {
             }
 
             //write data into log
-            walIndexVal((logPos[0]&LOG_MASK_OFFSET) - 1-8-8-1-8, ioRecid, physPos[0]);
+            walIndexVal((logPos[0]&LOG_MASK_OFFSET) - 1-8-8-1-8, ioRecid, physPos[0]|MASK_ARCHIVE);
             walPhysArray(out, physPos, logPos);
 
             modified.put(ioRecid,logPos);
@@ -374,7 +374,7 @@ public class StoreWAL extends StoreDirect {
             }finally {
                 structuralLock.unlock();
             }
-            walIndexVal(logPos,ioRecid,0);
+            walIndexVal(logPos,ioRecid,0|MASK_ARCHIVE);
             modified.put(ioRecid,TOMBSTONE);
         }finally {
             lock.unlock();
