@@ -72,7 +72,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.structuralLock.lock();
         long[] ret = e.physAllocate(100 + MAX_REC_SIZE,true);
         long exp1 = MASK_IS_LINKED |((long)MAX_REC_SIZE)<<48 | 16L;
-        long exp2 = 112L<<48 | (16L+MAX_REC_SIZE+1);
+        long exp2 = 108L<<48 | (16L+MAX_REC_SIZE+1);
         assertArrayEquals(new long[]{exp1, exp2}, ret);
     }
 
@@ -82,7 +82,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         long[] ret = e.physAllocate(100 + MAX_REC_SIZE*2,true);
         long exp1 = MASK_IS_LINKED | ((long)MAX_REC_SIZE)<<48 | 16L;
         long exp2 = MASK_IS_LINKED | ((long)MAX_REC_SIZE)<<48 | (16L+MAX_REC_SIZE+1);
-        long exp3 = ((long)120)<<48 | (16L+MAX_REC_SIZE*2+2);
+        long exp3 = ((long)116)<<48 | (16L+MAX_REC_SIZE*2+2);
 
         assertArrayEquals(new long[]{exp1, exp2, exp3}, ret);
     }

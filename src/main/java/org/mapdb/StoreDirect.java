@@ -163,7 +163,7 @@ public class StoreDirect implements Store{
             int outPos = 0;
             //write linked
             for(int i=0;i<indexVals.length;i++){
-                final int c = ccc(indexVals.length, i);
+                final int c =   i==indexVals.length-1 ? 0: 8;
                 final long indexVal = indexVals[i];
                 final boolean isLast = (indexVal & MASK_IS_LINKED) ==0;
                 if(isLast!=(i==indexVals.length-1)) throw new InternalError();
@@ -177,10 +177,6 @@ public class StoreDirect implements Store{
                 if(c>0){
                     //write position of next linked record
                     phys.putLong(offset, indexVals[i+1]);
-                }
-                if(c==12){
-                    //write total size in first record
-                    phys.putInt(offset+8, out.pos);
                 }
             }
             if(outPos!=out.pos) throw new InternalError();
@@ -214,13 +210,16 @@ public class StoreDirect implements Store{
 
         }else{
             //is linked, first construct buffer we will read data to
-            int totalSize = phys.getInt(offset+8);
             int pos = 0;
-            int c = 12;
-            byte[] buf = new byte[totalSize];
+            int c = 8;
+            //TODO use mapped bb and direct copying?
+            byte[] buf = new byte[64];
             //read parts into segment
             for(;;){
                 DataInput2 in = phys.getDataInput(offset + c, size-c);
+
+                if(buf.length<pos+size-c)
+                    buf = Arrays.copyOf(buf,Math.max(pos+size-c,buf.length*2)); //buf to small, grow
                 in.readFully(buf,pos,size-c);
                 pos+=size-c;
                 if(c==0) break;
@@ -231,9 +230,8 @@ public class StoreDirect implements Store{
                 //is the next part last?
                 c =  ((next&MASK_IS_LINKED)==0)? 0 : 8;
             }
-            if(pos!=totalSize) throw new InternalError();
             di = new DataInput2(buf);
-            size = totalSize;
+            size = pos;
         }
         int start = di.pos;
         A ret = serializer.deserialize(di,size);
@@ -414,7 +412,7 @@ public class StoreDirect implements Store{
         }else{
             long[] ret = new long[2];
             int retPos = 0;
-            int c = 12;
+            int c = 8;
 
             while(size>0){
                 if(retPos == ret.length) ret = Arrays.copyOf(ret, ret.length*2);
@@ -444,9 +442,6 @@ public class StoreDirect implements Store{
     }
 
 
-    protected static int ccc(int size, int i) {
-        return (size==1|| i==size-1)? 0: (i==0?12:8);
-    }
 
 
 

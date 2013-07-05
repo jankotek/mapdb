@@ -49,7 +49,7 @@ public class StoreDirectFreeSpaceTest {
         for(int i=0;i<a.length;i++){
             long size =  (a[i]&StoreDirect.MASK_SIZE)>>>48; //size
             b[i*2+1] = size;
-            b[0]+=size - StoreDirect.ccc(a.length,i);
+            b[0]+=size -  (i==a.length-1 ? 0: 8);
             b[i*2+2] = a[i] & StoreDirect.MASK_OFFSET; //offset
         }
 
@@ -82,7 +82,7 @@ public class StoreDirectFreeSpaceTest {
     @Test
     public void largeGrow(){
         int size = StoreDirect.MAX_REC_SIZE+100;
-        check(size,  StoreDirect.MAX_REC_SIZE, 16, 112, 16+StoreDirect.MAX_REC_SIZE+1);
+        check(size,  StoreDirect.MAX_REC_SIZE, 16, 108, 16+StoreDirect.MAX_REC_SIZE+1);
     }
 
     @Test public void reuse_after_full(){

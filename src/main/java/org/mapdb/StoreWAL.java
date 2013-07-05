@@ -111,7 +111,7 @@ public class StoreWAL extends StoreDirect {
         int outPos = 0;
 
         for(int i=0;i<logPos.length;i++){
-            int c = ccc(logPos.length, i);
+            int c =  i==logPos.length-1 ? 0: 8;
             long pos = logPos[i]&MASK_OFFSET;
             int size = (int) ((logPos[i]&MASK_SIZE) >>>48);
 
@@ -121,10 +121,6 @@ public class StoreWAL extends StoreDirect {
             if(c>0){
                 log.putLong(pos, physPos[i + 1]);
                 pos+=8;
-            }
-            if(c==12){
-                log.putInt(pos, out.pos);
-                pos+=4;
             }
             log.putData(pos, out.buf, outPos, size - c);
             outPos +=size-c;
@@ -205,13 +201,13 @@ public class StoreWAL extends StoreDirect {
             //linked record
             int totalSize = 0;
             for(int i=0;i<r.length;i++){
-                int c = ccc(r.length, i);
+                int c =  i==r.length-1 ? 0: 8;
                 totalSize+=  (int) ((r[i]&MASK_SIZE)>>>48)-c;
             }
             byte[] b = new byte[totalSize];
             int pos = 0;
             for(int i=0;i<r.length;i++){
-                int c = ccc(r.length, i);
+                int c =  i==r.length-1 ? 0: 8;
                 int size = (int) ((r[i]&MASK_SIZE)>>>48) -c;
                 log.getDataInput((r[i] & MASK_OFFSET) + c, size).readFully(b,pos,size);
                 pos+=size;
