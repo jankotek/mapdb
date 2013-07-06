@@ -144,10 +144,8 @@ public class StoreDirect implements Store{
 
     public static final String DATA_FILE_EXT = ".p";
 
-
-    static final int LONG_STACK_PER_PAGE = 204;
-
-    static final int LONG_STACK_PAGE_SIZE =   8 + LONG_STACK_PER_PAGE * 6;
+    protected final static int LONG_STACK_PREF_COUNT = 204;
+    protected final static long LONG_STACK_PREF_SIZE = 8+LONG_STACK_PREF_COUNT*6;
 
 
     protected final ReentrantReadWriteLock[] locks = Utils.newReadWriteLocks();
@@ -683,36 +681,37 @@ public class StoreDirect implements Store{
         if(!structuralLock.isLocked())throw new InternalError();
         if(ioList<IO_FREE_RECID || ioList>=IO_USER_START) throw new IllegalArgumentException("wrong ioList: "+ioList);
 
-        final long dataOffset = index.getLong(ioList) &MASK_OFFSET;
-        if(dataOffset == 0)
-            return 0; //there is no such list, so just return 0
+        long dataOffset = index.getLong(ioList);
+        if(dataOffset == 0) return 0; //there is no such list, so just return 0
 
+        long pos = dataOffset>>>48;
+        dataOffset &= MASK_OFFSET;
 
-        final int numberOfRecordsInPage = phys.getUnsignedByte(dataOffset);
+        if(pos<8) throw new InternalError();
 
-        if(numberOfRecordsInPage<=0)
-            throw new InternalError();
-        if(numberOfRecordsInPage> LONG_STACK_PER_PAGE)
-            throw new InternalError();
-
-        final long ret = phys.getSixLong(dataOffset + 2 + numberOfRecordsInPage * 6);
+        final long ret = phys.getSixLong(dataOffset + pos);
 
         //was it only record at that page?
-        if(numberOfRecordsInPage == 1){
+        if(pos == 8){
             //yes, delete this page
-            final long previousListPhysid =phys.getSixLong(dataOffset+2);
-            if(previousListPhysid !=0){
+            long next =phys.getLong(dataOffset);
+            long size = next>>>48;
+            next &=MASK_OFFSET;
+            if(next !=0){
                 //update index so it points to previous page
-                index.putLong(ioList , previousListPhysid | (((long) LONG_STACK_PAGE_SIZE) << 48));
+                long nextSize = phys.getUnsignedShort(next);
+                if((nextSize-8)%6!=0)throw new InternalError();
+                index.putLong(ioList , ((nextSize-6)<<48)|next);
             }else{
                 //zero out index
                 index.putLong(ioList , 0L);
             }
             //put space used by this page into free list
-            freePhysPut(dataOffset | (((long)LONG_STACK_PAGE_SIZE)<<48));
+            freePhysPut((size<<48) | dataOffset);
         }else{
             //no, it was not last record at this page, so just decrement the counter
-            phys.putUnsignedByte(dataOffset, (byte) (numberOfRecordsInPage - 1));
+            pos-=6;
+            index.putLong(ioList, (pos<<48)| dataOffset); //TODO update just 2 bytes
         }
 
         //System.out.println("longStackTake: "+ioList+" - "+ret);
@@ -727,43 +726,44 @@ public class StoreDirect implements Store{
         if(!structuralLock.isLocked())throw new InternalError();
         if(ioList<IO_FREE_RECID || ioList>=IO_USER_START) throw new InternalError("wrong ioList: "+ioList);
 
-        //System.out.println("longStackPut: "+ioList+" - "+offset);
+        long dataOffset = index.getLong(ioList);
+        long pos = dataOffset>>>48;
+        dataOffset &= MASK_OFFSET;
 
-        //index position was cleared, put into free index list
-        final long listPhysid2 = index.getLong(ioList) &MASK_OFFSET;
-
-        if(listPhysid2 == 0){ //empty list?
+        if(dataOffset == 0){ //empty list?
             //yes empty, create new page and fill it with values
-            final long listPhysid = freePhysTake(LONG_STACK_PAGE_SIZE,true) &MASK_OFFSET;
+            final long listPhysid = freePhysTake((int) LONG_STACK_PREF_SIZE,true) &MASK_OFFSET;
             if(listPhysid == 0) throw new InternalError();
             //set previous Free Index List page to zero as this is first page
-            phys.putSixLong(listPhysid + 2, 0L);
-            //set number of free records in this page to 1
-            phys.putUnsignedByte(listPhysid, (byte) 1);
+            //also set size of this record
+            phys.putLong(listPhysid , LONG_STACK_PREF_SIZE << 48);
             //set  record
             phys.putSixLong(listPhysid + 8, offset);
             //and update index file with new page location
-            index.putLong(ioList , (((long) LONG_STACK_PAGE_SIZE) << 48) | listPhysid);
+            index.putLong(ioList , ( 8L << 48) | listPhysid);
         }else{
-            final int numberOfRecordsInPage = phys.getUnsignedByte(listPhysid2);
-            if(numberOfRecordsInPage == LONG_STACK_PER_PAGE){ //is current page full?
-                //yes it is full, so we need to allocate new page and write our number there
+            long next = phys.getLong(dataOffset);
+            long size = next>>>48;
+            next &=MASK_OFFSET;
 
-                final long listPhysid = freePhysTake(LONG_STACK_PAGE_SIZE,true) &MASK_OFFSET;
+            if(pos+6==size){ //is current page full?
+                //yes it is full, so we need to allocate new page and write our number there
+                final long listPhysid = freePhysTake((int) LONG_STACK_PREF_SIZE,true) &MASK_OFFSET;
                 if(listPhysid == 0) throw new InternalError();
-                //final ByteBuffers dataBuf = dataBufs[((int) (listPhysid / BUF_SIZE))];
-                //set location to previous page
-                phys.putSixLong(listPhysid + 2, listPhysid2);
-                //set number of free records in this page to 1
-                phys.putUnsignedByte(listPhysid, (byte) 1);
-                //set free record
-                phys.putSixLong(listPhysid + 8, offset);
-                //and update index file with new page location
-                index.putLong(ioList , (((long) LONG_STACK_PAGE_SIZE) << 48) | listPhysid);
+
+                //set location to previous page and set current page size
+                phys.putLong(listPhysid, (LONG_STACK_PREF_SIZE<<48)|dataOffset);
+
+                //set the value itself
+                phys.putSixLong(listPhysid+8, offset);
+
+                //and update index file with new page location and number of records
+                index.putLong(ioList , (8L<<48) | listPhysid);
             }else{
-                //there is space on page, so just write released recid and increase the counter
-                phys.putSixLong(listPhysid2 + 8 + 6 * numberOfRecordsInPage, offset);
-                phys.putUnsignedByte(listPhysid2, (byte) (numberOfRecordsInPage + 1));
+                //there is space on page, so just write offset and increase the counter
+                pos+=6;
+                phys.putSixLong(dataOffset + pos, offset);
+                index.putLong(ioList, (pos<<48)| dataOffset); //TODO update just 2 bytes
             }
         }
     }

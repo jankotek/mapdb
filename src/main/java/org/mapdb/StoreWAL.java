@@ -396,16 +396,18 @@ public class StoreWAL extends StoreDirect {
             //dump long stack pages
             LongMap.LongMapIterator<long[]> iter = longStackPages.longMapIterator();
             while(iter.moveToNext()){
-                log.ensureAvailable(logSize+1+8+LONG_STACK_PAGE_SIZE);
+                long pageSize = iter.value()[0]>>>48;
+                log.ensureAvailable(logSize+1+8+pageSize);
                 log.putByte(logSize, WAL_PHYS_ARRAY);
                 logSize+=1;
-                log.putLong(logSize, (((long)LONG_STACK_PAGE_SIZE)<<48)|iter.key());
+                log.putLong(logSize, (pageSize<<48)|iter.key());
                 logSize+=8;
                 //first long in array
                 long[] array = iter.value();
                 log.putLong(logSize,array[0]);
                 logSize+=8;
-                for(int i=0;i<LONG_STACK_PER_PAGE;i++){
+                int numItems = (int) ((pageSize-8)/6);
+                for(int i=0;i<numItems;i++){
                     log.putSixLong(logSize,array[i+1]);
                     logSize+=6;
                 }
@@ -554,7 +556,7 @@ public class StoreWAL extends StoreDirect {
     private long[] getLongStackPage(final long physOffset, boolean read){
         long[] buf = longStackPages.get(physOffset);
         if(buf == null){
-            buf = new long[LONG_STACK_PER_PAGE+1];
+            buf = new long[LONG_STACK_PREF_COUNT+1];
             if(read){
                 buf[0] = phys.getLong(physOffset);
                 for(int i=1;i<buf.length;i++){
@@ -569,40 +571,46 @@ public class StoreWAL extends StoreDirect {
 
     @Override
     protected long longStackTake(long ioList) {
-        final long physOffset = indexVals[((int) (ioList / 8))] &MASK_OFFSET;
-        if(physOffset == 0) return 0; //empty
+        final int ii = ((int) (ioList / 8));
 
-        long[] buf = getLongStackPage(physOffset,true);
+        long dataOffset = indexVals[ii];
+        if(dataOffset == 0) return 0; //empty
 
-        final int numberOfRecordsInPage = (int) (buf[0]>>>(8*7));
+        long pos = dataOffset>>>48;
+        dataOffset&=MASK_OFFSET;
 
+        if(pos<8) throw new InternalError();
 
-        if(numberOfRecordsInPage<=0)
-            throw new InternalError();
-        if(numberOfRecordsInPage>LONG_STACK_PER_PAGE) throw new InternalError();
+        long[] buf = getLongStackPage(dataOffset,true);
 
-        final long ret = buf[numberOfRecordsInPage];
-
-        final long previousListPhysid = buf[0] & MASK_OFFSET;
+        final long ret = buf[((int) ((pos - 2) / 6))];
 
         //was it only record at that page?
-        if(numberOfRecordsInPage == 1){
+        if(pos==8){
             //yes, delete this page
-            long value = previousListPhysid !=0 ?
-                    previousListPhysid | (((long) LONG_STACK_PAGE_SIZE) << 48) :
-                    0L;
-            //update index so it points to previous (or none)
-            int ii = ((int) (ioList / 8));
-            indexVals[ii] = value;
-            indexValsModified[ii] = true;
+            long next = buf[0]&MASK_OFFSET;
+            long size = buf[0]>>>48;
+
+
+            if(next != 0){
+                //update index so it points to previous page
+                long nextSize = getLongStackPage(next,true)[0]>>>48;
+                indexVals[ii] = ((nextSize-6)<<48)|next;
+                indexValsModified[ii] = true;
+            }else{
+                indexVals[ii] = 0;
+                indexValsModified[ii] = true;
+            }
 
             //put space used by this page into free list
-            longStackPages.remove(physOffset); //TODO write zeroes to phys file
+            longStackPages.remove(dataOffset); //TODO write zeroes to phys file
 
-            freePhysPut(physOffset | (((long)LONG_STACK_PAGE_SIZE)<<48));
+            freePhysPut((size<<48)|dataOffset);
         }else{
             //no, it was not last record at this page, so just decrement the counter
-            buf[0] = previousListPhysid | ((1L*numberOfRecordsInPage-1L)<<(8*7));
+            pos-=6;
+            indexVals[ii] = (pos<<48)|dataOffset;
+            indexValsModified[ii] = true;
         }
         return ret;
 
@@ -612,43 +620,55 @@ public class StoreWAL extends StoreDirect {
     protected void longStackPut(long ioList, long offset) {
         if(offset>>>48!=0) throw new IllegalArgumentException();
         //index position was cleared, put into free index list
-        final long listPhysid2 = indexVals[((int) (ioList / 8))] &MASK_OFFSET;
 
-        if(listPhysid2 == 0){ //empty list?
+        final int ii = ((int) (ioList / 8));
+
+        long dataOffset = indexVals[ii];
+        long pos = dataOffset>>>48;
+        dataOffset &= MASK_OFFSET;
+
+        if(dataOffset == 0){ //empty list?
             //yes empty, create new page and fill it with values
-            final long listPhysid = freePhysTake(LONG_STACK_PAGE_SIZE,false) &MASK_OFFSET;
+            final long listPhysid = freePhysTake((int) LONG_STACK_PREF_SIZE,false) &MASK_OFFSET;
             long[] buf = getLongStackPage(listPhysid,false);
             if(listPhysid == 0) throw new InternalError();
-            //set number of free records in this page to 1
-            buf[0] = 1L<<(8*7);
+
+            //set size and link to old page
+            buf[0] = (LONG_STACK_PREF_SIZE<<48) | dataOffset;
             //set  record
             buf[1] = offset;
             //and update index file with new page location
-            int ii = ((int) (ioList / 8));
-            indexVals[ii] =  (((long) LONG_STACK_PAGE_SIZE) << 48) | listPhysid;
+            indexVals[ii] =  (8L << 48) | listPhysid;
             indexValsModified[ii] = true;
         }else{
-            long[] buf = getLongStackPage(listPhysid2,true);
+            //non empty list
+            long[] buf = getLongStackPage(dataOffset,true);
+            final long next = buf[0]&MASK_OFFSET;
+            final long size = buf[0]>>>48;
             final int numberOfRecordsInPage = (int) (buf[0]>>>(8*7));
-            if(numberOfRecordsInPage == LONG_STACK_PER_PAGE){ //is current page full?
+
+            if(pos+6==size){ //is current page full?
                 //yes it is full, so we need to allocate new page and write our number there
-                final long listPhysid = freePhysTake(LONG_STACK_PAGE_SIZE, false) &MASK_OFFSET;
+                final long listPhysid = freePhysTake((int) LONG_STACK_PREF_SIZE, false) &MASK_OFFSET;
                 long[] bufNew = getLongStackPage(listPhysid,false);
                 if(listPhysid == 0) throw new InternalError();
-                //final ByteBuffers dataBuf = dataBufs[((int) (listPhysid / BUF_SIZE))];
-                //set location to previous page
-                //set number of free records in this page to 1
-                bufNew[0] = listPhysid2 | (1L<<(8*7));
-                //set free record
+
+                //set location to previous page and set current page size
+                bufNew[0]=(LONG_STACK_PREF_SIZE<<48)|dataOffset;
+
+                //set the value itself
                 bufNew[1] = offset;
-                //and update index file with new page location
-                int ii = ((int) (ioList / 8));
-                indexVals[ii] =  (((long) LONG_STACK_PAGE_SIZE) << 48) | listPhysid;
+
+                //and update index file with new page location and number of records
+                indexVals[ii] =  (8L<<48) | listPhysid;
                 indexValsModified[ii] = true;
             }else{
                 //there is space on page, so just write released recid and increase the counter
-                buf[1+numberOfRecordsInPage] = offset;
-                buf[0] = (buf[0]&MASK_OFFSET) | ((1L*numberOfRecordsInPage+1L)<<(8*7));
+                pos+=6;
+                buf[((int) ((pos - 2) / 6))] = offset;
+                indexVals[ii] = (pos<<48)|dataOffset;
+                indexValsModified[ii] = true;
+
             }
         }
 

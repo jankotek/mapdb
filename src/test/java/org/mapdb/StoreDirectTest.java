@@ -26,12 +26,9 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
     int countIndexRecords(){
         int ret = 0;
-        for(int pos = StoreDirect.IO_USER_START;
-            pos<e.indexSize;
-            pos+=8){
-            if(0!= e.index.getLong(pos)){
-                ret++;
-            }
+        for(int pos = StoreDirect.IO_USER_START; pos<e.indexSize; pos+=8){
+            long val = e.index.getLong(pos);
+            if(val!=0 && val != StoreDirect.MASK_ARCHIVE) ret++;
         }
         return ret;
     }
@@ -41,18 +38,21 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         ArrayList<Long> ret =new ArrayList<Long>();
 
         long pagePhysid = e.index.getLong(ioRecid) & StoreDirect.MASK_OFFSET;
+        long pageOffset = e.index.getLong(ioRecid) >>>48;
 
 
         while(pagePhysid!=0){
-            final int numberOfRecordsInPage = e.phys.getUnsignedByte(pagePhysid);
 
-            for(int rec = numberOfRecordsInPage; rec>0;rec--){
-                final Long l = e.phys.getSixLong(pagePhysid + 2 + rec * 6);
+            while(pageOffset>=8){
+                //System.out.println(pagePhysid + " - "+pageOffset);
+                final Long l = e.phys.getSixLong(pagePhysid + pageOffset);
+                pageOffset-=6;
                 ret.add(l);
             }
-
+            //System.out.println(ret);
             //read location of previous page
-            pagePhysid = e.phys.getSixLong(pagePhysid + 2) & StoreDirect.MASK_OFFSET;
+            pagePhysid = e.phys.getLong(pagePhysid) & StoreDirect.MASK_OFFSET;
+            pageOffset = (e.phys.getLong(pagePhysid) >>>48) - 6;
         }
 
         return ret;
@@ -194,12 +194,12 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
     }
 
-    @Test public void test_long_stack_puts_record_size_into_index() throws IOException {
+    @Test public void test_long_stack_puts_record_offset_into_index() throws IOException {
         e.structuralLock.lock();
         e.longStackPut(IO_RECID, 1);
         e.commit();
-        assertEquals(StoreDirect.LONG_STACK_PAGE_SIZE,
-                e.index.getUnsignedShort(IO_RECID));
+        assertEquals(8,
+                e.index.getLong(IO_RECID)>>>48);
 
     }
 
@@ -240,7 +240,60 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.commit();
 
         assertEquals(list, getLongStack(IO_RECID));
+
+        for(long i =max-1;i>=1;i--){
+            assertEquals(i, e.longStackTake(IO_RECID));
+        }
     }
+
+    @Test public void test_large_long_stack() throws IOException {
+        //dirty hack to make sure we have lock
+        e.structuralLock.lock();
+        final long max = 15000;
+        ArrayList<Long> list = new ArrayList<Long>();
+        for(long i=1;i<max;i++){
+            e.longStackPut(IO_RECID, i);
+            list.add(i);
+        }
+
+        Collections.reverse(list);
+        e.commit();
+
+        assertEquals(list, getLongStack(IO_RECID));
+
+        for(long i =max-1;i>=1;i--){
+            assertEquals(i, e.longStackTake(IO_RECID));
+        }
+    }
+
+    @Test public void test_basic_long_stack_no_commit() throws IOException {
+        //dirty hack to make sure we have lock
+        e.structuralLock.lock();
+        final long max = 150;
+        for(long i=1;i<max;i++){
+            e.longStackPut(IO_RECID, i);
+        }
+
+        for(long i =max-1;i>=1;i--){
+            assertEquals(i, e.longStackTake(IO_RECID));
+        }
+    }
+
+    @Test public void test_large_long_stack_no_commit() throws IOException {
+        //dirty hack to make sure we have lock
+        e.structuralLock.lock();
+        final long max = 15000;
+        for(long i=1;i<max;i++){
+            e.longStackPut(IO_RECID, i);
+        }
+
+
+        for(long i =max-1;i>=1;i--){
+            System.out.println(i);
+            assertEquals(i, e.longStackTake(IO_RECID));
+        }
+    }
+
 
 
     @Test public void long_stack_page_created_after_put() throws IOException {
@@ -248,11 +301,11 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.longStackPut(IO_RECID, 111);
         e.commit();
         long pageId = e.index.getLong(IO_RECID);
-        assertEquals(StoreDirect.LONG_STACK_PAGE_SIZE, pageId>>>48);
+        assertEquals(8, pageId>>>48);
         pageId = pageId & StoreDirect.MASK_OFFSET;
         assertEquals(16L, pageId);
-        assertEquals(1, e.phys.getByte(pageId));
-        assertEquals(0, e.phys.getSixLong(pageId + 2)& StoreDirect.MASK_OFFSET);
+        assertEquals(LONG_STACK_PREF_SIZE, e.phys.getLong(pageId)>>>48);
+        assertEquals(0, e.phys.getLong(pageId)& StoreDirect.MASK_OFFSET);
         assertEquals(111, e.phys.getSixLong(pageId + 8));
     }
 
@@ -266,11 +319,11 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
         e.commit();
         long pageId = e.index.getLong(IO_RECID);
-        assertEquals(StoreDirect.LONG_STACK_PAGE_SIZE, pageId>>>48);
+        assertEquals(8+6*4, pageId>>>48);
         pageId = pageId & StoreDirect.MASK_OFFSET;
         assertEquals(16L, pageId);
-        assertEquals(5, e.phys.getByte(pageId));
-        assertEquals(0, e.phys.getSixLong(pageId+2));
+        assertEquals(LONG_STACK_PREF_SIZE, e.phys.getLong(pageId)>>>48);
+        assertEquals(0, e.phys.getLong(pageId)&MASK_OFFSET);
         assertEquals(111, e.phys.getSixLong(pageId + 8));
         assertEquals(112, e.phys.getSixLong(pageId + 14));
         assertEquals(113, e.phys.getSixLong(pageId + 20));
@@ -290,18 +343,18 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     @Test public void long_stack_page_overflow() throws IOException {
         e.structuralLock.lock();
         //fill page until near overflow
-        for(int i=0;i< StoreDirect.LONG_STACK_PER_PAGE;i++){
+        for(int i=0;i< StoreDirect.LONG_STACK_PREF_COUNT;i++){
             e.longStackPut(IO_RECID, 1000L+i);
         }
         e.commit();
 
         //check content
         long pageId = e.index.getLong(IO_RECID);
-        assertEquals(StoreDirect.LONG_STACK_PAGE_SIZE, pageId>>>48);
+        assertEquals(StoreDirect.LONG_STACK_PREF_SIZE-6, pageId>>>48);
         pageId = pageId & StoreDirect.MASK_OFFSET;
         assertEquals(16L, pageId);
-        assertEquals(StoreDirect.LONG_STACK_PER_PAGE, e.phys.getUnsignedByte(pageId));
-        for(int i=0;i< StoreDirect.LONG_STACK_PER_PAGE;i++){
+        assertEquals(StoreDirect.LONG_STACK_PREF_SIZE, e.phys.getLong(pageId)>>>48);
+        for(int i=0;i< StoreDirect.LONG_STACK_PREF_COUNT;i++){
             assertEquals(1000L+i, e.phys.getSixLong(pageId + 8 + i * 6));
         }
 
@@ -310,17 +363,17 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.commit();
         //check page overflowed
         pageId = e.index.getLong(IO_RECID);
-        assertEquals(StoreDirect.LONG_STACK_PAGE_SIZE, pageId>>>48);
+        assertEquals(8, pageId>>>48);
         pageId = pageId & StoreDirect.MASK_OFFSET;
-        assertEquals(16L+ StoreDirect.LONG_STACK_PAGE_SIZE, pageId);
-        assertEquals(1, e.phys.getByte(pageId));
-        assertEquals(16L, e.phys.getSixLong(pageId + 2)& StoreDirect.MASK_OFFSET);
+        assertEquals(16L+ StoreDirect.LONG_STACK_PREF_SIZE, pageId);
+        assertEquals(LONG_STACK_PREF_SIZE, e.phys.getLong(pageId)>>>48);
+        assertEquals(16L, e.phys.getLong(pageId)& StoreDirect.MASK_OFFSET);
         assertEquals(11L, e.phys.getSixLong(pageId + 8));
     }
 
 
     @Test public void test_constants(){
-        assertTrue(StoreDirect.LONG_STACK_PAGE_SIZE%16==0);
+        assertTrue(StoreDirect.LONG_STACK_PREF_SIZE%16==0);
 
     }
 
