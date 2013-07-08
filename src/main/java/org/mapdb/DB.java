@@ -111,7 +111,7 @@ public class DB {
 
 
         //check type
-        if(!"HashMap".equals(type)) throw new IllegalArgumentException("Wrong type: "+type);
+        checkType(type, "HashMap");
         //open existing map
         ret = new HTreeMap<K,V>(engine,
                 (Long)catGet(name+".counterRecid"),
@@ -175,7 +175,7 @@ public class DB {
 
 
         //check type
-        if(!"HashSet".equals(type)) throw new IllegalArgumentException("Wrong type: "+type);
+        checkType(type, "HashSet");
         //open existing map
         ret = new HTreeMap(engine,
                 (Long)catGet(name+".counterRecid"),
@@ -239,7 +239,7 @@ public class DB {
             return createTreeMap(name,32,false,false,null, null, null);
 
         }
-        if(!"TreeMap".equals(type)) throw new IllegalArgumentException("Wrong type: "+type);
+        checkType(type, "TreeMap");
 
         ret = new BTreeMap<K, V>(engine,
                 (Long) catGet(name + ".rootRecidRef"),
@@ -350,7 +350,7 @@ public class DB {
             return createTreeSet(name,32,false,null, null);
 
         }
-        if(!"TreeSet".equals(type)) throw new IllegalArgumentException("Wrong type: "+type);
+        checkType(type, "TreeSet");
 
         ret = new BTreeMap<K, Object>(engine,
                 (Long) catGet(name+".rootRecidRef"),
@@ -407,61 +407,142 @@ public class DB {
 
 
     synchronized public <E> Queue<E> getQueue(String name) {
-        Long recid = (Long) catalog.get(name);
-        if(recid == null){
-            recid = Queues.createQueue(engine, getDefaultSerializer(), getDefaultSerializer());
-            catalog.put(name, recid);
+        checkNotClosed();
+        Queues.Queue<E> ret = (Queues.Queue<E>) getFromWeakCollection(name);
+        if(ret!=null) return ret;
+        String type = catGet(name + ".type", null);
+        if(type==null){
+            return createQueue(name,null);
         }
-        Queue<E> ret = Queues.getQueue(engine,getDefaultSerializer(),recid);
+        checkType(type, "Queue");
+
+        ret = new Queues.Queue<E>(engine,
+                (Serializer<E>) catGet(name+".serializer",getDefaultSerializer()),
+                (Long)catGet(name+".headRecid"),
+                (Long)catGet(name+".nextTailRecid"),
+                (Long)catGet(name+".sizeRecid")
+                );
+
         collections.put(name, new WeakReference<Object>(ret));
         return ret;
-    }
-
-    synchronized public <E> Queue<E> getStack(String name) {
-        Long recid = (Long) catalog.get(name);
-        if(recid == null){
-            recid = Queues.createStack(engine, getDefaultSerializer(), getDefaultSerializer(), true);
-            catalog.put(name, recid);
-        }
-        Queue<E> ret = Queues.getStack(engine, getDefaultSerializer(),recid);
-        collections.put(name, new WeakReference<Object>(ret));
-        return ret;
-    }
-
-    synchronized public <E> Queue<E> getCircularQueue(String name) {
-        Long recid = (Long) catalog.get(name);
-        if(recid == null){
-            recid = Queues.createCircularQueue(engine, getDefaultSerializer(), getDefaultSerializer(), 1000000);
-            catalog.put(name, recid);
-        }
-        Queues.CircularQueue<E> ret = Queues.getCircularQueue(engine,getDefaultSerializer(),recid);
-        collections.put(name, new WeakReference<Object>(ret));
-        return ret;
-
     }
 
     synchronized public <E> Queue<E> createQueue(String name, Serializer<E> serializer) {
         checkNameNotExists(name);
-        if(serializer==null) serializer=getDefaultSerializer();
-        Long recid = Queues.createQueue(engine, getDefaultSerializer(), serializer);
-        catalog.put(name, recid);
-        return getQueue(name);
+
+        long headerRecid = engine.put(0L, Serializer.LONG_SERIALIZER);
+        long nextTail = engine.put(Queues.SimpleQueue.Node.EMPTY, new Queues.SimpleQueue.NodeSerializer(null));
+        long nextTailRecid = engine.put(nextTail, Serializer.LONG_SERIALIZER);
+        long sizeRecid = engine.put(0L, Serializer.LONG_SERIALIZER);
+
+        Queues.Queue<E> ret = new Queues.Queue<E>(engine,
+                catPut(name+".serializer",serializer,getDefaultSerializer()),
+                catPut(name+".headRecid",headerRecid),
+                catPut(name+".nextTailRecid",nextTailRecid),
+                catPut(name+".sizeRecid",sizeRecid)
+                );
+        catalog.put(name + ".type", "Queue");
+        collections.put(name, new WeakReference<Object>(ret));
+        return ret;
+
     }
+
+
+    synchronized public <E> Queue<E> getStack(String name) {
+        checkNotClosed();
+        Queues.Stack<E> ret = (Queues.Stack<E>) getFromWeakCollection(name);
+        if(ret!=null) return ret;
+        String type = catGet(name + ".type", null);
+        if(type==null){
+            return createStack(name,null,true);
+        }
+
+        checkType(type, "Stack");
+
+        ret = new Queues.Stack<E>(engine,
+                (Serializer<E>) catGet(name+".serializer",getDefaultSerializer()),
+                (Long)catGet(name+".headRecid"),
+                (Boolean)catGet(name+".useLocks")
+        );
+
+        collections.put(name, new WeakReference<Object>(ret));
+        return ret;
+    }
+
+
 
     synchronized public <E> Queue<E> createStack(String name, Serializer<E> serializer, boolean useLocks) {
         checkNameNotExists(name);
-        if(serializer==null) serializer=getDefaultSerializer();
-        Long recid = Queues.createStack(engine, getDefaultSerializer(), serializer, useLocks);
-        catalog.put(name, recid);
-        return getStack(name);
+
+        long headerRecid = engine.put(0L, Serializer.LONG_SERIALIZER);
+
+
+        Queues.Stack<E> ret = new Queues.Stack<E>(engine,
+                catPut(name+".serializer",serializer,getDefaultSerializer()),
+                catPut(name+".headRecid",headerRecid),
+                catPut(name+".useLocks",useLocks)
+        );
+        catalog.put(name + ".type", "Stack");
+        collections.put(name, new WeakReference<Object>(ret));
+        return ret;
     }
+
+
+    synchronized public <E> Queue<E> getCircularQueue(String name) {
+        checkNotClosed();
+        Queue<E> ret = (Queue<E>) getFromWeakCollection(name);
+        if(ret!=null) return ret;
+        String type = catGet(name + ".type", null);
+        if(type==null){
+            return createCircularQueue(name,null, 1024);
+        }
+
+        checkType(type, "CircularQueue");
+
+        ret = new Queues.CircularQueue<E>(engine,
+                (Serializer<E>) catGet(name+".serializer",getDefaultSerializer()),
+                (Long)catGet(name+".headRecid"),
+                (Long)catGet(name+".headInsertRecid"),
+                (Long)catGet(name+".size")
+        );
+
+        collections.put(name, new WeakReference<Object>(ret));
+        return ret;
+    }
+
+
 
     synchronized public <E> Queue<E> createCircularQueue(String name, Serializer<E> serializer, long size) {
         checkNameNotExists(name);
-        if(serializer==null) serializer=getDefaultSerializer();
-        Long recid = Queues.createCircularQueue(engine, getDefaultSerializer(), serializer, size);
-        catalog.put(name, recid);
-        return getCircularQueue(name);
+        if(serializer==null) serializer = getDefaultSerializer();
+
+//        long headerRecid = engine.put(0L, Serializer.LONG_SERIALIZER);
+        //insert N Nodes empty nodes into a circle
+        long prevRecid = 0;
+        long firstRecid = 0;
+        Serializer<Queues.SimpleQueue.Node> nodeSer = new Queues.SimpleQueue.NodeSerializer(serializer);
+        for(long i=0;i<size;i++){
+            Queues.SimpleQueue.Node n = new Queues.SimpleQueue.Node(prevRecid, null);
+            prevRecid = engine.put(n, nodeSer);
+            if(firstRecid==0) firstRecid = prevRecid;
+        }
+        //update first node to point to last recid
+        engine.update(firstRecid, new Queues.SimpleQueue.Node(prevRecid, null), nodeSer );
+
+        long headRecid = engine.put(prevRecid, Serializer.LONG_SERIALIZER);
+        long headInsertRecid = engine.put(prevRecid, Serializer.LONG_SERIALIZER);
+
+
+
+        Queues.CircularQueue<E> ret = new Queues.CircularQueue<E>(engine,
+                catPut(name+".serializer",serializer),
+                catPut(name+".headRecid",headRecid),
+                catPut(name+".headInsertRecid",headInsertRecid),
+                catPut(name+".size",size)
+        );
+        catalog.put(name + ".type", "CircularQueue");
+        collections.put(name, new WeakReference<Object>(ret));
+        return ret;
     }
 
 
@@ -575,6 +656,9 @@ public class DB {
         return engine;
     }
 
+    protected void checkType(String type, String expected) {
+        if(!expected.equals(type)) throw new IllegalArgumentException("Wrong type: "+type);
+    }
 
 
 }

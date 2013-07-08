@@ -49,11 +49,10 @@ public final class Queues {
         protected final Serializer<Node<E>> nodeSerializer;
 
 
-        public SimpleQueue(Engine engine, Serializer<E> serializer, long headRecid) {
+        public SimpleQueue(Engine engine, Serializer<E> serializer, long headRecidRef) {
             this.engine = engine;
             this.serializer = serializer;
-            if(headRecid == 0) headRecid = engine.put(0L, Serializer.LONG_SERIALIZER);
-            head = new Atomic.Long(engine,headRecid);
+            head = new Atomic.Long(engine,headRecidRef);
             nodeSerializer = new NodeSerializer<E>(serializer);
         }
 
@@ -200,8 +199,8 @@ public final class Queues {
         protected final ReentrantLock[] locks;
 
 
-        public Stack(Engine engine,  Serializer<E> serializer, long headerRecid, boolean useLocks) {
-            super(engine, serializer, headerRecid);
+        public Stack(Engine engine,  Serializer<E> serializer, long headerRecidRef, boolean useLocks) {
+            super(engine, serializer, headerRecidRef);
             this.useLocks = useLocks;
             locks = useLocks? Utils.newLocks() : null;
         }
@@ -255,56 +254,6 @@ public final class Queues {
         }
     }
 
-    protected static final class StackRoot{
-        final long headerRecid;
-        final boolean useLocks;
-        final Serializer serializer;
-
-        public StackRoot(long headerRecid, boolean useLocks, Serializer serializer) {
-            this.headerRecid = headerRecid;
-            this.useLocks = useLocks;
-            this.serializer = serializer;
-        }
-    }
-
-    protected static final class StackRootSerializer implements Serializer<StackRoot>{
-
-        final Serializer<Serializer> serialierSerializer;
-
-        public StackRootSerializer(Serializer<Serializer> serialierSerializer) {
-            this.serialierSerializer = serialierSerializer;
-        }
-
-        @Override
-        public void serialize(DataOutput out, StackRoot value) throws IOException {
-            out.write(SerializationHeader.MAPDB_STACK);
-            Utils.packLong(out, value.headerRecid);
-            out.writeBoolean(value.useLocks);
-            serialierSerializer.serialize(out,value.serializer);
-        }
-
-        @Override
-        public StackRoot deserialize(DataInput in, int available) throws IOException {
-            if(in.readUnsignedByte()!=SerializationHeader.MAPDB_STACK) throw new InternalError();
-            return new StackRoot(
-                    Utils.unpackLong(in),
-                    in.readBoolean(),
-                    serialierSerializer.deserialize(in,-1)
-            );
-        }
-    }
-
-    static <E> long createStack(Engine engine, Serializer<Serializer> serializerSerializer, Serializer<E> serializer, boolean useLocks){
-        long headerRecid = engine.put(0L, Serializer.LONG_SERIALIZER);
-        StackRoot root = new StackRoot(headerRecid, useLocks, serializer);
-        StackRootSerializer rootSerializer = new StackRootSerializer(serializerSerializer);
-        return engine.put(root, rootSerializer);
-    }
-
-    static <E> Stack<E> getStack(Engine engine, Serializer<Serializer> serializerSerializer, long rootRecid){
-        StackRoot root = engine.get(rootRecid, new StackRootSerializer(serializerSerializer));
-        return new Stack<E>(engine, root.serializer, root.headerRecid, root.useLocks);
-    }
 
     /**
      * First in first out lock-free queue
@@ -372,64 +321,7 @@ public final class Queues {
     }
 
 
-    protected static final class QueueRoot{
-        final long headerRecid;
-        final long nextTailRecid;
-        final Serializer serializer;
-        final long sizeRecid;
 
-        public QueueRoot(long headerRecid, long nextTailRecid, long sizeRecid, Serializer serializer) {
-            this.headerRecid = headerRecid;
-            this.nextTailRecid = nextTailRecid;
-            this.serializer = serializer;
-            this.sizeRecid = sizeRecid;
-        }
-    }
-
-    protected static final class QueueRootSerializer implements Serializer<QueueRoot>{
-
-        final Serializer<Serializer> serialierSerializer;
-
-        public QueueRootSerializer(Serializer<Serializer> serialierSerializer) {
-            this.serialierSerializer = serialierSerializer;
-        }
-
-        @Override
-        public void serialize(DataOutput out, QueueRoot value) throws IOException {
-            out.write(SerializationHeader.MAPDB_QUEUE);
-            Utils.packLong(out, value.headerRecid);
-            Utils.packLong(out, value.nextTailRecid);
-            Utils.packLong(out, value.sizeRecid);
-            serialierSerializer.serialize(out,value.serializer);
-        }
-
-        @Override
-        public QueueRoot deserialize(DataInput in, int available) throws IOException {
-            if(in.readUnsignedByte()!=SerializationHeader.MAPDB_QUEUE) throw new InternalError();
-            return new QueueRoot(
-                    Utils.unpackLong(in),
-                    Utils.unpackLong(in),
-                    Utils.unpackLong(in),
-                    serialierSerializer.deserialize(in,-1)
-                    );
-        }
-    }
-
-    static <E> long createQueue(Engine engine, Serializer<Serializer> serializerSerializer, Serializer<E> serializer){
-        long headerRecid = engine.put(0L, Serializer.LONG_SERIALIZER);
-        long nextTail = engine.put(SimpleQueue.Node.EMPTY, new SimpleQueue.NodeSerializer(null));
-        long nextTailRecid = engine.put(nextTail, Serializer.LONG_SERIALIZER);
-        long sizeRecid = engine.put(0L, Serializer.LONG_SERIALIZER);
-        QueueRoot root = new QueueRoot(headerRecid, nextTailRecid, sizeRecid, serializer);
-        QueueRootSerializer rootSerializer = new QueueRootSerializer(serializerSerializer);
-        return engine.put(root, rootSerializer);
-    }
-
-
-    static <E> Queue<E> getQueue(Engine engine, Serializer<Serializer> serializerSerializer, long rootRecid){
-        QueueRoot root = engine.get(rootRecid, new QueueRootSerializer(serializerSerializer));
-        return new Queue<E>(engine, root.serializer, root.headerRecid, root.nextTailRecid,root.sizeRecid);
-    }
 
     public static class CircularQueue<E> extends SimpleQueue<E> {
 
@@ -501,75 +393,5 @@ public final class Queues {
         }
     }
 
-    protected static final class CircularQueueRoot{
-        final long headerRecid;
-        final long headerInsertRecid;
-        final Serializer serializer;
-        final long sizeRecid;
-
-        public CircularQueueRoot(long headerRecid, long headerInsertRecid, long sizeRecid, Serializer serializer) {
-            this.headerRecid = headerRecid;
-            this.headerInsertRecid = headerInsertRecid;
-            this.serializer = serializer;
-            this.sizeRecid = sizeRecid;
-        }
-    }
-
-    protected static final class CircularQueueRootSerializer implements Serializer<CircularQueueRoot>{
-
-        final Serializer<Serializer> serialierSerializer;
-
-        public CircularQueueRootSerializer(Serializer<Serializer> serialierSerializer) {
-            this.serialierSerializer = serialierSerializer;
-        }
-
-        @Override
-        public void serialize(DataOutput out, CircularQueueRoot value) throws IOException {
-            out.write(SerializationHeader.MAPDB_CIRCULAR_QUEUE);
-            Utils.packLong(out, value.headerRecid);
-            Utils.packLong(out, value.headerInsertRecid);
-            Utils.packLong(out, value.sizeRecid);
-            serialierSerializer.serialize(out,value.serializer);
-        }
-
-        @Override
-        public CircularQueueRoot deserialize(DataInput in, int available) throws IOException {
-            if(in.readUnsignedByte()!=SerializationHeader.MAPDB_CIRCULAR_QUEUE) throw new InternalError();
-            return new CircularQueueRoot(
-                    Utils.unpackLong(in),
-                    Utils.unpackLong(in),
-                    Utils.unpackLong(in),
-                    serialierSerializer.deserialize(in,-1)
-            );
-        }
-    }
-
-    static <E> long createCircularQueue(Engine engine, Serializer<Serializer> serializerSerializer, Serializer<E> serializer, long size){
-        if(size<2) throw new IllegalArgumentException();
-        //insert N Nodes empty nodes into a circle
-        long prevRecid = 0;
-        long firstRecid = 0;
-        Serializer<SimpleQueue.Node> nodeSer = new SimpleQueue.NodeSerializer(serializerSerializer);
-        for(long i=0;i<size;i++){
-            SimpleQueue.Node n = new SimpleQueue.Node(prevRecid, null);
-            prevRecid = engine.put(n, nodeSer);
-            if(firstRecid==0) firstRecid = prevRecid;
-        }
-        //update first node to point to last recid
-        engine.update(firstRecid, new SimpleQueue.Node(prevRecid, null), nodeSer );
-
-        long headerRecid = engine.put(prevRecid, Serializer.LONG_SERIALIZER);
-        long headerInsertRecid = engine.put(prevRecid, Serializer.LONG_SERIALIZER);
-
-        CircularQueueRoot root = new CircularQueueRoot(headerRecid, headerInsertRecid, size, serializer);
-        CircularQueueRootSerializer rootSerializer = new CircularQueueRootSerializer(serializerSerializer);
-        return engine.put(root, rootSerializer);
-    }
-
-
-    static <E> CircularQueue<E> getCircularQueue(Engine engine, Serializer<Serializer> serializerSerializer, long rootRecid){
-        CircularQueueRoot root = engine.get(rootRecid, new CircularQueueRootSerializer(serializerSerializer));
-        return new CircularQueue<E>(engine, root.serializer, root.headerRecid, root.headerInsertRecid,root.sizeRecid);
-    }
 
 }
