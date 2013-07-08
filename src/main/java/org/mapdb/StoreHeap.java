@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Store which keeps all instances on heap. It does not use serialization.
  */
-public class StoreHeap implements Store, Serializable{
+public class StoreHeap extends Store implements Serializable{
 
     protected final ConcurrentNavigableMap<Long,Fun.Tuple2> records
             = new ConcurrentSkipListMap<Long, Fun.Tuple2>();
@@ -117,5 +117,25 @@ public class StoreHeap implements Store, Serializable{
     @Override
     public void updateRaw(long recid, ByteBuffer data) {
         throw new UnsupportedOperationException("can not put raw data into StoreHeap");
+    }
+
+    @Override
+    public long getSizeLimit() {
+        return 0;
+    }
+
+    @Override
+    public long getCurrSize() {
+        return records.size();
+    }
+
+    @Override
+    public long getFreeSize() {
+        return 0;
+    }
+
+    @Override
+    public String calculateStatistics() {
+        return null;
     }
 }

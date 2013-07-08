@@ -16,7 +16,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 
 // TODO mod operation '%' is significantly slower than bitwise and. If you use size w/ exact pow 2, bitwise and is a no-brainer for position numbers.
-public class StoreAppend implements Store{
+public class StoreAppend extends Store{
 
     /** header at beginning of each file */
     protected static final long HEADER = 1239900952130003033L;
@@ -536,6 +536,26 @@ public class StoreAppend implements Store{
         //TODO use BB without copying
         update(recid, b, Serializer.BYTE_ARRAY_SERIALIZER);
         modified = true;
+    }
+
+    @Override
+    public long getSizeLimit() {
+        return 0;
+    }
+
+    @Override
+    public long getCurrSize() {
+        return currFileNum*FILE_MASK;
+    }
+
+    @Override
+    public long getFreeSize() {
+        return 0;
+    }
+
+    @Override
+    public String calculateStatistics() {
+        return null;
     }
 }
 

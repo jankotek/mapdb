@@ -393,4 +393,16 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         assertFalse(phys.exists());
     }
 
+    @Test public void freeSpaceWorks(){
+        long oldFree = e.getFreeSize();
+        long recid = e.put(new byte[10000],Serializer.BYTE_ARRAY_SERIALIZER);
+        e.commit();
+        assertEquals(oldFree, e.getFreeSize());
+        e.delete(recid,Serializer.BYTE_ARRAY_SERIALIZER);
+        assertEquals(oldFree+10000,e.getFreeSize());
+        e.commit();
+        assertEquals(oldFree+10000,e.getFreeSize());
+
+    }
+
 }

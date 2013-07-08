@@ -60,6 +60,7 @@ public class StoreWAL extends StoreDirect {
         longStackPages.clear();
         indexSize = index.getLong(IO_INDEX_SIZE);
         physSize = index.getLong(IO_PHYS_SIZE);
+        freeSize = index.getLong(IO_FREE_SIZE);
         for(int i = IO_FREE_RECID;i<IO_USER_START;i+=8){
             indexVals[i/8] = index.getLong(i);
         }
@@ -415,10 +416,12 @@ public class StoreWAL extends StoreDirect {
             }
 
 
-            log.ensureAvailable(logSize + 17 + 17 + 1);
+            log.ensureAvailable(logSize + 17 + 17 + 17 + 1);
             walIndexVal(logSize,IO_PHYS_SIZE, physSize);
             logSize+=17;
             walIndexVal(logSize,IO_INDEX_SIZE, indexSize);
+            logSize+=17;
+            walIndexVal(logSize,IO_FREE_SIZE, freeSize);
             logSize+=17;
 
             for(int i=IO_FREE_RECID;i<IO_USER_START;i+=8){

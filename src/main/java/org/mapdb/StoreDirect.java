@@ -55,7 +55,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *  0           | {@link StoreDirect#HEADER}        | File header
  *  1           | {@link StoreDirect#IO_INDEX_SIZE} | Allocated file size of index file in bytes.
  *  2           | {@link StoreDirect#IO_PHYS_SIZE}  | Allocated file size of physical file in bytes.
- *  3..9        |                                   | Reserved for future use
+ *  3           | {@link StoreDirect#IO_FREE_SIZE}  | Space occupied by free records in physical file in bytes.
+ *  4..9        |                                   | Reserved for future use
  *  10..14      |                                   | For usage by user
  *  15          | {@link StoreDirect#IO_FREE_RECID} |Long Stack of deleted recids, those will be reused and returned by {@link Engine#put(Object, Serializer)}
  *  16..4111    |                                   |Long Stack of free physical records. This contains free space released by record update or delete. Each slots corresponds to free record size. TODO check 4111 is right
@@ -116,7 +117,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *
  * @author Jan Kotek
  */
-public class StoreDirect implements Store{
+public class StoreDirect extends Store{
 
     protected static final long MASK_OFFSET = 0x0000FFFFFFFFFFF0L;
 
@@ -136,6 +137,10 @@ public class StoreDirect implements Store{
     protected static final int IO_INDEX_SIZE = 1*8;
     /** index file offset where current size of phys file is stored */
     protected static final int IO_PHYS_SIZE = 2*8;
+
+    /** index file offset where space occupied by free phys records is stored */
+    protected static final int IO_FREE_SIZE = 3*8;
+
     /** index file offset where reference to longstack of free recid is stored*/
     protected static final int IO_FREE_RECID = 15*8;
 
@@ -156,6 +161,7 @@ public class StoreDirect implements Store{
 
     protected long physSize;
     protected long indexSize;
+    protected long freeSize;
 
     protected final boolean deleteFilesAfterClose;
 
@@ -187,6 +193,7 @@ public class StoreDirect implements Store{
             checkHeaders();
             indexSize = index.getLong(IO_INDEX_SIZE);
             physSize = index.getLong(IO_PHYS_SIZE);
+            indexSize = index.getLong(IO_FREE_SIZE);
         }
 
     }
@@ -208,9 +215,12 @@ public class StoreDirect implements Store{
         index.putLong(0, HEADER);
         index.putLong(IO_INDEX_SIZE,indexSize);
         physSize =16;
+        index.putLong(IO_PHYS_SIZE,physSize);
         phys.ensureAvailable(physSize);
         phys.putLong(0, HEADER);
-        index.putLong(IO_PHYS_SIZE,physSize);
+        freeSize = 0;
+        index.putLong(IO_FREE_SIZE,freeSize);
+
     }
 
 
@@ -534,6 +544,7 @@ public class StoreDirect implements Store{
         if(!readOnly){
             index.putLong(IO_PHYS_SIZE,physSize);
             index.putLong(IO_INDEX_SIZE,indexSize);
+            index.putLong(IO_FREE_SIZE,freeSize);
         }
 
         index.sync();
@@ -560,6 +571,7 @@ public class StoreDirect implements Store{
         if(!readOnly){
             index.putLong(IO_PHYS_SIZE,physSize);
             index.putLong(IO_INDEX_SIZE,indexSize);
+            index.putLong(IO_FREE_SIZE,freeSize);
         }
         if(!syncOnCommitDisabled){
             index.sync();
@@ -592,6 +604,7 @@ public class StoreDirect implements Store{
         if(readOnly) throw new IllegalAccessError();
         index.putLong(IO_PHYS_SIZE,physSize);
         index.putLong(IO_INDEX_SIZE,indexSize);
+        index.putLong(IO_FREE_SIZE,freeSize);
 
         if(index.getFile()==null) throw new UnsupportedOperationException("compact not supported for memory storage yet");
         structuralLock.lock();
@@ -665,7 +678,7 @@ public class StoreDirect implements Store{
             physSize = store2.physSize;
             index.putLong(IO_PHYS_SIZE, physSize);
             index.putLong(IO_INDEX_SIZE, indexSize);
-            index.putLong(IO_INDEX_SIZE, indexSize);
+            index.putLong(IO_FREE_SIZE, freeSize);
 
         }catch(IOException e){
             throw new IOError(e);
@@ -791,16 +804,19 @@ public class StoreDirect implements Store{
     }
     protected void freePhysPut(long indexVal) {
         long size = indexVal >>>48;
+        freeSize+=roundTo16(size);
         longStackPut(size2ListIoRecid(size), indexVal & MASK_OFFSET);
     }
 
     protected long freePhysTake(int size, boolean ensureAvail) {
         if(size==0)throw new IllegalArgumentException();
-
         //check free space
         if(spaceReclaimReuse){
             long ret =  longStackTake(size2ListIoRecid(size));
-            if(ret!=0) return ret;
+            if(ret!=0){
+                freeSize-=roundTo16(size);
+                return ret;
+            }
         }
         //not available, increase file size
         if(physSize%Volume.BUF_SIZE+size>Volume.BUF_SIZE)
@@ -861,5 +877,58 @@ public class StoreDirect implements Store{
         }
         //TODO use BB without copying
         update(recid, b, Serializer.BYTE_ARRAY_SERIALIZER);
+    }
+
+    @Override
+    public long getSizeLimit() {
+        return sizeLimit;
+    }
+
+    @Override
+    public long getCurrSize() {
+        return physSize;
+    }
+
+    @Override
+    public long getFreeSize() {
+        return freeSize;
+    }
+
+    @Override
+    public String calculateStatistics() {
+        String s = "";
+        s+=getClass().getName()+"\n";
+        s+="volume: "+"\n";
+        s+="  "+phys+"\n";
+
+        s+="indexSize="+indexSize+"\n";
+        s+="physSize="+physSize+"\n";
+        s+="freeSize="+freeSize+"\n";
+
+        s+="num of freeRecids: "+countLongStackItems(IO_FREE_RECID)+"\n";
+
+        for(int size = 16;size<MAX_REC_SIZE+10;size*=2){
+            long sum = 0;
+            for(int ss=size/2;ss<size;s+=16){
+                sum+=countLongStackItems(size2ListIoRecid(ss))*ss;
+            }
+            s+="Size occupied by free records (size="+size+") = "+sum;
+        }
+
+
+        return s;
+    }
+
+    protected long countLongStackItems(long ioList){
+        long ret=0;
+        long v = index.getLong(ioList);
+
+        while(true){
+            long next = v&MASK_OFFSET;
+            if(next==0) return ret;
+            ret+=v>>>48;
+            v = phys.getLong(next);
+        }
+
     }
 }
