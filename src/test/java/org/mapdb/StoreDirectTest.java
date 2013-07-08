@@ -289,7 +289,6 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
 
         for(long i =max-1;i>=1;i--){
-            System.out.println(i);
             assertEquals(i, e.longStackTake(IO_RECID));
         }
     }
