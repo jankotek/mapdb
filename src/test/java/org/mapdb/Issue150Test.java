@@ -25,8 +25,8 @@ public class Issue150Test {
         x.setName("nameXXX");
 
         Serializer<EntityA> valueSerializer = new CustomSerializer();
-        Map<Long, EntityA> map = db.createHashMap("entitya", false, null,
-                valueSerializer);
+        Map<Long, EntityA> map = db.createHashMap("entitya").valueSerializer(valueSerializer).make();
+
         map.put(x.getId(), x);
 
         db.commit();

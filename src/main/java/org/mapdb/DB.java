@@ -88,6 +88,47 @@ public class DB {
 
 
 
+    public class HTreeMapMaker{
+        protected final String name;
+
+        public HTreeMapMaker(String name) {
+            this.name = name;
+        }
+
+
+        protected boolean keepCounter = false;
+        protected Serializer keySerializer;
+        protected Serializer valueSerializer;
+
+        /** keepCounter if counter should be kept, without counter updates are faster, but entire collection needs to be traversed to count items.*/
+        public HTreeMapMaker keepCounter(boolean keepCounter){
+            this.keepCounter = keepCounter;
+            return this;
+        }
+
+
+
+        /** keySerializer used to convert keys into/from binary form. */
+        public HTreeMapMaker keySerializer(Serializer keySerializer){
+            this.keySerializer = keySerializer;
+            return this;
+        }
+
+        /** valueSerializer used to convert values into/from binary form. */
+        public HTreeMapMaker valueSerializer(Serializer valueSerializer){
+            this.valueSerializer = valueSerializer;
+            return this;
+        }
+
+
+        public <K,V> HTreeMap<K,V> make(){
+            return DB.this.createHashMap(HTreeMapMaker.this);
+        }
+
+
+    }
+
+
 
 
     /**
@@ -106,7 +147,7 @@ public class DB {
         if(ret!=null) return ret;
         String type = catGet(name + ".type", null);
         if(type==null){
-            return createHashMap(name,false,null,null);
+            return createHashMap(name).make();
         }
 
 
@@ -128,28 +169,37 @@ public class DB {
 
 
     /**
-     * Creates new HashMap with more specific arguments
+     * Returns new builder for HashMap with given name
      *
      * @param name of map to create
-     * @param keepCounter if counter should be kept, without counter updates are faster, but entire collection needs to be traversed to count items.
-     * @param keySerializer used to convert keys into/from binary form. Use null for default value.
-     * @param valueSerializer used to convert values into/from binary form. Use null for default value.
+     * @throws IllegalArgumentException if name is already used
+     * @return maker, call `.make()` to create map
+     */
+    public HTreeMapMaker createHashMap(String name){
+        return new HTreeMapMaker(name);
+    }
+
+
+
+    /**
+     * Creates new HashMap with more specific arguments
+     *
      * @param <K> key type
      * @param <V> value type
      * @throws IllegalArgumentException if name is already used
      * @return newly created map
      */
-    synchronized public <K,V> HTreeMap<K,V> createHashMap(
-            String name, boolean keepCounter, Serializer<K> keySerializer, Serializer<V> valueSerializer){
+    synchronized protected <K,V> HTreeMap<K,V> createHashMap(HTreeMapMaker m){
+        String name = m.name;
         checkNameNotExists(name);
 
 
         HTreeMap<K,V> ret = new HTreeMap<K,V>(engine,
-                catPut(name+".counterRecid",!keepCounter?0L:engine.put(0L, Serializer.LONG_SERIALIZER)),
+                catPut(name+".counterRecid",!m.keepCounter?0L:engine.put(0L, Serializer.LONG_SERIALIZER)),
                 catPut(name+".hashSalt",Utils.RANDOM.nextInt()),
                 catPut(name+".segmentRecids",HTreeMap.preallocateSegments(engine)),
-                catPut(name+".keySerializer",keySerializer,getDefaultSerializer()),
-                catPut(name+".valueSerializer",valueSerializer,getDefaultSerializer())
+                catPut(name+".keySerializer",m.keySerializer,getDefaultSerializer()),
+                catPut(name+".valueSerializer",m.valueSerializer,getDefaultSerializer())
         );
 
         catalog.put(name + ".type", "HashMap");

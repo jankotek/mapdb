@@ -42,8 +42,10 @@ public class Issue41Test {
                         .make();
 
         map =
-                db.createHashMap(
-                        MAP_NAME, false, new Key.Serializer(), new Value.Serializer());
+                db.createHashMap(MAP_NAME)
+                        .keySerializer(new Key.Serializer())
+                        .valueSerializer(new Value.Serializer())
+                        .make();
 
         threadPool = Executors.newFixedThreadPool(16);
 
