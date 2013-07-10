@@ -73,6 +73,8 @@ public class DBMaker {
 
     protected int _rafMode = 0;
 
+    protected boolean _strictDBGet = false;
+
     protected boolean _appendStorage;
 
     /** use static factory methods, or make subclass */
@@ -503,6 +505,23 @@ public class DBMaker {
 
 
     /**
+     * DB Get methods such as {@link DB#getTreeMap(String)} or {@link DB#getAtomicLong(String)} auto create
+     * new record with default values, if record with given name does not exist. This could be problem if you would like to enforce
+     * stricter database schema. So this parameter disables record auto creation.
+     *
+     * If this set, `DB.getXX()` will throw an exception if given name does not exist, instead of creating new record (or collection)
+     *
+     * @return this builder
+     */
+    public DBMaker strictDBGet(){
+        this._strictDBGet = true;
+        return this;
+    }
+
+
+
+
+    /**
      * Open store in read-only mode. Any modification attempt will throw
      * <code>UnsupportedOperationException("Read-only")</code>
      *
@@ -598,7 +617,7 @@ public class DBMaker {
 
     /** constructs DB using current settings */
     public DB make(){
-        return new DB(makeEngine());
+        return new DB(makeEngine(), _strictDBGet);
     }
 
     

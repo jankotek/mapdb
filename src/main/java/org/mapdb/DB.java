@@ -29,6 +29,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @SuppressWarnings("unchecked")
 public class DB {
 
+    protected final boolean strictDBGet;
+
     /** Engine which provides persistence for this DB*/
     protected Engine engine;
     /** already loaded named collections. It is important to keep collections as singletons, because of 'in-memory' locking*/
@@ -45,7 +47,12 @@ public class DB {
      * @param engine
      */
     public DB(final Engine engine){
+        this(engine,false);
+    }
+
+    public DB(Engine engine, boolean strictDBGet) {
         this.engine = engine;
+        this.strictDBGet = strictDBGet;
         reinit();
     }
 
@@ -147,6 +154,7 @@ public class DB {
         if(ret!=null) return ret;
         String type = catGet(name + ".type", null);
         if(type==null){
+            checkShouldCreate(name);
             return createHashMap(name).make();
         }
 
@@ -220,6 +228,7 @@ public class DB {
         if(ret!=null) return ret;
         String type = catGet(name + ".type", null);
         if(type==null){
+            checkShouldCreate(name);
             return createHashSet(name,false,null);
         }
 
@@ -357,6 +366,7 @@ public class DB {
         if(ret!=null) return ret;
         String type = catGet(name + ".type", null);
         if(type==null){
+            checkShouldCreate(name);
             return createTreeMap(name).make();
 
         }
@@ -465,6 +475,7 @@ public class DB {
         if(ret!=null) return ret;
         String type = catGet(name + ".type", null);
         if(type==null){
+            checkShouldCreate(name);
             return createTreeSet(name,32,false,null, null);
 
         }
@@ -530,6 +541,7 @@ public class DB {
         if(ret!=null) return ret;
         String type = catGet(name + ".type", null);
         if(type==null){
+            checkShouldCreate(name);
             return createQueue(name,null);
         }
         checkType(type, "Queue");
@@ -572,6 +584,7 @@ public class DB {
         if(ret!=null) return ret;
         String type = catGet(name + ".type", null);
         if(type==null){
+            checkShouldCreate(name);
             return createStack(name,null,true);
         }
 
@@ -612,6 +625,7 @@ public class DB {
         if(ret!=null) return ret;
         String type = catGet(name + ".type", null);
         if(type==null){
+            checkShouldCreate(name);
             return createCircularQueue(name,null, 1024);
         }
 
@@ -682,6 +696,7 @@ public class DB {
         if(ret!=null) return ret;
         String type = catGet(name + ".type", null);
         if(type==null){
+            checkShouldCreate(name);
             return createAtomicLong(name,0L);
         }
         checkType(type, "AtomicLong");
@@ -712,6 +727,7 @@ public class DB {
         if(ret!=null) return ret;
         String type = catGet(name + ".type", null);
         if(type==null){
+            checkShouldCreate(name);
             return createAtomicInteger(name, 0);
         }
         checkType(type, "AtomicInteger");
@@ -742,6 +758,7 @@ public class DB {
         if(ret!=null) return ret;
         String type = catGet(name + ".type", null);
         if(type==null){
+            checkShouldCreate(name);
             return createAtomicBoolean(name, false);
         }
         checkType(type, "AtomicBoolean");
@@ -751,6 +768,9 @@ public class DB {
         return ret;
     }
 
+    protected void checkShouldCreate(String name) {
+        if(strictDBGet) throw new NoSuchElementException("No record with this name was found: "+name);
+    }
 
 
     synchronized public Atomic.String createAtomicString(String name, String initValue){
@@ -773,6 +793,7 @@ public class DB {
         if(ret!=null) return ret;
         String type = catGet(name + ".type", null);
         if(type==null){
+            checkShouldCreate(name);
             return createAtomicString(name, "");
         }
         checkType(type, "AtomicString");
@@ -803,6 +824,7 @@ public class DB {
         if(ret!=null) return ret;
         String type = catGet(name + ".type", null);
         if(type==null){
+            checkShouldCreate(name);
             return createAtomicVar(name, null, getDefaultSerializer());
         }
         checkType(type, "AtomicString");
