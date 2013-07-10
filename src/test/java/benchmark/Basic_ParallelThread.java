@@ -24,7 +24,9 @@ public class Basic_ParallelThread {
                 .writeAheadLogDisable()
                 .asyncWriteDisable()
                 .make();
-        final Map m = db.createTreeMap("test",32,true,false, BTreeKeySerializer.ZERO_OR_POSITIVE_INT, Serializer.STRING_SERIALIZER,null);
+        final Map m = db.createTreeMap("test")
+            .keySerializer(BTreeKeySerializer.ZERO_OR_POSITIVE_INT).valueSerializer(Serializer.STRING_SERIALIZER)
+             .make();
         long time = System.currentTimeMillis();
 
         //insert

@@ -19,7 +19,9 @@ public class Map_Size_Counter {
         //hashMap
         Map m = db1.createHashMap("map1a",true /**<<here is keepCounter argument*/,null, null);
         //treeMap
-        m = db1.createTreeMap("map1b",32,false,true /**<<here is keepCounter argument*/,null, null,null);
+        m = db1.createTreeMap("map1b")
+                .keepCounter(true) /**<<here is keepCounter argument*/
+                .make();
 
         m.put("a","b");
         m.size();

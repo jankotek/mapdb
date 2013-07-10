@@ -42,7 +42,7 @@ public class TreeMap_Composite_Key {
         //initialize map
         // note that it uses BTreeKeySerializer.TUPLE3 to minimise disk space used by Map
         ConcurrentNavigableMap<Fun.Tuple3, Integer> map =
-                db.createTreeMap("test",32, false, false, BTreeKeySerializer.TUPLE3, null,null);
+                db.createTreeMap("test").keySerializer(BTreeKeySerializer.TUPLE3).make();
 
 
         //fill with values, use simple permutation so we dont have to include large test data.

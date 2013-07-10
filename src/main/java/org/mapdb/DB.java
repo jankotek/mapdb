@@ -218,6 +218,78 @@ public class DB {
         return ret;
     }
 
+
+
+    public class BTreeMapMaker{
+        protected final String name;
+
+        public BTreeMapMaker(String name) {
+            this.name = name;
+        }
+
+        protected int nodeSize = 32;
+        protected boolean valuesStoredOutsideNodes = false;
+        protected boolean keepCounter = false;
+        protected BTreeKeySerializer keySerializer;
+        protected Serializer valueSerializer;
+        protected Comparator comparator;
+
+
+        /** nodeSize maximal size of node, larger node causes overflow and creation of new BTree node. Use large number for small keys, use small number for large keys.*/
+        public BTreeMapMaker nodeSize(int nodeSize){
+            this.nodeSize = nodeSize;
+            return this;
+        }
+
+        /** valuesStoredOutsideNodes if true, values are stored outside of BTree nodes. Use 'true' if your values are large.*/
+        public BTreeMapMaker valuesStoredOutsideNodes(boolean outside){
+            this.valuesStoredOutsideNodes = outside;
+            return this;
+        }
+
+        /** keepCounter if counter should be kept, without counter updates are faster, but entire collection needs to be traversed to count items.*/
+        public BTreeMapMaker keepCounter(boolean keepCounter){
+            this.keepCounter = keepCounter;
+            return this;
+        }
+
+        /** keySerializer used to convert keys into/from binary form. */
+        public BTreeMapMaker keySerializer(BTreeKeySerializer keySerializer){
+            this.keySerializer = keySerializer;
+            return this;
+        }
+
+        /** valueSerializer used to convert values into/from binary form. */
+        public BTreeMapMaker valueSerializer(Serializer valueSerializer){
+            this.valueSerializer = valueSerializer;
+            return this;
+        }
+
+        /** comparator used to sort keys.  */
+        public BTreeMapMaker comparator(Comparator comparator){
+            this.comparator = comparator;
+            return this;
+        }
+
+
+        public <K,V> BTreeMap<K,V> make(){
+            return DB.this.createTreeMap(BTreeMapMaker.this);
+        }
+
+        /** creates map optimized for using `String` keys */
+        public <V> Map<String, V> makeStringMap() {
+            keySerializer = BTreeKeySerializer.STRING;
+            return make();
+        }
+
+        /** creates map optimized for using zero or positive `Long` keys */
+        public <V> Map<Long, V> makeLongMap() {
+            keySerializer = BTreeKeySerializer.ZERO_OR_POSITIVE_LONG;
+            return make();
+        }
+
+    }
+
     /**
      * Opens existing or creates new B-linked-tree Map.
      * This collection performs well under concurrent access.
@@ -229,14 +301,13 @@ public class DB {
      * @param <V> value
      * @return map
      */
-    
     synchronized public <K,V> BTreeMap<K,V> getTreeMap(String name){
         checkNotClosed();
         BTreeMap<K,V> ret = (BTreeMap<K,V>) getFromWeakCollection(name);
         if(ret!=null) return ret;
         String type = catGet(name + ".type", null);
         if(type==null){
-            return createTreeMap(name,32,false,false,null, null, null);
+            return createTreeMap(name).make();
 
         }
         checkType(type, "TreeMap");
@@ -255,34 +326,31 @@ public class DB {
     }
 
     /**
-     * Creates new TreeMap
+     * Returns new builder for TreeMap with given name
+     *
      * @param name of map to create
-     * @param nodeSize maximal size of node, larger node causes overflow and creation of new BTree node. Use large number for small keys, use small number for large keys.
-     * @param valuesStoredOutsideNodes if true, values are stored outside of BTree nodes. Use 'true' if your values are large.
-     * @param keepCounter if counter should be kept, without counter updates are faster, but entire collection needs to be traversed to count items.
-     * @param keySerializer used to convert keys into/from binary form. Use null for default value.
-     * @param valueSerializer used to convert values into/from binary form. Use null for default value.
-     * @param comparator used to sort keys. Use null for default value. TODO delta packing
-     * @param <K> key type
-     * @param <V> value type
      * @throws IllegalArgumentException if name is already used
-     * @return newly created map
+     * @return maker, call `.make()` to create map
      */
-    synchronized public <K,V> BTreeMap<K,V> createTreeMap(
-            String name, int nodeSize, boolean valuesStoredOutsideNodes, boolean keepCounter,
-            BTreeKeySerializer<K> keySerializer, Serializer<V> valueSerializer, Comparator<K> comparator){
+    public BTreeMapMaker createTreeMap(String name){
+        return new BTreeMapMaker(name);
+    }
+
+
+    synchronized protected <K,V> BTreeMap<K,V> createTreeMap(BTreeMapMaker m){
+        String name = m.name;
         checkNameNotExists(name);
-        keySerializer = fillNulls(keySerializer);
-        keySerializer = (BTreeKeySerializer)catPut(name+".keySerializer",keySerializer,new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer()));
-        valueSerializer = catPut(name+".valueSerializer",valueSerializer,getDefaultSerializer());
+        m.keySerializer = fillNulls(m.keySerializer);
+        m.keySerializer = (BTreeKeySerializer)catPut(name+".keySerializer",m.keySerializer,new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer()));
+        m.valueSerializer = catPut(name+".valueSerializer",m.valueSerializer,getDefaultSerializer());
         BTreeMap<K,V> ret = new BTreeMap<K,V>(engine,
-                catPut(name+".rootRecidRef", BTreeMap.createRootRef(engine,keySerializer,valueSerializer)),
-                catPut(name+".maxNodeSize",nodeSize),
-                catPut(name+".valuesOutsideNodes",valuesStoredOutsideNodes),
-                catPut(name+".counterRecid",!keepCounter?0L:engine.put(0L, Serializer.LONG_SERIALIZER)),
-                keySerializer,
-                valueSerializer,
-                (Comparator)catPut(name+".comparator",comparator,Utils.COMPARABLE_COMPARATOR)
+                catPut(name+".rootRecidRef", BTreeMap.createRootRef(engine,m.keySerializer,m.valueSerializer)),
+                catPut(name+".maxNodeSize",m.nodeSize),
+                catPut(name+".valuesOutsideNodes",m.valuesStoredOutsideNodes),
+                catPut(name+".counterRecid",!m.keepCounter?0L:engine.put(0L, Serializer.LONG_SERIALIZER)),
+                m.keySerializer,
+                m.valueSerializer,
+                (Comparator)catPut(name+".comparator",m.comparator,Utils.COMPARABLE_COMPARATOR)
         );
         catalog.put(name + ".type", "TreeMap");
         collections.put(name, new WeakReference<Object>(ret));

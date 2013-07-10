@@ -40,11 +40,10 @@ public class Compression {
         valueSerializer = new Serializer.CompressSerializerWrapper(valueSerializer);
 
         //now construct map, with additional options
-        Map map2 = db2.createTreeMap("test", 32,
-                true, // store values outside of BTree Nodes. Faster reads if values are large.
-                false,null,
-                valueSerializer, //set our value serializer.
-                null);
+        Map map2 = db2.createTreeMap("test")
+                .valuesStoredOutsideNodes(true) // store values outside of BTree Nodes. Faster reads if values are large.
+                .valueSerializer(valueSerializer) //set our value serializer.
+                .make();
 
         map2.put("some","stuff");
 

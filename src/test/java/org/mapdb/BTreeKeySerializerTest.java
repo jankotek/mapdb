@@ -16,9 +16,9 @@ public class BTreeKeySerializerTest {
         DB db = DBMaker.newMemoryDB()
                 .cacheDisable()
                 .make();
-        Map m = db.createTreeMap("test",32,false,false,
-                BTreeKeySerializer.ZERO_OR_POSITIVE_LONG,
-                null, null );
+        Map m = db.createTreeMap("test")
+                .keySerializer(BTreeKeySerializer.ZERO_OR_POSITIVE_LONG)
+                .make();
 
         for(long i = 0; i<1000;i++){
             m.put(i*i,i*i+1);
@@ -36,9 +36,10 @@ public class BTreeKeySerializerTest {
         DB db = DBMaker.newMemoryDB()
                 .cacheDisable()
                 .make();
-        Map m = db.createTreeMap("test",32,false, false,
-                BTreeKeySerializer.STRING,
-                null, null );
+        Map m =  db.createTreeMap("test")
+                .keySerializer(BTreeKeySerializer.STRING)
+                .make();
+
 
         List<String> list = new ArrayList <String>();
         for(long i = 0; i<1000;i++){

@@ -28,7 +28,7 @@ public class Lazily_Loaded_Records {
         // use DB.createTreeMap to create TreeMap with non-default parameters
 
         boolean valuesStoredOutsideNodes = true;
-        Map map = db.createTreeMap("name",32, valuesStoredOutsideNodes, false, null, null, null);
+        Map map = db.createTreeMap("name").valuesStoredOutsideNodes(valuesStoredOutsideNodes).make();
         map.put("key","this string is loaded lazily with 'map.get(key)' ");
 
 
