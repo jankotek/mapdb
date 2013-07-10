@@ -545,7 +545,154 @@ public class DB {
         return ret;
     }
 
+    synchronized public Atomic.Long createAtomicLong(String name, long initValue){
+        checkNameNotExists(name);
+        long recid = engine.put(initValue,Serializer.LONG_SERIALIZER);
+        Atomic.Long ret = new Atomic.Long(engine,
+                catPut(name+".recid",recid)
+        );
+        catalog.put(name + ".type", "AtomicLong");
+        collections.put(name, new WeakReference<Object>(ret));
+        return ret;
 
+    }
+
+
+    synchronized public Atomic.Long getAtomicLong(String name){
+        checkNotClosed();
+        Atomic.Long ret = (Atomic.Long) getFromWeakCollection(name);
+        if(ret!=null) return ret;
+        String type = catGet(name + ".type", null);
+        if(type==null){
+            return createAtomicLong(name,0L);
+        }
+        checkType(type, "AtomicLong");
+
+        ret = new Atomic.Long(engine, (Long) catGet(name+".recid"));
+        collections.put(name, new WeakReference<Object>(ret));
+        return ret;
+    }
+
+
+
+    synchronized public Atomic.Integer createAtomicInteger(String name, int initValue){
+        checkNameNotExists(name);
+        long recid = engine.put(initValue,Serializer.INTEGER_SERIALIZER);
+        Atomic.Integer ret = new Atomic.Integer(engine,
+                catPut(name+".recid",recid)
+        );
+        catalog.put(name + ".type", "AtomicInteger");
+        collections.put(name, new WeakReference<Object>(ret));
+        return ret;
+
+    }
+
+
+    synchronized public Atomic.Integer getAtomicInteger(String name){
+        checkNotClosed();
+        Atomic.Integer ret = (Atomic.Integer) getFromWeakCollection(name);
+        if(ret!=null) return ret;
+        String type = catGet(name + ".type", null);
+        if(type==null){
+            return createAtomicInteger(name, 0);
+        }
+        checkType(type, "AtomicInteger");
+
+        ret = new Atomic.Integer(engine, (Long) catGet(name+".recid"));
+        collections.put(name, new WeakReference<Object>(ret));
+        return ret;
+    }
+
+
+
+    synchronized public Atomic.Boolean createAtomicBoolean(String name, boolean initValue){
+        checkNameNotExists(name);
+        long recid = engine.put(initValue,Serializer.BOOLEAN_SERIALIZER);
+        Atomic.Boolean ret = new Atomic.Boolean(engine,
+                catPut(name+".recid",recid)
+        );
+        catalog.put(name + ".type", "AtomicBoolean");
+        collections.put(name, new WeakReference<Object>(ret));
+        return ret;
+
+    }
+
+
+    synchronized public Atomic.Boolean getAtomicBoolean(String name){
+        checkNotClosed();
+        Atomic.Boolean ret = (Atomic.Boolean) getFromWeakCollection(name);
+        if(ret!=null) return ret;
+        String type = catGet(name + ".type", null);
+        if(type==null){
+            return createAtomicBoolean(name, false);
+        }
+        checkType(type, "AtomicBoolean");
+
+        ret = new Atomic.Boolean(engine, (Long) catGet(name+".recid"));
+        collections.put(name, new WeakReference<Object>(ret));
+        return ret;
+    }
+
+
+
+    synchronized public Atomic.String createAtomicString(String name, String initValue){
+        checkNameNotExists(name);
+        if(initValue==null) throw new IllegalArgumentException("initValue may not be null");
+        long recid = engine.put(initValue,Serializer.STRING_SERIALIZER);
+        Atomic.String ret = new Atomic.String(engine,
+                catPut(name+".recid",recid)
+        );
+        catalog.put(name + ".type", "AtomicString");
+        collections.put(name, new WeakReference<Object>(ret));
+        return ret;
+
+    }
+
+
+    synchronized public Atomic.String getAtomicString(String name){
+        checkNotClosed();
+        Atomic.String ret = (Atomic.String) getFromWeakCollection(name);
+        if(ret!=null) return ret;
+        String type = catGet(name + ".type", null);
+        if(type==null){
+            return createAtomicString(name, "");
+        }
+        checkType(type, "AtomicString");
+
+        ret = new Atomic.String(engine, (Long) catGet(name+".recid"));
+        collections.put(name, new WeakReference<Object>(ret));
+        return ret;
+    }
+
+    synchronized public <E> Atomic.Var<E> createAtomicVar(String name, E initValue, Serializer<E> serializer){
+        checkNameNotExists(name);
+        if(serializer==null) serializer=getDefaultSerializer();
+        long recid = engine.put(initValue,serializer);
+        Atomic.Var ret = new Atomic.Var(engine,
+                catPut(name+".recid",recid),
+                catPut(name+".serializer",serializer)
+        );
+        catalog.put(name + ".type", "AtomicVar");
+        collections.put(name, new WeakReference<Object>(ret));
+        return ret;
+
+    }
+
+
+    synchronized public <E> Atomic.Var<E> getAtomicVar(String name){
+        checkNotClosed();
+        Atomic.Var ret = (Atomic.Var) getFromWeakCollection(name);
+        if(ret!=null) return ret;
+        String type = catGet(name + ".type", null);
+        if(type==null){
+            return createAtomicVar(name, null, getDefaultSerializer());
+        }
+        checkType(type, "AtomicString");
+
+        ret = new Atomic.Var(engine, (Long) catGet(name+".recid"), (Serializer) catGet(name+".serializer"));
+        collections.put(name, new WeakReference<Object>(ret));
+        return ret;
+    }
     /**
      * Checks that object with given name does not exist yet.
      * @param name to check

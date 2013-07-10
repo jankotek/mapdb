@@ -11,7 +11,7 @@ import junit.framework.TestCase;
 public class AtomicBooleanTest extends TestCase{
 
     DB db = DBMaker.newMemoryDB().writeAheadLogDisable().make();
-    Atomic.Boolean ai = Atomic.createBoolean(db,"test", true);
+    Atomic.Boolean ai = db.createAtomicBoolean("test", true);
 
     /**
      * constructor initializes to given value
@@ -24,7 +24,7 @@ public class AtomicBooleanTest extends TestCase{
      * default constructed initializes to false
      */
     public void testConstructor2() {
-        Atomic.Boolean ai = Atomic.getBoolean(db, "test2");
+        Atomic.Boolean ai = db.getAtomicBoolean("test2");
         assertEquals(false,ai.get());
     }
 
@@ -86,7 +86,7 @@ public class AtomicBooleanTest extends TestCase{
      * toString returns current value.
      */
     public void testToString() {
-        Atomic.Boolean ai = Atomic.getBoolean(db, "test2");
+        Atomic.Boolean ai = db.getAtomicBoolean( "test2");
         assertEquals(ai.toString(), Boolean.toString(false));
         ai.set(true);
         assertEquals(ai.toString(), Boolean.toString(true));

@@ -11,7 +11,7 @@ import junit.framework.TestCase;
 public class AtomicLongTest extends TestCase {
 
     DB db = DBMaker.newMemoryDB().writeAheadLogDisable().make();
-    Atomic.Long ai = Atomic.createLong(db,"test", 1);
+    Atomic.Long ai = db.createAtomicLong("test", 1);
 
     /**
      * constructor initializes to given value
@@ -24,7 +24,7 @@ public class AtomicLongTest extends TestCase {
      * default constructed initializes to zero
      */
     public void testConstructor2(){
-        Atomic.Long ai = Atomic.getLong(db, "test2");
+        Atomic.Long ai = db.getAtomicLong("test2");
         assertEquals(0,ai.get());
     }
 

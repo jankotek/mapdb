@@ -21,7 +21,7 @@ public class SQL_Auto_Incremental_Unique_Key {
 
         // open existing or create new Atomic record with given name
         // if no record with given name exist, new recid is created with value `0`
-        Atomic.Long keyinc = Atomic.getLong(db, "map_keyinc");
+        Atomic.Long keyinc = db.getAtomicLong("map_keyinc");
 
 
         // Allocate new unique key to use in map

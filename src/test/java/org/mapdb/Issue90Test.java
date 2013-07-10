@@ -17,7 +17,7 @@ public class Issue90Test {
 
                 .cacheDisable()
                 .make();
-        final Atomic.Long myCounter = Atomic.getLong(mapDb, "MyCounter");
+        final Atomic.Long myCounter = mapDb.getAtomicLong("MyCounter");
 
         final BTreeMap<String, Fun.Tuple2<String, Integer>> treeMap = mapDb.getTreeMap("map");
         Bind.size(treeMap, myCounter);

@@ -11,7 +11,7 @@ import junit.framework.TestCase;
 public class AtomicIntegerTest extends TestCase {
 
     DB db = DBMaker.newMemoryDB().writeAheadLogDisable().make();
-    Atomic.Integer ai = Atomic.createInteger(db,"test", 1);
+    Atomic.Integer ai = db.createAtomicInteger("test", 1);
 
     /**
      * constructor initializes to given value
@@ -24,7 +24,7 @@ public class AtomicIntegerTest extends TestCase {
      * default constructed initializes to zero
      */
     public void testConstructor2(){
-        Atomic.Integer  ai = Atomic.getInteger(db, "test2");
+        Atomic.Integer  ai = db.getAtomicInteger("test2");
         assertEquals(0,ai.get());
     }
 

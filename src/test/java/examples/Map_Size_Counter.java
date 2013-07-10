@@ -30,7 +30,7 @@ public class Map_Size_Counter {
         DB db2 = DBMaker.newTempFileDB().make();
 
         BTreeMap primary = db2.getTreeMap("map2");
-        Atomic.Long sizeCounter = Atomic.getLong(db2, "mapSize");
+        Atomic.Long sizeCounter = db1.getAtomicLong("mapSize");
 
         Bind.size(primary, sizeCounter);
 

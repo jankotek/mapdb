@@ -38,7 +38,7 @@ public class Lazily_Loaded_Records {
         // As bonus you can update reference in thread-safe atomic manner.
         //
         Atomic.Var<String> record =
-                Atomic.createVar(db, "lazyRecord", "aaa", db.getDefaultSerializer());
+                db.createAtomicVar("lazyRecord", "aaa", db.getDefaultSerializer());
 
         record.set("some value");
         System.out.println(record.get());
