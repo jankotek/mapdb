@@ -37,7 +37,7 @@ public class DB {
     protected Map<String, WeakReference<?>> collections = new HashMap<String, WeakReference<?>>();
 
     /** view over named records */
-    protected ConcurrentNavigableMap<String, Object> catalog;
+    protected SortedMap<String, Object> catalog;
 
     /** default serializer used for persistence. Handles POJO and other stuff which requires write-able access to Engine */
     protected Serializer<?> defaultSerializer;
@@ -457,8 +457,8 @@ public class DB {
      * Get Named directory. Key is name, value is recid under which named record is stored
      * @return
      */
-    public Map<String, Object> getCatalog(){
-        return catalog;
+    public SortedMap<String, Object> getCatalog(){
+        return Collections.unmodifiableSortedMap(catalog);
     }
 
 
@@ -833,6 +833,69 @@ public class DB {
         collections.put(name, new WeakReference<Object>(ret));
         return ret;
     }
+
+    /** return record with given name or null if name does not exist*/
+    synchronized public <E> E get(String name){
+        String type = catGet(name+".type");
+        if(type==null) return null;
+        if("HashMap".equals(type)) return (E) getHashMap(name);
+        if("HashSet".equals(type)) return (E) getHashSet(name);
+        if("TreeMap".equals(type)) return (E) getTreeMap(name);
+        if("TreeSet".equals(type)) return (E) getTreeSet(name);
+        if("AtomicBoolean".equals(type)) return (E) getAtomicBoolean(name);
+        if("AtomicInteger".equals(type)) return (E) getAtomicInteger(name);
+        if("AtomicLong".equals(type)) return (E) getAtomicLong(name);
+        if("AtomicString".equals(type)) return (E) getAtomicString(name);
+        if("AtomicVar".equals(type)) return (E) getAtomicVar(name);
+        if("Queue".equals(type)) return (E) getQueue(name);
+        if("Stack".equals(type)) return (E) getStack(name);
+        if("CircularQueue".equals(type)) return (E) getCircularQueue(name);
+        throw new InternalError("Unknown type: "+name);
+    }
+
+    /**
+     * return map of all named collections/records
+     */
+    synchronized public Map<String,Object> getAll(){
+        TreeMap<String,Object> ret= new TreeMap<String, Object>();
+
+        for(String name:catalog.keySet()){
+            if(!name.endsWith(".type")) continue;
+            name = name.substring(0,name.length()-5);
+            ret.put(name,get(name));
+        }
+
+        return Collections.unmodifiableMap(ret);
+    }
+
+
+    /** rename named record into newName
+     *
+     * @param oldName current name of record/collection
+     * @param newName new name of record/collection
+     * @throws NoSuchElementException if oldName does not exist
+     */
+    synchronized public void rename(String oldName, String newName){
+        if(oldName.equals(newName)) return;
+
+        Map<String, Object> sub = catalog.tailMap(oldName);
+        List<String> toRemove = new ArrayList<String>();
+
+        for(String param:sub.keySet()){
+            if(!param.startsWith(oldName)) break;
+
+            String suffix = param.substring(oldName.length());
+            catalog.put(newName+suffix, catalog.get(param));
+            toRemove.add(param);
+        }
+        if(toRemove.isEmpty()) throw new NoSuchElementException("Could not rename, name does not exist: "+oldName);
+
+        WeakReference old = collections.remove(oldName);
+        if(old!=null) collections.put(newName,old);
+        for(String param:toRemove) catalog.remove(param);
+    }
+
+
     /**
      * Checks that object with given name does not exist yet.
      * @param name to check

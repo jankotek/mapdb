@@ -138,12 +138,13 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     protected final Atomic.Long counter;
 
     /** hack used for DB Catalog*/
-    protected static BTreeMap<String, Object> preinitCatalog(DB db) {
+    protected static SortedMap<String, Object> preinitCatalog(DB db) {
 
         Long rootRef = db.getEngine().get(Engine.CATALOG_RECID, Serializer.LONG_SERIALIZER);
 
         if(rootRef==null){
-            if(db.getEngine().isReadOnly()) return null;
+            if(db.getEngine().isReadOnly())
+                return Collections.unmodifiableSortedMap(new TreeMap<String, Object>());
 
             NodeSerializer rootSerializer = new NodeSerializer(false,BTreeKeySerializer.STRING,
                     db.getDefaultSerializer(),Utils.COMPARABLE_COMPARATOR);

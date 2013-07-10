@@ -59,4 +59,23 @@ public class DBTest {
         db.close();
         db.getHashMap("test");
     }
+
+
+    @Test public void getAll(){
+        db.createAtomicString("aa","100");
+        db.getHashMap("zz").put(11,"12");
+        Map all = db.getAll();
+
+        assertEquals(2,all.size());
+        assertEquals("100",((Atomic.String)all.get("aa")).get());
+        assertEquals("12",((HTreeMap)all.get("zz")).get(11));
+
+    }
+
+    @Test public void rename(){
+        db.getHashMap("zz").put(11,"12");
+        db.rename("zz","aa");
+        assertEquals("12",db.getHashMap("aa").get(11));
+    }
+
 }
