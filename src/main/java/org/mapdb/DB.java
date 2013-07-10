@@ -853,6 +853,51 @@ public class DB {
         throw new InternalError("Unknown type: "+name);
     }
 
+    /** delete record/collection with given name*/
+    synchronized public void delete(String name){
+        Object r = get(name);
+        if(r instanceof Atomic.Boolean){
+            engine.delete(((Atomic.Boolean)r).recid, Serializer.BOOLEAN_SERIALIZER);
+        }else if(r instanceof Atomic.Integer){
+            engine.delete(((Atomic.Integer)r).recid, Serializer.INTEGER_SERIALIZER);
+        }else if(r instanceof Atomic.Long){
+            engine.delete(((Atomic.Long)r).recid, Serializer.LONG_SERIALIZER);
+        }else if(r instanceof Atomic.String){
+            engine.delete(((Atomic.String)r).recid, Serializer.STRING_SERIALIZER);
+        }else if(r instanceof Atomic.Var){
+            engine.delete(((Atomic.Var)r).recid, ((Atomic.Var)r).serializer);
+        }else if(r instanceof Queue){
+            //drain queue
+            Queue q = (Queue) r;
+            while(q.poll()!=null){
+                //do nothing
+            }
+        }else if(r instanceof HTreeMap || r instanceof HTreeMap.KeySet){
+            HTreeMap m = (r instanceof HTreeMap)? (HTreeMap) r : ((HTreeMap.KeySet)r).parent();
+            m.clear();
+            //delete segments
+            for(long segmentRecid:m.segmentRecids){
+                engine.delete(segmentRecid, HTreeMap.DIR_SERIALIZER);
+            }
+        }else if(r instanceof BTreeMap || r instanceof BTreeMap.KeySet){
+            BTreeMap m = (r instanceof BTreeMap)? (BTreeMap) r : (BTreeMap) ((BTreeMap.KeySet) r).m;
+
+            //TODO on BTreeMap recursively delete all nodes
+            m.clear();
+
+            if(m.counter!=null)
+                engine.delete(m.counter.recid,Serializer.LONG_SERIALIZER);
+        }
+
+        for(String n:catalog.keySet()){
+            if(!n.startsWith(name)) continue;
+            catalog.remove(n);
+        }
+        collections.remove(name);
+
+    }
+
+
     /**
      * return map of all named collections/records
      */

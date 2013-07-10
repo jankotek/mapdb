@@ -646,8 +646,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         }
     }
 
-
-    private final Set<K> _keySet = new AbstractSet<K>() {
+    protected class KeySet extends AbstractSet<K> {
 
         @Override
         public int size() {
@@ -692,7 +691,15 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         public void clear() {
             HTreeMap.this.clear();
         }
-    };
+
+        public HTreeMap<K,V> parent(){
+            return HTreeMap.this;
+        }
+    }
+
+
+
+    private final Set<K> _keySet = new KeySet();
 
     @Override
     public Set<K> keySet() {
