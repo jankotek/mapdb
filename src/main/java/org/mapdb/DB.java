@@ -18,8 +18,8 @@ package org.mapdb;
 
 import java.lang.ref.WeakReference;
 import java.util.*;
-import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A database with easy access to named maps and other collections.
@@ -104,8 +104,14 @@ public class DB {
 
 
         protected boolean keepCounter = false;
-        protected Serializer keySerializer;
-        protected Serializer valueSerializer;
+        protected Serializer keySerializer = null;
+        protected Serializer valueSerializer = null;
+        protected long expireMaxSize = 0L;
+        protected long expire = 0L;
+        protected long expireAccess = 0L;
+
+
+
 
         /** keepCounter if counter should be kept, without counter updates are faster, but entire collection needs to be traversed to count items.*/
         public HTreeMapMaker keepCounter(boolean keepCounter){
@@ -127,6 +133,35 @@ public class DB {
             return this;
         }
 
+        /** maximal number of entries in this map. Less used entries will be expired and removed to make collection smaller  */
+        public HTreeMapMaker expireMaxSize(long maxSize){
+            this.expireMaxSize = maxSize;
+            return this;
+        }
+
+        /** Specifies that each entry should be automatically removed from the map once a fixed duration has elapsed after the entry's creation, or the most recent replacement of its value.  */
+        public HTreeMapMaker expireAfterWrite(long interval, TimeUnit timeUnit){
+            this.expire = timeUnit.toMillis(interval);
+            return this;
+        }
+
+        /** Specifies that each entry should be automatically removed from the map once a fixed duration has elapsed after the entry's creation, or the most recent replacement of its value.  */
+        public HTreeMapMaker expireAfterWrite(long interval){
+            this.expire = interval;
+            return this;
+        }
+
+        /** Specifies that each entry should be automatically removed from the map once a fixed duration has elapsed after the entry's creation, the most recent replacement of its value, or its last access. Access time is reset by all map read and write operations  */
+        public HTreeMapMaker expireAfterAccess(long interval, TimeUnit timeUnit){
+            this.expireAccess = timeUnit.toMillis(interval);
+            return this;
+        }
+
+        /** Specifies that each entry should be automatically removed from the map once a fixed duration has elapsed after the entry's creation, the most recent replacement of its value, or its last access. Access time is reset by all map read and write operations  */
+        public HTreeMapMaker expireAfterAccess(long interval){
+            this.expireAccess = interval;
+            return this;
+        }
 
         public <K,V> HTreeMap<K,V> make(){
             return DB.this.createHashMap(HTreeMapMaker.this);
@@ -167,7 +202,12 @@ public class DB {
                 (Integer)catGet(name+".hashSalt"),
                 (long[])catGet(name+".segmentRecids"),
                 catGet(name+".keySerializer",getDefaultSerializer()),
-                catGet(name+".valueSerializer",getDefaultSerializer())
+                catGet(name+".valueSerializer",getDefaultSerializer()),
+                catGet(name+".expireTimeStart",0L),
+                catGet(name+".expire",0L),
+                catGet(name+".expireAccess",0L),
+                catGet(name+".expireMaxSize",0L)
+
         );
 
 
@@ -201,13 +241,23 @@ public class DB {
         String name = m.name;
         checkNameNotExists(name);
 
+        long expireTimeStart=0, expire=0, expireAccess=0, expireMaxSize = 0;
+
+        if(m.expire!=0 || m.expireAccess!=0 || m.expireMaxSize !=0){
+            expireTimeStart = catPut(name+".expireTimeStart",System.currentTimeMillis());
+            expire = catPut(name+".expire",m.expire);
+            expireAccess = catPut(name+".expireAccess",m.expireAccess);
+            expireMaxSize = catPut(name+".expireMaxSize",m.expireMaxSize);
+        }
+
 
         HTreeMap<K,V> ret = new HTreeMap<K,V>(engine,
                 catPut(name+".counterRecid",!m.keepCounter?0L:engine.put(0L, Serializer.LONG_SERIALIZER)),
                 catPut(name+".hashSalt",Utils.RANDOM.nextInt()),
                 catPut(name+".segmentRecids",HTreeMap.preallocateSegments(engine)),
                 catPut(name+".keySerializer",m.keySerializer,getDefaultSerializer()),
-                catPut(name+".valueSerializer",m.valueSerializer,getDefaultSerializer())
+                catPut(name+".valueSerializer",m.valueSerializer,getDefaultSerializer()),
+                expireTimeStart,expire,expireAccess,expireMaxSize
         );
 
         catalog.put(name + ".type", "HashMap");
@@ -241,7 +291,7 @@ public class DB {
                 (Integer)catGet(name+".hashSalt"),
                 (long[])catGet(name+".segmentRecids"),
                 catGet(name+".serializer",getDefaultSerializer()),
-                null
+                null, 0L,0L,0L,0L
         ).keySet();
 
 
@@ -269,7 +319,7 @@ public class DB {
                 catPut(name+".hashSalt",Utils.RANDOM.nextInt()),
                 catPut(name+".segmentRecids",HTreeMap.preallocateSegments(engine)),
                 catPut(name+".serializer",serializer,getDefaultSerializer()),
-                null
+                null, 0L,0L,0L,0L
         ).keySet();
 
         catalog.put(name + ".type", "HashSet");
@@ -458,7 +508,7 @@ public class DB {
      * @return
      */
     public SortedMap<String, Object> getCatalog(){
-        return Collections.unmodifiableSortedMap(catalog);
+        return catalog;
     }
 
 

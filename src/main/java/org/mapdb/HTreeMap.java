@@ -58,6 +58,12 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
     protected final Engine engine;
 
+    protected final boolean expireFlag;
+    protected final long expireTimeStart;
+    protected final long expire;
+    protected final boolean expireAccessFlag;
+    protected final long expireAccess;
+
 
 
 
@@ -160,12 +166,12 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
 
 
-
     /**
      * Opens HTreeMap
      */
     public HTreeMap(Engine engine,long counterRecid, int hashSalt, long[] segmentRecids,
-                    Serializer<K> keySerializer, Serializer<V> valueSerializer) {
+                    Serializer<K> keySerializer, Serializer<V> valueSerializer,
+                    long expireTimeStart, long expire, long expireAccess, long expiryMaxSize) {
         if(engine==null) throw new NullPointerException();
         if(segmentRecids==null) throw new NullPointerException();
         if(keySerializer==null) throw new NullPointerException();
@@ -184,6 +190,11 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         this.segmentRecids = Arrays.copyOf(segmentRecids,16);
         this.keySerializer = keySerializer;
         this.valueSerializer = valueSerializer;
+        this.expireFlag = expire !=0L;
+        this.expire = expire;
+        this.expireTimeStart = expireTimeStart;
+        this.expireAccessFlag = expireAccess !=0L;
+        this.expireAccess = expireAccess;
 
         if(counterRecid!=0){
             this.counter = new Atomic.Long(engine,counterRecid);
@@ -192,6 +203,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             this.counter = null;
         }
     }
+
+
 
     protected static long[] preallocateSegments(Engine engine){
         //prealocate segmentRecids, so we dont have to lock on those latter
@@ -202,21 +215,6 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     }
 
 
-    /** hack used for Dir Name*/
-    protected static final Map<String, Object> preinitNamedDir(Engine engine,Serializer serializer){
-        //check if record already exist
-        long[] segments = (long[]) engine.get(Engine.CATALOG_RECID, Serializer.BASIC_SERIALIZER);
-        if(segments==null){
-            if(engine.isReadOnly()) //readonly so return empty readonly map
-                return Collections.unmodifiableMap(new HashMap<String, Object>());
-
-            //prealocate segmentRecids
-            segments = preallocateSegments(engine);
-            engine.update(Engine.CATALOG_RECID, segments, Serializer.BASIC_SERIALIZER);
-        }
-
-        return new HTreeMap(engine, 0, 0, segments, Serializer.BASIC_SERIALIZER, serializer);
-    }
 
     @Override
     public boolean containsKey(final Object o){
@@ -1101,7 +1099,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     public Map<K,V> snapshot(){
         Engine snapshot = SnapshotEngine.createSnapshotFor(engine);
         return new HTreeMap<K, V>(snapshot, counter==null?0:counter.recid,
-                hashSalt, segmentRecids, keySerializer, valueSerializer);
+                hashSalt, segmentRecids, keySerializer, valueSerializer,0L,0L,0L,0L);
     }
 
 

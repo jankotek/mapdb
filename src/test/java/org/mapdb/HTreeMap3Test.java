@@ -42,7 +42,7 @@ public class HTreeMap3Test extends ConcurrentMapInterfaceTest<Integer, String> {
 
     @Override
     protected ConcurrentMap<Integer, String> makeEmptyMap() throws UnsupportedOperationException {
-        return new HTreeMap(r,0,0, HTreeMap.preallocateSegments(r), Serializer.BASIC_SERIALIZER, Serializer.BASIC_SERIALIZER);
+        return new HTreeMap(r,0,0, HTreeMap.preallocateSegments(r), Serializer.BASIC_SERIALIZER, Serializer.BASIC_SERIALIZER,0,0,0,0);
     }
 
     @Override
