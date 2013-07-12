@@ -4,7 +4,6 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.TreeMap;
@@ -354,7 +353,7 @@ public class HTreeMap2Test {
         assertEquals(ZERO, engine.get(m.expireHeads[0], Serializer.LONG_SERIALIZER));
         assertEquals(ZERO, engine.get(m.expireTails[0], Serializer.LONG_SERIALIZER));
 
-        m.expireLinkAdd(0, 111L,222);
+        m.expireLinkAdd(0,m.engine.put(null, HTreeMap.ExpireLinkNode.SERIALIZER),  111L,222);
 
         Long recid = engine.get(m.expireHeads[0], Serializer.LONG_SERIALIZER);
         assertNotEquals(ZERO,recid);
@@ -368,7 +367,7 @@ public class HTreeMap2Test {
 
         assertArrayEquals(new int[]{222},getExpireList(m,0));
 
-        n = m.expireLinkRemove(0);
+        n = m.expireLinkRemoveLast(0);
         assertEquals(0, n.prev);
         assertEquals(0, n.next);
         assertEquals(111L, n.keyRecid);
@@ -385,7 +384,8 @@ public class HTreeMap2Test {
 
         long[] recids = new long[10];
         for(int i=1;i<10;i++){
-            recids[i] = m.expireLinkAdd(2,i*10,i*100);
+            recids[i] = m.engine.put(null, HTreeMap.ExpireLinkNode.SERIALIZER);
+            m.expireLinkAdd(2, recids[i],i*10,i*100);
         }
 
         assertArrayEquals(new int[]{100,200,300,400,500,600,700,800,900},getExpireList(m,2));
@@ -399,12 +399,20 @@ public class HTreeMap2Test {
         m.expireLinkBump(2,recids[1],0);
         assertArrayEquals(new int[]{200,300,400,600,700,900,800,500,100},getExpireList(m,2));
 
-        assertEquals(200, m.expireLinkRemove(2).hash);
+        assertEquals(200, m.expireLinkRemoveLast(2).hash);
         assertArrayEquals(new int[]{300,400,600,700,900,800,500,100},getExpireList(m,2));
 
-        assertEquals(300, m.expireLinkRemove(2).hash);
+        assertEquals(300, m.expireLinkRemoveLast(2).hash);
         assertArrayEquals(new int[]{400,600,700,900,800,500,100},getExpireList(m,2));
 
+        assertEquals(600, m.expireLinkRemove(2,recids[6]).hash);
+        assertArrayEquals(new int[]{400,700,900,800,500,100},getExpireList(m,2));
+
+        assertEquals(400, m.expireLinkRemove(2,recids[4]).hash);
+        assertArrayEquals(new int[]{700,900,800,500,100},getExpireList(m,2));
+
+        assertEquals(100, m.expireLinkRemove(2,recids[1]).hash);
+        assertArrayEquals(new int[]{700,900,800,500},getExpireList(m,2));
 
 
     }
@@ -426,7 +434,7 @@ public class HTreeMap2Test {
 
         }
         //System.out.println(Arrays.toString(ret));
-        assertEquals(new Long(prev),engine.get(m.expireHeads[segment], Serializer.LONG_SERIALIZER));
+        assertEquals(new Long(prev), engine.get(m.expireHeads[segment], Serializer.LONG_SERIALIZER));
         return ret;
     }
 
