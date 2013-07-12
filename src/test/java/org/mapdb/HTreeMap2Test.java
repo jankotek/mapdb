@@ -4,6 +4,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.TreeMap;
@@ -14,6 +15,8 @@ import static org.junit.Assert.*;
 public class HTreeMap2Test {
 
     Engine engine = DBMaker.newMemoryDB().cacheDisable().asyncWriteDisable().makeEngine();
+
+    DB db = new DB(engine);
 
     void printMap(HTreeMap m){
         System.out.println(toString(m.segmentRecids, engine));
@@ -111,7 +114,7 @@ public class HTreeMap2Test {
 
 
     @Test public void ln_serialization() throws IOException {
-        HTreeMap.LinkedNode n = new HTreeMap.LinkedNode(123456, 123L, 456L);
+        HTreeMap.LinkedNode n = new HTreeMap.LinkedNode(123456, 1111L, 123L, 456L);
 
         DataOutput2 out = new DataOutput2();
 
@@ -122,13 +125,14 @@ public class HTreeMap2Test {
         HTreeMap.LinkedNode n2  = (HTreeMap.LinkedNode) serializer.deserialize(in, -1);
 
         assertEquals(123456, n2.next);
+        assertEquals(1111L, n2.expireLinkNodeRecid);
         assertEquals(123L,n2.key);
         assertEquals(456L,n2.value);
     }
 
     @Test public void test_simple_put(){
 
-        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC_SERIALIZER, Serializer.BASIC_SERIALIZER,0,0,0,0);
+        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC_SERIALIZER, Serializer.BASIC_SERIALIZER,0,0,0,0,null,null);
 
         m.put(111L, 222L);
         m.put(333L, 444L);
@@ -143,7 +147,7 @@ public class HTreeMap2Test {
     }
 
     @Test public void test_hash_collision(){
-        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC_SERIALIZER, Serializer.BASIC_SERIALIZER,0,0,0,0){
+        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC_SERIALIZER, Serializer.BASIC_SERIALIZER,0,0,0,0,null,null){
             @Override
             protected int hash(Object key) {
                 return 0;
@@ -164,7 +168,7 @@ public class HTreeMap2Test {
     }
 
     @Test public void test_hash_dir_expand(){
-        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC_SERIALIZER, Serializer.BASIC_SERIALIZER,0,0,0,0){
+        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC_SERIALIZER, Serializer.BASIC_SERIALIZER,0,0,0,0,null,null){
             @Override
             protected int hash(Object key) {
                 return 0;
@@ -238,7 +242,7 @@ public class HTreeMap2Test {
 
 
     @Test public void test_delete(){
-        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC_SERIALIZER, Serializer.BASIC_SERIALIZER,0,0,0,0){
+        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC_SERIALIZER, Serializer.BASIC_SERIALIZER,0,0,0,0,null,null){
             @Override
             protected int hash(Object key) {
                 return 0;
@@ -266,7 +270,7 @@ public class HTreeMap2Test {
     }
 
     @Test public void clear(){
-        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC_SERIALIZER, Serializer.BASIC_SERIALIZER,0,0,0,0);
+        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC_SERIALIZER, Serializer.BASIC_SERIALIZER,0,0,0,0,null,null);
         for(Integer i=0;i<100;i++){
             m.put(i,i);
         }
@@ -277,7 +281,7 @@ public class HTreeMap2Test {
 
     @Test //(timeout = 10000)
      public void testIteration(){
-        HTreeMap m = new HTreeMap(engine, 0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC_SERIALIZER,Serializer.BASIC_SERIALIZER,0,0,0,0){
+        HTreeMap m = new HTreeMap(engine, 0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC_SERIALIZER,Serializer.BASIC_SERIALIZER,0,0,0,0,null,null){
             @Override
             protected int hash(Object key) {
                 return (Integer) key;
@@ -341,6 +345,91 @@ public class HTreeMap2Test {
         assertTrue(!keys.hasNext());
 
     }
+
+    static final Long ZERO  = 0L;
+
+    @Test public void expire_link_simple_add_remove(){
+        HTreeMap m = db.createHashMap("test").expireMaxSize(100).make();
+        m.segmentLocks[0].writeLock().lock();
+        assertEquals(ZERO, engine.get(m.expireHeads[0], Serializer.LONG_SERIALIZER));
+        assertEquals(ZERO, engine.get(m.expireTails[0], Serializer.LONG_SERIALIZER));
+
+        m.expireLinkAdd(0, 111L,222);
+
+        Long recid = engine.get(m.expireHeads[0], Serializer.LONG_SERIALIZER);
+        assertNotEquals(ZERO,recid);
+        assertEquals(recid, engine.get(m.expireTails[0], Serializer.LONG_SERIALIZER));
+
+        HTreeMap.ExpireLinkNode n = engine.get(recid, HTreeMap.ExpireLinkNode.SERIALIZER);
+        assertEquals(0, n.prev);
+        assertEquals(0, n.next);
+        assertEquals(111L, n.keyRecid);
+        assertEquals(222, n.hash);
+
+        assertArrayEquals(new int[]{222},getExpireList(m,0));
+
+        n = m.expireLinkRemove(0);
+        assertEquals(0, n.prev);
+        assertEquals(0, n.next);
+        assertEquals(111L, n.keyRecid);
+        assertEquals(222L, n.hash);
+
+        assertEquals(ZERO, engine.get(m.expireHeads[0], Serializer.LONG_SERIALIZER));
+        assertEquals(ZERO, engine.get(m.expireTails[0], Serializer.LONG_SERIALIZER));
+        assertArrayEquals(new int[]{},getExpireList(m,0));
+    }
+
+    @Test public void expire_link_test(){
+        HTreeMap m = db.createHashMap("test").expireMaxSize(100).make();
+        m.segmentLocks[2].writeLock().lock();
+
+        long[] recids = new long[10];
+        for(int i=1;i<10;i++){
+            recids[i] = m.expireLinkAdd(2,i*10,i*100);
+        }
+
+        assertArrayEquals(new int[]{100,200,300,400,500,600,700,800,900},getExpireList(m,2));
+
+        m.expireLinkBump(2,recids[8],0);
+        assertArrayEquals(new int[]{100,200,300,400,500,600,700,900,800},getExpireList(m,2));
+
+        m.expireLinkBump(2,recids[5],0);
+        assertArrayEquals(new int[]{100,200,300,400,600,700,900,800,500},getExpireList(m,2));
+
+        m.expireLinkBump(2,recids[1],0);
+        assertArrayEquals(new int[]{200,300,400,600,700,900,800,500,100},getExpireList(m,2));
+
+        assertEquals(200, m.expireLinkRemove(2).hash);
+        assertArrayEquals(new int[]{300,400,600,700,900,800,500,100},getExpireList(m,2));
+
+        assertEquals(300, m.expireLinkRemove(2).hash);
+        assertArrayEquals(new int[]{400,600,700,900,800,500,100},getExpireList(m,2));
+
+
+
+    }
+
+    int[] getExpireList(HTreeMap m, int segment){
+        int[] ret = new int[0];
+        long recid = engine.get(m.expireTails[segment], Serializer.LONG_SERIALIZER);
+        long prev = 0;
+        //System.out.println("--");
+        while(recid!=0){
+            HTreeMap.ExpireLinkNode n = engine.get(recid, HTreeMap.ExpireLinkNode.SERIALIZER);
+            //System.out.println(n.hash);
+            assertEquals(prev,n.prev);
+            prev = recid;
+            recid = n.next;
+
+            ret=Arrays.copyOf(ret,ret.length+1);
+            ret[ret.length-1] = n.hash;
+
+        }
+        //System.out.println(Arrays.toString(ret));
+        assertEquals(new Long(prev),engine.get(m.expireHeads[segment], Serializer.LONG_SERIALIZER));
+        return ret;
+    }
+
 
 }
 

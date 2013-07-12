@@ -34,7 +34,6 @@ package org.mapdb;
  */
 public interface CC {
 
-
     /**
      * Compile with more assertions and verifications.
      * For example HashMap may check if keys implements hash function correctly.
@@ -73,5 +72,7 @@ public interface CC {
 
 
     int BTREE_DEFAULT_MAX_NODE_SIZE = 32;
+
+
 }
 

@@ -206,7 +206,9 @@ public class DB {
                 catGet(name+".expireTimeStart",0L),
                 catGet(name+".expire",0L),
                 catGet(name+".expireAccess",0L),
-                catGet(name+".expireMaxSize",0L)
+                catGet(name+".expireMaxSize",0L),
+                (long[])catGet(name+".expireHeads",null),
+                (long[])catGet(name+".expireTails",null)
 
         );
 
@@ -242,12 +244,22 @@ public class DB {
         checkNameNotExists(name);
 
         long expireTimeStart=0, expire=0, expireAccess=0, expireMaxSize = 0;
+        long[] expireHeads=null, expireTails=null;
 
         if(m.expire!=0 || m.expireAccess!=0 || m.expireMaxSize !=0){
             expireTimeStart = catPut(name+".expireTimeStart",System.currentTimeMillis());
             expire = catPut(name+".expire",m.expire);
             expireAccess = catPut(name+".expireAccess",m.expireAccess);
             expireMaxSize = catPut(name+".expireMaxSize",m.expireMaxSize);
+            expireHeads = new long[16];
+            expireTails = new long[16];
+            for(int i=0;i<16;i++){
+                expireHeads[i] = engine.put(0L,Serializer.LONG_SERIALIZER);
+                expireTails[i] = engine.put(0L,Serializer.LONG_SERIALIZER);
+            }
+            catPut(name+".expireHeads",expireHeads);
+            catPut(name+".expireTails",expireHeads);
+
         }
 
 
@@ -257,7 +269,8 @@ public class DB {
                 catPut(name+".segmentRecids",HTreeMap.preallocateSegments(engine)),
                 catPut(name+".keySerializer",m.keySerializer,getDefaultSerializer()),
                 catPut(name+".valueSerializer",m.valueSerializer,getDefaultSerializer()),
-                expireTimeStart,expire,expireAccess,expireMaxSize
+                expireTimeStart,expire,expireAccess,expireMaxSize, expireHeads ,expireTails
+
         );
 
         catalog.put(name + ".type", "HashMap");
@@ -291,7 +304,7 @@ public class DB {
                 (Integer)catGet(name+".hashSalt"),
                 (long[])catGet(name+".segmentRecids"),
                 catGet(name+".serializer",getDefaultSerializer()),
-                null, 0L,0L,0L,0L
+                null, 0L,0L,0L,0L,null,null
         ).keySet();
 
 
@@ -308,7 +321,7 @@ public class DB {
      * @param <K> item type
      * @throws IllegalArgumentException if name is already used
      */
-    
+
     synchronized public <K> Set<K> createHashSet(String name, boolean keepCounter, Serializer<K> serializer){
         checkNameNotExists(name);
 
@@ -319,7 +332,7 @@ public class DB {
                 catPut(name+".hashSalt",Utils.RANDOM.nextInt()),
                 catPut(name+".segmentRecids",HTreeMap.preallocateSegments(engine)),
                 catPut(name+".serializer",serializer,getDefaultSerializer()),
-                null, 0L,0L,0L,0L
+                null, 0L,0L,0L,0L,null,null
         ).keySet();
 
         catalog.put(name + ".type", "HashSet");
