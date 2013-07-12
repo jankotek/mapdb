@@ -168,6 +168,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         public static final Serializer<ExpireLinkNode> SERIALIZER = new Serializer<ExpireLinkNode>() {
             @Override
             public void serialize(DataOutput out, ExpireLinkNode value) throws IOException {
+                if(value == null) return;
                 Utils.packLong(out,value.prev);
                 Utils.packLong(out,value.next);
                 Utils.packLong(out,value.keyRecid);
@@ -177,6 +178,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
             @Override
             public ExpireLinkNode deserialize(DataInput in, int available) throws IOException {
+                if(available==0) return null;
                 return new ExpireLinkNode(
                         Utils.unpackLong(in),Utils.unpackLong(in),Utils.unpackLong(in),Utils.unpackLong(in),
                         in.readInt()
@@ -364,35 +366,45 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         if(o==null) return null;
         final int h = hash(o);
         final int segment = h >>>28;
+        segmentLocks[segment].readLock().lock();
+        LinkedNode<K,V> ln;
         try{
-            segmentLocks[segment].readLock().lock();
-            long recid = segmentRecids[segment];
-            for(int level=3;level>=0;level--){
-                long[][] dir = engine.get(recid, DIR_SERIALIZER);
-                if(dir == null) return null;
-                int slot = (h>>>(level*7 )) & 0x7F;
-                if(slot>=128) throw new InternalError();
-                if(dir[slot/8]==null) return null;
-                recid = dir[slot/8][slot%8];
-                if(recid == 0) return null;
-                if((recid&1)!=0){ //last bite indicates if referenced record is LinkedNode
-                    recid = recid>>>1;
-                    while(true){
-                        LinkedNode<K,V> ln = engine.get(recid, LN_SERIALIZER);
-                        if(ln == null) return null;
-                        if(ln.key.equals(o)) return ln.value;
-                        if(ln.next==0) return null;
-                        recid = ln.next;
-                    }
-                }
-
-                recid = recid>>>1;
-            }
-
-            return null;
+            ln = getInner(o, h, segment);
         }finally {
             segmentLocks[segment].readLock().unlock();
         }
+        if(ln==null) return null;
+        if(expireAccessFlag) expireLinkBump(segment,ln.expireLinkNodeRecid,expireAccess);
+        return ln.value;
+    }
+
+    protected LinkedNode<K,V> getInner(Object o, int h, int segment) {
+        long recid = segmentRecids[segment];
+        for(int level=3;level>=0;level--){
+            long[][] dir = engine.get(recid, DIR_SERIALIZER);
+            if(dir == null) return null;
+            int slot = (h>>>(level*7 )) & 0x7F;
+            if(slot>=128) throw new InternalError();
+            if(dir[slot/8]==null) return null;
+            recid = dir[slot/8][slot%8];
+            if(recid == 0) return null;
+            if((recid&1)!=0){ //last bite indicates if referenced record is LinkedNode
+                recid = recid>>>1;
+                while(true){
+                    LinkedNode<K,V> ln = engine.get(recid, LN_SERIALIZER);
+                    if(ln == null) return null;
+                    if(ln.key.equals(o)){
+                        return ln;
+                    }
+                    if(ln.next==0) return null;
+                    recid = ln.next;
+                }
+            }
+
+            recid = recid>>>1;
+        }
+
+        return null;
     }
 
     @Override
@@ -447,6 +459,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                             V oldVal = ln.value;
                             ln = new LinkedNode<K, V>(ln.next, ln.expireLinkNodeRecid, ln.key, value);
                             engine.update(recid, ln, LN_SERIALIZER);
+                            if(expireFlag) expireLinkBump(segment,ln.expireLinkNodeRecid,expire);
                             notify(key,  oldVal, value);
                             return oldVal;
                         }
@@ -463,10 +476,14 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                     long[][] nextDir = new long[16][];
 
                     {
+                        final long expireNodeRecid = expireFlag? engine.put(null, ExpireLinkNode.SERIALIZER):0L;
+                        final LinkedNode node = new LinkedNode<K, V>(0, expireNodeRecid, key, value);
+                        final long newRecid = engine.put(node, LN_SERIALIZER);
                         //add newly inserted record
                         int pos =(h >>>(7*(level-1) )) & 0x7F;
                         nextDir[pos/8] = new long[8];
-                        nextDir[pos/8][pos%8] = (engine.put(new LinkedNode<K, V>(0, 0, key, value), LN_SERIALIZER) <<1) | 1;
+                        nextDir[pos/8][pos%8] = ( newRecid<<1) | 1;
+                        if(expireFlag) expireLinkAdd(segment,expireNodeRecid,newRecid,h);
                     }
 
 
@@ -495,11 +512,14 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 }else{
                     // record does not exist in linked list, so create new one
                     recid = dir[slot/8][slot%8]>>>1;
-                    long newRecid = engine.put(new LinkedNode<K, V>(recid, 0, key, value), LN_SERIALIZER);
+                    final long expireNodeRecid = expireFlag? engine.put(null, ExpireLinkNode.SERIALIZER):0L;
+
+                    final long newRecid = engine.put(new LinkedNode<K, V>(recid, expireNodeRecid, key, value), LN_SERIALIZER);
                     dir = Arrays.copyOf(dir,16);
                     dir[slot/8] = Arrays.copyOf(dir[slot/8],8);
                     dir[slot/8][slot%8] = (newRecid<<1) | 1;
                     engine.update(dirRecid, dir, DIR_SERIALIZER);
+                    if(expireFlag) expireLinkAdd(segment,expireNodeRecid, newRecid,h);
                     notify(key, null, value);
                     return null;
                 }
@@ -576,6 +596,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                             }
                             //found, remove this node
                             engine.delete(recid, LN_SERIALIZER);
+                            if(expireFlag) expireLinkRemove(segment, ln.expireLinkNodeRecid);
                             notify((K) key, ln.value, null);
                             return ln.value;
                         }
@@ -654,6 +675,9 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
             //set dir to null, as segment recid is immutable
             engine.update(dirRecid, new long[16][], DIR_SERIALIZER);
+
+            if(expireFlag)
+                while(expireLinkRemoveLast(i)!=null){} //TODO speedup remove all
 
         }finally {
             segmentLocks[i].writeLock().unlock();
@@ -865,7 +889,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
     abstract class HashIterator{
 
-        protected Object[] currentLinkedList;
+        protected LinkedNode[] currentLinkedList;
         protected int currentLinkedListPos = 0;
 
         private K lastReturnedKey = null;
@@ -891,8 +915,13 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
 
         protected void  moveToNext(){
-            lastReturnedKey = (K) currentLinkedList[currentLinkedListPos];
-            currentLinkedListPos+=2;
+            lastReturnedKey = (K) currentLinkedList[currentLinkedListPos].key;
+
+            if(expireAccessFlag){
+                int segment = hash(lastReturnedKey)>>>28;
+                expireLinkBump(segment, currentLinkedList[currentLinkedListPos].expireLinkNodeRecid,expireAccess);
+            }
+            currentLinkedListPos+=1;
             if(currentLinkedListPos==currentLinkedList.length){
                 final int lastHash = hash(lastReturnedKey);
                 currentLinkedList = advance(lastHash);
@@ -900,7 +929,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             }
         }
 
-        private Object[] advance(int lastHash){
+        private LinkedNode[] advance(int lastHash){
 
             int segment = lastHash >>>28;
 
@@ -941,7 +970,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         }
 
-        private Object[] findNextLinkedNode(int hash) {
+        private LinkedNode[] findNextLinkedNode(int hash) {
             //second phase, start search from increased hash to find next items
             for(int segment = Math.max(hash >>>28, lastSegment); segment<16;segment++)try{
 
@@ -949,7 +978,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 segmentLocks[segment].readLock().lock();
 
                 long dirRecid = segmentRecids[segment];
-                Object ret[] = findNextLinkedNodeRecur(dirRecid, hash, 3);
+                LinkedNode ret[] = findNextLinkedNodeRecur(dirRecid, hash, 3);
                 //System.out.println(Arrays.asList(ret));
                 if(ret !=null) return ret;
                 hash = 0;
@@ -960,7 +989,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             return null;
         }
 
-        private Object[] findNextLinkedNodeRecur(long dirRecid, int newHash, int level){
+        private LinkedNode[] findNextLinkedNodeRecur(long dirRecid, int newHash, int level){
             long[][] dir = engine.get(dirRecid, DIR_SERIALIZER);
             if(dir == null) return null;
             int pos = (newHash>>>(level*7))  & 0x7F;
@@ -972,7 +1001,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                         if((recid&1) == 1){
                             recid = recid>>1;
                             //found linked list, load it into array and return
-                            Object[] array = new Object[2];
+                            LinkedNode[] array = new LinkedNode[1];
                             int arrayPos = 0;
                             while(recid!=0){
                                 LinkedNode ln = engine.get(recid, LN_SERIALIZER);
@@ -982,16 +1011,15 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                                 }
                                 //increase array size if needed
                                 if(arrayPos == array.length)
-                                    array = Arrays.copyOf(array, array.length+2);
-                                array[arrayPos++] = ln.key;
-                                array[arrayPos++] = ln.value;
+                                    array = Arrays.copyOf(array, array.length+1);
+                                array[arrayPos++] = ln;
                                 recid = ln.next;
                             }
                             return array;
                         }else{
                             //found another dir, continue dive
                             recid = recid>>1;
-                            Object[] ret = findNextLinkedNodeRecur(recid, first ? newHash : 0, level - 1);
+                            LinkedNode[] ret = findNextLinkedNodeRecur(recid, first ? newHash : 0, level - 1);
                             if(ret != null) return ret;
                         }
                     }
@@ -1009,7 +1037,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         public K next() {
         	if(currentLinkedList == null)
         		throw new NoSuchElementException();
-            K key = (K) currentLinkedList[currentLinkedListPos];
+            K key = (K) currentLinkedList[currentLinkedListPos].key;
             moveToNext();
             return key;
         }
@@ -1021,7 +1049,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         public V next() {
         	if(currentLinkedList == null)
         		throw new NoSuchElementException();
-            V value = (V) currentLinkedList[currentLinkedListPos+1];
+            V value = (V) currentLinkedList[currentLinkedListPos].value;
             moveToNext();
             return value;
         }
@@ -1033,7 +1061,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         public Entry<K, V> next() {
         	if(currentLinkedList == null)
         		throw new NoSuchElementException();
-            K key = (K) currentLinkedList[currentLinkedListPos];
+            K key = (K) currentLinkedList[currentLinkedListPos].key;
             moveToNext();
             return new Entry2(key);
         }
@@ -1147,7 +1175,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     }
 
 
-    protected long expireLinkAdd(int segment, long keyRecid, int hash){
+    protected void expireLinkAdd(int segment, long expireNodeRecid, long keyRecid, int hash){
         assert(segmentLocks[segment].writeLock().isHeldByCurrentThread());
 
         long time = expire+System.currentTimeMillis()-expireTimeStart;
@@ -1155,29 +1183,28 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         if(head == 0){
             //insert new
             ExpireLinkNode n = new ExpireLinkNode(0,0,keyRecid,time,hash);
-            long recid = engine.put(n, ExpireLinkNode.SERIALIZER );
-            engine.update(expireHeads[segment],recid,Serializer.LONG_SERIALIZER);
-            engine.update(expireTails[segment],recid,Serializer.LONG_SERIALIZER);
-            return recid;
+            engine.update(expireNodeRecid, n, ExpireLinkNode.SERIALIZER);
+            engine.update(expireHeads[segment],expireNodeRecid,Serializer.LONG_SERIALIZER);
+            engine.update(expireTails[segment],expireNodeRecid,Serializer.LONG_SERIALIZER);
         }else{
             //insert new head
             ExpireLinkNode n = new ExpireLinkNode(head,0,keyRecid,time,hash);
-            long newHeadRecid = engine.put(n, ExpireLinkNode.SERIALIZER );
+            engine.update(expireNodeRecid, n, ExpireLinkNode.SERIALIZER);
 
             //update old head to have new head as next
             ExpireLinkNode oldHead = engine.get(head,ExpireLinkNode.SERIALIZER);
-            oldHead=oldHead.copyNext(newHeadRecid);
+            oldHead=oldHead.copyNext(expireNodeRecid);
             engine.update(head,oldHead,ExpireLinkNode.SERIALIZER);
 
             //and update head
-            engine.update(expireHeads[segment],newHeadRecid,Serializer.LONG_SERIALIZER);
-            return newHeadRecid;
+            engine.update(expireHeads[segment],expireNodeRecid,Serializer.LONG_SERIALIZER);
         }
     }
 
     protected void expireLinkBump(int segment, long nodeRecid, long timeIncrement){
-        assert(segmentLocks[segment].writeLock().isHeldByCurrentThread());
+        segmentLocks[segment].writeLock().lock();
 
+        try{
         ExpireLinkNode n = engine.get(nodeRecid,ExpireLinkNode.SERIALIZER);
         long newTime = timeIncrement+System.currentTimeMillis()-expireTimeStart;
         //TODO optimize bellow, but what if there is only size limit?
@@ -1216,11 +1243,13 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             n = new ExpireLinkNode(oldHeadRecid,0, n.keyRecid, newTime, n.hash);
             engine.update(nodeRecid,n,ExpireLinkNode.SERIALIZER);
         }
-
+        }finally{
+            segmentLocks[segment].writeLock().unlock();
+        }
 
     }
 
-    protected ExpireLinkNode expireLinkRemove(int segment){
+    protected ExpireLinkNode expireLinkRemoveLast(int segment){
         assert(segmentLocks[segment].writeLock().isHeldByCurrentThread());
 
         long tail = engine.get(expireTails[segment],Serializer.LONG_SERIALIZER);
@@ -1243,6 +1272,39 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         engine.delete(tail,ExpireLinkNode.SERIALIZER);
         return n;
     }
+
+
+    protected ExpireLinkNode expireLinkRemove(int segment, long nodeRecid){
+        assert(segmentLocks[segment].writeLock().isHeldByCurrentThread());
+
+        ExpireLinkNode n = engine.get(nodeRecid,ExpireLinkNode.SERIALIZER);
+        engine.delete(nodeRecid,ExpireLinkNode.SERIALIZER);
+        if(n.next == 0 && n.prev==0){
+            engine.update(expireHeads[segment],0L,Serializer.LONG_SERIALIZER);
+            engine.update(expireTails[segment],0L,Serializer.LONG_SERIALIZER);
+        }else if (n.next == 0) {
+            ExpireLinkNode prev = engine.get(n.prev,ExpireLinkNode.SERIALIZER);
+            prev=prev.copyNext(0);
+            engine.update(n.prev,prev,ExpireLinkNode.SERIALIZER);
+            engine.update(expireHeads[segment],n.prev,Serializer.LONG_SERIALIZER);
+        }else if (n.prev == 0) {
+            ExpireLinkNode next = engine.get(n.next,ExpireLinkNode.SERIALIZER);
+            next=next.copyPrev(0);
+            engine.update(n.next,next,ExpireLinkNode.SERIALIZER);
+            engine.update(expireTails[segment],n.next,Serializer.LONG_SERIALIZER);
+        }else{
+            ExpireLinkNode next = engine.get(n.next,ExpireLinkNode.SERIALIZER);
+            next=next.copyPrev(n.prev);
+            engine.update(n.next,next,ExpireLinkNode.SERIALIZER);
+
+            ExpireLinkNode prev = engine.get(n.prev,ExpireLinkNode.SERIALIZER);
+            prev=prev.copyNext(n.next);
+            engine.update(n.prev,prev,ExpireLinkNode.SERIALIZER);
+        }
+
+        return n;
+    }
+
 
 
 
