@@ -164,6 +164,7 @@ public class DB {
         }
 
         public <K,V> HTreeMap<K,V> make(){
+            if(expireMaxSize!=0) keepCounter=true;
             return DB.this.createHashMap(HTreeMapMaker.this);
         }
 

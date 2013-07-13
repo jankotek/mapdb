@@ -390,13 +390,13 @@ public class HTreeMap2Test {
 
         assertArrayEquals(new int[]{100,200,300,400,500,600,700,800,900},getExpireList(m,2));
 
-        m.expireLinkBump(2,recids[8],0);
+        m.expireLinkBump(2,recids[8],true);
         assertArrayEquals(new int[]{100,200,300,400,500,600,700,900,800},getExpireList(m,2));
 
-        m.expireLinkBump(2,recids[5],0);
+        m.expireLinkBump(2,recids[5],true);
         assertArrayEquals(new int[]{100,200,300,400,600,700,900,800,500},getExpireList(m,2));
 
-        m.expireLinkBump(2,recids[1],0);
+        m.expireLinkBump(2,recids[1],true);
         assertArrayEquals(new int[]{200,300,400,600,700,900,800,500,100},getExpireList(m,2));
 
         assertEquals(200, m.expireLinkRemoveLast(2).hash);
@@ -438,6 +438,34 @@ public class HTreeMap2Test {
         return ret;
     }
 
+
+
+    @Test (timeout = 10000)
+    public void expire_put() {
+        HTreeMap m = db.createHashMap("test")
+                .expireAfterWrite(100)
+                .make();
+        m.put("aa","bb");
+        //should be removed in a moment or timeout
+        while(m.get("aa")!=null){
+        }
+    }
+
+    @Test (timeout = 10000)
+    public void expire_max_size() throws InterruptedException {
+        HTreeMap m = db.createHashMap("test")
+                .expireMaxSize(1000)
+                .make();
+        for(int i=0;i<1010;i++){
+            m.put(""+i,i);
+        }
+        //first should be removed soon
+        while(m.get("0")!=null){
+        }
+        Thread.sleep(500);
+        long size = m.size();
+        assertTrue(""+size,size>900 && size<=1000);
+    }
 
 }
 
