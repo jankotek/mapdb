@@ -96,7 +96,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         @Override
         public void serialize(DataOutput out, LinkedNode<K,V> value) throws IOException {
             Utils.packLong(out, value.next);
-            Utils.packLong(out, value.expireLinkNodeRecid); //TODO save one byte if `expire` is not on
+            if(expireFlag)
+                Utils.packLong(out, value.expireLinkNodeRecid); //TODO save one byte if `expire` is not on
             keySerializer.serialize(out,value.key);
             if(hasValues)
                 valueSerializer.serialize(out,value.value);
@@ -106,8 +107,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         public LinkedNode<K,V> deserialize(DataInput in, int available) throws IOException {
             return new LinkedNode<K, V>(
                     Utils.unpackLong(in),
-                    Utils.unpackLong(in),
-                    (K) keySerializer.deserialize(in,-1),
+                    expireFlag?Utils.unpackLong(in):0L,
+                    keySerializer.deserialize(in,-1),
                     hasValues? (V) valueSerializer.deserialize(in,-1) : (V) Utils.EMPTY_STRING
             );
         }
@@ -953,7 +954,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
                 long dirRecid = segmentRecids[segment];
                 LinkedNode ret[] = findNextLinkedNodeRecur(dirRecid, hash, 3);
-                for(LinkedNode ln:ret){
+                if(ret!=null) for(LinkedNode ln:ret){
                     assert hash(ln.key)>>>28==segment;
                 }
                 //System.out.println(Arrays.asList(ret));
