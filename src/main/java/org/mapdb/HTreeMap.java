@@ -477,7 +477,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
                     {
                         final long expireNodeRecid = expireFlag? engine.put(null, ExpireLinkNode.SERIALIZER):0L;
-                        final LinkedNode node = new LinkedNode<K, V>(0, expireNodeRecid, key, value);
+                        final LinkedNode<K,V> node = new LinkedNode<K, V>(0, expireNodeRecid, key, value);
                         final long newRecid = engine.put(node, LN_SERIALIZER);
                         //add newly inserted record
                         int pos =(h >>>(7*(level-1) )) & 0x7F;
