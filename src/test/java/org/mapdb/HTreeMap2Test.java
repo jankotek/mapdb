@@ -125,7 +125,7 @@ public class HTreeMap2Test {
         HTreeMap.LinkedNode n2  = (HTreeMap.LinkedNode) serializer.deserialize(in, -1);
 
         assertEquals(123456, n2.next);
-        assertEquals(1111L, n2.expireLinkNodeRecid);
+        assertEquals(0L, n2.expireLinkNodeRecid);
         assertEquals(123L,n2.key);
         assertEquals(456L,n2.value);
     }
