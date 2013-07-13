@@ -953,6 +953,9 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
                 long dirRecid = segmentRecids[segment];
                 LinkedNode ret[] = findNextLinkedNodeRecur(dirRecid, hash, 3);
+                for(LinkedNode ln:ret){
+                    assert hash(ln.key)>>>28==segment;
+                }
                 //System.out.println(Arrays.asList(ret));
                 if(ret !=null) return ret;
                 hash = 0;

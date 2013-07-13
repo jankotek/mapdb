@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.TreeMap;
 
 import static org.junit.Assert.*;
@@ -467,5 +468,15 @@ public class HTreeMap2Test {
         assertTrue(""+size,size>900 && size<=1000);
     }
 
+
+    @Test public void testSingleIter(){
+        Map m = DBMaker.newTempHashMap();
+        m.put("aa","bb");
+
+        Iterator iter = m.keySet().iterator();
+        assertTrue(iter.hasNext());
+        assertEquals("aa",iter.next());
+        assertFalse(iter.hasNext());
+    }
 }
 
