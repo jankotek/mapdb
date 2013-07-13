@@ -362,6 +362,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             if(isLeaf && hasValues){
                 for(int i=0; i<value.vals().length; i++){
                     Object val = value.vals()[i];
+                    assert(i==0 || i==value.vals().length-1 || val!=null);
                     if(valsOutsideNodes){
                         long recid = val!=null?  ((ValRef)val).recid :0;
                         Utils.packLong(out, recid);
@@ -391,7 +392,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
             if(isLeaf){
                 long next = Utils.unpackLong(in);
-                Object[] keys = (Object[]) keySerializer.deserialize(in, start,end,size);
+                Object[] keys = keySerializer.deserialize(in, start,end,size);
                 if(keys.length!=size) throw new InternalError();
                 Object[] vals  = null;
 
@@ -411,7 +412,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 long[] child = new long[size];
                 for(int i=0;i<size;i++)
                     child[i] = Utils.unpackLong(in);
-                Object[] keys = (Object[]) keySerializer.deserialize(in, start,end,size);
+                Object[] keys = keySerializer.deserialize(in, start,end,size);
                 if(keys.length!=size) throw new InternalError();
                 return new DirNode(keys, child);
             }
@@ -645,6 +646,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                         if(next==0) break;
                         current = next;
                         A = engine.get(current, nodeSerializer);
+                        pos2 = findChildren(v, A.keys());
                     }
 
                 }
