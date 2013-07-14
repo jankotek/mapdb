@@ -441,7 +441,7 @@ public class HTreeMap2Test {
 
 
 
-    @Test (timeout = 10000)
+    @Test (timeout = 20000)
     public void expire_put() {
         HTreeMap m = db.createHashMap("test")
                 .expireAfterWrite(100)
@@ -452,7 +452,7 @@ public class HTreeMap2Test {
         }
     }
 
-    @Test (timeout = 10000)
+    @Test (timeout = 20000)
     public void expire_max_size() throws InterruptedException {
         HTreeMap m = db.createHashMap("test")
                 .expireMaxSize(1000)

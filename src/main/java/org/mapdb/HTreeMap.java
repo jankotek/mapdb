@@ -920,11 +920,6 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         protected void  moveToNext(){
             lastReturnedKey = (K) currentLinkedList[currentLinkedListPos].key;
-
-            if(expireAccessFlag){
-                int segment = hash(lastReturnedKey)>>>28;
-                expireLinkBump(segment, currentLinkedList[currentLinkedListPos].expireLinkNodeRecid,true);
-            }
             currentLinkedListPos+=1;
             if(currentLinkedListPos==currentLinkedList.length){
                 final int lastHash = hash(lastReturnedKey);
@@ -976,21 +971,27 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         private LinkedNode[] findNextLinkedNode(int hash) {
             //second phase, start search from increased hash to find next items
-            for(int segment = Math.max(hash >>>28, lastSegment); segment<16;segment++)try{
-
-                lastSegment = Math.max(segment,lastSegment);
-                segmentLocks[segment].readLock().lock();
-
-                long dirRecid = segmentRecids[segment];
-                LinkedNode ret[] = findNextLinkedNodeRecur(dirRecid, hash, 3);
-                if(ret!=null) for(LinkedNode ln:ret){
-                    assert hash(ln.key)>>>28==segment;
+            for(int segment = Math.max(hash >>>28, lastSegment); segment<16;segment++){
+                final Lock lock = expireAccessFlag ? segmentLocks[segment].writeLock() :segmentLocks[segment].readLock() ;
+                lock.lock();
+                try{
+                    lastSegment = Math.max(segment,lastSegment);
+                    long dirRecid = segmentRecids[segment];
+                    LinkedNode ret[] = findNextLinkedNodeRecur(dirRecid, hash, 3);
+                    if(ret!=null) for(LinkedNode ln:ret){
+                        assert hash(ln.key)>>>28==segment;
+                    }
+                    //System.out.println(Arrays.asList(ret));
+                    if(ret !=null){
+                        if(expireAccessFlag){
+                            for(LinkedNode ln:ret) expireLinkBump(segment,ln.expireLinkNodeRecid,true);
+                        }
+                        return ret;
+                    }
+                    hash = 0;
+                }finally {
+                    lock.unlock();
                 }
-                //System.out.println(Arrays.asList(ret));
-                if(ret !=null) return ret;
-                hash = 0;
-            }finally {
-                segmentLocks[segment].readLock().unlock();
             }
 
             return null;
@@ -1263,9 +1264,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     }
 
     protected void expireLinkBump(int segment, long nodeRecid, boolean access){
-        segmentLocks[segment].writeLock().lock();
+        assert(segmentLocks[segment].writeLock().isHeldByCurrentThread());
 
-        try{
         ExpireLinkNode n = engine.get(nodeRecid,ExpireLinkNode.SERIALIZER);
         long newTime =
                 access?
@@ -1308,10 +1308,6 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             n = new ExpireLinkNode(oldHeadRecid,0, n.keyRecid, newTime, n.hash);
             engine.update(nodeRecid,n,ExpireLinkNode.SERIALIZER);
         }
-        }finally{
-            segmentLocks[segment].writeLock().unlock();
-        }
-
     }
 
     protected ExpireLinkNode expireLinkRemoveLast(int segment){
