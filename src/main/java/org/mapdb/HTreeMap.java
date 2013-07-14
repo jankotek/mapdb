@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 
@@ -337,16 +338,44 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         if(o==null) return null;
         final int h = hash(o);
         final int segment = h >>>28;
-        segmentLocks[segment].readLock().lock();
-        LinkedNode<K,V> ln;
+
+        final Lock lock = expireAccessFlag ? segmentLocks[segment].writeLock() : segmentLocks[segment].readLock();
+        lock.lock();
+
         try{
-            ln = getInner(o, h, segment);
+            LinkedNode<K,V> ln = getInner(o, h, segment);
+            if(ln==null) return null;
+            if(expireAccessFlag) expireLinkBump(segment,ln.expireLinkNodeRecid,true);
+            return ln.value;
         }finally {
-            segmentLocks[segment].readLock().unlock();
+            lock.unlock();
         }
-        if(ln==null) return null;
-        if(expireAccessFlag) expireLinkBump(segment,ln.expireLinkNodeRecid,true);
-        return ln.value;
+
+    }
+
+
+    /**
+     * Return given value, without updating cache statistics if `expireAccess()` is true
+     *
+     * @param key key to lookup
+     * @return value associated with key or null
+     */
+    public V getPeek(final Object key){
+        if(key==null) return null;
+        final int h = hash(key);
+        final int segment = h >>>28;
+
+        final Lock lock = segmentLocks[segment].readLock();
+        lock.lock();
+
+        try{
+            LinkedNode<K,V> ln = getInner(key, h, segment);
+            if(ln==null) return null;
+            return ln.value;
+        }finally {
+            lock.unlock();
+        }
+
     }
 
     protected LinkedNode<K,V> getInner(Object o, int h, int segment) {
@@ -1339,6 +1368,48 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         }
 
         return n;
+    }
+
+    /**
+     * Returns maximal (newest) expiration timestamp
+     */
+    public long getMaxExpireTime(){
+        if(!expireFlag) return 0;
+        long ret = 0;
+        for(int segment = 0;segment<16;segment++){
+            segmentLocks[segment].readLock().lock();
+            try{
+                long head = engine.get(expireHeads[segment],Serializer.LONG_SERIALIZER);
+                if(head == 0) continue;
+                ExpireLinkNode ln = engine.get(head, ExpireLinkNode.SERIALIZER);
+                if(ln==null || ln.time==0) continue;
+                ret = Math.max(ret, ln.time+expireTimeStart);
+            }finally{
+                segmentLocks[segment].readLock().unlock();
+            }
+        }
+        return ret;
+    }
+
+    /**
+     * Returns minimal (oldest) expiration timestamp
+     */
+    public long getMinExpireTime(){
+        if(!expireFlag) return 0;
+        long ret = 0;
+        for(int segment = 0;segment<16;segment++){
+            segmentLocks[segment].readLock().lock();
+            try{
+                long tail = engine.get(expireTails[segment],Serializer.LONG_SERIALIZER);
+                if(tail == 0) continue;
+                ExpireLinkNode ln = engine.get(tail, ExpireLinkNode.SERIALIZER);
+                if(ln==null || ln.time==0) continue;
+                ret = Math.min(ret, ln.time+expireTimeStart);
+            }finally{
+                segmentLocks[segment].readLock().unlock();
+            }
+        }
+        return ret;
     }
 
     protected static class ExpireRunnable implements  Runnable{
