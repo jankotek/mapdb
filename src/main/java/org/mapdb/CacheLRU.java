@@ -90,7 +90,7 @@ public class CacheLRU extends EngineWrapper {
             Engine engine = getWrappedEngine();
             LongMap cache2 = checkClosed(cache);
             Object oldValue = cache.get(recid);
-            if(oldValue == expectedOldValue || oldValue.equals(expectedOldValue)){
+            if(oldValue == expectedOldValue || (oldValue!=null&&oldValue.equals(expectedOldValue))){
                 //found matching entry in cache, so just update and return true
                 cache2.put(recid, newValue);
                 engine.update(recid, newValue, serializer);

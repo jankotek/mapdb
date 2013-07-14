@@ -189,7 +189,7 @@ public class CacheWeakSoftRef extends EngineWrapper implements Engine {
             CacheItem item = checkClosed(items).get(recid);
             Object oldValue = item==null? null: item.get() ;
             if(item!=null && item.getRecid() == recid &&
-                    (oldValue == expectedOldValue || oldValue.equals(expectedOldValue))){
+                    (oldValue == expectedOldValue || (oldValue!=null && oldValue.equals(expectedOldValue)))){
                 //found matching entry in cache, so just update and return true
                 putItemIntoCache(recid, newValue);
                 getWrappedEngine().update(recid, newValue, serializer);
