@@ -478,5 +478,28 @@ public class HTreeMap2Test {
         assertEquals("aa",iter.next());
         assertFalse(iter.hasNext());
     }
+
+    @Test public void testMinMaxExpiryTime(){
+        HTreeMap m = db.createHashMap("test")
+                .expireAfterWrite(10000)
+                .expireAfterAccess(100000)
+                .make();
+        long t = System.currentTimeMillis();
+        assertEquals(0L, m.getMaxExpireTime());
+        assertEquals(0L, m.getMinExpireTime());
+        m.put("11","11");
+        m.put("12","12");
+        assertTrue(Math.abs(m.getMaxExpireTime()-t-10000)<300);
+        assertTrue(Math.abs(m.getMinExpireTime()-t-10000)<300);
+
+        m.get("11");
+        assertTrue(Math.abs(m.getMaxExpireTime()-t-100000)<300);
+        assertTrue(Math.abs(m.getMinExpireTime()-t-10000)<300);
+        m.remove("11");
+        m.remove("12");
+        assertEquals(0L, m.getMaxExpireTime());
+        assertEquals(0L, m.getMinExpireTime());
+
+    }
 }
 

@@ -1392,7 +1392,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
      */
     public long getMinExpireTime(){
         if(!expireFlag) return 0;
-        long ret = 0;
+        long ret = Long.MAX_VALUE;
         for(int segment = 0;segment<16;segment++){
             segmentLocks[segment].readLock().lock();
             try{
@@ -1405,6 +1405,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 segmentLocks[segment].readLock().unlock();
             }
         }
+        if(ret == Long.MAX_VALUE) ret =0;
         return ret;
     }
 
