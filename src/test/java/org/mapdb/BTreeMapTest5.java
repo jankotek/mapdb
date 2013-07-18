@@ -1,14 +1,13 @@
 package org.mapdb;/*
+/*
  * Written by Doug Lea with assistance from members of JCP JSR-166
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-import junit.framework.Test;
-import junit.framework.TestSuite;
-
-import java.util.*;
+import junit.framework.*;
 import java.util.concurrent.ConcurrentNavigableMap;
+import java.util.*;
 
 public class BTreeMapTest5 extends JSR166TestCase {
     public static void main(String[] args) {
@@ -22,7 +21,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
      * Returns a new map from Integers 1-5 to Strings "A"-"E".
      */
     private static ConcurrentNavigableMap map5() {
-        BTreeMap map = newBTreeMap();
+        ConcurrentNavigableMap map = DBMaker.newMemoryDB().make().createTreeMap("test").make();
         assertTrue(map.isEmpty());
         map.put(zero, "Z");
         map.put(one, "A");
@@ -36,19 +35,30 @@ public class BTreeMapTest5 extends JSR166TestCase {
         return map.subMap(one, true, seven, false);
     }
 
-    private static BTreeMap newBTreeMap() {
-        return DBMaker.newMemoryDB().asyncWriteDisable().writeAheadLogDisable().cacheDisable().make().getTreeMap("test");
+    /**
+     * Returns a new map from Integers -5 to -1 to Strings "A"-"E".
+     */
+    private static ConcurrentNavigableMap dmap5() {
+        ConcurrentNavigableMap map = DBMaker.newMemoryDB().make().createTreeMap("test").make();
+        assertTrue(map.isEmpty());
+        map.put(m1, "A");
+        map.put(m5, "E");
+        map.put(m3, "C");
+        map.put(m2, "B");
+        map.put(m4, "D");
+        assertFalse(map.isEmpty());
+        assertEquals(5, map.size());
+        return map.descendingMap();
     }
 
-
     private static ConcurrentNavigableMap map0() {
-        BTreeMap map = newBTreeMap();
+        ConcurrentNavigableMap map = DBMaker.newMemoryDB().make().createTreeMap("test").make();
         assertTrue(map.isEmpty());
         return map.tailMap(one, true);
     }
 
     private static ConcurrentNavigableMap dmap0() {
-        BTreeMap map = newBTreeMap();
+        ConcurrentNavigableMap map = DBMaker.newMemoryDB().make().createTreeMap("test").make();
         assertTrue(map.isEmpty());
         return map;
     }
@@ -187,6 +197,18 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertFalse(s.containsAll(Arrays.asList(ar)));
     }
 
+    /**
+     * descendingkeySet.toArray returns contains all keys
+     */
+    public void testDescendingKeySetToArray() {
+        ConcurrentNavigableMap map = map5();
+        Set s = map.descendingKeySet();
+        Object[] ar = s.toArray();
+        assertEquals(5, ar.length);
+        assertTrue(s.containsAll(Arrays.asList(ar)));
+        ar[0] = m10;
+        assertFalse(s.containsAll(Arrays.asList(ar)));
+    }
 
     /**
      * Values.toArray contains all values
@@ -215,11 +237,11 @@ public class BTreeMapTest5 extends JSR166TestCase {
         while (it.hasNext()) {
             Map.Entry e = (Map.Entry) it.next();
             assertTrue(
-                       (e.getKey().equals(one) && e.getValue().equals("A")) ||
-                       (e.getKey().equals(two) && e.getValue().equals("B")) ||
-                       (e.getKey().equals(three) && e.getValue().equals("C")) ||
-                       (e.getKey().equals(four) && e.getValue().equals("D")) ||
-                       (e.getKey().equals(five) && e.getValue().equals("E")));
+                    (e.getKey().equals(one) && e.getValue().equals("A")) ||
+                            (e.getKey().equals(two) && e.getValue().equals("B")) ||
+                            (e.getKey().equals(three) && e.getValue().equals("C")) ||
+                            (e.getKey().equals(four) && e.getValue().equals("D")) ||
+                            (e.getKey().equals(five) && e.getValue().equals("E")));
         }
     }
 
@@ -573,7 +595,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
 //        NavigableMap x = map5();
 //        NavigableMap y = serialClone(x);
 //
-//        assertTrue(x != y);
+//        assertNotSame(x, y);
 //        assertEquals(x.size(), y.size());
 //        assertEquals(x.toString(), y.toString());
 //        assertEquals(x, y);
@@ -715,6 +737,453 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertEquals(4, map.size());
     }
 
+    /**
+     * clear removes all pairs
+     */
+    public void testDescendingClear() {
+        ConcurrentNavigableMap map = dmap5();
+        map.clear();
+        assertEquals(0, map.size());
+    }
+
+    /**
+     * Maps with same contents are equal
+     */
+    public void testDescendingEquals() {
+        ConcurrentNavigableMap map1 = dmap5();
+        ConcurrentNavigableMap map2 = dmap5();
+        assertEquals(map1, map2);
+        assertEquals(map2, map1);
+        map1.clear();
+        assertFalse(map1.equals(map2));
+        assertFalse(map2.equals(map1));
+    }
+
+    /**
+     * containsKey returns true for contained key
+     */
+    public void testDescendingContainsKey() {
+        ConcurrentNavigableMap map = dmap5();
+        assertTrue(map.containsKey(m1));
+        assertFalse(map.containsKey(zero));
+    }
+
+    /**
+     * containsValue returns true for held values
+     */
+    public void testDescendingContainsValue() {
+        ConcurrentNavigableMap map = dmap5();
+        assertTrue(map.containsValue("A"));
+        assertFalse(map.containsValue("Z"));
+    }
+
+    /**
+     * get returns the correct element at the given key,
+     * or null if not present
+     */
+    public void testDescendingGet() {
+        ConcurrentNavigableMap map = dmap5();
+        assertEquals("A", (String)map.get(m1));
+        ConcurrentNavigableMap empty = dmap0();
+        assertNull(empty.get(m1));
+    }
+
+    /**
+     * isEmpty is true of empty map and false for non-empty
+     */
+    public void testDescendingIsEmpty() {
+        ConcurrentNavigableMap empty = dmap0();
+        ConcurrentNavigableMap map = dmap5();
+        assertTrue(empty.isEmpty());
+        assertFalse(map.isEmpty());
+    }
+
+    /**
+     * firstKey returns first key
+     */
+    public void testDescendingFirstKey() {
+        ConcurrentNavigableMap map = dmap5();
+        assertEquals(m1, map.firstKey());
+    }
+
+    /**
+     * lastKey returns last key
+     */
+    public void testDescendingLastKey() {
+        ConcurrentNavigableMap map = dmap5();
+        assertEquals(m5, map.lastKey());
+    }
+
+    /**
+     * keySet returns a Set containing all the keys
+     */
+    public void testDescendingKeySet() {
+        ConcurrentNavigableMap map = dmap5();
+        Set s = map.keySet();
+        assertEquals(5, s.size());
+        assertTrue(s.contains(m1));
+        assertTrue(s.contains(m2));
+        assertTrue(s.contains(m3));
+        assertTrue(s.contains(m4));
+        assertTrue(s.contains(m5));
+    }
+
+    /**
+     * keySet is ordered
+     */
+    public void testDescendingKeySetOrder() {
+        ConcurrentNavigableMap map = dmap5();
+        Set s = map.keySet();
+        Iterator i = s.iterator();
+        Integer last = (Integer)i.next();
+        assertEquals(last, m1);
+        while (i.hasNext()) {
+            Integer k = (Integer)i.next();
+            assertTrue(last.compareTo(k) > 0);
+            last = k;
+        }
+    }
+
+    /**
+     * values collection contains all values
+     */
+    public void testDescendingValues() {
+        ConcurrentNavigableMap map = dmap5();
+        Collection s = map.values();
+        assertEquals(5, s.size());
+        assertTrue(s.contains("A"));
+        assertTrue(s.contains("B"));
+        assertTrue(s.contains("C"));
+        assertTrue(s.contains("D"));
+        assertTrue(s.contains("E"));
+    }
+
+    /**
+     * keySet.toArray returns contains all keys
+     */
+    public void testDescendingAscendingKeySetToArray() {
+        ConcurrentNavigableMap map = dmap5();
+        Set s = map.keySet();
+        Object[] ar = s.toArray();
+        assertTrue(s.containsAll(Arrays.asList(ar)));
+        assertEquals(5, ar.length);
+        ar[0] = m10;
+        assertFalse(s.containsAll(Arrays.asList(ar)));
+    }
+
+    /**
+     * descendingkeySet.toArray returns contains all keys
+     */
+    public void testDescendingDescendingKeySetToArray() {
+        ConcurrentNavigableMap map = dmap5();
+        Set s = map.descendingKeySet();
+        Object[] ar = s.toArray();
+        assertEquals(5, ar.length);
+        assertTrue(s.containsAll(Arrays.asList(ar)));
+        ar[0] = m10;
+        assertFalse(s.containsAll(Arrays.asList(ar)));
+    }
+
+    /**
+     * Values.toArray contains all values
+     */
+    public void testDescendingValuesToArray() {
+        ConcurrentNavigableMap map = dmap5();
+        Collection v = map.values();
+        Object[] ar = v.toArray();
+        ArrayList s = new ArrayList(Arrays.asList(ar));
+        assertEquals(5, ar.length);
+        assertTrue(s.contains("A"));
+        assertTrue(s.contains("B"));
+        assertTrue(s.contains("C"));
+        assertTrue(s.contains("D"));
+        assertTrue(s.contains("E"));
+    }
+
+    /**
+     * entrySet contains all pairs
+     */
+    public void testDescendingEntrySet() {
+        ConcurrentNavigableMap map = dmap5();
+        Set s = map.entrySet();
+        assertEquals(5, s.size());
+        Iterator it = s.iterator();
+        while (it.hasNext()) {
+            Map.Entry e = (Map.Entry) it.next();
+            assertTrue(
+                    (e.getKey().equals(m1) && e.getValue().equals("A")) ||
+                            (e.getKey().equals(m2) && e.getValue().equals("B")) ||
+                            (e.getKey().equals(m3) && e.getValue().equals("C")) ||
+                            (e.getKey().equals(m4) && e.getValue().equals("D")) ||
+                            (e.getKey().equals(m5) && e.getValue().equals("E")));
+        }
+    }
+
+    /**
+     * putAll adds all key-value pairs from the given map
+     */
+    public void testDescendingPutAll() {
+        ConcurrentNavigableMap empty = dmap0();
+        ConcurrentNavigableMap map = dmap5();
+        empty.putAll(map);
+        assertEquals(5, empty.size());
+        assertTrue(empty.containsKey(m1));
+        assertTrue(empty.containsKey(m2));
+        assertTrue(empty.containsKey(m3));
+        assertTrue(empty.containsKey(m4));
+        assertTrue(empty.containsKey(m5));
+    }
+
+    /**
+     * putIfAbsent works when the given key is not present
+     */
+    public void testDescendingPutIfAbsent() {
+        ConcurrentNavigableMap map = dmap5();
+        map.putIfAbsent(six, "Z");
+        assertTrue(map.containsKey(six));
+    }
+
+    /**
+     * putIfAbsent does not add the pair if the key is already present
+     */
+    public void testDescendingPutIfAbsent2() {
+        ConcurrentNavigableMap map = dmap5();
+        assertEquals("A", map.putIfAbsent(m1, "Z"));
+    }
+
+    /**
+     * replace fails when the given key is not present
+     */
+    public void testDescendingReplace() {
+        ConcurrentNavigableMap map = dmap5();
+        assertNull(map.replace(six, "Z"));
+        assertFalse(map.containsKey(six));
+    }
+
+    /**
+     * replace succeeds if the key is already present
+     */
+    public void testDescendingReplace2() {
+        ConcurrentNavigableMap map = dmap5();
+        assertNotNull(map.replace(m1, "Z"));
+        assertEquals("Z", map.get(m1));
+    }
+
+    /**
+     * replace value fails when the given key not mapped to expected value
+     */
+    public void testDescendingReplaceValue() {
+        ConcurrentNavigableMap map = dmap5();
+        assertEquals("A", map.get(m1));
+        assertFalse(map.replace(m1, "Z", "Z"));
+        assertEquals("A", map.get(m1));
+    }
+
+    /**
+     * replace value succeeds when the given key mapped to expected value
+     */
+    public void testDescendingReplaceValue2() {
+        ConcurrentNavigableMap map = dmap5();
+        assertEquals("A", map.get(m1));
+        assertTrue(map.replace(m1, "A", "Z"));
+        assertEquals("Z", map.get(m1));
+    }
+
+    /**
+     * remove removes the correct key-value pair from the map
+     */
+    public void testDescendingRemove() {
+        ConcurrentNavigableMap map = dmap5();
+        map.remove(m5);
+        assertEquals(4, map.size());
+        assertFalse(map.containsKey(m5));
+    }
+
+    /**
+     * remove(key,value) removes only if pair present
+     */
+    public void testDescendingRemove2() {
+        ConcurrentNavigableMap map = dmap5();
+        assertTrue(map.containsKey(m5));
+        assertEquals("E", map.get(m5));
+        map.remove(m5, "E");
+        assertEquals(4, map.size());
+        assertFalse(map.containsKey(m5));
+        map.remove(m4, "A");
+        assertEquals(4, map.size());
+        assertTrue(map.containsKey(m4));
+    }
+
+    /**
+     * lowerEntry returns preceding entry.
+     */
+    public void testDescendingLowerEntry() {
+        ConcurrentNavigableMap map = dmap5();
+        Map.Entry e1 = map.lowerEntry(m3);
+        assertEquals(m2, e1.getKey());
+
+        Map.Entry e2 = map.lowerEntry(m6);
+        assertEquals(m5, e2.getKey());
+
+        Map.Entry e3 = map.lowerEntry(m1);
+        assertNull(e3);
+
+        Map.Entry e4 = map.lowerEntry(zero);
+        assertNull(e4);
+    }
+
+    /**
+     * higherEntry returns next entry.
+     */
+    public void testDescendingHigherEntry() {
+        ConcurrentNavigableMap map = dmap5();
+        Map.Entry e1 = map.higherEntry(m3);
+        assertEquals(m4, e1.getKey());
+
+        Map.Entry e2 = map.higherEntry(zero);
+        assertEquals(m1, e2.getKey());
+
+        Map.Entry e3 = map.higherEntry(m5);
+        assertNull(e3);
+
+        Map.Entry e4 = map.higherEntry(m6);
+        assertNull(e4);
+    }
+
+    /**
+     * floorEntry returns preceding entry.
+     */
+    public void testDescendingFloorEntry() {
+        ConcurrentNavigableMap map = dmap5();
+        Map.Entry e1 = map.floorEntry(m3);
+        assertEquals(m3, e1.getKey());
+
+        Map.Entry e2 = map.floorEntry(m6);
+        assertEquals(m5, e2.getKey());
+
+        Map.Entry e3 = map.floorEntry(m1);
+        assertEquals(m1, e3.getKey());
+
+        Map.Entry e4 = map.floorEntry(zero);
+        assertNull(e4);
+    }
+
+    /**
+     * ceilingEntry returns next entry.
+     */
+    public void testDescendingCeilingEntry() {
+        ConcurrentNavigableMap map = dmap5();
+        Map.Entry e1 = map.ceilingEntry(m3);
+        assertEquals(m3, e1.getKey());
+
+        Map.Entry e2 = map.ceilingEntry(zero);
+        assertEquals(m1, e2.getKey());
+
+        Map.Entry e3 = map.ceilingEntry(m5);
+        assertEquals(m5, e3.getKey());
+
+        Map.Entry e4 = map.ceilingEntry(m6);
+        assertNull(e4);
+    }
+
+    /**
+     * pollFirstEntry returns entries in order
+     */
+    public void testDescendingPollFirstEntry() {
+        ConcurrentNavigableMap map = dmap5();
+        Map.Entry e = map.pollFirstEntry();
+        assertEquals(m1, e.getKey());
+        assertEquals("A", e.getValue());
+        e = map.pollFirstEntry();
+        assertEquals(m2, e.getKey());
+        map.put(m1, "A");
+        e = map.pollFirstEntry();
+        assertEquals(m1, e.getKey());
+        assertEquals("A", e.getValue());
+        e = map.pollFirstEntry();
+        assertEquals(m3, e.getKey());
+        map.remove(m4);
+        e = map.pollFirstEntry();
+        assertEquals(m5, e.getKey());
+        try {
+            e.setValue("A");
+            shouldThrow();
+        } catch (UnsupportedOperationException success) {}
+        e = map.pollFirstEntry();
+        assertNull(e);
+    }
+
+    /**
+     * pollLastEntry returns entries in order
+     */
+    public void testDescendingPollLastEntry() {
+        ConcurrentNavigableMap map = dmap5();
+        Map.Entry e = map.pollLastEntry();
+        assertEquals(m5, e.getKey());
+        assertEquals("E", e.getValue());
+        e = map.pollLastEntry();
+        assertEquals(m4, e.getKey());
+        map.put(m5, "E");
+        e = map.pollLastEntry();
+        assertEquals(m5, e.getKey());
+        assertEquals("E", e.getValue());
+        e = map.pollLastEntry();
+        assertEquals(m3, e.getKey());
+        map.remove(m2);
+        e = map.pollLastEntry();
+        assertEquals(m1, e.getKey());
+        try {
+            e.setValue("E");
+            shouldThrow();
+        } catch (UnsupportedOperationException success) {}
+        e = map.pollLastEntry();
+        assertNull(e);
+    }
+
+    /**
+     * size returns the correct values
+     */
+    public void testDescendingSize() {
+        ConcurrentNavigableMap map = dmap5();
+        ConcurrentNavigableMap empty = dmap0();
+        assertEquals(0, empty.size());
+        assertEquals(5, map.size());
+    }
+
+    /**
+     * toString contains toString of elements
+     */
+    public void testDescendingToString() {
+        ConcurrentNavigableMap map = dmap5();
+        String s = map.toString();
+        for (int i = 1; i <= 5; ++i) {
+            assertTrue(s.contains(String.valueOf(i)));
+        }
+    }
+
+    // Exception testDescendings
+
+    /**
+     * get(null) of empty map throws NPE
+     */
+    public void testDescendingGet_NullPointerException() {
+        try {
+            ConcurrentNavigableMap c = dmap5();
+            c.get(null);
+            shouldThrow();
+        } catch (NullPointerException success) {}
+    }
+
+    /**
+     * containsKey(null) of empty map throws NPE
+     */
+    public void testDescendingContainsKey_NullPointerException() {
+        try {
+            ConcurrentNavigableMap c = dmap5();
+            c.containsKey(null);
+            shouldThrow();
+        } catch (NullPointerException success) {}
+    }
 
     /**
      * containsValue(null) throws NPE
@@ -727,7 +1196,71 @@ public class BTreeMapTest5 extends JSR166TestCase {
         } catch (NullPointerException success) {}
     }
 
+    /**
+     * put(null,x) throws NPE
+     */
+    public void testDescendingPut1_NullPointerException() {
+        try {
+            ConcurrentNavigableMap c = dmap5();
+            c.put(null, "whatever");
+            shouldThrow();
+        } catch (NullPointerException success) {}
+    }
 
+    /**
+     * putIfAbsent(null, x) throws NPE
+     */
+    public void testDescendingPutIfAbsent1_NullPointerException() {
+        try {
+            ConcurrentNavigableMap c = dmap5();
+            c.putIfAbsent(null, "whatever");
+            shouldThrow();
+        } catch (NullPointerException success) {}
+    }
+
+    /**
+     * replace(null, x) throws NPE
+     */
+    public void testDescendingReplace_NullPointerException() {
+        try {
+            ConcurrentNavigableMap c = dmap5();
+            c.replace(null, "whatever");
+            shouldThrow();
+        } catch (NullPointerException success) {}
+    }
+
+    /**
+     * replace(null, x, y) throws NPE
+     */
+    public void testDescendingReplaceValue_NullPointerException() {
+        try {
+            ConcurrentNavigableMap c = dmap5();
+            c.replace(null, m1, "whatever");
+            shouldThrow();
+        } catch (NullPointerException success) {}
+    }
+
+    /**
+     * remove(null) throws NPE
+     */
+    public void testDescendingRemove1_NullPointerException() {
+        try {
+            ConcurrentNavigableMap c = dmap5();
+            c.remove(null);
+            shouldThrow();
+        } catch (NullPointerException success) {}
+    }
+
+    /**
+     * remove(null, x) throws NPE
+     */
+    public void testDescendingRemove2_NullPointerException() {
+        try {
+            ConcurrentNavigableMap c = dmap5();
+            c.remove(null, "whatever");
+            shouldThrow();
+        } catch (NullPointerException success) {}
+    }
 
 //    /**
 //     * A deserialized map equals original
@@ -736,10 +1269,146 @@ public class BTreeMapTest5 extends JSR166TestCase {
 //        NavigableMap x = dmap5();
 //        NavigableMap y = serialClone(x);
 //
-//        assertTrue(x != y);
+//        assertNotSame(x, y);
 //        assertEquals(x.size(), y.size());
 //        assertEquals(x.toString(), y.toString());
 //        assertEquals(x, y);
 //        assertEquals(y, x);
 //    }
+
+    /**
+     * subMap returns map with keys in requested range
+     */
+    public void testDescendingSubMapContents() {
+        ConcurrentNavigableMap map = dmap5();
+        SortedMap sm = map.subMap(m2, m4);
+        assertEquals(m2, sm.firstKey());
+        assertEquals(m3, sm.lastKey());
+        assertEquals(2, sm.size());
+        assertFalse(sm.containsKey(m1));
+        assertTrue(sm.containsKey(m2));
+        assertTrue(sm.containsKey(m3));
+        assertFalse(sm.containsKey(m4));
+        assertFalse(sm.containsKey(m5));
+        Iterator i = sm.keySet().iterator();
+        Object k;
+        k = (Integer)(i.next());
+        assertEquals(m2, k);
+        k = (Integer)(i.next());
+        assertEquals(m3, k);
+        assertFalse(i.hasNext());
+        Iterator j = sm.keySet().iterator();
+        j.next();
+        j.remove();
+        assertFalse(map.containsKey(m2));
+        assertEquals(4, map.size());
+        assertEquals(1, sm.size());
+        assertEquals(m3, sm.firstKey());
+        assertEquals(m3, sm.lastKey());
+        assertEquals("C", sm.remove(m3));
+        assertTrue(sm.isEmpty());
+        assertEquals(3, map.size());
+    }
+
+    public void testDescendingSubMapContents2() {
+        ConcurrentNavigableMap map = dmap5();
+        SortedMap sm = map.subMap(m2, m3);
+        assertEquals(1, sm.size());
+        assertEquals(m2, sm.firstKey());
+        assertEquals(m2, sm.lastKey());
+        assertFalse(sm.containsKey(m1));
+        assertTrue(sm.containsKey(m2));
+        assertFalse(sm.containsKey(m3));
+        assertFalse(sm.containsKey(m4));
+        assertFalse(sm.containsKey(m5));
+        Iterator i = sm.keySet().iterator();
+        Object k;
+        k = (Integer)(i.next());
+        assertEquals(m2, k);
+        assertFalse(i.hasNext());
+        Iterator j = sm.keySet().iterator();
+        j.next();
+        j.remove();
+        assertFalse(map.containsKey(m2));
+        assertEquals(4, map.size());
+        assertEquals(0, sm.size());
+        assertTrue(sm.isEmpty());
+        assertSame(sm.remove(m3), null);
+        assertEquals(4, map.size());
+    }
+
+    /**
+     * headMap returns map with keys in requested range
+     */
+    public void testDescendingHeadMapContents() {
+        ConcurrentNavigableMap map = dmap5();
+        SortedMap sm = map.headMap(m4);
+        assertTrue(sm.containsKey(m1));
+        assertTrue(sm.containsKey(m2));
+        assertTrue(sm.containsKey(m3));
+        assertFalse(sm.containsKey(m4));
+        assertFalse(sm.containsKey(m5));
+        Iterator i = sm.keySet().iterator();
+        Object k;
+        k = (Integer)(i.next());
+        assertEquals(m1, k);
+        k = (Integer)(i.next());
+        assertEquals(m2, k);
+        k = (Integer)(i.next());
+        assertEquals(m3, k);
+        assertFalse(i.hasNext());
+        sm.clear();
+        assertTrue(sm.isEmpty());
+        assertEquals(2, map.size());
+        assertEquals(m4, map.firstKey());
+    }
+
+    /**
+     * headMap returns map with keys in requested range
+     */
+    public void testDescendingTailMapContents() {
+        ConcurrentNavigableMap map = dmap5();
+        SortedMap sm = map.tailMap(m2);
+        assertFalse(sm.containsKey(m1));
+        assertTrue(sm.containsKey(m2));
+        assertTrue(sm.containsKey(m3));
+        assertTrue(sm.containsKey(m4));
+        assertTrue(sm.containsKey(m5));
+        Iterator i = sm.keySet().iterator();
+        Object k;
+        k = (Integer)(i.next());
+        assertEquals(m2, k);
+        k = (Integer)(i.next());
+        assertEquals(m3, k);
+        k = (Integer)(i.next());
+        assertEquals(m4, k);
+        k = (Integer)(i.next());
+        assertEquals(m5, k);
+        assertFalse(i.hasNext());
+
+        Iterator ei = sm.entrySet().iterator();
+        Map.Entry e;
+        e = (Map.Entry)(ei.next());
+        assertEquals(m2, e.getKey());
+        assertEquals("B", e.getValue());
+        e = (Map.Entry)(ei.next());
+        assertEquals(m3, e.getKey());
+        assertEquals("C", e.getValue());
+        e = (Map.Entry)(ei.next());
+        assertEquals(m4, e.getKey());
+        assertEquals("D", e.getValue());
+        e = (Map.Entry)(ei.next());
+        assertEquals(m5, e.getKey());
+        assertEquals("E", e.getValue());
+        assertFalse(i.hasNext());
+
+        SortedMap ssm = sm.tailMap(m4);
+        assertEquals(m4, ssm.firstKey());
+        assertEquals(m5, ssm.lastKey());
+        assertEquals("D", ssm.remove(m4));
+        assertEquals(1, ssm.size());
+        assertEquals(3, sm.size());
+        assertEquals(4, map.size());
+    }
+
 }

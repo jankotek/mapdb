@@ -1,13 +1,13 @@
 package org.mapdb;/*
+/*
  * Written by Doug Lea with assistance from members of JCP JSR-166
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-import junit.framework.Test;
-import junit.framework.TestSuite;
-
+import junit.framework.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentNavigableMap;
 
 public class BTreeMapTest6 extends JSR166TestCase {
     public static void main(String[] args) {
@@ -20,8 +20,8 @@ public class BTreeMapTest6 extends JSR166TestCase {
     /**
      * Returns a new map from Integers 1-5 to Strings "A"-"E".
      */
-    private static BTreeMap map5() {
-        BTreeMap map = newBTreeMap();
+    private static ConcurrentNavigableMap map5() {
+        ConcurrentNavigableMap map = DBMaker.newMemoryDB().make().createTreeMap("test").make();
         assertTrue(map.isEmpty());
         map.put(one, "A");
         map.put(five, "E");
@@ -33,15 +33,11 @@ public class BTreeMapTest6 extends JSR166TestCase {
         return map;
     }
 
-    private static BTreeMap newBTreeMap() {
-        return DBMaker.newMemoryDB().writeAheadLogDisable().make().getTreeMap("test");
-    }
-
     /**
      * clear removes all pairs
      */
     public void testClear() {
-        BTreeMap map = map5();
+        ConcurrentNavigableMap map = map5();
         map.clear();
         assertEquals(0, map.size());
     }
@@ -50,8 +46,8 @@ public class BTreeMapTest6 extends JSR166TestCase {
 //     * copy constructor creates map equal to source map
 //     */
 //    public void testConstructFromSorted() {
-//        BTreeMap map = map5();
-//        BTreeMap map2 = newBTreeMap(map);
+//        ConcurrentNavigableMap map = map5();
+//        ConcurrentNavigableMap map2 = new ConcurrentSkipListMap(map);
 //        assertEquals(map, map2);
 //    }
 
@@ -59,8 +55,8 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * Maps with same contents are equal
      */
     public void testEquals() {
-        BTreeMap map1 = map5();
-        BTreeMap map2 = map5();
+        ConcurrentNavigableMap map1 = map5();
+        ConcurrentNavigableMap map2 = map5();
         assertEquals(map1, map2);
         assertEquals(map2, map1);
         map1.clear();
@@ -72,7 +68,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * containsKey returns true for contained key
      */
     public void testContainsKey() {
-        BTreeMap map = map5();
+        ConcurrentNavigableMap map = map5();
         assertTrue(map.containsKey(one));
         assertFalse(map.containsKey(zero));
     }
@@ -81,7 +77,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * containsValue returns true for held values
      */
     public void testContainsValue() {
-        BTreeMap map = map5();
+        ConcurrentNavigableMap map = map5();
         assertTrue(map.containsValue("A"));
         assertFalse(map.containsValue("Z"));
     }
@@ -91,9 +87,9 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * or null if not present
      */
     public void testGet() {
-        BTreeMap map = map5();
+        ConcurrentNavigableMap map = map5();
         assertEquals("A", (String)map.get(one));
-        BTreeMap empty = newBTreeMap();
+        ConcurrentNavigableMap empty = DBMaker.newMemoryDB().make().createTreeMap("test").make();
         assertNull(empty.get(one));
     }
 
@@ -101,8 +97,8 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * isEmpty is true of empty map and false for non-empty
      */
     public void testIsEmpty() {
-        BTreeMap empty = newBTreeMap();
-        BTreeMap map = map5();
+        ConcurrentNavigableMap empty = DBMaker.newMemoryDB().make().createTreeMap("test").make();
+        ConcurrentNavigableMap map = map5();
         assertTrue(empty.isEmpty());
         assertFalse(map.isEmpty());
     }
@@ -111,7 +107,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * firstKey returns first key
      */
     public void testFirstKey() {
-        BTreeMap map = map5();
+        ConcurrentNavigableMap map = map5();
         assertEquals(one, map.firstKey());
     }
 
@@ -119,7 +115,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * lastKey returns last key
      */
     public void testLastKey() {
-        BTreeMap map = map5();
+        ConcurrentNavigableMap map = map5();
         assertEquals(five, map.lastKey());
     }
 
@@ -127,7 +123,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * keySet.toArray returns contains all keys
      */
     public void testKeySetToArray() {
-        BTreeMap map = map5();
+        ConcurrentNavigableMap map = map5();
         Set s = map.keySet();
         Object[] ar = s.toArray();
         assertTrue(s.containsAll(Arrays.asList(ar)));
@@ -136,13 +132,24 @@ public class BTreeMapTest6 extends JSR166TestCase {
         assertFalse(s.containsAll(Arrays.asList(ar)));
     }
 
-
+    /**
+     * descendingkeySet.toArray returns contains all keys
+     */
+    public void testDescendingKeySetToArray() {
+        ConcurrentNavigableMap map = map5();
+        Set s = map.descendingKeySet();
+        Object[] ar = s.toArray();
+        assertEquals(5, ar.length);
+        assertTrue(s.containsAll(Arrays.asList(ar)));
+        ar[0] = m10;
+        assertFalse(s.containsAll(Arrays.asList(ar)));
+    }
 
     /**
      * keySet returns a Set containing all the keys
      */
     public void testKeySet() {
-        BTreeMap map = map5();
+        ConcurrentNavigableMap map = map5();
         Set s = map.keySet();
         assertEquals(5, s.size());
         assertTrue(s.contains(one));
@@ -156,7 +163,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * keySet is ordered
      */
     public void testKeySetOrder() {
-        BTreeMap map = map5();
+        ConcurrentNavigableMap map = map5();
         Set s = map.keySet();
         Iterator i = s.iterator();
         Integer last = (Integer)i.next();
@@ -171,13 +178,68 @@ public class BTreeMapTest6 extends JSR166TestCase {
         assertEquals(5, count);
     }
 
+    /**
+     * descending iterator of key set is inverse ordered
+     */
+    public void testKeySetDescendingIteratorOrder() {
+        ConcurrentNavigableMap map = map5();
+        NavigableSet s = map.navigableKeySet();
+        Iterator i = s.descendingIterator();
+        Integer last = (Integer)i.next();
+        assertEquals(last, five);
+        int count = 1;
+        while (i.hasNext()) {
+            Integer k = (Integer)i.next();
+            assertTrue(last.compareTo(k) > 0);
+            last = k;
+            ++count;
+        }
+        assertEquals(5, count);
+    }
 
+    /**
+     * descendingKeySet is ordered
+     */
+    public void testDescendingKeySetOrder() {
+        ConcurrentNavigableMap map = map5();
+        Set s = map.descendingKeySet();
+        Iterator i = s.iterator();
+        Integer last = (Integer)i.next();
+        assertEquals(last, five);
+        int count = 1;
+        while (i.hasNext()) {
+            Integer k = (Integer)i.next();
+            assertTrue(last.compareTo(k) > 0);
+            last = k;
+            ++count;
+        }
+        assertEquals(5, count);
+    }
+
+    /**
+     * descending iterator of descendingKeySet is ordered
+     */
+    public void testDescendingKeySetDescendingIteratorOrder() {
+        ConcurrentNavigableMap map = map5();
+        NavigableSet s = map.descendingKeySet();
+        Iterator i = s.descendingIterator();
+        Integer last = (Integer)i.next();
+        assertEquals(last, one);
+        int count = 1;
+        while (i.hasNext()) {
+            Integer k = (Integer)i.next();
+            assertTrue(last.compareTo(k) < 0);
+            last = k;
+            ++count;
+        }
+        assertEquals(5, count);
+    }
 
     /**
      * Values.toArray contains all values
      */
     public void testValuesToArray() {
-        BTreeMap map = map5();
+        ConcurrentNavigableMap map = map5();
         Collection v = map.values();
         Object[] ar = v.toArray();
         ArrayList s = new ArrayList(Arrays.asList(ar));
@@ -193,7 +255,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * values collection contains all values
      */
     public void testValues() {
-        BTreeMap map = map5();
+        ConcurrentNavigableMap map = map5();
         Collection s = map.values();
         assertEquals(5, s.size());
         assertTrue(s.contains("A"));
@@ -207,27 +269,45 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * entrySet contains all pairs
      */
     public void testEntrySet() {
-        BTreeMap map = map5();
+        ConcurrentNavigableMap map = map5();
         Set s = map.entrySet();
         assertEquals(5, s.size());
         Iterator it = s.iterator();
         while (it.hasNext()) {
             Map.Entry e = (Map.Entry) it.next();
             assertTrue(
-                       (e.getKey().equals(one) && e.getValue().equals("A")) ||
-                       (e.getKey().equals(two) && e.getValue().equals("B")) ||
-                       (e.getKey().equals(three) && e.getValue().equals("C")) ||
-                       (e.getKey().equals(four) && e.getValue().equals("D")) ||
-                       (e.getKey().equals(five) && e.getValue().equals("E")));
+                    (e.getKey().equals(one) && e.getValue().equals("A")) ||
+                            (e.getKey().equals(two) && e.getValue().equals("B")) ||
+                            (e.getKey().equals(three) && e.getValue().equals("C")) ||
+                            (e.getKey().equals(four) && e.getValue().equals("D")) ||
+                            (e.getKey().equals(five) && e.getValue().equals("E")));
         }
     }
 
+    /**
+     * descendingEntrySet contains all pairs
+     */
+    public void testDescendingEntrySet() {
+        ConcurrentNavigableMap map = map5();
+        Set s = map.descendingMap().entrySet();
+        assertEquals(5, s.size());
+        Iterator it = s.iterator();
+        while (it.hasNext()) {
+            Map.Entry e = (Map.Entry) it.next();
+            assertTrue(
+                    (e.getKey().equals(one) && e.getValue().equals("A")) ||
+                            (e.getKey().equals(two) && e.getValue().equals("B")) ||
+                            (e.getKey().equals(three) && e.getValue().equals("C")) ||
+                            (e.getKey().equals(four) && e.getValue().equals("D")) ||
+                            (e.getKey().equals(five) && e.getValue().equals("E")));
+        }
+    }
 
     /**
      * entrySet.toArray contains all entries
      */
     public void testEntrySetToArray() {
-        BTreeMap map = map5();
+        ConcurrentNavigableMap map = map5();
         Set s = map.entrySet();
         Object[] ar = s.toArray();
         assertEquals(5, ar.length);
@@ -237,14 +317,26 @@ public class BTreeMapTest6 extends JSR166TestCase {
         }
     }
 
-
+    /**
+     * descendingEntrySet.toArray contains all entries
+     */
+    public void testDescendingEntrySetToArray() {
+        ConcurrentNavigableMap map = map5();
+        Set s = map.descendingMap().entrySet();
+        Object[] ar = s.toArray();
+        assertEquals(5, ar.length);
+        for (int i = 0; i < 5; ++i) {
+            assertTrue(map.containsKey(((Map.Entry)(ar[i])).getKey()));
+            assertTrue(map.containsValue(((Map.Entry)(ar[i])).getValue()));
+        }
+    }
 
     /**
      * putAll adds all key-value pairs from the given map
      */
     public void testPutAll() {
-        BTreeMap empty = newBTreeMap();
-        BTreeMap map = map5();
+        ConcurrentNavigableMap empty = DBMaker.newMemoryDB().make().createTreeMap("test").make();
+        ConcurrentNavigableMap map = map5();
         empty.putAll(map);
         assertEquals(5, empty.size());
         assertTrue(empty.containsKey(one));
@@ -258,7 +350,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * putIfAbsent works when the given key is not present
      */
     public void testPutIfAbsent() {
-        BTreeMap map = map5();
+        ConcurrentNavigableMap map = map5();
         map.putIfAbsent(six, "Z");
         assertTrue(map.containsKey(six));
     }
@@ -267,7 +359,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * putIfAbsent does not add the pair if the key is already present
      */
     public void testPutIfAbsent2() {
-        BTreeMap map = map5();
+        ConcurrentNavigableMap map = map5();
         assertEquals("A", map.putIfAbsent(one, "Z"));
     }
 
@@ -275,7 +367,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * replace fails when the given key is not present
      */
     public void testReplace() {
-        BTreeMap map = map5();
+        ConcurrentNavigableMap map = map5();
         assertNull(map.replace(six, "Z"));
         assertFalse(map.containsKey(six));
     }
@@ -284,7 +376,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * replace succeeds if the key is already present
      */
     public void testReplace2() {
-        BTreeMap map = map5();
+        ConcurrentNavigableMap map = map5();
         assertNotNull(map.replace(one, "Z"));
         assertEquals("Z", map.get(one));
     }
@@ -293,7 +385,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * replace value fails when the given key not mapped to expected value
      */
     public void testReplaceValue() {
-        BTreeMap map = map5();
+        ConcurrentNavigableMap map = map5();
         assertEquals("A", map.get(one));
         assertFalse(map.replace(one, "Z", "Z"));
         assertEquals("A", map.get(one));
@@ -303,7 +395,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * replace value succeeds when the given key mapped to expected value
      */
     public void testReplaceValue2() {
-        BTreeMap map = map5();
+        ConcurrentNavigableMap map = map5();
         assertEquals("A", map.get(one));
         assertTrue(map.replace(one, "A", "Z"));
         assertEquals("Z", map.get(one));
@@ -313,7 +405,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * remove removes the correct key-value pair from the map
      */
     public void testRemove() {
-        BTreeMap map = map5();
+        ConcurrentNavigableMap map = map5();
         map.remove(five);
         assertEquals(4, map.size());
         assertFalse(map.containsKey(five));
@@ -323,7 +415,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * remove(key,value) removes only if pair present
      */
     public void testRemove2() {
-        BTreeMap map = map5();
+        ConcurrentNavigableMap map = map5();
         assertTrue(map.containsKey(five));
         assertEquals("E", map.get(five));
         map.remove(five, "E");
@@ -338,7 +430,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * lowerEntry returns preceding entry.
      */
     public void testLowerEntry() {
-        BTreeMap map = map5();
+        ConcurrentNavigableMap map = map5();
         Map.Entry e1 = map.lowerEntry(three);
         assertEquals(two, e1.getKey());
 
@@ -356,7 +448,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * higherEntry returns next entry.
      */
     public void testHigherEntry() {
-        BTreeMap map = map5();
+        ConcurrentNavigableMap map = map5();
         Map.Entry e1 = map.higherEntry(three);
         assertEquals(four, e1.getKey());
 
@@ -374,7 +466,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * floorEntry returns preceding entry.
      */
     public void testFloorEntry() {
-        BTreeMap map = map5();
+        ConcurrentNavigableMap map = map5();
         Map.Entry e1 = map.floorEntry(three);
         assertEquals(three, e1.getKey());
 
@@ -392,7 +484,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * ceilingEntry returns next entry.
      */
     public void testCeilingEntry() {
-        BTreeMap map = map5();
+        ConcurrentNavigableMap map = map5();
         Map.Entry e1 = map.ceilingEntry(three);
         assertEquals(three, e1.getKey());
 
@@ -411,7 +503,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * immutable entries
      */
     public void testEntryImmutability() {
-        BTreeMap map = map5();
+        ConcurrentNavigableMap map = map5();
         Map.Entry e = map.lowerEntry(three);
         assertEquals(two, e.getKey());
         try {
@@ -442,7 +534,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * lowerKey returns preceding element
      */
     public void testLowerKey() {
-        BTreeMap q = map5();
+        ConcurrentNavigableMap q= map5();
         Object e1 = q.lowerKey(three);
         assertEquals(two, e1);
 
@@ -460,7 +552,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * higherKey returns next element
      */
     public void testHigherKey() {
-        BTreeMap q = map5();
+        ConcurrentNavigableMap q= map5();
         Object e1 = q.higherKey(three);
         assertEquals(four, e1);
 
@@ -478,7 +570,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * floorKey returns preceding element
      */
     public void testFloorKey() {
-        BTreeMap q = map5();
+        ConcurrentNavigableMap q= map5();
         Object e1 = q.floorKey(three);
         assertEquals(three, e1);
 
@@ -496,7 +588,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * ceilingKey returns next element
      */
     public void testCeilingKey() {
-        BTreeMap q = map5();
+        ConcurrentNavigableMap q= map5();
         Object e1 = q.ceilingKey(three);
         assertEquals(three, e1);
 
@@ -514,7 +606,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * pollFirstEntry returns entries in order
      */
     public void testPollFirstEntry() {
-        BTreeMap map = map5();
+        ConcurrentNavigableMap map = map5();
         Map.Entry e = map.pollFirstEntry();
         assertEquals(one, e.getKey());
         assertEquals("A", e.getValue());
@@ -541,7 +633,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * pollLastEntry returns entries in order
      */
     public void testPollLastEntry() {
-        BTreeMap map = map5();
+        ConcurrentNavigableMap map = map5();
         Map.Entry e = map.pollLastEntry();
         assertEquals(five, e.getKey());
         assertEquals("E", e.getValue());
@@ -568,8 +660,8 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * size returns the correct values
      */
     public void testSize() {
-        BTreeMap map = map5();
-        BTreeMap empty = newBTreeMap();
+        ConcurrentNavigableMap map = map5();
+        ConcurrentNavigableMap empty = DBMaker.newMemoryDB().make().createTreeMap("test").make();
         assertEquals(0, empty.size());
         assertEquals(5, map.size());
     }
@@ -578,7 +670,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * toString contains toString of elements
      */
     public void testToString() {
-        BTreeMap map = map5();
+        ConcurrentNavigableMap map = map5();
         String s = map.toString();
         for (int i = 1; i <= 5; ++i) {
             assertTrue(s.contains(String.valueOf(i)));
@@ -592,7 +684,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      */
     public void testGet_NullPointerException() {
         try {
-            BTreeMap c = map5();
+            ConcurrentNavigableMap c = map5();
             c.get(null);
             shouldThrow();
         } catch (NullPointerException success) {}
@@ -603,7 +695,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      */
     public void testContainsKey_NullPointerException() {
         try {
-            BTreeMap c = map5();
+            ConcurrentNavigableMap c = map5();
             c.containsKey(null);
             shouldThrow();
         } catch (NullPointerException success) {}
@@ -614,7 +706,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      */
     public void testContainsValue_NullPointerException() {
         try {
-            BTreeMap c = newBTreeMap();
+            ConcurrentNavigableMap c = DBMaker.newMemoryDB().make().createTreeMap("test").make();
             c.containsValue(null);
             shouldThrow();
         } catch (NullPointerException success) {}
@@ -625,7 +717,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      */
     public void testPut1_NullPointerException() {
         try {
-            BTreeMap c = map5();
+            ConcurrentNavigableMap c = map5();
             c.put(null, "whatever");
             shouldThrow();
         } catch (NullPointerException success) {}
@@ -636,7 +728,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      */
     public void testPutIfAbsent1_NullPointerException() {
         try {
-            BTreeMap c = map5();
+            ConcurrentNavigableMap c = map5();
             c.putIfAbsent(null, "whatever");
             shouldThrow();
         } catch (NullPointerException success) {}
@@ -647,7 +739,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      */
     public void testReplace_NullPointerException() {
         try {
-            BTreeMap c = map5();
+            ConcurrentNavigableMap c = map5();
             c.replace(null, "whatever");
             shouldThrow();
         } catch (NullPointerException success) {}
@@ -658,7 +750,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      */
     public void testReplaceValue_NullPointerException() {
         try {
-            BTreeMap c = map5();
+            ConcurrentNavigableMap c = map5();
             c.replace(null, one, "whatever");
             shouldThrow();
         } catch (NullPointerException success) {}
@@ -669,7 +761,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      */
     public void testRemove1_NullPointerException() {
         try {
-            BTreeMap c = newBTreeMap();
+            ConcurrentNavigableMap c = DBMaker.newMemoryDB().make().createTreeMap("test").make();
             c.put("sadsdf", "asdads");
             c.remove(null);
             shouldThrow();
@@ -681,7 +773,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      */
     public void testRemove2_NullPointerException() {
         try {
-            BTreeMap c = newBTreeMap();
+            ConcurrentNavigableMap c = DBMaker.newMemoryDB().make().createTreeMap("test").make();
             c.put("sadsdf", "asdads");
             c.remove(null, "whatever");
             shouldThrow();
@@ -692,9 +784,9 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * remove(x, null) returns false
      */
     public void testRemove3() {
-        BTreeMap c = newBTreeMap();
+        ConcurrentNavigableMap c = DBMaker.newMemoryDB().make().createTreeMap("test").make();
         c.put("sadsdf", "asdads");
-        assertFalse(c.remove("sadsdf", "woiepfopi"));
+        assertFalse(c.remove("sadsdf", null));
     }
 
 //    /**
@@ -704,7 +796,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
 //        NavigableMap x = map5();
 //        NavigableMap y = serialClone(x);
 //
-//        assertTrue(x != y);
+//        assertNotSame(x, y);
 //        assertEquals(x.size(), y.size());
 //        assertEquals(x.toString(), y.toString());
 //        assertEquals(x, y);
@@ -715,7 +807,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * subMap returns map with keys in requested range
      */
     public void testSubMapContents() {
-        BTreeMap map = map5();
+        ConcurrentNavigableMap map = map5();
         NavigableMap sm = map.subMap(two, true, four, false);
         assertEquals(two, sm.firstKey());
         assertEquals(three, sm.lastKey());
@@ -732,6 +824,12 @@ public class BTreeMapTest6 extends JSR166TestCase {
         k = (Integer)(i.next());
         assertEquals(three, k);
         assertFalse(i.hasNext());
+        Iterator r = sm.descendingKeySet().iterator();
+        k = (Integer)(r.next());
+        assertEquals(three, k);
+        k = (Integer)(r.next());
+        assertEquals(two, k);
+        assertFalse(r.hasNext());
 
         Iterator j = sm.keySet().iterator();
         j.next();
@@ -747,7 +845,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
     }
 
     public void testSubMapContents2() {
-        BTreeMap map = map5();
+        ConcurrentNavigableMap map = map5();
         NavigableMap sm = map.subMap(two, true, three, false);
         assertEquals(1, sm.size());
         assertEquals(two, sm.firstKey());
@@ -762,6 +860,10 @@ public class BTreeMapTest6 extends JSR166TestCase {
         k = (Integer)(i.next());
         assertEquals(two, k);
         assertFalse(i.hasNext());
+        Iterator r = sm.descendingKeySet().iterator();
+        k = (Integer)(r.next());
+        assertEquals(two, k);
+        assertFalse(r.hasNext());
 
         Iterator j = sm.keySet().iterator();
         j.next();
@@ -778,7 +880,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * headMap returns map with keys in requested range
      */
     public void testHeadMapContents() {
-        BTreeMap map = map5();
+        ConcurrentNavigableMap map = map5();
         NavigableMap sm = map.headMap(four, false);
         assertTrue(sm.containsKey(one));
         assertTrue(sm.containsKey(two));
@@ -804,7 +906,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * tailMap returns map with keys in requested range
      */
     public void testTailMapContents() {
-        BTreeMap map = map5();
+        ConcurrentNavigableMap map = map5();
         NavigableMap sm = map.tailMap(two, true);
         assertFalse(sm.containsKey(one));
         assertTrue(sm.containsKey(two));
@@ -822,6 +924,16 @@ public class BTreeMapTest6 extends JSR166TestCase {
         k = (Integer)(i.next());
         assertEquals(five, k);
         assertFalse(i.hasNext());
+        Iterator r = sm.descendingKeySet().iterator();
+        k = (Integer)(r.next());
+        assertEquals(five, k);
+        k = (Integer)(r.next());
+        assertEquals(four, k);
+        k = (Integer)(r.next());
+        assertEquals(three, k);
+        k = (Integer)(r.next());
+        assertEquals(two, k);
+        assertFalse(r.hasNext());
 
         Iterator ei = sm.entrySet().iterator();
         Map.Entry e;
@@ -851,28 +963,33 @@ public class BTreeMapTest6 extends JSR166TestCase {
     Random rnd = new Random(666);
     BitSet bs;
 
+    final boolean expensiveTests = true;
+
     /**
      * Submaps of submaps subdivide correctly
      */
     public void testRecursiveSubMaps() throws Exception {
-        int mapSize = 1000;
-
-        NavigableMap<Integer, Integer> map = newBTreeMap();
+        int mapSize = expensiveTests ? 1000 : 100;
+        //Class cl = ConcurrentSkipListMap.class;
+        NavigableMap<Integer, Integer> map = // newMap(cl);
+                DBMaker.newMemoryDB().make().createTreeMap("test").make();
         bs = new BitSet(mapSize);
 
         populate(map, mapSize);
         check(map,                 0, mapSize - 1, true);
+        check(map.descendingMap(), 0, mapSize - 1, false);
 
         mutateMap(map, 0, mapSize - 1);
         check(map,                 0, mapSize - 1, true);
+        check(map.descendingMap(), 0, mapSize - 1, false);
 
         bashSubMap(map.subMap(0, true, mapSize, false),
-                   0, mapSize - 1, true);
+                0, mapSize - 1, true);
     }
 
     static NavigableMap<Integer, Integer> newMap(Class cl) throws Exception {
         NavigableMap<Integer, Integer> result =
-            (NavigableMap<Integer, Integer>) cl.newInstance();
+                (NavigableMap<Integer, Integer>) cl.newInstance();
         assertEquals(0, result.size());
         assertFalse(result.keySet().iterator().hasNext());
         return result;
@@ -941,7 +1058,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
         }
     }
 
-    void put(NavigableMap<Integer, Integer> map, int key) {        
+    void put(NavigableMap<Integer, Integer> map, int key) {
         if (map.put(key, 2 * key) == null)
             bs.set(key);
     }
@@ -954,11 +1071,11 @@ public class BTreeMapTest6 extends JSR166TestCase {
     void bashSubMap(NavigableMap<Integer, Integer> map,
                     int min, int max, boolean ascending) {
         check(map, min, max, ascending);
-//        check(map.descendingMap(), min, max, !ascending);
+        check(map.descendingMap(), min, max, !ascending);
 
         mutateSubMap(map, min, max);
         check(map, min, max, ascending);
-//        check(map.descendingMap(), min, max, !ascending);
+        check(map.descendingMap(), min, max, !ascending);
 
         // Recurse
         if (max - min < 2)
@@ -969,35 +1086,35 @@ public class BTreeMapTest6 extends JSR166TestCase {
         boolean incl = rnd.nextBoolean();
         NavigableMap<Integer,Integer> hm = map.headMap(midPoint, incl);
         if (ascending) {
-//            if (rnd.nextBoolean())
+            if (rnd.nextBoolean())
                 bashSubMap(hm, min, midPoint - (incl ? 0 : 1), true);
-//            else
-//                bashSubMap(hm.descendingMap(), min, midPoint - (incl ? 0 : 1),
-//                           false);
+            else
+                bashSubMap(hm.descendingMap(), min, midPoint - (incl ? 0 : 1),
+                        false);
         } else {
-//            if (rnd.nextBoolean())
+            if (rnd.nextBoolean())
                 bashSubMap(hm, midPoint + (incl ? 0 : 1), max, false);
-//            else
-//                bashSubMap(hm.descendingMap(), midPoint + (incl ? 0 : 1), max,
-//                           true);
+            else
+                bashSubMap(hm.descendingMap(), midPoint + (incl ? 0 : 1), max,
+                        true);
         }
 
         // tailMap - pick direction and endpoint inclusion randomly
         incl = rnd.nextBoolean();
         NavigableMap<Integer,Integer> tm = map.tailMap(midPoint,incl);
         if (ascending) {
-//            if (rnd.nextBoolean())
+            if (rnd.nextBoolean())
                 bashSubMap(tm, midPoint + (incl ? 0 : 1), max, true);
-//            else
-//                bashSubMap(tm.descendingMap(), midPoint + (incl ? 0 : 1), max,
-//                           false);
+            else
+                bashSubMap(tm.descendingMap(), midPoint + (incl ? 0 : 1), max,
+                        false);
         } else {
-//            if (rnd.nextBoolean()) {
+            if (rnd.nextBoolean()) {
                 bashSubMap(tm, min, midPoint - (incl ? 0 : 1), false);
-//            } else {
-//                bashSubMap(tm.descendingMap(), min, midPoint - (incl ? 0 : 1),
-//                           true);
-//            }
+            } else {
+                bashSubMap(tm.descendingMap(), min, midPoint - (incl ? 0 : 1),
+                        true);
+            }
         }
 
         // subMap - pick direction and endpoint inclusion randomly
@@ -1010,22 +1127,22 @@ public class BTreeMapTest6 extends JSR166TestCase {
         boolean highIncl = rnd.nextBoolean();
         if (ascending) {
             NavigableMap<Integer,Integer> sm = map.subMap(
-                endpoints[0], lowIncl, endpoints[1], highIncl);
-//            if (rnd.nextBoolean())
+                    endpoints[0], lowIncl, endpoints[1], highIncl);
+            if (rnd.nextBoolean())
                 bashSubMap(sm, endpoints[0] + (lowIncl ? 0 : 1),
-                           endpoints[1] - (highIncl ? 0 : 1), true);
-//            else
-//                bashSubMap(sm.descendingMap(), endpoints[0] + (lowIncl ? 0 : 1),
-//                           endpoints[1] - (highIncl ? 0 : 1), false);
+                        endpoints[1] - (highIncl ? 0 : 1), true);
+            else
+                bashSubMap(sm.descendingMap(), endpoints[0] + (lowIncl ? 0 : 1),
+                        endpoints[1] - (highIncl ? 0 : 1), false);
         } else {
             NavigableMap<Integer,Integer> sm = map.subMap(
-                endpoints[1], highIncl, endpoints[0], lowIncl);
-//            if (rnd.nextBoolean())
+                    endpoints[1], highIncl, endpoints[0], lowIncl);
+            if (rnd.nextBoolean())
                 bashSubMap(sm, endpoints[0] + (lowIncl ? 0 : 1),
-                           endpoints[1] - (highIncl ? 0 : 1), false);
-//            else
-//                bashSubMap(sm.descendingMap(), endpoints[0] + (lowIncl ? 0 : 1),
-//                           endpoints[1] - (highIncl ? 0 : 1), true);
+                        endpoints[1] - (highIncl ? 0 : 1), false);
+            else
+                bashSubMap(sm.descendingMap(), endpoints[0] + (lowIncl ? 0 : 1),
+                        endpoints[1] - (highIncl ? 0 : 1), true);
         }
     }
 
@@ -1033,7 +1150,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * min and max are both inclusive.  If max < min, interval is empty.
      */
     void check(NavigableMap<Integer, Integer> map,
-                      final int min, final int max, final boolean ascending) {
+               final int min, final int max, final boolean ascending) {
         class ReferenceSet {
             int lower(int key) {
                 return ascending ? lowerAscending(key) : higherAscending(key);
@@ -1096,30 +1213,11 @@ public class BTreeMapTest6 extends JSR166TestCase {
         int size = 0;
         for (int i = min; i <= max; i++) {
             boolean bsContainsI = bs.get(i);
-            assertEquals(""+i, bsContainsI, map.containsKey(i));
+            assertEquals(bsContainsI, map.containsKey(i));
             if (bsContainsI)
                 size++;
         }
-
-        //check iterator for duplicates
-        Set controlIterSet = new HashSet();
-        Integer old=null;
-        for( Iterator<Map.Entry<Integer,Integer>> iter = map.entrySet().iterator();
-            iter.hasNext();){
-            Integer key = iter.next().getKey();
-            assertFalse("double key returned by iterator " + key, controlIterSet.contains(key));
-            assertTrue("wrong key returned by iterator " + key, bs.get( key));
-            if(old!=null){
-                for(int i=old+1;i<key;i++){
-                    assertFalse("key was missed by iterator "+i,bs.get(i));
-                }
-            }
-            controlIterSet.add(key);
-            old = key;
-        }
-
         assertEquals(size, map.size());
-        assertEquals(size, controlIterSet.size());
 
         // Test contents using contains keySet iterator
         int size2 = 0;
@@ -1128,7 +1226,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
             assertTrue(bs.get(key));
             size2++;
             assertTrue(previousKey < 0 ||
-                (ascending ? key - previousKey > 0 : key - previousKey < 0));
+                    (ascending ? key - previousKey > 0 : key - previousKey < 0));
             previousKey = key;
         }
         assertEquals(size2, size);

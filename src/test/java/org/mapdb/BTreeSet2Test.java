@@ -1,23 +1,33 @@
 package org.mapdb;/*
+ /*
  * Written by Doug Lea with assistance from members of JCP JSR-166
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-import junit.framework.Test;
-import junit.framework.TestSuite;
+import junit.framework.*;
 
-import java.util.*;
+import java.io.Serializable;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.NavigableSet;
+import java.util.NoSuchElementException;
+import java.util.Random;
+import java.util.Set;
+import java.util.SortedSet;
 
 public class BTreeSet2Test extends JSR166TestCase {
-    public static void main(String[] args) {
-        junit.textui.TestRunner.run(suite());
-    }
-    public static Test suite() {
-        return new TestSuite(BTreeSet2Test.class);
-    }
-
-    static class MyReverseComparator implements Comparator {
+//    public static void main(String[] args) {
+//        junit.textui.TestRunner.run(suite());
+//    }
+//    public static Test suite() {
+//        return new TestSuite(BTreeSet2Test.class);
+//    }
+//
+    static class MyReverseComparator implements Comparator,Serializable {
         public int compare(Object x, Object y) {
             return ((Comparable)y).compareTo(x);
         }
@@ -28,8 +38,7 @@ public class BTreeSet2Test extends JSR166TestCase {
      * Integers 0 ... n.
      */
     private NavigableSet<Integer> populatedSet(int n) {
-        NavigableSet<Integer> q =
-            newNavigableSet();
+        NavigableSet<Integer> q = DBMaker.newMemoryDB().make().getTreeSet("test");
         assertTrue(q.isEmpty());
         for (int i = n-1; i >= 0; i-=2)
             assertTrue(q.add(new Integer(i)));
@@ -40,16 +49,11 @@ public class BTreeSet2Test extends JSR166TestCase {
         return q;
     }
 
-    protected <E> NavigableSet<E> newNavigableSet() {
-        return DBMaker.newMemoryDB().writeAheadLogDisable()
-                .make().getTreeSet("test");
-    }
-
     /**
      * Returns a new set of first 5 ints.
      */
     private NavigableSet set5() {
-        NavigableSet q = newNavigableSet();
+        NavigableSet q = DBMaker.newMemoryDB().make().getTreeSet("test");
         assertTrue(q.isEmpty());
         q.add(one);
         q.add(two);
@@ -64,15 +68,76 @@ public class BTreeSet2Test extends JSR166TestCase {
      * A new set has unbounded capacity
      */
     public void testConstructor1() {
-        assertEquals(0, newNavigableSet().size());
+        assertEquals(0, DBMaker.newMemoryDB().make().getTreeSet("test").size());
     }
 
+//    /**
+//     * Initializing from null Collection throws NPE
+//     */
+//    public void testConstructor3() {
+//        try {
+//            NavigableSet q = new NavigableSet((Collection)null);
+//            shouldThrow();
+//        } catch (NullPointerException success) {}
+//    }
+//
+//    /**
+//     * Initializing from Collection of null elements throws NPE
+//     */
+//    public void testConstructor4() {
+//        try {
+//            Integer[] ints = new Integer[SIZE];
+//            NavigableSet q = new NavigableSet(Arrays.asList(ints));
+//            shouldThrow();
+//        } catch (NullPointerException success) {}
+//    }
+//
+//    /**
+//     * Initializing from Collection with some null elements throws NPE
+//     */
+//    public void testConstructor5() {
+//        try {
+//            Integer[] ints = new Integer[SIZE];
+//            for (int i = 0; i < SIZE-1; ++i)
+//                ints[i] = new Integer(i);
+//            NavigableSet q = new NavigableSet(Arrays.asList(ints));
+//            shouldThrow();
+//        } catch (NullPointerException success) {}
+//    }
+//
+//    /**
+//     * Set contains all elements of collection used to initialize
+//     */
+//    public void testConstructor6() {
+//        Integer[] ints = new Integer[SIZE];
+//        for (int i = 0; i < SIZE; ++i)
+//            ints[i] = new Integer(i);
+//        NavigableSet q = new NavigableSet(Arrays.asList(ints));
+//        for (int i = 0; i < SIZE; ++i)
+//            assertEquals(ints[i], q.pollFirst());
+//    }
+
+    /**
+     * The comparator used in constructor is used
+     */
+    public void testConstructor7() {
+        MyReverseComparator cmp = new MyReverseComparator();
+        NavigableSet q =
+                DBMaker.newMemoryDB().make().createTreeSet("test",32,false,null,cmp);
+        assertEquals(cmp, q.comparator());
+        Integer[] ints = new Integer[SIZE];
+        for (int i = 0; i < SIZE; ++i)
+            ints[i] = new Integer(i);
+        q.addAll(Arrays.asList(ints));
+        for (int i = SIZE-1; i >= 0; --i)
+            assertEquals(ints[i], q.pollFirst());
+    }
 
     /**
      * isEmpty is true before add, false after
      */
     public void testEmpty() {
-        NavigableSet q = newNavigableSet();
+        NavigableSet q = DBMaker.newMemoryDB().make().getTreeSet("test");
         assertTrue(q.isEmpty());
         q.add(new Integer(1));
         assertFalse(q.isEmpty());
@@ -102,7 +167,7 @@ public class BTreeSet2Test extends JSR166TestCase {
      */
     public void testAddNull() {
         try {
-            NavigableSet q = newNavigableSet();
+            NavigableSet q = DBMaker.newMemoryDB().make().getTreeSet("test");
             q.add(null);
             shouldThrow();
         } catch (NullPointerException success) {}
@@ -112,7 +177,7 @@ public class BTreeSet2Test extends JSR166TestCase {
      * Add of comparable element succeeds
      */
     public void testAdd() {
-        NavigableSet q = newNavigableSet();
+        NavigableSet q = DBMaker.newMemoryDB().make().getTreeSet("test");
         assertTrue(q.add(zero));
         assertTrue(q.add(one));
     }
@@ -121,7 +186,7 @@ public class BTreeSet2Test extends JSR166TestCase {
      * Add of duplicate element fails
      */
     public void testAddDup() {
-        NavigableSet q = newNavigableSet();
+        NavigableSet q = DBMaker.newMemoryDB().make().getTreeSet("test");
         assertTrue(q.add(zero));
         assertFalse(q.add(zero));
     }
@@ -131,7 +196,7 @@ public class BTreeSet2Test extends JSR166TestCase {
      */
     public void testAddNonComparable() {
         try {
-            NavigableSet q = newNavigableSet();
+            NavigableSet q = DBMaker.newMemoryDB().make().getTreeSet("test");
             q.add(new Object());
             q.add(new Object());
             q.add(new Object());
@@ -144,7 +209,7 @@ public class BTreeSet2Test extends JSR166TestCase {
      */
     public void testAddAll1() {
         try {
-            NavigableSet q = newNavigableSet();
+            NavigableSet q = DBMaker.newMemoryDB().make().getTreeSet("test");
             q.addAll(null);
             shouldThrow();
         } catch (NullPointerException success) {}
@@ -155,7 +220,7 @@ public class BTreeSet2Test extends JSR166TestCase {
      */
     public void testAddAll2() {
         try {
-            NavigableSet q = newNavigableSet();
+            NavigableSet q = DBMaker.newMemoryDB().make().getTreeSet("test");
             Integer[] ints = new Integer[SIZE];
             q.addAll(Arrays.asList(ints));
             shouldThrow();
@@ -168,7 +233,7 @@ public class BTreeSet2Test extends JSR166TestCase {
      */
     public void testAddAll3() {
         try {
-            NavigableSet q = newNavigableSet();
+            NavigableSet q = DBMaker.newMemoryDB().make().getTreeSet("test");
             Integer[] ints = new Integer[SIZE];
             for (int i = 0; i < SIZE-1; ++i)
                 ints[i] = new Integer(i);
@@ -185,7 +250,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         Integer[] ints = new Integer[SIZE];
         for (int i = 0; i < SIZE; ++i)
             ints[i] = new Integer(SIZE-1-i);
-        NavigableSet q = newNavigableSet();
+        NavigableSet q = DBMaker.newMemoryDB().make().getTreeSet("test");
         assertFalse(q.addAll(Arrays.asList(empty)));
         assertTrue(q.addAll(Arrays.asList(ints)));
         for (int i = 0; i < SIZE; ++i)
@@ -229,8 +294,8 @@ public class BTreeSet2Test extends JSR166TestCase {
             assertTrue(q.contains(i));
             assertTrue(q.remove(i));
             assertFalse(q.contains(i));
-            assertFalse(q.remove(i+1));
-            assertFalse(q.contains(i+1));
+            assertFalse(q.remove(i + 1));
+            assertFalse(q.contains(i + 1));
         }
         assertTrue(q.isEmpty());
     }
@@ -266,7 +331,7 @@ public class BTreeSet2Test extends JSR166TestCase {
      */
     public void testContainsAll() {
         NavigableSet q = populatedSet(SIZE);
-        NavigableSet p = newNavigableSet();
+        NavigableSet p = DBMaker.newMemoryDB().make().getTreeSet("test");
         for (int i = 0; i < SIZE; ++i) {
             assertTrue(q.containsAll(p));
             assertFalse(p.containsAll(q));
@@ -421,7 +486,7 @@ public class BTreeSet2Test extends JSR166TestCase {
      * iterator of empty set has no elements
      */
     public void testEmptyIterator() {
-        NavigableSet q = newNavigableSet();
+        NavigableSet q = DBMaker.newMemoryDB().make().getTreeSet("test");
         int i = 0;
         Iterator it = q.iterator();
         while (it.hasNext()) {
@@ -435,7 +500,7 @@ public class BTreeSet2Test extends JSR166TestCase {
      * iterator.remove removes current element
      */
     public void testIteratorRemove() {
-        final NavigableSet q = newNavigableSet();
+        final NavigableSet q = DBMaker.newMemoryDB().make().getTreeSet("test");
         q.add(new Integer(2));
         q.add(new Integer(1));
         q.add(new Integer(3));
@@ -468,7 +533,7 @@ public class BTreeSet2Test extends JSR166TestCase {
 //        NavigableSet x = populatedSet(SIZE);
 //        NavigableSet y = serialClone(x);
 //
-//        assertTrue(x != y);
+//        assertNotSame(x, y);
 //        assertEquals(x.size(), y.size());
 //        assertEquals(x, y);
 //        assertEquals(y, x);
@@ -600,29 +665,48 @@ public class BTreeSet2Test extends JSR166TestCase {
 
     Random rnd = new Random(666);
 
+    final boolean expensiveTests = true;
+
     /**
      * Subsets of subsets subdivide correctly
      */
     public void testRecursiveSubSets() throws Exception {
-        int setSize = 1000;
+        int setSize = expensiveTests ? 1000 : 100;
+        Class cl = NavigableSet.class;
 
-
-        NavigableSet<Integer> set = newNavigableSet();
+        NavigableSet<Integer> set = newSet(cl);
         BitSet bs = new BitSet(setSize);
 
         populate(set, setSize, bs);
         check(set,                 0, setSize - 1, true, bs);
-//        check(set.descendingSet(), 0, setSize - 1, false, bs);
+        check(set.descendingSet(), 0, setSize - 1, false, bs);
 
         mutateSet(set, 0, setSize - 1, bs);
-
         check(set,                 0, setSize - 1, true, bs);
-  //      check(set.descendingSet(), 0, setSize - 1, false, bs);
+        check(set.descendingSet(), 0, setSize - 1, false, bs);
 
         bashSubSet(set.subSet(0, true, setSize, false),
-                   0, setSize - 1, true, bs);
+                0, setSize - 1, true, bs);
     }
 
+    /**
+     * addAll is idempotent
+     */
+    public void testAddAll_idempotent() throws Exception {
+        Set x = populatedSet(SIZE);
+        Set y = DBMaker.newMemoryDB().make().getTreeSet("test");
+        y.addAll(x);
+        assertEquals(x, y);
+        assertEquals(y, x);
+    }
+
+    static NavigableSet<Integer> newSet(Class cl) throws Exception {
+        NavigableSet<Integer> result = DBMaker.newMemoryDB().make().getTreeSet("test");
+        //(NavigableSet<Integer>) cl.newInstance();
+        assertEquals(0, result.size());
+        assertFalse(result.iterator().hasNext());
+        return result;
+    }
 
     void populate(NavigableSet<Integer> set, int limit, BitSet bs) {
         for (int i = 0, n = 2 * limit / 3; i < n; i++) {
@@ -643,8 +727,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         // Remove a bunch of entries with iterator
         for (Iterator<Integer> it = set.iterator(); it.hasNext(); ) {
             if (rnd.nextBoolean()) {
-                int val = it.next();
-                bs.clear(val);
+                bs.clear(it.next());
                 it.remove();
             }
         }
@@ -670,8 +753,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         // Remove a bunch of entries with iterator
         for (Iterator<Integer> it = set.iterator(); it.hasNext(); ) {
             if (rnd.nextBoolean()) {
-                int value = it.next();
-                bs.clear(value);
+                bs.clear(it.next());
                 it.remove();
             }
         }
@@ -704,11 +786,11 @@ public class BTreeSet2Test extends JSR166TestCase {
                     int min, int max, boolean ascending,
                     BitSet bs) {
         check(set, min, max, ascending, bs);
-//        check(set.descendingSet(), min, max, !ascending, bs);
+        check(set.descendingSet(), min, max, !ascending, bs);
 
         mutateSubSet(set, min, max, bs);
         check(set, min, max, ascending, bs);
-//        check(set.descendingSet(), min, max, !ascending, bs);
+        check(set.descendingSet(), min, max, !ascending, bs);
 
         // Recurse
         if (max - min < 2)
@@ -719,35 +801,35 @@ public class BTreeSet2Test extends JSR166TestCase {
         boolean incl = rnd.nextBoolean();
         NavigableSet<Integer> hm = set.headSet(midPoint, incl);
         if (ascending) {
-//            if (rnd.nextBoolean())
+            if (rnd.nextBoolean())
                 bashSubSet(hm, min, midPoint - (incl ? 0 : 1), true, bs);
-//            else
-//                bashSubSet(hm.descendingSet(), min, midPoint - (incl ? 0 : 1),
-//                           false, bs);
+            else
+                bashSubSet(hm.descendingSet(), min, midPoint - (incl ? 0 : 1),
+                        false, bs);
         } else {
-//            if (rnd.nextBoolean())
+            if (rnd.nextBoolean())
                 bashSubSet(hm, midPoint + (incl ? 0 : 1), max, false, bs);
-//            else
-//                bashSubSet(hm.descendingSet(), midPoint + (incl ? 0 : 1), max,
-//                           true, bs);
+            else
+                bashSubSet(hm.descendingSet(), midPoint + (incl ? 0 : 1), max,
+                        true, bs);
         }
 
         // tailSet - pick direction and endpoint inclusion randomly
         incl = rnd.nextBoolean();
         NavigableSet<Integer> tm = set.tailSet(midPoint,incl);
         if (ascending) {
-//            if (rnd.nextBoolean())
+            if (rnd.nextBoolean())
                 bashSubSet(tm, midPoint + (incl ? 0 : 1), max, true, bs);
-//            else
-//                bashSubSet(tm.descendingSet(), midPoint + (incl ? 0 : 1), max,
-//                           false, bs);
+            else
+                bashSubSet(tm.descendingSet(), midPoint + (incl ? 0 : 1), max,
+                        false, bs);
         } else {
-//            if (rnd.nextBoolean()) {
+            if (rnd.nextBoolean()) {
                 bashSubSet(tm, min, midPoint - (incl ? 0 : 1), false, bs);
-//            } else {
-//                bashSubSet(tm.descendingSet(), min, midPoint - (incl ? 0 : 1),
-//                           true, bs);
-//            }
+            } else {
+                bashSubSet(tm.descendingSet(), min, midPoint - (incl ? 0 : 1),
+                        true, bs);
+            }
         }
 
         // subSet - pick direction and endpoint inclusion randomly
@@ -760,22 +842,22 @@ public class BTreeSet2Test extends JSR166TestCase {
         boolean highIncl = rnd.nextBoolean();
         if (ascending) {
             NavigableSet<Integer> sm = set.subSet(
-                endpoints[0], lowIncl, endpoints[1], highIncl);
-//            if (rnd.nextBoolean())
+                    endpoints[0], lowIncl, endpoints[1], highIncl);
+            if (rnd.nextBoolean())
                 bashSubSet(sm, endpoints[0] + (lowIncl ? 0 : 1),
-                           endpoints[1] - (highIncl ? 0 : 1), true, bs);
-//            else
-//                bashSubSet(sm.descendingSet(), endpoints[0] + (lowIncl ? 0 : 1),
-//                           endpoints[1] - (highIncl ? 0 : 1), false, bs);
+                        endpoints[1] - (highIncl ? 0 : 1), true, bs);
+            else
+                bashSubSet(sm.descendingSet(), endpoints[0] + (lowIncl ? 0 : 1),
+                        endpoints[1] - (highIncl ? 0 : 1), false, bs);
         } else {
             NavigableSet<Integer> sm = set.subSet(
-                endpoints[1], highIncl, endpoints[0], lowIncl);
-//            if (rnd.nextBoolean())
+                    endpoints[1], highIncl, endpoints[0], lowIncl);
+            if (rnd.nextBoolean())
                 bashSubSet(sm, endpoints[0] + (lowIncl ? 0 : 1),
-                           endpoints[1] - (highIncl ? 0 : 1), false, bs);
-//            else
-//                bashSubSet(sm.descendingSet(), endpoints[0] + (lowIncl ? 0 : 1),
-//                           endpoints[1] - (highIncl ? 0 : 1), true, bs);
+                        endpoints[1] - (highIncl ? 0 : 1), false, bs);
+            else
+                bashSubSet(sm.descendingSet(), endpoints[0] + (lowIncl ? 0 : 1),
+                        endpoints[1] - (highIncl ? 0 : 1), true, bs);
         }
     }
 
@@ -788,19 +870,19 @@ public class BTreeSet2Test extends JSR166TestCase {
         class ReferenceSet {
             int lower(int element) {
                 return ascending ?
-                    lowerAscending(element) : higherAscending(element);
+                        lowerAscending(element) : higherAscending(element);
             }
             int floor(int element) {
                 return ascending ?
-                    floorAscending(element) : ceilingAscending(element);
+                        floorAscending(element) : ceilingAscending(element);
             }
             int ceiling(int element) {
                 return ascending ?
-                    ceilingAscending(element) : floorAscending(element);
+                        ceilingAscending(element) : floorAscending(element);
             }
             int higher(int element) {
                 return ascending ?
-                    higherAscending(element) : lowerAscending(element);
+                        higherAscending(element) : lowerAscending(element);
             }
             int first() {
                 return ascending ? firstAscending() : lastAscending();
@@ -851,7 +933,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         int size = 0;
         for (int i = min; i <= max; i++) {
             boolean bsContainsI = bs.get(i);
-            assertEquals(""+i,bsContainsI, set.contains(i));
+            assertEquals(bsContainsI, set.contains(i));
             if (bsContainsI)
                 size++;
         }
@@ -864,7 +946,7 @@ public class BTreeSet2Test extends JSR166TestCase {
             assertTrue(bs.get(element));
             size2++;
             assertTrue(previousElement < 0 || (ascending ?
-                element - previousElement > 0 : element - previousElement < 0));
+                    element - previousElement > 0 : element - previousElement < 0));
             previousElement = element;
         }
         assertEquals(size2, size);

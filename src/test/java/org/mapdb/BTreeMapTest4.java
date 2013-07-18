@@ -1421,17 +1421,17 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         // RI fails here
         // assertTrue(s.containsKey("1st"));
         // assertTrue(s.containsKey("2nd"));
-//        s = tm.descendingMap();
-//        s = s.subMap("3rd", null);
-//        // assertEquals(4, s.size());
-////        assertTrue(s.containsValue(-1));
-////        assertTrue(s.containsValue(1));
-////        assertTrue(s.containsValue(2));
-////        assertTrue(s.containsValue(3));
+        s = tm.descendingMap();
+        s = s.tailMap("3rd");
+        // assertEquals(4, s.size());
+        assertTrue(s.containsValue(-1));
+        assertTrue(s.containsValue(1));
+        assertTrue(s.containsValue(2));
+        assertTrue(s.containsValue(3));
 //        assertFalse(s.containsKey(null));
-//        assertTrue(s.containsKey("1st"));
-//        assertTrue(s.containsKey("2nd"));
-//        assertTrue(s.containsKey("3rd"));
+        assertTrue(s.containsKey("1st"));
+        assertTrue(s.containsKey("2nd"));
+        assertTrue(s.containsKey("3rd"));
     }
 
     // a special comparator dealing with null key
@@ -1651,46 +1651,46 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         assertEquals(0, mapIntObj.size());
     }
 
-//
-//    public void test_descendingMap_subMap() throws Exception {
-//        BTreeMap<Integer, Object> tm = newBTreeMap();
-//        for (int i = 0; i < 10; ++i) {
-//            tm.put(i, new Object());
-//        }
-//        NavigableMap<Integer, Object> descMap = tm.descendingMap();
-//        assertEquals(7, descMap.subMap(8, true, 1, false).size());
-//        assertEquals(4, descMap.headMap(6, true).size());
-//        assertEquals(2, descMap.tailMap(2, false).size());
-//
-//        // sub map of sub map of descendingMap
-//        NavigableMap<Integer, Object> mapIntObj = newBTreeMap();
-//        for (int i = 0; i < 10; ++i) {
-//            mapIntObj.put(i, new Object());
-//        }
-//        mapIntObj = mapIntObj.descendingMap();
-//        NavigableMap<Integer, Object> subMapIntObj = mapIntObj.subMap(9, true,
-//                5, false);
-//        assertEquals(4, subMapIntObj.size());
-//        subMapIntObj = subMapIntObj.subMap(9, true, 5, false);
-//        assertEquals(4, subMapIntObj.size());
-//        subMapIntObj = subMapIntObj.subMap(6, false, 5, false);
-//        assertEquals(0, subMapIntObj.size());
-//
-//        subMapIntObj = mapIntObj.headMap(5, false);
-//        assertEquals(4, subMapIntObj.size());
-//        subMapIntObj = subMapIntObj.headMap(5, false);
-//        assertEquals(4, subMapIntObj.size());
-//        subMapIntObj = subMapIntObj.tailMap(5, false);
-//        assertEquals(0, subMapIntObj.size());
-//
-//        subMapIntObj = mapIntObj.tailMap(5, false);
-//        assertEquals(5, subMapIntObj.size());
-//        subMapIntObj = subMapIntObj.tailMap(5, false);
-//        assertEquals(5, subMapIntObj.size());
-//        subMapIntObj = subMapIntObj.headMap(5, false);
-//        assertEquals(0, subMapIntObj.size());
-//    }
-//
+
+    public void test_descendingMap_subMap() throws Exception {
+        BTreeMap<Integer, Object> tm = newBTreeMap();
+        for (int i = 0; i < 10; ++i) {
+            tm.put(i, new Object());
+        }
+        NavigableMap<Integer, Object> descMap = tm.descendingMap();
+        assertEquals(7, descMap.subMap(8, true, 1, false).size());
+        assertEquals(4, descMap.headMap(6, true).size());
+        assertEquals(2, descMap.tailMap(2, false).size());
+
+        // sub map of sub map of descendingMap
+        NavigableMap<Integer, Object> mapIntObj = newBTreeMap();
+        for (int i = 0; i < 10; ++i) {
+            mapIntObj.put(i, new Object());
+        }
+        mapIntObj = mapIntObj.descendingMap();
+        NavigableMap<Integer, Object> subMapIntObj = mapIntObj.subMap(9, true,
+                5, false);
+        assertEquals(4, subMapIntObj.size());
+        subMapIntObj = subMapIntObj.subMap(9, true, 5, false);
+        assertEquals(4, subMapIntObj.size());
+        subMapIntObj = subMapIntObj.subMap(6, false, 5, false);
+        assertEquals(0, subMapIntObj.size());
+
+        subMapIntObj = mapIntObj.headMap(5, false);
+        assertEquals(4, subMapIntObj.size());
+        subMapIntObj = subMapIntObj.headMap(5, false);
+        assertEquals(4, subMapIntObj.size());
+        subMapIntObj = subMapIntObj.tailMap(5, false);
+        assertEquals(0, subMapIntObj.size());
+
+        subMapIntObj = mapIntObj.tailMap(5, false);
+        assertEquals(5, subMapIntObj.size());
+        subMapIntObj = subMapIntObj.tailMap(5, false);
+        assertEquals(5, subMapIntObj.size());
+        subMapIntObj = subMapIntObj.headMap(5, false);
+        assertEquals(0, subMapIntObj.size());
+    }
+
 
     private void illegalFirstNullKeyMapTester(NavigableMap<String, String> map) {
         try {
