@@ -53,7 +53,8 @@ Over time it evolved into fully featured db. Now it has optional ACID transactio
 It also includes stuff from ORMs such as serialization or instance cache. All packed into 300KB jar with no other dependencies.
 
 
-Some MapDB features:
+Features
+-----------
 
 * **Concurrent** - MapDB has record level locking and state-of-art concurrent engine. Its performance scales nearly linearly with number of cores. Data can be written by multiple parallel threads.
 
