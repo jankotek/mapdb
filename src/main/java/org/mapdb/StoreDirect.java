@@ -169,6 +169,7 @@ public class StoreDirect extends Store{
     protected final boolean syncOnCommitDisabled;
 
     protected final boolean spaceReclaimReuse;
+    protected final boolean spaceReclaimSplit;
     protected final boolean spaceReclaimTrack;
 
     protected final long sizeLimit;
@@ -182,6 +183,7 @@ public class StoreDirect extends Store{
         this.syncOnCommitDisabled = syncOnCommitDisabled;
         this.sizeLimit = sizeLimit;
 
+        this.spaceReclaimSplit = spaceReclaimMode>4;
         this.spaceReclaimReuse = spaceReclaimMode>2;
         this.spaceReclaimTrack = spaceReclaimMode>0;
 
@@ -233,7 +235,7 @@ public class StoreDirect extends Store{
         final long[] indexVals;
         try{
             ioRecid = freeIoRecidTake(true) ;
-            indexVals = physAllocate(out.pos,true);
+            indexVals = physAllocate(out.pos,true,false);
         }finally {
             structuralLock.unlock();
         }
@@ -350,17 +352,17 @@ public class StoreDirect extends Store{
 
                 if(spaceReclaimTrack){
                     //free first record pointed from indexVal
-                    freePhysPut(indexVal);
+                    freePhysPut(indexVal,false);
 
                     //if there are more linked records, free those as well
                     if(indexVals!=null){
                         for(int i=0;i<indexVals.length && indexVals[i]!=0;i++){
-                            freePhysPut(indexVals[i]);
+                            freePhysPut(indexVals[i],false);
                         }
                     }
                 }
 
-                indexVals = physAllocate(out.pos,true);
+                indexVals = physAllocate(out.pos,true,false);
             }finally {
                 structuralLock.unlock();
             }
@@ -404,17 +406,17 @@ public class StoreDirect extends Store{
             try{
                 if(spaceReclaimTrack){
                     //free first record pointed from indexVal
-                    freePhysPut(indexVal);
+                    freePhysPut(indexVal,false);
 
                     //if there are more linked records, free those as well
                     if(indexVals!=null){
                         for(int i=0;i<indexVals.length && indexVals[i]!=0;i++){
-                            freePhysPut(indexVals[i]);
+                            freePhysPut(indexVals[i],false);
                         }
                     }
                 }
 
-                indexVals = physAllocate(out.pos,true);
+                indexVals = physAllocate(out.pos,true,false);
             }finally {
                 structuralLock.unlock();
             }
@@ -450,12 +452,12 @@ public class StoreDirect extends Store{
                 //free recid
                 freeIoRecidPut(ioRecid);
                 //free first record pointed from indexVal
-                freePhysPut(indexVal);
+                freePhysPut(indexVal,false);
 
                 //if there are more linked records, free those as well
                 if(linkedRecords!=null){
                     for(int i=0; i<linkedRecords.length &&linkedRecords[i]!=0;i++){
-                        freePhysPut(linkedRecords[i]);
+                        freePhysPut(linkedRecords[i],false);
                     }
                 }
             }finally {
@@ -494,11 +496,11 @@ public class StoreDirect extends Store{
         return linkedRecords;
     }
 
-    protected long[] physAllocate(int size, boolean ensureAvail) {
+    protected long[] physAllocate(int size, boolean ensureAvail,boolean recursive) {
         if(size==0L) return new long[]{0L};
         //append to end of file
         if(size<MAX_REC_SIZE){
-            long indexVal = freePhysTake(size,ensureAvail);
+            long indexVal = freePhysTake(size,ensureAvail,recursive);
             indexVal |= ((long)size)<<48;
             return new long[]{indexVal};
         }else{
@@ -512,7 +514,7 @@ public class StoreDirect extends Store{
                 size -= allocSize - c;
 
                 //append to end of file
-                long indexVal = freePhysTake(allocSize, ensureAvail);
+                long indexVal = freePhysTake(allocSize, ensureAvail,recursive);
                 indexVal |= (((long)allocSize)<<48);
                 if(c!=0) indexVal|= MASK_LINKED;
                 ret[retPos++] = indexVal;
@@ -625,9 +627,9 @@ public class StoreDirect extends Store{
             store2.structuralLock.lock();
 
             //transfer stack of free recids
-            for(long recid =longStackTake(IO_FREE_RECID);
-                recid!=0; recid=longStackTake(IO_FREE_RECID)){
-                store2.longStackPut(recid, IO_FREE_RECID);
+            for(long recid =longStackTake(IO_FREE_RECID,false);
+                recid!=0; recid=longStackTake(IO_FREE_RECID,false)){
+                store2.longStackPut(recid, IO_FREE_RECID,false);
             }
 
             //iterate over recids and transfer physical records
@@ -639,7 +641,7 @@ public class StoreDirect extends Store{
                 if(bb==null||bb.length==0){
                     store2.index.putLong(ioRecid,0);
                 }else{
-                    long[] indexVals = store2.physAllocate(bb.length,true);
+                    long[] indexVals = store2.physAllocate(bb.length,true,false);
                     DataOutput2 out = new DataOutput2();
                     out.buf = bb;
                     out.pos = bb.length;
@@ -690,7 +692,8 @@ public class StoreDirect extends Store{
     }
 
 
-    protected long longStackTake(final long ioList) {
+    protected long longStackTake(final long ioList, boolean recursive) {
+//        if(recursive) throw new InternalError();
         if(!structuralLock.isLocked())throw new InternalError();
         if(ioList<IO_FREE_RECID || ioList>=IO_USER_START) throw new IllegalArgumentException("wrong ioList: "+ioList);
 
@@ -720,7 +723,7 @@ public class StoreDirect extends Store{
                 index.putLong(ioList , 0L);
             }
             //put space used by this page into free list
-            freePhysPut((size<<48) | dataOffset);
+            freePhysPut((size<<48) | dataOffset, true);
         }else{
             //no, it was not last record at this page, so just decrement the counter
             pos-=6;
@@ -734,7 +737,8 @@ public class StoreDirect extends Store{
     }
 
 
-    protected void longStackPut(final long ioList, long offset){
+    protected void longStackPut(final long ioList, long offset, boolean recursive){
+//        if(recursive) throw new InternalError();
         if(offset>>>48!=0) throw new IllegalArgumentException();
         if(!structuralLock.isLocked())throw new InternalError();
         if(ioList<IO_FREE_RECID || ioList>=IO_USER_START) throw new InternalError("wrong ioList: "+ioList);
@@ -745,7 +749,7 @@ public class StoreDirect extends Store{
 
         if(dataOffset == 0){ //empty list?
             //yes empty, create new page and fill it with values
-            final long listPhysid = freePhysTake((int) LONG_STACK_PREF_SIZE,true) &MASK_OFFSET;
+            final long listPhysid = freePhysTake((int) LONG_STACK_PREF_SIZE,true,true) &MASK_OFFSET;
             if(listPhysid == 0) throw new InternalError();
             //set previous Free Index List page to zero as this is first page
             //also set size of this record
@@ -761,7 +765,7 @@ public class StoreDirect extends Store{
 
             if(pos+6==size){ //is current page full?
                 //yes it is full, so we need to allocate new page and write our number there
-                final long listPhysid = freePhysTake((int) LONG_STACK_PREF_SIZE,true) &MASK_OFFSET;
+                final long listPhysid = freePhysTake((int) LONG_STACK_PREF_SIZE,true,true) &MASK_OFFSET;
                 if(listPhysid == 0) throw new InternalError();
 
                 //set location to previous page and set current page size
@@ -785,12 +789,12 @@ public class StoreDirect extends Store{
 
     protected void freeIoRecidPut(long ioRecid) {
         if(spaceReclaimTrack)
-            longStackPut(IO_FREE_RECID, ioRecid);
+            longStackPut(IO_FREE_RECID, ioRecid,false);
     }
 
     protected long freeIoRecidTake(boolean ensureAvail){
         if(spaceReclaimTrack){
-            long ioRecid = longStackTake(IO_FREE_RECID);
+            long ioRecid = longStackTake(IO_FREE_RECID,false);
             if(ioRecid!=0) return ioRecid;
         }
         indexSize+=8;
@@ -802,22 +806,39 @@ public class StoreDirect extends Store{
     protected static long size2ListIoRecid(long size){
         return IO_FREE_RECID + 8 + ((size-1)/16)*8;
     }
-    protected void freePhysPut(long indexVal) {
+    protected void freePhysPut(long indexVal, boolean recursive) {
         long size = indexVal >>>48;
         freeSize+=roundTo16(size);
-        longStackPut(size2ListIoRecid(size), indexVal & MASK_OFFSET);
+        longStackPut(size2ListIoRecid(size), indexVal & MASK_OFFSET,recursive);
     }
 
-    protected long freePhysTake(int size, boolean ensureAvail) {
+    protected long freePhysTake(int size, boolean ensureAvail, boolean recursive) {
         if(size==0)throw new IllegalArgumentException();
         //check free space
         if(spaceReclaimReuse){
-            long ret =  longStackTake(size2ListIoRecid(size));
+            long ret =  longStackTake(size2ListIoRecid(size),recursive);
             if(ret!=0){
                 freeSize-=roundTo16(size);
                 return ret;
             }
         }
+        //try to take large record and split it into two
+        if(!recursive && spaceReclaimSplit ){
+            for(long s=  roundTo16(size)+16;s<MAX_REC_SIZE;s+=16){
+                long ret = longStackTake(size2ListIoRecid(s),recursive);
+                if(ret!=0){
+                    //found larger record, split in two chunks, take first, mark second free
+                    final long offset = ret & MASK_OFFSET;
+
+                    long remaining = s - roundTo16(size);
+                    long markFree = (remaining<<48) | (offset+s-remaining);
+                    freePhysPut(markFree,recursive);
+
+                    return (((long)size)<<48) |offset;
+                }
+            }
+        }
+
         //not available, increase file size
         if(physSize%Volume.BUF_SIZE+size>Volume.BUF_SIZE)
             physSize += Volume.BUF_SIZE - physSize%Volume.BUF_SIZE;

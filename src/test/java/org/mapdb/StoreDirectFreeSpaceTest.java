@@ -23,27 +23,27 @@ public class StoreDirectFreeSpaceTest {
         }
 
         @Override
-        protected long longStackTake(long ioList) {
+        protected long longStackTake(long ioList, boolean recursive) {
             Long r = stackList(ioList).pollLast();
             return r!=null?r:0;
         }
 
 
         @Override
-        protected void longStackPut(long ioList, long offset) {
+        protected void longStackPut(long ioList, long offset, boolean recursive) {
             stackList(ioList).add(offset);
         }
     };
 
     void fill(long... n){
         for(int i=0;i<n.length;i+=2){
-            stub.longStackPut(n[i],n[i+1]);
+            stub.longStackPut(n[i],n[i+1],false);
         }
     }
 
 
     void check( long... n){
-        long[] a = stub.physAllocate((int) n[0],true);
+        long[] a = stub.physAllocate((int) n[0],true,false);
         long[] b = new long[n.length];
 
         for(int i=0;i<a.length;i++){
@@ -63,7 +63,7 @@ public class StoreDirectFreeSpaceTest {
     @Test
     public void simpleTake(){
         fill(1,2);
-        assertEquals(2, stub.longStackTake(1));
+        assertEquals(2, stub.longStackTake(1,false));
     }
 
     @Test
@@ -91,8 +91,6 @@ public class StoreDirectFreeSpaceTest {
         check(1600,1600,320);
     }
 
-    //TODO this is not possible with current store design, need var-size LongStack pages
-    @Ignore
     @Test public void split_after_full(){
         stub.physSize = max;
         fill(size(3200),320);

@@ -62,7 +62,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     @Test
     public void phys_append_alloc(){
         e.structuralLock.lock();
-        long[] ret = e.physAllocate(100,true);
+        long[] ret = e.physAllocate(100,true,false);
         long expected = 100L<<48 | 16L;
         assertArrayEquals(new long[]{expected}, ret);
     }
@@ -70,7 +70,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     @Test
     public void phys_append_alloc_link2(){
         e.structuralLock.lock();
-        long[] ret = e.physAllocate(100 + MAX_REC_SIZE,true);
+        long[] ret = e.physAllocate(100 + MAX_REC_SIZE,true,false);
         long exp1 = MASK_LINKED |((long)MAX_REC_SIZE)<<48 | 16L;
         long exp2 = 108L<<48 | (16L+MAX_REC_SIZE+1);
         assertArrayEquals(new long[]{exp1, exp2}, ret);
@@ -79,7 +79,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     @Test
     public void phys_append_alloc_link3(){
         e.structuralLock.lock();
-        long[] ret = e.physAllocate(100 + MAX_REC_SIZE*2,true);
+        long[] ret = e.physAllocate(100 + MAX_REC_SIZE*2,true,false);
         long exp1 = MASK_LINKED | ((long)MAX_REC_SIZE)<<48 | 16L;
         long exp2 = MASK_LINKED | ((long)MAX_REC_SIZE)<<48 | (16L+MAX_REC_SIZE+1);
         long exp3 = ((long)116)<<48 | (16L+MAX_REC_SIZE*2+2);
@@ -89,9 +89,9 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
     @Test public void second_rec_pos_round_to_16(){
         e.structuralLock.lock();
-        long[] ret= e.physAllocate(1,true);
+        long[] ret= e.physAllocate(1,true,false);
         assertArrayEquals(new long[]{1L<<48|16L},ret);
-        ret= e.physAllocate(1,true);
+        ret= e.physAllocate(1,true,false);
         assertArrayEquals(new long[]{1L<<48|32L},ret);
 
     }
@@ -196,7 +196,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
     @Test public void test_long_stack_puts_record_offset_into_index() throws IOException {
         e.structuralLock.lock();
-        e.longStackPut(IO_RECID, 1);
+        e.longStackPut(IO_RECID, 1,false);
         e.commit();
         assertEquals(8,
                 e.index.getLong(IO_RECID)>>>48);
@@ -208,11 +208,11 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
         final long max = 150;
         for(long i=1;i<max;i++){
-            e.longStackPut(IO_RECID, i);
+            e.longStackPut(IO_RECID, i,false);
         }
 
         for(long i = max-1;i>0;i--){
-            assertEquals(i, e.longStackTake(IO_RECID));
+            assertEquals(i, e.longStackTake(IO_RECID,false));
         }
 
         assertEquals(0, getLongStack(IO_RECID).size());
@@ -221,8 +221,8 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
     @Test public void test_long_stack_put_take_simple() throws IOException {
         e.structuralLock.lock();
-        e.longStackPut(IO_RECID, 111);
-        assertEquals(111L, e.longStackTake(IO_RECID));
+        e.longStackPut(IO_RECID, 111,false);
+        assertEquals(111L, e.longStackTake(IO_RECID,false));
     }
 
 
@@ -232,7 +232,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         final long max = 150;
         ArrayList<Long> list = new ArrayList<Long>();
         for(long i=1;i<max;i++){
-            e.longStackPut(IO_RECID, i);
+            e.longStackPut(IO_RECID, i,false);
             list.add(i);
         }
 
@@ -242,7 +242,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         assertEquals(list, getLongStack(IO_RECID));
 
         for(long i =max-1;i>=1;i--){
-            assertEquals(i, e.longStackTake(IO_RECID));
+            assertEquals(i, e.longStackTake(IO_RECID,false));
         }
     }
 
@@ -252,7 +252,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         final long max = 15000;
         ArrayList<Long> list = new ArrayList<Long>();
         for(long i=1;i<max;i++){
-            e.longStackPut(IO_RECID, i);
+            e.longStackPut(IO_RECID, i,false);
             list.add(i);
         }
 
@@ -262,7 +262,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         assertEquals(list, getLongStack(IO_RECID));
 
         for(long i =max-1;i>=1;i--){
-            assertEquals(i, e.longStackTake(IO_RECID));
+            assertEquals(i, e.longStackTake(IO_RECID,false));
         }
     }
 
@@ -271,11 +271,11 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.structuralLock.lock();
         final long max = 150;
         for(long i=1;i<max;i++){
-            e.longStackPut(IO_RECID, i);
+            e.longStackPut(IO_RECID, i,false);
         }
 
         for(long i =max-1;i>=1;i--){
-            assertEquals(i, e.longStackTake(IO_RECID));
+            assertEquals(i, e.longStackTake(IO_RECID,false));
         }
     }
 
@@ -284,12 +284,12 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.structuralLock.lock();
         final long max = 15000;
         for(long i=1;i<max;i++){
-            e.longStackPut(IO_RECID, i);
+            e.longStackPut(IO_RECID, i,false);
         }
 
 
         for(long i =max-1;i>=1;i--){
-            assertEquals(i, e.longStackTake(IO_RECID));
+            assertEquals(i, e.longStackTake(IO_RECID,false));
         }
     }
 
@@ -297,7 +297,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
     @Test public void long_stack_page_created_after_put() throws IOException {
         e.structuralLock.lock();
-        e.longStackPut(IO_RECID, 111);
+        e.longStackPut(IO_RECID, 111,false);
         e.commit();
         long pageId = e.index.getLong(IO_RECID);
         assertEquals(8, pageId>>>48);
@@ -310,11 +310,11 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
     @Test public void long_stack_put_five() throws IOException {
         e.structuralLock.lock();
-        e.longStackPut(IO_RECID, 111);
-        e.longStackPut(IO_RECID, 112);
-        e.longStackPut(IO_RECID, 113);
-        e.longStackPut(IO_RECID, 114);
-        e.longStackPut(IO_RECID, 115);
+        e.longStackPut(IO_RECID, 111,false);
+        e.longStackPut(IO_RECID, 112,false);
+        e.longStackPut(IO_RECID, 113,false);
+        e.longStackPut(IO_RECID, 114,false);
+        e.longStackPut(IO_RECID, 115,false);
 
         e.commit();
         long pageId = e.index.getLong(IO_RECID);
@@ -332,9 +332,9 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
     @Test public void long_stack_page_deleted_after_take() throws IOException {
         e.structuralLock.lock();
-        e.longStackPut(IO_RECID, 111);
+        e.longStackPut(IO_RECID, 111,false);
         e.commit();
-        assertEquals(111L, e.longStackTake(IO_RECID));
+        assertEquals(111L, e.longStackTake(IO_RECID,false));
         e.commit();
         assertEquals(0L, e.index.getLong(IO_RECID));
     }
@@ -343,7 +343,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.structuralLock.lock();
         //fill page until near overflow
         for(int i=0;i< StoreDirect.LONG_STACK_PREF_COUNT;i++){
-            e.longStackPut(IO_RECID, 1000L+i);
+            e.longStackPut(IO_RECID, 1000L+i,false);
         }
         e.commit();
 
@@ -358,7 +358,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         }
 
         //add one more item, this will trigger page overflow
-        e.longStackPut(IO_RECID, 11L);
+        e.longStackPut(IO_RECID, 11L,false);
         e.commit();
         //check page overflowed
         pageId = e.index.getLong(IO_RECID);

@@ -92,7 +92,7 @@ public class StoreWAL extends StoreDirect {
             openLogIfNeeded();
             ioRecid = freeIoRecidTake(false);
             //first get space in phys
-            physPos = physAllocate(out.pos,false);
+            physPos = physAllocate(out.pos,false,false);
             //now get space in log
             logPos = logAllocate(physPos);
 
@@ -244,18 +244,18 @@ public class StoreWAL extends StoreDirect {
 
                 //free first record pointed from indexVal
                 if(indexVal!=0)
-                    freePhysPut(indexVal);
+                    freePhysPut(indexVal,false);
 
                 //if there are more linked records, free those as well
                 if(linkedRecords!=null){
                     for(int i=0; i<linkedRecords.length &&linkedRecords[i]!=0;i++){
-                        freePhysPut(linkedRecords[i]);
+                        freePhysPut(linkedRecords[i],false);
                     }
                 }
 
 
                 //first get space in phys
-                physPos = physAllocate(out.pos,false);
+                physPos = physAllocate(out.pos,false,false);
                 //now get space in log
                 logPos = logAllocate(physPos);
 
@@ -304,18 +304,18 @@ public class StoreWAL extends StoreDirect {
 
                 //free first record pointed from indexVal
                 if(indexVal!=0)
-                    freePhysPut(indexVal);
+                    freePhysPut(indexVal,false);
 
                 //if there are more linked records, free those as well
                 if(linkedRecords!=null){
                     for(int i=0; i<linkedRecords.length &&linkedRecords[i]!=0;i++){
-                        freePhysPut(linkedRecords[i]);
+                        freePhysPut(linkedRecords[i],false);
                     }
                 }
 
 
                 //first get space in phys
-                physPos = physAllocate(out.pos,false);
+                physPos = physAllocate(out.pos,false,false);
                 //now get space in log
                 logPos = logAllocate(physPos);
 
@@ -359,16 +359,16 @@ public class StoreWAL extends StoreDirect {
                 checkLogRounding();
                 logSize+=1+8+8; //space used for index val
                 log.ensureAvailable(logSize);
-                longStackPut(IO_FREE_RECID, ioRecid);
+                longStackPut(IO_FREE_RECID, ioRecid,false);
 
                 //free first record pointed from indexVal
                 if(indexVal!=0)
-                    freePhysPut(indexVal);
+                    freePhysPut(indexVal,false);
 
                 //if there are more linked records, free those as well
                 if(linkedRecords!=null){
                     for(int i=0; i<linkedRecords.length &&linkedRecords[i]!=0;i++){
-                        freePhysPut(linkedRecords[i]);
+                        freePhysPut(linkedRecords[i],false);
                     }
                 }
 
@@ -573,7 +573,8 @@ public class StoreWAL extends StoreDirect {
 
 
     @Override
-    protected long longStackTake(long ioList) {
+    protected long longStackTake(long ioList, boolean recursive) {
+//        if(recursive) throw new InternalError();
         final int ii = ((int) (ioList / 8));
 
         long dataOffset = indexVals[ii];
@@ -608,7 +609,7 @@ public class StoreWAL extends StoreDirect {
             //put space used by this page into free list
             longStackPages.remove(dataOffset); //TODO write zeroes to phys file
 
-            freePhysPut((size<<48)|dataOffset);
+            freePhysPut((size<<48)|dataOffset,true);
         }else{
             //no, it was not last record at this page, so just decrement the counter
             pos-=6;
@@ -620,7 +621,8 @@ public class StoreWAL extends StoreDirect {
     }
 
     @Override
-    protected void longStackPut(long ioList, long offset) {
+    protected void longStackPut(long ioList, long offset,boolean recursive) {
+//        if(recursive) throw new InternalError();
         if(offset>>>48!=0) throw new IllegalArgumentException();
         //index position was cleared, put into free index list
 
@@ -632,7 +634,7 @@ public class StoreWAL extends StoreDirect {
 
         if(dataOffset == 0){ //empty list?
             //yes empty, create new page and fill it with values
-            final long listPhysid = freePhysTake((int) LONG_STACK_PREF_SIZE,false) &MASK_OFFSET;
+            final long listPhysid = freePhysTake((int) LONG_STACK_PREF_SIZE,false,true) &MASK_OFFSET;
             long[] buf = getLongStackPage(listPhysid,false);
             if(listPhysid == 0) throw new InternalError();
 
@@ -652,7 +654,7 @@ public class StoreWAL extends StoreDirect {
 
             if(pos+6==size){ //is current page full?
                 //yes it is full, so we need to allocate new page and write our number there
-                final long listPhysid = freePhysTake((int) LONG_STACK_PREF_SIZE, false) &MASK_OFFSET;
+                final long listPhysid = freePhysTake((int) LONG_STACK_PREF_SIZE, false,true) &MASK_OFFSET;
                 long[] bufNew = getLongStackPage(listPhysid,false);
                 if(listPhysid == 0) throw new InternalError();
 
