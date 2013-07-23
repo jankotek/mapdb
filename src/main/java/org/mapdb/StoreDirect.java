@@ -834,6 +834,7 @@ public class StoreDirect extends Store{
                     long markFree = (remaining<<48) | (offset+s-remaining);
                     freePhysPut(markFree,recursive);
 
+                    freeSize-=roundTo16(s);
                     return (((long)size)<<48) |offset;
                 }
             }
