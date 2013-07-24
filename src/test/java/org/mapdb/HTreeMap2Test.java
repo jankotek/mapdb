@@ -449,20 +449,20 @@ public class HTreeMap2Test {
         }
     }
 
-    @Test (timeout = 60000)
+    @Test(timeout = 20000)
     public void expire_max_size() throws InterruptedException {
         HTreeMap m = db.createHashMap("test")
                 .expireMaxSize(1000)
                 .make();
-        for(int i=0;i<1010;i++){
+        for(int i=0;i<1100;i++){
             m.put(""+i,i);
         }
         //first should be removed soon
-        while(m.get("0")!=null){
-        }
+        while(m.size()>1050){};
+
         Thread.sleep(500);
         long size = m.size();
-        assertTrue(""+size,size>900 && size<=1000);
+        assertTrue(""+size,size>900 && size<=1050);
     }
 
 
