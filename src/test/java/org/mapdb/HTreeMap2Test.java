@@ -538,6 +538,7 @@ public class HTreeMap2Test {
         long counter = 0;
         while(time+5000>System.currentTimeMillis()){
             m.put(counter++,counter++);
+//            if(counter%1000<2) System.out.println(m.size());
         }
         m.clear();
     }

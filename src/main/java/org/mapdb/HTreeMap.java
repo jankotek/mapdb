@@ -551,6 +551,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             int level = 3;
             dirRecids[level] = segmentRecids[segment];
 
+            assert(segment==h>>>28);
+
             while(true){
                 long[][] dir = engine.get(dirRecids[level], DIR_SERIALIZER);
                 final int slot =  (h>>>(7*level )) & 0x7F;
@@ -1243,6 +1245,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
     protected void expireLinkAdd(int segment, long expireNodeRecid, long keyRecid, int hash){
         assert(segmentLocks[segment].writeLock().isHeldByCurrentThread());
+        assert(expireNodeRecid>0);
+        assert(keyRecid>0);
 
         long time = expire==0 ? 0: expire+System.currentTimeMillis()-expireTimeStart;
         long head = engine.get(expireHeads[segment],Serializer.LONG_SERIALIZER);
@@ -1430,7 +1434,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 try{
                     //TODO what if store gets closed while working on this?
                     map.expirePurge();
-                    Thread.sleep(1000);
+                    if(!map.expireMaxSizeFlag || map.size()<map.expireMaxSize)
+                        Thread.sleep(1000);
                 }catch(Throwable e){
                     e.printStackTrace();
                     Utils.LOG.log(Level.SEVERE, "HTreeMap expirator failed", e);
@@ -1452,46 +1457,80 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             }
         }
 
-        segmentsLabel: for(int seg=0;seg<16;seg++){
-            segmentLocks[seg].writeLock().lock();
-            try{
-                long counter=0;
-                long tail = engine.get(expireTails[seg],Serializer.LONG_SERIALIZER);
-                if(tail==0) continue segmentsLabel;
-                nodesLabel: while(true){
-                    ExpireLinkNode n = engine.get(tail,ExpireLinkNode.SERIALIZER);
-                    assert( n.hash>>>28 == seg);
-                    boolean remove = counter++<removePerSegment;
-                    if(!remove && (expireAccess!=0 || expire!=0))
-                        remove = n.time+expireTimeStart<System.currentTimeMillis();
-                    if(remove){
-                        //remove current
-                        engine.delete(tail,ExpireLinkNode.SERIALIZER);
-                        LinkedNode<K,V> ln = engine.get(n.keyRecid,LN_SERIALIZER);
-                        removeInternal(ln.key,seg, n.hash, false);
-                        if(n.next==0){
-                            //reached end of queue, so update tail and head and exit
-                            engine.update(expireHeads[seg],0L,Serializer.LONG_SERIALIZER);
-                            engine.update(expireTails[seg],0L,Serializer.LONG_SERIALIZER);
-                            continue  segmentsLabel;
-                        }
-                    }else{
-                        //found place where time is greater than current time
-                        //so this is new tail
-                        engine.update(expireTails[seg],tail,Serializer.LONG_SERIALIZER);
-                        n = n.copyPrev(0L);
-                        engine.update(tail,n,ExpireLinkNode.SERIALIZER);
-                        continue segmentsLabel;
-                    }
-                    tail = n.next;
-                }
+        for(int seg=0;seg<16;seg++){
+            exirePurgeSegment(seg,removePerSegment);
+        }
 
-            }finally {
-                segmentLocks[seg].writeLock().unlock();
+    }
+
+    protected void exirePurgeSegment(int seg, long removePerSegment) {
+        segmentLocks[seg].writeLock().lock();
+        try{
+//            expireCheckSegment(seg);
+            long recid = engine.get(expireTails[seg],Serializer.LONG_SERIALIZER);
+            long counter=0;
+            ExpireLinkNode last =null,n=null;
+            while(recid!=0){
+                n = engine.get(recid, ExpireLinkNode.SERIALIZER);
+                assert(n!=ExpireLinkNode.EMPTY);
+                assert( n.hash>>>28 == seg);
+
+                final boolean remove = ++counter < removePerSegment ||
+                        ((expire!=0 || expireAccess!=0) &&  n.time+expireTimeStart<System.currentTimeMillis());
+
+                if(remove){
+                    engine.delete(recid,LN_SERIALIZER);
+                    LinkedNode<K,V> ln = engine.get(n.keyRecid,LN_SERIALIZER);
+                    removeInternal(ln.key,seg, n.hash, false);
+                }else{
+                    break;
+                }
+                last=n;
+                recid=n.next;
             }
+            // patch linked list
+            if(last ==null ){
+                //no items removed
+                return;
+            }else if(recid == 0){
+                //all items were taken, so zero items
+                engine.update(expireTails[seg],0L, Serializer.LONG_SERIALIZER);
+                engine.update(expireHeads[seg],0L, Serializer.LONG_SERIALIZER);
+            }else{
+                //update tail to point to next item
+                engine.update(expireTails[seg],recid, Serializer.LONG_SERIALIZER);
+                //and update next item to point to tail
+                n = engine.get(recid, ExpireLinkNode.SERIALIZER);
+                n = n.copyPrev(0);
+                engine.update(recid,n,ExpireLinkNode.SERIALIZER);
+            }
+//            expireCheckSegment(seg);
+        }finally{
+            segmentLocks[seg].writeLock().unlock();
         }
     }
 
+
+    protected void expireCheckSegment(int segment){
+        long current = engine.get(expireTails[segment],Serializer.LONG_SERIALIZER);
+        if(current==0){
+            if(engine.get(expireHeads[segment],Serializer.LONG_SERIALIZER)!=0)
+                throw new InternalError("head not 0");
+            return;
+        }
+
+        long prev = 0;
+        while(current!=0){
+            ExpireLinkNode curr = engine.get(current,ExpireLinkNode.SERIALIZER);
+            if(curr.prev!=prev)
+                throw new InternalError("wrong prev "+curr.prev +" - "+prev);
+            prev= current;
+            current = curr.next;
+        }
+        if(engine.get(expireHeads[segment],Serializer.LONG_SERIALIZER)!=prev)
+            throw new InternalError("wrong head");
+
+    }
 
     /**
      * Make readonly snapshot view of current Map. Snapshot is immutable and not affected by modifications made by other threads.
