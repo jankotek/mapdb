@@ -456,4 +456,50 @@ public abstract class EngineWrapper implements Engine{
         }
     }
 
+
+    /** Checks that Serializer used to serialize item is the same as Serializer used to deserialize it*/
+    public static class SerializerCheckEngineWrapper extends EngineWrapper{
+
+        protected LongMap<Serializer> recid2serializer = new LongConcurrentHashMap<Serializer>();
+
+        protected SerializerCheckEngineWrapper(Engine engine) {
+            super(engine);
+        }
+
+
+        synchronized protected <A> void checkSerializer(long recid, Serializer<A> serializer) {
+            Serializer other = recid2serializer.get(recid);
+            if(other!=null){
+                if( other!=serializer)
+                    throw new IllegalArgumentException("Serializer does not match. \n found: "+serializer+" \n expected: "+other);
+            }else
+                recid2serializer.put(recid,serializer);
+        }
+
+        @Override
+        public <A> A get(long recid, Serializer<A> serializer) {
+            checkSerializer(recid, serializer);
+            return super.get(recid, serializer);
+        }
+
+
+        @Override
+        public <A> void update(long recid, A value, Serializer<A> serializer) {
+            checkSerializer(recid, serializer);
+            super.update(recid, value, serializer);
+        }
+
+        @Override
+        public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+            checkSerializer(recid, serializer);
+            return super.compareAndSwap(recid, expectedOldValue, newValue, serializer);
+        }
+
+        @Override
+        public <A> void delete(long recid, Serializer<A> serializer) {
+            checkSerializer(recid, serializer);
+            recid2serializer.remove(recid);
+            super.delete(recid, serializer);
+        }
+    }
 }
