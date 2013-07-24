@@ -30,6 +30,7 @@ public class StoreHeap extends Store implements Serializable{
 
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
+        assert(value!=null);
         Long recid = freeRecids.poll();
         if(recid==null) recid = maxRecid.incrementAndGet();
         records.put(recid, Fun.<Object, Serializer>t2(value,serializer));
@@ -44,11 +45,13 @@ public class StoreHeap extends Store implements Serializable{
 
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
+        assert(value!=null);
         records.put(recid, Fun.<Object, Serializer>t2(value,serializer));
     }
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+        assert(expectedOldValue!=null && newValue!=null);
         return records.replace(recid, Fun.t2(expectedOldValue, serializer), Fun.t2(newValue, serializer));
     }
 

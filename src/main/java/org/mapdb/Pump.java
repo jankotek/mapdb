@@ -23,6 +23,7 @@ public class Pump {
         for(long recid=1;recid<=maxRecid;recid++){
             ByteBuffer bb = s1.getRaw(recid);
             //System.out.println(recid+" - "+(bb==null?0:bb.remaining()));
+            if(bb==null) continue;
             s2.updateRaw(recid, bb);
         }
 

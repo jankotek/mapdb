@@ -228,6 +228,7 @@ public class StoreDirect extends Store{
 
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
+        assert(value!=null);
         DataOutput2 out = serialize(value, serializer);
 
         structuralLock.lock();
@@ -337,6 +338,7 @@ public class StoreDirect extends Store{
 
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
+        assert(value!=null);
         DataOutput2 out = serialize(value, serializer);
 
         final long ioRecid = IO_USER_START + recid*8;
@@ -376,6 +378,7 @@ public class StoreDirect extends Store{
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+        assert(expectedOldValue!=null && newValue!=null);
         final long ioRecid = IO_USER_START + recid*8;
         final Lock lock  = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
         lock.lock();
@@ -716,7 +719,7 @@ public class StoreDirect extends Store{
             if(next !=0){
                 //update index so it points to previous page
                 long nextSize = phys.getUnsignedShort(next);
-                if((nextSize-8)%6!=0)throw new InternalError();
+                assert((nextSize-8)%6==0);
                 index.putLong(ioList , ((nextSize-6)<<48)|next);
             }else{
                 //zero out index

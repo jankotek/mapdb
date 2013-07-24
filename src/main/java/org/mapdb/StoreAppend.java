@@ -231,6 +231,7 @@ public class StoreAppend extends Store{
 
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
+        assert(value!=null);
         DataOutput2 out = Utils.serializer(serializer,value);
 
 
@@ -298,6 +299,7 @@ public class StoreAppend extends Store{
 
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
+        assert(value!=null);
         DataOutput2 out = Utils.serializer(serializer,value);
 
         final Lock lock = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
@@ -337,6 +339,7 @@ public class StoreAppend extends Store{
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+        assert(expectedOldValue!=null && newValue!=null);
         DataOutput2 out = Utils.serializer(serializer,newValue);
         final Lock lock = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
         lock.lock();

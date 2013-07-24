@@ -42,6 +42,7 @@ public abstract class EngineWrapper implements Engine{
 
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
+        assert(value!=null);
         return getWrappedEngine().put(value, serializer);
     }
 
@@ -52,11 +53,13 @@ public abstract class EngineWrapper implements Engine{
 
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
+        assert(value!=null);
         getWrappedEngine().update(recid, value, serializer);
     }
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+        assert(expectedOldValue!=null && newValue!=null);
         return getWrappedEngine().compareAndSwap(recid, expectedOldValue, newValue, serializer);
     }
 

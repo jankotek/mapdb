@@ -245,7 +245,6 @@ public abstract class Volume {
         protected final long sizeLimit;
         protected final boolean hasLimit;
 
-        //TODO use volatile (or AtomicReference) here
         protected volatile ByteBuffer[] buffers;
         protected final boolean readOnly;
 

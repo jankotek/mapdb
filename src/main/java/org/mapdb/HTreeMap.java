@@ -394,6 +394,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                     LinkedNode<K,V> ln = engine.get(recid, LN_SERIALIZER);
                     if(ln == null) return null;
                     if(ln.key.equals(o)){
+                        assert(hash(ln.key)==h);
                         return ln;
                     }
                     if(ln.next==0) return null;
@@ -476,7 +477,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                     long[][] nextDir = new long[16][];
 
                     {
-                        final long expireNodeRecid = expireFlag? engine.put(null, ExpireLinkNode.SERIALIZER):0L;
+                        final long expireNodeRecid = expireFlag? engine.put(ExpireLinkNode.EMPTY, ExpireLinkNode.SERIALIZER):0L;
                         final LinkedNode<K,V> node = new LinkedNode<K, V>(0, expireNodeRecid, key, value);
                         final long newRecid = engine.put(node, LN_SERIALIZER);
                         //add newly inserted record
@@ -512,7 +513,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 }else{
                     // record does not exist in linked list, so create new one
                     recid = dir[slot/8][slot%8]>>>1;
-                    final long expireNodeRecid = expireFlag? engine.put(null, ExpireLinkNode.SERIALIZER):0L;
+                    final long expireNodeRecid = expireFlag? engine.put(ExpireLinkNode.EMPTY, ExpireLinkNode.SERIALIZER):0L;
 
                     final long newRecid = engine.put(new LinkedNode<K, V>(recid, expireNodeRecid, key, value), LN_SERIALIZER);
                     dir = Arrays.copyOf(dir,16);
@@ -602,6 +603,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                                 engine.update(prevRecid, prevLn, LN_SERIALIZER);
                             }
                             //found, remove this node
+                            assert(hash(ln.key)==h);
                             engine.delete(recid, LN_SERIALIZER);
                             if(removeExpire && expireFlag) expireLinkRemove(segment, ln.expireLinkNodeRecid);
                             notify((K) key, ln.value, null);
@@ -1186,10 +1188,12 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
     protected static final class ExpireLinkNode{
 
+        public static ExpireLinkNode EMPTY = new ExpireLinkNode(0,0,0,0,0);
+
         public static final Serializer<ExpireLinkNode> SERIALIZER = new Serializer<ExpireLinkNode>() {
             @Override
             public void serialize(DataOutput out, ExpireLinkNode value) throws IOException {
-                if(value == null) return;
+                if(value == EMPTY) return;
                 Utils.packLong(out,value.prev);
                 Utils.packLong(out,value.next);
                 Utils.packLong(out,value.keyRecid);
@@ -1199,7 +1203,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
             @Override
             public ExpireLinkNode deserialize(DataInput in, int available) throws IOException {
-                if(available==0) return null;
+                if(available==0) return EMPTY;
                 return new ExpireLinkNode(
                         Utils.unpackLong(in),Utils.unpackLong(in),Utils.unpackLong(in),Utils.unpackLong(in),
                         in.readInt()
@@ -1426,7 +1430,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 try{
                     //TODO what if store gets closed while working on this?
                     map.expirePurge();
-                }catch(Exception e){
+                    Thread.sleep(1000);
+                }catch(Throwable e){
                     e.printStackTrace();
                     Utils.LOG.log(Level.SEVERE, "HTreeMap expirator failed", e);
                 }
@@ -1446,7 +1451,6 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 removePerSegment=1+(size-expireMaxSize)/16;
             }
         }
-
 
         segmentsLabel: for(int seg=0;seg<16;seg++){
             segmentLocks[seg].writeLock().lock();

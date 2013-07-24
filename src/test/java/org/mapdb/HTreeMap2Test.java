@@ -4,10 +4,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 import static org.junit.Assert.*;
 
@@ -354,7 +351,7 @@ public class HTreeMap2Test {
         assertEquals(ZERO, engine.get(m.expireHeads[0], Serializer.LONG_SERIALIZER));
         assertEquals(ZERO, engine.get(m.expireTails[0], Serializer.LONG_SERIALIZER));
 
-        m.expireLinkAdd(0,m.engine.put(null, HTreeMap.ExpireLinkNode.SERIALIZER),  111L,222);
+        m.expireLinkAdd(0,m.engine.put(HTreeMap.ExpireLinkNode.EMPTY, HTreeMap.ExpireLinkNode.SERIALIZER),  111L,222);
 
         Long recid = engine.get(m.expireHeads[0], Serializer.LONG_SERIALIZER);
         assertNotEquals(ZERO,recid);
@@ -385,7 +382,7 @@ public class HTreeMap2Test {
 
         long[] recids = new long[10];
         for(int i=1;i<10;i++){
-            recids[i] = m.engine.put(null, HTreeMap.ExpireLinkNode.SERIALIZER);
+            recids[i] = m.engine.put(HTreeMap.ExpireLinkNode.EMPTY, HTreeMap.ExpireLinkNode.SERIALIZER);
             m.expireLinkAdd(2, recids[i],i*10,i*100);
         }
 
@@ -452,7 +449,7 @@ public class HTreeMap2Test {
         }
     }
 
-    @Test (timeout = 20000)
+    @Test (timeout = 60000)
     public void expire_max_size() throws InterruptedException {
         HTreeMap m = db.createHashMap("test")
                 .expireMaxSize(1000)
@@ -499,7 +496,60 @@ public class HTreeMap2Test {
         m.remove("12");
         assertEquals(0L, m.getMaxExpireTime());
         assertEquals(0L, m.getMinExpireTime());
-
     }
+
+    @Test (timeout = 20000)
+    public void cache_load_time_expire(){
+        DB db =
+                DBMaker.newMemoryDB()
+                .sizeLimit(1)
+                .writeAheadLogDisable()
+                .asyncWriteDisable()
+                .snapshotDisable()
+                .cacheDisable()
+                .make();
+
+        HTreeMap m = db.createHashMap("test")
+                //.expireMaxSize(11000000)
+                .expireAfterWrite(100)
+                .make();
+        long time = System.currentTimeMillis();
+        long counter = 0;
+        try{
+        while(time+5000>System.currentTimeMillis()){
+            m.put(counter++,counter++);
+        }
+        }catch(Throwable e){
+            Set others = new TreeSet();
+            for(Object key:m.keySet()){
+                if(others.contains(key)) throw new InternalError("found");
+                others.add(key);
+            }
+
+        }
+        m.clear();
+    }
+
+    @Test(timeout = 20000)
+    public void cache_load_size_expire(){
+        DB db = DBMaker.newMemoryDB()
+                .sizeLimit(1)
+                .writeAheadLogDisable()
+                .asyncWriteDisable()
+                .snapshotDisable()
+                .make();
+
+        HTreeMap m = db.createHashMap("test")
+                //.expireMaxSize(11000000)
+                .expireMaxSize(10000)
+                .make();
+        long time = System.currentTimeMillis();
+        long counter = 0;
+        while(time+5000>System.currentTimeMillis()){
+            m.put(counter++,counter++);
+        }
+        m.clear();
+    }
+
 }
 
