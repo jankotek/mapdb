@@ -331,8 +331,8 @@ public class StoreDirect extends Store{
         }
         int start = di.pos;
         A ret = serializer.deserialize(di,size);
-        if(size+start>di.pos)throw new InternalError("data were not fully read, check your serializier "+ioRecid);
-        if(size+start<di.pos)throw new InternalError("data were read beyond record size, check your serializier");
+        if(size+start>di.pos)throw new InternalError("data were not fully read, check your serializer "+ioRecid);
+        if(size+start<di.pos)throw new InternalError("data were read beyond record size, check your serializer");
         return ret;
     }
 
