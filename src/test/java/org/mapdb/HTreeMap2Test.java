@@ -515,17 +515,8 @@ public class HTreeMap2Test {
                 .make();
         long time = System.currentTimeMillis();
         long counter = 0;
-        try{
         while(time+5000>System.currentTimeMillis()){
             m.put(counter++,counter++);
-        }
-        }catch(Throwable e){
-            Set others = new TreeSet();
-            for(Object key:m.keySet()){
-                if(others.contains(key)) throw new InternalError("found");
-                others.add(key);
-            }
-
         }
         m.clear();
     }
