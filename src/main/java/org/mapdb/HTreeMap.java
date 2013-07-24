@@ -1460,6 +1460,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 if(tail==0) continue segmentsLabel;
                 nodesLabel: while(true){
                     ExpireLinkNode n = engine.get(tail,ExpireLinkNode.SERIALIZER);
+                    assert( n.hash>>>28 == seg);
                     boolean remove = counter++<removePerSegment;
                     if(!remove && (expireAccess!=0 || expire!=0))
                         remove = n.time+expireTimeStart<System.currentTimeMillis();

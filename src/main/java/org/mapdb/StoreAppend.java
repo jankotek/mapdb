@@ -269,6 +269,7 @@ public class StoreAppend extends Store{
 
     @Override
     public <A> A get(long recid, Serializer<A> serializer) {
+        assert(recid>0);
         final Lock lock = locks[Utils.longHash(recid)&Utils.LOCK_MASK].readLock();
         lock.lock();
         try{
@@ -300,6 +301,7 @@ public class StoreAppend extends Store{
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
         assert(value!=null);
+        assert(recid>0);
         DataOutput2 out = Utils.serializer(serializer,value);
 
         final Lock lock = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
@@ -340,6 +342,7 @@ public class StoreAppend extends Store{
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
         assert(expectedOldValue!=null && newValue!=null);
+        assert(recid>0);
         DataOutput2 out = Utils.serializer(serializer,newValue);
         final Lock lock = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
         lock.lock();
@@ -361,6 +364,7 @@ public class StoreAppend extends Store{
 
     @Override
     public <A> void delete(long recid, Serializer<A> serializer) {
+        assert(recid>0);
         final Lock lock = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
         lock.lock();
         try{

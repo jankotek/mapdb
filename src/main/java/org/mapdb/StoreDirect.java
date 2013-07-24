@@ -281,6 +281,7 @@ public class StoreDirect extends Store{
 
     @Override
     public <A> A get(long recid, Serializer<A> serializer) {
+        assert(recid>0);
         final long ioRecid = IO_USER_START + recid*8;
         final Lock lock  = locks[Utils.longHash(recid)&Utils.LOCK_MASK].readLock();
         lock.lock();
@@ -339,6 +340,7 @@ public class StoreDirect extends Store{
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
         assert(value!=null);
+        assert(recid>0);
         DataOutput2 out = serialize(value, serializer);
 
         final long ioRecid = IO_USER_START + recid*8;
@@ -379,6 +381,7 @@ public class StoreDirect extends Store{
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
         assert(expectedOldValue!=null && newValue!=null);
+        assert(recid>0);
         final long ioRecid = IO_USER_START + recid*8;
         final Lock lock  = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
         lock.lock();
@@ -437,6 +440,7 @@ public class StoreDirect extends Store{
 
     @Override
     public <A> void delete(long recid, Serializer<A> serializer) {
+        assert(recid>0);
         final long ioRecid = IO_USER_START + recid*8;
         final Lock lock  = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
         lock.lock();
