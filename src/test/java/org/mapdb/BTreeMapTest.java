@@ -24,7 +24,7 @@ public class BTreeMapTest{
     @Test public void test_leaf_node_serialization() throws IOException {
 
 
-        BTreeMap.LeafNode n = new BTreeMap.LeafNode(new Object[]{1,2,3, null}, new Object[]{1,2,3,null}, 111);
+        BTreeMap.LeafNode n = new BTreeMap.LeafNode(new Object[]{null,1,2,3, null}, new Object[]{1,2,3}, 111);
         BTreeMap.LeafNode n2 = (BTreeMap.LeafNode) Utils.clone(n, m.nodeSerializer);
         assertArrayEquals(n.keys(), n2.keys());
         assertEquals(n.next, n2.next);
@@ -108,7 +108,7 @@ public class BTreeMapTest{
 
         BTreeMap.LeafNode l = new BTreeMap.LeafNode(
                 new Object[]{null, 10,20,30, null},
-                new Object[]{null, 10,20,30, null},
+                new Object[]{10,20,30},
                 0);
         long rootRecid = engine.put(l, m.nodeSerializer);
         engine.update(m.rootRecidRef, rootRecid, Serializer.LONG_SERIALIZER);
@@ -131,7 +131,7 @@ public class BTreeMapTest{
         final long rootRecid = engine.get(m.rootRecidRef, Serializer.LONG_SERIALIZER);
         BTreeMap.LeafNode n = (BTreeMap.LeafNode) engine.get(rootRecid, m.nodeSerializer);
         assertArrayEquals(new Object[]{null, 11, null}, n.keys);
-        assertArrayEquals(new Object[]{null, 12, null}, n.vals);
+        assertArrayEquals(new Object[]{12}, n.vals);
         assertEquals(0, n.next);
     }
 
@@ -141,6 +141,7 @@ public class BTreeMapTest{
         for(int i=0;i<1000;i++){
             m.put(i*10,i*10+1);
         }
+
 
         for(int i=0;i<10000;i++){
             assertEquals(i%10==0?i+1:null, m.get(i));

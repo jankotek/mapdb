@@ -422,7 +422,7 @@ public class Pump {
 
         //fill node with data
         List<K> keys = arrayList(null);
-        List<V> values = hasVals? (List<V>) arrayList(null) : null;
+        ArrayList<V> values = hasVals?new ArrayList<V>() : null;
         //traverse iterator
         K oldKey = null;
         while(source.hasNext()){
@@ -447,9 +447,8 @@ public class Pump {
 
             V nextVal = null;
             if(hasVals){
+                nextVal = values.remove(values.size()-1);
                 Collections.reverse(values);
-                nextVal = values.get(0);
-                values.set(0, null);
             }
 
 
@@ -463,7 +462,6 @@ public class Pump {
             keys.add(nextKey);
             if(hasVals){
                 values.clear();
-                values.add(null);
                 values.add(nextVal);
             }
             dirKeys.get(0).add(node.keys()[0]);
