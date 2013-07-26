@@ -161,17 +161,6 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     }
 
 
-//    /** data record which holds informations about this BTree. BTreeMap class is not serialized itself. */
-//    static final class BTreeRoot{
-//        long rootRecidRef;
-//        boolean hasValues;
-//        boolean valsOutsideNodes;
-//        int maxNodeSize;
-//        long counterRecid;
-//        BTreeKeySerializer keySerializer;
-//        Serializer valueSerializer;
-//        Comparator comparator;
-//    }
 
     /** if <code>valsOutsideNodes</code> is true, this class is used instead of values.
      * It contains reference to actual value. It also supports assertions from preventing it to leak outside of Map*/
