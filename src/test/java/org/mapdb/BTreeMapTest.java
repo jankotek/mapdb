@@ -16,7 +16,7 @@ public class BTreeMapTest{
     Engine engine = new StoreDirect(Volume.memoryFactory(false,0L));
 
 
-    BTreeMap m = new BTreeMap(engine,BTreeMap.createRootRef(engine,BTreeKeySerializer.BASIC,Serializer.BASIC_SERIALIZER),
+    BTreeMap m = new BTreeMap(engine,BTreeMap.createRootRef(engine,BTreeKeySerializer.BASIC,Serializer.BASIC_SERIALIZER,Utils.COMPARABLE_COMPARATOR),
             6,false,0, BTreeKeySerializer.BASIC,Serializer.BASIC_SERIALIZER,
             Utils.COMPARABLE_COMPARATOR);
     

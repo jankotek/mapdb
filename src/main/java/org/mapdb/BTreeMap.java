@@ -279,6 +279,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         protected final Comparator comparator;
 
         public NodeSerializer(boolean valsOutsideNodes, BTreeKeySerializer keySerializer, Serializer valueSerializer, Comparator comparator) {
+            assert(keySerializer!=null);
+            assert(comparator!=null);
             this.hasValues = valueSerializer!=null;
             this.valsOutsideNodes = valsOutsideNodes;
             this.keySerializer = keySerializer;
@@ -362,11 +364,12 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     value.keys());
 
             if(isLeaf && hasValues){
-                for(int i=0; i<value.vals().length; i++){
+                for(int i=1; i<value.vals().length-1; i++){
+                    ///TODO first and last positions in vals array are always null, shrink array and save memory!
                     Object val = value.vals()[i];
-                    assert(i==0 || i==value.vals().length-1 || val!=null);
+                    assert(val!=null);
                     if(valsOutsideNodes){
-                        long recid = val!=null?  ((ValRef)val).recid :0;
+                        long recid = ((ValRef)val).recid;
                         Utils.packLong(out, recid);
                     }else{
                         valueSerializer.serialize(out,  val);
@@ -400,7 +403,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
                 if(hasValues){
                     vals = new Object[size];
-                    for(int i=0;i<size;i++){
+                    for(int i=1;i<size-1;i++){
                         if(valsOutsideNodes){
                             long recid = Utils.unpackLong(in);
                             vals[i] = recid==0? null: new ValRef(recid);
@@ -473,10 +476,10 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     }
 
     /** creates empty root node and returns recid of its reference*/
-    static protected long createRootRef(Engine engine, BTreeKeySerializer keySer, Serializer valueSer){
+    static protected long createRootRef(Engine engine, BTreeKeySerializer keySer, Serializer valueSer, Comparator comparator){
         final LeafNode emptyRoot = new LeafNode(new Object[]{null, null}, new Object[]{null, null}, 0);
         //empty root is serializer simpler way, so we can use dummy values
-        long rootRecidVal = engine.put(emptyRoot,  new NodeSerializer(false,keySer, valueSer, null));
+        long rootRecidVal = engine.put(emptyRoot,  new NodeSerializer(false,keySer, valueSer, comparator));
         return engine.put(rootRecidVal,Serializer.LONG_SERIALIZER);
     }
 

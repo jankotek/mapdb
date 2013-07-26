@@ -13,7 +13,7 @@ public class BTreeSetTest extends HTreeSetTest{
     public void setUp() throws Exception {
         super.setUp();
 
-        hs = new BTreeMap(engine,BTreeMap.createRootRef(engine,BTreeKeySerializer.BASIC,null),
+        hs = new BTreeMap(engine,BTreeMap.createRootRef(engine,BTreeKeySerializer.BASIC,null,Utils.COMPARABLE_COMPARATOR),
                 6,false,0, BTreeKeySerializer.BASIC,null,
                 Utils.COMPARABLE_COMPARATOR).keySet();
 

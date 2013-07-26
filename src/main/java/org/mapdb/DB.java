@@ -467,14 +467,15 @@ public class DB {
         m.keySerializer = fillNulls(m.keySerializer);
         m.keySerializer = (BTreeKeySerializer)catPut(name+".keySerializer",m.keySerializer,new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer()));
         m.valueSerializer = catPut(name+".valueSerializer",m.valueSerializer,getDefaultSerializer());
+        m.comparator = (Comparator)catPut(name+".comparator",m.comparator,Utils.COMPARABLE_COMPARATOR);
         BTreeMap<K,V> ret = new BTreeMap<K,V>(engine,
-                catPut(name+".rootRecidRef", BTreeMap.createRootRef(engine,m.keySerializer,m.valueSerializer)),
+                catPut(name+".rootRecidRef", BTreeMap.createRootRef(engine,m.keySerializer,m.valueSerializer,m.comparator)),
                 catPut(name+".maxNodeSize",m.nodeSize),
                 catPut(name+".valuesOutsideNodes",m.valuesStoredOutsideNodes),
                 catPut(name+".counterRecid",!m.keepCounter?0L:engine.put(0L, Serializer.LONG_SERIALIZER)),
                 m.keySerializer,
                 m.valueSerializer,
-                (Comparator)catPut(name+".comparator",m.comparator,Utils.COMPARABLE_COMPARATOR)
+                m.comparator
         );
         catalog.put(name + ".type", "TreeMap");
         collections.put(name, new WeakReference<Object>(ret));
@@ -575,14 +576,15 @@ public class DB {
         checkNameNotExists(name);
         serializer = fillNulls(serializer);
         serializer = (BTreeKeySerializer)catPut(name+".keySerializer",serializer,new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer()));
+        comparator = (Comparator)catPut(name+".comparator",comparator,Utils.COMPARABLE_COMPARATOR);
         NavigableSet<K> ret = new BTreeMap<K,Object>(engine,
-                catPut(name+".rootRecidRef", BTreeMap.createRootRef(engine,serializer, null)),
+                catPut(name+".rootRecidRef", BTreeMap.createRootRef(engine,serializer, null,comparator)),
                 catPut(name+".maxNodeSize",nodeSize),
                 false,
                 catPut(name+".counterRecid",!keepCounter?0L:engine.put(0L, Serializer.LONG_SERIALIZER)),
                 serializer,
                 null,
-                (Comparator)catPut(name+".comparator",comparator,Utils.COMPARABLE_COMPARATOR)
+                comparator
         ).keySet();
         catalog.put(name + ".type", "TreeSet");
         collections.put(name, new WeakReference<Object>(ret));
