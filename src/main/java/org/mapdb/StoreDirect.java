@@ -151,6 +151,8 @@ public class StoreDirect extends Store{
 
     protected final static int LONG_STACK_PREF_COUNT = 204;
     protected final static long LONG_STACK_PREF_SIZE = 8+LONG_STACK_PREF_COUNT*6;
+    protected final static int LONG_STACK_PREF_COUNT_ALTER = 212;
+    protected final static long LONG_STACK_PREF_SIZE_ALTER = 8+LONG_STACK_PREF_COUNT_ALTER*6;
 
 
     protected final ReentrantReadWriteLock[] locks = Utils.newReadWriteLocks();
@@ -769,14 +771,19 @@ public class StoreDirect extends Store{
             long next = phys.getLong(dataOffset);
             long size = next>>>48;
             next &=MASK_OFFSET;
-
+            assert(pos+6<=size);
             if(pos+6==size){ //is current page full?
+                long newPageSize = LONG_STACK_PREF_SIZE;
+                if(ioList == size2ListIoRecid(LONG_STACK_PREF_SIZE)){
+                    //TODO double allocation fix needs more investigation
+                    newPageSize = LONG_STACK_PREF_SIZE_ALTER;
+                }
                 //yes it is full, so we need to allocate new page and write our number there
-                final long listPhysid = freePhysTake((int) LONG_STACK_PREF_SIZE,true,true) &MASK_OFFSET;
+                final long listPhysid = freePhysTake((int) newPageSize,true,true) &MASK_OFFSET;
                 if(listPhysid == 0) throw new InternalError();
 
                 //set location to previous page and set current page size
-                phys.putLong(listPhysid, (LONG_STACK_PREF_SIZE<<48)|dataOffset);
+                phys.putLong(listPhysid, (newPageSize<<48)|(dataOffset&MASK_OFFSET));
 
                 //set the value itself
                 phys.putSixLong(listPhysid+8, offset);
