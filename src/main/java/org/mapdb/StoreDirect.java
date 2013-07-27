@@ -248,7 +248,7 @@ public class StoreDirect extends Store{
         return (ioRecid-IO_USER_START)/8;
     }
 
-    private void put2(DataOutput2 out, long ioRecid, long[] indexVals) {
+    protected void put2(DataOutput2 out, long ioRecid, long[] indexVals) {
         index.putLong(ioRecid, indexVals[0]|MASK_ARCHIVE);
         //write stuff
         if(indexVals.length==1||indexVals[1]==0){ //is more then one? ie linked
@@ -351,8 +351,30 @@ public class StoreDirect extends Store{
         final Lock lock  = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
         lock.lock();
         try{
-            long indexVal = index.getLong(ioRecid);
+            update2(out, ioRecid);
+        }finally{
+            lock.unlock();
+        }
+        recycledDataOuts.offer(out);
+    }
+
+    protected void update2(DataOutput2 out, long ioRecid) {
+        final long indexVal = index.getLong(ioRecid);
+        final long size = indexVal>>>48;
+        final boolean linked = (indexVal&MASK_LINKED)!=0;
+
+        if(!linked && out.pos>0 && size>0 && size2ListIoRecid(size) == size2ListIoRecid(out.pos)){
+            //size did change, but still fits into this location
+            final long offset = indexVal & MASK_OFFSET;
+
+            //note: if size would not change, we still have to write MASK_ARCHIVE bit
+            index.putLong(ioRecid, (((long)out.pos)<<48)|offset|MASK_ARCHIVE);
+
+            phys.putData(offset, out.buf, 0, out.pos);
+        }else{
+
             long[] indexVals = spaceReclaimTrack ? getLinkedRecordsIndexVals(indexVal) : null;
+
             structuralLock.lock();
             try{
 
@@ -374,11 +396,9 @@ public class StoreDirect extends Store{
             }
 
             put2(out, ioRecid, indexVals);
-        }finally{
-            lock.unlock();
         }
-        recycledDataOuts.offer(out);
     }
+
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
@@ -407,29 +427,7 @@ public class StoreDirect extends Store{
              */
              out = serialize(newValue, serializer);
 
-            long indexVal = index.getLong(ioRecid);
-            long[] indexVals = spaceReclaimTrack ? getLinkedRecordsIndexVals(indexVal) : null;
-
-            structuralLock.lock();
-            try{
-                if(spaceReclaimTrack){
-                    //free first record pointed from indexVal
-                    freePhysPut(indexVal,false);
-
-                    //if there are more linked records, free those as well
-                    if(indexVals!=null){
-                        for(int i=0;i<indexVals.length && indexVals[i]!=0;i++){
-                            freePhysPut(indexVals[i],false);
-                        }
-                    }
-                }
-
-                indexVals = physAllocate(out.pos,true,false);
-            }finally {
-                structuralLock.unlock();
-            }
-
-            put2(out, ioRecid, indexVals);
+            update2(out, ioRecid);
 
         }catch(IOException e){
             throw new IOError(e);
