@@ -110,6 +110,8 @@ public class DB {
         protected long expire = 0L;
         protected long expireAccess = 0L;
 
+        protected Fun.Function1 valueCreator = null;
+
 
 
 
@@ -163,6 +165,14 @@ public class DB {
             return this;
         }
 
+        /** If value is not found, HTreeMap can fetch and insert default value. `valueCreator` is used to return new value.
+         * This way `HTreeMap.get()` never returns null */
+        public HTreeMapMaker valueCreator(Fun.Function1 valueCreator){
+            this.valueCreator = valueCreator;
+            return this;
+        }
+
+
         public <K,V> HTreeMap<K,V> make(){
             if(expireMaxSize!=0) keepCounter=true;
             return DB.this.createHashMap(HTreeMapMaker.this);
@@ -170,8 +180,6 @@ public class DB {
 
 
     }
-
-
 
 
     /**
@@ -184,7 +192,23 @@ public class DB {
      * @param <V> value
      * @return map
      */
+
     synchronized public <K,V> HTreeMap<K,V> getHashMap(String name){
+        return getHashMap(name, null);
+    }
+
+    /**
+     * Opens existing or creates new Hash Tree Map.
+     * This collection perform well under concurrent access.
+     * Is best for large keys and large values.
+     *
+     * @param name of map
+     * @param valueCreator if value is not found, new is created and placed into map.
+     * @param <K> key
+     * @param <V> value
+     * @return map
+     */
+    synchronized public <K,V> HTreeMap<K,V> getHashMap(String name, Fun.Function1<V,K> valueCreator){
         checkNotClosed();
         HTreeMap<K,V> ret = (HTreeMap<K, V>) getFromWeakCollection(name);
         if(ret!=null) return ret;
@@ -209,8 +233,8 @@ public class DB {
                 catGet(name+".expireAccess",0L),
                 catGet(name+".expireMaxSize",0L),
                 (long[])catGet(name+".expireHeads",null),
-                (long[])catGet(name+".expireTails",null)
-
+                (long[])catGet(name+".expireTails",null),
+                valueCreator
         );
 
 
@@ -270,7 +294,8 @@ public class DB {
                 catPut(name+".segmentRecids",HTreeMap.preallocateSegments(engine)),
                 catPut(name+".keySerializer",m.keySerializer,getDefaultSerializer()),
                 catPut(name+".valueSerializer",m.valueSerializer,getDefaultSerializer()),
-                expireTimeStart,expire,expireAccess,expireMaxSize, expireHeads ,expireTails
+                expireTimeStart,expire,expireAccess,expireMaxSize, expireHeads ,expireTails,
+                m.valueCreator
 
         );
 
@@ -305,7 +330,7 @@ public class DB {
                 (Integer)catGet(name+".hashSalt"),
                 (long[])catGet(name+".segmentRecids"),
                 catGet(name+".serializer",getDefaultSerializer()),
-                null, 0L,0L,0L,0L,null,null
+                null, 0L,0L,0L,0L,null,null,null
         ).keySet();
 
 
@@ -333,7 +358,7 @@ public class DB {
                 catPut(name+".hashSalt",Utils.RANDOM.nextInt()),
                 catPut(name+".segmentRecids",HTreeMap.preallocateSegments(engine)),
                 catPut(name+".serializer",serializer,getDefaultSerializer()),
-                null, 0L,0L,0L,0L,null,null
+                null, 0L,0L,0L,0L,null,null,null
         ).keySet();
 
         catalog.put(name + ".type", "HashSet");
