@@ -25,6 +25,7 @@ import java.util.AbstractMap.SimpleEntry;
 import java.util.*;
 
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class SerializerBaseTest extends TestCase {
@@ -464,5 +465,10 @@ public class SerializerBaseTest extends TestCase {
         }
     }
 
+
+    public void test_extended_chars() throws IOException {
+        String s = "人口, 日本、人口, 日本の公式統計";
+        assertEquals(s,deserialize(serialize(s)));
+    }
 }
 
