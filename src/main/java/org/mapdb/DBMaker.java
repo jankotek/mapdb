@@ -31,7 +31,7 @@ import java.util.Set;
  *
  * @author Jan Kotek
  */
-public class DBMaker {
+public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
     protected static final byte CACHE_DISABLE = 0;
     protected static final byte CACHE_FIXED_HASH_TABLE = 1;
@@ -80,15 +80,23 @@ public class DBMaker {
     /** use static factory methods, or make subclass */
     protected DBMaker(){}
 
+    protected DBMaker(File file) {
+        this._file = file;
+    }
+
     /** Creates new in-memory database. Changes are lost after JVM exits.
      * <p/>
      * This will use HEAP memory so Garbage Collector is affected.
      */
     public static DBMaker newMemoryDB(){
-        DBMaker m = new DBMaker();
-        m._file = null;
-        return  m;
+        return new DBMaker(null);
     }
+
+    public DBMakerT _newMemoryDB(){
+        this._file = null;
+        return getThis();
+    }
+
 
     /** Creates new in-memory database. Changes are lost after JVM exits.
      * <p/>
@@ -96,10 +104,13 @@ public class DBMaker {
      *
      */
     public static DBMaker newDirectMemoryDB(){
-        DBMaker m = new DBMaker();
-        m._file = null;
-        m._ifInMemoryUseDirectBuffer = true;
-        return  m;
+        return new DBMaker()._newDirectMemoryDB();
+    }
+
+    public  DBMakerT _newDirectMemoryDB() {
+        _file = null;
+        _ifInMemoryUseDirectBuffer = true;
+        return getThis();
     }
 
 
@@ -111,12 +122,14 @@ public class DBMaker {
      * @return maker
      */
     public static DBMaker newAppendFileDB(File file) {
-        DBMaker m = new DBMaker();
-        m._file = file;
-        m._appendStorage = true;
-        return m;
+        return new DBMaker()._newAppendFileDB(file);
     }
 
+    public DBMakerT _newAppendFileDB(File file) {
+        _file = file;
+        _appendStorage = true;
+        return getThis();
+    }
 
 
     /**
@@ -195,11 +208,19 @@ public class DBMaker {
 
     /** Creates or open database stored in file. */
     public static DBMaker newFileDB(File file){
-        DBMaker m = new DBMaker();
-        m._file = file;
-        return  m;
+        return new DBMaker(file);
     }
 
+    public DBMakerT _newFileDB(File file){
+        this._file = file;
+        return getThis();
+    }
+
+
+
+    protected DBMakerT getThis(){
+        return (DBMakerT)this;
+    }
 
 
     /**
@@ -215,9 +236,9 @@ public class DBMaker {
      *
      * @return this builder
      */
-    public DBMaker writeAheadLogDisable(){
+    public DBMakerT writeAheadLogDisable(){
         this._writeAheadLogEnabled = false;
-        return this;
+        return getThis();
     }
 
     /**
@@ -229,9 +250,9 @@ public class DBMaker {
      *
      * @return this builder
      */
-    public DBMaker cacheDisable(){
+    public DBMakerT cacheDisable(){
         this._cache = CACHE_DISABLE;
-        return this;
+        return getThis();
     }
 
     /**
@@ -244,9 +265,9 @@ public class DBMaker {
      *
      * @return this builder
      */
-    public DBMaker cacheHardRefEnable(){
+    public DBMakerT cacheHardRefEnable(){
         this._cache = CACHE_HARD_REF;
-        return this;
+        return getThis();
     }
 
 
@@ -256,9 +277,9 @@ public class DBMaker {
      *
      * @return this builder
      */
-    public DBMaker cacheWeakRefEnable(){
+    public DBMakerT cacheWeakRefEnable(){
         this._cache = CACHE_WEAK_REF;
-        return this;
+        return getThis();
     }
 
     /**
@@ -267,9 +288,9 @@ public class DBMaker {
      *
      * @return this builder
      */
-    public DBMaker cacheSoftRefEnable(){
+    public DBMakerT cacheSoftRefEnable(){
         this._cache = CACHE_SOFT_REF;
-        return this;
+        return getThis();
     }
 
     /**
@@ -277,9 +298,9 @@ public class DBMaker {
      *
      * @return this builder
      */
-    public DBMaker cacheLRUEnable(){
+    public DBMakerT cacheLRUEnable(){
         this._cache = CACHE_LRU;
-        return this;
+        return getThis();
     }
     /**
      * Enables compatibility storage mode for 32bit JVMs.
@@ -291,9 +312,9 @@ public class DBMaker {
      * <p/>
      * This options disables memory mapped files but causes storage to be slower.
      */
-    public DBMaker randomAccessFileEnable() {
+    public DBMakerT randomAccessFileEnable() {
         _rafMode = 2;
-        return this;
+        return getThis();
     }
 
 
@@ -307,18 +328,18 @@ public class DBMaker {
      *  eventually. But storage size limit is pushed to somewhere around 40GB.
      *
      */
-    public DBMaker randomAccessFileEnableKeepIndexMapped() {
+    public DBMakerT randomAccessFileEnableKeepIndexMapped() {
         this._rafMode = 1;
-        return this;
+        return getThis();
     }
 
     /**
      * Check current JVM for known problems. If JVM does not handle large memory files well, this option
      * disables memory mapped files, and use safer and slower {@code RandomAccessFile} instead.
      */
-    public DBMaker randomAccessFileEnableIfNeeded() {
+    public DBMakerT randomAccessFileEnableIfNeeded() {
         this._rafMode = Utils.JVMSupportsLargeMappedFiles()? 0:2;
-        return this;
+        return getThis();
     }
 
     /**
@@ -332,9 +353,9 @@ public class DBMaker {
      * @param cacheSize new cache size
      * @return this builder
      */
-    public DBMaker cacheSize(int cacheSize){
+    public DBMakerT cacheSize(int cacheSize){
         this._cacheSize = cacheSize;
-        return this;
+        return getThis();
     }
 
     /**
@@ -343,9 +364,9 @@ public class DBMaker {
      *
      * @return this builder
      */
-    public DBMaker snapshotDisable(){
+    public DBMakerT snapshotDisable(){
         this._snapshotDisabled = true;
-        return this;
+        return getThis();
     }
 
 
@@ -361,9 +382,9 @@ public class DBMaker {
      *
      * @return this builder
      */
-    public DBMaker asyncWriteDisable(){
+    public DBMakerT asyncWriteDisable(){
         this._asyncWriteEnabled = false;
-        return this;
+        return getThis();
     }
 
     /**
@@ -412,9 +433,9 @@ public class DBMaker {
      * @param delay flush write cache every N miliseconds
      * @return this builder
      */
-    public DBMaker asyncFlushDelay(int delay){
+    public DBMakerT asyncFlushDelay(int delay){
         _asyncFlushDelay = delay;
-        return this;
+        return getThis();
     }
 
 
@@ -424,9 +445,9 @@ public class DBMaker {
      *
      * @return this builder
      */
-    public DBMaker deleteFilesAfterClose(){
+    public DBMakerT deleteFilesAfterClose(){
         this._deleteFilesAfterClose = true;
-        return this;
+        return getThis();
     }
 
     /**
@@ -434,9 +455,9 @@ public class DBMaker {
      *
      * @return this builder
      */
-    public DBMaker closeOnJvmShutdown(){
+    public DBMakerT closeOnJvmShutdown(){
         this._closeOnJvmShutdown = true;
-        return this;
+        return getThis();
     }
 
     /**
@@ -446,9 +467,9 @@ public class DBMaker {
      *
      * @return this builder
      */
-    public DBMaker compressionEnable(){
+    public DBMakerT compressionEnable(){
         this._compressionEnabled = true;
-        return this;
+        return getThis();
     }
 
 
@@ -463,7 +484,7 @@ public class DBMaker {
      * @param password for encryption
      * @return this builder
      */
-    public DBMaker encryptionEnable(String password){
+    public DBMakerT encryptionEnable(String password){
         try {
             return encryptionEnable(password.getBytes(Utils.UTF8));
         } catch (UnsupportedEncodingException e) {
@@ -484,9 +505,9 @@ public class DBMaker {
      * @param password for encryption
      * @return this builder
      */
-    public DBMaker encryptionEnable(byte[] password){
+    public DBMakerT encryptionEnable(byte[] password){
         _xteaEncryptionKey = password;
-        return this;
+        return getThis();
     }
 
 
@@ -498,9 +519,9 @@ public class DBMaker {
      *
      * @return this builder
      */
-    public DBMaker checksumEnable(){
+    public DBMakerT checksumEnable(){
         this._checksumEnabled = true;
-        return this;
+        return getThis();
     }
 
 
@@ -513,9 +534,9 @@ public class DBMaker {
      *
      * @return this builder
      */
-    public DBMaker strictDBGet(){
+    public DBMakerT strictDBGet(){
         this._strictDBGet = true;
-        return this;
+        return getThis();
     }
 
 
@@ -527,9 +548,9 @@ public class DBMaker {
      *
      * @return this builder
      */
-    public DBMaker readOnly(){
+    public DBMakerT readOnly(){
         this._readOnly = true;
-        return this;
+        return getThis();
     }
 
 
@@ -544,10 +565,10 @@ public class DBMaker {
      *
      * @return this builder
      */
-    public DBMaker freeSpaceReclaimQ(int q){
+    public DBMakerT freeSpaceReclaimQ(int q){
         if(q<0||q>10) throw new IllegalArgumentException("wrong Q");
         this._freeSpaceReclaimQ = q;
-        return this;
+        return getThis();
     }
 
     /**
@@ -592,9 +613,9 @@ public class DBMaker {
      *
      * @return this builder
      */
-    public DBMaker syncOnCommitDisable(){
+    public DBMakerT syncOnCommitDisable(){
         this._syncOnCommitDisabled = true;
-        return this;
+        return getThis();
     }
 
 
@@ -607,9 +628,9 @@ public class DBMaker {
      * @param maxSize maximal store size in GB
      * @return this builder
      */
-    public DBMaker sizeLimit(double maxSize){
+    public DBMakerT sizeLimit(double maxSize){
         this._sizeLimit = (long) (maxSize * 1024D*1024D*1024D);
-        return this;
+        return getThis();
     }
 
 
@@ -642,59 +663,65 @@ public class DBMaker {
         if(_sizeLimit>0 && _appendStorage)
             throw new UnsupportedOperationException("Append-Only store does not support Size Limit");
 
+        extendArgumentCheck();
+
         Engine engine;
 
         if(!_appendStorage){
-            Volume.Factory folFac = _file == null?
-                Volume.memoryFactory(_ifInMemoryUseDirectBuffer,_sizeLimit):
-                Volume.fileFactory(_readOnly, _rafMode, _file,_sizeLimit);
+            Volume.Factory folFac = extendStoreVolumeFactory();
 
             engine = _writeAheadLogEnabled ?
-                new StoreWAL(folFac,  _readOnly,_deleteFilesAfterClose, _freeSpaceReclaimQ,_syncOnCommitDisabled,_sizeLimit):
-                new StoreDirect(folFac,  _readOnly,_deleteFilesAfterClose, _freeSpaceReclaimQ,_syncOnCommitDisabled,_sizeLimit);
+                    extendStoreWAL(folFac) :
+                    extendStoreDirect(folFac);
         }else{
             if(_file==null) throw new UnsupportedOperationException("Append Storage format is not supported with in-memory dbs");
-            engine = new StoreAppend(_file, _rafMode>0, _readOnly, !_writeAheadLogEnabled, _deleteFilesAfterClose, _syncOnCommitDisabled);
+            engine = extendStoreAppend();
         }
 
+        engine = extendWrapStore(engine);
+
         if(_checksumEnabled){
-            engine = new ByteTransformEngine(engine, Serializer.CRC32_CHECKSUM);
+            engine = extendChecksum(engine);
         }
 
         if(_xteaEncryptionKey!=null){
-            engine = new ByteTransformEngine(engine, new EncryptionXTEA(_xteaEncryptionKey));
+            engine = extendEncryption(engine);
         }
 
 
         if(_compressionEnabled){
-            engine = new ByteTransformEngine(engine, CompressLZF.SERIALIZER);
+            engine = extendCompression(engine);
         }
 
 
-        AsyncWriteEngine engineAsync = null;
+        engine = extendWrapByteTransform(engine);
+
         if(_asyncWriteEnabled && !_readOnly){
-            engineAsync = new AsyncWriteEngine(engine, _asyncFlushDelay, null);
-            engine = engineAsync;
+            engine = extendAsyncWriteEngine(engine);
         }
 
 
         if(_cache == CACHE_DISABLE){
             //do not wrap engine in cache
         }else if(_cache == CACHE_FIXED_HASH_TABLE){
-            engine = new CacheHashTable(engine,_cacheSize);
+            engine = extendCacheHashTable(engine);
         }else if (_cache == CACHE_HARD_REF){
-            engine = new CacheHardRef(engine,_cacheSize);
+            engine = extendCacheHardRef(engine);
         }else if (_cache == CACHE_WEAK_REF){
-            engine = new CacheWeakSoftRef(engine,true);
+            engine = extendCacheWeakRef(engine);
         }else if (_cache == CACHE_SOFT_REF){
-            engine = new CacheWeakSoftRef(engine,false);
+            engine = extendCacheSoftRef(engine);
         }else if (_cache == CACHE_LRU){
-            engine = new CacheLRU(engine, _cacheSize);
+            engine = extendCacheLRU(engine);
         }
+
+        engine = extendWrapCache(engine);
 
 
         if(!_snapshotDisabled)
-            engine = new SnapshotEngine(engine);
+            engine = extendSnapshotEngine(engine);
+
+        engine = extendWrapSnapshotEngine(engine);
 
         if(_readOnly)
             engine = new ReadOnlyEngine(engine);
@@ -705,7 +732,9 @@ public class DBMaker {
                 @Override
 				public void run() {
                     if(!engine2.isClosed())
+                        extendShutdownHookBefore(engine2);
                         engine2.close();
+                        extendShutdownHookAfter(engine2);
                 }
             });
         }
@@ -734,7 +763,91 @@ public class DBMaker {
         return engine;
     }
 
+    protected void extendShutdownHookBefore(Engine engine) {
+    }
 
+    protected void extendShutdownHookAfter(Engine engine) {
+    }
+
+    protected SnapshotEngine extendSnapshotEngine(Engine engine) {
+        return new SnapshotEngine(engine);
+    }
+
+    protected CacheLRU extendCacheLRU(Engine engine) {
+        return new CacheLRU(engine, _cacheSize);
+    }
+
+    protected CacheWeakSoftRef extendCacheWeakRef(Engine engine) {
+        return new CacheWeakSoftRef(engine,true);
+    }
+
+    protected CacheWeakSoftRef extendCacheSoftRef(Engine engine) {
+        return new CacheWeakSoftRef(engine,false);
+    }
+
+
+    protected CacheHardRef extendCacheHardRef(Engine engine) {
+        return new CacheHardRef(engine,_cacheSize);
+    }
+
+    protected CacheHashTable extendCacheHashTable(Engine engine) {
+        return new CacheHashTable(engine,_cacheSize);
+    }
+
+    protected AsyncWriteEngine extendAsyncWriteEngine(Engine engine) {
+        return new AsyncWriteEngine(engine, _asyncFlushDelay, null);
+    }
+
+    protected ByteTransformEngine extendCompression(Engine engine) {
+        return new ByteTransformEngine(engine, CompressLZF.SERIALIZER);
+    }
+
+    protected ByteTransformEngine extendEncryption(Engine engine) {
+        return new ByteTransformEngine(engine, new EncryptionXTEA(_xteaEncryptionKey));
+    }
+
+    protected ByteTransformEngine extendChecksum(Engine engine) {
+        return new ByteTransformEngine(engine, Serializer.CRC32_CHECKSUM);
+    }
+
+    protected void extendArgumentCheck() {
+    }
+
+    protected Engine extendWrapStore(Engine engine) {
+        return engine;
+    }
+
+    protected Engine extendWrapByteTransform(Engine engine) {
+        return engine;
+    }
+
+    protected Engine extendWrapCache(Engine engine) {
+        return engine;
+    }
+
+    protected Engine extendWrapSnapshotEngine(Engine engine) {
+        return engine;
+    }
+
+
+
+    protected StoreAppend extendStoreAppend() {
+        return new StoreAppend(_file, _rafMode>0, _readOnly, !_writeAheadLogEnabled, _deleteFilesAfterClose, _syncOnCommitDisabled);
+    }
+
+    protected Store extendStoreDirect(Volume.Factory folFac) {
+        return new StoreDirect(folFac,  _readOnly,_deleteFilesAfterClose, _freeSpaceReclaimQ,_syncOnCommitDisabled,_sizeLimit);
+    }
+
+    protected Store extendStoreWAL(Volume.Factory folFac) {
+        return new StoreWAL(folFac,  _readOnly,_deleteFilesAfterClose, _freeSpaceReclaimQ,_syncOnCommitDisabled,_sizeLimit);
+    }
+
+    protected Volume.Factory extendStoreVolumeFactory() {
+        return _file == null?
+                    Volume.memoryFactory(_ifInMemoryUseDirectBuffer,_sizeLimit):
+                    Volume.fileFactory(_readOnly, _rafMode, _file,_sizeLimit);
+    }
 
 
 }

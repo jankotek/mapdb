@@ -16,6 +16,10 @@ public class ExamplesTest {
         _TempMap.main(args);
     }
 
+    @Test public void Cache(){
+        Cache.main(args);
+    }
+
     @Test public void Compression(){
         Compression.main(args);
     }
