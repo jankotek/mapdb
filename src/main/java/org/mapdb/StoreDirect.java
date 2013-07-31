@@ -537,7 +537,7 @@ public class StoreDirect extends Store{
 
 
     protected static long roundTo16(long offset){
-        long rem = offset%16;
+        long rem = offset&15;  // modulo 16
         if(rem!=0) offset +=16-rem;
         return offset;
     }
@@ -853,8 +853,8 @@ public class StoreDirect extends Store{
         }
 
         //not available, increase file size
-        if(physSize%Volume.BUF_SIZE+size>Volume.BUF_SIZE)
-            physSize += Volume.BUF_SIZE - physSize%Volume.BUF_SIZE;
+        if((physSize&Volume.BUF_SIZE_MOD_MASK)+size>Volume.BUF_SIZE)
+            physSize += Volume.BUF_SIZE - (physSize&Volume.BUF_SIZE_MOD_MASK);
         long physSize2 = physSize;
         physSize = roundTo16(physSize+size);
         if(ensureAvail)

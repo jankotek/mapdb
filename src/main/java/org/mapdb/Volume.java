@@ -39,7 +39,10 @@ import java.util.logging.Level;
  */
 public abstract class Volume {
 
+
     public static final int BUF_SIZE = 1<<30;
+
+    public static final int BUF_SIZE_MOD_MASK = BUF_SIZE-1;
 
     /**
      * Check space allocated by Volume is bigger or equal to given offset.
@@ -263,7 +266,7 @@ public abstract class Volume {
 
             //check for most common case, this is already mapped
             if(buffersPos<buffers.length && buffers[buffersPos]!=null &&
-                    buffers[buffersPos].capacity()>=offset% BUF_SIZE){
+                    buffers[buffersPos].capacity()>=(offset&Volume.BUF_SIZE_MOD_MASK)){
                 return true;
             }
 
@@ -271,7 +274,7 @@ public abstract class Volume {
             try{
                 //check second time
                 if(buffersPos<buffers.length && buffers[buffersPos]!=null &&
-                        buffers[buffersPos].capacity()>=offset% BUF_SIZE)
+                        buffers[buffersPos].capacity()>=(offset&Volume.BUF_SIZE_MOD_MASK))
                     return true;
 
                 ByteBuffer[] buffers2 = buffers;
@@ -318,23 +321,23 @@ public abstract class Volume {
 
 
         @Override public final void putLong(final long offset, final long value) {
-            internalByteBuffer(offset).putLong((int) (offset% BUF_SIZE), value);
+            internalByteBuffer(offset).putLong((int) (offset&Volume.BUF_SIZE_MOD_MASK), value);
         }
 
         @Override public final void putInt(final long offset, final int value) {
-            internalByteBuffer(offset).putInt((int) (offset% BUF_SIZE), value);
+            internalByteBuffer(offset).putInt((int) (offset&Volume.BUF_SIZE_MOD_MASK), value);
         }
 
 
         @Override public final void putByte(final long offset, final byte value) {
-            internalByteBuffer(offset).put((int) (offset % BUF_SIZE), value);
+            internalByteBuffer(offset).put((int) (offset &Volume.BUF_SIZE_MOD_MASK), value);
         }
 
 
 
         @Override public void putData(final long offset, final byte[] src, int srcPos, int srcSize){
             final ByteBuffer b1 = internalByteBuffer(offset).duplicate();
-            final int bufPos = (int) (offset% BUF_SIZE);
+            final int bufPos = (int) (offset&Volume.BUF_SIZE_MOD_MASK);
 
             b1.position(bufPos);
             b1.put(src, srcPos, srcSize);
@@ -342,7 +345,7 @@ public abstract class Volume {
 
         @Override public final void putData(final long offset, final ByteBuffer buf) {
             final ByteBuffer b1 = internalByteBuffer(offset).duplicate();
-            final int bufPos = (int) (offset% BUF_SIZE);
+            final int bufPos = (int) (offset&Volume.BUF_SIZE_MOD_MASK);
             //no overlap, so just write the value
             b1.position(bufPos);
             b1.put(buf);
@@ -350,7 +353,7 @@ public abstract class Volume {
 
         @Override final public long getLong(long offset) {
             try{
-                return internalByteBuffer(offset).getLong((int) (offset% BUF_SIZE));
+                return internalByteBuffer(offset).getLong((int) (offset&Volume.BUF_SIZE_MOD_MASK));
             }catch(IndexOutOfBoundsException e){
                 throw new IOError(new EOFException());
             }
@@ -358,7 +361,7 @@ public abstract class Volume {
 
         @Override final public int getInt(long offset) {
             try{
-                return internalByteBuffer(offset).getInt((int) (offset% BUF_SIZE));
+                return internalByteBuffer(offset).getInt((int) (offset&Volume.BUF_SIZE_MOD_MASK));
             } catch (NullPointerException e) {
                 throw new RuntimeException(""+offset,e);
 
@@ -370,7 +373,7 @@ public abstract class Volume {
 
         @Override public final byte getByte(long offset) {
             try{
-                return internalByteBuffer(offset).get((int) (offset% BUF_SIZE));
+                return internalByteBuffer(offset).get((int) (offset&Volume.BUF_SIZE_MOD_MASK));
             }catch(IndexOutOfBoundsException e){
                 throw new IOError(new EOFException());
             }
@@ -380,7 +383,7 @@ public abstract class Volume {
         @Override
         public final DataInput2 getDataInput(long offset, int size) {
             final ByteBuffer b1 = internalByteBuffer(offset);
-            final int bufPos = (int) (offset% BUF_SIZE);
+            final int bufPos = (int) (offset&Volume.BUF_SIZE_MOD_MASK);
             return new DataInput2(b1, bufPos);
         }
 
@@ -539,9 +542,9 @@ public abstract class Volume {
         @Override
         protected ByteBuffer makeNewBuffer(long offset, ByteBuffer[] buffers2) {
             try {
-                long newBufSize =  offset% BUF_SIZE;
-                newBufSize = newBufSize + newBufSize%BUF_SIZE_INC; //round to BUF_SIZE_INC
-                ByteBuffer buf =  fileChannel.map( mapMode, offset - offset% BUF_SIZE, newBufSize );
+                long newBufSize =  offset&Volume.BUF_SIZE_MOD_MASK;
+                newBufSize = newBufSize + (newBufSize&Volume.BUF_SIZE_MOD_MASK); //round to BUF_SIZE_INC
+                ByteBuffer buf =  fileChannel.map( mapMode, offset - (offset&Volume.BUF_SIZE_MOD_MASK), newBufSize );
                 if(unreleasedBuffers!=null) unreleasedBuffers.put(buf, "");
                 return buf;
             } catch (IOException e) {
@@ -573,7 +576,7 @@ public abstract class Volume {
         }
 
         @Override protected ByteBuffer makeNewBuffer(long offset, ByteBuffer[] buffers2) {
-            final int newBufSize = Utils.nextPowTwo((int) (offset % BUF_SIZE));
+            final int newBufSize = Utils.nextPowTwo((int) ((offset &Volume.BUF_SIZE_MOD_MASK)));
             //double size of existing in-memory-buffer
             ByteBuffer newBuf = useDirectBuffer?
                     ByteBuffer.allocateDirect(newBufSize):

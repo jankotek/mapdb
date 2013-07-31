@@ -34,8 +34,10 @@ public class CacheHashTable extends EngineWrapper implements Engine {
 
     protected final ReentrantLock[] locks = Utils.newLocks();
 
+
     protected HashItem[] items;
     protected final int cacheMaxSize;
+    protected final int cacheMaxSizeMask;
 
     /**
      * Salt added to keys before hashing, so it is harder to trigger hash collision attack.
@@ -58,7 +60,8 @@ public class CacheHashTable extends EngineWrapper implements Engine {
     public CacheHashTable(Engine engine, int cacheMaxSize) {
         super(engine);
         this.items = new HashItem[cacheMaxSize];
-        this.cacheMaxSize = cacheMaxSize;
+        this.cacheMaxSize = Utils.nextPowTwo(cacheMaxSize);
+        this.cacheMaxSizeMask = cacheMaxSize-1;
     }
 
     @Override
@@ -99,7 +102,7 @@ public class CacheHashTable extends EngineWrapper implements Engine {
     }
 
     private int position(long recid) {
-        return Math.abs(Utils.longHash(recid^hashSalt))%cacheMaxSize;
+        return Utils.longHash(recid^hashSalt)&cacheMaxSizeMask;
     }
 
     @Override

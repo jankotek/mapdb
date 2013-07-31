@@ -543,5 +543,12 @@ public class HTreeMap2Test {
         m.clear();
     }
 
+    @Test public void divMod8(){
+        for(int i= 0;i<1000000;i++){
+            assertEquals(i/8,i>>HTreeMap.DIV8);
+            assertEquals(i%8,i&HTreeMap.MOD8);
+        }
+    }
+
 }
 

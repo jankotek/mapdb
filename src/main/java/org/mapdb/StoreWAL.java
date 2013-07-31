@@ -164,10 +164,10 @@ public class StoreWAL extends StoreDirect {
     }
 
     protected void checkLogRounding() {
-        if(logSize% Volume.BUF_SIZE+MAX_REC_SIZE*2>Volume.BUF_SIZE){
+        if((logSize&Volume.BUF_SIZE_MOD_MASK)+MAX_REC_SIZE*2>Volume.BUF_SIZE){
             log.ensureAvailable(logSize+1);
             log.putByte(logSize, WAL_SKIP_REST_OF_BLOCK);
-            logSize += Volume.BUF_SIZE - logSize%Volume.BUF_SIZE;
+            logSize += Volume.BUF_SIZE - (logSize&Volume.BUF_SIZE_MOD_MASK);
         }
     }
 
@@ -519,7 +519,7 @@ public class StoreWAL extends StoreDirect {
 
                 logSize+=size;
             }else if(ins == WAL_SKIP_REST_OF_BLOCK){
-                logSize += Volume.BUF_SIZE-logSize%Volume.BUF_SIZE;
+                logSize += Volume.BUF_SIZE-(logSize&Volume.BUF_SIZE_MOD_MASK);
             }else{
                 throw new InternalError("unknown trans log instruction: "+ins +" at log offset: "+(logSize-1));
             }

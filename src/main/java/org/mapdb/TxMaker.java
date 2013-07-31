@@ -99,7 +99,7 @@ public class TxMaker {
             }
             lockGlobalMods(recid);
 
-            Lock lock = locks[Utils.longHash(recid)%locks.length].writeLock();
+            Lock lock = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
             lock.lock();
             try{
                 //update local modifications
@@ -121,7 +121,7 @@ public class TxMaker {
 
         @Override
         public <A> A get(long recid, Serializer<A> serializer) {
-            Lock lock = locks[Utils.longHash(recid)%locks.length].readLock();
+            Lock lock = locks[Utils.longHash(recid)&Utils.LOCK_MASK].readLock();
             lock.lock();
             try{
                 return getNoLock(recid, serializer);
@@ -144,7 +144,7 @@ public class TxMaker {
         @Override
         public <A> void update(long recid, A value, Serializer<A> serializer) {
             lockGlobalMods(recid);
-            Lock lock = locks[Utils.longHash(recid)%locks.length].writeLock();
+            Lock lock = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
             lock.lock();
             try{
                 //update local modifications
@@ -160,7 +160,7 @@ public class TxMaker {
                 rollback();
                 throw new TxRollbackException();
             }
-            Lock lock = locks[Utils.longHash(recid)%locks.length].writeLock();
+            Lock lock = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
             lock.lock();
             try{
                 Object oldVal = getNoLock(recid,serializer);
@@ -181,7 +181,7 @@ public class TxMaker {
         public <A> void delete(long recid, Serializer<A> serializer) {
             lockGlobalMods(recid);
 
-            Lock lock = locks[Utils.longHash(recid)%locks.length].writeLock();
+            Lock lock = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
             lock.lock();
             try{
                 //add marked which indicates deleted

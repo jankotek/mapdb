@@ -46,6 +46,9 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
     protected static final int BUCKET_OVERFLOW = 4;
 
+    protected static final int DIV8 = 3;
+    protected static final int MOD8 = 0x7;
+
     /** is this a Map or Set?  if false, entries do not have values, only keys are allowed*/
     protected final boolean hasValues;
 
@@ -393,8 +396,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             if(dir == null) return null;
             int slot = (h>>>(level*7 )) & 0x7F;
             if(slot>=128) throw new InternalError();
-            if(dir[slot/8]==null) return null;
-            recid = dir[slot/8][slot%8];
+            if(dir[slot>>>DIV8]==null) return null;
+            recid = dir[slot>>>DIV8][slot&MOD8];
             if(recid == 0) return null;
             if((recid&1)!=0){ //last bite indicates if referenced record is LinkedNode
                 recid = recid>>>1;
@@ -452,13 +455,13 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 dir = new long[16][];
             }
 
-            if(dir[slot/8] == null){
+            if(dir[slot>>>DIV8] == null){
                 dir = Arrays.copyOf(dir, 16);
-                dir[slot/8] = new long[8];
+                dir[slot>>>DIV8] = new long[8];
             }
 
             int counter = 0;
-            long recid = dir[slot/8][slot%8];
+            long recid = dir[slot>>>DIV8][slot&MOD8];
 
             if(recid!=0){
                 if((recid&1) == 0){
@@ -499,21 +502,21 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                     final long newRecid = engine.put(node, LN_SERIALIZER);
                     //add newly inserted record
                     int pos =(h >>>(7*(level-1) )) & 0x7F;
-                    nextDir[pos/8] = new long[8];
-                    nextDir[pos/8][pos%8] = ( newRecid<<1) | 1;
+                    nextDir[pos>>>DIV8] = new long[8];
+                    nextDir[pos>>>DIV8][pos&MOD8] = ( newRecid<<1) | 1;
                     if(expireFlag) expireLinkAdd(segment,expireNodeRecid,newRecid,h);
                 }
 
 
                 //redistribute linked bucket into new dir
-                long nodeRecid = dir[slot/8][slot%8]>>>1;
+                long nodeRecid = dir[slot>>>DIV8][slot&MOD8]>>>1;
                 while(nodeRecid!=0){
                     LinkedNode<K,V> n = engine.get(nodeRecid, LN_SERIALIZER);
                     final long nextRecid = n.next;
                     int pos = (hash(n.key) >>>(7*(level -1) )) & 0x7F;
-                    if(nextDir[pos/8]==null) nextDir[pos/8] = new long[8];
-                    n = new LinkedNode<K, V>(nextDir[pos/8][pos%8]>>>1, n.expireLinkNodeRecid, n.key, n.value);
-                    nextDir[pos/8][pos%8] = (nodeRecid<<1) | 1;
+                    if(nextDir[pos>>>DIV8]==null) nextDir[pos>>>DIV8] = new long[8];
+                    n = new LinkedNode<K, V>(nextDir[pos>>>DIV8][pos&MOD8]>>>1, n.expireLinkNodeRecid, n.key, n.value);
+                    nextDir[pos>>>DIV8][pos&MOD8] = (nodeRecid<<1) | 1;
                     engine.update(nodeRecid, n, LN_SERIALIZER);
                     nodeRecid = nextRecid;
                 }
@@ -522,20 +525,20 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 long nextDirRecid = engine.put(nextDir, DIR_SERIALIZER);
                 int parentPos = (h>>>(7*level )) & 0x7F;
                 dir = Arrays.copyOf(dir,16);
-                dir[parentPos/8] = Arrays.copyOf(dir[parentPos/8],8);
-                dir[parentPos/8][parentPos%8] = (nextDirRecid<<1) | 0;
+                dir[parentPos>>>DIV8] = Arrays.copyOf(dir[parentPos>>>DIV8],8);
+                dir[parentPos>>>DIV8][parentPos&MOD8] = (nextDirRecid<<1) | 0;
                 engine.update(dirRecid, dir, DIR_SERIALIZER);
                 notify(key, null, value);
                 return null;
             }else{
                 // record does not exist in linked list, so create new one
-                recid = dir[slot/8][slot%8]>>>1;
+                recid = dir[slot>>>DIV8][slot&MOD8]>>>1;
                 final long expireNodeRecid = expireFlag? engine.put(ExpireLinkNode.EMPTY, ExpireLinkNode.SERIALIZER):0L;
 
                 final long newRecid = engine.put(new LinkedNode<K, V>(recid, expireNodeRecid, key, value), LN_SERIALIZER);
                 dir = Arrays.copyOf(dir,16);
-                dir[slot/8] = Arrays.copyOf(dir[slot/8],8);
-                dir[slot/8][slot%8] = (newRecid<<1) | 1;
+                dir[slot>>>DIV8] = Arrays.copyOf(dir[slot>>>DIV8],8);
+                dir[slot>>>DIV8][slot&MOD8] = (newRecid<<1) | 1;
                 engine.update(dirRecid, dir, DIR_SERIALIZER);
                 if(expireFlag) expireLinkAdd(segment,expireNodeRecid, newRecid,h);
                 notify(key, null, value);
@@ -576,13 +579,13 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                     dir = new long[16][];
                 }
 
-                if(dir[slot/8] == null){
+                if(dir[slot>>>DIV8] == null){
                     dir = Arrays.copyOf(dir,16);
-                    dir[slot/8] = new long[8];
+                    dir[slot>>>DIV8] = new long[8];
                 }
 
 //                int counter = 0;
-                long recid = dir[slot/8][slot%8];
+                long recid = dir[slot>>>DIV8][slot&MOD8];
 
                 if(recid!=0){
                     if((recid&1) == 0){
@@ -607,8 +610,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
                                 }else{
                                     dir=Arrays.copyOf(dir,16);
-                                    dir[slot/8] = Arrays.copyOf(dir[slot/8],8);
-                                    dir[slot/8][slot%8] = (ln.next<<1)|1;
+                                    dir[slot>>>DIV8] = Arrays.copyOf(dir[slot>>>DIV8],8);
+                                    dir[slot>>>DIV8][slot&MOD8] = (ln.next<<1)|1;
                                     engine.update(dirRecids[level], dir, DIR_SERIALIZER);
                                 }
 
@@ -644,11 +647,11 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         //TODO keep dir immutable while recursive delete
         //was only item in linked list, so try to collapse the dir
         dir=Arrays.copyOf(dir,16);
-        dir[slot/8] = Arrays.copyOf(dir[slot/8],8);
-        dir[slot/8][slot%8] = 0;
+        dir[slot>>>DIV8] = Arrays.copyOf(dir[slot>>>DIV8],8);
+        dir[slot>>>DIV8][slot&MOD8] = 0;
         //one record was zeroed out, check if subarray can be collapsed to null
         boolean allZero = true;
-        for(long l:dir[slot/8]){
+        for(long l:dir[slot>>>DIV8]){
             if(l!=0){
                 allZero = false;
                 break;
@@ -656,7 +659,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         }
         if(allZero){
 
-            dir[slot/8] = null;
+            dir[slot>>>DIV8] = null;
         }
         allZero = true;
         for(long[] l:dir){
@@ -677,7 +680,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 final long[][] parentDir = engine.get(dirRecids[level + 1], DIR_SERIALIZER);
                 final int parentPos = (h >>> (7 * (level + 1))) & 0x7F;
                 recursiveDirDelete(h,level+1,dirRecids, parentDir, parentPos);
-                //parentDir[parentPos/8][parentPos%8] = 0;
+                //parentDir[parentPos>>>DIV8][parentPos&MOD8] = 0;
                 //engine.update(dirRecids[level + 1],parentDir,DIR_SERIALIZER);
 
             }
@@ -961,7 +964,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                     int pos = (lastHash>>>(7 * level)) & 0x7F;
 
                     //check if we need to expand deeper
-                    if(dir[pos/8]==null || dir[pos/8][pos%8]==0 || (dir[pos/8][pos%8]&1)==1) {
+                    if(dir[pos>>>DIV8]==null || dir[pos>>>DIV8][pos&MOD8]==0 || (dir[pos>>>DIV8][pos&MOD8]&1)==1) {
                         //increase hash by 1
                         if(level!=0){
                             lastHash = ((lastHash>>>(7 * level)) + 1) << (7*level); //should use mask and XOR
@@ -974,7 +977,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                     }
 
                     //reference is dir, move to next level
-                    dirRecid = dir[pos/8][pos%8]>>>1;
+                    dirRecid = dir[pos>>>DIV8][pos&MOD8]>>>1;
                     level--;
                 }
 
@@ -1020,8 +1023,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             int pos = (newHash>>>(level*7))  & 0x7F;
             boolean first = true;
             while(pos<128){
-                if(dir[pos/8]!=null){
-                    long recid = dir[pos/8][pos%8];
+                if(dir[pos>>>DIV8]!=null){
+                    long recid = dir[pos>>>DIV8][pos&MOD8];
                     if(recid!=0){
                         if((recid&1) == 1){
                             recid = recid>>1;
