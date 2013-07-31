@@ -1534,7 +1534,7 @@ public class SerializerBase implements Serializer{
     protected static byte[] booleanToByteArray(boolean[] bool) {
         int boolLen = bool.length;
         int mod8 = boolLen%8;
-        byte[] boolBytes = new byte[byteLengthForBooleanArray(boolLen)];
+        byte[] boolBytes = new byte[(boolLen/8)+((boolLen%8 == 0)?0:1)];
 
         boolean isFlushWith8 = mod8 == 0;
         int length = (isFlushWith8)?boolBytes.length:boolBytes.length-1;
@@ -1663,7 +1663,7 @@ public class SerializerBase implements Serializer{
      */
     protected static boolean[] readBooleanArray(DataInput is) throws IOException {
         int numBools = Utils.unpackInt(is);
-        int length = byteLengthForBooleanArray(numBools);
+        int length = (numBools/8)+((numBools%8 == 0)?0:1);
         byte[] boolBytes = new byte[length];
         is.readFully(boolBytes);
 
@@ -1683,17 +1683,6 @@ public class SerializerBase implements Serializer{
 
         //Return the trimmed, uncompressed boolean array
         return finalBoolArray;
-    }
-
-    /**
-     * Calculates the number of bytes required to store <code>numBools</code>
-     * booleans when fully compressed.
-     *
-     * @param The number of booleans being compressed.
-     * @return The number of bytes required.
-     */
-    protected static int byteLengthForBooleanArray(int numBools) {
-        return (numBools/8)+((numBools%8 == 0)?0:1);
     }
 
 
