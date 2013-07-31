@@ -151,7 +151,7 @@ public class DBMakerTest{
                 .cacheSize(1000)
                 .make();
         verifyDB(db);
-        assertEquals(1000, ((CacheHashTable) db.engine).cacheMaxSize);
+        assertEquals(1024, ((CacheHashTable) db.engine).cacheMaxSize);
     }
 
     @Test public void read_only() throws IOException {
