@@ -78,10 +78,12 @@ Other
 
 * LZF compression was ported to Java by Thomas Mueller. Original C implementation was written by Marc Alexander Lehmann and Oren J. Maurice
 
+* Stanimir Simeonoff from [Riflexo](http://www.riflexo.com/) reviewed and fixed some concurrency issues.
+
 Donations
 -----------
 
-So far only three companies supported this project.
+So far we got those donations:.
 
 * Chronon Systems donated [time traveling debugger](http://chrononsystems.com/). It is great help for fixing complex and hard to reproduce concurrent issues.
 
@@ -89,6 +91,10 @@ So far only three companies supported this project.
 It is excellent tool and MapDB would not be possible without it.
 
 * JetBrains donated [Intellij Idea Ultimate](http://www.jetbrains.com/idea/)
+
+* Michael Hunger donated 100 euro.
+
+* Jan Venema from [Vertx.io](http://vertx.io) donated 100 euro.
 
 
 
