@@ -470,5 +470,16 @@ public class SerializerBaseTest extends TestCase {
         String s = "人口, 日本、人口, 日本の公式統計";
         assertEquals(s,deserialize(serialize(s)));
     }
+
+    public void testBooleanArray2() throws IOException {
+        for(int i=0;i<1000;i++){
+            boolean[] b = new boolean[i];
+            for(int j=0;j<i;j++) b[j] = Math.random()<0.5;
+
+            boolean[] b2 = (boolean[]) deserialize(serialize(b));
+
+            for(int j=0;j<i;j++) assertEquals(b[j], b2[j]);
+        }
+    }
 }
 
