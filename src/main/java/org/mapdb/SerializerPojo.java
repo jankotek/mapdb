@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.logging.Level;
 
 /**
  * Serializer which handles POJO, object graphs etc.
@@ -193,8 +194,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         protected Class<?> typeClass;
         // Class containing this field
         protected final Class<?> clazz;
-        protected Object setter;
-        protected Object getter;
+        protected Field field;
 
         public FieldInfo(String name, boolean primitive, String type, Class<?> clazz) {
             this.name = name;
@@ -206,37 +206,22 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             } catch (ClassNotFoundException e) {
                 this.typeClass = null;
             }
-            initSetter();
-            initGetter();
-        }
 
-        protected void initSetter() {
-            // Set setter
-            String setterName = "set" + firstCharCap(name);
+            //init field
 
             Class<?> aClazz = clazz;
 
             // iterate over class hierarchy, until root class
             while (aClazz != Object.class) {
-                // check if there is getMethod
-                try {
-                    Method m = aClazz.getMethod(setterName, typeClass);
-                    if (m != null) {
-                        setter = m;
-                        return;
-                    }
-                } catch (Exception e) {
-                    // e.printStackTrace();
-                }
 
-                // no get method, access field directly
+                // access field directly
                 try {
                     Field f = aClazz.getDeclaredField(name);
                     // security manager may not be happy about this
                     if (!f.isAccessible())
                         f.setAccessible(true);
-                    setter = f;
-                    return;
+                    field = f;
+                    break;
                 } catch (Exception e) {
 //					e.printStackTrace();
                 }
@@ -245,40 +230,6 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             }
         }
 
-        protected void initGetter() {
-            // Set setter
-            String getterName = "get" + firstCharCap(name);
-
-            Class<?> aClazz = clazz;
-
-            // iterate over class hierarchy, until root class
-            while (aClazz != Object.class) {
-                // check if there is getMethod
-                try {
-                    Method m = aClazz.getMethod(getterName);
-                    if (m != null) {
-                        getter = m;
-                        return;
-                    }
-                } catch (Exception e) {
-                    // e.printStackTrace();
-                }
-
-                // no get method, access field directly
-                try {
-                    Field f = aClazz.getDeclaredField(name);
-                    // security manager may not be happy about this
-                    if (!f.isAccessible())
-                        f.setAccessible(true);
-                    getter = f;
-                    return;
-                } catch (Exception e) {
-//					e.printStackTrace();
-                }
-                // move to superclass
-                aClazz = aClazz.getSuperclass();
-            }
-        }
 
         public FieldInfo(ObjectStreamField sf, Class<?> clazz) {
             this(sf.getName(), sf.isPrimitive(), sf.getType().getName(), clazz);
@@ -397,20 +348,16 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
     public Object getFieldValue(FieldInfo fieldInfo, Object object) {
 
-        Object fieldAccessor = fieldInfo.getter;
-        try {
-            if (fieldAccessor instanceof Method) {
-                Method m = (Method) fieldAccessor;
-                return m.invoke(object);
-            } else {
-                Field f = (Field) fieldAccessor;
-                return f.get(object);
-            }
-        } catch (Exception e) {
-
+        if(fieldInfo.field==null){
+            throw new NoSuchFieldError(object.getClass() + "." + fieldInfo.getName());
         }
 
-        throw new NoSuchFieldError(object.getClass() + "." + fieldInfo.getName());
+
+        try {
+            return fieldInfo.field.get(object);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void setFieldValue(String fieldName, Object object, Object value) {
@@ -424,22 +371,15 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     }
 
     public void setFieldValue(FieldInfo fieldInfo, Object object, Object value) {
+        if(fieldInfo.field==null)
+            throw new NoSuchFieldError(object.getClass() + "." + fieldInfo.getName());
 
-        Object fieldAccessor = fieldInfo.setter;
-        try {
-            if (fieldAccessor instanceof Method) {
-                Method m = (Method) fieldAccessor;
-                m.invoke(object, value);
-            } else {
-                Field f = (Field) fieldAccessor;
-                f.set(object, value);
-            }
-            return;
-        } catch (Throwable e) {
-            e.printStackTrace();
+        try{
+           fieldInfo.field.set(object, value);
+        } catch (IllegalAccessException e) {
+           throw new RuntimeException(e);
         }
 
-        throw new NoSuchFieldError(object.getClass() + "." + fieldInfo.getName());
     }
 
     public boolean containsClass(Class<?> clazz) {

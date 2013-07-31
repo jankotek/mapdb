@@ -179,7 +179,7 @@ public class SerializerPojoTest extends TestCase {
 
     public void testGetFieldValue2() throws Exception {
         assertEquals("bb", p.getFieldValue("field2", b));
-        assertEquals(1, b.getCalled);
+        assertEquals(0, b.getCalled);
     }
 
     public void testGetFieldValue3() throws Exception {
@@ -188,7 +188,7 @@ public class SerializerPojoTest extends TestCase {
 
     public void testGetFieldValue4() throws Exception {
         assertEquals("bb", p.getFieldValue("field2", b2));
-        assertEquals(1, b2.getCalled);
+        assertEquals(0, b2.getCalled);
     }
 
     public void testGetFieldValue5() throws Exception {
@@ -203,7 +203,7 @@ public class SerializerPojoTest extends TestCase {
     public void testSetFieldValue2() {
         p.setFieldValue("field2", b, "zz");
         assertEquals("zz", b.field2);
-        assertEquals(1, b.setCalled);
+        assertEquals(0, b.setCalled);
     }
 
     public void testSetFieldValue3() {
@@ -214,7 +214,7 @@ public class SerializerPojoTest extends TestCase {
     public void testSetFieldValue4() {
         p.setFieldValue("field2", b2, "zz");
         assertEquals("zz", b2.field2);
-        assertEquals(1, b2.setCalled);
+        assertEquals(0, b2.setCalled);
     }
 
     public void testSetFieldValue5() {
