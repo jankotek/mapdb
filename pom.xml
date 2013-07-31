@@ -124,7 +124,28 @@
                     <generateReports>true</generateReports>
                     <inputEncoding>UTF-8</inputEncoding>
                     <outputEncoding>UTF-8</outputEncoding>
+                    <!-- Site deployment done using GitHub site plugin -->
+                    <skipDeploy>true</skipDeploy>
                 </configuration>
+            </plugin>
+
+
+            <plugin>
+                <groupId>com.github.github</groupId>
+                <artifactId>site-maven-plugin</artifactId>
+                <version>0.8</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>site</goal>
+                        </goals>
+                        <phase>site-deploy</phase>
+                        <configuration>
+                            <merge>false</merge>
+                            <message>Update site</message>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 
 
