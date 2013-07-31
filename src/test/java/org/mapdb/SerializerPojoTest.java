@@ -37,13 +37,13 @@ public class SerializerPojoTest extends TestCase {
 
     public void testEnum() throws Exception{
         Order o = Order.ASCENDING;
-        o = (Order) Utils.clone(o, p);
+        o = (Order) UtilsTest.clone(o, p);
         assertEquals(o,Order.ASCENDING );
         assertEquals(o.ordinal(),Order.ASCENDING .ordinal());
         assertEquals(o.name(),Order.ASCENDING .name());
 
         o = Order.DESCENDING;
-        o = (Order) Utils.clone(o, p);
+        o = (Order) UtilsTest.clone(o, p);
         assertEquals(o,Order.DESCENDING );
         assertEquals(o.ordinal(),Order.DESCENDING .ordinal());
         assertEquals(o.name(),Order.DESCENDING .name());
@@ -245,7 +245,7 @@ public class SerializerPojoTest extends TestCase {
 
     public void testSerializable() throws Exception {
 
-        assertEquals(b, Utils.clone(b, p));
+        assertEquals(b, UtilsTest.clone(b, p));
     }
 
 
@@ -253,7 +253,7 @@ public class SerializerPojoTest extends TestCase {
         AbstractMap.SimpleEntry b = new AbstractMap.SimpleEntry("abcd", null);
         b.setValue(b.getKey());
 
-        AbstractMap.SimpleEntry bx = (AbstractMap.SimpleEntry) Utils.clone(b, p);
+        AbstractMap.SimpleEntry bx = (AbstractMap.SimpleEntry) UtilsTest.clone(b, p);
         assertEquals(bx, b);
         assert (bx.getKey() == bx.getValue());
 
@@ -263,7 +263,7 @@ public class SerializerPojoTest extends TestCase {
         AbstractMap.SimpleEntry b = new AbstractMap.SimpleEntry("abcd", null);
         b.setValue(b);
 
-        AbstractMap.SimpleEntry bx = (AbstractMap.SimpleEntry) Utils.clone(b, p);
+        AbstractMap.SimpleEntry bx = (AbstractMap.SimpleEntry) UtilsTest.clone(b, p);
         assertTrue(bx == bx.getValue());
         assertEquals(bx.getKey(), "abcd");
 
@@ -275,7 +275,7 @@ public class SerializerPojoTest extends TestCase {
         l.add("123");
         l.add(l);
 
-        ArrayList l2 = (ArrayList) Utils.clone(l, p);
+        ArrayList l2 = (ArrayList) UtilsTest.clone(l, p);
 
         assertTrue(l2.size() == 2);
         assertEquals(l2.get(0), "123");
@@ -377,7 +377,7 @@ public class SerializerPojoTest extends TestCase {
         t.aa = 12;
         t.ss = "bb";
         t.bb = 13;
-        t = (test_transient) Utils.clone(t, p);
+        t = (test_transient) UtilsTest.clone(t, p);
         assertEquals(0,t.aa);
         assertEquals(null,t.ss);
         assertEquals(13,t.bb);

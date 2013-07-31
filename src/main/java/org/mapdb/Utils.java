@@ -160,18 +160,6 @@ final public class Utils {
         return h ^ (h >>> 7) ^ (h >>> 4);
     }
 
-    /** clone value using serialization */
-    public static <E> E clone(E value, Serializer<E> serializer){
-        try{
-            DataOutput2 out = new DataOutput2();
-            serializer.serialize(out,value);
-            DataInput2 in = new DataInput2(ByteBuffer.wrap(out.copyBytes()), 0);
-
-            return serializer.deserialize(in,out.pos);
-        }catch(IOException ee){
-            throw new IOError(ee);
-        }
-    }
 
     /** expand array size by 1, and put value at given position. No items from original array are lost*/
     public static Object[] arrayPut(final Object[] array, final int pos, final Object value){

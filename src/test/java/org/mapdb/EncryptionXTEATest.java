@@ -13,7 +13,7 @@ public class EncryptionXTEATest {
 
     @Test public void test_clone() throws Exception{
         byte[] b = new byte[]{1,2,3,4,5};
-        assertArrayEquals(b, Utils.clone(b, xtea));
+        assertArrayEquals(b, UtilsTest.clone(b, xtea));
     }
 
     @Test public void put_read() throws Exception{

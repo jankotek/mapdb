@@ -408,21 +408,21 @@ public class SerializerBaseTest extends TestCase {
 
     public void testArray(){
         Object[] o = new Object[]{"A",Long.valueOf(1),Long.valueOf(2),Long.valueOf(3), Long.valueOf(3)};
-        Object[] o2 = (Object[]) Utils.clone(o, Serializer.BASIC_SERIALIZER);
+        Object[] o2 = (Object[]) clone(o, Serializer.BASIC_SERIALIZER);
         assertArrayEquals(o,o2);
     }
 
 
     public void test_issue_38(){
         String[] s = new String[5];
-        String[] s2 = (String[]) Utils.clone(s, Serializer.BASIC_SERIALIZER);
+        String[] s2 = (String[]) clone(s, Serializer.BASIC_SERIALIZER);
         assertArrayEquals(s, s2);
         assertTrue(s2.toString().contains("[Ljava.lang.String"));
     }
 
     public void test_multi_dim_array(){
         int[][] arr = new int[][]{{11,22,44},{1,2,34}};
-        int[][] arr2= (int[][]) Utils.clone(arr, Serializer.BASIC_SERIALIZER);
+        int[][] arr2= (int[][]) clone(arr, Serializer.BASIC_SERIALIZER);
         assertArrayEquals(arr,arr2);
     }
 
@@ -433,28 +433,28 @@ public class SerializerBaseTest extends TestCase {
             arr1[i]= new int[]{i,i+1};
             arr2[i]= new double[]{i,i+1};
         }
-        assertArrayEquals(arr1, (Object[]) Utils.clone(arr1, Serializer.BASIC_SERIALIZER));
-        assertArrayEquals(arr2, (Object[]) Utils.clone(arr2, Serializer.BASIC_SERIALIZER));
+        assertArrayEquals(arr1, (Object[]) clone(arr1, Serializer.BASIC_SERIALIZER));
+        assertArrayEquals(arr2, (Object[]) clone(arr2, Serializer.BASIC_SERIALIZER));
     }
 
 
     public void test_multi_dim_array2(){
         Object[][] arr = new Object[][]{{11,22,44},{1,2,34}};
-        Object[][] arr2= (Object[][]) Utils.clone(arr, Serializer.BASIC_SERIALIZER);
+        Object[][] arr2= (Object[][]) clone(arr, Serializer.BASIC_SERIALIZER);
         assertArrayEquals(arr,arr2);
     }
 
 
     public void test_static_objects(){
         for(Object o:SerializerBase.knownSerializable.get){
-            assertTrue(o==Utils.clone(o, Serializer.BASIC_SERIALIZER));
+            assertTrue(o==clone(o, Serializer.BASIC_SERIALIZER));
         }
     }
 
     public void test_tuple_key_serializer(){
-        assertEquals(BTreeKeySerializer.TUPLE2, Utils.clone(BTreeKeySerializer.TUPLE2,SerializerBase.BASIC_SERIALIZER));
-        assertEquals(BTreeKeySerializer.TUPLE3, Utils.clone(BTreeKeySerializer.TUPLE3,SerializerBase.BASIC_SERIALIZER));
-        assertEquals(BTreeKeySerializer.TUPLE4, Utils.clone(BTreeKeySerializer.TUPLE4,SerializerBase.BASIC_SERIALIZER));
+        assertEquals(BTreeKeySerializer.TUPLE2, clone(BTreeKeySerializer.TUPLE2,SerializerBase.BASIC_SERIALIZER));
+        assertEquals(BTreeKeySerializer.TUPLE3, clone(BTreeKeySerializer.TUPLE3,SerializerBase.BASIC_SERIALIZER));
+        assertEquals(BTreeKeySerializer.TUPLE4, clone(BTreeKeySerializer.TUPLE4,SerializerBase.BASIC_SERIALIZER));
     }
 
 
@@ -481,5 +481,19 @@ public class SerializerBaseTest extends TestCase {
             for(int j=0;j<i;j++) assertEquals(b[j], b2[j]);
         }
     }
+
+    /** clone value using serialization */
+    <E> E clone(E value, Serializer<E> serializer){
+        try{
+            DataOutput2 out = new DataOutput2();
+            serializer.serialize(out,value);
+            DataInput2 in = new DataInput2(ByteBuffer.wrap(out.copyBytes()), 0);
+
+            return serializer.deserialize(in,out.pos);
+        }catch(IOException ee){
+            throw new IOError(ee);
+        }
+    }
+
 }
 

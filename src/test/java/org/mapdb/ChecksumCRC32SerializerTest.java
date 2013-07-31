@@ -11,7 +11,7 @@ public class ChecksumCRC32SerializerTest {
     @Test public void testSimple() throws Exception {
 
         byte[] b = "wwefwaefw;ef;lkwef".getBytes("UTF-8");
-        assertArrayEquals(b, Utils.clone(b, Serializer.CRC32_CHECKSUM));
+        assertArrayEquals(b, UtilsTest.clone(b, Serializer.CRC32_CHECKSUM));
 
     }
 

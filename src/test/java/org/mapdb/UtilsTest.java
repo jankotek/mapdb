@@ -3,6 +3,8 @@ package org.mapdb;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.io.IOError;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import static java.util.Arrays.asList;
@@ -61,6 +63,18 @@ public class UtilsTest {
 
 
 
+    /** clone value using serialization */
+    public static <E> E clone(E value, Serializer<E> serializer){
+        try{
+            DataOutput2 out = new DataOutput2();
+            serializer.serialize(out,value);
+            DataInput2 in = new DataInput2(ByteBuffer.wrap(out.copyBytes()), 0);
+
+            return serializer.deserialize(in,out.pos);
+        }catch(IOException ee){
+            throw new IOError(ee);
+        }
+    }
 
 
 }
