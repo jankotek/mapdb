@@ -58,6 +58,7 @@ public class Pump {
         int counter = 0;
         final SortedSet<E> presort = new TreeSet<E>(comparator);
         final List<File> presortFiles = new ArrayList<File>();
+        final List<Integer> presortCount2 = new ArrayList<Integer>();
 
         try{
             while(source.hasNext()){
@@ -74,6 +75,7 @@ public class Pump {
                         serializer.serialize(out,e);
                     }
                     out.close();
+                    presortCount2.add(presort.size());
                     presort.clear();
                     counter = 0;
                 }
@@ -85,7 +87,7 @@ public class Pump {
             }
 
             final int[] presortCount = new int[presortFiles.size()];
-            Arrays.fill(presortCount, batchSize);
+            for(int i=0;i<presortCount.length;i++) presortCount[i] = presortCount2.get(i);
             //compose iterators which will iterate over data saved in files
             Iterator[] iterators = new Iterator[presortFiles.size()+1];
             final DataInputStream[] ins = new DataInputStream[presortFiles.size()];
