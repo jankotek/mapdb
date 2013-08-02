@@ -1,0 +1,68 @@
+<?xml version="1.0"?>  <!DOCTYPE rss PUBLIC "-//Netscape Communications//DTD RSS 0.91//EN" "">
+
+<rss version="0.94">
+
+    <channel>
+        <title>MapDB - News</title>
+        <link>http://www.mapdb.org/</link>
+        <description>MapDB </description>
+
+        <item>
+            <title>MapDB 0.9 format support</title>
+            <link>http://kotek.net/blog/MapDB_09_format_support</link>
+            <date>July 01 2013</date>
+            <description>
+                MapDB has currently semi-stable branch 0.9.x. My plan was to keep stable API and storage format. However
+                to support some new features (store size limit, async API) I have to make changes in storage format,
+                which are not backward compatible. Also now I work full-time and project is evolving much faster than I
+                expected.
+            </description>
+        </item>
+
+        <item>
+            <title>MapDB Reloaded</title>
+            <link>http://kotek.net/blog/MapDB_Reloaded</link>
+            <date>June 19 2013</date>
+            <description>
+                Last month I wrote about<a href="http://kotek.net/blog/MapDB_Future">the future of MapDB</a>. It was not
+                very optimistic. MapDB is my hobby project and the time I could give it is severely limited. This led to
+                some absurd situations: despite having a very fast db-engine I would not publish any performance
+                benchmarks. I also discouraged possible users so I would not have to deal with support emails.
+            </description>
+        </item>
+
+        <item>
+            <title>MapDB Future</title>
+            <link>http://kotek.net/blog/MapDB_Future</link>
+            <date>April 23 2013</date>
+            <description>
+                MapDB 0.9.x was released a few weeks ago. Now that the project enters<i>usable alpha phase</i>, is time
+                to talk about the future.
+            </description>
+        </item>
+
+        <item>
+            <title>3 billion items in Java Map with 16 GB RAM</title>
+            <link>http://kotek.net/blog/3G_map</link>
+            <date>November 12 2012</date>
+            <description>
+                One rainy evening I meditated about memory management in Java and
+                how effectively Java collections utilise memory.
+                I made simple experiment, how much entries can I insert into
+                Java Map with 16 GB of RAM?
+            </description>
+        </item>
+
+        <item>
+            <title>JDBM4 renamed to MapDB</title>
+            <link>http://kotek.net/blog/JDBM4_renamed_to_MapDB</link>
+            <date>November 03 2012</date>
+            <description>
+                'JDBM' (Java Database Manager) name has long history. Original 'DBM' (Database Manager) has been
+                introduced in seventies. Java version started in 2001 and first stable version was introduced in 2005.
+                Until 2012 it has dozen forks including JDBM2,3,4 and ApacheDS.
+            </description>
+        </item>
+
+    </channel>
+</rss>

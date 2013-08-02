@@ -4,31 +4,32 @@
 
     <googleAnalyticsAccountId>UA-42074659-1</googleAnalyticsAccountId>
 
+
+
+    <publishDate position="bottom" format="yyyy-MM-dd" />
+    <version position="bottom" />
     <custom>
         <reflowSkin>
-
-
-            <pages>
-                <index project="mapdb">
-                    <toc>false</toc>
-                    <titleTemplate>MapDB</titleTemplate>
-                </index>
-            </pages>
-
+            <!-- Make this to 'false' for local development, i.e. file:// URLs -->
+            <protocolRelativeURLs>false</protocolRelativeURLs>
+            <smoothScroll>true</smoothScroll>
+            <theme>bootswatch-cerulean</theme>
+            <highlightJs>true</highlightJs>
+            <highlightJsTheme>github</highlightJsTheme>
+            <absoluteResourceURL>http://andriusvelykis.github.com/reflow-maven-skin/</absoluteResourceURL>
             <brand>
+                <!-- Brand text in top-left part of the site -->
                 <name><![CDATA[
-                <img src="images/logo.png" border="0" alt="MapDB"/>
-                <div style="font-size:12px">Java beyond heap</div>
+                <img src="images/logo.png" border="0" alt="MapDB"/> - java beyond heap
                 ]]></name>
                 <href>http://www.mapdb.org/</href>
             </brand>
+            <titleTemplate>%2$s | %1$s</titleTemplate>
+            <toc>top</toc>
 
-            <highlightJs>true</highlightJs>
-            <highlightJsTheme>github</highlightJsTheme>
-
-            <titleTemplate>%2$s | MapDB</titleTemplate>
-            <toc>sidebar</toc>
+            <!-- Include the documentation and tools in the top navigation (in addition to links) -->
             <topNav>MapDB|FAQ|Documentation|Support</topNav>
+            <!-- Split menus in the bottom navigation -->
             <bottomNav>
                 <!--number of cols must be 4 -->
                 <column>MapDB</column>
@@ -36,18 +37,41 @@
                 <column>Documentation</column>
                 <column>Support|Author</column>
             </bottomNav>
-            <bottomDescription><![CDATA[
-                MapDB is free as a beer under Apache license. Please support us to make sure it remains free.
-                <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=JAGF7RKHMPNHA&lc=IE&currency_code=EUR&bn=PP%2dDonationsBF%3abtn_donate_LG%2egif%3aNonHosted">
-                <img src="images/donate.gif" alt="Donate"/>
-                </a>
-                ]]>
+            <bottomDescription>
+                <![CDATA[
+<span class="color-highlight">MapDB</span> provides concurrent Maps, Sets and Queues backed by disk storage or off-heap memory.
+It is a fast and easy to use embedded Java database engine. And it is completely free under Apache License.
+MapDB is free as speech and free as beer under <a href="https://github.com/jankotek/MapDB/blob/master/license.txt">Apache License 2.0</a>.
+]]>
             </bottomDescription>
+            <pages>
+                <index project="mapdb">
+                    <!-- Override the title -->
+                    <titleTemplate>MapDB </titleTemplate>
+                    <!-- no breadcrumbs on the main index page -->
+                    <breadcrumbs>false</breadcrumbs>
+                    <!-- no ToC on the main index page -->
+                    <toc>false</toc>
+                    <markPageHeader>false</markPageHeader>
+                    <sections>
+                        <carousel />
+                        <body />
+                        <sidebar />
+                    </sections>
+                </index>
+                <faq-general>
+                    <toc>sidebar</toc>
+                </faq-general>
+                <faq-problems>
+                    <toc>sidebar</toc>
+                </faq-problems>
+                <faq-performance>
+                    <toc>sidebar</toc>
+                </faq-performance>
 
-            <theme>bootswatch-cerulean</theme>
+            </pages>
         </reflowSkin>
     </custom>
-
 
 
     <body>

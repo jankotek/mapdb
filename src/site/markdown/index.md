@@ -1,10 +1,41 @@
-MapDB provides concurrent Maps, Sets and Queues backed by disk storage or off-heap-memory. It is a fast and easy to use embedded Java database engine. This project is more than 12 years old, you may know it under name JDBM. MapDB is free as speech and free as beer under
-[Apache License 2.0](https://github.com/jankotek/MapDB/blob/master/doc/license.txt).
+#### [Quick overview podcast][overview]
 
+[![Quick overview podcast](images/car-overview.jpg)][overview]
+
+Learn more about MapDB in quick video podcast.
+
+
+#### [Learn more][intro]
+[![Learn more](images/car-intro.png)][intro]
+
+MapDB provides concurrent Maps, Sets and Queues backed by disk storage or off-heap memory.
+
+
+#### [Benchmarks][benchmarks]
+
+[![benchmarks](images/car-benchmarks.jpg)][benchmarks]
+
+MapDB is probably the fastest pure java database. Checkout our benchmarks.
+
+
+#### [Features][features]
+
+[![features](images/car-features.png)][features]
+
+CRUD, off-heap, append only store.. we have them all. MapDB is highly modular and flexible
+
+
+[overview]: http://www.youtube.com/watch?v=FdZmyEHcWLI
+[intro]: /intro.html
+[benchmarks]: /benchmarks.html
+[features]: /features.html
+
+
+---
 
 
 News
-====
+----
 * 2013-06-18 Now I work on MapDB [full time](http://kotek.net/blog/MapDB_Reloaded).
 * 2013-06-02 MapDB 0.9.3 was released. Fixed data corruption in Write Ahead Log and improved serialization [release notes](https://github.com/jankotek/MapDB/blob/master/release_notes.md#version-093-2013-06-02)
 * 2013-05-19 MapDB 0.9.2 was released. It fixes bugs and introduces Data Pump, [release notes](https://github.com/jankotek/MapDB/blob/master/release_notes.md#version-092-2013-05-19)
@@ -18,7 +49,7 @@ Follow news:
 [Twitter](http://twitter.com/MapDBnews)
 
 Features
-========
+--------
 * **Concurrent** - MapDB has record level locking and state-of-art concurrent engine. Its performance scales nearly linearly with number of cores. Data can be written by multiple parallel threads.
 
 * **Fast** - MapDB has outstanding performance rivaled only by native DBs. It is result of more than a decade of optimizations and rewrites.
