@@ -46,10 +46,8 @@ package org.mapdb;
 
 import junit.framework.TestCase;
 
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.NavigableMap;
-import java.util.NavigableSet;
-import java.util.SortedMap;
 
 /**
  * to test {@link java.util.NavigableMap} implementation
@@ -197,47 +195,45 @@ public class BTreeMapNavigableTest extends TestCase {
 		assertEquals("must have 2 entries", 2, navigableMap.size());
 	}
 
-//  TODO implement this
-//
-//	public void testDescendingMap() {
-//		navigableMap.put("ka", "xx");
-//		navigableMap.put("kb", "aa");
-//		navigableMap.put("kc", "zz");
-//		final NavigableMap<String, String> descendingMap = navigableMap
-//				.descendingMap();
-//
-//		assertEquals(BAD_SIZE, 3, descendingMap.size());
-//		assertFalse(MUST_NOT_BE_EMPTY, descendingMap.isEmpty());
-//
-//		final Entry<String, String> firstEntry = descendingMap.firstEntry();
-//		assertEquals("bad first entry value", "zz", firstEntry.getValue());
-//		assertEquals(BAD_FIRST_ENTRY_KEY, "kc", firstEntry.getKey());
-//
-//		final Entry<String, String> lastEntry = descendingMap.lastEntry();
-//		assertEquals("bad last entry value", "xx", lastEntry.getValue());
-//		assertEquals("bad last entry key", "ka", lastEntry.getKey());
-//
-//		final Set<Entry<String, String>> entrySet = descendingMap.entrySet();
-//		final Iterator<Entry<String, String>> iterator = entrySet.iterator();
-//		assertTrue("must have first entry", iterator.hasNext());
-//		assertEquals(BAD_FIRST_ENTRY_KEY, "kc", iterator.next().getKey());
-//		assertTrue("must have second entry", iterator.hasNext());
-//		assertEquals("bad second entry key", "kb", iterator.next().getKey());
-//		assertTrue("must have third entry", iterator.hasNext());
-//		assertEquals("bad third entry key", "ka", iterator.next().getKey());
-//		assertFalse("must not have fourth entry", iterator.hasNext());
-//
-//		descendingMap.remove("kb");
-//		assertEquals(BAD_SIZE, 2, descendingMap.size());
-//		assertFalse(MUST_NOT_BE_EMPTY, descendingMap.isEmpty());
-//
-//		assertEquals(BAD_SIZE, 2, navigableMap.size());
-//		assertFalse(MUST_NOT_BE_EMPTY, navigableMap.isEmpty());
-//		assertTrue("must contains key 'ka'", navigableMap.containsKey("ka"));
-//		assertFalse("must not contains key 'kb'", navigableMap
-//				.containsKey("kb"));
-//		assertTrue("must contains key 'kc'", navigableMap.containsKey("kc"));
-//	}
+	public void testDescendingMap() {
+		navigableMap.put("ka", "xx");
+		navigableMap.put("kb", "aa");
+		navigableMap.put("kc", "zz");
+		final NavigableMap<String, String> descendingMap = navigableMap
+				.descendingMap();
+
+		assertEquals(BAD_SIZE, 3, descendingMap.size());
+		assertFalse(MUST_NOT_BE_EMPTY, descendingMap.isEmpty());
+
+		final Entry<String, String> firstEntry = descendingMap.firstEntry();
+		assertEquals("bad first entry value", "zz", firstEntry.getValue());
+		assertEquals(BAD_FIRST_ENTRY_KEY, "kc", firstEntry.getKey());
+
+		final Entry<String, String> lastEntry = descendingMap.lastEntry();
+		assertEquals("bad last entry value", "xx", lastEntry.getValue());
+		assertEquals("bad last entry key", "ka", lastEntry.getKey());
+
+		final Set<Entry<String, String>> entrySet = descendingMap.entrySet();
+		final Iterator<Entry<String, String>> iterator = entrySet.iterator();
+		assertTrue("must have first entry", iterator.hasNext());
+		assertEquals(BAD_FIRST_ENTRY_KEY, "kc", iterator.next().getKey());
+		assertTrue("must have second entry", iterator.hasNext());
+		assertEquals("bad second entry key", "kb", iterator.next().getKey());
+		assertTrue("must have third entry", iterator.hasNext());
+		assertEquals("bad third entry key", "ka", iterator.next().getKey());
+		assertFalse("must not have fourth entry", iterator.hasNext());
+
+		descendingMap.remove("kb");
+		assertEquals(BAD_SIZE, 2, descendingMap.size());
+		assertFalse(MUST_NOT_BE_EMPTY, descendingMap.isEmpty());
+
+		assertEquals(BAD_SIZE, 2, navigableMap.size());
+		assertFalse(MUST_NOT_BE_EMPTY, navigableMap.isEmpty());
+		assertTrue("must contains key 'ka'", navigableMap.containsKey("ka"));
+		assertFalse("must not contains key 'kb'", navigableMap
+				.containsKey("kb"));
+		assertTrue("must contains key 'kc'", navigableMap.containsKey("kc"));
+	}
 
 	public void testNavigableKeySet() {
 		navigableMap.put("ka", "xx");
@@ -259,27 +255,27 @@ public class BTreeMapNavigableTest extends TestCase {
 				.containsKey("kb"));
 		assertTrue("must contains key 'kc'", navigableMap.containsKey("kc"));
 	}
-// TODO implement this
-//	public void testDescendingKeySet() {
-//		navigableMap.put("ka", "xx");
-//		navigableMap.put("kb", "aa");
-//		navigableMap.put("kc", "zz");
-//		final NavigableSet<String> navigableSet = navigableMap
-//				.descendingKeySet();
-//		assertEquals("bad first element", "kc", navigableSet.first());
-//		assertEquals("bad last element", "ka", navigableSet.last());
-//		assertTrue(MUST_CONTAINS_KA, navigableSet.contains("ka"));
-//		assertTrue(MUST_CONTAINS_KB, navigableSet.contains("kb"));
-//		assertTrue(MUST_CONTAINS_KC, navigableSet.contains("kc"));
-//
-//		navigableSet.remove("kb");
-//		assertEquals(BAD_SIZE, 2, navigableMap.size());
-//		assertFalse(MUST_NOT_BE_EMPTY, navigableMap.isEmpty());
-//		assertTrue("must contains key 'ka'", navigableMap.containsKey("ka"));
-//		assertFalse("must not contains key 'kb'", navigableMap
-//				.containsKey("kb"));
-//		assertTrue("must contains key 'kc'", navigableMap.containsKey("kc"));
-//	}
+
+	public void testDescendingKeySet() {
+		navigableMap.put("ka", "xx");
+		navigableMap.put("kb", "aa");
+		navigableMap.put("kc", "zz");
+		final NavigableSet<String> navigableSet = navigableMap
+				.descendingKeySet();
+		assertEquals("bad first element", "kc", navigableSet.first());
+		assertEquals("bad last element", "ka", navigableSet.last());
+		assertTrue(MUST_CONTAINS_KA, navigableSet.contains("ka"));
+		assertTrue(MUST_CONTAINS_KB, navigableSet.contains("kb"));
+		assertTrue(MUST_CONTAINS_KC, navigableSet.contains("kc"));
+
+		navigableSet.remove("kb");
+		assertEquals(BAD_SIZE, 2, navigableMap.size());
+		assertFalse(MUST_NOT_BE_EMPTY, navigableMap.isEmpty());
+		assertTrue("must contains key 'ka'", navigableMap.containsKey("ka"));
+		assertFalse("must not contains key 'kb'", navigableMap
+				.containsKey("kb"));
+		assertTrue("must contains key 'kc'", navigableMap.containsKey("kc"));
+	}
 
 	public void testSubMap() {
 		navigableMap.put("ka", "xx");
