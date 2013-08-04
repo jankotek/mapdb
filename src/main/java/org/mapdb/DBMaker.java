@@ -387,35 +387,6 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         return getThis();
     }
 
-    /**
-     * //TODO put this nice comment somewhere
-     * By default all objects are serialized in Background Writer Thread.
-     * <p/>
-     * This may improve performance. For example with single thread access, Async Serialization offloads
-     * lot of work to second core. Or when multiple values are added into single tree node,
-     * node has to be serialized only once. Without Async Serialization node is serialized each time
-     * node is updated.
-     * <p/>
-     * On other side Async Serialization moves all serialization into single thread. This
-     * hurts performance with many concurrent-independent updates.
-     * <p/>
-     * Async Serialization may also produce some unexpected results when your data classes are not
-     * immutable. Consider example bellow. If Async Serialization is disabled, it always prints 'Peter'.
-     * If it is enabled (by default) it creates race condition and randomly prints 'Peter' or 'Jack',
-     * <pre>
-     *     Person person = new Person();
-     *     person.setName("Peter");
-     *     map.put(id, person)
-     *     person.setName("Jack");
-     *     //long pause
-     *     println(map.get(id).getName());
-     * </pre>
-     *
-     * <p/>
-     * This may also workaround some problems
-     *
-     * @return this builder
-     */
 
 
     /**
