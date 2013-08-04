@@ -96,6 +96,13 @@ public final class Bind {
          * @param listener  callback interface notified when map changes
          */
         public void removeModificationListener(MapListener<K,V> listener);
+
+
+        /**
+         *
+         * @return size of map, but in  64bit long which does not overflow at 2e9 items.
+         */
+        public long sizeLong();
     }
 
     /**
@@ -120,7 +127,7 @@ public final class Bind {
     public static void size(MapWithModificationListener map, final Atomic.Long sizeCounter){
         //set initial value first if necessary
         if(sizeCounter.get() == 0)
-            sizeCounter.set(map.size()); //TODO long overflow?
+            sizeCounter.set(map.sizeLong());
 
         map.addModificationListener(new MapListener() {
             @Override

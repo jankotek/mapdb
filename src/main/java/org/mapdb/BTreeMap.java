@@ -1024,9 +1024,16 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     }
 
     @Override
-    public int size(){
+    public int size() {
+        long size = sizeLong();
+        if(size>Integer.MAX_VALUE) return Integer.MAX_VALUE;
+        return (int) size;
+    }
+
+    @Override
+    public long sizeLong() {
         if(counter!=null)
-            return (int) counter.get(); //TODO larger then MAX_INT
+            return counter.get();
 
         long size = 0;
         BTreeIterator iter = new BTreeIterator(this);
@@ -1034,7 +1041,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             iter.advance();
             size++;
         }
-        return (int) size;
+        return size;
     }
 
     @Override

@@ -263,8 +263,16 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
     @Override
     public int size() {
+        long size = sizeLong();
+        if(size>Integer.MAX_VALUE) return Integer.MAX_VALUE;
+        return (int) size;
+    }
+
+
+    @Override
+    public long sizeLong() {
         if(counter!=null)
-            return (int) counter.get(); //TODO larger then MAX_INT
+            return counter.get();
 
 
         long counter = 0;
@@ -281,10 +289,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             }
         }
 
-        if(counter>Integer.MAX_VALUE)
-            return Integer.MAX_VALUE;
 
-        return (int) counter;
+        return counter;
     }
 
     private long recursiveDirCount(final long dirRecid) {
