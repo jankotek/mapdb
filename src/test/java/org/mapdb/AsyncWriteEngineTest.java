@@ -104,8 +104,7 @@ public class AsyncWriteEngineTest extends TestFile{
         //make commit just after bunch of records was added,
         // we need to test that all records made it into transaction log
         a.commit();
-        //TODO reenable when newRecids are introduced
-        //assertEquals(max, putCounter.longValue() - a.newRecids.size());
+        assertEquals(max, putCounter.longValue() - a.newRecids.size());
         assertTrue(a.writeCache.isEmpty());
         t.close();
 
