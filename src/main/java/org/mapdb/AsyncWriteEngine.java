@@ -183,9 +183,9 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
 
     /** runs on background thread. Takes records from Write Queue, serializes and writes them.*/
     protected boolean runWriter() throws InterruptedException {
-
-
         final CountDownLatch latch = action.getAndSet(null);
+
+        int counter=0;
 
         do{
             LongMap.LongMapIterator<Fun.Tuple2<Object, Serializer>> iter = writeCache.longMapIterator();
@@ -203,10 +203,14 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
                 }
                 //record has been written to underlying Engine, so remove it from cache with CAS
                 writeCache.remove(recid, item);
+
+                if(((++counter)&(63))==0){   //it is like modulo 64, but faster
+                    runWritePrealloc();
+                }
             }
         }while(latch!=null && !writeCache.isEmpty());
 
-        runWritePrealloc(); //TODO call it more frequently
+        runWritePrealloc();
 
 
         //operations such as commit,close, compact or close needs to be executed in Writer Thread
