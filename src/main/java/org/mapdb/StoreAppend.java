@@ -81,7 +81,9 @@ public class StoreAppend extends Store{
 
 
     public StoreAppend(final File file, final boolean useRandomAccessFile, final boolean readOnly,
-                       final boolean transactionDisabled, final boolean deleteFilesAfterClose,  final boolean syncOnCommitDisabled) {
+                       final boolean transactionDisabled, final boolean deleteFilesAfterClose,  final boolean syncOnCommitDisabled,
+                       boolean checksum, boolean compress, byte[] password) {
+        super(checksum, compress, password);
         this.file = file;
         this.useRandomAccessFile = useRandomAccessFile;
         this.readOnly = readOnly;
@@ -190,7 +192,7 @@ public class StoreAppend extends Store{
     }
 
     public StoreAppend(File file) {
-        this(file,false,false,false,false,false);
+        this(file,false,false,false,false,false,false,false,null);
     }
 
 
@@ -232,7 +234,7 @@ public class StoreAppend extends Store{
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
         assert(value!=null);
-        DataOutput2 out = Utils.serializer(serializer,value);
+        DataOutput2 out = serialize(value,serializer);
 
 
         structuralLock.lock();
@@ -260,8 +262,8 @@ public class StoreAppend extends Store{
         //write data
         currVolume.putData(oldPos,out.buf,0,out.pos);
 
-
-        setIndexVal(recid,indexVal);
+        recycledDataOuts.offer(out);
+        setIndexVal(recid, indexVal);
 
         return recid;
 
@@ -294,7 +296,7 @@ public class StoreAppend extends Store{
         if(size==0) return serializer.deserialize(new DataInput2(new byte[0]),0);
         DataInput2 in = vol.getDataInput(fileOffset, (int) size);
 
-        return serializer.deserialize(in, (int) size);
+        return deserialize(serializer, (int) size,in);
     }
 
 
@@ -302,7 +304,7 @@ public class StoreAppend extends Store{
     public <A> void update(long recid, A value, Serializer<A> serializer) {
         assert(value!=null);
         assert(recid>0);
-        DataOutput2 out = Utils.serializer(serializer,value);
+        DataOutput2 out = serialize(value,serializer);
 
         final Lock lock = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
         lock.lock();
@@ -311,7 +313,7 @@ public class StoreAppend extends Store{
         }finally {
             lock.unlock();
         }
-
+        recycledDataOuts.offer(out);
     }
 
     protected void updateNoLock(long recid, DataOutput2 out) {
@@ -343,23 +345,25 @@ public class StoreAppend extends Store{
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
         assert(expectedOldValue!=null && newValue!=null);
         assert(recid>0);
-        DataOutput2 out = Utils.serializer(serializer,newValue);
+        DataOutput2 out = serialize(newValue,serializer);
         final Lock lock = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
         lock.lock();
+        boolean ret;
         try{
             Object old = getNoLock(recid,serializer);
             if(expectedOldValue.equals(old)){
                 updateNoLock(recid,out);
-                return true;
+                ret = true;
             }else{
-                return false;
+                ret = false;
             }
         }catch(IOException e){
             throw new IOError(e);
         }finally {
             lock.unlock();
         }
-
+        recycledDataOuts.offer(out);
+        return ret;
     }
 
     @Override

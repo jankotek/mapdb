@@ -36,7 +36,11 @@ public class Pump {
 
     /** traverses {@link EngineWrapper}s and returns underlying {@link Store}*/
     public static Store storeForDB(DB db){
-        Engine e = db.getEngine();
+        return storeForEngine(db.engine);
+    }
+
+    /** traverses {@link EngineWrapper}s and returns underlying {@link Store}*/
+    public static Store storeForEngine(Engine e){
         while(e instanceof EngineWrapper) e = ((EngineWrapper) e).getWrappedEngine();
         return (Store) e;
     }

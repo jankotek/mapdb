@@ -16,7 +16,6 @@
 
 package org.mapdb;
 
-import org.mapdb.EngineWrapper.ByteTransformEngine;
 import org.mapdb.EngineWrapper.ReadOnlyEngine;
 
 import java.io.File;
@@ -671,22 +670,6 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
         engine = extendWrapStore(engine);
 
-        if(_checksumEnabled){
-            engine = extendChecksum(engine);
-        }
-
-        if(_xteaEncryptionKey!=null){
-            engine = extendEncryption(engine);
-        }
-
-
-        if(_compressionEnabled){
-            engine = extendCompression(engine);
-        }
-
-
-        engine = extendWrapByteTransform(engine);
-
         if(_asyncWriteEnabled && !_readOnly){
             engine = extendAsyncWriteEngine(engine);
         }
@@ -789,17 +772,6 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         return new AsyncWriteEngine(engine, _asyncFlushDelay, null);
     }
 
-    protected ByteTransformEngine extendCompression(Engine engine) {
-        return new ByteTransformEngine(engine, CompressLZF.SERIALIZER);
-    }
-
-    protected ByteTransformEngine extendEncryption(Engine engine) {
-        return new ByteTransformEngine(engine, new EncryptionXTEA(_xteaEncryptionKey));
-    }
-
-    protected ByteTransformEngine extendChecksum(Engine engine) {
-        return new ByteTransformEngine(engine, Serializer.CRC32_CHECKSUM);
-    }
 
     protected void extendArgumentCheck() {
     }
@@ -808,9 +780,6 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         return engine;
     }
 
-    protected Engine extendWrapByteTransform(Engine engine) {
-        return engine;
-    }
 
     protected Engine extendWrapCache(Engine engine) {
         return engine;
@@ -823,15 +792,18 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
 
     protected StoreAppend extendStoreAppend() {
-        return new StoreAppend(_file, _rafMode>0, _readOnly, !_transactionEnabled, _deleteFilesAfterClose, _syncOnCommitDisabled);
+        return new StoreAppend(_file, _rafMode>0, _readOnly, !_transactionEnabled, _deleteFilesAfterClose, _syncOnCommitDisabled,
+                _checksumEnabled,_compressionEnabled,_xteaEncryptionKey);
     }
 
     protected Store extendStoreDirect(Volume.Factory folFac) {
-        return new StoreDirect(folFac,  _readOnly,_deleteFilesAfterClose, _freeSpaceReclaimQ,_syncOnCommitDisabled,_sizeLimit);
+        return new StoreDirect(folFac,  _readOnly,_deleteFilesAfterClose, _freeSpaceReclaimQ,_syncOnCommitDisabled,_sizeLimit,
+                _checksumEnabled,_compressionEnabled,_xteaEncryptionKey);
     }
 
     protected Store extendStoreWAL(Volume.Factory folFac) {
-        return new StoreWAL(folFac,  _readOnly,_deleteFilesAfterClose, _freeSpaceReclaimQ,_syncOnCommitDisabled,_sizeLimit);
+        return new StoreWAL(folFac,  _readOnly,_deleteFilesAfterClose, _freeSpaceReclaimQ,_syncOnCommitDisabled,_sizeLimit,
+                _checksumEnabled,_compressionEnabled,_xteaEncryptionKey);
     }
 
     protected Volume.Factory extendStoreVolumeFactory() {

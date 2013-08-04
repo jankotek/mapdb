@@ -1,7 +1,6 @@
 package org.mapdb;
 
 import org.junit.Test;
-import org.mapdb.EngineWrapper.ByteTransformEngine;
 import org.mapdb.EngineWrapper.ReadOnlyEngine;
 
 import java.io.File;
@@ -183,8 +182,10 @@ public class DBMakerTest{
         EngineWrapper w = (EngineWrapper) db.engine;
         assertTrue(w instanceof SnapshotEngine);
 
-        assertTrue(w.getWrappedEngine() instanceof ByteTransformEngine);
-        assertTrue(((ByteTransformEngine)w.getWrappedEngine()).blockSerializer == Serializer.CRC32_CHECKSUM);
+        Store s = Pump.storeForEngine(w);
+        assertTrue(s.checksum);
+        assertTrue(!s.compress);
+        assertTrue(s.password==null);
         db.close();
     }
 
@@ -202,8 +203,10 @@ public class DBMakerTest{
         EngineWrapper w = (EngineWrapper) db.engine;
         assertTrue(w instanceof SnapshotEngine);
 
-        assertTrue(w.getWrappedEngine() instanceof ByteTransformEngine);
-        assertTrue(((ByteTransformEngine)w.getWrappedEngine()).blockSerializer == Serializer.CRC32_CHECKSUM);
+        Store s = Pump.storeForEngine(w);
+        assertTrue(s.checksum);
+        assertTrue(!s.compress);
+        assertTrue(s.password==null);
         db.close();
     }
 
@@ -217,8 +220,10 @@ public class DBMakerTest{
 
                 .encryptionEnable("adqdqwd")
                 .make();
-        ByteTransformEngine e = (ByteTransformEngine) ((EngineWrapper)db.engine).getWrappedEngine();
-        assertTrue(e.blockSerializer instanceof EncryptionXTEA);
+        Store s = Pump.storeForDB(db);
+        assertTrue(!s.checksum);
+        assertTrue(!s.compress);
+        assertTrue(s.password!=null);
         db.close();
     }
 
@@ -236,8 +241,10 @@ public class DBMakerTest{
 
                 .encryptionEnable("adqdqwd")
                 .make();
-        ByteTransformEngine e = (ByteTransformEngine) ((EngineWrapper)db.engine).getWrappedEngine();
-        assertTrue(e.blockSerializer instanceof EncryptionXTEA);
+        Store s = Pump.storeForDB(db);
+        assertTrue(!s.checksum);
+        assertTrue(!s.compress);
+        assertTrue(s.password!=null);
         db.close();
     }
 
@@ -253,9 +260,10 @@ public class DBMakerTest{
                 .compressionEnable()
                 .make();
         EngineWrapper w = (EngineWrapper) db.engine;
-        assertTrue(w instanceof SnapshotEngine);
-        assertTrue(w.getWrappedEngine() instanceof ByteTransformEngine);
-        assertTrue(((ByteTransformEngine)w.getWrappedEngine()).blockSerializer == CompressLZF.SERIALIZER);
+        Store s = Pump.storeForEngine(w);
+        assertTrue(!s.checksum);
+        assertTrue(s.compress);
+        assertTrue(s.password==null);
         db.close();
     }
 
@@ -274,8 +282,11 @@ public class DBMakerTest{
                 .make();
         EngineWrapper w = (EngineWrapper) db.engine;
         assertTrue(w instanceof SnapshotEngine);
-        assertTrue(w.getWrappedEngine() instanceof ByteTransformEngine);
-        assertTrue(((ByteTransformEngine)w.getWrappedEngine()).blockSerializer == CompressLZF.SERIALIZER);
+        Store s = Pump.storeForEngine(w);
+        assertTrue(!s.checksum);
+        assertTrue(s.compress);
+        assertTrue(s.password==null);
+
         db.close();
     }
 

@@ -176,10 +176,12 @@ public class StoreDirect extends Store{
 
     protected final long sizeLimit;
 
-    protected final Queue<DataOutput2> recycledDataOuts = new ArrayBlockingQueue<DataOutput2>(128);
+
 
     public StoreDirect(Volume.Factory volFac, boolean readOnly, boolean deleteFilesAfterClose,
-                       int spaceReclaimMode, boolean syncOnCommitDisabled, long sizeLimit) {
+                       int spaceReclaimMode, boolean syncOnCommitDisabled, long sizeLimit,
+                       boolean checksum, boolean compress, byte[] password) {
+        super(checksum, compress, password);
         this.readOnly = readOnly;
         this.deleteFilesAfterClose = deleteFilesAfterClose;
         this.syncOnCommitDisabled = syncOnCommitDisabled;
@@ -203,7 +205,7 @@ public class StoreDirect extends Store{
     }
 
     public StoreDirect(Volume.Factory volFac) {
-        this(volFac, false,false,5,false,0L);
+        this(volFac, false,false,5,false,0L, false,false,null);
     }
 
 
@@ -331,12 +333,9 @@ public class StoreDirect extends Store{
             di = new DataInput2(buf);
             size = pos;
         }
-        int start = di.pos;
-        A ret = serializer.deserialize(di,size);
-        if(size+start>di.pos)throw new InternalError("data were not fully read, check your serializer "+ioRecid);
-        if(size+start<di.pos)throw new InternalError("data were read beyond record size, check your serializer");
-        return ret;
+        return deserialize(serializer, size, di);
     }
+
 
 
     @Override
@@ -346,7 +345,6 @@ public class StoreDirect extends Store{
         DataOutput2 out = serialize(value, serializer);
 
         final long ioRecid = IO_USER_START + recid*8;
-
 
         final Lock lock  = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
         lock.lock();
@@ -630,7 +628,7 @@ public class StoreDirect extends Store{
 
             final boolean isRaf = index instanceof Volume.FileChannelVol;
             Volume.Factory fab = Volume.fileFactory(false, rafMode, new File(indexFile+".compact"),sizeLimit);
-            StoreDirect store2 = new StoreDirect(fab);
+            StoreDirect store2 = new StoreDirect(fab,false,false,5,false,0L, checksum,compress,password);
             store2.structuralLock.lock();
 
             //transfer stack of free recids
@@ -648,10 +646,8 @@ public class StoreDirect extends Store{
                 if(bb==null||bb.length==0){
                     store2.index.putLong(ioRecid,0);
                 }else{
-                    long[] indexVals = store2.physAllocate(bb.length,true,false);
-                    DataOutput2 out = new DataOutput2();
-                    out.buf = bb;
-                    out.pos = bb.length;
+                    DataOutput2 out = serialize(bb,Serializer.BYTE_ARRAY_SERIALIZER);
+                    long[] indexVals = store2.physAllocate(out.pos,true,false);
                     store2.put2(out, ioRecid,indexVals);
                 }
             }
@@ -862,19 +858,6 @@ public class StoreDirect extends Store{
         return physSize2;
     }
 
-
-    protected <A> DataOutput2 serialize(A value, Serializer<A> serializer) {
-        try {
-            DataOutput2 out = recycledDataOuts.poll();
-            if(out==null) out = new DataOutput2();
-            else out.pos=0;
-
-            serializer.serialize(out,value);
-            return out;
-        } catch (IOException e) {
-            throw new IOError(e);
-        }
-    }
 
     @Override
     public long getMaxRecid() {

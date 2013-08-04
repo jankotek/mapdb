@@ -41,11 +41,13 @@ public class StoreWAL extends StoreDirect {
 
 
     public StoreWAL(Volume.Factory volFac) {
-        this(volFac,false,false,5,false,0L);
+        this(volFac,false,false,5,false,0L,false,false,null);
     }
     public StoreWAL(Volume.Factory volFac, boolean readOnly, boolean deleteFilesAfterClose,
-                    int spaceReclaimMode, boolean syncOnCommitDisabled, long sizeLimit) {
-        super(volFac, readOnly, deleteFilesAfterClose, spaceReclaimMode,syncOnCommitDisabled,sizeLimit);
+                    int spaceReclaimMode, boolean syncOnCommitDisabled, long sizeLimit,
+                    boolean checksum, boolean compress, byte[] password) {
+        super(volFac, readOnly, deleteFilesAfterClose, spaceReclaimMode,syncOnCommitDisabled,sizeLimit,
+                checksum,compress,password);
         this.volFac = volFac;
         this.log = volFac.createTransLogVolume();
 
@@ -201,7 +203,7 @@ public class StoreWAL extends StoreDirect {
             //single record
             final int size = (int) (r[0]>>>48);
             DataInput2 in = log.getDataInput(r[0]&LOG_MASK_OFFSET, size);
-            return serializer.deserialize(in, size);
+            return deserialize(serializer,size,in);
         }else{
             //linked record
             int totalSize = 0;
@@ -219,7 +221,7 @@ public class StoreWAL extends StoreDirect {
             }
             if(pos!=totalSize)throw new InternalError();
 
-            return serializer.deserialize(new DataInput2(b),totalSize);
+            return deserialize(serializer,totalSize, new DataInput2(b));
         }
     }
 

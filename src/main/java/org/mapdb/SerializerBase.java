@@ -41,7 +41,7 @@ public class SerializerBase implements Serializer{
             Utils.COMPARABLE_COMPARATOR, Utils.COMPARABLE_COMPARATOR_WITH_NULLS,
 
             Serializer.STRING_SERIALIZER, Serializer.LONG_SERIALIZER, Serializer.INTEGER_SERIALIZER,
-            Serializer.EMPTY_SERIALIZER, Serializer.BASIC_SERIALIZER, Serializer.CRC32_CHECKSUM
+            Serializer.EMPTY_SERIALIZER, Serializer.BASIC_SERIALIZER
     ));
     }
 
@@ -295,11 +295,6 @@ public class SerializerBase implements Serializer{
             out.write(B_TREE_BASIC_KEY_SERIALIZER);
             if(((BTreeKeySerializer.BasicKeySerializer)obj).defaultSerializer!=this) throw new InternalError();
             return;
-        } else if(clazz == CompressSerializerWrapper.class){
-            out.write(SERIALIZER_COMPRESSION_WRAPPER);
-            serialize(out, ((CompressSerializerWrapper)obj).serializer, objectStack);
-            return;
-
         } else if(obj == BTreeKeySerializer.ZERO_OR_POSITIVE_LONG){
             out.write(B_TREE_SERIALIZER_POS_LONG);
             return;
@@ -317,9 +312,6 @@ public class SerializerBase implements Serializer{
             return;
         } else if(obj == Serializer.EMPTY_SERIALIZER){
             out.write(SerializationHeader.EMPTY_SERIALIZER);
-            return;
-        } else if(obj == Serializer.CRC32_CHECKSUM){
-            out.write(SerializationHeader.CRC32_SERIALIZER);
             return;
         } else if(obj == BTreeKeySerializer.STRING){
             out.write(B_TREE_SERIALIZER_STRING);
@@ -1055,9 +1047,6 @@ public class SerializerBase implements Serializer{
             case SerializationHeader.EMPTY_SERIALIZER:
                 ret = EMPTY_SERIALIZER;
                 break;
-            case SerializationHeader.CRC32_SERIALIZER:
-                ret = Serializer.CRC32_CHECKSUM;
-                break;
             case B_TREE_SERIALIZER_POS_LONG:
                 ret = BTreeKeySerializer.ZERO_OR_POSITIVE_LONG;
                 break;
@@ -1180,9 +1169,6 @@ public class SerializerBase implements Serializer{
                 break;
             case PROPERTIES:
                 ret = deserializeProperties(is, objectStack);
-                break;
-            case SERIALIZER_COMPRESSION_WRAPPER:
-                ret = CompressLZF.CompressionWrapper((Serializer) deserialize(is, objectStack));
                 break;
             default:
                 ret = deserializeUnknownHeader(is, head, objectStack);

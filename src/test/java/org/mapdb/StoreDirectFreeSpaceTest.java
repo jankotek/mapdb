@@ -14,7 +14,7 @@ public class StoreDirectFreeSpaceTest {
     final Map<Long,Deque<Long>> longStacks = new TreeMap <Long,Deque<Long>>();
 
     /** mock longStacks so their page allocations wont mess up tests */
-    StoreDirect stub = new  StoreDirect(Volume.memoryFactory(false,max),false,false,5,false,max){
+    StoreDirect stub = new  StoreDirect(Volume.memoryFactory(false,max),false,false,5,false,max,false,false,null){
 
 
         private Deque<Long> stackList(long ioList) {

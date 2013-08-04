@@ -146,38 +146,6 @@ public interface Serializer<A> {
 
 
 
-    /**
-     * Adds CRC32 checksum at end of each record to check data integrity.
-     * It throws 'IOException("CRC32 does not match, data broken")' on de-serialization if data are corrupted
-     */
-    
-    Serializer<EngineWrapper.ByteTransformEngine.ByteArrayWrapper> CRC32_CHECKSUM = new Serializer<EngineWrapper.ByteTransformEngine.ByteArrayWrapper>() {
-        @Override
-        public void serialize(DataOutput out, EngineWrapper.ByteTransformEngine.ByteArrayWrapper value) throws IOException {
-            if(value == null || value.b.length==0) return;
-            CRC32 crc = new CRC32();
-            crc.update(value.b);
-            out.write(value.b);
-            out.writeInt((int) crc.getValue());
-        }
-
-        @Override
-        public EngineWrapper.ByteTransformEngine.ByteArrayWrapper deserialize(DataInput in, int available) throws IOException {
-            if(available==-1) throw new IllegalArgumentException("CRC32_CHECKSUM does not work with collections.");
-            if(available==0) return null;
-            byte[] value = new byte[available-4];
-            in.readFully(value);
-            CRC32 crc = new CRC32();
-            crc.update(value);
-            int checksum = in.readInt();
-            if(checksum!=(int)crc.getValue()){
-                throw new IOException("CRC32 does not match, data broken");
-            }
-            return new EngineWrapper.ByteTransformEngine.ByteArrayWrapper(value);
-        }
-    };
-
-
     Serializer<byte[] > BYTE_ARRAY_SERIALIZER = new Serializer<byte[]>() {
 
         @Override
@@ -196,29 +164,4 @@ public interface Serializer<A> {
         }
     } ;
 
-
-    class CompressSerializerWrapper<E> implements Serializer<E>, Serializable {
-        protected final Serializer<E> serializer;
-        public CompressSerializerWrapper(Serializer<E> serializer) {
-            this.serializer = serializer;
-        }
-
-        @Override
-        public void serialize(DataOutput out, E value) throws IOException {
-            //serialize to byte[]
-            DataOutput2 out2 = new DataOutput2();
-            serializer.serialize(out2, value);
-            byte[] b = out2.copyBytes();
-            CompressLZF.SERIALIZER.serialize(out, new EngineWrapper.ByteTransformEngine.ByteArrayWrapper(b));
-        }
-
-        @Override
-        public E deserialize(DataInput in, int available) throws IOException {
-            if(available==-1) throw new IllegalArgumentException("Compression Serializer does not work with collections.");
-            byte[] b = CompressLZF.SERIALIZER.deserialize(in, available).b;
-            DataInput2 in2 = new DataInput2(b);
-            return serializer.deserialize(in2, b.length);
-        }
-    }
 }
-

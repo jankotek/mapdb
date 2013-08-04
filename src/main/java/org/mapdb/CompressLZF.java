@@ -49,10 +49,7 @@
 
 package org.mapdb;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
-import java.util.Arrays;
+import java.nio.ByteBuffer;
 
 /**
  * <p>
@@ -283,75 +280,53 @@ public final class CompressLZF{
         } while (outPos < outLen);
     }
 
-
-    public static final Serializer<EngineWrapper.ByteTransformEngine.ByteArrayWrapper> SERIALIZER = new Serializer<EngineWrapper.ByteTransformEngine.ByteArrayWrapper>() {
-
-        final ThreadLocal<CompressLZF> LZF = new ThreadLocal<CompressLZF>() {
-            @Override
-            protected CompressLZF initialValue() {
-                return new CompressLZF();
-            }
-        };
-
-        @Override
-        public void serialize(DataOutput out, EngineWrapper.ByteTransformEngine.ByteArrayWrapper value) throws IOException {
-            if (value == null|| value.b.length==0){
-                //in this case do not compress data, write 0 as indicator
-                Utils.packInt(out, 0);
-                out.write(value.b);
-                return;
-            }
-
-            CompressLZF lzf = LZF.get();
-            byte[] outbuf = new byte[value.b.length + 40];
-            int len;
-            try{
-                len = lzf.compress(value.b, value.b.length, outbuf, 0);
-            }catch (ArrayIndexOutOfBoundsException e){
-                len=0; //compressed data are larger than source
-            }
-            //check if compressed data are larger then original
-            if (len == 0 || value.b.length <= len) {
-                //in this case do not compress data, write 0 as indicator
-                Utils.packInt(out, 0);
-                out.write(value.b);
+    public void expand(ByteBuffer in, int inPos, int inLen, byte[] out, int outPos, int outLen) {
+        // if ((inPos | outPos | outLen) < 0) {
+        if (inPos < 0 || outPos < 0 || outLen < 0) {
+            throw new IllegalArgumentException();
+        }
+        do {
+            int ctrl = in.get(inPos++) & 255;
+            if (ctrl < MAX_LITERAL) {
+                // literal run of length = ctrl + 1,
+                ctrl++;
+                // copy to output and move forward this many bytes
+                System.arraycopy(in, inPos, out, outPos, ctrl);
+                outPos += ctrl;
+                inPos += ctrl;
             } else {
-                Utils.packInt(out, value.b.length); //write original decompressed size
-                out.write(outbuf, 0, len);
+                // back reference
+                // the highest 3 bits are the match length
+                int len = ctrl >> 5;
+                // if the length is maxed, add the next byte to the length
+                if (len == 7) {
+                    len += in.get(inPos++) & 255;
+                }
+                // minimum back-reference is 3 bytes,
+                // so 2 was subtracted before storing size
+                len += 2;
+
+                // ctrl is now the offset for a back-reference...
+                // the logical AND operation removes the length bits
+                ctrl = -((ctrl & 0x1f) << 8) - 1;
+
+                // the next byte augments/increases the offset
+                ctrl -= in.get(inPos++) & 255;
+
+                // copy the back-reference bytes from the given
+                // location in output to current position
+                ctrl += outPos;
+                if (outPos + len >= out.length) {
+                    // reduce array bounds checking
+                    throw new ArrayIndexOutOfBoundsException();
+                }
+                for (int i = 0; i < len; i++) {
+                    out[outPos++] = out[ctrl++];
+                }
             }
-        }
-
-        @Override
-        public EngineWrapper.ByteTransformEngine.ByteArrayWrapper deserialize(DataInput in, int available) throws IOException {
-            if (available == 0) return null;
-            //get original decompressed size
-            DataInput2 in2 = (DataInput2) in;
-            int origPos = in2.pos;
-            int expendedLen = Utils.unpackInt(in);
-            byte[] inbuf = new byte[available - (in2.pos - origPos)];
-            in.readFully(inbuf);
-            if (expendedLen == 0) {
-                //special case, data are not compressed
-                return new EngineWrapper.ByteTransformEngine.ByteArrayWrapper(inbuf);
-            }
-            byte[] outbuf = new byte[expendedLen + 40];
-
-            CompressLZF lzf = LZF.get();
-            lzf.expand(inbuf, 0, inbuf.length, outbuf, 0, expendedLen);
-            outbuf = Arrays.copyOf(outbuf, expendedLen);
-
-            return new EngineWrapper.ByteTransformEngine.ByteArrayWrapper(outbuf);
-        }
-
-
-    };
-
-    /**
-     * Wraps existing serializer and compresses its input/output
-     */
-    public static <E> Serializer<E> CompressionWrapper(Serializer<E> serializer) {
-        return new Serializer.CompressSerializerWrapper<E>(serializer);
+        } while (outPos < outLen);
     }
+
 
 
 }

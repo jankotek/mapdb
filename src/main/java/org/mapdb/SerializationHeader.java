@@ -130,7 +130,7 @@ interface SerializationHeader {
 
     int  LINKEDLIST = 119;
 
-    int  SERIALIZER_COMPRESSION_WRAPPER = 120;
+//    int  SERIALIZER_COMPRESSION_WRAPPER = 120;
 
     int  VECTOR = 121;
     int  IDENTITYHASHMAP = 122;
@@ -169,7 +169,7 @@ interface SerializationHeader {
     int LONG_SERIALIZER = 150;
     int INTEGER_SERIALIZER = 151;
     int EMPTY_SERIALIZER = 152;
-    int CRC32_SERIALIZER = 153;
+//    int CRC32_SERIALIZER = 153;
     int MAPDB_STACK = 154;
     int MAPDB_QUEUE = 155;
     int MAPDB_CIRCULAR_QUEUE = 156;
