@@ -14,8 +14,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 /**
  * Append only store. Uses different file format than Direct and WAL store
  */
-
-// TODO mod operation '%' is significantly slower than bitwise and. If you use size w/ exact pow 2, bitwise and is a no-brainer for position numbers.
 public class StoreAppend extends Store{
 
     /** header at beginning of each file */
