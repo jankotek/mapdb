@@ -39,6 +39,7 @@ public class LongConcurrentLRUMap<V> extends LongMap<V> {
 
     protected final LongConcurrentHashMap<CacheEntry<V>> map;
     protected final int upperWaterMark, lowerWaterMark;
+    protected final ReentrantLock markAndSweepLock = new ReentrantLock(true);
     protected boolean isCleaning = false;  // not volatile... piggybacked on other volatile vars
 
     protected final int acceptableWaterMark;
@@ -142,6 +143,7 @@ public class LongConcurrentLRUMap<V> extends LongMap<V> {
         // oldestEntry through oldestEntry+500 are guaranteed to be
         // removed (however many there are there).
 
+        if (!markAndSweepLock.tryLock()) return;
         try {
             long oldestEntry = this.oldestEntry;
             isCleaning = true;
@@ -322,6 +324,7 @@ public class LongConcurrentLRUMap<V> extends LongMap<V> {
             this.oldestEntry = oldestEntry;
         } finally {
             isCleaning = false;  // set before markAndSweep.unlock() for visibility
+            markAndSweepLock.unlock();
         }
     }
 
@@ -485,6 +488,29 @@ public class LongConcurrentLRUMap<V> extends LongMap<V> {
             return heap[1];
         }
 
+        /**
+         * Adds an Object to a PriorityQueue in log(size) time.
+         * It returns the object (if any) that was
+         * dropped off the heap because it was full. This can be
+         * the given parameter (in case it is smaller than the
+         * full heap's minimum, and couldn't be added), or another
+         * object that was previously the smallest value in the
+         * heap and now has been replaced by a larger one, or null
+         * if the queue wasn't yet full with maxSize elements.
+         */
+        public T insertWithOverflow(T element) {
+            if (size < maxSize) {
+                add(element);
+                return null;
+            } else if (size > 0 && !lessThan(element, heap[1])) {
+                T ret = heap[1];
+                heap[1] = element;
+                updateTop();
+                return ret;
+            } else {
+                return element;
+            }
+        }
 
         /** Returns the least element of the PriorityQueue in constant time. */
         public final T top() {
