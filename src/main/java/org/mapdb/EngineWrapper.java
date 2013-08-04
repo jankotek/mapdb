@@ -168,13 +168,37 @@ public abstract class EngineWrapper implements Engine{
     /**
      * Wrapper which transform binary data. Useful for compression or encryption
      */
-    public static class ByteTransformEngine extends  EngineWrapper {
+    public static final class ByteTransformEngine extends  EngineWrapper {
 
-        //TODO compare and swap
+        /**
+         * `byte[]` wrapper which provides `equals()` and `hashCode()` methods based on content of the array
+         */
+        public final static class ByteArrayWrapper{
+            public final byte[] b;
 
-        protected Serializer<byte[]> blockSerializer;
+            public ByteArrayWrapper(byte[] b) {
+                this.b = b;
+            }
 
-        public ByteTransformEngine(Engine engine, Serializer<byte[]> blockSerializer) {
+
+            @Override
+            public boolean equals(Object o) {
+                if (this == o) return true;
+                if (o == null || getClass() != o.getClass()) return false;
+
+                ByteArrayWrapper that = (ByteArrayWrapper) o;
+
+                return Arrays.equals(b, that.b);
+            }
+
+            @Override
+            public int hashCode() {
+                return Arrays.hashCode(b);
+            }
+        }
+        protected Serializer<ByteArrayWrapper> blockSerializer;
+
+        public ByteTransformEngine(Engine engine, Serializer<ByteArrayWrapper> blockSerializer) {
             super(engine);
             this.blockSerializer = blockSerializer;
         }
@@ -184,15 +208,14 @@ public abstract class EngineWrapper implements Engine{
             //serialize to byte array, and pass it down with alternative serializer
             try {
                 Engine e = getWrappedEngine();
-                Serializer<byte[]> ser = checkClosed(blockSerializer);
+                Serializer<ByteArrayWrapper> ser = checkClosed(blockSerializer);
 
                 if(value ==null){
                     return e.put(null, ser);
                 }
 
-                DataOutput2 out = new DataOutput2();
-                serializer.serialize(out,value);
-                byte[] b = out.copyBytes();
+
+                ByteArrayWrapper b = serialize(value,serializer);
 
                 return e.put(b, ser);
             } catch (IOException e) {
@@ -204,13 +227,13 @@ public abstract class EngineWrapper implements Engine{
         public <A> A get(long recid, Serializer<A> serializer) {
             //get decompressed array
             try {
-                byte[] b = getWrappedEngine().get(recid, checkClosed(blockSerializer));
+                ByteArrayWrapper b = getWrappedEngine().get(recid, checkClosed(blockSerializer));
                 if(b==null) return null;
 
                 //deserialize
-                DataInput2 in = new DataInput2(ByteBuffer.wrap(b),0);
+                DataInput2 in = new DataInput2(ByteBuffer.wrap(b.b),0);
 
-                return serializer.deserialize(in,b.length);
+                return serializer.deserialize(in,b.b.length);
             } catch (IOException e) {
                 throw new IOError(e);
             }
@@ -220,11 +243,26 @@ public abstract class EngineWrapper implements Engine{
         public <A> void update(long recid, A value, Serializer<A> serializer) {
             //serialize to byte array, and pass it down with alternative serializer
             try {
-                DataOutput2 out = new DataOutput2();
-                serializer.serialize(out,value);
-                byte[] b = out.copyBytes();
+                ByteArrayWrapper b = serialize(value, serializer);
 
                 getWrappedEngine().update(recid, b, checkClosed(blockSerializer));
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+        }
+
+        protected <A> ByteArrayWrapper serialize(A value, Serializer<A> serializer) throws IOException {
+            DataOutput2 out = new DataOutput2();
+            serializer.serialize(out,value);
+            return new ByteArrayWrapper(out.copyBytes());
+        }
+
+        @Override
+        public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+            try {
+                ByteArrayWrapper expectedOldValue2 = serialize(expectedOldValue,serializer);
+                ByteArrayWrapper newValue2 = serialize(newValue,serializer);
+                return getWrappedEngine().compareAndSwap(recid,expectedOldValue2,newValue2,checkClosed(blockSerializer));
             } catch (IOException e) {
                 throw new IOError(e);
             }

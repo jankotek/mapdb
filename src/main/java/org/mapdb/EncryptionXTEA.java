@@ -20,7 +20,7 @@ import java.util.Arrays;
  * <p/>
  * It requires 32 byte long encryption key, so SHA256 password hash is used.
  */
-public final class EncryptionXTEA implements Serializer<byte[]>{
+public final class EncryptionXTEA implements Serializer<EngineWrapper.ByteTransformEngine.ByteArrayWrapper>{
 
     /**
      * Blocks sizes are always multiples of this number.
@@ -227,21 +227,21 @@ public final class EncryptionXTEA implements Serializer<byte[]>{
 
 
     @Override
-    public void serialize(DataOutput out, byte[] value) throws IOException {
+    public void serialize(DataOutput out, EngineWrapper.ByteTransformEngine.ByteArrayWrapper value) throws IOException {
         if(value==null) return;
-        int len = value.length;
+        int len = value.b.length;
         if(len%ALIGN!=0)
             len += ALIGN - len%ALIGN;
         //write length difference
-        out.writeByte(len-value.length);
+        out.writeByte(len-value.b.length);
         //write actual data
-        byte[] encrypted = Arrays.copyOf(value,len);
+        byte[] encrypted = Arrays.copyOf(value.b,len);
         encrypt(encrypted,0, encrypted.length);
         out.write(encrypted);
     }
 
     @Override
-    public byte[] deserialize(DataInput in, int available) throws IOException {
+    public EngineWrapper.ByteTransformEngine.ByteArrayWrapper deserialize(DataInput in, int available) throws IOException {
         if(available==0) return null;
         int cut = in.readUnsignedByte(); //length dif from 16bytes
         byte[] b = new byte[available-1];
@@ -249,6 +249,6 @@ public final class EncryptionXTEA implements Serializer<byte[]>{
         decrypt(b, 0, b.length);
         if(cut!=0)
             b = Arrays.copyOf(b, b.length-cut);
-        return b;
+        return new EngineWrapper.ByteTransformEngine.ByteArrayWrapper(b);
     }
 }

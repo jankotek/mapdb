@@ -284,7 +284,7 @@ public final class CompressLZF{
     }
 
 
-    public static final Serializer<byte[]> SERIALIZER = new Serializer<byte[]>() {
+    public static final Serializer<EngineWrapper.ByteTransformEngine.ByteArrayWrapper> SERIALIZER = new Serializer<EngineWrapper.ByteTransformEngine.ByteArrayWrapper>() {
 
         final ThreadLocal<CompressLZF> LZF = new ThreadLocal<CompressLZF>() {
             @Override
@@ -294,35 +294,35 @@ public final class CompressLZF{
         };
 
         @Override
-        public void serialize(DataOutput out, byte[] value) throws IOException {
-            if (value == null|| value.length==0){
+        public void serialize(DataOutput out, EngineWrapper.ByteTransformEngine.ByteArrayWrapper value) throws IOException {
+            if (value == null|| value.b.length==0){
                 //in this case do not compress data, write 0 as indicator
                 Utils.packInt(out, 0);
-                out.write(value);
+                out.write(value.b);
                 return;
             }
 
             CompressLZF lzf = LZF.get();
-            byte[] outbuf = new byte[value.length + 40];
+            byte[] outbuf = new byte[value.b.length + 40];
             int len;
             try{
-                len = lzf.compress(value, value.length, outbuf, 0);
+                len = lzf.compress(value.b, value.b.length, outbuf, 0);
             }catch (ArrayIndexOutOfBoundsException e){
                 len=0; //compressed data are larger than source
             }
             //check if compressed data are larger then original
-            if (len == 0 || value.length <= len) {
+            if (len == 0 || value.b.length <= len) {
                 //in this case do not compress data, write 0 as indicator
                 Utils.packInt(out, 0);
-                out.write(value);
+                out.write(value.b);
             } else {
-                Utils.packInt(out, value.length); //write original decompressed size
+                Utils.packInt(out, value.b.length); //write original decompressed size
                 out.write(outbuf, 0, len);
             }
         }
 
         @Override
-        public byte[] deserialize(DataInput in, int available) throws IOException {
+        public EngineWrapper.ByteTransformEngine.ByteArrayWrapper deserialize(DataInput in, int available) throws IOException {
             if (available == 0) return null;
             //get original decompressed size
             DataInput2 in2 = (DataInput2) in;
@@ -332,7 +332,7 @@ public final class CompressLZF{
             in.readFully(inbuf);
             if (expendedLen == 0) {
                 //special case, data are not compressed
-                return inbuf;
+                return new EngineWrapper.ByteTransformEngine.ByteArrayWrapper(inbuf);
             }
             byte[] outbuf = new byte[expendedLen + 40];
 
@@ -340,7 +340,7 @@ public final class CompressLZF{
             lzf.expand(inbuf, 0, inbuf.length, outbuf, 0, expendedLen);
             outbuf = Arrays.copyOf(outbuf, expendedLen);
 
-            return outbuf;
+            return new EngineWrapper.ByteTransformEngine.ByteArrayWrapper(outbuf);
         }
 
 

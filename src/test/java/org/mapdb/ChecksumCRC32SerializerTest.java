@@ -11,7 +11,7 @@ public class ChecksumCRC32SerializerTest {
     @Test public void testSimple() throws Exception {
 
         byte[] b = "wwefwaefw;ef;lkwef".getBytes("UTF-8");
-        assertArrayEquals(b, UtilsTest.clone(b, Serializer.CRC32_CHECKSUM));
+        assertArrayEquals(b, UtilsTest.clone(new EngineWrapper.ByteTransformEngine.ByteArrayWrapper(b), Serializer.CRC32_CHECKSUM).b);
 
     }
 
@@ -21,7 +21,7 @@ public class ChecksumCRC32SerializerTest {
         byte[] b = "wwefwaefw;ef;lkwef".getBytes("UTF-8");
 
         DataOutput2 out = new DataOutput2();
-        Serializer.CRC32_CHECKSUM.serialize(out,b);
+        Serializer.CRC32_CHECKSUM.serialize(out,new EngineWrapper.ByteTransformEngine.ByteArrayWrapper(b));
         byte[] b2 = out.copyBytes();
         assertEquals(b.length+4, b2.length);
 

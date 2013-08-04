@@ -38,7 +38,7 @@ public class CompressTest{
     @Test
     public void short_compression() throws Exception {
         byte[] b = new byte[]{1,2,3,4,5,33,3};
-        byte[] b2 = UtilsTest.clone(b, CompressLZF.SERIALIZER);
+        byte[] b2 = UtilsTest.clone(new ByteTransformEngine.ByteArrayWrapper(b), CompressLZF.SERIALIZER).b;
         assertArrayEquals(b,b2);
     }
 
@@ -48,11 +48,11 @@ public class CompressTest{
         b[4] = 5;
         b[1000] = 1;
 
-        assertArrayEquals(b, UtilsTest.clone(b, CompressLZF.SERIALIZER));
+        assertArrayEquals(b, UtilsTest.clone(new ByteTransformEngine.ByteArrayWrapper(b), CompressLZF.SERIALIZER).b);
 
         //check compressed size is actually smaller
         DataOutput2 out = new DataOutput2();
-        CompressLZF.SERIALIZER.serialize(out,b);
+        CompressLZF.SERIALIZER.serialize(out,new ByteTransformEngine.ByteArrayWrapper(b));
         assertTrue(out.pos<100);
     }
 
