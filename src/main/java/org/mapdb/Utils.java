@@ -337,7 +337,7 @@ final public class Utils {
 
 
     public static void assertNoLocks(LongConcurrentHashMap<Thread> locks){
-        //if(CC.PARANOID) //TODO restore to paranoid
+        if(CC.PARANOID)
         {
             LongMap.LongMapIterator<Thread> i = locks.longMapIterator();
             while(i.moveToNext()){
