@@ -37,7 +37,6 @@ public final class DataInput2 extends InputStream implements DataInput {
     }
 
     public DataInput2(byte[] b) {
-        //TODO create implementation which uses raw byte[] and replace all refs
         this(ByteBuffer.wrap(b),0);
     }
 
@@ -48,11 +47,10 @@ public final class DataInput2 extends InputStream implements DataInput {
 
     @Override
     public void readFully(byte[] b, int off, int len) throws IOException {
-        //naive, but only thread safe way
-        //TODO investigate
-        for(int i=off;i<off+len;i++){
-            b[i] = readByte();
-        }
+        ByteBuffer clone = buf.duplicate();
+        clone.position(pos);
+        pos+=len;
+        clone.get(b,off,len);
     }
 
     @Override
@@ -129,12 +127,12 @@ public final class DataInput2 extends InputStream implements DataInput {
 
     @Override
     public String readUTF() throws IOException {
-        final int size = Utils.unpackInt((DataInput)this);
+        final int size = Utils.unpackInt(this);
         return SerializerBase.deserializeString(this, size);
     }
 
     @Override
     public int read() throws IOException {
-        return readUnsignedByte(); //TODO EOF?
+        return readUnsignedByte();
     }
 }
