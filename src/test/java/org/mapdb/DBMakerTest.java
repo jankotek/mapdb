@@ -36,7 +36,10 @@ public class DBMakerTest{
 
     @Test
     public void testNewFileDB() throws Exception {
-        //TODO test with file
+        File f = Utils.tempDbFile();
+        DB db = DBMaker.newFileDB(f)
+                .transactionDisable().make();
+        verifyDB(db);
     }
 
     @Test
