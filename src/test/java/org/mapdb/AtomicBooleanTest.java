@@ -10,7 +10,7 @@ import junit.framework.TestCase;
 
 public class AtomicBooleanTest extends TestCase{
 
-    DB db = DBMaker.newMemoryDB().writeAheadLogDisable().make();
+    DB db = DBMaker.newMemoryDB().transactionDisable().make();
     Atomic.Boolean ai = db.createAtomicBoolean("test", true);
 
     /**

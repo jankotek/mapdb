@@ -29,7 +29,7 @@ public class DBMakerTest{
     public void testNewMemoryDB() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
-                .writeAheadLogDisable()
+                .transactionDisable()
                 .make();
         verifyDB(db);
     }
@@ -49,7 +49,7 @@ public class DBMakerTest{
     public void testDisableCache() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
-                .writeAheadLogDisable()
+                .transactionDisable()
                 .cacheDisable()
                 .make();
         verifyDB(db);
@@ -63,7 +63,7 @@ public class DBMakerTest{
     public void testDisableAsyncWrite() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
-                .writeAheadLogDisable()
+                .transactionDisable()
                 .asyncWriteDisable()
                 .make();
         verifyDB(db);
@@ -76,7 +76,7 @@ public class DBMakerTest{
     public void testMake() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
-                .writeAheadLogDisable()
+                .transactionDisable()
                 .make();
         verifyDB(db);
         //check default values are set
@@ -94,7 +94,7 @@ public class DBMakerTest{
     public void testCacheHardRefEnable() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
-                .writeAheadLogDisable()
+                .transactionDisable()
                 .cacheHardRefEnable()
                 .snapshotDisable()
                 .make();
@@ -106,7 +106,7 @@ public class DBMakerTest{
     public void testCacheWeakRefEnable() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
-                .writeAheadLogDisable()
+                .transactionDisable()
                 .snapshotDisable()
                 .cacheWeakRefEnable()
                 .make();
@@ -120,7 +120,7 @@ public class DBMakerTest{
     public void testCacheSoftRefEnable() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
-                .writeAheadLogDisable()
+                .transactionDisable()
                 .cacheSoftRefEnable()
                 .snapshotDisable()
                 .make();
@@ -133,7 +133,7 @@ public class DBMakerTest{
     public void testCacheLRUEnable() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
-                .writeAheadLogDisable()
+                .transactionDisable()
                 .snapshotDisable()
                 .cacheLRUEnable()
                 .make();
@@ -147,7 +147,7 @@ public class DBMakerTest{
         DB db = DBMaker
                 .newMemoryDB()
                 .snapshotDisable()
-                .writeAheadLogDisable()
+                .transactionDisable()
                 .cacheSize(1000)
                 .make();
         verifyDB(db);

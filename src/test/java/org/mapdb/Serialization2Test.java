@@ -15,7 +15,7 @@ public class Serialization2Test extends TestFile {
 
 
     @Test public void test2() throws IOException {
-        DB db = DBMaker.newFileDB(index).cacheDisable().asyncWriteDisable().writeAheadLogDisable().make();
+        DB db = DBMaker.newFileDB(index).cacheDisable().asyncWriteDisable().transactionDisable().make();
 
         Serialization2Bean processView = new Serialization2Bean();
 
@@ -82,7 +82,7 @@ public class Serialization2Test extends TestFile {
         File f = Utils.tempDbFile();
 
         DB db = DBMaker.newFileDB(f)
-                .writeAheadLogDisable()
+                .transactionDisable()
                 .asyncWriteDisable()
                 .cacheDisable()
                 .checksumEnable()
@@ -96,7 +96,7 @@ public class Serialization2Test extends TestFile {
         db.close();
 
         db = DBMaker.newFileDB(f)
-                .writeAheadLogDisable()
+                .transactionDisable()
                 .asyncWriteDisable()
                 .cacheDisable()
                 .checksumEnable()

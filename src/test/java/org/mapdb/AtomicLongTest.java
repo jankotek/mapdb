@@ -10,7 +10,7 @@ import junit.framework.TestCase;
 
 public class AtomicLongTest extends TestCase {
 
-    DB db = DBMaker.newMemoryDB().writeAheadLogDisable().make();
+    DB db = DBMaker.newMemoryDB().transactionDisable().make();
     Atomic.Long ai = db.createAtomicLong("test", 1);
 
     /**

@@ -28,7 +28,7 @@ public class Huge_Insert {
         DB db = DBMaker
                 .newFileDB(dbFile)
                 /** disabling Write Ahead Log makes import much faster */
-                .writeAheadLogDisable()
+                .transactionDisable()
                 .make();
 
 

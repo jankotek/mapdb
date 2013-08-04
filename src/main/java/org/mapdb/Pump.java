@@ -198,7 +198,7 @@ public class Pump {
      * There are technical reason for this requirement.
      * To sort unordered data use {@link Pump#sort(java.util.Iterator, int, java.util.Comparator, Serializer)}
      *
-     * This method does not call commit. You should disable Write Ahead Log when this method is used {@link org.mapdb.DBMaker#writeAheadLogDisable()}
+     * This method does not call commit. You should disable Write Ahead Log when this method is used {@link org.mapdb.DBMaker#transactionDisable()}
      *
      * @param source iterator over source data, must be reverse sorted
      * @param db database where Map will be created
@@ -221,7 +221,7 @@ public class Pump {
      * There are technical reason for this requirement.
      * To sort unordered data use {@link Pump#sort(java.util.Iterator, int, java.util.Comparator, Serializer)}
      *
-     * This method does not call commit. You should disable Write Ahead Log when this method is used {@link org.mapdb.DBMaker#writeAheadLogDisable()}
+     * This method does not call commit. You should disable Write Ahead Log when this method is used {@link org.mapdb.DBMaker#transactionDisable()}
      *
      * @param source iterator over source data, must be reverse sorted
      * @param db database where Map will be created
@@ -258,7 +258,7 @@ public class Pump {
      * There are technical reason for this requirement.
      * To sort unordered data use {@link Pump#sort(java.util.Iterator, int, java.util.Comparator, Serializer)}
      *
-     * This method does not call commit. You should disable Write Ahead Log when this method is used {@link org.mapdb.DBMaker#writeAheadLogDisable()}
+     * This method does not call commit. You should disable Write Ahead Log when this method is used {@link org.mapdb.DBMaker#transactionDisable()}
      *
      * @param source iterator over source of data, must be reverse sorted
      * @param db database where Map will be created
@@ -282,7 +282,7 @@ public class Pump {
      * There are technical reason for this requirement.
      * To sort unordered data use {@link Pump#sort(java.util.Iterator, int, java.util.Comparator, Serializer)}
      *
-     * This method does not call commit. You should disable Write Ahead Log when this method is used {@link org.mapdb.DBMaker#writeAheadLogDisable()}
+     * This method does not call commit. You should disable Write Ahead Log when this method is used {@link org.mapdb.DBMaker#transactionDisable()}
      *
      * @param source iterator over source of data, must be reverse sorted
      * @param db database where Map will be created
@@ -321,7 +321,7 @@ public class Pump {
      * There are technical reason for this requirement.
      * To sort unordered data use {@link Pump#sort(java.util.Iterator, int, java.util.Comparator, Serializer)}
      *
-     * This method does not call commit. You should disable Write Ahead Log when this method is used {@link org.mapdb.DBMaker#writeAheadLogDisable()}
+     * This method does not call commit. You should disable Write Ahead Log when this method is used {@link org.mapdb.DBMaker#transactionDisable()}
      *
      * @param source iterator over source of data, must be reverse sorted
      * @param db database where Map will be created
@@ -342,7 +342,7 @@ public class Pump {
      * There are technical reason for this requirement.
      * To sort unordered data use {@link Pump#sort(java.util.Iterator, int, java.util.Comparator, Serializer)}
      *
-     * This method does not call commit. You should disable Write Ahead Log when this method is used {@link org.mapdb.DBMaker#writeAheadLogDisable()}
+     * This method does not call commit. You should disable Write Ahead Log when this method is used {@link org.mapdb.DBMaker#transactionDisable()}
      *
      * @param source iterator over source of data, must be reverse sorted
      * @param db database where Map will be created
@@ -372,7 +372,7 @@ public class Pump {
      * There are technical reason for this requirement.
      * To sort unordered data use {@link Pump#sort(java.util.Iterator, int, java.util.Comparator, Serializer)}
      *
-     * This method does not call commit. You should disable Write Ahead Log when this method is used {@link org.mapdb.DBMaker#writeAheadLogDisable()}
+     * This method does not call commit. You should disable Write Ahead Log when this method is used {@link org.mapdb.DBMaker#transactionDisable()}
      *
      * @param source iterator over source data, must be reverse sorted
      * @param db database where Map or Set will be created

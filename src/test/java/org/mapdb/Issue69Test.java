@@ -21,7 +21,7 @@ public class Issue69Test {
 	@Before
 	public void setUp() {
 		db = DBMaker.newTempFileDB()
-				.writeAheadLogDisable()
+				.transactionDisable()
 				.checksumEnable()
                 .asyncWriteDisable()
 				.deleteFilesAfterClose()

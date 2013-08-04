@@ -18,7 +18,7 @@ public class Cache {
         DB db = DBMaker
                 .newDirectMemoryDB()
                 .sizeLimit(2) //limit size to 2GB
-                .writeAheadLogDisable()
+                .transactionDisable()
                 .make();
 
         //create map, entries are expired if not accessed (get,iterate) in 10 seconds or 30 seconds after 'put'

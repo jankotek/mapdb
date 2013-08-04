@@ -281,7 +281,7 @@ public class BTreeMapTest{
 //        every next call of getLastKey() leads to the exception "NoSuchElement". Not
 //        only the first one...
 
-        DB db = DBMaker.newTempFileDB().writeAheadLogDisable().make();
+        DB db = DBMaker.newTempFileDB().transactionDisable().make();
         NavigableMap m = db.getTreeMap("name");
         try{
             m.lastKey();

@@ -503,7 +503,7 @@ public class HTreeMap2Test {
         DB db =
                 DBMaker.newMemoryDB()
                 .sizeLimit(1)
-                .writeAheadLogDisable()
+                .transactionDisable()
                 .asyncWriteDisable()
                 .snapshotDisable()
                 .cacheDisable()
@@ -525,7 +525,7 @@ public class HTreeMap2Test {
     public void cache_load_size_expire(){
         DB db = DBMaker.newMemoryDB()
                 .sizeLimit(1)
-                .writeAheadLogDisable()
+                .transactionDisable()
                 .asyncWriteDisable()
                 .snapshotDisable()
                 .make();

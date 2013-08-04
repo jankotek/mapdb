@@ -29,7 +29,7 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
     protected <K,V> BTreeMap<K,V> newBTreeMap(Map map) {
         BTreeMap ret = DBMaker.newMemoryDB()
                 .cacheDisable()
-                .asyncWriteDisable().writeAheadLogDisable().make()
+                .asyncWriteDisable().transactionDisable().make()
                 .createTreeMap("test").nodeSize(6).make();
         ret.putAll(map);
         return ret;
@@ -38,14 +38,14 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
     protected <K,V> BTreeMap<K,V> newBTreeMap(Comparator comp) {
         return DBMaker.newMemoryDB()
                 .cacheDisable()
-                .asyncWriteDisable().writeAheadLogDisable().make()
+                .asyncWriteDisable().transactionDisable().make()
                 .createTreeMap("test").nodeSize(6).comparator(comp).make();
     }
 
     protected static <K,V> BTreeMap<K,V> newBTreeMap() {
         return DBMaker.newMemoryDB()
                 .cacheDisable()
-                .asyncWriteDisable().writeAheadLogDisable().make()
+                .asyncWriteDisable().transactionDisable().make()
                 .getTreeMap("test");
     }
 

@@ -3,9 +3,6 @@ package org.mapdb;
 
 import org.junit.Test;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -21,7 +18,7 @@ public class Issue37Test {
 
     @Test public void test3(){
 
-        DB db = DBMaker.newDirectMemoryDB().writeAheadLogDisable().asyncFlushDelay(100).make();
+        DB db = DBMaker.newDirectMemoryDB().transactionDisable().asyncFlushDelay(100).make();
         ConcurrentMap<Long, Long> orders = db.createHashMap("order").make();
         for(int i = 0; i < 10000; i++) {
             orders.put((long)i, (long)i);

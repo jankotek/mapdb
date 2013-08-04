@@ -46,7 +46,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
     /** file to open, if null opens in memory store */
     protected File _file;
 
-    protected boolean _writeAheadLogEnabled = true;
+    protected boolean _transactionEnabled = true;
 
     protected boolean _asyncWriteEnabled = true;
     protected int _asyncFlushDelay = CC.ASYNC_WRITE_FLUSH_DELAY;
@@ -142,7 +142,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         return newTempFileDB()
                 .deleteFilesAfterClose()
                 .closeOnJvmShutdown()
-                .writeAheadLogDisable()
+                .transactionDisable()
                 .make()
                 .getTreeMap("temp");
     }
@@ -157,7 +157,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         return newTempFileDB()
                 .deleteFilesAfterClose()
                 .closeOnJvmShutdown()
-                .writeAheadLogDisable()
+                .transactionDisable()
                 .make()
                 .getHashMap("temp");
     }
@@ -172,7 +172,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         return newTempFileDB()
                 .deleteFilesAfterClose()
                 .closeOnJvmShutdown()
-                .writeAheadLogDisable()
+                .transactionDisable()
                 .make()
                 .getTreeSet("temp");
     }
@@ -187,7 +187,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         return newTempFileDB()
                 .deleteFilesAfterClose()
                 .closeOnJvmShutdown()
-                .writeAheadLogDisable()
+                .transactionDisable()
                 .make()
                 .getHashSet("temp");
     }
@@ -235,11 +235,31 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      *
      *
      * @return this builder
+     * @deprecated use {@link transactionDisable()} instead.
      */
     public DBMakerT writeAheadLogDisable(){
-        this._writeAheadLogEnabled = false;
+        this._transactionEnabled = false;
         return getThis();
     }
+
+    /**
+     * Transaction journal is enabled by default
+     * You must call <b>DB.commit()</b> to save your changes.
+     * It is possible to disable transaction journal for better write performance
+     * In this case all integrity checks are sacrificed for faster speed.
+     * <p/>
+     * If transaction journal is disabled, all changes are written DIRECTLY into store.
+     * You must call DB.close() method before exit,
+     * otherwise your store <b>WILL BE CORRUPTED</b>
+     *
+     *
+     * @return this builder
+     */
+    public DBMakerT transactionDisable(){
+        this._transactionEnabled = false;
+        return getThis();
+    }
+
 
     /**
      * Instance cache is enabled by default.
@@ -641,7 +661,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         if(!_appendStorage){
             Volume.Factory folFac = extendStoreVolumeFactory();
 
-            engine = _writeAheadLogEnabled ?
+            engine = _transactionEnabled ?
                     extendStoreWAL(folFac) :
                     extendStoreDirect(folFac);
         }else{
@@ -803,7 +823,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
 
     protected StoreAppend extendStoreAppend() {
-        return new StoreAppend(_file, _rafMode>0, _readOnly, !_writeAheadLogEnabled, _deleteFilesAfterClose, _syncOnCommitDisabled);
+        return new StoreAppend(_file, _rafMode>0, _readOnly, !_transactionEnabled, _deleteFilesAfterClose, _syncOnCommitDisabled);
     }
 
     protected Store extendStoreDirect(Volume.Factory folFac) {
