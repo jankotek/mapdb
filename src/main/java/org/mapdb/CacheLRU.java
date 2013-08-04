@@ -106,12 +106,8 @@ public class CacheLRU extends EngineWrapper {
     }
 
 
-    @SuppressWarnings("rawtypes")
 	@Override
     public void close() {
-        Object cache2 = cache;
-        if(cache2 instanceof LongConcurrentLRUMap)
-            ((LongConcurrentLRUMap)cache2).destroy();
         cache = null;
         super.close();
     }
