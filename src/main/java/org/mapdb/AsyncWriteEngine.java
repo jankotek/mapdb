@@ -16,6 +16,7 @@
 
 package org.mapdb;
 
+import java.lang.ref.WeakReference;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -124,6 +125,42 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     }
 
 
+    protected static final class WriterRunnable implements Runnable{
+
+        protected final WeakReference<AsyncWriteEngine> engineRef;
+        protected final long asyncFlushDelay;
+
+        public WriterRunnable(AsyncWriteEngine engine) {
+            this.engineRef = new WeakReference<AsyncWriteEngine>(engine);
+            this.asyncFlushDelay = engine.asyncFlushDelay;
+        }
+
+        @Override public void run() {
+            try{
+                //run in loop
+                for(;;){
+
+                    //if conditions are right, slow down writes a bit
+                    if(asyncFlushDelay!=0 ){
+                        LockSupport.parkNanos(1000L * 1000L * asyncFlushDelay);
+                    }
+
+                    AsyncWriteEngine engine = engineRef.get();
+                    if(engine==null) return; //stop thread if this engine has been GCed
+                    if(engine.threadFailedException !=null) return; //other thread has failed, no reason to continue
+
+                    if(!engine.runWriter()) return;
+                }
+            } catch (Throwable e) {
+                AsyncWriteEngine engine = engineRef.get();
+                if(engine!=null) engine.threadFailedException = e;
+            }finally {
+                AsyncWriteEngine engine = engineRef.get();
+                if(engine!=null) engine.activeThreadsCount.countDown();
+            }
+        }
+    }
+
     /**
      * Starts background threads.
      * You may override this if you wish to start thread different way
@@ -131,13 +168,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
      * @param executor optional executor to run tasks, if null deamon threads will be created
      */
     protected void startThreads(Executor executor) {
-        //TODO background threads should exit, when `AsyncWriteEngine` was garbage-collected
-
-        final Runnable writerRun = new Runnable(){
-            @Override public void run() {
-                runWriter();
-            }
-        };
+        final Runnable writerRun = new WriterRunnable(this);
 
         if(executor!=null){
             executor.execute(writerRun);
@@ -151,71 +182,60 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
 
 
     /** runs on background thread. Takes records from Write Queue, serializes and writes them.*/
-    protected void runWriter() {
-        try{
-            for(;;){
-                if(threadFailedException !=null) return; //other thread has failed, no reason to continue
+    protected boolean runWriter() throws InterruptedException {
 
-                //if conditions are right, slow down writes a bit
-                if(asyncFlushDelay!=0 ){
-                    LockSupport.parkNanos(1000L * 1000L * asyncFlushDelay);
+
+        final CountDownLatch latch = action.getAndSet(null);
+
+        do{
+            LongMap.LongMapIterator<Fun.Tuple2<Object, Serializer>> iter = writeCache.longMapIterator();
+            while(iter.moveToNext()){
+                //usual write
+                final long recid = iter.key();
+                Fun.Tuple2<Object, Serializer> item = iter.value();
+                if(item == null) continue; //item was already written
+                if(item.a==TOMBSTONE){
+                    //item was not updated, but deleted
+                    AsyncWriteEngine.super.delete(recid, item.b);
+                }else{
+                    //call update as usual
+                    AsyncWriteEngine.super.update(recid, item.a, item.b);
                 }
-
-                final CountDownLatch latch = action.getAndSet(null);
-
-                do{
-                    LongMap.LongMapIterator<Fun.Tuple2<Object, Serializer>> iter = writeCache.longMapIterator();
-                    while(iter.moveToNext()){
-                        //usual write
-                        final long recid = iter.key();
-                        Fun.Tuple2<Object, Serializer> item = iter.value();
-                        if(item == null) continue; //item was already written
-                        if(item.a==TOMBSTONE){
-                            //item was not updated, but deleted
-                            AsyncWriteEngine.super.delete(recid, item.b);
-                        }else{
-                            //call update as usual
-                            AsyncWriteEngine.super.update(recid, item.a, item.b);
-                        }
-                        //record has been written to underlying Engine, so remove it from cache with CAS
-                        writeCache.remove(recid, item);
-                    }
-                }while(latch!=null && !writeCache.isEmpty());
-
-                runWritePrealloc(); //TODO call it more frequently
-
-
-
-                //operations such as commit,close, compact or close needs to be executed in Writer Thread
-                //for this case CountDownLatch is used, it also signals when operations has been completed
-                //CountDownLatch is used as special case to signalise special operation
-                if(latch!=null){
-                    if(!writeCache.isEmpty()) throw new InternalError();
-
-                    final long count = latch.getCount();
-                    if(count == 0){ //close operation
-                        return;
-                    }else if(count == 1){ //commit operation
-                        AsyncWriteEngine.super.commit();
-                        latch.countDown();
-                    }else if(count==2){ //rollback operation
-                        AsyncWriteEngine.super.rollback();
-                        newRecids.clear();
-                        latch.countDown();
-                        latch.countDown();
-                    }else if(count==3){ //compact operation
-                        AsyncWriteEngine.super.compact();
-                        latch.countDown();
-                        latch.countDown();
-                        latch.countDown();
-                    }else{throw new InternalError();}
-                }
+                //record has been written to underlying Engine, so remove it from cache with CAS
+                writeCache.remove(recid, item);
             }
-        } catch (Throwable e) {
-            threadFailedException = e;
-        }finally {
-            activeThreadsCount.countDown();
+        }while(latch!=null && !writeCache.isEmpty());
+
+        runWritePrealloc(); //TODO call it more frequently
+
+
+        //operations such as commit,close, compact or close needs to be executed in Writer Thread
+        //for this case CountDownLatch is used, it also signals when operations has been completed
+        //CountDownLatch is used as special case to signalise special operation
+        if(latch!=null){
+            if(!writeCache.isEmpty()) throw new InternalError();
+
+            final long count = latch.getCount();
+            if(count == 0){ //close operation
+                return false;
+            }else if(count == 1){ //commit operation
+                AsyncWriteEngine.super.commit();
+                latch.countDown();
+            }else if(count==2){ //rollback operation
+                AsyncWriteEngine.super.rollback();
+                newRecids.clear();
+                latch.countDown();
+                latch.countDown();
+            }else if(count==3){ //compact operation
+                AsyncWriteEngine.super.compact();
+                latch.countDown();
+                latch.countDown();
+                latch.countDown();
+            }else{throw new InternalError();}
         }
+        return true;
+
+
     }
 
     protected void runWritePrealloc() throws InterruptedException {
