@@ -53,6 +53,15 @@ public final class Fun {
         return new Tuple4<A, B, C, D>(a,b,c,d);
     }
 
+    public static <K> Function1<K,K> noTransformExtractor() {
+        return new Function1<K, K>() {
+            @Override
+            public K run(K k) {
+                return k;
+            }
+        };
+    }
+
 
     static public final class Tuple2<A,B> implements Comparable, Serializable {
 		

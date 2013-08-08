@@ -123,7 +123,7 @@ public class BTreeSet2Test extends JSR166TestCase {
     public void testConstructor7() {
         MyReverseComparator cmp = new MyReverseComparator();
         NavigableSet q =
-                DBMaker.newMemoryDB().make().createTreeSet("test",32,false,null,cmp);
+                DBMaker.newMemoryDB().make().createTreeSet("test").comparator(cmp).make();
         assertEquals(cmp, q.comparator());
         Integer[] ints = new Integer[SIZE];
         for (int i = 0; i < SIZE; ++i)

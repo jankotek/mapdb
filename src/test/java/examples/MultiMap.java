@@ -21,7 +21,9 @@ public class MultiMap {
         NavigableSet<Fun.Tuple2<String,Long>> multiMap = db.getTreeSet("test");
 
         //optionally you can use set with Delta Encoding. This may save lot of space
-        multiMap = db.createTreeSet("test2",32,false, BTreeKeySerializer.TUPLE2, null);
+        multiMap = db.createTreeSet("test2")
+                .serializer(BTreeKeySerializer.TUPLE2)
+                .make();
 
         multiMap.add(Fun.t2("aa",1L));
         multiMap.add(Fun.t2("aa",2L));

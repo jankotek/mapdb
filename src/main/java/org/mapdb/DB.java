@@ -382,6 +382,11 @@ public class DB {
         protected Serializer valueSerializer;
         protected Comparator comparator;
 
+        protected Iterator pumpSource;
+        protected Fun.Function1 pumpKeyExtractor;
+        protected Fun.Function1 pumpValueExtractor;
+        protected int pumpPresortBatchSize = -1;
+
 
         /** nodeSize maximal size of node, larger node causes overflow and creation of new BTree node. Use large number for small keys, use small number for large keys.*/
         public BTreeMapMaker nodeSize(int nodeSize){
@@ -419,6 +424,26 @@ public class DB {
             return this;
         }
 
+        public <K,V> BTreeMapMaker pumpSource(Iterator<K> keysSource,  Fun.Function1<V,K> valueExtractor){
+            this.pumpSource = keysSource;
+            this.pumpKeyExtractor = Fun.noTransformExtractor();
+            this.pumpValueExtractor = valueExtractor;
+            return this;
+        }
+
+
+        public <K,V> BTreeMapMaker pumpSource(Iterator<Fun.Tuple2<K,V>> entriesSource){
+            this.pumpSource = entriesSource;
+            this.pumpKeyExtractor = Fun.keyExtractor();
+            this.pumpValueExtractor = Fun.valueExtractor();
+            return this;
+        }
+
+        public BTreeMapMaker pumpPresort(int batchSize){
+            this.pumpPresortBatchSize = batchSize;
+            return this;
+        }
+
 
         public <K,V> BTreeMap<K,V> make(){
             return DB.this.createTreeMap(BTreeMapMaker.this);
@@ -437,6 +462,78 @@ public class DB {
         }
 
     }
+
+    public class BTreeSetMaker{
+        protected final String name;
+
+        public BTreeSetMaker(String name) {
+            this.name = name;
+        }
+
+        protected int nodeSize = 32;
+        protected boolean keepCounter = false;
+        protected BTreeKeySerializer serializer;
+        protected Comparator comparator;
+
+        protected Iterator pumpSource;
+        protected int pumpPresortBatchSize = -1;
+
+
+        /** nodeSize maximal size of node, larger node causes overflow and creation of new BTree node. Use large number for small keys, use small number for large keys.*/
+        public BTreeSetMaker nodeSize(int nodeSize){
+            this.nodeSize = nodeSize;
+            return this;
+        }
+
+
+        /** keepCounter if counter should be kept, without counter updates are faster, but entire collection needs to be traversed to count items.*/
+        public BTreeSetMaker keepCounter(boolean keepCounter){
+            this.keepCounter = keepCounter;
+            return this;
+        }
+
+        /** keySerializer used to convert keys into/from binary form. */
+        public BTreeSetMaker serializer(BTreeKeySerializer serializer){
+            this.serializer = serializer;
+            return this;
+        }
+
+        /** comparator used to sort keys.  */
+        public BTreeSetMaker comparator(Comparator comparator){
+            this.comparator = comparator;
+            return this;
+        }
+
+        public <K> BTreeSetMaker pumpSource(Iterator<K> source){
+            this.pumpSource = source;
+            return this;
+        }
+
+
+        public BTreeSetMaker pumpPresort(int batchSize){
+            this.pumpPresortBatchSize = batchSize;
+            return this;
+        }
+
+
+        public <K> NavigableSet<K> make(){
+            return DB.this.createTreeSet(BTreeSetMaker.this);
+        }
+
+        /** creates set optimized for using `String` */
+        public NavigableSet<String> makeStringSet() {
+            serializer = BTreeKeySerializer.STRING;
+            return make();
+        }
+
+        /** creates set optimized for using zero or positive `Long` */
+        public NavigableSet<Long> makeLongSet() {
+            serializer = BTreeKeySerializer.ZERO_OR_POSITIVE_LONG;
+            return make();
+        }
+
+    }
+
 
     /**
      * Opens existing or creates new B-linked-tree Map.
@@ -490,14 +587,25 @@ public class DB {
         String name = m.name;
         checkNameNotExists(name);
         m.keySerializer = fillNulls(m.keySerializer);
-        m.keySerializer = (BTreeKeySerializer)catPut(name+".keySerializer",m.keySerializer,new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer()));
+        m.keySerializer = catPut(name+".keySerializer",m.keySerializer,new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer()));
         m.valueSerializer = catPut(name+".valueSerializer",m.valueSerializer,getDefaultSerializer());
-        m.comparator = (Comparator)catPut(name+".comparator",m.comparator,Utils.COMPARABLE_COMPARATOR);
+        m.comparator = catPut(name+".comparator",m.comparator,Utils.COMPARABLE_COMPARATOR);
+
+        long counterRecid = !m.keepCounter?0L:engine.put(0L, Serializer.LONG);
+
+        long rootRecidRef;
+        if(m.pumpSource==null){
+            rootRecidRef = BTreeMap.createRootRef(engine,m.keySerializer,m.valueSerializer,m.comparator);
+        }else{
+            rootRecidRef = Pump.buildTreeMap(m.pumpSource,engine,m.pumpKeyExtractor,m.pumpValueExtractor,m.nodeSize,
+                    m.valuesStoredOutsideNodes,counterRecid,m.keySerializer,m.valueSerializer,m.comparator);
+        }
+
         BTreeMap<K,V> ret = new BTreeMap<K,V>(engine,
-                catPut(name+".rootRecidRef", BTreeMap.createRootRef(engine,m.keySerializer,m.valueSerializer,m.comparator)),
+                catPut(name+".rootRecidRef", rootRecidRef),
                 catPut(name+".maxNodeSize",m.nodeSize),
                 catPut(name+".valuesOutsideNodes",m.valuesStoredOutsideNodes),
-                catPut(name+".counterRecid",!m.keepCounter?0L:engine.put(0L, Serializer.LONG)),
+                catPut(name+".counterRecid",counterRecid),
                 m.keySerializer,
                 m.valueSerializer,
                 m.comparator
@@ -566,7 +674,7 @@ public class DB {
         String type = catGet(name + ".type", null);
         if(type==null){
             checkShouldCreate(name);
-            return createTreeSet(name,32,false,null, null);
+            return createTreeSet(name).make();
 
         }
         checkType(type, "TreeSet");
@@ -589,30 +697,44 @@ public class DB {
     /**
      * Creates new TreeSet.
      * @param name of set to create
-     * @param nodeSize maximal size of node, larger node causes overflow and creation of new BTree node. Use large number for small keys, use small number for large keys.
-     * @param keepCounter if counter should be kept, without counter updates are faster, but entire collection needs to be traversed to count items.
-     * @param serializer used to convert keys into/from binary form. Use null for default value.
-     * @param comparator used to sort keys. Use null for default value. TODO delta packing
-     * @param <K>
      * @throws IllegalArgumentException if name is already used
-     * @return
+     * @return maker used to construct set
      */
-    synchronized public <K> NavigableSet<K> createTreeSet(String name,int nodeSize, boolean keepCounter, BTreeKeySerializer<K> serializer, Comparator<K> comparator){
-        checkNameNotExists(name);
-        serializer = fillNulls(serializer);
-        serializer = (BTreeKeySerializer)catPut(name+".keySerializer",serializer,new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer()));
-        comparator = (Comparator)catPut(name+".comparator",comparator,Utils.COMPARABLE_COMPARATOR);
+    synchronized public BTreeSetMaker createTreeSet(String name){
+         return new BTreeSetMaker(name);
+    }
+
+    synchronized public <K> NavigableSet<K> createTreeSet(BTreeSetMaker m){
+        checkNameNotExists(m.name);
+        m.serializer = fillNulls(m.serializer);
+        m.serializer = catPut(m.name+".keySerializer",m.serializer,new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer()));
+        m.comparator = catPut(m.name+".comparator",m.comparator,Utils.COMPARABLE_COMPARATOR);
+
+        if(m.pumpPresortBatchSize!=-1){
+            m.pumpSource = Pump.sort(m.pumpSource,m.pumpPresortBatchSize,Collections.reverseOrder(m.comparator),getDefaultSerializer());
+        }
+
+        long counterRecid = !m.keepCounter?0L:engine.put(0L, Serializer.LONG);
+        long rootRecidRef;
+
+        if(m.pumpSource==null){
+            rootRecidRef = BTreeMap.createRootRef(engine,m.serializer,null,m.comparator);
+        }else{
+            rootRecidRef = Pump.buildTreeMap(m.pumpSource,engine,Fun.noTransformExtractor(),null,m.nodeSize,
+                    false,counterRecid,m.serializer,null,m.comparator);
+        }
+
         NavigableSet<K> ret = new BTreeMap<K,Object>(engine,
-                catPut(name+".rootRecidRef", BTreeMap.createRootRef(engine,serializer, null,comparator)),
-                catPut(name+".maxNodeSize",nodeSize),
+                catPut(m.name+".rootRecidRef", rootRecidRef),
+                catPut(m.name+".maxNodeSize",m.nodeSize),
                 false,
-                catPut(name+".counterRecid",!keepCounter?0L:engine.put(0L, Serializer.LONG)),
-                serializer,
+                catPut(m.name+".counterRecid",counterRecid),
+                m.serializer,
                 null,
-                comparator
+                m.comparator
         ).keySet();
-        catalog.put(name + ".type", "TreeSet");
-        collections.put(name, new WeakReference<Object>(ret));
+        catalog.put(m.name + ".type", "TreeSet");
+        collections.put(m.name, new WeakReference<Object>(ret));
         return ret;
     }
 

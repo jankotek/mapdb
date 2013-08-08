@@ -86,14 +86,14 @@ public class Huge_Insert {
         };
 
         /**
-         * Create BTreeMap
+         * Create BTreeMap and fill it with data
          */
-        Pump.buildTreeMap(source,db,"map",valueExtractor,32, false,false,keySerializer, null,null);
+        Map<String,Integer> map = db.createTreeMap("map")
+                .pumpSource(source,valueExtractor)
+                //.pumpPresort(100000) // for presorting data we could also use this method
+                .keySerializer(keySerializer)
+                .make();
 
-
-
-        /** after map has been created it can be retrieve as usual*/
-        Map<String,Integer> map = db.getTreeMap("map");
 
         System.out.println("Finished; total time: "+(System.currentTimeMillis()-time)/1000+"s; there are "+map.size()+" items in map");
         db.close();

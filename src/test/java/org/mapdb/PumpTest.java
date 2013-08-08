@@ -118,9 +118,10 @@ public class PumpTest {
         Engine e = new StoreHeap();
         DB db = new DB(e);
 
-        Pump.buildTreeSet(list.iterator(), db, "test",8, false, null, null);
-
-        Set s = db.getTreeSet("test");
+        Set s = db.createTreeSet("test")
+                .nodeSize(8)
+                .pumpSource(list.iterator())
+                .make();
 
         Iterator iter =s.iterator();
 
@@ -144,17 +145,19 @@ public class PumpTest {
         Engine e = new StoreHeap();
         DB db = new DB(e);
 
-        Pump.buildTreeMap(list.iterator(), db, "test", new Fun.Function1<Object, Integer>() {
+        Fun.Function1<Object, Integer> valueExtractor = new Fun.Function1<Object, Integer>() {
             @Override
             public Object run(Integer integer) {
                 return integer*100;
             }
-        });
-//        BTreeMap m = db.createTreeMap("test2",6,false,false,null,null,null);
-//        for(Integer i:list) m.put(i,"");
-//        m.printTreeStructure();
+        };
 
-        Map s = db.getTreeMap("test");
+
+        Map s = db.createTreeMap("test")
+            .nodeSize(6)
+            .pumpSource(list.iterator(),valueExtractor)
+            .make();
+
 
         Iterator iter =s.keySet().iterator();
 
@@ -175,14 +178,14 @@ public class PumpTest {
     public void build_treemap_fails_with_unsorted(){
         List a = Arrays.asList(1,2,3,4,4,5);
         DB db = new DB(new StoreHeap());
-        Pump.buildTreeSet(a.iterator(),db,"test");
+        db.createTreeSet("test").pumpSource(a.iterator()).make();
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void build_treemap_fails_with_unsorted2(){
         List a = Arrays.asList(1,2,3,4,3,5);
         DB db = new DB(new StoreHeap());
-        Pump.buildTreeSet(a.iterator(),db,"test");
+        db.createTreeSet("test").pumpSource(a.iterator()).make();
     }
 
 
