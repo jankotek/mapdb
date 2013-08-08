@@ -40,8 +40,9 @@ public class SerializerBase implements Serializer{
             BTreeKeySerializer.ZERO_OR_POSITIVE_INT,
             Utils.COMPARABLE_COMPARATOR, Utils.COMPARABLE_COMPARATOR_WITH_NULLS,
 
-            Serializer.STRING_SERIALIZER, Serializer.LONG_SERIALIZER, Serializer.INTEGER_SERIALIZER,
-            Serializer.EMPTY_SERIALIZER, Serializer.BASIC_SERIALIZER
+            Serializer.STRING_NOSIZE, Serializer.LONG, Serializer.INTEGER,
+            Serializer.EMPTY_SERIALIZER, Serializer.BASIC, Serializer.BOOLEAN,
+            Serializer.BYTE_ARRAY_NOSIZE
     ));
     }
 
@@ -279,7 +280,7 @@ public class SerializerBase implements Serializer{
                 out.write((int) ((val>>>48)&0xFF));
 
             } else{
-                out.write(LONG);
+                out.write(Header.LONG);
                 out.writeLong(val);
             }
             return;
@@ -522,15 +523,15 @@ public class SerializerBase implements Serializer{
             out.write(MAPDB);
             Utils.packInt(out, HeaderMapDB.B_TREE_SERIALIZER_POS_INT);
             return;
-        } else if(obj == Serializer.STRING_SERIALIZER){
+        } else if(obj == Serializer.STRING_NOSIZE){
             out.write(MAPDB);
             Utils.packInt(out, HeaderMapDB.STRING_SERIALIZER);
             return;
-        } else if(obj == Serializer.LONG_SERIALIZER){
+        } else if(obj == Serializer.LONG){
             out.write(MAPDB);
             Utils.packInt(out,HeaderMapDB.LONG_SERIALIZER);
             return;
-        } else if(obj == Serializer.INTEGER_SERIALIZER){
+        } else if(obj == Serializer.INTEGER){
             out.write(MAPDB);
             Utils.packInt(out, HeaderMapDB.INT_SERIALIZER);
             return;
@@ -550,10 +551,19 @@ public class SerializerBase implements Serializer{
             out.write(MAPDB);
             Utils.packInt(out, HeaderMapDB.COMPARABLE_COMPARATOR_WITH_NULLS);
             return;
-        } else if(obj == BASIC_SERIALIZER){
+        } else if(obj == BASIC){
             out.write(MAPDB);
             Utils.packInt(out,HeaderMapDB.BASIC_SERIALIZER);
             return;
+        } else if(obj == BOOLEAN){
+            out.write(MAPDB);
+            Utils.packInt(out,HeaderMapDB.BOOLEAN_SERIALIZER);
+            return;
+        } else if(obj == BYTE_ARRAY_NOSIZE){
+            out.write(MAPDB);
+            Utils.packInt(out,HeaderMapDB.SERIALIZER_BYTE_ARRAY_NOSIZE);
+            return;
+
         } else if(obj == this){
             out.write(MAPDB);
             Utils.packInt(out, HeaderMapDB.THIS_SERIALIZER);
@@ -955,7 +965,7 @@ public class SerializerBase implements Serializer{
                         | ((is.readUnsignedByte()&0xFFL)<<24) | ((is.readUnsignedByte()&0xFFL)<<32) | ((is.readUnsignedByte()&0xFFL)<<40)
                         | ((is.readUnsignedByte()&0xFFL)<<48) ));
                 break;
-            case LONG:
+            case Header.LONG:
                 ret = Long.valueOf(is.readLong());
                 break;
 
@@ -1275,6 +1285,8 @@ public class SerializerBase implements Serializer{
         int BASIC_SERIALIZER = 13;
         int STRING_SERIALIZER = 14;
         int B_TREE_BASIC_KEY_SERIALIZER = 15;
+        int BOOLEAN_SERIALIZER = 16;
+        int SERIALIZER_BYTE_ARRAY_NOSIZE = 17;
     }
 
 
@@ -1292,11 +1304,16 @@ public class SerializerBase implements Serializer{
                 return BTreeKeySerializer.STRING;
 
             case HeaderMapDB.LONG_SERIALIZER:
-                return Serializer.LONG_SERIALIZER;
+                return Serializer.LONG;
             case HeaderMapDB.INT_SERIALIZER:
-                return Serializer.INTEGER_SERIALIZER;
+                return Serializer.INTEGER;
             case HeaderMapDB.EMPTY_SERIALIZER:
                 return Serializer.EMPTY_SERIALIZER;
+            case HeaderMapDB.BOOLEAN_SERIALIZER:
+                return Serializer.BOOLEAN;
+            case HeaderMapDB.SERIALIZER_BYTE_ARRAY_NOSIZE:
+                return Serializer.BYTE_ARRAY_NOSIZE;
+
 
             case HeaderMapDB.COMPARABLE_COMPARATOR: return Utils.COMPARABLE_COMPARATOR;
 
@@ -1323,9 +1340,9 @@ public class SerializerBase implements Serializer{
             case HeaderMapDB.THIS_SERIALIZER:
                 return this;
             case HeaderMapDB.BASIC_SERIALIZER:
-                return BASIC_SERIALIZER;
+                return BASIC;
             case HeaderMapDB.STRING_SERIALIZER:
-                return Serializer.STRING_SERIALIZER;
+                return Serializer.STRING_NOSIZE;
 
             default:
                 throw new IOError(new IOException("Unknown header byte, data corrupted"));

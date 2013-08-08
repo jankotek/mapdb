@@ -42,7 +42,7 @@ public abstract class BTreeKeySerializer<K>{
     public abstract Object[] deserialize(DataInput in, int start, int end, int size) throws IOException;
 
 
-    public static final BTreeKeySerializer BASIC = new BTreeKeySerializer.BasicKeySerializer(Serializer.BASIC_SERIALIZER);
+    public static final BTreeKeySerializer BASIC = new BTreeKeySerializer.BasicKeySerializer(Serializer.BASIC);
 
     /**
      * Basic Key Serializer which just writes data without applying any compression.

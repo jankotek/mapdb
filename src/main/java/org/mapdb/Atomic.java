@@ -113,7 +113,7 @@ final public class Atomic {
          * @return the current value
          */
         public final int get() {
-            return engine.get(recid, Serializer.INTEGER_SERIALIZER);
+            return engine.get(recid, Serializer.INTEGER);
         }
 
         /**
@@ -122,7 +122,7 @@ final public class Atomic {
          * @param newValue the new value
          */
         public final void set(int newValue) {
-            engine.update(recid, newValue, Serializer.INTEGER_SERIALIZER);
+            engine.update(recid, newValue, Serializer.INTEGER);
         }
 
 
@@ -150,7 +150,7 @@ final public class Atomic {
          * the actual value was not equal to the expected value.
          */
         public final boolean compareAndSet(int expect, int update) {
-            return engine.compareAndSwap(recid, expect, update, Serializer.INTEGER_SERIALIZER);
+            return engine.compareAndSwap(recid, expect, update, Serializer.INTEGER);
         }
 
 
@@ -295,7 +295,7 @@ final public class Atomic {
          * @return the current value
          */
         public final long get() {
-            return engine.get(recid, Serializer.LONG_SERIALIZER);
+            return engine.get(recid, Serializer.LONG);
         }
 
         /**
@@ -304,7 +304,7 @@ final public class Atomic {
          * @param newValue the new value
          */
         public final void set(long newValue) {
-            engine.update(recid, newValue, Serializer.LONG_SERIALIZER);
+            engine.update(recid, newValue, Serializer.LONG);
         }
 
 
@@ -332,7 +332,7 @@ final public class Atomic {
          * the actual value was not equal to the expected value.
          */
         public final boolean compareAndSet(long expect, long update) {
-            return engine.compareAndSwap(recid, expect, update, Serializer.LONG_SERIALIZER);
+            return engine.compareAndSwap(recid, expect, update, Serializer.LONG);
         }
 
 
@@ -470,7 +470,7 @@ final public class Atomic {
          * @return the current value
          */
         public final boolean get() {
-            return engine.get(recid, Serializer.BOOLEAN_SERIALIZER);
+            return engine.get(recid, Serializer.BOOLEAN);
         }
 
         /**
@@ -483,7 +483,7 @@ final public class Atomic {
          * the actual value was not equal to the expected value.
          */
         public final boolean compareAndSet(boolean expect, boolean update) {
-            return engine.compareAndSwap(recid, expect, update, Serializer.BOOLEAN_SERIALIZER);
+            return engine.compareAndSwap(recid, expect, update, Serializer.BOOLEAN);
         }
 
 
@@ -493,7 +493,7 @@ final public class Atomic {
          * @param newValue the new value
          */
         public final void set(boolean newValue) {
-            engine.update(recid, newValue, Serializer.BOOLEAN_SERIALIZER);
+            engine.update(recid, newValue, Serializer.BOOLEAN);
         }
 
 
@@ -545,7 +545,7 @@ final public class Atomic {
          * @return the current value
          */
         public final java.lang.String get() {
-            return engine.get(recid, Serializer.STRING_SERIALIZER);
+            return engine.get(recid, Serializer.STRING_NOSIZE);
         }
 
         /**
@@ -558,7 +558,7 @@ final public class Atomic {
          * the actual value was not equal to the expected value.
          */
         public final boolean compareAndSet(java.lang.String expect, java.lang.String update) {
-            return engine.compareAndSwap(recid, expect, update, Serializer.STRING_SERIALIZER);
+            return engine.compareAndSwap(recid, expect, update, Serializer.STRING_NOSIZE);
         }
 
 
@@ -568,7 +568,7 @@ final public class Atomic {
          * @param newValue the new value
          */
         public final void set(java.lang.String newValue) {
-            engine.update(recid, newValue, Serializer.STRING_SERIALIZER);
+            engine.update(recid, newValue, Serializer.STRING_NOSIZE);
         }
 
 

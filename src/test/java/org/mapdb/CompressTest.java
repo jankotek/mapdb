@@ -2,8 +2,6 @@ package org.mapdb;
 
 import org.junit.Test;
 
-import java.io.IOException;
-
 import static org.junit.Assert.*;
 
 public class CompressTest{
@@ -25,12 +23,12 @@ public class CompressTest{
 
     @Test
     public void put_get_update() throws Exception {
-        long recid = db.engine.put("aaaa", Serializer.STRING_SERIALIZER);
-        assertEquals("aaaa",db.engine.get(recid, Serializer.STRING_SERIALIZER));
-        db.engine.update(recid, "bbbb", Serializer.STRING_SERIALIZER);
-        assertEquals("bbbb",db.engine.get(recid, Serializer.STRING_SERIALIZER));
-        db.engine.delete(recid,Serializer.STRING_SERIALIZER);
-        assertEquals(null,db.engine.get(recid, Serializer.STRING_SERIALIZER));
+        long recid = db.engine.put("aaaa", Serializer.STRING_NOSIZE);
+        assertEquals("aaaa",db.engine.get(recid, Serializer.STRING_NOSIZE));
+        db.engine.update(recid, "bbbb", Serializer.STRING_NOSIZE);
+        assertEquals("bbbb",db.engine.get(recid, Serializer.STRING_NOSIZE));
+        db.engine.delete(recid,Serializer.STRING_NOSIZE);
+        assertEquals(null,db.engine.get(recid, Serializer.STRING_NOSIZE));
 
     }
 

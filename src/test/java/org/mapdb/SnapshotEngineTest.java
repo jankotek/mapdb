@@ -11,30 +11,30 @@ public class SnapshotEngineTest{
     SnapshotEngine e = new SnapshotEngine(new StoreWAL(Volume.memoryFactory(false, 0L)));
 
     @Test public void update(){
-        long recid = e.put(111, Serializer.INTEGER_SERIALIZER);
+        long recid = e.put(111, Serializer.INTEGER);
         Engine snapshot = e.snapshot();
-        e.update(recid, 222, Serializer.INTEGER_SERIALIZER);
-        assertEquals(Integer.valueOf(111), snapshot.get(recid, Serializer.INTEGER_SERIALIZER));
+        e.update(recid, 222, Serializer.INTEGER);
+        assertEquals(Integer.valueOf(111), snapshot.get(recid, Serializer.INTEGER));
     }
 
     @Test public void compareAndSwap(){
-        long recid = e.put(111, Serializer.INTEGER_SERIALIZER);
+        long recid = e.put(111, Serializer.INTEGER);
         Engine snapshot = e.snapshot();
-        e.compareAndSwap(recid, 111, 222, Serializer.INTEGER_SERIALIZER);
-        assertEquals(Integer.valueOf(111), snapshot.get(recid, Serializer.INTEGER_SERIALIZER));
+        e.compareAndSwap(recid, 111, 222, Serializer.INTEGER);
+        assertEquals(Integer.valueOf(111), snapshot.get(recid, Serializer.INTEGER));
     }
 
     @Test public void delete(){
-        long recid = e.put(111, Serializer.INTEGER_SERIALIZER);
+        long recid = e.put(111, Serializer.INTEGER);
         Engine snapshot = e.snapshot();
-        e.delete(recid,Serializer.INTEGER_SERIALIZER);
-        assertEquals(Integer.valueOf(111), snapshot.get(recid, Serializer.INTEGER_SERIALIZER));
+        e.delete(recid,Serializer.INTEGER);
+        assertEquals(Integer.valueOf(111), snapshot.get(recid, Serializer.INTEGER));
     }
 
     @Test public void notExist(){
         Engine snapshot = e.snapshot();
-        long recid = e.put(111, Serializer.INTEGER_SERIALIZER);
-        assertNull(snapshot.get(recid, Serializer.INTEGER_SERIALIZER));
+        long recid = e.put(111, Serializer.INTEGER);
+        assertNull(snapshot.get(recid, Serializer.INTEGER));
     }
 
 
@@ -46,20 +46,20 @@ public class SnapshotEngineTest{
 
     @Test public void DB_snapshot(){
         DB db = DBMaker.newMemoryDB().asyncFlushDelay(100).transactionDisable().make();
-        long recid = db.getEngine().put("aa",Serializer.STRING_SERIALIZER);
+        long recid = db.getEngine().put("aa",Serializer.STRING_NOSIZE);
         DB db2 = db.snapshot();
-        assertEquals("aa", db2.getEngine().get(recid,Serializer.STRING_SERIALIZER));
-        db.getEngine().update(recid, "bb",Serializer.STRING_SERIALIZER);
-        assertEquals("aa", db2.getEngine().get(recid,Serializer.STRING_SERIALIZER));
+        assertEquals("aa", db2.getEngine().get(recid,Serializer.STRING_NOSIZE));
+        db.getEngine().update(recid, "bb",Serializer.STRING_NOSIZE);
+        assertEquals("aa", db2.getEngine().get(recid,Serializer.STRING_NOSIZE));
     }
 
     @Test public void DB_snapshot2(){
         DB db = DBMaker.newMemoryDB().transactionDisable().make();
-        long recid = db.getEngine().put("aa",Serializer.STRING_SERIALIZER);
+        long recid = db.getEngine().put("aa",Serializer.STRING_NOSIZE);
         DB db2 = db.snapshot();
-        assertEquals("aa", db2.getEngine().get(recid,Serializer.STRING_SERIALIZER));
-        db.getEngine().update(recid, "bb",Serializer.STRING_SERIALIZER);
-        assertEquals("aa", db2.getEngine().get(recid,Serializer.STRING_SERIALIZER));
+        assertEquals("aa", db2.getEngine().get(recid,Serializer.STRING_NOSIZE));
+        db.getEngine().update(recid, "bb",Serializer.STRING_NOSIZE);
+        assertEquals("aa", db2.getEngine().get(recid,Serializer.STRING_NOSIZE));
     }
 
 

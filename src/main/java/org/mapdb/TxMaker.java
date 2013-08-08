@@ -1,7 +1,6 @@
 package org.mapdb;
 
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -93,7 +92,7 @@ public class TxMaker {
             commitLock.readLock().lock();
             try{
                 commitPending = true;
-                recid = engine.put(Utils.EMPTY_STRING, Serializer.STRING_SERIALIZER);
+                recid = engine.put(Utils.EMPTY_STRING, Serializer.STRING_NOSIZE);
             }finally {
                 commitLock.readLock().unlock();
             }

@@ -21,8 +21,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.Queue;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -641,12 +639,12 @@ public class StoreDirect extends Store{
             store2.index.putLong(IO_INDEX_SIZE, indexSize);
 
             for(long ioRecid = IO_USER_START; ioRecid<indexSize;ioRecid+=8){
-                byte[] bb = get2(ioRecid,Serializer.BYTE_ARRAY_SERIALIZER);
+                byte[] bb = get2(ioRecid,Serializer.BYTE_ARRAY_NOSIZE);
                 store2.index.ensureAvailable(ioRecid+8);
                 if(bb==null||bb.length==0){
                     store2.index.putLong(ioRecid,0);
                 }else{
-                    DataOutput2 out = serialize(bb,Serializer.BYTE_ARRAY_SERIALIZER);
+                    DataOutput2 out = serialize(bb,Serializer.BYTE_ARRAY_NOSIZE);
                     long[] indexVals = store2.physAllocate(out.pos,true,false);
                     store2.put2(out, ioRecid,indexVals);
                 }
@@ -867,7 +865,7 @@ public class StoreDirect extends Store{
     @Override
     public ByteBuffer getRaw(long recid) {
         //TODO use direct BB
-        byte[] bb = get(recid, Serializer.BYTE_ARRAY_SERIALIZER);
+        byte[] bb = get(recid, Serializer.BYTE_ARRAY_NOSIZE);
         if(bb==null) return null;
         return ByteBuffer.wrap(bb);
     }
@@ -893,7 +891,7 @@ public class StoreDirect extends Store{
             data.get(b);
         }
         //TODO use BB without copying
-        update(recid, b, Serializer.BYTE_ARRAY_SERIALIZER);
+        update(recid, b, Serializer.BYTE_ARRAY_NOSIZE);
     }
 
     @Override

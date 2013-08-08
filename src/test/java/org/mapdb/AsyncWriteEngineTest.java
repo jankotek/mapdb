@@ -29,14 +29,14 @@ public class AsyncWriteEngineTest extends TestFile{
 
     @Test(timeout = 1000000)
     public void write_fetch_update_delete() throws IOException {
-        long recid = engine.put("aaa", Serializer.STRING_SERIALIZER);
-        assertEquals("aaa", engine.get(recid, Serializer.STRING_SERIALIZER));
+        long recid = engine.put("aaa", Serializer.STRING_NOSIZE);
+        assertEquals("aaa", engine.get(recid, Serializer.STRING_NOSIZE));
         reopenStore();
-        assertEquals("aaa", engine.get(recid, Serializer.STRING_SERIALIZER));
-        engine.update(recid, "bbb", Serializer.STRING_SERIALIZER);
-        assertEquals("bbb", engine.get(recid, Serializer.STRING_SERIALIZER));
+        assertEquals("aaa", engine.get(recid, Serializer.STRING_NOSIZE));
+        engine.update(recid, "bbb", Serializer.STRING_NOSIZE);
+        assertEquals("bbb", engine.get(recid, Serializer.STRING_NOSIZE));
         reopenStore();
-        assertEquals("bbb", engine.get(recid, Serializer.STRING_SERIALIZER));
+        assertEquals("bbb", engine.get(recid, Serializer.STRING_NOSIZE));
 
     }
 
@@ -52,12 +52,12 @@ public class AsyncWriteEngineTest extends TestFile{
             final int num = i;
             new Thread(new Runnable() {
                 @Override public void run() {
-                    long recid = engine.put("START-", Serializer.STRING_SERIALIZER);
+                    long recid = engine.put("START-", Serializer.STRING_NOSIZE);
                     recids.put(num, recid);
                     for(int i = 0;i<updates; i++){
-                        String str= engine.get(recid, Serializer.STRING_SERIALIZER);
+                        String str= engine.get(recid, Serializer.STRING_NOSIZE);
                         str +=num+",";
-                        engine.update(recid, str, Serializer.STRING_SERIALIZER);
+                        engine.update(recid, str, Serializer.STRING_NOSIZE);
                     }
                     latch.countDown();
                 }
@@ -76,7 +76,7 @@ public class AsyncWriteEngineTest extends TestFile{
             for(int j=0;j<updates;j++)
                 expectedStr +=i+",";
 
-            String v = engine.get(recid, Serializer.STRING_SERIALIZER);
+            String v = engine.get(recid, Serializer.STRING_NOSIZE);
             assertEquals(expectedStr, v);
         }
     }
@@ -98,7 +98,7 @@ public class AsyncWriteEngineTest extends TestFile{
 
         ArrayList<Long> l = new ArrayList<Long>();
         for(int i=0;i<max;i++){
-            long recid = a.put(b, Serializer.BASIC_SERIALIZER);
+            long recid = a.put(b, Serializer.BASIC);
             l.add(recid);
         }
         //make commit just after bunch of records was added,
@@ -113,7 +113,7 @@ public class AsyncWriteEngineTest extends TestFile{
         a = new AsyncWriteEngine(t);
         for(Integer i=0;i<max;i++){
             long recid = l.get(i);
-            assertArrayEquals(b, (byte[]) a.get(recid, Serializer.BASIC_SERIALIZER));
+            assertArrayEquals(b, (byte[]) a.get(recid, Serializer.BASIC));
         }
     }
 

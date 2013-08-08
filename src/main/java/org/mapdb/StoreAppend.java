@@ -523,7 +523,7 @@ public class StoreAppend extends Store{
     @Override
     public ByteBuffer getRaw(long recid) {
         //TODO use direct BB
-        byte[] bb = get(recid, Serializer.BYTE_ARRAY_SERIALIZER);
+        byte[] bb = get(recid, Serializer.BYTE_ARRAY_NOSIZE);
         if(bb==null) return null;
         return ByteBuffer.wrap(bb);
     }
@@ -543,7 +543,7 @@ public class StoreAppend extends Store{
             data.get(b);
         }
         //TODO use BB without copying
-        update(recid, b, Serializer.BYTE_ARRAY_SERIALIZER);
+        update(recid, b, Serializer.BYTE_ARRAY_NOSIZE);
         modified = true;
     }
 

@@ -279,8 +279,8 @@ public class DB {
             expireHeads = new long[16];
             expireTails = new long[16];
             for(int i=0;i<16;i++){
-                expireHeads[i] = engine.put(0L,Serializer.LONG_SERIALIZER);
-                expireTails[i] = engine.put(0L,Serializer.LONG_SERIALIZER);
+                expireHeads[i] = engine.put(0L,Serializer.LONG);
+                expireTails[i] = engine.put(0L,Serializer.LONG);
             }
             catPut(name+".expireHeads",expireHeads);
             catPut(name+".expireTails",expireHeads);
@@ -289,7 +289,7 @@ public class DB {
 
 
         HTreeMap<K,V> ret = new HTreeMap<K,V>(engine,
-                catPut(name+".counterRecid",!m.keepCounter?0L:engine.put(0L, Serializer.LONG_SERIALIZER)),
+                catPut(name+".counterRecid",!m.keepCounter?0L:engine.put(0L, Serializer.LONG)),
                 catPut(name+".hashSalt",Utils.RANDOM.nextInt()),
                 catPut(name+".segmentRecids",HTreeMap.preallocateSegments(engine)),
                 catPut(name+".keySerializer",m.keySerializer,getDefaultSerializer()),
@@ -354,7 +354,7 @@ public class DB {
 
 
         Set<K> ret = new HTreeMap<K,Object>(engine,
-                catPut(name+".counterRecid",!keepCounter?0L:engine.put(0L, Serializer.LONG_SERIALIZER)),
+                catPut(name+".counterRecid",!keepCounter?0L:engine.put(0L, Serializer.LONG)),
                 catPut(name+".hashSalt",Utils.RANDOM.nextInt()),
                 catPut(name+".segmentRecids",HTreeMap.preallocateSegments(engine)),
                 catPut(name+".serializer",serializer,getDefaultSerializer()),
@@ -497,7 +497,7 @@ public class DB {
                 catPut(name+".rootRecidRef", BTreeMap.createRootRef(engine,m.keySerializer,m.valueSerializer,m.comparator)),
                 catPut(name+".maxNodeSize",m.nodeSize),
                 catPut(name+".valuesOutsideNodes",m.valuesStoredOutsideNodes),
-                catPut(name+".counterRecid",!m.keepCounter?0L:engine.put(0L, Serializer.LONG_SERIALIZER)),
+                catPut(name+".counterRecid",!m.keepCounter?0L:engine.put(0L, Serializer.LONG)),
                 m.keySerializer,
                 m.valueSerializer,
                 m.comparator
@@ -606,7 +606,7 @@ public class DB {
                 catPut(name+".rootRecidRef", BTreeMap.createRootRef(engine,serializer, null,comparator)),
                 catPut(name+".maxNodeSize",nodeSize),
                 false,
-                catPut(name+".counterRecid",!keepCounter?0L:engine.put(0L, Serializer.LONG_SERIALIZER)),
+                catPut(name+".counterRecid",!keepCounter?0L:engine.put(0L, Serializer.LONG)),
                 serializer,
                 null,
                 comparator
@@ -651,10 +651,10 @@ public class DB {
     synchronized public <E> Queue<E> createQueue(String name, Serializer<E> serializer) {
         checkNameNotExists(name);
 
-        long headerRecid = engine.put(0L, Serializer.LONG_SERIALIZER);
+        long headerRecid = engine.put(0L, Serializer.LONG);
         long nextTail = engine.put(Queues.SimpleQueue.Node.EMPTY, new Queues.SimpleQueue.NodeSerializer(null));
-        long nextTailRecid = engine.put(nextTail, Serializer.LONG_SERIALIZER);
-        long sizeRecid = engine.put(0L, Serializer.LONG_SERIALIZER);
+        long nextTailRecid = engine.put(nextTail, Serializer.LONG);
+        long sizeRecid = engine.put(0L, Serializer.LONG);
 
         Queues.Queue<E> ret = new Queues.Queue<E>(engine,
                 catPut(name+".serializer",serializer,getDefaultSerializer()),
@@ -696,7 +696,7 @@ public class DB {
     synchronized public <E> Queue<E> createStack(String name, Serializer<E> serializer, boolean useLocks) {
         checkNameNotExists(name);
 
-        long headerRecid = engine.put(0L, Serializer.LONG_SERIALIZER);
+        long headerRecid = engine.put(0L, Serializer.LONG);
 
 
         Queues.Stack<E> ret = new Queues.Stack<E>(engine,
@@ -739,7 +739,7 @@ public class DB {
         checkNameNotExists(name);
         if(serializer==null) serializer = getDefaultSerializer();
 
-//        long headerRecid = engine.put(0L, Serializer.LONG_SERIALIZER);
+//        long headerRecid = engine.put(0L, Serializer.LONG);
         //insert N Nodes empty nodes into a circle
         long prevRecid = 0;
         long firstRecid = 0;
@@ -752,8 +752,8 @@ public class DB {
         //update first node to point to last recid
         engine.update(firstRecid, new Queues.SimpleQueue.Node(prevRecid, null), nodeSer );
 
-        long headRecid = engine.put(prevRecid, Serializer.LONG_SERIALIZER);
-        long headInsertRecid = engine.put(prevRecid, Serializer.LONG_SERIALIZER);
+        long headRecid = engine.put(prevRecid, Serializer.LONG);
+        long headInsertRecid = engine.put(prevRecid, Serializer.LONG);
 
 
 
@@ -770,7 +770,7 @@ public class DB {
 
     synchronized public Atomic.Long createAtomicLong(String name, long initValue){
         checkNameNotExists(name);
-        long recid = engine.put(initValue,Serializer.LONG_SERIALIZER);
+        long recid = engine.put(initValue,Serializer.LONG);
         Atomic.Long ret = new Atomic.Long(engine,
                 catPut(name+".recid",recid)
         );
@@ -801,7 +801,7 @@ public class DB {
 
     synchronized public Atomic.Integer createAtomicInteger(String name, int initValue){
         checkNameNotExists(name);
-        long recid = engine.put(initValue,Serializer.INTEGER_SERIALIZER);
+        long recid = engine.put(initValue,Serializer.INTEGER);
         Atomic.Integer ret = new Atomic.Integer(engine,
                 catPut(name+".recid",recid)
         );
@@ -832,7 +832,7 @@ public class DB {
 
     synchronized public Atomic.Boolean createAtomicBoolean(String name, boolean initValue){
         checkNameNotExists(name);
-        long recid = engine.put(initValue,Serializer.BOOLEAN_SERIALIZER);
+        long recid = engine.put(initValue,Serializer.BOOLEAN);
         Atomic.Boolean ret = new Atomic.Boolean(engine,
                 catPut(name+".recid",recid)
         );
@@ -867,7 +867,7 @@ public class DB {
     synchronized public Atomic.String createAtomicString(String name, String initValue){
         checkNameNotExists(name);
         if(initValue==null) throw new IllegalArgumentException("initValue may not be null");
-        long recid = engine.put(initValue,Serializer.STRING_SERIALIZER);
+        long recid = engine.put(initValue,Serializer.STRING_NOSIZE);
         Atomic.String ret = new Atomic.String(engine,
                 catPut(name+".recid",recid)
         );
@@ -948,13 +948,13 @@ public class DB {
     synchronized public void delete(String name){
         Object r = get(name);
         if(r instanceof Atomic.Boolean){
-            engine.delete(((Atomic.Boolean)r).recid, Serializer.BOOLEAN_SERIALIZER);
+            engine.delete(((Atomic.Boolean)r).recid, Serializer.BOOLEAN);
         }else if(r instanceof Atomic.Integer){
-            engine.delete(((Atomic.Integer)r).recid, Serializer.INTEGER_SERIALIZER);
+            engine.delete(((Atomic.Integer)r).recid, Serializer.INTEGER);
         }else if(r instanceof Atomic.Long){
-            engine.delete(((Atomic.Long)r).recid, Serializer.LONG_SERIALIZER);
+            engine.delete(((Atomic.Long)r).recid, Serializer.LONG);
         }else if(r instanceof Atomic.String){
-            engine.delete(((Atomic.String)r).recid, Serializer.STRING_SERIALIZER);
+            engine.delete(((Atomic.String)r).recid, Serializer.STRING_NOSIZE);
         }else if(r instanceof Atomic.Var){
             engine.delete(((Atomic.Var)r).recid, ((Atomic.Var)r).serializer);
         }else if(r instanceof Queue){
@@ -977,7 +977,7 @@ public class DB {
             m.clear();
 
             if(m.counter!=null)
-                engine.delete(m.counter.recid,Serializer.LONG_SERIALIZER);
+                engine.delete(m.counter.recid,Serializer.LONG);
         }
 
         for(String n:catalog.keySet()){

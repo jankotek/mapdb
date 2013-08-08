@@ -18,11 +18,11 @@ public class EngineWrapper_ImmutabilityCheckEngine {
 
         List rec = new ArrayList();
         rec.add("aa");
-        long recid = e.put(rec,Serializer.BASIC_SERIALIZER);
+        long recid = e.put(rec,Serializer.BASIC);
         rec.add("bb");
 
         try{
-            e.update(recid, rec, Serializer.BASIC_SERIALIZER);
+            e.update(recid, rec, Serializer.BASIC);
             fail("should throw exception");
         }catch(AssertionError ee){
             assertTrue(ee.getMessage().startsWith("Record instance was modified"));

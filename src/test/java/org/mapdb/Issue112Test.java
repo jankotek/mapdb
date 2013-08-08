@@ -16,10 +16,10 @@ public class Issue112Test {
             myTestDataFile.commit();
             myTestDataFile.commit();
 
-            long recid = myTestDataFile.engine.put("aa",Serializer.STRING_SERIALIZER);
+            long recid = myTestDataFile.engine.put("aa",Serializer.STRING_NOSIZE);
             myTestDataFile.commit();
 
-            assertEquals("aa",myTestDataFile.engine.get(recid, Serializer.STRING_SERIALIZER));
+            assertEquals("aa",myTestDataFile.engine.get(recid, Serializer.STRING_NOSIZE));
         }
 
     }

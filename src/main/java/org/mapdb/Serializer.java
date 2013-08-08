@@ -19,8 +19,6 @@ package org.mapdb;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.io.Serializable;
-import java.util.zip.CRC32;
 
 /**
  * Provides serialization and deserialization
@@ -55,7 +53,7 @@ public interface Serializer<A> {
      * Used mainly for testing.
      * Does not handle null values.
      */
-    Serializer<String> STRING_SERIALIZER = new Serializer<String>() {
+    Serializer<String> STRING_NOSIZE = new Serializer<String>() {
 
         @Override
 		public void serialize(DataOutput out, String value) throws IOException {
@@ -66,7 +64,7 @@ public interface Serializer<A> {
 
         @Override
 		public String deserialize(DataInput in, int available) throws IOException {
-            if(available==-1) throw new IllegalArgumentException("STRING_SERIALIZER does not work with collections.");
+            if(available==-1) throw new IllegalArgumentException("STRING_NOSIZE does not work with collections.");
             byte[] bytes = new byte[available];
             in.readFully(bytes);
             return new String(bytes, Utils.UTF8);
@@ -80,7 +78,7 @@ public interface Serializer<A> {
     /** Serializes Long into 8 bytes, used mainly for testing.
      * Does not handle null values.*/
      
-     Serializer<Long> LONG_SERIALIZER = new Serializer<Long>() {
+     Serializer<Long> LONG = new Serializer<Long>() {
         @Override
         public void serialize(DataOutput out, Long value) throws IOException {
             if(value != null)
@@ -97,7 +95,7 @@ public interface Serializer<A> {
     /** Serializes Integer into 4 bytes, used mainly for testing.
      * Does not handle null values.*/
     
-    Serializer<Integer> INTEGER_SERIALIZER = new Serializer<Integer>() {
+    Serializer<Integer> INTEGER = new Serializer<Integer>() {
         @Override
         public void serialize(DataOutput out, Integer value) throws IOException {
             out.writeInt(value);
@@ -110,7 +108,7 @@ public interface Serializer<A> {
     };
 
     
-    Serializer<Boolean> BOOLEAN_SERIALIZER = new Serializer<Boolean>() {
+    Serializer<Boolean> BOOLEAN = new Serializer<Boolean>() {
         @Override
         public void serialize(DataOutput out, Boolean value) throws IOException {
             out.writeBoolean(value);
@@ -126,27 +124,33 @@ public interface Serializer<A> {
     
 
 
-    /** always writes zero length data, and always deserializes it as an empty String */
+    /** always writes zero length data, and always deserializes it as an empty String
+     * @deprecated  TODO remove
+     */
     Serializer<Object> EMPTY_SERIALIZER = new Serializer<Object>() {
         @Override
         public void serialize(DataOutput out, Object value) throws IOException {
-            if(value!=Utils.EMPTY_STRING) throw new IllegalArgumentException();
+            assert(value==Utils.EMPTY_STRING);
         }
 
         @Override
         public Object deserialize(DataInput in, int available) throws IOException {
-            if(available>0) throw new InternalError();
+            assert(available>0);
             return Utils.EMPTY_STRING;
         }
     };
 
-    /** basic serializer for most classes in 'java.lang' and 'java.util' packages*/
+    /** basic serializer for most classes in 'java.lang' and 'java.util' packages
+     * @deprecated  TODO remove
+     */
     @SuppressWarnings("unchecked")
-    Serializer<Object> BASIC_SERIALIZER = new SerializerBase();
+    Serializer<Object> BASIC = new SerializerBase();
 
 
-
-    Serializer<byte[] > BYTE_ARRAY_SERIALIZER = new Serializer<byte[]>() {
+    /**
+     * @deprecated  TODO remove
+     */
+    Serializer<byte[] > BYTE_ARRAY_NOSIZE = new Serializer<byte[]>() {
 
         @Override
         public void serialize(DataOutput out, byte[] value) throws IOException {
@@ -156,7 +160,7 @@ public interface Serializer<A> {
 
         @Override
         public byte[] deserialize(DataInput in, int available) throws IOException {
-            if(available==-1) throw new IllegalArgumentException("BYTE_ARRAY_SERIALIZER does not work with collections.");
+            if(available==-1) throw new IllegalArgumentException("BYTE_ARRAY_NOSIZE does not work with collections.");
             if(available==0) return null;
             byte[] ret = new byte[available];
             in.readFully(ret);

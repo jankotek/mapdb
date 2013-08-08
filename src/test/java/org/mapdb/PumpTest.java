@@ -44,15 +44,15 @@ public class PumpTest {
                 DB src = makeDB(srcc);
                 DB target = makeDB(targetc);
 
-                long recid1 = src.engine.put("1", Serializer.STRING_SERIALIZER);
-                long recid2 = src.engine.put("2", Serializer.STRING_SERIALIZER);
+                long recid1 = src.engine.put("1", Serializer.STRING_NOSIZE);
+                long recid2 = src.engine.put("2", Serializer.STRING_NOSIZE);
 
                 Pump.copy(src,target);
 
-                assertEquals("1", target.engine.get(recid1, Serializer.STRING_SERIALIZER));
-                assertEquals("2", target.engine.get(recid2, Serializer.STRING_SERIALIZER));
-                assertEquals("1", src.engine.get(recid1, Serializer.STRING_SERIALIZER));
-                assertEquals("2", src.engine.get(recid2, Serializer.STRING_SERIALIZER));
+                assertEquals("1", target.engine.get(recid1, Serializer.STRING_NOSIZE));
+                assertEquals("2", target.engine.get(recid2, Serializer.STRING_NOSIZE));
+                assertEquals("1", src.engine.get(recid1, Serializer.STRING_NOSIZE));
+                assertEquals("2", src.engine.get(recid2, Serializer.STRING_NOSIZE));
 
                 src.close();
                 target.close();
@@ -99,7 +99,7 @@ public class PumpTest {
         Collections.shuffle(list);
 
         Iterator<Integer> sorted = Pump.sort(list.iterator(),max/20,
-                Utils.COMPARABLE_COMPARATOR, Serializer.INTEGER_SERIALIZER);
+                Utils.COMPARABLE_COMPARATOR, Serializer.INTEGER);
 
         Integer counter=0;
         while(sorted.hasNext()){

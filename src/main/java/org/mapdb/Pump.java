@@ -519,12 +519,12 @@ public class Pump {
         Collections.reverse(dirRecids.get(len));
 
         //and do counter
-        long counterRecidRef = keepCounter? db.engine.put(counter, Serializer.LONG_SERIALIZER) : 0L;
+        long counterRecidRef = keepCounter? db.engine.put(counter, Serializer.LONG) : 0L;
 
 
         BTreeMap.DirNode dir = new BTreeMap.DirNode(dirKeys.get(len).toArray(), dirRecids.get(len));
         long rootRecid = db.engine.put(dir, nodeSerializer);
-        long rootRecidRef = db.engine.put(rootRecid,Serializer.LONG_SERIALIZER);
+        long rootRecidRef = db.engine.put(rootRecid,Serializer.LONG);
 
         Map cat = db.getCatalog();
         cat.put(name+".type",hasVals?"TreeMap":"TreeSet");

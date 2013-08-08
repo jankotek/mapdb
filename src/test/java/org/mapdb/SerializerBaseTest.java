@@ -18,9 +18,9 @@ package org.mapdb;
 import junit.framework.TestCase;
 
 import java.io.*;
+import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.nio.ByteBuffer;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.*;
 
@@ -420,16 +420,53 @@ public class SerializerBaseTest extends TestCase {
 
     /** clone value using serialization */
     <E> E clone(E value) throws IOException {
-        return Utils.clone(value,(Serializer<E>)Serializer.BASIC_SERIALIZER);
+        return Utils.clone(value,(Serializer<E>)Serializer.BASIC);
     }
 
     public static class SerializerBaseTestWithJUDataStreams extends SerializerBaseTest{
         @Override
         <E> E clone(E value) throws IOException {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
-            Serializer.BASIC_SERIALIZER.serialize(new DataOutputStream(out), value);
+            Serializer.BASIC.serialize(new DataOutputStream(out), value);
 
-            return (E) Serializer.BASIC_SERIALIZER.deserialize(new DataInputStream(new ByteArrayInputStream(out.toByteArray())),-1);
+            return (E) Serializer.BASIC.deserialize(new DataInputStream(new ByteArrayInputStream(out.toByteArray())),-1);
+        }
+    }
+
+    @SuppressWarnings({  "rawtypes" })
+    public void testHeaderUnique() throws IllegalAccessException {
+        Class c = SerializerBase.Header.class;
+        Set<Integer> s = new TreeSet<Integer>();
+        for (Field f : c.getDeclaredFields()) {
+            f.setAccessible(true);
+            int value = f.getInt(null);
+
+            assertTrue("Value already used: " + value, !s.contains(value));
+            s.add(value);
+        }
+        assertTrue(!s.isEmpty());
+    }
+
+    @SuppressWarnings({  "rawtypes" })
+    public void testHeaderUniqueMapDB() throws IllegalAccessException {
+        Class c = SerializerBase.HeaderMapDB.class;
+        Set<Integer> s = new TreeSet<Integer>();
+        for (Field f : c.getDeclaredFields()) {
+            f.setAccessible(true);
+            int value = f.getInt(null);
+
+            assertTrue("Value already used: " + value, !s.contains(value));
+            s.add(value);
+        }
+        assertTrue(!s.isEmpty());
+    }
+
+
+    public void test_All_Serializer_Fields_Serializable() throws IllegalAccessException, IOException {
+        for(Field f:Serializer.class.getDeclaredFields()){
+            Object a = f.get(null);
+            assertTrue("field: "+f.getName(), SerializerBase.knownSerializable.get.contains(a));
+            assertEquals("field: "+f.getName(),a,clone(a));
         }
     }
 

@@ -51,13 +51,13 @@ public class Lazily_Loaded_Records {
         // All MapDB collections are written this way.
 
         //insert new record
-        long recid = db.getEngine().put("something", Serializer.STRING_SERIALIZER);
+        long recid = db.getEngine().put("something", Serializer.STRING_NOSIZE);
 
         //load record
-        String lazyString = db.getEngine().get(recid, Serializer.STRING_SERIALIZER);
+        String lazyString = db.getEngine().get(recid, Serializer.STRING_NOSIZE);
 
         //update record
-        db.getEngine().update(recid, "new value", Serializer.STRING_SERIALIZER);
+        db.getEngine().update(recid, "new value", Serializer.STRING_NOSIZE);
 
 
         //I hope this example helped!

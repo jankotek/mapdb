@@ -46,8 +46,8 @@ public class BTreeMapTest2 extends ConcurrentMapInterfaceTest<Integer, String> {
     @Override
     protected ConcurrentMap<Integer, String> makeEmptyMap() throws UnsupportedOperationException {
 
-        return new BTreeMap(r,BTreeMap.createRootRef(r,BTreeKeySerializer.BASIC, Serializer.BASIC_SERIALIZER, Utils.COMPARABLE_COMPARATOR),
-                6,false,0, BTreeKeySerializer.BASIC,Serializer.BASIC_SERIALIZER,
+        return new BTreeMap(r,BTreeMap.createRootRef(r,BTreeKeySerializer.BASIC, Serializer.BASIC, Utils.COMPARABLE_COMPARATOR),
+                6,false,0, BTreeKeySerializer.BASIC,Serializer.BASIC,
                 Utils.COMPARABLE_COMPARATOR);
     }
 

@@ -16,8 +16,8 @@ public class BTreeMapTest{
     Engine engine = new StoreDirect(Volume.memoryFactory(false,0L));
 
 
-    BTreeMap m = new BTreeMap(engine,BTreeMap.createRootRef(engine,BTreeKeySerializer.BASIC,Serializer.BASIC_SERIALIZER,Utils.COMPARABLE_COMPARATOR),
-            6,false,0, BTreeKeySerializer.BASIC,Serializer.BASIC_SERIALIZER,
+    BTreeMap m = new BTreeMap(engine,BTreeMap.createRootRef(engine,BTreeKeySerializer.BASIC,Serializer.BASIC,Utils.COMPARABLE_COMPARATOR),
+            6,false,0, BTreeKeySerializer.BASIC,Serializer.BASIC,
             Utils.COMPARABLE_COMPARATOR);
     
 
@@ -111,7 +111,7 @@ public class BTreeMapTest{
                 new Object[]{10,20,30},
                 0);
         long rootRecid = engine.put(l, m.nodeSerializer);
-        engine.update(m.rootRecidRef, rootRecid, Serializer.LONG_SERIALIZER);
+        engine.update(m.rootRecidRef, rootRecid, Serializer.LONG);
 
         assertEquals(null, m.get(1));
         assertEquals(null, m.get(9));
@@ -128,7 +128,7 @@ public class BTreeMapTest{
     @Test public void root_leaf_insert(){
 
         m.put(11,12);
-        final long rootRecid = engine.get(m.rootRecidRef, Serializer.LONG_SERIALIZER);
+        final long rootRecid = engine.get(m.rootRecidRef, Serializer.LONG);
         BTreeMap.LeafNode n = (BTreeMap.LeafNode) engine.get(rootRecid, m.nodeSerializer);
         assertArrayEquals(new Object[]{null, 11, null}, n.keys);
         assertArrayEquals(new Object[]{12}, n.vals);

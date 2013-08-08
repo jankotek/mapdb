@@ -98,10 +98,10 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
 
     @Test public void test_index_record_delete(){
-        long recid = e.put(1000L, Serializer.LONG_SERIALIZER);
+        long recid = e.put(1000L, Serializer.LONG);
         e.commit();
         assertEquals(1, countIndexRecords());
-        e.delete(recid,Serializer.LONG_SERIALIZER);
+        e.delete(recid,Serializer.LONG);
         e.commit();
         assertEquals(0, countIndexRecords());
         e.structuralLock.lock();
@@ -125,14 +125,14 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
 
     @Test public void test_index_record_delete_and_reusef(){
-        long recid = e.put(1000L, Serializer.LONG_SERIALIZER);
+        long recid = e.put(1000L, Serializer.LONG);
         e.commit();
         assertEquals(1, countIndexRecords());
         assertEquals(e.LAST_RESERVED_RECID+1, recid);
-        e.delete(recid,Serializer.LONG_SERIALIZER);
+        e.delete(recid,Serializer.LONG);
         e.commit();
         assertEquals(0, countIndexRecords());
-        long recid2 = e.put(1000L, Serializer.LONG_SERIALIZER);
+        long recid2 = e.put(1000L, Serializer.LONG);
         e.commit();
         //test that previously deleted index slot was reused
         assertEquals(recid, recid2);
@@ -146,17 +146,17 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
         List<Long> recids= new ArrayList<Long>();
         for(int i = 0;i<MAX;i++){
-            recids.add(e.put(0L, Serializer.LONG_SERIALIZER));
+            recids.add(e.put(0L, Serializer.LONG));
         }
 
         for(long recid:recids){
-            e.delete(recid,Serializer.LONG_SERIALIZER);
+            e.delete(recid,Serializer.LONG);
         }
 
         //now allocate again second recid list
         List<Long> recids2= new ArrayList<Long>();
         for(int i = 0;i<MAX;i++){
-            recids2.add(e.put(0L, Serializer.LONG_SERIALIZER));
+            recids2.add(e.put(0L, Serializer.LONG));
         }
 
         //second list should be reverse of first, as Linked Offset List is LIFO
@@ -167,12 +167,12 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
 
     @Test public void test_phys_record_reused(){
-        final long recid = e.put(1L, Serializer.LONG_SERIALIZER);
-        assertEquals((Long)1L, e.get(recid, Serializer.LONG_SERIALIZER));
+        final long recid = e.put(1L, Serializer.LONG);
+        assertEquals((Long)1L, e.get(recid, Serializer.LONG));
         final long physRecid = e.index.getLong(recid*8+ StoreDirect.IO_USER_START);
-        e.delete(recid, Serializer.LONG_SERIALIZER);
-        final long recid2 = e.put(1L, Serializer.LONG_SERIALIZER);
-        assertEquals((Long)1L, e.get(recid2, Serializer.LONG_SERIALIZER));
+        e.delete(recid, Serializer.LONG);
+        final long recid2 = e.put(1L, Serializer.LONG);
+        assertEquals((Long)1L, e.get(recid2, Serializer.LONG));
 
         assertEquals(recid, recid2);
         assertEquals(physRecid, e.index.getLong(recid*8+ StoreDirect.IO_USER_START));
@@ -182,15 +182,15 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
 
     @Test public void test_index_stores_record_size() throws IOException {
-        final long recid = e.put(1, Serializer.INTEGER_SERIALIZER);
+        final long recid = e.put(1, Serializer.INTEGER);
         e.commit();
         assertEquals(4, e.index.getUnsignedShort(recid * 8+ StoreDirect.IO_USER_START));
-        assertEquals(Integer.valueOf(1), e.get(recid, Serializer.INTEGER_SERIALIZER));
+        assertEquals(Integer.valueOf(1), e.get(recid, Serializer.INTEGER));
 
-        e.update(recid, 1L, Serializer.LONG_SERIALIZER);
+        e.update(recid, 1L, Serializer.LONG);
         e.commit();
         assertEquals(8, e.index.getUnsignedShort(recid * 8+ StoreDirect.IO_USER_START));
-        assertEquals(Long.valueOf(1), e.get(recid, Serializer.LONG_SERIALIZER));
+        assertEquals(Long.valueOf(1), e.get(recid, Serializer.LONG));
 
     }
 
@@ -394,10 +394,10 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
     @Test public void freeSpaceWorks(){
         long oldFree = e.getFreeSize();
-        long recid = e.put(new byte[10000],Serializer.BYTE_ARRAY_SERIALIZER);
+        long recid = e.put(new byte[10000],Serializer.BYTE_ARRAY_NOSIZE);
         e.commit();
         assertEquals(oldFree, e.getFreeSize());
-        e.delete(recid,Serializer.BYTE_ARRAY_SERIALIZER);
+        e.delete(recid,Serializer.BYTE_ARRAY_NOSIZE);
         assertEquals(oldFree+10000,e.getFreeSize());
         e.commit();
         assertEquals(oldFree+10000,e.getFreeSize());

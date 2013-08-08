@@ -717,7 +717,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         //try to read one record from DB, to make sure encryption and compression are correctly set.
         Fun.Tuple2<Integer,String> check = null;
         try{
-            check = (Fun.Tuple2<Integer, String>) engine.get(Engine.CHECK_RECORD, Serializer.BASIC_SERIALIZER);
+            check = (Fun.Tuple2<Integer, String>) engine.get(Engine.CHECK_RECORD, Serializer.BASIC);
             if(check!=null){
                 if(check.a.intValue()!= check.b.hashCode())
                     throw new RuntimeException("invalid checksum");
@@ -729,7 +729,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
             //new db, so insert testing record
             String s = Utils.randomString(127); //random string so it is not that easy to decrypt
             check = Fun.t2(s.hashCode(), s);
-            engine.update(Engine.CHECK_RECORD, check, Serializer.BASIC_SERIALIZER);
+            engine.update(Engine.CHECK_RECORD, check, Serializer.BASIC);
             engine.commit();
         }
 

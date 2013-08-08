@@ -50,15 +50,15 @@ public class Issue154Test {
     @Test public void simple(){
         TxMaker txMaker = DBMaker.newMemoryDB().makeTxMaker();
         Engine engine = txMaker.makeTx().getEngine();
-        long recid = engine.put("aa",Serializer.STRING_SERIALIZER);
+        long recid = engine.put("aa",Serializer.STRING_NOSIZE);
         engine.commit();
         engine = txMaker.makeTx().getEngine();
-        assertEquals("aa",engine.get(recid,Serializer.STRING_SERIALIZER));
-        engine.delete(recid,Serializer.STRING_SERIALIZER);
-        assertEquals(null,engine.get(recid,Serializer.STRING_SERIALIZER));
+        assertEquals("aa",engine.get(recid,Serializer.STRING_NOSIZE));
+        engine.delete(recid,Serializer.STRING_NOSIZE);
+        assertEquals(null,engine.get(recid,Serializer.STRING_NOSIZE));
         engine.rollback();
         engine = txMaker.makeTx().getEngine();
-        assertEquals("aa",engine.get(recid,Serializer.STRING_SERIALIZER));
+        assertEquals("aa",engine.get(recid,Serializer.STRING_NOSIZE));
 
     }
 

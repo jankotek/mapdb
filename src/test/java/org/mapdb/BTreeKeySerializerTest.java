@@ -53,7 +53,7 @@ public class BTreeKeySerializerTest {
     }
 
     final BTreeKeySerializer.Tuple2KeySerializer tuple2_serializer = new BTreeKeySerializer.Tuple2KeySerializer(Utils.COMPARABLE_COMPARATOR,
-            Serializer.BASIC_SERIALIZER, Serializer.BASIC_SERIALIZER);
+            Serializer.BASIC, Serializer.BASIC);
 
     @Test public void tuple2_simple() throws IOException {
         List<Fun.Tuple2<String,Integer>> v = new ArrayList<Fun.Tuple2<String, Integer>>();
@@ -104,7 +104,7 @@ public class BTreeKeySerializerTest {
 
     final BTreeKeySerializer.Tuple3KeySerializer tuple3_serializer = new BTreeKeySerializer.Tuple3KeySerializer(
             Utils.COMPARABLE_COMPARATOR,Utils.COMPARABLE_COMPARATOR,
-            Serializer.BASIC_SERIALIZER, Serializer.BASIC_SERIALIZER, Serializer.BASIC_SERIALIZER);
+            Serializer.BASIC, Serializer.BASIC, Serializer.BASIC);
 
     @Test public void tuple3_simple() throws IOException {
         List<Fun.Tuple3<String,Integer, Double>> v = new ArrayList<Fun.Tuple3<String, Integer, Double>>();
@@ -157,7 +157,7 @@ public class BTreeKeySerializerTest {
 
     final BTreeKeySerializer.Tuple4KeySerializer tuple4_serializer = new BTreeKeySerializer.Tuple4KeySerializer(
             Utils.COMPARABLE_COMPARATOR,Utils.COMPARABLE_COMPARATOR,Utils.COMPARABLE_COMPARATOR,
-            Serializer.BASIC_SERIALIZER, Serializer.BASIC_SERIALIZER, Serializer.BASIC_SERIALIZER, Serializer.BASIC_SERIALIZER);
+            Serializer.BASIC, Serializer.BASIC, Serializer.BASIC, Serializer.BASIC);
 
     @Test public void tuple4_simple() throws IOException {
         List<Fun.Tuple4<String,Integer, Double, Long>> v = new ArrayList<Fun.Tuple4<String, Integer, Double,Long>>();

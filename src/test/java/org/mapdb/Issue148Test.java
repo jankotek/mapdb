@@ -17,16 +17,16 @@ public class Issue148Test {
 
         String str = Utils.randomString(1000);
         Engine engine = DBMaker.newAppendFileDB(mapdbFile).closeOnJvmShutdown().cacheDisable().asyncWriteDisable().makeEngine();
-        long recid = engine.put(str,Serializer.STRING_SERIALIZER);
+        long recid = engine.put(str,Serializer.STRING_NOSIZE);
         engine.commit();
         engine.close();
 
         for(int i=10;i<100;i++){
             engine = DBMaker.newAppendFileDB(mapdbFile).closeOnJvmShutdown().cacheDisable().asyncWriteDisable().makeEngine();
-            assertEquals(str, engine.get(recid, Serializer.STRING_SERIALIZER));
+            assertEquals(str, engine.get(recid, Serializer.STRING_NOSIZE));
             str = Utils.randomString(i);
-            engine.update(recid,str,Serializer.STRING_SERIALIZER);
-            assertEquals(str, engine.get(recid, Serializer.STRING_SERIALIZER));
+            engine.update(recid,str,Serializer.STRING_NOSIZE);
+            assertEquals(str, engine.get(recid, Serializer.STRING_NOSIZE));
             engine.commit();
             engine.close();
         }
