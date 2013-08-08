@@ -43,7 +43,7 @@ package org.mapdb;
  *  * {@link StoraWAL} - permanent record store with transactions
  *  * {@link AsyncWriteEngine} - asynchronous writes to storage
  *  * {@link EngineWrapper.ByteTransformEngine} - compression or encryption (optional)
- *  * {@link CacheHashTable} - instance cache
+ *  * {@link org.mapdb.Caches.HashTable} - instance cache
  *  * {@link SnapshotEngine} - support for snapshots
  *  * **USER** - {@link DB} and collections
  *

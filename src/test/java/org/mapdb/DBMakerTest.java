@@ -57,7 +57,7 @@ public class DBMakerTest{
         verifyDB(db);
         EngineWrapper w = (EngineWrapper) db.engine;
         assertTrue(w instanceof SnapshotEngine);
-        assertFalse(w.getWrappedEngine().getClass() == CacheHashTable.class);
+        assertFalse(w.getWrappedEngine().getClass() == Caches.HashTable.class);
         assertTrue(w.getWrappedEngine().getClass() == AsyncWriteEngine.class);
     }
 
@@ -70,7 +70,7 @@ public class DBMakerTest{
                 .make();
         verifyDB(db);
         assertTrue(db.engine.getClass() == SnapshotEngine.class);
-        assertTrue(((SnapshotEngine)db.engine).getWrappedEngine().getClass() == CacheHashTable.class);
+        assertTrue(((SnapshotEngine)db.engine).getWrappedEngine().getClass() == Caches.HashTable.class);
 
     }
 
@@ -84,8 +84,8 @@ public class DBMakerTest{
         //check default values are set
         assertTrue(db.engine.getClass() == SnapshotEngine.class);
         EngineWrapper w = (EngineWrapper) ((SnapshotEngine) db.engine).getWrappedEngine();
-        assertTrue(w instanceof CacheHashTable);
-        assertEquals(1024 * 32, ((CacheHashTable) w).cacheMaxSize);
+        assertTrue(w instanceof Caches.HashTable);
+        assertEquals(1024 * 32, ((Caches.HashTable) w).cacheMaxSize);
         assertTrue(w.getWrappedEngine().getClass() == AsyncWriteEngine.class);
         AsyncWriteEngine r = (AsyncWriteEngine) w.getWrappedEngine();
         assertTrue(r.getWrappedEngine() instanceof StoreDirect);
@@ -101,7 +101,7 @@ public class DBMakerTest{
                 .snapshotDisable()
                 .make();
         verifyDB(db);
-        assertTrue(db.engine.getClass() == CacheHardRef.class);
+        assertTrue(db.engine.getClass() == Caches.HardRef.class);
     }
 
     @Test
@@ -113,8 +113,8 @@ public class DBMakerTest{
                 .cacheWeakRefEnable()
                 .make();
         verifyDB(db);
-        assertTrue(db.engine.getClass() == CacheWeakSoftRef.class);
-        assertTrue(((CacheWeakSoftRef)db.engine).useWeakRef);
+        assertTrue(db.engine.getClass() == Caches.WeakSoftRef.class);
+        assertTrue(((Caches.WeakSoftRef)db.engine).useWeakRef);
     }
 
 
@@ -127,8 +127,8 @@ public class DBMakerTest{
                 .snapshotDisable()
                 .make();
         verifyDB(db);
-        assertTrue(db.engine.getClass() == CacheWeakSoftRef.class);
-        assertFalse(((CacheWeakSoftRef)db.engine).useWeakRef);
+        assertTrue(db.engine.getClass() == Caches.WeakSoftRef.class);
+        assertFalse(((Caches.WeakSoftRef)db.engine).useWeakRef);
     }
 
     @Test
@@ -140,7 +140,7 @@ public class DBMakerTest{
                 .cacheLRUEnable()
                 .make();
         verifyDB(db);
-        assertTrue(db.engine.getClass() == CacheLRU.class);
+        assertTrue(db.engine.getClass() == Caches.LRU.class);
         db.close();
     }
 
@@ -153,7 +153,7 @@ public class DBMakerTest{
                 .cacheSize(1000)
                 .make();
         verifyDB(db);
-        assertEquals(1024, ((CacheHashTable) db.engine).cacheMaxSize);
+        assertEquals(1024, ((Caches.HashTable) db.engine).cacheMaxSize);
     }
 
     @Test public void read_only() throws IOException {

@@ -37,7 +37,7 @@ public class CacheWeakSoftRefTest {
         for(Integer i = 0;i<1000;i++){
             m.put(i,i);
         }
-        CacheWeakSoftRef engine = (CacheWeakSoftRef)db.engine;
+        Caches.WeakSoftRef engine = (Caches.WeakSoftRef)db.engine;
         assertTrue(engine.items.size()!=0);
 
         for(Integer i = 0;i<1000;i++){

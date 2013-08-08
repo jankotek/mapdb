@@ -747,25 +747,25 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         return new SnapshotEngine(engine);
     }
 
-    protected CacheLRU extendCacheLRU(Engine engine) {
-        return new CacheLRU(engine, _cacheSize);
+    protected Caches.LRU extendCacheLRU(Engine engine) {
+        return new Caches.LRU(engine, _cacheSize);
     }
 
-    protected CacheWeakSoftRef extendCacheWeakRef(Engine engine) {
-        return new CacheWeakSoftRef(engine,true);
+    protected Caches.WeakSoftRef extendCacheWeakRef(Engine engine) {
+        return new Caches.WeakSoftRef(engine,true);
     }
 
-    protected CacheWeakSoftRef extendCacheSoftRef(Engine engine) {
-        return new CacheWeakSoftRef(engine,false);
+    protected Caches.WeakSoftRef extendCacheSoftRef(Engine engine) {
+        return new Caches.WeakSoftRef(engine,false);
     }
 
 
-    protected CacheHardRef extendCacheHardRef(Engine engine) {
-        return new CacheHardRef(engine,_cacheSize);
+    protected Caches.HardRef extendCacheHardRef(Engine engine) {
+        return new Caches.HardRef(engine,_cacheSize);
     }
 
-    protected CacheHashTable extendCacheHashTable(Engine engine) {
-        return new CacheHashTable(engine,_cacheSize);
+    protected Caches.HashTable extendCacheHashTable(Engine engine) {
+        return new Caches.HashTable(engine,_cacheSize);
     }
 
     protected AsyncWriteEngine extendAsyncWriteEngine(Engine engine) {
