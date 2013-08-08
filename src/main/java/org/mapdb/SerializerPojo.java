@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.logging.Level;
 
 /**
  * Serializer which handles POJO, object graphs etc.
@@ -396,7 +395,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
     @Override
     protected void serializeUnknownObject(DataOutput out, Object obj, FastArrayList<Object> objectStack) throws IOException {
-        out.write(SerializationHeader.POJO);
+        out.write(Header.POJO);
 
         registerClass(obj.getClass());
 
@@ -439,7 +438,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
     @Override
     protected Object deserializeUnknownHeader(DataInput in, int head, FastArrayList<Object> objectStack) throws IOException {
-        if(head!=SerializationHeader.POJO) throw new InternalError();
+        if(head!= Header.POJO) throw new InternalError();
 
         //read class header
         try {

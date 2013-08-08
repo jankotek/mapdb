@@ -41,27 +41,21 @@ public class SerializerBaseTest extends TestCase {
                 127, 254, 255, 256, Short.MAX_VALUE, Short.MAX_VALUE + 1,
                 Short.MAX_VALUE * 2, Integer.MAX_VALUE
         };
-        for (int i : vals) {
+        for (Integer i : vals) {
             Object l2 = clone(i);
+            assertEquals(i, l2);
             assertTrue(l2.getClass() == Integer.class);
-            assertEquals(l2, i);
         }
     }
 
 
 
     public void testShort() throws IOException{
-        short[] vals = {
-                (short) (-Short.MIN_VALUE + 1),
-                (short) -Short.MIN_VALUE,
-                -10, -9, -8, -7, -6, -5, -4, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-                127, 254, 255, 256, Short.MAX_VALUE, Short.MAX_VALUE - 1,
-                Short.MAX_VALUE
-        };
-        for (short i : vals) {
-            Object l2 = clone(i);
+        for (int i = Short.MIN_VALUE;i<=Short.MAX_VALUE;i++) {
+            Short ii = (short)i;
+            Object l2 = clone(ii);
+            assertEquals(ii,l2);
             assertTrue(l2.getClass() == Short.class);
-            assertEquals(l2, i);
         }
     }
 
@@ -89,10 +83,8 @@ public class SerializerBaseTest extends TestCase {
     }
 
     public void testChar() throws IOException{
-        char[] vals = {
-                'a', ' '
-        };
-        for (char i : vals) {
+        for (int ii = Character.MIN_VALUE;ii<=Character.MAX_VALUE;ii++) {
+            Character i = (char)ii;
             Object l2 = clone(i);
             assertEquals(l2.getClass(), Character.class);
             assertEquals(l2, i);
@@ -173,15 +165,6 @@ public class SerializerBaseTest extends TestCase {
         assertEquals(c, clone((c)));
     }
 
-    public void testVector() throws ClassNotFoundException, IOException {
-        Collection c = new Vector();
-        for (int i = 0; i < 200; i++)
-            c.add(i);
-        assertEquals(c, clone((c)));
-        for (int i = 0; i < 2000; i++)
-            c.add(i);
-        assertEquals(c, clone((c)));
-    }
 
 
     public void testTreeSet() throws ClassNotFoundException, IOException {
@@ -244,15 +227,6 @@ public class SerializerBaseTest extends TestCase {
         assertEquals(c, clone((c)));
     }
 
-    public void testHashtable() throws ClassNotFoundException, IOException {
-        Map c = new Hashtable();
-        for (int i = 0; i < 200; i++)
-            c.put(i, i + 10000);
-        assertEquals(c, clone((c)));
-        for (int i = 0; i < 2000; i++)
-            c.put(i, i + 10000);
-        assertEquals(c, clone((c)));
-    }
 
     public void testProperties() throws ClassNotFoundException, IOException {
         Properties c = new Properties();
@@ -359,13 +333,6 @@ public class SerializerBaseTest extends TestCase {
     }
 
 
-    public void testLocale() throws Exception{
-        assertEquals(Locale.FRANCE, clone((Locale.FRANCE)));
-        assertEquals(Locale.CANADA_FRENCH, clone((Locale.CANADA_FRENCH)));
-        assertEquals(Locale.SIMPLIFIED_CHINESE, clone((Locale.SIMPLIFIED_CHINESE)));
-
-    }
-
     public void testUUID() throws IOException, ClassNotFoundException {
         //try a bunch of UUIDs.
         for(int i = 0; i < 1000;i++)
@@ -453,15 +420,7 @@ public class SerializerBaseTest extends TestCase {
 
     /** clone value using serialization */
     <E> E clone(E value) throws IOException {
-        try{
-            DataOutput2 out = new DataOutput2();
-            Serializer.BASIC_SERIALIZER.serialize(out, value);
-            DataInput2 in = new DataInput2(ByteBuffer.wrap(out.copyBytes()), 0);
-
-            return (E) Serializer.BASIC_SERIALIZER.deserialize(in,out.pos);
-        }catch(IOException ee){
-            throw new IOError(ee);
-        }
+        return Utils.clone(value,(Serializer<E>)Serializer.BASIC_SERIALIZER);
     }
 
     public static class SerializerBaseTestWithJUDataStreams extends SerializerBaseTest{
@@ -475,4 +434,3 @@ public class SerializerBaseTest extends TestCase {
     }
 
 }
-

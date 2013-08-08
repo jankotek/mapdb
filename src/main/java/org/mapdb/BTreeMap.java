@@ -33,7 +33,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
-import static org.mapdb.SerializationHeader.*;
 
 /**
  * A scalable concurrent {@link ConcurrentNavigableMap} implementation.
@@ -97,6 +96,14 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         implements ConcurrentNavigableMap<K,V>, Bind.MapWithModificationListener<K,V>{
 
 
+    protected static final int B_TREE_NODE_LEAF_LR = 180;
+    protected static final int B_TREE_NODE_LEAF_L = 181;
+    protected static final int B_TREE_NODE_LEAF_R = 182;
+    protected static final int B_TREE_NODE_LEAF_C = 183;
+    protected static final int B_TREE_NODE_DIR_LR = 184;
+    protected static final int B_TREE_NODE_DIR_L = 185;
+    protected static final int B_TREE_NODE_DIR_R = 186;
+    protected static final int B_TREE_NODE_DIR_C = 187;
 
 
 

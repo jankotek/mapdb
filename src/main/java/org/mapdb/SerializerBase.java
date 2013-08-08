@@ -21,7 +21,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.*;
 
-import static org.mapdb.SerializationHeader.*;
+import static org.mapdb.SerializerBase.Header.*;
 
 /**
  * Serializer which uses 'header byte' to serialize/deserialize
@@ -141,32 +141,198 @@ public class SerializerBase implements Serializer{
                 out.write(BOOLEAN_FALSE);
             return;
         } else if (clazz == Integer.class) {
-            final int val = (Integer) obj;
-            writeInteger(out, val);
+            int val = (Integer) obj;
+            if(val>=-9 && val<=16){
+                out.write(INT_M9 + (val + 9));
+            }else if (val == Integer.MIN_VALUE){
+                out.write(INT_MIN_VALUE);
+            }else if (val == Integer.MAX_VALUE){
+                out.write(INT_MAX_VALUE);
+            }else if ((val&0xFF)==val) {
+                out.write(INT_F1);
+                out.write(val);
+            }else if (((-val)&0xFF)==val) {
+                out.write(INT_MF1);
+                out.write(-val);
+            }else if ((val&0xFFFF)==val) {
+                out.write(INT_F2);
+                out.write(val & 0xFF);
+                out.write(val>>>8&0xFF);
+            }else if (((-val)&0xFFFF)==val) {
+                out.write(INT_MF2);
+                val-=val;
+                out.write(val&0xFF);
+                out.write(val>>>8&0xFF);
+            }else if ((val&0xFFFFFF)==val) {
+                out.write(INT_F3);
+                out.write(val & 0xFF);
+                out.write(val>>>8&0xFF);
+                out.write(val>>>16&0xFF);
+            }else if (((-val)&0xFFFFFF)==val) {
+                out.write(INT_MF3);
+                val-=val;
+                out.write(val&0xFF);
+                out.write((val>>>8)&0xFF);
+                out.write((val>>>16)&0xFF);
+            } else{
+                out.write(INT);
+                out.writeInt(val);
+            }
             return;
-        } else if (clazz == Double.class) {
-            double v = (Double) obj;
-            if (v == -1d)
-                out.write(DOUBLE_MINUS_1);
-            else if (v == 0d)
-                out.write(DOUBLE_0);
-            else if (v == 1d)
-                out.write(DOUBLE_1);
-            else if (v >= 0 && v <= 255 && (int) v == v) {
-                out.write(DOUBLE_255);
-                out.write((int) v);
-            } else if (v >= Short.MIN_VALUE && v <= Short.MAX_VALUE && (short) v == v) {
-                out.write(DOUBLE_SHORT);
-                out.writeShort((int) v);
+        } else if (clazz == Long.class) {
+            long val = (Long) obj;
+            if(val>=-9 && val<=16){
+                out.write((int) (LONG_M9 + (val + 9)));
+            }else if (val == Long.MIN_VALUE){
+                out.write(LONG_MIN_VALUE);
+            }else if (val == Long.MAX_VALUE){
+                out.write(LONG_MAX_VALUE);
+            }else if ((val&0xFFL)==val) {
+                out.write(LONG_F1);
+                out.write((int) val);
+            }else if (((-val)&0xFFL)==val) {
+                out.write(LONG_MF1);
+                out.write((int) -val);
+            }else if ((val&0xFFFFL)==val) {
+                out.write(LONG_F2);
+                out.write((int) (val & 0xFF));
+                out.write((int) (val>>>8&0xFF));
+            }else if (((-val)&0xFFFFL)==val) {
+                out.write(LONG_MF2);
+                val-=val;
+                out.write((int) (val&0xFF));
+                out.write((int) (val>>>8&0xFF));
+            }else if ((val&0xFFFFFFL)==val) {
+                out.write(LONG_F3);
+                out.write((int) (val & 0xFF));
+                out.write((int) (val>>>8&0xFF));
+                out.write((int) (val>>>16&0xFF));
+            }else if (((-val)&0xFFFFFFL)==val) {
+                out.write(LONG_MF3);
+                val-=val;
+                out.write((int) (val&0xFF));
+                out.write((int) ((val>>>8)&0xFF));
+                out.write((int) ((val>>>16)&0xFF));
+            }else if ((val&0xFFFFFFFFL)==val) {
+                out.write(LONG_F4);
+                out.write((int) (val & 0xFF));
+                out.write((int) (val>>>8&0xFF));
+                out.write((int) (val>>>16&0xFF));
+                out.write((int) (val>>>24&0xFF));
+            }else if (((-val)&0xFFFFFFFFL)==val) {
+                out.write(LONG_MF4);
+                val-=val;
+                out.write((int) (val&0xFF));
+                out.write((int) ((val>>>8)&0xFF));
+                out.write((int) ((val>>>16)&0xFF));
+                out.write((int) ((val>>>24)&0xFF));
+            }else if ((val&0xFFFFFFFFFFL)==val) {
+                out.write(LONG_F5);
+                out.write((int) (val & 0xFF));
+                out.write((int) (val>>>8&0xFF));
+                out.write((int) (val>>>16&0xFF));
+                out.write((int) (val>>>24&0xFF));
+                out.write((int) (val>>>32&0xFF));
+            }else if (((-val)&0xFFFFFFFFFFL)==val) {
+                out.write(LONG_MF5);
+                val-=val;
+                out.write((int) (val&0xFF));
+                out.write((int) ((val>>>8)&0xFF));
+                out.write((int) ((val>>>16)&0xFF));
+                out.write((int) ((val>>>24)&0xFF));
+                out.write((int) ((val>>>32)&0xFF));
+            }else if ((val&0xFFFFFFFFFFFFL)==val) {
+                out.write(LONG_F6);
+                out.write((int) (val & 0xFF));
+                out.write((int) (val>>>8&0xFF));
+                out.write((int) (val>>>16&0xFF));
+                out.write((int) (val>>>24&0xFF));
+                out.write((int) (val>>>32&0xFF));
+                out.write((int) (val>>>40&0xFF));
+            }else if (((-val)&0xFFFFFFFFFFFFL)==val) {
+                out.write(LONG_MF6);
+                val-=val;
+                out.write((int) (val&0xFF));
+                out.write((int) ((val>>>8)&0xFF));
+                out.write((int) ((val>>>16)&0xFF));
+                out.write((int) ((val>>>24)&0xFF));
+                out.write((int) ((val>>>32)&0xFF));
+                out.write((int) ((val>>>40)&0xFF));
+            }else if ((val&0xFFFFFFFFFFFFFFL)==val) {
+                out.write(LONG_F7);
+                out.write((int) (val & 0xFF));
+                out.write((int) (val>>>8&0xFF));
+                out.write((int) (val>>>16&0xFF));
+                out.write((int) (val>>>24&0xFF));
+                out.write((int) (val>>>32&0xFF));
+                out.write((int) (val>>>40&0xFF));
+                out.write((int) (val>>>48&0xFF));
+            }else if (((-val)&0xFFFFFFFFFFFFL)==val) {
+                out.write(LONG_MF7);
+                val-=val;
+                out.write((int) (val&0xFF));
+                out.write((int) ((val>>>8)&0xFF));
+                out.write((int) ((val>>>16)&0xFF));
+                out.write((int) ((val>>>24)&0xFF));
+                out.write((int) ((val>>>32)&0xFF));
+                out.write((int) ((val>>>40)&0xFF));
+                out.write((int) ((val>>>48)&0xFF));
+
+            } else{
+                out.write(LONG);
+                out.writeLong(val);
+            }
+            return;
+        } else if (clazz == Byte.class) {
+            byte val = (Byte) obj;
+            if (val == -1)
+                out.write(BYTE_M1);
+            else if (val == 0)
+                out.write(BYTE_0);
+            else if (val == 1)
+                out.write(BYTE_1);
+            else {
+                out.write(BYTE);
+                out.writeByte(val);
+            }
+            return;
+        } else if (clazz == Character.class) {
+            char val = (Character)obj;
+            if(val==0){
+                out.write(CHAR_0);
+            }else if(val==1){
+                out.write(CHAR_1);
+            }else if (val<=255){
+                out.write(CHAR_255);
+                out.write(val);
+            }else{
+                out.write(CHAR);
+                out.writeChar((Character) obj);
+            }
+            return;
+        } else if (clazz == Short.class) {
+            short val = (Short) obj;
+            if (val == -1){
+                out.write(SHORT_M1);
+            }else if (val == 0){
+                out.write(SHORT_0);
+            }else if (val == 1){
+                out.write(SHORT_1);
+            }else if (val > 0 && val < 255) {
+                out.write(SHORT_255);
+                out.write(val);
+            }else if (val < 0 && val > -255) {
+                out.write(SHORT_M255);
+                out.write(-val);
             } else {
-                out.write(DOUBLE_FULL);
-                out.writeDouble(v);
+                out.write(SHORT);
+                out.writeShort(val);
             }
             return;
         } else if (clazz == Float.class) {
             float v = (Float) obj;
             if (v == -1f)
-                out.write(FLOAT_MINUS_1);
+                out.write(FLOAT_M1);
             else if (v == 0f)
                 out.write(FLOAT_0);
             else if (v == 1f)
@@ -177,10 +343,141 @@ public class SerializerBase implements Serializer{
             } else if (v >= Short.MIN_VALUE && v <= Short.MAX_VALUE && (short) v == v) {
                 out.write(FLOAT_SHORT);
                 out.writeShort((int) v);
-
             } else {
-                out.write(FLOAT_FULL);
+                out.write(FLOAT);
                 out.writeFloat(v);
+            }
+            return;
+        } else if (clazz == Double.class) {
+            double v = (Double) obj;
+            if (v == -1D){
+                out.write(DOUBLE_M1);
+            }else if (v == 0D){
+                out.write(DOUBLE_0);
+            }else if (v == 1D){
+                out.write(DOUBLE_1);
+            }else if (v >= 0 && v <= 255 && (int) v == v) {
+                out.write(DOUBLE_255);
+                out.write((int) v);
+            } else if (v >= Short.MIN_VALUE && v <= Short.MAX_VALUE && (short) v == v) {
+                out.write(DOUBLE_SHORT);
+                out.writeShort((int) v);
+            } else if (v >= Integer.MIN_VALUE && v <= Integer.MAX_VALUE && (int) v == v) {
+                out.write(DOUBLE_INT);
+                out.writeInt((int) v);
+            } else {
+                out.write(DOUBLE);
+                out.writeDouble(v);
+            }
+             return;
+        } else if (obj instanceof byte[]) {
+            byte[] b = (byte[]) obj;
+            serializeByteArray(out, b);
+            return;
+
+        } else if (obj instanceof boolean[]) {
+            out.write(ARRAY_BOOLEAN);
+            boolean[] a_bool = (boolean[]) obj;
+            Utils.packInt(out, a_bool.length);//write the number of booleans not the number of bytes
+            byte[] a = booleanToByteArray(a_bool);
+            out.write(a);
+            return;
+        } else if (obj instanceof short[]) {
+            out.write(ARRAY_SHORT);
+            short[] a = (short[]) obj;
+            Utils.packInt(out, a.length);
+            for(short s:a) out.writeShort(s);
+            return;
+        } else if (obj instanceof char[]) {
+            out.write(ARRAY_CHAR);
+            char[] a = (char[]) obj;
+            Utils.packInt(out, a.length);
+            for(char s:a) out.writeChar(s);
+            return;
+        } else if (obj instanceof float[]) {
+            out.write(ARRAY_FLOAT);
+            float[] a = (float[]) obj;
+            Utils.packInt(out, a.length);
+            for(float s:a) out.writeFloat(s);
+            return;
+        } else if (obj instanceof double[]) {
+            out.write(ARRAY_DOUBLE);
+            double[] a = (double[]) obj;
+            Utils.packInt(out, a.length);
+            for(double s:a) out.writeDouble(s);
+            return;
+        } else if (obj instanceof int[]) {
+            int[] val = (int[]) obj;
+            int max = Integer.MIN_VALUE;
+            int min = Integer.MAX_VALUE;
+            for (int i : val) {
+                max = Math.max(max, i);
+                min = Math.min(min, i);
+            }
+            if (Byte.MIN_VALUE<=min && max<=Byte.MAX_VALUE) {
+                out.write(ARRAY_INT_BYTE);
+                Utils.packInt(out, val.length);
+                for (int i : val) out.write(i);
+            }else if (Short.MIN_VALUE <= min && max <= Short.MAX_VALUE){
+                out.write(ARRAY_INT_SHORT);
+                Utils.packInt(out, val.length);
+                for (int i : val) out.writeShort(i);
+            } else if (0 <= min) {
+                out.write(ARRAY_INT_PACKED);
+                Utils.packInt(out, val.length);
+                for (int l : val) Utils.packInt(out, l);
+            } else {
+                out.write(ARRAY_INT);
+                Utils.packInt(out, val.length);
+                for (int i : val) out.writeInt(i);
+            }
+            return;
+        } else if (obj instanceof long[]) {
+            long[] val = (long[]) obj;
+            long max = Long.MIN_VALUE;
+            long min = Long.MAX_VALUE;
+            for (long i : val) {
+                max = Math.max(max, i);
+                min = Math.min(min, i);
+            }
+            if (Byte.MIN_VALUE<=min && max<=Byte.MAX_VALUE) {
+                out.write(ARRAY_LONG_BYTE);
+                Utils.packInt(out, val.length);
+                for (long i : val) out.write((int) i);
+            }else if (Short.MIN_VALUE <= min && max <= Short.MAX_VALUE){
+                out.write(ARRAY_LONG_SHORT);
+                Utils.packInt(out, val.length);
+                for (long i : val) out.writeShort((int) i);
+            } else if (0 <= min) {
+                out.write(ARRAY_LONG_PACKED);
+                Utils.packInt(out, val.length);
+                for (long l : val) Utils.packLong(out, l);
+            }else if (Integer.MIN_VALUE <= min && max <= Integer.MAX_VALUE){
+                out.write(ARRAY_LONG_INT);
+                Utils.packInt(out, val.length);
+                for (long i : val) out.writeInt((int) i);
+            } else {
+                out.write(ARRAY_LONG);
+                Utils.packInt(out, val.length);
+                for (long i : val) out.writeLong(i);
+            }
+            return;
+        } else if (clazz == String.class) {
+            String val = (String) obj;
+            int len = val.length();
+            if(len == 0){
+                out.write(STRING_0);
+            }else{
+                if (len<=10){
+                    out.write(STRING_0+len);
+                }else{
+                    out.write(STRING);
+                    Utils.packInt(out,len);
+                }
+                //TODO investigate if c could be negative here
+                //TODO how about characters over 65K
+                for (int i = 0; i < len; i++)
+                    Utils.packInt(out,(int)((String) obj).charAt(i));
             }
             return;
         } else if (clazz == BigInteger.class) {
@@ -197,90 +494,9 @@ public class SerializerBase implements Serializer{
             out.write(buf);
             Utils.packInt(out, d.scale());
             return;
-        } else if (clazz == Long.class) {
-            final long val = (Long) obj;
-            writeLong(out, val);
-            return;
-        } else if (clazz == Short.class) {
-            short val = (Short) obj;
-            if (val == -1)
-                out.write(SHORT_MINUS_1);
-            else if (val == 0)
-                out.write(SHORT_0);
-            else if (val == 1)
-                out.write(SHORT_1);
-            else if (val > 0 && val < 255) {
-                out.write(SHORT_255);
-                out.write(val);
-            } else {
-                out.write(SHORT_FULL);
-                out.writeShort(val);
-            }
-            return;
-        } else if (clazz == Byte.class) {
-            byte val = (Byte) obj;
-            if (val == -1)
-                out.write(BYTE_MINUS_1);
-            else if (val == 0)
-                out.write(BYTE_0);
-            else if (val == 1)
-                out.write(BYTE_1);
-            else {
-                out.write(BYTE_FULL);
-                out.writeByte(val);
-            }
-            return;
-        } else if (clazz == Character.class) {
-            out.write(CHAR);
-            out.writeChar((Character) obj);
-            return;
-        } else if (clazz == String.class) {
-            serializeString(out, (String)obj);
-            return;
         } else if (obj instanceof Class) {
             out.write(CLASS);
-            serializeClass(out, (Class)obj);
-            return;
-        } else if (obj instanceof int[]) {
-            writeIntArray(out, (int[]) obj);
-            return;
-        } else if (obj instanceof long[]) {
-            writeLongArray(out, (long[]) obj);
-            return;
-        } else if (obj instanceof short[]) {
-            out.write(SHORT_ARRAY);
-            short[] a = (short[]) obj;
-            Utils.packInt(out, a.length);
-            for(short s:a) out.writeShort(s);
-            return;
-        } else if (obj instanceof boolean[]) {
-            out.write(BOOLEAN_ARRAY);
-            boolean[] a_bool = (boolean[]) obj;
-            Utils.packInt(out, a_bool.length);//write the number of booleans not the number of bytes
-            byte[] a = booleanToByteArray(a_bool);
-            out.write(a);
-            return;
-        } else if (obj instanceof double[]) {
-            out.write(DOUBLE_ARRAY);
-            double[] a = (double[]) obj;
-            Utils.packInt(out, a.length);
-            for(double s:a) out.writeDouble(s);
-            return;
-        } else if (obj instanceof float[]) {
-            out.write(FLOAT_ARRAY);
-            float[] a = (float[]) obj;
-            Utils.packInt(out, a.length);
-            for(float s:a) out.writeFloat(s);
-            return;
-        } else if (obj instanceof char[]) {
-            out.write(CHAR_ARRAY);
-            char[] a = (char[]) obj;
-            Utils.packInt(out, a.length);
-            for(char s:a) out.writeChar(s);
-            return;
-        } else if (obj instanceof byte[]) {
-            byte[] b = (byte[]) obj;
-            serializeByteArray(out, b);
+            serializeClass(out, (Class) obj);
             return;
         } else if (clazz == Date.class) {
             out.write(DATE);
@@ -291,44 +507,56 @@ public class SerializerBase implements Serializer{
             out.writeLong(((UUID) obj).getMostSignificantBits());
             out.writeLong(((UUID)obj).getLeastSignificantBits());
             return;
-        } else if(clazz == BTreeKeySerializer.BasicKeySerializer.class){
-            out.write(B_TREE_BASIC_KEY_SERIALIZER);
-            if(((BTreeKeySerializer.BasicKeySerializer)obj).defaultSerializer!=this) throw new InternalError();
-            return;
-        } else if(obj == BTreeKeySerializer.ZERO_OR_POSITIVE_LONG){
-            out.write(B_TREE_SERIALIZER_POS_LONG);
-            return;
-        } else if(obj == BTreeKeySerializer.ZERO_OR_POSITIVE_INT){
-            out.write(B_TREE_SERIALIZER_POS_INT);
-            return;
-        } else if(obj == Serializer.STRING_SERIALIZER){
-            out.write(SerializationHeader.STRING_SERIALIZER);
-            return;
-        } else if(obj == Serializer.LONG_SERIALIZER){
-            out.write(SerializationHeader.LONG_SERIALIZER);
-            return;
-        } else if(obj == Serializer.INTEGER_SERIALIZER){
-            out.write(SerializationHeader.INTEGER_SERIALIZER);
-            return;
-        } else if(obj == Serializer.EMPTY_SERIALIZER){
-            out.write(SerializationHeader.EMPTY_SERIALIZER);
-            return;
-        } else if(obj == BTreeKeySerializer.STRING){
-            out.write(B_TREE_SERIALIZER_STRING);
-            return;
-        } else if(obj == Utils.COMPARABLE_COMPARATOR){
-            out.write(COMPARABLE_COMPARATOR);
-            return;
-        } else if(obj == Utils.COMPARABLE_COMPARATOR_WITH_NULLS){
-            out.write(COMPARABLE_COMPARATOR_WITH_NULLS);
-            return;
-        } else if(obj == BASIC_SERIALIZER){
-            out.write(SerializationHeader.BASIC_SERIALIZER);
-            return;
         } else if(obj == Fun.HI){
             out.write(FUN_HI);
+        } else if(clazz == BTreeKeySerializer.BasicKeySerializer.class){
+            out.write(MAPDB);
+            Utils.packInt(out, HeaderMapDB.B_TREE_BASIC_KEY_SERIALIZER);
+            assert(((BTreeKeySerializer.BasicKeySerializer)obj).defaultSerializer==this);
+            return;
+        } else if(obj == BTreeKeySerializer.ZERO_OR_POSITIVE_LONG){
+            out.write(MAPDB);
+            Utils.packInt(out, HeaderMapDB.B_TREE_SERIALIZER_POS_LONG);
+            return;
+        } else if(obj == BTreeKeySerializer.ZERO_OR_POSITIVE_INT){
+            out.write(MAPDB);
+            Utils.packInt(out, HeaderMapDB.B_TREE_SERIALIZER_POS_INT);
+            return;
+        } else if(obj == Serializer.STRING_SERIALIZER){
+            out.write(MAPDB);
+            Utils.packInt(out, HeaderMapDB.STRING_SERIALIZER);
+            return;
+        } else if(obj == Serializer.LONG_SERIALIZER){
+            out.write(MAPDB);
+            Utils.packInt(out,HeaderMapDB.LONG_SERIALIZER);
+            return;
+        } else if(obj == Serializer.INTEGER_SERIALIZER){
+            out.write(MAPDB);
+            Utils.packInt(out, HeaderMapDB.INT_SERIALIZER);
+            return;
+        } else if(obj == Serializer.EMPTY_SERIALIZER){
+            out.write(MAPDB);
+            Utils.packInt(out, HeaderMapDB.EMPTY_SERIALIZER);
+            return;
+        } else if(obj == BTreeKeySerializer.STRING){
+            out.write(MAPDB);
+            Utils.packInt(out, HeaderMapDB.B_TREE_SERIALIZER_STRING);
+            return;
+        } else if(obj == Utils.COMPARABLE_COMPARATOR){
+            out.write(MAPDB);
+            Utils.packInt(out, HeaderMapDB.COMPARABLE_COMPARATOR);
+            return;
+        } else if(obj == Utils.COMPARABLE_COMPARATOR_WITH_NULLS){
+            out.write(MAPDB);
+            Utils.packInt(out, HeaderMapDB.COMPARABLE_COMPARATOR_WITH_NULLS);
+            return;
+        } else if(obj == BASIC_SERIALIZER){
+            out.write(MAPDB);
+            Utils.packInt(out,HeaderMapDB.BASIC_SERIALIZER);
+            return;
         } else if(obj == this){
-            out.write(THIS_SERIALIZER);
+            out.write(MAPDB);
+            Utils.packInt(out, HeaderMapDB.THIS_SERIALIZER);
             return;
         }
 
@@ -427,8 +655,6 @@ public class SerializerBase implements Serializer{
 
         } else if (clazz == java.util.LinkedList.class) {
             serializeCollection(LINKEDLIST, out, obj, objectStack);
-        } else if (clazz == Vector.class) {
-            serializeCollection(VECTOR, out, obj, objectStack);
         } else if (clazz == TreeSet.class) {
             TreeSet l = (TreeSet) obj;
             out.write(TREESET);
@@ -451,20 +677,10 @@ public class SerializerBase implements Serializer{
             }
         } else if (clazz == HashMap.class) {
             serializeMap(HASHMAP, out, obj, objectStack);
-        } else if (clazz == IdentityHashMap.class) {
-            serializeMap(IDENTITYHASHMAP, out, obj, objectStack);
         } else if (clazz == LinkedHashMap.class) {
             serializeMap(LINKEDHASHMAP, out, obj, objectStack);
-        } else if (clazz == Hashtable.class) {
-            serializeMap(HASHTABLE, out, obj, objectStack);
         } else if (clazz == Properties.class) {
             serializeMap(PROPERTIES, out, obj, objectStack);
-        } else if (clazz == Locale.class){
-            out.write(LOCALE);
-            Locale l = (Locale) obj;
-            out.writeUTF(l.getLanguage());
-            out.writeUTF(l.getCountry());
-            out.writeUTF(l.getVariant());
         } else if (clazz == Fun.Tuple2.class){
             out.write(TUPLE2);
             Fun.Tuple2 t = (Fun.Tuple2) obj;
@@ -484,13 +700,15 @@ public class SerializerBase implements Serializer{
             serialize(out, t.c, objectStack);
             serialize(out, t.d, objectStack);
         } else if (clazz == BTreeKeySerializer.Tuple2KeySerializer.class){
-            out.write(KEY_TUPLE2_SERIALIZER);
+            out.write(MAPDB);
+            Utils.packInt(out,HeaderMapDB.KEY_TUPLE2_SERIALIZER);
             BTreeKeySerializer.Tuple2KeySerializer s = (BTreeKeySerializer.Tuple2KeySerializer) obj;
             serialize(out, s.aComparator);
             serialize(out, s.aSerializer);
             serialize(out, s.bSerializer);
         } else if (clazz == BTreeKeySerializer.Tuple3KeySerializer.class){
-            out.write(KEY_TUPLE3_SERIALIZER);
+            out.write(MAPDB);
+            Utils.packInt(out,HeaderMapDB.KEY_TUPLE3_SERIALIZER);
             BTreeKeySerializer.Tuple3KeySerializer s = (BTreeKeySerializer.Tuple3KeySerializer) obj;
             serialize(out, s.aComparator);
             serialize(out, s.bComparator);
@@ -498,7 +716,8 @@ public class SerializerBase implements Serializer{
             serialize(out, s.bSerializer);
             serialize(out, s.cSerializer);
         } else if (clazz == BTreeKeySerializer.Tuple4KeySerializer.class){
-            out.write(KEY_TUPLE4_SERIALIZER);
+            out.write(MAPDB);
+            Utils.packInt(out,HeaderMapDB.KEY_TUPLE4_SERIALIZER);
             BTreeKeySerializer.Tuple4KeySerializer s = (BTreeKeySerializer.Tuple4KeySerializer) obj;
             serialize(out, s.aComparator);
             serialize(out, s.bComparator);
@@ -519,29 +738,6 @@ public class SerializerBase implements Serializer{
         out.writeUTF(clazz.getName());
     }
 
-
-    static void serializeString(DataOutput out, String obj) throws IOException {
-        final int len = obj.length();
-        switch(len){
-            case 0: out.write(STRING_EMPTY);return;
-            case 1: out.write(STRING_1);break;
-            case 2: out.write(STRING_2);break;
-            case 3: out.write(STRING_3);break;
-            case 4: out.write(STRING_4);break;
-            case 5: out.write(STRING_5);break;
-            case 6: out.write(STRING_6);break;
-            case 7: out.write(STRING_7);break;
-            case 8: out.write(STRING_8);break;
-            case 9: out.write(STRING_9);break;
-            case 10: out.write(STRING_10);break;
-            default:out.write(STRING);Utils.packInt(out, len);break;
-        }
-        for (int i = 0; i < len; i++) {
-            int c = (int) obj.charAt(i); //TODO investigate if c could be negative here
-            Utils.packInt(out, c);
-        }
-
-    }
 
     private void serializeMap(int header, DataOutput out, Object obj, FastArrayList<Object> objectStack) throws IOException {
         Map l = (Map) obj;
@@ -584,158 +780,6 @@ public class SerializerBase implements Serializer{
     }
 
 
-    private void writeLongArray(DataOutput da, long[] obj) throws IOException {
-        long max = Long.MIN_VALUE;
-        long min = Long.MAX_VALUE;
-        for (long i : obj) {
-            max = Math.max(max, i);
-            min = Math.min(min, i);
-        }
-
-        if (0 <= min && max <= 255) {
-            da.write(ARRAY_LONG_B);
-            Utils.packInt(da, obj.length);
-            for (long l : obj)
-                da.write((int) l);
-        } else if (0 <= min) {
-            da.write(ARRAY_LONG_PACKED);
-            Utils.packInt(da, obj.length);
-            for (long l : obj)
-                Utils.packLong(da, l);
-        } else if (Short.MIN_VALUE <= min && max <= Short.MAX_VALUE) {
-            da.write(ARRAY_LONG_S);
-            Utils.packInt(da, obj.length);
-            for (long l : obj)
-                da.writeShort((short) l);
-        } else if (Integer.MIN_VALUE <= min && max <= Integer.MAX_VALUE) {
-            da.write(ARRAY_LONG_I);
-            Utils.packInt(da, obj.length);
-            for (long l : obj)
-                da.writeInt((int) l);
-        } else {
-            da.write(ARRAY_LONG_L);
-            Utils.packInt(da, obj.length);
-            for (long l : obj)
-                da.writeLong(l);
-        }
-
-    }
-
-
-    private void writeIntArray(DataOutput da, int[] obj) throws IOException {
-        int max = Integer.MIN_VALUE;
-        int min = Integer.MAX_VALUE;
-        for (int i : obj) {
-            max = Math.max(max, i);
-            min = Math.min(min, i);
-        }
-
-        boolean fitsInByte = 0 <= min && max <= 255;
-        boolean fitsInShort = Short.MIN_VALUE >= min && max <= Short.MAX_VALUE;
-
-
-        if (obj.length <= 255 && fitsInByte) {
-            da.write(ARRAY_INT_B_255);
-            da.write(obj.length);
-            for (int i : obj)
-                da.write(i);
-        } else if (fitsInByte) {
-            da.write(ARRAY_INT_B_INT);
-            Utils.packInt(da, obj.length);
-            for (int i : obj)
-                da.write(i);
-        } else if (0 <= min) {
-            da.write(ARRAY_INT_PACKED);
-            Utils.packInt(da, obj.length);
-            for (int l : obj)
-                Utils.packInt(da, l);
-        } else if (fitsInShort) {
-            da.write(ARRAY_INT_S);
-            Utils.packInt(da, obj.length);
-            for (int i : obj)
-                da.writeShort(i);
-        } else {
-            da.write(ARRAY_INT_I);
-            Utils.packInt(da, obj.length);
-            for (int i : obj)
-                da.writeInt(i);
-        }
-
-    }
-
-
-    private void writeInteger(DataOutput da, final int val) throws IOException {
-        if (val == -1)
-            da.write(INTEGER_MINUS_1);
-        else if (val == 0)
-            da.write(INTEGER_0);
-        else if (val == 1)
-            da.write(INTEGER_1);
-        else if (val == 2)
-            da.write(INTEGER_2);
-        else if (val == 3)
-            da.write(INTEGER_3);
-        else if (val == 4)
-            da.write(INTEGER_4);
-        else if (val == 5)
-            da.write(INTEGER_5);
-        else if (val == 6)
-            da.write(INTEGER_6);
-        else if (val == 7)
-            da.write(INTEGER_7);
-        else if (val == 8)
-            da.write(INTEGER_8);
-        else if (val == Integer.MIN_VALUE)
-            da.write(INTEGER_MINUS_MAX);
-        else if (val > 0 && val < 255) {
-            da.write(INTEGER_255);
-            da.write(val);
-        } else if (val < 0) {
-            da.write(INTEGER_PACK_NEG);
-            Utils.packInt(da, -val);
-        } else {
-            da.write(INTEGER_PACK);
-            Utils.packInt(da, val);
-        }
-    }
-
-    private void writeLong(DataOutput da, final long val) throws IOException {
-        if (val == -1)
-            da.write(LONG_MINUS_1);
-        else if (val == 0)
-            da.write(LONG_0);
-        else if (val == 1)
-            da.write(LONG_1);
-        else if (val == 2)
-            da.write(LONG_2);
-        else if (val == 3)
-            da.write(LONG_3);
-        else if (val == 4)
-            da.write(LONG_4);
-        else if (val == 5)
-            da.write(LONG_5);
-        else if (val == 6)
-            da.write(LONG_6);
-        else if (val == 7)
-            da.write(LONG_7);
-        else if (val == 8)
-            da.write(LONG_8);
-        else if (val == Long.MIN_VALUE)
-            da.write(LONG_MINUS_MAX);
-        else if (val > 0 && val < 255) {
-            da.write(LONG_255);
-            da.write((int) val);
-        } else if (val < 0) {
-            da.write(LONG_PACK_NEG);
-            Utils.packLong(da, -val);
-        } else {
-            da.write(LONG_PACK);
-            Utils.packLong(da, val);
-        }
-    }
-
-
-
     static String deserializeString(DataInput buf, int len) throws IOException {
         char[] b = new char[len];
         for (int i = 0; i < len; i++)
@@ -759,6 +803,8 @@ public class SerializerBase implements Serializer{
 
         /** first try to deserialize object without allocating object stack*/
         switch (head) {
+            case ZERO_FAIL:
+                throw new IOError(new IOException("Zero Header, data corrupted"));
             case NULL:
                 break;
             case BOOLEAN_TRUE:
@@ -767,144 +813,199 @@ public class SerializerBase implements Serializer{
             case BOOLEAN_FALSE:
                 ret = Boolean.FALSE;
                 break;
-            case INTEGER_MINUS_1:
-                ret = -1;
+            case INT_M9:
+            case INT_M8:
+            case INT_M7:
+            case INT_M6:
+            case INT_M5:
+            case INT_M4:
+            case INT_M3:
+            case INT_M2:
+            case INT_M1:
+            case INT_0:
+            case INT_1:
+            case INT_2:
+            case INT_3:
+            case INT_4:
+            case INT_5:
+            case INT_6:
+            case INT_7:
+            case INT_8:
+            case INT_9:
+            case INT_10:
+            case INT_11:
+            case INT_12:
+            case INT_13:
+            case INT_14:
+            case INT_15:
+            case INT_16:
+                ret = Integer.valueOf(head-INT_M9-9);
                 break;
-            case INTEGER_0:
-                ret = 0;
+            case INT_MIN_VALUE:
+                ret = Integer.valueOf(Integer.MIN_VALUE);
                 break;
-            case INTEGER_1:
-                ret = 1;
+            case INT_MAX_VALUE:
+                ret = Integer.valueOf(Integer.MAX_VALUE);
                 break;
-            case INTEGER_2:
-                ret = 2;
+            case INT_F1:
+                ret = Integer.valueOf(is.readUnsignedByte()&0xFF);
                 break;
-            case INTEGER_3:
-                ret = 3;
+            case INT_MF1:
+                ret = Integer.valueOf(-(is.readUnsignedByte()&0xFF));
                 break;
-            case INTEGER_4:
-                ret = 4;
+            case INT_F2:
+                ret = Integer.valueOf(((is.readUnsignedByte()&0xFF) | ((is.readUnsignedByte()&0xFF)<<8)));
                 break;
-            case INTEGER_5:
-                ret = 5;
+            case INT_MF2:
+                ret = Integer.valueOf(-((is.readUnsignedByte()&0xFF) | ((is.readUnsignedByte()&0xFF)<<8)));
                 break;
-            case INTEGER_6:
-                ret = 6;
+            case INT_F3:
+                ret = Integer.valueOf(((is.readUnsignedByte()&0xFF) | ((is.readUnsignedByte()&0xFF)<<8) | ((is.readUnsignedByte()&0xFF)<<16)));
                 break;
-            case INTEGER_7:
-                ret = 7;
+            case INT_MF3:
+                ret = Integer.valueOf(-((is.readUnsignedByte()&0xFF) | ((is.readUnsignedByte()&0xFF)<<8) | ((is.readUnsignedByte()&0xFF)<<16)));
                 break;
-            case INTEGER_8:
-                ret = 8;
+            case INT:
+                ret = Integer.valueOf(is.readInt());
                 break;
-            case INTEGER_MINUS_MAX:
-                ret = Integer.MIN_VALUE;
-                break;
-            case INTEGER_255:
-                ret = is.readUnsignedByte();
-                break;
-            case INTEGER_PACK_NEG:
-                ret = -Utils.unpackInt(is);
-                break;
-            case INTEGER_PACK:
-                ret = Utils.unpackInt(is);
-                break;
-            case LONG_MINUS_1:
-                ret = (long) -1;
-                break;
+
+            case LONG_M9:
+            case LONG_M8:
+            case LONG_M7:
+            case LONG_M6:
+            case LONG_M5:
+            case LONG_M4:
+            case LONG_M3:
+            case LONG_M2:
+            case LONG_M1:
             case LONG_0:
-                ret = (long) 0;
-                break;
             case LONG_1:
-                ret = (long) 1;
-                break;
             case LONG_2:
-                ret = (long) 2;
-                break;
             case LONG_3:
-                ret = (long) 3;
-                break;
             case LONG_4:
-                ret = (long) 4;
-                break;
             case LONG_5:
-                ret = (long) 5;
-                break;
             case LONG_6:
-                ret = (long) 6;
-                break;
             case LONG_7:
-                ret = (long) 7;
-                break;
             case LONG_8:
-                ret = (long) 8;
+            case LONG_9:
+            case LONG_10:
+            case LONG_11:
+            case LONG_12:
+            case LONG_13:
+            case LONG_14:
+            case LONG_15:
+            case LONG_16:
+                ret = Long.valueOf(head-LONG_M9-9);
                 break;
-            case LONG_255:
-                ret = (long) is.readUnsignedByte();
+            case LONG_MIN_VALUE:
+                ret = Long.valueOf(Long.MIN_VALUE);
                 break;
-            case LONG_PACK_NEG:
-                ret = -Utils.unpackLong(is);
+            case LONG_MAX_VALUE:
+                ret = Long.valueOf(Long.MAX_VALUE);
                 break;
-            case LONG_PACK:
-                ret = Utils.unpackLong(is);
+            case LONG_F1:
+                ret = Long.valueOf(is.readUnsignedByte()&0xFFL);
                 break;
-            case LONG_MINUS_MAX:
-                ret = Long.MIN_VALUE;
+            case LONG_MF1:
+                ret = Long.valueOf(-(is.readUnsignedByte()&0xFFL));
                 break;
-            case SHORT_MINUS_1:
-                ret = (short) -1;
+            case LONG_F2:
+                ret = Long.valueOf(((is.readUnsignedByte()&0xFFL) | ((is.readUnsignedByte()&0xFFL)<<8)));
                 break;
-            case SHORT_0:
-                ret = (short) 0;
+            case LONG_MF2:
+                ret = Long.valueOf(-((is.readUnsignedByte()&0xFFL) | ((is.readUnsignedByte()&0xFFL)<<8)));
                 break;
-            case SHORT_1:
-                ret = (short) 1;
+            case LONG_F3:
+                ret = Long.valueOf(((is.readUnsignedByte()&0xFFL) | ((is.readUnsignedByte()&0xFFL)<<8) | ((is.readUnsignedByte()&0xFFL)<<16)));
                 break;
-            case SHORT_255:
-                ret = (short) is.readUnsignedByte();
+            case LONG_MF3:
+                ret = Long.valueOf(-((is.readUnsignedByte()&0xFFL) | ((is.readUnsignedByte()&0xFFL)<<8) | ((is.readUnsignedByte()&0xFFL)<<16)));
                 break;
-            case SHORT_FULL:
-                ret = is.readShort();
+            case LONG_F4:
+                ret = Long.valueOf(((is.readUnsignedByte()&0xFFL) | ((is.readUnsignedByte()&0xFFL)<<8) | ((is.readUnsignedByte()&0xFFL)<<16)
+                        | ((is.readUnsignedByte()&0xFFL)<<24)  ));
                 break;
-            case BYTE_MINUS_1:
-                ret = (byte) -1;
+            case LONG_MF4:
+                ret = Long.valueOf(-((is.readUnsignedByte()&0xFFL) | ((is.readUnsignedByte()&0xFFL)<<8) | ((is.readUnsignedByte()&0xFFL)<<16)
+                        | ((is.readUnsignedByte()&0xFFL)<<24)  ));
+                break;
+            case LONG_F5:
+                ret = Long.valueOf(((is.readUnsignedByte()&0xFFL) | ((is.readUnsignedByte()&0xFFL)<<8) | ((is.readUnsignedByte()&0xFFL)<<16)
+                        | ((is.readUnsignedByte()&0xFFL)<<24) | ((is.readUnsignedByte()&0xFFL)<<32) ));
+                break;
+            case LONG_MF5:
+                ret = Long.valueOf(-((is.readUnsignedByte()&0xFFL) | ((is.readUnsignedByte()&0xFFL)<<8) | ((is.readUnsignedByte()&0xFFL)<<16)
+                        | ((is.readUnsignedByte()&0xFFL)<<24) | ((is.readUnsignedByte()&0xFFL)<<32) ));
+                break;
+            case LONG_F6:
+                ret = Long.valueOf(((is.readUnsignedByte()&0xFFL) | ((is.readUnsignedByte()&0xFFL)<<8) | ((is.readUnsignedByte()&0xFFL)<<16)
+                        | ((is.readUnsignedByte()&0xFFL)<<24) | ((is.readUnsignedByte()&0xFFL)<<32)  | ((is.readUnsignedByte()&0xFFL)<<40) ));
+                break;
+            case LONG_MF6:
+                ret = Long.valueOf(-((is.readUnsignedByte()&0xFFL) | ((is.readUnsignedByte()&0xFFL)<<8) | ((is.readUnsignedByte()&0xFFL)<<16)
+                        | ((is.readUnsignedByte()&0xFFL)<<24) | ((is.readUnsignedByte()&0xFFL)<<32) | ((is.readUnsignedByte()&0xFFL)<<40)));
+                break;
+            case LONG_F7:
+                ret = Long.valueOf(((is.readUnsignedByte()&0xFFL) | ((is.readUnsignedByte()&0xFFL)<<8) | ((is.readUnsignedByte()&0xFFL)<<16)
+                        | ((is.readUnsignedByte()&0xFFL)<<24) | ((is.readUnsignedByte()&0xFFL)<<32)  | ((is.readUnsignedByte()&0xFFL)<<40)
+                        | ((is.readUnsignedByte()&0xFFL)<<48) ));
+                break;
+            case LONG_MF7:
+                ret = Long.valueOf(-((is.readUnsignedByte()&0xFFL) | ((is.readUnsignedByte()&0xFFL)<<8) | ((is.readUnsignedByte()&0xFFL)<<16)
+                        | ((is.readUnsignedByte()&0xFFL)<<24) | ((is.readUnsignedByte()&0xFFL)<<32) | ((is.readUnsignedByte()&0xFFL)<<40)
+                        | ((is.readUnsignedByte()&0xFFL)<<48) ));
+                break;
+            case LONG:
+                ret = Long.valueOf(is.readLong());
+                break;
+
+            case BYTE_M1:
+                ret = Byte.valueOf((byte)-1);
                 break;
             case BYTE_0:
-                ret = (byte) 0;
+                ret = Byte.valueOf((byte) 0);
                 break;
             case BYTE_1:
-                ret = (byte) 1;
+                ret = Byte.valueOf((byte) 1);
                 break;
-            case BYTE_FULL:
+            case BYTE:
                 ret = is.readByte();
                 break;
-            case SHORT_ARRAY:
-                int size = Utils.unpackInt(is);
-                ret = new short[size];
-                for(int i=0;i<size;i++) ((short[])ret)[i] = is.readShort();
+
+            case CHAR_0:
+                ret = Character.valueOf((char) 0);
                 break;
-            case BOOLEAN_ARRAY:
-                ret = readBooleanArray(is);
+            case CHAR_1:
+                ret = Character.valueOf((char) 1);
                 break;
-            case DOUBLE_ARRAY:
-                size = Utils.unpackInt(is);
-                ret = new double[size];
-                for(int i=0;i<size;i++) ((double[])ret)[i] = is.readDouble();
-                break;
-            case FLOAT_ARRAY:
-                size = Utils.unpackInt(is);
-                ret = new float[size];
-                for(int i=0;i<size;i++) ((float[])ret)[i] = is.readFloat();
-                break;
-            case CHAR_ARRAY:
-                size = Utils.unpackInt(is);
-                ret = new char[size];
-                for(int i=0;i<size;i++) ((char[])ret)[i] = is.readChar();
+            case CHAR_255:
+                ret = Character.valueOf((char) is.readUnsignedByte());
                 break;
             case CHAR:
                 ret = is.readChar();
                 break;
-            case FLOAT_MINUS_1:
+
+
+            case SHORT_M1:
+                ret = Short.valueOf((short)-1);
+                break;
+            case SHORT_0:
+                ret = Short.valueOf((short)0);
+                break;
+            case SHORT_1:
+                ret = Short.valueOf((short)1);
+                break;
+            case SHORT_255:
+                ret = Short.valueOf((short) is.readUnsignedByte());
+                break;
+            case SHORT_M255:
+                ret = Short.valueOf(((short) -is.readUnsignedByte()));
+                break;
+            case SHORT:
+                ret = Short.valueOf(is.readShort());
+                break;
+
+            case FLOAT_M1:
                 ret = (float) -1;
                 break;
             case FLOAT_0:
@@ -919,17 +1020,17 @@ public class SerializerBase implements Serializer{
             case FLOAT_SHORT:
                 ret = (float) is.readShort();
                 break;
-            case FLOAT_FULL:
+            case FLOAT:
                 ret = is.readFloat();
                 break;
-            case DOUBLE_MINUS_1:
-                ret = (double) -1;
+            case DOUBLE_M1:
+                ret = -1D;
                 break;
             case DOUBLE_0:
-                ret = (double) 0;
+                ret = 0D;
                 break;
             case DOUBLE_1:
-                ret = (double) 1;
+                ret = 1D;
                 break;
             case DOUBLE_255:
                 ret = (double) is.readUnsignedByte();
@@ -937,51 +1038,119 @@ public class SerializerBase implements Serializer{
             case DOUBLE_SHORT:
                 ret = (double) is.readShort();
                 break;
-            case DOUBLE_FULL:
+            case DOUBLE_INT:
+                ret = (double) is.readInt();
+                break;
+            case DOUBLE:
                 ret = is.readDouble();
                 break;
+
+            case ARRAY_BYTE_ALL_EQUAL:
+                byte[] b = new byte[Utils.unpackInt(is)];
+                Arrays.fill(b, is.readByte());
+                ret = b;
+                break;
+            case ARRAY_BYTE:
+                ret = deserializeArrayByte(is);
+                break;
+
+            case ARRAY_BOOLEAN:
+                ret = readBooleanArray(is);
+                break;
+            case ARRAY_SHORT:
+                int size = Utils.unpackInt(is);
+                ret = new short[size];
+                for(int i=0;i<size;i++) ((short[])ret)[i] = is.readShort();
+                break;
+            case ARRAY_DOUBLE:
+                size = Utils.unpackInt(is);
+                ret = new double[size];
+                for(int i=0;i<size;i++) ((double[])ret)[i] = is.readDouble();
+                break;
+            case ARRAY_FLOAT:
+                size = Utils.unpackInt(is);
+                ret = new float[size];
+                for(int i=0;i<size;i++) ((float[])ret)[i] = is.readFloat();
+                break;
+            case ARRAY_CHAR:
+                size = Utils.unpackInt(is);
+                ret = new char[size];
+                for(int i=0;i<size;i++) ((char[])ret)[i] = is.readChar();
+                break;
+
+            case ARRAY_INT_BYTE:
+                size = Utils.unpackInt(is);
+                ret=new int[size];
+                for(int i=0;i<size;i++) ((int[])ret)[i] = is.readByte();
+                break;
+            case ARRAY_INT_SHORT:
+                size = Utils.unpackInt(is);
+                ret=new int[size];
+                for(int i=0;i<size;i++) ((int[])ret)[i] = is.readShort();
+                break;
+            case ARRAY_INT_PACKED:
+                size = Utils.unpackInt(is);
+                ret=new int[size];
+                for(int i=0;i<size;i++) ((int[])ret)[i] = Utils.unpackInt(is);
+                break;
+            case ARRAY_INT:
+                size = Utils.unpackInt(is);
+                ret=new int[size];
+                for(int i=0;i<size;i++) ((int[])ret)[i] = is.readInt();
+                break;
+
+            case ARRAY_LONG_BYTE:
+                size = Utils.unpackInt(is);
+                ret=new long[size];
+                for(int i=0;i<size;i++) ((long[])ret)[i] = is.readByte();
+                break;
+            case ARRAY_LONG_SHORT:
+                size = Utils.unpackInt(is);
+                ret=new long[size];
+                for(int i=0;i<size;i++) ((long[])ret)[i] = is.readShort();
+                break;
+            case ARRAY_LONG_PACKED:
+                size = Utils.unpackInt(is);
+                ret=new long[size];
+                for(int i=0;i<size;i++) ((long[])ret)[i] = Utils.unpackLong(is);
+                break;
+            case ARRAY_LONG_INT:
+                size = Utils.unpackInt(is);
+                ret=new long[size];
+                for(int i=0;i<size;i++) ((long[])ret)[i] = is.readInt();
+                break;
+            case ARRAY_LONG:
+                size = Utils.unpackInt(is);
+                ret=new long[size];
+                for(int i=0;i<size;i++) ((long[])ret)[i] = is.readLong();
+                break;
+
+            case STRING:
+                ret = deserializeString(is, Utils.unpackInt(is));
+                break;
+            case STRING_0:
+                ret = Utils.EMPTY_STRING;
+                break;
+            case STRING_1:
+            case STRING_2:
+            case STRING_3:
+            case STRING_4:
+            case STRING_5:
+            case STRING_6:
+            case STRING_7:
+            case STRING_8:
+            case STRING_9:
+            case STRING_10:
+                ret = deserializeString(is, head-STRING_0);
+                break;
+
             case BIGINTEGER:
                 ret = new BigInteger(deserializeArrayByte(is));
                 break;
             case BIGDECIMAL:
                 ret = new BigDecimal(new BigInteger(deserializeArrayByte(is)), Utils.unpackInt(is));
                 break;
-            case STRING:
-                ret = deserializeString(is, Utils.unpackInt(is));
-                break;
-            case STRING_EMPTY:
-                ret = Utils.EMPTY_STRING;
-                break;
-            case STRING_1:
-                ret = deserializeString(is, 1);
-                break;
-            case STRING_2:
-                ret = deserializeString(is, 2);
-                break;
-            case STRING_3:
-                ret = deserializeString(is, 3);
-                break;
-            case STRING_4:
-                ret = deserializeString(is, 4);
-                break;
-            case STRING_5:
-                ret = deserializeString(is, 5);
-                break;
-            case STRING_6:
-                ret = deserializeString(is, 6);
-                break;
-            case STRING_7:
-                ret = deserializeString(is, 7);
-                break;
-            case STRING_8:
-                ret = deserializeString(is, 8);
-                break;
-            case STRING_9:
-                ret = deserializeString(is, 9);
-                break;
-            case STRING_10:
-                ret = deserializeString(is, 10);
-                break;
+
             case CLASS:
                 ret = deserializeClass(is);
                 break;
@@ -991,98 +1160,15 @@ public class SerializerBase implements Serializer{
             case UUID:
                 ret = new UUID(is.readLong(), is.readLong());
                 break;
-            case ARRAY_INT_B_255:
-                ret = deserializeArrayIntB255(is);
+
+            case MAPDB:
+                ret = deserializeMapDB(is,objectStack);
                 break;
-            case ARRAY_INT_B_INT:
-                ret = deserializeArrayIntBInt(is);
-                break;
-            case ARRAY_INT_S:
-                ret = deserializeArrayIntSInt(is);
-                break;
-            case ARRAY_INT_I:
-                ret = deserializeArrayIntIInt(is);
-                break;
-            case ARRAY_INT_PACKED:
-                ret = deserializeArrayIntPack(is);
-                break;
-            case ARRAY_LONG_B:
-                ret = deserializeArrayLongB(is);
-                break;
-            case ARRAY_LONG_S:
-                ret = deserializeArrayLongS(is);
-                break;
-            case ARRAY_LONG_I:
-                ret = deserializeArrayLongI(is);
-                break;
-            case ARRAY_LONG_L:
-                ret = deserializeArrayLongL(is);
-                break;
-            case ARRAY_LONG_PACKED:
-                ret = deserializeArrayLongPack(is);
-                break;
+
             case ARRAYLIST_PACKED_LONG:
                 ret = deserializeArrayListPackedLong(is);
                 break;
-            case ARRAY_BYTE_ALL_EQUAL:
-                byte[] b = new byte[Utils.unpackInt(is)];
-                Arrays.fill(b, is.readByte());
-                ret = b;
-                break;
-            case ARRAY_BYTE:
-                ret =  deserializeArrayByte(is);
-                break;
-            case LOCALE :
-                ret = new Locale(is.readUTF(),is.readUTF(),is.readUTF());
-                break;
-            case COMPARABLE_COMPARATOR:
-                ret = Utils.COMPARABLE_COMPARATOR;
-                break;
-            case SerializationHeader.LONG_SERIALIZER:
-                ret = LONG_SERIALIZER;
-                break;
-            case SerializationHeader.INTEGER_SERIALIZER:
-                ret = INTEGER_SERIALIZER;
-                break;
-            case SerializationHeader.EMPTY_SERIALIZER:
-                ret = EMPTY_SERIALIZER;
-                break;
-            case B_TREE_SERIALIZER_POS_LONG:
-                ret = BTreeKeySerializer.ZERO_OR_POSITIVE_LONG;
-                break;
-            case B_TREE_SERIALIZER_POS_INT:
-                ret = BTreeKeySerializer.ZERO_OR_POSITIVE_INT;
-                break;
-            case B_TREE_SERIALIZER_STRING:
-                ret = BTreeKeySerializer.STRING;
-                break;
-            case KEY_TUPLE2_SERIALIZER:
-                ret = new BTreeKeySerializer.Tuple2KeySerializer(
-                        (Comparator)deserialize(is,objectStack), (Serializer)deserialize(is,objectStack), (Serializer)deserialize(is,objectStack));
-                break;
-            case KEY_TUPLE3_SERIALIZER:
-                ret = new BTreeKeySerializer.Tuple3KeySerializer(
-                        (Comparator)deserialize(is,objectStack),(Comparator)deserialize(is,objectStack),
-                        (Serializer)deserialize(is,objectStack),(Serializer)deserialize(is,objectStack), (Serializer)deserialize(is,objectStack));
-                break;
-            case KEY_TUPLE4_SERIALIZER:
-                ret = new BTreeKeySerializer.Tuple4KeySerializer(
-                        (Comparator)deserialize(is,objectStack),(Comparator)deserialize(is,objectStack),(Comparator)deserialize(is,objectStack),
-                        (Serializer)deserialize(is,objectStack), (Serializer)deserialize(is,objectStack),
-                        (Serializer)deserialize(is,objectStack), (Serializer)deserialize(is,objectStack));
-                break;
-            case COMPARABLE_COMPARATOR_WITH_NULLS:
-                ret = Utils.COMPARABLE_COMPARATOR_WITH_NULLS;
-                break;
-            case B_TREE_BASIC_KEY_SERIALIZER:
-                ret = new BTreeKeySerializer.BasicKeySerializer(this);
-                break;
-            case SerializationHeader.BASIC_SERIALIZER:
-                ret = BASIC_SERIALIZER;
-                break;
-            case SerializationHeader.STRING_SERIALIZER:
-                ret = Serializer.STRING_SERIALIZER;
-                break;
+
             case TUPLE2:
                 ret = new Fun.Tuple2(deserialize(is, objectStack), deserialize(is, objectStack));
                 break;
@@ -1094,9 +1180,6 @@ public class SerializerBase implements Serializer{
                 break;
             case FUN_HI:
                 ret = Fun.HI;
-                break;
-            case THIS_SERIALIZER:
-                ret = this;
                 break;
             case JAVA_SERIALIZATION:
                 throw new InternalError("Wrong header, data were probably serialized with java.lang.ObjectOutputStream, not with MapDB serialization");
@@ -1149,23 +1232,14 @@ public class SerializerBase implements Serializer{
             case LINKEDHASHSET:
                 ret = deserializeLinkedHashSet(is, objectStack);
                 break;
-            case VECTOR:
-                ret = deserializeVector(is, objectStack);
-                break;
             case TREEMAP:
                 ret = deserializeTreeMap(is, objectStack);
                 break;
             case HASHMAP:
                 ret = deserializeHashMap(is, objectStack);
                 break;
-            case IDENTITYHASHMAP:
-                ret = deserializeIdentityHashMap(is, objectStack);
-                break;
             case LINKEDHASHMAP:
                 ret = deserializeLinkedHashMap(is, objectStack);
-                break;
-            case HASHTABLE:
-                ret = deserializeHashtable(is, objectStack);
                 break;
             case PROPERTIES:
                 ret = deserializeProperties(is, objectStack);
@@ -1184,10 +1258,78 @@ public class SerializerBase implements Serializer{
         return ret;
     }
 
-    private byte[] deserializeArrayByte(DataInput is) throws IOException {
-        byte[] bb = new byte[Utils.unpackInt(is)];
-        is.readFully(bb);
-        return bb;
+    protected interface HeaderMapDB{
+        int B_TREE_SERIALIZER_POS_LONG = 1;
+        int B_TREE_SERIALIZER_STRING = 2;
+        int B_TREE_SERIALIZER_POS_INT = 3;
+        int LONG_SERIALIZER = 4;
+        int INT_SERIALIZER = 5;
+        int EMPTY_SERIALIZER = 6;
+
+        int KEY_TUPLE2_SERIALIZER = 7;
+        int KEY_TUPLE3_SERIALIZER = 8;
+        int KEY_TUPLE4_SERIALIZER = 9;
+        int COMPARABLE_COMPARATOR_WITH_NULLS = 10;
+        int COMPARABLE_COMPARATOR = 11;
+        int THIS_SERIALIZER = 12;
+        int BASIC_SERIALIZER = 13;
+        int STRING_SERIALIZER = 14;
+        int B_TREE_BASIC_KEY_SERIALIZER = 15;
+    }
+
+
+    protected Object deserializeMapDB(DataInput is, FastArrayList<Object> objectStack) throws IOException {
+        int head = Utils.unpackInt(is);
+        switch(head){
+
+
+
+            case HeaderMapDB.B_TREE_SERIALIZER_POS_LONG:
+                return  BTreeKeySerializer.ZERO_OR_POSITIVE_LONG;
+            case HeaderMapDB.B_TREE_SERIALIZER_POS_INT:
+                return BTreeKeySerializer.ZERO_OR_POSITIVE_INT;
+            case HeaderMapDB.B_TREE_SERIALIZER_STRING:
+                return BTreeKeySerializer.STRING;
+
+            case HeaderMapDB.LONG_SERIALIZER:
+                return Serializer.LONG_SERIALIZER;
+            case HeaderMapDB.INT_SERIALIZER:
+                return Serializer.INTEGER_SERIALIZER;
+            case HeaderMapDB.EMPTY_SERIALIZER:
+                return Serializer.EMPTY_SERIALIZER;
+
+            case HeaderMapDB.COMPARABLE_COMPARATOR: return Utils.COMPARABLE_COMPARATOR;
+
+
+            case HeaderMapDB.KEY_TUPLE2_SERIALIZER:
+                return new BTreeKeySerializer.Tuple2KeySerializer(
+                        (Comparator)deserialize(is,objectStack), (Serializer)deserialize(is,objectStack), (Serializer)deserialize(is,objectStack));
+
+            case HeaderMapDB.KEY_TUPLE3_SERIALIZER:
+                return new BTreeKeySerializer.Tuple3KeySerializer(
+                        (Comparator)deserialize(is,objectStack),(Comparator)deserialize(is,objectStack),
+                        (Serializer)deserialize(is,objectStack),(Serializer)deserialize(is,objectStack), (Serializer)deserialize(is,objectStack));
+
+            case HeaderMapDB.KEY_TUPLE4_SERIALIZER:
+                return new BTreeKeySerializer.Tuple4KeySerializer(
+                        (Comparator)deserialize(is,objectStack),(Comparator)deserialize(is,objectStack),(Comparator)deserialize(is,objectStack),
+                        (Serializer)deserialize(is,objectStack), (Serializer)deserialize(is,objectStack),
+                        (Serializer)deserialize(is,objectStack), (Serializer)deserialize(is,objectStack));
+            case HeaderMapDB.COMPARABLE_COMPARATOR_WITH_NULLS:
+                return Utils.COMPARABLE_COMPARATOR_WITH_NULLS;
+
+            case HeaderMapDB.B_TREE_BASIC_KEY_SERIALIZER:
+                return new BTreeKeySerializer.BasicKeySerializer(this);
+            case HeaderMapDB.THIS_SERIALIZER:
+                return this;
+            case HeaderMapDB.BASIC_SERIALIZER:
+                return BASIC_SERIALIZER;
+            case HeaderMapDB.STRING_SERIALIZER:
+                return Serializer.STRING_SERIALIZER;
+
+            default:
+                throw new IOError(new IOException("Unknown header byte, data corrupted"));
+        }
     }
 
 
@@ -1201,114 +1343,13 @@ public class SerializerBase implements Serializer{
     }
 
 
-
-
-    private long[] deserializeArrayLongL(DataInput is) throws IOException {
-        int size = Utils.unpackInt(is);
-        long[] ret = new long[size];
-        for (int i = 0; i < size; i++)
-            ret[i] = is.readLong();
-        return ret;
+    private byte[] deserializeArrayByte(DataInput is) throws IOException {
+        byte[] bb = new byte[Utils.unpackInt(is)];
+        is.readFully(bb);
+        return bb;
     }
 
 
-    private long[] deserializeArrayLongI(DataInput is) throws IOException {
-        int size = Utils.unpackInt(is);
-        long[] ret = new long[size];
-        for (int i = 0; i < size; i++)
-            ret[i] = is.readInt();
-        return ret;
-    }
-
-
-    private long[] deserializeArrayLongS(DataInput is) throws IOException {
-        int size = Utils.unpackInt(is);
-        long[] ret = new long[size];
-        for (int i = 0; i < size; i++)
-            ret[i] = is.readShort();
-        return ret;
-    }
-
-
-    private long[] deserializeArrayLongB(DataInput is) throws IOException {
-        int size = Utils.unpackInt(is);
-        long[] ret = new long[size];
-        for (int i = 0; i < size; i++) {
-            ret[i] = is.readUnsignedByte();
-            if (ret[i] < 0)
-                throw new EOFException();
-        }
-        return ret;
-    }
-
-
-    private int[] deserializeArrayIntIInt(DataInput is) throws IOException {
-        int size = Utils.unpackInt(is);
-        int[] ret = new int[size];
-        for (int i = 0; i < size; i++)
-            ret[i] = is.readInt();
-        return ret;
-    }
-
-
-    private int[] deserializeArrayIntSInt(DataInput is) throws IOException {
-        int size = Utils.unpackInt(is);
-        int[] ret = new int[size];
-        for (int i = 0; i < size; i++)
-            ret[i] = is.readShort();
-        return ret;
-    }
-
-
-    private int[] deserializeArrayIntBInt(DataInput is) throws IOException {
-        int size = Utils.unpackInt(is);
-        int[] ret = new int[size];
-        for (int i = 0; i < size; i++) {
-            ret[i] = is.readUnsignedByte();
-            if (ret[i] < 0)
-                throw new EOFException();
-        }
-        return ret;
-    }
-
-
-    private int[] deserializeArrayIntPack(DataInput is) throws IOException {
-        int size = Utils.unpackInt(is);
-        if (size < 0)
-            throw new EOFException();
-
-        int[] ret = new int[size];
-        for (int i = 0; i < size; i++) {
-            ret[i] = Utils.unpackInt(is);
-        }
-        return ret;
-    }
-
-    private long[] deserializeArrayLongPack(DataInput is) throws IOException {
-        int size = Utils.unpackInt(is);
-        if (size < 0)
-            throw new EOFException();
-
-        long[] ret = new long[size];
-        for (int i = 0; i < size; i++) {
-            ret[i] = Utils.unpackLong(is);
-        }
-        return ret;
-    }
-
-    private int[] deserializeArrayIntB255(DataInput is) throws IOException {
-        int size = is.readUnsignedByte();
-        if (size < 0)
-            throw new EOFException();
-
-        int[] ret = new int[size];
-        for (int i = 0; i < size; i++) {
-            ret[i] = is.readUnsignedByte();
-            if (ret[i] < 0)
-                throw new EOFException();
-        }
-        return ret;
-    }
 
 
     private Object[] deserializeArrayObject(DataInput is, FastArrayList<Object> objectStack) throws IOException {
@@ -1392,14 +1433,6 @@ public class SerializerBase implements Serializer{
     }
 
 
-    private Vector<Object> deserializeVector(DataInput is, FastArrayList<Object> objectStack) throws IOException {
-        int size = Utils.unpackInt(is);
-        Vector<Object> s = new Vector<Object>(size);
-        objectStack.add(s);
-        for (int i = 0; i < size; i++)
-            s.add(deserialize(is, objectStack));
-        return s;
-    }
 
 
     private HashSet<Object> deserializeHashSet(DataInput is, FastArrayList<Object> objectStack) throws IOException {
@@ -1460,15 +1493,6 @@ public class SerializerBase implements Serializer{
         return s;
     }
 
-    private IdentityHashMap<Object, Object> deserializeIdentityHashMap(DataInput is, FastArrayList<Object> objectStack) throws IOException {
-        int size = Utils.unpackInt(is);
-
-        IdentityHashMap<Object, Object> s = new IdentityHashMap<Object, Object>(size);
-        objectStack.add(s);
-        for (int i = 0; i < size; i++)
-            s.put(deserialize(is, objectStack), deserialize(is, objectStack));
-        return s;
-    }
 
     private LinkedHashMap<Object, Object> deserializeLinkedHashMap(DataInput is, FastArrayList<Object> objectStack) throws IOException {
         int size = Utils.unpackInt(is);
@@ -1480,16 +1504,6 @@ public class SerializerBase implements Serializer{
         return s;
     }
 
-
-    private Hashtable<Object, Object> deserializeHashtable(DataInput is, FastArrayList<Object> objectStack) throws IOException {
-        int size = Utils.unpackInt(is);
-
-        Hashtable<Object, Object> s = new Hashtable<Object, Object>(size);
-        objectStack.add(s);
-        for (int i = 0; i < size; i++)
-            s.put(deserialize(is, objectStack), deserialize(is, objectStack));
-        return s;
-    }
 
 
     private Properties deserializeProperties(DataInput is, FastArrayList<Object> objectStack) throws IOException {
@@ -1504,7 +1518,7 @@ public class SerializerBase implements Serializer{
 
     /** override this method to extend SerializerBase functionality*/
     protected void serializeUnknownObject(DataOutput out, Object obj, FastArrayList<Object> objectStack) throws IOException {
-        throw new InternalError("Could not deserialize unknown object: "+obj.getClass().getName());
+        throw new InternalError("Could not serialize unknown object: "+obj.getClass().getName());
     }
     /** override this method to extend SerializerBase functionality*/
     protected Object deserializeUnknownHeader(DataInput is, int head, FastArrayList<Object> objectStack) throws IOException {
@@ -1671,6 +1685,221 @@ public class SerializerBase implements Serializer{
         return finalBoolArray;
     }
 
+
+
+
+
+    /**
+     * Header byte, is used at start of each record to indicate data type
+     * WARNING !!! values bellow must be unique !!!!!
+     *
+     * @author Jan Kotek
+     */
+    protected interface Header {
+
+        int ZERO_FAIL=0; //zero is invalid value, so it fails with uninitialized values
+        int NULL = 1;
+        int BOOLEAN_TRUE = 2;
+        int BOOLEAN_FALSE = 3;
+
+        int INT_M9 = 4;
+        int INT_M8 = 5;
+        int INT_M7 = 6;
+        int INT_M6 = 7;
+        int INT_M5 = 8;
+        int INT_M4 = 9;
+        int INT_M3 = 10;
+        int INT_M2 = 11;
+        int INT_M1 = 12;
+        int INT_0 = 13;
+        int INT_1 = 14;
+        int INT_2 = 15;
+        int INT_3 = 16;
+        int INT_4 = 17;
+        int INT_5 = 18;
+        int INT_6 = 19;
+        int INT_7 = 20;
+        int INT_8 = 21;
+        int INT_9 = 22;
+        int INT_10 = 23;
+        int INT_11 = 24;
+        int INT_12 = 25;
+        int INT_13 = 26;
+        int INT_14 = 27;
+        int INT_15 = 28;
+        int INT_16 = 29;
+        int INT_MIN_VALUE = 30;
+        int INT_MAX_VALUE = 31;
+        int INT_MF1 = 32;
+        int INT_F1 = 33;
+        int INT_MF2 = 34;
+        int INT_F2 = 35;
+        int INT_MF3 = 36;
+        int INT_F3 = 37;
+        int INT = 38;
+
+        int LONG_M9 = 39;
+        int LONG_M8 = 40;
+        int LONG_M7 = 41;
+        int LONG_M6 = 42;
+        int LONG_M5 = 43;
+        int LONG_M4 = 44;
+        int LONG_M3 = 45;
+        int LONG_M2 = 46;
+        int LONG_M1 = 47;
+        int LONG_0 = 48;
+        int LONG_1 = 49;
+        int LONG_2 = 50;
+        int LONG_3 = 51;
+        int LONG_4 = 52;
+        int LONG_5 = 53;
+        int LONG_6 = 54;
+        int LONG_7 = 55;
+        int LONG_8 = 56;
+        int LONG_9 = 57;
+        int LONG_10 = 58;
+        int LONG_11 = 59;
+        int LONG_12 = 60;
+        int LONG_13 = 61;
+        int LONG_14 = 62;
+        int LONG_15 = 63;
+        int LONG_16 = 64;
+        int LONG_MIN_VALUE = 65;
+        int LONG_MAX_VALUE = 66;
+        int LONG_MF1 = 67;
+        int LONG_F1 = 68;
+        int LONG_MF2 = 69;
+        int LONG_F2 = 70;
+        int LONG_MF3 = 71;
+        int LONG_F3 = 72;
+        int LONG_MF4 = 73;
+        int LONG_F4 = 74;
+        int LONG_MF5 = 75;
+        int LONG_F5 = 76;
+        int LONG_MF6 = 77;
+        int LONG_F6 = 78;
+        int LONG_MF7 = 79;
+        int LONG_F7 = 80;
+        int LONG = 81;
+
+        int BYTE_M1 = 82;
+        int BYTE_0 = 83;
+        int BYTE_1 = 84;
+        int BYTE = 85;
+
+        int CHAR_0 = 86;
+        int CHAR_1 = 87;
+        int CHAR_255 = 88;
+        int CHAR = 89;
+
+        int SHORT_M1 =90;
+        int SHORT_0 = 91;
+        int SHORT_1 = 92;
+        int SHORT_255 = 93;
+        int SHORT_M255 = 94;
+        int SHORT = 95;
+
+        int FLOAT_M1 = 96;
+        int FLOAT_0 = 97;
+        int FLOAT_1 = 98;
+        int FLOAT_255 = 99;
+        int FLOAT_SHORT = 100;
+        int FLOAT = 101;
+
+        int DOUBLE_M1 = 102;
+        int DOUBLE_0 = 103;
+        int DOUBLE_1 = 104;
+        int DOUBLE_255 = 105;
+        int DOUBLE_SHORT = 106;
+        int DOUBLE_INT = 107;
+        int DOUBLE = 108;
+
+        int ARRAY_BYTE = 109;
+        int ARRAY_BYTE_ALL_EQUAL = 110;
+
+        int ARRAY_BOOLEAN = 111;
+        int ARRAY_SHORT = 112;
+        int ARRAY_CHAR = 113;
+        int ARRAY_FLOAT = 114;
+        int ARRAY_DOUBLE = 115;
+
+        int ARRAY_INT_BYTE = 116;
+        int ARRAY_INT_SHORT = 117;
+        int ARRAY_INT_PACKED = 118;
+        int ARRAY_INT = 119;
+
+        int ARRAY_LONG_BYTE = 120;
+        int ARRAY_LONG_SHORT = 121;
+        int ARRAY_LONG_PACKED = 122;
+        int ARRAY_LONG_INT = 123;
+        int ARRAY_LONG = 124;
+
+        int STRING_0 = 125;
+        int STRING_1 = 126;
+        int STRING_2 = 127;
+        int STRING_3 = 128;
+        int STRING_4 = 129;
+        int STRING_5 = 130;
+        int STRING_6 = 131;
+        int STRING_7 = 132;
+        int STRING_8 = 133;
+        int STRING_9 = 134;
+        int STRING_10 = 135;
+        int STRING = 136;
+
+        int BIGDECIMAL = 137;
+        int BIGINTEGER = 138;
+
+
+        int CLASS = 139;
+        int DATE = 140;
+        int FUN_HI = 141;
+        int UUID = 142;
+
+        //144 to 149 reserved for other non recursive objects
+
+        int MAPDB = 150;
+        int TUPLE2 = 151;
+        int TUPLE3 = 152;
+        int TUPLE4 = 153;
+        int TUPLE5 = 154; //reserved for Tuple5 if we will ever implement it
+        int TUPLE6 = 155; //reserved for Tuple6 if we will ever implement it
+        int TUPLE7 = 156; //reserved for Tuple7 if we will ever implement it
+        int TUPLE8 = 157; //reserved for Tuple8 if we will ever implement it
+
+
+        int  ARRAY_OBJECT = 158;
+        //special cases for BTree values which stores references
+        int ARRAY_OBJECT_PACKED_LONG = 159;
+        int ARRAYLIST_PACKED_LONG = 160;
+        int ARRAY_OBJECT_ALL_NULL = 161;
+        int ARRAY_OBJECT_NO_REFS = 162;
+
+        int  ARRAYLIST = 163;
+        int  TREEMAP = 164;
+        int  HASHMAP = 165;
+        int  LINKEDHASHMAP = 166;
+        int  TREESET = 167;
+        int  HASHSET = 168;
+        int  LINKEDHASHSET = 169;
+        int  LINKEDLIST = 170;
+        int  PROPERTIES = 171;
+
+        /**
+         * Value used in Java Serialization header. For this header we throw an exception because data might be corrupted
+         */
+        int JAVA_SERIALIZATION = 172;
+
+        /**
+         * Use POJO Serializer to get class structure and set its fields
+         */
+        int POJO = 173;
+        /**
+         * used for reference to already serialized object in object graph
+         */
+        int OBJECT_STACK = 174;
+
+    }
 
 
 

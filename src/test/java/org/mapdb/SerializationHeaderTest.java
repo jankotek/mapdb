@@ -11,7 +11,7 @@ public class SerializationHeaderTest extends TestCase {
 
 	@SuppressWarnings({  "rawtypes" })
     public void testUnique() throws IllegalAccessException {
-        Class c = SerializationHeader.class;
+        Class c = SerializerBase.Header.class;
         Set<Integer> s = new TreeSet<Integer>();
         for (Field f : c.getDeclaredFields()) {
             f.setAccessible(true);
@@ -22,4 +22,20 @@ public class SerializationHeaderTest extends TestCase {
         }
         assertTrue(!s.isEmpty());
     }
+
+    @SuppressWarnings({  "rawtypes" })
+    public void testUniqueMapDB() throws IllegalAccessException {
+        Class c = SerializerBase.HeaderMapDB.class;
+        Set<Integer> s = new TreeSet<Integer>();
+        for (Field f : c.getDeclaredFields()) {
+            f.setAccessible(true);
+            int value = f.getInt(null);
+
+            assertTrue("Value already used: " + value, !s.contains(value));
+            s.add(value);
+        }
+        assertTrue(!s.isEmpty());
+    }
+
+
 }
