@@ -1,3 +1,28 @@
+Changelog
+============
+
+Version 0.9.4 (2013-08-09)
+--------------------------
+**No backward compability** with previous versions. Some parts were completely rewritten for better free space management.
+Many small improvements.
+
+Changes:
+
+ * HTreeMap now supports automatic LRU eviction based on size or access time.
+ * DB TreeMap, TreeSet and HashMap now uses builder class.
+ * Reworked SerializerBase
+ * Reworked Serializer implementations
+ * Checksum, Compression and Encryption integrated into store, now much faster
+ * Add `.sizeLong()` into HTreeMap and BTreeMap.
+ * Fixed data corruption in HTreeMap
+ * Rewritten space reclaim algorithm
+ * Store now has maximal size limit
+ * `DBMaker.writeAheadLogDisable()` renamed to `DBMaker.transactionDisable()`
+ * TxMaker is now concurrent
+ * BTreeMap now supports descending maps
+
+
+
 Version 0.9.3 (2013-06-02)
 --------------------------
 
@@ -5,6 +30,7 @@ CRITICAL upgrade urgency. This release fixes number of critical bugs in Write Ah
 It also adds support for advanced Java Serialization, which was reported many times as a bug.
 
 Changes:
+
  * FIX Issue #17 - Serializer fails in some cases (writeExternal and readExternal methods)
  * FIX Issue #136 & #132 -  Data corruption in Write Ahead Log after rollback or reopen.
  * FIX Issue #137 - Deadlock while closing AsyncWriteEngine Credit Jan Sileny
@@ -21,6 +47,7 @@ Version 0.9.2 (2013-05-19)
 CRITICAL upgrade urgency. This release fixes some critical bugs. It also improves performance and introduces Data Pump.
 
 Open Issues:
+
  * Issue #17 - Serializer fails in some cases (writeExternal and readExternal methods)
 
 Changes:
@@ -45,12 +72,14 @@ Version 0.9.1 (2013-04-14)
 CRITICAL upgrade urgency. This release fixes number of critical bugs from first release, including data store corruption and crashes.
 
 Open issues:
+
  * Issue #119 -  BTreeMap (TreeMap) may not release all locks and consequently crash.
    This is unconfirmed and hard to replicate concurrent bug.
    I temporarily added assertion which slows down BTreeMap updates, but helps to diagnose this problem
  * Issue #118 - StoreWAL fails to create log for unknown reasons and crashes. Not reproduced yet, need to investigate.
 
 Changes:
+
  * FIX #111 - Compaction fails with large data sets
  * FIX - BTreeKeySerializer.ZERO_OR_POSITIVE_INT was broken
  * FIX #89 - StoreAppend reopen failed

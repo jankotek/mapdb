@@ -36,6 +36,7 @@ CRUD, off-heap, append only store.. we have them all. MapDB is highly modular an
 
 News
 ----
+* 2013-08-09 [MapDB 0.9.4 was released](http://www.mapdb.org/changelog.html#Version_094_2013-08-09). It is not backward compatible with previous versions. Many changes and improvements.
 * 2013-06-18 Now I work on MapDB [full time](http://kotek.net/blog/MapDB_Reloaded).
 * 2013-06-02 MapDB 0.9.3 was released. Fixed data corruption in Write Ahead Log and improved serialization [release notes](https://github.com/jankotek/MapDB/blob/master/release_notes.md#version-093-2013-06-02)
 * 2013-05-19 MapDB 0.9.2 was released. It fixes bugs and introduces Data Pump, [release notes](https://github.com/jankotek/MapDB/blob/master/release_notes.md#version-092-2013-05-19)
@@ -44,7 +45,7 @@ News
   Release notes are [here](https://github.com/jankotek/MapDB/blob/master/release_notes.md#version-091-2013-04-14)
 
 Follow news:
-[RSS](https://groups.google.com/group/mapdb-news/feed/rss_v2_0_msgs.xml?num=50) |
+[RSS](news.xml) |
 [Mail-List](https://groups.google.com/forum/?fromgroups#!forum/mapdb-news) |
 [Twitter](http://twitter.com/MapDBnews)
 
