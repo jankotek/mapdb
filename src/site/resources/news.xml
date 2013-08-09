@@ -8,6 +8,16 @@
         <description>MapDB </description>
 
         <item>
+            <title>MapDB 0.9.4 released</title>
+            <link>http://www.mapdb.org/changelog.html#/Version_094_2013-08-09</link>
+            <date>August 09 2013</date>
+            <description>
+                MapDB 0.9.4 was just released. It is not backward compatible with previous releases. Many improvements.
+            </description>
+        </item>
+
+
+        <item>
             <title>MapDB 0.9 format support</title>
             <link>http://kotek.net/blog/MapDB_09_format_support</link>
             <date>July 01 2013</date>
