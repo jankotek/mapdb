@@ -303,7 +303,8 @@ public final class Bind {
         return findSecondaryKeys(secondaryKeys,secondaryKey);
     }
 
-    public static <A,B,C> Iterable<C> findVals3(final NavigableSet<Fun.Tuple3<A,B,C>> secondaryKeys, final A a, final B b) {
+    public static <A,B,C> Iterable<C> findVals3(final NavigableSet<Fun.Tuple3<A,B,C>> secondaryKeys,
+                                                final A a, final B b) {
         return new Iterable<C>(){
             @Override
             public Iterator<C> iterator() {
@@ -312,7 +313,7 @@ public final class Bind {
                         ((NavigableSet)secondaryKeys) //cast is workaround for generics
                                 .subSet(
                                         Fun.t3(a, b, null), //NULL represents lower bound, everything is larger than null
-                                        Fun.t3(a,b,Fun.HI()) // HI is upper bound everything is smaller then HI
+                                        Fun.t3(a,b==null?Fun.HI():b,Fun.HI()) // HI is upper bound everything is smaller then HI
                                 ).iterator();
 
                 return new Iterator<C>() {
@@ -344,8 +345,8 @@ public final class Bind {
                 final Iterator<Fun.Tuple4> iter =
                         ((NavigableSet)secondaryKeys) //cast is workaround for generics
                                 .subSet(
-                                        Fun.t4(a, b,c, null), //NULL represents lower bound, everything is larger than null
-                                        Fun.t4(a,b,c,Fun.HI()) // HI is upper bound everything is smaller then HI
+                                        Fun.t4(a,b,c, null), //NULL represents lower bound, everything is larger than null
+                                        Fun.t4(a,b==null?Fun.HI():b,c==null?Fun.HI():c,Fun.HI()) // HI is upper bound everything is smaller then HI
                                 ).iterator();
 
                 return new Iterator<D>() {
