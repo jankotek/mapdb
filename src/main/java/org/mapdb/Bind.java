@@ -263,6 +263,7 @@ public final class Bind {
      * @param <K2> Secondary Key type
      * @param <K1> Primary Key type
      * @return all keys where primary value equals to `secondaryKey`
+     * @deprecated (use {@link Bind#findVals2()}
      */
     public static <K2,K1> Iterable<K1> findSecondaryKeys(final NavigableSet<Fun.Tuple2<K2,K1>> secondaryKeys, final K2 secondaryKey) {
         return new Iterable<K1>(){
@@ -296,6 +297,78 @@ public final class Bind {
         };
 
     }
+
+
+    public static <A,B> Iterable<B> findVals2(final NavigableSet<Fun.Tuple2<A,B>> secondaryKeys, final A secondaryKey) {
+        return findSecondaryKeys(secondaryKeys,secondaryKey);
+    }
+
+    public static <A,B,C> Iterable<C> findVals3(final NavigableSet<Fun.Tuple3<A,B,C>> secondaryKeys, final A a, final B b) {
+        return new Iterable<C>(){
+            @Override
+            public Iterator<C> iterator() {
+                //use range query to get all values
+                final Iterator<Fun.Tuple3> iter =
+                        ((NavigableSet)secondaryKeys) //cast is workaround for generics
+                                .subSet(
+                                        Fun.t3(a, b, null), //NULL represents lower bound, everything is larger than null
+                                        Fun.t3(a,b,Fun.HI()) // HI is upper bound everything is smaller then HI
+                                ).iterator();
+
+                return new Iterator<C>() {
+                    @Override
+                    public boolean hasNext() {
+                        return iter.hasNext();
+                    }
+
+                    @Override
+                    public C next() {
+                        return (C) iter.next().c;
+                    }
+
+                    @Override
+                    public void remove() {
+                        iter.remove();
+                    }
+                };
+            }
+        };
+
+    }
+
+    public static <A,B,C,D> Iterable<D> findVals4(final NavigableSet<Fun.Tuple4<A,B,C,D>> secondaryKeys, final A a, final B b, final C c) {
+        return new Iterable<D>(){
+            @Override
+            public Iterator<D> iterator() {
+                //use range query to get all values
+                final Iterator<Fun.Tuple4> iter =
+                        ((NavigableSet)secondaryKeys) //cast is workaround for generics
+                                .subSet(
+                                        Fun.t4(a, b,c, null), //NULL represents lower bound, everything is larger than null
+                                        Fun.t4(a,b,c,Fun.HI()) // HI is upper bound everything is smaller then HI
+                                ).iterator();
+
+                return new Iterator<D>() {
+                    @Override
+                    public boolean hasNext() {
+                        return iter.hasNext();
+                    }
+
+                    @Override
+                    public D next() {
+                        return (D) iter.next().d;
+                    }
+
+                    @Override
+                    public void remove() {
+                        iter.remove();
+                    }
+                };
+            }
+        };
+
+    }
+
 
 
     /**
