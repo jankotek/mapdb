@@ -178,6 +178,12 @@ public class DB {
             return DB.this.createHashMap(HTreeMapMaker.this);
         }
 
+        public <K,V> HTreeMap<K,V> makeOrGet(){
+            //TODO add parameter check
+            return (HTreeMap<K, V>) (catGet(name+"type")==null?
+                                make():getHashMap(name));
+        }
+
 
     }
 
@@ -449,6 +455,13 @@ public class DB {
             return DB.this.createTreeMap(BTreeMapMaker.this);
         }
 
+        public <K,V> BTreeMap<K,V> makeOrGet(){
+            //TODO add parameter check
+            return (BTreeMap<K, V>) (catGet(name+"type")==null?
+                    make():getTreeMap(name));
+        }
+
+
         /** creates map optimized for using `String` keys */
         public <V> Map<String, V> makeStringMap() {
             keySerializer = BTreeKeySerializer.STRING;
@@ -519,6 +532,16 @@ public class DB {
         public <K> NavigableSet<K> make(){
             return DB.this.createTreeSet(BTreeSetMaker.this);
         }
+
+        public <K> NavigableSet<K> makeOrGet(){
+            //TODO add parameter check
+            return (NavigableSet<K>) (catGet(name+"type")==null?
+                    make():getTreeSet(name));
+
+        }
+
+
+
 
         /** creates set optimized for using `String` */
         public NavigableSet<String> makeStringSet() {
