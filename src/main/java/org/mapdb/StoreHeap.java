@@ -35,6 +35,7 @@ public class StoreHeap extends Store implements Serializable{
         Long recid = freeRecids.poll();
         if(recid==null) recid = maxRecid.incrementAndGet();
         records.put(recid, Fun.<Object, Serializer>t2(value,serializer));
+        assert(recid>0);
         return recid;
     }
 

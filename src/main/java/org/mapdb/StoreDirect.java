@@ -245,7 +245,9 @@ public class StoreDirect extends Store{
 
         put2(out, ioRecid, indexVals);
         recycledDataOuts.offer(out);
-        return (ioRecid-IO_USER_START)/8;
+        long recid = (ioRecid-IO_USER_START)/8;
+        assert(recid>0);
+        return recid;
     }
 
     protected void put2(DataOutput2 out, long ioRecid, long[] indexVals) {

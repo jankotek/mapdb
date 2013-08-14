@@ -263,6 +263,7 @@ public class StoreAppend extends Store{
         recycledDataOuts.offer(out);
         setIndexVal(recid, indexVal);
 
+        assert(recid>0);
         return recid;
 
     }

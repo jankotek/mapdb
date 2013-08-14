@@ -109,7 +109,9 @@ public class StoreWAL extends StoreDirect {
 
         modified.put(ioRecid,logPos);
         recycledDataOuts.offer(out);
-        return (ioRecid-IO_USER_START)/8;
+        long recid =  (ioRecid-IO_USER_START)/8;
+        assert(recid>0);
+        return recid;
     }
 
     protected void walPhysArray(DataOutput2 out, long[] physPos, long[] logPos) {
