@@ -192,6 +192,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                     Serializer<K> keySerializer, Serializer<V> valueSerializer,
                     long expireTimeStart, long expire, long expireAccess, long expireMaxSize,
                     long[] expireHeads, long[] expireTails, Fun.Function1<V,K> valueCreator) {
+        if(counterRecid<0) throw new IllegalArgumentException();
         if(engine==null) throw new NullPointerException();
         if(segmentRecids==null) throw new NullPointerException();
         if(keySerializer==null) throw new NullPointerException();

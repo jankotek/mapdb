@@ -435,6 +435,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         if(maxNodeSize%2!=0) throw new IllegalArgumentException("maxNodeSize must be dividable by 2");
         if(maxNodeSize<6) throw new IllegalArgumentException("maxNodeSize too low");
         if(maxNodeSize>126) throw new IllegalArgumentException("maxNodeSize too high");
+        if(rootRecidRef<=0||counterRecid<0) throw new IllegalArgumentException();
         if(keySerializer==null) throw new NullPointerException();
         if(comparator==null) throw new NullPointerException();
         SerializerBase.assertSerializable(keySerializer);
