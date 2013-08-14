@@ -1089,6 +1089,10 @@ public class DB {
         throw new InternalError("Unknown type: "+name);
     }
 
+    synchronized public boolean exists(String name){
+        return catGet(name+".type")!=null;
+    }
+
     /** delete record/collection with given name*/
     synchronized public void delete(String name){
         Object r = get(name);
