@@ -796,6 +796,7 @@ public class StoreDirect extends Store{
 
 
     protected void freeIoRecidPut(long ioRecid) {
+        assert(ioRecid>IO_USER_START);
         if(spaceReclaimTrack)
             longStackPut(IO_FREE_RECID, ioRecid,false);
     }
@@ -803,11 +804,15 @@ public class StoreDirect extends Store{
     protected long freeIoRecidTake(boolean ensureAvail){
         if(spaceReclaimTrack){
             long ioRecid = longStackTake(IO_FREE_RECID,false);
-            if(ioRecid!=0) return ioRecid;
+            if(ioRecid!=0){
+                assert(ioRecid>IO_USER_START);
+                return ioRecid;
+            }
         }
         indexSize+=8;
         if(ensureAvail)
             index.ensureAvailable(indexSize);
+        assert(indexSize-8>IO_USER_START);
         return indexSize-8;
     }
 
