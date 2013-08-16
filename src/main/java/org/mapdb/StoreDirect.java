@@ -197,7 +197,7 @@ public class StoreDirect extends Store{
             checkHeaders();
             indexSize = index.getLong(IO_INDEX_SIZE);
             physSize = index.getLong(IO_PHYS_SIZE);
-            indexSize = index.getLong(IO_FREE_SIZE);
+            freeSize = index.getLong(IO_FREE_SIZE);
         }
 
     }
@@ -214,6 +214,7 @@ public class StoreDirect extends Store{
 
     protected void createStructure() {
         indexSize = IO_USER_START+LAST_RESERVED_RECID*8+8;
+        assert(indexSize>IO_USER_START);
         index.ensureAvailable(indexSize);
         for(int i=0;i<indexSize;i+=8) index.putLong(i,0L);
         index.putLong(0, HEADER);
