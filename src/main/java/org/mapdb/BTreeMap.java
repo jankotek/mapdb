@@ -612,7 +612,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     if(putOnlyIfAbsent){
                         //is not absent, so quit
                         Utils.unlock(nodeLocks, current);
-                        Utils.assertNoLocks(nodeLocks);
+                        if(CC.PARANOID) Utils.assertNoLocks(nodeLocks);
                         V ret =  valExpand(oldVal);
                         notify(v,ret, value2);
                         return ret;
@@ -628,7 +628,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     engine.update(current, A, nodeSerializer);
                     //already in here
                     Utils.unlock(nodeLocks, current);
-                    Utils.assertNoLocks(nodeLocks);
+                    if(CC.PARANOID) Utils.assertNoLocks(nodeLocks);
                     V ret =  valExpand(oldVal);
                     notify(v,ret, value2);
                     return ret;
@@ -672,7 +672,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 }
 
                 Utils.unlock(nodeLocks, current);
-                Utils.assertNoLocks(nodeLocks);
+                if(CC.PARANOID) Utils.assertNoLocks(nodeLocks);
                 notify(v,  null, value2);
                 return null;
             }else{
@@ -741,7 +741,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
                     //TODO update tree levels
                     Utils.unlock(nodeLocks, current);
-                    Utils.assertNoLocks(nodeLocks);
+                    if(CC.PARANOID) Utils.assertNoLocks(nodeLocks);
                     notify(v, null, value2);
                     return null;
                 }

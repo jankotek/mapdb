@@ -56,6 +56,8 @@ final public class Utils {
 
     public static final String EMPTY_STRING = "";
     public static final String UTF8 = "UTF8";
+
+    /** @deprecated possible multi-threaded issues*/
     public static Random RANDOM = new Random();
 
     public static final int LOCK_MASK = CC.CONCURRENCY-1;
@@ -241,6 +243,8 @@ final public class Utils {
         }
     }
 
+
+    /** @deprecated */
     public static void printProgress(final AtomicLong value){
         new Thread("printProgress"){
             {
@@ -273,6 +277,8 @@ final public class Utils {
         }.start();
     }
 
+
+    /** @deprecated  */
     public static <A> DataOutput2 serializer(Serializer<A> serializer, A value) {
         try{
             DataOutput2 out = new DataOutput2();
@@ -284,6 +290,7 @@ final public class Utils {
 
     }
 
+    /** @deprecated */
     public static String randomString(int size) {
         String chars = "0123456789abcdefghijklmnopqrstuvwxyz !@#$%^&*()_+=-{}[]:\",./<>?|\\";
         StringBuilder b = new StringBuilder(size);
@@ -337,15 +344,12 @@ final public class Utils {
 
 
     public static void assertNoLocks(LongConcurrentHashMap<Thread> locks){
-        if(CC.PARANOID)
-        {
             LongMap.LongMapIterator<Thread> i = locks.longMapIterator();
             while(i.moveToNext()){
                 if(i.value()==Thread.currentThread()){
                     throw new InternalError("Node "+i.key()+" is still locked");
                 }
             }
-        }
     }
 
 
