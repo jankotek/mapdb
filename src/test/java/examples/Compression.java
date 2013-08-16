@@ -2,7 +2,6 @@ package examples;
 
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
-import org.mapdb.Serializer;
 
 import java.util.Map;
 

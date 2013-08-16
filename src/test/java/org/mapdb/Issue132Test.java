@@ -1,10 +1,10 @@
 package org.mapdb;
 
-import java.util.Iterator;
-import java.util.Set;
-
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.util.Iterator;
+import java.util.Set;
 
 public class Issue132Test {
 

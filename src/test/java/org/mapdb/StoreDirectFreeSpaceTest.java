@@ -1,9 +1,11 @@
 package org.mapdb;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.Deque;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.TreeMap;
 
 import static org.junit.Assert.*;
 

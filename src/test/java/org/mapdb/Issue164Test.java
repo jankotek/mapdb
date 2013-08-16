@@ -2,8 +2,8 @@ package org.mapdb;
 
 import org.junit.Test;
 
-import java.io.*;
-import java.util.*;
+import java.io.Serializable;
+import java.util.HashSet;
 
 import static org.junit.Assert.assertTrue;
 

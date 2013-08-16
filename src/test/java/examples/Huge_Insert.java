@@ -6,7 +6,6 @@ import java.io.File;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Demonstrate how-to create large BTreeMap using data pump.

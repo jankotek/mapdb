@@ -1,13 +1,13 @@
 package org.mapdb;
 
 
+import org.junit.Test;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Map;
-
-import org.junit.Test;
 
 public class Issue150Test {
 

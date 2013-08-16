@@ -10,7 +10,6 @@ import java.util.concurrent.ConcurrentMap;
 
 import static junit.framework.TestCase.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class Issue37Test {
 
