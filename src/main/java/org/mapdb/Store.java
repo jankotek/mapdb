@@ -9,7 +9,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.zip.CRC32;
+import java.util.zip.Adler32;
 
 /**
  * Low level record store.
@@ -120,7 +120,7 @@ public abstract class Store implements Engine{
                 }
 
                 if(checksum){
-                    CRC32 crc = new CRC32();
+                    Adler32 crc = new Adler32();
                     crc.update(out.buf,0,out.pos);
                     out.writeInt((int)crc.getValue());
                 }
@@ -154,13 +154,13 @@ public abstract class Store implements Engine{
                 di.read(tmp.buf,0,size);
                 di.pos = oldPos;
                 //calculate checksums
-                CRC32 crc32 = new CRC32();
-                crc32.update(tmp.buf,0,size);
+                Adler32 adler = new Adler32();
+                adler.update(tmp.buf,0,size);
                 recycledDataOuts.offer(tmp);
-                int check = (int) crc32.getValue();
+                int check = (int) adler.getValue();
                 int checkExpected = di.buf.getInt(di.pos+size);
                 if(check!=checkExpected)
-                    throw new IOException("CRC32 does not match, data broken");
+                    throw new IOException("Checksum does not match, data broken");
             }
 
             if(encrypt){

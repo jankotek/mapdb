@@ -170,7 +170,7 @@ public class DBMakerTest{
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void reopen_wrong_crc32() throws IOException {
+    public void reopen_wrong_checksum() throws IOException {
         File f = Utils.tempDbFile();
         DB db = DBMaker.newFileDB(f).make();
         db.close();
@@ -193,7 +193,7 @@ public class DBMakerTest{
     }
 
 
-    @Test public void crc32() throws IOException {
+    @Test public void checksum() throws IOException {
         File f = Utils.tempDbFile();
         DB db = DBMaker
                 .newFileDB(f)

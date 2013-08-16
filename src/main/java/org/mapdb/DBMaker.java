@@ -502,8 +502,8 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
 
     /**
-     * Adds CRC32 checksum at end of each record to check data integrity.
-     * It throws 'IOException("CRC32 does not match, data broken")' on de-serialization if data are corrupted
+     * Adds Adler32 checksum at end of each record to check data integrity.
+     * It throws 'IOException("Checksum does not match, data broken")' on de-serialization if data are corrupted
      * <p/>
      * Make sure you enable this every time you reopen store, otherwise record de-serialization fails.
      *

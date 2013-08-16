@@ -43,7 +43,7 @@ new functionality (such as network replication) is very easy.
 * Highly embeddable; 200 KB no-deps jar (50KB packed), pure java,
 low memory & CPU overhead.
 
-* Transparent encryption, compression, CRC32 checksums and other optional stuff.
+* Transparent encryption, compression, checksums and other optional stuff.
 
 
 
