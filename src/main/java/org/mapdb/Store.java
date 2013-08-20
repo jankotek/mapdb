@@ -3,6 +3,7 @@ package org.mapdb;
 import java.io.IOError;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -71,34 +72,32 @@ public abstract class Store implements Engine{
 
                 if(compress){
                     DataOutput2 tmp = newDataOut2();
-
-                    //compress data into `tmp`
-                    CompressLZF lzf = LZF.get();
-                    tmp.ensureAvail(out.pos + 40);
-                    int len;
+                    tmp.ensureAvail(out.pos+40);
+                    final CompressLZF lzf = LZF.get();
+                    int newLen;
                     try{
-                        len = lzf.compress(out.buf, out.pos, tmp.buf, 0);
-                    }catch (ArrayIndexOutOfBoundsException e){
-                        len=0; //compressed data are larger than source
+                        newLen = lzf.compress(out.buf,out.pos,tmp.buf,0);
+                    }catch(IndexOutOfBoundsException e){
+                        newLen=0; //larger after compression
                     }
-                    //data are in `tmp`, reset `out` and copy compressed data there
-                    //check if compressed data are larger then original
-                    if (len == 0 || out.pos <= len) {
-                        //in this case do not compress data, write 0 at begging and move data by one1
-                        out.ensureAvail(1);
-                        System.arraycopy(out.buf,0,out.buf,1,out.pos);
-                        out.buf[0] = 0;
-                        out.pos+=1;
-                    } else {
-                        //data are compressed into `tmp`. Now write header into `out` and copy data
-                        out.pos = 0;
-                        Utils.packInt(out,len); //write original decompressed size
-                        out.ensureAvail(len);
-                        System.arraycopy(tmp.buf,0,out.buf,out.pos,len);
-                        out.pos+=len;
+                    if(newLen>=out.pos) newLen= 0; //larger after compression
 
+                    if(newLen==0){
+                        recycledDataOuts.offer(tmp);
+                        //compression had no effect, so just write zero at beginning and move array by 1
+                        out.ensureAvail(out.pos+1);
+                        System.arraycopy(out.buf,0,out.buf,1,out.pos);
+                        out.pos+=1;
+                        out.buf[0] = 0;
+                    }else{
+                        //compression had effect, so write decompressed size and compressed array
+                        final int decompSize = out.pos;
+                        out.pos=0;
+                        Utils.packInt(out,decompSize);
+                        out.write(tmp.buf,0,decompSize);
+                        recycledDataOuts.offer(tmp);
                     }
-                    recycledDataOuts.offer(tmp);
+
                 }
 
 
@@ -121,8 +120,25 @@ public abstract class Store implements Engine{
                     crc.update(out.buf,0,out.pos);
                     out.writeInt((int)crc.getValue());
                 }
-            }
 
+                if(CC.PARANOID)try{
+                    //check that array is the same after deserialization
+                    DataInput2 inp = new DataInput2(Arrays.copyOf(out.buf,out.pos));
+                    byte[] decompress = deserialize(Serializer.BYTE_ARRAY_NOSIZE,out.pos,inp);
+
+                    DataOutput2 expected = newDataOut2();
+                    serializer.serialize(expected,value);
+
+                    byte[] expected2 = Arrays.copyOf(expected.buf, expected.pos);
+                    //check arrays equals
+                    if(!Arrays.equals(expected2,decompress)){
+                        throw new InternalError();
+                    }
+
+                }catch(Exception e){
+                    throw new RuntimeException(e);
+                }
+            }
             return out;
         } catch (IOException e) {
             throw new IOError(e);
@@ -172,20 +188,19 @@ public abstract class Store implements Engine{
             }
 
             if(compress) {
-                int compressLen = Utils.unpackInt(di);
-                if(compressLen>0){
-                    DataOutput2 tmp = newDataOut2();
-
-                    tmp.ensureAvail(compressLen);
-                    CompressLZF lzf = LZF.get();
-                    lzf.expand(di.buf,di.pos,size-di.pos,tmp.buf,0,compressLen);
-
-                    //data are now stored in `tmp`, turn it into DataInput
-                    di = new DataInput2(tmp.buf);
-                    size = compressLen;
-                }else{
-                    //in this case data are not compressed, so do nothing except updating sizes
+                final int origPos = di.pos;
+                int decompSize = Utils.unpackInt(di);
+                if(decompSize==0){
                     size-=1;
+                    //rest of `di` is uncompressed data
+                }else{
+                    DataOutput2 out = newDataOut2();
+                    out.ensureAvail(decompSize);
+                    CompressLZF lzf = LZF.get();
+                    //TODO copy to heap if Volume is not mapped
+                    lzf.expand(di.buf,di.pos,size-(di.pos-origPos),out.buf,0,decompSize);
+                    di = new DataInput2(out.buf);
+                    size = decompSize;
                 }
             }
 
