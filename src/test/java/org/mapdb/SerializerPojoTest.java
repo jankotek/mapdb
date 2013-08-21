@@ -5,6 +5,8 @@ import junit.framework.TestCase;
 
 import javax.swing.*;
 import java.io.*;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -405,5 +407,13 @@ public class SerializerPojoTest extends TestCase {
         }
     }
 
+
+    public void testIssue177() throws UnknownHostException {
+        DB db = DBMaker.newMemoryDB().asyncWriteDisable().cacheDisable().make();
+        InetAddress value = InetAddress.getByName("127.0.0.1");
+        long recid = db.engine.put(value, db.getDefaultSerializer());
+        Object value2 = db.engine.get(recid,db.getDefaultSerializer());
+        assertEquals(value,value2);
+    }
 
 }

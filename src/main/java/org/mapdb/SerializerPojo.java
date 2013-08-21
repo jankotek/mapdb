@@ -291,6 +291,13 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             if(clazz.getDeclaredMethod("writeObject",ObjectOutputStream.class)!=null) return true;
         } catch (NoSuchMethodException e) {
         }
+
+
+        try {
+            if(clazz.getDeclaredMethod("writeReplace")!=null) return true;
+        } catch (NoSuchMethodException e) {
+        }
+
         return false;
     }
 
