@@ -203,7 +203,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             try {
                 this.typeClass = Class.forName(type);
             } catch (ClassNotFoundException e) {
-                this.typeClass = null;
+                throw new RuntimeException(e);
             }
 
             //init field
@@ -211,8 +211,8 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             Class<?> aClazz = clazz;
 
             // iterate over class hierarchy, until root class
-            while (aClazz != Object.class) {
-
+            while (true) {
+                if(aClazz == Object.class) throw new RuntimeException("Could not set field value: "+name+" - "+clazz.toString());
                 // access field directly
                 try {
                     Field f = aClazz.getDeclaredField(name);
@@ -221,11 +221,13 @@ public class SerializerPojo extends SerializerBase implements Serializable{
                         f.setAccessible(true);
                     field = f;
                     break;
-                } catch (Exception e) {
-//					e.printStackTrace();
+                } catch (NoSuchFieldException e) {
+					//field does not exists
                 }
                 // move to superclass
                 aClazz = aClazz.getSuperclass();
+
+
             }
         }
 
@@ -346,7 +348,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         try {
             registerClass(object.getClass());
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new IOError(e);
         }
         ClassInfo classInfo = registered.get(class2classId.get(object.getClass()));
         return getFieldValue(classInfo.getField(fieldName), object);
@@ -362,7 +364,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         try {
             return fieldInfo.field.get(object);
         } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Could not get value from field", e);
         }
     }
 
@@ -370,7 +372,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         try {
             registerClass(object.getClass());
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new IOError(e);
         }
         ClassInfo classInfo = registered.get(class2classId.get(object.getClass()));
         setFieldValue(classInfo.getField(fieldName), object, value);
@@ -383,7 +385,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         try{
            fieldInfo.field.set(object, value);
         } catch (IllegalAccessException e) {
-           throw new RuntimeException(e);
+           throw new RuntimeException("Could not set field value: ",e);
         }
 
     }
@@ -483,7 +485,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             }
             return o;
         } catch (Exception e) {
-            throw new Error("Could not instanciate class", e);
+            throw new Error("Could not instantiate class", e);
         }
     }
 
