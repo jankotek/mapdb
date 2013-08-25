@@ -561,6 +561,11 @@ public class SerializerBase implements Serializer{
             out.write(Header.MAPDB);
             Utils.packInt(out,HeaderMapDB.SERIALIZER_BYTE_ARRAY_NOSIZE);
             return;
+        } else if(obj == Serializer.JAVA){
+            out.write(Header.MAPDB);
+            Utils.packInt(out,HeaderMapDB.SERIALIZER_JAVA);
+            return;
+
 
         } else if(obj == this){
             out.write(Header.MAPDB);
@@ -1285,6 +1290,7 @@ public class SerializerBase implements Serializer{
         int B_TREE_BASIC_KEY_SERIALIZER = 15;
         int BOOLEAN_SERIALIZER = 16;
         int SERIALIZER_BYTE_ARRAY_NOSIZE = 17;
+        int SERIALIZER_JAVA = 18;
     }
 
 
@@ -1311,6 +1317,8 @@ public class SerializerBase implements Serializer{
                 return Serializer.BOOLEAN;
             case HeaderMapDB.SERIALIZER_BYTE_ARRAY_NOSIZE:
                 return Serializer.BYTE_ARRAY_NOSIZE;
+            case HeaderMapDB.SERIALIZER_JAVA:
+                return Serializer.JAVA;
 
 
             case HeaderMapDB.COMPARABLE_COMPARATOR: return Utils.COMPARABLE_COMPARATOR;

@@ -16,9 +16,7 @@
 package org.mapdb;
 
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
+import java.io.*;
 
 /**
  * Provides serialization and deserialization
@@ -26,6 +24,8 @@ import java.io.IOException;
  * @author Jan Kotek
  */
 public interface Serializer<A> {
+
+
 
     /**
      * Serialize the content of an object into a ObjectOutput
@@ -167,5 +167,25 @@ public interface Serializer<A> {
             return ret;
         }
     } ;
+
+    /** Serializer which uses standard Java Serialization with {@link java.io.ObjectInputStream} and {@link java.io.ObjectOutputStream} */
+    Serializer<Object> JAVA = new Serializer<Object>() {
+        @Override
+        public void serialize(DataOutput out, Object value) throws IOException {
+            ObjectOutputStream out2 = new ObjectOutputStream((OutputStream) out);
+            out2.writeObject(value);
+            out2.flush();
+        }
+
+        @Override
+        public Object deserialize(DataInput in, int available) throws IOException {
+            try {
+                ObjectInputStream in2 = new ObjectInputStream((InputStream) in);
+                return in2.readObject();
+            } catch (ClassNotFoundException e) {
+                throw new IOException(e);
+            }
+        }
+    };
 
 }
