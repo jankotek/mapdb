@@ -201,7 +201,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             this.type = type;
             this.clazz = clazz;
             try {
-                this.typeClass = Class.forName(type);
+                this.typeClass = primitive?null:Class.forName(type);
             } catch (ClassNotFoundException e) {
                 throw new RuntimeException(e);
             }
@@ -267,18 +267,18 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         if (containsClass(clazz))
             return;
 
-        ObjectStreamField[] streamFields = getFields(clazz);
+        final boolean advancedSer = usesAdvancedSerialization(clazz);
+        ObjectStreamField[] streamFields = advancedSer? new ObjectStreamField[0]:getFields(clazz);
         FieldInfo[] fields = new FieldInfo[streamFields.length];
         for (int i = 0; i < fields.length; i++) {
             ObjectStreamField sf = streamFields[i];
             fields[i] = new FieldInfo(sf, clazz);
         }
 
-        ClassInfo i = new ClassInfo(clazz.getName(), fields,clazz.isEnum(), usesAdvancedSerialization(clazz));
+        ClassInfo i = new ClassInfo(clazz.getName(), fields,clazz.isEnum(), advancedSer);
         class2classId.put(clazz, registered.size());
         classId2class.put(registered.size(), clazz);
         registered.add(i);
-
 
         saveClassInfo();
     }

@@ -40,7 +40,9 @@ public class SerializerBase implements Serializer{
 
             Serializer.STRING_NOSIZE, Serializer.LONG, Serializer.INTEGER,
             Serializer.EMPTY_SERIALIZER, Serializer.BASIC, Serializer.BOOLEAN,
-            Serializer.BYTE_ARRAY_NOSIZE
+            Serializer.BYTE_ARRAY_NOSIZE,
+            Serializer.JAVA
+
     ));
     }
 
