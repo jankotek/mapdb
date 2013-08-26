@@ -1,6 +1,21 @@
 Changelog
 ============
 
+Version 0.9.5 (2013-08-26)
+--------------------------
+Bugfixes from previous release. Fixed data corruption bugs, upgrade strongly recommended.
+
+Changes:
+
+ * Fix #177: broken compression
+ * Fix data corruption with disabled transactions
+ * CRC32 replaced with faster Adler32, **store which uses checksum is no backward compatible**
+ * Fix #167: Add DB.exists() method to check if named record/collection
+ * Fix #167:  Add a makeOrGet to DB Collection maker API.
+ * StoreWAL:  fix some TOMBSTONE details
+ * Bind: Add methods to find subsets on composite sets
+
+
 Version 0.9.4 (2013-08-09)
 --------------------------
 **No backward compability** with previous versions. Some parts were completely rewritten for better free space management.

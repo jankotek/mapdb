@@ -36,6 +36,8 @@ CRUD, off-heap, append only store.. we have them all. MapDB is highly modular an
 
 News
 ----
+* 2013-08-26 [MapDB 0.9.5 was released](http://www.mapdb.org/changelog.html#Version_095_2013-08-26). Fixed some data corruption issues. I will be offline until 4th Sept.
+
 * 2013-08-09 [MapDB 0.9.4 was released](http://www.mapdb.org/changelog.html#Version_094_2013-08-09). It is not backward compatible with previous versions. Many changes and improvements.
 
 * 2013-06-18 Now I work on MapDB [full time](http://kotek.net/blog/MapDB_Reloaded).
