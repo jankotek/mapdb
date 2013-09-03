@@ -90,14 +90,14 @@ public class StoreAppend extends Store{
         this.tx = !transactionDisabled;
         indexInTx = tx?new LongConcurrentHashMap<Long>() : null;
 
-
-        if(!file.getParentFile().exists() || !file.getParentFile().isDirectory())
+        final File parent = file.getAbsoluteFile().getParentFile();
+        if(!parent.exists() || !parent.isDirectory())
             throw new IllegalArgumentException("Parent dir does not exist: "+file);
 
         //list all matching files and sort them by number
         final SortedSet<Fun.Tuple2<Long,File>> sortedFiles = new TreeSet<Fun.Tuple2<Long, File>>();
         final String prefix = file.getName();
-        for(File f:file.getParentFile().listFiles()){
+        for(File f:parent.listFiles()){
             String name= f.getName();
             if(!name.startsWith(prefix) || name.length()<=prefix.length()+1) continue;
             String number = name.substring(prefix.length()+1, name.length());
