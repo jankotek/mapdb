@@ -211,22 +211,26 @@ public class TxMaker {
                         commitPending = false;
                     }
 
-                    LongMap.LongMapIterator<Fun.Tuple2<?, Serializer>> iter = mods.longMapIterator();
-                    while(iter.moveToNext()){
 
-                        final long recid = iter.key();
-                        if(!globalMods.remove(recid,this)){
-                            engine.rollback();
-                            throw new InternalError("record was not modified by this transaction");
-                        }
+                    while(!mods.isEmpty()){
+                        LongMap.LongMapIterator<Fun.Tuple2<?, Serializer>> iter = mods.longMapIterator();
+                        while(iter.moveToNext()){
 
-                        final Object value = iter.value().a;
-                        final Serializer serializer = iter.value().b;
+                            final long recid = iter.key();
+                            if(!globalMods.remove(recid,this)){
+                                engine.rollback();
+                                throw new InternalError("record was not modified by this transaction");
+                            }
 
-                        if(value==DELETED){
-                            engine.delete(recid,serializer);
-                        }else{
-                            engine.update(recid,value,serializer);
+                            final Object value = iter.value().a;
+                            final Serializer serializer = iter.value().b;
+
+                            if(value==DELETED){
+                                engine.delete(recid,serializer);
+                            }else{
+                                engine.update(recid,value,serializer);
+                            }
+                            iter.remove();
                         }
                     }
                 }
