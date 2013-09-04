@@ -32,8 +32,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * Serializer which handles POJO, object graphs etc.
  *
  * @author  Jan Kotek
- *
- * TODO make this class thread safe
  */
 public class SerializerPojo extends SerializerBase implements Serializable{
 
@@ -405,42 +403,46 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     @Override
     protected void serializeUnknownObject(DataOutput out, Object obj, FastArrayList<Object> objectStack) throws IOException {
         out.write(Header.POJO);
+        lock.writeLock().lock(); //TODO write lock is not necessary over entire method
+        try{
+            registerClass(obj.getClass());
 
-        registerClass(obj.getClass());
+            //write class header
+            int classId = getClassId(obj.getClass());
+            Utils.packInt(out, classId);
+            ClassInfo classInfo = registered.get(classId);
 
-        //write class header
-        int classId = getClassId(obj.getClass());
-        Utils.packInt(out, classId);
-        ClassInfo classInfo = registered.get(classId);
-
-        if(classInfo.useObjectStream){
-            ObjectOutputStream2 out2 = new ObjectOutputStream2((OutputStream) out);
-            out2.writeObject(obj);
-            return;
-        }
-
-
-        if(classInfo.isEnum) {
-            int ordinal = ((Enum<?>)obj).ordinal();
-            Utils.packInt(out, ordinal);
-        }
-
-        ObjectStreamField[] fields = getFields(obj.getClass());
-        Utils.packInt(out, fields.length);
-
-        for (ObjectStreamField f : fields) {
-            //write field ID
-            int fieldId = classInfo.getFieldId(f.getName());
-            if (fieldId == -1) {
-                //field does not exists in class definition stored in db,
-                //propably new field was added so add field descriptor
-                fieldId = classInfo.addFieldInfo(new FieldInfo(f, obj.getClass()));
-                saveClassInfo();
+            if(classInfo.useObjectStream){
+                ObjectOutputStream2 out2 = new ObjectOutputStream2((OutputStream) out);
+                out2.writeObject(obj);
+                return;
             }
-            Utils.packInt(out, fieldId);
-            //and write value
-            Object fieldValue = getFieldValue(classInfo.getField(fieldId), obj);
-            serialize(out, fieldValue, objectStack);
+
+
+            if(classInfo.isEnum) {
+                int ordinal = ((Enum<?>)obj).ordinal();
+                Utils.packInt(out, ordinal);
+            }
+
+            ObjectStreamField[] fields = getFields(obj.getClass());
+            Utils.packInt(out, fields.length);
+
+            for (ObjectStreamField f : fields) {
+                //write field ID
+                int fieldId = classInfo.getFieldId(f.getName());
+                if (fieldId == -1) {
+                    //field does not exists in class definition stored in db,
+                    //propably new field was added so add field descriptor
+                    fieldId = classInfo.addFieldInfo(new FieldInfo(f, obj.getClass()));
+                    saveClassInfo();
+                }
+                Utils.packInt(out, fieldId);
+                //and write value
+                Object fieldValue = getFieldValue(classInfo.getField(fieldId), obj);
+                serialize(out, fieldValue, objectStack);
+            }
+        }finally{
+            lock.writeLock().unlock();
         }
     }
 
@@ -449,6 +451,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     protected Object deserializeUnknownHeader(DataInput in, int head, FastArrayList<Object> objectStack) throws IOException {
         if(head!= Header.POJO) throw new InternalError();
 
+        lock.readLock().lock();
         //read class header
         try {
             int classId = Utils.unpackInt(in);
@@ -486,6 +489,8 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             return o;
         } catch (Exception e) {
             throw new Error("Could not instantiate class", e);
+        }finally {
+            lock.readLock().unlock();
         }
     }
 
