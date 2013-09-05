@@ -39,6 +39,8 @@ public class StoreWAL extends StoreDirect {
     protected final long[] indexVals = new long[IO_USER_START/8];
     protected final boolean[] indexValsModified = new boolean[indexVals.length];
 
+    protected boolean replayPending = true;
+
 
     public StoreWAL(Volume.Factory volFac) {
         this(volFac,false,false,5,false,0L,false,false,null);
@@ -53,7 +55,15 @@ public class StoreWAL extends StoreDirect {
 
         reloadIndexFile();
         replayLogFile();
+        replayPending = false;
+        checkHeaders();
         log = null;
+    }
+
+    @Override
+    protected void checkHeaders() {
+        if(replayPending) return;
+        super.checkHeaders();
     }
 
     protected void reloadIndexFile() {
@@ -532,6 +542,9 @@ public class StoreWAL extends StoreDirect {
             logSize+=1;
         }
         logSize=0;
+
+        //TODO put this into log file, rather than writing directly
+        index.putLong(IO_INDEX_SUM,indexHeaderChecksum());
 
         //flush dbs
         if(!syncOnCommitDisabled){

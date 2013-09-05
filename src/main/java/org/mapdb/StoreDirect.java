@@ -54,7 +54,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *  1           | {@link StoreDirect#IO_INDEX_SIZE} | Allocated file size of index file in bytes.
  *  2           | {@link StoreDirect#IO_PHYS_SIZE}  | Allocated file size of physical file in bytes.
  *  3           | {@link StoreDirect#IO_FREE_SIZE}  | Space occupied by free records in physical file in bytes.
- *  4..9        |                                   | Reserved for future use
+ *  4           | {@link StoreDirect#IO_INDEX_SUM}  | Checksum of all Index file headers. Checks if store was closed correctly
+ *  5..9        |                                   | Reserved for future use
  *  10..14      |                                   | For usage by user
  *  15          | {@link StoreDirect#IO_FREE_RECID} |Long Stack of deleted recids, those will be reused and returned by {@link Engine#put(Object, Serializer)}
  *  16..4111    |                                   |Long Stack of free physical records. This contains free space released by record update or delete. Each slots corresponds to free record size. TODO check 4111 is right
@@ -139,6 +140,9 @@ public class StoreDirect extends Store{
     /** index file offset where space occupied by free phys records is stored */
     protected static final int IO_FREE_SIZE = 3*8;
 
+    /** checksum of all index file headers. Used to verify store was closed correctly */
+    protected static final int IO_INDEX_SUM = 4*8;
+
     /** index file offset where reference to longstack of free recid is stored*/
     protected static final int IO_FREE_RECID = 15*8;
 
@@ -210,6 +214,10 @@ public class StoreDirect extends Store{
 
     protected void checkHeaders() {
         if(index.getLong(0)!=HEADER||phys.getLong(0)!=HEADER)throw new IOError(new IOException("storage has invalid header"));
+
+        long checksum = index.getLong(IO_INDEX_SUM);
+        if(checksum!=indexHeaderChecksum())
+            throw new IOError(new IOException("Wrong index checksum, store was not closed properly and could be corrupted."));
     }
 
     protected void createStructure() {
@@ -225,9 +233,17 @@ public class StoreDirect extends Store{
         phys.putLong(0, HEADER);
         freeSize = 0;
         index.putLong(IO_FREE_SIZE,freeSize);
-
+        index.putLong(IO_INDEX_SUM,indexHeaderChecksum());
     }
 
+    protected long indexHeaderChecksum(){
+        long ret = 0;
+        for(long offset = 0;offset<IO_USER_START;offset+=8){
+            if(offset == IO_INDEX_SUM) continue;
+            ret |= index.getLong(offset);
+        }
+        return ret;
+    }
 
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
@@ -553,6 +569,7 @@ public class StoreDirect extends Store{
             index.putLong(IO_PHYS_SIZE,physSize);
             index.putLong(IO_INDEX_SIZE,indexSize);
             index.putLong(IO_FREE_SIZE,freeSize);
+            index.putLong(IO_INDEX_SUM,indexHeaderChecksum());
         }
 
         index.sync();
@@ -580,6 +597,7 @@ public class StoreDirect extends Store{
             index.putLong(IO_PHYS_SIZE,physSize);
             index.putLong(IO_INDEX_SIZE,indexSize);
             index.putLong(IO_FREE_SIZE,freeSize);
+            index.putLong(IO_INDEX_SUM,indexHeaderChecksum());
         }
         if(!syncOnCommitDisabled){
             index.sync();
