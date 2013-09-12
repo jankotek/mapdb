@@ -453,6 +453,7 @@ public class StoreWAL extends StoreDirect {
             }
 
             //seal log file
+            log.ensureAvailable(logSize + 1);
             log.putByte(logSize, WAL_SEAL);
             logSize+=1;
             //flush log file
