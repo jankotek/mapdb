@@ -93,6 +93,7 @@ public class SerializerBaseTest extends TestCase {
 
     public void testLong() throws IOException{
         long[] vals = {
+                65536,
                 Long.MIN_VALUE,
                 Integer.MIN_VALUE, (long)Integer.MIN_VALUE - 1, (long)Integer.MIN_VALUE + 1,
                 -Short.MIN_VALUE * 2,
