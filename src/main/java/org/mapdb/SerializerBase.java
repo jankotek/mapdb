@@ -129,19 +129,15 @@ public class SerializerBase implements Serializer{
             objectStack.add(obj);
         }
 
-        final Class clazz = obj != null ? obj.getClass() : null;
-
-        /** first try to serialize object without initializing object stack*/
         if (obj == null) {
             out.write(Header.NULL);
             return;
-        } else if (clazz == Boolean.class) {
-            if ((Boolean) obj)
-                out.write(Header.BOOLEAN_TRUE);
-            else
-                out.write(Header.BOOLEAN_FALSE);
-            return;
-        } else if (clazz == Integer.class) {
+        }
+
+        final Class clazz = obj.getClass();
+
+        /** first try to serialize object without initializing object stack*/
+        if (clazz == Integer.class) {
             serializeInt(out,  obj);
             return;
         } else if (clazz == Long.class) {
@@ -149,6 +145,9 @@ public class SerializerBase implements Serializer{
             return;
         } else if (clazz == String.class) {
             serializeString(out,  obj);
+            return;
+        }else if (clazz == Boolean.class) {
+            out.write(((Boolean)obj)?Header.BOOLEAN_TRUE:Header.BOOLEAN_FALSE);
             return;
         } else if (clazz == Byte.class) {
             serializeByte(out,  obj);
