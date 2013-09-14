@@ -57,7 +57,7 @@ public interface Serializer<A> {
 
         @Override
 		public void serialize(DataOutput out, String value) throws IOException {
-            final byte[] bytes = value.getBytes(Utils.UTF8);
+            final byte[] bytes = value.getBytes(Utils.UTF8_CHARSET);
             out.write(bytes);
         }
 
@@ -67,7 +67,7 @@ public interface Serializer<A> {
             if(available==-1) throw new IllegalArgumentException("STRING_NOSIZE does not work with collections.");
             byte[] bytes = new byte[available];
             in.readFully(bytes);
-            return new String(bytes, Utils.UTF8);
+            return new String(bytes, Utils.UTF8_CHARSET);
         }
     };
 

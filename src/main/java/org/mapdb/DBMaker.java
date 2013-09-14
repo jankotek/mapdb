@@ -475,11 +475,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * @return this builder
      */
     public DBMakerT encryptionEnable(String password){
-        try {
-            return encryptionEnable(password.getBytes(Utils.UTF8));
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-        }
+        return encryptionEnable(password.getBytes(Utils.UTF8_CHARSET));
     }
 
 

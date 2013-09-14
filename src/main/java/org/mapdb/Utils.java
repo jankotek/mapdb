@@ -18,6 +18,7 @@ package org.mapdb;
 
 import java.io.*;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
@@ -56,6 +57,7 @@ final public class Utils {
 
     public static final String EMPTY_STRING = "";
     public static final String UTF8 = "UTF8";
+    public static final Charset UTF8_CHARSET = Charset.forName(UTF8);
 
     /** @deprecated possible multi-threaded issues*/
     public static Random RANDOM = new Random();

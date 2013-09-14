@@ -145,7 +145,7 @@ public abstract class BTreeKeySerializer<K>{
         public void serialize(DataOutput out, int start, int end, Object[] keys) throws IOException {
             byte[] previous = null;
             for (int i = start; i < end; i++) {
-                byte[] b = ((String) keys[i]).getBytes(Utils.UTF8);
+                byte[] b = ((String) keys[i]).getBytes(Utils.UTF8_CHARSET);
                 leadingValuePackWrite(out, b, previous, 0);
                 previous = b;
             }
@@ -158,7 +158,7 @@ public abstract class BTreeKeySerializer<K>{
             for (int i = start; i < end; i++) {
                 byte[] b = leadingValuePackRead(in, previous, 0);
                 if (b == null) continue;
-                ret[i] = new String(b,Utils.UTF8);
+                ret[i] = new String(b,Utils.UTF8_CHARSET);
                 previous = b;
             }
             return ret;
