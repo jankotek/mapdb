@@ -80,9 +80,7 @@ final public class Utils {
      */
     static public void packLong(DataOutput out, long value) throws IOException {
 
-        if (value < 0) {
-            throw new IllegalArgumentException("negative value: keys=" + value);
-        }
+        assert(value>=0):"negative value: "+value;
 
         while ((value & ~0x7FL) != 0) {
             out.write((((int) value & 0x7F) | 0x80));
@@ -134,9 +132,7 @@ final public class Utils {
      */
 
     static public void packInt(DataOutput in, int value) throws IOException {
-        if (value < 0) {
-            throw new IllegalArgumentException("negative value: keys=" + value);
-        }
+        assert(value>=0):"negative value: "+value;
 
         while ((value & ~0x7F) != 0) {
             in.write(((value & 0x7F) | 0x80));
