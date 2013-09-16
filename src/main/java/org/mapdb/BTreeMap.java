@@ -612,12 +612,6 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 if(pos<A.keys().length-1 &&  v!=null && A.keys()[pos]!=null &&
                         0==comparator.compare(v,A.keys()[pos])){
 
-                    try{
-                        Object a = (hasValues? A.vals()[pos-1] : Utils.EMPTY_STRING);
-                    }catch(NullPointerException e){
-                        printTreeStructure();
-                        e.printStackTrace();
-                    }
                     Object oldVal =   (hasValues? A.vals()[pos-1] : Utils.EMPTY_STRING);
                     if(putOnlyIfAbsent){
                         //is not absent, so quit
