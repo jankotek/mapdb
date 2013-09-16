@@ -155,7 +155,8 @@ public class TxMaker {
 
         @Override
         public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
-            if(globalMods.get(recid)!=this){
+            final Object other = globalMods.get(recid);
+            if(other!=null && other !=this){
                 rollback();
                 throw new TxRollbackException();
             }

@@ -192,4 +192,20 @@ public class AtomicLongTest extends TestCase {
     }
 
 
+    public void testTX(){
+        TxMaker txMaker = DBMaker.newMemoryDB().makeTxMaker();
+
+        DB db = txMaker.makeTx();
+        System.out.println(db.getAtomicLong("counter").incrementAndGet());
+        db.commit();
+        db = txMaker.makeTx();
+        System.out.println(db.getAtomicLong("counter").incrementAndGet());
+        db.commit();
+        db = txMaker.makeTx();
+        System.out.println(db.getAtomicLong("counter").incrementAndGet());
+        db.commit();
+
+    }
+
+
 }
