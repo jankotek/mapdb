@@ -16,8 +16,20 @@ public class TxMaker {
     /** parent engine under which modifications are stored */
     protected SnapshotEngine engine;
 
+    /**
+     * Locked when one of transactions is making commit.
+     * Commits are serialized, underlying store has only single journal (and tx).
+     * This lock prevents multiple transactions to mix into single store tx.
+     *
+     */
     protected final ReentrantReadWriteLock commitLock = new ReentrantReadWriteLock();
 
+    /**
+     * Lists all recids modified by opened TXs. Value is engine which made modification.
+     * This way way we can check if record was modified by other TX.
+     *
+     * Updates must be protected by `commitLock.readLock()`
+     */
     protected LongConcurrentHashMap<Engine> globalMods = new LongConcurrentHashMap<Engine>();
     protected volatile boolean commitPending;
 
@@ -30,7 +42,14 @@ public class TxMaker {
 
     
     public DB makeTx(){
-        return new DB(new TxEngine(engine.snapshot()));
+        Engine snapshot = null;
+        try{
+            commitLock.readLock().lock();
+            snapshot = engine.snapshot();
+        }finally{
+            commitLock.readLock().unlock();
+        }
+        return new DB(new TxEngine(snapshot));
     }
 
     public void close() {
@@ -75,7 +94,6 @@ public class TxMaker {
                 new LongConcurrentHashMap<Serializer>();
 
 
-
         protected final ReentrantReadWriteLock[] locks = Utils.newReadWriteLocks();
 
 
@@ -93,10 +111,10 @@ public class TxMaker {
             try{
                 commitPending = true;
                 recid = engine.put(Utils.EMPTY_STRING, Serializer.STRING_NOSIZE);
+                lockGlobalMods(recid);
             }finally {
                 commitLock.readLock().unlock();
             }
-            lockGlobalMods(recid);
 
             Lock lock = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
             lock.lock();
@@ -206,7 +224,8 @@ public class TxMaker {
 
             try{
                 super.close();
-                synchronized (commitLock){
+                commitLock.writeLock().lock();
+                try{
                     if(commitPending){
                         engine.commit();
                         commitPending = false;
@@ -234,8 +253,10 @@ public class TxMaker {
                             iter.remove();
                         }
                     }
+                    engine.commit();
+                }finally{
+                    commitLock.writeLock().unlock();
                 }
-                engine.commit();
 
             }finally{
                 mods = null;
