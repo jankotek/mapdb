@@ -94,7 +94,6 @@ public class TxMakerTest{
             throw ex.get(0);
 
         Map m = tx.makeTx().getHashMap("ha");
-        assertEquals(s.size(),tx.counter.get());
         assertEquals(s.size(),m.size());
         for(Object i:s){
             assertEquals(i, m.get(i));
