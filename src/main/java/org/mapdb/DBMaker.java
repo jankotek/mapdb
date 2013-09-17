@@ -632,6 +632,9 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         asyncWriteDisable();
         Engine e = makeEngine();
         if(!(e instanceof SnapshotEngine)) throw new IllegalArgumentException("Snapshot must be enabled for TxMaker");
+        //init catalog if needed
+        DB db = new DB(e);
+        db.commit();
         return new TxMaker((SnapshotEngine) e);
     }
 

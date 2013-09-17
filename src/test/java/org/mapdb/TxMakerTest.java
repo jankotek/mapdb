@@ -2,6 +2,14 @@ package org.mapdb;
 
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -41,5 +49,43 @@ public class TxMakerTest{
 
         assertEquals(Integer.valueOf(222), tx.makeTx().getEngine().get(recid, Serializer.INTEGER));
 
+    }
+
+    @Test public void init() throws Throwable {
+        final int threads = 10;
+        final CountDownLatch l = new CountDownLatch(threads);
+        final List<Throwable> ex = new CopyOnWriteArrayList<Throwable>();
+
+        for(int i=0;i<threads;i++){
+            new Thread(){
+                @Override
+                public void run() {
+                    try{
+                    for (int index = 0; index < 100; index++) {
+                        final int temp = index;
+                          tx.execute(new TxBlock() {
+
+                            @Override
+                            public void tx(DB db) throws TxRollbackException {
+//							Queue<String> queue = db.getQueue(index + "");
+//							queue.offer(temp + "");
+                                Map map = db.getHashMap("ha");
+                                map.put(temp, temp );
+                            }
+                        });
+                    }
+                    }catch(Throwable e){
+                        e.printStackTrace();
+                        ex.add(e);
+                    }finally{
+                        l.countDown();
+                    }
+                }
+            }.start();
+        }
+        while(!l.await(100, TimeUnit.MILLISECONDS) && ex.isEmpty()){}
+
+        if(!ex.isEmpty())
+            throw ex.get(0);
     }
 }
