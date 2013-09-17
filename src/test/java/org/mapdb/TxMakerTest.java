@@ -13,7 +13,9 @@ import static org.junit.Assert.fail;
 
 public class TxMakerTest{
 
-    TxMaker tx = DBMaker.newMemoryDB().makeTxMaker();
+    TxMaker tx =
+            //new TxMaker(new SnapshotEngine(new DB(new StoreHeap()).getEngine()));
+            DBMaker.newMemoryDB().makeTxMaker();
 
     @Test public void simple_commit(){
         DB db =tx.makeTx();
@@ -71,6 +73,8 @@ public class TxMakerTest{
 //							Queue<String> queue = db.getQueue(index + "");
 //							queue.offer(temp + "");
                                 Map map = db.getHashMap("ha");
+                                if(temp!=t)
+                                    assertEquals(temp-1,map.get(temp-1));
                                 map.put(temp, temp );
                             }
                         });
@@ -90,7 +94,8 @@ public class TxMakerTest{
             throw ex.get(0);
 
         Map m = tx.makeTx().getHashMap("ha");
-        assertEquals(threads*items,m.size());
+        assertEquals(s.size(),tx.counter.get());
+        assertEquals(s.size(),m.size());
         for(Object i:s){
             assertEquals(i, m.get(i));
         }
