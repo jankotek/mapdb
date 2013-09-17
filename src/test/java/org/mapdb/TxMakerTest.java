@@ -100,4 +100,47 @@ public class TxMakerTest{
         }
 
     }
+
+    @Test public void cas() throws Throwable {
+        final int threads = 10;
+        final int items = 1000;
+        DB db = tx.makeTx();
+        final long recid = db.getEngine().put(1L,Serializer.LONG);
+        db.commit();
+        final List<Throwable> ex = new CopyOnWriteArrayList<Throwable>();
+        final CountDownLatch l = new CountDownLatch(threads);
+        for(int i=0;i<threads;i++){
+            new Thread(){
+                @Override
+                public void run() {
+                    try{
+                        for (int j = 0;j<items;j++) {
+                            tx.execute(new TxBlock() {
+                                @Override
+                                public void tx(DB db) throws TxRollbackException {
+                                    long old = db.getEngine().get(recid, Serializer.LONG);
+                                    while(!db.getEngine().compareAndSwap(recid,old,old+1,Serializer.LONG)){
+
+                                    }
+                                }
+                            });
+                        }
+                    }catch(Throwable e){
+                        e.printStackTrace();
+                        ex.add(e);
+                    }finally{
+                        l.countDown();
+                    }
+                }
+            }.start();
+        }
+        while(!l.await(100, TimeUnit.MILLISECONDS) && ex.isEmpty()){}
+
+        if(!ex.isEmpty())
+            throw ex.get(0);
+
+        assertEquals(Long.valueOf(threads*items), tx.makeTx().getEngine().get(recid,Serializer.LONG));
+
+
+    }
 }
