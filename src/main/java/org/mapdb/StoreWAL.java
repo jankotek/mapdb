@@ -405,8 +405,7 @@ public class StoreWAL extends StoreDirect {
 
     @Override
     public void commit() {
-        structuralLock.lock();
-        for(ReentrantReadWriteLock lock:locks) lock.writeLock().lock();
+        lockAllWrite();
         try{
             if(!longStackPages.isEmpty() && log==null) openLogIfNeeded();
 
@@ -466,8 +465,7 @@ public class StoreWAL extends StoreDirect {
             reloadIndexFile();
 
         }finally {
-            for(ReentrantReadWriteLock lock:locks) lock.writeLock().unlock();
-            structuralLock.unlock();
+             unlockAllWrite();
         }
     }
 
@@ -564,8 +562,7 @@ public class StoreWAL extends StoreDirect {
 
     @Override
     public void rollback() throws UnsupportedOperationException {
-        structuralLock.lock();
-        for(ReentrantReadWriteLock lock:locks) lock.writeLock().lock();
+        lockAllWrite();
         try{
             //discard trans log
             if(log !=null){
@@ -576,8 +573,7 @@ public class StoreWAL extends StoreDirect {
 
             reloadIndexFile();
         }finally {
-            for(ReentrantReadWriteLock lock:locks) lock.writeLock().unlock();
-            structuralLock.unlock();
+            unlockAllWrite();
         }
     }
 
@@ -720,8 +716,7 @@ public class StoreWAL extends StoreDirect {
 
     @Override
     public void close() {
-        structuralLock.lock();
-        for(ReentrantReadWriteLock lock:locks) lock.writeLock().lock();
+        lockAllWrite();
         try{
             if(log !=null){
                 log.sync();
@@ -743,8 +738,7 @@ public class StoreWAL extends StoreDirect {
             index = null;
             phys = null;
         }finally {
-            for(ReentrantReadWriteLock lock:locks) lock.writeLock().unlock();
-            structuralLock.unlock();
+            unlockAllWrite();
         }
     }
 

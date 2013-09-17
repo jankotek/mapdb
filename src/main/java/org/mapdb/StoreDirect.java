@@ -157,8 +157,6 @@ public class StoreDirect extends Store{
     protected final static long LONG_STACK_PREF_SIZE_ALTER = 8+LONG_STACK_PREF_COUNT_ALTER*6;
 
 
-    protected final ReentrantReadWriteLock[] locks = Utils.newReadWriteLocks();
-    protected final ReentrantLock structuralLock = new ReentrantLock();
 
     protected Volume index;
     protected Volume phys;
@@ -563,8 +561,7 @@ public class StoreDirect extends Store{
 
     @Override
     public void close() {
-        structuralLock.lock();
-        for(ReentrantReadWriteLock lock:locks) lock.writeLock().lock();
+        lockAllWrite();
         if(!readOnly){
             index.putLong(IO_PHYS_SIZE,physSize);
             index.putLong(IO_INDEX_SIZE,indexSize);
@@ -582,8 +579,7 @@ public class StoreDirect extends Store{
         }
         index = null;
         phys = null;
-        for(ReentrantReadWriteLock lock:locks) lock.writeLock().unlock();
-        structuralLock.unlock();
+        unlockAllWrite();
     }
 
     @Override
@@ -633,8 +629,7 @@ public class StoreDirect extends Store{
         index.putLong(IO_FREE_SIZE,freeSize);
 
         if(index.getFile()==null) throw new UnsupportedOperationException("compact not supported for memory storage yet");
-        structuralLock.lock();
-        for(ReentrantReadWriteLock l:locks) l.writeLock().lock();
+        lockAllWrite();
         try{
             //create secondary files for compaction
             //TODO RAF
@@ -707,8 +702,7 @@ public class StoreDirect extends Store{
         }catch(IOException e){
             throw new IOError(e);
         }finally {
-            structuralLock.unlock();
-            for(ReentrantReadWriteLock l:locks) l.writeLock().unlock();
+            unlockAllWrite();
         }
 
     }

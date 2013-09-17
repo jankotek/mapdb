@@ -7,6 +7,8 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.zip.Adler32;
 
 /**
@@ -57,6 +59,21 @@ public abstract class Store implements Engine{
     public void printStatistics(){
         System.out.println(calculateStatistics());
     }
+
+    protected final ReentrantLock structuralLock = new ReentrantLock();
+    protected final ReentrantReadWriteLock[] locks = Utils.newReadWriteLocks();
+
+
+    protected void lockAllWrite() {
+        for(ReentrantReadWriteLock l:locks)l.writeLock().lock();
+        structuralLock.lock();
+    }
+
+    protected void unlockAllWrite() {
+        structuralLock.unlock();
+        for(ReentrantReadWriteLock l:locks)l.writeLock().unlock();
+    }
+
 
 
     protected final Queue<DataOutput2> recycledDataOuts = new ArrayBlockingQueue<DataOutput2>(128);

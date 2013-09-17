@@ -73,8 +73,6 @@ public class StoreAppend extends Store{
     /** same as `index`, but stores uncommited modifications made in this transaction*/
     protected final LongMap<Long> indexInTx;
 
-    protected final ReentrantLock structuralLock = new ReentrantLock();
-    protected final ReentrantReadWriteLock[] locks = Utils.newReadWriteLocks();
 
 
 
@@ -418,8 +416,7 @@ public class StoreAppend extends Store{
             return;
         }
 
-        for(ReentrantReadWriteLock l:locks)l.writeLock().lock();
-        structuralLock.lock();
+        lockAllWrite();
         try{
 
             LongMap.LongMapIterator<Long> iter = indexInTx.longMapIterator();
@@ -441,17 +438,16 @@ public class StoreAppend extends Store{
             currVolume.putUnsignedByte(rollbackCurrPos, (int) (END+RECIDP));
             currPos++;
         }finally{
-            structuralLock.unlock();
-            for(ReentrantReadWriteLock l:locks)l.writeLock().unlock();
+            unlockAllWrite();
         }
     }
+
 
     @Override
     public void rollback() throws UnsupportedOperationException {
         if(!tx) throw new UnsupportedOperationException("Transactions are disabled");
 
-        for(ReentrantReadWriteLock l:locks)l.writeLock().lock();
-        structuralLock.lock();
+        lockAllWrite();
         try{
 
             indexInTx.clear();
@@ -460,8 +456,7 @@ public class StoreAppend extends Store{
             maxRecid = rollbackMaxRecid;
             currFileNum = rollbackCurrFileNum;
         }finally{
-            structuralLock.unlock();
-            for(ReentrantReadWriteLock l:locks)l.writeLock().unlock();
+            unlockAllWrite();
         }
 
     }
@@ -485,8 +480,7 @@ public class StoreAppend extends Store{
     @Override
     public void compact() {
         if(readOnly) throw new IllegalAccessError("readonly");
-        for(ReentrantReadWriteLock l:locks)l.writeLock().lock();
-        structuralLock.lock();
+        lockAllWrite();
         try{
 
             if(!indexInTx.isEmpty()) throw new IllegalAccessError("uncommited changes");
@@ -510,8 +504,7 @@ public class StoreAppend extends Store{
                 iter.remove();
             }
         }finally{
-            structuralLock.unlock();
-            for(ReentrantReadWriteLock l:locks)l.writeLock().unlock();
+            unlockAllWrite();
         }
 
     }
