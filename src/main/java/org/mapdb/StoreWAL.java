@@ -53,11 +53,17 @@ public class StoreWAL extends StoreDirect {
         this.volFac = volFac;
         this.log = volFac.createTransLogVolume();
 
-        reloadIndexFile();
-        replayLogFile();
-        replayPending = false;
-        checkHeaders();
-        log = null;
+
+        try{
+            reloadIndexFile();
+            structuralLock.lock();
+            replayLogFile();
+            replayPending = false;
+            checkHeaders();
+            log = null;
+        }finally {
+            structuralLock.unlock();
+        }
     }
 
     @Override
@@ -80,6 +86,7 @@ public class StoreWAL extends StoreDirect {
     }
 
     protected void openLogIfNeeded(){
+        assert(structuralLock.isLocked());
         if(log !=null) return;
         log = volFac.createTransLogVolume();
         log.ensureAvailable(16);
@@ -148,16 +155,14 @@ public class StoreWAL extends StoreDirect {
 
 
     protected void walIndexVal(long logPos, long ioRecid, long indexVal) {
-
         log.putByte(logPos, WAL_INDEX_LONG);
         log.putLong(logPos + 1, ioRecid);
         log.putLong(logPos + 9, indexVal);
-
     }
 
 
     protected long[] logAllocate(long[] physPos) {
-
+        assert(structuralLock.isLocked());
         openLogIfNeeded();
         logSize+=1+8+8; //space used for index val
 
@@ -170,15 +175,14 @@ public class StoreWAL extends StoreDirect {
 
             logSize+=size;
             checkLogRounding();
-
         }
-
         log.ensureAvailable(logSize);
         return ret;
     }
 
     protected void checkLogRounding() {
         if((logSize&Volume.BUF_SIZE_MOD_MASK)+MAX_REC_SIZE*2>Volume.BUF_SIZE){
+            assert(structuralLock.isLocked());
             log.ensureAvailable(logSize+1);
             log.putByte(logSize, WAL_SKIP_REST_OF_BLOCK);
             logSize += Volume.BUF_SIZE - (logSize&Volume.BUF_SIZE_MOD_MASK);
@@ -470,6 +474,7 @@ public class StoreWAL extends StoreDirect {
     }
 
     protected void replayLogFile(){
+        assert(structuralLock.isLocked());
 
         logSize = 0;
 
@@ -534,7 +539,7 @@ public class StoreWAL extends StoreDirect {
             }else if(ins == WAL_SKIP_REST_OF_BLOCK){
                 logSize += Volume.BUF_SIZE-(logSize&Volume.BUF_SIZE_MOD_MASK);
             }else{
-                throw new InternalError("unknown trans log instruction: "+ins +" at log offset: "+(logSize-1));
+                throw new InternalError("unknown trans log instruction '"+ins +"' at log offset: "+(logSize-1));
             }
 
             ins = log.getByte(logSize);
@@ -556,6 +561,7 @@ public class StoreWAL extends StoreDirect {
         log.close();
         log.deleteFile();
         log = null;
+        assert(structuralLock.isLocked());
     }
 
 

@@ -2,9 +2,7 @@ package org.mapdb;
 
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -51,18 +49,21 @@ public class TxMakerTest{
 
     }
 
-    @Test public void init() throws Throwable {
+    @Test public void concurrent_tx() throws Throwable {
         final int threads = 10;
+        final int items = 1000;
         final CountDownLatch l = new CountDownLatch(threads);
         final List<Throwable> ex = new CopyOnWriteArrayList<Throwable>();
-
+        final Collection s = Collections.synchronizedCollection(new HashSet());
         for(int i=0;i<threads;i++){
+            final int t=i*items*100;
             new Thread(){
                 @Override
                 public void run() {
                     try{
-                    for (int index = 0; index < 100; index++) {
+                    for (int index = t; index < t+items; index++) {
                         final int temp = index;
+                        s.add(temp);
                           tx.execute(new TxBlock() {
 
                             @Override
@@ -87,5 +88,12 @@ public class TxMakerTest{
 
         if(!ex.isEmpty())
             throw ex.get(0);
+
+        Map m = tx.makeTx().getHashMap("ha");
+        assertEquals(threads*items,m.size());
+        for(Object i:s){
+            assertEquals(i, m.get(i));
+        }
+
     }
 }

@@ -90,12 +90,13 @@ public class TxMaker {
         protected LongConcurrentHashMap<Fun.Tuple2<?, Serializer>> mods =
                 new LongConcurrentHashMap<Fun.Tuple2<?, Serializer>>();
 
+        /** list of new recids preallocated by this TX*/
+        //TODO use preallocated bit, so it can be removed during compaction, if not new value was not written
         protected LongConcurrentHashMap<Serializer> newRecids =
                 new LongConcurrentHashMap<Serializer>();
 
-
+        /** locks used when manipulating records */
         protected final ReentrantReadWriteLock[] locks = Utils.newReadWriteLocks();
-
 
 
         protected TxEngine(Engine snapshot) {
@@ -112,18 +113,14 @@ public class TxMaker {
                 commitPending = true;
                 recid = engine.put(Utils.EMPTY_STRING, Serializer.STRING_NOSIZE);
                 lockGlobalMods(recid);
-            }finally {
-                commitLock.readLock().unlock();
-            }
 
-            Lock lock = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
-            lock.lock();
-            try{
+                //TODO section bellow can be probably outside of commitLock
                 //update local modifications
                 newRecids.put(recid, serializer);
                 mods.put(recid,Fun.t2(value,(Serializer)serializer));
+
             }finally {
-                lock.unlock();
+                commitLock.readLock().unlock();
             }
             return recid;
         }
@@ -160,10 +157,10 @@ public class TxMaker {
 
         @Override
         public <A> void update(long recid, A value, Serializer<A> serializer) {
-            lockGlobalMods(recid);
             Lock lock = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
             lock.lock();
             try{
+                lockGlobalMods(recid);
                 //update local modifications
                 mods.put(recid,Fun.t2(value,(Serializer)serializer));
             }finally {
@@ -197,11 +194,10 @@ public class TxMaker {
 
         @Override
         public <A> void delete(long recid, Serializer<A> serializer) {
-            lockGlobalMods(recid);
-
             Lock lock = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
             lock.lock();
             try{
+                lockGlobalMods(recid);
                 //add marked which indicates deleted
                 mods.put(recid,Fun.t2(DELETED,(Serializer)serializer));
             }finally {
@@ -221,16 +217,14 @@ public class TxMaker {
         public void commit() {
             //replay all items in transactions
             for(ReentrantReadWriteLock lock:locks) lock.writeLock().lock();
-
             try{
-                super.close();
                 commitLock.writeLock().lock();
+                super.close();
                 try{
                     if(commitPending){
                         engine.commit();
                         commitPending = false;
                     }
-
 
                     while(!mods.isEmpty()){
                         LongMap.LongMapIterator<Fun.Tuple2<?, Serializer>> iter = mods.longMapIterator();
@@ -268,12 +262,11 @@ public class TxMaker {
 
         @Override
         public void rollback() {
-
             for(ReentrantReadWriteLock lock:locks) lock.writeLock().lock();
 
             try{
-                super.close();
                 commitLock.writeLock().lock();
+                super.close();
                 try{
                     if(commitPending){
                         engine.commit();
