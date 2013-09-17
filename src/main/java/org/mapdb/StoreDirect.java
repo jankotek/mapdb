@@ -248,21 +248,27 @@ public class StoreDirect extends Store{
         assert(value!=null);
         DataOutput2 out = serialize(value, serializer);
 
-        structuralLock.lock();
-        final long ioRecid;
-        final long[] indexVals;
+        final Lock lock  = locks[Utils.random(locks.length)].readLock();
+        lock.lock();
         try{
-            ioRecid = freeIoRecidTake(true) ;
-            indexVals = physAllocate(out.pos,true,false);
-        }finally {
-            structuralLock.unlock();
-        }
+            structuralLock.lock();
+            final long ioRecid;
+            final long[] indexVals;
+            try{
+                ioRecid = freeIoRecidTake(true) ;
+                indexVals = physAllocate(out.pos,true,false);
+            }finally {
+                structuralLock.unlock();
+            }
 
-        put2(out, ioRecid, indexVals);
-        recycledDataOuts.offer(out);
-        long recid = (ioRecid-IO_USER_START)/8;
-        assert(recid>0);
-        return recid;
+            put2(out, ioRecid, indexVals);
+            recycledDataOuts.offer(out);
+            long recid = (ioRecid-IO_USER_START)/8;
+            assert(recid>0);
+            return recid;
+        }finally {
+            lock.unlock();
+        }
     }
 
     protected void put2(DataOutput2 out, long ioRecid, long[] indexVals) {

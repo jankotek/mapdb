@@ -107,28 +107,34 @@ public class StoreWAL extends StoreDirect {
         final long[] physPos;
         final long[] logPos;
 
-        structuralLock.lock();
+        final Lock lock  = locks[Utils.random(locks.length)].readLock();
+        lock.lock();
         try{
-            openLogIfNeeded();
-            ioRecid = freeIoRecidTake(false);
-            //first get space in phys
-            physPos = physAllocate(out.pos,false,false);
-            //now get space in log
-            logPos = logAllocate(physPos);
+            structuralLock.lock();
+            try{
+                openLogIfNeeded();
+                ioRecid = freeIoRecidTake(false);
+                //first get space in phys
+                physPos = physAllocate(out.pos,false,false);
+                //now get space in log
+                logPos = logAllocate(physPos);
 
+            }finally{
+                structuralLock.unlock();
+            }
+
+            //write data into log
+            walIndexVal((logPos[0]&LOG_MASK_OFFSET) - 1-8-8-1-8, ioRecid, physPos[0]|MASK_ARCHIVE);
+            walPhysArray(out, physPos, logPos);
+
+            modified.put(ioRecid,logPos);
+            recycledDataOuts.offer(out);
+            long recid =  (ioRecid-IO_USER_START)/8;
+            assert(recid>0);
+            return recid;
         }finally{
-            structuralLock.unlock();
+            lock.unlock();
         }
-
-        //write data into log
-        walIndexVal((logPos[0]&LOG_MASK_OFFSET) - 1-8-8-1-8, ioRecid, physPos[0]|MASK_ARCHIVE);
-        walPhysArray(out, physPos, logPos);
-
-        modified.put(ioRecid,logPos);
-        recycledDataOuts.offer(out);
-        long recid =  (ioRecid-IO_USER_START)/8;
-        assert(recid>0);
-        return recid;
     }
 
     protected void walPhysArray(DataOutput2 out, long[] physPos, long[] logPos) {

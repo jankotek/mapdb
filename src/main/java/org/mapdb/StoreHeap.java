@@ -4,22 +4,37 @@ import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Store which keeps all instances on heap. It does not use serialization.
  */
 public class StoreHeap extends Store implements Serializable{
 
+    protected final static Fun.Tuple2 TOMBSTONE = Fun.t2(null,null);
+
+
+    /** All commited records in store */
     protected final ConcurrentNavigableMap<Long,Fun.Tuple2> records
             = new ConcurrentSkipListMap<Long, Fun.Tuple2>();
 
+    /** All not-yet commited records in store */
+    protected final ConcurrentNavigableMap<Long,Fun.Tuple2> rollback
+            = new ConcurrentSkipListMap<Long, Fun.Tuple2>();
+
+
+    /** Queue of deleted recids, those are reused for new records */
     protected final Queue<Long> freeRecids = new ConcurrentLinkedQueue<Long>();
 
+    /** Maximal returned recid, incremented if there are no free recids*/
     protected final AtomicLong maxRecid = new AtomicLong(LAST_RESERVED_RECID);
 
     public StoreHeap(){
@@ -32,45 +47,90 @@ public class StoreHeap extends Store implements Serializable{
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
         assert(value!=null);
-        Long recid = freeRecids.poll();
-        if(recid==null) recid = maxRecid.incrementAndGet();
-        records.put(recid, Fun.<Object, Serializer>t2(value,serializer));
-        assert(recid>0);
-        return recid;
+        final Lock lock  = locks[Utils.random(locks.length)].writeLock();
+        lock.lock();
+        try{
+            Long recid = freeRecids.poll();
+            if(recid==null) recid = maxRecid.incrementAndGet();
+            records.put(recid, Fun.<Object, Serializer>t2(value,serializer));
+            rollback.put(recid, Fun.t2(TOMBSTONE,serializer ));
+            assert(recid>0);
+            return recid;
+        }finally{
+            lock.unlock();
+        }
     }
 
     @Override
     public <A> A get(long recid, Serializer<A> serializer) {
         assert(recid>0);
-        Fun.Tuple2 t = records.get(recid);
-        return t!=null? (A) t.a : null;
+        final Lock lock  = locks[Utils.random(locks.length)].readLock();
+        lock.lock();
+        try{
+            //get from commited records
+            Fun.Tuple2 t = records.get(recid);
+            return t!=null? (A) t.a : null;
+        }finally{
+            lock.unlock();
+        }
     }
 
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
         assert(recid>0);
         assert(value!=null);
-        assert(value!=null);
-        records.put(recid, Fun.<Object, Serializer>t2(value,serializer));
+        assert(serializer!=null);
+        assert(recid>0);
+        final Lock lock  = locks[Utils.random(locks.length)].writeLock();
+        lock.lock();
+        try{
+            Fun.Tuple2 old = records.put(recid, Fun.<Object, Serializer>t2(value,serializer));
+            rollback.putIfAbsent(recid,old);
+        }finally{
+            lock.unlock();
+        }
     }
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
         assert(recid>0);
         assert(expectedOldValue!=null && newValue!=null);
-        return records.replace(recid, Fun.t2(expectedOldValue, serializer), Fun.t2(newValue, serializer));
+        final Lock lock  = locks[Utils.random(locks.length)].writeLock();
+        lock.lock();
+        try{
+            Fun.Tuple2 old = Fun.t2(expectedOldValue, serializer);
+            boolean ret =  records.replace(recid, old, Fun.t2(newValue, serializer));
+            if(ret) rollback.putIfAbsent(recid,old);
+            return ret;
+        }finally{
+            lock.unlock();
+        }
     }
 
     @Override
     public <A> void delete(long recid, Serializer<A> serializer) {
         assert(recid>0);
-        records.remove(recid);
-        freeRecids.add(recid);
+        final Lock lock  = locks[Utils.random(locks.length)].writeLock();
+        lock.lock();
+        try{
+            Fun.Tuple2 t2 = records.remove(recid);
+            if(t2!=null) rollback.putIfAbsent(recid,t2);
+            freeRecids.add(recid);
+        }finally{
+            lock.unlock();
+        }
     }
 
     @Override
     public void close() {
-        records.clear();
+        lockAllWrite();
+        try{
+            records.clear();
+            freeRecids.clear();
+            rollback.clear();
+        }finally{
+            unlockAllWrite();
+        }
     }
 
     @Override
@@ -80,11 +140,29 @@ public class StoreHeap extends Store implements Serializable{
 
     @Override
     public void commit() {
+        lockAllWrite();
+        try{
+            rollback.clear();
+        }finally{
+            unlockAllWrite();
+        }
     }
 
     @Override
     public void rollback() throws UnsupportedOperationException {
-        throw new UnsupportedOperationException("rollback not supported");
+        lockAllWrite();
+        try{
+            //put all stuff from `rollback` into `records`
+            for(Map.Entry<Long,Fun.Tuple2> e:rollback.entrySet()){
+                Long recid = e.getKey();
+                Fun.Tuple2 val = e.getValue();
+                if(val == TOMBSTONE) records.remove(recid);
+                else records.put(recid, val);
+            }
+            rollback.clear();
+        }finally{
+            unlockAllWrite();
+        }
     }
 
     @Override
@@ -102,8 +180,7 @@ public class StoreHeap extends Store implements Serializable{
 
     @Override
     public boolean canRollback(){
-        //TODO implement rollback
-        return false;
+        return true;
     }
 
 

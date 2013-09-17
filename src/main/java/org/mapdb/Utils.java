@@ -363,4 +363,9 @@ final public class Utils {
             throw new IOError(ee);
         }
     }
+
+    /** @return random number so that `i>=0 && i<n` */
+    public static int random(int n) {
+        return RANDOM.nextInt(n);
+    }
 }

@@ -232,38 +232,42 @@ public class StoreAppend extends Store{
         assert(value!=null);
         DataOutput2 out = serialize(value,serializer);
 
-
-        structuralLock.lock();
-        final long oldPos,recid,indexVal;
+        final Lock lock  = locks[Utils.random(locks.length)].readLock();
+        lock.lock();
         try{
-            rollover();
-            currVolume.ensureAvailable(currPos+6+4+out.pos);
-            recid = ++maxRecid;
 
-            //write recid
-            currPos+=currVolume.putPackedLong(currPos, recid+RECIDP);
-            indexVal = (currFileNum<<FILE_SHIFT)|currPos; //TODO file number
-            //write size
-            currPos+=currVolume.putPackedLong(currPos, out.pos+SIZEP);
+            structuralLock.lock();
+            final long oldPos,recid,indexVal;
+            try{
+                rollover();
+                currVolume.ensureAvailable(currPos+6+4+out.pos);
+                recid = ++maxRecid;
 
-            oldPos = currPos;
-            currPos+=out.pos;
+                //write recid
+                currPos+=currVolume.putPackedLong(currPos, recid+RECIDP);
+                indexVal = (currFileNum<<FILE_SHIFT)|currPos; //TODO file number
+                //write size
+                currPos+=currVolume.putPackedLong(currPos, out.pos+SIZEP);
 
-            modified = true;
-        }finally{
-            structuralLock.unlock();
+                oldPos = currPos;
+                currPos+=out.pos;
+
+                modified = true;
+            }finally{
+                structuralLock.unlock();
+            }
+
+            //write data
+            currVolume.putData(oldPos,out.buf,0,out.pos);
+
+            recycledDataOuts.offer(out);
+            setIndexVal(recid, indexVal);
+
+            assert(recid>0);
+            return recid;
+        }finally {
+            lock.unlock();
         }
-
-        //TODO lock recid? it was not published yet
-        //write data
-        currVolume.putData(oldPos,out.buf,0,out.pos);
-
-        recycledDataOuts.offer(out);
-        setIndexVal(recid, indexVal);
-
-        assert(recid>0);
-        return recid;
-
     }
 
     @Override
