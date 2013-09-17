@@ -401,7 +401,7 @@ public class StoreWAL extends StoreDirect {
         }finally {
             lock.unlock();
         }
-        }
+    }
 
     @Override
     public void commit() {
