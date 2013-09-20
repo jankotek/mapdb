@@ -6,12 +6,13 @@ import java.util.Map;
 
 import static org.junit.Assert.*;
 
-public class SnapshotEngineTest{
+public class TxEngineTest {
 
-    SnapshotEngine e = new SnapshotEngine(new StoreWAL(Volume.memoryFactory(false, 0L)));
+    TxEngine e = new TxEngine(new StoreWAL(Volume.memoryFactory(false, 0L)),false);
 
     @Test public void update(){
         long recid = e.put(111, Serializer.INTEGER);
+        e.commit();
         Engine snapshot = e.snapshot();
         e.update(recid, 222, Serializer.INTEGER);
         assertEquals(Integer.valueOf(111), snapshot.get(recid, Serializer.INTEGER));
@@ -19,6 +20,7 @@ public class SnapshotEngineTest{
 
     @Test public void compareAndSwap(){
         long recid = e.put(111, Serializer.INTEGER);
+        e.commit();
         Engine snapshot = e.snapshot();
         e.compareAndSwap(recid, 111, 222, Serializer.INTEGER);
         assertEquals(Integer.valueOf(111), snapshot.get(recid, Serializer.INTEGER));
@@ -26,8 +28,9 @@ public class SnapshotEngineTest{
 
     @Test public void delete(){
         long recid = e.put(111, Serializer.INTEGER);
+        e.commit();
         Engine snapshot = e.snapshot();
-        e.delete(recid,Serializer.INTEGER);
+        e.delete(recid, Serializer.INTEGER);
         assertEquals(Integer.valueOf(111), snapshot.get(recid, Serializer.INTEGER));
     }
 
@@ -40,17 +43,17 @@ public class SnapshotEngineTest{
 
     @Test public void create_snapshot(){
         Engine e = DBMaker.newMemoryDB().makeEngine();
-        Engine snapshot = SnapshotEngine.createSnapshotFor(e);
+        Engine snapshot = TxEngine.createSnapshotFor(e);
         assertNotNull(snapshot);
     }
 
     @Test public void DB_snapshot(){
         DB db = DBMaker.newMemoryDB().asyncFlushDelay(100).transactionDisable().make();
-        long recid = db.getEngine().put("aa",Serializer.STRING_NOSIZE);
+        long recid = db.getEngine().put("aa", Serializer.STRING_NOSIZE);
         DB db2 = db.snapshot();
         assertEquals("aa", db2.getEngine().get(recid,Serializer.STRING_NOSIZE));
         db.getEngine().update(recid, "bb",Serializer.STRING_NOSIZE);
-        assertEquals("aa", db2.getEngine().get(recid,Serializer.STRING_NOSIZE));
+        assertEquals("aa", db2.getEngine().get(recid, Serializer.STRING_NOSIZE));
     }
 
     @Test public void DB_snapshot2(){
@@ -79,7 +82,7 @@ public class SnapshotEngineTest{
                 .make().getHashMap("aaa");
         map.put("aa","aa");
         Map map2 = map.snapshot();
-        map.put("aa","bb");
+        map.put("aa", "bb");
         assertEquals("aa",map2.get("aa"));
     }
 

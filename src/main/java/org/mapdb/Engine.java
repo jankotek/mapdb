@@ -44,7 +44,7 @@ package org.mapdb;
  *  * {@link AsyncWriteEngine} - asynchronous writes to storage
  *  * {@link EngineWrapper.ByteTransformEngine} - compression or encryption (optional)
  *  * {@link org.mapdb.Caches.HashTable} - instance cache
- *  * {@link SnapshotEngine} - support for snapshots
+ *  * {@link TxEngine} - support for snapshots
  *  * **USER** - {@link DB} and collections
  *
  * Engine uses `recid` to identify records. There is zero error handling in case recid is invalid
@@ -69,6 +69,12 @@ public interface Engine {
     long CHECK_RECORD = 3;
     long LAST_RESERVED_RECID = 7;
 
+
+    /**
+     * Preallocates recid for not yet created record. It does not insert any data into it.
+     * @return new recid
+     */
+    long preallocate();
 
     /**
      * Insert new record.
@@ -198,4 +204,6 @@ public interface Engine {
     void clearCache();
 
     void compact();
+
+    SerializerPojo getSerializerPojo();
 }

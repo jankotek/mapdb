@@ -39,8 +39,6 @@ public class DB {
     /** view over named records */
     protected SortedMap<String, Object> catalog;
 
-    /** default serializer used for persistence. Handles POJO and other stuff which requires write-able access to Engine */
-    protected Serializer<?> defaultSerializer;
 
     /**
      * Construct new DB. It is just thin layer over {@link Engine} which does the real work.
@@ -57,17 +55,6 @@ public class DB {
     }
 
     protected void reinit() {
-        // load serializer
-        final CopyOnWriteArrayList<SerializerPojo.ClassInfo> classInfos = engine.get(Engine.CLASS_INFO_RECID, SerializerPojo.serializer);
-        this.defaultSerializer = new SerializerPojo(classInfos){
-            @Override
-            protected void saveClassInfo() {
-                //hook to save classes if they are updated
-                //I did not want to create direct dependency between SerialierPojo and Engine
-                engine.update(Engine.CLASS_INFO_RECID, registered, SerializerPojo.serializer);
-            }
-        };
-
         //open name dir
         catalog = BTreeMap.preinitCatalog(this);
     }
@@ -643,8 +630,8 @@ public class DB {
             BTreeKeySerializer.Tuple2KeySerializer s = (BTreeKeySerializer.Tuple2KeySerializer) keySerializer;
             return new BTreeKeySerializer.Tuple2KeySerializer(
                     s.aComparator!=null?s.aComparator:Utils.COMPARABLE_COMPARATOR,
-                    s.aSerializer!=null?s.aSerializer:defaultSerializer,
-                    s.bSerializer!=null?s.bSerializer:defaultSerializer
+                    s.aSerializer!=null?s.aSerializer:getDefaultSerializer(),
+                    s.bSerializer!=null?s.bSerializer:getDefaultSerializer()
             );
         }
         if(keySerializer instanceof BTreeKeySerializer.Tuple3KeySerializer){
@@ -652,9 +639,9 @@ public class DB {
             return new BTreeKeySerializer.Tuple3KeySerializer(
                     s.aComparator!=null?s.aComparator:Utils.COMPARABLE_COMPARATOR,
                     s.bComparator!=null?s.bComparator:Utils.COMPARABLE_COMPARATOR,
-                    s.aSerializer!=null?s.aSerializer:defaultSerializer,
-                    s.bSerializer!=null?s.bSerializer:defaultSerializer,
-                    s.cSerializer!=null?s.cSerializer:defaultSerializer
+                    s.aSerializer!=null?s.aSerializer:getDefaultSerializer(),
+                    s.bSerializer!=null?s.bSerializer:getDefaultSerializer(),
+                    s.cSerializer!=null?s.cSerializer:getDefaultSerializer()
             );
         }
         if(keySerializer instanceof BTreeKeySerializer.Tuple4KeySerializer){
@@ -663,10 +650,10 @@ public class DB {
                     s.aComparator!=null?s.aComparator:Utils.COMPARABLE_COMPARATOR,
                     s.bComparator!=null?s.bComparator:Utils.COMPARABLE_COMPARATOR,
                     s.cComparator!=null?s.cComparator:Utils.COMPARABLE_COMPARATOR,
-                    s.aSerializer!=null?s.aSerializer:defaultSerializer,
-                    s.bSerializer!=null?s.bSerializer:defaultSerializer,
-                    s.cSerializer!=null?s.cSerializer:defaultSerializer,
-                    s.dSerializer!=null?s.dSerializer:defaultSerializer
+                    s.aSerializer!=null?s.aSerializer:getDefaultSerializer(),
+                    s.bSerializer!=null?s.bSerializer:getDefaultSerializer(),
+                    s.cSerializer!=null?s.cSerializer:getDefaultSerializer(),
+                    s.dSerializer!=null?s.dSerializer:getDefaultSerializer()
             );
         }
 
@@ -1204,7 +1191,6 @@ public class DB {
         //dereference db to prevent memory leaks
         engine = null;
         collections = null;
-        defaultSerializer = null;
     }
 
     /**
@@ -1273,7 +1259,7 @@ public class DB {
      * @return readonly snapshot view
      */
     synchronized public DB snapshot(){
-        Engine snapshot = SnapshotEngine.createSnapshotFor(engine);
+        Engine snapshot = TxEngine.createSnapshotFor(engine);
         return new DB (snapshot);
     }
 
@@ -1281,7 +1267,7 @@ public class DB {
      * @return default serializer used in this DB, it handles POJO and other stuff.
      */
     public  Serializer getDefaultSerializer() {
-        return defaultSerializer;
+        return engine.getSerializerPojo();
     }
 
     /**

@@ -401,7 +401,13 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         assertEquals(oldFree+10000,e.getFreeSize());
         e.commit();
         assertEquals(oldFree+10000,e.getFreeSize());
-
     }
 
+
+    @Test public void prealloc(){
+        long recid = e.preallocate();
+        assertNull(e.get(recid,UtilsTest.FAIL));
+        e.commit();
+        assertNull(e.get(recid,UtilsTest.FAIL));
+    }
 }

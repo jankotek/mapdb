@@ -56,7 +56,7 @@ public class DBMakerTest{
                 .make();
         verifyDB(db);
         EngineWrapper w = (EngineWrapper) db.engine;
-        assertTrue(w instanceof SnapshotEngine);
+        assertTrue(w instanceof TxEngine);
         assertFalse(w.getWrappedEngine().getClass() == Caches.HashTable.class);
         assertTrue(w.getWrappedEngine().getClass() == AsyncWriteEngine.class);
     }
@@ -69,8 +69,8 @@ public class DBMakerTest{
                 .asyncWriteDisable()
                 .make();
         verifyDB(db);
-        assertTrue(db.engine.getClass() == SnapshotEngine.class);
-        assertTrue(((SnapshotEngine)db.engine).getWrappedEngine().getClass() == Caches.HashTable.class);
+        assertTrue(db.engine.getClass() == TxEngine.class);
+        assertTrue(((TxEngine)db.engine).getWrappedEngine().getClass() == Caches.HashTable.class);
 
     }
 
@@ -82,8 +82,8 @@ public class DBMakerTest{
                 .make();
         verifyDB(db);
         //check default values are set
-        assertTrue(db.engine.getClass() == SnapshotEngine.class);
-        EngineWrapper w = (EngineWrapper) ((SnapshotEngine) db.engine).getWrappedEngine();
+        assertTrue(db.engine.getClass() == TxEngine.class);
+        EngineWrapper w = (EngineWrapper) ((TxEngine) db.engine).getWrappedEngine();
         assertTrue(w instanceof Caches.HashTable);
         assertEquals(1024 * 32, ((Caches.HashTable) w).cacheMaxSize);
         assertTrue(w.getWrappedEngine().getClass() == AsyncWriteEngine.class);
@@ -183,7 +183,7 @@ public class DBMakerTest{
                 .checksumEnable()
                 .make();
         EngineWrapper w = (EngineWrapper) db.engine;
-        assertTrue(w instanceof SnapshotEngine);
+        assertTrue(w instanceof TxEngine);
 
         Store s = Pump.storeForEngine(w);
         assertTrue(s.checksum);
@@ -204,7 +204,7 @@ public class DBMakerTest{
                 .checksumEnable()
                 .make();
         EngineWrapper w = (EngineWrapper) db.engine;
-        assertTrue(w instanceof SnapshotEngine);
+        assertTrue(w instanceof TxEngine);
 
         Store s = Pump.storeForEngine(w);
         assertTrue(s.checksum);
@@ -284,7 +284,7 @@ public class DBMakerTest{
                 .compressionEnable()
                 .make();
         EngineWrapper w = (EngineWrapper) db.engine;
-        assertTrue(w instanceof SnapshotEngine);
+        assertTrue(w instanceof TxEngine);
         Store s = Pump.storeForEngine(w);
         assertTrue(!s.checksum);
         assertTrue(s.compress);

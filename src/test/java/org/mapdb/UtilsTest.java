@@ -3,6 +3,8 @@ package org.mapdb;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.io.DataInput;
+import java.io.DataOutput;
 import java.io.IOError;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -76,5 +78,17 @@ public class UtilsTest {
         }
     }
 
+
+    public static Serializer FAIL = new Serializer() {
+        @Override
+        public void serialize(DataOutput out, Object value) throws IOException {
+            throw new RuntimeException();
+        }
+
+        @Override
+        public Object deserialize(DataInput in, int available) throws IOException {
+            throw new RuntimeException();
+        }
+    };
 
 }

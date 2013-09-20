@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.zip.Adler32;
@@ -22,9 +23,15 @@ public abstract class Store implements Engine{
     protected final byte[] password;
     protected final EncryptionXTEA encryptionXTEA;
 
+    /** default serializer used for persistence. Handles POJO and other stuff which requires write-able access to Engine */
+    protected SerializerPojo serializerPojo;
+
+
     protected final ThreadLocal<CompressLZF> LZF;
 
     protected Store(boolean checksum, boolean compress, byte[] password) {
+
+
         this.checksum = checksum;
         this.compress = compress;
         this.encrypt =  password!=null;
@@ -59,6 +66,19 @@ public abstract class Store implements Engine{
     public void printStatistics(){
         System.out.println(calculateStatistics());
     }
+
+    /**
+     * @return default serializer used in this DB, it handles POJO and other stuff.
+     */
+    public  SerializerPojo getSerializerPojo() {
+        if(serializerPojo==null){
+            //TODO thread safe lazy init
+            final CopyOnWriteArrayList<SerializerPojo.ClassInfo> classInfos = get(Engine.CLASS_INFO_RECID, SerializerPojo.serializer);
+            serializerPojo = new SerializerPojo(classInfos);
+        }
+        return serializerPojo;
+    }
+
 
     protected final ReentrantLock structuralLock = new ReentrantLock();
     protected final ReentrantReadWriteLock[] locks = Utils.newReadWriteLocks();
@@ -226,8 +246,10 @@ public abstract class Store implements Engine{
         int start = di.pos;
 
         A ret = serializer.deserialize(di,size);
-        if(size+start>di.pos)throw new InternalError("data were not fully read, check your serializer ");
-        if(size+start<di.pos)throw new InternalError("data were read beyond record size, check your serializer");
+        if(size+start>di.pos)
+            throw new InternalError("data were not fully read, check your serializer ");
+        if(size+start<di.pos)
+            throw new InternalError("data were read beyond record size, check your serializer");
         return ret;
     }
 

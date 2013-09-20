@@ -40,6 +40,11 @@ public abstract class EngineWrapper implements Engine{
     }
 
     @Override
+    public long preallocate(){
+        return getWrappedEngine().preallocate();
+    }
+
+    @Override
     public <A> long put(A value, Serializer<A> serializer) {
         assert(value!=null);
         return getWrappedEngine().put(value, serializer);
@@ -111,6 +116,11 @@ public abstract class EngineWrapper implements Engine{
         getWrappedEngine().compact();
     }
 
+    @Override
+    public  SerializerPojo getSerializerPojo() {
+        return getWrappedEngine().getSerializerPojo();
+    }
+
     /**
      * Wraps an <code>Engine</code> and throws
      * <code>UnsupportedOperationException("Read-only")</code>
@@ -123,8 +133,18 @@ public abstract class EngineWrapper implements Engine{
             super(engine);
         }
 
+
+        @Override
+        public long preallocate() {
+            throw new UnsupportedOperationException("Read-only");
+        }
+
         @Override
         public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+            return readOnly();
+        }
+
+        private boolean readOnly() {
             throw new UnsupportedOperationException("Read-only");
         }
 
@@ -186,6 +206,13 @@ public abstract class EngineWrapper implements Engine{
 
         public DebugEngine(Engine engine) {
             super(engine);
+        }
+
+        @Override
+        public long preallocate() {
+            long recid =  super.preallocate();
+            records.add(new Record(recid,"PREALLOC"));
+            return recid;
         }
 
         @Override
@@ -326,6 +353,12 @@ public abstract class EngineWrapper implements Engine{
         }
 
         @Override
+        synchronized public long preallocate(){
+            return super.preallocate();
+        }
+
+
+        @Override
         synchronized public <A> long put(A value, Serializer<A> serializer) {
             return super.put(value, serializer);
         }
@@ -395,7 +428,7 @@ public abstract class EngineWrapper implements Engine{
         synchronized protected <A> void checkSerializer(long recid, Serializer<A> serializer) {
             Serializer other = recid2serializer.get(recid);
             if(other!=null){
-                if( other!=serializer)
+                if( other!=serializer && other.getClass()!=serializer.getClass())
                     throw new IllegalArgumentException("Serializer does not match. \n found: "+serializer+" \n expected: "+other);
             }else
                 recid2serializer.put(recid,serializer);

@@ -248,7 +248,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     protected void runWritePrealloc() throws InterruptedException {
         final int capacity = newRecids.remainingCapacity();
         for(int i=0;i<capacity;i++){
-            Long newRecid = getWrappedEngine().put(Utils.EMPTY_STRING, Serializer.EMPTY_SERIALIZER);
+            Long newRecid = getWrappedEngine().preallocate();
             if(!newRecids.offer(newRecid)){
                 getWrappedEngine().delete(newRecid,Serializer.EMPTY_SERIALIZER);
                 return;
@@ -261,6 +261,15 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     protected void checkState() {
         if(closeInProgress) throw new IllegalAccessError("db has been closed");
         if(threadFailedException !=null) throw new RuntimeException("Writer thread failed", threadFailedException);
+    }
+
+
+    @Override
+    public long preallocate() {
+        Long recid = newRecids.poll();
+        if(recid==null)
+            recid = super.preallocate();
+        return recid;
     }
 
     /**
@@ -294,7 +303,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
         try{
             Long recid = newRecids.poll();
             if(recid==null)
-                recid = super.put(Utils.EMPTY_STRING, Serializer.EMPTY_SERIALIZER);
+                recid = super.preallocate();
             update(recid, value, serializer);
             return recid;
         }finally{

@@ -21,7 +21,6 @@ import org.mapdb.EngineWrapper.ReadOnlyEngine;
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.util.NavigableSet;
 import java.util.Set;
 
@@ -75,6 +74,8 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
     protected boolean _strictDBGet = false;
 
     protected boolean _appendStorage;
+
+    protected boolean _fullTx = false;
 
     /** use static factory methods, or make subclass */
     protected DBMaker(){}
@@ -234,7 +235,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      *
      *
      * @return this builder
-     * @deprecated use {@link transactionDisable()} instead.
+     * @deprecated use {@link DBMaker#transactionDisable()} instead.
      */
     public DBMakerT writeAheadLogDisable(){
         this._transactionEnabled = false;
@@ -378,7 +379,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
     }
 
     /**
-     * MapDB supports snapshots. `SnapshotEngine` requires additional locking which has small overhead when not used.
+     * MapDB supports snapshots. `TxEngine` requires additional locking which has small overhead when not used.
      * So it is possible to disable snapshots in order to maximize performance when snapshots are not used.
      *
      * @return this builder
@@ -629,13 +630,14 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
     
     public TxMaker makeTxMaker(){
+        this._fullTx= true;
         asyncWriteDisable();
         Engine e = makeEngine();
-        if(!(e instanceof SnapshotEngine)) throw new IllegalArgumentException("Snapshot must be enabled for TxMaker");
+        if(!(e instanceof TxEngine)) throw new IllegalArgumentException("Snapshot must be enabled for TxMaker");
         //init catalog if needed
         DB db = new DB(e);
         db.commit();
-        return new TxMaker((SnapshotEngine) e);
+        return new TxMaker((TxEngine) e);
     }
 
     /** constructs Engine using current settings */
@@ -742,8 +744,8 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
     protected void extendShutdownHookAfter(Engine engine) {
     }
 
-    protected SnapshotEngine extendSnapshotEngine(Engine engine) {
-        return new SnapshotEngine(engine);
+    protected TxEngine extendSnapshotEngine(Engine engine) {
+        return new TxEngine(engine,_fullTx);
     }
 
     protected Caches.LRU extendCacheLRU(Engine engine) {

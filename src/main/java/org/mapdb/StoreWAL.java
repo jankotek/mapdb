@@ -96,7 +96,37 @@ public class StoreWAL extends StoreDirect {
     }
 
 
+    @Override
+    public  long preallocate() {
+        final long ioRecid;
+        final long logPos;
 
+        final Lock lock  = locks[Utils.random(locks.length)].readLock();
+        lock.lock();
+        try{
+            structuralLock.lock();
+            try{
+                openLogIfNeeded();
+                ioRecid = freeIoRecidTake(false);
+                //now get space in log
+                openLogIfNeeded();
+                logPos = logSize;
+                logSize+=1+8+8; //space used for index val
+                log.ensureAvailable(logSize);
+
+            }finally{
+                structuralLock.unlock();
+            }
+            //write data into log
+            walIndexVal(logPos, ioRecid, MASK_DISCARD);
+            modified.put(ioRecid, TOMBSTONE);
+            long recid =  (ioRecid-IO_USER_START)/8;
+            assert(recid>0);
+            return recid;
+        }finally{
+            lock.unlock();
+        }
+    }
 
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
@@ -381,6 +411,7 @@ public class StoreWAL extends StoreDirect {
             long[] linkedRecords = getLinkedRecordsFromLog(ioRecid);
             if(linkedRecords==null){
                 indexVal = index.getLong(ioRecid);
+                if(indexVal==MASK_DISCARD) return;
                 linkedRecords = getLinkedRecordsIndexVals(indexVal);
             }
             structuralLock.lock();
@@ -415,8 +446,13 @@ public class StoreWAL extends StoreDirect {
 
     @Override
     public void commit() {
+        if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
+            serializerPojo.save(this);
+        }
+
         lockAllWrite();
         try{
+
             if(!longStackPages.isEmpty() && log==null) openLogIfNeeded();
 
             if(log==null){
@@ -728,6 +764,10 @@ public class StoreWAL extends StoreDirect {
 
     @Override
     public void close() {
+        if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
+            serializerPojo.save(this);
+        }
+
         lockAllWrite();
         try{
             if(log !=null){

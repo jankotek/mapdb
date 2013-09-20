@@ -244,6 +244,27 @@ public class StoreDirect extends Store{
     }
 
     @Override
+    public long preallocate() {
+        final Lock lock  = locks[Utils.random(locks.length)].readLock();
+        lock.lock();
+        try{
+            structuralLock.lock();
+            final long ioRecid;
+            try{
+                ioRecid = freeIoRecidTake(true) ;
+            }finally {
+                structuralLock.unlock();
+            }
+            index.putLong(ioRecid,MASK_DISCARD);
+            long recid = (ioRecid-IO_USER_START)/8;
+            assert(recid>0);
+            return recid;
+        }finally {
+            lock.unlock();
+        }
+    }
+
+    @Override
     public <A> long put(A value, Serializer<A> serializer) {
         assert(value!=null);
         DataOutput2 out = serialize(value, serializer);
@@ -321,6 +342,7 @@ public class StoreDirect extends Store{
 
     protected <A> A get2(long ioRecid,Serializer<A> serializer) throws IOException {
         long indexVal = index.getLong(ioRecid);
+        if(indexVal == MASK_DISCARD) return null; //preallocated record
 
         int size = (int) (indexVal>>>48);
         DataInput2 di;
@@ -568,11 +590,16 @@ public class StoreDirect extends Store{
     @Override
     public void close() {
         lockAllWrite();
+
         if(!readOnly){
             index.putLong(IO_PHYS_SIZE,physSize);
             index.putLong(IO_INDEX_SIZE,indexSize);
             index.putLong(IO_FREE_SIZE,freeSize);
             index.putLong(IO_INDEX_SUM,indexHeaderChecksum());
+
+            if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
+                serializerPojo.save(this);
+            }
         }
 
         index.sync();
@@ -600,6 +627,10 @@ public class StoreDirect extends Store{
             index.putLong(IO_INDEX_SIZE,indexSize);
             index.putLong(IO_FREE_SIZE,freeSize);
             index.putLong(IO_INDEX_SUM,indexHeaderChecksum());
+
+            if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
+                serializerPojo.save(this);
+            }
         }
         if(!syncOnCommitDisabled){
             index.sync();

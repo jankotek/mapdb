@@ -90,6 +90,13 @@ public class AsyncWriteEngineTest extends TestFile{
                 putCounter.incrementAndGet();
                 return super.put(value, serializer);
             }
+
+            @Override
+            public <A> void  update(long recid, A value, Serializer<A> serializer) {
+                putCounter.incrementAndGet();
+                super.update(recid, value, serializer);
+            }
+
         };
         AsyncWriteEngine a = new AsyncWriteEngine(t);
         byte[] b = new byte[124];
@@ -104,7 +111,7 @@ public class AsyncWriteEngineTest extends TestFile{
         //make commit just after bunch of records was added,
         // we need to test that all records made it into transaction log
         a.commit();
-        assertEquals(max, putCounter.longValue() - a.newRecids.size());
+        assertEquals(max, putCounter.longValue() );
         assertTrue(a.writeCache.isEmpty());
         t.close();
 

@@ -228,6 +228,29 @@ public class StoreAppend extends Store{
     }
 
     @Override
+    public long preallocate() {
+        final Lock lock  = locks[Utils.random(locks.length)].readLock();
+        lock.lock();
+        try{
+            structuralLock.lock();
+            final long recid;
+            try{
+                recid = ++maxRecid;
+
+                modified = true;
+            }finally{
+                structuralLock.unlock();
+            }
+
+            assert(recid>0);
+            return recid;
+        }finally {
+            lock.unlock();
+        }
+
+    }
+
+    @Override
     public <A> long put(A value, Serializer<A> serializer) {
         assert(value!=null);
         DataOutput2 out = serialize(value,serializer);
@@ -392,6 +415,10 @@ public class StoreAppend extends Store{
 
     @Override
     public void close() {
+        if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
+            serializerPojo.save(this);
+        }
+
         Iterator<Volume> iter=volumes.valuesIterator();
         if(!readOnly && modified){ //TODO and modified since last open
             rollover();
@@ -441,9 +468,15 @@ public class StoreAppend extends Store{
 
             currVolume.putUnsignedByte(rollbackCurrPos, (int) (END+RECIDP));
             currPos++;
+
+            if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
+                serializerPojo.save(this);
+            }
+
         }finally{
             unlockAllWrite();
         }
+
     }
 
 
@@ -459,6 +492,8 @@ public class StoreAppend extends Store{
             currPos = rollbackCurrPos;
             maxRecid = rollbackMaxRecid;
             currFileNum = rollbackCurrFileNum;
+
+            //TODO rollback serializerPojo?
         }finally{
             unlockAllWrite();
         }

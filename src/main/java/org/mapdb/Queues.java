@@ -230,7 +230,7 @@ public final class Queues {
                 n = engine.get(head2, nodeSerializer);
             }while(n==null || !head.compareAndSet(head2, n.next));
             if(useLocks && head2!=0){
-                engine.delete(head2,Serializer.LONG);
+                engine.delete(head2,nodeSerializer);
                 locks[Utils.longHash(head2)&Utils.LOCK_MASK].unlock();
             }else{
                 engine.update(head2, null, nodeSerializer);

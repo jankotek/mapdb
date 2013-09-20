@@ -6,7 +6,6 @@ import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -14,7 +13,7 @@ import static org.junit.Assert.fail;
 public class TxMakerTest{
 
     TxMaker tx =
-            //new TxMaker(new SnapshotEngine(new DB(new StoreHeap()).getEngine()));
+            //new TxMaker(new TxEngine(new DB(new StoreHeap()).getEngine(),true));
             DBMaker.newMemoryDB().makeTxMaker();
 
     @Test public void simple_commit(){
@@ -37,17 +36,21 @@ public class TxMakerTest{
         db0.commit();
         DB db1 = tx.makeTx();
         db1.getEngine().update(recid, 222, Serializer.INTEGER);
+        DB db2= tx.makeTx();
+        db2.getEngine().update(recid, 333, Serializer.INTEGER);
+        db2.commit();
+
         try{
-            tx.makeTx().getEngine().update(recid, 333, Serializer.INTEGER);
+            //will fail, record was already modified
+            db1.commit();
+
             fail("should throw exception");
         }catch(TxRollbackException e){
             //expected
         }
 
-        //original transaction should complete well
-        db1.commit();
 
-        assertEquals(Integer.valueOf(222), tx.makeTx().getEngine().get(recid, Serializer.INTEGER));
+        assertEquals(Integer.valueOf(333), tx.makeTx().getEngine().get(recid, Serializer.INTEGER));
 
     }
 
@@ -139,7 +142,7 @@ public class TxMakerTest{
         if(!ex.isEmpty())
             throw ex.get(0);
 
-        assertEquals(Long.valueOf(threads*items), tx.makeTx().getEngine().get(recid,Serializer.LONG));
+        assertEquals(Long.valueOf(threads*items+1), tx.makeTx().getEngine().get(recid,Serializer.LONG));
 
 
     }

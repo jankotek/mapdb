@@ -45,6 +45,19 @@ public class StoreHeap extends Store implements Serializable{
     }
 
     @Override
+    public long preallocate() {
+        final Lock lock  = locks[Utils.random(locks.length)].writeLock();
+        lock.lock();
+        try{
+            Long recid = freeRecids.poll();
+            if(recid==null) recid = maxRecid.incrementAndGet();
+            return recid;
+        }finally{
+            lock.unlock();
+        }
+    }
+
+    @Override
     public <A> long put(A value, Serializer<A> serializer) {
         assert(value!=null);
         final Lock lock  = locks[Utils.random(locks.length)].writeLock();
@@ -85,7 +98,8 @@ public class StoreHeap extends Store implements Serializable{
         lock.lock();
         try{
             Fun.Tuple2 old = records.put(recid, Fun.<Object, Serializer>t2(value,serializer));
-            rollback.putIfAbsent(recid,old);
+            if(old!=null) //TODO null if record was preallocated
+                rollback.putIfAbsent(recid,old);
         }finally{
             lock.unlock();
         }

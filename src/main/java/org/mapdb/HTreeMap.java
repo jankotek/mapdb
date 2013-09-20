@@ -111,6 +111,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         @Override
         public LinkedNode<K,V> deserialize(DataInput in, int available) throws IOException {
+            assert(available!=0);
             return new LinkedNode<K, V>(
                     Utils.unpackLong(in),
                     expireFlag?Utils.unpackLong(in):0L,
@@ -504,7 +505,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 long[][] nextDir = new long[16][];
 
                 {
-                    final long expireNodeRecid = expireFlag? engine.put(ExpireLinkNode.EMPTY, ExpireLinkNode.SERIALIZER):0L;
+                    final long expireNodeRecid = expireFlag? engine.preallocate():0L;
                     final LinkedNode<K,V> node = new LinkedNode<K, V>(0, expireNodeRecid, key, value);
                     final long newRecid = engine.put(node, LN_SERIALIZER);
                     //add newly inserted record
@@ -1509,7 +1510,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                         ((expire!=0 || expireAccess!=0) &&  n.time+expireTimeStart<System.currentTimeMillis());
 
                 if(remove){
-                    engine.delete(recid,LN_SERIALIZER);
+                    engine.delete(recid, ExpireLinkNode.SERIALIZER);
                     LinkedNode<K,V> ln = engine.get(n.keyRecid,LN_SERIALIZER);
                     removeInternal(ln.key,seg, n.hash, false);
                 }else{
@@ -1572,7 +1573,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
      * @return snapshot
      */
     public Map<K,V> snapshot(){
-        Engine snapshot = SnapshotEngine.createSnapshotFor(engine);
+        Engine snapshot = TxEngine.createSnapshotFor(engine);
         return new HTreeMap<K, V>(snapshot, counter==null?0:counter.recid,
                 hashSalt, segmentRecids, keySerializer, valueSerializer,0L,0L,0L,0L,null,null, null);
     }

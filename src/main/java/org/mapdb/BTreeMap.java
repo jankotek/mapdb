@@ -2665,7 +2665,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
      * @return snapshot
      */
     public NavigableMap<K,V> snapshot(){
-        Engine snapshot = SnapshotEngine.createSnapshotFor(engine);
+        Engine snapshot = TxEngine.createSnapshotFor(engine);
 
         return new BTreeMap<K, V>(snapshot, rootRecidRef, maxNodeSize, valsOutsideNodes,
                 counter==null?0L:counter.recid,
