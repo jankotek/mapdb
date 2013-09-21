@@ -59,8 +59,6 @@ final public class Utils {
     public static final String UTF8 = "UTF8";
     public static final Charset UTF8_CHARSET = Charset.forName(UTF8);
 
-    /** @deprecated possible multi-threaded issues*/
-    public static Random RANDOM = new Random();
 
     public static final int LOCK_MASK = CC.CONCURRENCY-1;
 
@@ -242,58 +240,14 @@ final public class Utils {
     }
 
 
-    /** @deprecated */
-    public static void printProgress(final AtomicLong value){
-        new Thread("printProgress"){
-            {
-                setDaemon(true);
-            }
-
-            @Override
-            public void run() {
-                long startValue = value.get();
-                long startTime, time = System.currentTimeMillis();
-                startTime = time;
-                long old = value.get();
-                while(true){
-                    time+=1000;
-                    while(time>System.currentTimeMillis()){
-                        LockSupport.parkNanos(1000*1000); //1ms
-                    }
-
-                    long current = value.get();
-                    if(current<0){
-                        System.out.println("Finished, total time: "+(time-startTime)+", aprox items: "+old);
-                        return;
-                    }
-                    long totalSpeed = 1000*(current-startValue)/(time-startTime);
-                    System.out.print("total: "+current+" - items per last second: "+(current-old)+" - avg items per second: "+totalSpeed+"\r");
-                    old = current;
-                }
-
-            }
-        }.start();
-    }
 
 
-    /** @deprecated  */
-    public static <A> DataOutput2 serializer(Serializer<A> serializer, A value) {
-        try{
-            DataOutput2 out = new DataOutput2();
-            serializer.serialize(out,value);
-            return out;
-        }catch(IOException e){
-            throw new IOError(e);
-        }
-
-    }
-
-    /** @deprecated */
     public static String randomString(int size) {
         String chars = "0123456789abcdefghijklmnopqrstuvwxyz !@#$%^&*()_+=-{}[]:\",./<>?|\\";
         StringBuilder b = new StringBuilder(size);
+        Random r = new Random();
         for(int i=0;i<size;i++){
-            b.append(chars.charAt(RANDOM.nextInt(chars.length())));
+            b.append(chars.charAt(r.nextInt(chars.length())));
         }
         return b.toString();
     }
@@ -364,8 +318,4 @@ final public class Utils {
         }
     }
 
-    /** @return random number so that `i>=0 && i<n` */
-    public static int random(int n) {
-        return RANDOM.nextInt(n);
-    }
 }

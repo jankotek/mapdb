@@ -5,6 +5,7 @@ import java.io.IOError;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
+import java.util.Random;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.locks.Lock;
@@ -229,7 +230,7 @@ public class StoreAppend extends Store{
 
     @Override
     public long preallocate() {
-        final Lock lock  = locks[Utils.random(locks.length)].readLock();
+        final Lock lock  = locks[new Random().nextInt(locks.length)].readLock();
         lock.lock();
         try{
             structuralLock.lock();
@@ -255,7 +256,7 @@ public class StoreAppend extends Store{
         assert(value!=null);
         DataOutput2 out = serialize(value,serializer);
 
-        final Lock lock  = locks[Utils.random(locks.length)].readLock();
+        final Lock lock  = locks[new Random().nextInt(locks.length)].readLock();
         lock.lock();
         try{
 

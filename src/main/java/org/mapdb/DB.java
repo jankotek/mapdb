@@ -283,7 +283,7 @@ public class DB {
 
         HTreeMap<K,V> ret = new HTreeMap<K,V>(engine,
                 catPut(name+".counterRecid",!m.keepCounter?0L:engine.put(0L, Serializer.LONG)),
-                catPut(name+".hashSalt",Utils.RANDOM.nextInt()),
+                catPut(name+".hashSalt",new Random().nextInt()),
                 catPut(name+".segmentRecids",HTreeMap.preallocateSegments(engine)),
                 catPut(name+".keySerializer",m.keySerializer,getDefaultSerializer()),
                 catPut(name+".valueSerializer",m.valueSerializer,getDefaultSerializer()),
@@ -348,7 +348,7 @@ public class DB {
 
         Set<K> ret = new HTreeMap<K,Object>(engine,
                 catPut(name+".counterRecid",!keepCounter?0L:engine.put(0L, Serializer.LONG)),
-                catPut(name+".hashSalt",Utils.RANDOM.nextInt()),
+                catPut(name+".hashSalt",new Random().nextInt()),
                 catPut(name+".segmentRecids",HTreeMap.preallocateSegments(engine)),
                 catPut(name+".serializer",serializer,getDefaultSerializer()),
                 null, 0L,0L,0L,0L,null,null,null

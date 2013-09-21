@@ -7,6 +7,7 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -50,7 +51,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
     @Test public void put_get_large(){
         byte[] b = new byte[(int) 1e6];
-        Utils.RANDOM.nextBytes(b);
+        new Random().nextBytes(b);
         long recid = e.put(b, Serializer.BYTE_ARRAY_NOSIZE);
         assertArrayEquals(b, e.get(recid, Serializer.BYTE_ARRAY_NOSIZE));
     }
@@ -58,7 +59,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
     @Test public void put_reopen_get_large(){
         if(!canReopen()) return;
         byte[] b = new byte[(int) 1e6];
-        Utils.RANDOM.nextBytes(b);
+        new Random().nextBytes(b);
         long recid = e.put(b, Serializer.BYTE_ARRAY_NOSIZE);
         e.commit();
         reopen();

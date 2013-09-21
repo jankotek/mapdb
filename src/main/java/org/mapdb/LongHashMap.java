@@ -18,10 +18,7 @@
 package org.mapdb;
 
 import java.io.Serializable;
-import java.util.Arrays;
-import java.util.ConcurrentModificationException;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
+import java.util.*;
 
 /**
  * LongHashMap is an implementation of LongMap without concurrency locking.
@@ -65,7 +62,7 @@ public class LongHashMap<V> extends LongMap<V> implements Serializable {
     protected final long hashSalt = hashSaltValue();
 
     protected long hashSaltValue() {
-        return Utils.RANDOM.nextLong();
+        return new Random().nextLong();
     }
 
     /*

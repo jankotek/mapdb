@@ -2,10 +2,7 @@ package org.mapdb;
 
 import java.io.Serializable;
 import java.nio.ByteBuffer;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Queue;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -46,7 +43,7 @@ public class StoreHeap extends Store implements Serializable{
 
     @Override
     public long preallocate() {
-        final Lock lock  = locks[Utils.random(locks.length)].writeLock();
+        final Lock lock  = locks[new Random().nextInt(locks.length)].writeLock();
         lock.lock();
         try{
             Long recid = freeRecids.poll();
@@ -60,7 +57,7 @@ public class StoreHeap extends Store implements Serializable{
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
         assert(value!=null);
-        final Lock lock  = locks[Utils.random(locks.length)].writeLock();
+        final Lock lock  = locks[new Random().nextInt(locks.length)].writeLock();
         lock.lock();
         try{
             Long recid = freeRecids.poll();
@@ -207,7 +204,7 @@ public class StoreHeap extends Store implements Serializable{
     public ByteBuffer getRaw(long recid) {
         Fun.Tuple2 t = records.get(recid);
         if(t==null||t.a == null) return null;
-        return ByteBuffer.wrap(Utils.serializer((Serializer<Object>) t.b, t.a).copyBytes());
+        return ByteBuffer.wrap(serialize(t.b, (Serializer<Object>) t.a).copyBytes());
     }
 
     @Override

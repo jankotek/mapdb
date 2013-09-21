@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.Random;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -245,7 +246,7 @@ public class StoreDirect extends Store{
 
     @Override
     public long preallocate() {
-        final Lock lock  = locks[Utils.random(locks.length)].readLock();
+        final Lock lock  = locks[new Random().nextInt(locks.length)].readLock();
         lock.lock();
         try{
             structuralLock.lock();
@@ -269,7 +270,7 @@ public class StoreDirect extends Store{
         assert(value!=null);
         DataOutput2 out = serialize(value, serializer);
 
-        final Lock lock  = locks[Utils.random(locks.length)].readLock();
+        final Lock lock  = locks[new Random().nextInt(locks.length)].readLock();
         lock.lock();
         try{
             structuralLock.lock();

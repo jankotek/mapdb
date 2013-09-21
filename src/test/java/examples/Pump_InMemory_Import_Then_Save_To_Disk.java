@@ -4,6 +4,7 @@ import org.mapdb.*;
 
 import java.io.File;
 import java.util.Map;
+import java.util.Random;
 
 /**
  * This demonstrates using Data Pump to first create store in-memory at maximal speed,
@@ -18,9 +19,10 @@ public class Pump_InMemory_Import_Then_Save_To_Disk {
         DB inMemory = new DB(new StoreHeap());
         Map m = inMemory.getTreeMap("test");
 
+        Random r = new Random();
         //insert random stuff, keep on mind it needs to fit into memory
         for(int i=0;i<10000;i++){
-            m.put(Utils.RANDOM.nextInt(),"dwqas"+i);
+            m.put(r.nextInt(),"dwqas"+i);
         }
 
         //now create on-disk store, it needs to be completely empty

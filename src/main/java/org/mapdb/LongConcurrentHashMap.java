@@ -26,6 +26,7 @@ package org.mapdb;
 import java.io.Serializable;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.Random;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -54,7 +55,7 @@ public class LongConcurrentHashMap< V>
     /**
      * Salt added to keys before hashing, so it is harder to trigger hash collision attack.
      */
-    protected final long hashSalt = Utils.RANDOM.nextLong();
+    protected final long hashSalt = new Random().nextLong();
 
 
     /**

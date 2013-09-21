@@ -4,6 +4,7 @@ import java.lang.ref.ReferenceQueue;
 import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
 import java.util.Arrays;
+import java.util.Random;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -159,7 +160,7 @@ public final class Caches {
         /**
          * Salt added to keys before hashing, so it is harder to trigger hash collision attack.
          */
-        protected final long hashSalt = Utils.RANDOM.nextLong();
+        protected final long hashSalt = new Random().nextLong();
 
 
         private static class HashItem {

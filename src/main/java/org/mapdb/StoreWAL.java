@@ -4,6 +4,7 @@ import java.io.IOError;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Random;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -101,7 +102,7 @@ public class StoreWAL extends StoreDirect {
         final long ioRecid;
         final long logPos;
 
-        final Lock lock  = locks[Utils.random(locks.length)].readLock();
+        final Lock lock  = locks[new Random().nextInt(locks.length)].readLock();
         lock.lock();
         try{
             structuralLock.lock();
@@ -137,7 +138,7 @@ public class StoreWAL extends StoreDirect {
         final long[] physPos;
         final long[] logPos;
 
-        final Lock lock  = locks[Utils.random(locks.length)].readLock();
+        final Lock lock  = locks[new Random().nextInt(locks.length)].readLock();
         lock.lock();
         try{
             structuralLock.lock();
