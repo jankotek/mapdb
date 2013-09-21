@@ -200,6 +200,12 @@ public class TxEngine extends EngineWrapper{
         }
 
         @Override
+        public void preallocate(long[] recids) {
+            //TODO does not respect TX
+            TxEngine.this.preallocate(recids);
+        }
+
+        @Override
         public <A> long put(A value, Serializer<A> serializer) {
             checkFullTx();
             lock.writeLock().lock();

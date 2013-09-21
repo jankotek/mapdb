@@ -133,6 +133,43 @@ public class StoreWAL extends StoreDirect {
         }
     }
 
+
+    @Override
+    public void preallocate(final long[] recids) {
+        long logPos;
+
+        final Lock lock  = locks[new Random().nextInt(locks.length)].readLock();
+        lock.lock();
+        try{
+            structuralLock.lock();
+            try{
+                openLogIfNeeded();
+                logPos = logSize;
+                for(int i=0;i<recids.length;i++)
+                    recids[i] = freeIoRecidTake(false) ;
+
+                //now get space in log
+                openLogIfNeeded();
+                logSize+=recids.length*(1+8+8); //space used for index vals
+                log.ensureAvailable(logSize);
+
+            }finally{
+                structuralLock.unlock();
+            }
+            //write data into log
+            for(int i=0;i<recids.length;i++){
+                walIndexVal(logPos, recids[i], MASK_DISCARD);
+                logPos+=1+8+8;
+                modified.put(recids[i], TOMBSTONE);
+                recids[i] =  (recids[i]-IO_USER_START)/8;
+                assert(recids[i]>0);
+            }
+        }finally{
+            lock.unlock();
+        }
+    }
+
+
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
         assert(value!=null);

@@ -45,6 +45,11 @@ public abstract class EngineWrapper implements Engine{
     }
 
     @Override
+    public void preallocate(long[] recids){
+        getWrappedEngine().preallocate(recids);
+    }
+
+    @Override
     public <A> long put(A value, Serializer<A> serializer) {
         assert(value!=null);
         return getWrappedEngine().put(value, serializer);
@@ -140,6 +145,12 @@ public abstract class EngineWrapper implements Engine{
         }
 
         @Override
+        public void preallocate(long[] recids){
+            throw new UnsupportedOperationException("Read-only");
+        }
+
+
+        @Override
         public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
             return readOnly();
         }
@@ -214,6 +225,14 @@ public abstract class EngineWrapper implements Engine{
             records.add(new Record(recid,"PREALLOC"));
             return recid;
         }
+
+        @Override
+        public void preallocate(long[] recids) {
+            super.preallocate(recids);
+            for(long recid:recids)
+                records.add(new Record(recid,"PREALLOC"));
+        }
+
 
         @Override
         public <A> long put(A value, Serializer<A> serializer) {
@@ -355,6 +374,11 @@ public abstract class EngineWrapper implements Engine{
         @Override
         synchronized public long preallocate(){
             return super.preallocate();
+        }
+
+        @Override
+        synchronized public void preallocate(long[] recids){
+            super.preallocate(recids);
         }
 
 

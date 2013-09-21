@@ -17,13 +17,13 @@
 package org.mapdb;
 
 import java.lang.ref.WeakReference;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -79,9 +79,10 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     protected static final Object TOMBSTONE = new Object();
 
 
-    /** Queue of pre-allocated `recids`. Filled by `MapDB Writer` thread
-     * and consumed by {@link AsyncWriteEngine#put(Object, Serializer)} method  */
-    protected final ArrayBlockingQueue<Long> newRecids = new ArrayBlockingQueue<Long>(CC.ASYNC_RECID_PREALLOC_QUEUE_SIZE);
+
+    protected final long[] newRecids = new long[CC.ASYNC_RECID_PREALLOC_QUEUE_SIZE];
+    protected int newRecidsPos = 0;
+    protected final ReentrantLock newRecidsLock = new ReentrantLock();
 
 
     /** Associates `recid` from Write Queue with record data and serializer. */
@@ -208,12 +209,12 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
                 writeCache.remove(recid, item);
 
                 if(((++counter)&(63))==0){   //it is like modulo 64, but faster
-                    runWritePrealloc();
+                    preallocateRefill();
                 }
             }
         }while(latch!=null && !writeCache.isEmpty());
 
-        runWritePrealloc();
+        preallocateRefill();
 
 
         //operations such as commit,close, compact or close needs to be executed in Writer Thread
@@ -230,7 +231,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
                 latch.countDown();
             }else if(count==2){ //rollback operation
                 AsyncWriteEngine.super.rollback();
-                newRecids.clear();
+                preallocateRollback();
                 latch.countDown();
                 latch.countDown();
             }else if(count==3){ //compact operation
@@ -245,16 +246,42 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
 
     }
 
-    protected void runWritePrealloc() throws InterruptedException {
-        final int capacity = newRecids.remainingCapacity();
-        for(int i=0;i<capacity;i++){
-            Long newRecid = getWrappedEngine().preallocate();
-            if(!newRecids.offer(newRecid)){
-                getWrappedEngine().delete(newRecid,Serializer.EMPTY_SERIALIZER);
-                return;
-            }
+    protected void preallocateRollback(){
+        newRecidsLock.lock();
+        try{
+            getWrappedEngine().preallocate(newRecids);
+            newRecidsPos = newRecids.length;
+        }finally {
+            newRecidsLock.unlock();
         }
     }
+    @Override
+    public long preallocate() {
+        newRecidsLock.lock();
+        try{
+            if(newRecidsPos==0){
+                getWrappedEngine().preallocate(newRecids);
+                newRecidsPos = newRecids.length;
+            }
+
+            return newRecids[--newRecidsPos];
+        }finally {
+            newRecidsLock.unlock();
+        }
+    }
+
+    protected void preallocateRefill(){
+        newRecidsLock.lock();
+        try{
+            if(newRecidsPos==0){
+                getWrappedEngine().preallocate(newRecids);
+                newRecidsPos = newRecids.length;
+            }
+        }finally {
+            newRecidsLock.unlock();
+        }
+    }
+
 
 
     /** checks that background threads are ready and throws exception if not */
@@ -264,13 +291,14 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     }
 
 
+
     @Override
-    public long preallocate() {
-        Long recid = newRecids.poll();
-        if(recid==null)
-            recid = super.preallocate();
-        return recid;
+    public void preallocate(long[] recids) {
+        for(int i=0;i<recids.length;i++){
+            recids[i] = preallocate();
+        }
     }
+
 
     /**
      * {@inheritDoc}
@@ -301,9 +329,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     public <A> long put(A value, Serializer<A> serializer) {
         commitLock.readLock().lock();
         try{
-            Long recid = newRecids.poll();
-            if(recid==null)
-                recid = super.preallocate();
+            long recid = preallocate();
             update(recid, value, serializer);
             return recid;
         }finally{
@@ -423,8 +449,13 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
             activeThreadsCount.await();
 
             //put preallocated recids back to store
-            for(Long recid = newRecids.poll(); recid!=null; recid = newRecids.poll()){
-                super.delete(recid, Serializer.EMPTY_SERIALIZER);
+            newRecidsLock.lock();
+            try{
+                while(newRecidsPos>0){
+                    super.delete(newRecids[--newRecidsPos],Serializer.EMPTY_SERIALIZER);
+                }
+            }finally{
+                newRecidsLock.unlock();
             }
 
             AsyncWriteEngine.super.close();

@@ -77,6 +77,13 @@ public interface Engine {
     long preallocate();
 
     /**
+     * Preallocates recids  for not yet created record. It does not insert any data into it.
+     * This is done in batch of given size (determied by size of array in argument)
+     * @param recids array to put result into
+     */
+    void preallocate(long[] recids);
+
+    /**
      * Insert new record.
      *
      * @param value records to be added

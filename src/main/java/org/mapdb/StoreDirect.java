@@ -271,6 +271,29 @@ public class StoreDirect extends Store{
     }
 
     @Override
+    public void preallocate(long[] recids) {
+        final Lock lock  = locks[new Random().nextInt(locks.length)].readLock();
+        lock.lock();
+        try{
+            structuralLock.lock();
+            try{
+                for(int i=0;i<recids.length;i++)
+                    recids[i] = freeIoRecidTake(true) ;
+            }finally {
+                structuralLock.unlock();
+            }
+            for(int i=0;i<recids.length;i++){
+                index.putLong(recids[i],MASK_DISCARD);
+                recids[i] = (recids[i]-IO_USER_START)/8;
+                assert(recids[i]>0);
+            }
+        }finally {
+            lock.unlock();
+        }
+    }
+
+
+    @Override
     public <A> long put(A value, Serializer<A> serializer) {
         assert(value!=null);
         DataOutput2 out = serialize(value, serializer);
