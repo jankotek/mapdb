@@ -17,7 +17,9 @@ public class StoreDirectFreeSpaceTest {
 
     /** mock longStacks so their page allocations wont mess up tests */
     StoreDirect stub = new  StoreDirect(Volume.memoryFactory(false,max),false,false,5,false,max,false,false,null){
-
+        {
+            structuralLock.lock();
+        }
 
         private Deque<Long> stackList(long ioList) {
             if(longStacks.get(ioList)==null) longStacks.put(ioList, new LinkedList<Long>());
@@ -33,6 +35,7 @@ public class StoreDirectFreeSpaceTest {
 
         @Override
         protected void longStackPut(long ioList, long offset, boolean recursive) {
+            maxUsedIoList = Math.max(maxUsedIoList, ioList);
             stackList(ioList).add(offset);
         }
     };

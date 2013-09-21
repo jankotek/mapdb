@@ -23,8 +23,6 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Random;
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Storage Engine which saves record directly into file.
@@ -177,6 +175,9 @@ public class StoreDirect extends Store{
 
     protected final long sizeLimit;
 
+    /** maximal non zero slot in free phys record, access requires `structuralLock`*/
+    protected long maxUsedIoList = 0;
+
 
 
     public StoreDirect(Volume.Factory volFac, boolean readOnly, boolean deleteFilesAfterClose,
@@ -201,6 +202,10 @@ public class StoreDirect extends Store{
             indexSize = index.getLong(IO_INDEX_SIZE);
             physSize = index.getLong(IO_PHYS_SIZE);
             freeSize = index.getLong(IO_FREE_SIZE);
+
+            maxUsedIoList=IO_USER_START-8;
+            while(index.getLong(maxUsedIoList)!=0 && maxUsedIoList>IO_FREE_RECID)
+                maxUsedIoList-=8;
         }
 
     }
@@ -737,6 +742,11 @@ public class StoreDirect extends Store{
             index.putLong(IO_INDEX_SIZE, indexSize);
             index.putLong(IO_FREE_SIZE, freeSize);
 
+            maxUsedIoList=IO_USER_START-8;
+            while(index.getLong(maxUsedIoList)!=0 && maxUsedIoList>IO_FREE_RECID)
+                maxUsedIoList-=8;
+
+
         }catch(IOException e){
             throw new IOError(e);
         }finally {
@@ -747,6 +757,7 @@ public class StoreDirect extends Store{
 
 
     protected long longStackTake(final long ioList, boolean recursive) {
+        assert(structuralLock.isLocked());
 //        if(recursive) throw new InternalError();
         if(!structuralLock.isLocked())throw new InternalError();
         if(ioList<IO_FREE_RECID || ioList>=IO_USER_START) throw new IllegalArgumentException("wrong ioList: "+ioList);
@@ -775,6 +786,12 @@ public class StoreDirect extends Store{
             }else{
                 //zero out index
                 index.putLong(ioList , 0L);
+                if(maxUsedIoList==ioList){
+                    //max value was just deleted, so find new maxima
+                    while(index.getLong(maxUsedIoList)==0 && maxUsedIoList>IO_FREE_RECID){
+                        maxUsedIoList-=8;
+                    }
+                }
             }
             //put space used by this page into free list
             freePhysPut((size<<48) | dataOffset, true);
@@ -792,10 +809,9 @@ public class StoreDirect extends Store{
 
 
     protected void longStackPut(final long ioList, long offset, boolean recursive){
-//        if(recursive) throw new InternalError();
-        if(offset>>>48!=0) throw new IllegalArgumentException();
-        if(!structuralLock.isLocked())throw new InternalError();
-        if(ioList<IO_FREE_RECID || ioList>=IO_USER_START) throw new InternalError("wrong ioList: "+ioList);
+        assert(structuralLock.isLocked());
+        assert(offset>>>48==0);
+        assert(ioList>=IO_FREE_RECID && ioList<=IO_USER_START): "wrong ioList: "+ioList;
 
         long dataOffset = index.getLong(ioList);
         long pos = dataOffset>>>48;
@@ -812,6 +828,7 @@ public class StoreDirect extends Store{
             phys.putSixLong(listPhysid + 8, offset);
             //and update index file with new page location
             index.putLong(ioList , ( 8L << 48) | listPhysid);
+            if(maxUsedIoList<=ioList) maxUsedIoList=ioList;
         }else{
             long next = phys.getLong(dataOffset);
             long size = next>>>48;
@@ -877,6 +894,7 @@ public class StoreDirect extends Store{
     }
 
     protected long freePhysTake(int size, boolean ensureAvail, boolean recursive) {
+        assert(structuralLock.isLocked());
         if(size==0)throw new IllegalArgumentException();
         //check free space
         if(spaceReclaimReuse){
@@ -889,7 +907,9 @@ public class StoreDirect extends Store{
         //try to take large record and split it into two
         if(!recursive && spaceReclaimSplit ){
             for(long s=  roundTo16(size)+16;s<MAX_REC_SIZE;s+=16){
-                long ret = longStackTake(size2ListIoRecid(s),recursive);
+                final long ioList = size2ListIoRecid(s);
+                if(ioList>maxUsedIoList) break;
+                long ret = longStackTake(ioList,recursive);
                 if(ret!=0){
                     //found larger record, split in two chunks, take first, mark second free
                     final long offset = ret & MASK_OFFSET;

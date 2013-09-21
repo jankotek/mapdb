@@ -84,6 +84,10 @@ public class StoreWAL extends StoreDirect {
             indexVals[i/8] = index.getLong(i);
         }
         Arrays.fill(indexValsModified, false);
+
+        maxUsedIoList=IO_USER_START-8;
+        while(indexVals[((int) (maxUsedIoList / 8))]!=0 && maxUsedIoList>IO_FREE_RECID)
+            maxUsedIoList-=8;
     }
 
     protected void openLogIfNeeded(){
@@ -644,7 +648,7 @@ public class StoreWAL extends StoreDirect {
 
     @Override
     protected long longStackTake(long ioList, boolean recursive) {
-//        if(recursive) throw new InternalError();
+        assert(structuralLock.isLocked());
         final int ii = ((int) (ioList / 8));
 
         long dataOffset = indexVals[ii];
@@ -674,6 +678,12 @@ public class StoreWAL extends StoreDirect {
             }else{
                 indexVals[ii] = 0;
                 indexValsModified[ii] = true;
+                if(maxUsedIoList==ioList){
+                    //max value was just deleted, so find new maxima
+                    while(indexVals[((int) (maxUsedIoList / 8))]==0 && maxUsedIoList>IO_FREE_RECID){
+                        maxUsedIoList-=8;
+                    }
+                }
             }
 
             //put space used by this page into free list
@@ -692,6 +702,10 @@ public class StoreWAL extends StoreDirect {
 
     @Override
     protected void longStackPut(long ioList, long offset,boolean recursive) {
+        assert(structuralLock.isLocked());
+        assert(offset>>>48==0);
+        assert(ioList>=IO_FREE_RECID && ioList<=IO_USER_START): "wrong ioList: "+ioList;
+
 //        if(recursive) throw new InternalError();
         if(offset>>>48!=0) throw new IllegalArgumentException();
         //index position was cleared, put into free index list
@@ -715,6 +729,7 @@ public class StoreWAL extends StoreDirect {
             //and update index file with new page location
             indexVals[ii] =  (8L << 48) | listPhysid;
             indexValsModified[ii] = true;
+            if(maxUsedIoList<=ioList) maxUsedIoList=ioList;
         }else{
             //non empty list
             long[] buf = getLongStackPage(dataOffset,true);
