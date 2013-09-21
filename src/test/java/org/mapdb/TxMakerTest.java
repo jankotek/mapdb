@@ -54,7 +54,8 @@ public class TxMakerTest{
 
     }
 
-    @Test public void concurrent_tx() throws Throwable {
+    @Test(timeout = 60000)
+    public void concurrent_tx() throws Throwable {
         final int threads = 10;
         final int items = 1000;
         final CountDownLatch l = new CountDownLatch(threads);
@@ -104,7 +105,8 @@ public class TxMakerTest{
 
     }
 
-    @Test public void cas() throws Throwable {
+    @Test(timeout = 60000)
+    public void cas() throws Throwable {
         final int threads = 10;
         final int items = 1000;
         DB db = tx.makeTx();
