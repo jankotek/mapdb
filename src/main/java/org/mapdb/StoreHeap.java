@@ -204,7 +204,7 @@ public class StoreHeap extends Store implements Serializable{
     public ByteBuffer getRaw(long recid) {
         Fun.Tuple2 t = records.get(recid);
         if(t==null||t.a == null) return null;
-        return ByteBuffer.wrap(serialize(t.b, (Serializer<Object>) t.a).copyBytes());
+        return ByteBuffer.wrap(serialize(t.a, (Serializer<Object>) t.b).copyBytes());
     }
 
     @Override
