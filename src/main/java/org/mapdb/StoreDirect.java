@@ -782,7 +782,6 @@ public class StoreDirect extends Store{
     protected long longStackTake(final long ioList, boolean recursive) {
         assert(structuralLock.isLocked());
         assert(ioList>=IO_FREE_RECID && ioList<IO_USER_START) :"wrong ioList: "+ioList;
-        if(ioList>maxUsedIoList) return 0;
 
         long dataOffset = index.getLong(ioList);
         if(dataOffset == 0) return 0; //there is no such list, so just return 0
