@@ -316,7 +316,7 @@ public abstract class Volume {
 
         protected final ByteBuffer internalByteBuffer(long offset) {
             final int pos = ((int) (offset >>>BUF_SHIFT));
-            if(pos>=buffers.length) throw new IOError(new EOFException("offset: "+offset));
+            assert(pos<buffers.length):"wrong offset";
             return buffers[pos];
         }
 
