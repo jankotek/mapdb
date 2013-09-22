@@ -430,7 +430,7 @@ public class StoreDirect extends Store{
 
     protected void update2(DataOutput2 out, long ioRecid) {
         final long indexVal = index.getLong(ioRecid);
-        final long size = indexVal>>>48;
+        final int size = (int) (indexVal>>>48);
         final boolean linked = (indexVal&MASK_LINKED)!=0;
 
         if(!linked && out.pos>0 && size>0 && size2ListIoRecid(size) == size2ListIoRecid(out.pos)){
@@ -450,7 +450,8 @@ public class StoreDirect extends Store{
 
                 if(spaceReclaimTrack){
                     //free first record pointed from indexVal
-                    freePhysPut(indexVal,false);
+                    if(size>0)
+                        freePhysPut(indexVal,false);
 
                     //if there are more linked records, free those as well
                     if(indexVals!=null){
@@ -910,6 +911,7 @@ public class StoreDirect extends Store{
     }
     protected void freePhysPut(long indexVal, boolean recursive) {
         long size = indexVal >>>48;
+        assert(size!=0);
         freeSize+=roundTo16(size);
         longStackPut(size2ListIoRecid(size), indexVal & MASK_OFFSET,recursive);
     }
