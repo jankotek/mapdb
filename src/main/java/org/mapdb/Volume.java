@@ -40,7 +40,9 @@ import java.util.logging.Level;
 public abstract class Volume {
 
 
-    public static final int BUF_SIZE = 1<<30;
+    public static final int BUF_SHIFT = 30;
+
+    public static final int BUF_SIZE = 1<<BUF_SHIFT;
 
     public static final int BUF_SIZE_MOD_MASK = BUF_SIZE-1;
 
@@ -262,7 +264,7 @@ public abstract class Volume {
         public final boolean tryAvailable(long offset) {
             if(hasLimit&&offset>sizeLimit) return false;
 
-            int buffersPos = (int) (offset/ BUF_SIZE);
+            int buffersPos = (int) (offset >>> BUF_SHIFT);
 
             //check for most common case, this is already mapped
             if(buffersPos<buffers.length && buffers[buffersPos]!=null &&
@@ -313,7 +315,7 @@ public abstract class Volume {
         protected abstract ByteBuffer makeNewBuffer(long offset, ByteBuffer[] buffers2);
 
         protected final ByteBuffer internalByteBuffer(long offset) {
-            final int pos = ((int) (offset / BUF_SIZE));
+            final int pos = ((int) (offset >>>BUF_SHIFT));
             if(pos>=buffers.length) throw new IOError(new EOFException("offset: "+offset));
             return buffers[pos];
         }
@@ -464,8 +466,8 @@ public abstract class Volume {
                 final long fileSize = fileChannel.size();
                 if(fileSize>0){
                     //map existing data
-                    buffers = new ByteBuffer[(int) (1+fileSize/BUF_SIZE)];
-                    for(int i=0;i<=fileSize/BUF_SIZE;i++){
+                    buffers = new ByteBuffer[(int) (1+(fileSize>>>BUF_SHIFT))];
+                    for(int i=0;i<=fileSize>>>BUF_SHIFT;i++){
                         final long offset = 1L*BUF_SIZE*i;
                         buffers[i] = fileChannel.map(mapMode, offset, Math.min(BUF_SIZE, fileSize-offset));
                         if(mapMode == FileChannel.MapMode.READ_ONLY)
@@ -581,7 +583,7 @@ public abstract class Volume {
             ByteBuffer newBuf = useDirectBuffer?
                     ByteBuffer.allocateDirect(newBufSize):
                     ByteBuffer.allocate(newBufSize);
-            final int buffersPos = (int) (offset/ BUF_SIZE);
+            final int buffersPos = (int) (offset >>> BUF_SHIFT);
             ByteBuffer oldBuffer = buffers2[buffersPos];
             if(oldBuffer!=null){
                 //copy old buffer if it exists
