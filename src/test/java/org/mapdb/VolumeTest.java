@@ -185,8 +185,8 @@ public abstract class VolumeTest {
             v.ensureAvailable(10);
             v.getLong(1000000);
             fail();
-        }catch(IOError e){
-            assertTrue(e.getCause() instanceof  EOFException);
+        }catch(IndexOutOfBoundsException e){
+
         }
     }
 
@@ -197,8 +197,8 @@ public abstract class VolumeTest {
             v.ensureAvailable(10);
             v.getByte(1000000);
             fail();
-        }catch(IOError e){
-            assertTrue(e.getCause() instanceof  EOFException);
+        }catch(IndexOutOfBoundsException e){
+
         }
     }
 

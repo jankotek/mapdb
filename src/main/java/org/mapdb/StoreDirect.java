@@ -529,8 +529,9 @@ public class StoreDirect extends Store{
             try{
                 //free recid
                 freeIoRecidPut(ioRecid);
-                //free first record pointed from indexVal
-                freePhysPut(indexVal,false);
+                //free first record pointed from indexVal\
+                if((indexVal>>>48)>0)
+                    freePhysPut(indexVal,false);
 
                 //if there are more linked records, free those as well
                 if(linkedRecords!=null){
