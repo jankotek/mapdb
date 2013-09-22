@@ -314,31 +314,23 @@ public abstract class Volume {
 
         protected abstract ByteBuffer makeNewBuffer(long offset, ByteBuffer[] buffers2);
 
-        protected final ByteBuffer internalByteBuffer(long offset) {
-            final int pos = ((int) (offset >>>BUF_SHIFT));
-            assert(pos<buffers.length):"wrong offset";
-            return buffers[pos];
-        }
-
-
-
         @Override public final void putLong(final long offset, final long value) {
-            internalByteBuffer(offset).putLong((int) (offset&Volume.BUF_SIZE_MOD_MASK), value);
+            buffers[(int)(offset >>>BUF_SHIFT)].putLong((int) (offset&Volume.BUF_SIZE_MOD_MASK), value);
         }
 
         @Override public final void putInt(final long offset, final int value) {
-            internalByteBuffer(offset).putInt((int) (offset&Volume.BUF_SIZE_MOD_MASK), value);
+            buffers[(int)(offset >>>BUF_SHIFT)].putInt((int) (offset&Volume.BUF_SIZE_MOD_MASK), value);
         }
 
 
         @Override public final void putByte(final long offset, final byte value) {
-            internalByteBuffer(offset).put((int) (offset &Volume.BUF_SIZE_MOD_MASK), value);
+            buffers[(int)(offset >>>BUF_SHIFT)].put((int) (offset &Volume.BUF_SIZE_MOD_MASK), value);
         }
 
 
 
         @Override public void putData(final long offset, final byte[] src, int srcPos, int srcSize){
-            final ByteBuffer b1 = internalByteBuffer(offset).duplicate();
+            final ByteBuffer b1 = buffers[(int)(offset >>>BUF_SHIFT)].duplicate();
             final int bufPos = (int) (offset&Volume.BUF_SIZE_MOD_MASK);
 
             b1.position(bufPos);
@@ -346,7 +338,7 @@ public abstract class Volume {
         }
 
         @Override public final void putData(final long offset, final ByteBuffer buf) {
-            final ByteBuffer b1 = internalByteBuffer(offset).duplicate();
+            final ByteBuffer b1 = buffers[(int)(offset >>>BUF_SHIFT)].duplicate();
             final int bufPos = (int) (offset&Volume.BUF_SIZE_MOD_MASK);
             //no overlap, so just write the value
             b1.position(bufPos);
@@ -354,24 +346,22 @@ public abstract class Volume {
         }
 
         @Override final public long getLong(long offset) {
-             return internalByteBuffer(offset).getLong((int) (offset&Volume.BUF_SIZE_MOD_MASK));
+             return buffers[(int)(offset >>>BUF_SHIFT)].getLong((int) (offset&Volume.BUF_SIZE_MOD_MASK));
         }
 
         @Override final public int getInt(long offset) {
-             return internalByteBuffer(offset).getInt((int) (offset&Volume.BUF_SIZE_MOD_MASK));
+             return buffers[(int)(offset >>>BUF_SHIFT)].getInt((int) (offset&Volume.BUF_SIZE_MOD_MASK));
         }
 
 
         @Override public final byte getByte(long offset) {
-             return internalByteBuffer(offset).get((int) (offset&Volume.BUF_SIZE_MOD_MASK));
+             return buffers[(int)(offset >>>BUF_SHIFT)].get((int) (offset&Volume.BUF_SIZE_MOD_MASK));
         }
 
 
         @Override
         public final DataInput2 getDataInput(long offset, int size) {
-            final ByteBuffer b1 = internalByteBuffer(offset);
-            final int bufPos = (int) (offset&Volume.BUF_SIZE_MOD_MASK);
-            return new DataInput2(b1, bufPos);
+            return new DataInput2(buffers[(int)(offset >>>BUF_SHIFT)], (int) (offset&Volume.BUF_SIZE_MOD_MASK));
         }
 
         @Override
