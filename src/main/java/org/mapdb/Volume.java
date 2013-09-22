@@ -354,31 +354,16 @@ public abstract class Volume {
         }
 
         @Override final public long getLong(long offset) {
-            try{
-                return internalByteBuffer(offset).getLong((int) (offset&Volume.BUF_SIZE_MOD_MASK));
-            }catch(IndexOutOfBoundsException e){
-                throw new IOError(new EOFException());
-            }
+             return internalByteBuffer(offset).getLong((int) (offset&Volume.BUF_SIZE_MOD_MASK));
         }
 
         @Override final public int getInt(long offset) {
-            try{
-                return internalByteBuffer(offset).getInt((int) (offset&Volume.BUF_SIZE_MOD_MASK));
-            } catch (NullPointerException e) {
-                throw new RuntimeException(""+offset,e);
-
-            }catch(IndexOutOfBoundsException e){
-                throw new IOError(new EOFException());
-            }
+             return internalByteBuffer(offset).getInt((int) (offset&Volume.BUF_SIZE_MOD_MASK));
         }
 
 
         @Override public final byte getByte(long offset) {
-            try{
-                return internalByteBuffer(offset).get((int) (offset&Volume.BUF_SIZE_MOD_MASK));
-            }catch(IndexOutOfBoundsException e){
-                throw new IOError(new EOFException());
-            }
+             return internalByteBuffer(offset).get((int) (offset&Volume.BUF_SIZE_MOD_MASK));
         }
 
 
