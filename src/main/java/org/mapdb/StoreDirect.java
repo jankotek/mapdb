@@ -781,9 +781,8 @@ public class StoreDirect extends Store{
 
     protected long longStackTake(final long ioList, boolean recursive) {
         assert(structuralLock.isLocked());
-//        if(recursive) throw new InternalError();
-        if(!structuralLock.isLocked())throw new InternalError();
-        if(ioList<IO_FREE_RECID || ioList>=IO_USER_START) throw new IllegalArgumentException("wrong ioList: "+ioList);
+        assert(ioList>=IO_FREE_RECID && ioList<IO_USER_START) :"wrong ioList: "+ioList;
+        if(ioList>maxUsedIoList) return 0;
 
         long dataOffset = index.getLong(ioList);
         if(dataOffset == 0) return 0; //there is no such list, so just return 0
@@ -918,7 +917,7 @@ public class StoreDirect extends Store{
 
     protected long freePhysTake(int size, boolean ensureAvail, boolean recursive) {
         assert(structuralLock.isLocked());
-        if(size==0)throw new IllegalArgumentException();
+        assert(size>0);
         //check free space
         if(spaceReclaimReuse){
             long ret =  longStackTake(size2ListIoRecid(size),recursive);
