@@ -579,7 +579,7 @@ public abstract class Volume {
                 }
                 buffers = null;
             }finally{
-                growLock.lock();
+                growLock.unlock();
             }
         }
 
