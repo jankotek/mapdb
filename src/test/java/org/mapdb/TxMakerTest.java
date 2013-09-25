@@ -62,7 +62,7 @@ public class TxMakerTest{
         final List<Throwable> ex = new CopyOnWriteArrayList<Throwable>();
         final Collection s = Collections.synchronizedCollection(new HashSet());
         for(int i=0;i<threads;i++){
-            final int t=i*items*100;
+            final int t=i*items*10000;
             new Thread(){
                 @Override
                 public void run() {
@@ -104,6 +104,50 @@ public class TxMakerTest{
         }
 
     }
+
+
+    @Test(timeout = 60000)
+    public void increment() throws Throwable {
+        final int threads = 10;
+        final int items = 1000;
+        DB db = tx.makeTx();
+        final long recid = db.getEngine().put(1L,Serializer.LONG);
+        db.commit();
+        final List<Throwable> ex = new CopyOnWriteArrayList<Throwable>();
+        final CountDownLatch l = new CountDownLatch(threads);
+        for(int i=0;i<threads;i++){
+            new Thread(){
+                @Override
+                public void run() {
+                    try{
+                        for (int j = 0;j<items;j++) {
+                            tx.execute(new TxBlock() {
+                                @Override
+                                public void tx(DB db) throws TxRollbackException {
+                                    long old = db.getEngine().get(recid, Serializer.LONG);
+                                    db.getEngine().update(recid,old+1,Serializer.LONG);
+                                }
+                            });
+                        }
+                    }catch(Throwable e){
+                        e.printStackTrace();
+                        ex.add(e);
+                    }finally{
+                        l.countDown();
+                    }
+                }
+            }.start();
+        }
+        while(!l.await(100, TimeUnit.MILLISECONDS) && ex.isEmpty()){}
+
+        if(!ex.isEmpty())
+            throw ex.get(0);
+
+        assertEquals(Long.valueOf(threads*items+1), tx.makeTx().getEngine().get(recid,Serializer.LONG));
+
+
+    }
+
 
     @Test(timeout = 60000)
     public void cas() throws Throwable {
