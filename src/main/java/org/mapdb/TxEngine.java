@@ -70,18 +70,22 @@ public class TxEngine extends EngineWrapper{
     public <A> void update(long recid, A value, Serializer<A> serializer) {
         lock.writeLock().lock();
         try{
-            uncommitedData = true;
-            Object old = get(recid,serializer);
-            if(old == null) old=TOMBSTONE;
-            for(Reference<TX> r:txs){
-                TX tx = r.get();
-                if(tx==null) continue; //TODO remove expired refs
-                tx.old.putIfAbsent(recid,old);
-            }
-            super.update(recid, value, serializer);
+            updateNoLock(recid, value, serializer);
         }finally{
             lock.writeLock().unlock();
         }
+    }
+
+    private <A> void updateNoLock(long recid, A value, Serializer<A> serializer) {
+        uncommitedData = true;
+        Object old = get(recid,serializer);
+        if(old == null) old=TOMBSTONE;
+        for(Reference<TX> r:txs){
+            TX tx = r.get();
+            if(tx==null) continue; //TODO remove expired refs
+            tx.old.putIfAbsent(recid,old);
+        }
+        super.update(recid, value, serializer);
     }
 
     @Override
@@ -107,18 +111,22 @@ public class TxEngine extends EngineWrapper{
     public <A> void delete(long recid, Serializer<A> serializer) {
         lock.writeLock().lock();
         try{
-            uncommitedData = true;
-            Object old = get(recid,serializer);
-            if(old == null) old=TOMBSTONE;
-            for(Reference<TX> r:txs){
-                TX tx = r.get();
-                if(tx==null) continue; //TODO remove expired refs
-                tx.old.putIfAbsent(recid,old);
-            }
-            super.delete(recid, serializer);
+            deleteNoLock(recid, serializer);
         }finally{
             lock.writeLock().unlock();
         }
+    }
+
+    private <A> void deleteNoLock(long recid, Serializer<A> serializer) {
+        uncommitedData = true;
+        Object old = get(recid,serializer);
+        if(old == null) old=TOMBSTONE;
+        for(Reference<TX> r:txs){
+            TX tx = r.get();
+            if(tx==null) continue; //TODO remove expired refs
+            tx.old.putIfAbsent(recid,old);
+        }
+        super.delete(recid, serializer);
     }
 
     @Override
@@ -313,9 +321,9 @@ public class TxEngine extends EngineWrapper{
                     }
                     Fun.Tuple2<Object,Serializer> val = iter.value();
                     if(val.a==TOMBSTONE){
-                        TxEngine.this.delete(recid,val.b);
+                        TxEngine.this.deleteNoLock(recid,val.b);
                     }else {
-                        TxEngine.this.update(recid,val.a,val.b);
+                        TxEngine.this.updateNoLock(recid, val.a, val.b);
                     }
                     TxEngine.this.commit();
                 }
