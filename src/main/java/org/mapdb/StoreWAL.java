@@ -29,6 +29,7 @@ public class StoreWAL extends StoreDirect {
     public static final String TRANS_LOG_FILE_EXT = ".t";
 
     protected static final long[] TOMBSTONE = new long[0];
+    protected static final long[] PREALLOC = new long[0];
 
     protected final Volume.Factory volFac;
     protected Volume log;
@@ -124,7 +125,7 @@ public class StoreWAL extends StoreDirect {
             }
             //write data into log
             walIndexVal(logPos, ioRecid, MASK_DISCARD);
-            modified.put(ioRecid, TOMBSTONE);
+            modified.put(ioRecid, PREALLOC);
             long recid =  (ioRecid-IO_USER_START)/8;
             assert(recid>0);
             return recid;
@@ -160,7 +161,7 @@ public class StoreWAL extends StoreDirect {
             for(int i=0;i<recids.length;i++){
                 walIndexVal(logPos, recids[i], MASK_DISCARD);
                 logPos+=1+8+8;
-                modified.put(recids[i], TOMBSTONE);
+                modified.put(recids[i], PREALLOC);
                 recids[i] =  (recids[i]-IO_USER_START)/8;
                 assert(recids[i]>0);
             }
@@ -290,7 +291,7 @@ public class StoreWAL extends StoreDirect {
         //no, read main version
         if(r==null) return super.get2(ioRecid, serializer);
         //check for tombstone (was deleted in current trans)
-        if(r==TOMBSTONE || r.length==0) return null;
+        if(r==TOMBSTONE || r==PREALLOC || r.length==0) return null;
 
         //was modified in current transaction, so read it from trans log
         if(r.length==1){
@@ -336,6 +337,8 @@ public class StoreWAL extends StoreDirect {
             if(linkedRecords==null){
                 indexVal = index.getLong(ioRecid);
                 linkedRecords = getLinkedRecordsIndexVals(indexVal);
+            }else if(linkedRecords == PREALLOC){
+                linkedRecords = null;
             }
 
             structuralLock.lock();
@@ -803,6 +806,8 @@ public class StoreWAL extends StoreDirect {
 
     protected long[] getLinkedRecordsFromLog(long ioRecid){
         long[] ret0 = modified.get(ioRecid);
+        if(ret0==PREALLOC) return ret0;
+
         if(ret0!=null && ret0!=TOMBSTONE){
             long[] ret = new long[ret0.length];
             for(int i=0;i<ret0.length;i++){

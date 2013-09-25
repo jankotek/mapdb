@@ -1,11 +1,12 @@
 package org.mapdb;
 
 
-import java.io.File;
+import org.junit.Test;
+
 
 public class Issue198Test {
 
-    public static void main(String[] args) {
+    @Test public void main() {
 
         DB db = DBMaker.newFileDB(Utils.tempDbFile())
                 .closeOnJvmShutdown()
