@@ -617,9 +617,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                         //is not absent, so quit
                         Utils.unlock(nodeLocks, current);
                         if(CC.PARANOID) Utils.assertNoLocks(nodeLocks);
-                        V ret =  valExpand(oldVal);
-                        notify(v,ret, value2);
-                        return ret;
+                        return valExpand(oldVal);
                     }
                     //insert new
                     Object[] vals = null;
