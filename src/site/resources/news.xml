@@ -7,6 +7,17 @@
         <link>http://www.mapdb.org/</link>
         <description>MapDB </description>
 
+
+        <item>
+            <title>MapDB and the road ahead</title>
+            <link>http://kotek.net/blog/MapDB_and_the_road_ahead</link>
+            <date>September 25 2013</date>
+            <description>
+                Post about MapDB future.
+            </description>
+        </item>
+
+
         <item>
             <title>MapDB 0.9.5 released</title>
             <link>http://www.mapdb.org/changelog.html#/Version_095_2013-08-26</link>
