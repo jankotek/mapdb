@@ -621,29 +621,31 @@ public class StoreDirect extends Store{
     @Override
     public void close() {
         lockAllWrite();
+        try{
+            if(!readOnly){
+                index.putLong(IO_PHYS_SIZE,physSize);
+                index.putLong(IO_INDEX_SIZE,indexSize);
+                index.putLong(IO_FREE_SIZE,freeSize);
+                index.putLong(IO_INDEX_SUM,indexHeaderChecksum());
 
-        if(!readOnly){
-            index.putLong(IO_PHYS_SIZE,physSize);
-            index.putLong(IO_INDEX_SIZE,indexSize);
-            index.putLong(IO_FREE_SIZE,freeSize);
-            index.putLong(IO_INDEX_SUM,indexHeaderChecksum());
-
-            if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
-                serializerPojo.save(this);
+                if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
+                    serializerPojo.save(this);
+                }
             }
-        }
 
-        index.sync();
-        phys.sync();
-        index.close();
-        phys.close();
-        if(deleteFilesAfterClose){
-            index.deleteFile();
-            phys.deleteFile();
+            index.sync();
+            phys.sync();
+            index.close();
+            phys.close();
+            if(deleteFilesAfterClose){
+                index.deleteFile();
+                phys.deleteFile();
+            }
+            index = null;
+            phys = null;
+        }finally{
+            unlockAllWrite();
         }
-        index = null;
-        phys = null;
-        unlockAllWrite();
     }
 
     @Override
