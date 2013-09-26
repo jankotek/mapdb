@@ -325,8 +325,9 @@ public class TxEngine extends EngineWrapper{
                     }else {
                         TxEngine.this.updateNoLock(recid, val.a, val.b);
                     }
-                    TxEngine.this.commit();
                 }
+                TxEngine.this.commit();
+                close();
             }finally{
                 lock.writeLock().unlock();
             }
@@ -338,6 +339,7 @@ public class TxEngine extends EngineWrapper{
             lock.writeLock().lock();
             try{
                 modified.clear();
+                close();
             }finally{
                 lock.writeLock().unlock();
             }
