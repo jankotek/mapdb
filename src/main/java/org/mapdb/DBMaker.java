@@ -222,26 +222,6 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         return (DBMakerT)this;
     }
 
-
-    /**
-     * Transaction journal is enabled by default
-     * You must call <b>DB.commit()</b> to save your changes.
-     * It is possible to disable transaction journal for better write performance
-     * In this case all integrity checks are sacrificed for faster speed.
-     * <p/>
-     * If transaction journal is disabled, all changes are written DIRECTLY into store.
-     * You must call DB.close() method before exit,
-     * otherwise your store <b>WILL BE CORRUPTED</b>
-     *
-     *
-     * @return this builder
-     * @deprecated use {@link DBMaker#transactionDisable()} instead.
-     */
-    public DBMakerT writeAheadLogDisable(){
-        this._transactionEnabled = false;
-        return getThis();
-    }
-
     /**
      * Transaction journal is enabled by default
      * You must call <b>DB.commit()</b> to save your changes.
