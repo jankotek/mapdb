@@ -5,6 +5,7 @@ import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -24,7 +25,7 @@ public class TxEngine extends EngineWrapper{
      *  - commits and rollback
      *  read lock on everything else
      */
-    protected final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+    protected final ReentrantReadWriteLock[] locks = Utils.newReadWriteLocks();
 
     protected final Set<Reference<TX>> txs = Collections.synchronizedSet(new HashSet<Reference<TX>>());
 
@@ -40,7 +41,8 @@ public class TxEngine extends EngineWrapper{
 
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
-        lock.writeLock().lock();
+        final Lock lock = locks[(int)(10000*Math.random())&Utils.LOCK_MASK].writeLock();
+        lock.lock();
         try{
             uncommitedData = true;
             long recid = super.put(value, serializer);
@@ -51,7 +53,7 @@ public class TxEngine extends EngineWrapper{
             }
             return recid;
         }finally{
-            lock.writeLock().unlock();
+            lock.unlock();
         }
     }
 
@@ -68,11 +70,12 @@ public class TxEngine extends EngineWrapper{
 
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
-        lock.writeLock().lock();
+        final Lock lock = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
+        lock.lock();
         try{
             updateNoLock(recid, value, serializer);
         }finally{
-            lock.writeLock().unlock();
+            lock.unlock();
         }
     }
 
@@ -90,7 +93,8 @@ public class TxEngine extends EngineWrapper{
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
-        lock.writeLock().lock();
+        final Lock lock = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
+        lock.lock();
         try{
             boolean ret =  super.compareAndSwap(recid, expectedOldValue, newValue, serializer);
             if(ret){
@@ -103,17 +107,18 @@ public class TxEngine extends EngineWrapper{
             }
             return ret;
         }finally{
-            lock.writeLock().unlock();
+            lock.unlock();
         }
     }
 
     @Override
     public <A> void delete(long recid, Serializer<A> serializer) {
-        lock.writeLock().lock();
+        final Lock lock = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
+        lock.lock();
         try{
             deleteNoLock(recid, serializer);
         }finally{
-            lock.writeLock().unlock();
+            lock.unlock();
         }
     }
 
@@ -131,33 +136,37 @@ public class TxEngine extends EngineWrapper{
 
     @Override
     public void close() {
-        lock.writeLock().lock();
+        for(ReentrantReadWriteLock lock:locks)lock.writeLock().lock();
         try{
             super.close();
         }finally{
-            lock.writeLock().unlock();
+            for(ReentrantReadWriteLock lock:locks)lock.writeLock().unlock();
         }
     }
 
     @Override
     public void commit() {
-        lock.writeLock().lock();
+        for(ReentrantReadWriteLock lock:locks)lock.writeLock().lock();
         try{
-            super.commit();
-            uncommitedData = false;
+            commitNoLock();
         }finally{
-            lock.writeLock().unlock();
+            for(ReentrantReadWriteLock lock:locks)lock.writeLock().unlock();
         }
+    }
+
+    private void commitNoLock() {
+        super.commit();
+        uncommitedData = false;
     }
 
     @Override
     public void rollback() {
-        lock.writeLock().lock();
+        for(ReentrantReadWriteLock lock:locks)lock.writeLock().lock();
         try{
             super.rollback();
             uncommitedData = false;
         }finally{
-            lock.writeLock().unlock();
+            for(ReentrantReadWriteLock lock:locks)lock.writeLock().unlock();
         }
     }
 
@@ -175,7 +184,7 @@ public class TxEngine extends EngineWrapper{
 
 
     public Engine snapshot() {
-        lock.writeLock().lock();
+        for(ReentrantReadWriteLock lock:locks)lock.writeLock().lock();
         try{
             if(uncommitedData && canRollback()){
                 //TODO we can not create snapshot if user can rollback data, it would ruin consistency
@@ -183,7 +192,7 @@ public class TxEngine extends EngineWrapper{
             }
             return new TX();
         }finally{
-            lock.writeLock().unlock();
+            for(ReentrantReadWriteLock lock:locks)lock.writeLock().unlock();
         }
     }
 
@@ -216,7 +225,9 @@ public class TxEngine extends EngineWrapper{
         @Override
         public <A> long put(A value, Serializer<A> serializer) {
             checkFullTx();
-            lock.writeLock().lock();
+            final Lock lock = locks[(int)(10000*Math.random())&Utils.LOCK_MASK].writeLock();
+            lock.lock();
+
             try{
                 //put null into underlying engine
                 long recid = TxEngine.this.preallocate();
@@ -224,17 +235,18 @@ public class TxEngine extends EngineWrapper{
                 return recid;
                 //TODO remove empty recid on rollback
             }finally{
-                lock.writeLock().unlock();
+                lock.unlock();
             }
         }
 
         @Override
         public <A> A get(long recid, Serializer<A> serializer) {
-            lock.readLock().lock();
+            final Lock lock = locks[Utils.longHash(recid)&Utils.LOCK_MASK].readLock();
+            lock.lock();
             try{
                 return getNoLock(recid, serializer);
             }finally{
-                lock.readLock().unlock();
+                lock.unlock();
             }
         }
 
@@ -250,19 +262,21 @@ public class TxEngine extends EngineWrapper{
         @Override
         public <A> void update(long recid, A value, Serializer<A> serializer) {
             checkFullTx();
-            lock.writeLock().lock();
+            final Lock lock = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
+            lock.lock();
             try{
                 if(old.containsKey(recid)) throw new TxRollbackException();
                 modified.put(recid,Fun.t2((Object)value,(Serializer)serializer));
             }finally{
-                lock.writeLock().unlock();
+                lock.unlock();
             }
         }
 
         @Override
         public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
             checkFullTx();
-            lock.writeLock().lock();
+            final Lock lock = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
+            lock.lock();
             try{
                 Object oldObj = getNoLock(recid,serializer);
                 if(oldObj==expectedOldValue || (oldObj!=null && oldObj.equals(expectedOldValue))){
@@ -272,19 +286,20 @@ public class TxEngine extends EngineWrapper{
                 }
                 return false;
             }finally{
-                lock.writeLock().unlock();
+                lock.unlock();
             }
         }
 
         @Override
         public <A> void delete(long recid, Serializer<A> serializer) {
             checkFullTx();
-            lock.writeLock().lock();
+            final Lock lock = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
+            lock.lock();
             try{
                 if(old.containsKey(recid)) throw new TxRollbackException();
                 modified.put(recid,Fun.t2(TOMBSTONE,(Serializer)serializer));
             }finally{
-                lock.writeLock().unlock();
+                lock.unlock();
             }
         }
 
@@ -310,7 +325,7 @@ public class TxEngine extends EngineWrapper{
         @Override
         public void commit() {
             checkFullTx();
-            lock.writeLock().lock();
+            for(ReentrantReadWriteLock lock:locks)lock.writeLock().lock();
             try{
                 LongMap.LongMapIterator<Fun.Tuple2<Object,Serializer>> iter = modified.longMapIterator();
                 while(iter.moveToNext()){
@@ -326,22 +341,22 @@ public class TxEngine extends EngineWrapper{
                         TxEngine.this.updateNoLock(recid, val.a, val.b);
                     }
                 }
-                TxEngine.this.commit();
+                TxEngine.this.commitNoLock();
                 close();
             }finally{
-                lock.writeLock().unlock();
+                for(ReentrantReadWriteLock lock:locks)lock.writeLock().unlock();
             }
         }
 
         @Override
         public void rollback() throws UnsupportedOperationException {
             checkFullTx();
-            lock.writeLock().lock();
+            for(ReentrantReadWriteLock lock:locks)lock.writeLock().lock();
             try{
                 modified.clear();
                 close();
             }finally{
-                lock.writeLock().unlock();
+                for(ReentrantReadWriteLock lock:locks)lock.writeLock().unlock();
             }
         }
 
