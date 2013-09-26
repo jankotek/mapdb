@@ -42,13 +42,13 @@ public class TxEngineTest {
 
 
     @Test public void create_snapshot(){
-        Engine e = DBMaker.newMemoryDB().makeEngine();
+        Engine e = DBMaker.newMemoryDB().snapshotEnable().makeEngine();
         Engine snapshot = TxEngine.createSnapshotFor(e);
         assertNotNull(snapshot);
     }
 
     @Test public void DB_snapshot(){
-        DB db = DBMaker.newMemoryDB().asyncFlushDelay(100).transactionDisable().make();
+        DB db = DBMaker.newMemoryDB().snapshotEnable().asyncFlushDelay(100).transactionDisable().make();
         long recid = db.getEngine().put("aa", Serializer.STRING_NOSIZE);
         DB db2 = db.snapshot();
         assertEquals("aa", db2.getEngine().get(recid,Serializer.STRING_NOSIZE));
@@ -57,7 +57,7 @@ public class TxEngineTest {
     }
 
     @Test public void DB_snapshot2(){
-        DB db = DBMaker.newMemoryDB().transactionDisable().make();
+        DB db = DBMaker.newMemoryDB().transactionDisable().snapshotEnable().make();
         long recid = db.getEngine().put("aa",Serializer.STRING_NOSIZE);
         DB db2 = db.snapshot();
         assertEquals("aa", db2.getEngine().get(recid,Serializer.STRING_NOSIZE));
@@ -68,7 +68,7 @@ public class TxEngineTest {
 
     @Test public void BTreeMap_snapshot(){
         BTreeMap map =
-                DBMaker.newMemoryDB().transactionDisable()
+                DBMaker.newMemoryDB().transactionDisable().snapshotEnable()
                 .make().getTreeMap("aaa");
         map.put("aa","aa");
         Map map2 = map.snapshot();
@@ -78,7 +78,7 @@ public class TxEngineTest {
 
     @Test public void HTreeMap_snapshot(){
         HTreeMap map =
-                DBMaker.newMemoryDB().transactionDisable()
+                DBMaker.newMemoryDB().transactionDisable().snapshotEnable()
                 .make().getHashMap("aaa");
         map.put("aa","aa");
         Map map2 = map.snapshot();

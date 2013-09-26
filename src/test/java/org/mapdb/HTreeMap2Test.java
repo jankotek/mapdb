@@ -508,7 +508,6 @@ public class HTreeMap2Test {
                 .sizeLimit(1)
                 .transactionDisable()
                 .asyncWriteDisable()
-                .snapshotDisable()
                 .cacheDisable()
                 .make();
 
@@ -530,7 +529,6 @@ public class HTreeMap2Test {
                 .sizeLimit(1)
                 .transactionDisable()
                 .asyncWriteDisable()
-                .snapshotDisable()
                 .make();
 
         HTreeMap m = db.createHashMap("test")

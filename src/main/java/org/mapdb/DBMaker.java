@@ -65,7 +65,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
     protected boolean _syncOnCommitDisabled = false;
 
-    protected boolean _snapshotDisabled = false;
+    protected boolean _snapshotEnabled = false;
 
     protected long _sizeLimit = 0;
 
@@ -380,12 +380,12 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
     /**
      * MapDB supports snapshots. `TxEngine` requires additional locking which has small overhead when not used.
-     * So it is possible to disable snapshots in order to maximize performance when snapshots are not used.
+     * Snapshots are disabled by default. This option switches the snapshots on.
      *
      * @return this builder
      */
-    public DBMakerT snapshotDisable(){
-        this._snapshotDisabled = true;
+    public DBMakerT snapshotEnable(){
+        this._snapshotEnabled = true;
         return getThis();
     }
 
@@ -631,6 +631,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
     
     public TxMaker makeTxMaker(){
         this._fullTx= true;
+        snapshotEnable();
         asyncWriteDisable();
         Engine e = makeEngine();
         if(!(e instanceof TxEngine)) throw new IllegalArgumentException("Snapshot must be enabled for TxMaker");
@@ -693,7 +694,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         engine = extendWrapCache(engine);
 
 
-        if(!_snapshotDisabled)
+        if(_snapshotEnabled)
             engine = extendSnapshotEngine(engine);
 
         engine = extendWrapSnapshotEngine(engine);
