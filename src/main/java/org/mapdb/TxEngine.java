@@ -3,8 +3,6 @@ package org.mapdb;
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.locks.Lock;
@@ -267,7 +265,7 @@ public class TxEngine extends EngineWrapper{
         }
 
         private <A> A getNoLock(long recid, Serializer<A> serializer) {
-            read.put(recid,this);
+            if(fullTx) read.put(recid,this);
             Fun.Tuple2 o = fullTx ? modified.get(recid) : null;
             if(o!=null) return o.a==TOMBSTONE ? null : (A) o.a;
             Object o2 = old.get(recid);
@@ -282,7 +280,10 @@ public class TxEngine extends EngineWrapper{
             final Lock lock = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
             lock.lock();
             try{
-                if(old.containsKey(recid)) throw new TxRollbackException();
+                if(old.containsKey(recid)){
+                    close();
+                    throw new TxRollbackException();
+                }
                 modified.put(recid,Fun.t2((Object)value,(Serializer)serializer));
             }finally{
                 lock.unlock();
@@ -297,7 +298,10 @@ public class TxEngine extends EngineWrapper{
             try{
                 Object oldObj = getNoLock(recid,serializer);
                 if(oldObj==expectedOldValue || (oldObj!=null && oldObj.equals(expectedOldValue))){
-                    if(old.containsKey(recid)) throw new TxRollbackException();
+                    if(old.containsKey(recid)){
+                        close();
+                        throw new TxRollbackException();
+                    }
                     modified.put(recid,Fun.t2((Object)newValue,(Serializer)serializer));
                     return true;
                 }
@@ -313,7 +317,10 @@ public class TxEngine extends EngineWrapper{
             final Lock lock = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
             lock.lock();
             try{
-                if(old.containsKey(recid)) throw new TxRollbackException();
+                if(old.containsKey(recid)){
+                    close();
+                    throw new TxRollbackException();
+                }
                 modified.put(recid,Fun.t2(TOMBSTONE,(Serializer)serializer));
             }finally{
                 lock.unlock();
@@ -354,8 +361,10 @@ public class TxEngine extends EngineWrapper{
                         TX tx = ref2.get();
                         if(tx==this||tx==null) continue;
 
-                        if(tx.modified.containsKey(recid))
+                        if(tx.modified.containsKey(recid)){
+                            close();
                             throw new TxRollbackException();
+                        }
                     }
                 }
 
@@ -364,6 +373,7 @@ public class TxEngine extends EngineWrapper{
                     long recid = iter.key();
                     if(old.containsKey(recid)){
                         TxEngine.this.rollback();
+                        close();
                         throw new TxRollbackException();
                     }
                     Fun.Tuple2<Object,Serializer> val = iter.value();
