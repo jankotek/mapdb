@@ -1,10 +1,12 @@
 package org.mapdb;
 
 import java.lang.ref.Reference;
+import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -27,12 +29,21 @@ public class TxEngine extends EngineWrapper{
      */
     protected final ReentrantReadWriteLock[] locks = Utils.newReadWriteLocks();
 
-    protected final Set<Reference<TX>> txs = Collections.synchronizedSet(new HashSet<Reference<TX>>());
+    protected final Set<Reference<TX>> txs = new CopyOnWriteArraySet<Reference<TX>>();
+    private ReferenceQueue<TX> txsQueue = new ReferenceQueue<TX>();
+
+    protected void txsCleanup(){
+        for(Reference ref=txsQueue.poll();ref!=null;ref=txsQueue.poll()){
+            txs.remove(ref);
+        }
+    }
+
 
     /** true if there are data which can be rolled back */
     protected boolean uncommitedData = false;
 
     protected final boolean fullTx;
+
 
     protected TxEngine(Engine engine, boolean fullTx) {
         super(engine);
@@ -46,6 +57,7 @@ public class TxEngine extends EngineWrapper{
         try{
             uncommitedData = true;
             long recid = super.put(value, serializer);
+            txsCleanup();
             for(Reference<TX> r:txs){
                 TX tx = r.get();
                 if(tx==null) continue; //TODO remove expired refs
@@ -83,6 +95,7 @@ public class TxEngine extends EngineWrapper{
         uncommitedData = true;
         Object old = get(recid,serializer);
         if(old == null) old=TOMBSTONE;
+        txsCleanup();
         for(Reference<TX> r:txs){
             TX tx = r.get();
             if(tx==null) continue; //TODO remove expired refs
@@ -126,6 +139,7 @@ public class TxEngine extends EngineWrapper{
         uncommitedData = true;
         Object old = get(recid,serializer);
         if(old == null) old=TOMBSTONE;
+        txsCleanup();
         for(Reference<TX> r:txs){
             TX tx = r.get();
             if(tx==null) continue; //TODO remove expired refs
@@ -202,13 +216,15 @@ public class TxEngine extends EngineWrapper{
             TxEngine.this.txs.add(ref);
         }
 
-        protected final Reference<TX> ref = new WeakReference<TX>(TX.this);
+        protected final Reference<TX> ref = new WeakReference<TX>(TX.this, txsQueue);
 
         protected final LongConcurrentHashMap<Object> old = new LongConcurrentHashMap<Object>();
 
-        protected final LongConcurrentHashMap<Fun.Tuple2<Object,Serializer>> modified =
+        protected LongConcurrentHashMap<Fun.Tuple2<Object,Serializer>> modified =
                 fullTx ? new LongConcurrentHashMap<Fun.Tuple2<Object,Serializer>>() : null;
 
+        protected LongConcurrentHashMap<TX> read =
+                fullTx ? new LongConcurrentHashMap<TX>() : null;
 
         @Override
         public long preallocate() {
@@ -251,6 +267,7 @@ public class TxEngine extends EngineWrapper{
         }
 
         private <A> A getNoLock(long recid, Serializer<A> serializer) {
+            read.put(recid,this);
             Fun.Tuple2 o = fullTx ? modified.get(recid) : null;
             if(o!=null) return o.a==TOMBSTONE ? null : (A) o.a;
             Object o2 = old.get(recid);
@@ -312,7 +329,8 @@ public class TxEngine extends EngineWrapper{
             ref.clear();
             TxEngine.this.txs.remove(ref);
             if(fullTx){
-                modified.clear();
+                modified = null;
+                read = null;
             }
             old.clear();
         }
@@ -325,8 +343,22 @@ public class TxEngine extends EngineWrapper{
         @Override
         public void commit() {
             checkFullTx();
+            txsCleanup();
             for(ReentrantReadWriteLock lock:locks)lock.writeLock().lock();
             try{
+                //check no other transactions has modified our data
+                LongMap.LongMapIterator readIter = read.longMapIterator();
+                while(readIter.moveToNext()){
+                    long recid = readIter.key();
+                    for(Reference<TX> ref2:txs){
+                        TX tx = ref2.get();
+                        if(tx==this||tx==null) continue;
+
+                        if(tx.modified.containsKey(recid))
+                            throw new TxRollbackException();
+                    }
+                }
+
                 LongMap.LongMapIterator<Fun.Tuple2<Object,Serializer>> iter = modified.longMapIterator();
                 while(iter.moveToNext()){
                     long recid = iter.key();
@@ -353,7 +385,6 @@ public class TxEngine extends EngineWrapper{
             checkFullTx();
             for(ReentrantReadWriteLock lock:locks)lock.writeLock().lock();
             try{
-                modified.clear();
                 close();
             }finally{
                 for(ReentrantReadWriteLock lock:locks)lock.writeLock().unlock();

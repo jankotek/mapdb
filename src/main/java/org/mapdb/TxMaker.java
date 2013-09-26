@@ -48,6 +48,7 @@ public class TxMaker {
                 return;
             }catch(TxRollbackException e){
                 //failed, so try again
+                if(!tx.isClosed()) tx.close();
             }
         }
     }
