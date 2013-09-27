@@ -439,6 +439,7 @@ public class StoreAppend extends Store{
 
     @Override
     public void close() {
+        if(closed) return;
         if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
             serializerPojo.save(this);
         }
