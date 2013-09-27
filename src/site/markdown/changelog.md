@@ -1,6 +1,31 @@
 Changelog
 ============
 
+Version 0.9.6 (2013-09-27)
+--------------------------
+Concurrent Transactions (TxMaker) almost fixed. Backward incompatible store format change.
+Snapshots are no longer enabled by default.
+
+
+Open issues
+ * #201: failing test suggests that Concurrent Transactions contains race condition.
+
+Changes:
+
+ * Concurrent Transactions were broken and are now completely re-written.
+ * Snapshots are no longer enabled by default. `DbMaker.snapshotDisable()` replaced by `DbMaker.snapshotEnable()`
+ * StoreDirect now has checksum which refuses to reopen incorrectly closed stores. In result stores created with 0.9.5-
+ can not be open.
+ * Store now supports recid preallocation, this leads to faster insert.
+ * Fixed performance issue with batch imports
+ * Fixed performance issues in free space management
+ * Volume has lighter exception handling, result is small speed improvement
+ * StoreHeap rewritten. Now it has full transactions.
+ * Changes in locking to make it more robust and prevent deadlocks
+ * Java Assertions used instead of `IllegalArgumentException` and `InternalError`. Please use `-ea` JVM switch when running MapDB
+ * SerializerBase: various optimizations so methods fits into JIT limits
+
+
 Version 0.9.5 (2013-08-26)
 --------------------------
 Bugfixes from previous release. Fixed data corruption bugs, upgrade strongly recommended.

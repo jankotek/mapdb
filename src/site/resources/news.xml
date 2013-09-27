@@ -7,6 +7,16 @@
         <link>http://www.mapdb.org/</link>
         <description>MapDB </description>
 
+        <item>
+            <title>MapDB 0.9.6 released</title>
+            <link>http://www.mapdb.org/changelog.html#/Version_096_2013-09-27</link>
+            <date>September 27 2013</date>
+            <description>
+                MapDB 0.9.6 was just released. Concurrent Transactions (TxMaker) almost fixed. Backward incompatible store format change.
+                Snapshots are no longer enabled by default.
+            </description>
+        </item>
+
 
         <item>
             <title>MapDB and the road ahead</title>
