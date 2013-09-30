@@ -556,8 +556,6 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     protected long nextDir(DirNode d, Object key) {
         int pos = findChildren(key, d.keys) - 1;
         if(pos<0) pos = 0;
-        if(d.child[pos]==0)
-            System.out.println("aa");
         return d.child[pos];
     }
 
