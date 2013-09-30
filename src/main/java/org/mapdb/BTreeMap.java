@@ -293,9 +293,9 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             final boolean isLeaf = value.isLeaf();
 
             //first byte encodes if is leaf (first bite) and length (last seven bites)
-            if(value.keys().length>255) throw new InternalError();
-            if(!isLeaf && value.child().length!= value.keys().length) throw new InternalError();
-            if(isLeaf && hasValues && value.vals().length!= value.keys().length-2) throw new InternalError();
+            assert(value.keys().length<=255);
+            assert(!(!isLeaf && value.child().length!= value.keys().length));
+            assert(!(isLeaf && hasValues && value.vals().length!= value.keys().length-2));
 
             //check node integrity in paranoid mode
             if(CC.PARANOID){
@@ -396,7 +396,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             if(isLeaf){
                 long next = Utils.unpackLong(in);
                 Object[] keys = keySerializer.deserialize(in, start,end,size);
-                if(keys.length!=size) throw new InternalError();
+                assert(keys.length==size);
                 Object[] vals  = null;
 
                 if(hasValues){
@@ -416,7 +416,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 for(int i=0;i<size;i++)
                     child[i] = Utils.unpackLong(in);
                 Object[] keys = keySerializer.deserialize(in, start,end,size);
-                if(keys.length!=size) throw new InternalError();
+                assert(keys.length==size);
                 return new DirNode(keys, child);
             }
         }
@@ -556,6 +556,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     protected long nextDir(DirNode d, Object key) {
         int pos = findChildren(key, d.keys) - 1;
         if(pos<0) pos = 0;
+        if(d.child[pos]==0)
+            System.out.println("aa");
         return d.child[pos];
     }
 
@@ -666,8 +668,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     LeafNode n = new LeafNode(keys, vals, ((LeafNode)A).next);
                     engine.update(current, n, nodeSerializer);
                 }else{
-                    if(p==0)
-                        throw new InternalError();
+                    assert(p!=0);
                     long[] child = Utils.arrayLongPut(A.child(), pos, p);
                     DirNode d = new DirNode(keys, child);
                     engine.update(current, d, nodeSerializer);
@@ -1022,7 +1023,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
 
     protected Entry<K, V> makeEntry(Object key, Object value) {
-        if(value instanceof ValRef) throw new InternalError();
+        assert(!(value instanceof ValRef));
         return new SimpleImmutableEntry<K, V>((K)key,  (V)value);
     }
 
@@ -2696,8 +2697,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     }
 
     protected void notify(K key, V oldValue, V newValue) {
-        if(oldValue instanceof ValRef) throw new InternalError();
-        if(newValue instanceof ValRef) throw new InternalError();
+        assert(!(oldValue instanceof ValRef));
+        assert(!(newValue instanceof ValRef));
 
         Bind.MapListener<K,V>[] modListeners2  = modListeners;
         for(Bind.MapListener<K,V> listener:modListeners2){
