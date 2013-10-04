@@ -38,7 +38,8 @@ public class SerializerBaseTest extends TestCase {
                 -Short.MIN_VALUE,
                 -10, -9, -8, -7, -6, -5, -4, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
                 127, 254, 255, 256, Short.MAX_VALUE, Short.MAX_VALUE + 1,
-                Short.MAX_VALUE * 2, Integer.MAX_VALUE
+                Short.MAX_VALUE * 2, Integer.MAX_VALUE,
+                0x80FFFFFF //Issue #202
         };
         for (Integer i : vals) {
             Object l2 = clone(i);
@@ -101,7 +102,11 @@ public class SerializerBaseTest extends TestCase {
                 -Short.MIN_VALUE,
                 -10, -9, -8, -7, -6, -5, -4, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
                 127, 254, 255, 256, Short.MAX_VALUE, Short.MAX_VALUE + 1,
-                Short.MAX_VALUE * 2, Integer.MAX_VALUE, (long)Integer.MAX_VALUE + 1, Long.MAX_VALUE
+                Short.MAX_VALUE * 2, Integer.MAX_VALUE, (long)Integer.MAX_VALUE + 1, Long.MAX_VALUE,
+                0x80FFFFFFFFFFFFFFL, //Issue #202
+                0x8000000000000000L,
+                0x7F00000000000001L
+
         };
         for (long i : vals) {
             Object l2 = clone(i);

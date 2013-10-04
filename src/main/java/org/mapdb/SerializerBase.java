@@ -874,7 +874,7 @@ public class SerializerBase implements Serializer{
             case Header.INT_MF1:
             case Header.INT_F1:
                 ir = (ir<<8) | (is.readUnsignedByte()&0xFF);
-                if(head%2==0) ir=-ir;
+                if(head%2==0) ir=0x80000000;
                 ret = ir;
                 break;
 
@@ -938,7 +938,7 @@ public class SerializerBase implements Serializer{
             case Header.LONG_MF1:
             case Header.LONG_F1:
                 lr = (lr<<8) | (is.readUnsignedByte()&0xFFL);
-                if(head%2==1) lr=-lr;
+                if(head%2==1) lr|=0x8000000000000000L;
                 ret = lr;
                 break;
 
