@@ -49,7 +49,26 @@ public class SerializerBaseTest extends TestCase {
         }
     }
 
+    void serSize(int expected, Object val) throws IOException {
+        DataOutput2 out = new DataOutput2();
+        Serializer.BASIC.serialize(out,val);
+        assertEquals(expected, out.pos);
+    }
 
+    public void testIntSize() throws IOException {
+        serSize(1,Integer.MIN_VALUE);
+        serSize(1,Integer.MAX_VALUE);
+        for(int i=-9;i<=16;i++)
+            serSize(1,i);
+        serSize(2, 100);
+        serSize(2, -100);
+        serSize(3, 0xFFF);
+        serSize(3, -0xFFF);
+        serSize(4, 0xFFFFF);
+        serSize(4, -0xFFFFF);
+        serSize(5, 0xFFFFFFF);
+        serSize(5, -0xFFFFFFF);
+    }
 
     public void testShort() throws IOException{
         for (int i = Short.MIN_VALUE;i<=Short.MAX_VALUE;i++) {
@@ -114,6 +133,29 @@ public class SerializerBaseTest extends TestCase {
             assertTrue(l2.getClass() == Long.class);
             assertEquals(l2, i);
         }
+    }
+
+    public void testLongSize() throws IOException {
+        serSize(1,Long.MIN_VALUE);
+        serSize(1,Long.MAX_VALUE);
+        for(long i=-9;i<=16;i++)
+            serSize(1,i);
+        serSize(2, 100L);
+        serSize(2, -100L);
+        serSize(3, 0xFFFL);
+        serSize(3, -0xFFFL);
+        serSize(4, 0xFFFFFL);
+        serSize(4, -0xFFFFFL);
+        serSize(5, 0xFFFFFFFL);
+        serSize(5, -0xFFFFFFFL);
+        serSize(6, 0xFFFFFFFFFL);
+        serSize(6, -0xFFFFFFFFFL);
+        serSize(7, 0xFFFFFFFFFFFL);
+        serSize(7, -0xFFFFFFFFFFFL);
+        serSize(8, 0xFFFFFFFFFFFFFL);
+        serSize(8, -0xFFFFFFFFFFFFFL);
+        serSize(9, 0xFFFFFFFFFFFFFFFL);
+        serSize(9, -0xFFFFFFFFFFFFFFFL);
     }
 
     public void testBoolean1() throws IOException{

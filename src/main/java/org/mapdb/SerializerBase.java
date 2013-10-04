@@ -664,10 +664,16 @@ public class SerializerBase implements Serializer{
         }else if (val == Long.MAX_VALUE){
             out.write(Header.LONG_MAX_VALUE);
             return;
-        } else if(((val>>>56)&0x7F)!=0){
+        } else if(((Math.abs(val)>>>56)&0xFF)!=0){
             out.write(Header.LONG);
             out.writeLong(val);
             return;
+        }
+
+        int neg = 0;
+        if(val<0){
+            neg = -1;
+            val =-val;
         }
 
         //calculate N bytes
@@ -677,7 +683,7 @@ public class SerializerBase implements Serializer{
         }
 
         //write header
-        out.write(Header.LONG_F1 + (size/8)*2 + (val<0?-1:0));
+        out.write(Header.LONG_F1 + (size/8)*2 + neg);
 
         //write data
         while(size>=0){
@@ -726,7 +732,7 @@ public class SerializerBase implements Serializer{
                 return;
 
         }
-        if(((Math.abs(val)>>>24)&0x7F)!=0){
+        if(((Math.abs(val)>>>24)&0xFF)!=0){
             out.write(Header.INT);
             out.writeInt(val);
             return;
@@ -945,7 +951,7 @@ public class SerializerBase implements Serializer{
             case Header.LONG_MF1:
             case Header.LONG_F1:
                 lr = (lr<<8) | (is.readUnsignedByte()&0xFFL);
-                if(head%2==1) lr|=0x8000000000000000L;
+                if(head%2==1) lr=-lr;
                 ret = lr;
                 break;
 
