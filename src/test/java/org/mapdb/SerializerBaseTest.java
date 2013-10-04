@@ -33,12 +33,13 @@ public class SerializerBaseTest extends TestCase {
     public void testInt() throws IOException{
         int[] vals = {
                 Integer.MIN_VALUE,
-                -Short.MIN_VALUE * 2,
-                -Short.MIN_VALUE + 1,
-                -Short.MIN_VALUE,
+                2*Short.MIN_VALUE,
+                -1+Short.MIN_VALUE,
+                256*Short.MIN_VALUE,
+                Short.MIN_VALUE,
                 -10, -9, -8, -7, -6, -5, -4, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
                 127, 254, 255, 256, Short.MAX_VALUE, Short.MAX_VALUE + 1,
-                Short.MAX_VALUE * 2, Integer.MAX_VALUE,
+                Short.MAX_VALUE * 2, Integer.MAX_VALUE,256*Short.MIN_VALUE,
                 0x80FFFFFF //Issue #202
         };
         for (Integer i : vals) {
@@ -97,9 +98,9 @@ public class SerializerBaseTest extends TestCase {
                 65536,
                 Long.MIN_VALUE,
                 Integer.MIN_VALUE, (long)Integer.MIN_VALUE - 1, (long)Integer.MIN_VALUE + 1,
-                -Short.MIN_VALUE * 2,
-                -Short.MIN_VALUE + 1,
-                -Short.MIN_VALUE,
+                2* Short.MIN_VALUE * 2,
+                -1 + Short.MIN_VALUE,
+                Short.MIN_VALUE,
                 -10, -9, -8, -7, -6, -5, -4, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
                 127, 254, 255, 256, Short.MAX_VALUE, Short.MAX_VALUE + 1,
                 Short.MAX_VALUE * 2, Integer.MAX_VALUE, (long)Integer.MAX_VALUE + 1, Long.MAX_VALUE,

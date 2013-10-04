@@ -726,10 +726,16 @@ public class SerializerBase implements Serializer{
                 return;
 
         }
-        if(((val>>>24)&0x7F)!=0){
+        if(((Math.abs(val)>>>24)&0x7F)!=0){
             out.write(Header.INT);
             out.writeInt(val);
             return;
+        }
+
+        int neg = 0;
+        if(val<0){
+            neg = -1;
+            val =-val;
         }
 
         //calculate N bytes
@@ -739,7 +745,7 @@ public class SerializerBase implements Serializer{
         }
 
         //write header
-        out.write(Header.INT_F1 + (size/8)*2 + (val<0?-1:0));
+        out.write(Header.INT_F1 + (size/8)*2 + neg);
 
         //write data
         while(size>=0){
@@ -874,7 +880,8 @@ public class SerializerBase implements Serializer{
             case Header.INT_MF1:
             case Header.INT_F1:
                 ir = (ir<<8) | (is.readUnsignedByte()&0xFF);
-                if(head%2==0) ir=0x80000000;
+                if(head%2==0)
+                    ir=-ir;
                 ret = ir;
                 break;
 
