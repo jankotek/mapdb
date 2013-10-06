@@ -406,6 +406,11 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     }
 
     @Override
+    protected Engine getEngine() {
+        return db.getEngine();
+    }
+
+    @Override
     protected void serializeUnknownObject(DataOutput out, Object obj, FastArrayList<Object> objectStack) throws IOException {
         if(db!=null){
             //check for named objects

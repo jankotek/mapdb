@@ -299,8 +299,29 @@ public class SerializerBase implements Serializer{
             out.write(Header.MAPDB);
             Utils.packInt(out, HeaderMapDB.SERIALIZER_JAVA);
             return;
-
-
+        }else if(obj instanceof Atomic.Long ){
+            out.write(Header.MA_LONG);
+            Utils.packLong(out,((Atomic.Long) obj).recid);
+            return;
+        }else if(obj instanceof Atomic.Integer ){
+            out.write(Header.MA_INT);
+            Utils.packLong(out, ((Atomic.Integer) obj).recid);
+            return;
+        }else if(obj instanceof Atomic.Boolean ){
+            out.write(Header.MA_BOOL);
+            Utils.packLong(out, ((Atomic.Boolean) obj).recid);
+            return;
+        }else if(obj instanceof Atomic.String ){
+            out.write(Header.MA_STRING);
+            Utils.packLong(out, ((Atomic.String) obj).recid);
+            return;
+        }else if(obj instanceof Atomic.Var ){
+            out.write(Header.MA_VAR);
+            Atomic.Var v = (Atomic.Var) obj;
+            Utils.packLong(out,v.recid);
+            //TODO objectStack
+            serialize(out,v.serializer);
+            return;
         } else if(obj == this){
             out.write(Header.MAPDB);
             Utils.packInt(out, HeaderMapDB.THIS_SERIALIZER);
@@ -1133,6 +1154,22 @@ public class SerializerBase implements Serializer{
             case Header.PROPERTIES:
                 ret = deserializeProperties(is, objectStack);
                 break;
+            case Header.MA_LONG:
+                ret = new Atomic.Long(getEngine(),Utils.unpackLong(is));
+                break;
+            case Header.MA_INT:
+                ret = new Atomic.Integer(getEngine(),Utils.unpackLong(is));
+                break;
+            case Header.MA_BOOL:
+                ret = new Atomic.Boolean(getEngine(),Utils.unpackLong(is));
+                break;
+            case Header.MA_STRING:
+                ret = new Atomic.String(getEngine(),Utils.unpackLong(is));
+                break;
+            case Header.MA_VAR:
+                //TODO objectStack here?
+                ret = new Atomic.Var(getEngine(),Utils.unpackLong(is), (Serializer) deserialize(is,objectStack));
+                break;
             default:
                 ret = deserializeUnknownHeader(is, head, objectStack);
                 break;
@@ -1362,6 +1399,10 @@ public class SerializerBase implements Serializer{
             default:
                 throw new IOError(new IOException("Unknown header byte, data corrupted"));
         }
+    }
+
+    protected Engine getEngine(){
+        throw new UnsupportedOperationException();
     }
 
 
@@ -1936,6 +1977,12 @@ public class SerializerBase implements Serializer{
          * reference to named object
          */
         int NAMED = 175;
+
+        int MA_LONG = 176;
+        int MA_INT = 177;
+        int MA_BOOL = 178;
+        int MA_STRING = 179;
+        int MA_VAR = 180;
 
     }
 

@@ -551,4 +551,53 @@ public class SerializerBaseTest extends TestCase {
         along = (Atomic.Long) map.get("along_");
         assertEquals(111L,along.get());
     }
+
+    public void test_atomic_ref_serializable(){
+        File f = Utils.tempDbFile();
+        DB db = DBMaker.newFileDB(f).make();
+        Map map = db.getTreeMap("map");
+
+        long recid = db.getEngine().put(11L, Serializer.LONG);
+        Atomic.Long l = new Atomic.Long(db.getEngine(),recid);
+        map.put("long",l);
+
+        recid = db.getEngine().put(11, Serializer.INTEGER);
+        Atomic.Integer i = new Atomic.Integer(db.getEngine(),recid);
+        map.put("int",i);
+
+        recid = db.getEngine().put(true, Serializer.BOOLEAN);
+        Atomic.Boolean b = new Atomic.Boolean(db.getEngine(),recid);
+        map.put("bool",b);
+
+        recid = db.getEngine().put("aa", Serializer.STRING_NOSIZE);
+        Atomic.String s = new Atomic.String(db.getEngine(),recid);
+        map.put("str",s);
+
+        recid = db.getEngine().put("hovnocuc", db.getDefaultSerializer());
+        Atomic.Var v = new Atomic.Var(db.getEngine(),recid,db.getDefaultSerializer());
+        map.put("var",v);
+
+        db.commit();
+        db.close();
+        db = DBMaker.newFileDB(f).deleteFilesAfterClose().make();
+        map = db.getTreeMap("map");
+
+        l = (Atomic.Long) map.get("long");
+        assertEquals(11L, l.get());
+
+        i = (Atomic.Integer) map.get("int");
+        assertEquals(11, i.get());
+
+        b = (Atomic.Boolean) map.get("bool");
+        assertEquals(true, b.get());
+
+        s = (Atomic.String) map.get("str");
+        assertEquals("aa", s.get());
+
+        v = (Atomic.Var) map.get("var");
+        assertEquals("hovnocuc", v.get());
+        assertEquals(db.getDefaultSerializer(), v.serializer);
+
+
+    }
 }
