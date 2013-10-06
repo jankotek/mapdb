@@ -18,7 +18,6 @@ package org.mapdb;
 
 import java.lang.ref.WeakReference;
 import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -26,6 +25,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author Jan Kotek
  */
+//TODO DB uses global lock, replace it with ReadWrite lock or fine grained locking.
 @SuppressWarnings("unchecked")
 public class DB {
 
@@ -34,7 +34,11 @@ public class DB {
     /** Engine which provides persistence for this DB*/
     protected Engine engine;
     /** already loaded named collections. It is important to keep collections as singletons, because of 'in-memory' locking*/
-    protected Map<String, WeakReference<?>> collections = new HashMap<String, WeakReference<?>>();
+    protected Map<String, WeakReference<?>> namesInstanciated = new HashMap<String, WeakReference<?>>();
+
+    protected Map<Object, String> namesLookup =
+            Collections.synchronizedMap( //TODO remove synchronized map, after DB locking is resolved
+            new WeakIdentityHashMap<Object, String>());
 
     /** view over named records */
     protected SortedMap<String, Object> catalog;
@@ -51,6 +55,7 @@ public class DB {
     public DB(Engine engine, boolean strictDBGet) {
         this.engine = engine;
         this.strictDBGet = strictDBGet;
+        engine.getSerializerPojo().setDb(this);
         reinit();
     }
 
@@ -80,6 +85,11 @@ public class DB {
         return value;
     }
 
+    /** returns name for this object, if it has name and was instanciated by this DB*/
+    public  String getNameForObject(Object obj) {
+        //TODO this method should be synchronized, but it causes deadlock.
+        return namesLookup.get(obj);
+    }
 
 
     public class HTreeMapMaker{
@@ -231,8 +241,13 @@ public class DB {
         );
 
 
-        collections.put(name, new WeakReference<Object>(ret));
+        namedPut(name, ret);
         return ret;
+    }
+
+    protected void namedPut(String name, Object ret) {
+        namesInstanciated.put(name, new WeakReference<Object>(ret));
+        namesLookup.put(ret,name);
     }
 
 
@@ -293,7 +308,7 @@ public class DB {
         );
 
         catalog.put(name + ".type", "HashMap");
-        collections.put(name, new WeakReference<Object>(ret));
+        namedPut(name, ret);
         return ret;
     }
 
@@ -327,7 +342,7 @@ public class DB {
         ).keySet();
 
 
-        collections.put(name, new WeakReference<Object>(ret));
+        namedPut(name, ret);
         return ret;
     }
 
@@ -355,7 +370,7 @@ public class DB {
         ).keySet();
 
         catalog.put(name + ".type", "HashSet");
-        collections.put(name, new WeakReference<Object>(ret));
+        namedPut(name, ret);
         return ret;
     }
 
@@ -577,7 +592,7 @@ public class DB {
                 catGet(name+".valueSerializer",getDefaultSerializer()),
                 (Comparator)catGet(name+".comparator",Utils.COMPARABLE_COMPARATOR)
                 );
-        collections.put(name, new WeakReference<Object>(ret));
+        namedPut(name, ret);
         return ret;
     }
 
@@ -621,7 +636,7 @@ public class DB {
                 m.comparator
         );
         catalog.put(name + ".type", "TreeMap");
-        collections.put(name, new WeakReference<Object>(ret));
+        namedPut(name, ret);
         return ret;
     }
 
@@ -699,7 +714,7 @@ public class DB {
                 (Comparator) catGet(name+".comparator",Utils.COMPARABLE_COMPARATOR)
         ).keySet();
 
-        collections.put(name, new WeakReference<Object>(ret));
+        namedPut(name, ret);
         return ret;
 
     }
@@ -744,7 +759,7 @@ public class DB {
                 m.comparator
         ).keySet();
         catalog.put(m.name + ".type", "TreeSet");
-        collections.put(m.name, new WeakReference<Object>(ret));
+        namedPut(m.name, ret);
         return ret;
     }
 
@@ -776,7 +791,7 @@ public class DB {
                 (Long)catGet(name+".sizeRecid")
                 );
 
-        collections.put(name, new WeakReference<Object>(ret));
+        namedPut(name, ret);
         return ret;
     }
 
@@ -795,7 +810,7 @@ public class DB {
                 catPut(name+".sizeRecid",sizeRecid)
                 );
         catalog.put(name + ".type", "Queue");
-        collections.put(name, new WeakReference<Object>(ret));
+        namedPut(name, ret);
         return ret;
 
     }
@@ -819,7 +834,7 @@ public class DB {
                 (Boolean)catGet(name+".useLocks")
         );
 
-        collections.put(name, new WeakReference<Object>(ret));
+        namedPut(name, ret);
         return ret;
     }
 
@@ -837,7 +852,7 @@ public class DB {
                 catPut(name+".useLocks",useLocks)
         );
         catalog.put(name + ".type", "Stack");
-        collections.put(name, new WeakReference<Object>(ret));
+        namedPut(name, ret);
         return ret;
     }
 
@@ -861,7 +876,7 @@ public class DB {
                 (Long)catGet(name+".size")
         );
 
-        collections.put(name, new WeakReference<Object>(ret));
+        namedPut(name, ret);
         return ret;
     }
 
@@ -896,7 +911,7 @@ public class DB {
                 catPut(name+".size",size)
         );
         catalog.put(name + ".type", "CircularQueue");
-        collections.put(name, new WeakReference<Object>(ret));
+        namedPut(name, ret);
         return ret;
     }
 
@@ -907,7 +922,7 @@ public class DB {
                 catPut(name+".recid",recid)
         );
         catalog.put(name + ".type", "AtomicLong");
-        collections.put(name, new WeakReference<Object>(ret));
+        namedPut(name, ret);
         return ret;
 
     }
@@ -925,7 +940,7 @@ public class DB {
         checkType(type, "AtomicLong");
 
         ret = new Atomic.Long(engine, (Long) catGet(name+".recid"));
-        collections.put(name, new WeakReference<Object>(ret));
+        namedPut(name, ret);
         return ret;
     }
 
@@ -938,7 +953,7 @@ public class DB {
                 catPut(name+".recid",recid)
         );
         catalog.put(name + ".type", "AtomicInteger");
-        collections.put(name, new WeakReference<Object>(ret));
+        namedPut(name, ret);
         return ret;
 
     }
@@ -956,7 +971,7 @@ public class DB {
         checkType(type, "AtomicInteger");
 
         ret = new Atomic.Integer(engine, (Long) catGet(name+".recid"));
-        collections.put(name, new WeakReference<Object>(ret));
+        namedPut(name, ret);
         return ret;
     }
 
@@ -969,7 +984,7 @@ public class DB {
                 catPut(name+".recid",recid)
         );
         catalog.put(name + ".type", "AtomicBoolean");
-        collections.put(name, new WeakReference<Object>(ret));
+        namedPut(name, ret);
         return ret;
 
     }
@@ -987,7 +1002,7 @@ public class DB {
         checkType(type, "AtomicBoolean");
 
         ret = new Atomic.Boolean(engine, (Long) catGet(name+".recid"));
-        collections.put(name, new WeakReference<Object>(ret));
+        namedPut(name, ret);
         return ret;
     }
 
@@ -1004,7 +1019,7 @@ public class DB {
                 catPut(name+".recid",recid)
         );
         catalog.put(name + ".type", "AtomicString");
-        collections.put(name, new WeakReference<Object>(ret));
+        namedPut(name, ret);
         return ret;
 
     }
@@ -1022,7 +1037,7 @@ public class DB {
         checkType(type, "AtomicString");
 
         ret = new Atomic.String(engine, (Long) catGet(name+".recid"));
-        collections.put(name, new WeakReference<Object>(ret));
+        namedPut(name, ret);
         return ret;
     }
 
@@ -1035,7 +1050,7 @@ public class DB {
                 catPut(name+".serializer",serializer)
         );
         catalog.put(name + ".type", "AtomicVar");
-        collections.put(name, new WeakReference<Object>(ret));
+        namedPut(name, ret);
         return ret;
 
     }
@@ -1053,7 +1068,7 @@ public class DB {
         checkType(type, "AtomicString");
 
         ret = new Atomic.Var(engine, (Long) catGet(name+".recid"), (Serializer) catGet(name+".serializer"));
-        collections.put(name, new WeakReference<Object>(ret));
+        namedPut(name, ret);
         return ret;
     }
 
@@ -1120,8 +1135,8 @@ public class DB {
             if(!n.startsWith(name)) continue;
             catalog.remove(n);
         }
-        collections.remove(name);
-
+        namesInstanciated.remove(name);
+        namesLookup.remove(r);
     }
 
 
@@ -1162,8 +1177,14 @@ public class DB {
         }
         if(toRemove.isEmpty()) throw new NoSuchElementException("Could not rename, name does not exist: "+oldName);
 
-        WeakReference old = collections.remove(oldName);
-        if(old!=null) collections.put(newName,old);
+        WeakReference old = namesInstanciated.remove(oldName);
+        if(old!=null){
+            Object old2 = old.get();
+            if(old2!=null){
+                namesLookup.remove(old2);
+                namedPut(newName,old2);
+            }
+        }
         for(String param:toRemove) catalog.remove(param);
     }
 
@@ -1190,7 +1211,8 @@ public class DB {
         engine.close();
         //dereference db to prevent memory leaks
         engine = null;
-        collections = null;
+        namesInstanciated = null;
+        namesLookup = null;
     }
 
     /**
@@ -1198,11 +1220,10 @@ public class DB {
      * This is mainly for locking, two instances of the same lock would not simply work.
      */
     protected Object getFromWeakCollection(String name){
-
-        WeakReference<?> r = collections.get(name);
+        WeakReference<?> r =  namesInstanciated.get(name);
         if(r==null) return null;
         Object o = r.get();
-        if(o==null) collections.remove(name);
+        if(o==null) namesInstanciated.remove(name);
         return o;
     }
 

@@ -90,6 +90,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     }
 
 
+    protected DB db;
 
 
     public SerializerPojo(CopyOnWriteArrayList<ClassInfo> registered){
@@ -105,6 +106,10 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             classId2class.put(i, clazz);
 
         }
+    }
+
+    protected void setDb(DB db) {
+        this.db = db;
     }
 
     /**
@@ -402,6 +407,16 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
     @Override
     protected void serializeUnknownObject(DataOutput out, Object obj, FastArrayList<Object> objectStack) throws IOException {
+        if(db!=null){
+            //check for named objects
+            String name = db.getNameForObject(obj);
+            if(name!=null){
+                out.write(Header.NAMED);
+                out.writeUTF(name);
+                //TODO object stack here?
+                return;
+            }
+        }
         out.write(Header.POJO);
         lock.writeLock().lock(); //TODO write lock is not necessary over entire method
         try{
@@ -449,6 +464,14 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
     @Override
     protected Object deserializeUnknownHeader(DataInput in, int head, FastArrayList<Object> objectStack) throws IOException {
+        if(head == Header.NAMED){
+            String name = in.readUTF();
+            Object o = db.get(name);
+            if(o==null) throw new InternalError("Named object was not found: "+name);
+            objectStack.add(o);
+            return o;
+        }
+
         if(head!= Header.POJO) throw new InternalError();
 
         lock.readLock().lock();

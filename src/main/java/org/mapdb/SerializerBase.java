@@ -1932,6 +1932,11 @@ public class SerializerBase implements Serializer{
          */
         int OBJECT_STACK = 174;
 
+        /**
+         * reference to named object
+         */
+        int NAMED = 175;
+
     }
 
 

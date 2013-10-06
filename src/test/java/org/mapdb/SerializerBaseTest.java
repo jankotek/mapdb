@@ -518,4 +518,37 @@ public class SerializerBaseTest extends TestCase {
         }
     }
 
+
+    public void test_Named(){
+        File f = Utils.tempDbFile();
+        DB db = DBMaker.newFileDB(f).make();
+        Map map = db.getTreeMap("map");
+
+        Map map2 = db.getTreeMap("map2");
+        map2.put("some","stuff");
+        map.put("map2_",map2);
+
+        Queue<Object> stack = db.getStack("stack");
+        stack.add("stack");
+        map.put("stack_",stack);
+
+        Atomic.Long along = db.getAtomicLong("along");
+        along.set(111L);
+        map.put("along_",along);
+
+        db.commit();
+        db.close();
+
+        db = DBMaker.newFileDB(f).deleteFilesAfterClose().make();
+        map = db.getTreeMap("map");
+
+        map2 = (Map) map.get("map2_");
+        assertEquals(map2.get("some"),"stuff");
+
+        stack = (Queue<Object>) map.get("stack_");
+        assertEquals("stack",stack.poll());
+
+        along = (Atomic.Long) map.get("along_");
+        assertEquals(111L,along.get());
+    }
 }
