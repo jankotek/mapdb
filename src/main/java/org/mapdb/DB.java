@@ -419,6 +419,12 @@ public class DB {
             this.keySerializer = keySerializer;
             return this;
         }
+        /** keySerializer used to convert keys into/from binary form.
+         * This wraps ordinary serializer, with no delta packing used*/
+        public BTreeMapMaker keySerializerWrap(Serializer serializer){
+            this.keySerializer = new BTreeKeySerializer.BasicKeySerializer(serializer);
+            return this;
+        }
 
         /** valueSerializer used to convert values into/from binary form. */
         public BTreeMapMaker valueSerializer(Serializer valueSerializer){

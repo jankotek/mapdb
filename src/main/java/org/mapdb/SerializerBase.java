@@ -41,7 +41,7 @@ public class SerializerBase implements Serializer{
             Serializer.STRING_NOSIZE, Serializer.LONG, Serializer.INTEGER,
             Serializer.EMPTY_SERIALIZER, Serializer.BASIC, Serializer.BOOLEAN,
             Serializer.BYTE_ARRAY_NOSIZE,
-            Serializer.JAVA, Serializer.UUID
+            Serializer.JAVA, Serializer.UUID, Serializer.STRING
 
     ));
     }
@@ -302,6 +302,10 @@ public class SerializerBase implements Serializer{
         } else if(obj == Serializer.UUID){
             out.write(Header.MAPDB);
             Utils.packInt(out, HeaderMapDB.SERIALIZER_UUID);
+            return;
+        } else if(obj == Serializer.STRING){
+            out.write(Header.MAPDB);
+            Utils.packInt(out, HeaderMapDB.SERIALIZER_STRING);
             return;
         }else if(obj instanceof Atomic.Long ){
             out.write(Header.MA_LONG);
@@ -1342,6 +1346,7 @@ public class SerializerBase implements Serializer{
         int SERIALIZER_BYTE_ARRAY_NOSIZE = 17;
         int SERIALIZER_JAVA = 18;
         int SERIALIZER_UUID = 19;
+        int SERIALIZER_STRING = 20;
     }
 
 
@@ -1372,6 +1377,9 @@ public class SerializerBase implements Serializer{
                 return Serializer.JAVA;
             case HeaderMapDB.SERIALIZER_UUID:
                 return Serializer.UUID;
+            case HeaderMapDB.SERIALIZER_STRING:
+                return Serializer.STRING;
+
 
             case HeaderMapDB.COMPARABLE_COMPARATOR: return Utils.COMPARABLE_COMPARATOR;
 
