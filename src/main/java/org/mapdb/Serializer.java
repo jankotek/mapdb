@@ -17,6 +17,7 @@ package org.mapdb;
 
 
 import java.io.*;
+import java.util.*;
 
 /**
  * Provides serialization and deserialization
@@ -185,6 +186,20 @@ public interface Serializer<A> {
             } catch (ClassNotFoundException e) {
                 throw new IOException(e);
             }
+        }
+    };
+
+    /** Serializers {@link java.util.UUID} class */
+    Serializer<java.util.UUID> UUID = new Serializer<java.util.UUID>() {
+        @Override
+        public void serialize(DataOutput out, UUID value) throws IOException {
+            out.writeLong(value.getMostSignificantBits());
+            out.writeLong(value.getLeastSignificantBits());
+        }
+
+        @Override
+        public UUID deserialize(DataInput in, int available) throws IOException {
+            return new UUID(in.readLong(), in.readLong());
         }
     };
 
