@@ -245,7 +245,7 @@ public class SerializerBase implements Serializer{
         } else if(clazz == BTreeKeySerializer.BasicKeySerializer.class){
             out.write(Header.MAPDB);
             Utils.packInt(out, HeaderMapDB.B_TREE_BASIC_KEY_SERIALIZER);
-            assert(((BTreeKeySerializer.BasicKeySerializer)obj).defaultSerializer==this);
+            serialize(out,((BTreeKeySerializer.BasicKeySerializer)obj).defaultSerializer);
             return;
         } else if(obj == BTreeKeySerializer.ZERO_OR_POSITIVE_LONG){
             out.write(Header.MAPDB);
@@ -328,7 +328,7 @@ public class SerializerBase implements Serializer{
             Atomic.Var v = (Atomic.Var) obj;
             Utils.packLong(out,v.recid);
             //TODO objectStack
-            serialize(out,v.serializer);
+            serialize(out, v.serializer);
             return;
         } else if(obj == this){
             out.write(Header.MAPDB);
@@ -1402,7 +1402,7 @@ public class SerializerBase implements Serializer{
                 return Utils.COMPARABLE_COMPARATOR_WITH_NULLS;
 
             case HeaderMapDB.B_TREE_BASIC_KEY_SERIALIZER:
-                return new BTreeKeySerializer.BasicKeySerializer(this);
+                return new BTreeKeySerializer.BasicKeySerializer((Serializer) deserialize(is,objectStack)); //TODO objectStack here
             case HeaderMapDB.THIS_SERIALIZER:
                 return this;
             case HeaderMapDB.BASIC_SERIALIZER:
