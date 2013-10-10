@@ -79,7 +79,7 @@ db.close();
 
 What you should know
 --------------------
-* Transactions (write-ahead-log) can be disabled with <a href="http://www.mapdb.org/apidocs/org/mapdb/DBMaker.html#writeAheadLogDisable()">DBMaker.writeAheadLogDisable()</a>, this will speedup writes. However without transactions store gets corrupted easily when not closed correctly.
+* Transactions (write-ahead-log) can be disabled with <a href="http://www.mapdb.org/apidocs/org/mapdb/DBMaker.html#transactionDisable()">DBMaker.transactionDisable()</a>, this will speedup writes. However without transactions store gets corrupted easily when not closed correctly.
 
 * Keys and values must be immutable. MapDB may serialize them on background thread, put them into instance cache... Modifying an object after it was stored is a bad idea.
 
