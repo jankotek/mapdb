@@ -63,6 +63,10 @@ public class ExamplesTest {
         Secondary_Map.main(args);
     }
 
+    @Test public void Secondary_Values(){
+        Secondary_Values.main(args);
+    }
+
     @Test public void SQL_Auto_Incremental_Unique_Key(){
         SQL_Auto_Incremental_Unique_Key.main(args);
     }

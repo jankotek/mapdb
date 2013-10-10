@@ -16,9 +16,7 @@
 
 package org.mapdb;
 
-import java.util.Iterator;
-import java.util.Map;
-import java.util.NavigableSet;
+import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 
 /**
@@ -117,8 +115,8 @@ public final class Bind {
      *
      * NOTE: {@link BTreeMap} and {@link HTreeMap} already supports this directly as optional parameter named `keepCounter`.
      * In that case all calls to `Map.size()` are forwarded to underlying counter. Check parameters at
-     * {@link DB#createHashMap(String, boolean, Serializer, Serializer)} and
-     * {@link DB#createTreeMap(String, int, boolean, boolean, BTreeKeySerializer, Serializer, java.util.Comparator)}
+     * {@link DB#createHashMap(String)} and
+     * {@link DB#createTreeMap(String)}
      *
      *
      * @param map primary map whose size needs to be tracked
@@ -180,6 +178,89 @@ public final class Bind {
     }
 
     /**
+     * Binds Secondary Map so that it contains Key from Primary Map and custom Value.
+     * Secondary Value is updated every time Primary Map is modified.
+     *
+     * If Secondary Map is empty its content will be recreated from Primary Map.
+     * This binding is not persistent. You need to restore it every time store is reopened.
+     *
+     * @param map Primary Map
+     * @param secondary Secondary Map with custom
+     * @param fun function which calculates secondary values from primary key and value
+     * @param <K> key type in primary and Secondary Map
+     * @param <V> value type in Primary Map
+     * @param <V2> value type in Secondary Map.
+     */
+    public static <K,V, V2> void secondaryValues(MapWithModificationListener<K, V> map,
+                                                final Set<Fun.Tuple2<K, V2>> secondary,
+                                                final Fun.Function2<V2[], K, V> fun){
+        //fill if empty
+        if(secondary.isEmpty()){
+            for(Map.Entry<K,V> e:map.entrySet()){
+                V2[] v = fun.run(e.getKey(),e.getValue());
+                if(v!=null)
+                    for(V2 v2:v)
+                        secondary.add(Fun.t2(e.getKey(), v2));
+            }
+        }
+        //hook listener
+        map.addModificationListener(new MapListener<K, V>() {
+            @Override
+            public void update(K key, V oldVal, V newVal) {
+                if(newVal == null){
+                    //removal
+                    V2[] v = fun.run(key,oldVal);
+                    if(v != null)
+                        for(V2 v2 :v)
+                            secondary.remove(Fun.t2(key,v2));
+                }else if(oldVal==null){
+                    //insert
+                    V2[] v = fun.run(key,newVal);
+                    if(v != null)
+                        for(V2 v2 :v)
+                            secondary.add(Fun.t2(key,v2));
+                }else{
+                    //update, must remove old key and insert new
+                    V2[] oldv = fun.run(key, oldVal);
+                    V2[] newv = fun.run(key, newVal);
+                    if(oldv==null){
+                        //insert new
+                        if(newv!=null)
+                            for(V2 v :newv)
+                                secondary.add(Fun.t2(key,v));
+                        return;
+                    }
+                    if(newv==null){
+                        //remove old
+                        for(V2 v :oldv)
+                            secondary.remove(Fun.t2(key,v));
+                        return;
+                    }
+
+                    Set<V2> hashes = new HashSet<V2>();
+                    for(V2 v:oldv)
+                        hashes.add(v);
+
+                    //add new non existing items
+                    for(V2 v:newv){
+                        if(!hashes.contains(v)){
+                            secondary.add(Fun.t2(key,v));
+                        }
+                    }
+                    //remove items which are in old, but not in new
+                    for(V2 v:newv){
+                        hashes.remove(v);
+                    }
+                    for(V2 v:hashes){
+                        secondary.remove(Fun.t2(key,v));
+                    }
+                }
+            }
+        });
+    }
+
+
+    /**
      * Binds Secondary Set so it contains Secondary Key (Index). Usefull if you need
      * to lookup Keys from Primary Map by custom criteria. Other use is for reverse lookup
      *
@@ -197,7 +278,7 @@ public final class Bind {
      * @param <K2> Secondary
      */
     public static <K,V, K2> void secondaryKey(MapWithModificationListener<K, V> map,
-                                                final NavigableSet<Fun.Tuple2<K2, K>> secondary,
+                                                final Set<Fun.Tuple2<K2, K>> secondary,
                                                 final Fun.Function2<K2, K, V> fun){
         //fill if empty
         if(secondary.isEmpty()){
@@ -227,6 +308,90 @@ public final class Bind {
         });
     }
 
+    /**
+     * Binds Secondary Set so it contains Secondary Key (Index). Useful if you need
+     * to lookup Keys from Primary Map by custom criteria. Other use is for reverse lookup
+     *
+     * To lookup keys in Secondary Set use {@link Bind#findSecondaryKeys(java.util.NavigableSet, Object)}
+     *
+     *
+     * If Secondary Set is empty its content will be recreated from Primary Map.
+     * This binding is not persistent. You need to restore it every time store is reopened.
+     *
+     * @param map primary map
+     * @param secondary secondary set
+     * @param fun function which calculates Secondary Keys from Primary Key and Value
+     * @param <K> Key in Primary Map
+     * @param <V> Value in Primary Map
+     * @param <K2> Secondary
+     */
+    public static <K,V, K2> void secondaryKeys(MapWithModificationListener<K, V> map,
+                                              final Set<Fun.Tuple2<K2, K>> secondary,
+                                              final Fun.Function2<K2[], K, V> fun){
+        //fill if empty
+        if(secondary.isEmpty()){
+            for(Map.Entry<K,V> e:map.entrySet()){
+                K2[] k2 = fun.run(e.getKey(), e.getValue());
+                if(k2 != null)
+                    for(K2 k22 :k2)
+                        secondary.add(Fun.t2(k22, e.getKey()));
+            }
+        }
+        //hook listener
+        map.addModificationListener(new MapListener<K, V>() {
+            @Override
+            public void update(K key, V oldVal, V newVal) {
+                if(newVal == null){
+                    //removal
+                    K2[] k2 = fun.run(key,oldVal);
+                    if(k2 != null)
+                        for(K2 k22 :k2)
+                            secondary.remove(Fun.t2(k22, key));
+                }else if(oldVal==null){
+                    //insert
+                    K2[] k2 = fun.run(key,newVal);
+                    if(k2 != null)
+                        for(K2 k22 :k2)
+                            secondary.add(Fun.t2(k22, key));
+                }else{
+                    //update, must remove old key and insert new
+                    K2[] oldk = fun.run(key, oldVal);
+                    K2[] newk = fun.run(key, newVal);
+                    if(oldk==null){
+                        //insert new
+                        if(newk!=null)
+                            for(K2 k22 :newk)
+                                secondary.add(Fun.t2(k22, key));
+                        return;
+                    }
+                    if(newk==null){
+                        //remove old
+                        for(K2 k22 :oldk)
+                            secondary.remove(Fun.t2(k22, key));
+                        return;
+                    }
+
+                    Set<K2> hashes = new HashSet<K2>();
+                    for(K2 k:oldk)
+                        hashes.add(k);
+
+                    //add new non existing items
+                    for(K2 k2:newk){
+                        if(!hashes.contains(k2)){
+                            secondary.add(Fun.t2(k2, key));
+                        }
+                    }
+                    //remove items which are in old, but not in new
+                    for(K2 k2:newk){
+                        hashes.remove(k2);
+                    }
+                    for(K2 k2:hashes){
+                        secondary.remove(Fun.t2(k2, key));
+                    }
+                }
+            }
+        });
+    }
 
     /**
      * Binds Secondary Set so it contains inverse mapping to Primary Map: Primary Value will become Secondary Key.
@@ -243,7 +408,7 @@ public final class Bind {
      * @param <V> Value in Primary Map and Primary Value in Secondary Set
      */
     public static <K,V> void mapInverse(MapWithModificationListener<K,V> primary,
-                                        NavigableSet<Fun.Tuple2<V, K>> inverse) {
+                                        Set<Fun.Tuple2<V, K>> inverse) {
         Bind.secondaryKey(primary,inverse, new Fun.Function2<V, K,V>(){
             @Override public V run(K key, V value) {
                 return value;
@@ -254,8 +419,8 @@ public final class Bind {
 
     /**
      * Find all Primary Keys associated with Secondary Key.
-     * This is useful companion to {@link Bind#mapInverse(org.mapdb.Bind.MapWithModificationListener, java.util.NavigableSet)}
-     * and {@link Bind#secondaryKey(org.mapdb.Bind.MapWithModificationListener, java.util.NavigableSet, org.mapdb.Fun.Function2)}
+     * This is useful companion to {@link Bind#mapInverse(org.mapdb.Bind.MapWithModificationListener, java.util.Set)}
+     * and {@link Bind#secondaryKey(org.mapdb.Bind.MapWithModificationListener, java.util.Set, org.mapdb.Fun.Function2)}
      * It can by also used to find values from 'MultiMap'.
      *
      * @param secondaryKeys Secondary Set or 'MultiMap' to find values in
