@@ -189,5 +189,21 @@ public class PumpTest {
     }
 
 
+    @Test public void uuid_reversed(){
+        List<UUID> u = new ArrayList<UUID>();
+        for(int i=0;i<1e6;i++) u.add(UUID.randomUUID());
+        Set<UUID> sorted = new TreeSet<UUID>(Collections.reverseOrder(Utils.COMPARABLE_COMPARATOR));
+        sorted.addAll(u);
+
+        Iterator<UUID> iter = u.iterator();
+        iter = Pump.sort(iter,10000,Collections.reverseOrder(Utils.COMPARABLE_COMPARATOR),Serializer.UUID);
+        Iterator<UUID> iter2 = sorted.iterator();
+
+        while(iter.hasNext()){
+            assertEquals(iter2.next(),iter.next());
+        }
+        assertFalse(iter2.hasNext());
+    }
+
 
 }

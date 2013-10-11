@@ -252,12 +252,17 @@ public class Pump {
             for(int i=0;i<nload && source.hasNext();i++){
                 counter++;
                 E next = source.next();
+                if(next==null) throw new NullPointerException("source returned null element");
                 K key = keyExtractor==null? (K) next : keyExtractor.run(next);
                 if(oldKey!=null && comparator.compare(key, oldKey)>=0)
                     throw new IllegalArgumentException("Keys in 'source' iterator are not reverse sorted");
                 oldKey = key;
                 keys.add(key);
-                if(hasVals) values.add(valueExtractor.run(next));
+                if(hasVals){
+                    V val = valueExtractor.run(next);
+                    if(val==null) throw new NullPointerException("valueExtractor returned null value");
+                    values.add(val);
+                }
             }
             //insert node
             if(!source.hasNext()){
