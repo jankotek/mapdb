@@ -74,7 +74,7 @@ public class Pump {
                     File f = Utils.tempDbFile();
                     f.deleteOnExit();
                     presortFiles.add(f);
-                    DataOutputStream out = new DataOutputStream(new FileOutputStream(f));
+                    DataOutputStream out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(f)));
                     for(E e:presort){
                         serializer.serialize(out,e);
                     }
@@ -96,7 +96,7 @@ public class Pump {
             Iterator[] iterators = new Iterator[presortFiles.size()+1];
             final DataInputStream[] ins = new DataInputStream[presortFiles.size()];
             for(int i=0;i<presortFiles.size();i++){
-                ins[i] = new DataInputStream(new FileInputStream(presortFiles.get(i)));
+                ins[i] = new DataInputStream(new BufferedInputStream(new FileInputStream(presortFiles.get(i))));
                 final int pos = i;
                 iterators[i] = new Iterator(){
 
