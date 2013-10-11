@@ -323,12 +323,19 @@ public class Pump {
         //flush directory
         for(int i=0;i<dirKeys.size()-1;i++){
             //tree node too big so write it down and start new one
-            Collections.reverse(dirKeys.get(i));
+            ArrayList<Object> keys2 = dirKeys.get(i);
+            Collections.reverse(keys2);
             Collections.reverse(dirRecids.get(i));
+
+            if(keys2.size()>2 && keys2.get(0)==null && keys2.get(1)==null){
+                keys2.remove(0);
+                dirRecids.get(i).remove(0);
+            }
+
             //put node into store
-            BTreeMap.DirNode dir = new BTreeMap.DirNode(dirKeys.get(i).toArray(), dirRecids.get(i));
+            BTreeMap.DirNode dir = new BTreeMap.DirNode(keys2.toArray(), dirRecids.get(i));
             long dirRecid = engine.put(dir,nodeSerializer);
-            Object dirStart = dirKeys.get(i).get(0);
+            Object dirStart = keys2.get(0);
             dirKeys.get(i+1).add(dirStart);
             dirRecids.get(i+1).add(dirRecid);
 
