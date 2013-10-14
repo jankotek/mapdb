@@ -65,21 +65,25 @@ public class DB {
     }
 
     protected <A> A catGet(String name, A init){
+        assert(Thread.holdsLock(DB.this));
         A ret = (A) catalog.get(name);
         return ret!=null? ret : init;
     }
 
 
     protected <A> A catGet(String name){
+        assert(Thread.holdsLock(DB.this));
         return (A) catalog.get(name);
     }
 
     protected <A> A catPut(String name, A value){
+        assert(Thread.holdsLock(DB.this));
         catalog.put(name, value);
         return value;
     }
 
     protected <A> A catPut(String name, A value, A retValueIfNull){
+        assert(Thread.holdsLock(DB.this));
         if(value==null) return retValueIfNull;
         catalog.put(name, value);
         return value;
@@ -176,9 +180,11 @@ public class DB {
         }
 
         public <K,V> HTreeMap<K,V> makeOrGet(){
-            //TODO add parameter check
-            return (HTreeMap<K, V>) (catGet(name+".type")==null?
-                                make():getHashMap(name));
+            synchronized (DB.this){
+                //TODO add parameter check
+                return (HTreeMap<K, V>) (catGet(name+".type")==null?
+                                    make():getHashMap(name));
+            }
         }
 
 
@@ -464,9 +470,11 @@ public class DB {
         }
 
         public <K,V> BTreeMap<K,V> makeOrGet(){
-            //TODO add parameter check
-            return (BTreeMap<K, V>) (catGet(name+".type")==null?
-                    make():getTreeMap(name));
+            synchronized(DB.this){
+                //TODO add parameter check
+                return (BTreeMap<K, V>) (catGet(name+".type")==null?
+                        make():getTreeMap(name));
+            }
         }
 
 
@@ -542,10 +550,11 @@ public class DB {
         }
 
         public <K> NavigableSet<K> makeOrGet(){
-            //TODO add parameter check
-            return (NavigableSet<K>) (catGet(name+".type")==null?
+            synchronized (DB.this){
+                //TODO add parameter check
+                return (NavigableSet<K>) (catGet(name+".type")==null?
                     make():getTreeSet(name));
-
+            }
         }
 
 
