@@ -79,11 +79,14 @@ db.close();
 
 What you should know
 --------------------
-* Transactions (write-ahead-log) can be disabled with <a href="http://www.mapdb.org/apidocs/org/mapdb/DBMaker.html#transactionDisable()">DBMaker.transactionDisable()</a>, this will speedup writes. However without transactions store gets corrupted easily when not closed correctly.
+MapDB is very simple to use, however it bites when used wrong way. Here is list of most common usage errors
+and things to avoid:
+
+* Transactions (write-ahead-log) can be disabled with <a href="http://www.mapdb.org/apidocs/org/mapdb/DBMaker.html#transactionDisable()">DBMaker.transactionDisable()</a>, this will speedup writes. However without transactions store gets corrupted when not closed correctly.
 
 * Keys and values must be immutable. MapDB may serialize them on background thread, put them into instance cache... Modifying an object after it was stored is a bad idea.
 
-* MapDB relies on memory mapped files. On 32bit JVM you will need <a href="http://www.mapdb.org/apidocs/org/mapdb/DBMaker.html#randomAccessFileEnable()">DBMaker.randomAccessFileEnable()</a> configuration option to access files larger than 2GB. This introduces overhead compared to memory mapped files.
+* MapDB relies on memory mapped files. On 32bit JVM you will need <a href="http://www.mapdb.org/apidocs/org/mapdb/DBMaker.html#randomAccessFileEnable()">DBMaker.randomAccessFileEnable()</a> configuration option to access files larger than 2GB. RAF introduces overhead compared to memory mapped files.
 
 * MapDB does not run defrag on background. You need to call `DB.compact()` from time to time.
 
