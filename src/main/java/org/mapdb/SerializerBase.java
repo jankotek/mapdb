@@ -39,7 +39,7 @@ public class SerializerBase implements Serializer{
             Utils.COMPARABLE_COMPARATOR, Utils.COMPARABLE_COMPARATOR_WITH_NULLS,
 
             Serializer.STRING_NOSIZE, Serializer.LONG, Serializer.INTEGER,
-            Serializer.EMPTY_SERIALIZER, Serializer.BASIC, Serializer.BOOLEAN,
+            Serializer.ILLEGAL_ACCESS, Serializer.BASIC, Serializer.BOOLEAN,
             Serializer.BYTE_ARRAY_NOSIZE,
             Serializer.JAVA, Serializer.UUID, Serializer.STRING
 
@@ -267,9 +267,9 @@ public class SerializerBase implements Serializer{
             out.write(Header.MAPDB);
             Utils.packInt(out, HeaderMapDB.INT_SERIALIZER);
             return;
-        } else if(obj == Serializer.EMPTY_SERIALIZER){
+        } else if(obj == Serializer.ILLEGAL_ACCESS){
             out.write(Header.MAPDB);
-            Utils.packInt(out, HeaderMapDB.EMPTY_SERIALIZER);
+            Utils.packInt(out, HeaderMapDB.ILLEGAL_ACCESS_SERIALIZER);
             return;
         } else if(obj == BTreeKeySerializer.STRING){
             out.write(Header.MAPDB);
@@ -1331,7 +1331,7 @@ public class SerializerBase implements Serializer{
         int B_TREE_SERIALIZER_POS_INT = 3;
         int LONG_SERIALIZER = 4;
         int INT_SERIALIZER = 5;
-        int EMPTY_SERIALIZER = 6;
+        int ILLEGAL_ACCESS_SERIALIZER = 6;
 
         int KEY_TUPLE2_SERIALIZER = 7;
         int KEY_TUPLE3_SERIALIZER = 8;
@@ -1367,8 +1367,8 @@ public class SerializerBase implements Serializer{
                 return Serializer.LONG;
             case HeaderMapDB.INT_SERIALIZER:
                 return Serializer.INTEGER;
-            case HeaderMapDB.EMPTY_SERIALIZER:
-                return Serializer.EMPTY_SERIALIZER;
+            case HeaderMapDB.ILLEGAL_ACCESS_SERIALIZER:
+                return Serializer.ILLEGAL_ACCESS;
             case HeaderMapDB.BOOLEAN_SERIALIZER:
                 return Serializer.BOOLEAN;
             case HeaderMapDB.SERIALIZER_BYTE_ARRAY_NOSIZE:

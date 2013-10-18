@@ -452,7 +452,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
             newRecidsLock.lock();
             try{
                 while(newRecidsPos>0){
-                    super.delete(newRecids[--newRecidsPos],Serializer.EMPTY_SERIALIZER);
+                    super.delete(newRecids[--newRecidsPos],Serializer.ILLEGAL_ACCESS);
                 }
             }finally{
                 newRecidsLock.unlock();

@@ -457,7 +457,11 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         this.engine = engine;
         this.maxNodeSize = maxNodeSize;
         this.comparator = comparator;
-        //TODO when delta packing implemented, add assertion for COMPARABLE_COMPARATOR
+
+        if(comparator!=Utils.COMPARABLE_COMPARATOR && comparator!=Utils.COMPARABLE_COMPARATOR_WITH_NULLS &&
+                !(keySerializer instanceof BTreeKeySerializer.BasicKeySerializer))
+            Utils.LOG.warning("Comparator might be inconsistent with key serializer and delta packing.");
+
         this.keySerializer = keySerializer;
         this.valueSerializer = valueSerializer;
 

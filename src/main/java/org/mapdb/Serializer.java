@@ -141,19 +141,18 @@ public interface Serializer<A> {
     
 
 
-    /** always writes zero length data, and always deserializes it as an empty String
-     * @deprecated  TODO remove
+    /**
+     * Always throws {@link IllegalAccessError} when invoked. Useful for testing and assertions.
      */
-    Serializer<Object> EMPTY_SERIALIZER = new Serializer<Object>() {
+    Serializer<Object> ILLEGAL_ACCESS = new Serializer<Object>() {
         @Override
         public void serialize(DataOutput out, Object value) throws IOException {
-            assert(value==Utils.EMPTY_STRING);
+            throw new IllegalAccessError();
         }
 
         @Override
         public Object deserialize(DataInput in, int available) throws IOException {
-            assert(available>0);
-            return Utils.EMPTY_STRING;
+            throw new IllegalAccessError();
         }
     };
 

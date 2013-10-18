@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.zip.Adler32;
@@ -67,14 +68,25 @@ public abstract class Store implements Engine{
         System.out.println(calculateStatistics());
     }
 
+    protected Lock serializerPojoInitLock = new ReentrantLock();
+
     /**
      * @return default serializer used in this DB, it handles POJO and other stuff.
      */
     public  SerializerPojo getSerializerPojo() {
-        if(serializerPojo==null){
-            //TODO thread safe lazy init
-            final CopyOnWriteArrayList<SerializerPojo.ClassInfo> classInfos = get(Engine.CLASS_INFO_RECID, SerializerPojo.serializer);
-            serializerPojo = new SerializerPojo(classInfos);
+        final Lock pojoLock = serializerPojoInitLock;
+        if(pojoLock!=null) {
+            pojoLock.lock();
+            try{
+                if(serializerPojo==null){
+                    final CopyOnWriteArrayList<SerializerPojo.ClassInfo> classInfos = get(Engine.CLASS_INFO_RECID, SerializerPojo.serializer);
+                    serializerPojo = new SerializerPojo(classInfos);
+                    serializerPojoInitLock = null;
+                }
+            }finally{
+                pojoLock.unlock();
+            }
+
         }
         return serializerPojo;
     }
