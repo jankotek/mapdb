@@ -123,9 +123,7 @@ public abstract class Volume {
      * Writes a long to the indicated position
      */
     public void putSixLong(long pos, long value) {
-        if(value<0) throw new IllegalArgumentException();
-    	if(value >> (6*8)!=0)
-    		throw new IllegalArgumentException("does not fit");
+        assert(value>0 && (value>>>6*8)==0): "value does not fit";
         //TODO read/write as integer+short, might be faster
         putByte(pos + 0, (byte) (0xff & (value >> 40)));
         putByte(pos + 1, (byte) (0xff & (value >> 32)));
@@ -140,10 +138,8 @@ public abstract class Volume {
      * Writes packed long at given position and returns number of bytes used.
      */
     public int putPackedLong(long pos, long value) {
+        assert(value>=0):"negative value";
 
-        if (value < 0) {
-            throw new IllegalArgumentException("negative value: keys=" + value);
-        }
         int ret = 0;
 
         while ((value & ~0x7FL) != 0) {
@@ -647,9 +643,8 @@ public abstract class Volume {
 
         @Override
         public final void putSixLong(long offset, long value) {
-            if(value<0) throw new IllegalArgumentException();
-            if(value >> (6*8)!=0)
-                throw new IllegalArgumentException("does not fit");
+            assert(value>0 && (value>>>6*8)==0): "value does not fit";
+
             try{
 
                 ByteBuffer buf = ByteBuffer.allocate(6);
