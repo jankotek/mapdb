@@ -103,10 +103,8 @@ public class WeakIdentityHashMap<K, V> extends AbstractMap<K, V> implements Map<
             }
             Map.Entry<?, ?> entry = (Map.Entry<?, ?>) other;
             Object key = super.get();
-            return (key == null ? key == entry.getKey() : key.equals(entry
-                    .getKey()))
-                    && (value == null ? value == entry.getValue() : value
-                    .equals(entry.getValue()));
+            return (key == null ? key == entry.getKey() : key == entry.getKey())
+                    && (value == null ? value == entry.getValue() : value == entry.getValue());
         }
 
         @Override
@@ -328,7 +326,7 @@ public class WeakIdentityHashMap<K, V> extends AbstractMap<K, V> implements Map<
                     if (entry != null) {
                         Object key = entry.get();
                         if (key != null || entry.isNull) {
-                            return object.equals(entry);
+                            return object == entry;
                         }
                     }
                 }
@@ -483,7 +481,7 @@ public class WeakIdentityHashMap<K, V> extends AbstractMap<K, V> implements Map<
             int index = (System.identityHashCode(key) & 0x7FFFFFFF) % elementData.length;
             Entry<K, V> entry = elementData[index];
             while (entry != null) {
-                if (key.equals(entry.get())) {
+                if (key == entry.get()) {
                     return entry.value;
                 }
                 entry = entry.next;
@@ -506,7 +504,7 @@ public class WeakIdentityHashMap<K, V> extends AbstractMap<K, V> implements Map<
             int index = (System.identityHashCode(key) & 0x7FFFFFFF) % elementData.length;
             Entry<K, V> entry = elementData[index];
             while (entry != null) {
-                if (key.equals(entry.get())) {
+                if (key == entry.get()) {
                     return entry;
                 }
                 entry = entry.next;
@@ -540,7 +538,7 @@ public class WeakIdentityHashMap<K, V> extends AbstractMap<K, V> implements Map<
                 while (entry != null) {
                     K key = entry.get();
                     if ((key != null || entry.isNull)
-                            && value.equals(entry.value)) {
+                            && value == entry.value) {
                         return true;
                     }
                     entry = entry.next;
@@ -619,7 +617,7 @@ public class WeakIdentityHashMap<K, V> extends AbstractMap<K, V> implements Map<
         if (key != null) {
             index = (System.identityHashCode(key) & 0x7FFFFFFF) % elementData.length;
             entry = elementData[index];
-            while (entry != null && !key.equals(entry.get())) {
+            while (entry != null && key!=entry.get()) {
                 entry = entry.next;
             }
         } else {
@@ -697,7 +695,7 @@ public class WeakIdentityHashMap<K, V> extends AbstractMap<K, V> implements Map<
         if (key != null) {
             index = (System.identityHashCode(key) & 0x7FFFFFFF) % elementData.length;
             entry = elementData[index];
-            while (entry != null && !key.equals(entry.get())) {
+            while (entry != null && key!=entry.get()) {
                 last = entry;
                 entry = entry.next;
             }
