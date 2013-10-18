@@ -200,7 +200,7 @@ public class LongConcurrentLRUMap<V> extends LongMap<V> {
             }
 
             // System.out.println("items removed:" + numRemoved + " numKept=" + numKept + " esetSz="+ eSize + " sz-numRemoved=" + (sz-numRemoved));
-            // TODO: allow this to be customized in the constructor?
+
             int numPasses=1; // maximum number of linear passes over the data
 
             // if we didn't remove enough entries, then make more passes
@@ -639,7 +639,7 @@ public class LongConcurrentLRUMap<V> extends LongMap<V> {
 
             @Override
             public V next() {
-                return iter.next().value; //TODO can be value null if already evicted?
+                return iter.next().value;
             }
 
             @Override
@@ -665,7 +665,7 @@ public class LongConcurrentLRUMap<V> extends LongMap<V> {
 
             @Override
             public V value() {
-                return iter.value().value; //TODO can be value null if already evicted?
+                return iter.value().value;
             }
 
             @Override
@@ -683,9 +683,9 @@ public class LongConcurrentLRUMap<V> extends LongMap<V> {
         return map;
     }
 
-    private static class CacheEntry<V> implements Comparable<CacheEntry<V>> {
-        long key;
-        V value;
+    private static final class CacheEntry<V> implements Comparable<CacheEntry<V>> {
+        final long key;
+        final V value;
         volatile long lastAccessed = 0;
         long lastAccessedCopy = 0;
 
