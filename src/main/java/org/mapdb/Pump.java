@@ -60,34 +60,38 @@ public class Pump {
         if(batchSize<=0) throw new IllegalArgumentException();
 
         int counter = 0;
-        final SortedSet<E> presort = new TreeSet<E>(comparator);
+        final Object[] presort = new Object[batchSize];
         final List<File> presortFiles = new ArrayList<File>();
         final List<Integer> presortCount2 = new ArrayList<Integer>();
 
         try{
             while(source.hasNext()){
+                presort[counter]=source.next();
                 counter++;
-                presort.add(source.next());
 
                 if(counter>=batchSize){
+                    //sort all items
+                    Arrays.sort(presort,comparator);
+
                     //flush presort into temporary file
                     File f = Utils.tempDbFile();
                     f.deleteOnExit();
                     presortFiles.add(f);
                     DataOutputStream out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(f)));
-                    for(E e:presort){
+                    for(Object e:presort){
                         serializer.serialize(out,e);
                     }
                     out.close();
-                    presortCount2.add(presort.size());
-                    presort.clear();
+                    presortCount2.add(counter);
+                    Arrays.fill(presort,0);
                     counter = 0;
                 }
             }
             //now all records from source are fetch
             if(presortFiles.isEmpty()){
                 //no presort files were created, so on-heap sorting is enough
-                return presort.iterator();
+                Arrays.sort(presort,0,counter,comparator);
+                return Utils.arrayIterator(presort,0, counter);
             }
 
             final int[] presortCount = new int[presortFiles.size()];
@@ -125,7 +129,8 @@ public class Pump {
             }
 
             //and add iterator over data on-heap
-            iterators[iterators.length-1] = presort.iterator();
+            Arrays.sort(presort,0,counter,comparator);
+            iterators[iterators.length-1] = Utils.arrayIterator(presort,0,counter);
 
 
             //and finally sort presorted iterators and return iterators over them
@@ -137,6 +142,8 @@ public class Pump {
             for(File f:presortFiles) f.delete();
         }
     }
+
+
 
 
     /**
@@ -209,7 +216,7 @@ public class Pump {
      * @param valueExtractor transforms items from source iterator into values. If null BTreeMap will be constructed without values (as Set)
      * @param nodeSize maximal BTree node size before it is splited.
      * @param valuesStoredOutsideNodes if true values will not be stored as part of BTree nodes
-     * @param keepCounter if true BTreeMap will keep track of number of its size, so `Map.size()` will not traverse all elements in map
+     * @param counterRecid TODO make size counter friendly to use
      * @param keySerializer serializer for keys, use null for default value
      * @param valueSerializer serializer for value, use null for default value
      * @param comparator comparator used to compare keys, use null for 'comparable comparator'
@@ -224,7 +231,8 @@ public class Pump {
                                              long counterRecid,
                                              BTreeKeySerializer<K> keySerializer,
                                              Serializer<V> valueSerializer,
-                                             Comparator comparator) {
+                                             Comparator comparator)
+        {
 
         final double NODE_LOAD = 0.75;
 
@@ -244,7 +252,7 @@ public class Pump {
 
         //fill node with data
         List<K> keys = arrayList(null);
-        ArrayList<V> values = hasVals?new ArrayList<V>() : null;
+        ArrayList<Object> values = hasVals?new ArrayList<Object>() : null;
         //traverse iterator
         K oldKey = null;
         while(source.hasNext()){
@@ -259,8 +267,12 @@ public class Pump {
                 oldKey = key;
                 keys.add(key);
                 if(hasVals){
-                    V val = valueExtractor.run(next);
+                    Object val = valueExtractor.run(next);
                     if(val==null) throw new NullPointerException("valueExtractor returned null value");
+                    if(valuesStoredOutsideNodes){
+                        long recid = engine.put((V) val,valueSerializer);
+                        val = new BTreeMap.ValRef(recid);
+                    }
                     values.add(val);
                 }
             }
@@ -272,7 +284,7 @@ public class Pump {
 
             Collections.reverse(keys);
 
-            V nextVal = null;
+            Object nextVal = null;
             if(hasVals){
                 nextVal = values.remove(values.size()-1);
                 Collections.reverse(values);

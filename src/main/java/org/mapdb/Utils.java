@@ -318,4 +318,27 @@ final public class Utils {
         }
     }
 
+    public static <E> Iterator<E> arrayIterator(final Object[] array, final int fromIndex, final int toIndex) {
+        return new Iterator<E>(){
+
+            int index = fromIndex;
+
+            @Override
+            public boolean hasNext() {
+                return index<toIndex;
+            }
+
+            @Override
+            public E next() {
+                if(index>=toIndex) throw new NoSuchElementException();
+                return (E) array[index++];
+            }
+
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
+        };
+    }
+
 }
