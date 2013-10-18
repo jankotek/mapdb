@@ -103,7 +103,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         public void serialize(DataOutput out, LinkedNode<K,V> value) throws IOException {
             Utils.packLong(out, value.next);
             if(expireFlag)
-                Utils.packLong(out, value.expireLinkNodeRecid); //TODO save one byte if `expire` is not on
+                Utils.packLong(out, value.expireLinkNodeRecid);
             keySerializer.serialize(out,value.key);
             if(hasValues)
                 valueSerializer.serialize(out,value.value);
@@ -652,7 +652,6 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
 
     private void recursiveDirDelete(int h, int level, long[] dirRecids, long[][] dir, int slot) {
-        //TODO keep dir immutable while recursive delete
         //was only item in linked list, so try to collapse the dir
         dir=Arrays.copyOf(dir,16);
         dir[slot>>>DIV8] = Arrays.copyOf(dir[slot>>>DIV8],8);
@@ -666,7 +665,6 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             }
         }
         if(allZero){
-
             dir[slot>>>DIV8] = null;
         }
         allZero = true;
@@ -1468,6 +1466,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                     if(!map.expireMaxSizeFlag || map.size()<map.expireMaxSize)
                         Thread.sleep(1000);
                 }catch(Throwable e){
+                    //TODO exception handling
                     e.printStackTrace();
                     Utils.LOG.log(Level.SEVERE, "HTreeMap expirator failed", e);
                 }
