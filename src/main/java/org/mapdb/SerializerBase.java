@@ -40,7 +40,7 @@ public class SerializerBase implements Serializer{
 
             Serializer.STRING_NOSIZE, Serializer.LONG, Serializer.INTEGER,
             Serializer.ILLEGAL_ACCESS, Serializer.BASIC, Serializer.BOOLEAN,
-            Serializer.BYTE_ARRAY_NOSIZE,
+            Serializer.BYTE_ARRAY_NOSIZE, Serializer.BYTE_ARRAY,
             Serializer.JAVA, Serializer.UUID, Serializer.STRING
 
     ));
@@ -270,6 +270,10 @@ public class SerializerBase implements Serializer{
         } else if(obj == Serializer.ILLEGAL_ACCESS){
             out.write(Header.MAPDB);
             Utils.packInt(out, HeaderMapDB.ILLEGAL_ACCESS_SERIALIZER);
+            return;
+        } else if(obj == Serializer.BYTE_ARRAY){
+            out.write(Header.MAPDB);
+            Utils.packInt(out, HeaderMapDB.BYTE_ARRAY_SERIALIZER);
             return;
         } else if(obj == BTreeKeySerializer.STRING){
             out.write(Header.MAPDB);
@@ -1347,6 +1351,7 @@ public class SerializerBase implements Serializer{
         int SERIALIZER_JAVA = 18;
         int SERIALIZER_UUID = 19;
         int SERIALIZER_STRING = 20;
+        int BYTE_ARRAY_SERIALIZER = 21;
     }
 
 
@@ -1369,6 +1374,8 @@ public class SerializerBase implements Serializer{
                 return Serializer.INTEGER;
             case HeaderMapDB.ILLEGAL_ACCESS_SERIALIZER:
                 return Serializer.ILLEGAL_ACCESS;
+            case HeaderMapDB.BYTE_ARRAY_SERIALIZER:
+                return Serializer.BYTE_ARRAY;
             case HeaderMapDB.BOOLEAN_SERIALIZER:
                 return Serializer.BOOLEAN;
             case HeaderMapDB.SERIALIZER_BYTE_ARRAY_NOSIZE:

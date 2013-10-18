@@ -156,15 +156,38 @@ public interface Serializer<A> {
         }
     };
 
-    /** basic serializer for most classes in 'java.lang' and 'java.util' packages
-     * @deprecated  TODO remove
+    /**
+     * Basic serializer for most classes in 'java.lang' and 'java.util' packages.
+     * It does not handle custom POJO classes. It also does not handle classes which
+     * require access to `DB` itself.
      */
     @SuppressWarnings("unchecked")
     Serializer<Object> BASIC = new SerializerBase();
 
 
     /**
-     * @deprecated  TODO remove
+     * Serializes `byte[]` it adds header which contains size information
+     */
+    Serializer<byte[] > BYTE_ARRAY = new Serializer<byte[]>() {
+
+        @Override
+        public void serialize(DataOutput out, byte[] value) throws IOException {
+            Utils.packInt(out,value.length);
+            out.write(value);
+        }
+
+        @Override
+        public byte[] deserialize(DataInput in, int available) throws IOException {
+            int size = Utils.unpackInt(in);
+            byte[] ret = new byte[size];
+            in.readFully(ret);
+            return ret;
+        }
+    } ;
+
+    /**
+     * Serializes `byte[]` directly into underlying store
+     * It does not store size, so it can not be used in Maps and other collections.
      */
     Serializer<byte[] > BYTE_ARRAY_NOSIZE = new Serializer<byte[]>() {
 
