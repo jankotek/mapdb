@@ -110,9 +110,9 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     /** recid under which reference to rootRecid is stored */
     protected final long rootRecidRef;
 
-    /** Serializer used to convert keys from/into binary form.
-     * TODO delta packing on BTree keys*/
+    /** Serializer used to convert keys from/into binary form. */
     protected final BTreeKeySerializer keySerializer;
+
     /** Serializer used to convert keys from/into binary form*/
     protected final Serializer<V> valueSerializer;
 
@@ -765,8 +765,6 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     //add newRootRecid into leftEdges
                     leftEdges.add(newRootRecid);
 
-
-                    //TODO update tree levels
                     Utils.unlock(nodeLocks, rootRecidRef);
                     if(CC.PARANOID) Utils.assertNoLocks(nodeLocks);
                     notify(v, null, value2);
@@ -1124,7 +1122,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 0==comparator.compare(key,leaf.keys[pos])){
             Object val  = leaf.vals[pos-1];
             val = valExpand(val);
-            if(oldValue.equals(val)){ //TODO use comparator here?
+            if(oldValue.equals(val)){
                 Object[] vals = Arrays.copyOf(leaf.vals, leaf.vals.length);
                 notify(key, oldValue, newValue);
                 if(valsOutsideNodes){
