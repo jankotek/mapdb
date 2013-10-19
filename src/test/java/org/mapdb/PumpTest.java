@@ -191,13 +191,39 @@ public class PumpTest {
 
     @Test public void uuid_reversed(){
         List<UUID> u = new ArrayList<UUID>();
-        for(int i=0;i<1e6;i++) u.add(UUID.randomUUID());
+        Random r = new Random();
+        for(int i=0;i<1e6;i++) u.add(new UUID(r.nextLong(),r.nextLong()));
         Set<UUID> sorted = new TreeSet<UUID>(Collections.reverseOrder(Utils.COMPARABLE_COMPARATOR));
         sorted.addAll(u);
 
         Iterator<UUID> iter = u.iterator();
         iter = Pump.sort(iter,10000,Collections.reverseOrder(Utils.COMPARABLE_COMPARATOR),Serializer.UUID);
         Iterator<UUID> iter2 = sorted.iterator();
+
+        while(iter.hasNext()){
+            assertEquals(iter2.next(), iter.next());
+        }
+        assertFalse(iter2.hasNext());
+    }
+
+
+    @Test public void duplicates_reversed(){
+        List<Long> u = new ArrayList<Long>();
+
+        for(long i=0;i<1e6;i++){
+            u.add(i);
+            if(i%100==0)
+                for(int j=0;j<10;j++)
+                    u.add(i);
+        }
+
+        Comparator c = Collections.reverseOrder(Utils.COMPARABLE_COMPARATOR);
+        List<Long> sorted = new ArrayList<Long>(u);
+        Collections.sort(sorted,c);
+
+        Iterator<Long> iter = u.iterator();
+        iter = Pump.sort(iter,10000,c,Serializer.LONG);
+        Iterator<Long> iter2 = sorted.iterator();
 
         while(iter.hasNext()){
             assertEquals(iter2.next(),iter.next());
