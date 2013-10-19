@@ -16,6 +16,7 @@
 package org.mapdb;
 
 import junit.framework.TestCase;
+import org.junit.Test;
 
 import java.io.*;
 import java.lang.reflect.Field;
@@ -442,6 +443,9 @@ public class SerializerBaseTest extends TestCase {
     }
 
 
+
+
+
     public void test_strings_var_sizes() throws IOException {
         for(int i=0;i<50;i++){
             String s = Utils.randomString(i);
@@ -518,6 +522,13 @@ public class SerializerBaseTest extends TestCase {
         }
     }
 
+    public void test_All_Fun_Fields_Serializable() throws IllegalAccessException, IOException {
+        for(Field f:Fun.class.getDeclaredFields()){
+            Object a = f.get(null);
+            assertTrue("field: "+f.getName(), SerializerBase.knownSerializable.get.contains(a));
+            assertEquals("field: "+f.getName(),a,clone(a));
+        }
+    }
 
     public void test_Named(){
         File f = Utils.tempDbFile();
@@ -597,7 +608,42 @@ public class SerializerBaseTest extends TestCase {
         v = (Atomic.Var) map.get("var");
         assertEquals("hovnocuc", v.get());
         assertEquals(db.getDefaultSerializer(), v.serializer);
-
-
     }
+
+    @Test
+    public void tuple2_comparators() throws IOException {
+        Object a = new Fun.Tuple2Comparator(Fun.REVERSE_COMPARATOR,null);
+        assertEquals(a,clone(a));
+        a = new Fun.Tuple2Comparator(null,Fun.REVERSE_COMPARATOR);
+        assertEquals(a,clone(a));
+        a = new Fun.Tuple2Comparator(Fun.REVERSE_COMPARATOR,Fun.REVERSE_COMPARATOR);
+        assertEquals(a,clone(a));
+    }
+
+    @Test
+    public void tuple3_comparators() throws IOException {
+        Object a = new Fun.Tuple3Comparator(Fun.REVERSE_COMPARATOR,null,null);
+        assertEquals(a,clone(a));
+        a = new Fun.Tuple3Comparator(null,Fun.REVERSE_COMPARATOR,null);
+        assertEquals(a,clone(a));
+        a = new Fun.Tuple3Comparator(null,null,Fun.REVERSE_COMPARATOR);
+        assertEquals(a,clone(a));
+        a = new Fun.Tuple3Comparator(Fun.REVERSE_COMPARATOR,Fun.REVERSE_COMPARATOR,Fun.REVERSE_COMPARATOR);
+        assertEquals(a,clone(a));
+    }
+
+    @Test
+    public void tuple4_comparators() throws IOException {
+        Object a = new Fun.Tuple4Comparator(Fun.REVERSE_COMPARATOR,null,null,null);
+        assertEquals(a,clone(a));
+        a = new Fun.Tuple4Comparator(null,Fun.REVERSE_COMPARATOR,null,null);
+        assertEquals(a,clone(a));
+        a = new Fun.Tuple4Comparator(null,null,Fun.REVERSE_COMPARATOR,null);
+        assertEquals(a,clone(a));
+        a = new Fun.Tuple4Comparator(null,null,null,Fun.REVERSE_COMPARATOR);
+        assertEquals(a,clone(a));
+        a = new Fun.Tuple4Comparator(Fun.REVERSE_COMPARATOR,Fun.REVERSE_COMPARATOR,Fun.REVERSE_COMPARATOR,Fun.REVERSE_COMPARATOR);
+        assertEquals(a,clone(a));
+    }
+
 }

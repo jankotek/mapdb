@@ -17,6 +17,7 @@
 package org.mapdb;
 
 import java.io.Serializable;
+import java.util.Comparator;
 
 /**
  * Functional stuff. Tuples, function, callback methods etc..
@@ -26,13 +27,45 @@ import java.io.Serializable;
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public final class Fun {
 
+
+	public static final Comparator<Comparable> COMPARATOR = new Comparator<Comparable>() {
+        @Override
+        public int compare(Comparable o1, Comparable o2) {
+            if(o1 == null)
+                return o2 == null?0:-1;
+            if(o2 == null) return 1;
+
+            if(o1 == HI)
+                return o2 == HI?0:1;
+            if(o2 == HI) return -1;
+
+            return o1.compareTo(o2);
+        }
+    };
+
+    public static final Comparator<Comparable> REVERSE_COMPARATOR = new Comparator<Comparable>() {
+        @Override
+        public int compare(Comparable o1, Comparable o2) {
+            return -COMPARATOR.compare(o1,o2);
+        }
+    };
+
+    public static final Comparator<Tuple2> TUPLE2_COMPARATOR = new Tuple2Comparator(null,null);
+    public static final Comparator<Tuple3> TUPLE3_COMPARATOR = new Tuple3Comparator(null,null,null);
+    public static final Comparator<Tuple4> TUPLE4_COMPARATOR = new Tuple4Comparator(null,null,null,null);
+
     private Fun(){}
 
     /** positive infinity object. Is larger than anything else. Used in tuple comparators.
      * Negative infinity is represented by 'null' */
-    public static final Object HI = new Object(){
+    public static final Comparable HI = new Comparable(){
         @Override public String toString() {
             return "HI";
+        }
+
+        @Override
+        public int compareTo(final Object o) {
+            return o==HI?0:1; //always greater than anything else
         }
     };
 
@@ -76,23 +109,7 @@ public final class Fun {
         }
 
         @Override public int compareTo(Object o) {
-            final Tuple2 oo = (Tuple2) o;
-            if(a!=oo.a){
-                if(a==null || oo.a==HI) return -1;
-                if(a==HI || oo.a==null) return 1;
-
-                final int c = ((Comparable)a).compareTo(oo.a);
-                if(c!=0) return c;
-            }
-
-            if(b!=oo.b){
-                if(b==null || oo.b==HI) return -1;
-                if(b==HI || oo.b==null) return 1;
-
-                final int i = ((Comparable)b).compareTo(oo.b);
-                if(i!=0) return i;
-            }
-            return 0;
+            return TUPLE2_COMPARATOR.compare(this, (Tuple2) o);
         }
 
         @Override public boolean equals(Object o) {
@@ -133,32 +150,7 @@ public final class Fun {
         }
 
         @Override public int compareTo(Object o) {
-            final Tuple3 oo = (Tuple3) o;
-            if(a!=oo.a){
-                if(a==null || oo.a==HI) return -1;
-                if(a==HI ||  oo.a==null) return 1;
-
-                final int c = ((Comparable)a).compareTo(oo.a);
-                if(c!=0) return c;
-            }
-
-            if(b!=oo.b){
-                if(b==null || oo.b==HI) return -1;
-                if(b==HI || oo.b==null) return 1;
-
-                final int i = ((Comparable)b).compareTo(oo.b);
-                if(i!=0) return i;
-            }
-
-            if(c!=oo.c){
-                if(c==null || oo.c==HI) return -1;
-                if(c==HI || oo.c==null) return 1;
-
-                final int i = ((Comparable)c).compareTo(oo.c);
-                if(i!=0) return i;
-            }
-
-            return 0;
+            return TUPLE3_COMPARATOR.compare(this, (Tuple3) o);
         }
 
 
@@ -206,41 +198,7 @@ public final class Fun {
         }
 
         @Override public int compareTo(Object o) {
-            final Tuple4 oo = (Tuple4) o;
-            if(a!=oo.a){
-                if(a==null || oo.a==HI) return -1;
-                if(a==HI || oo.a==null) return 1;
-
-                final int c = ((Comparable)a).compareTo(oo.a);
-                if(c!=0) return c;
-            }
-
-            if(b!=oo.b){
-                if(b==null || oo.b==HI) return -1;
-                if(b==HI || oo.b==null) return 1;
-
-                final int i = ((Comparable)b).compareTo(oo.b);
-                if(i!=0) return i;
-            }
-
-            if(c!=oo.c){
-                if(c==null || oo.c==HI) return -1;
-                if(c==HI || oo.c==null) return 1;
-
-                final int i = ((Comparable)c).compareTo(oo.c);
-                if(i!=0) return i;
-            }
-
-            if(d!=oo.d){
-                if(d==null || oo.d==HI) return -1;
-                if(d==HI || oo.d==null) return 1;
-
-                final int i = ((Comparable)d).compareTo(oo.d);
-                if(i!=0) return i;
-            }
-
-
-            return 0;
+            return TUPLE4_COMPARATOR.compare(this, (Tuple4) o);
         }
 
 
@@ -273,6 +231,73 @@ public final class Fun {
         }
     }
 
+
+    public static final class Tuple2Comparator<A,B> implements Comparator<Tuple2<A,B>>,Serializable {
+
+        protected final Comparator a;
+        protected final Comparator b;
+
+        public Tuple2Comparator(Comparator<A> a, Comparator<B> b) {
+            this.a = a==null? COMPARATOR :a;
+            this.b = b==null? COMPARATOR :b;
+        }
+
+        @Override
+        public int compare(final Tuple2 o1, final Tuple2 o2) {
+            int i = a.compare(o1.a,o2.a);
+            if(i!=0) return i;
+            i = b.compare(o1.b,o2.b);
+            return i;
+        }
+    }
+
+    public static final class Tuple3Comparator<A,B,C> implements Comparator<Tuple3<A,B,C>>,Serializable  {
+
+        protected final Comparator a;
+        protected final Comparator b;
+        protected final Comparator c;
+
+        public Tuple3Comparator(Comparator<A> a, Comparator<B> b, Comparator<C> c) {
+            this.a = a==null? COMPARATOR :a;
+            this.b = b==null? COMPARATOR :b;
+            this.c = c==null? COMPARATOR :c;
+        }
+
+        @Override
+        public int compare(final Tuple3 o1, final Tuple3 o2) {
+            int i = a.compare(o1.a,o2.a);
+            if(i!=0) return i;
+            i = b.compare(o1.b,o2.b);
+            if(i!=0) return i;
+            return c.compare(o1.c,o2.c);
+        }
+    }
+
+    public static final class Tuple4Comparator<A,B,C,D> implements Comparator<Tuple4<A,B,C,D>>,Serializable  {
+
+        protected final Comparator a;
+        protected final Comparator b;
+        protected final Comparator c;
+        protected final Comparator d;
+
+        public Tuple4Comparator(Comparator<A> a, Comparator<B> b, Comparator<C> c, Comparator<C> d) {
+            this.a = a==null? COMPARATOR :a;
+            this.b = b==null? COMPARATOR :b;
+            this.c = c==null? COMPARATOR :c;
+            this.d = d==null? COMPARATOR :d;
+        }
+
+        @Override
+        public int compare(final Tuple4 o1, final Tuple4 o2) {
+            int i = a.compare(o1.a,o2.a);
+            if(i!=0) return i;
+            i = b.compare(o1.b,o2.b);
+            if(i!=0) return i;
+            i = c.compare(o1.c,o2.c);
+            if(i!=0) return i;
+            return d.compare(o1.d,o2.d);
+        }
+    }
 
     public interface Function1<R,A>{
         R run(A a);

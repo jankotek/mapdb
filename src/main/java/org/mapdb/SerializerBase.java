@@ -32,18 +32,18 @@ public class SerializerBase implements Serializer{
 
 
     static final class knownSerializable{
-        static final Set get = new HashSet(Arrays.asList(
+        static final Set get = Utils.identityHashSet(
             BTreeKeySerializer.STRING,
             BTreeKeySerializer.ZERO_OR_POSITIVE_LONG,
             BTreeKeySerializer.ZERO_OR_POSITIVE_INT,
-            Utils.COMPARABLE_COMPARATOR, Utils.COMPARABLE_COMPARATOR_WITH_NULLS,
-
+            Utils.COMPARABLE_COMPARATOR, Fun.COMPARATOR,Fun.REVERSE_COMPARATOR,
+            Fun.TUPLE2_COMPARATOR,Fun.TUPLE3_COMPARATOR,Fun.TUPLE4_COMPARATOR,
+            Fun.HI,
             Serializer.STRING_NOSIZE, Serializer.LONG, Serializer.INTEGER,
             Serializer.ILLEGAL_ACCESS, Serializer.BASIC, Serializer.BOOLEAN,
             Serializer.BYTE_ARRAY_NOSIZE, Serializer.BYTE_ARRAY,
             Serializer.JAVA, Serializer.UUID, Serializer.STRING
-
-    ));
+        );
     }
 
     public static void assertSerializable(Object o){
@@ -242,6 +242,7 @@ public class SerializerBase implements Serializer{
             return;
         } else if(obj == Fun.HI){
             out.write(Header.FUN_HI);
+            return;
         } else if(clazz == BTreeKeySerializer.BasicKeySerializer.class){
             out.write(Header.MAPDB);
             Utils.packInt(out, HeaderMapDB.B_TREE_BASIC_KEY_SERIALIZER);
@@ -283,9 +284,13 @@ public class SerializerBase implements Serializer{
             out.write(Header.MAPDB);
             Utils.packInt(out, HeaderMapDB.COMPARABLE_COMPARATOR);
             return;
-        } else if(obj == Utils.COMPARABLE_COMPARATOR_WITH_NULLS){
+        } else if(obj == Fun.COMPARATOR){
             out.write(Header.MAPDB);
-            Utils.packInt(out, HeaderMapDB.COMPARABLE_COMPARATOR_WITH_NULLS);
+            Utils.packInt(out, HeaderMapDB.FUN_COMPARATOR);
+            return;
+        } else if(obj == Fun.REVERSE_COMPARATOR){
+            out.write(Header.MAPDB);
+            Utils.packInt(out, HeaderMapDB.FUN_COMPARATOR_REVERSE);
             return;
         } else if(obj == BASIC){
             out.write(Header.MAPDB);
@@ -310,6 +315,45 @@ public class SerializerBase implements Serializer{
         } else if(obj == Serializer.STRING){
             out.write(Header.MAPDB);
             Utils.packInt(out, HeaderMapDB.SERIALIZER_STRING);
+            return;
+        } else if(obj == Fun.TUPLE2_COMPARATOR){
+            out.write(Header.MAPDB);
+            Utils.packInt(out, HeaderMapDB.TUPLE2_COMPARATOR_STATIC);
+            return;
+        } else if(obj == Fun.TUPLE3_COMPARATOR){
+            out.write(Header.MAPDB);
+            Utils.packInt(out, HeaderMapDB.TUPLE3_COMPARATOR_STATIC);
+            return;
+        } else if(obj == Fun.TUPLE4_COMPARATOR){
+            out.write(Header.MAPDB);
+            Utils.packInt(out, HeaderMapDB.TUPLE4_COMPARATOR_STATIC);
+            return;
+        }else if(obj instanceof Fun.Tuple2Comparator ){
+            out.write(Header.MAPDB);
+            Utils.packInt(out, HeaderMapDB.TUPLE2_COMPARATOR);
+            Fun.Tuple2Comparator c = (Fun.Tuple2Comparator) obj;
+            //TODO handle objectStack
+            serialize(out,c.a,objectStack );
+            serialize(out,c.b,objectStack );
+            return;
+        }else if(obj instanceof Fun.Tuple3Comparator ){
+            out.write(Header.MAPDB);
+            Utils.packInt(out, HeaderMapDB.TUPLE3_COMPARATOR);
+            Fun.Tuple3Comparator c = (Fun.Tuple3Comparator) obj;
+            //TODO handle objectStack
+            serialize(out,c.a,objectStack );
+            serialize(out,c.b,objectStack );
+            serialize(out,c.c,objectStack );
+            return;
+        }else if(obj instanceof Fun.Tuple4Comparator ){
+            out.write(Header.MAPDB);
+            Utils.packInt(out, HeaderMapDB.TUPLE4_COMPARATOR);
+            Fun.Tuple4Comparator c = (Fun.Tuple4Comparator) obj;
+            //TODO handle objectStack
+            serialize(out,c.a,objectStack );
+            serialize(out,c.b,objectStack );
+            serialize(out,c.c,objectStack );
+            serialize(out,c.d,objectStack );
             return;
         }else if(obj instanceof Atomic.Long ){
             out.write(Header.MA_LONG);
@@ -1340,7 +1384,7 @@ public class SerializerBase implements Serializer{
         int KEY_TUPLE2_SERIALIZER = 7;
         int KEY_TUPLE3_SERIALIZER = 8;
         int KEY_TUPLE4_SERIALIZER = 9;
-        int COMPARABLE_COMPARATOR_WITH_NULLS = 10;
+        int FUN_COMPARATOR = 10;
         int COMPARABLE_COMPARATOR = 11;
         int THIS_SERIALIZER = 12;
         int BASIC_SERIALIZER = 13;
@@ -1352,14 +1396,19 @@ public class SerializerBase implements Serializer{
         int SERIALIZER_UUID = 19;
         int SERIALIZER_STRING = 20;
         int BYTE_ARRAY_SERIALIZER = 21;
+        int TUPLE2_COMPARATOR = 22;
+        int TUPLE3_COMPARATOR = 23;
+        int TUPLE4_COMPARATOR = 24;
+        int TUPLE2_COMPARATOR_STATIC = 25;
+        int TUPLE3_COMPARATOR_STATIC = 26;
+        int TUPLE4_COMPARATOR_STATIC = 27;
+        int FUN_COMPARATOR_REVERSE = 28;
     }
 
 
     protected Object deserializeMapDB(DataInput is, FastArrayList<Object> objectStack) throws IOException {
         int head = Utils.unpackInt(is);
         switch(head){
-
-
 
             case HeaderMapDB.B_TREE_SERIALIZER_POS_LONG:
                 return  BTreeKeySerializer.ZERO_OR_POSITIVE_LONG;
@@ -1387,26 +1436,49 @@ public class SerializerBase implements Serializer{
             case HeaderMapDB.SERIALIZER_STRING:
                 return Serializer.STRING;
 
-
             case HeaderMapDB.COMPARABLE_COMPARATOR: return Utils.COMPARABLE_COMPARATOR;
 
-
             case HeaderMapDB.KEY_TUPLE2_SERIALIZER:
+                //TODO objectStack?
                 return new BTreeKeySerializer.Tuple2KeySerializer(
                         (Comparator)deserialize(is,objectStack), (Serializer)deserialize(is,objectStack), (Serializer)deserialize(is,objectStack));
 
             case HeaderMapDB.KEY_TUPLE3_SERIALIZER:
+                //TODO objectStack?
                 return new BTreeKeySerializer.Tuple3KeySerializer(
                         (Comparator)deserialize(is,objectStack),(Comparator)deserialize(is,objectStack),
                         (Serializer)deserialize(is,objectStack),(Serializer)deserialize(is,objectStack), (Serializer)deserialize(is,objectStack));
 
             case HeaderMapDB.KEY_TUPLE4_SERIALIZER:
+                //TODO objectStack?
                 return new BTreeKeySerializer.Tuple4KeySerializer(
                         (Comparator)deserialize(is,objectStack),(Comparator)deserialize(is,objectStack),(Comparator)deserialize(is,objectStack),
                         (Serializer)deserialize(is,objectStack), (Serializer)deserialize(is,objectStack),
                         (Serializer)deserialize(is,objectStack), (Serializer)deserialize(is,objectStack));
-            case HeaderMapDB.COMPARABLE_COMPARATOR_WITH_NULLS:
-                return Utils.COMPARABLE_COMPARATOR_WITH_NULLS;
+
+            case HeaderMapDB.TUPLE2_COMPARATOR_STATIC:
+                return Fun.TUPLE2_COMPARATOR;
+            case HeaderMapDB.TUPLE3_COMPARATOR_STATIC:
+                return Fun.TUPLE3_COMPARATOR;
+            case HeaderMapDB.TUPLE4_COMPARATOR_STATIC:
+                return Fun.TUPLE4_COMPARATOR;
+
+            case HeaderMapDB.TUPLE2_COMPARATOR:
+                //TODO objectStack?
+                return new Fun.Tuple2Comparator((Comparator)deserialize(is,objectStack),(Comparator)deserialize(is,objectStack));
+            case HeaderMapDB.TUPLE3_COMPARATOR:
+                //TODO objectStack?
+                return new Fun.Tuple3Comparator((Comparator)deserialize(is,objectStack),(Comparator)deserialize(is,objectStack),
+                        (Comparator)deserialize(is,objectStack));
+            case HeaderMapDB.TUPLE4_COMPARATOR:
+                //TODO objectStack?
+                return new Fun.Tuple4Comparator((Comparator)deserialize(is,objectStack),(Comparator)deserialize(is,objectStack),
+                        (Comparator)deserialize(is,objectStack),(Comparator)deserialize(is,objectStack));
+
+            case HeaderMapDB.FUN_COMPARATOR:
+                return Fun.COMPARATOR;
+            case HeaderMapDB.FUN_COMPARATOR_REVERSE:
+                return Fun.REVERSE_COMPARATOR;
 
             case HeaderMapDB.B_TREE_BASIC_KEY_SERIALIZER:
                 return new BTreeKeySerializer.BasicKeySerializer((Serializer) deserialize(is,objectStack)); //TODO objectStack here

@@ -8,9 +8,12 @@ import java.io.DataOutput;
 import java.io.IOError;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Set;
 
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class UtilsTest {
 
@@ -91,4 +94,12 @@ public class UtilsTest {
         }
     };
 
+    @Test
+    public void identity_hash_set(){
+        Set a = Utils.identityHashSet(Serializer.BASIC, Serializer.BOOLEAN);
+        assertTrue(a.contains(Serializer.BASIC));
+        assertTrue(a.contains(Serializer.BOOLEAN));
+        assertFalse(a.contains(Serializer.LONG));
+        a.clear();
+    }
 }

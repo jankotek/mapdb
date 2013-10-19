@@ -46,14 +46,6 @@ final public class Utils {
         }
     };
 
-    @SuppressWarnings("rawtypes")
-	public static final Comparator<Comparable> COMPARABLE_COMPARATOR_WITH_NULLS = new Comparator<Comparable>() {
-        @Override
-        public int compare(Comparable o1, Comparable o2) {
-            return o1 == null && o2 != null ? -1 : (o1 != null && o2 == null ? 1 : o1.compareTo(o2));
-        }
-    };
-
 
     public static final String EMPTY_STRING = "";
     public static final String UTF8 = "UTF8";
@@ -341,4 +333,14 @@ final public class Utils {
         };
     }
 
+    /**
+     * Converts parameters into IdentityHashSet.
+     * In reality it uses {@link java.util.IdentityHashMap#keySet()}
+     */
+    public static Set identityHashSet(Object... vals) {
+        Map ret = new IdentityHashMap();
+        for(Object val:vals)
+            ret.put(val,EMPTY_STRING);
+        return ret.keySet();
+    }
 }
