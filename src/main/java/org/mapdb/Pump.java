@@ -158,13 +158,15 @@ public class Pump {
 
         return new Iterator<E>(){
 
-            final Object[] items = new Object[iterators.length];
-            E next = null;
+            final NavigableSet<Fun.Tuple2<Object,Integer>> items = new TreeSet<Fun.Tuple2<Object, Integer>>(
+                    new Fun.Tuple2Comparator<Object,Integer>(comparator,null));
+
+            Object next = this; //is initialized with this so first `next()` will not throw NoSuchElementException
 
             {
                 for(int i=0;i<iterators.length;i++){
                     if(iterators[i].hasNext()){
-                        items[i] = iterators[i].next();
+                        items.add(Fun.t2(iterators[i].next(), i));
                     }
                 }
                 next();
@@ -176,20 +178,29 @@ public class Pump {
             }
 
             @Override public E next() {
-                E oldNext = next;
+                if(next == null)
+                    throw new NoSuchElementException();
 
-                int low=0;
-                for(int i=1;i<items.length;i++){
-                    if(items[i]==null) continue;
-                    if(items[low]==null|| comparator.compare((E)items[i],(E)items[low])<0)
-                        low = i;
+                Object oldNext = next;
+
+                Fun.Tuple2<Object,Integer> lo = items.pollFirst();
+                if(lo == null){
+                    next = null;
+                    return (E) oldNext;
                 }
 
-                next = (E) items[low];
+                next = lo.a;
 
-                items[low] = iterators[low].hasNext()?iterators[low].next():null;
+                if(oldNext!=this && comparator.compare(oldNext,next)>0){
+                    throw new IllegalArgumentException("One of the iterators is not sorted");
+                }
 
-                return oldNext;
+                Iterator iter = iterators[lo.b];
+                if(iter.hasNext()){
+                    items.add(Fun.t2(iter.next(),lo.b));
+                }
+
+                return (E) oldNext;
             }
 
             @Override public void remove() {
