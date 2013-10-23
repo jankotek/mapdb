@@ -702,7 +702,6 @@ public class StoreDirect extends Store{
         lockAllWrite();
         try{
             //create secondary files for compaction
-            //TODO RAF
             //TODO memory based stores
             final File indexFile = index.getFile();
             final File physFile = phys.getFile();
@@ -710,7 +709,6 @@ public class StoreDirect extends Store{
             if(index instanceof  Volume.FileChannelVol) rafMode=2;
             if(index instanceof  Volume.MappedFileVol && phys instanceof Volume.FileChannelVol) rafMode = 1;
 
-            final boolean isRaf = index instanceof Volume.FileChannelVol;
             Volume.Factory fab = Volume.fileFactory(false, rafMode, new File(indexFile+".compact"),sizeLimit);
             StoreDirect store2 = new StoreDirect(fab,false,false,5,false,0L, checksum,compress,password);
             store2.structuralLock.lock();
