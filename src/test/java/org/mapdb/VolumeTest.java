@@ -21,6 +21,21 @@ public abstract class VolumeTest {
         @Override Volume getVolume() {
             return new Volume.MemoryVol(false, 0L);
         }
+
+        @Test public void transfer(){
+            long max = (long) (Volume.BUF_SIZE*1.5);
+            Volume from = new Volume.MemoryVol(false,0);
+            for(long i=0;i<max;i+=8){
+                from.ensureAvailable(i+8);
+                from.putLong(i,i);
+            }
+            Volume to = new Volume.MemoryVol(false,0);
+            Volume.volumeTransfer(max,from,to);
+            for(long i=0;i<max;i+=8){
+                assertEquals(i, to.getLong(i));
+            }
+        }
+
     }
 
     public static class MappedFileVolumeTest extends VolumeTest{

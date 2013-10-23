@@ -694,26 +694,34 @@ public class StoreDirect extends Store{
     public void compact() {
 
         if(readOnly) throw new IllegalAccessError();
-        index.putLong(IO_PHYS_SIZE,physSize);
-        index.putLong(IO_INDEX_SIZE,indexSize);
-        index.putLong(IO_FREE_SIZE,freeSize);
 
-        if(index.getFile()==null) throw new UnsupportedOperationException("compact not supported for memory storage yet");
+        final File indexFile = index.getFile();
+        final File physFile = phys.getFile();
+
+        final int rafMode;
+        if(index instanceof  Volume.FileChannelVol){
+            rafMode=2;
+        }else if(index instanceof  Volume.MappedFileVol && phys instanceof Volume.FileChannelVol){
+            rafMode = 1;
+        }else{
+            rafMode = 0;
+        }
+
+        final File compactedFile = new File((indexFile!=null?indexFile:Utils.tempDbFile())+".compact");
+        Volume.Factory fab = Volume.fileFactory(false, rafMode,compactedFile,sizeLimit);
+        StoreDirect store2 = new StoreDirect(fab,false,false,5,false,0L, checksum,compress,password);
+
         lockAllWrite();
         try{
-            //create secondary files for compaction
-            //TODO memory based stores
-            final File indexFile = index.getFile();
-            final File physFile = phys.getFile();
-            int rafMode = 0;
-            if(index instanceof  Volume.FileChannelVol) rafMode=2;
-            if(index instanceof  Volume.MappedFileVol && phys instanceof Volume.FileChannelVol) rafMode = 1;
+            index.putLong(IO_PHYS_SIZE,physSize);
+            index.putLong(IO_INDEX_SIZE,indexSize);
+            index.putLong(IO_FREE_SIZE,freeSize);
 
-            Volume.Factory fab = Volume.fileFactory(false, rafMode, new File(indexFile+".compact"),sizeLimit);
-            StoreDirect store2 = new StoreDirect(fab,false,false,5,false,0L, checksum,compress,password);
+            //create secondary files for compaction
             store2.structuralLock.lock();
 
             //transfer stack of free recids
+            //TODO long stack take modifies the original store
             for(long recid =longStackTake(IO_FREE_RECID,false);
                 recid!=0; recid=longStackTake(IO_FREE_RECID,false)){
                 store2.longStackPut(recid, IO_FREE_RECID,false);
@@ -734,38 +742,63 @@ public class StoreDirect extends Store{
                 }
             }
 
-
-
             File indexFile2 = store2.index.getFile();
             File physFile2 = store2.phys.getFile();
             store2.structuralLock.unlock();
-            store2.close();
 
-            long time = System.currentTimeMillis();
-            File indexFile_ = new File(indexFile.getPath()+"_"+time+"_orig");
-            File physFile_ = new File(physFile.getPath()+"_"+time+"_orig");
-
+            final boolean useDirectBuffer = index instanceof Volume.MemoryVol &&
+                    ((Volume.MemoryVol)index).useDirectBuffer;
             index.close();
+            index = null;
             phys.close();
-            if(!indexFile.renameTo(indexFile_))throw new InternalError("could not rename file");
-            if(!physFile.renameTo(physFile_))throw new InternalError("could not rename file");
+            phys = null;
 
-            if(!indexFile2.renameTo(indexFile))throw new InternalError("could not rename file");
-            //TODO process may fail in middle of rename, analyze sequence and add recovery
-            if(!physFile2.renameTo(physFile))throw new InternalError("could not rename file");
+            if(indexFile != null){
+                final long time = System.currentTimeMillis();
+                final File indexFile_ = indexFile!=null? new File(indexFile.getPath()+"_"+time+"_orig"): null;
+                final File physFile_ = physFile!=null? new File(physFile.getPath()+"_"+time+"_orig") : null;
 
-            indexFile_.delete();
-            physFile_.delete();
+                store2.close();
+                //not in memory, so just rename files
+                if(!indexFile.renameTo(indexFile_))
+                    throw new InternalError("could not rename file");
+                if(!physFile.renameTo(physFile_))
+                    throw new InternalError("could not rename file");
 
-            Volume.Factory fac2 = Volume.fileFactory(false, rafMode, indexFile,sizeLimit);
+                if(!indexFile2.renameTo(indexFile))
+                    throw new InternalError("could not rename file");
+                //TODO process may fail in middle of rename, analyze sequence and add recovery
+                if(!physFile2.renameTo(physFile))
+                    throw new InternalError("could not rename file");
 
-            index = fac2.createIndexVolume();
-            phys = fac2.createPhysVolume();
+                final Volume.Factory fac2 = Volume.fileFactory(false, rafMode, indexFile,sizeLimit);
+                index = fac2.createIndexVolume();
+                phys = fac2.createPhysVolume();
+
+                indexFile_.delete();
+                physFile_.delete();
+            }else{
+                //in memory, so copy files into memory
+                Volume indexVol2 = new Volume.MemoryVol(useDirectBuffer,sizeLimit);
+                Volume.volumeTransfer(indexSize, store2.index, indexVol2);
+                Volume physVol2 = new Volume.MemoryVol(useDirectBuffer,sizeLimit);
+                Volume.volumeTransfer(store2.physSize, store2.phys, physVol2);
+
+                store2.close();
+
+                index = indexVol2;
+                phys = physVol2;
+            }
+
+
+
 
             physSize = store2.physSize;
+            freeSize = store2.freeSize;
             index.putLong(IO_PHYS_SIZE, physSize);
             index.putLong(IO_INDEX_SIZE, indexSize);
             index.putLong(IO_FREE_SIZE, freeSize);
+            index.putLong(IO_INDEX_SUM,indexHeaderChecksum());
 
             maxUsedIoList=IO_USER_START-8;
             while(index.getLong(maxUsedIoList)!=0 && maxUsedIoList>IO_FREE_RECID)

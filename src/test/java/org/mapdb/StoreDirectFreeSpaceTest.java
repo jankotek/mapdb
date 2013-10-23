@@ -2,10 +2,7 @@ package org.mapdb;
 
 import org.junit.Test;
 
-import java.util.Deque;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 import static org.junit.Assert.*;
 
@@ -117,6 +114,20 @@ public class StoreDirectFreeSpaceTest {
         //TODO
     }
 
+    @Test public void in_memory_compact(){
+        for(DB d: Arrays.asList(DBMaker.newMemoryDB().cacheDisable().asyncWriteDisable().make(),
+                DBMaker.newMemoryDB().transactionDisable().cacheDisable().asyncWriteDisable().make())){
+            Map m = d.getTreeMap("aa");
+            for(Integer i=0;i<10000;i++){
+                m.put(i,i*10);
+            }
+            d.commit();
+            d.compact();
+            for(Integer i=0;i<10000;i++){
+                assertEquals(i*10, m.get(i));
+            }
+        }
+    }
 
 
 }

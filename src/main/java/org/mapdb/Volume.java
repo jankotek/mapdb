@@ -829,7 +829,19 @@ public abstract class Volume {
         }
     }
 
+    /** transfer data from one volume to second. Second volume will be expanded if needed*/
+    public static void volumeTransfer(long size, Volume from, Volume to){
+        int bufSize = 1024*64;
 
-
+        for(long offset=0;offset<size;offset+=bufSize){
+            int bb = (int) Math.min(bufSize, size-offset);
+            DataInput2 input = from.getDataInput(offset, bb);
+            ByteBuffer buf = input.buf.duplicate();
+            buf.position(input.pos);
+            buf.limit(input.pos+bb);
+            to.ensureAvailable(offset+bb);
+            to.putData(offset,buf);
+        }
+    }
 }
 
