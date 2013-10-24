@@ -16,7 +16,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
     @Override boolean canRollback(){return false;}
 
-    Volume.Factory fac = Volume.fileFactory(false,0,Utils.tempDbFile(), 0L);
+    Volume.Factory fac = Volume.fileFactory(false,0,Utils.tempDbFile(), 0L,false);
 
     static final long IO_RECID = StoreDirect.IO_FREE_RECID+32;
 

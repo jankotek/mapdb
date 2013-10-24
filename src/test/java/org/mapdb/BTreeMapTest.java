@@ -13,7 +13,7 @@ import static org.junit.Assert.*;
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class BTreeMapTest{
 
-    Engine engine = new StoreDirect(Volume.memoryFactory(false,0L));
+    Engine engine = new StoreDirect(Volume.memoryFactory(false,0L, false));
 
 
     BTreeMap m = new BTreeMap(engine,BTreeMap.createRootRef(engine,BTreeKeySerializer.BASIC,Serializer.BASIC,Utils.COMPARABLE_COMPARATOR),

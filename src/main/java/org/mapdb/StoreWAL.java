@@ -6,7 +6,6 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Random;
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Write-Ahead-Log
@@ -45,13 +44,13 @@ public class StoreWAL extends StoreDirect {
 
 
     public StoreWAL(Volume.Factory volFac) {
-        this(volFac,false,false,5,false,0L,false,false,null);
+        this(volFac,false,false,5,false,0L,false,false,null,false);
     }
     public StoreWAL(Volume.Factory volFac, boolean readOnly, boolean deleteFilesAfterClose,
                     int spaceReclaimMode, boolean syncOnCommitDisabled, long sizeLimit,
-                    boolean checksum, boolean compress, byte[] password) {
+                    boolean checksum, boolean compress, byte[] password, boolean fullChunkAllocation) {
         super(volFac, readOnly, deleteFilesAfterClose, spaceReclaimMode,syncOnCommitDisabled,sizeLimit,
-                checksum,compress,password);
+                checksum,compress,password, fullChunkAllocation);
         this.volFac = volFac;
         this.log = volFac.createTransLogVolume();
 

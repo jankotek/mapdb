@@ -174,6 +174,7 @@ public class StoreDirect extends Store{
     protected final boolean spaceReclaimTrack;
 
     protected final long sizeLimit;
+    protected final boolean fullChunkAllocation;
 
     /** maximal non zero slot in free phys record, access requires `structuralLock`*/
     protected long maxUsedIoList = 0;
@@ -182,12 +183,13 @@ public class StoreDirect extends Store{
 
     public StoreDirect(Volume.Factory volFac, boolean readOnly, boolean deleteFilesAfterClose,
                        int spaceReclaimMode, boolean syncOnCommitDisabled, long sizeLimit,
-                       boolean checksum, boolean compress, byte[] password) {
+                       boolean checksum, boolean compress, byte[] password, boolean fullChunkAllocation) {
         super(checksum, compress, password);
         this.readOnly = readOnly;
         this.deleteFilesAfterClose = deleteFilesAfterClose;
         this.syncOnCommitDisabled = syncOnCommitDisabled;
         this.sizeLimit = sizeLimit;
+        this.fullChunkAllocation = fullChunkAllocation;
 
         this.spaceReclaimSplit = spaceReclaimMode>4;
         this.spaceReclaimReuse = spaceReclaimMode>2;
@@ -211,7 +213,7 @@ public class StoreDirect extends Store{
     }
 
     public StoreDirect(Volume.Factory volFac) {
-        this(volFac, false,false,5,false,0L, false,false,null);
+        this(volFac, false,false,5,false,0L, false,false,null, false);
     }
 
 
@@ -708,8 +710,8 @@ public class StoreDirect extends Store{
         }
 
         final File compactedFile = new File((indexFile!=null?indexFile:Utils.tempDbFile())+".compact");
-        Volume.Factory fab = Volume.fileFactory(false, rafMode,compactedFile,sizeLimit);
-        StoreDirect store2 = new StoreDirect(fab,false,false,5,false,0L, checksum,compress,password);
+        Volume.Factory fab = Volume.fileFactory(false, rafMode,compactedFile,sizeLimit,fullChunkAllocation);
+        StoreDirect store2 = new StoreDirect(fab,false,false,5,false,0L, checksum,compress,password, fullChunkAllocation);
 
         lockAllWrite();
         try{
@@ -771,7 +773,7 @@ public class StoreDirect extends Store{
                 if(!physFile2.renameTo(physFile))
                     throw new InternalError("could not rename file");
 
-                final Volume.Factory fac2 = Volume.fileFactory(false, rafMode, indexFile,sizeLimit);
+                final Volume.Factory fac2 = Volume.fileFactory(false, rafMode, indexFile,sizeLimit,fullChunkAllocation);
                 index = fac2.createIndexVolume();
                 phys = fac2.createPhysVolume();
 
@@ -779,9 +781,9 @@ public class StoreDirect extends Store{
                 physFile_.delete();
             }else{
                 //in memory, so copy files into memory
-                Volume indexVol2 = new Volume.MemoryVol(useDirectBuffer,sizeLimit);
+                Volume indexVol2 = new Volume.MemoryVol(useDirectBuffer,sizeLimit,fullChunkAllocation);
                 Volume.volumeTransfer(indexSize, store2.index, indexVol2);
-                Volume physVol2 = new Volume.MemoryVol(useDirectBuffer,sizeLimit);
+                Volume physVol2 = new Volume.MemoryVol(useDirectBuffer,sizeLimit,fullChunkAllocation);
                 Volume.volumeTransfer(store2.physSize, store2.phys, physVol2);
 
                 store2.close();

@@ -17,30 +17,58 @@ import static org.junit.Assert.*;
 public abstract class VolumeTest {
 
 
+    public static class MemoryVolumeFullChunkTest extends VolumeTest{
+        @Override Volume getVolume() {
+            return new Volume.MemoryVol(false, 0L,true);
+        }
+
+
+        @Override public void testEnsureAvailable() throws Exception {
+            Volume.MemoryVol v = (Volume.MemoryVol) getVolume();
+            v.ensureAvailable(11);
+            assertEquals(Volume.BUF_SIZE, v.buffers[0].capacity());
+        }
+
+    }
+
     public static class MemoryVolumeTest extends VolumeTest{
         @Override Volume getVolume() {
-            return new Volume.MemoryVol(false, 0L);
+            return new Volume.MemoryVol(false, 0L,false);
         }
 
         @Test public void transfer(){
             long max = (long) (Volume.BUF_SIZE*1.5);
-            Volume from = new Volume.MemoryVol(true,0);
+            Volume from = new Volume.MemoryVol(true,0,false);
             for(long i=0;i<max;i+=8){
                 from.ensureAvailable(i+8);
                 from.putLong(i,i);
             }
-            Volume to = new Volume.MemoryVol(true,0);
+            Volume to = new Volume.MemoryVol(true,0,false);
             Volume.volumeTransfer(max,from,to);
             for(long i=0;i<max;i+=8){
                 assertEquals(i, to.getLong(i));
             }
         }
 
+
+    }
+
+    public static class MappedFileFullChunkVolumeTest extends VolumeTest{
+        @Override Volume getVolume() {
+            return new Volume.MappedFileVol(Utils.tempDbFile(), false, 0L, true);
+        }
+
+        @Override public void testEnsureAvailable() throws Exception {
+            Volume.MappedFileVol v = (Volume.MappedFileVol) getVolume();
+            v.ensureAvailable(11);
+            assertEquals(Volume.BUF_SIZE, v.buffers[0].capacity());
+        }
+
     }
 
     public static class MappedFileVolumeTest extends VolumeTest{
         @Override Volume getVolume() {
-            return new Volume.MappedFileVol(Utils.tempDbFile(), false, 0L);
+            return new Volume.MappedFileVol(Utils.tempDbFile(), false, 0L, false);
         }
 
         /** this test fails on Windows */
@@ -48,7 +76,7 @@ public abstract class VolumeTest {
             File f = Utils.tempDbFile();
             f.deleteOnExit();
 
-            final Volume.MappedFileVol vol = new Volume.MappedFileVol(f, false,0);
+            final Volume.MappedFileVol vol = new Volume.MappedFileVol(f, false,0, false);
             final long max = 256 * 1024 * 1024;
 
             for(long i=0;i<max;i=i+8){
@@ -62,9 +90,23 @@ public abstract class VolumeTest {
 
     }
 
+
+    public static class RandomAccessFullChunkVolumeTest extends VolumeTest{
+        @Override Volume getVolume() {
+            return new Volume.FileChannelVol(Utils.tempDbFile(), false, 0L, true);
+        }
+
+        @Override public void testEnsureAvailable() throws Exception {
+            Volume.FileChannelVol v = (Volume.FileChannelVol) getVolume();
+            v.ensureAvailable(11);
+            assertEquals(Volume.BUF_SIZE, v.size);
+        }
+
+    }
+
     public static class RandomAccessVolumeTest extends VolumeTest{
         @Override Volume getVolume() {
-            return new Volume.FileChannelVol(Utils.tempDbFile(), false, 0L);
+            return new Volume.FileChannelVol(Utils.tempDbFile(), false, 0L, false);
         }
     }
 
@@ -105,18 +147,18 @@ public abstract class VolumeTest {
 
     @Test
     public void testMappedSizeLimit(){
-        testSizeLimit(new Volume.FileChannelVol(Utils.tempDbFile(), false, 1000));
+        testSizeLimit(new Volume.FileChannelVol(Utils.tempDbFile(), false, 1000, false));
     }
 
     @Test
     public void testRAFSizeLimit(){
-        testSizeLimit( new Volume.FileChannelVol(Utils.tempDbFile(), true, 1000));
+        testSizeLimit( new Volume.FileChannelVol(Utils.tempDbFile(), true, 1000, false));
     }
 
 
     @Test
     public void testMemorySizeLimit(){
-        testSizeLimit(new Volume.MemoryVol(false, 1000L));
+        testSizeLimit(new Volume.MemoryVol(false, 1000L,false));
     }
 
 
@@ -176,7 +218,7 @@ public abstract class VolumeTest {
 
     @Test public void RAF_bytes(){
         File f = Utils.tempDbFile();
-        Volume v = new Volume.FileChannelVol(f, false, 0L);
+        Volume v = new Volume.FileChannelVol(f, false, 0L, false);
         v.ensureAvailable(100);
         v.putByte(1, (byte)(-120));
         assertEquals((byte)(-120), v.getByte(1));
@@ -189,7 +231,7 @@ public abstract class VolumeTest {
     @Test
     public void read_beyond_end_raf_long(){
         try{
-            Volume v = new Volume.FileChannelVol(Utils.tempDbFile(), false, 0L);
+            Volume v = new Volume.FileChannelVol(Utils.tempDbFile(), false, 0L, false);
             v.getLong(1000000);
             fail();
         }catch(IOError e){
@@ -200,7 +242,7 @@ public abstract class VolumeTest {
     @Test
     public void read_beyond_end_raf_byte(){
         try{
-            Volume v = new Volume.FileChannelVol(Utils.tempDbFile(), false, 0L);
+            Volume v = new Volume.FileChannelVol(Utils.tempDbFile(), false, 0L, false);
             v.getByte(1000000);
             fail();
         }catch(IOError e){
@@ -211,7 +253,7 @@ public abstract class VolumeTest {
     @Test
     public void read_beyond_end_mapped_long(){
         try{
-            Volume v = new Volume.MappedFileVol(Utils.tempDbFile(), false, 0L);
+            Volume v = new Volume.MappedFileVol(Utils.tempDbFile(), false, 0L, false);
             v.ensureAvailable(10);
             v.getLong(1000000);
             fail();
@@ -223,7 +265,7 @@ public abstract class VolumeTest {
     @Test
     public void read_beyond_end_mapped_byte(){
         try{
-            Volume v = new Volume.MappedFileVol(Utils.tempDbFile(), false, 0L);
+            Volume v = new Volume.MappedFileVol(Utils.tempDbFile(), false, 0L, false);
             v.ensureAvailable(10);
             v.getByte(1000000);
             fail();
@@ -271,4 +313,18 @@ public abstract class VolumeTest {
         }
     }
 
+
+    @Test public void writeBeyond2GB(){
+        long max = (long) (1.5* Integer.MAX_VALUE);
+
+        Volume v = getVolume();
+        for(long i=0;i<max;i+=8){
+            v.ensureAvailable(i+8);
+            v.putLong(i,i);
+        }
+        for(long i=0;i<max;i+=8){
+            assertEquals(i, v.getLong(i));
+        }
+
+    }
 }

@@ -77,6 +77,9 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
     protected boolean _fullTx = false;
 
+    protected boolean _fullChunkAllocation = false;
+
+
     /** use static factory methods, or make subclass */
     protected DBMaker(){}
 
@@ -602,6 +605,19 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
 
 
+    /**
+     * Allocate new space in 1GB chunks rather than small increments.
+     *
+     *
+     * This will consume more space (not yet used space will be consumed).
+     * But it will also improve performance and reduce remapping.
+     *
+     */
+    public DBMakerT fullChunkAllocationEnable(){
+        this._fullChunkAllocation = true;
+        return getThis();
+    }
+
 
     /** constructs DB using current settings */
     public DB make(){
@@ -773,6 +789,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
 
 
+
     protected StoreAppend extendStoreAppend() {
         return new StoreAppend(_file, _rafMode>0, _readOnly, !_transactionEnabled, _deleteFilesAfterClose, _syncOnCommitDisabled,
                 _checksumEnabled,_compressionEnabled,_xteaEncryptionKey);
@@ -780,18 +797,18 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
     protected Store extendStoreDirect(Volume.Factory folFac) {
         return new StoreDirect(folFac,  _readOnly,_deleteFilesAfterClose, _freeSpaceReclaimQ,_syncOnCommitDisabled,_sizeLimit,
-                _checksumEnabled,_compressionEnabled,_xteaEncryptionKey);
+                _checksumEnabled,_compressionEnabled,_xteaEncryptionKey, _fullChunkAllocation);
     }
 
     protected Store extendStoreWAL(Volume.Factory folFac) {
         return new StoreWAL(folFac,  _readOnly,_deleteFilesAfterClose, _freeSpaceReclaimQ,_syncOnCommitDisabled,_sizeLimit,
-                _checksumEnabled,_compressionEnabled,_xteaEncryptionKey);
+                _checksumEnabled,_compressionEnabled,_xteaEncryptionKey,_fullChunkAllocation);
     }
 
     protected Volume.Factory extendStoreVolumeFactory() {
         return _file == null?
-                    Volume.memoryFactory(_ifInMemoryUseDirectBuffer,_sizeLimit):
-                    Volume.fileFactory(_readOnly, _rafMode, _file,_sizeLimit);
+                    Volume.memoryFactory(_ifInMemoryUseDirectBuffer,_sizeLimit, _fullChunkAllocation):
+                    Volume.fileFactory(_readOnly, _rafMode, _file,_sizeLimit, _fullChunkAllocation);
     }
 
 

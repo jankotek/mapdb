@@ -9,8 +9,6 @@ import java.util.Random;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Append only store. Uses different file format than Direct and WAL store
@@ -70,7 +68,7 @@ public class StoreAppend extends Store{
     protected long rollbackMaxRecid;
 
     /** index table which maps recid into position in index log */
-    protected Volume index = new Volume.MemoryVol(false,0); //TODO option to keep index off-heap or in file
+    protected Volume index = new Volume.MemoryVol(false,0,false); //TODO option to keep index off-heap or in file
     /** same as `index`, but stores uncommited modifications made in this transaction*/
     protected final LongMap<Long> indexInTx;
 
@@ -107,7 +105,7 @@ public class StoreAppend extends Store{
 
         if(sortedFiles.isEmpty()){
             //no files, create empty store
-            Volume zero = Volume.volumeForFile(getFileFromNum(0),useRandomAccessFile, readOnly,0L);
+            Volume zero = Volume.volumeForFile(getFileFromNum(0),useRandomAccessFile, readOnly,0L, false);
             zero.ensureAvailable(Engine.LAST_RESERVED_RECID*8+8);
             zero.putLong(0, HEADER);
             long pos = 8;
@@ -136,7 +134,7 @@ public class StoreAppend extends Store{
             for(Fun.Tuple2<Long,File> t:sortedFiles){
                 Long num = t.a;
                 File f = t.b;
-                Volume vol = Volume.volumeForFile(f,useRandomAccessFile,readOnly, 0L);
+                Volume vol = Volume.volumeForFile(f,useRandomAccessFile,readOnly, 0L, false);
                 if(vol.isEmpty()||vol.getLong(0)!=HEADER){
                     throw new IOError(new IOException("File corrupted: "+f));
                 }
@@ -203,7 +201,7 @@ public class StoreAppend extends Store{
         //beyond usual file size, so create new file
         currVolume.sync();
         currFileNum++;
-        currVolume = Volume.volumeForFile(getFileFromNum(currFileNum),useRandomAccessFile, readOnly,0L);
+        currVolume = Volume.volumeForFile(getFileFromNum(currFileNum),useRandomAccessFile, readOnly,0L, false);
         currVolume.ensureAvailable(8);
         currVolume.putLong(0,HEADER);
         currPos = 8;

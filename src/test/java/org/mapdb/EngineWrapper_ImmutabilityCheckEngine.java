@@ -12,7 +12,7 @@ public class EngineWrapper_ImmutabilityCheckEngine {
 
     @Test
     public void test(){
-        Volume.Factory fab = Volume.memoryFactory(false,0L);
+        Volume.Factory fab = Volume.memoryFactory(false,0L, false);
         Engine e = new StoreDirect(fab);
         e = new EngineWrapper.ImmutabilityCheckEngine(e);
 
