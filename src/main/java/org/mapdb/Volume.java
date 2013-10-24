@@ -17,13 +17,14 @@
 package org.mapdb;
 
 import java.io.*;
+import java.lang.ref.Reference;
+import java.lang.ref.ReferenceQueue;
+import java.lang.ref.WeakReference;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.WeakHashMap;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 
@@ -55,7 +56,7 @@ public abstract class Volume {
      */
     public void ensureAvailable(final long offset){
         if(!tryAvailable(offset))
-                throw new IOError(new IOException("no free space to expand Volume"));
+            throw new IOError(new IOException("no free space to expand Volume"));
     }
 
 
@@ -342,16 +343,16 @@ public abstract class Volume {
         }
 
         @Override final public long getLong(long offset) {
-             return buffers[(int)(offset >>>BUF_SHIFT)].getLong((int) (offset&Volume.BUF_SIZE_MOD_MASK));
+            return buffers[(int)(offset >>>BUF_SHIFT)].getLong((int) (offset&Volume.BUF_SIZE_MOD_MASK));
         }
 
         @Override final public int getInt(long offset) {
-             return buffers[(int)(offset >>>BUF_SHIFT)].getInt((int) (offset&Volume.BUF_SIZE_MOD_MASK));
+            return buffers[(int)(offset >>>BUF_SHIFT)].getInt((int) (offset&Volume.BUF_SIZE_MOD_MASK));
         }
 
 
         @Override public final byte getByte(long offset) {
-             return buffers[(int)(offset >>>BUF_SHIFT)].get((int) (offset&Volume.BUF_SIZE_MOD_MASK));
+            return buffers[(int)(offset >>>BUF_SHIFT)].get((int) (offset&Volume.BUF_SIZE_MOD_MASK));
         }
 
 
@@ -421,8 +422,9 @@ public abstract class Volume {
         protected final FileChannel.MapMode mapMode;
         protected final java.io.RandomAccessFile raf;
 
-        protected final Map<ByteBuffer, String> unreleasedBuffers =
-                Utils.isWindows() ? new WeakHashMap<ByteBuffer, String>() : null;
+
+        protected ReferenceQueue<MappedByteBuffer> unreleasedQueue = new ReferenceQueue<MappedByteBuffer>();
+        protected Set<Reference<MappedByteBuffer>> unreleasedBuffers = new LinkedHashSet<Reference<MappedByteBuffer>>();
 
         static final int BUF_SIZE_INC = 1024*1024;
 
@@ -465,19 +467,23 @@ public abstract class Volume {
                 raf.close();
                 if(!readOnly)
                     sync();
+
+                for(Reference<MappedByteBuffer> rb:unreleasedBuffers){
+                    MappedByteBuffer b = rb.get();
+                    if(b==null) continue;
+                    unmap(b);
+                }
+
                 for(ByteBuffer b:buffers){
                     if(b!=null && (b instanceof MappedByteBuffer)){
                         unmap((MappedByteBuffer) b);
                     }
                 }
+
+                unreleasedBuffers = null;
+                unreleasedQueue = null;
+
                 buffers = null;
-                if(unreleasedBuffers!=null){
-                    for(ByteBuffer b:unreleasedBuffers.keySet().toArray(new MappedByteBuffer[0])){
-                        if(b!=null && (b instanceof MappedByteBuffer)){
-                            unmap((MappedByteBuffer) b);
-                        }
-                    }
-                }
 
             } catch (IOException e) {
                 throw new IOError(e);
@@ -490,11 +496,28 @@ public abstract class Volume {
         @Override
         public void sync() {
             if(readOnly) return;
-            for(ByteBuffer b:buffers){
-                if(b!=null && (b instanceof MappedByteBuffer)){
-                    ((MappedByteBuffer)b).force();
+            growLock.lock();
+            try{
+                //clear GC references
+                for(Reference ref=unreleasedQueue.poll();ref!=null; ref=unreleasedQueue.poll()){
+                    unreleasedBuffers.remove(ref);
                 }
+
+                for(Reference<MappedByteBuffer> rb:unreleasedBuffers){
+                    MappedByteBuffer b = rb.get();
+                    if(b==null) continue;
+                    b.force();
+                }
+                for(ByteBuffer b:buffers){
+                    if(b!=null && (b instanceof MappedByteBuffer)){
+                        ((MappedByteBuffer) b).force();
+                    }
+                }
+
+            }finally{
+                growLock.unlock();
             }
+
         }
 
         @Override
@@ -514,11 +537,26 @@ public abstract class Volume {
 
         @Override
         protected ByteBuffer makeNewBuffer(long offset, ByteBuffer[] buffers2) {
+            assert (growLock.isHeldByCurrentThread());
             try {
+                //create new buffer
                 long newBufSize =  offset&Volume.BUF_SIZE_MOD_MASK;
-                newBufSize = newBufSize + (newBufSize&Volume.BUF_SIZE_MOD_MASK); //round to BUF_SIZE_INC
-                ByteBuffer buf =  fileChannel.map( mapMode, offset - (offset&Volume.BUF_SIZE_MOD_MASK), newBufSize );
-                if(unreleasedBuffers!=null) unreleasedBuffers.put(buf, "");
+                int round = offset<BUF_SIZE_INC? BUF_SIZE_INC/16 : BUF_SIZE_INC;
+
+                //round newBufSize to multiple of BUF_SIZE_INC
+                long rest = newBufSize%round;
+                if(rest!=0)
+                    newBufSize += round-rest;
+
+
+                final MappedByteBuffer buf =  fileChannel.map( mapMode, offset - (offset&Volume.BUF_SIZE_MOD_MASK), newBufSize );
+
+                unreleasedBuffers.add(new WeakReference<MappedByteBuffer>(buf,unreleasedQueue));
+
+                for(Reference ref=unreleasedQueue.poll();ref!=null; ref=unreleasedQueue.poll()){
+                    unreleasedBuffers.remove(ref);
+                }
+
                 return buf;
             } catch (IOException e) {
                 if(e.getCause()!=null && e.getCause() instanceof OutOfMemoryError){

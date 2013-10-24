@@ -42,6 +42,24 @@ public abstract class VolumeTest {
         @Override Volume getVolume() {
             return new Volume.MappedFileVol(Utils.tempDbFile(), false, 0L);
         }
+
+        /** this test fails on Windows */
+        @Test public void simple_grow() throws Exception {
+            File f = Utils.tempDbFile();
+            f.deleteOnExit();
+
+            final Volume.MappedFileVol vol = new Volume.MappedFileVol(f, false,0);
+            final long max = 256 * 1024 * 1024;
+
+            for(long i=0;i<max;i=i+8){
+                vol.ensureAvailable(i+8);
+                vol.putLong(i,i);
+            }
+
+            vol.sync();
+            vol.close();
+        }
+
     }
 
     public static class RandomAccessVolumeTest extends VolumeTest{
@@ -153,10 +171,7 @@ public abstract class VolumeTest {
 
 
     @Test public void testConstants(){
-        assertEquals(0, Volume.BUF_SIZE% Volume.MappedFileVol.BUF_SIZE_INC);
         assertEquals(0, Volume.BUF_SIZE%8);
-        assertEquals(0, Volume.MappedFileVol.BUF_SIZE_INC%8);
-        assertTrue(Volume.MappedFileVol.BUF_SIZE_INC> StoreDirect.MAX_REC_SIZE);
     }
 
     @Test public void RAF_bytes(){
