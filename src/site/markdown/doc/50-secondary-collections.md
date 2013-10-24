@@ -1,4 +1,5 @@
-= Secondary Collections =
+Secondary Collections
+======================
 
 Rational databases have very good system of primary and secondary indexes, tables and views. It has clear benefits for extensibility, clarity and robustness. On other side it has limitations for scalability and performance. MapDBs Secondary Collections are *poor man`s* SQL tables. It brings most benefits without sacrificing flexibility.
 
@@ -18,7 +19,8 @@ Primary and Secondary collection are bind together. There is [Bind](http://www.m
 
 Bind relation is not persistent, so binding needs to be restored every time store is reopened. If secondary collections is empty when binded, entire primary is traversed and secondary is filled accordingly.
 
-== Consistency ==
+Consistency
+-------------
 
 Consistency between primary and secondary collections is on 'best-effort' basis. Two concurrent threads might observe
  secondary contains old values while primary was already updated. Also if secondary is on heap, while primary is in transactional store which gets rolled back, secondary will become inconsistent with primary (its changes were not rolled back.
@@ -33,7 +35,8 @@ There are some best practices for Secondary Collections to handle this:
 
  * Keep binding minimal. It should only transform one value into other, without dependency on third collections.
 
-== Performance ==
+Performance
+-----------
 
 To import large dataset, you should not enable binding until primary collection has finished its import.
 Also there might be more efficient way to pre-fill secondary collection (for example with data pump).
