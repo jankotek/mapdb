@@ -38,7 +38,7 @@ public class TxEngine extends EngineWrapper{
 
 
     /** true if there are data which can be rolled back */
-    protected boolean uncommitedData = false;
+    protected volatile boolean uncommitedData = false;
 
     protected final boolean fullTx;
 
