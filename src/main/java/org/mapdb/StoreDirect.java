@@ -253,8 +253,7 @@ public class StoreDirect extends Store{
 
     @Override
     public long preallocate() {
-        final Lock lock  = locks[new Random().nextInt(locks.length)].readLock();
-        lock.lock();
+        newRecidLock.readLock().lock();
         try{
             structuralLock.lock();
             final long ioRecid;
@@ -263,19 +262,25 @@ public class StoreDirect extends Store{
             }finally {
                 structuralLock.unlock();
             }
-            index.putLong(ioRecid,MASK_DISCARD);
+
+            final Lock lock  = locks[Utils.longHash(ioRecid)& Utils.LOCK_MASK].writeLock();
+            lock.lock();
+            try{
+                index.putLong(ioRecid,MASK_DISCARD);
+            }finally {
+                lock.unlock();
+            }
             long recid = (ioRecid-IO_USER_START)/8;
             assert(recid>0);
             return recid;
         }finally {
-            lock.unlock();
+            newRecidLock.readLock().unlock();
         }
     }
 
     @Override
     public void preallocate(long[] recids) {
-        final Lock lock  = locks[new Random().nextInt(locks.length)].readLock();
-        lock.lock();
+        newRecidLock.readLock().lock();
         try{
             structuralLock.lock();
             try{
@@ -285,12 +290,19 @@ public class StoreDirect extends Store{
                 structuralLock.unlock();
             }
             for(int i=0;i<recids.length;i++){
-                index.putLong(recids[i],MASK_DISCARD);
-                recids[i] = (recids[i]-IO_USER_START)/8;
+                final long ioRecid = recids[i];
+                final Lock lock  = locks[Utils.longHash(ioRecid)& Utils.LOCK_MASK].writeLock();
+                lock.lock();
+                try{
+                    index.putLong(ioRecid,MASK_DISCARD);
+                }finally {
+                    lock.unlock();
+                }
+                recids[i] = (ioRecid-IO_USER_START)/8;
                 assert(recids[i]>0);
             }
         }finally {
-            lock.unlock();
+            newRecidLock.readLock().unlock();
         }
     }
 
@@ -299,22 +311,28 @@ public class StoreDirect extends Store{
     public <A> long put(A value, Serializer<A> serializer) {
         assert(value!=null);
         DataOutput2 out = serialize(value, serializer);
-
-        structuralLock.lock();
         final long ioRecid;
-        final long[] indexVals;
+        newRecidLock.readLock().lock();
         try{
-            ioRecid = freeIoRecidTake(true) ;
-            indexVals = physAllocate(out.pos,true,false);
+
+            structuralLock.lock();
+
+            final long[] indexVals;
+            try{
+                ioRecid = freeIoRecidTake(true) ;
+                indexVals = physAllocate(out.pos,true,false);
+            }finally {
+                structuralLock.unlock();
+            }
+            final Lock lock  = locks[Utils.longHash(ioRecid)& Utils.LOCK_MASK].writeLock();
+            lock.lock();
+            try{
+                put2(out, ioRecid, indexVals);
+            }finally {
+                lock.unlock();
+            }
         }finally {
-            structuralLock.unlock();
-        }
-        final Lock lock  = locks[Utils.longHash(ioRecid)& Utils.LOCK_MASK].writeLock();
-        lock.lock();
-        try{
-            put2(out, ioRecid, indexVals);
-        }finally {
-            lock.unlock();
+            newRecidLock.readLock().unlock();
         }
         recycledDataOuts.offer(out);
         long recid = (ioRecid-IO_USER_START)/8;
@@ -614,17 +632,11 @@ public class StoreDirect extends Store{
         }
     }
 
-
-
     protected static long roundTo16(long offset){
         long rem = offset&15;  // modulo 16
         if(rem!=0) offset +=16-rem;
         return offset;
     }
-
-
-
-
 
     @Override
     public void close() {

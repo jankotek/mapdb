@@ -33,7 +33,7 @@ public class StoreWAL extends StoreDirect {
     protected final Volume.Factory volFac;
     protected Volume log;
 
-    protected long logSize;
+    protected volatile long logSize;
 
     protected final LongConcurrentHashMap<long[]> modified = new LongConcurrentHashMap<long[]>();
     protected final LongMap<long[]> longStackPages = new LongHashMap<long[]>();
@@ -106,8 +106,7 @@ public class StoreWAL extends StoreDirect {
         final long ioRecid;
         final long logPos;
 
-        final Lock lock  = locks[new Random().nextInt(locks.length)].readLock();
-        lock.lock();
+        newRecidLock.readLock().lock();
         try{
             structuralLock.lock();
             try{
@@ -122,15 +121,23 @@ public class StoreWAL extends StoreDirect {
             }finally{
                 structuralLock.unlock();
             }
-            //write data into log
-            walIndexVal(logPos, ioRecid, MASK_DISCARD);
-            modified.put(ioRecid, PREALLOC);
-            long recid =  (ioRecid-IO_USER_START)/8;
-            assert(recid>0);
-            return recid;
+            final Lock lock  = locks[Utils.longHash(ioRecid)&Utils.LOCK_MASK].writeLock();
+            lock.lock();
+            try{
+
+                //write data into log
+                walIndexVal(logPos, ioRecid, MASK_DISCARD);
+                modified.put(ioRecid, PREALLOC);
+            }finally{
+                lock.unlock();
+            }
         }finally{
-            lock.unlock();
+            newRecidLock.readLock().unlock();
         }
+
+        long recid =  (ioRecid-IO_USER_START)/8;
+        assert(recid>0);
+        return recid;
     }
 
 
@@ -138,9 +145,9 @@ public class StoreWAL extends StoreDirect {
     public void preallocate(final long[] recids) {
         long logPos;
 
-        final Lock lock  = locks[new Random().nextInt(locks.length)].readLock();
-        lock.lock();
+        newRecidLock.readLock().lock();
         try{
+
             structuralLock.lock();
             try{
                 openLogIfNeeded();
@@ -158,14 +165,21 @@ public class StoreWAL extends StoreDirect {
             }
             //write data into log
             for(int i=0;i<recids.length;i++){
-                walIndexVal(logPos, recids[i], MASK_DISCARD);
-                logPos+=1+8+8;
-                modified.put(recids[i], PREALLOC);
-                recids[i] =  (recids[i]-IO_USER_START)/8;
+                final long ioRecid = recids[i];
+                final Lock lock2 = locks[Utils.longHash(ioRecid)&Utils.LOCK_MASK].writeLock();
+                lock2.lock();
+                try{
+                    walIndexVal(logPos, ioRecid, MASK_DISCARD);
+                    logPos+=1+8+8;
+                    modified.put(ioRecid, PREALLOC);
+                }finally{
+                    lock2.unlock();
+                }
+                recids[i] =  (ioRecid-IO_USER_START)/8;
                 assert(recids[i]>0);
             }
         }finally{
-            lock.unlock();
+            newRecidLock.readLock().unlock();
         }
     }
 
@@ -179,34 +193,41 @@ public class StoreWAL extends StoreDirect {
         final long[] physPos;
         final long[] logPos;
 
-        final Lock lock  = locks[new Random().nextInt(locks.length)].readLock();
+        newRecidLock.readLock().lock();
+        try{
+
+            structuralLock.lock();
+        try{
+            openLogIfNeeded();
+            ioRecid = freeIoRecidTake(false);
+            //first get space in phys
+            physPos = physAllocate(out.pos,false,false);
+            //now get space in log
+            logPos = logAllocate(physPos);
+
+        }finally{
+            structuralLock.unlock();
+        }
+
+        final Lock lock  = locks[Utils.longHash(ioRecid)&Utils.LOCK_MASK].writeLock();
         lock.lock();
         try{
-            structuralLock.lock();
-            try{
-                openLogIfNeeded();
-                ioRecid = freeIoRecidTake(false);
-                //first get space in phys
-                physPos = physAllocate(out.pos,false,false);
-                //now get space in log
-                logPos = logAllocate(physPos);
-
-            }finally{
-                structuralLock.unlock();
-            }
-
             //write data into log
             walIndexVal((logPos[0]&LOG_MASK_OFFSET) - 1-8-8-1-8, ioRecid, physPos[0]|MASK_ARCHIVE);
             walPhysArray(out, physPos, logPos);
 
             modified.put(ioRecid,logPos);
             recycledDataOuts.offer(out);
-            long recid =  (ioRecid-IO_USER_START)/8;
-            assert(recid>0);
-            return recid;
         }finally{
             lock.unlock();
         }
+        }finally{
+            newRecidLock.readLock().unlock();
+        }
+
+        long recid =  (ioRecid-IO_USER_START)/8;
+        assert(recid>0);
+        return recid;
     }
 
     protected void walPhysArray(DataOutput2 out, long[] physPos, long[] logPos) {
@@ -227,12 +248,15 @@ public class StoreWAL extends StoreDirect {
             }
             log.putData(pos, out.buf, outPos, size - c);
             outPos +=size-c;
+            assert(logSize>=outPos);
         }
         if(outPos!=out.pos)throw new InternalError();
     }
 
 
     protected void walIndexVal(long logPos, long ioRecid, long indexVal) {
+        assert(locks[Utils.longHash(ioRecid)&Utils.LOCK_MASK].writeLock().isHeldByCurrentThread());
+        assert(logSize>=logPos+1+8+8);
         log.putByte(logPos, WAL_INDEX_LONG);
         log.putLong(logPos + 1, ioRecid);
         log.putLong(logPos + 9, indexVal);
@@ -259,8 +283,8 @@ public class StoreWAL extends StoreDirect {
     }
 
     protected void checkLogRounding() {
+        assert(structuralLock.isHeldByCurrentThread());
         if((logSize&Volume.BUF_SIZE_MOD_MASK)+MAX_REC_SIZE*2>Volume.BUF_SIZE){
-            assert(structuralLock.isHeldByCurrentThread());
             log.ensureAvailable(logSize+1);
             log.putByte(logSize, WAL_SKIP_REST_OF_BLOCK);
             logSize += Volume.BUF_SIZE - (logSize&Volume.BUF_SIZE_MOD_MASK);
@@ -504,8 +528,6 @@ public class StoreWAL extends StoreDirect {
             if(log==null){
                 return; //no modifications
             }
-            //update physical and logical filesize
-
             //dump long stack pages
             LongMap.LongMapIterator<long[]> iter = longStackPages.longMapIterator();
             while(iter.moveToNext()){
@@ -529,24 +551,25 @@ public class StoreWAL extends StoreDirect {
 
 
             log.ensureAvailable(logSize + 17 + 17 + 17 + 1);
-            walIndexVal(logSize,IO_PHYS_SIZE, physSize);
             logSize+=17;
-            walIndexVal(logSize,IO_INDEX_SIZE, indexSize);
+            walIndexVal(logSize-17,IO_PHYS_SIZE, physSize);
             logSize+=17;
-            walIndexVal(logSize,IO_FREE_SIZE, freeSize);
+            walIndexVal(logSize-17,IO_INDEX_SIZE, indexSize);
             logSize+=17;
+            walIndexVal(logSize-17,IO_FREE_SIZE, freeSize);
 
             for(int i=IO_FREE_RECID;i<IO_USER_START;i+=8){
                 if(!indexValsModified[i/8]) continue;
                 log.ensureAvailable(logSize + 17);
-                walIndexVal(logSize, i,indexVals[i/8]);
                 logSize+=17;
+                walIndexVal(logSize-17, i,indexVals[i/8]);
             }
 
             //seal log file
             log.ensureAvailable(logSize + 1);
             log.putByte(logSize, WAL_SEAL);
             logSize+=1;
+
             //flush log file
             if(!syncOnCommitDisabled) log.sync();
             //and write mark it was sealed
@@ -555,10 +578,10 @@ public class StoreWAL extends StoreDirect {
 
             replayLogFile();
             reloadIndexFile();
-
         }finally {
              unlockAllWrite();
         }
+
     }
 
     protected void replayLogFile(){

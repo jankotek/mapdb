@@ -93,16 +93,19 @@ public abstract class Store implements Engine{
 
 
     protected final ReentrantLock structuralLock = new ReentrantLock();
+    protected final ReentrantReadWriteLock newRecidLock = new ReentrantReadWriteLock();
     protected final ReentrantReadWriteLock[] locks = Utils.newReadWriteLocks();
 
 
     protected void lockAllWrite() {
         for(ReentrantReadWriteLock l:locks)l.writeLock().lock();
+        newRecidLock.writeLock().lock();
         structuralLock.lock();
     }
 
     protected void unlockAllWrite() {
         structuralLock.unlock();
+        newRecidLock.writeLock().unlock();
         for(ReentrantReadWriteLock l:locks)l.writeLock().unlock();
     }
 
