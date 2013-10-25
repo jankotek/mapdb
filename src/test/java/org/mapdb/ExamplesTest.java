@@ -17,7 +17,7 @@ public class ExamplesTest {
     }
 
     @Test public void Cache(){
-        Cache.main(args);
+        CacheEntryExpiry.main(args);
     }
 
     @Test public void Compression(){
