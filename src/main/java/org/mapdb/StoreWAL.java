@@ -121,7 +121,7 @@ public class StoreWAL extends StoreDirect {
             }finally{
                 structuralLock.unlock();
             }
-            final Lock lock  = locks[Utils.longHash(ioRecid)&Utils.LOCK_MASK].writeLock();
+            final Lock lock  = locks[Utils.lockPos(ioRecid)].writeLock();
             lock.lock();
             try{
 
@@ -166,7 +166,7 @@ public class StoreWAL extends StoreDirect {
             //write data into log
             for(int i=0;i<recids.length;i++){
                 final long ioRecid = recids[i];
-                final Lock lock2 = locks[Utils.longHash(ioRecid)&Utils.LOCK_MASK].writeLock();
+                final Lock lock2 = locks[Utils.lockPos(ioRecid)].writeLock();
                 lock2.lock();
                 try{
                     walIndexVal(logPos, ioRecid, MASK_DISCARD);
@@ -209,7 +209,7 @@ public class StoreWAL extends StoreDirect {
             structuralLock.unlock();
         }
 
-        final Lock lock  = locks[Utils.longHash(ioRecid)&Utils.LOCK_MASK].writeLock();
+        final Lock lock  = locks[Utils.lockPos(ioRecid)].writeLock();
         lock.lock();
         try{
             //write data into log
@@ -255,7 +255,7 @@ public class StoreWAL extends StoreDirect {
 
 
     protected void walIndexVal(long logPos, long ioRecid, long indexVal) {
-        assert(locks[Utils.longHash(ioRecid)&Utils.LOCK_MASK].writeLock().isHeldByCurrentThread());
+        assert(locks[Utils.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
         assert(logSize>=logPos+1+8+8);
         log.putByte(logPos, WAL_INDEX_LONG);
         log.putLong(logPos + 1, ioRecid);
@@ -296,7 +296,7 @@ public class StoreWAL extends StoreDirect {
     public <A> A get(long recid, Serializer<A> serializer) {
         assert(recid>0);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock  = locks[Utils.longHash(ioRecid)&Utils.LOCK_MASK].readLock();
+        final Lock lock  = locks[Utils.lockPos(ioRecid)].readLock();
         lock.lock();
         try{
             return get2(ioRecid, serializer);
@@ -309,8 +309,8 @@ public class StoreWAL extends StoreDirect {
 
     @Override
     protected <A> A get2(long ioRecid, Serializer<A> serializer) throws IOException {
-        assert(locks[Utils.longHash(ioRecid)&Utils.LOCK_MASK].getWriteHoldCount()==0||
-                locks[Utils.longHash(ioRecid)&Utils.LOCK_MASK].writeLock().isHeldByCurrentThread());
+        assert(locks[Utils.lockPos(ioRecid)].getWriteHoldCount()==0||
+                locks[Utils.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
 
         //check if record was modified in current transaction
         long[] r = modified.get(ioRecid);
@@ -352,7 +352,7 @@ public class StoreWAL extends StoreDirect {
         assert(value!=null);
         DataOutput2 out = serialize(value, serializer);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock  = locks[Utils.longHash(ioRecid)&Utils.LOCK_MASK].writeLock();
+        final Lock lock  = locks[Utils.lockPos(ioRecid)].writeLock();
         lock.lock();
         try{
             final long[] physPos;
@@ -408,7 +408,7 @@ public class StoreWAL extends StoreDirect {
         assert(recid>0);
         assert(expectedOldValue!=null && newValue!=null);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock  = locks[Utils.longHash(ioRecid)&Utils.LOCK_MASK].writeLock();
+        final Lock lock  = locks[Utils.lockPos(ioRecid)].writeLock();
         lock.lock();
         DataOutput2 out;
         try{
@@ -473,7 +473,7 @@ public class StoreWAL extends StoreDirect {
     public <A> void delete(long recid, Serializer<A> serializer) {
         assert(recid>0);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock  = locks[Utils.longHash(ioRecid)&Utils.LOCK_MASK].writeLock();
+        final Lock lock  = locks[Utils.lockPos(ioRecid)].writeLock();
         lock.lock();
         try{
             final long logPos;
@@ -830,7 +830,7 @@ public class StoreWAL extends StoreDirect {
     }
 
     protected long[] getLinkedRecordsFromLog(long ioRecid){
-        assert(locks[Utils.longHash(ioRecid)&Utils.LOCK_MASK].writeLock().isHeldByCurrentThread());
+        assert(locks[Utils.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
         long[] ret0 = modified.get(ioRecid);
         if(ret0==PREALLOC) return ret0;
 

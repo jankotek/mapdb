@@ -52,7 +52,7 @@ final public class Utils {
     public static final Charset UTF8_CHARSET = Charset.forName(UTF8);
 
 
-    public static final int LOCK_MASK = CC.CONCURRENCY-1;
+    private static final int LOCK_MASK = CC.CONCURRENCY-1;
 
 
 
@@ -150,6 +150,12 @@ final public class Utils {
         return h ^ (h >>> 7) ^ (h >>> 4);
     }
 
+    public static int lockPos(final long key) {
+        int h = (int)(key ^ (key >>> 32));
+        h ^= (h >>> 20) ^ (h >>> 12);
+        h ^= (h >>> 7) ^ (h >>> 4);
+        return h & LOCK_MASK;
+    }
 
     /** expand array size by 1, and put value at given position. No items from original array are lost*/
     public static Object[] arrayPut(final Object[] array, final int pos, final Object value){

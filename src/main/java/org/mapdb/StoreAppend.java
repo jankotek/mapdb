@@ -318,7 +318,7 @@ public class StoreAppend extends Store{
     @Override
     public <A> A get(long recid, Serializer<A> serializer) {
         assert(recid>0);
-        final Lock lock = locks[Utils.longHash(recid)&Utils.LOCK_MASK].readLock();
+        final Lock lock = locks[Utils.lockPos(recid)].readLock();
         lock.lock();
         try{
             return getNoLock(recid, serializer);
@@ -352,7 +352,7 @@ public class StoreAppend extends Store{
         assert(recid>0);
         DataOutput2 out = serialize(value,serializer);
 
-        final Lock lock = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
+        final Lock lock = locks[Utils.lockPos(recid)].writeLock();
         lock.lock();
         try{
             updateNoLock(recid, out);
@@ -392,7 +392,7 @@ public class StoreAppend extends Store{
         assert(expectedOldValue!=null && newValue!=null);
         assert(recid>0);
         DataOutput2 out = serialize(newValue,serializer);
-        final Lock lock = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
+        final Lock lock = locks[Utils.lockPos(recid)].writeLock();
         lock.lock();
         boolean ret;
         try{
@@ -415,7 +415,7 @@ public class StoreAppend extends Store{
     @Override
     public <A> void delete(long recid, Serializer<A> serializer) {
         assert(recid>0);
-        final Lock lock = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
+        final Lock lock = locks[Utils.lockPos(recid)].writeLock();
         lock.lock();
         try{
             structuralLock.lock();

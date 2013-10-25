@@ -222,16 +222,16 @@ public final class Queues {
             long head2 = 0;
             Node<E> n;
             do{
-                if(useLocks && head2!=0)locks[Utils.longHash(head2)&Utils.LOCK_MASK].lock();
+                if(useLocks && head2!=0)locks[Utils.lockPos(head2)].lock();
                 head2 =head.get();
                 if(head2 == 0) return null; //TODO lock not released here?
 
-                if(useLocks && head2!=0)locks[Utils.longHash(head2)&Utils.LOCK_MASK].lock();
+                if(useLocks && head2!=0)locks[Utils.lockPos(head2)].lock();
                 n = engine.get(head2, nodeSerializer);
             }while(n==null || !head.compareAndSet(head2, n.next));
             if(useLocks && head2!=0){
                 engine.delete(head2,nodeSerializer);
-                locks[Utils.longHash(head2)&Utils.LOCK_MASK].unlock();
+                locks[Utils.lockPos(head2)].unlock();
             }else{
                 engine.update(head2, null, nodeSerializer);
             }
