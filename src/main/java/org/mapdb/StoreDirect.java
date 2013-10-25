@@ -300,30 +300,30 @@ public class StoreDirect extends Store{
         assert(value!=null);
         DataOutput2 out = serialize(value, serializer);
 
-        final Lock lock  = locks[new Random().nextInt(locks.length)].readLock();
+        structuralLock.lock();
+        final long ioRecid;
+        final long[] indexVals;
+        try{
+            ioRecid = freeIoRecidTake(true) ;
+            indexVals = physAllocate(out.pos,true,false);
+        }finally {
+            structuralLock.unlock();
+        }
+        final Lock lock  = locks[Utils.longHash(ioRecid)& Utils.LOCK_MASK].writeLock();
         lock.lock();
         try{
-            structuralLock.lock();
-            final long ioRecid;
-            final long[] indexVals;
-            try{
-                ioRecid = freeIoRecidTake(true) ;
-                indexVals = physAllocate(out.pos,true,false);
-            }finally {
-                structuralLock.unlock();
-            }
-
             put2(out, ioRecid, indexVals);
-            recycledDataOuts.offer(out);
-            long recid = (ioRecid-IO_USER_START)/8;
-            assert(recid>0);
-            return recid;
         }finally {
             lock.unlock();
         }
+        recycledDataOuts.offer(out);
+        long recid = (ioRecid-IO_USER_START)/8;
+        assert(recid>0);
+        return recid;
     }
 
     protected void put2(DataOutput2 out, long ioRecid, long[] indexVals) {
+        assert(locks[Utils.longHash(ioRecid)&Utils.LOCK_MASK].writeLock().isHeldByCurrentThread());
         index.putLong(ioRecid, indexVals[0]|MASK_ARCHIVE);
         //write stuff
         if(indexVals.length==1||indexVals[1]==0){ //is more then one? ie linked
@@ -360,7 +360,7 @@ public class StoreDirect extends Store{
     public <A> A get(long recid, Serializer<A> serializer) {
         assert(recid>0);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock  = locks[Utils.longHash(recid)&Utils.LOCK_MASK].readLock();
+        final Lock lock  = locks[Utils.longHash(ioRecid)&Utils.LOCK_MASK].readLock();
         lock.lock();
         try{
             return get2(ioRecid,serializer);
@@ -372,6 +372,9 @@ public class StoreDirect extends Store{
     }
 
     protected <A> A get2(long ioRecid,Serializer<A> serializer) throws IOException {
+        assert(locks[Utils.longHash(ioRecid)&Utils.LOCK_MASK].getWriteHoldCount()==0||
+                locks[Utils.longHash(ioRecid)&Utils.LOCK_MASK].writeLock().isHeldByCurrentThread());
+
         long indexVal = index.getLong(ioRecid);
         if(indexVal == MASK_DISCARD) return null; //preallocated record
 
@@ -420,7 +423,7 @@ public class StoreDirect extends Store{
 
         final long ioRecid = IO_USER_START + recid*8;
 
-        final Lock lock  = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
+        final Lock lock  = locks[Utils.longHash(ioRecid)&Utils.LOCK_MASK].writeLock();
         lock.lock();
         try{
             update2(out, ioRecid);
@@ -434,6 +437,7 @@ public class StoreDirect extends Store{
         final long indexVal = index.getLong(ioRecid);
         final int size = (int) (indexVal>>>48);
         final boolean linked = (indexVal&MASK_LINKED)!=0;
+        assert(locks[Utils.longHash(ioRecid)&Utils.LOCK_MASK].writeLock().isHeldByCurrentThread());
 
         if(!linked && out.pos>0 && size>0 && size2ListIoRecid(size) == size2ListIoRecid(out.pos)){
             //size did change, but still fits into this location
@@ -470,6 +474,7 @@ public class StoreDirect extends Store{
 
             put2(out, ioRecid, indexVals);
         }
+        assert(locks[Utils.longHash(ioRecid)&Utils.LOCK_MASK].writeLock().isHeldByCurrentThread());
     }
 
 
@@ -478,7 +483,7 @@ public class StoreDirect extends Store{
         assert(expectedOldValue!=null && newValue!=null);
         assert(recid>0);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock  = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
+        final Lock lock  = locks[Utils.longHash(ioRecid)&Utils.LOCK_MASK].writeLock();
         lock.lock();
 
         DataOutput2 out;
@@ -515,7 +520,7 @@ public class StoreDirect extends Store{
     public <A> void delete(long recid, Serializer<A> serializer) {
         assert(recid>0);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock  = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
+        final Lock lock  = locks[Utils.longHash(ioRecid)&Utils.LOCK_MASK].writeLock();
         lock.lock();
         try{
             //get index val and zero it out
@@ -578,6 +583,7 @@ public class StoreDirect extends Store{
     }
 
     protected long[] physAllocate(int size, boolean ensureAvail,boolean recursive) {
+        assert(structuralLock.isHeldByCurrentThread());
         if(size==0L) return new long[]{0L};
         //append to end of file
         if(size<MAX_REC_SIZE){
@@ -715,12 +721,14 @@ public class StoreDirect extends Store{
 
         lockAllWrite();
         try{
+            compactPreUnderLock();
+
             index.putLong(IO_PHYS_SIZE,physSize);
             index.putLong(IO_INDEX_SIZE,indexSize);
             index.putLong(IO_FREE_SIZE,freeSize);
 
             //create secondary files for compaction
-            store2.structuralLock.lock();
+            store2.lockAllWrite();
 
             //transfer stack of free recids
             //TODO long stack take modifies the original store
@@ -746,7 +754,7 @@ public class StoreDirect extends Store{
 
             File indexFile2 = store2.index.getFile();
             File physFile2 = store2.phys.getFile();
-            store2.structuralLock.unlock();
+            store2.unlockAllWrite();
 
             final boolean useDirectBuffer = index instanceof Volume.MemoryVol &&
                     ((Volume.MemoryVol)index).useDirectBuffer;
@@ -806,6 +814,7 @@ public class StoreDirect extends Store{
             while(index.getLong(maxUsedIoList)!=0 && maxUsedIoList>IO_FREE_RECID)
                 maxUsedIoList-=8;
 
+            compactPostUnderLock();
 
         }catch(IOException e){
             throw new IOError(e);
@@ -813,6 +822,14 @@ public class StoreDirect extends Store{
             unlockAllWrite();
         }
 
+    }
+
+    /** subclasses put additional checks before compaction starts here */
+    protected void compactPreUnderLock() {
+    }
+
+    /** subclasses put additional cleanup after compaction finishes here */
+    protected void compactPostUnderLock() {
     }
 
 
@@ -923,6 +940,7 @@ public class StoreDirect extends Store{
 
     protected void freeIoRecidPut(long ioRecid) {
         assert(ioRecid>IO_USER_START);
+        assert(locks[Utils.longHash(ioRecid)&Utils.LOCK_MASK].writeLock().isHeldByCurrentThread());
         if(spaceReclaimTrack)
             longStackPut(IO_FREE_RECID, ioRecid,false);
     }
@@ -946,6 +964,7 @@ public class StoreDirect extends Store{
         return IO_FREE_RECID + 8 + ((size-1)/16)*8;
     }
     protected void freePhysPut(long indexVal, boolean recursive) {
+        assert(structuralLock.isHeldByCurrentThread());
         long size = indexVal >>>48;
         assert(size!=0);
         freeSize+=roundTo16(size);

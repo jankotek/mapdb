@@ -54,10 +54,9 @@ public class StoreWAL extends StoreDirect {
         this.volFac = volFac;
         this.log = volFac.createTransLogVolume();
 
-
+        structuralLock.lock();
         try{
             reloadIndexFile();
-            structuralLock.lock();
             replayLogFile();
             replayPending = false;
             checkHeaders();
@@ -74,6 +73,7 @@ public class StoreWAL extends StoreDirect {
     }
 
     protected void reloadIndexFile() {
+        assert(structuralLock.isHeldByCurrentThread());
         logSize = 0;
         modified.clear();
         longStackPages.clear();
@@ -272,7 +272,7 @@ public class StoreWAL extends StoreDirect {
     public <A> A get(long recid, Serializer<A> serializer) {
         assert(recid>0);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock  = locks[Utils.longHash(recid)&Utils.LOCK_MASK].readLock();
+        final Lock lock  = locks[Utils.longHash(ioRecid)&Utils.LOCK_MASK].readLock();
         lock.lock();
         try{
             return get2(ioRecid, serializer);
@@ -285,6 +285,9 @@ public class StoreWAL extends StoreDirect {
 
     @Override
     protected <A> A get2(long ioRecid, Serializer<A> serializer) throws IOException {
+        assert(locks[Utils.longHash(ioRecid)&Utils.LOCK_MASK].getWriteHoldCount()==0||
+                locks[Utils.longHash(ioRecid)&Utils.LOCK_MASK].writeLock().isHeldByCurrentThread());
+
         //check if record was modified in current transaction
         long[] r = modified.get(ioRecid);
         //no, read main version
@@ -325,7 +328,7 @@ public class StoreWAL extends StoreDirect {
         assert(value!=null);
         DataOutput2 out = serialize(value, serializer);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock  = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
+        final Lock lock  = locks[Utils.longHash(ioRecid)&Utils.LOCK_MASK].writeLock();
         lock.lock();
         try{
             final long[] physPos;
@@ -381,7 +384,7 @@ public class StoreWAL extends StoreDirect {
         assert(recid>0);
         assert(expectedOldValue!=null && newValue!=null);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock  = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
+        final Lock lock  = locks[Utils.longHash(ioRecid)&Utils.LOCK_MASK].writeLock();
         lock.lock();
         DataOutput2 out;
         try{
@@ -446,7 +449,7 @@ public class StoreWAL extends StoreDirect {
     public <A> void delete(long recid, Serializer<A> serializer) {
         assert(recid>0);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock  = locks[Utils.longHash(recid)&Utils.LOCK_MASK].writeLock();
+        final Lock lock  = locks[Utils.longHash(ioRecid)&Utils.LOCK_MASK].writeLock();
         lock.lock();
         try{
             final long logPos;
@@ -490,12 +493,11 @@ public class StoreWAL extends StoreDirect {
 
     @Override
     public void commit() {
-        if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
-            serializerPojo.save(this);
-        }
-
         lockAllWrite();
         try{
+            if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
+                serializerPojo.save(this);
+            }
 
             if(!longStackPages.isEmpty() && log==null) openLogIfNeeded();
 
@@ -670,6 +672,7 @@ public class StoreWAL extends StoreDirect {
     }
 
     private long[] getLongStackPage(final long physOffset, boolean read){
+        assert(structuralLock.isHeldByCurrentThread());
         long[] buf = longStackPages.get(physOffset);
         if(buf == null){
             buf = new long[LONG_STACK_PREF_COUNT+1];
@@ -800,10 +803,11 @@ public class StoreWAL extends StoreDirect {
 
             }
         }
-
+        assert(structuralLock.isHeldByCurrentThread());
     }
 
     protected long[] getLinkedRecordsFromLog(long ioRecid){
+        assert(locks[Utils.longHash(ioRecid)&Utils.LOCK_MASK].writeLock().isHeldByCurrentThread());
         long[] ret0 = modified.get(ioRecid);
         if(ret0==PREALLOC) return ret0;
 
@@ -851,16 +855,17 @@ public class StoreWAL extends StoreDirect {
         }
     }
 
-    @Override
-    public void compact() {
-
-        //TODO lock it down here
-        if(log!=null && !log.isEmpty()) //TODO thread unsafe?
+    @Override protected void compactPreUnderLock() {
+        assert(structuralLock.isLocked());
+        if(log!=null && !log.isEmpty())
             throw new IllegalAccessError("WAL not empty; commit first, than compact");
-        super.compact();
-        reloadIndexFile();
-
     }
+
+    @Override protected void compactPostUnderLock() {
+        assert(structuralLock.isLocked());
+        reloadIndexFile();
+    }
+
 
     @Override
     public boolean canRollback(){
