@@ -34,7 +34,7 @@ public class CacheEntryExpiry {
             map.put(i, Utils.randomString(1000));
         }
 
-        //one can monitor three space usage numbers:
+        //one can monitor two space usage numbers:
 
         //free space in store
         long freeSize = Pump.storeForDB(db).getFreeSize();
