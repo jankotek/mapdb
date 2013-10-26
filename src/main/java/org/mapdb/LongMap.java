@@ -103,13 +103,14 @@ public abstract class LongMap<V> {
         boolean first = true;
         LongMapIterator<V> iter = longMapIterator();
         while(iter.moveToNext()){
+            if(first){
+                first = false;
+            }else{
+                b.append(", ");
+            }
             b.append(iter.key());
             b.append(" => ");
             b.append(iter.value());
-            if(first){
-                first = false;
-                b.append(", ");
-            }
         }
         b.append(']');
         return b.toString();
