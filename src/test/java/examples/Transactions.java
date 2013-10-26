@@ -58,17 +58,19 @@ public class Transactions {
         System.out.println("map2 size after insert: "+map2.size());
 
         // so far there was no conflict, since modified Map values lie far away from each other in tree.
-        // `map2` has new key -10, so inserting -11 into map3 should update the same node and trigger rollback
-        try{
-            map3.put(-11, "exists");
-            tx3.commit();  //will throw TxRollbackException
-            System.out.println("Insert -11 into map3 was fine"); //this will be skipped by exception
-        }catch(TxRollbackException e){
-            System.out.println("Could not insert -11 into map3 thanks to conflict, tx3 was rolled back");
-        }
+        // `map2` has new key -10, so inserting -11 into map3 should update the same node
+        map3.put(-11, "exists");
+        // `map2` and `map3` now have conflicting data
+        tx3.commit();
+        System.out.println("Insert -11 into map3 was fine");
 
-        //tx3 was rolled back and is now closed, lets save tx2
-        tx2.commit();
+        //tx3 was commited, but tx2 now has conflicting data, so its commit will fail
+        try{
+            tx2.commit();
+            throw new Error("Should not be here");
+        }catch(TxRollbackException e){
+            System.out.println("Tx2 commit failed thanks to conflict, tx2 was rolled back");
+        }
 
         //create yet another transaction and observe result
         DB tx4 = txMaker.makeTx();

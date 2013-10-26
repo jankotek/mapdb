@@ -587,6 +587,9 @@ public class StoreWAL extends StoreDirect {
     protected void replayLogFile(){
         assert(structuralLock.isHeldByCurrentThread());
 
+        if(readOnly && log==null)
+            return;
+
         logSize = 0;
 
         if(log !=null && !syncOnCommitDisabled){

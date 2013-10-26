@@ -161,6 +161,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             BNode root = new LeafNode(new Object[]{null, null}, new Object[]{}, 0);
             rootRef = db.getEngine().put(root, rootSerializer);
             db.getEngine().update(Engine.CATALOG_RECID,rootRef, Serializer.LONG);
+            db.getEngine().commit();
         }
         return new BTreeMap<String, Object>(db.engine,Engine.CATALOG_RECID,32,false,0,
                 BTreeKeySerializer.STRING,

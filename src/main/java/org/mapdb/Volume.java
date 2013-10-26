@@ -212,6 +212,8 @@ public abstract class Volume {
 
             @Override
             public Volume createTransLogVolume() {
+                if(readOnly && !transLogFile.exists())
+                    return null;
                 return volumeForFile(transLogFile, rafMode>0, readOnly, sizeLimit, fullChunkAllocation);
             }
         };
