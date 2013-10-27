@@ -18,6 +18,7 @@ package org.mapdb;
 
 import java.lang.ref.WeakReference;
 import java.util.*;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -788,7 +789,7 @@ public class DB {
 //    }
 
 
-    synchronized public <E> Queue<E> getQueue(String name) {
+    synchronized public <E> BlockingQueue<E> getQueue(String name) {
         checkNotClosed();
         Queues.Queue<E> ret = (Queues.Queue<E>) getFromWeakCollection(name);
         if(ret!=null) return ret;
@@ -810,7 +811,7 @@ public class DB {
         return ret;
     }
 
-    synchronized public <E> Queue<E> createQueue(String name, Serializer<E> serializer) {
+    synchronized public <E> BlockingQueue<E> createQueue(String name, Serializer<E> serializer) {
         checkNameNotExists(name);
 
         long headerRecid = engine.put(0L, Serializer.LONG);
@@ -831,7 +832,7 @@ public class DB {
     }
 
 
-    synchronized public <E> Queue<E> getStack(String name) {
+    synchronized public <E> BlockingQueue<E> getStack(String name) {
         checkNotClosed();
         Queues.Stack<E> ret = (Queues.Stack<E>) getFromWeakCollection(name);
         if(ret!=null) return ret;
@@ -855,7 +856,7 @@ public class DB {
 
 
 
-    synchronized public <E> Queue<E> createStack(String name, Serializer<E> serializer, boolean useLocks) {
+    synchronized public <E> BlockingQueue<E> createStack(String name, Serializer<E> serializer, boolean useLocks) {
         checkNameNotExists(name);
 
         long headerRecid = engine.put(0L, Serializer.LONG);
@@ -872,9 +873,9 @@ public class DB {
     }
 
 
-    synchronized public <E> Queue<E> getCircularQueue(String name) {
+    synchronized public <E> BlockingQueue<E> getCircularQueue(String name) {
         checkNotClosed();
-        Queue<E> ret = (Queue<E>) getFromWeakCollection(name);
+        BlockingQueue<E> ret = (BlockingQueue<E>) getFromWeakCollection(name);
         if(ret!=null) return ret;
         String type = catGet(name + ".type", null);
         if(type==null){
@@ -897,7 +898,7 @@ public class DB {
 
 
 
-    synchronized public <E> Queue<E> createCircularQueue(String name, Serializer<E> serializer, long size) {
+    synchronized public <E> BlockingQueue<E> createCircularQueue(String name, Serializer<E> serializer, long size) {
         checkNameNotExists(name);
         if(serializer==null) serializer = getDefaultSerializer();
 

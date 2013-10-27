@@ -6,18 +6,25 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
+
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Various queue algorithms
  */
+//TODO unit tests for BlockingQueues
 public final class Queues {
 
     private Queues(){}
 
 
-    public static abstract class SimpleQueue<E> implements java.util.Queue<E>{
+
+    public static abstract class SimpleQueue<E> implements BlockingQueue<E> {
+
+        protected static final int TICK = 10*1000;
 
         protected final Engine engine;
         protected final Serializer<E> serializer;
@@ -128,6 +135,72 @@ public final class Queues {
             return add(e);
         }
 
+        @Override
+        public void put(E e) throws InterruptedException {
+            while(!offer(e)){
+                Thread.sleep(0,TICK);
+            }
+        }
+
+        @Override
+        public boolean offer(E e, long timeout, TimeUnit unit) throws InterruptedException {
+            if(offer(e)) return true;
+            long target = System.currentTimeMillis() + unit.toMillis(timeout);
+            while(target>=System.currentTimeMillis()){
+                if(offer(e))
+                    return true;
+                Thread.sleep(0,TICK);
+            }
+
+            return false;
+        }
+
+        @Override
+        public E take() throws InterruptedException {
+            E e = poll();
+            while(e!=null){
+                Thread.sleep(0,TICK);
+                e = poll();
+            }
+            return e;
+        }
+
+        @Override
+        public E poll(long timeout, TimeUnit unit) throws InterruptedException {
+            E e = poll();
+            if(e!=null) return e;
+            long target = System.currentTimeMillis() + unit.toMillis(timeout);
+            while(target>=System.currentTimeMillis()){
+                Thread.sleep(0,TICK);
+                e = poll();
+                if(e!=null)
+                    return e;
+            }
+            return null;
+        }
+
+        @Override
+        public int drainTo(Collection<? super E> c) {
+            return drainTo(c,Integer.MAX_VALUE);
+        }
+
+        @Override
+        public int drainTo(Collection<? super E> c, int maxElements) {
+            int counter=0;
+            while(counter<maxElements){
+                E e = poll();
+                if(e==null)
+                    return counter;
+                c.add(e);
+                counter++;
+            }
+            return counter;
+        }
+
+        @Override
+        public int remainingCapacity() {
+            return Integer.MAX_VALUE;
+        }
 
         @Override
         public boolean isEmpty() {
@@ -187,6 +260,8 @@ public final class Queues {
             throw new UnsupportedOperationException();
         }
     }
+
+
 
     /**
      * Last in first out lock-free queue
@@ -391,6 +466,7 @@ public final class Queues {
                 lock.unlock();
             }
         }
+
     }
 
 
