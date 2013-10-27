@@ -11,9 +11,7 @@ import java.nio.ByteBuffer;
 import java.util.Set;
 
 import static java.util.Arrays.asList;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class UtilsTest {
 
@@ -101,5 +99,10 @@ public class UtilsTest {
         assertTrue(a.contains(Serializer.BOOLEAN));
         assertFalse(a.contains(Serializer.LONG));
         a.clear();
+    }
+
+    @Test public void testHexaConversion(){
+        byte[] b = new byte[]{11,112,11,0,39,90};
+        assertArrayEquals(b,Utils.fromHexa(Utils.toHexa(b)));
     }
 }

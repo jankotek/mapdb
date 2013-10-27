@@ -5,9 +5,11 @@ import org.mapdb.EngineWrapper.ReadOnlyEngine;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 
@@ -335,8 +337,21 @@ public class DBMakerTest{
     @Test()
     public void sizeLimit(){
         long g = 1024*1024*1024;
-        assertEquals(g/2,DBMaker.newMemoryDB().sizeLimit(0.5)._sizeLimit);
-        assertEquals(g,DBMaker.newMemoryDB().sizeLimit(1)._sizeLimit);
+        assertEquals(g/2,DBMaker.newMemoryDB().sizeLimit(0.5).propsGetLong(DBMaker.Keys.sizeLimit,0));
+        assertEquals(g,DBMaker.newMemoryDB().sizeLimit(1).propsGetLong(DBMaker.Keys.sizeLimit,0));
+    }
+
+
+    @Test public void keys_value_matches() throws IllegalAccessException {
+        Class c = DBMaker.Keys.class;
+        Set<Integer> s = new TreeSet<Integer>();
+        for (Field f : c.getDeclaredFields()) {
+            f.setAccessible(true);
+            String value = (String) f.get(null);
+
+            String expected = f.getName().replaceFirst("^[^_]+_","");
+            assertEquals(expected, value);
+        }
     }
 
 }

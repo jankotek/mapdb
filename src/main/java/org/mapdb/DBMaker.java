@@ -21,8 +21,7 @@ import org.mapdb.EngineWrapper.ReadOnlyEngine;
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
-import java.util.NavigableSet;
-import java.util.Set;
+import java.util.*;
 
 /**
  * A builder class for creating and opening a database.
@@ -31,60 +30,74 @@ import java.util.Set;
  */
 public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
-    protected static final byte CACHE_DISABLE = 0;
-    protected static final byte CACHE_FIXED_HASH_TABLE = 1;
-    protected static final byte CACHE_HARD_REF = 2;
-    protected static final byte CACHE_WEAK_REF = 3;
-    protected static final byte CACHE_SOFT_REF = 4;
-    protected static final byte CACHE_LRU = 5;
+    protected final String TRUE = "true";
 
-    protected byte _cache = CACHE_FIXED_HASH_TABLE;
-    protected int _cacheSize = 1024*32;
+    protected interface Keys{
+        String cache = "cache";
+        String cacheSize = "cacheSize";
+        String cache_disable = "disable";
+        String cache_hashTable = "hashTable";
+        String cache_hardRef = "hardRef";
+        String cache_softRef = "softRef";
+        String cache_weakRef = "weakRef";
+        String cache_lru = "lru";
 
-    /** file to open, if null opens in memory store */
-    protected File _file;
+        String file = "file";
 
-    protected boolean _transactionEnabled = true;
+        String volume = "volume";
+        String volume_raf = "raf";
+        String volume_rafIfNeeded = "rafIfNeeded";
+        String volume_rafIndexMapped = "rafIndexMapped";
+        String volume_mmapf = "mmapf";
+        String volume_heap = "heap";
+        String volume_offheap = "offheap";
 
-    protected boolean _asyncWriteEnabled = true;
-    protected int _asyncFlushDelay = CC.ASYNC_WRITE_FLUSH_DELAY;
+        String store = "store";
+        String store_direct = "direct";
+        String store_wal = "wal";
+        String store_append = "append";
+        String store_heap = "heap";
 
-    protected boolean _deleteFilesAfterClose = false;
-    protected boolean _readOnly = false;
-    protected boolean _closeOnJvmShutdown = false;
+        String transactionDisable = "transactionDisable";
 
-    protected boolean _compressionEnabled = false;
+        String asyncWriteDisable = "asyncWriteDisable";
+        String asyncFlushDelay = "asyncFlushDelay";
 
-    protected byte[] _xteaEncryptionKey = null;
+        String deleteFilesAfterClose = "deleteFilesAfterClose";
+        String closeOnJvmShutdown = "closeOnJvmShutdown";
 
-    protected int _freeSpaceReclaimQ = 5;
+        String readOnly = "readOnly";
 
-    protected boolean _checksumEnabled = false;
+        String compression = "compression";
+        String compression_lzf = "lzf";
 
-    protected boolean _ifInMemoryUseDirectBuffer = false;
+        String encryptionKey = "encryptionKey";
+        String encryption = "encryption";
+        String encryption_xtea = "xtea";
 
-    protected boolean _syncOnCommitDisabled = false;
+        String checksum = "checksum";
 
-    protected boolean _snapshotEnabled = false;
+        String freeSpaceReclaimQ = "freeSpaceReclaimQ";
+        String syncOnCommitDisable = "syncOnCommitDisable";
 
-    protected long _sizeLimit = 0;
+        String snapshots = "snapshots";
 
-    protected int _rafMode = 0;
+        String strictDBGet = "strictDBGet";
 
-    protected boolean _strictDBGet = false;
+        String fullChunkAllocation = "fullChunkAllocation";
 
-    protected boolean _appendStorage;
+        String sizeLimit = "sizeLimit";
 
-    protected boolean _fullTx = false;
+        String fullTx = "fullTx";
+    }
 
-    protected boolean _fullChunkAllocation = false;
-
+    protected Properties props = new Properties();
 
     /** use static factory methods, or make subclass */
     protected DBMaker(){}
 
     protected DBMaker(File file) {
-        this._file = file;
+        props.setProperty(Keys.file, file.getPath());
     }
 
     /** Creates new in-memory database. Changes are lost after JVM exits.
@@ -92,11 +105,11 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * This will use HEAP memory so Garbage Collector is affected.
      */
     public static DBMaker newMemoryDB(){
-        return new DBMaker(null);
+        return new DBMaker()._newMemoryDB();
     }
 
     public DBMakerT _newMemoryDB(){
-        this._file = null;
+        props.setProperty(Keys.volume,Keys.volume_heap);
         return getThis();
     }
 
@@ -111,15 +124,14 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
     }
 
     public  DBMakerT _newDirectMemoryDB() {
-        _file = null;
-        _ifInMemoryUseDirectBuffer = true;
+        props.setProperty(Keys.volume,Keys.volume_offheap);
         return getThis();
     }
 
 
     /**
      * Creates or open append-only database stored in file.
-     * This database uses format otherthan usual file db
+     * This database uses format other than usual file db
      *
      * @param file
      * @return maker
@@ -129,8 +141,8 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
     }
 
     public DBMakerT _newAppendFileDB(File file) {
-        _file = file;
-        _appendStorage = true;
+        props.setProperty(Keys.file, file.getPath());
+        props.setProperty(Keys.store, Keys.store_append);
         return getThis();
     }
 
@@ -197,8 +209,6 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
     /**
      * Creates new database in temporary folder.
-     *
-     * @return
      */
     public static DBMaker newTempFileDB() {
         try {
@@ -215,7 +225,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
     }
 
     public DBMakerT _newFileDB(File file){
-        this._file = file;
+        props.setProperty(Keys.file, file.getPath());
         return getThis();
     }
 
@@ -239,7 +249,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * @return this builder
      */
     public DBMakerT transactionDisable(){
-        this._transactionEnabled = false;
+        props.put(Keys.transactionDisable,TRUE);
         return getThis();
     }
 
@@ -254,7 +264,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * @return this builder
      */
     public DBMakerT cacheDisable(){
-        this._cache = CACHE_DISABLE;
+        props.put(Keys.cache,Keys.cache_disable);
         return getThis();
     }
 
@@ -269,7 +279,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * @return this builder
      */
     public DBMakerT cacheHardRefEnable(){
-        this._cache = CACHE_HARD_REF;
+        props.put(Keys.cache,Keys.cache_hardRef);
         return getThis();
     }
 
@@ -281,7 +291,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * @return this builder
      */
     public DBMakerT cacheWeakRefEnable(){
-        this._cache = CACHE_WEAK_REF;
+        props.put(Keys.cache,Keys.cache_weakRef);
         return getThis();
     }
 
@@ -292,7 +302,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * @return this builder
      */
     public DBMakerT cacheSoftRefEnable(){
-        this._cache = CACHE_SOFT_REF;
+        props.put(Keys.cache,Keys.cache_softRef);
         return getThis();
     }
 
@@ -302,7 +312,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * @return this builder
      */
     public DBMakerT cacheLRUEnable(){
-        this._cache = CACHE_LRU;
+        props.put(Keys.cache,Keys.cache_lru);
         return getThis();
     }
     /**
@@ -316,7 +326,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * This options disables memory mapped files but causes storage to be slower.
      */
     public DBMakerT randomAccessFileEnable() {
-        _rafMode = 2;
+        props.setProperty(Keys.volume,Keys.volume_raf);
         return getThis();
     }
 
@@ -332,7 +342,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      *
      */
     public DBMakerT randomAccessFileEnableKeepIndexMapped() {
-        this._rafMode = 1;
+        props.setProperty(Keys.volume,Keys.volume_rafIndexMapped);
         return getThis();
     }
 
@@ -341,7 +351,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * disables memory mapped files, and use safer and slower {@code RandomAccessFile} instead.
      */
     public DBMakerT randomAccessFileEnableIfNeeded() {
-        this._rafMode = Utils.JVMSupportsLargeMappedFiles()? 0:2;
+        props.setProperty(Keys.volume,Keys.volume_rafIfNeeded);
         return getThis();
     }
 
@@ -357,7 +367,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * @return this builder
      */
     public DBMakerT cacheSize(int cacheSize){
-        this._cacheSize = cacheSize;
+        props.setProperty(Keys.cacheSize,""+cacheSize);
         return getThis();
     }
 
@@ -368,7 +378,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * @return this builder
      */
     public DBMakerT snapshotEnable(){
-        this._snapshotEnabled = true;
+        props.setProperty(Keys.snapshots,TRUE);
         return getThis();
     }
 
@@ -386,7 +396,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * @return this builder
      */
     public DBMakerT asyncWriteDisable(){
-        this._asyncWriteEnabled = false;
+        props.setProperty(Keys.asyncWriteDisable,TRUE);
         return getThis();
     }
 
@@ -408,7 +418,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * @return this builder
      */
     public DBMakerT asyncFlushDelay(int delay){
-        _asyncFlushDelay = delay;
+        props.setProperty(Keys.asyncFlushDelay,""+delay);
         return getThis();
     }
 
@@ -420,7 +430,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * @return this builder
      */
     public DBMakerT deleteFilesAfterClose(){
-        this._deleteFilesAfterClose = true;
+        props.setProperty(Keys.deleteFilesAfterClose,TRUE);
         return getThis();
     }
 
@@ -430,7 +440,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * @return this builder
      */
     public DBMakerT closeOnJvmShutdown(){
-        this._closeOnJvmShutdown = true;
+        props.setProperty(Keys.closeOnJvmShutdown,TRUE);
         return getThis();
     }
 
@@ -442,7 +452,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * @return this builder
      */
     public DBMakerT compressionEnable(){
-        this._compressionEnabled = true;
+        props.setProperty(Keys.compression,Keys.compression_lzf);
         return getThis();
     }
 
@@ -476,7 +486,8 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * @return this builder
      */
     public DBMakerT encryptionEnable(byte[] password){
-        _xteaEncryptionKey = password;
+        props.setProperty(Keys.encryption, Keys.encryption_xtea);
+        props.setProperty(Keys.encryptionKey,Utils.toHexa(password));
         return getThis();
     }
 
@@ -490,7 +501,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * @return this builder
      */
     public DBMakerT checksumEnable(){
-        this._checksumEnabled = true;
+        props.setProperty(Keys.checksum,TRUE);
         return getThis();
     }
 
@@ -505,7 +516,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * @return this builder
      */
     public DBMakerT strictDBGet(){
-        this._strictDBGet = true;
+        props.setProperty(Keys.strictDBGet,TRUE);
         return getThis();
     }
 
@@ -519,7 +530,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * @return this builder
      */
     public DBMakerT readOnly(){
-        this._readOnly = true;
+        props.setProperty(Keys.readOnly,TRUE);
         return getThis();
     }
 
@@ -537,7 +548,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      */
     public DBMakerT freeSpaceReclaimQ(int q){
         if(q<0||q>10) throw new IllegalArgumentException("wrong Q");
-        this._freeSpaceReclaimQ = q;
+        props.setProperty(Keys.freeSpaceReclaimQ,""+q);
         return getThis();
     }
 
@@ -584,7 +595,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * @return this builder
      */
     public DBMakerT syncOnCommitDisable(){
-        this._syncOnCommitDisabled = true;
+        props.setProperty(Keys.syncOnCommitDisable,TRUE);
         return getThis();
     }
 
@@ -599,7 +610,8 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * @return this builder
      */
     public DBMakerT sizeLimit(double maxSize){
-        this._sizeLimit = (long) (maxSize * 1024D*1024D*1024D);
+        long size = (long) (maxSize * 1024D*1024D*1024D);
+        props.setProperty(Keys.sizeLimit,""+size);
         return getThis();
     }
 
@@ -614,19 +626,19 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      *
      */
     public DBMakerT fullChunkAllocationEnable(){
-        this._fullChunkAllocation = true;
+        props.setProperty(Keys.fullChunkAllocation,TRUE);
         return getThis();
     }
 
 
     /** constructs DB using current settings */
     public DB make(){
-        return new DB(makeEngine(), _strictDBGet);
+        return new DB(makeEngine(), propsGetBool(Keys.strictDBGet));
     }
 
     
     public TxMaker makeTxMaker(){
-        this._fullTx= true;
+        props.setProperty(Keys.fullTx,TRUE);
         snapshotEnable();
         asyncWriteDisable();
         Engine e = makeEngine();
@@ -640,65 +652,74 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
     /** constructs Engine using current settings */
     public Engine makeEngine(){
 
+        final boolean readOnly = propsGetBool(Keys.readOnly);
+        final File file = props.containsKey(Keys.file)? new File(props.getProperty(Keys.file)):null;
+        final String volume = props.getProperty(Keys.volume);
+        final String store = props.getProperty(Keys.store);
 
-        if(_readOnly && _file==null)
+        if(readOnly && file==null)
             throw new UnsupportedOperationException("Can not open in-memory DB in read-only mode.");
 
-        if(_readOnly && !_file.exists() && !_appendStorage){
+        if(readOnly && !file.exists() && !Keys.store_append.equals(store)){
             throw new UnsupportedOperationException("Can not open non-existing file in read-only mode.");
         }
 
-        if(_sizeLimit>0 && _appendStorage)
+        if(propsGetLong(Keys.sizeLimit,0)>0 && Keys.store_append.equals(store))
             throw new UnsupportedOperationException("Append-Only store does not support Size Limit");
 
         extendArgumentCheck();
 
         Engine engine;
 
-        if(!_appendStorage){
+        if(!Keys.store_append.equals(store)){
             Volume.Factory folFac = extendStoreVolumeFactory();
 
-            engine = _transactionEnabled ?
-                    extendStoreWAL(folFac) :
-                    extendStoreDirect(folFac);
+            engine = propsGetBool(Keys.transactionDisable) ?
+                    extendStoreDirect(folFac):
+                    extendStoreWAL(folFac);
+
         }else{
-            if(_file==null) throw new UnsupportedOperationException("Append Storage format is not supported with in-memory dbs");
+            if(Keys.volume_heap.equals(volume)||Keys.volume_offheap.equals(volume))
+                throw new UnsupportedOperationException("Append Storage format is not supported with in-memory dbs");
             engine = extendStoreAppend();
         }
 
         engine = extendWrapStore(engine);
 
-        if(_asyncWriteEnabled && !_readOnly){
+        if(!propsGetBool(Keys.asyncWriteDisable) && !readOnly){
             engine = extendAsyncWriteEngine(engine);
         }
 
+        final String cache = props.getProperty(Keys.cache, CC.DEFAULT_CACHE);
 
-        if(_cache == CACHE_DISABLE){
+        if(Keys.cache_disable.equals(cache)){
             //do not wrap engine in cache
-        }else if(_cache == CACHE_FIXED_HASH_TABLE){
+        }else if(Keys.cache_hashTable.equals(cache)){
             engine = extendCacheHashTable(engine);
-        }else if (_cache == CACHE_HARD_REF){
+        }else if (Keys.cache_hardRef.equals(cache)){
             engine = extendCacheHardRef(engine);
-        }else if (_cache == CACHE_WEAK_REF){
+        }else if (Keys.cache_weakRef.equals(cache)){
             engine = extendCacheWeakRef(engine);
-        }else if (_cache == CACHE_SOFT_REF){
+        }else if (Keys.cache_softRef.equals(cache)){
             engine = extendCacheSoftRef(engine);
-        }else if (_cache == CACHE_LRU){
+        }else if (Keys.cache_lru.equals(cache)){
             engine = extendCacheLRU(engine);
+        }else{
+            throw new IllegalArgumentException("unknown cache type: "+cache);
         }
 
         engine = extendWrapCache(engine);
 
 
-        if(_snapshotEnabled)
+        if(propsGetBool(Keys.snapshots))
             engine = extendSnapshotEngine(engine);
 
         engine = extendWrapSnapshotEngine(engine);
 
-        if(_readOnly)
+        if(readOnly)
             engine = new ReadOnlyEngine(engine);
 
-        if(_closeOnJvmShutdown){
+        if(propsGetBool(Keys.closeOnJvmShutdown)){
             final Engine engine2 = engine;
             Runtime.getRuntime().addShutdownHook(new Thread("MapDB shutdown") {
                 @Override
@@ -735,6 +756,45 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         return engine;
     }
 
+
+    protected int propsGetInt(String key, int defValue){
+        String ret = props.getProperty(key);
+        if(ret==null) return defValue;
+        return Integer.valueOf(ret);
+    }
+
+    protected long propsGetLong(String key, long defValue){
+        String ret = props.getProperty(key);
+        if(ret==null) return defValue;
+        return Long.valueOf(ret);
+    }
+
+
+    protected boolean propsGetBool(String key){
+        String ret = props.getProperty(key);
+        return ret!=null && ret.equals(TRUE);
+    }
+
+    protected byte[] propsGetXteaEncKey(){
+        if(!Keys.encryption_xtea.equals(props.getProperty(Keys.encryption)))
+            return null;
+        return Utils.fromHexa(props.getProperty(Keys.encryptionKey));
+    }
+
+    protected int propsGetRafMode(){
+        String volume = props.getProperty(Keys.volume);
+        if(volume==null||Keys.volume_mmapf.equals(volume)){
+            return 0;
+        }else if(Keys.volume_rafIfNeeded.equals(volume)){
+            return Utils.JVMSupportsLargeMappedFiles()?0:2;
+        }else if(Keys.volume_rafIndexMapped.equals(volume)){
+            return 1;
+        }else if(Keys.volume_raf.equals(volume)){
+            return 2;
+        }
+        return 0;
+    }
+
     protected void extendShutdownHookBefore(Engine engine) {
     }
 
@@ -742,11 +802,12 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
     }
 
     protected TxEngine extendSnapshotEngine(Engine engine) {
-        return new TxEngine(engine,_fullTx);
+        return new TxEngine(engine,propsGetBool(Keys.fullTx));
     }
 
     protected Caches.LRU extendCacheLRU(Engine engine) {
-        return new Caches.LRU(engine, _cacheSize);
+        int cacheSize = propsGetInt(Keys.cacheSize, CC.DEFAULT_CACHE_SIZE);
+        return new Caches.LRU(engine, cacheSize);
     }
 
     protected Caches.WeakSoftRef extendCacheWeakRef(Engine engine) {
@@ -758,16 +819,21 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
     }
 
 
+
     protected Caches.HardRef extendCacheHardRef(Engine engine) {
-        return new Caches.HardRef(engine,_cacheSize);
+        int cacheSize = propsGetInt(Keys.cacheSize, CC.DEFAULT_CACHE_SIZE);
+        return new Caches.HardRef(engine,cacheSize);
     }
 
     protected Caches.HashTable extendCacheHashTable(Engine engine) {
-        return new Caches.HashTable(engine,_cacheSize);
+        int cacheSize = propsGetInt(Keys.cacheSize, CC.DEFAULT_CACHE_SIZE);
+        return new Caches.HashTable(engine, cacheSize);
     }
 
     protected AsyncWriteEngine extendAsyncWriteEngine(Engine engine) {
-        return new AsyncWriteEngine(engine, _asyncFlushDelay, null);
+        return new AsyncWriteEngine(engine,
+                propsGetInt(Keys.asyncFlushDelay,CC.ASYNC_WRITE_FLUSH_DELAY),
+                null);
     }
 
 
@@ -788,27 +854,48 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
     }
 
 
-
-
     protected StoreAppend extendStoreAppend() {
-        return new StoreAppend(_file, _rafMode>0, _readOnly, !_transactionEnabled, _deleteFilesAfterClose, _syncOnCommitDisabled,
-                _checksumEnabled,_compressionEnabled,_xteaEncryptionKey);
+        final File file = props.containsKey(Keys.file)? new File(props.getProperty(Keys.file)):null;
+        boolean compressionEnabled = Keys.compression_lzf.equals(props.getProperty(Keys.compression));
+        return new StoreAppend(file, propsGetRafMode()>0, propsGetBool(Keys.readOnly),
+                propsGetBool(Keys.transactionDisable),
+                propsGetBool(Keys.deleteFilesAfterClose),
+                propsGetBool(Keys.syncOnCommitDisable),
+                propsGetBool(Keys.checksum),compressionEnabled,propsGetXteaEncKey());
     }
 
     protected Store extendStoreDirect(Volume.Factory folFac) {
-        return new StoreDirect(folFac,  _readOnly,_deleteFilesAfterClose, _freeSpaceReclaimQ,_syncOnCommitDisabled,_sizeLimit,
-                _checksumEnabled,_compressionEnabled,_xteaEncryptionKey, _fullChunkAllocation);
+        boolean compressionEnabled = Keys.compression_lzf.equals(props.getProperty(Keys.compression));
+        return new StoreDirect(folFac,  propsGetBool(Keys.readOnly),
+                propsGetBool(Keys.deleteFilesAfterClose),
+                propsGetInt(Keys.freeSpaceReclaimQ,CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
+                propsGetBool(Keys.syncOnCommitDisable),propsGetLong(Keys.sizeLimit,0),
+                propsGetBool(Keys.checksum),compressionEnabled,propsGetXteaEncKey(),
+                propsGetBool(Keys.fullChunkAllocation));
     }
 
     protected Store extendStoreWAL(Volume.Factory folFac) {
-        return new StoreWAL(folFac,  _readOnly,_deleteFilesAfterClose, _freeSpaceReclaimQ,_syncOnCommitDisabled,_sizeLimit,
-                _checksumEnabled,_compressionEnabled,_xteaEncryptionKey,_fullChunkAllocation);
+        boolean compressionEnabled = Keys.compression_lzf.equals(props.getProperty(Keys.compression));
+        return new StoreWAL(folFac,  propsGetBool(Keys.readOnly),propsGetBool(Keys.deleteFilesAfterClose),
+                propsGetInt(Keys.freeSpaceReclaimQ,CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
+                propsGetBool(Keys.syncOnCommitDisable),propsGetLong(Keys.sizeLimit,-1),
+                propsGetBool(Keys.checksum),compressionEnabled,propsGetXteaEncKey(),
+                propsGetBool(Keys.fullChunkAllocation) );
     }
 
     protected Volume.Factory extendStoreVolumeFactory() {
-        return _file == null?
-                    Volume.memoryFactory(_ifInMemoryUseDirectBuffer,_sizeLimit, _fullChunkAllocation):
-                    Volume.fileFactory(_readOnly, _rafMode, _file,_sizeLimit, _fullChunkAllocation);
+        long sizeLimit = propsGetLong(Keys.sizeLimit,0);
+        boolean fullChunkAlloc = propsGetBool(Keys.fullChunkAllocation);
+        String volume = props.getProperty(Keys.volume);
+        if(Keys.volume_heap.equals(volume))
+            return Volume.memoryFactory(false,sizeLimit, fullChunkAlloc);
+        else if(Keys.volume_offheap.equals(volume))
+            return Volume.memoryFactory(true,sizeLimit, fullChunkAlloc);
+
+        File file = new File(props.getProperty(Keys.file));
+
+        return Volume.fileFactory(propsGetBool(Keys.readOnly), propsGetRafMode(), file,
+                            sizeLimit, fullChunkAlloc);
     }
 
 

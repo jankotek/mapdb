@@ -349,4 +349,23 @@ final public class Utils {
             ret.put(val,EMPTY_STRING);
         return ret.keySet();
     }
+
+    private  static final char[] HEXA_CHARS = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
+
+    public static String toHexa( byte [] bb ) {
+        char[] ret = new char[bb.length*2];
+        for(int i=0;i<bb.length;i++){
+            ret[i*2] =HEXA_CHARS[((bb[i]& 0xF0) >> 4)];
+            ret[i*2+1] = HEXA_CHARS[((bb[i] & 0x0F))];
+        }
+        return new String(ret);
+    }
+
+    public static byte[] fromHexa(String s ) {
+        byte[] ret = new byte[s.length()/2];
+        for(int i=0;i<ret.length;i++){
+            ret[i] = (byte) Integer.parseInt(s.substring(i*2,i*2+2),16);
+        }
+        return ret;
+    }
 }
