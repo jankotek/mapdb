@@ -29,9 +29,9 @@ Concurrent Transactions (TxMaker) almost fixed. Backward incompatible store form
 Snapshots are no longer enabled by default.
 
 
-Open issues
+Open issues:
 
- * #201: failing test suggests that Concurrent Transactions contains race condition.
+ * Fix #201: failing test suggests that Concurrent Transactions contains race condition.
 
 Changes:
 
