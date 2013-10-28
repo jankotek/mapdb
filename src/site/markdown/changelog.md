@@ -10,6 +10,7 @@ Added `DBMaker.fullChunkAllocationEnable()` to enable disk space allocation in 1
 In-memory store now can be compacted. Fixed race condition in `BTreeMap.put()`.
 
 Changes:
+
  * Rework integer/long serialization.
  * Fix #214: Queues now implement `BlockingQueue` interface
  * Refactor `DBMaker` so it uses properties. Easy to load/save config.
@@ -29,6 +30,7 @@ Snapshots are no longer enabled by default.
 
 
 Open issues
+
  * #201: failing test suggests that Concurrent Transactions contains race condition.
 
 Changes:
