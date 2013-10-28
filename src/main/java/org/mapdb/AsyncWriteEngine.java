@@ -384,12 +384,12 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
      */
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
-        if(serializer!=SerializerPojo.serializer) commitLock.readLock().lock();
+        commitLock.readLock().lock();
         try{
             checkState();
             writeCache.put(recid, new Fun.Tuple2(value, serializer));
         }finally{
-            if(serializer!=SerializerPojo.serializer) commitLock.readLock().unlock();
+            commitLock.readLock().unlock();
         }
     }
 
