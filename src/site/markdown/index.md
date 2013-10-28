@@ -36,6 +36,8 @@ CRUD, off-heap, append only store.. we have them all. MapDB is highly modular an
 
 News
 ----
+* 2013-10-28 [MapDB 0.9.7 was released](http://www.mapdb.org/changelog.html#Version_097_2013-10-28). Fixed locking issues on Windows. Concurrent Transactions (TxMaker) reworked and finally fixed.
+
 * 2013-09-27 [MapDB 0.9.6 was released](http://www.mapdb.org/changelog.html#Version_096_2013-09-27). Concurrent Transactions (TxMaker) almost fixed. Backward incompatible store format change. Snapshots are no longer enabled by default.
 
 * 2013-09-25 [MapDB and the road ahead](http://kotek.net/blog/MapDB_and_the_road_ahead)

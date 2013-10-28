@@ -1,6 +1,27 @@
 Changelog
 ============
 
+Version 0.9.7 (2013-10-28)
+--------------------------
+
+Store format is not backward compatible.
+Fixed locking issues on Windows. Concurrent Transactions (TxMaker) reworked and finally fixed.
+Added `DBMaker.fullChunkAllocationEnable()` to enable disk space allocation in 1GB  chunks.
+In-memory store now can be compacted. Fixed race condition in `BTreeMap.put()`.
+
+Changes:
+ * Rework integer/long serialization.
+ * Fix #214: Queues now implement `BlockingQueue` interface
+ * Refactor `DBMaker` so it uses properties. Easy to load/save config.
+ * TxMaker reworked, fixed concurrency issue.
+ * StoreDirect & WAL use stricter locking.
+ * Fix #218 and #192, locking issues on Windows during compaction solved.
+ * Added Tuple comparators.
+ * Fixed several issues in Data Pump.
+ * Fix #187, Reference to named objects/collections should be serializable
+ * BTreeMap: fix #209, put operation was not thread safe.
+
+
 Version 0.9.6 (2013-09-27)
 --------------------------
 Concurrent Transactions (TxMaker) almost fixed. Backward incompatible store format change.

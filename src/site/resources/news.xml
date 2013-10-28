@@ -8,6 +8,16 @@
         <description>MapDB </description>
 
         <item>
+            <title>MapDB 0.9.7 released</title>
+            <link>http://www.mapdb.org/changelog.html#/Version_097_2013-10-28</link>
+            <date>October 28 2013</date>
+            <description>
+                MapDB 0.9.7 was just released. Fixed locking issues on Windows. Concurrent Transactions (TxMaker) reworked and finally fixed.
+            </description>
+        </item>
+
+
+        <item>
             <title>MapDB 0.9.6 released</title>
             <link>http://www.mapdb.org/changelog.html#/Version_096_2013-09-27</link>
             <date>September 27 2013</date>
