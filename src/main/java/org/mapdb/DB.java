@@ -367,7 +367,6 @@ public class DB {
         checkNameNotExists(name);
 
 
-
         Set<K> ret = new HTreeMap<K,Object>(engine,
                 catPut(name+".counterRecid",!keepCounter?0L:engine.put(0L, Serializer.LONG)),
                 catPut(name+".hashSalt",new Random().nextInt()),

@@ -207,6 +207,104 @@ public interface Serializer<A> {
         }
     } ;
 
+    /**
+     * Serializes `char[]` it adds header which contains size information
+     */
+    Serializer<char[] > CHAR_ARRAY = new Serializer<char[]>() {
+
+        @Override
+        public void serialize(DataOutput out, char[] value) throws IOException {
+            Utils.packInt(out,value.length);
+            for(char c:value){
+                out.writeChar(c);
+            }
+        }
+
+        @Override
+        public char[] deserialize(DataInput in, int available) throws IOException {
+            final int size = Utils.unpackInt(in);
+            char[] ret = new char[size];
+            for(int i=0;i<size;i++){
+                ret[i] = in.readChar();
+            }
+            return ret;
+        }
+    };
+
+
+    /**
+     * Serializes `int[]` it adds header which contains size information
+     */
+    Serializer<int[] > INT_ARRAY = new Serializer<int[]>() {
+
+        @Override
+        public void serialize(DataOutput out, int[] value) throws IOException {
+            Utils.packInt(out,value.length);
+            for(int c:value){
+                out.writeInt(c);
+            }
+        }
+
+        @Override
+        public int[] deserialize(DataInput in, int available) throws IOException {
+            final int size = Utils.unpackInt(in);
+            int[] ret = new int[size];
+            for(int i=0;i<size;i++){
+                ret[i] = in.readInt();
+            }
+            return ret;
+        }
+    };
+
+    /**
+     * Serializes `long[]` it adds header which contains size information
+     */
+    Serializer<long[] > LONG_ARRAY = new Serializer<long[]>() {
+
+        @Override
+        public void serialize(DataOutput out, long[] value) throws IOException {
+            Utils.packInt(out,value.length);
+            for(long c:value){
+                out.writeLong(c);
+            }
+        }
+
+        @Override
+        public long[] deserialize(DataInput in, int available) throws IOException {
+            final int size = Utils.unpackInt(in);
+            long[] ret = new long[size];
+            for(int i=0;i<size;i++){
+                ret[i] = in.readLong();
+            }
+            return ret;
+        }
+    };
+
+    /**
+     * Serializes `double[]` it adds header which contains size information
+     */
+    Serializer<double[] > DOUBLE_ARRAY = new Serializer<double[]>() {
+
+        @Override
+        public void serialize(DataOutput out, double[] value) throws IOException {
+            Utils.packInt(out,value.length);
+            for(double c:value){
+                out.writeDouble(c);
+            }
+        }
+
+        @Override
+        public double[] deserialize(DataInput in, int available) throws IOException {
+            final int size = Utils.unpackInt(in);
+            double[] ret = new double[size];
+            for(int i=0;i<size;i++){
+                ret[i] = in.readDouble();
+            }
+            return ret;
+        }
+    };
+
+
     /** Serializer which uses standard Java Serialization with {@link java.io.ObjectInputStream} and {@link java.io.ObjectOutputStream} */
     Serializer<Object> JAVA = new Serializer<Object>() {
         @Override

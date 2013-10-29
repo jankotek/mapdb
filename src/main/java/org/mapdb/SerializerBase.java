@@ -42,7 +42,9 @@ public class SerializerBase implements Serializer{
             Serializer.STRING_NOSIZE, Serializer.LONG, Serializer.INTEGER,
             Serializer.ILLEGAL_ACCESS, Serializer.BASIC, Serializer.BOOLEAN,
             Serializer.BYTE_ARRAY_NOSIZE, Serializer.BYTE_ARRAY,
-            Serializer.JAVA, Serializer.UUID, Serializer.STRING
+            Serializer.JAVA, Serializer.UUID, Serializer.STRING,
+            Serializer.CHAR_ARRAY, Serializer.INT_ARRAY, Serializer.LONG_ARRAY, Serializer.DOUBLE_ARRAY
+
         );
     }
 
@@ -291,6 +293,22 @@ public class SerializerBase implements Serializer{
         } else if(obj == Fun.REVERSE_COMPARATOR){
             out.write(Header.MAPDB);
             Utils.packInt(out, HeaderMapDB.FUN_COMPARATOR_REVERSE);
+            return;
+        } else if(obj == Serializer.CHAR_ARRAY){
+            out.write(Header.MAPDB);
+            Utils.packInt(out, HeaderMapDB.SERIALIZER_CHAR_ARRAY);
+            return;
+        } else if(obj == Serializer.INT_ARRAY){
+            out.write(Header.MAPDB);
+            Utils.packInt(out, HeaderMapDB.SERIALIZER_INT_ARRAY);
+            return;
+        } else if(obj == Serializer.LONG_ARRAY){
+            out.write(Header.MAPDB);
+            Utils.packInt(out, HeaderMapDB.SERIALIZER_LONG_ARRAY);
+            return;
+        } else if(obj == Serializer.DOUBLE_ARRAY){
+            out.write(Header.MAPDB);
+            Utils.packInt(out, HeaderMapDB.SERIALIZER_DOUBLE_ARRAY);
             return;
         } else if(obj == BASIC){
             out.write(Header.MAPDB);
@@ -1403,6 +1421,10 @@ public class SerializerBase implements Serializer{
         int TUPLE3_COMPARATOR_STATIC = 26;
         int TUPLE4_COMPARATOR_STATIC = 27;
         int FUN_COMPARATOR_REVERSE = 28;
+        int SERIALIZER_CHAR_ARRAY = 29;
+        int SERIALIZER_INT_ARRAY = 30;
+        int SERIALIZER_LONG_ARRAY = 31;
+        int SERIALIZER_DOUBLE_ARRAY = 32;
     }
 
 
@@ -1479,6 +1501,15 @@ public class SerializerBase implements Serializer{
                 return Fun.COMPARATOR;
             case HeaderMapDB.FUN_COMPARATOR_REVERSE:
                 return Fun.REVERSE_COMPARATOR;
+
+            case HeaderMapDB.SERIALIZER_CHAR_ARRAY:
+                return Serializer.CHAR_ARRAY;
+            case HeaderMapDB.SERIALIZER_INT_ARRAY:
+                return Serializer.INT_ARRAY;
+            case HeaderMapDB.SERIALIZER_LONG_ARRAY:
+                return Serializer.LONG_ARRAY;
+            case HeaderMapDB.SERIALIZER_DOUBLE_ARRAY:
+                return Serializer.DOUBLE_ARRAY;
 
             case HeaderMapDB.B_TREE_BASIC_KEY_SERIALIZER:
                 return new BTreeKeySerializer.BasicKeySerializer((Serializer) deserialize(is,objectStack)); //TODO objectStack here
