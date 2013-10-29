@@ -1327,6 +1327,13 @@ public class SerializerBase implements Serializer{
         int HASHER_INT_ARRAY = 36;
         int HASHER_LONG_ARRAY = 37;
         int HASHER_DOUBLE_ARRAY = 38;
+
+        int COMPARATOR_BYTE_ARRAY = 34;
+        int COMPARATOR_CHAR_ARRAY = 35;
+        int COMPARATOR_INT_ARRAY = 36;
+        int COMPARATOR_LONG_ARRAY = 37;
+        int COMPARATOR_DOUBLE_ARRAY = 38;
+
     }
 
     protected static final class singletons{
@@ -1368,6 +1375,11 @@ public class SerializerBase implements Serializer{
             all.put(Hasher.LONG_ARRAY,HeaderMapDB.HASHER_LONG_ARRAY);
             all.put(Hasher.DOUBLE_ARRAY,HeaderMapDB.HASHER_DOUBLE_ARRAY);
 
+            all.put(BTreeKeySerializer.BYTE_ARRAY_COMPARATOR,HeaderMapDB.COMPARATOR_BYTE_ARRAY);
+            all.put(BTreeKeySerializer.CHAR_ARRAY_COMPARATOR,HeaderMapDB.COMPARATOR_CHAR_ARRAY);
+            all.put(BTreeKeySerializer.INT_ARRAY_COMPARATOR,HeaderMapDB.COMPARATOR_INT_ARRAY);
+            all.put(BTreeKeySerializer.LONG_ARRAY_COMPARATOR,HeaderMapDB.COMPARATOR_LONG_ARRAY);
+            all.put(BTreeKeySerializer.DOUBLE_ARRAY_COMPARATOR,HeaderMapDB.COMPARATOR_DOUBLE_ARRAY);
             //important for assertSerializable
             all.put(Fun.HI,Integer.MIN_VALUE);
 

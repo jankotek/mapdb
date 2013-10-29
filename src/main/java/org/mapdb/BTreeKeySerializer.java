@@ -650,4 +650,87 @@ public abstract class BTreeKeySerializer<K>{
             return result;
         }
     }
+
+    public static final Comparator<byte[]> BYTE_ARRAY_COMPARATOR = new Comparator<byte[]>() {
+        @Override
+        public int compare(byte[] o1, byte[] o2) {
+            if(o1==o2) return 0;
+            final int len = Math.min(o1.length,o2.length);
+            for(int i=0;i<len;i++){
+                if(o1[i]==o2[i])
+                    continue;
+                if(o1[i]>o2[i])
+                    return 1;
+                return -1;
+            }
+            return Integer.compare(o1.length, o2.length);
+        }
+    };
+
+
+    public static final Comparator<char[]> CHAR_ARRAY_COMPARATOR = new Comparator<char[]>() {
+        @Override
+        public int compare(char[] o1, char[] o2) {
+            if(o1==o2) return 0;
+            final int len = Math.min(o1.length,o2.length);
+            for(int i=0;i<len;i++){
+                if(o1[i]==o2[i])
+                    continue;
+                if(o1[i]>o2[i])
+                    return 1;
+                return -1;
+            }
+            return Integer.compare(o1.length, o2.length);
+        }
+    };
+
+    public static final Comparator<int[]> INT_ARRAY_COMPARATOR = new Comparator<int[]>() {
+        @Override
+        public int compare(int[] o1, int[] o2) {
+            if(o1==o2) return 0;
+            final int len = Math.min(o1.length,o2.length);
+            for(int i=0;i<len;i++){
+                if(o1[i]==o2[i])
+                    continue;
+                if(o1[i]>o2[i])
+                    return 1;
+                return -1;
+            }
+            return Integer.compare(o1.length, o2.length);
+        }
+    };
+
+    public static final Comparator<long[]> LONG_ARRAY_COMPARATOR = new Comparator<long[]>() {
+        @Override
+        public int compare(long[] o1, long[] o2) {
+            if(o1==o2) return 0;
+            final int len = Math.min(o1.length,o2.length);
+            for(int i=0;i<len;i++){
+                if(o1[i]==o2[i])
+                    continue;
+                if(o1[i]>o2[i])
+                    return 1;
+                return -1;
+            }
+            return Integer.compare(o1.length, o2.length);
+        }
+    };
+
+    public static final Comparator<double[]> DOUBLE_ARRAY_COMPARATOR = new Comparator<double[]>() {
+        @Override
+        public int compare(double[] o1, double[] o2) {
+            if(o1==o2) return 0;
+            final int len = Math.min(o1.length,o2.length);
+            for(int i=0;i<len;i++){
+                if(o1[i]==o2[i])
+                    continue;
+                if(o1[i]>o2[i])
+                    return 1;
+                return -1;
+            }
+            return Integer.compare(o1.length, o2.length);
+        }
+    };
+
+
 }
