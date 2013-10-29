@@ -1328,11 +1328,11 @@ public class SerializerBase implements Serializer{
         int HASHER_LONG_ARRAY = 37;
         int HASHER_DOUBLE_ARRAY = 38;
 
-        int COMPARATOR_BYTE_ARRAY = 34;
-        int COMPARATOR_CHAR_ARRAY = 35;
-        int COMPARATOR_INT_ARRAY = 36;
-        int COMPARATOR_LONG_ARRAY = 37;
-        int COMPARATOR_DOUBLE_ARRAY = 38;
+        int COMPARATOR_BYTE_ARRAY = 39;
+        int COMPARATOR_CHAR_ARRAY = 40;
+        int COMPARATOR_INT_ARRAY = 41;
+        int COMPARATOR_LONG_ARRAY = 42;
+        int COMPARATOR_DOUBLE_ARRAY = 43;
 
     }
 
