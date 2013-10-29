@@ -431,10 +431,15 @@ public class SerializerBaseTest extends TestCase {
 
 
     public void test_static_objects() throws IOException {
-        for(Object o:SerializerBase.knownSerializable.get){
+        for(Object o:SerializerBase.singletons.all.keySet()){
             assertTrue(o==clone(o));
         }
     }
+
+    public void test_singleton_reverse() throws IOException {
+        assertEquals(SerializerBase.singletons.all.size(), SerializerBase.singletons.reverse.size());
+    }
+
 
     public void test_tuple_key_serializer() throws IOException {
         assertEquals(BTreeKeySerializer.TUPLE2, clone(BTreeKeySerializer.TUPLE2));
@@ -517,16 +522,16 @@ public class SerializerBaseTest extends TestCase {
     public void test_All_Serializer_Fields_Serializable() throws IllegalAccessException, IOException {
         for(Field f:Serializer.class.getDeclaredFields()){
             Object a = f.get(null);
-            assertTrue("field: "+f.getName(), SerializerBase.knownSerializable.get.contains(a));
-            assertEquals("field: "+f.getName(),a,clone(a));
+            assertTrue("field: "+f.getName(), SerializerBase.singletons.all.containsKey(a));
+            assertTrue("field: "+f.getName(),a == clone(a));
         }
     }
 
     public void test_All_Hasher_Fields_Serializable() throws IllegalAccessException, IOException {
         for(Field f:Hasher.class.getDeclaredFields()){
             Object a = f.get(null);
-            assertTrue("field: "+f.getName(), SerializerBase.knownSerializable.get.contains(a));
-            assertEquals("field: "+f.getName(),a,clone(a));
+            assertTrue("field: "+f.getName(), SerializerBase.singletons.all.containsKey(a));
+            assertTrue("field: "+f.getName(),a == clone(a));
         }
     }
 
@@ -534,8 +539,8 @@ public class SerializerBaseTest extends TestCase {
     public void test_All_Fun_Fields_Serializable() throws IllegalAccessException, IOException {
         for(Field f:Fun.class.getDeclaredFields()){
             Object a = f.get(null);
-            assertTrue("field: "+f.getName(), SerializerBase.knownSerializable.get.contains(a));
-            assertEquals("field: "+f.getName(),a,clone(a));
+            assertTrue("field: "+f.getName(), SerializerBase.singletons.all.containsKey(a));
+            assertTrue("field: "+f.getName(),a == clone(a));
         }
     }
 

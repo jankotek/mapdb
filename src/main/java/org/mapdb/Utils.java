@@ -339,17 +339,6 @@ final public class Utils {
         };
     }
 
-    /**
-     * Converts parameters into IdentityHashSet.
-     * In reality it uses {@link java.util.IdentityHashMap#keySet()}
-     */
-    public static Set identityHashSet(Object... vals) {
-        Map ret = new IdentityHashMap();
-        for(Object val:vals)
-            ret.put(val,EMPTY_STRING);
-        return ret.keySet();
-    }
-
     private  static final char[] HEXA_CHARS = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
 
     public static String toHexa( byte [] bb ) {

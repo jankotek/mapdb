@@ -92,14 +92,6 @@ public class UtilsTest {
         }
     };
 
-    @Test
-    public void identity_hash_set(){
-        Set a = Utils.identityHashSet(Serializer.BASIC, Serializer.BOOLEAN);
-        assertTrue(a.contains(Serializer.BASIC));
-        assertTrue(a.contains(Serializer.BOOLEAN));
-        assertFalse(a.contains(Serializer.LONG));
-        a.clear();
-    }
 
     @Test public void testHexaConversion(){
         byte[] b = new byte[]{11,112,11,0,39,90};
