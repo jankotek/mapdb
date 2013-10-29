@@ -522,6 +522,15 @@ public class SerializerBaseTest extends TestCase {
         }
     }
 
+    public void test_All_Hasher_Fields_Serializable() throws IllegalAccessException, IOException {
+        for(Field f:Hasher.class.getDeclaredFields()){
+            Object a = f.get(null);
+            assertTrue("field: "+f.getName(), SerializerBase.knownSerializable.get.contains(a));
+            assertEquals("field: "+f.getName(),a,clone(a));
+        }
+    }
+
+
     public void test_All_Fun_Fields_Serializable() throws IllegalAccessException, IOException {
         for(Field f:Fun.class.getDeclaredFields()){
             Object a = f.get(null);

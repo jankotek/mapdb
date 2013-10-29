@@ -43,8 +43,9 @@ public class SerializerBase implements Serializer{
             Serializer.ILLEGAL_ACCESS, Serializer.BASIC, Serializer.BOOLEAN,
             Serializer.BYTE_ARRAY_NOSIZE, Serializer.BYTE_ARRAY,
             Serializer.JAVA, Serializer.UUID, Serializer.STRING,
-            Serializer.CHAR_ARRAY, Serializer.INT_ARRAY, Serializer.LONG_ARRAY, Serializer.DOUBLE_ARRAY
-
+            Serializer.CHAR_ARRAY, Serializer.INT_ARRAY, Serializer.LONG_ARRAY, Serializer.DOUBLE_ARRAY,
+            Hasher.BASIC, Hasher.BYTE_ARRAY,Hasher.CHAR_ARRAY,
+            Hasher.INT_ARRAY, Hasher.LONG_ARRAY, Hasher.DOUBLE_ARRAY
         );
     }
 
@@ -309,6 +310,34 @@ public class SerializerBase implements Serializer{
         } else if(obj == Serializer.DOUBLE_ARRAY){
             out.write(Header.MAPDB);
             Utils.packInt(out, HeaderMapDB.SERIALIZER_DOUBLE_ARRAY);
+            return;
+        } else if(obj == Hasher.BASIC){
+            out.write(Header.MAPDB);
+            Utils.packInt(out, HeaderMapDB.HASHER_BASIC);
+            return;
+        } else if(obj == Hasher.BASIC){
+            out.write(Header.MAPDB);
+            Utils.packInt(out, HeaderMapDB.HASHER_BASIC);
+            return;
+        } else if(obj == Hasher.BYTE_ARRAY){
+            out.write(Header.MAPDB);
+            Utils.packInt(out, HeaderMapDB.HASHER_BYTE_ARRAY);
+            return;
+        } else if(obj == Hasher.CHAR_ARRAY){
+            out.write(Header.MAPDB);
+            Utils.packInt(out, HeaderMapDB.HASHER_CHAR_ARRAY);
+            return;
+        } else if(obj == Hasher.INT_ARRAY){
+            out.write(Header.MAPDB);
+            Utils.packInt(out, HeaderMapDB.HASHER_INT_ARRAY);
+            return;
+        } else if(obj == Hasher.LONG_ARRAY){
+            out.write(Header.MAPDB);
+            Utils.packInt(out, HeaderMapDB.HASHER_LONG_ARRAY);
+            return;
+        } else if(obj == Hasher.DOUBLE_ARRAY){
+            out.write(Header.MAPDB);
+            Utils.packInt(out, HeaderMapDB.HASHER_DOUBLE_ARRAY);
             return;
         } else if(obj == BASIC){
             out.write(Header.MAPDB);
@@ -1425,6 +1454,13 @@ public class SerializerBase implements Serializer{
         int SERIALIZER_INT_ARRAY = 30;
         int SERIALIZER_LONG_ARRAY = 31;
         int SERIALIZER_DOUBLE_ARRAY = 32;
+
+        int HASHER_BASIC = 33;
+        int HASHER_BYTE_ARRAY = 34;
+        int HASHER_CHAR_ARRAY = 35;
+        int HASHER_INT_ARRAY = 36;
+        int HASHER_LONG_ARRAY = 37;
+        int HASHER_DOUBLE_ARRAY = 38;
     }
 
 
@@ -1510,6 +1546,20 @@ public class SerializerBase implements Serializer{
                 return Serializer.LONG_ARRAY;
             case HeaderMapDB.SERIALIZER_DOUBLE_ARRAY:
                 return Serializer.DOUBLE_ARRAY;
+
+            case HeaderMapDB.HASHER_BASIC:
+                return Hasher.BASIC;
+            case HeaderMapDB.HASHER_BYTE_ARRAY:
+                return Hasher.BYTE_ARRAY;
+            case HeaderMapDB.HASHER_CHAR_ARRAY:
+                return Hasher.CHAR_ARRAY;
+            case HeaderMapDB.HASHER_INT_ARRAY:
+                return Hasher.INT_ARRAY;
+            case HeaderMapDB.HASHER_LONG_ARRAY:
+                return Hasher.LONG_ARRAY;
+            case HeaderMapDB.HASHER_DOUBLE_ARRAY:
+                return Hasher.DOUBLE_ARRAY;
+
 
             case HeaderMapDB.B_TREE_BASIC_KEY_SERIALIZER:
                 return new BTreeKeySerializer.BasicKeySerializer((Serializer) deserialize(is,objectStack)); //TODO objectStack here

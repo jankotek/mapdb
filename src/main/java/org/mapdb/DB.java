@@ -111,6 +111,7 @@ public class DB {
         protected long expireMaxSize = 0L;
         protected long expire = 0L;
         protected long expireAccess = 0L;
+        protected Hasher hasher = null;
 
         protected Fun.Function1 valueCreator = null;
 
@@ -171,6 +172,11 @@ public class DB {
          * This way `HTreeMap.get()` never returns null */
         public HTreeMapMaker valueCreator(Fun.Function1 valueCreator){
             this.valueCreator = valueCreator;
+            return this;
+        }
+
+        public HTreeMapMaker hasher(Hasher hasher){
+            this.hasher = hasher;
             return this;
         }
 
@@ -244,8 +250,8 @@ public class DB {
                 catGet(name+".expireMaxSize",0L),
                 (long[])catGet(name+".expireHeads",null),
                 (long[])catGet(name+".expireTails",null),
-                valueCreator
-        );
+                valueCreator,
+                null);
 
 
         namedPut(name, ret);
@@ -299,7 +305,10 @@ public class DB {
             }
             catPut(name+".expireHeads",expireHeads);
             catPut(name+".expireTails",expireHeads);
+        }
 
+        if(m.hasher!=null){
+            catPut(name+".hasher",m.hasher);
         }
 
 
@@ -310,7 +319,7 @@ public class DB {
                 catPut(name+".keySerializer",m.keySerializer,getDefaultSerializer()),
                 catPut(name+".valueSerializer",m.valueSerializer,getDefaultSerializer()),
                 expireTimeStart,expire,expireAccess,expireMaxSize, expireHeads ,expireTails,
-                m.valueCreator
+                m.valueCreator, m.hasher
 
         );
 
@@ -345,8 +354,8 @@ public class DB {
                 (Integer)catGet(name+".hashSalt"),
                 (long[])catGet(name+".segmentRecids"),
                 catGet(name+".serializer",getDefaultSerializer()),
-                null, 0L,0L,0L,0L,null,null,null
-        ).keySet();
+                null, 0L,0L,0L,0L,null,null,null,
+                catGet(name+".hasher",Hasher.BASIC)).keySet();
 
 
         namedPut(name, ret);
@@ -372,8 +381,8 @@ public class DB {
                 catPut(name+".hashSalt",new Random().nextInt()),
                 catPut(name+".segmentRecids",HTreeMap.preallocateSegments(engine)),
                 catPut(name+".serializer",serializer,getDefaultSerializer()),
-                null, 0L,0L,0L,0L,null,null,null
-        ).keySet();
+                null, 0L,0L,0L,0L,null,null,null,
+                null).keySet();
 
         catalog.put(name + ".type", "HashSet");
         namedPut(name, ret);

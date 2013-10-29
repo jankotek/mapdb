@@ -132,7 +132,7 @@ public class HTreeMap2Test {
 
     @Test public void test_simple_put(){
 
-        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC, Serializer.BASIC,0,0,0,0,null,null,null);
+        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC, Serializer.BASIC,0,0,0,0,null,null,null, null);
 
         m.put(111L, 222L);
         m.put(333L, 444L);
@@ -147,7 +147,7 @@ public class HTreeMap2Test {
     }
 
     @Test public void test_hash_collision(){
-        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC, Serializer.BASIC,0,0,0,0,null,null,null){
+        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC, Serializer.BASIC,0,0,0,0,null,null,null, null){
             @Override
             protected int hash(Object key) {
                 return 0;
@@ -168,7 +168,7 @@ public class HTreeMap2Test {
     }
 
     @Test public void test_hash_dir_expand(){
-        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC, Serializer.BASIC,0,0,0,0,null,null,null){
+        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC, Serializer.BASIC,0,0,0,0,null,null,null, null){
             @Override
             protected int hash(Object key) {
                 return 0;
@@ -242,7 +242,7 @@ public class HTreeMap2Test {
 
 
     @Test public void test_delete(){
-        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC, Serializer.BASIC,0,0,0,0,null,null,null){
+        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC, Serializer.BASIC,0,0,0,0,null,null,null, null){
             @Override
             protected int hash(Object key) {
                 return 0;
@@ -270,7 +270,7 @@ public class HTreeMap2Test {
     }
 
     @Test public void clear(){
-        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC, Serializer.BASIC,0,0,0,0,null,null,null);
+        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC, Serializer.BASIC,0,0,0,0,null,null,null, null);
         for(Integer i=0;i<100;i++){
             m.put(i,i);
         }
@@ -281,7 +281,7 @@ public class HTreeMap2Test {
 
     @Test //(timeout = 10000)
      public void testIteration(){
-        HTreeMap m = new HTreeMap(engine, 0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC,Serializer.BASIC,0,0,0,0,null,null,null){
+        HTreeMap m = new HTreeMap(engine, 0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC,Serializer.BASIC,0,0,0,0,null,null,null, null){
             @Override
             protected int hash(Object key) {
                 return (Integer) key;
@@ -551,5 +551,21 @@ public class HTreeMap2Test {
         }
     }
 
+
+    @Test public void hasher(){
+        HTreeMap m =
+                DBMaker.newMemoryDB().make()
+                .createHashMap("test")
+                .hasher(Hasher.INT_ARRAY)
+                .make();
+
+        for(int i=0;i<1e5;i++){
+            m.put(new int[]{i,i,i},i);
+        }
+        for(Integer i=0;i<1e5;i++){
+            assertEquals(i,m.get(new int[]{i,i,i}));
+        }
+
+    }
 }
 

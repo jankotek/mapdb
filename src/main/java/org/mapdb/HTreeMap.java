@@ -40,6 +40,7 @@ import java.util.logging.Level;
  *
  * @author Jan Kotek
  */
+//TODO equals method in AbstractMap... and Hasher.equals(v,v)
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K, V>, Bind.MapWithModificationListener<K,V> {
 
@@ -61,6 +62,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
     protected final Serializer<K> keySerializer;
     protected final Serializer<V> valueSerializer;
+    protected final Hasher<K> hasher;
 
     protected final Engine engine;
 
@@ -189,10 +191,11 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     /**
      * Opens HTreeMap
      */
-    public HTreeMap(Engine engine,long counterRecid, int hashSalt, long[] segmentRecids,
+    public HTreeMap(Engine engine, long counterRecid, int hashSalt, long[] segmentRecids,
                     Serializer<K> keySerializer, Serializer<V> valueSerializer,
                     long expireTimeStart, long expire, long expireAccess, long expireMaxSize,
-                    long[] expireHeads, long[] expireTails, Fun.Function1<V,K> valueCreator) {
+                    long[] expireHeads, long[] expireTails, Fun.Function1<V, K> valueCreator,
+                    Hasher hasher) {
         if(counterRecid<0) throw new IllegalArgumentException();
         if(engine==null) throw new NullPointerException();
         if(segmentRecids==null) throw new NullPointerException();
@@ -212,6 +215,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         this.segmentRecids = Arrays.copyOf(segmentRecids,16);
         this.keySerializer = keySerializer;
         this.valueSerializer = valueSerializer;
+        this.hasher = hasher!=null ? hasher : Hasher.BASIC;
         if(expire==0 && expireAccess!=0){
             expire = expireAccess;
         }
@@ -412,7 +416,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 while(true){
                     LinkedNode<K,V> ln = engine.get(recid, LN_SERIALIZER);
                     if(ln == null) return null;
-                    if(ln.key.equals(o)){
+                    if(hasher.equals(ln.key, (K) o)){
                         assert(hash(ln.key)==h);
                         return ln;
                     }
@@ -483,7 +487,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 LinkedNode<K,V> ln = engine.get(recid, LN_SERIALIZER);
 
                 while(ln!=null){
-                    if(ln.key.equals(key)){
+                    if(hasher.equals(ln.key,key)){
                         //found, replace value at this node
                         V oldVal = ln.value;
                         ln = new LinkedNode<K, V>(ln.next, ln.expireLinkNodeRecid, ln.key, value);
@@ -608,7 +612,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                     LinkedNode<K,V> prevLn = null;
                     long prevRecid = 0;
                     while(ln!=null){
-                        if(ln.key.equals(key)){
+                        if(hasher.equals(ln.key, (K) key)){
                             //remove from linkedList
                             if(prevLn == null ){
                                 //referenced directly from dir
@@ -910,8 +914,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     }
 
 
-    protected  int hash(final Object key) {
-        int h = key.hashCode() ^ hashSalt;
+    protected int hash(final Object key) {
+        int h = hasher.hashCode((K) key) ^ hashSalt;
         h ^= (h >>> 20) ^ (h >>> 12);
         return h ^ (h >>> 7) ^ (h >>> 4);
     }
@@ -1126,7 +1130,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         @Override
         public boolean equals(Object o) {
-            return (o instanceof Entry) && key.equals(((Entry) o).getKey());
+            return (o instanceof Entry) && hasher.equals(key, (K) ((Entry) o).getKey());
         }
 
         @Override
@@ -1574,7 +1578,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     public Map<K,V> snapshot(){
         Engine snapshot = TxEngine.createSnapshotFor(engine);
         return new HTreeMap<K, V>(snapshot, counter==null?0:counter.recid,
-                hashSalt, segmentRecids, keySerializer, valueSerializer,0L,0L,0L,0L,null,null, null);
+                hashSalt, segmentRecids, keySerializer, valueSerializer,0L,0L,0L,0L,null,null, null, null);
     }
 
 
