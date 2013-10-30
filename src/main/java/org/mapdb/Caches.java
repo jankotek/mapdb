@@ -40,10 +40,11 @@ public final class Caches {
         @Override
         public <A> long put(A value, Serializer<A> serializer) {
             long recid =  super.put(value, serializer);
+            final LongMap<Object> cache2 = checkClosed(cache);
             final Lock lock  = locks[Utils.lockPos(recid)];
             lock.lock();
             try{
-                checkClosed(cache).put(recid, value);
+                cache2.put(recid, value);
             }finally {
                 lock.unlock();
             }
@@ -53,14 +54,17 @@ public final class Caches {
         @SuppressWarnings("unchecked")
         @Override
         public <A> A get(long recid, Serializer<A> serializer) {
-            Object ret = cache.get(recid);
-            if(ret!=null) return (A) ret;
+            final LongMap<Object> cache2 = checkClosed(cache);
+            Object ret = cache2.get(recid);
+            if(ret!=null)
+                return (A) ret;
+
             final Lock lock  = locks[Utils.lockPos(recid)];
             lock.lock();
-
             try{
                 ret = super.get(recid, serializer);
-                if(ret!=null) checkClosed(cache).put(recid, ret);
+                if(ret!=null)
+                    cache2.put(recid, ret);
                 return (A) ret;
             }finally {
                 lock.unlock();
@@ -69,11 +73,12 @@ public final class Caches {
 
         @Override
         public <A> void update(long recid, A value, Serializer<A> serializer) {
+            final LongMap<Object> cache2 = checkClosed(cache);
+
             final Lock lock  = locks[Utils.lockPos(recid)];
             lock.lock();
-
             try{
-                checkClosed(cache).put(recid, value);
+                cache2.put(recid, value);
                 super.update(recid, value, serializer);
             }finally {
                 lock.unlock();
@@ -82,11 +87,12 @@ public final class Caches {
 
         @Override
         public <A> void delete(long recid, Serializer<A> serializer){
+            final LongMap<Object> cache2 = checkClosed(cache);
+
             final Lock lock  = locks[Utils.lockPos(recid)];
             lock.lock();
-
             try{
-                checkClosed(cache).remove(recid);
+                cache2.remove(recid);
                 super.delete(recid,serializer);
             }finally {
                 lock.unlock();
@@ -95,13 +101,13 @@ public final class Caches {
 
         @Override
         public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+            Engine engine = getWrappedEngine();
+            LongMap cache2 = checkClosed(cache);
+
             final Lock lock  = locks[Utils.lockPos(recid)];
             lock.lock();
-
             try{
-                Engine engine = getWrappedEngine();
-                LongMap cache2 = checkClosed(cache);
-                Object oldValue = cache.get(recid);
+                Object oldValue = cache2.get(recid);
                 if(oldValue == expectedOldValue || (oldValue!=null&&oldValue.equals(expectedOldValue))){
                     //found matching entry in cache, so just update and return true
                     cache2.put(recid, newValue);
@@ -185,11 +191,12 @@ public final class Caches {
         @Override
         public <A> long put(A value, Serializer<A> serializer) {
             final long recid = getWrappedEngine().put(value, serializer);
+            HashItem[] items2 = checkClosed(items);
+
             final Lock lock  = locks[Utils.lockPos(recid)];
             lock.lock();
-
             try{
-                checkClosed(items)[position(recid)] = new HashItem(recid, value);
+                items2[position(recid)] = new HashItem(recid, value);
             }finally{
                 lock.unlock();
             }
@@ -205,12 +212,14 @@ public final class Caches {
             if(item!=null && recid == item.key)
                 return (A) item.val;
 
+            Engine engine = getWrappedEngine();
+
             final Lock lock  = locks[Utils.lockPos(recid)];
             lock.lock();
 
             try{
                 //not in cache, fetch and add
-                final A value = getWrappedEngine().get(recid, serializer);
+                final A value = engine.get(recid, serializer);
                 if(value!=null)
                     items2[pos] = new HashItem(recid, value);
                 return value;
@@ -226,12 +235,15 @@ public final class Caches {
         @Override
         public <A> void update(long recid, A value, Serializer<A> serializer) {
             final int pos = position(recid);
+            HashItem[] items2 = checkClosed(items);
+            HashItem item = new HashItem(recid,value);
+            Engine engine = getWrappedEngine();
+
             final Lock lock  = locks[Utils.lockPos(recid)];
             lock.lock();
-
             try{
-                checkClosed(items)[pos] = new HashItem(recid, value);
-                getWrappedEngine().update(recid, value, serializer);
+                items2[pos] = item;
+                engine.update(recid, value, serializer);
             }finally {
                 lock.unlock();
             }
@@ -240,24 +252,25 @@ public final class Caches {
         @Override
         public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
             final int pos = position(recid);
+            HashItem[] items2 = checkClosed(items);
+            Engine engine = getWrappedEngine();
+
             final Lock lock  = locks[Utils.lockPos(recid)];
             lock.lock();
-
             try{
-                HashItem[] items2 = checkClosed(items);
                 HashItem item = items2[pos];
                 if(item!=null && item.key == recid){
                     //found in cache, so compare values
                     if(item.val == expectedOldValue || item.val.equals(expectedOldValue)){
                         //found matching entry in cache, so just update and return true
                         items2[pos] = new HashItem(recid, newValue);
-                        getWrappedEngine().update(recid, newValue, serializer);
+                        engine.update(recid, newValue, serializer);
                         return true;
                     }else{
                         return false;
                     }
                 }else{
-                    boolean ret = getWrappedEngine().compareAndSwap(recid, expectedOldValue, newValue, serializer);
+                    boolean ret = engine.compareAndSwap(recid, expectedOldValue, newValue, serializer);
                     if(ret) items2[pos] = new HashItem(recid, newValue);
                     return ret;
                 }
@@ -269,12 +282,13 @@ public final class Caches {
         @Override
         public <A> void delete(long recid, Serializer<A> serializer){
             final int pos = position(recid);
+            HashItem[] items2 = checkClosed(items);
+            Engine engine = getWrappedEngine();
+
             final Lock lock  = locks[Utils.lockPos(recid)];
             lock.lock();
-
             try{
-                getWrappedEngine().delete(recid,serializer);
-                HashItem[] items2 = checkClosed(items);
+                engine.delete(recid,serializer);
                 HashItem item = items2[pos];
                 if(item!=null && recid == item.key)
                 items[pos] = null;
@@ -400,7 +414,19 @@ public final class Caches {
         @Override
         public <A> long put(A value, Serializer<A> serializer) {
             long recid = getWrappedEngine().put(value, serializer);
-            putItemIntoCache(recid, value);
+            ReferenceQueue<A> q = checkClosed(queue);
+            LongConcurrentHashMap<CacheItem> items2 = checkClosed(items);
+            CacheItem item = useWeakRef?
+                    new CacheWeakItem(value, q, recid) :
+                    new CacheSoftItem(value, q, recid);
+
+            final Lock lock  = locks[Utils.lockPos(recid)];
+            lock.lock();
+            try{
+                items2.put(recid,item);
+            }finally{
+                lock.unlock();
+            }
             return recid;
         }
 
@@ -418,12 +444,20 @@ public final class Caches {
                 }
             }
 
+            Engine engine = getWrappedEngine();
+
             final Lock lock  = locks[Utils.lockPos(recid)];
             lock.lock();
 
             try{
-                Object value = getWrappedEngine().get(recid, serializer);
-                if(value!=null) putItemIntoCache(recid, value);
+                Object value = engine.get(recid, serializer);
+                if(value!=null){
+                    ReferenceQueue<A> q = checkClosed(queue);
+                    item = useWeakRef?
+                            new CacheWeakItem(value, q, recid) :
+                            new CacheSoftItem(value, q, recid);
+                    items2.put(recid,item);
+                }
 
                 return (A) value;
             }finally{
@@ -434,33 +468,34 @@ public final class Caches {
 
         @Override
         public <A> void update(long recid, A value, Serializer<A> serializer) {
+            Engine engine = getWrappedEngine();
+            ReferenceQueue<A> q = checkClosed(queue);
+            LongConcurrentHashMap<CacheItem> items2 = checkClosed(items);
+            CacheItem item = useWeakRef?
+                    new CacheWeakItem<A>(value, q, recid) :
+                    new CacheSoftItem<A>(value, q, recid);
+
             final Lock lock  = locks[Utils.lockPos(recid)];
             lock.lock();
-
             try{
-                putItemIntoCache(recid, value);
-                getWrappedEngine().update(recid, value, serializer);
+                items2.put(recid,item);
+                engine.update(recid, value, serializer);
             }finally {
                 lock.unlock();
             }
         }
 
-        @SuppressWarnings("unchecked")
-        private <A> void putItemIntoCache(long recid, A value) {
-            ReferenceQueue<A> q = checkClosed(queue);
-            checkClosed(items).put(recid, useWeakRef?
-                new CacheWeakItem<A>(value, q, recid) :
-                new CacheSoftItem<A>(value, q, recid));
-        }
 
         @Override
         public <A> void delete(long recid, Serializer<A> serializer){
+            Engine engine = getWrappedEngine();
+            LongMap items2 = checkClosed(items);
+
             final Lock lock  = locks[Utils.lockPos(recid)];
             lock.lock();
-
             try{
-                checkClosed(items).remove(recid);
-                getWrappedEngine().delete(recid,serializer);
+                items2.remove(recid);
+                engine.delete(recid,serializer);
             }finally {
                 lock.unlock();
             }
@@ -469,21 +504,31 @@ public final class Caches {
 
         @Override
         public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+            Engine engine = getWrappedEngine();
+            LongMap<CacheItem> items2 = checkClosed(items);
+            ReferenceQueue<A> q = checkClosed(queue);
+
+
             final Lock lock  = locks[Utils.lockPos(recid)];
             lock.lock();
-
             try{
-                CacheItem item = checkClosed(items).get(recid);
+                CacheItem item = items2.get(recid);
                 Object oldValue = item==null? null: item.get() ;
                 if(item!=null && item.getRecid() == recid &&
                         (oldValue == expectedOldValue || (oldValue!=null && oldValue.equals(expectedOldValue)))){
                     //found matching entry in cache, so just update and return true
-                    putItemIntoCache(recid, newValue);
-                    getWrappedEngine().update(recid, newValue, serializer);
+                    items2.put(recid,useWeakRef?
+                            new CacheWeakItem<A>(newValue, q, recid) :
+                            new CacheSoftItem<A>(newValue, q, recid));
+                    engine.update(recid, newValue, serializer);
                     return true;
                 }else{
-                    boolean ret = getWrappedEngine().compareAndSwap(recid, expectedOldValue, newValue, serializer);
-                    if(ret) putItemIntoCache(recid, newValue);
+                    boolean ret = engine.compareAndSwap(recid, expectedOldValue, newValue, serializer);
+                    if(ret){
+                        items2.put(recid,useWeakRef?
+                                new CacheWeakItem<A>(newValue, q, recid) :
+                                new CacheSoftItem<A>(newValue, q, recid));
+                    }
                     return ret;
                 }
             }finally {
