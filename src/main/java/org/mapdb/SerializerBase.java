@@ -1347,6 +1347,8 @@ public class SerializerBase implements Serializer{
         int COMPARATOR_COMPARABLE_ARRAY = 44;
         int COMPARATOR_ARRAY = 45;
 
+        int SERIALIZER_STRING_ASCII = 46;
+
     }
 
     protected static final class singletons{
@@ -1366,6 +1368,7 @@ public class SerializerBase implements Serializer{
             all.put(Fun.TUPLE4_COMPARATOR,HeaderMapDB.TUPLE4_COMPARATOR_STATIC);
 
             all.put(Serializer.STRING_NOSIZE,HeaderMapDB.SERIALIZER_STRING_NOSIZE);
+            all.put(Serializer.STRING_ASCII,HeaderMapDB.SERIALIZER_STRING_ASCII);
             all.put(Serializer.LONG,HeaderMapDB.SERIALIZER_LONG);
             all.put(Serializer.INTEGER,HeaderMapDB.SERIALIZER_INT);
             all.put(Serializer.ILLEGAL_ACCESS,HeaderMapDB.SERIALIZER_ILLEGAL_ACCESS);
