@@ -197,6 +197,87 @@ public class DB {
 
     }
 
+    public class HTreeSetMaker{
+        protected final String name;
+
+        public HTreeSetMaker(String name) {
+            this.name = name;
+        }
+
+        protected boolean keepCounter = false;
+        protected Serializer serializer = null;
+        protected long expireMaxSize = 0L;
+        protected long expire = 0L;
+        protected long expireAccess = 0L;
+        protected Hasher hasher = null;
+
+        /** keepCounter if counter should be kept, without counter updates are faster, but entire collection needs to be traversed to count items.*/
+        public HTreeSetMaker keepCounter(boolean keepCounter){
+            this.keepCounter = keepCounter;
+            return this;
+        }
+
+
+        /** keySerializer used to convert keys into/from binary form. */
+        public HTreeSetMaker serializer(Serializer serializer){
+            this.serializer = serializer;
+            return this;
+        }
+
+
+        /** maximal number of entries in this map. Less used entries will be expired and removed to make collection smaller  */
+        public HTreeSetMaker expireMaxSize(long maxSize){
+            this.expireMaxSize = maxSize;
+            return this;
+        }
+
+        /** Specifies that each entry should be automatically removed from the map once a fixed duration has elapsed after the entry's creation, or the most recent replacement of its value.  */
+        public HTreeSetMaker expireAfterWrite(long interval, TimeUnit timeUnit){
+            this.expire = timeUnit.toMillis(interval);
+            return this;
+        }
+
+        /** Specifies that each entry should be automatically removed from the map once a fixed duration has elapsed after the entry's creation, or the most recent replacement of its value.  */
+        public HTreeSetMaker expireAfterWrite(long interval){
+            this.expire = interval;
+            return this;
+        }
+
+        /** Specifies that each entry should be automatically removed from the map once a fixed duration has elapsed after the entry's creation, the most recent replacement of its value, or its last access. Access time is reset by all map read and write operations  */
+        public HTreeSetMaker expireAfterAccess(long interval, TimeUnit timeUnit){
+            this.expireAccess = timeUnit.toMillis(interval);
+            return this;
+        }
+
+        /** Specifies that each entry should be automatically removed from the map once a fixed duration has elapsed after the entry's creation, the most recent replacement of its value, or its last access. Access time is reset by all map read and write operations  */
+        public HTreeSetMaker expireAfterAccess(long interval){
+            this.expireAccess = interval;
+            return this;
+        }
+
+
+        public HTreeSetMaker hasher(Hasher hasher){
+            this.hasher = hasher;
+            return this;
+        }
+
+
+        public <K> Set<K> make(){
+            if(expireMaxSize!=0) keepCounter=true;
+            return DB.this.createHashSet(HTreeSetMaker.this);
+        }
+
+        public <K> Set<K> makeOrGet(){
+            synchronized (DB.this){
+                //TODO add parameter check
+                return (Set<K>) (catGet(name+".type")==null?
+                        make():getHashSet(name));
+            }
+        }
+
+    }
+
+
 
     /**
      * Opens existing or creates new Hash Tree Map.
@@ -342,7 +423,7 @@ public class DB {
         String type = catGet(name + ".type", null);
         if(type==null){
             checkShouldCreate(name);
-            return createHashSet(name,false,null);
+            return createHashSet(name).makeOrGet();
         }
 
 
@@ -362,31 +443,58 @@ public class DB {
         return ret;
     }
 
-
     /**
      * Creates new HashSet
+     *
      * @param name of set to create
-     * @param keepCounter if counter should be kept, without counter updates are faster, but entire collection needs to be traversed to count items.
-     * @param serializer used to convert keys into/from binary form. Use null for default value.
-     * @param <K> item type
-     * @throws IllegalArgumentException if name is already used
      */
+    synchronized public HTreeSetMaker createHashSet(String name){
+        return new HTreeSetMaker(name);
+    }
 
-    synchronized public <K> Set<K> createHashSet(String name, boolean keepCounter, Serializer<K> serializer){
+
+    synchronized protected <K> Set<K> createHashSet(HTreeSetMaker m){
+        String name = m.name;
         checkNameNotExists(name);
 
+        long expireTimeStart=0, expire=0, expireAccess=0, expireMaxSize = 0;
+        long[] expireHeads=null, expireTails=null;
 
-        Set<K> ret = new HTreeMap<K,Object>(engine,
-                catPut(name+".counterRecid",!keepCounter?0L:engine.put(0L, Serializer.LONG)),
+        if(m.expire!=0 || m.expireAccess!=0 || m.expireMaxSize !=0){
+            expireTimeStart = catPut(name+".expireTimeStart",System.currentTimeMillis());
+            expire = catPut(name+".expire",m.expire);
+            expireAccess = catPut(name+".expireAccess",m.expireAccess);
+            expireMaxSize = catPut(name+".expireMaxSize",m.expireMaxSize);
+            expireHeads = new long[16];
+            expireTails = new long[16];
+            for(int i=0;i<16;i++){
+                expireHeads[i] = engine.put(0L,Serializer.LONG);
+                expireTails[i] = engine.put(0L,Serializer.LONG);
+            }
+            catPut(name+".expireHeads",expireHeads);
+            catPut(name+".expireTails",expireHeads);
+        }
+
+        if(m.hasher!=null){
+            catPut(name+".hasher",m.hasher);
+        }
+
+
+        HTreeMap<K,Object> ret = new HTreeMap<K,Object>(engine,
+                catPut(name+".counterRecid",!m.keepCounter?0L:engine.put(0L, Serializer.LONG)),
                 catPut(name+".hashSalt",new Random().nextInt()),
                 catPut(name+".segmentRecids",HTreeMap.preallocateSegments(engine)),
-                catPut(name+".serializer",serializer,getDefaultSerializer()),
-                null, 0L,0L,0L,0L,null,null,null,
-                null).keySet();
+                catPut(name+".serializer",m.serializer,getDefaultSerializer()),
+                null,
+                expireTimeStart,expire,expireAccess,expireMaxSize, expireHeads ,expireTails,
+                null, m.hasher
+
+        );
+        Set ret2 = ret.keySet();
 
         catalog.put(name + ".type", "HashSet");
-        namedPut(name, ret);
-        return ret;
+        namedPut(name, ret2);
+        return ret2;
     }
 
 
