@@ -17,6 +17,7 @@
 package org.mapdb;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.Comparator;
 
 /**
@@ -334,6 +335,142 @@ public final class Fun {
         };
     }
 
+
+    public static final Comparator<byte[]> BYTE_ARRAY_COMPARATOR = new Comparator<byte[]>() {
+        @Override
+        public int compare(byte[] o1, byte[] o2) {
+            if(o1==o2) return 0;
+            final int len = Math.min(o1.length,o2.length);
+            for(int i=0;i<len;i++){
+                if(o1[i]==o2[i])
+                    continue;
+                if(o1[i]>o2[i])
+                    return 1;
+                return -1;
+            }
+            return Integer.compare(o1.length, o2.length);
+        }
+    };
+
+
+    public static final Comparator<char[]> CHAR_ARRAY_COMPARATOR = new Comparator<char[]>() {
+        @Override
+        public int compare(char[] o1, char[] o2) {
+            if(o1==o2) return 0;
+            final int len = Math.min(o1.length,o2.length);
+            for(int i=0;i<len;i++){
+                if(o1[i]==o2[i])
+                    continue;
+                if(o1[i]>o2[i])
+                    return 1;
+                return -1;
+            }
+            return Integer.compare(o1.length, o2.length);
+        }
+    };
+
+    public static final Comparator<int[]> INT_ARRAY_COMPARATOR = new Comparator<int[]>() {
+        @Override
+        public int compare(int[] o1, int[] o2) {
+            if(o1==o2) return 0;
+            final int len = Math.min(o1.length,o2.length);
+            for(int i=0;i<len;i++){
+                if(o1[i]==o2[i])
+                    continue;
+                if(o1[i]>o2[i])
+                    return 1;
+                return -1;
+            }
+            return Integer.compare(o1.length, o2.length);
+        }
+    };
+
+    public static final Comparator<long[]> LONG_ARRAY_COMPARATOR = new Comparator<long[]>() {
+        @Override
+        public int compare(long[] o1, long[] o2) {
+            if(o1==o2) return 0;
+            final int len = Math.min(o1.length,o2.length);
+            for(int i=0;i<len;i++){
+                if(o1[i]==o2[i])
+                    continue;
+                if(o1[i]>o2[i])
+                    return 1;
+                return -1;
+            }
+            return Integer.compare(o1.length, o2.length);
+        }
+    };
+
+    public static final Comparator<double[]> DOUBLE_ARRAY_COMPARATOR = new Comparator<double[]>() {
+        @Override
+        public int compare(double[] o1, double[] o2) {
+            if(o1==o2) return 0;
+            final int len = Math.min(o1.length,o2.length);
+            for(int i=0;i<len;i++){
+                if(o1[i]==o2[i])
+                    continue;
+                if(o1[i]>o2[i])
+                    return 1;
+                return -1;
+            }
+            return Integer.compare(o1.length, o2.length);
+        }
+    };
+
+
+    /** Compares two arrays which contains comparable elements */
+    public static final Comparator<Object[]> COMPARABLE_ARRAY_COMPARATOR = new Comparator<Object[]>() {
+        @Override
+        public int compare(Object[] o1, Object[] o2) {
+            if(o1==o2) return 0;
+            final int len = Math.min(o1.length,o2.length);
+            for(int i=0;i<len;i++){
+                int r = Fun.COMPARATOR.compare((Comparable)o1[i],(Comparable)o2[i]);
+                if(r!=0)
+                    return r;
+            }
+            return Integer.compare(o1.length, o2.length);
+        }
+    };
+
+    /** compares two arrays using given comparators*/
+    public static final class ArrayComparator implements Comparator<Object[]>{
+        protected final Comparator[] comparators;
+
+        public ArrayComparator(Comparator[] comparators2) {
+            this.comparators = comparators2.clone();
+            for(int i=0;i<this.comparators.length;i++){
+                if(this.comparators[i]==null)
+                    this.comparators[i] = Fun.COMPARATOR;
+            }
+        }
+
+        @Override
+        public int compare(Object[] o1, Object[] o2) {
+            if(o1==o2) return 0;
+            int len = Math.min(o1.length,o2.length);
+            for(int i=0;i<len;i++){
+                int r = comparators[i].compare(o1[i],o2[i]);
+                if(r!=0)
+                    return r;
+            }
+            return Integer.compare(o1.length, o2.length);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            ArrayComparator that = (ArrayComparator) o;
+            return Arrays.equals(comparators, that.comparators);
+        }
+
+        @Override
+        public int hashCode() {
+            return Arrays.hashCode(comparators);
+        }
+    }
 
 
 }

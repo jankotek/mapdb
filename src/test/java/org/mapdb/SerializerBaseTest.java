@@ -660,4 +660,10 @@ public class SerializerBaseTest extends TestCase {
         assertEquals(a,clone(a));
     }
 
+    @Test public void array_comparator() throws IOException {
+        Fun.ArrayComparator c = new Fun.ArrayComparator(new Comparator[]{Fun.REVERSE_COMPARATOR, Fun.COMPARATOR, Fun.COMPARATOR});
+        assertEquals(c,clone(c));
+
+    }
+
 }

@@ -211,16 +211,6 @@ public class BTreeKeySerializerTest {
 
     }
 
-    @Test public void byte_array_comparator(){
-        byte[] b1 = new byte[]{1,1};
-        byte[] b1_ = new byte[]{1,1};
-        byte[] b2 = new byte[]{1,2};
-        byte[] blong = new byte[]{1,2,3};
-        assertEquals(-1, BTreeKeySerializer.BYTE_ARRAY_COMPARATOR.compare(b1,b2));
-        assertEquals(-1, BTreeKeySerializer.BYTE_ARRAY_COMPARATOR.compare(b2,blong));
-        assertEquals(1, BTreeKeySerializer.BYTE_ARRAY_COMPARATOR.compare(b2,b1));
-        assertEquals(0, BTreeKeySerializer.BYTE_ARRAY_COMPARATOR.compare(b1,b1));
-        assertEquals(0, BTreeKeySerializer.BYTE_ARRAY_COMPARATOR.compare(b1,b1_));
-    }
+
 
 }
