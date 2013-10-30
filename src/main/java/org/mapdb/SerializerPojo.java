@@ -79,7 +79,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         }
     };
 
-    protected final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+    protected final ReentrantReadWriteLock lock = new ReentrantReadWriteLock(CC.FAIR_LOCKS);
 
     protected static Class<?> classForName(String className) {
         try {

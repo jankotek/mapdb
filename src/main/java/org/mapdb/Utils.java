@@ -252,13 +252,13 @@ final public class Utils {
 
     public static ReentrantReadWriteLock[] newReadWriteLocks() {
         ReentrantReadWriteLock[] locks = new ReentrantReadWriteLock[CC.CONCURRENCY];
-        for(int i=0;i<locks.length;i++) locks[i] = new ReentrantReadWriteLock();
+        for(int i=0;i<locks.length;i++) locks[i] = new ReentrantReadWriteLock(CC.FAIR_LOCKS);
         return locks;
     }
 
     public static ReentrantLock[] newLocks() {
         ReentrantLock[] locks = new ReentrantLock[CC.CONCURRENCY];
-        for(int i=0;i<locks.length;i++) locks[i] = new ReentrantLock();
+        for(int i=0;i<locks.length;i++) locks[i] = new ReentrantLock(CC.FAIR_LOCKS);
         return locks;
     }
 

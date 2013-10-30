@@ -182,7 +182,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
     protected final ReentrantReadWriteLock[] segmentLocks = new ReentrantReadWriteLock[16];
     {
-        for(int i=0;i< 16;i++)  segmentLocks[i]=new ReentrantReadWriteLock();
+        for(int i=0;i< 16;i++)  segmentLocks[i]=new ReentrantReadWriteLock(CC.FAIR_LOCKS);
     }
 
 

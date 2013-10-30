@@ -82,7 +82,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
 
     protected final long[] newRecids = new long[CC.ASYNC_RECID_PREALLOC_QUEUE_SIZE];
     protected int newRecidsPos = 0;
-    protected final ReentrantLock newRecidsLock = new ReentrantLock();
+    protected final ReentrantLock newRecidsLock = new ReentrantLock(CC.FAIR_LOCKS);
 
 
     /** Associates `recid` from Write Queue with record data and serializer. */
@@ -92,7 +92,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     /** Each insert to Write Queue must hold read lock.
      *  Commit, rollback and close operations must hold write lock
      */
-    protected final ReentrantReadWriteLock commitLock = new ReentrantReadWriteLock();
+    protected final ReentrantReadWriteLock commitLock = new ReentrantReadWriteLock(CC.FAIR_LOCKS);
 
     /** number of active threads running, used to await thread termination on close */
     protected final CountDownLatch activeThreadsCount = new CountDownLatch(1);

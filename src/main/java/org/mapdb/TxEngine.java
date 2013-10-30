@@ -21,7 +21,7 @@ public class TxEngine extends EngineWrapper {
 
     protected static final Object TOMBSTONE = new Object();
 
-    protected final ReentrantReadWriteLock commitLock = new ReentrantReadWriteLock();
+    protected final ReentrantReadWriteLock commitLock = new ReentrantReadWriteLock(CC.FAIR_LOCKS);
     protected final ReentrantReadWriteLock[] locks = Utils.newReadWriteLocks();
 
     protected volatile boolean uncommitedData = false;

@@ -238,6 +238,7 @@ public class LongConcurrentHashMap< V>
         final float loadFactor;
 
         Segment(int initialCapacity, float lf) {
+            super(CC.FAIR_LOCKS);
             loadFactor = lf;
             setTable(HashEntry.<V>newArray(initialCapacity));
         }

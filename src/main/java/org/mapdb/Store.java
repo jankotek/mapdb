@@ -68,7 +68,7 @@ public abstract class Store implements Engine{
         System.out.println(calculateStatistics());
     }
 
-    protected Lock serializerPojoInitLock = new ReentrantLock();
+    protected Lock serializerPojoInitLock = new ReentrantLock(CC.FAIR_LOCKS);
 
     /**
      * @return default serializer used in this DB, it handles POJO and other stuff.
@@ -92,8 +92,8 @@ public abstract class Store implements Engine{
     }
 
 
-    protected final ReentrantLock structuralLock = new ReentrantLock();
-    protected final ReentrantReadWriteLock newRecidLock = new ReentrantReadWriteLock();
+    protected final ReentrantLock structuralLock = new ReentrantLock(CC.FAIR_LOCKS);
+    protected final ReentrantReadWriteLock newRecidLock = new ReentrantReadWriteLock(CC.FAIR_LOCKS);
     protected final ReentrantReadWriteLock[] locks = Utils.newReadWriteLocks();
 
 

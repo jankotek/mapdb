@@ -79,5 +79,8 @@ public interface CC {
     String DEFAULT_CACHE = DBMaker.Keys.cache_hashTable;
 
     int DEFAULT_FREE_SPACE_RECLAIM_Q = 5;
+
+    /** controls if locks used in MapDB are fair */
+    boolean FAIR_LOCKS = false;
 }
 

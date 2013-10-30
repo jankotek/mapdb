@@ -402,7 +402,7 @@ public final class Queues {
 
         protected final Atomic.Long headInsert;
         //TODO is there a way to implement this without global locks?
-        protected final Lock lock = new ReentrantLock();
+        protected final Lock lock = new ReentrantLock(CC.FAIR_LOCKS);
         protected final long size;
 
         public CircularQueue(Engine engine, Serializer serializer, long headRecid, long headInsertRecid, long size) {

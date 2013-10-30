@@ -246,7 +246,7 @@ public abstract class Volume {
     abstract static public class ByteBufferVol extends Volume{
 
 
-        protected final ReentrantLock growLock = new ReentrantLock();
+        protected final ReentrantLock growLock = new ReentrantLock(CC.FAIR_LOCKS);
 
         protected final long sizeLimit;
         protected final boolean hasLimit;
