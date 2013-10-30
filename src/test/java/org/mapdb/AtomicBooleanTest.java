@@ -68,7 +68,7 @@ public class AtomicBooleanTest extends TestCase{
 
             t.start();
             assertTrue(ai.compareAndSet(true, false));
-            t.join(10);
+            t.join(0);
             assertFalse(t.isAlive());
 
     }

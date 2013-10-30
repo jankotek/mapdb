@@ -65,7 +65,7 @@ public class AtomicIntegerTest extends TestCase {
 
         t.start();
         assertTrue(ai.compareAndSet(1, 2));
-        t.join(10);
+        t.join(0);
         assertFalse(t.isAlive());
         assertEquals(ai.get(), 3);
 

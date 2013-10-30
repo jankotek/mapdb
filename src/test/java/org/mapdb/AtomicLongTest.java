@@ -63,11 +63,11 @@ public class AtomicLongTest extends TestCase {
                 while(!ai.compareAndSet(2, 3)) Thread.yield();
             }});
 
-            t.start();
-            assertTrue(ai.compareAndSet(1, 2));
-            t.join(10);
-            assertFalse(t.isAlive());
-            assertEquals(ai.get(), 3);
+        t.start();
+        assertTrue(ai.compareAndSet(1, 2));
+        t.join(0);
+        assertFalse(t.isAlive());
+        assertEquals(ai.get(), 3);
 
     }
 
