@@ -4,8 +4,7 @@ import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
 import java.util.*;
-import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -38,7 +37,7 @@ public class TxEngine extends EngineWrapper {
     protected TxEngine(Engine engine, boolean fullTx) {
         super(engine);
         this.fullTx = fullTx;
-        this.preallocRecids = fullTx ? new ConcurrentLinkedDeque<Long>() : null;
+        this.preallocRecids = fullTx ? new ArrayBlockingQueue<Long>(PREALLOC_RECID_SIZE) : null;
     }
 
     protected Long preallocRecidTake() {
@@ -300,7 +299,7 @@ public class TxEngine extends EngineWrapper {
                 fullTx ? new LongConcurrentHashMap<Fun.Tuple2>() : null;
 
         protected Collection<Long> usedPreallocatedRecids =
-                fullTx ? new ConcurrentLinkedQueue<Long>() : null;
+                fullTx ? new ArrayList<Long>() : null;
 
         protected final Reference<Tx> ref = new WeakReference<Tx>(this,txQueue);
 
