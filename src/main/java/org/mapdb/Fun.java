@@ -348,7 +348,7 @@ public final class Fun {
                     return 1;
                 return -1;
             }
-            return Integer.compare(o1.length, o2.length);
+            return intCompare(o1.length, o2.length);
         }
     };
 
@@ -365,7 +365,7 @@ public final class Fun {
                     return 1;
                 return -1;
             }
-            return Integer.compare(o1.length, o2.length);
+            return intCompare(o1.length, o2.length);
         }
     };
 
@@ -381,7 +381,7 @@ public final class Fun {
                     return 1;
                 return -1;
             }
-            return Integer.compare(o1.length, o2.length);
+            return intCompare(o1.length, o2.length);
         }
     };
 
@@ -397,7 +397,7 @@ public final class Fun {
                     return 1;
                 return -1;
             }
-            return Integer.compare(o1.length, o2.length);
+            return intCompare(o1.length, o2.length);
         }
     };
 
@@ -413,7 +413,7 @@ public final class Fun {
                     return 1;
                 return -1;
             }
-            return Integer.compare(o1.length, o2.length);
+            return intCompare(o1.length, o2.length);
         }
     };
 
@@ -429,7 +429,7 @@ public final class Fun {
                 if(r!=0)
                     return r;
             }
-            return Integer.compare(o1.length, o2.length);
+            return intCompare(o1.length, o2.length);
         }
     };
 
@@ -454,7 +454,7 @@ public final class Fun {
                 if(r!=0)
                     return r;
             }
-            return Integer.compare(o1.length, o2.length);
+            return intCompare(o1.length, o2.length);
         }
 
         @Override
@@ -471,6 +471,11 @@ public final class Fun {
             return Arrays.hashCode(comparators);
         }
     }
+
+    protected static int intCompare(int x, int y) {
+        return (x < y) ? -1 : ((x == y) ? 0 : 1);
+    }
+
 
 
 }
