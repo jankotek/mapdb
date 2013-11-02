@@ -146,7 +146,7 @@ public abstract class Store implements Engine{
                         final int decompSize = out.pos;
                         out.pos=0;
                         Utils.packInt(out,decompSize);
-                        out.write(tmp.buf,0,decompSize);
+                        out.write(tmp.buf,0,newLen);
                         recycledDataOuts.offer(tmp);
                     }
 
