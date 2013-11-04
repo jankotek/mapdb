@@ -92,10 +92,6 @@ For that purpose MapDB uses `Volume` as raw buffer abstraction. It takes multipl
 together with 64bit addressing. Each `ButeBuffer` has 1GB size and represents *chunk*.
 Map
 
-
-TODO rename `Volume.buffer*` to chunk
-
-
 Store
 --------
 

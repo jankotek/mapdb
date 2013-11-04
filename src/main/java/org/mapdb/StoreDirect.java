@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.Random;
 import java.util.concurrent.locks.Lock;
 
 /**
@@ -1015,8 +1014,8 @@ public class StoreDirect extends Store{
         }
 
         //not available, increase file size
-        if((physSize&Volume.BUF_SIZE_MOD_MASK)+size>Volume.BUF_SIZE)
-            physSize += Volume.BUF_SIZE - (physSize&Volume.BUF_SIZE_MOD_MASK);
+        if((physSize&Volume.CHUNK_SIZE_MOD_MASK)+size>Volume.CHUNK_SIZE)
+            physSize += Volume.CHUNK_SIZE - (physSize&Volume.CHUNK_SIZE_MOD_MASK);
         long physSize2 = physSize;
         physSize = roundTo16(physSize+size);
         if(ensureAvail)

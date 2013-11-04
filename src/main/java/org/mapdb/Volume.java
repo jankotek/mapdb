@@ -41,11 +41,11 @@ import java.util.logging.Level;
 public abstract class Volume {
 
 
-    public static final int BUF_SHIFT = 30;
+    public static final int CHUNK_SHIFT = 30;
 
-    public static final int BUF_SIZE = 1<<BUF_SHIFT;
+    public static final int CHUNK_SIZE = 1<< CHUNK_SHIFT;
 
-    public static final int BUF_SIZE_MOD_MASK = BUF_SIZE-1;
+    public static final int CHUNK_SIZE_MOD_MASK = CHUNK_SIZE -1;
 
     /**
      * Check space allocated by Volume is bigger or equal to given offset.
@@ -252,7 +252,7 @@ public abstract class Volume {
         protected final boolean hasLimit;
         protected final boolean fullChunkAllocation;
 
-        protected volatile ByteBuffer[] buffers;
+        protected volatile ByteBuffer[] chunks;
         protected final boolean readOnly;
 
         protected ByteBufferVol(boolean readOnly, long sizeLimit, boolean fullChunkAllocation) {
@@ -267,48 +267,48 @@ public abstract class Volume {
         public final boolean tryAvailable(long offset) {
             if(hasLimit&&offset>sizeLimit) return false;
 
-            int buffersPos = (int) (offset >>> BUF_SHIFT);
+            int chunkPos = (int) (offset >>> CHUNK_SHIFT);
 
             //check for most common case, this is already mapped
-            if(buffersPos<buffers.length && buffers[buffersPos]!=null &&
-                    buffers[buffersPos].capacity()>=(offset&Volume.BUF_SIZE_MOD_MASK)){
+            if(chunkPos< chunks.length && chunks[chunkPos]!=null &&
+                    chunks[chunkPos].capacity()>=(offset&Volume.CHUNK_SIZE_MOD_MASK)){
                 return true;
             }
 
             growLock.lock();
             try{
                 //check second time
-                if(buffersPos<buffers.length && buffers[buffersPos]!=null &&
-                        buffers[buffersPos].capacity()>=(offset&Volume.BUF_SIZE_MOD_MASK))
+                if(chunkPos< chunks.length && chunks[chunkPos]!=null &&
+                        chunks[chunkPos].capacity()>=(offset&Volume.CHUNK_SIZE_MOD_MASK))
                     return true;
 
-                ByteBuffer[] buffers2 = buffers;
+                ByteBuffer[] chunks2 = chunks;
 
                 //grow array if necessary
-                if(buffersPos>=buffers2.length){
-                    buffers2 = Arrays.copyOf(buffers2, Math.max(buffersPos+1, buffers2.length * 2));
+                if(chunkPos>=chunks2.length){
+                    chunks2 = Arrays.copyOf(chunks2, Math.max(chunkPos+1, chunks2.length * 2));
                 }
 
 
                 //just remap file buffer
-                if( buffers2[buffersPos] == null){
+                if( chunks2[chunkPos] == null){
                     //make sure previous buffer is fully expanded
-                    if(buffersPos>0){
-                        ByteBuffer oldPrev = buffers2[buffersPos-1];
-                        if(oldPrev == null || oldPrev.capacity()!=BUF_SIZE){
-                            buffers2[buffersPos-1]  = makeNewBuffer(1L*buffersPos*BUF_SIZE-1,buffers2);
+                    if(chunkPos>0){
+                        ByteBuffer oldPrev = chunks2[chunkPos-1];
+                        if(oldPrev == null || oldPrev.capacity()!= CHUNK_SIZE){
+                            chunks2[chunkPos-1]  = makeNewBuffer(1L*chunkPos* CHUNK_SIZE -1,chunks2);
                         }
                     }
                 }
 
 
-                ByteBuffer newBuf = makeNewBuffer(offset, buffers2);
+                ByteBuffer newChunk = makeNewBuffer(offset, chunks2);
                 if(readOnly)
-                    newBuf = newBuf.asReadOnlyBuffer();
+                    newChunk = newChunk.asReadOnlyBuffer();
 
-                buffers2[buffersPos] = newBuf;
+                chunks2[chunkPos] = newChunk;
 
-                buffers = buffers2;
+                chunks = chunks2;
             }finally{
                 growLock.unlock();
             }
@@ -318,58 +318,58 @@ public abstract class Volume {
         protected abstract ByteBuffer makeNewBuffer(long offset, ByteBuffer[] buffers2);
 
         @Override public final void putLong(final long offset, final long value) {
-            buffers[(int)(offset >>>BUF_SHIFT)].putLong((int) (offset&Volume.BUF_SIZE_MOD_MASK), value);
+            chunks[(int)(offset >>> CHUNK_SHIFT)].putLong((int) (offset & Volume.CHUNK_SIZE_MOD_MASK), value);
         }
 
         @Override public final void putInt(final long offset, final int value) {
-            buffers[(int)(offset >>>BUF_SHIFT)].putInt((int) (offset&Volume.BUF_SIZE_MOD_MASK), value);
+            chunks[(int)(offset >>> CHUNK_SHIFT)].putInt((int) (offset & Volume.CHUNK_SIZE_MOD_MASK), value);
         }
 
 
         @Override public final void putByte(final long offset, final byte value) {
-            buffers[(int)(offset >>>BUF_SHIFT)].put((int) (offset &Volume.BUF_SIZE_MOD_MASK), value);
+            chunks[(int)(offset >>> CHUNK_SHIFT)].put((int) (offset & Volume.CHUNK_SIZE_MOD_MASK), value);
         }
 
 
 
         @Override public void putData(final long offset, final byte[] src, int srcPos, int srcSize){
-            final ByteBuffer b1 = buffers[(int)(offset >>>BUF_SHIFT)].duplicate();
-            final int bufPos = (int) (offset&Volume.BUF_SIZE_MOD_MASK);
+            final ByteBuffer b1 = chunks[(int)(offset >>> CHUNK_SHIFT)].duplicate();
+            final int bufPos = (int) (offset&Volume.CHUNK_SIZE_MOD_MASK);
 
             b1.position(bufPos);
             b1.put(src, srcPos, srcSize);
         }
 
         @Override public final void putData(final long offset, final ByteBuffer buf) {
-            final ByteBuffer b1 = buffers[(int)(offset >>>BUF_SHIFT)].duplicate();
-            final int bufPos = (int) (offset&Volume.BUF_SIZE_MOD_MASK);
+            final ByteBuffer b1 = chunks[(int)(offset >>> CHUNK_SHIFT)].duplicate();
+            final int bufPos = (int) (offset&Volume.CHUNK_SIZE_MOD_MASK);
             //no overlap, so just write the value
             b1.position(bufPos);
             b1.put(buf);
         }
 
         @Override final public long getLong(long offset) {
-            return buffers[(int)(offset >>>BUF_SHIFT)].getLong((int) (offset&Volume.BUF_SIZE_MOD_MASK));
+            return chunks[(int)(offset >>> CHUNK_SHIFT)].getLong((int) (offset&Volume.CHUNK_SIZE_MOD_MASK));
         }
 
         @Override final public int getInt(long offset) {
-            return buffers[(int)(offset >>>BUF_SHIFT)].getInt((int) (offset&Volume.BUF_SIZE_MOD_MASK));
+            return chunks[(int)(offset >>> CHUNK_SHIFT)].getInt((int) (offset&Volume.CHUNK_SIZE_MOD_MASK));
         }
 
 
         @Override public final byte getByte(long offset) {
-            return buffers[(int)(offset >>>BUF_SHIFT)].get((int) (offset&Volume.BUF_SIZE_MOD_MASK));
+            return chunks[(int)(offset >>> CHUNK_SHIFT)].get((int) (offset&Volume.CHUNK_SIZE_MOD_MASK));
         }
 
 
         @Override
         public final DataInput2 getDataInput(long offset, int size) {
-            return new DataInput2(buffers[(int)(offset >>>BUF_SHIFT)], (int) (offset&Volume.BUF_SIZE_MOD_MASK));
+            return new DataInput2(chunks[(int)(offset >>> CHUNK_SHIFT)], (int) (offset&Volume.CHUNK_SIZE_MOD_MASK));
         }
 
         @Override
         public boolean isEmpty() {
-            return buffers[0]==null || buffers[0].capacity()==0;
+            return chunks[0]==null || chunks[0].capacity()==0;
         }
 
         @Override
@@ -430,7 +430,7 @@ public abstract class Volume {
 
 
         protected ReferenceQueue<MappedByteBuffer> unreleasedQueue = new ReferenceQueue<MappedByteBuffer>();
-        protected Set<Reference<MappedByteBuffer>> unreleasedBuffers = new LinkedHashSet<Reference<MappedByteBuffer>>();
+        protected Set<Reference<MappedByteBuffer>> unreleasedChunks = new LinkedHashSet<Reference<MappedByteBuffer>>();
 
         static final int BUF_SIZE_INC = 1024*1024;
 
@@ -445,19 +445,19 @@ public abstract class Volume {
                 final long fileSize = fileChannel.size();
                 if(fileSize>0){
                     //map existing data
-                    buffers = new ByteBuffer[(int) (1+(fileSize>>>BUF_SHIFT))];
-                    for(int i=0;i<=fileSize>>>BUF_SHIFT;i++){
-                        final long offset = 1L*BUF_SIZE*i;
-                        buffers[i] = fileChannel.map(mapMode, offset, Math.min(BUF_SIZE, fileSize-offset));
+                    chunks = new ByteBuffer[(int) (1+(fileSize>>> CHUNK_SHIFT))];
+                    for(int i=0;i<=fileSize>>> CHUNK_SHIFT;i++){
+                        final long offset = 1L* CHUNK_SIZE *i;
+                        chunks[i] = fileChannel.map(mapMode, offset, Math.min(CHUNK_SIZE, fileSize-offset));
                         if(mapMode == FileChannel.MapMode.READ_ONLY)
-                            buffers[i] = buffers[i].asReadOnlyBuffer();
+                            chunks[i] = chunks[i].asReadOnlyBuffer();
                         //TODO what if 'fileSize % 8 != 0'?
                     }
                 }else{
-                    buffers = new ByteBuffer[1];
-//                    buffers[0] = fileChannel.map(mapMode, 0, INITIAL_SIZE);
+                    chunks = new ByteBuffer[1];
+//                    chunks[0] = fileChannel.map(mapMode, 0, INITIAL_SIZE);
 //                    if(mapMode == FileChannel.MapMode.READ_ONLY)
-//                        buffers[0] = buffers[0].asReadOnlyBuffer();
+//                        chunks[0] = chunks[0].asReadOnlyBuffer();
 
                 }
             } catch (IOException e) {
@@ -474,22 +474,22 @@ public abstract class Volume {
                 if(!readOnly)
                     sync();
 
-                for(Reference<MappedByteBuffer> rb:unreleasedBuffers){
+                for(Reference<MappedByteBuffer> rb: unreleasedChunks){
                     MappedByteBuffer b = rb.get();
                     if(b==null) continue;
                     unmap(b);
                 }
 
-                for(ByteBuffer b:buffers){
+                for(ByteBuffer b: chunks){
                     if(b!=null && (b instanceof MappedByteBuffer)){
                         unmap((MappedByteBuffer) b);
                     }
                 }
 
-                unreleasedBuffers = null;
+                unreleasedChunks = null;
                 unreleasedQueue = null;
 
-                buffers = null;
+                chunks = null;
 
             } catch (IOException e) {
                 throw new IOError(e);
@@ -506,15 +506,15 @@ public abstract class Volume {
             try{
                 //clear GC references
                 for(Reference ref=unreleasedQueue.poll();ref!=null; ref=unreleasedQueue.poll()){
-                    unreleasedBuffers.remove(ref);
+                    unreleasedChunks.remove(ref);
                 }
 
-                for(Reference<MappedByteBuffer> rb:unreleasedBuffers){
+                for(Reference<MappedByteBuffer> rb: unreleasedChunks){
                     MappedByteBuffer b = rb.get();
                     if(b==null) continue;
                     b.force();
                 }
-                for(ByteBuffer b:buffers){
+                for(ByteBuffer b: chunks){
                     if(b!=null && (b instanceof MappedByteBuffer)){
                         ((MappedByteBuffer) b).force();
                     }
@@ -528,7 +528,7 @@ public abstract class Volume {
 
         @Override
         public boolean isEmpty() {
-            return buffers[0]==null || buffers[0].capacity()==0;
+            return chunks[0]==null || chunks[0].capacity()==0;
         }
 
         @Override
@@ -545,23 +545,23 @@ public abstract class Volume {
         protected ByteBuffer makeNewBuffer(long offset, ByteBuffer[] buffers2) {
             assert (growLock.isHeldByCurrentThread());
             try {
-                //create new buffer
-                long newBufSize =  offset&Volume.BUF_SIZE_MOD_MASK;
+                //create new chunk
+                long newChunkSize =  offset&Volume.CHUNK_SIZE_MOD_MASK;
                 int round = offset<BUF_SIZE_INC? BUF_SIZE_INC/16 : BUF_SIZE_INC;
-                if(fullChunkAllocation) round = BUF_SIZE;
+                if(fullChunkAllocation) round = CHUNK_SIZE;
 
                 //round newBufSize to multiple of BUF_SIZE_INC
-                long rest = newBufSize%round;
+                long rest = newChunkSize%round;
                 if(rest!=0)
-                    newBufSize += round-rest;
+                    newChunkSize += round-rest;
 
 
-                final MappedByteBuffer buf =  fileChannel.map( mapMode, offset - (offset&Volume.BUF_SIZE_MOD_MASK), newBufSize );
+                final MappedByteBuffer buf =  fileChannel.map( mapMode, offset - (offset&Volume.CHUNK_SIZE_MOD_MASK), newChunkSize );
 
-                unreleasedBuffers.add(new WeakReference<MappedByteBuffer>(buf,unreleasedQueue));
+                unreleasedChunks.add(new WeakReference<MappedByteBuffer>(buf, unreleasedQueue));
 
                 for(Reference ref=unreleasedQueue.poll();ref!=null; ref=unreleasedQueue.poll()){
-                    unreleasedBuffers.remove(ref);
+                    unreleasedChunks.remove(ref);
                 }
 
                 return buf;
@@ -589,21 +589,21 @@ public abstract class Volume {
 //            ByteBuffer b0 = useDirectBuffer?
 //                    ByteBuffer.allocateDirect(INITIAL_SIZE) :
 //                    ByteBuffer.allocate(INITIAL_SIZE);
-//            buffers = new ByteBuffer[]{b0};
-            buffers=new ByteBuffer[1];
+//            chunks = new ByteBuffer[]{b0};
+            chunks =new ByteBuffer[1];
         }
 
         @Override protected ByteBuffer makeNewBuffer(long offset, ByteBuffer[] buffers2) {
-            int newBufSize = Utils.nextPowTwo((int) ((offset &Volume.BUF_SIZE_MOD_MASK)));
-            if(fullChunkAllocation && newBufSize%BUF_SIZE!=0){
+            int newBufSize = Utils.nextPowTwo((int) ((offset &Volume.CHUNK_SIZE_MOD_MASK)));
+            if(fullChunkAllocation && newBufSize% CHUNK_SIZE !=0){
                 //round newBufSize to multiple of BUF_SIZE_INC
-                newBufSize += BUF_SIZE-newBufSize%BUF_SIZE;
+                newBufSize += CHUNK_SIZE -newBufSize% CHUNK_SIZE;
             }
             //double size of existing in-memory-buffer
             ByteBuffer newBuf = useDirectBuffer?
                     ByteBuffer.allocateDirect(newBufSize):
                     ByteBuffer.allocate(newBufSize);
-            final int buffersPos = (int) (offset >>> BUF_SHIFT);
+            final int buffersPos = (int) (offset >>> CHUNK_SHIFT);
             ByteBuffer oldBuffer = buffers2[buffersPos];
             if(oldBuffer!=null){
                 //copy old buffer if it exists
@@ -617,12 +617,12 @@ public abstract class Volume {
         @Override public void close() {
             growLock.lock();
             try{
-                for(ByteBuffer b:buffers){
+                for(ByteBuffer b: chunks){
                     if(b!=null && (b instanceof MappedByteBuffer)){
                         unmap((MappedByteBuffer)b);
                     }
                 }
-                buffers = null;
+                chunks = null;
             }finally{
                 growLock.unlock();
             }
@@ -672,8 +672,8 @@ public abstract class Volume {
         @Override
         public boolean tryAvailable(long offset) {
             if(hasLimit && offset>sizeLimit) return false;
-            if(fullChunkAllocation && offset%BUF_SIZE!=0)
-                offset += BUF_SIZE - offset%BUF_SIZE;
+            if(fullChunkAllocation && offset% CHUNK_SIZE !=0)
+                offset += CHUNK_SIZE - offset% CHUNK_SIZE;
 
             if(offset>size)synchronized (growLock){
                 try {

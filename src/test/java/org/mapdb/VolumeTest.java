@@ -26,7 +26,7 @@ public abstract class VolumeTest {
         @Override public void testEnsureAvailable() throws Exception {
             Volume.MemoryVol v = (Volume.MemoryVol) getVolume();
             v.ensureAvailable(11);
-            assertEquals(Volume.BUF_SIZE, v.buffers[0].capacity());
+            assertEquals(Volume.CHUNK_SIZE, v.chunks[0].capacity());
         }
 
     }
@@ -37,7 +37,7 @@ public abstract class VolumeTest {
         }
 
         @Test public void transfer(){
-            long max = (long) (Volume.BUF_SIZE*1.5);
+            long max = (long) (Volume.CHUNK_SIZE *1.5);
             Volume from = new Volume.MemoryVol(true,0,false);
             for(long i=0;i<max;i+=8){
                 from.ensureAvailable(i+8);
@@ -61,7 +61,7 @@ public abstract class VolumeTest {
         @Override public void testEnsureAvailable() throws Exception {
             Volume.MappedFileVol v = (Volume.MappedFileVol) getVolume();
             v.ensureAvailable(11);
-            assertEquals(Volume.BUF_SIZE, v.buffers[0].capacity());
+            assertEquals(Volume.CHUNK_SIZE, v.chunks[0].capacity());
         }
 
     }
@@ -99,7 +99,7 @@ public abstract class VolumeTest {
         @Override public void testEnsureAvailable() throws Exception {
             Volume.FileChannelVol v = (Volume.FileChannelVol) getVolume();
             v.ensureAvailable(11);
-            assertEquals(Volume.BUF_SIZE, v.size);
+            assertEquals(Volume.CHUNK_SIZE, v.size);
         }
 
     }
@@ -213,7 +213,7 @@ public abstract class VolumeTest {
 
 
     @Test public void testConstants(){
-        assertEquals(0, Volume.BUF_SIZE%8);
+        assertEquals(0, Volume.CHUNK_SIZE %8);
     }
 
     @Test public void RAF_bytes(){
