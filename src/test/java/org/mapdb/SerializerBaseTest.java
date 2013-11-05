@@ -708,7 +708,7 @@ public class SerializerBaseTest{
     }
 
     @Test public void object_stack_set() throws IOException {
-        for(Set c : Arrays.asList(new HashSet(), new LinkedHashSet(), new TreeSet())){
+        for(Set c : Arrays.asList(new HashSet(), new LinkedHashSet())){
             c.add(c);
             c = clone(c);
             assertTrue(c.iterator().next()==c);
