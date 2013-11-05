@@ -675,5 +675,60 @@ public class SerializerBaseTest{
         assertEquals(t,clone(t));
     }
 
+    Long one = 10000L;
+    Long two = 20000L;
+
+    @Test public void object_stack_array() throws IOException {
+        Object[] c = new Object[4];
+        c[0]=c;
+        c[1]=one;
+        c[2]=two;
+        c[3]=one;
+        c = clone(c);
+        assertTrue(c==c[0]);
+        assertEquals(one, c[1]);
+        assertEquals(two, c[2]);
+        assertEquals(one, c[3]);
+        assertTrue(c[1]==c[3]);
+    }
+
+    @Test public void object_stack_list() throws IOException {
+        for(List c : Arrays.asList(new ArrayList(), new LinkedList())){
+            c.add(c);
+            c.add(one);
+            c.add(two);
+            c.add(one);
+            c = clone(c);
+            assertTrue(c==c.get(0));
+            assertEquals(one, c.get(1));
+            assertEquals(two, c.get(2));
+            assertEquals(one, c.get(3));
+            assertTrue(c.get(1)==c.get(3));
+        }
+    }
+
+    @Test public void object_stack_set() throws IOException {
+        for(Set c : Arrays.asList(new HashSet(), new LinkedHashSet(), new TreeSet())){
+            c.add(c);
+            c = clone(c);
+            assertTrue(c.iterator().next()==c);
+        }
+    }
+
+
+    @Test public void object_stack_map() throws IOException {
+        for(Map c : Arrays.asList(new HashMap(), new LinkedHashMap(), new TreeMap(), new Properties())){
+            c.put(one,c);
+            c.put(two,one);
+            c = clone(c);
+            assertTrue(c.get(one)==c);
+            assertEquals(one,c.get(two));
+            Iterator i = c.keySet().iterator();
+            Object one_ = i.next();
+            if(one_!=c.get(two))
+                one_ = i.next();
+            assertTrue(one_==c.get(two));
+        }
+    }
 
 }
