@@ -53,8 +53,14 @@ public abstract class BTreeKeySerializer<K>{
 
         protected final Serializer defaultSerializer;
 
-        BasicKeySerializer(Serializer defaultSerializer) {
+        public BasicKeySerializer(Serializer defaultSerializer) {
             this.defaultSerializer = defaultSerializer;
+        }
+
+        /** used for deserialization*/
+        protected BasicKeySerializer(SerializerBase serializerBase, DataInput is, SerializerBase.FastArrayList<Object> objectStack) throws IOException {
+            objectStack.add(this);
+            defaultSerializer = (Serializer) serializerBase.deserialize(is,objectStack);
         }
 
         @Override
@@ -269,6 +275,14 @@ public abstract class BTreeKeySerializer<K>{
             this.bSerializer = bSerializer;
         }
 
+        /** used for deserialization, `extra` is to avoid argument collision */
+        Tuple2KeySerializer(SerializerBase serializerBase, DataInput is, SerializerBase.FastArrayList<Object> objectStack, int extra) throws IOException {
+            objectStack.add(this);
+            aComparator = (Comparator<A>) serializerBase.deserialize(is,objectStack);
+            aSerializer = (Serializer<A>) serializerBase.deserialize(is,objectStack);
+            bSerializer = (Serializer<B>) serializerBase.deserialize(is,objectStack);
+        }
+
         @Override
         public void serialize(DataOutput out, int start, int end, Object[] keys) throws IOException {
             int acount=0;
@@ -382,6 +396,17 @@ public abstract class BTreeKeySerializer<K>{
             this.bSerializer = bSerializer;
             this.cSerializer = cSerializer;
         }
+
+        /** used for deserialization */
+        Tuple3KeySerializer(SerializerBase serializerBase, DataInput is, SerializerBase.FastArrayList<Object> objectStack) throws IOException {
+            objectStack.add(this);
+            aComparator = (Comparator<A>) serializerBase.deserialize(is,objectStack);
+            bComparator = (Comparator<B>) serializerBase.deserialize(is,objectStack);
+            aSerializer = (Serializer<A>) serializerBase.deserialize(is,objectStack);
+            bSerializer = (Serializer<B>) serializerBase.deserialize(is,objectStack);
+            cSerializer = (Serializer<C>) serializerBase.deserialize(is,objectStack);
+        }
+
 
         @Override
         public void serialize(DataOutput out, int start, int end, Object[] keys) throws IOException {
@@ -532,6 +557,19 @@ public abstract class BTreeKeySerializer<K>{
             this.cSerializer = cSerializer;
             this.dSerializer = dSerializer;
         }
+
+        /** used for deserialization */
+        Tuple4KeySerializer(SerializerBase serializerBase, DataInput is, SerializerBase.FastArrayList<Object> objectStack) throws IOException {
+            objectStack.add(this);
+            aComparator = (Comparator<A>) serializerBase.deserialize(is,objectStack);
+            bComparator = (Comparator<B>) serializerBase.deserialize(is,objectStack);
+            cComparator = (Comparator<C>) serializerBase.deserialize(is,objectStack);
+            aSerializer = (Serializer<A>) serializerBase.deserialize(is,objectStack);
+            bSerializer = (Serializer<B>) serializerBase.deserialize(is,objectStack);
+            cSerializer = (Serializer<C>) serializerBase.deserialize(is,objectStack);
+            dSerializer = (Serializer<D>) serializerBase.deserialize(is,objectStack);
+        }
+
 
         @Override
         public void serialize(DataOutput out, int start, int end, Object[] keys) throws IOException {

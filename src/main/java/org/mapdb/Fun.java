@@ -16,6 +16,8 @@
 
 package org.mapdb;
 
+import java.io.DataInput;
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -109,6 +111,14 @@ public final class Fun {
             this.b = b;
         }
 
+        /** constructor used for deserilization*/
+        protected Tuple2(SerializerBase serializer, DataInput in, SerializerBase.FastArrayList objectStack) throws IOException {
+            objectStack.add(this);
+            this.a = (A) serializer.deserialize(in, objectStack);
+            this.b =  (B) serializer.deserialize(in, objectStack);
+        }
+
+
         @Override public int compareTo(Object o) {
             return TUPLE2_COMPARATOR.compare(this, (Tuple2) o);
         }
@@ -149,6 +159,15 @@ public final class Fun {
             this.b = b;
             this.c = c;
         }
+
+        /** constructor used for deserilization, `extra` is added so the functions do not colide*/
+        protected Tuple3(SerializerBase serializer, DataInput in, SerializerBase.FastArrayList objectStack, int extra) throws IOException {
+            objectStack.add(this);
+            this.a = (A) serializer.deserialize(in, objectStack);
+            this.b =  (B) serializer.deserialize(in, objectStack);
+            this.c =  (C) serializer.deserialize(in, objectStack);
+        }
+
 
         @Override public int compareTo(Object o) {
             return TUPLE3_COMPARATOR.compare(this, (Tuple3) o);
@@ -198,6 +217,15 @@ public final class Fun {
             this.d = d;
         }
 
+        /** constructor used for deserilization*/
+        protected Tuple4(SerializerBase serializer, DataInput in, SerializerBase.FastArrayList objectStack) throws IOException {
+            objectStack.add(this);
+            this.a = (A) serializer.deserialize(in, objectStack);
+            this.b =  (B) serializer.deserialize(in, objectStack);
+            this.c =  (C) serializer.deserialize(in, objectStack);
+            this.d =  (D) serializer.deserialize(in, objectStack);
+        }
+
         @Override public int compareTo(Object o) {
             return TUPLE4_COMPARATOR.compare(this, (Tuple4) o);
         }
@@ -243,6 +271,14 @@ public final class Fun {
             this.b = b==null? COMPARATOR :b;
         }
 
+
+        /** constructor used for deserilization*/
+        protected Tuple2Comparator(SerializerBase serializer, DataInput in, SerializerBase.FastArrayList objectStack) throws IOException {
+            objectStack.add(this);
+            this.a = (Comparator) serializer.deserialize(in, objectStack);
+            this.b =  (Comparator) serializer.deserialize(in, objectStack);
+        }
+
         @Override
         public int compare(final Tuple2 o1, final Tuple2 o2) {
             int i = a.compare(o1.a,o2.a);
@@ -279,6 +315,14 @@ public final class Fun {
             this.a = a==null? COMPARATOR :a;
             this.b = b==null? COMPARATOR :b;
             this.c = c==null? COMPARATOR :c;
+        }
+
+        /** constructor used for deserilization, `extra` is added just to make function not to collide*/
+        protected Tuple3Comparator(SerializerBase serializer, DataInput in, SerializerBase.FastArrayList objectStack, int extra) throws IOException {
+            objectStack.add(this);
+            this.a = (Comparator) serializer.deserialize(in, objectStack);
+            this.b =  (Comparator) serializer.deserialize(in, objectStack);
+            this.c =  (Comparator) serializer.deserialize(in, objectStack);
         }
 
         @Override
@@ -320,6 +364,15 @@ public final class Fun {
             this.b = b==null? COMPARATOR :b;
             this.c = c==null? COMPARATOR :c;
             this.d = d==null? COMPARATOR :d;
+        }
+
+        /** constructor used for deserilization*/
+        protected Tuple4Comparator(SerializerBase serializer, DataInput in, SerializerBase.FastArrayList objectStack) throws IOException {
+            objectStack.add(this);
+            this.a = (Comparator) serializer.deserialize(in, objectStack);
+            this.b =  (Comparator) serializer.deserialize(in, objectStack);
+            this.c =  (Comparator) serializer.deserialize(in, objectStack);
+            this.d =  (Comparator) serializer.deserialize(in, objectStack);
         }
 
         @Override
@@ -496,6 +549,13 @@ public final class Fun {
                     this.comparators[i] = Fun.COMPARATOR;
             }
         }
+
+        /** constructor used for deserilization*/
+        protected ArrayComparator(SerializerBase serializer, DataInput in, SerializerBase.FastArrayList objectStack) throws IOException {
+            objectStack.add(this);
+            this.comparators = (Comparator[]) serializer.deserialize(in, objectStack);
+        }
+
 
         @Override
         public int compare(Object[] o1, Object[] o2) {

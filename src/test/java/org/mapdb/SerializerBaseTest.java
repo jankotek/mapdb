@@ -26,12 +26,14 @@ import java.util.AbstractMap.SimpleEntry;
 import java.util.*;
 
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
-public class SerializerBaseTest extends TestCase {
+public class SerializerBaseTest{
 
 
-    public void testInt() throws IOException{
+    @Test public void testInt() throws IOException{
         int[] vals = {
                 Integer.MIN_VALUE,
                 2*Short.MIN_VALUE,
@@ -56,7 +58,7 @@ public class SerializerBaseTest extends TestCase {
         assertEquals(expected, out.pos);
     }
 
-    public void testIntSize() throws IOException {
+    @Test public void testIntSize() throws IOException {
         serSize(1,Integer.MIN_VALUE);
         serSize(1,Integer.MAX_VALUE);
         for(int i=-9;i<=16;i++)
@@ -71,7 +73,7 @@ public class SerializerBaseTest extends TestCase {
         serSize(5, -0xFFFFFFF);
     }
 
-    public void testShort() throws IOException{
+    @Test public void testShort() throws IOException{
         for (int i = Short.MIN_VALUE;i<=Short.MAX_VALUE;i++) {
             Short ii = (short)i;
             Object l2 = clone(ii);
@@ -80,7 +82,7 @@ public class SerializerBaseTest extends TestCase {
         }
     }
 
-    public void testDouble() throws IOException{
+    @Test public void testDouble() throws IOException{
         double[] vals = {
                 1f, 0f, -1f, Math.PI, 255, 256, Short.MAX_VALUE, Short.MAX_VALUE + 1, -100
         };
@@ -92,7 +94,7 @@ public class SerializerBaseTest extends TestCase {
     }
 
 
-    public void testFloat() throws IOException{
+    @Test public void testFloat() throws IOException{
         float[] vals = {
                 1f, 0f, -1f, (float) Math.PI, 255, 256, Short.MAX_VALUE, Short.MAX_VALUE + 1, -100
         };
@@ -103,7 +105,7 @@ public class SerializerBaseTest extends TestCase {
         }
     }
 
-    public void testChar() throws IOException{
+    @Test public void testChar() throws IOException{
         for (int ii = Character.MIN_VALUE;ii<=Character.MAX_VALUE;ii++) {
             Character i = (char)ii;
             Object l2 = clone(i);
@@ -113,7 +115,7 @@ public class SerializerBaseTest extends TestCase {
     }
 
 
-    public void testLong() throws IOException{
+    @Test public void testLong() throws IOException{
         long[] vals = {
                 65536,
                 Long.MIN_VALUE,
@@ -136,7 +138,7 @@ public class SerializerBaseTest extends TestCase {
         }
     }
 
-    public void testLongSize() throws IOException {
+    @Test public void testLongSize() throws IOException {
         serSize(1,Long.MIN_VALUE);
         serSize(1,Long.MAX_VALUE);
         for(long i=-9;i<=16;i++)
@@ -159,7 +161,7 @@ public class SerializerBaseTest extends TestCase {
         serSize(9, -0xFFFFFFFFFFFFFFFL);
     }
 
-    public void testBoolean1() throws IOException{
+    @Test public void testBoolean1() throws IOException{
         Object l2 = clone(true);
         assertTrue(l2.getClass() == Boolean.class);
         assertEquals(l2, true);
@@ -170,12 +172,12 @@ public class SerializerBaseTest extends TestCase {
 
     }
 
-    public void testString() throws IOException{
+    @Test public void testString() throws IOException{
         String l2 = (String) clone("Abcd");
         assertEquals(l2, "Abcd");
     }
 
-    public void testBigString() throws IOException{
+    @Test public void testBigString() throws IOException{
         String bigString = "";
         for (int i = 0; i < 1e4; i++)
             bigString += i % 10;
@@ -184,7 +186,7 @@ public class SerializerBaseTest extends TestCase {
     }
 
 
-    public void testNoArgumentConstructorInJavaSerialization() throws ClassNotFoundException, IOException {
+    @Test public void testNoArgumentConstructorInJavaSerialization() throws ClassNotFoundException, IOException {
         SimpleEntry a = new SimpleEntry(1, "11");
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         new ObjectOutputStream(out).writeObject(a);
@@ -194,7 +196,7 @@ public class SerializerBaseTest extends TestCase {
     }
 
 
-    public void testArrayList() throws ClassNotFoundException, IOException {
+    @Test public void testArrayList() throws ClassNotFoundException, IOException {
         Collection c = new ArrayList();
         for (int i = 0; i < 200; i++)
             c.add(i);
@@ -204,7 +206,7 @@ public class SerializerBaseTest extends TestCase {
         assertEquals(c, clone((c)));
     }
 
-    public void testLinkedList() throws ClassNotFoundException, IOException {
+    @Test public void testLinkedList() throws ClassNotFoundException, IOException {
         Collection c = new java.util.LinkedList();
         for (int i = 0; i < 200; i++)
             c.add(i);
@@ -216,7 +218,7 @@ public class SerializerBaseTest extends TestCase {
 
 
 
-    public void testTreeSet() throws ClassNotFoundException, IOException {
+    @Test public void testTreeSet() throws ClassNotFoundException, IOException {
         Collection c = new TreeSet();
         for (int i = 0; i < 200; i++)
             c.add(i);
@@ -226,7 +228,7 @@ public class SerializerBaseTest extends TestCase {
         assertEquals(c, clone((c)));
     }
 
-    public void testHashSet() throws ClassNotFoundException, IOException {
+    @Test public void testHashSet() throws ClassNotFoundException, IOException {
         Collection c = new HashSet();
         for (int i = 0; i < 200; i++)
             c.add(i);
@@ -236,7 +238,7 @@ public class SerializerBaseTest extends TestCase {
         assertEquals(c, clone((c)));
     }
 
-    public void testLinkedHashSet() throws ClassNotFoundException, IOException {
+    @Test public void testLinkedHashSet() throws ClassNotFoundException, IOException {
         Collection c = new LinkedHashSet();
         for (int i = 0; i < 200; i++)
             c.add(i);
@@ -246,7 +248,7 @@ public class SerializerBaseTest extends TestCase {
         assertEquals(c, clone((c)));
     }
 
-    public void testHashMap() throws ClassNotFoundException, IOException {
+    @Test public void testHashMap() throws ClassNotFoundException, IOException {
         Map c = new HashMap();
         for (int i = 0; i < 200; i++)
             c.put(i, i + 10000);
@@ -256,7 +258,7 @@ public class SerializerBaseTest extends TestCase {
         assertEquals(c, clone((c)));
     }
 
-    public void testTreeMap() throws ClassNotFoundException, IOException {
+    @Test public void testTreeMap() throws ClassNotFoundException, IOException {
         Map c = new TreeMap();
         for (int i = 0; i < 200; i++)
             c.put(i, i + 10000);
@@ -266,7 +268,7 @@ public class SerializerBaseTest extends TestCase {
         assertEquals(c, clone((c)));
     }
 
-    public void testLinkedHashMap() throws ClassNotFoundException, IOException {
+    @Test public void testLinkedHashMap() throws ClassNotFoundException, IOException {
         Map c = new LinkedHashMap();
         for (int i = 0; i < 200; i++)
             c.put(i, i + 10000);
@@ -277,7 +279,7 @@ public class SerializerBaseTest extends TestCase {
     }
 
 
-    public void testProperties() throws ClassNotFoundException, IOException {
+    @Test public void testProperties() throws ClassNotFoundException, IOException {
         Properties c = new Properties();
         for (int i = 0; i < 200; i++)
             c.put(i, i + 10000);
@@ -288,18 +290,18 @@ public class SerializerBaseTest extends TestCase {
     }
 
 
-    public void testClass() throws IOException{
+    @Test public void testClass() throws IOException{
         assertEquals(clone(String.class), String.class);
         assertEquals(clone(long[].class), long[].class);
     }
 
 
-    public void testUnicodeString() throws ClassNotFoundException, IOException {
+    @Test public void testUnicodeString() throws ClassNotFoundException, IOException {
         String s = "Ciudad Bolíva";
         assertEquals(clone(s), s);
     }
 
-    public void testPackedLongCollection() throws ClassNotFoundException, IOException {
+    @Test public void testPackedLongCollection() throws ClassNotFoundException, IOException {
         ArrayList l1 = new ArrayList();
         l1.add(0L);
         l1.add(1L);
@@ -309,72 +311,72 @@ public class SerializerBaseTest extends TestCase {
         assertEquals(l1, clone((l1)));
     }
 
-    public void testNegativeLongsArray() throws ClassNotFoundException, IOException {
+    @Test public void testNegativeLongsArray() throws ClassNotFoundException, IOException {
        long[] l = new long[] { -12 };
        Object deserialize = clone((l));
        assertTrue(Arrays.equals(l, (long[]) deserialize));
      }
 
 
-    public void testNegativeIntArray() throws ClassNotFoundException, IOException {
+    @Test public void testNegativeIntArray() throws ClassNotFoundException, IOException {
        int[] l = new int[] { -12 };
        Object deserialize = clone((l));
        assertTrue(Arrays.equals(l, (int[]) deserialize));
      }
 
 
-    public void testNegativeShortArray() throws ClassNotFoundException, IOException {
+    @Test public void testNegativeShortArray() throws ClassNotFoundException, IOException {
        short[] l = new short[] { -12 };
        Object deserialize = clone((l));
         assertTrue(Arrays.equals(l, (short[]) deserialize));
      }
 
-    public void testBooleanArray() throws ClassNotFoundException, IOException {
+    @Test public void testBooleanArray() throws ClassNotFoundException, IOException {
         boolean[] l = new boolean[] { true,false };
         Object deserialize = clone((l));
         assertTrue(Arrays.equals(l, (boolean[]) deserialize));
     }
 
-    public void testDoubleArray() throws ClassNotFoundException, IOException {
+    @Test public void testDoubleArray() throws ClassNotFoundException, IOException {
         double[] l = new double[] { Math.PI, 1D };
         Object deserialize = clone((l));
         assertTrue(Arrays.equals(l, (double[]) deserialize));
     }
 
-    public void testFloatArray() throws ClassNotFoundException, IOException {
+    @Test public void testFloatArray() throws ClassNotFoundException, IOException {
         float[] l = new float[] { 1F, 1.234235F };
         Object deserialize = clone((l));
         assertTrue(Arrays.equals(l, (float[]) deserialize));
     }
 
-    public void testByteArray() throws ClassNotFoundException, IOException {
+    @Test public void testByteArray() throws ClassNotFoundException, IOException {
         byte[] l = new byte[] { 1,34,-5 };
         Object deserialize = clone((l));
         assertTrue(Arrays.equals(l, (byte[]) deserialize));
     }
 
-    public void testCharArray() throws ClassNotFoundException, IOException {
+    @Test public void testCharArray() throws ClassNotFoundException, IOException {
         char[] l = new char[] { '1','a','&' };
         Object deserialize = clone((l));
         assertTrue(Arrays.equals(l, (char[]) deserialize));
     }
 
 
-    public void testDate() throws IOException{
+    @Test public void testDate() throws IOException{
         Date d = new Date(6546565565656L);
         assertEquals(d, clone((d)));
         d = new Date(System.currentTimeMillis());
         assertEquals(d, clone((d)));
     }
 
-    public void testBigDecimal() throws IOException{
+    @Test public void testBigDecimal() throws IOException{
         BigDecimal d = new BigDecimal("445656.7889889895165654423236");
         assertEquals(d, clone((d)));
         d = new BigDecimal("-53534534534534445656.7889889895165654423236");
         assertEquals(d, clone((d)));
     }
 
-    public void testBigInteger() throws IOException{
+    @Test public void testBigInteger() throws IOException{
         BigInteger d = new BigInteger("4456567889889895165654423236");
         assertEquals(d, clone((d)));
         d = new BigInteger("-535345345345344456567889889895165654423236");
@@ -382,7 +384,7 @@ public class SerializerBaseTest extends TestCase {
     }
 
 
-    public void testUUID() throws IOException, ClassNotFoundException {
+    @Test public void testUUID() throws IOException, ClassNotFoundException {
         //try a bunch of UUIDs.
         for(int i = 0; i < 1000;i++)
         {
@@ -391,27 +393,27 @@ public class SerializerBaseTest extends TestCase {
         }
     }
 
-    public void testArray() throws IOException {
+    @Test public void testArray() throws IOException {
         Object[] o = new Object[]{"A",Long.valueOf(1),Long.valueOf(2),Long.valueOf(3), Long.valueOf(3)};
         Object[] o2 = (Object[]) clone(o);
         assertArrayEquals(o,o2);
     }
 
 
-    public void test_issue_38() throws IOException {
+    @Test public void test_issue_38() throws IOException {
         String[] s = new String[5];
         String[] s2 = (String[]) clone(s);
         assertArrayEquals(s, s2);
         assertTrue(s2.toString().contains("[Ljava.lang.String"));
     }
 
-    public void test_multi_dim_array() throws IOException {
+    @Test public void test_multi_dim_array() throws IOException {
         int[][] arr = new int[][]{{11,22,44},{1,2,34}};
         int[][] arr2= (int[][]) clone(arr);
         assertArrayEquals(arr,arr2);
     }
 
-    public void test_multi_dim_large_array() throws IOException {
+    @Test public void test_multi_dim_large_array() throws IOException {
         int[][] arr1 = new int[3000][];
         double[][] arr2 = new double[3000][];
         for(int i=0;i<3000;i++){
@@ -423,25 +425,25 @@ public class SerializerBaseTest extends TestCase {
     }
 
 
-    public void test_multi_dim_array2() throws IOException {
+    @Test public void test_multi_dim_array2() throws IOException {
         Object[][] arr = new Object[][]{{11,22,44},{1,2,34}};
         Object[][] arr2= (Object[][]) clone(arr);
         assertArrayEquals(arr,arr2);
     }
 
 
-    public void test_static_objects() throws IOException {
+    @Test public void test_static_objects() throws IOException {
         for(Object o:SerializerBase.singletons.all.keySet()){
             assertTrue(o==clone(o));
         }
     }
 
-    public void test_singleton_reverse() throws IOException {
+    @Test public void test_singleton_reverse() throws IOException {
         assertEquals(SerializerBase.singletons.all.size(), SerializerBase.singletons.reverse.size());
     }
 
 
-    public void test_tuple_key_serializer() throws IOException {
+    @Test public void test_tuple_key_serializer() throws IOException {
         assertEquals(BTreeKeySerializer.TUPLE2, clone(BTreeKeySerializer.TUPLE2));
         assertEquals(BTreeKeySerializer.TUPLE3, clone(BTreeKeySerializer.TUPLE3));
         assertEquals(BTreeKeySerializer.TUPLE4, clone(BTreeKeySerializer.TUPLE4));
@@ -451,7 +453,7 @@ public class SerializerBaseTest extends TestCase {
 
 
 
-    public void test_strings_var_sizes() throws IOException {
+    @Test public void test_strings_var_sizes() throws IOException {
         for(int i=0;i<50;i++){
             String s = Utils.randomString(i);
             assertEquals(s, clone((s)));
@@ -459,12 +461,12 @@ public class SerializerBaseTest extends TestCase {
     }
 
 
-    public void test_extended_chars() throws IOException {
+    @Test public void test_extended_chars() throws IOException {
         String s = "人口, 日本、人口, 日本の公式統計";
         assertEquals(s,clone((s)));
     }
 
-    public void testBooleanArray2() throws IOException {
+    @Test public void testBooleanArray2() throws IOException {
         for(int i=0;i<1000;i++){
             boolean[] b = new boolean[i];
             for(int j=0;j<i;j++) b[j] = Math.random()<0.5;
@@ -491,7 +493,7 @@ public class SerializerBaseTest extends TestCase {
     }
 
     @SuppressWarnings({  "rawtypes" })
-    public void testHeaderUnique() throws IllegalAccessException {
+    @Test public void testHeaderUnique() throws IllegalAccessException {
         Class c = SerializerBase.Header.class;
         Set<Integer> s = new TreeSet<Integer>();
         for (Field f : c.getDeclaredFields()) {
@@ -505,7 +507,7 @@ public class SerializerBaseTest extends TestCase {
     }
 
     @SuppressWarnings({  "rawtypes" })
-    public void testHeaderUniqueMapDB() throws IllegalAccessException {
+    @Test public void testHeaderUniqueMapDB() throws IllegalAccessException {
         Class c = SerializerBase.HeaderMapDB.class;
         Set<Integer> s = new TreeSet<Integer>();
         for (Field f : c.getDeclaredFields()) {
@@ -519,7 +521,7 @@ public class SerializerBaseTest extends TestCase {
     }
 
 
-    public void test_All_Serializer_Fields_Serializable() throws IllegalAccessException, IOException {
+    @Test public void test_All_Serializer_Fields_Serializable() throws IllegalAccessException, IOException {
         for(Field f:Serializer.class.getDeclaredFields()){
             Object a = f.get(null);
             assertTrue("field: "+f.getName(), SerializerBase.singletons.all.containsKey(a));
@@ -527,7 +529,7 @@ public class SerializerBaseTest extends TestCase {
         }
     }
 
-    public void test_All_Hasher_Fields_Serializable() throws IllegalAccessException, IOException {
+    @Test public void test_All_Hasher_Fields_Serializable() throws IllegalAccessException, IOException {
         for(Field f:Hasher.class.getDeclaredFields()){
             Object a = f.get(null);
             assertTrue("field: "+f.getName(), SerializerBase.singletons.all.containsKey(a));
@@ -536,7 +538,7 @@ public class SerializerBaseTest extends TestCase {
     }
 
 
-    public void test_All_Fun_Fields_Serializable() throws IllegalAccessException, IOException {
+    @Test public void test_All_Fun_Fields_Serializable() throws IllegalAccessException, IOException {
         for(Field f:Fun.class.getDeclaredFields()){
             Object a = f.get(null);
             assertTrue("field: "+f.getName(), SerializerBase.singletons.all.containsKey(a));
@@ -544,7 +546,7 @@ public class SerializerBaseTest extends TestCase {
         }
     }
 
-    public void test_Named(){
+    @Test public void test_Named(){
         File f = Utils.tempDbFile();
         DB db = DBMaker.newFileDB(f).make();
         Map map = db.getTreeMap("map");
@@ -577,7 +579,7 @@ public class SerializerBaseTest extends TestCase {
         assertEquals(111L,along.get());
     }
 
-    public void test_atomic_ref_serializable(){
+    @Test public void test_atomic_ref_serializable(){
         File f = Utils.tempDbFile();
         DB db = DBMaker.newFileDB(f).make();
         Map map = db.getTreeMap("map");
@@ -663,7 +665,15 @@ public class SerializerBaseTest extends TestCase {
     @Test public void array_comparator() throws IOException {
         Fun.ArrayComparator c = new Fun.ArrayComparator(new Comparator[]{Fun.REVERSE_COMPARATOR, Fun.COMPARATOR, Fun.COMPARATOR});
         assertEquals(c,clone(c));
-
     }
+
+
+
+    @Test public void object_stack_issue232_n2() throws IOException {
+        Integer i = 1;
+        Fun.Tuple2 t = Fun.t2(i,i);
+        assertEquals(t,clone(t));
+    }
+
 
 }

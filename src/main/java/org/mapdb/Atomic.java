@@ -23,6 +23,9 @@
  */
 package org.mapdb;
 
+import java.io.DataInput;
+import java.io.IOException;
+
 /**
  * A small toolkit of classes that support lock-free thread-safe
  * programming on single records.  In essence, the classes here
@@ -601,6 +604,14 @@ final public class Atomic {
             this.engine = engine;
             this.recid = recid;
             this.serializer = serializer;
+        }
+
+        /** used for deserialization */
+        protected Var(Engine engine, SerializerBase serializerBase, DataInput is, SerializerBase.FastArrayList<Object> objectStack) throws IOException {
+            objectStack.add(this);
+            this.engine = engine;
+            this.recid = Utils.unpackLong(is);
+            this.serializer = (Serializer<E>) serializerBase.deserialize(is,objectStack);
         }
 
         public java.lang.String toString() {
