@@ -250,6 +250,23 @@ public final class Fun {
             i = b.compare(o1.b,o2.b);
             return i;
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Tuple2Comparator that = (Tuple2Comparator) o;
+
+            return a.equals(that.a) && b.equals(that.b);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = a.hashCode();
+            result = 31 * result + b.hashCode();
+            return result;
+        }
     }
 
     public static final class Tuple3Comparator<A,B,C> implements Comparator<Tuple3<A,B,C>>,Serializable  {
@@ -271,6 +288,23 @@ public final class Fun {
             i = b.compare(o1.b,o2.b);
             if(i!=0) return i;
             return c.compare(o1.c,o2.c);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Tuple3Comparator that = (Tuple3Comparator) o;
+            return a.equals(that.a) && b.equals(that.b) && c.equals(that.c);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = a.hashCode();
+            result = 31 * result + b.hashCode();
+            result = 31 * result + c.hashCode();
+            return result;
         }
     }
 
@@ -297,6 +331,24 @@ public final class Fun {
             i = c.compare(o1.c,o2.c);
             if(i!=0) return i;
             return d.compare(o1.d,o2.d);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Tuple4Comparator that = (Tuple4Comparator) o;
+            return a.equals(that.a) && b.equals(that.b) && c.equals(that.c) && d.equals(that.d);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = a.hashCode();
+            result = 31 * result + b.hashCode();
+            result = 31 * result + c.hashCode();
+            result = 31 * result + d.hashCode();
+            return result;
         }
     }
 
