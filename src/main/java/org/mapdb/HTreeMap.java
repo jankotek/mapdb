@@ -40,7 +40,6 @@ import java.util.logging.Level;
  *
  * @author Jan Kotek
  */
-//TODO equals method in AbstractMap... and Hasher.equals(v,v)
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K, V>, Bind.MapWithModificationListener<K,V> {
 
@@ -755,12 +754,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         return false;
     }
 
-    @Override
-    public void putAll(Map<? extends K, ? extends V> m) {
-        for(Entry<? extends K, ? extends V> e:m.entrySet()){
-            put(e.getKey(),e.getValue());
-        }
-    }
+
 
     protected class KeySet extends AbstractSet<K> {
 
@@ -810,6 +804,17 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         public HTreeMap<K,V> parent(){
             return HTreeMap.this;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = 0;
+            Iterator<K> it = iterator();
+            while (it.hasNext()) {
+                result += hasher.hashCode(it.next());
+            }
+            return result;
+
         }
     }
 
@@ -1136,7 +1141,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         @Override
         public int hashCode() {
             final V value = HTreeMap.this.get(key);
-            return (key == null ? 0 : key.hashCode()) ^
+            return (key == null ? 0 : hasher.hashCode(key)) ^
                     (value == null ? 0 : value.hashCode());
         }
     }
