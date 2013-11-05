@@ -473,8 +473,6 @@ public class SerializerBase implements Serializer{
                 out.write(Header.STRING);
                 Utils.packInt(out, len);
             }
-            //TODO investigate if c could be negative here
-            //TODO how about characters over 65K
             for (int i = 0; i < len; i++)
                 Utils.packInt(out,(int)((String) obj).charAt(i));
         }
