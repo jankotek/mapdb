@@ -1,6 +1,8 @@
 package org.mapdb;
 
 import org.junit.Test;
+
+import java.io.IOException;
 import java.util.*;
 import static org.junit.Assert.*;
 
@@ -20,4 +22,17 @@ public class SerializerTest {
         assertEquals(s, Utils.clone(s,Serializer.STRING_ASCII));
     }
 
+    @Test public void compression_wrapper() throws IOException {
+        byte[] b = new byte[100];
+        new Random().nextBytes(b);
+        Serializer<byte[]> ser = new Serializer.CompressionWrapper(Serializer.BYTE_ARRAY);
+        assertArrayEquals(b, Utils.clone(b,ser));
+
+        b = Arrays.copyOf(b, 10000);
+        assertArrayEquals(b, Utils.clone(b,ser));
+
+        DataOutput2 out = new DataOutput2();
+        ser.serialize(out,b);
+        assertTrue(out.pos<1000);
+    }
 }

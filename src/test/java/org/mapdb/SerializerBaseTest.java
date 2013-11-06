@@ -731,4 +731,9 @@ public class SerializerBaseTest{
         }
     }
 
+    @Test public void serializer_compression_wrapper() throws IOException {
+        Object o = new Serializer.CompressionWrapper(Serializer.LONG);
+        assertEquals(o, clone(o));
+    }
+
 }

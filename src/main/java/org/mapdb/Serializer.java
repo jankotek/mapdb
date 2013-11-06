@@ -368,4 +368,85 @@ public interface Serializer<A> {
         }
     };
 
+    /** wraps another serializer and (de)compresses its output/input*/
+    public final static class CompressionWrapper<E> implements Serializer<E>, Serializable {
+
+        protected final Serializer<E> serializer;
+        protected final ThreadLocal<CompressLZF> LZF = new ThreadLocal<CompressLZF>() {
+                @Override protected CompressLZF initialValue() {
+                    return new CompressLZF();
+                }
+            };
+
+        public CompressionWrapper(Serializer<E> serializer) {
+            this.serializer = serializer;
+        }
+
+        /** used for deserialization */
+        protected CompressionWrapper(SerializerBase serializerBase, DataInput is, SerializerBase.FastArrayList<Object> objectStack) throws IOException {
+            objectStack.add(this);
+            this.serializer = (Serializer<E>) serializerBase.deserialize(is,objectStack);
+        }
+
+
+        @Override
+        public void serialize(DataOutput out, E value) throws IOException {
+            DataOutput2 out2 = new DataOutput2();
+            serializer.serialize(out2,value);
+
+            CompressLZF lzf = LZF.get();
+            byte[] tmp = new byte[out2.pos+41];
+            int newLen;
+            try{
+                newLen = lzf.compress(out2.buf,out2.pos,tmp,0);
+            }catch(IndexOutOfBoundsException e){
+                newLen=0; //larger after compression
+            }
+            if(newLen>=out2.pos){
+                //compression adds size, so do not compress
+                Utils.packInt(out,0);
+                out.write(out2.buf,0,out2.pos);
+                return;
+            }
+
+            Utils.packInt(out,newLen+1); //packed size, zero indicates no compression
+            Utils.packInt(out, out2.pos); //unpacked size
+            out.write(tmp,0,newLen);
+        }
+
+        @Override
+        public E deserialize(DataInput in, int available) throws IOException {
+            final int size = Utils.unpackInt(in)-1;
+            if(size==-1){
+                //was not compressed
+                return serializer.deserialize(in, available>0?available-1:available);
+            }
+
+            final int unpackedSize = Utils.unpackInt(in);
+
+            byte[] packed = new byte[size];
+            in.readFully(packed);
+            byte[] unpacked = new byte[unpackedSize];
+            CompressLZF lzf = LZF.get();
+            lzf.expand(packed,0,size,unpacked,0,unpackedSize);
+            DataInput2 in2 = new DataInput2(unpacked);
+            E ret =  serializer.deserialize(in2,unpackedSize);
+            assert(in2.pos==unpackedSize): "data were not fully read";
+            return ret;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            CompressionWrapper that = (CompressionWrapper) o;
+            return serializer.equals(that.serializer);
+        }
+
+        @Override
+        public int hashCode() {
+            return serializer.hashCode();
+        }
+    }
 }

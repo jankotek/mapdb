@@ -430,6 +430,10 @@ public class SerializerBase implements Serializer{
             out.write(Header.MAPDB);
             Utils.packInt(out, HeaderMapDB.COMPARATOR_ARRAY);
             serialize(out, ((Fun.ArrayComparator)obj).comparators,objectStack);
+        } else if (clazz == CompressionWrapper.class){
+            out.write(Header.MAPDB);
+            Utils.packInt(out, HeaderMapDB.SERIALIZER_COMPRESSION_WRAPPER);
+            serialize(out, ((CompressionWrapper)obj).serializer,objectStack);
         }else if(obj instanceof Fun.Tuple2Comparator ){
             out.write(Header.MAPDB);
             Utils.packInt(out, HeaderMapDB.TUPLE2_COMPARATOR);
@@ -1330,6 +1334,9 @@ public class SerializerBase implements Serializer{
 
         int SERIALIZER_STRING_ASCII = 46;
 
+        int SERIALIZER_COMPRESSION_WRAPPER = 47;
+        int B_TREE_COMPRESSION_SERIALIZER = 48;
+
     }
 
     protected static final class singletons{
@@ -1410,6 +1417,10 @@ public class SerializerBase implements Serializer{
                 return new BTreeKeySerializer.Tuple2KeySerializer(this, is, objectStack,0);
             case HeaderMapDB.COMPARATOR_ARRAY:
                 return new Fun.ArrayComparator(this, is, objectStack);
+
+            case HeaderMapDB.SERIALIZER_COMPRESSION_WRAPPER:
+                return new CompressionWrapper(this, is, objectStack);
+
 
             case HeaderMapDB.SERIALIZER_KEY_TUPLE3:
                 return new BTreeKeySerializer.Tuple3KeySerializer(this, is, objectStack);

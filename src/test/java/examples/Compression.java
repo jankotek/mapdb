@@ -2,6 +2,7 @@ package examples;
 
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
+import org.mapdb.Serializer;
 
 import java.util.Map;
 
@@ -25,27 +26,26 @@ public class Compression {
         map.put("some","stuff");
 
 
-// TODO not supported at the moment
-//        /*
-//         * Other option is to use compression only for specific part. For example if
-//         * you have large values, you may want to compress them. It may make sense
-//         * not to compress BTree Nodes and Keys.
-//         */
-//
-//        DB db2 = DBMaker.newMemoryDB().asyncWriteDisable().make(); //no store wide compression this time
-//
-//        //construct value serializier, use default serializier
-//        Serializer valueSerializer = db2.getDefaultSerializer();
-//        //but wrap it, to compress its output
-//        valueSerializer = new Serializer.CompressSerializerWrapper(valueSerializer);
-//
-//        //now construct map, with additional options
-//        Map map2 = db2.createTreeMap("test")
-//                .valuesStoredOutsideNodes(true) // store values outside of BTree Nodes. Faster reads if values are large.
-//                .valueSerializer(valueSerializer) //set our value serializer.
-//                .make();
-//
-//        map2.put("some","stuff");
+
+        /*
+         * Other option is to use compression only for specific part. For example if
+         * you have large values, you may want to compress them. It may make sense
+         * not to compress BTree Nodes and Keys.
+         */
+        DB db2 = DBMaker.newMemoryDB().asyncWriteDisable().make(); //no store wide compression this time
+
+        //construct value serializier, use default serializier
+        Serializer valueSerializer = db2.getDefaultSerializer();
+        //but wrap it, to compress its output
+        valueSerializer = new Serializer.CompressionWrapper(valueSerializer);
+
+        //now construct map, with additional options
+        Map map2 = db2.createTreeMap("test")
+                .valuesStoredOutsideNodes(true) // store values outside of BTree Nodes. Faster reads if values are large.
+                .valueSerializer(valueSerializer) //set our value serializer.
+                .make();
+
+        map2.put("some","stuff");
 
 
     }
