@@ -644,7 +644,7 @@ public class LongConcurrentLRUMap<V> extends LongMap<V> {
 
             @Override
             public void remove() {
-                iter.remove(); //TODO is exposing remove ok? any impact on cache?
+                throw new UnsupportedOperationException();
             }
         };
     }
@@ -670,7 +670,7 @@ public class LongConcurrentLRUMap<V> extends LongMap<V> {
 
             @Override
             public void remove() {
-                iter.remove(); //TODO is exposing remove ok? any impact on cache?
+                throw new UnsupportedOperationException();
             }
         };
     }
