@@ -91,7 +91,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * @author some parts by Doug Lea and JSR-166 group
  */
 @SuppressWarnings({ "unchecked", "rawtypes" })
-//TODO better tests for BTreeMap without values (set)
 public class BTreeMap<K,V> extends AbstractMap<K,V>
         implements ConcurrentNavigableMap<K,V>, Bind.MapWithModificationListener<K,V>{
 
@@ -434,7 +433,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
      * @param maxNodeSize maximal BTree Node size. Node will split if number of entries is higher
      * @param valsOutsideNodes Store Values outside of BTree Nodes in separate record?
      * @param counterRecid recid under which `Atomic.Long` is stored, or `0` for no counter
-     * @param keySerializer Serializer used for keys. May be null for default value. TODO delta packing
+     * @param keySerializer Serializer used for keys. May be null for default value.
      * @param valueSerializer Serializer used for values. May be null for default value
      * @param comparator Comparator to sort keys in this BTree, may be null.
      */
