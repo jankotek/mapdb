@@ -42,7 +42,7 @@ public class Issue148Test {
         DB mapdb = DBMaker.newAppendFileDB(mapdbFile).closeOnJvmShutdown().cacheDisable().asyncWriteDisable().make();
 
         Serializer<CustomValue> valueSerializer = new CustomValueSerializer();
-        HTreeMap<String, CustomValue> users = mapdb.createHashMap("users").keepCounter(true).make();
+        HTreeMap<String, CustomValue> users = mapdb.createHashMap("users").counterEnable().make();
         users.put("jhon", new CustomValue("jhon",  32));
         users.put("mike", new CustomValue("mike",  30));
         mapdb.commit();

@@ -18,11 +18,11 @@ public class Map_Size_Counter {
         DB db1 = DBMaker.newTempFileDB().make();
         //hashMap
         Map m = db1.createHashMap("map1a")
-                .keepCounter(true) /**<<here is keepCounter argument*/
+                .counterEnable() /**<<here is counter argument*/
                 .make();
         //treeMap
         m = db1.createTreeMap("map1b")
-                .keepCounter(true) /**<<here is keepCounter argument*/
+                .counterEnable() /**<<here is counter argument*/
                 .make();
 
         m.put("a","b");

@@ -105,7 +105,7 @@ public class DB {
         }
 
 
-        protected boolean keepCounter = false;
+        protected boolean counter = false;
         protected Serializer keySerializer = null;
         protected Serializer valueSerializer = null;
         protected long expireMaxSize = 0L;
@@ -118,9 +118,9 @@ public class DB {
 
 
 
-        /** keepCounter if counter should be kept, without counter updates are faster, but entire collection needs to be traversed to count items.*/
-        public HTreeMapMaker keepCounter(boolean keepCounter){
-            this.keepCounter = keepCounter;
+        /** by default collection does not have counter, without counter updates are faster, but entire collection needs to be traversed to count items.*/
+        public HTreeMapMaker counterEnable(){
+            this.counter = true;
             return this;
         }
 
@@ -182,7 +182,7 @@ public class DB {
 
 
         public <K,V> HTreeMap<K,V> make(){
-            if(expireMaxSize!=0) keepCounter=true;
+            if(expireMaxSize!=0) counter =true;
             return DB.this.createHashMap(HTreeMapMaker.this);
         }
 
@@ -204,16 +204,16 @@ public class DB {
             this.name = name;
         }
 
-        protected boolean keepCounter = false;
+        protected boolean counter = false;
         protected Serializer serializer = null;
         protected long expireMaxSize = 0L;
         protected long expire = 0L;
         protected long expireAccess = 0L;
         protected Hasher hasher = null;
 
-        /** keepCounter if counter should be kept, without counter updates are faster, but entire collection needs to be traversed to count items.*/
-        public HTreeSetMaker keepCounter(boolean keepCounter){
-            this.keepCounter = keepCounter;
+        /** by default collection does not have counter, without counter updates are faster, but entire collection needs to be traversed to count items.*/
+        public HTreeSetMaker counterEnable(){
+            this.counter = true;
             return this;
         }
 
@@ -263,7 +263,7 @@ public class DB {
 
 
         public <K> Set<K> make(){
-            if(expireMaxSize!=0) keepCounter=true;
+            if(expireMaxSize!=0) counter =true;
             return DB.this.createHashSet(HTreeSetMaker.this);
         }
 
@@ -394,7 +394,7 @@ public class DB {
 
 
         HTreeMap<K,V> ret = new HTreeMap<K,V>(engine,
-                catPut(name+".counterRecid",!m.keepCounter?0L:engine.put(0L, Serializer.LONG)),
+                catPut(name+".counterRecid",!m.counter ?0L:engine.put(0L, Serializer.LONG)),
                 catPut(name+".hashSalt",new Random().nextInt()),
                 catPut(name+".segmentRecids",HTreeMap.preallocateSegments(engine)),
                 catPut(name+".keySerializer",m.keySerializer,getDefaultSerializer()),
@@ -481,7 +481,7 @@ public class DB {
 
 
         HTreeMap<K,Object> ret = new HTreeMap<K,Object>(engine,
-                catPut(name+".counterRecid",!m.keepCounter?0L:engine.put(0L, Serializer.LONG)),
+                catPut(name+".counterRecid",!m.counter ?0L:engine.put(0L, Serializer.LONG)),
                 catPut(name+".hashSalt",new Random().nextInt()),
                 catPut(name+".segmentRecids",HTreeMap.preallocateSegments(engine)),
                 catPut(name+".serializer",m.serializer,getDefaultSerializer()),
@@ -507,8 +507,8 @@ public class DB {
         }
 
         protected int nodeSize = 32;
-        protected boolean valuesStoredOutsideNodes = false;
-        protected boolean keepCounter = false;
+        protected boolean valuesOutsideNodes = false;
+        protected boolean counter = false;
         protected BTreeKeySerializer keySerializer;
         protected Serializer valueSerializer;
         protected Comparator comparator;
@@ -525,15 +525,15 @@ public class DB {
             return this;
         }
 
-        /** valuesStoredOutsideNodes if true, values are stored outside of BTree nodes. Use 'true' if your values are large.*/
-        public BTreeMapMaker valuesStoredOutsideNodes(boolean outside){
-            this.valuesStoredOutsideNodes = outside;
+        /** by default values are stored inside BTree Nodes. Large values should be stored outside of BTreeNodes*/
+        public BTreeMapMaker valuesOutsideNodesEnable(){
+            this.valuesOutsideNodes = true;
             return this;
         }
 
-        /** keepCounter if counter should be kept, without counter updates are faster, but entire collection needs to be traversed to count items.*/
-        public BTreeMapMaker keepCounter(boolean keepCounter){
-            this.keepCounter = keepCounter;
+        /** by default collection does not have counter, without counter updates are faster, but entire collection needs to be traversed to count items.*/
+        public BTreeMapMaker counterEnable(){
+            this.counter = true;
             return this;
         }
 
@@ -617,7 +617,7 @@ public class DB {
         }
 
         protected int nodeSize = 32;
-        protected boolean keepCounter = false;
+        protected boolean counter = false;
         protected BTreeKeySerializer serializer;
         protected Comparator comparator;
 
@@ -632,9 +632,9 @@ public class DB {
         }
 
 
-        /** keepCounter if counter should be kept, without counter updates are faster, but entire collection needs to be traversed to count items.*/
-        public BTreeSetMaker keepCounter(boolean keepCounter){
-            this.keepCounter = keepCounter;
+        /** by default collection does not have counter, without counter updates are faster, but entire collection needs to be traversed to count items.*/
+        public BTreeSetMaker counterEnable(){
+            this.counter = true;
             return this;
         }
 
@@ -748,20 +748,20 @@ public class DB {
         m.valueSerializer = catPut(name+".valueSerializer",m.valueSerializer,getDefaultSerializer());
         m.comparator = catPut(name+".comparator",m.comparator,Utils.COMPARABLE_COMPARATOR);
 
-        long counterRecid = !m.keepCounter?0L:engine.put(0L, Serializer.LONG);
+        long counterRecid = !m.counter ?0L:engine.put(0L, Serializer.LONG);
 
         long rootRecidRef;
         if(m.pumpSource==null){
             rootRecidRef = BTreeMap.createRootRef(engine,m.keySerializer,m.valueSerializer,m.comparator);
         }else{
             rootRecidRef = Pump.buildTreeMap(m.pumpSource,engine,m.pumpKeyExtractor,m.pumpValueExtractor,m.nodeSize,
-                    m.valuesStoredOutsideNodes,counterRecid,m.keySerializer,m.valueSerializer,m.comparator);
+                    m.valuesOutsideNodes,counterRecid,m.keySerializer,m.valueSerializer,m.comparator);
         }
 
         BTreeMap<K,V> ret = new BTreeMap<K,V>(engine,
                 catPut(name+".rootRecidRef", rootRecidRef),
                 catPut(name+".maxNodeSize",m.nodeSize),
-                catPut(name+".valuesOutsideNodes",m.valuesStoredOutsideNodes),
+                catPut(name+".valuesOutsideNodes",m.valuesOutsideNodes),
                 catPut(name+".counterRecid",counterRecid),
                 m.keySerializer,
                 m.valueSerializer,
@@ -871,7 +871,7 @@ public class DB {
             m.pumpSource = Pump.sort(m.pumpSource,m.pumpPresortBatchSize,Collections.reverseOrder(m.comparator),getDefaultSerializer());
         }
 
-        long counterRecid = !m.keepCounter?0L:engine.put(0L, Serializer.LONG);
+        long counterRecid = !m.counter ?0L:engine.put(0L, Serializer.LONG);
         long rootRecidRef;
 
         if(m.pumpSource==null){

@@ -113,7 +113,7 @@ public final class Bind {
      *
      * This binding is not persistent. You need to restore it every time store is reopened.
      *
-     * NOTE: {@link BTreeMap} and {@link HTreeMap} already supports this directly as optional parameter named `keepCounter`.
+     * NOTE: {@link BTreeMap} and {@link HTreeMap} already supports this directly as optional parameter named `counter`.
      * In that case all calls to `Map.size()` are forwarded to underlying counter. Check parameters at
      * {@link DB#createHashMap(String)} and
      * {@link DB#createTreeMap(String)}

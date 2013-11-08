@@ -41,7 +41,7 @@ public class Compression {
 
         //now construct map, with additional options
         Map map2 = db2.createTreeMap("test")
-                .valuesStoredOutsideNodes(true) // store values outside of BTree Nodes. Faster reads if values are large.
+                .valuesOutsideNodesEnable() // store values outside of BTree Nodes. Faster reads if values are large.
                 .valueSerializer(valueSerializer) //set our value serializer.
                 .make();
 
