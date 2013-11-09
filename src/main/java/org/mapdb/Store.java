@@ -250,7 +250,8 @@ public abstract class Store implements Engine{
                     out.ensureAvail(decompSize);
                     CompressLZF lzf = LZF.get();
                     //TODO copy to heap if Volume is not mapped
-                    lzf.expand(di.buf,di.pos,size-(di.pos-origPos),out.buf,0,decompSize);
+                    //argument is not needed; unpackedSize= size-(di.pos-origPos),
+                    lzf.expand(di.buf,di.pos,out.buf,0,decompSize);
                     di = new DataInput2(out.buf);
                     size = decompSize;
                 }

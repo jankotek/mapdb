@@ -394,11 +394,10 @@ public interface Serializer<A> {
             DataOutput2 out2 = new DataOutput2();
             serializer.serialize(out2,value);
 
-            CompressLZF lzf = LZF.get();
             byte[] tmp = new byte[out2.pos+41];
             int newLen;
             try{
-                newLen = lzf.compress(out2.buf,out2.pos,tmp,0);
+                newLen = LZF.get().compress(out2.buf,out2.pos,tmp,0);
             }catch(IndexOutOfBoundsException e){
                 newLen=0; //larger after compression
             }
@@ -409,26 +408,20 @@ public interface Serializer<A> {
                 return;
             }
 
-            Utils.packInt(out,newLen+1); //packed size, zero indicates no compression
-            Utils.packInt(out, out2.pos); //unpacked size
+            Utils.packInt(out, out2.pos+1); //unpacked size, zero indicates no compression
             out.write(tmp,0,newLen);
         }
 
         @Override
         public E deserialize(DataInput in, int available) throws IOException {
-            final int size = Utils.unpackInt(in)-1;
-            if(size==-1){
+            final int unpackedSize = Utils.unpackInt(in)-1;
+            if(unpackedSize==-1){
                 //was not compressed
                 return serializer.deserialize(in, available>0?available-1:available);
             }
 
-            final int unpackedSize = Utils.unpackInt(in);
-
-            byte[] packed = new byte[size];
-            in.readFully(packed);
             byte[] unpacked = new byte[unpackedSize];
-            CompressLZF lzf = LZF.get();
-            lzf.expand(packed,0,size,unpacked,0,unpackedSize);
+            LZF.get().expand(in,unpacked,0,unpackedSize);
             DataInput2 in2 = new DataInput2(unpacked);
             E ret =  serializer.deserialize(in2,unpackedSize);
             assert(in2.pos==unpackedSize): "data were not fully read";
