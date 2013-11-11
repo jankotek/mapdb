@@ -1,0 +1,25 @@
+apply plugin: 'java'
+
+ext.version = '0.9.8-SNAPSHOT'
+
+defaultTasks 'jar'
+
+sourceCompatibility = '1.6'
+targetCompatibility = '1.6'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testCompile 'junit:junit:4.11'
+}
+
+javadoc {
+    title "MapDB v${version}"
+    classpath = configurations.compile + sourceSets.main.output
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = "1.8"
+}
