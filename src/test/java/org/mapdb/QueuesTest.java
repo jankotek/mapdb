@@ -5,9 +5,12 @@ import org.junit.Test;
 
 import java.io.File;
 import java.util.Queue;
+import java.util.concurrent.BlockingQueue;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 
 public class QueuesTest {
 
@@ -82,5 +85,16 @@ public class QueuesTest {
         assertNull(queue.poll());
         db.close();
 
+    }
+
+    @Test
+    public void testMapDb() throws InterruptedException {
+        DB database = DBMaker.newMemoryDB().make();
+        BlockingQueue<String> queue = database.getQueue( "test-queue" );
+        queue.put( "test-value" );
+        database.commit();
+        assertThat( queue.take(), is( "test-value" ) );
+        database.commit();
+        database.close();
     }
 }

@@ -158,7 +158,7 @@ public final class Queues {
         @Override
         public E take() throws InterruptedException {
             E e = poll();
-            while(e!=null){
+            while(e==null){
                 Thread.sleep(0,TICK);
                 e = poll();
             }
