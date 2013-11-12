@@ -67,6 +67,26 @@ public interface Serializer<A> {
     };
 
     /**
+     * Serializes strings using UTF8 encoding.
+     * Deserialized String is interned {@link String#intern()},
+     * so it could save some memory.
+     *
+     * Stores string size so can be used as collection serializer.
+     * Does not handle null values
+     */
+    Serializer<String> STRING_INTERN = new Serializer<String>() {
+        @Override
+        public void serialize(DataOutput out, String value) throws IOException {
+            out.writeUTF(value);
+        }
+
+        @Override
+        public String deserialize(DataInput in, int available) throws IOException {
+            return in.readUTF().intern();
+        }
+    };
+
+    /**
      * Serializes strings using ASCII encoding (8 bit character).
      * Is faster compared to UTF8 encoding.
      * Stores string size so can be used as collection serializer.

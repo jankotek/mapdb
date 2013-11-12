@@ -1335,8 +1335,9 @@ public class SerializerBase implements Serializer{
         int SERIALIZER_STRING_ASCII = 46;
 
         int SERIALIZER_COMPRESSION_WRAPPER = 47;
-        int B_TREE_COMPRESSION_SERIALIZER = 48;
+        int B_TREE_COMPRESSION_SERIALIZER = 48; //TODO is this going to be used?
 
+        int SERIALIZER_STRING_INTERN = 49;
     }
 
     protected static final class singletons{
@@ -1357,6 +1358,7 @@ public class SerializerBase implements Serializer{
 
             all.put(Serializer.STRING_NOSIZE,HeaderMapDB.SERIALIZER_STRING_NOSIZE);
             all.put(Serializer.STRING_ASCII,HeaderMapDB.SERIALIZER_STRING_ASCII);
+            all.put(Serializer.STRING_INTERN,HeaderMapDB.SERIALIZER_STRING_INTERN);
             all.put(Serializer.LONG,HeaderMapDB.SERIALIZER_LONG);
             all.put(Serializer.INTEGER,HeaderMapDB.SERIALIZER_INT);
             all.put(Serializer.ILLEGAL_ACCESS,HeaderMapDB.SERIALIZER_ILLEGAL_ACCESS);
