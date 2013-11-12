@@ -58,6 +58,10 @@ public class TxEngine extends EngineWrapper {
     }
 
     public static Engine createSnapshotFor(Engine engine) {
+        if(engine.isReadOnly())
+            return engine;
+        if (engine instanceof EngineWrapper)
+            return createSnapshotFor(((EngineWrapper) engine).getWrappedEngine());
         return((TxEngine)engine).snapshot();
     }
 
