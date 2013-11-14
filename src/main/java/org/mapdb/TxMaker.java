@@ -53,4 +53,26 @@ public class TxMaker {
         }
     }
 
+    /**
+     * Executes given block withing single transaction.
+     * If block throws {@code TxRollbackException} execution is repeated until it does not fail.
+     *
+     * This method returns result returned by txBlock.
+     *
+     * @param txBlock
+     */
+    public <A> A execute(Fun.Function1<A, DB> txBlock) {
+        for(;;){
+            DB tx = makeTx();
+            try{
+                A a = txBlock.run(tx);
+                if(!tx.isClosed())
+                    tx.commit();
+                return a;
+            }catch(TxRollbackException e){
+                //failed, so try again
+                if(!tx.isClosed()) tx.close();
+            }
+        }
+    }
 }
