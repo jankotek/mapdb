@@ -18,7 +18,7 @@ public class Compression {
         /*
          * first case, just enable storage wide compression for all records.
          */
-        DB db = DBMaker.newMemoryDB().asyncWriteDisable()
+        DB db = DBMaker.newMemoryDB()
                 .compressionEnable() //this settings enables compression
                 .make();
         //and now create and use map as usual
@@ -32,7 +32,7 @@ public class Compression {
          * you have large values, you may want to compress them. It may make sense
          * not to compress BTree Nodes and Keys.
          */
-        DB db2 = DBMaker.newMemoryDB().asyncWriteDisable().make(); //no store wide compression this time
+        DB db2 = DBMaker.newMemoryDB().make(); //no store wide compression this time
 
         //construct value serializier, use default serializier
         Serializer valueSerializer = db2.getDefaultSerializer();

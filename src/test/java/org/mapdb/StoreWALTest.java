@@ -27,7 +27,7 @@ public class StoreWALTest extends StoreDirectTest<StoreWAL>{
         File phys = new File(f.getPath()+StoreDirect.DATA_FILE_EXT);
         File wal = new File(f.getPath()+StoreWAL.TRANS_LOG_FILE_EXT);
 
-        DB db = DBMaker.newFileDB(f).asyncWriteDisable().deleteFilesAfterClose().make();
+        DB db = DBMaker.newFileDB(f).deleteFilesAfterClose().make();
 
         db.getHashMap("test").put("aa","bb");
         db.commit();

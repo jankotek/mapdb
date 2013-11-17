@@ -68,7 +68,7 @@ public class Issue162Test {
     @Test public void testHashMap() {
         System.out.println("--- Testing HashMap with custom serializer");
 
-        DB db = DBMaker.newFileDB(path).asyncWriteDisable().make();
+        DB db = DBMaker.newFileDB(path).make();
         Map<Long, MyValue> map = db.createHashMap("map")
                 .valueSerializer(new MyValueSerializer())
                 .make();
@@ -92,7 +92,7 @@ public class Issue162Test {
     @Test public void testBTreeMap() {
         System.out.println("--- Testing BTreeMap with custom serializer");
 
-        DB db = DBMaker.newFileDB(path).asyncWriteDisable().make();
+        DB db = DBMaker.newFileDB(path).make();
         Map<Long, MyValue> map = db.createTreeMap("map")
                 .valueSerializer(new MyValueSerializer())
                 .make();

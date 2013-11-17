@@ -285,12 +285,12 @@ public class SerializerPojoTest extends TestCase {
     public void testPersistedSimple() throws Exception {
 
         File f = Utils.tempDbFile();
-        DB r1 = DBMaker.newFileDB(f).asyncWriteDisable().make();
+        DB r1 = DBMaker.newFileDB(f).make();
         long recid = r1.engine.put("AA",r1.getDefaultSerializer());
         r1.commit();
         r1.close();
 
-         r1 = DBMaker.newFileDB(f).asyncWriteDisable().make();
+         r1 = DBMaker.newFileDB(f).make();
 
         String a2 = (String) r1.engine.get(recid, r1.getDefaultSerializer());
         r1.close();
@@ -302,12 +302,12 @@ public class SerializerPojoTest extends TestCase {
     public void testPersisted() throws Exception {
         Bean1 b1 = new Bean1("abc", "dcd");
         File f = Utils.tempDbFile();
-        DB r1 = DBMaker.newFileDB(f).asyncWriteDisable().make();
+        DB r1 = DBMaker.newFileDB(f).make();
         long recid = r1.engine.put(b1, r1.getDefaultSerializer());
         r1.commit();
         r1.close();
 
-        r1 = DBMaker.newFileDB(f).asyncWriteDisable().make();
+        r1 = DBMaker.newFileDB(f).make();
 
         Bean1 b2 = (Bean1) r1.engine.get(recid,r1.getDefaultSerializer());
         r1.close();
@@ -323,7 +323,7 @@ public class SerializerPojoTest extends TestCase {
         };
 
         for(Object oo:o){
-            DB db = DBMaker.newMemoryDB().asyncWriteDisable().make();
+            DB db = DBMaker.newMemoryDB().make();
             long recid = db.engine.put(oo, db.getDefaultSerializer());
             assertEquals(oo, db.engine.get(recid, db.getDefaultSerializer()));
         }
@@ -409,7 +409,7 @@ public class SerializerPojoTest extends TestCase {
 
 
     public void testIssue177() throws UnknownHostException {
-        DB db = DBMaker.newMemoryDB().asyncWriteDisable().cacheDisable().make();
+        DB db = DBMaker.newMemoryDB().cacheDisable().make();
         InetAddress value = InetAddress.getByName("127.0.0.1");
         long recid = db.engine.put(value, db.getDefaultSerializer());
         Object value2 = db.engine.get(recid,db.getDefaultSerializer());

@@ -14,7 +14,7 @@ import static org.junit.Assert.*;
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class HTreeMap2Test {
 
-    Engine engine = DBMaker.newMemoryDB().cacheDisable().asyncWriteDisable().makeEngine();
+    Engine engine = DBMaker.newMemoryDB().cacheDisable().makeEngine();
 
     DB db = new DB(engine);
 
@@ -507,7 +507,6 @@ public class HTreeMap2Test {
                 DBMaker.newMemoryDB()
                 .sizeLimit(1)
                 .transactionDisable()
-                .asyncWriteDisable()
                 .cacheDisable()
                 .make();
 
@@ -528,7 +527,6 @@ public class HTreeMap2Test {
         DB db = DBMaker.newMemoryDB()
                 .sizeLimit(1)
                 .transactionDisable()
-                .asyncWriteDisable()
                 .make();
 
         HTreeMap m = db.createHashMap("test")

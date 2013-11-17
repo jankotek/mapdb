@@ -2,6 +2,9 @@ package org.mapdb;
 
 import org.junit.Test;
 
+import java.io.IOException;
+
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -10,7 +13,6 @@ public class CompressTest{
     DB db = DBMaker
             .newMemoryDB()
             .cacheDisable()
-            .asyncWriteDisable()
             .compressionEnable()
             .make();
 
@@ -33,27 +35,28 @@ public class CompressTest{
 
     }
 
-// TODO not supported at the moment
-//    @Test
-//    public void short_compression() throws Exception {
-//        byte[] b = new byte[]{1,2,3,4,5,33,3};
-//        byte[] b2 = UtilsTest.clone(new ByteTransformEngine.ByteArrayWrapper(b), CompressLZF.SERIALIZER).b;
-//        assertArrayEquals(b,b2);
-//    }
-//
-//    @Test public void large_compression() throws IOException {
-//        byte[]  b = new byte[1024];
-//        b[0] = 1;
-//        b[4] = 5;
-//        b[1000] = 1;
-//
-//        assertArrayEquals(b, UtilsTest.clone(new ByteTransformEngine.ByteArrayWrapper(b), CompressLZF.SERIALIZER).b);
-//
-//        //check compressed size is actually smaller
-//        DataOutput2 out = new DataOutput2();
-//        CompressLZF.SERIALIZER.serialize(out,new ByteTransformEngine.ByteArrayWrapper(b));
-//        assertTrue(out.pos<100);
-//    }
+
+    @Test
+    public void short_compression() throws Exception {
+        byte[] b = new byte[]{1,2,3,4,5,33,3};
+        byte[] b2 = UtilsTest.clone(b, new Serializer.CompressionWrapper<byte[]>(Serializer.BYTE_ARRAY));
+        assertArrayEquals(b,b2);
+    }
+
+    @Test public void large_compression() throws IOException {
+        byte[]  b = new byte[1024];
+        b[0] = 1;
+        b[4] = 5;
+        b[1000] = 1;
+
+        Serializer<byte[]> ser = new Serializer.CompressionWrapper<byte[]>(Serializer.BYTE_ARRAY);
+        assertArrayEquals(b, UtilsTest.clone(b, ser));
+
+        //check compressed size is actually smaller
+        DataOutput2 out = new DataOutput2();
+        ser.serialize(out,b);
+        assertTrue(out.pos<100);
+    }
 
 
 }

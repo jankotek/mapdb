@@ -16,7 +16,7 @@ public class Issue150Test {
         // TxMaker txMaker = DBMaker.newFileDB(new File("/tmp/mapdb.test"))
         // .closeOnJvmShutdown().asyncWriteDisable().makeTxMaker();
         TxMaker txMaker = DBMaker.newMemoryDB().closeOnJvmShutdown()
-                .asyncWriteDisable().makeTxMaker();
+                .makeTxMaker();
 
         DB db = txMaker.makeTx();
 

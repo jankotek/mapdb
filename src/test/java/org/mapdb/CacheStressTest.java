@@ -13,7 +13,7 @@ public abstract class CacheStressTest {
 
     public static class TransactionsHashTable extends CacheStressTest{
         @Override DB create() {
-            return DBMaker.newMemoryDB().asyncWriteDisable().make();
+            return DBMaker.newMemoryDB().make();
         }
     }
     public static class AsyncHashTable extends CacheStressTest{
@@ -25,19 +25,19 @@ public abstract class CacheStressTest {
 
     public static class SmallHashTable extends CacheStressTest{
         @Override DB create() {
-            return DBMaker.newMemoryDB().transactionDisable().asyncWriteDisable()
+            return DBMaker.newMemoryDB().transactionDisable()
                     .cacheSize(3).make();
         }
     }
     public static class HashTable extends CacheStressTest{
         @Override DB create() {
-            return DBMaker.newMemoryDB().transactionDisable().asyncWriteDisable().make();
+            return DBMaker.newMemoryDB().transactionDisable().make();
         }
     }
 
     public static class NoCache extends CacheStressTest{
         @Override DB create() {
-            return DBMaker.newMemoryDB().transactionDisable().asyncWriteDisable()
+            return DBMaker.newMemoryDB().transactionDisable()
                     .cacheDisable()
                     .make();
         }
@@ -45,7 +45,7 @@ public abstract class CacheStressTest {
 
     public static class LRU extends CacheStressTest{
         @Override DB create() {
-            return DBMaker.newMemoryDB().transactionDisable().asyncWriteDisable()
+            return DBMaker.newMemoryDB().transactionDisable()
                     .cacheLRUEnable()
                     .make();
         }
@@ -53,7 +53,7 @@ public abstract class CacheStressTest {
 
     public static class Ref extends CacheStressTest{
         @Override DB create() {
-            return DBMaker.newMemoryDB().transactionDisable().asyncWriteDisable()
+            return DBMaker.newMemoryDB().transactionDisable()
                     .cacheHardRefEnable()
                     .make();
         }
@@ -61,7 +61,7 @@ public abstract class CacheStressTest {
 
     public static class SoftRef extends CacheStressTest{
         @Override DB create() {
-            return DBMaker.newMemoryDB().transactionDisable().asyncWriteDisable()
+            return DBMaker.newMemoryDB().transactionDisable()
                     .cacheSoftRefEnable()
                     .make();
         }
@@ -70,7 +70,7 @@ public abstract class CacheStressTest {
 
     public static class WeakRef extends CacheStressTest{
         @Override DB create() {
-            return DBMaker.newMemoryDB().transactionDisable().asyncWriteDisable()
+            return DBMaker.newMemoryDB().transactionDisable()
                     .cacheWeakRefEnable()
                     .make();
         }

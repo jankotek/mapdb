@@ -35,7 +35,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *
  * This feature is enabled by default and can be disabled by calling {@link DBMaker#asyncWriteDisable()}.
  * Write Cache is flushed in regular intervals or when it becomes full. Flush interval is 100 ms by default and
- * can be controlled by {@link DBMaker#asyncFlushDelay(int)}. Increasing this interval may improve performance
+ * can be controlled by {@link DBMaker#asyncWriteFlushDelay(int)}. Increasing this interval may improve performance
  * in scenarios where frequently modified items should be cached, typically {@link BTreeMap} import where keys
  * are presorted.
  *

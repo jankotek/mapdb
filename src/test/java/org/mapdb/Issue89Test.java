@@ -61,7 +61,6 @@ public class Issue89Test {
             return DBMaker.newAppendFileDB(file)
                     .closeOnJvmShutdown()
                     .cacheDisable()
-                    .asyncWriteDisable()
                     .make();
         }
 

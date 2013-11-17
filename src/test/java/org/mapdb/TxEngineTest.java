@@ -48,7 +48,7 @@ public class TxEngineTest {
     }
 
     @Test public void DB_snapshot(){
-        DB db = DBMaker.newMemoryDB().snapshotEnable().asyncFlushDelay(100).transactionDisable().make();
+        DB db = DBMaker.newMemoryDB().snapshotEnable().asyncWriteFlushDelay(100).transactionDisable().make();
         long recid = db.getEngine().put("aa", Serializer.STRING_NOSIZE);
         DB db2 = db.snapshot();
         assertEquals("aa", db2.getEngine().get(recid,Serializer.STRING_NOSIZE));

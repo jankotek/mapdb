@@ -28,9 +28,9 @@ public class PumpTest {
     }
 
     DB makeDB(int i){
-        if(i==0) return DBMaker.newAppendFileDB(Utils.tempDbFile()).asyncWriteDisable().deleteFilesAfterClose().make();
-        if(i==1) return DBMaker.newMemoryDB().asyncWriteDisable().make();
-        if(i==2) return DBMaker.newMemoryDB().asyncWriteDisable().transactionDisable().make();
+        if(i==0) return DBMaker.newAppendFileDB(Utils.tempDbFile()).deleteFilesAfterClose().make();
+        if(i==1) return DBMaker.newMemoryDB().make();
+        if(i==2) return DBMaker.newMemoryDB().transactionDisable().make();
         return new DB(new StoreHeap());
     }
     final int dbmax = 4;

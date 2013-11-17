@@ -65,7 +65,7 @@ public class BTreeMapExtendTest extends TestCase {
     Object objArray[] = new Object[1000];
 
     protected static BTreeMap newBTreeMap() {
-        return DBMaker.newMemoryDB().cacheDisable().transactionDisable().asyncWriteDisable().make().getTreeMap("Test");
+        return DBMaker.newMemoryDB().cacheDisable().transactionDisable().make().getTreeMap("Test");
     }
 
 

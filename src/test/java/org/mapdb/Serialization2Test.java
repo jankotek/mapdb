@@ -15,7 +15,7 @@ public class Serialization2Test extends TestFile {
 
 
     @Test public void test2() throws IOException {
-        DB db = DBMaker.newFileDB(index).cacheDisable().asyncWriteDisable().transactionDisable().make();
+        DB db = DBMaker.newFileDB(index).cacheDisable().transactionDisable().make();
 
         Serialization2Bean processView = new Serialization2Bean();
 
@@ -33,7 +33,7 @@ public class Serialization2Test extends TestFile {
 
 
     @Test public void test2_engine() throws IOException {
-        DB db = DBMaker.newFileDB(index).cacheDisable().asyncWriteDisable().make();
+        DB db = DBMaker.newFileDB(index).cacheDisable().make();
 
         Serialization2Bean processView = new Serialization2Bean();
 
@@ -52,14 +52,14 @@ public class Serialization2Test extends TestFile {
 
 
         Serialized2DerivedBean att = new Serialized2DerivedBean();
-        DB db = DBMaker.newFileDB(index).cacheDisable().asyncWriteDisable().make();
+        DB db = DBMaker.newFileDB(index).cacheDisable().make();
 
         Map<Object, Object> map =  db.getHashMap("test");
 
         map.put("att", att);
         db.commit();
         db.close();
-        db = DBMaker.newFileDB(index).cacheDisable().asyncWriteDisable().make();
+        db = DBMaker.newFileDB(index).cacheDisable().make();
         map =  db.getHashMap("test");
 
 
@@ -83,7 +83,6 @@ public class Serialization2Test extends TestFile {
 
         DB db = DBMaker.newFileDB(f)
                 .transactionDisable()
-                .asyncWriteDisable()
                 .cacheDisable()
                 .checksumEnable()
                 .make();
@@ -97,7 +96,6 @@ public class Serialization2Test extends TestFile {
 
         db = DBMaker.newFileDB(f)
                 .transactionDisable()
-                .asyncWriteDisable()
                 .cacheDisable()
                 .checksumEnable()
                 .make();

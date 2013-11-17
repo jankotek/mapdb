@@ -60,8 +60,8 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
         String transactionDisable = "transactionDisable";
 
-        String asyncWriteDisable = "asyncWriteDisable";
-        String asyncFlushDelay = "asyncFlushDelay";
+        String asyncWrite = "asyncWrite";
+        String asyncWriteFlushDelay = "asyncWriteFlushDelay";
 
         String deleteFilesAfterClose = "deleteFilesAfterClose";
         String closeOnJvmShutdown = "closeOnJvmShutdown";
@@ -384,19 +384,16 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
 
     /**
-     * By default all modifications are queued and written into disk on Background Writer Thread.
+     * Enables mode where all modifications are queued and written into disk on Background Writer Thread.
      * So all modifications are performed in asynchronous mode and do not block.
-     * <p/>
-     * It is possible to disable Background Writer Thread, but this greatly hurts concurrency.
-     * Without async writes, all threads blocks until all previous writes are not finished (single big lock).
      *
      * <p/>
-     * This may workaround some problems
+     * Enabling this mode might increase performance for single threaded apps.
      *
      * @return this builder
      */
-    public DBMakerT asyncWriteDisable(){
-        props.setProperty(Keys.asyncWriteDisable,TRUE);
+    public DBMakerT asyncWriteEnable(){
+        props.setProperty(Keys.asyncWrite,TRUE);
         return getThis();
     }
 
@@ -417,8 +414,8 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * @param delay flush write cache every N miliseconds
      * @return this builder
      */
-    public DBMakerT asyncFlushDelay(int delay){
-        props.setProperty(Keys.asyncFlushDelay,""+delay);
+    public DBMakerT asyncWriteFlushDelay(int delay){
+        props.setProperty(Keys.asyncWriteFlushDelay,""+delay);
         return getThis();
     }
 
@@ -640,7 +637,6 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
     public TxMaker makeTxMaker(){
         props.setProperty(Keys.fullTx,TRUE);
         snapshotEnable();
-        asyncWriteDisable();
         Engine e = makeEngine();
         if(!(e instanceof TxEngine)) throw new IllegalArgumentException("Snapshot must be enabled for TxMaker");
         //init catalog if needed
@@ -686,7 +682,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
         engine = extendWrapStore(engine);
 
-        if(!propsGetBool(Keys.asyncWriteDisable) && !readOnly){
+        if(propsGetBool(Keys.asyncWrite) && !readOnly){
             engine = extendAsyncWriteEngine(engine);
         }
 
@@ -832,7 +828,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
     protected AsyncWriteEngine extendAsyncWriteEngine(Engine engine) {
         return new AsyncWriteEngine(engine,
-                propsGetInt(Keys.asyncFlushDelay,CC.ASYNC_WRITE_FLUSH_DELAY),
+                propsGetInt(Keys.asyncWriteFlushDelay,CC.ASYNC_WRITE_FLUSH_DELAY),
                 null);
     }
 

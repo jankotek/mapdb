@@ -4,6 +4,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOError;
+
 /**
  * https://github.com/jankotek/MapDB/issues/78
  *
@@ -19,7 +21,7 @@ public class Issue78Test {
     public void tearDown() {
     }
 
-    @Test(expected = RuntimeException.class, timeout = 10000)
+    @Test(expected = IOError.class, timeout = 10000)
     public void testIssue() {
         DB db = DBMaker.newTempFileDB().make();
         HTreeMap<String, NotSerializable> usersMap = db.getHashMap("values");

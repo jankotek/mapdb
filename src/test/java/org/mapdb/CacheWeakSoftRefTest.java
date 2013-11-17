@@ -15,7 +15,6 @@ public class CacheWeakSoftRefTest {
         DB db = DBMaker
                 .newMemoryDB()
                 .cacheWeakRefEnable()
-                .asyncWriteDisable()
                 .make();
         testMap(db);
     }

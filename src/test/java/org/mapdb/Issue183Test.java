@@ -19,7 +19,6 @@ public class Issue183Test {
         TxMaker txMaker = DBMaker
                 .newFileDB(f)
                 .closeOnJvmShutdown()
-                .asyncWriteDisable()
                 .cacheDisable()
                 .makeTxMaker();
 
@@ -38,7 +37,6 @@ public class Issue183Test {
         txMaker = DBMaker
                 .newFileDB(f)
                 .closeOnJvmShutdown()
-                .asyncWriteDisable()
                 .cacheDisable()
                 .makeTxMaker();
 

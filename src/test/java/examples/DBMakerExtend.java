@@ -42,7 +42,6 @@ public class DBMakerExtend {
         File dbFile = new File("db");
         DB db = new ExtendedDBMaker() //static constructors can not be used on extended class
                 ._newFileDB(dbFile) //so use constructor and call method with underscore
-                .asyncWriteDisable()
                 .compressionEnable()
                 .loggingDisable() //this option does not exist in original DBMaker
                 .make();

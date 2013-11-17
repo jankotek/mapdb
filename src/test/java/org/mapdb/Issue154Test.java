@@ -11,7 +11,7 @@ public class Issue154Test {
 
     @Test
     public void HTreeMap(){
-        TxMaker txMaker = DBMaker.newMemoryDB().asyncWriteDisable().makeTxMaker();
+        TxMaker txMaker = DBMaker.newMemoryDB().makeTxMaker();
 
         /* Add the item */
 

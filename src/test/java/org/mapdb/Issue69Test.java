@@ -23,7 +23,6 @@ public class Issue69Test {
 		db = DBMaker.newTempFileDB()
 				.transactionDisable()
 				.checksumEnable()
-                .asyncWriteDisable()
 				.deleteFilesAfterClose()
 				.make();
 	}

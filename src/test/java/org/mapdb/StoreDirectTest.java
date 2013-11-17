@@ -381,7 +381,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         File f = Utils.tempDbFile();
         File phys = new File(f.getPath()+StoreDirect.DATA_FILE_EXT);
 
-        DB db = DBMaker.newFileDB(f).transactionDisable().asyncWriteDisable().deleteFilesAfterClose().make();
+        DB db = DBMaker.newFileDB(f).transactionDisable().deleteFilesAfterClose().make();
 
         db.getHashMap("test").put("aa","bb");
         db.commit();

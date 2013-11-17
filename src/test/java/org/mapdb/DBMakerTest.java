@@ -57,8 +57,7 @@ public class DBMakerTest{
                 .cacheDisable()
                 .make();
         verifyDB(db);
-        EngineWrapper w = (EngineWrapper) db.engine;
-        assertEquals(w.getClass(),AsyncWriteEngine.class);
+        assertEquals( db.engine.getClass(),StoreDirect.class);
     }
 
     @Test
@@ -66,7 +65,6 @@ public class DBMakerTest{
         DB db = DBMaker
                 .newMemoryDB()
                 .transactionDisable()
-                .asyncWriteDisable()
                 .make();
         verifyDB(db);
         assertEquals(db.engine.getClass(), Caches.HashTable.class);
@@ -84,10 +82,7 @@ public class DBMakerTest{
         EngineWrapper w = (EngineWrapper) db.engine;
         assertTrue(w instanceof Caches.HashTable);
         assertEquals(1024 * 32, ((Caches.HashTable) w).cacheMaxSize);
-        assertTrue(w.getWrappedEngine().getClass() == AsyncWriteEngine.class);
-        AsyncWriteEngine r = (AsyncWriteEngine) w.getWrappedEngine();
-        assertTrue(r.getWrappedEngine() instanceof StoreDirect);
-
+        assertTrue(w.getWrappedEngine().getClass() == StoreDirect.class);
     }
 
     @Test
@@ -170,7 +165,6 @@ public class DBMakerTest{
         db = DBMaker
                 .newFileDB(f)
                 .deleteFilesAfterClose()
-                .asyncWriteDisable()
                 .cacheDisable()
 
                 .checksumEnable()
@@ -191,7 +185,6 @@ public class DBMakerTest{
         DB db = DBMaker
                 .newFileDB(f)
                 .deleteFilesAfterClose()
-                .asyncWriteDisable()
                 .cacheDisable()
 
                 .checksumEnable()
@@ -210,7 +203,6 @@ public class DBMakerTest{
                 .newFileDB(f)
                 .deleteFilesAfterClose()
                 .cacheDisable()
-                .asyncWriteDisable()
 
                 .encryptionEnable("adqdqwd")
                 .make();
@@ -231,7 +223,6 @@ public class DBMakerTest{
                 .newFileDB(f)
                 .deleteFilesAfterClose()
                 .cacheDisable()
-                .asyncWriteDisable()
 
                 .encryptionEnable("adqdqwd")
                 .make();
@@ -248,7 +239,6 @@ public class DBMakerTest{
         DB db = DBMaker
                 .newFileDB(f)
                 .deleteFilesAfterClose()
-                .asyncWriteDisable()
                 .cacheDisable()
 
                 .compressionEnable()
@@ -268,7 +258,6 @@ public class DBMakerTest{
         db = DBMaker
                 .newFileDB(f)
                 .deleteFilesAfterClose()
-                .asyncWriteDisable()
                 .cacheDisable()
 
                 .compressionEnable()
