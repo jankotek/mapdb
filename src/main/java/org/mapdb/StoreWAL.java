@@ -433,7 +433,7 @@ public class StoreWAL extends StoreDirect {
                 openLogIfNeeded();
 
                 //free first record pointed from indexVal
-                if(indexVal!=0)
+                if((indexVal>>>48)>0)
                     freePhysPut(indexVal,false);
 
                 //if there are more linked records, free those as well
@@ -494,7 +494,7 @@ public class StoreWAL extends StoreDirect {
                 longStackPut(IO_FREE_RECID, ioRecid,false);
 
                 //free first record pointed from indexVal
-                if(indexVal!=0)
+                if((indexVal>>>48)>0)
                     freePhysPut(indexVal,false);
 
                 //if there are more linked records, free those as well
