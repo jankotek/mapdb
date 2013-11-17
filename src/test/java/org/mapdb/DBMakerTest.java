@@ -61,14 +61,15 @@ public class DBMakerTest{
     }
 
     @Test
-    public void testDisableAsyncWrite() throws Exception {
+    public void testAsyncWriteEnable() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
-                .transactionDisable()
+                .asyncWriteEnable()
                 .make();
         verifyDB(db);
         assertEquals(db.engine.getClass(), Caches.HashTable.class);
-
+        EngineWrapper w = (EngineWrapper) db.engine;
+        assertEquals(w.getWrappedEngine().getClass(),AsyncWriteEngine.class);
     }
 
     @Test
