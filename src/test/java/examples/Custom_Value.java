@@ -114,6 +114,7 @@ public class Custom_Value {
 
         map2.put("North", new Person("Yet another dwarf","Somewhere"));
 
+        db2.commit();
         db2.close();
 
 
