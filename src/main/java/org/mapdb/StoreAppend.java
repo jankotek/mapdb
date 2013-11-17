@@ -4,10 +4,7 @@ import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Iterator;
-import java.util.Random;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.concurrent.locks.Lock;
 
 /**
@@ -136,6 +133,11 @@ public class StoreAppend extends Store{
                 File f = t.b;
                 Volume vol = Volume.volumeForFile(f,useRandomAccessFile,readOnly, 0L, false);
                 if(vol.isEmpty()||vol.getLong(0)!=HEADER){
+                    vol.close();
+                    Iterator<Volume> vols = volumes.valuesIterator();
+                    while(vols.hasNext()){
+                        vols.next().close();
+                    }
                     throw new IOError(new IOException("File corrupted: "+f));
                 }
                 volumes.put(num, vol);
@@ -163,6 +165,10 @@ public class StoreAppend extends Store{
                         //commit mark, so skip
                         continue;
                     }else if(recid<=0){
+                        Iterator<Volume> vols = volumes.valuesIterator();
+                        while(vols.hasNext()){
+                            vols.next().close();
+                        }
                         throw new IOError(new IOException("File corrupted: "+f));
                     }
 
@@ -181,6 +187,10 @@ public class StoreAppend extends Store{
                         index.putLong(recid*8, Long.MIN_VALUE); //TODO tombstone
                     }
                 }
+            }
+            Iterator<Volume> vols = volumes.valuesIterator();
+            while(vols.hasNext()){
+                vols.next().close();
             }
             throw new IOError(new IOException("File not sealed, data possibly corrupted"));
         }
