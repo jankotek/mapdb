@@ -24,7 +24,6 @@ public class Issue237Test {
 
     @Test
     public void testReopenSync() throws InterruptedException {
-        File file = new File( "test-database.mapdb" );
         file.delete();
 
         DB database = DBMaker.newFileDB( file ).make();
