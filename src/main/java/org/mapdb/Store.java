@@ -11,7 +11,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.zip.Adler32;
+import java.util.zip.CRC32;
 
 /**
  * Low level record store.
@@ -168,7 +168,7 @@ public abstract class Store implements Engine{
                 }
 
                 if(checksum){
-                    Adler32 crc = new Adler32();
+                    CRC32 crc = new CRC32();
                     crc.update(out.buf,0,out.pos);
                     out.writeInt((int)crc.getValue());
                 }
@@ -219,10 +219,10 @@ public abstract class Store implements Engine{
                 di.read(tmp.buf,0,size);
                 di.pos = oldPos;
                 //calculate checksums
-                Adler32 adler = new Adler32();
-                adler.update(tmp.buf,0,size);
+                CRC32 crc = new CRC32();
+                crc.update(tmp.buf, 0, size);
                 recycledDataOuts.offer(tmp);
-                int check = (int) adler.getValue();
+                int check = (int) crc.getValue();
                 int checkExpected = di.buf.getInt(di.pos+size);
                 if(check!=checkExpected)
                     throw new IOException("Checksum does not match, data broken");
