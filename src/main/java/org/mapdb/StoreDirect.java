@@ -245,7 +245,8 @@ public class StoreDirect extends Store{
         long ret = 0;
         for(long offset = 0;offset<IO_USER_START;offset+=8){
             if(offset == IO_INDEX_SUM) continue;
-            ret |= index.getLong(offset);
+            long indexVal = index.getLong(offset);
+            ret |=  indexVal | Utils.longHash(indexVal|offset) ;
         }
         return ret;
     }
