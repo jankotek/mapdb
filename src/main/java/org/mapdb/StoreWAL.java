@@ -4,7 +4,9 @@ import java.io.IOError;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
+import java.util.zip.CRC32;
 
 /**
  * Write-Ahead-Log
@@ -14,13 +16,12 @@ public class StoreWAL extends StoreDirect {
     protected static final long LOG_MASK_OFFSET = 0x0000FFFFFFFFFFFFL;
 
     protected static final byte WAL_INDEX_LONG = 101;
-    protected static final byte WAL_PHYS_LONG = 102;
-    protected static final byte WAL_PHYS_SIX_LONG = 103;
+    protected static final byte WAL_LONGSTACK_PAGE = 102;
+    protected static final byte WAL_PHYS_ARRAY_ONE_LONG = 103;
+
     protected static final byte WAL_PHYS_ARRAY = 104;
     protected static final byte WAL_SKIP_REST_OF_BLOCK = 105;
 
-    protected static final byte WAL_LONGSTACK_PAGE = 106;
-    protected static final byte WAL_PHYS_ARRAY_ONE_LONG = 107;
 
     /** last instruction in log file */
     protected static final byte WAL_SEAL = 111;
@@ -45,21 +46,25 @@ public class StoreWAL extends StoreDirect {
     protected boolean replayPending = true;
 
 
+    protected final AtomicInteger logChecksum = new AtomicInteger();
+
     public StoreWAL(Volume.Factory volFac) {
         this(volFac, false, false, 5, false, 0L, false, false, null, false);
     }
     public StoreWAL(Volume.Factory volFac, boolean readOnly, boolean deleteFilesAfterClose,
                     int spaceReclaimMode, boolean syncOnCommitDisabled, long sizeLimit,
                     boolean checksum, boolean compress, byte[] password, boolean fullChunkAllocation) {
-        super(volFac, readOnly, deleteFilesAfterClose, spaceReclaimMode,syncOnCommitDisabled,sizeLimit,
-                checksum,compress,password, fullChunkAllocation);
+        super(volFac, readOnly, deleteFilesAfterClose, spaceReclaimMode, syncOnCommitDisabled, sizeLimit,
+                checksum, compress, password, fullChunkAllocation);
         this.volFac = volFac;
         this.log = volFac.createTransLogVolume();
 
         structuralLock.lock();
         try{
             reloadIndexFile();
-            replayLogFile();
+            if(verifyLogFile()){
+                replayLogFile();
+            }
             replayPending = false;
             checkHeaders();
             log = null;
@@ -86,6 +91,8 @@ public class StoreWAL extends StoreDirect {
             indexVals[i/8] = index.getLong(i);
         }
         Arrays.fill(indexValsModified, false);
+
+        logChecksum.set(0);
 
         maxUsedIoList=IO_USER_START-8;
         while(indexVals[((int) (maxUsedIoList / 8))]!=0 && maxUsedIoList>IO_FREE_RECID)
@@ -235,24 +242,32 @@ public class StoreWAL extends StoreDirect {
     protected void walPhysArray(DataOutput2 out, long[] physPos, long[] logPos) {
         //write byte[] data
         int outPos = 0;
+        int logC = 0;
+        CRC32 crc32  = new CRC32();
 
         for(int i=0;i<logPos.length;i++){
             int c =  i==logPos.length-1 ? 0: 8;
-            long pos = logPos[i]&LOG_MASK_OFFSET;
+            final long pos = logPos[i]&LOG_MASK_OFFSET;
             int size = (int) (logPos[i]>>>48);
 
-            log.putByte(pos -  8 - 1, c==0 ? WAL_PHYS_ARRAY : WAL_PHYS_ARRAY_ONE_LONG);
+            byte header = c==0 ? WAL_PHYS_ARRAY : WAL_PHYS_ARRAY_ONE_LONG;
+            log.putByte(pos -  8 - 1, header);
             log.putLong(pos -  8, physPos[i]);
 
             if(c>0){
                 log.putLong(pos, physPos[i + 1]);
-                pos+=8;
             }
-            log.putData(pos, out.buf, outPos, size - c);
+            log.putData(pos+c, out.buf, outPos, size - c);
+
+            crc32.reset();
+            crc32.update(out.buf,outPos, size-c);
+            logC |= Utils.longHash( pos | header | physPos[i] | (c>0?physPos[i+1]:0) | crc32.getValue());
+
             outPos +=size-c;
             assert(logSize>=outPos);
         }
-        if(outPos!=out.pos)throw new InternalError();
+        logChecksumAdd(logC);
+        assert(outPos==out.pos);
     }
 
 
@@ -262,6 +277,8 @@ public class StoreWAL extends StoreDirect {
         log.putByte(logPos, WAL_INDEX_LONG);
         log.putLong(logPos + 1, ioRecid);
         log.putLong(logPos + 9, indexVal);
+
+        logChecksumAdd(Utils.longHash(logPos | WAL_INDEX_LONG | ioRecid | indexVal));
     }
 
 
@@ -531,21 +548,28 @@ public class StoreWAL extends StoreDirect {
                 return; //no modifications
             }
             //dump long stack pages
+            int crc = 0;
             LongMap.LongMapIterator<long[]> iter = longStackPages.longMapIterator();
             while(iter.moveToNext()){
                 long pageSize = iter.value()[0]>>>48;
+                long firstVal = (pageSize<<48)|iter.key();
+                long[] array = iter.value();
                 log.ensureAvailable(logSize+1+8+pageSize);
+
+                crc |= Utils.longHash(logSize|WAL_LONGSTACK_PAGE|firstVal|array[0]);
+
                 log.putByte(logSize, WAL_LONGSTACK_PAGE);
                 logSize+=1;
-                log.putLong(logSize, (pageSize<<48)|iter.key());
+                log.putLong(logSize, firstVal);
                 logSize+=8;
                 //first long in array
-                long[] array = iter.value();
+
                 log.putLong(logSize,array[0]);
                 logSize+=8;
                 int numItems = (int) ((pageSize-8)/6);
-                for(int i=0;i<numItems;i++){
-                    log.putSixLong(logSize,array[i+1]);
+                for(int i=1;i<=numItems;i++){
+                    crc|=Utils.longHash(logSize|array[i]);
+                    log.putSixLong(logSize,array[i]);
                     logSize+=6;
                 }
                 checkLogRounding();
@@ -557,10 +581,13 @@ public class StoreWAL extends StoreDirect {
                 log.ensureAvailable(logSize + 17);
                 logSize+=17;
                 walIndexVal(logSize-17, i,indexVals[i/8]);
+                //no need to update crc, since IndexVal already does it
             }
 
             //seal log file
-            log.ensureAvailable(logSize + 1 + 3*6 + 8);
+            log.ensureAvailable(logSize + 1 + 3*6 + 8+4);
+            long indexChecksum = indexHeaderChecksumUncommited();
+            crc|=Utils.longHash(logSize|WAL_SEAL|indexSize|physSize|freeSize|indexChecksum);
             log.putByte(logSize, WAL_SEAL);
             logSize+=1;
             log.putSixLong(logSize, indexSize);
@@ -569,14 +596,15 @@ public class StoreWAL extends StoreDirect {
             logSize+=6;
             log.putSixLong(logSize,freeSize);
             logSize+=6;
-            log.putLong(logSize, indexHeaderChecksumUncommited());
+            log.putLong(logSize, indexChecksum);
             logSize+=8;
+            log.putInt(logSize, crc|logChecksum.get());
+            logSize+=4;
 
-
-            //flush log file
-            if(!syncOnCommitDisabled) log.sync();
-            //and write mark it was sealed
+            //write mark it was sealed
             log.putLong(8, LOG_SEAL);
+
+            //and flush log file
             if(!syncOnCommitDisabled) log.sync();
 
             replayLogFile();
@@ -609,6 +637,119 @@ public class StoreWAL extends StoreDirect {
         return ret;
     }
 
+    protected boolean verifyLogFile() {
+        assert(structuralLock.isHeldByCurrentThread());
+
+        if(readOnly && log==null)
+            return false;
+
+        logSize = 0;
+
+
+
+        //read headers
+        if(log.isEmpty() || log.getLong(0)!=HEADER || log.getLong(8) !=LOG_SEAL){
+            //wrong headers, discard log
+            log.close();
+            log.deleteFile();
+            log = null;
+            return false;
+        }
+
+        final CRC32 crc32 = new CRC32();
+
+        //all good, calculate checksum
+        logSize=16;
+        byte ins = log.getByte(logSize);
+        logSize+=1;
+        int crc = 0;
+
+        while(ins!=WAL_SEAL){
+            if(ins == WAL_INDEX_LONG){
+                long ioRecid = log.getLong(logSize);
+                logSize+=8;
+                long indexVal = log.getLong(logSize);
+                logSize+=8;
+                crc |= Utils.longHash((logSize-1-8-8) | WAL_INDEX_LONG | ioRecid | indexVal);
+            }else if(ins == WAL_PHYS_ARRAY){
+                final long offset2 = log.getLong(logSize);
+                logSize+=8;
+                final int size = (int) (offset2>>>48);
+
+                byte[] b = new byte[size];
+                try{
+                    log.getDataInput(logSize, size).readFully(b);
+                } catch (IOException e) {
+                    throw new IOError(e);
+                }
+                crc32.reset();
+                crc32.update(b);
+
+                crc |= Utils.longHash(logSize | WAL_PHYS_ARRAY | offset2 | crc32.getValue());
+
+                logSize+=size;
+            }else if(ins == WAL_PHYS_ARRAY_ONE_LONG){
+                final long offset2 = log.getLong(logSize);
+                logSize+=8;
+                final int size = (int) (offset2>>>48)-8;
+
+                final long nextPageLink = log.getLong(logSize);
+                logSize+=8;
+
+                byte[] b = new byte[size];
+                try {
+                    log.getDataInput(logSize, size).readFully(b);
+                } catch (IOException e) {
+                    throw new IOError(e);
+                }
+                crc32.reset();
+                crc32.update(b);
+
+                crc |= Utils.longHash((logSize) | WAL_PHYS_ARRAY_ONE_LONG | offset2 | nextPageLink | crc32.getValue());
+
+                logSize+=size;
+            }else if(ins == WAL_LONGSTACK_PAGE){
+                long offset = log.getLong(logSize);
+                logSize+=8;
+                final long origLogSize = logSize;
+                final int size = (int) (offset>>>48);
+                final long nextPageLink = log.getLong(logSize);
+                logSize+=8;
+                crc |= Utils.longHash(origLogSize | WAL_LONGSTACK_PAGE | offset | nextPageLink );
+                for(;logSize<origLogSize+size;logSize+=6){
+                    crc |= Utils.longHash(logSize|log.getSixLong(logSize));
+                }
+
+            }else if(ins == WAL_SKIP_REST_OF_BLOCK){
+                logSize += Volume.CHUNK_SIZE -(logSize&Volume.CHUNK_SIZE_MOD_MASK);
+            }else{
+                throw new InternalError("unknown trans log instruction '"+ins +"' at log offset: "+(logSize-1));
+            }
+
+            ins = log.getByte(logSize);
+            logSize+=1;
+        }
+        long indexSize = log.getSixLong(logSize);
+        logSize+=6;
+        long physSize = log.getSixLong(logSize);
+        logSize+=6;
+        long freeSize = log.getSixLong(logSize);
+        logSize+=6;
+        long indexSum = log.getLong(logSize);
+        logSize+=8;
+        crc |= Utils.longHash((logSize-1-3*6-8)|indexSize|physSize|freeSize|indexSum);
+
+        final int realCrc = log.getInt(logSize);
+        logSize+=4;
+
+        logSize=0;
+        assert(structuralLock.isHeldByCurrentThread());
+        return realCrc == crc;
+
+    }
+
+
+
     protected void replayLogFile(){
         assert(structuralLock.isHeldByCurrentThread());
 
@@ -616,10 +757,6 @@ public class StoreWAL extends StoreDirect {
             return;
 
         logSize = 0;
-
-        if(log !=null && !syncOnCommitDisabled){
-            log.sync();
-        }
 
 
         //read headers
@@ -645,20 +782,6 @@ public class StoreWAL extends StoreDirect {
                 logSize+=8;
                 index.ensureAvailable(ioRecid+8);
                 index.putLong(ioRecid, indexVal);
-            }else if(ins == WAL_PHYS_LONG){
-                long offset = log.getLong(logSize);
-                logSize+=8;
-                long val = log.getLong(logSize);
-                logSize+=8;
-                phys.ensureAvailable(offset+8);
-                phys.putLong(offset,val);
-            }else if(ins == WAL_PHYS_SIX_LONG){
-                long offset = log.getLong(logSize);
-                logSize+=8;
-                long val = log.getSixLong(logSize);
-                logSize+=6;
-                phys.ensureAvailable(offset+6);
-                phys.putSixLong(offset, val);
             }else if(ins == WAL_PHYS_ARRAY||ins == WAL_LONGSTACK_PAGE || ins == WAL_PHYS_ARRAY_ONE_LONG){
                 long offset = log.getLong(logSize);
                 logSize+=8;
@@ -929,6 +1052,15 @@ public class StoreWAL extends StoreDirect {
     public boolean canRollback(){
         return true;
     }
+
+    protected void logChecksumAdd(int cs) {
+        for(;;){
+            int old = logChecksum.get();
+            if(logChecksum.compareAndSet(old,old|cs))
+                return;
+        }
+    }
+
 
 
 }

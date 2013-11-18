@@ -150,6 +150,11 @@ final public class Utils {
         return h ^ (h >>> 7) ^ (h >>> 4);
     }
 
+    public static int intHash(int h) {
+        h ^= (h >>> 20) ^ (h >>> 12);
+        return h ^ (h >>> 7) ^ (h >>> 4);
+    }
+
     public static int lockPos(final long key) {
         int h = (int)(key ^ (key >>> 32));
         h ^= (h >>> 20) ^ (h >>> 12);
