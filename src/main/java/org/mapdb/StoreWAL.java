@@ -19,6 +19,9 @@ public class StoreWAL extends StoreDirect {
     protected static final byte WAL_PHYS_ARRAY = 104;
     protected static final byte WAL_SKIP_REST_OF_BLOCK = 105;
 
+    protected static final byte WAL_LONGSTACK_PAGE = 106;
+    protected static final byte WAL_PHYS_ARRAY_ONE_LONG = 107;
+
     /** last instruction in log file */
     protected static final byte WAL_SEAL = 111;
     /** added to offset 8 into log file, indicates that log was synced and closed*/
@@ -43,7 +46,7 @@ public class StoreWAL extends StoreDirect {
 
 
     public StoreWAL(Volume.Factory volFac) {
-        this(volFac,false,false,5,false,0L,false,false,null,false);
+        this(volFac, false, false, 5, false, 0L, false, false, null, false);
     }
     public StoreWAL(Volume.Factory volFac, boolean readOnly, boolean deleteFilesAfterClose,
                     int spaceReclaimMode, boolean syncOnCommitDisabled, long sizeLimit,
@@ -79,7 +82,7 @@ public class StoreWAL extends StoreDirect {
         indexSize = index.getLong(IO_INDEX_SIZE);
         physSize = index.getLong(IO_PHYS_SIZE);
         freeSize = index.getLong(IO_FREE_SIZE);
-        for(int i = IO_FREE_RECID;i<IO_USER_START;i+=8){
+        for(int i = 0;i<IO_USER_START;i+=8){
             indexVals[i/8] = index.getLong(i);
         }
         Arrays.fill(indexValsModified, false);
@@ -238,7 +241,7 @@ public class StoreWAL extends StoreDirect {
             long pos = logPos[i]&LOG_MASK_OFFSET;
             int size = (int) (logPos[i]>>>48);
 
-            log.putByte(pos -  8 - 1, WAL_PHYS_ARRAY);
+            log.putByte(pos -  8 - 1, c==0 ? WAL_PHYS_ARRAY : WAL_PHYS_ARRAY_ONE_LONG);
             log.putLong(pos -  8, physPos[i]);
 
             if(c>0){
@@ -532,7 +535,7 @@ public class StoreWAL extends StoreDirect {
             while(iter.moveToNext()){
                 long pageSize = iter.value()[0]>>>48;
                 log.ensureAvailable(logSize+1+8+pageSize);
-                log.putByte(logSize, WAL_PHYS_ARRAY);
+                log.putByte(logSize, WAL_LONGSTACK_PAGE);
                 logSize+=1;
                 log.putLong(logSize, (pageSize<<48)|iter.key());
                 logSize+=8;
@@ -549,14 +552,6 @@ public class StoreWAL extends StoreDirect {
             }
 
 
-            log.ensureAvailable(logSize + 17 + 17 + 17 + 1);
-            logSize+=17;
-            walIndexVal(logSize-17,IO_PHYS_SIZE, physSize);
-            logSize+=17;
-            walIndexVal(logSize-17,IO_INDEX_SIZE, indexSize);
-            logSize+=17;
-            walIndexVal(logSize-17,IO_FREE_SIZE, freeSize);
-
             for(int i=IO_FREE_RECID;i<IO_USER_START;i+=8){
                 if(!indexValsModified[i/8]) continue;
                 log.ensureAvailable(logSize + 17);
@@ -565,9 +560,18 @@ public class StoreWAL extends StoreDirect {
             }
 
             //seal log file
-            log.ensureAvailable(logSize + 1);
+            log.ensureAvailable(logSize + 1 + 3*6 + 8);
             log.putByte(logSize, WAL_SEAL);
             logSize+=1;
+            log.putSixLong(logSize, indexSize);
+            logSize+=6;
+            log.putSixLong(logSize,physSize);
+            logSize+=6;
+            log.putSixLong(logSize,freeSize);
+            logSize+=6;
+            log.putLong(logSize, indexHeaderChecksumUncommited());
+            logSize+=8;
+
 
             //flush log file
             if(!syncOnCommitDisabled) log.sync();
@@ -581,6 +585,28 @@ public class StoreWAL extends StoreDirect {
              unlockAllWrite();
         }
 
+    }
+
+    protected long indexHeaderChecksumUncommited() {
+        long ret = 0;
+
+        for(int offset = 0;offset<IO_USER_START;offset+=8){
+            if(offset == IO_INDEX_SUM) continue;
+            long indexVal;
+
+            if(offset==IO_INDEX_SIZE){
+                indexVal = indexSize;
+            }else if(offset==IO_PHYS_SIZE){
+                indexVal = physSize;
+            }else if(offset==IO_FREE_SIZE){
+                indexVal = freeSize;
+            }else
+                indexVal = indexVals[offset / 8];
+
+            ret |=  indexVal | Utils.longHash(indexVal|offset) ;
+        }
+
+        return ret;
     }
 
     protected void replayLogFile(){
@@ -633,7 +659,7 @@ public class StoreWAL extends StoreDirect {
                 logSize+=6;
                 phys.ensureAvailable(offset+6);
                 phys.putSixLong(offset, val);
-            }else if(ins == WAL_PHYS_ARRAY){
+            }else if(ins == WAL_PHYS_ARRAY||ins == WAL_LONGSTACK_PAGE || ins == WAL_PHYS_ARRAY_ONE_LONG){
                 long offset = log.getLong(logSize);
                 logSize+=8;
                 final int size = (int) (offset>>>48);
@@ -658,10 +684,17 @@ public class StoreWAL extends StoreDirect {
             ins = log.getByte(logSize);
             logSize+=1;
         }
-        logSize=0;
+        index.putLong(IO_INDEX_SIZE,log.getSixLong(logSize));
+        logSize+=6;
+        index.putLong(IO_PHYS_SIZE,log.getSixLong(logSize));
+        logSize+=6;
+        index.putLong(IO_FREE_SIZE,log.getSixLong(logSize));
+        logSize+=6;
+        index.putLong(IO_INDEX_SUM,log.getLong(logSize));
+        logSize+=8;
 
-        //TODO put this into log file, rather than writing directly
-        index.putLong(IO_INDEX_SUM,indexHeaderChecksum());
+
+        logSize=0;
 
         //flush dbs
         if(!syncOnCommitDisabled){
