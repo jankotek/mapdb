@@ -232,4 +232,23 @@ public class PumpTest {
     }
 
 
+    @Test public void merge(){
+        Iterator i = Pump.merge(
+                Arrays.asList("a","b").iterator(),
+                Arrays.asList().iterator(),
+                Arrays.asList("c","d").iterator(),
+                Arrays.asList().iterator()
+        );
+
+        assertTrue(i.hasNext());
+        assertEquals("a",i.next());
+        assertTrue(i.hasNext());
+        assertEquals("b",i.next());
+        assertTrue(i.hasNext());
+        assertEquals("c",i.next());
+        assertTrue(i.hasNext());
+        assertEquals("d",i.next());
+        assertTrue(!i.hasNext());
+    }
+
 }

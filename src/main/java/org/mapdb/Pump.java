@@ -209,6 +209,59 @@ public class Pump {
         };
     }
 
+
+    /**
+     * Merges multiple iterators into single iterator.
+     * Does not allow null elements.
+     *
+     * @param iters
+     * @param <E>
+     * @return
+     */
+    public static <E> Iterator<E> merge(final Iterator... iters){
+        if(iters.length==0)
+            return Utils.EMPTY_ITERATOR;
+
+        return new Iterator<E>() {
+
+            int i = 0;
+            Object next = this;
+            {
+                next();
+            }
+
+            @Override public boolean hasNext() {
+                return next!=null;
+            }
+
+            @Override public E next() {
+                if(next==null)
+                    throw new NoSuchElementException();
+
+                //move to next iterator if necessary
+                while(!iters[i].hasNext()){
+                    i++;
+                    if(i==iters.length){
+                        //reached end of iterators
+                        Object ret = next;
+                        next = null;
+                        return (E) ret;
+                    }
+                }
+
+                //take next item from iterator
+                Object ret = next;
+                next = iters[i].next();
+                return (E) ret;
+            }
+
+            @Override public void remove() {
+                throw new UnsupportedOperationException();
+            }
+        };
+
+    }
+
     /**
      * Build BTreeMap (or TreeSet) from presorted data.
      * This method is much faster than usual import using `Map.put(key,value)` method.
