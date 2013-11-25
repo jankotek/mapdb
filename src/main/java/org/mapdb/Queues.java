@@ -57,14 +57,14 @@ public final class Queues {
             }
         }
 
-        protected final Serializer<Node<E>> nodeSerializer;
+        protected final Serializer<Node> nodeSerializer;
 
 
         public SimpleQueue(Engine engine, Serializer<E> serializer, long headRecidRef, boolean useLocks) {
             this.engine = engine;
             this.serializer = serializer;
             head = new Atomic.Long(engine,headRecidRef);
-            nodeSerializer = new NodeSerializer<E>(serializer);
+            nodeSerializer = new NodeSerializer(serializer);
             this.useLocks = useLocks;
             this.locks = useLocks? Utils.newLocks() : null;
         }
@@ -362,11 +362,9 @@ public final class Queues {
             while(!tail.compareAndSet(tail2,nextTail)){
                 tail2 = tail.get();
             }
-            //now we have tail2 just for ourselfs
+            //now we have tail2 just for us
             Node n = new Node(nextTail,e);
-            if(!engine.compareAndSwap(tail2,Node.EMPTY,n,nodeSerializer)){
-                throw new InternalError(); //TODO replace CAS with update after we are confident
-            }
+            engine.update(tail2,n,nodeSerializer);
             return true;
         }
 
