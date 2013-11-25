@@ -154,7 +154,7 @@ public class Pump {
      * @param <E> type of data
      * @return sorted iterator
      */
-    public static <E> Iterator<E> sort(final Comparator comparator, final Iterator[] iterators) {
+    public static <E> Iterator<E> sort(final Comparator comparator, final Iterator... iterators) {
 
         return new Iterator<E>(){
 
