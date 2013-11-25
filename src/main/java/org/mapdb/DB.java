@@ -895,16 +895,6 @@ public class DB {
         return ret;
     }
 
-//    synchronized public <E> Queue<E> getQueue(String name){
-//        Long recid = catalog.get(name);
-//        if(recid==null){
-//
-//        }else{
-//            return new Queues.Lifo<E>(engine, getDefaultSerializer(),  recid, true);
-//        }
-//    }
-
-
     synchronized public <E> BlockingQueue<E> getQueue(String name) {
         checkNotClosed();
         Queues.Queue<E> ret = (Queues.Queue<E>) getFromWeakCollection(name);
@@ -912,34 +902,33 @@ public class DB {
         String type = catGet(name + ".type", null);
         if(type==null){
             checkShouldCreate(name);
-            return createQueue(name,null);
+            return createQueue(name,null,true);
         }
         checkType(type, "Queue");
 
         ret = new Queues.Queue<E>(engine,
                 (Serializer<E>) catGet(name+".serializer",getDefaultSerializer()),
                 (Long)catGet(name+".headRecid"),
-                (Long)catGet(name+".nextTailRecid"),
-                (Long)catGet(name+".sizeRecid")
+                (Long)catGet(name+".tailRecid"),
+                (Boolean)catGet(name+".useLocks")
                 );
 
         namedPut(name, ret);
         return ret;
     }
 
-    synchronized public <E> BlockingQueue<E> createQueue(String name, Serializer<E> serializer) {
+    synchronized public <E> BlockingQueue<E> createQueue(String name, Serializer<E> serializer, boolean useLocks) {
         checkNameNotExists(name);
 
-        long headerRecid = engine.put(0L, Serializer.LONG);
-        long nextTail = engine.put(Queues.SimpleQueue.Node.EMPTY, new Queues.SimpleQueue.NodeSerializer(null));
-        long nextTailRecid = engine.put(nextTail, Serializer.LONG);
-        long sizeRecid = engine.put(0L, Serializer.LONG);
+        long node = engine.put(Queues.SimpleQueue.Node.EMPTY, new Queues.SimpleQueue.NodeSerializer(serializer));
+        long headRecid = engine.put(node, Serializer.LONG);
+        long tailRecid = engine.put(node, Serializer.LONG);
 
         Queues.Queue<E> ret = new Queues.Queue<E>(engine,
                 catPut(name+".serializer",serializer,getDefaultSerializer()),
-                catPut(name+".headRecid",headerRecid),
-                catPut(name+".nextTailRecid",nextTailRecid),
-                catPut(name+".sizeRecid",sizeRecid)
+                catPut(name+".headRecid",headRecid),
+                catPut(name+".tailRecid",tailRecid),
+                catPut(name+".useLocks",useLocks)
                 );
         catalog.put(name + ".type", "Queue");
         namedPut(name, ret);
@@ -975,12 +964,12 @@ public class DB {
     synchronized public <E> BlockingQueue<E> createStack(String name, Serializer<E> serializer, boolean useLocks) {
         checkNameNotExists(name);
 
-        long headerRecid = engine.put(0L, Serializer.LONG);
-
+        long node = engine.put(Queues.SimpleQueue.Node.EMPTY, new Queues.SimpleQueue.NodeSerializer(serializer));
+        long headRecid = engine.put(node, Serializer.LONG);
 
         Queues.Stack<E> ret = new Queues.Stack<E>(engine,
                 catPut(name+".serializer",serializer,getDefaultSerializer()),
-                catPut(name+".headRecid",headerRecid),
+                catPut(name+".headRecid",headRecid),
                 catPut(name+".useLocks",useLocks)
         );
         catalog.put(name + ".type", "Stack");
