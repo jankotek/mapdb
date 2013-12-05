@@ -309,6 +309,53 @@ public final class Bind {
     }
 
     /**
+     * Binds Secondary Set so it contains Secondary Key (Index). Usefull if you need
+     * to lookup Keys from Primary Map by custom criteria. Other use is for reverse lookup
+     *
+     * To lookup keys in Secondary Set use {@link Bind#findSecondaryKeys(java.util.NavigableSet, Object)}
+     *
+     *
+     * If Secondary Set is empty its content will be recreated from Primary Map.
+     * This binding is not persistent. You need to restore it every time store is reopened.
+     *
+     * @param map primary map
+     * @param secondary secondary set
+     * @param fun function which calculates Secondary Key from Primary Key and Value
+     * @param <K> Key in Primary Map
+     * @param <V> Value in Primary Map
+     * @param <K2> Secondary
+     */
+    public static <K,V, K2> void secondaryKey(MapWithModificationListener<K, V> map,
+                                              final Map<K2, K> secondary,
+                                              final Fun.Function2<K2, K, V> fun){
+        //fill if empty
+        if(secondary.isEmpty()){
+            for(Map.Entry<K,V> e:map.entrySet()){
+                secondary.put(fun.run(e.getKey(), e.getValue()), e.getKey());
+            }
+        }
+        //hook listener
+        map.addModificationListener(new MapListener<K, V>() {
+            @Override
+            public void update(K key, V oldVal, V newVal) {
+                if(newVal == null){
+                    //removal
+                    secondary.remove(fun.run(key, oldVal));
+                }else if(oldVal==null){
+                    //insert
+                    secondary.put(fun.run(key,newVal), key);
+                }else{
+                    //update, must remove old key and insert new
+                    K2 oldKey = fun.run(key, oldVal);
+                    K2 newKey = fun.run(key, newVal);
+                    if(oldKey == newKey || oldKey.equals(newKey)) return;
+                    secondary.remove(oldKey);
+                    secondary.put(newKey,key);
+                }
+            }
+        });
+    } 
+    /**
      * Binds Secondary Set so it contains Secondary Key (Index). Useful if you need
      * to lookup Keys from Primary Map by custom criteria. Other use is for reverse lookup
      *
@@ -409,6 +456,29 @@ public final class Bind {
      */
     public static <K,V> void mapInverse(MapWithModificationListener<K,V> primary,
                                         Set<Fun.Tuple2<V, K>> inverse) {
+        Bind.secondaryKey(primary,inverse, new Fun.Function2<V, K,V>(){
+            @Override public V run(K key, V value) {
+                return value;
+            }
+        });
+    }
+
+    /**
+     * Binds Secondary Set so it contains inverse mapping to Primary Map: Primary Value will become Secondary Key.
+     * This is useful for creating bi-directional Maps.
+     *
+     * To lookup keys in Secondary Set use {@link Bind#findSecondaryKeys(java.util.NavigableSet, Object)}
+     *
+     * If Secondary Set is empty its content will be recreated from Primary Map.
+     * This binding is not persistent. You need to restore it every time store is reopened.
+     *
+     * @param primary Primary Map for which inverse mapping will be created
+     * @param inverse Secondary Set which will contain inverse mapping
+     * @param <K> Key in Primary Map and Second Value in Secondary Set
+     * @param <V> Value in Primary Map and Primary Value in Secondary Set
+     */
+    public static <K,V> void mapInverse(MapWithModificationListener<K,V> primary,
+                                        Map<V, K> inverse) {
         Bind.secondaryKey(primary,inverse, new Fun.Function2<V, K,V>(){
             @Override public V run(K key, V value) {
                 return value;
