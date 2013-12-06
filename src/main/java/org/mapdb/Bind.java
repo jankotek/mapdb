@@ -498,9 +498,12 @@ public final class Bind {
      * @param <K2> Secondary Key type
      * @param <K1> Primary Key type
      * @return all keys where primary value equals to `secondaryKey`
-     * @deprecated (use {@link Bind#findVals2()}
      */
-    public static <K2,K1> Iterable<K1> findSecondaryKeys(final NavigableSet<Fun.Tuple2<K2,K1>> secondaryKeys, final K2 secondaryKey) {
+    public static <K2,K1> Iterable<K1> findVals2(final NavigableSet<Fun.Tuple2<K2,K1>> secondaryKeys, final K2 secondaryKey) {
+        return findVals2(secondaryKeys, secondaryKey, true, secondaryKey,true);
+    }
+    public static <K2,K1> Iterable<K1> findVals2(final NavigableSet<Fun.Tuple2<K2,K1>> secondaryKeys,
+                   final K2 lo, final boolean loInc, final K2 hi, final boolean hiInc) {
         return new Iterable<K1>(){
             @Override
             public Iterator<K1> iterator() {
@@ -508,8 +511,8 @@ public final class Bind {
                 final Iterator<Fun.Tuple2<K2,K1>> iter =
                         ((NavigableSet)secondaryKeys) //cast is workaround for generics
                                 .subSet(
-                                        Fun.t2(secondaryKey,null), //NULL represents lower bound, everything is larger than null
-                                        Fun.t2(secondaryKey,Fun.HI) // HI is upper bound everything is smaller then HI
+                                        Fun.t2(lo,null), loInc,//NULL represents lower bound, everything is larger than null
+                                        Fun.t2(hi,hiInc?Fun.HI:null),hiInc // HI is upper bound everything is smaller then HI
                                 ).iterator();
 
                 return new Iterator<K1>() {
@@ -533,10 +536,6 @@ public final class Bind {
 
     }
 
-
-    public static <A,B> Iterable<B> findVals2(final NavigableSet<Fun.Tuple2<A,B>> secondaryKeys, final A secondaryKey) {
-        return findSecondaryKeys(secondaryKeys,secondaryKey);
-    }
 
     public static <A,B,C> Iterable<C> findVals3(final NavigableSet<Fun.Tuple3<A,B,C>> secondaryKeys,
                                                 final A a, final B b) {
