@@ -31,7 +31,7 @@ import java.util.Comparator;
 public final class Fun {
 
 
-	public static final Comparator<Comparable> COMPARATOR = new Comparator<Comparable>() {
+	public static final Comparator COMPARATOR = new Comparator<Comparable>() {
         @Override
         public int compare(Comparable o1, Comparable o2) {
             if(o1 == null)

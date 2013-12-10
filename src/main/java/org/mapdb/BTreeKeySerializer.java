@@ -43,6 +43,16 @@ public abstract class BTreeKeySerializer<K>{
     public abstract Object[] deserialize(DataInput in, int start, int end, int size) throws IOException;
 
 
+
+    /**
+     * Some key serializers  may only work with they own comparators.
+     * For example delta-packing stores increments between numbers and requires ascending order.
+     * So Key Serializer may provide its own comparator.
+     *
+     * @return comparator which must be used with this method. `null` if comparator is not strictly required.
+     */
+    public abstract Comparator<K> getComparator();
+
     public static final BTreeKeySerializer BASIC = new BTreeKeySerializer.BasicKeySerializer(Serializer.BASIC);
 
     /**
@@ -78,6 +88,11 @@ public abstract class BTreeKeySerializer<K>{
             }
             return ret;
         }
+
+        @Override
+        public Comparator<Object> getComparator() {
+            return null;
+        }
     }
 
 
@@ -109,6 +124,11 @@ public abstract class BTreeKeySerializer<K>{
             }
             return ret;
         }
+
+        @Override
+        public Comparator<Long> getComparator() {
+            return Utils.COMPARABLE_COMPARATOR;
+        }
     };
 
     /**
@@ -139,6 +159,12 @@ public abstract class BTreeKeySerializer<K>{
             }
             return ret;
         }
+
+        @Override
+        public Comparator<Integer> getComparator() {
+            return Utils.COMPARABLE_COMPARATOR;
+        }
+
     };
 
 
@@ -170,6 +196,12 @@ public abstract class BTreeKeySerializer<K>{
             }
             return ret;
         }
+
+        @Override
+        public Comparator<String> getComparator() {
+            return Utils.COMPARABLE_COMPARATOR;
+        }
+
     };
 
     /**
@@ -326,6 +358,11 @@ public abstract class BTreeKeySerializer<K>{
         }
 
         @Override
+        public Comparator<Fun.Tuple2<A,B>> getComparator() {
+            return Utils.COMPARABLE_COMPARATOR;
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -474,6 +511,12 @@ public abstract class BTreeKeySerializer<K>{
 
             return ret;
         }
+
+        @Override
+        public Comparator<Fun.Tuple3<A,B,C>> getComparator() {
+            return Utils.COMPARABLE_COMPARATOR;
+        }
+
 
         @Override
         public boolean equals(Object o) {
@@ -658,6 +701,12 @@ public abstract class BTreeKeySerializer<K>{
 
             return ret;
         }
+
+        @Override
+        public Comparator<Fun.Tuple4<A,B,C,D>> getComparator() {
+            return Utils.COMPARABLE_COMPARATOR;
+        }
+
 
         @Override
         public boolean equals(Object o) {

@@ -746,7 +746,14 @@ public class DB {
         m.keySerializer = fillNulls(m.keySerializer);
         m.keySerializer = catPut(name+".keySerializer",m.keySerializer,new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer()));
         m.valueSerializer = catPut(name+".valueSerializer",m.valueSerializer,getDefaultSerializer());
-        m.comparator = catPut(name+".comparator",m.comparator,Utils.COMPARABLE_COMPARATOR);
+        if(m.comparator==null){
+            m.comparator = m.keySerializer.getComparator();
+            if(m.comparator==null){
+                m.comparator = Utils.COMPARABLE_COMPARATOR;
+            }
+        }
+
+        m.comparator = catPut(name+".comparator",m.comparator);
 
         long counterRecid = !m.counter ?0L:engine.put(0L, Serializer.LONG);
 

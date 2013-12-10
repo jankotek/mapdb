@@ -458,9 +458,11 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         this.maxNodeSize = maxNodeSize;
         this.comparator = comparator;
 
-        if(comparator!=Utils.COMPARABLE_COMPARATOR && comparator!= Fun.COMPARATOR &&
-                !(keySerializer instanceof BTreeKeySerializer.BasicKeySerializer))
-            Utils.LOG.warning("Comparator might be inconsistent with key serializer and delta packing.");
+        {
+            Comparator requiredComparator = keySerializer.getComparator();
+            if(requiredComparator!=null && !requiredComparator.equals(comparator))
+                throw new IllegalArgumentException("KeySerializers requires its own comparator");
+        }
 
         this.keySerializer = keySerializer;
         this.valueSerializer = valueSerializer;

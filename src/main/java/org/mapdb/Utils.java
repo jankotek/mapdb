@@ -39,7 +39,7 @@ final public class Utils {
 
 
     @SuppressWarnings("rawtypes")
-	public static final Comparator<Comparable> COMPARABLE_COMPARATOR = new Comparator<Comparable>() {
+	public static final Comparator COMPARABLE_COMPARATOR = new Comparator<Comparable>() {
         @Override
         public int compare(Comparable o1, Comparable o2) {
             return o1.compareTo(o2);
