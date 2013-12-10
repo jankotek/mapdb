@@ -5,6 +5,7 @@ import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -467,10 +468,13 @@ public class TxEngine extends EngineWrapper {
 
         commitLock.writeLock().lock();
         try{
+            if(closed) return;
             if(uncommitedData)
                 throw new IllegalAccessError("uncomitted data");
             txs.remove(ref);
             cleanTxQueue();
+
+            pojo.save(this);
 
             //check no other TX has modified our data
             LongMap.LongMapIterator oldIter = old.longMapIterator();
@@ -517,8 +521,12 @@ public class TxEngine extends EngineWrapper {
                     superUpdate(recid, val.a, ser);
                 }
             }
+
             superCommit();
 
+            //commit was sucessfull, so update the POJO in parent
+            //TODO sort of hack, is it thread safe?
+            getWrappedEngine().getSerializerPojo().registered = pojo.registered;
             close();
         }finally {
             commitLock.writeLock().unlock();
@@ -532,6 +540,7 @@ public class TxEngine extends EngineWrapper {
 
         commitLock.writeLock().lock();
         try{
+            if(closed) return;
             if(uncommitedData)
                 throw new IllegalAccessError("uncomitted data");
 
@@ -567,9 +576,12 @@ public class TxEngine extends EngineWrapper {
     public void compact() {
     }
 
+
+    SerializerPojo pojo = new SerializerPojo((CopyOnWriteArrayList<SerializerPojo.ClassInfo>) TxEngine.this.getSerializerPojo().registered.clone());
+
     @Override
     public SerializerPojo getSerializerPojo() {
-        return TxEngine.this.getSerializerPojo(); //TODO pojo serializer is linked to original DB,
+        return pojo;
     }
 }
 
