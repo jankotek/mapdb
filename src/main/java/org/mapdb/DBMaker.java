@@ -720,10 +720,11 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
             Runtime.getRuntime().addShutdownHook(new Thread("MapDB shutdown") {
                 @Override
 				public void run() {
-                    if(!engine2.isClosed())
-                        extendShutdownHookBefore(engine2);
-                        engine2.close();
-                        extendShutdownHookAfter(engine2);
+                    if(engine2.isClosed())
+                        return;
+                    extendShutdownHookBefore(engine2);
+                    engine2.close();
+                    extendShutdownHookAfter(engine2);
                 }
             });
         }
