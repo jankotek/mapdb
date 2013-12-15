@@ -49,9 +49,9 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
                 Utils.packInt(out, ci.fields.size());
                 for (FieldInfo fi : ci.fields) {
-                    out.writeUTF(fi.getName());
-                    out.writeBoolean(fi.isPrimitive());
-                    out.writeUTF(fi.getType());
+                    out.writeUTF(fi.name);
+                    out.writeBoolean(fi.primitive);
+                    out.writeUTF(fi.type);
                 }
             }
         }
@@ -134,9 +134,9 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             this.useObjectStream = isExternalizable;
 
             for (FieldInfo f : fields) {
-                this.name2fieldId.put(f.getName(), this.fields.size());
+                this.name2fieldId.put(f.name, this.fields.size());
                 this.fields.add(f);
-                this.name2fieldInfo.put(f.getName(), f);
+                this.name2fieldInfo.put(f.name, f);
             }
         }
 
@@ -164,8 +164,8 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         }
 
         public int addFieldInfo(FieldInfo field) {
-            name2fieldId.put(field.getName(), fields.size());
-            name2fieldInfo.put(field.getName(), field);
+            name2fieldId.put(field.name, fields.size());
+            name2fieldInfo.put(field.name, field);
             fields.add(field);
             return fields.size() - 1;
         }
@@ -239,21 +239,6 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             this(sf.getName(), sf.isPrimitive(), sf.getType().getName(), clazz);
         }
 
-        public String getName() {
-            return name;
-        }
-
-        public boolean isPrimitive() {
-            return primitive;
-        }
-
-        public String getType() {
-            return type;
-        }
-
-        protected String firstCharCap(String s) {
-            return Character.toUpperCase(s.charAt(0)) + s.substring(1);
-        }
     }
 
 
@@ -269,6 +254,8 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
         if (containsClass(clazz))
             return;
+
+        assert(lock.isWriteLockedByCurrentThread());
 
         final boolean advancedSer = usesAdvancedSerialization(clazz);
         ObjectStreamField[] streamFields = advancedSer? new ObjectStreamField[0]:getFields(clazz);
@@ -347,20 +334,11 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
     }
 
-    public Object getFieldValue(String fieldName, Object object) {
-        try {
-            registerClass(object.getClass());
-        } catch (IOException e) {
-            throw new IOError(e);
-        }
-        ClassInfo classInfo = registered.get(class2classId.get(object.getClass()));
-        return getFieldValue(classInfo.getField(fieldName), object);
-    }
 
     public Object getFieldValue(FieldInfo fieldInfo, Object object) {
 
         if(fieldInfo.field==null){
-            throw new NoSuchFieldError(object.getClass() + "." + fieldInfo.getName());
+            throw new NoSuchFieldError(object.getClass() + "." + fieldInfo.name);
         }
 
 
@@ -371,19 +349,11 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         }
     }
 
-    public void setFieldValue(String fieldName, Object object, Object value) {
-        try {
-            registerClass(object.getClass());
-        } catch (IOException e) {
-            throw new IOError(e);
-        }
-        ClassInfo classInfo = registered.get(class2classId.get(object.getClass()));
-        setFieldValue(classInfo.getField(fieldName), object, value);
-    }
+
 
     public void setFieldValue(FieldInfo fieldInfo, Object object, Object value) {
         if(fieldInfo.field==null)
-            throw new NoSuchFieldError(object.getClass() + "." + fieldInfo.getName());
+            throw new NoSuchFieldError(object.getClass() + "." + fieldInfo.name);
 
         try{
            fieldInfo.field.set(object, value);

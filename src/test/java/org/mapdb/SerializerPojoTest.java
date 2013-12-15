@@ -174,71 +174,25 @@ public class SerializerPojoTest extends TestCase {
     Bean2 b2 = new Bean2("aa", "bb", "cc");
 
     public void testGetFieldValue1() throws Exception {
-        assertEquals("aa", p.getFieldValue("field1", b));
+        assertEquals("aa", p.getFieldValue(new SerializerPojo.FieldInfo("field1",false,String.class.getName(),b.getClass()), b));
     }
 
     public void testGetFieldValue2() throws Exception {
-        assertEquals("bb", p.getFieldValue("field2", b));
+        assertEquals("bb", p.getFieldValue(new SerializerPojo.FieldInfo("field2",false,String.class.getName(),b.getClass()), b));
         assertEquals(0, b.getCalled);
     }
 
     public void testGetFieldValue3() throws Exception {
-        assertEquals("aa", p.getFieldValue("field1", b2));
+        assertEquals("aa", p.getFieldValue(new SerializerPojo.FieldInfo("field1",false,String.class.getName(),b2.getClass()), b2));
     }
 
     public void testGetFieldValue4() throws Exception {
-        assertEquals("bb", p.getFieldValue("field2", b2));
+        assertEquals("bb", p.getFieldValue(new SerializerPojo.FieldInfo("field2",false,String.class.getName(),b2.getClass()), b2));
         assertEquals(0, b2.getCalled);
     }
 
     public void testGetFieldValue5() throws Exception {
-        assertEquals("cc", p.getFieldValue("field3", b2));
-    }
-
-    public void testSetFieldValue1() {
-        p.setFieldValue("field1", b, "zz");
-        assertEquals("zz", b.field1);
-    }
-
-    public void testSetFieldValue2() {
-        p.setFieldValue("field2", b, "zz");
-        assertEquals("zz", b.field2);
-        assertEquals(0, b.setCalled);
-    }
-
-    public void testSetFieldValue3() {
-        p.setFieldValue("field1", b2, "zz");
-        assertEquals("zz", b2.field1);
-    }
-
-    public void testSetFieldValue4() {
-        p.setFieldValue("field2", b2, "zz");
-        assertEquals("zz", b2.field2);
-        assertEquals(0, b2.setCalled);
-    }
-
-    public void testSetFieldValue5() {
-        p.setFieldValue("field3", b2, "zz");
-        assertEquals("zz", b2.field3);
-    }
-
-    public void testGetPrimitiveField() {
-        assertEquals(Integer.MAX_VALUE, p.getFieldValue("intField", b2));
-        assertEquals(Long.MAX_VALUE, p.getFieldValue("longField", b2));
-        assertEquals(Double.MAX_VALUE, p.getFieldValue("doubleField", b2));
-        assertEquals(Float.MAX_VALUE, p.getFieldValue("floatField", b2));
-    }
-
-
-    public void testSetPrimitiveField() {
-        p.setFieldValue("intField", b2, -1);
-        assertEquals(-1, p.getFieldValue("intField", b2));
-        p.setFieldValue("longField", b2, -1L);
-        assertEquals(-1L, p.getFieldValue("longField", b2));
-        p.setFieldValue("doubleField", b2, -1D);
-        assertEquals(-1D, p.getFieldValue("doubleField", b2));
-        p.setFieldValue("floatField", b2, -1F);
-        assertEquals(-1F, p.getFieldValue("floatField", b2));
+        assertEquals("cc", p.getFieldValue(new SerializerPojo.FieldInfo("field3",false,String.class.getName(),b2.getClass()), b2));
     }
 
 
