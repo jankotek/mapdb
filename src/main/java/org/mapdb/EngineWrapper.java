@@ -126,6 +126,16 @@ public abstract class EngineWrapper implements Engine{
         return getWrappedEngine().getSerializerPojo();
     }
 
+    public Engine getWrappedEngine(){
+        return checkClosed(engine);
+    }
+
+    protected static <V> V checkClosed(V v){
+        if(v==null) throw new IllegalAccessError("DB has been closed");
+        return v;
+    }
+
+
     /**
      * Wraps an <code>Engine</code> and throws
      * <code>UnsupportedOperationException("Read-only")</code>
@@ -152,10 +162,6 @@ public abstract class EngineWrapper implements Engine{
 
         @Override
         public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
-            return readOnly();
-        }
-
-        private boolean readOnly() {
             throw new UnsupportedOperationException("Read-only");
         }
 
@@ -174,8 +180,6 @@ public abstract class EngineWrapper implements Engine{
             throw new UnsupportedOperationException("Read-only");
         }
 
-
-
         @Override
         public void commit() {
             throw new UnsupportedOperationException("Read-only");
@@ -192,22 +196,16 @@ public abstract class EngineWrapper implements Engine{
             return true;
         }
 
-
     }
 
 
     public static class DebugEngine extends EngineWrapper{
 
-        //TODO CAS
-
         final Queue<Record> records = new ConcurrentLinkedQueue<Record>();
-
 
         protected static final class Record{
             final long recid;
             final String desc;
-//            final String thread = Thread.currentThread().getName();
-//            final Exception stackTrace = new Exception();
 
             public Record(long recid, String desc) {
                 this.recid = recid;
@@ -262,21 +260,18 @@ public abstract class EngineWrapper implements Engine{
         }
 
         @Override
+        public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+            final boolean ret = super.compareAndSwap(recid, expectedOldValue, newValue, serializer);
+            records.add(new Record(recid,"CAS "+ret+"\n  newVal:"+newValue+"\n  ser:"+serializer));
+            return ret;
+        }
+
+        @Override
         public <A> void delete(long recid, Serializer<A> serializer){
             super.delete(recid,serializer);
             records.add(new Record(recid,"DEL"));
         }
     }
-
-    public Engine getWrappedEngine(){
-        return checkClosed(engine);
-    }
-
-    protected static <V> V checkClosed(V v){
-        if(v==null) throw new IllegalAccessError("DB has been closed");
-        return v;
-    }
-
 
     /**
      * check if Record Instances were not modified while in cache.
