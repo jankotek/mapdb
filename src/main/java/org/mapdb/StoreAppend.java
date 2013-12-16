@@ -9,8 +9,10 @@ import java.util.concurrent.locks.Lock;
 
 /**
  * Append only store. Uses different file format than Direct and WAL store
+ *
+ * TODO StoreAppend is buggy and will not be part of 1.0 release.
  */
-public class StoreAppend extends Store{
+class StoreAppend extends Store{
 
     /** header at beginning of each file */
     protected static final long HEADER = 1239900952130003033L;

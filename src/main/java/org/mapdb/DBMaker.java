@@ -128,7 +128,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         return getThis();
     }
 
-
+// TODO StoreAppend was held beck for 1.0 release.
     /**
      * Creates or open append-only database stored in file.
      * This database uses format other than usual file db
@@ -136,11 +136,11 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * @param file
      * @return maker
      */
-    public static DBMaker newAppendFileDB(File file) {
+    protected static DBMaker newAppendFileDB(File file) {
         return new DBMaker()._newAppendFileDB(file);
     }
 
-    public DBMakerT _newAppendFileDB(File file) {
+    protected DBMakerT _newAppendFileDB(File file) {
         props.setProperty(Keys.file, file.getPath());
         props.setProperty(Keys.store, Keys.store_append);
         return getThis();
