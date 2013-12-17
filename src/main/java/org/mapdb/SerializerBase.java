@@ -1454,11 +1454,7 @@ public class SerializerBase implements Serializer{
 
     protected  Class deserializeClass(DataInput is) throws IOException {
         //TODO override 'deserializeClass' in SerializerPojo
-        try {
-            return Class.forName(is.readUTF());
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
+        return SerializerPojo.classForName(is.readUTF());
     }
 
 

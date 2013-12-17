@@ -83,7 +83,8 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
     protected static Class<?> classForName(String className) {
         try {
-            return Class.forName(className);
+            final ClassLoader loader = Thread.currentThread().getContextClassLoader();
+            return Class.forName(className, true,loader);
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
@@ -203,11 +204,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             this.primitive = primitive;
             this.type = type;
             this.clazz = clazz;
-            try {
-                this.typeClass = primitive?null:Class.forName(type);
-            } catch (ClassNotFoundException e) {
-                throw new RuntimeException(e);
-            }
+            this.typeClass = primitive?null:classForName(type);
 
             //init field
 
@@ -454,10 +451,10 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         try {
             int classId = Utils.unpackInt(in);
             ClassInfo classInfo = registered.get(classId);
-//            Class clazz = Class.forName(classInfo.getName());
+
             Class<?> clazz = classId2class.get(classId);
             if(clazz == null)
-                clazz = Class.forName(classInfo.getName());
+                clazz = classForName(classInfo.getName());
             assertClassSerializable(clazz);
 
             Object o;
@@ -501,7 +498,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
     static{
         try{
-            Class clazz = Class.forName("sun.reflect.ReflectionFactory");
+            Class clazz = classForName("sun.reflect.ReflectionFactory");
             if(clazz!=null){
                 Method getReflectionFactory = clazz.getMethod("getReflectionFactory");
                 sunReflFac = getReflectionFactory.invoke(null);
