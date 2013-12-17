@@ -619,6 +619,15 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             Class clazz = classId2class.get(classId);
             return ObjectStreamClass.lookup(clazz);
         }
+
+        @Override
+        protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
+            ClassLoader loader = Thread.currentThread().getContextClassLoader();
+            Class clazz = Class.forName(desc.getName(), false, loader);
+            if (clazz != null)
+                return clazz;
+            return super.resolveClass(desc);
+        }
     }
 
     protected int oldSize;
