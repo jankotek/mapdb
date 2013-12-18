@@ -10,6 +10,14 @@ import static org.junit.Assert.assertEquals;
 
 public class Issue247Test {
 
+        private Map getMap(DB db){
+                return db.createTreeMap("test")
+                             .counterEnable()
+                             .valuesOutsideNodesEnable()
+                             .makeOrGet();
+            }
+
+
     @Test
     public void test(){
         File f = Utils.tempDbFile();
@@ -17,11 +25,7 @@ public class Issue247Test {
                 .transactionDisable()
                 .make();
 
-        Map m = db.createTreeMap("test")
-                .counterEnable()
-                .valuesOutsideNodesEnable()
-                .make();
-        m.put("a","b");
+        getMap(db);
         //db.commit();
 
         db.close();
@@ -29,7 +33,6 @@ public class Issue247Test {
         db = DBMaker.newFileDB(f)
                 .readOnly()
                 .make();
-        m = db.getTreeMap("test");
-        assertEquals("b",m.get("a"));
+        getMap(db).size();
     }
 }

@@ -124,8 +124,11 @@ public final class Bind {
      */
     public static void size(MapWithModificationListener map, final Atomic.Long sizeCounter){
         //set initial value first if necessary
-        if(sizeCounter.get() == 0)
-            sizeCounter.set(map.sizeLong());
+        if(sizeCounter.get() == 0){
+            long size = map.sizeLong();
+            if(sizeCounter.get()!=size)
+                sizeCounter.set(size);
+        }
 
         map.addModificationListener(new MapListener() {
             @Override
