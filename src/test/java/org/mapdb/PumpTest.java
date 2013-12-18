@@ -98,12 +98,35 @@ public class PumpTest {
         for(Integer i=0;i<max;i++) list.add(i);
         Collections.shuffle(list);
 
-        Iterator<Integer> sorted = Pump.sort(list.iterator(),max/20,
+        Iterator<Integer> sorted = Pump.sort(list.iterator(),false, max/20,
                 Utils.COMPARABLE_COMPARATOR, Serializer.INTEGER);
 
         Integer counter=0;
         while(sorted.hasNext()){
             assertEquals(counter++, sorted.next());
+        }
+        assertEquals(max,counter);
+
+
+    }
+
+
+    @Test public void presort_duplicates(){
+        final Integer max = 10000;
+        List<Integer> list = new ArrayList<Integer>(max);
+        for(Integer i=0;i<max;i++){
+            list.add(i);
+            list.add(i);
+        }
+        Collections.shuffle(list);
+
+        Iterator<Integer> sorted = Pump.sort(list.iterator(),true, max/20,
+                Utils.COMPARABLE_COMPARATOR, Serializer.INTEGER);
+
+        Integer counter=0;
+        while(sorted.hasNext()){
+            Object v = sorted.next();
+            assertEquals(counter++, v);
         }
         assertEquals(max,counter);
 
@@ -136,6 +159,39 @@ public class PumpTest {
 
         assertEquals(max, s.size());
     }
+
+
+    @Test public void build_treeset_ignore_duplicates(){
+        final int max = 10000;
+        List<Integer> list = new ArrayList<Integer>(max);
+        for(Integer i=max-1;i>=0;i--){
+            list.add(i);
+            list.add(i);
+        }
+
+        Engine e = new StoreHeap();
+        DB db = new DB(e);
+
+        Set s = db.createTreeSet("test")
+                .nodeSize(8)
+                .pumpSource(list.iterator())
+                .pumpIgnoreDuplicates()
+                .make();
+
+        Iterator iter =s.iterator();
+
+        Integer count = 0;
+        while(iter.hasNext()){
+            assertEquals(count++, iter.next());
+        }
+
+        for(Integer i:list){
+            assertTrue(""+i,s.contains(i));
+        }
+
+        assertEquals(max, s.size());
+    }
+
 
     @Test public void build_treemap(){
         final int max = 10000;
@@ -173,6 +229,47 @@ public class PumpTest {
         assertEquals(max, s.size());
     }
 
+    @Test public void build_treemap_ignore_dupliates(){
+        final int max = 10000;
+        List<Integer> list = new ArrayList<Integer>(max);
+        for(Integer i=max-1;i>=0;i--){
+            list.add(i);
+            list.add(i);
+        }
+
+        Engine e = new StoreHeap();
+        DB db = new DB(e);
+
+        Fun.Function1<Object, Integer> valueExtractor = new Fun.Function1<Object, Integer>() {
+            @Override
+            public Object run(Integer integer) {
+                return integer*100;
+            }
+        };
+
+
+        Map s = db.createTreeMap("test")
+                .nodeSize(6)
+                .pumpSource(list.iterator(),valueExtractor)
+                .pumpIgnoreDuplicates()
+                .make();
+
+
+        Iterator iter =s.keySet().iterator();
+
+        Integer count = 0;
+        while(iter.hasNext()){
+            assertEquals(count++, iter.next());
+        }
+
+        for(Integer i:list){
+            assertEquals(i * 100, s.get(i));
+        }
+
+        assertEquals(max, s.size());
+    }
+
+
 
     @Test(expected = IllegalArgumentException.class)
     public void build_treemap_fails_with_unsorted(){
@@ -197,7 +294,7 @@ public class PumpTest {
         sorted.addAll(u);
 
         Iterator<UUID> iter = u.iterator();
-        iter = Pump.sort(iter,10000,Collections.reverseOrder(Utils.COMPARABLE_COMPARATOR),Serializer.UUID);
+        iter = Pump.sort(iter,false, 10000,Collections.reverseOrder(Utils.COMPARABLE_COMPARATOR),Serializer.UUID);
         Iterator<UUID> iter2 = sorted.iterator();
 
         while(iter.hasNext()){
@@ -222,7 +319,7 @@ public class PumpTest {
         Collections.sort(sorted,c);
 
         Iterator<Long> iter = u.iterator();
-        iter = Pump.sort(iter,10000,c,Serializer.LONG);
+        iter = Pump.sort(iter,false, 10000,c,Serializer.LONG);
         Iterator<Long> iter2 = sorted.iterator();
 
         while(iter.hasNext()){

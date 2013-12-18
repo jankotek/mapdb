@@ -60,7 +60,7 @@ public class Huge_Insert {
          * large data sets.
          */
         source = Pump.sort(source,
-                100000,
+                true, 100000,
                 Collections.reverseOrder(Utils.COMPARABLE_COMPARATOR), //reverse  order comparator
                 db.getDefaultSerializer()
                 );
