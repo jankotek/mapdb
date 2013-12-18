@@ -522,11 +522,11 @@ public class TxEngine extends EngineWrapper {
                 }
             }
 
-            superCommit();
-
-            //commit was sucessfull, so update the POJO in parent
+            //there are no conflicts, so update the POJO in parent
             //TODO sort of hack, is it thread safe?
             getWrappedEngine().getSerializerPojo().registered = pojo.registered;
+            superCommit();
+
             close();
         }finally {
             commitLock.writeLock().unlock();
