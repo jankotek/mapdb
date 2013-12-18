@@ -18,6 +18,7 @@ public class StoreHeap extends Store implements Serializable{
 
     protected final static Fun.Tuple2 TOMBSTONE = Fun.t2(null,null);
 
+    protected final static Object NULL = new Object();
 
     /** All commited records in store */
     protected final ConcurrentNavigableMap<Long,Fun.Tuple2> records
@@ -70,7 +71,7 @@ public class StoreHeap extends Store implements Serializable{
     }
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
-        assert(value!=null);
+        if(value==null) value= (A) NULL;
         final Lock lock  = locks[new Random().nextInt(locks.length)].writeLock();
         lock.lock();
         try{
@@ -93,7 +94,9 @@ public class StoreHeap extends Store implements Serializable{
         try{
             //get from commited records
             Fun.Tuple2 t = records.get(recid);
-            return t!=null? (A) t.a : null;
+            if(t==null || t.a==NULL)
+                return null;
+            return (A) t.a;
         }finally{
             lock.unlock();
         }
@@ -102,9 +105,9 @@ public class StoreHeap extends Store implements Serializable{
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
         assert(recid>0);
-        assert(value!=null);
         assert(serializer!=null);
         assert(recid>0);
+        if(value==null) value= (A) NULL;
         final Lock lock  = locks[Utils.lockPos(recid)].writeLock();
         lock.lock();
         try{
@@ -119,7 +122,8 @@ public class StoreHeap extends Store implements Serializable{
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
         assert(recid>0);
-        assert(expectedOldValue!=null && newValue!=null);
+        if(expectedOldValue==null) expectedOldValue= (A) NULL;
+        if(newValue==null) newValue= (A) NULL;
         final Lock lock  = locks[Utils.lockPos(recid)].writeLock();
         lock.lock();
         try{

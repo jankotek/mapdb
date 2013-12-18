@@ -312,6 +312,12 @@ public class DB {
         String type = catGet(name + ".type", null);
         if(type==null){
             checkShouldCreate(name);
+            if(engine.isReadOnly()){
+                Engine e = new StoreHeap();
+                new DB(e).getHashMap("a");
+                return namedPut(name,
+                        new DB(new EngineWrapper.ReadOnlyEngine(e)).getHashMap("a"));
+            }
             return createHashMap(name).make();
         }
 
@@ -339,9 +345,10 @@ public class DB {
         return ret;
     }
 
-    protected void namedPut(String name, Object ret) {
+    protected  <V> V namedPut(String name, Object ret) {
         namesInstanciated.put(name, new WeakReference<Object>(ret));
         namesLookup.put(ret,name);
+        return (V) ret;
     }
 
 
@@ -423,6 +430,12 @@ public class DB {
         String type = catGet(name + ".type", null);
         if(type==null){
             checkShouldCreate(name);
+            if(engine.isReadOnly()){
+                Engine e = new StoreHeap();
+                new DB(e).getHashSet("a");
+                return namedPut(name,
+                        new DB(new EngineWrapper.ReadOnlyEngine(e)).getHashSet("a"));
+            }
             return createHashSet(name).makeOrGet();
         }
 
@@ -710,6 +723,12 @@ public class DB {
         String type = catGet(name + ".type", null);
         if(type==null){
             checkShouldCreate(name);
+            if(engine.isReadOnly()){
+                Engine e = new StoreHeap();
+                new DB(e).getTreeMap("a");
+                return namedPut(name,
+                        new DB(new EngineWrapper.ReadOnlyEngine(e)).getTreeMap("a"));
+            }
             return createTreeMap(name).make();
 
         }
@@ -838,6 +857,12 @@ public class DB {
         String type = catGet(name + ".type", null);
         if(type==null){
             checkShouldCreate(name);
+            if(engine.isReadOnly()){
+                Engine e = new StoreHeap();
+                new DB(e).getTreeSet("a");
+                return namedPut(name,
+                        new DB(new EngineWrapper.ReadOnlyEngine(e)).getTreeSet("a"));
+            }
             return createTreeSet(name).make();
 
         }
@@ -909,6 +934,12 @@ public class DB {
         String type = catGet(name + ".type", null);
         if(type==null){
             checkShouldCreate(name);
+            if(engine.isReadOnly()){
+                Engine e = new StoreHeap();
+                new DB(e).getQueue("a");
+                return namedPut(name,
+                        new DB(new EngineWrapper.ReadOnlyEngine(e)).getQueue("a"));
+            }
             return createQueue(name,null,true);
         }
         checkType(type, "Queue");
@@ -951,6 +982,12 @@ public class DB {
         String type = catGet(name + ".type", null);
         if(type==null){
             checkShouldCreate(name);
+            if(engine.isReadOnly()){
+                Engine e = new StoreHeap();
+                new DB(e).getStack("a");
+                return namedPut(name,
+                        new DB(new EngineWrapper.ReadOnlyEngine(e)).getStack("a"));
+            }
             return createStack(name,null,true);
         }
 
@@ -992,6 +1029,12 @@ public class DB {
         String type = catGet(name + ".type", null);
         if(type==null){
             checkShouldCreate(name);
+            if(engine.isReadOnly()){
+                Engine e = new StoreHeap();
+                new DB(e).getCircularQueue("a");
+                return namedPut(name,
+                        new DB(new EngineWrapper.ReadOnlyEngine(e)).getCircularQueue("a"));
+            }
             return createCircularQueue(name,null, 1024);
         }
 
@@ -1063,6 +1106,12 @@ public class DB {
         String type = catGet(name + ".type", null);
         if(type==null){
             checkShouldCreate(name);
+            if(engine.isReadOnly()){
+                Engine e = new StoreHeap();
+                new DB(e).getAtomicLong("a");
+                return namedPut(name,
+                        new DB(new EngineWrapper.ReadOnlyEngine(e)).getAtomicLong("a"));
+            }
             return createAtomicLong(name,0L);
         }
         checkType(type, "AtomicLong");
@@ -1094,6 +1143,12 @@ public class DB {
         String type = catGet(name + ".type", null);
         if(type==null){
             checkShouldCreate(name);
+            if(engine.isReadOnly()){
+                Engine e = new StoreHeap();
+                new DB(e).getAtomicInteger("a");
+                return namedPut(name,
+                        new DB(new EngineWrapper.ReadOnlyEngine(e)).getAtomicInteger("a"));
+            }
             return createAtomicInteger(name, 0);
         }
         checkType(type, "AtomicInteger");
@@ -1125,6 +1180,12 @@ public class DB {
         String type = catGet(name + ".type", null);
         if(type==null){
             checkShouldCreate(name);
+            if(engine.isReadOnly()){
+                Engine e = new StoreHeap();
+                new DB(e).getAtomicBoolean("a");
+                return namedPut(name,
+                        new DB(new EngineWrapper.ReadOnlyEngine(e)).getAtomicBoolean("a"));
+            }
             return createAtomicBoolean(name, false);
         }
         checkType(type, "AtomicBoolean");
@@ -1160,6 +1221,12 @@ public class DB {
         String type = catGet(name + ".type", null);
         if(type==null){
             checkShouldCreate(name);
+            if(engine.isReadOnly()){
+                Engine e = new StoreHeap();
+                new DB(e).getAtomicString("a");
+                return namedPut(name,
+                        new DB(new EngineWrapper.ReadOnlyEngine(e)).getAtomicString("a"));
+            }
             return createAtomicString(name, "");
         }
         checkType(type, "AtomicString");
@@ -1191,9 +1258,15 @@ public class DB {
         String type = catGet(name + ".type", null);
         if(type==null){
             checkShouldCreate(name);
+            if(engine.isReadOnly()){
+                Engine e = new StoreHeap();
+                new DB(e).getAtomicVar("a");
+                return namedPut(name,
+                        new DB(new EngineWrapper.ReadOnlyEngine(e)).getAtomicVar("a"));
+            }
             return createAtomicVar(name, null, getDefaultSerializer());
         }
-        checkType(type, "AtomicString");
+        checkType(type, "AtomicVar");
 
         ret = new Atomic.Var(engine, (Long) catGet(name+".recid"), (Serializer) catGet(name+".serializer"));
         namedPut(name, ret);
