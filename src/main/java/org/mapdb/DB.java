@@ -530,6 +530,7 @@ public class DB {
         protected Fun.Function1 pumpKeyExtractor;
         protected Fun.Function1 pumpValueExtractor;
         protected int pumpPresortBatchSize = -1;
+        protected boolean pumpIgnoreDuplicates = false;
 
 
         /** nodeSize maximal size of node, larger node causes overflow and creation of new BTree node. Use large number for small keys, use small number for large keys.*/
@@ -595,6 +596,15 @@ public class DB {
         }
 
 
+        /**
+         * If source iteretor contains an duplicate key, exception is thrown.
+         * This options will only use firts key and ignore any consequentive duplicates.
+         */
+        public <K> BTreeMapMaker pumpIgnoreDuplicates(){
+            this.pumpIgnoreDuplicates = true;
+            return this;
+        }
+
         public <K,V> BTreeMap<K,V> make(){
             return DB.this.createTreeMap(BTreeMapMaker.this);
         }
@@ -636,7 +646,7 @@ public class DB {
 
         protected Iterator pumpSource;
         protected int pumpPresortBatchSize = -1;
-
+        protected boolean pumpIgnoreDuplicates = false;
 
         /** nodeSize maximal size of node, larger node causes overflow and creation of new BTree node. Use large number for small keys, use small number for large keys.*/
         public BTreeSetMaker nodeSize(int nodeSize){
@@ -668,6 +678,14 @@ public class DB {
             return this;
         }
 
+        /**
+         * If source iteretor contains an duplicate key, exception is thrown.
+         * This options will only use firts key and ignore any consequentive duplicates.
+         */
+        public <K> BTreeSetMaker pumpIgnoreDuplicates(){
+            this.pumpIgnoreDuplicates = true;
+            return this;
+        }
 
         public BTreeSetMaker pumpPresort(int batchSize){
             this.pumpPresortBatchSize = batchSize;
@@ -780,7 +798,8 @@ public class DB {
         if(m.pumpSource==null){
             rootRecidRef = BTreeMap.createRootRef(engine,m.keySerializer,m.valueSerializer,m.comparator);
         }else{
-            rootRecidRef = Pump.buildTreeMap(m.pumpSource,engine,m.pumpKeyExtractor,m.pumpValueExtractor,m.nodeSize,
+            rootRecidRef = Pump.buildTreeMap(m.pumpSource,engine,m.pumpKeyExtractor,m.pumpValueExtractor,
+                    m.pumpIgnoreDuplicates,m.nodeSize,
                     m.valuesOutsideNodes,counterRecid,m.keySerializer,m.valueSerializer,m.comparator);
         }
 
@@ -900,7 +919,7 @@ public class DB {
         m.comparator = catPut(m.name+".comparator",m.comparator,Utils.COMPARABLE_COMPARATOR);
 
         if(m.pumpPresortBatchSize!=-1){
-            m.pumpSource = Pump.sort(m.pumpSource,m.pumpPresortBatchSize,Collections.reverseOrder(m.comparator),getDefaultSerializer());
+            m.pumpSource = Pump.sort(m.pumpSource,m.pumpIgnoreDuplicates, m.pumpPresortBatchSize,Collections.reverseOrder(m.comparator),getDefaultSerializer());
         }
 
         long counterRecid = !m.counter ?0L:engine.put(0L, Serializer.LONG);
@@ -909,7 +928,7 @@ public class DB {
         if(m.pumpSource==null){
             rootRecidRef = BTreeMap.createRootRef(engine,m.serializer,null,m.comparator);
         }else{
-            rootRecidRef = Pump.buildTreeMap(m.pumpSource,engine,Fun.noTransformExtractor(),null,m.nodeSize,
+            rootRecidRef = Pump.buildTreeMap(m.pumpSource,engine,Fun.noTransformExtractor(),null,m.pumpIgnoreDuplicates, m.nodeSize,
                     false,counterRecid,m.serializer,null,m.comparator);
         }
 

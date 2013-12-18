@@ -49,13 +49,14 @@ public class Pump {
      * Sorts large data set by given `Comparator`. Data are sorted with in-memory cache and temporary files.
      *
      * @param source iterator over unsorted data
+     * @param mergeDuplicates should be duplicate keys merged into single one?
      * @param batchSize how much items can fit into heap memory
      * @param comparator used to sort data
      * @param serializer used to store data in temporary files
      * @param <E> type of data
      * @return iterator over sorted data set
      */
-    public static <E> Iterator<E> sort(final Iterator<E> source, final int batchSize,
+    public static <E> Iterator<E> sort(final Iterator<E> source, boolean mergeDuplicates, final int batchSize,
             final Comparator comparator, final Serializer serializer){
         if(batchSize<=0) throw new IllegalArgumentException();
 
@@ -132,9 +133,8 @@ public class Pump {
             Arrays.sort(presort,0,counter,comparator);
             iterators[iterators.length-1] = Utils.arrayIterator(presort,0,counter);
 
-
             //and finally sort presorted iterators and return iterators over them
-            return sort(comparator, iterators);
+            return sort(comparator, mergeDuplicates, iterators);
 
         }catch(IOException e){
             throw new IOError(e);
@@ -150,12 +150,12 @@ public class Pump {
      * Merge presorted iterators into single sorted iterator.
      *
      * @param comparator used to compare data
+     * @param mergeDuplicates if duplicate keys should be merged into single one
      * @param iterators array of already sorted iterators
      * @param <E> type of data
      * @return sorted iterator
      */
-    public static <E> Iterator<E> sort(final Comparator comparator, final Iterator... iterators) {
-
+    public static <E> Iterator<E> sort(final Comparator comparator, final boolean mergeDuplicates, final Iterator... iterators) {
         return new Iterator<E>(){
 
             final NavigableSet<Fun.Tuple2<Object,Integer>> items = new TreeSet<Fun.Tuple2<Object, Integer>>(
@@ -199,6 +199,25 @@ public class Pump {
                 if(iter.hasNext()){
                     items.add(Fun.t2(iter.next(),lo.b));
                 }
+
+                if(mergeDuplicates){
+                    while(true){
+                        Set<Fun.Tuple2<Object,Integer>> subset =
+                                ((NavigableSet)items).subSet(Fun.t2(next, null),
+                                        Fun.t2(next, Fun.HI));
+                        if(subset.isEmpty())
+                            break;
+                        List toadd = new ArrayList();
+                        for(Fun.Tuple2<Object,Integer> t:subset){
+                            iter = iterators[t.b];
+                            if(iter.hasNext())
+                                toadd.add(Fun.t2(iter.next(),t.b));
+                        }
+                        subset.clear();
+                        items.addAll(toadd);
+                    }
+                }
+
 
                 return (E) oldNext;
             }
@@ -270,7 +289,7 @@ public class Pump {
      *
      * This method expect data to be presorted in **reverse order** (highest to lowest).
      * There are technical reason for this requirement.
-     * To sort unordered data use {@link Pump#sort(java.util.Iterator, int, java.util.Comparator, Serializer)}
+     * To sort unordered data use {@link Pump#sort(java.util.Iterator, boolean, int, java.util.Comparator, Serializer)}
      *
      * This method does not call commit. You should disable Write Ahead Log when this method is used {@link org.mapdb.DBMaker#transactionDisable()}
      *
@@ -278,6 +297,7 @@ public class Pump {
      * @param source iterator over source data, must be reverse sorted
      * @param keyExtractor transforms items from source iterator into keys. If null source items will be used directly as keys.
      * @param valueExtractor transforms items from source iterator into values. If null BTreeMap will be constructed without values (as Set)
+     * @param ignoreDuplicates should be duplicate keys merged into single one?
      * @param nodeSize maximal BTree node size before it is splited.
      * @param valuesStoredOutsideNodes if true values will not be stored as part of BTree nodes
      * @param counterRecid TODO make size counter friendly to use
@@ -290,6 +310,7 @@ public class Pump {
                                              Engine engine,
                                              Fun.Function1<K, E> keyExtractor,
                                              Fun.Function1<V, E> valueExtractor,
+                                             boolean ignoreDuplicates,
                                              int nodeSize,
                                              boolean valuesStoredOutsideNodes,
                                              long counterRecid,
@@ -321,12 +342,22 @@ public class Pump {
         K oldKey = null;
         while(source.hasNext()){
 
-            for(int i=0;i<nload && source.hasNext();i++){
+            nodeLoop:for(int i=0;i<nload && source.hasNext();i++){
                 counter++;
                 E next = source.next();
                 if(next==null) throw new NullPointerException("source returned null element");
                 K key = keyExtractor==null? (K) next : keyExtractor.run(next);
-                if(oldKey!=null && comparator.compare(key, oldKey)>=0)
+                int compared=oldKey==null?-1:comparator.compare(key, oldKey);
+                while(ignoreDuplicates && compared==0){
+                    //move to next
+                    if(!source.hasNext())break nodeLoop;
+                    next = source.next();
+                    if(next==null) throw new NullPointerException("source returned null element");
+                    key = keyExtractor==null? (K) next : keyExtractor.run(next);
+                    compared=comparator.compare(key, oldKey);
+                }
+
+                if(oldKey!=null && compared>=0)
                     throw new IllegalArgumentException("Keys in 'source' iterator are not reverse sorted");
                 oldKey = key;
                 keys.add(key);
