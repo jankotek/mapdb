@@ -42,7 +42,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 		public void serialize(DataOutput out, CopyOnWriteArrayList<ClassInfo> obj) throws IOException {
             Utils.packInt(out, obj.size());
             for (ClassInfo ci : obj) {
-                out.writeUTF(ci.getName());
+                out.writeUTF(ci.name);
                 out.writeBoolean(ci.isEnum);
                 out.writeBoolean(ci.useObjectStream);
                 if(ci.useObjectStream) continue; //no fields
@@ -102,7 +102,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         for(int i=0;i<registered.size();i++)
         {
             ClassInfo ci = registered.get(i);
-            Class clazz = classForName(ci.getName());
+            Class clazz = classForName(ci.name);
             class2classId.put(clazz, i);
             classId2class.put(i, clazz);
 
@@ -141,17 +141,6 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             }
         }
 
-        public String getName() {
-            return name;
-        }
-
-        public FieldInfo[] getFields() {
-            return fields.toArray(new FieldInfo[fields.size()]);
-        }
-
-        public FieldInfo getField(String name) {
-            return name2fieldInfo.get(name);
-        }
 
         public int getFieldId(String name) {
             Integer fieldId = name2fieldId.get(name);
@@ -160,9 +149,6 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             return -1;
         }
 
-        public FieldInfo getField(int serialId) {
-            return fields.get(serialId);
-        }
 
         public int addFieldInfo(FieldInfo field) {
             name2fieldId.put(field.name, fields.size());
@@ -180,7 +166,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         }
 
         @Override public String toString(){
-            return super.toString()+ "["+getName()+"]";
+            return super.toString()+ "["+name+"]";
         }
 
 
@@ -425,7 +411,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
                 }
                 Utils.packInt(out, fieldId);
                 //and write value
-                Object fieldValue = getFieldValue(classInfo.getField(fieldId), obj);
+                Object fieldValue = getFieldValue(classInfo.fields.get(fieldId), obj);
                 serialize(out, fieldValue, objectStack);
             }
         }finally{
@@ -454,7 +440,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
             Class<?> clazz = classId2class.get(classId);
             if(clazz == null)
-                clazz = classForName(classInfo.getName());
+                clazz = classForName(classInfo.name);
             assertClassSerializable(clazz);
 
             Object o;
@@ -476,7 +462,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
                 int fieldCount = Utils.unpackInt(in);
                 for (int i = 0; i < fieldCount; i++) {
                     int fieldId = Utils.unpackInt(in);
-                    FieldInfo f = classInfo.getField(fieldId);
+                    FieldInfo f = classInfo.fields.get(fieldId);
                     Object fieldValue = deserialize(in, objectStack);
                     setFieldValue(f, o, fieldValue);
                 }
