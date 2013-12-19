@@ -653,8 +653,12 @@ public class StoreDirect extends Store{
                 }
             }
 
-            index.sync();
-            phys.sync();
+            // Syncs are expensive -- don't sync if the files are going to
+            // get deleted anyway.
+            if (!deleteFilesAfterClose) {
+              index.sync();
+              phys.sync();
+            }
             index.close();
             phys.close();
             if(deleteFilesAfterClose){
