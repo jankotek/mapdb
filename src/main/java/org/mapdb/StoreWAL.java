@@ -61,15 +61,21 @@ public class StoreWAL extends StoreDirect {
 
         structuralLock.lock();
         try{
-            reloadIndexFile();
-            if(verifyLogFile()){
-                replayLogFile();
+            try{
+                reloadIndexFile();
+                if(verifyLogFile()){
+                    replayLogFile();
+                }
+                replayPending = false;
+                checkHeaders();
+                log = null;
+            }finally {
+                structuralLock.unlock();
             }
-            replayPending = false;
-            checkHeaders();
-            log = null;
-        }finally {
-            structuralLock.unlock();
+        } catch(Error e) {
+            // Make sure we don't hog the file locks when something goes wrong.
+            close();
+            throw e;
         }
     }
 
