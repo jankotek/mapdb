@@ -194,21 +194,26 @@ public class StoreDirect extends Store{
         this.spaceReclaimReuse = spaceReclaimMode>2;
         this.spaceReclaimTrack = spaceReclaimMode>0;
 
-        index = volFac.createIndexVolume();
-        phys = volFac.createPhysVolume();
-        if(index.isEmpty()){
-            createStructure();
-        }else{
-            checkHeaders();
-            indexSize = index.getLong(IO_INDEX_SIZE);
-            physSize = index.getLong(IO_PHYS_SIZE);
-            freeSize = index.getLong(IO_FREE_SIZE);
-
-            maxUsedIoList=IO_USER_START-8;
-            while(index.getLong(maxUsedIoList)!=0 && maxUsedIoList>IO_FREE_RECID)
-                maxUsedIoList-=8;
+        try {
+            index = volFac.createIndexVolume();
+            phys = volFac.createPhysVolume();
+            if(index.isEmpty()){
+                createStructure();
+            }else{
+                checkHeaders();
+                indexSize = index.getLong(IO_INDEX_SIZE);
+                physSize = index.getLong(IO_PHYS_SIZE);
+                freeSize = index.getLong(IO_FREE_SIZE);
+    
+                maxUsedIoList=IO_USER_START-8;
+                while(index.getLong(maxUsedIoList)!=0 && maxUsedIoList>IO_FREE_RECID)
+                    maxUsedIoList-=8;
+            }
+        } catch(IOError e) {
+            // Make sure we don't hog the file locks when something goes wrong.
+            close();
+            throw e;
         }
-
     }
 
     public StoreDirect(Volume.Factory volFac) {
