@@ -8,8 +8,10 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class HTreeMap2Test {
@@ -565,5 +567,38 @@ public class HTreeMap2Test {
         }
 
     }
+
+    @Test public void mod_listener_lock(){
+        DB db = DBMaker.newMemoryDB().make();
+        final HTreeMap m = db.getHashMap("name");
+
+        final int seg =  m.hash("aa")>>>28;
+        final AtomicInteger counter = new AtomicInteger();
+
+        m.addModificationListener(new Bind.MapListener() {
+            @Override
+            public void update(Object key, Object oldVal, Object newVal) {
+                for(int i=0;i<m.segmentLocks.length;i++){
+                    assertEquals(seg==i, m.segmentLocks[i].isWriteLockedByCurrentThread());
+                }
+                counter.incrementAndGet();
+            }
+        });
+
+
+        m.put("aa","aa");
+        m.put("aa", "bb");
+        m.remove("aa");
+
+
+        m.put("aa","aa");
+        m.remove("aa","aa");
+        m.putIfAbsent("aa","bb");
+        m.replace("aa","bb","cc");
+        m.replace("aa","cc");
+
+        assertEquals(8, counter.get());
+    }
+
 }
 

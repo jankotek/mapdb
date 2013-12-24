@@ -651,10 +651,10 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     assert(nodeLocks.get(current)==Thread.currentThread());
                     engine.update(current, A, nodeSerializer);
                     //already in here
-                    Utils.unlock(nodeLocks, current);
-                    if(CC.PARANOID) Utils.assertNoLocks(nodeLocks);
                     V ret =  valExpand(oldVal);
                     notify(v,ret, value2);
+                    Utils.unlock(nodeLocks, current);
+                    if(CC.PARANOID) Utils.assertNoLocks(nodeLocks);
                     return ret;
                 }
 
@@ -697,9 +697,9 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     engine.update(current, d, nodeSerializer);
                 }
 
+                notify(v,  null, value2);
                 Utils.unlock(nodeLocks, current);
                 if(CC.PARANOID) Utils.assertNoLocks(nodeLocks);
-                notify(v,  null, value2);
                 return null;
             }else{
                 //node is not safe, it requires splitting
@@ -767,9 +767,9 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     //add newRootRecid into leftEdges
                     leftEdges.add(newRootRecid);
 
+                    notify(v, null, value2);
                     Utils.unlock(nodeLocks, rootRecidRef);
                     if(CC.PARANOID) Utils.assertNoLocks(nodeLocks);
-                    notify(v, null, value2);
                     return null;
                 }
             }
@@ -944,8 +944,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 A = new LeafNode(keys2, vals2, ((LeafNode)A).next);
                 assert(nodeLocks.get(current)==Thread.currentThread());
                 engine.update(current, A, nodeSerializer);
-                Utils.unlock(nodeLocks, current);
                 notify((K)key, (V)oldVal, null);
+                Utils.unlock(nodeLocks, current);
                 return (V) oldVal;
             }else{
                 Utils.unlock(nodeLocks, current);

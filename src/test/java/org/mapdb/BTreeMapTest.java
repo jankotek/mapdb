@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.NoSuchElementException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.*;
 
@@ -301,10 +302,39 @@ public class BTreeMapTest{
         assertEquals("aa",m.lastKey());
         m.put("bb","bb");
         assertEquals("bb",m.lastKey());
-
-
-
     }
+
+    @Test public void mod_listener_lock(){
+        DB db = DBMaker.newMemoryDB().make();
+        final BTreeMap m = db.getTreeMap("name");
+
+        final long rootRecid = db.getEngine().get(m.rootRecidRef, Serializer.LONG);
+        final AtomicInteger counter = new AtomicInteger();
+
+        m.addModificationListener(new Bind.MapListener() {
+            @Override
+            public void update(Object key, Object oldVal, Object newVal) {
+                assertTrue(m.nodeLocks.get(rootRecid)==Thread.currentThread());
+                assertEquals(1,m.nodeLocks.size());
+                counter.incrementAndGet();
+            }
+        });
+
+
+        m.put("aa","aa");
+        m.put("aa", "bb");
+        m.remove("aa");
+
+
+        m.put("aa","aa");
+        m.remove("aa","aa");
+        m.putIfAbsent("aa","bb");
+        m.replace("aa","bb","cc");
+        m.replace("aa","cc");
+
+        assertEquals(8, counter.get());
+    }
+
 
 
 }

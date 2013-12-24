@@ -1611,6 +1611,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     }
 
     protected void notify(K key, V oldValue, V newValue) {
+        assert(segmentLocks[hash(key)>>>28].isWriteLockedByCurrentThread());
         Bind.MapListener<K,V>[] modListeners2  = modListeners;
         for(Bind.MapListener<K,V> listener:modListeners2){
             if(listener!=null)
