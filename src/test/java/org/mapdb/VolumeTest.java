@@ -314,17 +314,4 @@ public abstract class VolumeTest {
     }
 
 
-    @Test public void writeBeyond2GB(){
-        long max = (long) (1.5* Integer.MAX_VALUE);
-
-        Volume v = getVolume();
-        for(long i=0;i<max;i+=8){
-            v.ensureAvailable(i+8);
-            v.putLong(i,i);
-        }
-        for(long i=0;i<max;i+=8){
-            assertEquals(i, v.getLong(i));
-        }
-
-    }
 }
