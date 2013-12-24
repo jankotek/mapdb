@@ -57,7 +57,8 @@ public class DBMakerTest{
                 .cacheDisable()
                 .make();
         verifyDB(db);
-        assertEquals( db.engine.getClass(),StoreDirect.class);
+        Store s = Pump.storeForDB(db);
+        assertEquals( s.getClass(),StoreDirect.class);
     }
 
     @Test
@@ -191,7 +192,7 @@ public class DBMakerTest{
                 .checksumEnable()
                 .make();
 
-        Store s = (Store) db.getEngine();
+        Store s = Pump.storeForDB(db);
         assertTrue(s.checksum);
         assertTrue(!s.compress);
         assertTrue(s.password==null);
@@ -241,10 +242,9 @@ public class DBMakerTest{
                 .newFileDB(f)
                 .deleteFilesAfterClose()
                 .cacheDisable()
-
                 .compressionEnable()
                 .make();
-        Store s = (Store) db.engine;
+        Store s = Pump.storeForDB(db);
         assertTrue(!s.checksum);
         assertTrue(s.compress);
         assertTrue(s.password==null);

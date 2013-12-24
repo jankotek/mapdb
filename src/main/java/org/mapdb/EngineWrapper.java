@@ -30,7 +30,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  *
  * @author Jan Kotek
  */
-public abstract class EngineWrapper implements Engine{
+public class EngineWrapper implements Engine{
 
     private Engine engine;
 
@@ -51,7 +51,6 @@ public abstract class EngineWrapper implements Engine{
 
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
-        assert(value!=null);
         return getWrappedEngine().put(value, serializer);
     }
 
@@ -62,13 +61,11 @@ public abstract class EngineWrapper implements Engine{
 
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
-        assert(value!=null);
         getWrappedEngine().update(recid, value, serializer);
     }
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
-        assert(expectedOldValue!=null && newValue!=null);
         return getWrappedEngine().compareAndSwap(recid, expectedOldValue, newValue, serializer);
     }
 
@@ -82,12 +79,12 @@ public abstract class EngineWrapper implements Engine{
         Engine e = engine;
         if(e!=null)
             e.close();
-        engine = null;
+        engine = CLOSED;
     }
 
     @Override
     public boolean isClosed() {
-        return engine==null;
+        return engine==CLOSED || engine==null;
     }
 
     @Override
@@ -479,4 +476,90 @@ public abstract class EngineWrapper implements Engine{
             super.delete(recid, serializer);
         }
     }
+
+
+    /** throws `IllegalArgumentError("already closed)` on all access */
+    public static final Engine CLOSED = new Engine(){
+
+
+        @Override
+        public long preallocate() {
+            throw new IllegalAccessError("already closed");
+        }
+
+        @Override
+        public void preallocate(long[] recids) {
+            throw new IllegalAccessError("already closed");
+        }
+
+        @Override
+        public <A> long put(A value, Serializer<A> serializer) {
+            throw new IllegalAccessError("already closed");
+        }
+
+        @Override
+        public <A> A get(long recid, Serializer<A> serializer) {
+            throw new IllegalAccessError("already closed");
+        }
+
+        @Override
+        public <A> void update(long recid, A value, Serializer<A> serializer) {
+            throw new IllegalAccessError("already closed");
+        }
+
+        @Override
+        public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+            throw new IllegalAccessError("already closed");
+        }
+
+        @Override
+        public <A> void delete(long recid, Serializer<A> serializer) {
+            throw new IllegalAccessError("already closed");
+        }
+
+        @Override
+        public void close() {
+            throw new IllegalAccessError("already closed");
+        }
+
+        @Override
+        public boolean isClosed() {
+            return true;
+        }
+
+        @Override
+        public void commit() {
+            throw new IllegalAccessError("already closed");
+        }
+
+        @Override
+        public void rollback() throws UnsupportedOperationException {
+            throw new IllegalAccessError("already closed");
+        }
+
+        @Override
+        public boolean isReadOnly() {
+            throw new IllegalAccessError("already closed");
+        }
+
+        @Override
+        public boolean canRollback() {
+            throw new IllegalAccessError("already closed");
+        }
+
+        @Override
+        public void clearCache() {
+            throw new IllegalAccessError("already closed");
+        }
+
+        @Override
+        public void compact() {
+            throw new IllegalAccessError("already closed");
+        }
+
+        @Override
+        public SerializerPojo getSerializerPojo() {
+            throw new IllegalAccessError("already closed");
+        }
+    };
 }

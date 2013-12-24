@@ -22,7 +22,6 @@ public class Issue241
         map.put(1L, new CustomClass("aString", 1001L)); //$NON-NLS-1$
         db.commit();
         db.close();
-        db.close();
 
         db = getDb();
         map = db.getTreeMap(mapName);

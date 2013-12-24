@@ -54,6 +54,11 @@ public class DB {
     }
 
     public DB(Engine engine, boolean strictDBGet) {
+        if(!(engine instanceof EngineWrapper)){
+            //access to Store should be prevented after `close()` was called.
+            //So for this we have to wrap raw Store into EngineWrapper
+            engine = new EngineWrapper(engine);
+        }
         this.engine = engine;
         this.strictDBGet = strictDBGet;
         engine.getSerializerPojo().setDb(this);
@@ -347,7 +352,7 @@ public class DB {
 
     protected  <V> V namedPut(String name, Object ret) {
         namesInstanciated.put(name, new WeakReference<Object>(ret));
-        namesLookup.put(ret,name);
+        namesLookup.put(ret, name);
         return (V) ret;
     }
 
@@ -1430,9 +1435,9 @@ public class DB {
         if(engine == null) return;
         engine.close();
         //dereference db to prevent memory leaks
-        engine = null;
-        namesInstanciated = null;
-        namesLookup = null;
+        engine = EngineWrapper.CLOSED;
+        namesInstanciated = Collections.unmodifiableMap(new HashMap());
+        namesLookup = Collections.unmodifiableMap(new HashMap());
     }
 
     /**
@@ -1457,7 +1462,7 @@ public class DB {
      * @return true if DB is closed and can no longer be used
      */
     public synchronized  boolean isClosed(){
-        return engine == null;
+        return engine == null || engine.isClosed();
     }
 
     /**
