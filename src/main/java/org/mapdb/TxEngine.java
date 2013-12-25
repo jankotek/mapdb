@@ -63,7 +63,9 @@ public class TxEngine extends EngineWrapper {
             return engine;
         if(engine instanceof TxEngine)
             return ((TxEngine)engine).snapshot();
-        return createSnapshotFor(((EngineWrapper) engine).getWrappedEngine());
+        if(engine instanceof EngineWrapper)
+            createSnapshotFor(((EngineWrapper) engine).getWrappedEngine());
+        throw new UnsupportedOperationException("Snapshots are not enabled, use DBMaker.snapshotEnable()");
     }
 
     public Engine snapshot() {
@@ -309,6 +311,7 @@ public class TxEngine extends EngineWrapper {
         protected final Reference<Tx> ref = new WeakReference<Tx>(this,txQueue);
 
         protected boolean closed = false;
+        private Store parentEngine;
 
         public Tx(){
             assert(commitLock.isWriteLockedByCurrentThread());
@@ -583,6 +586,11 @@ public class TxEngine extends EngineWrapper {
     public SerializerPojo getSerializerPojo() {
         return pojo;
     }
-}
+
+    public Engine getWrappedEngine() {
+        return TxEngine.this.getWrappedEngine();
+    }
+
+    }
 
 }

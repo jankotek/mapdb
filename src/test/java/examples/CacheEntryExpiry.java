@@ -37,10 +37,10 @@ public class CacheEntryExpiry {
         //one can monitor two space usage numbers:
 
         //free space in store
-        long freeSize = Pump.storeForDB(db).getFreeSize();
+        long freeSize = Store.forDB(db).getFreeSize();
 
         //current size of store (how much memory it has allocated
-        long currentSize = Pump.storeForDB(db).getCurrSize();
+        long currentSize = Store.forDB(db).getCurrSize();
 
 
     }

@@ -270,5 +270,18 @@ public abstract class Store implements Engine{
     }
 
 
+    /** traverses {@link EngineWrapper}s and returns underlying {@link Store}*/
+    public static Store forDB(DB db){
+        return forEngine(db.engine);
+    }
+
+    /** traverses {@link EngineWrapper}s and returns underlying {@link Store}*/
+    public static Store forEngine(Engine e){
+        if(e instanceof EngineWrapper)
+            return forEngine(((EngineWrapper) e).getWrappedEngine());
+        if(e instanceof TxEngine.Tx)
+            return forEngine(((TxEngine.Tx) e).getWrappedEngine());
+        return (Store) e;
+    }
 
 }

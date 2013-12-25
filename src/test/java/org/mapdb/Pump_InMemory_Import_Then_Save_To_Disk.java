@@ -1,4 +1,4 @@
-package examples;
+package org.mapdb;
 
 import org.mapdb.*;
 
@@ -10,6 +10,7 @@ import java.util.Random;
  * This demonstrates using Data Pump to first create store in-memory at maximal speed,
  * and than copy the store into memory
  */
+//TODO Pump between stores is disabled for now, copy this back to examples  once enabled
 public class Pump_InMemory_Import_Then_Save_To_Disk {
 
     public static void main(String[] args) {

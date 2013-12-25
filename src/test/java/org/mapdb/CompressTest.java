@@ -19,7 +19,7 @@ public class CompressTest{
 
     @Test
     public void check_instance() throws Exception {
-        Store s = Pump.storeForDB(db);
+        Store s = Store.forDB(db);
         assertTrue(s.compress);
     }
 

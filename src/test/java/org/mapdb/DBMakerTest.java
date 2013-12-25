@@ -57,7 +57,7 @@ public class DBMakerTest{
                 .cacheDisable()
                 .make();
         verifyDB(db);
-        Store s = Pump.storeForDB(db);
+        Store s = Store.forDB(db);
         assertEquals( s.getClass(),StoreDirect.class);
     }
 
@@ -174,7 +174,7 @@ public class DBMakerTest{
         EngineWrapper w = (EngineWrapper) db.engine;
         assertTrue(w instanceof TxEngine);
 
-        Store s = Pump.storeForEngine(w);
+        Store s = Store.forEngine(w);
         assertTrue(s.checksum);
         assertTrue(!s.compress);
         assertTrue(s.password==null);
@@ -192,7 +192,7 @@ public class DBMakerTest{
                 .checksumEnable()
                 .make();
 
-        Store s = Pump.storeForDB(db);
+        Store s = Store.forDB(db);
         assertTrue(s.checksum);
         assertTrue(!s.compress);
         assertTrue(s.password==null);
@@ -208,7 +208,7 @@ public class DBMakerTest{
 
                 .encryptionEnable("adqdqwd")
                 .make();
-        Store s = Pump.storeForDB(db);
+        Store s = Store.forDB(db);
         assertTrue(!s.checksum);
         assertTrue(!s.compress);
         assertTrue(s.password!=null);
@@ -228,7 +228,7 @@ public class DBMakerTest{
 
                 .encryptionEnable("adqdqwd")
                 .make();
-        Store s = Pump.storeForDB(db);
+        Store s = Store.forDB(db);
         assertTrue(!s.checksum);
         assertTrue(!s.compress);
         assertTrue(s.password!=null);
@@ -244,7 +244,7 @@ public class DBMakerTest{
                 .cacheDisable()
                 .compressionEnable()
                 .make();
-        Store s = Pump.storeForDB(db);
+        Store s = Store.forDB(db);
         assertTrue(!s.checksum);
         assertTrue(s.compress);
         assertTrue(s.password==null);
@@ -265,7 +265,7 @@ public class DBMakerTest{
                 .make();
         EngineWrapper w = (EngineWrapper) db.engine;
         assertTrue(w instanceof TxEngine);
-        Store s = Pump.storeForEngine(w);
+        Store s = Store.forEngine(w);
         assertTrue(!s.checksum);
         assertTrue(s.compress);
         assertTrue(s.password==null);

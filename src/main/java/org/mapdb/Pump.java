@@ -8,17 +8,19 @@ import java.util.*;
  * Data Pump moves data from one source to other.
  * It can be used to import data from text file, or copy store from memory to disk.
  */
-public class Pump {
+public final class Pump {
 
     /** copies all data from first DB to second DB */
-    public static void copy(DB db1, DB db2){
-        copy(storeForDB(db1), storeForDB(db2));
+    //TODO Pump between stores is disabled for now, make this method public once enabled
+    static void copy(DB db1, DB db2){
+        copy(Store.forDB(db1), Store.forDB(db2));
         db2.engine.clearCache();
         db2.reinit();
     }
 
     /** copies all data from first store to second store */
-    public static void copy(Store s1, Store s2){
+    //TODO Pump between stores is disabled for now, make this method public once enabled
+    static void copy(Store s1, Store s2){
         long maxRecid =s1.getMaxRecid();
         for(long recid=1;recid<=maxRecid;recid++){
             ByteBuffer bb = s1.getRaw(recid);
@@ -34,16 +36,6 @@ public class Pump {
     }
 
 
-    /** traverses {@link EngineWrapper}s and returns underlying {@link Store}*/
-    public static Store storeForDB(DB db){
-        return storeForEngine(db.engine);
-    }
-
-    /** traverses {@link EngineWrapper}s and returns underlying {@link Store}*/
-    public static Store storeForEngine(Engine e){
-        while(e instanceof EngineWrapper) e = ((EngineWrapper) e).getWrappedEngine();
-        return (Store) e;
-    }
 
     /**
      * Sorts large data set by given `Comparator`. Data are sorted with in-memory cache and temporary files.
