@@ -46,8 +46,8 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
         String volume = "volume";
         String volume_raf = "raf";
-        String volume_rafIfNeeded = "rafIfNeeded";
-        String volume_rafIndexMapped = "rafIndexMapped";
+        String volume_mmapfPartial = "mmapfPartial";
+        String volume_mmapfIfSupported = "mmapfIfSupported";
         String volume_mmapf = "mmapf";
         String volume_heap = "heap";
         String volume_offheap = "offheap";
@@ -316,42 +316,40 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         return getThis();
     }
     /**
-     * Enables compatibility storage mode for 32bit JVMs.
-     * <p/>
-     * By default MapDB uses memory mapped files. However 32bit JVM can only address 4GB of memory.
-     * Also some older JVMs do not handle large memory mapped files well.
-     * We can use {@code FileChannel} which does not use memory mapped files, but is slower.
-     * Use this if you are experiencing <b>java.lang.OutOfMemoryError: Map failed</b> exceptions
-     * <p/>
-     * This options disables memory mapped files but causes storage to be slower.
+     * Enables Memory Mapped Files, much faster storage option. However on 32bit JVM this mode could corrupt
+     * your DB thanks to 4GB memory addressing limit.
+     *
+     * You may experience `java.lang.OutOfMemoryError: Map failed` exception on 32bit JVM, if you enable this
+     * mode.
      */
-    public DBMakerT randomAccessFileEnable() {
-        props.setProperty(Keys.volume,Keys.volume_raf);
+    public DBMakerT mmapFileEnable() {
+        props.setProperty(Keys.volume,Keys.volume_mmapf);
         return getThis();
     }
 
 
-    /** Same as {@code randomAccessFileEnable()}, but part of storage is kept memory mapped.
-     *  This mode is good performance compromise between memory mapped files and RAF.
-     *  <p/>
+    /**
+     *  Keeps small-frequently-used part of storage files memory mapped, but main area is accessed using Random Access File.
+     *
+     *  This mode is good performance compromise between Memory Mapped Files and old slow Random Access Files.
+     *
      *  Index file is typically 5% of storage. It contains small frequently read values,
      *  which is where memory mapped file excel.
-     *  <p/>
-     *  With this mode you will experience <b>java.lang.OutOfMemoryError: Map failed</b> exceptions
+     *
+     *  With this mode you will experience `java.lang.OutOfMemoryError: Map failed` exceptions on 32bit JVMs
      *  eventually. But storage size limit is pushed to somewhere around 40GB.
      *
      */
-    public DBMakerT randomAccessFileEnableKeepIndexMapped() {
-        props.setProperty(Keys.volume,Keys.volume_rafIndexMapped);
+    public DBMakerT mmapFileEnablePartial() {
+        props.setProperty(Keys.volume,Keys.volume_mmapfPartial);
         return getThis();
     }
 
     /**
-     * Check current JVM for known problems. If JVM does not handle large memory files well, this option
-     * disables memory mapped files, and use safer and slower {@code RandomAccessFile} instead.
+     * Enable Memory Mapped Files only if current JVM supports it (is 64bit).
      */
-    public DBMakerT randomAccessFileEnableIfNeeded() {
-        props.setProperty(Keys.volume,Keys.volume_rafIfNeeded);
+    public DBMakerT mmapFileEnableIfSupported() {
+        props.setProperty(Keys.volume,Keys.volume_mmapfIfSupported);
         return getThis();
     }
 
@@ -782,14 +780,14 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         String volume = props.getProperty(Keys.volume);
         if(volume==null||Keys.volume_mmapf.equals(volume)){
             return 0;
-        }else if(Keys.volume_rafIfNeeded.equals(volume)){
+        }else if(Keys.volume_mmapfIfSupported.equals(volume)){
             return Utils.JVMSupportsLargeMappedFiles()?0:2;
-        }else if(Keys.volume_rafIndexMapped.equals(volume)){
+        }else if(Keys.volume_mmapfPartial.equals(volume)){
             return 1;
         }else if(Keys.volume_raf.equals(volume)){
             return 2;
         }
-        return 0;
+        return 2; //default option is RAF
     }
 
     protected void extendShutdownHookBefore(Engine engine) {

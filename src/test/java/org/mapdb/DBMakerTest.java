@@ -309,7 +309,7 @@ public class DBMakerTest{
 
     @Test public void rafEnableKeepIndexMapped(){
         DB db = DBMaker.newFileDB(Utils.tempDbFile())
-                .randomAccessFileEnableKeepIndexMapped()
+                .mmapFileEnablePartial()
                 .make();
         Engine e = db.getEngine();
         while(e instanceof EngineWrapper)

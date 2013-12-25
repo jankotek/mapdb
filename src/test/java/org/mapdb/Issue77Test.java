@@ -27,7 +27,7 @@ public class Issue77Test {
         if (readOnly) {
             maker.readOnly();
         }
-        maker.randomAccessFileEnableIfNeeded();
+//        maker.randomAccessFileEnableIfNeeded();
         maker.closeOnJvmShutdown();
         DB db = maker.make(); // InternalError, UnsupportedOperationException
         return db;

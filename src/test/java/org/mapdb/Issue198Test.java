@@ -10,7 +10,7 @@ public class Issue198Test {
 
         DB db = DBMaker.newFileDB(Utils.tempDbFile())
                 .closeOnJvmShutdown()
-                .randomAccessFileEnable()
+                //.randomAccessFileEnable()
                 .make();
         BTreeMap<Integer, Integer> map = db.createTreeMap("testmap").makeOrGet();
         for(int i = 1; i <= 3000; ++i)
