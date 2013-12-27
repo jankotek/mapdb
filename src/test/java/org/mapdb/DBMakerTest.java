@@ -76,7 +76,7 @@ public class DBMakerTest{
     @Test
     public void testMake() throws Exception {
         DB db = DBMaker
-                .newMemoryDB()
+                .newFileDB(Utils.tempDbFile())
                 .transactionDisable()
                 .make();
         verifyDB(db);
@@ -84,7 +84,9 @@ public class DBMakerTest{
         EngineWrapper w = (EngineWrapper) db.engine;
         assertTrue(w instanceof Caches.HashTable);
         assertEquals(1024 * 32, ((Caches.HashTable) w).cacheMaxSize);
-        assertTrue(w.getWrappedEngine().getClass() == StoreDirect.class);
+        StoreDirect s = (StoreDirect) w.getWrappedEngine();
+        assertTrue(s.index instanceof Volume.FileChannelVol);
+        assertTrue(s.phys instanceof Volume.FileChannelVol);
     }
 
     @Test

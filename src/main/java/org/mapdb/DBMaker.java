@@ -778,14 +778,14 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
     protected int propsGetRafMode(){
         String volume = props.getProperty(Keys.volume);
-        if(volume==null||Keys.volume_mmapf.equals(volume)){
-            return 0;
+        if(volume==null||Keys.volume_raf.equals(volume)){
+            return 2;
         }else if(Keys.volume_mmapfIfSupported.equals(volume)){
             return Utils.JVMSupportsLargeMappedFiles()?0:2;
         }else if(Keys.volume_mmapfPartial.equals(volume)){
             return 1;
-        }else if(Keys.volume_raf.equals(volume)){
-            return 2;
+        }else if(Keys.volume_mmapf.equals(volume)){
+            return 0;
         }
         return 2; //default option is RAF
     }
