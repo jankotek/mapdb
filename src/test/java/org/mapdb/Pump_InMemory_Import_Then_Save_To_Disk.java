@@ -14,6 +14,7 @@ import java.util.Random;
 public class Pump_InMemory_Import_Then_Save_To_Disk {
 
     public static void main(String[] args) {
+        if(1==1) return;
 
         //create inMemory store which does not use serialization,
         //and has speed comparable to `java.util` collections
