@@ -85,7 +85,6 @@ public class BrokenDBTest {
             Assert.fail("Expected exception not thrown");
         } catch (final Error e) {
             // will fail!
-            e.printStackTrace();
             Assert.assertTrue("Wrong message", e.getMessage().contains("unknown trans log instruction"));
         }
 
