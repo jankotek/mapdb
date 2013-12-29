@@ -426,7 +426,6 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
             e = openEngine();
             fail();
         }catch(IOError e){
-            e.printStackTrace();
             Throwable e2 = e;
             while (e2 instanceof IOError){
                 e2 = e2.getCause();

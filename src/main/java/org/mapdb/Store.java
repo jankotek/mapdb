@@ -24,6 +24,10 @@ public abstract class Store implements Engine{
     protected final byte[] password;
     protected final EncryptionXTEA encryptionXTEA;
 
+    protected final static int CHECKSUM_FLAG_MASK = 1;
+    protected final static int COMPRESS_FLAG_MASK = 1<<2;
+    protected final static int ENCRYPT_FLAG_MASK = 1<<3;
+
     /** default serializer used for persistence. Handles POJO and other stuff which requires write-able access to Engine */
     protected SerializerPojo serializerPojo;
 
@@ -282,6 +286,12 @@ public abstract class Store implements Engine{
         if(e instanceof TxEngine.Tx)
             return forEngine(((TxEngine.Tx) e).getWrappedEngine());
         return (Store) e;
+    }
+
+    protected int expectedMasks(){
+        return (encrypt?ENCRYPT_FLAG_MASK:0) |
+                (checksum?CHECKSUM_FLAG_MASK:0) |
+                (checksum?COMPRESS_FLAG_MASK:0);
     }
 
 }

@@ -233,6 +233,14 @@ public class StoreDirect extends Store{
         if(index.getUnsignedShort(4)>StoreDirect.STORE_VERSION || phys.getUnsignedShort(4)>StoreDirect.STORE_VERSION )
             throw new IOError(new IOException("New store format version, please use newer MapDB version"));
 
+        final int masks = index.getUnsignedShort(6);
+        if(masks!=phys.getUnsignedShort(6))
+            throw new IllegalArgumentException("Index and Phys file have different feature masks");
+
+        if(masks!=expectedMasks())
+            throw new IllegalArgumentException("File created with different features. Please check compression, checksum or encryption");
+
+
         long checksum = index.getLong(IO_INDEX_SUM);
         if(checksum!=indexHeaderChecksum())
             throw new IOError(new IOException("Wrong index checksum, store was not closed properly and could be corrupted."));
@@ -245,12 +253,14 @@ public class StoreDirect extends Store{
         for(int i=0;i<indexSize;i+=8) index.putLong(i,0L);
         index.putInt(0, HEADER);
         index.putUnsignedShort(4,STORE_VERSION);
+        index.putUnsignedShort(6,expectedMasks());
         index.putLong(IO_INDEX_SIZE,indexSize);
         physSize =16;
         index.putLong(IO_PHYS_SIZE,physSize);
         phys.ensureAvailable(physSize);
         phys.putInt(0, HEADER);
         phys.putUnsignedShort(4,STORE_VERSION);
+        phys.putUnsignedShort(6,expectedMasks());
         freeSize = 0;
         index.putLong(IO_FREE_SIZE,freeSize);
         index.putLong(IO_INDEX_SUM,indexHeaderChecksum());
