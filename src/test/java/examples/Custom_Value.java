@@ -104,6 +104,12 @@ public class Custom_Value {
             public Person deserialize(DataInput in, int available) throws IOException {
                 return new Person(in.readUTF(), in.readUTF());
             }
+
+            @Override
+            public int fixedSize() {
+                return -1;
+            }
+
         }
 
         Serializer<Person> serializer = new CustomSerializer();

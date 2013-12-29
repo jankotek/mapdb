@@ -67,5 +67,11 @@ public class Issue183Test {
         public String deserialize(DataInput in, int available) throws IOException {
             return in.readUTF();
         }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+
     }
 }

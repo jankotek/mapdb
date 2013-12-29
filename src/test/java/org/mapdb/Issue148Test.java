@@ -167,6 +167,12 @@ public class Issue148Test {
 
             return new CustomValue( in.readUTF(), in.readInt() );
         }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+
     }
 
 

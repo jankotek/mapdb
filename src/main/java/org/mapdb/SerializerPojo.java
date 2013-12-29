@@ -77,6 +77,12 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             }
             return new CopyOnWriteArrayList<ClassInfo>(ret);
         }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+
     };
 
     protected final ReentrantReadWriteLock lock = new ReentrantReadWriteLock(CC.FAIR_LOCKS);

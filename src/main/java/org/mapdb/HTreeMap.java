@@ -120,6 +120,12 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                     hasValues? (V) valueSerializer.deserialize(in,-1) : (V) Utils.EMPTY_STRING
             );
         }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+
     };
 
 
@@ -174,6 +180,12 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
             return ret;
         }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+
     };
 
     /** list of segments, this is immutable*/
@@ -1249,6 +1261,12 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                         in.readInt()
                 );
             }
+
+            @Override
+            public int fixedSize() {
+                return -1;
+            }
+
         };
 
         public final long prev;

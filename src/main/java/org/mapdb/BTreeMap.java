@@ -423,6 +423,12 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 return new DirNode(keys, child);
             }
         }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+
     };
 
 

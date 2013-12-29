@@ -90,6 +90,12 @@ public class UtilsTest {
         public Object deserialize(DataInput in, int available) throws IOException {
             throw new RuntimeException();
         }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+
     };
 
 

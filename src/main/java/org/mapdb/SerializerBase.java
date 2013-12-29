@@ -2028,6 +2028,10 @@ public class SerializerBase implements Serializer{
 
     }
 
+    @Override
+    public int fixedSize() {
+        return -1;
+    }
 
 
 }

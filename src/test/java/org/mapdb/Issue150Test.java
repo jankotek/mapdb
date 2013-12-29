@@ -56,6 +56,12 @@ public class Issue150Test {
             a.setName(in.readUTF());
             return a;
         }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+
     }
 
     public static class EntityA implements Serializable {

@@ -15,7 +15,6 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * Various queue algorithms
  */
-//TODO unit tests for BlockingQueues
 public final class Queues {
 
     private Queues(){}
@@ -55,6 +54,12 @@ public final class Queues {
                 if(available==0)return Node.EMPTY;
                 return new Node<E>(Utils.unpackLong(in), serializer.deserialize(in,-1));
             }
+
+            @Override
+            public int fixedSize() {
+                return -1;
+            }
+
         }
 
         protected final Serializer<Node> nodeSerializer;

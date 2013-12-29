@@ -49,6 +49,15 @@ public interface Serializer<A> {
     public A deserialize( DataInput in, int available)
             throws IOException;
 
+
+    /**
+     * Data could be serialized into record with variable size or fixed size.
+     * Some optimizations can be applied to serializers with fixed size
+     *
+     * @return fixed size or -1 for variable size
+     */
+    public int fixedSize();
+
     /**
      * Serializes strings using UTF8 encoding.
      * Stores string size so can be used as collection serializer.
@@ -63,6 +72,11 @@ public interface Serializer<A> {
         @Override
         public String deserialize(DataInput in, int available) throws IOException {
             return in.readUTF();
+        }
+
+        @Override
+        public int fixedSize() {
+            return -1;
         }
     };
 
@@ -84,6 +98,12 @@ public interface Serializer<A> {
         public String deserialize(DataInput in, int available) throws IOException {
             return in.readUTF().intern();
         }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+
     };
 
     /**
@@ -112,6 +132,12 @@ public interface Serializer<A> {
             }
             return new String(cc);
         }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+
     };
 
     /**
@@ -135,6 +161,12 @@ public interface Serializer<A> {
             in.readFully(bytes);
             return new String(bytes, Utils.UTF8_CHARSET);
         }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+
     };
 
 
@@ -156,6 +188,12 @@ public interface Serializer<A> {
             if(available==0) return null;
             return in.readLong();
         }
+
+        @Override
+        public int fixedSize() {
+            return 8;
+        }
+
     };
 
     /** Serializes Integer into 4 bytes, used mainly for testing.
@@ -171,6 +209,12 @@ public interface Serializer<A> {
         public Integer deserialize(DataInput in, int available) throws IOException {
             return in.readInt();
         }
+
+        @Override
+        public int fixedSize() {
+            return 4;
+        }
+
     };
 
     
@@ -185,6 +229,12 @@ public interface Serializer<A> {
             if(available==0) return null;
             return in.readBoolean();
         }
+
+        @Override
+        public int fixedSize() {
+            return 1;
+        }
+
     };
 
     
@@ -203,6 +253,12 @@ public interface Serializer<A> {
         public Object deserialize(DataInput in, int available) throws IOException {
             throw new IllegalAccessError();
         }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+
     };
 
     /**
@@ -232,6 +288,12 @@ public interface Serializer<A> {
             in.readFully(ret);
             return ret;
         }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+
     } ;
 
     /**
@@ -254,6 +316,12 @@ public interface Serializer<A> {
             in.readFully(ret);
             return ret;
         }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+
     } ;
 
     /**
@@ -278,6 +346,12 @@ public interface Serializer<A> {
             }
             return ret;
         }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+
     };
 
 
@@ -303,6 +377,12 @@ public interface Serializer<A> {
             }
             return ret;
         }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+
     };
 
     /**
@@ -327,6 +407,12 @@ public interface Serializer<A> {
             }
             return ret;
         }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+
     };
 
     /**
@@ -351,6 +437,12 @@ public interface Serializer<A> {
             }
             return ret;
         }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+
     };
 
 
@@ -372,6 +464,12 @@ public interface Serializer<A> {
                 throw new IOException(e);
             }
         }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+
     };
 
     /** Serializers {@link java.util.UUID} class */
@@ -386,6 +484,12 @@ public interface Serializer<A> {
         public UUID deserialize(DataInput in, int available) throws IOException {
             return new UUID(in.readLong(), in.readLong());
         }
+
+        @Override
+        public int fixedSize() {
+            return 16;
+        }
+
     };
 
     /** wraps another serializer and (de)compresses its output/input*/
@@ -461,5 +565,11 @@ public interface Serializer<A> {
         public int hashCode() {
             return serializer.hashCode();
         }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+
     }
 }
