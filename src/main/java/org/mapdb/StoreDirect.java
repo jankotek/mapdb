@@ -48,7 +48,7 @@ import java.util.concurrent.locks.Lock;
  *
  *  slot        | in code                       | description
  *  ---         | ---                               | ---
- *  0           | {@link StoreDirect#HEADER}        | File header
+ *  0           | {@link StoreDirect#HEADER}        | File header, format version and flags
  *  1           | {@link StoreDirect#IO_INDEX_SIZE} | Allocated file size of index file in bytes.
  *  2           | {@link StoreDirect#IO_PHYS_SIZE}  | Allocated file size of physical file in bytes.
  *  3           | {@link StoreDirect#IO_FREE_SIZE}  | Space occupied by free records in physical file in bytes.
@@ -122,7 +122,11 @@ public class StoreDirect extends Store{
     protected static final long MASK_DISCARD = 0x4L;
     protected static final long MASK_ARCHIVE = 0x2L;
 
-    protected static final long HEADER = 9032094932889042394L;
+    /** 4 byte file header */
+    protected static final int HEADER = 893298482;
+
+    /** 2 byte store version*/
+    protected static final short STORE_VERSION = 10000;
 
     /** maximal non linked record size */
     protected static final int MAX_REC_SIZE = 65536-1;
@@ -223,7 +227,11 @@ public class StoreDirect extends Store{
 
 
     protected void checkHeaders() {
-        if(index.getLong(0)!=HEADER||phys.getLong(0)!=HEADER)throw new IOError(new IOException("storage has invalid header"));
+        if(index.getInt(0)!=HEADER||phys.getInt(0)!=HEADER)
+            throw new IOError(new IOException("storage has invalid header"));
+
+        if(index.getUnsignedShort(4)>StoreDirect.STORE_VERSION || phys.getUnsignedShort(4)>StoreDirect.STORE_VERSION )
+            throw new IOError(new IOException("New store format version, please use newer MapDB version"));
 
         long checksum = index.getLong(IO_INDEX_SUM);
         if(checksum!=indexHeaderChecksum())
@@ -235,12 +243,14 @@ public class StoreDirect extends Store{
         assert(indexSize>IO_USER_START);
         index.ensureAvailable(indexSize);
         for(int i=0;i<indexSize;i+=8) index.putLong(i,0L);
-        index.putLong(0, HEADER);
+        index.putInt(0, HEADER);
+        index.putUnsignedShort(4,STORE_VERSION);
         index.putLong(IO_INDEX_SIZE,indexSize);
         physSize =16;
         index.putLong(IO_PHYS_SIZE,physSize);
         phys.ensureAvailable(physSize);
-        phys.putLong(0, HEADER);
+        phys.putInt(0, HEADER);
+        phys.putUnsignedShort(4,STORE_VERSION);
         freeSize = 0;
         index.putLong(IO_FREE_SIZE,freeSize);
         index.putLong(IO_INDEX_SUM,indexHeaderChecksum());

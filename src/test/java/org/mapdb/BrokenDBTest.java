@@ -66,14 +66,15 @@ public class BrokenDBTest {
      * @throws IOException
      */
     @Test
-    public void canDeleteDBOnBrokenLog() throws FileNotFoundException, IOException {
+    public void canDeleteDBOnBrokenLog() throws IOException {
         // init empty, but valid DB
         DBMaker.newFileDB(index).make().close();
 
         // trash the log
         MappedFileVol logVol = new Volume.MappedFileVol(log, false, 0, false);
         logVol.ensureAvailable(32);
-        logVol.putLong(0, StoreWAL.HEADER);
+        logVol.putInt(0, StoreWAL.HEADER);
+        logVol.putUnsignedShort(4, StoreWAL.STORE_VERSION);
         logVol.putLong(8, StoreWAL.LOG_SEAL);
         logVol.putLong(16, 123456789L);
         logVol.sync();
@@ -84,6 +85,7 @@ public class BrokenDBTest {
             Assert.fail("Expected exception not thrown");
         } catch (final Error e) {
             // will fail!
+            e.printStackTrace();
             Assert.assertTrue("Wrong message", e.getMessage().contains("unknown trans log instruction"));
         }
 

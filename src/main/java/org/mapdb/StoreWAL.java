@@ -107,7 +107,8 @@ public class StoreWAL extends StoreDirect {
         if(log !=null) return;
         log = volFac.createTransLogVolume();
         log.ensureAvailable(16);
-        log.putLong(0, HEADER);
+        log.putInt(0, HEADER);
+        log.putUnsignedShort(4,STORE_VERSION);
         log.putLong(8, 0L);
         logSize = 16;
     }
@@ -651,13 +652,18 @@ public class StoreWAL extends StoreDirect {
 
 
         //read headers
-        if(log.isEmpty() || log.getLong(0)!=HEADER || log.getLong(8) !=LOG_SEAL){
+        if(log.isEmpty() || log.getInt(0)!=HEADER  || log.getLong(8) !=LOG_SEAL){
             //wrong headers, discard log
             log.close();
             log.deleteFile();
             log = null;
             return false;
         }
+
+        if(log.getUnsignedShort(4)>STORE_VERSION){
+            throw new IOError(new IOException("New store format version, please use newer MapDB version"));
+        }
+
 
         final CRC32 crc32 = new CRC32();
 
@@ -763,7 +769,8 @@ public class StoreWAL extends StoreDirect {
 
 
         //read headers
-        if(log.isEmpty() || log.getLong(0)!=HEADER || log.getLong(8) !=LOG_SEAL){
+        if(log.isEmpty() || log.getInt(0)!=HEADER ||
+                log.getUnsignedShort(4)>STORE_VERSION || log.getLong(8) !=LOG_SEAL){
             //wrong headers, discard log
             log.close();
             log.deleteFile();
