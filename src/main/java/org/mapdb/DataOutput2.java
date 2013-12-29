@@ -147,10 +147,10 @@ public final class DataOutput2 extends OutputStream implements DataOutput {
     @Override
     public void writeUTF(final String s) throws IOException {
         final int len = s.length();
-        Utils.packInt((DataOutput)this, len);
+        Utils.packInt(this, len);
         for (int i = 0; i < len; i++) {
-            int c = (int) s.charAt(i); //TODO investigate if c could be negative here
-            Utils.packInt((DataOutput)this, c);
+            int c = (int) s.charAt(i);
+            Utils.packInt(this, c);
         }
     }
 }
