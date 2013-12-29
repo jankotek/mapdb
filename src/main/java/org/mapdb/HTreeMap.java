@@ -132,7 +132,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     protected static final Serializer<long[][]>DIR_SERIALIZER = new Serializer<long[][]>() {
         @Override
         public void serialize(DataOutput out, long[][] value) throws IOException {
-            if(value.length!=16) throw new InternalError();
+            assert(value.length==16);
 
             //first write mask which indicate subarray nullability
             int nulls = 0;
@@ -151,7 +151,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             //write non null subarrays
             for(int i = 0;i<16;i++){
                 if(value[i]!=null){
-                    if(value[i].length!=8) throw new InternalError();
+                    assert(value[i].length==8);
                     for(long l:value[i]){
                         Utils.packLong(out, l);
                     }
@@ -418,7 +418,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             long[][] dir = engine.get(recid, DIR_SERIALIZER);
             if(dir == null) return null;
             int slot = (h>>>(level*7 )) & 0x7F;
-            if(slot>=128) throw new InternalError();
+            assert(slot<128);
             if(dir[slot>>>DIV8]==null) return null;
             recid = dir[slot>>>DIV8][slot&MOD8];
             if(recid == 0) return null;
@@ -471,7 +471,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         while(true){
             long[][] dir = engine.get(dirRecid, DIR_SERIALIZER);
             final int slot =  (h>>>(7*level )) & 0x7F;
-            if(slot>127) throw new InternalError();
+            assert(slot<=127);
 
             if(dir == null ){
                 //create new dir
@@ -595,7 +595,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             while(true){
                 long[][] dir = engine.get(dirRecids[level], DIR_SERIALIZER);
                 final int slot =  (h>>>(7*level )) & 0x7F;
-                if(slot>127) throw new InternalError();
+                assert(slot<=127);
 
                 if(dir == null ){
                     //create new dir
@@ -1572,20 +1572,19 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         long current = engine.get(expireTails[segment],Serializer.LONG);
         if(current==0){
             if(engine.get(expireHeads[segment],Serializer.LONG)!=0)
-                throw new InternalError("head not 0");
+                throw new AssertionError("head not 0");
             return;
         }
 
         long prev = 0;
         while(current!=0){
             ExpireLinkNode curr = engine.get(current,ExpireLinkNode.SERIALIZER);
-            if(curr.prev!=prev)
-                throw new InternalError("wrong prev "+curr.prev +" - "+prev);
+            assert(curr.prev==prev):"wrong prev "+curr.prev +" - "+prev;
             prev= current;
             current = curr.next;
         }
         if(engine.get(expireHeads[segment],Serializer.LONG)!=prev)
-            throw new InternalError("wrong head");
+            throw new AssertionError("wrong head");
 
     }
 

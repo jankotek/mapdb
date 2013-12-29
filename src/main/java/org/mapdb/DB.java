@@ -1313,7 +1313,7 @@ public class DB {
         if("Queue".equals(type)) return (E) getQueue(name);
         if("Stack".equals(type)) return (E) getStack(name);
         if("CircularQueue".equals(type)) return (E) getCircularQueue(name);
-        throw new InternalError("Unknown type: "+name);
+        throw new AssertionError("Unknown type: "+name);
     }
 
     synchronized public boolean exists(String name){

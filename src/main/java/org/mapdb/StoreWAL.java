@@ -364,7 +364,7 @@ public class StoreWAL extends StoreDirect {
                 log.getDataInput((r[i] & LOG_MASK_OFFSET) + c, size).readFully(b,pos,size);
                 pos+=size;
             }
-            if(pos!=totalSize)throw new InternalError();
+            if(pos!=totalSize)throw new AssertionError();
 
             return deserialize(serializer,totalSize, new DataInput2(b));
         }
@@ -737,7 +737,7 @@ public class StoreWAL extends StoreDirect {
             }else if(ins == WAL_SKIP_REST_OF_BLOCK){
                 logSize += Volume.CHUNK_SIZE -(logSize&Volume.CHUNK_SIZE_MOD_MASK);
             }else{
-                throw new InternalError("unknown trans log instruction '"+ins +"' at log offset: "+(logSize-1));
+                throw new AssertionError("unknown trans log instruction '"+ins +"' at log offset: "+(logSize-1));
             }
 
             ins = log.getByte(logSize);
@@ -817,7 +817,7 @@ public class StoreWAL extends StoreDirect {
             }else if(ins == WAL_SKIP_REST_OF_BLOCK){
                 logSize += Volume.CHUNK_SIZE -(logSize&Volume.CHUNK_SIZE_MOD_MASK);
             }else{
-                throw new InternalError("unknown trans log instruction '"+ins +"' at log offset: "+(logSize-1));
+                throw new AssertionError("unknown trans log instruction '"+ins +"' at log offset: "+(logSize-1));
             }
 
             ins = log.getByte(logSize);
@@ -896,7 +896,7 @@ public class StoreWAL extends StoreDirect {
         long pos = dataOffset>>>48;
         dataOffset&=MASK_OFFSET;
 
-        if(pos<8) throw new InternalError();
+        if(pos<8) throw new AssertionError();
 
         long[] buf = getLongStackPage(dataOffset,true);
 
@@ -945,7 +945,7 @@ public class StoreWAL extends StoreDirect {
         assert(offset>>>48==0);
         assert(ioList>=IO_FREE_RECID && ioList<=IO_USER_START): "wrong ioList: "+ioList;
 
-//        if(recursive) throw new InternalError();
+//        if(recursive) throw new AssertionError();
         if(offset>>>48!=0) throw new IllegalArgumentException();
         //index position was cleared, put into free index list
 
@@ -959,7 +959,7 @@ public class StoreWAL extends StoreDirect {
             //yes empty, create new page and fill it with values
             final long listPhysid = freePhysTake((int) LONG_STACK_PREF_SIZE,false,true) &MASK_OFFSET;
             long[] buf = getLongStackPage(listPhysid,false);
-            if(listPhysid == 0) throw new InternalError();
+            if(listPhysid == 0) throw new AssertionError();
 
             //set size and link to old page
             buf[0] = (LONG_STACK_PREF_SIZE<<48) | dataOffset;
@@ -980,7 +980,7 @@ public class StoreWAL extends StoreDirect {
                 //yes it is full, so we need to allocate new page and write our number there
                 final long listPhysid = freePhysTake((int) LONG_STACK_PREF_SIZE, false,true) &MASK_OFFSET;
                 long[] bufNew = getLongStackPage(listPhysid,false);
-                if(listPhysid == 0) throw new InternalError();
+                if(listPhysid == 0) throw new AssertionError();
 
                 //set location to previous page and set current page size
                 bufNew[0]=(LONG_STACK_PREF_SIZE<<48)|dataOffset;

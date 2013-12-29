@@ -208,7 +208,7 @@ class StoreAppend extends Store{
     }
 
     protected void rollover(){
-        if(currVolume.getLong(0)!=HEADER) throw new InternalError();
+        if(currVolume.getLong(0)!=HEADER) throw new AssertionError();
         if(currPos<=FILE_MASK || readOnly) return;
         //beyond usual file size, so create new file
         currVolume.sync();

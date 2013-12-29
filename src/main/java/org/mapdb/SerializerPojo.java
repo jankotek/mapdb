@@ -361,7 +361,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         if(classId != null) {
             return classId;
         }
-        throw new Error("Class is not registered: " + clazz);
+        throw new AssertionError("Class is not registered: " + clazz);
     }
 
     @Override
@@ -431,12 +431,12 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         if(head == Header.NAMED){
             String name = in.readUTF();
             Object o = db.get(name);
-            if(o==null) throw new InternalError("Named object was not found: "+name);
+            if(o==null) throw new AssertionError("Named object was not found: "+name);
             objectStack.add(o);
             return o;
         }
 
-        if(head!= Header.POJO) throw new InternalError();
+        if(head!= Header.POJO) throw new AssertionError();
 
         lock.readLock().lock();
         //read class header
@@ -475,7 +475,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             }
             return o;
         } catch (Exception e) {
-            throw new Error("Could not instantiate class", e);
+            throw new RuntimeException("Could not instantiate class", e);
         }finally {
             lock.readLock().unlock();
         }

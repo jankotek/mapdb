@@ -381,7 +381,7 @@ public class StoreDirect extends Store{
                 final int c =   i==indexVals.length-1 ? 0: 8;
                 final long indexVal = indexVals[i];
                 final boolean isLast = (indexVal & MASK_LINKED) ==0;
-                if(isLast!=(i==indexVals.length-1)) throw new InternalError();
+                assert(isLast==(i==indexVals.length-1));
                 final int size = (int) (indexVal>>>48);
                 final long offset = indexVal&MASK_OFFSET;
 
@@ -394,7 +394,7 @@ public class StoreDirect extends Store{
                     phys.putLong(offset, indexVals[i + 1]);
                 }
             }
-              if(outPos!=out.pos) throw new InternalError();
+              if(outPos!=out.pos) throw new AssertionError();
         }
     }
 
@@ -651,7 +651,7 @@ public class StoreDirect extends Store{
 
                 c = size<=MAX_REC_SIZE ? 0 : 8;
             }
-            if(size!=0) throw new InternalError();
+            if(size!=0) throw new AssertionError();
 
             return Arrays.copyOf(ret, retPos);
         }
@@ -812,15 +812,15 @@ public class StoreDirect extends Store{
                 store2.close();
                 //not in memory, so just rename files
                 if(!indexFile.renameTo(indexFile_))
-                    throw new InternalError("could not rename file");
+                    throw new AssertionError("could not rename file");
                 if(!physFile.renameTo(physFile_))
-                    throw new InternalError("could not rename file");
+                    throw new AssertionError("could not rename file");
 
                 if(!indexFile2.renameTo(indexFile))
-                    throw new InternalError("could not rename file");
+                    throw new AssertionError("could not rename file");
                 //TODO process may fail in middle of rename, analyze sequence and add recovery
                 if(!physFile2.renameTo(physFile))
-                    throw new InternalError("could not rename file");
+                    throw new AssertionError("could not rename file");
 
                 final Volume.Factory fac2 = Volume.fileFactory(false, rafMode, indexFile,sizeLimit,fullChunkAllocation);
                 index = fac2.createIndexVolume();
@@ -884,7 +884,7 @@ public class StoreDirect extends Store{
         long pos = dataOffset>>>48;
         dataOffset &= MASK_OFFSET;
 
-        if(pos<8) throw new InternalError();
+        if(pos<8) throw new AssertionError();
 
         final long ret = phys.getSixLong(dataOffset + pos);
 
@@ -936,7 +936,7 @@ public class StoreDirect extends Store{
         if(dataOffset == 0){ //empty list?
             //yes empty, create new page and fill it with values
             final long listPhysid = freePhysTake((int) LONG_STACK_PREF_SIZE,true,true) &MASK_OFFSET;
-            if(listPhysid == 0) throw new InternalError();
+            if(listPhysid == 0) throw new AssertionError();
             //set previous Free Index List page to zero as this is first page
             //also set size of this record
             phys.putLong(listPhysid , LONG_STACK_PREF_SIZE << 48);
@@ -958,7 +958,7 @@ public class StoreDirect extends Store{
                 }
                 //yes it is full, so we need to allocate new page and write our number there
                 final long listPhysid = freePhysTake((int) newPageSize,true,true) &MASK_OFFSET;
-                if(listPhysid == 0) throw new InternalError();
+                if(listPhysid == 0) throw new AssertionError();
 
                 //set location to previous page and set current page size
                 phys.putLong(listPhysid, (newPageSize<<48)|(dataOffset&MASK_OFFSET));

@@ -352,7 +352,7 @@ public abstract class BTreeKeySerializer<K>{
                 ret[i]= Fun.t2(a,b);
                 acount--;
             }
-            if(acount!=0) throw new InternalError();
+            assert(acount==0);
 
             return ret;
         }
@@ -506,8 +506,8 @@ public abstract class BTreeKeySerializer<K>{
                 acount--;
                 bcount--;
             }
-            if(acount!=0) throw new InternalError();
-            if(bcount!=0) throw new InternalError();
+            assert(acount==0);
+            assert(bcount==0);
 
             return ret;
         }
@@ -695,9 +695,9 @@ public abstract class BTreeKeySerializer<K>{
                 bcount--;
                 ccount--;
             }
-            if(acount!=0) throw new InternalError();
-            if(bcount!=0) throw new InternalError();
-            if(ccount!=0) throw new InternalError();
+            assert(acount==0);
+            assert(bcount==0);
+            assert(ccount==0);
 
             return ret;
         }

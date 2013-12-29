@@ -181,12 +181,12 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
         @Override
         public boolean equals(Object obj) {
-            throw new InternalError();
+            throw new IllegalAccessError();
         }
 
         @Override
         public int hashCode() {
-            throw new InternalError();
+            throw new IllegalAccessError();
         }
 
         @Override

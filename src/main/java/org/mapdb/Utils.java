@@ -88,7 +88,7 @@ final public class Utils {
      * @throws java.io.IOException
      */
     static public long unpackLong(DataInput in) throws IOException {
-
+        //TODO unrolled version?
         long result = 0;
         for (int offset = 0; offset < 64; offset += 7) {
             long b = in.readUnsignedByte();
@@ -97,7 +97,7 @@ final public class Utils {
                 return result;
             }
         }
-        throw new Error("Malformed long.");
+        throw new AssertionError("Malformed long.");
     }
 
     /** get number of bytes occupied by packed long */
@@ -133,6 +133,7 @@ final public class Utils {
     }
 
     static public int unpackInt(DataInput is) throws IOException {
+        //TODO unrolled version?
         for (int offset = 0, result = 0; offset < 32; offset += 7) {
             int b = is.readUnsignedByte();
             result |= (b & 0x7F) << offset;
@@ -140,7 +141,7 @@ final public class Utils {
                 return result;
             }
         }
-        throw new Error("Malformed int.");
+        throw new AssertionError("Malformed int.");
     }
 
 
@@ -271,10 +272,9 @@ final public class Utils {
 
     public static void lock(LongConcurrentHashMap<Thread> locks, long recid){
         //feel free to rewrite, if you know better (more efficient) way
-        if(locks.get(recid)==Thread.currentThread()){
-            //check node is not already locked by this thread
-            throw new InternalError("node already locked by current thread: "+recid);
-        }
+
+        //check node is not already locked by this thread
+        assert(locks.get(recid)!=Thread.currentThread()):("node already locked by current thread: "+recid);
 
         while(locks.putIfAbsent(recid, Thread.currentThread()) != null){
             LockSupport.parkNanos(10);
@@ -285,8 +285,7 @@ final public class Utils {
 
     public static void unlock(LongConcurrentHashMap<Thread> locks,final long recid) {
         final Thread t = locks.remove(recid);
-        if(t!=Thread.currentThread())
-            throw new InternalError("unlocked wrong thread");
+        assert(t==Thread.currentThread()):("unlocked wrong thread");
     }
 
     public static void unlockAll(LongConcurrentHashMap<Thread> locks) {
@@ -300,9 +299,12 @@ final public class Utils {
 
     public static void assertNoLocks(LongConcurrentHashMap<Thread> locks){
             LongMap.LongMapIterator<Thread> i = locks.longMapIterator();
+            Thread t =null;
             while(i.moveToNext()){
-                if(i.value()==Thread.currentThread()){
-                    throw new InternalError("Node "+i.key()+" is still locked");
+                if(t==null)
+                    t = Thread.currentThread();
+                if(i.value()==t){
+                    throw new AssertionError("Node "+i.key()+" is still locked");
                 }
             }
     }

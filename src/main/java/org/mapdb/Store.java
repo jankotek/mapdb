@@ -187,9 +187,8 @@ public abstract class Store implements Engine{
 
                     byte[] expected2 = Arrays.copyOf(expected.buf, expected.pos);
                     //check arrays equals
-                    if(!Arrays.equals(expected2,decompress)){
-                        throw new InternalError();
-                    }
+                    assert(Arrays.equals(expected2,decompress));
+
 
                 }catch(Exception e){
                     throw new RuntimeException(e);
@@ -267,9 +266,9 @@ public abstract class Store implements Engine{
 
         A ret = serializer.deserialize(di,size);
         if(size+start>di.pos)
-            throw new InternalError("data were not fully read, check your serializer ");
+            throw new AssertionError("data were not fully read, check your serializer ");
         if(size+start<di.pos)
-            throw new InternalError("data were read beyond record size, check your serializer");
+            throw new AssertionError("data were read beyond record size, check your serializer");
         return ret;
     }
 

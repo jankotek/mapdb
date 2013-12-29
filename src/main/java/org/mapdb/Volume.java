@@ -157,6 +157,7 @@ public abstract class Volume {
     abstract public File getFile();
 
     public long getPackedLong(long pos){
+        //TODO unrolled version?
         long result = 0;
         for (int offset = 0; offset < 64; offset += 7) {
             long b = getUnsignedByte(pos++);
@@ -165,7 +166,7 @@ public abstract class Volume {
                 return result;
             }
         }
-        throw new Error("Malformed long.");
+        throw new AssertionError("Malformed long.");
     }
 
 

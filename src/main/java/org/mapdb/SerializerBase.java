@@ -1263,7 +1263,7 @@ public class SerializerBase implements Serializer{
                 ret = Fun.HI;
                 break;
             case Header.JAVA_SERIALIZATION:
-                throw new InternalError("Wrong header, data were probably serialized with java.lang.ObjectOutputStream, not with MapDB serialization");
+                throw new AssertionError("Wrong header, data were probably serialized with java.lang.ObjectOutputStream, not with MapDB serialization");
             case Header.ARRAY_OBJECT_PACKED_LONG:
                 ret = deserializeArrayObjectPackedLong(is);
                 break;
@@ -1633,11 +1633,11 @@ public class SerializerBase implements Serializer{
 
     /** override this method to extend SerializerBase functionality*/
     protected void serializeUnknownObject(DataOutput out, Object obj, FastArrayList<Object> objectStack) throws IOException {
-        throw new InternalError("Could not serialize unknown object: "+obj.getClass().getName());
+        throw new AssertionError("Could not serialize unknown object: "+obj.getClass().getName());
     }
     /** override this method to extend SerializerBase functionality*/
     protected Object deserializeUnknownHeader(DataInput is, int head, FastArrayList<Object> objectStack) throws IOException {
-        throw new InternalError("Unknown serialization header: " + head);
+        throw new AssertionError("Unknown serialization header: " + head);
     }
 
     /**

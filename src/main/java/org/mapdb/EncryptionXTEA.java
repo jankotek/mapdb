@@ -51,18 +51,16 @@ public final class EncryptionXTEA{
 
 
     public void encrypt(byte[] bytes, int off, int len) {
-        if (len % ALIGN != 0) {
-            throw new InternalError("unaligned len " + len);
-        }
+        assert(len % ALIGN == 0):("unaligned len " + len);
+
         for (int i = off; i < off + len; i += 8) {
             encryptBlock(bytes, bytes, i);
         }
     }
 
     public void decrypt(byte[] bytes, int off, int len) {
-        if (len % ALIGN != 0) {
-            throw new InternalError("unaligned len " + len);
-        }
+        assert(len % ALIGN == 0):("unaligned len " + len);
+
         for (int i = off; i < off + len; i += 8) {
             decryptBlock(bytes, bytes, i);
         }
