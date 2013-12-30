@@ -11,8 +11,6 @@ is enabled by default.
 This release changes store format and is not backward compatible. There are
 also several API changes. Also some new features are added.
 
-Log bellow is incomplete. Full
-
 Changes:
 
  * Append-Only store was postponed to 1.1 release. All methods are not public now.
