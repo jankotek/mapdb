@@ -642,13 +642,13 @@ public class DB {
 
 
         /** creates map optimized for using `String` keys */
-        public <V> Map<String, V> makeStringMap() {
+        public <V> BTreeMap<String, V> makeStringMap() {
             keySerializer = BTreeKeySerializer.STRING;
             return make();
         }
 
         /** creates map optimized for using zero or positive `Long` keys */
-        public <V> Map<Long, V> makeLongMap() {
+        public <V> BTreeMap<Long, V> makeLongMap() {
             keySerializer = BTreeKeySerializer.ZERO_OR_POSITIVE_LONG;
             return make();
         }
