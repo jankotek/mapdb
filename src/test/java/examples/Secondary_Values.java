@@ -50,7 +50,7 @@ public class Secondary_Values {
         System.out.println(id2friends);
 
         //list all friends associated with John. This does range query on NavigableMap
-        for(String name:Bind.findVals2(id2friends,1)){
+        for(String name:Fun.filter(id2friends, 1)){
             System.out.println(name);
         }
 

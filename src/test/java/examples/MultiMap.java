@@ -31,7 +31,7 @@ public class MultiMap {
         multiMap.add(Fun.t2("bb",1L));
 
         //find all values for a key
-        for(Long l: Bind.findVals2(multiMap, "aa")){
+        for(Long l: Fun.filter(multiMap, "aa")){
             System.out.println("value for key 'aa': "+l);
         }
 
