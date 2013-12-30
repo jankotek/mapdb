@@ -52,7 +52,8 @@ public class BTreeKeySerializerTest {
         }
     }
 
-    final BTreeKeySerializer.Tuple2KeySerializer tuple2_serializer = new BTreeKeySerializer.Tuple2KeySerializer(Utils.COMPARABLE_COMPARATOR,
+    final BTreeKeySerializer.Tuple2KeySerializer tuple2_serializer = new BTreeKeySerializer.Tuple2KeySerializer(
+            BTreeMap.COMPARABLE_COMPARATOR,
             Serializer.BASIC, Serializer.BASIC);
 
     @Test public void tuple2_simple() throws IOException {
@@ -103,7 +104,7 @@ public class BTreeKeySerializerTest {
 
 
     final BTreeKeySerializer.Tuple3KeySerializer tuple3_serializer = new BTreeKeySerializer.Tuple3KeySerializer(
-            Utils.COMPARABLE_COMPARATOR,Utils.COMPARABLE_COMPARATOR,
+            BTreeMap.COMPARABLE_COMPARATOR,BTreeMap.COMPARABLE_COMPARATOR,
             Serializer.BASIC, Serializer.BASIC, Serializer.BASIC);
 
     @Test public void tuple3_simple() throws IOException {
@@ -156,7 +157,7 @@ public class BTreeKeySerializerTest {
     }
 
     final BTreeKeySerializer.Tuple4KeySerializer tuple4_serializer = new BTreeKeySerializer.Tuple4KeySerializer(
-            Utils.COMPARABLE_COMPARATOR,Utils.COMPARABLE_COMPARATOR,Utils.COMPARABLE_COMPARATOR,
+            BTreeMap.COMPARABLE_COMPARATOR,BTreeMap.COMPARABLE_COMPARATOR,BTreeMap.COMPARABLE_COMPARATOR,
             Serializer.BASIC, Serializer.BASIC, Serializer.BASIC, Serializer.BASIC);
 
     @Test public void tuple4_simple() throws IOException {

@@ -135,7 +135,7 @@ public class StoreWAL extends StoreDirect {
             }finally{
                 structuralLock.unlock();
             }
-            final Lock lock  = locks[Utils.lockPos(ioRecid)].writeLock();
+            final Lock lock  = locks[Store.lockPos(ioRecid)].writeLock();
             lock.lock();
             try{
 
@@ -180,7 +180,7 @@ public class StoreWAL extends StoreDirect {
             //write data into log
             for(int i=0;i<recids.length;i++){
                 final long ioRecid = recids[i];
-                final Lock lock2 = locks[Utils.lockPos(ioRecid)].writeLock();
+                final Lock lock2 = locks[Store.lockPos(ioRecid)].writeLock();
                 lock2.lock();
                 try{
                     walIndexVal(logPos, ioRecid, MASK_DISCARD);
@@ -223,7 +223,7 @@ public class StoreWAL extends StoreDirect {
             structuralLock.unlock();
         }
 
-        final Lock lock  = locks[Utils.lockPos(ioRecid)].writeLock();
+        final Lock lock  = locks[Store.lockPos(ioRecid)].writeLock();
         lock.lock();
         try{
             //write data into log
@@ -266,7 +266,7 @@ public class StoreWAL extends StoreDirect {
 
             crc32.reset();
             crc32.update(out.buf,outPos, size-c);
-            logC |= Utils.longHash( pos | header | physPos[i] | (c>0?physPos[i+1]:0) | crc32.getValue());
+            logC |= LongHashMap.longHash( pos | header | physPos[i] | (c>0?physPos[i+1]:0) | crc32.getValue());
 
             outPos +=size-c;
             assert(logSize>=outPos);
@@ -277,13 +277,13 @@ public class StoreWAL extends StoreDirect {
 
 
     protected void walIndexVal(long logPos, long ioRecid, long indexVal) {
-        assert(locks[Utils.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
+        assert(locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
         assert(logSize>=logPos+1+8+8);
         log.putByte(logPos, WAL_INDEX_LONG);
         log.putLong(logPos + 1, ioRecid);
         log.putLong(logPos + 9, indexVal);
 
-        logChecksumAdd(Utils.longHash(logPos | WAL_INDEX_LONG | ioRecid | indexVal));
+        logChecksumAdd(LongHashMap.longHash(logPos | WAL_INDEX_LONG | ioRecid | indexVal));
     }
 
 
@@ -320,7 +320,7 @@ public class StoreWAL extends StoreDirect {
     public <A> A get(long recid, Serializer<A> serializer) {
         assert(recid>0);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock  = locks[Utils.lockPos(ioRecid)].readLock();
+        final Lock lock  = locks[Store.lockPos(ioRecid)].readLock();
         lock.lock();
         try{
             return get2(ioRecid, serializer);
@@ -333,8 +333,8 @@ public class StoreWAL extends StoreDirect {
 
     @Override
     protected <A> A get2(long ioRecid, Serializer<A> serializer) throws IOException {
-        assert(locks[Utils.lockPos(ioRecid)].getWriteHoldCount()==0||
-                locks[Utils.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
+        assert(locks[Store.lockPos(ioRecid)].getWriteHoldCount()==0||
+                locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
 
         //check if record was modified in current transaction
         long[] r = modified.get(ioRecid);
@@ -376,7 +376,7 @@ public class StoreWAL extends StoreDirect {
         assert(value!=null);
         DataOutput2 out = serialize(value, serializer);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock  = locks[Utils.lockPos(ioRecid)].writeLock();
+        final Lock lock  = locks[Store.lockPos(ioRecid)].writeLock();
         lock.lock();
         try{
             final long[] physPos;
@@ -432,7 +432,7 @@ public class StoreWAL extends StoreDirect {
         assert(recid>0);
         assert(expectedOldValue!=null && newValue!=null);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock  = locks[Utils.lockPos(ioRecid)].writeLock();
+        final Lock lock  = locks[Store.lockPos(ioRecid)].writeLock();
         lock.lock();
         DataOutput2 out;
         try{
@@ -497,7 +497,7 @@ public class StoreWAL extends StoreDirect {
     public <A> void delete(long recid, Serializer<A> serializer) {
         assert(recid>0);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock  = locks[Utils.lockPos(ioRecid)].writeLock();
+        final Lock lock  = locks[Store.lockPos(ioRecid)].writeLock();
         lock.lock();
         try{
             final long logPos;
@@ -561,7 +561,7 @@ public class StoreWAL extends StoreDirect {
                 long[] array = iter.value();
                 log.ensureAvailable(logSize+1+8+pageSize);
 
-                crc |= Utils.longHash(logSize|WAL_LONGSTACK_PAGE|firstVal|array[0]);
+                crc |= LongHashMap.longHash(logSize|WAL_LONGSTACK_PAGE|firstVal|array[0]);
 
                 log.putByte(logSize, WAL_LONGSTACK_PAGE);
                 logSize+=1;
@@ -573,7 +573,7 @@ public class StoreWAL extends StoreDirect {
                 logSize+=8;
                 int numItems = (int) ((pageSize-8)/6);
                 for(int i=1;i<=numItems;i++){
-                    crc|=Utils.longHash(logSize|array[i]);
+                    crc|=LongHashMap.longHash(logSize|array[i]);
                     log.putSixLong(logSize,array[i]);
                     logSize+=6;
                 }
@@ -592,7 +592,7 @@ public class StoreWAL extends StoreDirect {
             //seal log file
             log.ensureAvailable(logSize + 1 + 3*6 + 8+4);
             long indexChecksum = indexHeaderChecksumUncommited();
-            crc|=Utils.longHash(logSize|WAL_SEAL|indexSize|physSize|freeSize|indexChecksum);
+            crc|=LongHashMap.longHash(logSize|WAL_SEAL|indexSize|physSize|freeSize|indexChecksum);
             log.putByte(logSize, WAL_SEAL);
             logSize+=1;
             log.putSixLong(logSize, indexSize);
@@ -636,7 +636,7 @@ public class StoreWAL extends StoreDirect {
             }else
                 indexVal = indexVals[offset / 8];
 
-            ret |=  indexVal | Utils.longHash(indexVal|offset) ;
+            ret |=  indexVal | LongHashMap.longHash(indexVal|offset) ;
         }
 
         return ret;
@@ -684,7 +684,7 @@ public class StoreWAL extends StoreDirect {
                 logSize+=8;
                 long indexVal = log.getLong(logSize);
                 logSize+=8;
-                crc |= Utils.longHash((logSize-1-8-8) | WAL_INDEX_LONG | ioRecid | indexVal);
+                crc |= LongHashMap.longHash((logSize-1-8-8) | WAL_INDEX_LONG | ioRecid | indexVal);
             }else if(ins == WAL_PHYS_ARRAY){
                 final long offset2 = log.getLong(logSize);
                 logSize+=8;
@@ -699,7 +699,7 @@ public class StoreWAL extends StoreDirect {
                 crc32.reset();
                 crc32.update(b);
 
-                crc |= Utils.longHash(logSize | WAL_PHYS_ARRAY | offset2 | crc32.getValue());
+                crc |= LongHashMap.longHash(logSize | WAL_PHYS_ARRAY | offset2 | crc32.getValue());
 
                 logSize+=size;
             }else if(ins == WAL_PHYS_ARRAY_ONE_LONG){
@@ -719,7 +719,7 @@ public class StoreWAL extends StoreDirect {
                 crc32.reset();
                 crc32.update(b);
 
-                crc |= Utils.longHash((logSize) | WAL_PHYS_ARRAY_ONE_LONG | offset2 | nextPageLink | crc32.getValue());
+                crc |= LongHashMap.longHash((logSize) | WAL_PHYS_ARRAY_ONE_LONG | offset2 | nextPageLink | crc32.getValue());
 
                 logSize+=size;
             }else if(ins == WAL_LONGSTACK_PAGE){
@@ -729,9 +729,9 @@ public class StoreWAL extends StoreDirect {
                 final int size = (int) (offset>>>48);
                 final long nextPageLink = log.getLong(logSize);
                 logSize+=8;
-                crc |= Utils.longHash(origLogSize | WAL_LONGSTACK_PAGE | offset | nextPageLink );
+                crc |= LongHashMap.longHash(origLogSize | WAL_LONGSTACK_PAGE | offset | nextPageLink );
                 for(;logSize<origLogSize+size;logSize+=6){
-                    crc |= Utils.longHash(logSize|log.getSixLong(logSize));
+                    crc |= LongHashMap.longHash(logSize|log.getSixLong(logSize));
                 }
 
             }else if(ins == WAL_SKIP_REST_OF_BLOCK){
@@ -751,7 +751,7 @@ public class StoreWAL extends StoreDirect {
         logSize+=6;
         long indexSum = log.getLong(logSize);
         logSize+=8;
-        crc |= Utils.longHash((logSize-1-3*6-8)|indexSize|physSize|freeSize|indexSum);
+        crc |= LongHashMap.longHash((logSize-1-3*6-8)|indexSize|physSize|freeSize|indexSum);
 
         final int realCrc = log.getInt(logSize);
         logSize+=4;
@@ -1004,7 +1004,7 @@ public class StoreWAL extends StoreDirect {
     }
 
     protected long[] getLinkedRecordsFromLog(long ioRecid){
-        assert(locks[Utils.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
+        assert(locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
         long[] ret0 = modified.get(ioRecid);
         if(ret0==PREALLOC) return ret0;
 

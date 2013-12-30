@@ -22,7 +22,11 @@ public class TxEngine extends EngineWrapper {
     protected static final Object TOMBSTONE = new Object();
 
     protected final ReentrantReadWriteLock commitLock = new ReentrantReadWriteLock(CC.FAIR_LOCKS);
-    protected final ReentrantReadWriteLock[] locks = Utils.newReadWriteLocks();
+    protected final ReentrantReadWriteLock[] locks = new ReentrantReadWriteLock[CC.CONCURRENCY];
+    {
+        for(int i=0;i<locks.length;i++) locks[i] = new ReentrantReadWriteLock(CC.FAIR_LOCKS);
+    }
+
 
     protected volatile boolean uncommitedData = false;
 
@@ -93,7 +97,7 @@ public class TxEngine extends EngineWrapper {
         try {
             uncommitedData = true;
             long recid =  super.preallocate();
-            Lock lock = locks[Utils.lockPos(recid)].writeLock();
+            Lock lock = locks[Store.lockPos(recid)].writeLock();
             lock.lock();
             try{
                 for(Reference<Tx> txr:txs){
@@ -117,7 +121,7 @@ public class TxEngine extends EngineWrapper {
             uncommitedData = true;
             super.preallocate(recids);
             for(long recid:recids){
-                Lock lock = locks[Utils.lockPos(recid)].writeLock();
+                Lock lock = locks[Store.lockPos(recid)].writeLock();
                 lock.lock();
                 try{
                     for(Reference<Tx> txr:txs){
@@ -140,7 +144,7 @@ public class TxEngine extends EngineWrapper {
         try {
             uncommitedData = true;
             long recid = super.put(value, serializer);
-            Lock lock = locks[Utils.lockPos(recid)].writeLock();
+            Lock lock = locks[Store.lockPos(recid)].writeLock();
             lock.lock();
             try{
                 for(Reference<Tx> txr:txs){
@@ -174,7 +178,7 @@ public class TxEngine extends EngineWrapper {
         commitLock.readLock().lock();
         try {
             uncommitedData = true;
-            Lock lock = locks[Utils.lockPos(recid)].writeLock();
+            Lock lock = locks[Store.lockPos(recid)].writeLock();
             lock.lock();
             try{
                 Object old = get(recid,serializer);
@@ -198,7 +202,7 @@ public class TxEngine extends EngineWrapper {
         commitLock.readLock().lock();
         try {
             uncommitedData = true;
-            Lock lock = locks[Utils.lockPos(recid)].writeLock();
+            Lock lock = locks[Store.lockPos(recid)].writeLock();
             lock.lock();
             try{
                 boolean ret = super.compareAndSwap(recid, expectedOldValue, newValue, serializer);
@@ -224,7 +228,7 @@ public class TxEngine extends EngineWrapper {
         commitLock.readLock().lock();
         try {
             uncommitedData = true;
-            Lock lock = locks[Utils.lockPos(recid)].writeLock();
+            Lock lock = locks[Store.lockPos(recid)].writeLock();
             lock.lock();
             try{
                 Object old = get(recid,serializer);
@@ -370,7 +374,7 @@ public class TxEngine extends EngineWrapper {
         commitLock.readLock().lock();
         try{
             if(closed) throw new IllegalAccessError("closed");
-            Lock lock = locks[Utils.lockPos(recid)].readLock();
+            Lock lock = locks[Store.lockPos(recid)].readLock();
             lock.lock();
             try{
                 return getNoLock(recid, serializer);
@@ -421,7 +425,7 @@ public class TxEngine extends EngineWrapper {
         commitLock.readLock().lock();
         try{
 
-            Lock lock = locks[Utils.lockPos(recid)].writeLock();
+            Lock lock = locks[Store.lockPos(recid)].writeLock();
             lock.lock();
             try{
                 A oldVal = getNoLock(recid, serializer);

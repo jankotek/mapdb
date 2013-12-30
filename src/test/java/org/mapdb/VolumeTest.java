@@ -55,7 +55,7 @@ public abstract class VolumeTest {
 
     public static class MappedFileFullChunkVolumeTest extends VolumeTest{
         @Override Volume getVolume() {
-            return new Volume.MappedFileVol(Utils.tempDbFile(), false, 0L, true);
+            return new Volume.MappedFileVol(UtilsTest.tempDbFile(), false, 0L, true);
         }
 
         @Override public void testEnsureAvailable() throws Exception {
@@ -68,12 +68,12 @@ public abstract class VolumeTest {
 
     public static class MappedFileVolumeTest extends VolumeTest{
         @Override Volume getVolume() {
-            return new Volume.MappedFileVol(Utils.tempDbFile(), false, 0L, false);
+            return new Volume.MappedFileVol(UtilsTest.tempDbFile(), false, 0L, false);
         }
 
         /** this test fails on Windows */
         @Test public void simple_grow() throws Exception {
-            File f = Utils.tempDbFile();
+            File f = UtilsTest.tempDbFile();
             f.deleteOnExit();
 
             final Volume.MappedFileVol vol = new Volume.MappedFileVol(f, false,0, false);
@@ -93,7 +93,7 @@ public abstract class VolumeTest {
 
     public static class RandomAccessFullChunkVolumeTest extends VolumeTest{
         @Override Volume getVolume() {
-            return new Volume.FileChannelVol(Utils.tempDbFile(), false, 0L, true);
+            return new Volume.FileChannelVol(UtilsTest.tempDbFile(), false, 0L, true);
         }
 
         @Override public void testEnsureAvailable() throws Exception {
@@ -106,7 +106,7 @@ public abstract class VolumeTest {
 
     public static class RandomAccessVolumeTest extends VolumeTest{
         @Override Volume getVolume() {
-            return new Volume.FileChannelVol(Utils.tempDbFile(), false, 0L, false);
+            return new Volume.FileChannelVol(UtilsTest.tempDbFile(), false, 0L, false);
         }
     }
 
@@ -147,12 +147,12 @@ public abstract class VolumeTest {
 
     @Test
     public void testMappedSizeLimit(){
-        testSizeLimit(new Volume.FileChannelVol(Utils.tempDbFile(), false, 1000, false));
+        testSizeLimit(new Volume.FileChannelVol(UtilsTest.tempDbFile(), false, 1000, false));
     }
 
     @Test
     public void testRAFSizeLimit(){
-        testSizeLimit( new Volume.FileChannelVol(Utils.tempDbFile(), true, 1000, false));
+        testSizeLimit( new Volume.FileChannelVol(UtilsTest.tempDbFile(), true, 1000, false));
     }
 
 
@@ -217,7 +217,7 @@ public abstract class VolumeTest {
     }
 
     @Test public void RAF_bytes(){
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
         Volume v = new Volume.FileChannelVol(f, false, 0L, false);
         v.ensureAvailable(100);
         v.putByte(1, (byte)(-120));
@@ -231,7 +231,7 @@ public abstract class VolumeTest {
     @Test
     public void read_beyond_end_raf_long(){
         try{
-            Volume v = new Volume.FileChannelVol(Utils.tempDbFile(), false, 0L, false);
+            Volume v = new Volume.FileChannelVol(UtilsTest.tempDbFile(), false, 0L, false);
             v.getLong(1000000);
             fail();
         }catch(IOError e){
@@ -242,7 +242,7 @@ public abstract class VolumeTest {
     @Test
     public void read_beyond_end_raf_byte(){
         try{
-            Volume v = new Volume.FileChannelVol(Utils.tempDbFile(), false, 0L, false);
+            Volume v = new Volume.FileChannelVol(UtilsTest.tempDbFile(), false, 0L, false);
             v.getByte(1000000);
             fail();
         }catch(IOError e){
@@ -253,7 +253,7 @@ public abstract class VolumeTest {
     @Test
     public void read_beyond_end_mapped_long(){
         try{
-            Volume v = new Volume.MappedFileVol(Utils.tempDbFile(), false, 0L, false);
+            Volume v = new Volume.MappedFileVol(UtilsTest.tempDbFile(), false, 0L, false);
             v.ensureAvailable(10);
             v.getLong(1000000);
             fail();
@@ -265,7 +265,7 @@ public abstract class VolumeTest {
     @Test
     public void read_beyond_end_mapped_byte(){
         try{
-            Volume v = new Volume.MappedFileVol(Utils.tempDbFile(), false, 0L, false);
+            Volume v = new Volume.MappedFileVol(UtilsTest.tempDbFile(), false, 0L, false);
             v.ensureAvailable(10);
             v.getByte(1000000);
             fail();

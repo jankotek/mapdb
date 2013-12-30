@@ -238,7 +238,7 @@ public class SerializerPojoTest extends TestCase {
 
     public void testPersistedSimple() throws Exception {
 
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
         DB r1 = DBMaker.newFileDB(f).make();
         long recid = r1.engine.put("AA",r1.getDefaultSerializer());
         r1.commit();
@@ -255,7 +255,7 @@ public class SerializerPojoTest extends TestCase {
 
     public void testPersisted() throws Exception {
         Bean1 b1 = new Bean1("abc", "dcd");
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
         DB r1 = DBMaker.newFileDB(f).make();
         long recid = r1.engine.put(b1, r1.getDefaultSerializer());
         r1.commit();
@@ -298,7 +298,7 @@ public class SerializerPojoTest extends TestCase {
     /** @author Jan Sileny */
     public  void test_pojo_reload() throws IOException {
 
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
         DB db = DBMaker.newFileDB(f).make();
         Set set = db.getHashSet("testSerializerPojo");
         set.add(new test_pojo_reload_TestClass("test"));

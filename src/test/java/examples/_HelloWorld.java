@@ -2,9 +2,9 @@ package examples;
 
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
-import org.mapdb.Utils;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.concurrent.ConcurrentNavigableMap;
 
 
@@ -13,11 +13,11 @@ import java.util.concurrent.ConcurrentNavigableMap;
  */
 public class _HelloWorld {
 
-    public static void main(String[] args){
+    public static void main(String[] args) throws IOException {
 
         //Configure and open database using builder pattern.
         //All options are available with code auto-completion.
-        File dbFile = Utils.tempDbFile();
+        File dbFile = File.createTempFile("mapdb","db");
         DB db = DBMaker.newFileDB(dbFile)
                 .closeOnJvmShutdown()
                 .encryptionEnable("password")

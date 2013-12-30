@@ -17,6 +17,7 @@ package org.mapdb;
 
 
 import java.io.*;
+import java.nio.charset.Charset;
 import java.util.*;
 
 /**
@@ -117,7 +118,7 @@ public interface Serializer<A> {
         public void serialize(DataOutput out, String value) throws IOException {
             char[] cc = new char[value.length()];
             value.getChars(0,cc.length,cc,0);
-            Utils.packInt(out,cc.length);
+            DataOutput2.packInt(out,cc.length);
             for(char c:cc){
                 out.write(c);
             }
@@ -125,7 +126,7 @@ public interface Serializer<A> {
 
         @Override
         public String deserialize(DataInput in, int available) throws IOException {
-            int size = Utils.unpackInt(in);
+            int size = DataInput2.unpackInt(in);
             char[] cc = new char[size];
             for(int i=0;i<size;i++){
                 cc[i] = (char) in.readUnsignedByte();
@@ -147,9 +148,11 @@ public interface Serializer<A> {
      */
     Serializer<String> STRING_NOSIZE = new Serializer<String>() {
 
+        private final Charset UTF8_CHARSET = Charset.forName("UTF8");
+
         @Override
 		public void serialize(DataOutput out, String value) throws IOException {
-            final byte[] bytes = value.getBytes(Utils.UTF8_CHARSET);
+            final byte[] bytes = value.getBytes(UTF8_CHARSET);
             out.write(bytes);
         }
 
@@ -159,7 +162,7 @@ public interface Serializer<A> {
             if(available==-1) throw new IllegalArgumentException("STRING_NOSIZE does not work with collections.");
             byte[] bytes = new byte[available];
             in.readFully(bytes);
-            return new String(bytes, Utils.UTF8_CHARSET);
+            return new String(bytes, UTF8_CHARSET);
         }
 
         @Override
@@ -277,13 +280,13 @@ public interface Serializer<A> {
 
         @Override
         public void serialize(DataOutput out, byte[] value) throws IOException {
-            Utils.packInt(out,value.length);
+            DataOutput2.packInt(out,value.length);
             out.write(value);
         }
 
         @Override
         public byte[] deserialize(DataInput in, int available) throws IOException {
-            int size = Utils.unpackInt(in);
+            int size = DataInput2.unpackInt(in);
             byte[] ret = new byte[size];
             in.readFully(ret);
             return ret;
@@ -331,7 +334,7 @@ public interface Serializer<A> {
 
         @Override
         public void serialize(DataOutput out, char[] value) throws IOException {
-            Utils.packInt(out,value.length);
+            DataOutput2.packInt(out,value.length);
             for(char c:value){
                 out.writeChar(c);
             }
@@ -339,7 +342,7 @@ public interface Serializer<A> {
 
         @Override
         public char[] deserialize(DataInput in, int available) throws IOException {
-            final int size = Utils.unpackInt(in);
+            final int size = DataInput2.unpackInt(in);
             char[] ret = new char[size];
             for(int i=0;i<size;i++){
                 ret[i] = in.readChar();
@@ -362,7 +365,7 @@ public interface Serializer<A> {
 
         @Override
         public void serialize(DataOutput out, int[] value) throws IOException {
-            Utils.packInt(out,value.length);
+            DataOutput2.packInt(out,value.length);
             for(int c:value){
                 out.writeInt(c);
             }
@@ -370,7 +373,7 @@ public interface Serializer<A> {
 
         @Override
         public int[] deserialize(DataInput in, int available) throws IOException {
-            final int size = Utils.unpackInt(in);
+            final int size = DataInput2.unpackInt(in);
             int[] ret = new int[size];
             for(int i=0;i<size;i++){
                 ret[i] = in.readInt();
@@ -392,7 +395,7 @@ public interface Serializer<A> {
 
         @Override
         public void serialize(DataOutput out, long[] value) throws IOException {
-            Utils.packInt(out,value.length);
+            DataOutput2.packInt(out,value.length);
             for(long c:value){
                 out.writeLong(c);
             }
@@ -400,7 +403,7 @@ public interface Serializer<A> {
 
         @Override
         public long[] deserialize(DataInput in, int available) throws IOException {
-            final int size = Utils.unpackInt(in);
+            final int size = DataInput2.unpackInt(in);
             long[] ret = new long[size];
             for(int i=0;i<size;i++){
                 ret[i] = in.readLong();
@@ -422,7 +425,7 @@ public interface Serializer<A> {
 
         @Override
         public void serialize(DataOutput out, double[] value) throws IOException {
-            Utils.packInt(out,value.length);
+            DataOutput2.packInt(out,value.length);
             for(double c:value){
                 out.writeDouble(c);
             }
@@ -430,7 +433,7 @@ public interface Serializer<A> {
 
         @Override
         public double[] deserialize(DataInput in, int available) throws IOException {
-            final int size = Utils.unpackInt(in);
+            final int size = DataInput2.unpackInt(in);
             double[] ret = new double[size];
             for(int i=0;i<size;i++){
                 ret[i] = in.readDouble();
@@ -527,18 +530,18 @@ public interface Serializer<A> {
             }
             if(newLen>=out2.pos){
                 //compression adds size, so do not compress
-                Utils.packInt(out,0);
+                DataOutput2.packInt(out,0);
                 out.write(out2.buf,0,out2.pos);
                 return;
             }
 
-            Utils.packInt(out, out2.pos+1); //unpacked size, zero indicates no compression
+            DataOutput2.packInt(out, out2.pos+1); //unpacked size, zero indicates no compression
             out.write(tmp,0,newLen);
         }
 
         @Override
         public E deserialize(DataInput in, int available) throws IOException {
-            final int unpackedSize = Utils.unpackInt(in)-1;
+            final int unpackedSize = DataInput2.unpackInt(in)-1;
             if(unpackedSize==-1){
                 //was not compressed
                 return serializer.deserialize(in, available>0?available-1:available);

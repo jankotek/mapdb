@@ -1,9 +1,7 @@
 package org.mapdb;
 
 import org.junit.Test;
-import org.mapdb.DB;
-import org.mapdb.DBMaker;
-import org.mapdb.Utils;
+
 
 import java.io.File;
 import java.io.Serializable;
@@ -30,7 +28,7 @@ public class Issue241
 
     private static DB getDb()
     {
-        final File dbFile = Utils.tempDbFile();
+        final File dbFile = UtilsTest.tempDbFile();
         return DBMaker.newAppendFileDB(dbFile).make();
     }
 

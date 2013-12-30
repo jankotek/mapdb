@@ -692,7 +692,7 @@ public class LongConcurrentHashMap< V>
      */
     @Override
 	public V get(long key) {
-        final int hash = Utils.longHash(key^hashSalt);
+        final int hash = LongHashMap.longHash(key^hashSalt);
         return segmentFor(hash).get(key, hash);
     }
 
@@ -706,7 +706,7 @@ public class LongConcurrentHashMap< V>
      * @throws NullPointerException if the specified key is null
      */
     public boolean containsKey(long key) {
-        final int hash = Utils.longHash(key^hashSalt);
+        final int hash = LongHashMap.longHash(key^hashSalt);
         return segmentFor(hash).containsKey(key, hash);
     }
 
@@ -787,7 +787,7 @@ public class LongConcurrentHashMap< V>
 	public V put(long key, V value) {
         if (value == null)
             throw new NullPointerException();
-        final int hash = Utils.longHash(key^hashSalt);
+        final int hash = LongHashMap.longHash(key^hashSalt);
         return segmentFor(hash).put(key, hash, value, false);
     }
 
@@ -801,7 +801,7 @@ public class LongConcurrentHashMap< V>
     public V putIfAbsent(long key, V value) {
         if (value == null)
             throw new NullPointerException();
-        final int hash = Utils.longHash(key^hashSalt);
+        final int hash = LongHashMap.longHash(key^hashSalt);
         return segmentFor(hash).put(key, hash, value, true);
     }
 
@@ -817,7 +817,7 @@ public class LongConcurrentHashMap< V>
      */
     @Override
 	public V remove(long key) {
-        final int hash = Utils.longHash(key^hashSalt);
+        final int hash = LongHashMap.longHash(key^hashSalt);
         return segmentFor(hash).remove(key, hash, null);
     }
 
@@ -827,7 +827,7 @@ public class LongConcurrentHashMap< V>
      * @throws NullPointerException if the specified key is null
      */
     public boolean remove(long key, Object value) {
-        final int hash = Utils.longHash(key^hashSalt);
+        final int hash = LongHashMap.longHash(key^hashSalt);
         return value != null && segmentFor(hash).remove(key, hash, value) != null;
     }
 
@@ -839,7 +839,7 @@ public class LongConcurrentHashMap< V>
     public boolean replace(long key, V oldValue, V newValue) {
         if (oldValue == null || newValue == null)
             throw new NullPointerException();
-        final int hash = Utils.longHash(key^hashSalt);
+        final int hash = LongHashMap.longHash(key^hashSalt);
         return segmentFor(hash).replace(key, hash, oldValue, newValue);
     }
 
@@ -853,7 +853,7 @@ public class LongConcurrentHashMap< V>
     public V replace(long key, V value) {
         if (value == null)
             throw new NullPointerException();
-        final int hash = Utils.longHash(key^hashSalt);
+        final int hash = LongHashMap.longHash(key^hashSalt);
         return segmentFor(hash).replace(key, hash, value);
     }
 

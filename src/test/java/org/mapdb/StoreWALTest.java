@@ -27,7 +27,7 @@ public class StoreWALTest extends StoreDirectTest<StoreWAL>{
 
     @Test
     public void delete_files_after_close2(){
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
         File phys = new File(f.getPath()+StoreDirect.DATA_FILE_EXT);
         File wal = new File(f.getPath()+StoreWAL.TRANS_LOG_FILE_EXT);
 

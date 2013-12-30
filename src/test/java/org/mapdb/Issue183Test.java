@@ -12,7 +12,7 @@ public class Issue183Test {
     @Test
     public void main(){
 
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
 
         Map<String, String> map1;
 

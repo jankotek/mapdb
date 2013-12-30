@@ -98,7 +98,10 @@ public abstract class Store implements Engine{
 
     protected final ReentrantLock structuralLock = new ReentrantLock(CC.FAIR_LOCKS);
     protected final ReentrantReadWriteLock newRecidLock = new ReentrantReadWriteLock(CC.FAIR_LOCKS);
-    protected final ReentrantReadWriteLock[] locks = Utils.newReadWriteLocks();
+    protected final ReentrantReadWriteLock[] locks = new ReentrantReadWriteLock[CC.CONCURRENCY];
+    {
+        for(int i=0;i<locks.length;i++) locks[i] = new ReentrantReadWriteLock(CC.FAIR_LOCKS);
+    }
 
 
     protected void lockAllWrite() {
@@ -149,7 +152,7 @@ public abstract class Store implements Engine{
                         //compression had effect, so write decompressed size and compressed array
                         final int decompSize = out.pos;
                         out.pos=0;
-                        Utils.packInt(out,decompSize);
+                        DataOutput2.packInt(out,decompSize);
                         out.write(tmp.buf,0,newLen);
                         recycledDataOuts.offer(tmp);
                     }
@@ -244,7 +247,7 @@ public abstract class Store implements Engine{
 
             if(compress) {
                 final int origPos = di.pos;
-                int decompSize = Utils.unpackInt(di);
+                int decompSize = DataInput2.unpackInt(di);
                 if(decompSize==0){
                     size-=1;
                     //rest of `di` is uncompressed data
@@ -292,5 +295,15 @@ public abstract class Store implements Engine{
                 (checksum?CHECKSUM_FLAG_MASK:0) |
                 (checksum?COMPRESS_FLAG_MASK:0);
     }
+
+    private static final int LOCK_MASK = CC.CONCURRENCY-1;
+
+    protected static int lockPos(final long key) {
+        int h = (int)(key ^ (key >>> 32));
+        h ^= (h >>> 20) ^ (h >>> 12);
+        h ^= (h >>> 7) ^ (h >>> 4);
+        return h & LOCK_MASK;
+    }
+
 
 }

@@ -89,7 +89,7 @@ public class StoreHeap extends Store implements Serializable{
     @Override
     public <A> A get(long recid, Serializer<A> serializer) {
         assert(recid>0);
-        final Lock lock  = locks[Utils.lockPos(recid)].readLock();
+        final Lock lock  = locks[Store.lockPos(recid)].readLock();
         lock.lock();
         try{
             //get from commited records
@@ -108,7 +108,7 @@ public class StoreHeap extends Store implements Serializable{
         assert(serializer!=null);
         assert(recid>0);
         if(value==null) value= (A) NULL;
-        final Lock lock  = locks[Utils.lockPos(recid)].writeLock();
+        final Lock lock  = locks[Store.lockPos(recid)].writeLock();
         lock.lock();
         try{
             Fun.Tuple2 old = records.put(recid, Fun.<Object, Serializer>t2(value,serializer));
@@ -124,7 +124,7 @@ public class StoreHeap extends Store implements Serializable{
         assert(recid>0);
         if(expectedOldValue==null) expectedOldValue= (A) NULL;
         if(newValue==null) newValue= (A) NULL;
-        final Lock lock  = locks[Utils.lockPos(recid)].writeLock();
+        final Lock lock  = locks[Store.lockPos(recid)].writeLock();
         lock.lock();
         try{
             Fun.Tuple2 old = Fun.t2(expectedOldValue, serializer);
@@ -139,7 +139,7 @@ public class StoreHeap extends Store implements Serializable{
     @Override
     public <A> void delete(long recid, Serializer<A> serializer) {
         assert(recid>0);
-        final Lock lock  = locks[Utils.lockPos(recid)].writeLock();
+        final Lock lock  = locks[Store.lockPos(recid)].writeLock();
         lock.lock();
         try{
             Fun.Tuple2 t2 = records.remove(recid);

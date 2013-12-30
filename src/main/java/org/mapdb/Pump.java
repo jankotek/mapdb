@@ -67,7 +67,7 @@ public final class Pump {
                     Arrays.sort(presort,comparator);
 
                     //flush presort into temporary file
-                    File f = Utils.tempDbFile();
+                    File f = File.createTempFile("mapdb","sort");
                     f.deleteOnExit();
                     presortFiles.add(f);
                     DataOutputStream out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(f)));
@@ -84,7 +84,7 @@ public final class Pump {
             if(presortFiles.isEmpty()){
                 //no presort files were created, so on-heap sorting is enough
                 Arrays.sort(presort,0,counter,comparator);
-                return Utils.arrayIterator(presort,0, counter);
+                return arrayIterator(presort,0, counter);
             }
 
             final int[] presortCount = new int[presortFiles.size()];
@@ -123,7 +123,7 @@ public final class Pump {
 
             //and add iterator over data on-heap
             Arrays.sort(presort,0,counter,comparator);
-            iterators[iterators.length-1] = Utils.arrayIterator(presort,0,counter);
+            iterators[iterators.length-1] = arrayIterator(presort,0,counter);
 
             //and finally sort presorted iterators and return iterators over them
             return sort(comparator, mergeDuplicates, iterators);
@@ -231,7 +231,7 @@ public final class Pump {
      */
     public static <E> Iterator<E> merge(final Iterator... iters){
         if(iters.length==0)
-            return Utils.EMPTY_ITERATOR;
+            return Fun.EMPTY_ITERATOR;
 
         return new Iterator<E>() {
 
@@ -461,6 +461,29 @@ public final class Pump {
         ArrayList<E> ret = new ArrayList<E>();
         ret.add(item);
         return ret;
+    }
+
+    private static <E> Iterator<E> arrayIterator(final Object[] array, final int fromIndex, final int toIndex) {
+        return new Iterator<E>(){
+
+            int index = fromIndex;
+
+            @Override
+            public boolean hasNext() {
+                return index<toIndex;
+            }
+
+            @Override
+            public E next() {
+                if(index>=toIndex) throw new NoSuchElementException();
+                return (E) array[index++];
+            }
+
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
+        };
     }
 
 }

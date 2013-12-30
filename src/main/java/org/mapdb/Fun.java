@@ -19,8 +19,7 @@ package org.mapdb;
 import java.io.DataInput;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.Arrays;
-import java.util.Comparator;
+import java.util.*;
 
 /**
  * Functional stuff. Tuples, function, callback methods etc..
@@ -52,6 +51,11 @@ public final class Fun {
             return -COMPARATOR.compare(o1,o2);
         }
     };
+
+
+    /** empty iterator (note: Collections.EMPTY_ITERATOR is Java 7 specific and should not be used)*/
+    public static final Iterator EMPTY_ITERATOR = new ArrayList(0).iterator();
+
 
     public static final Comparator<Tuple2> TUPLE2_COMPARATOR = new Tuple2Comparator(null,null);
     public static final Comparator<Tuple3> TUPLE3_COMPARATOR = new Tuple3Comparator(null,null,null);
@@ -584,9 +588,10 @@ public final class Fun {
         }
     }
 
-    protected static int intCompare(int x, int y) {
+    private static int intCompare(int x, int y) {
         return (x < y) ? -1 : ((x == y) ? 0 : 1);
     }
+
 
 
 

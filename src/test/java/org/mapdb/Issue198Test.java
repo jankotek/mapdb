@@ -8,7 +8,7 @@ public class Issue198Test {
 
     @Test public void main() {
 
-        DB db = DBMaker.newFileDB(Utils.tempDbFile())
+        DB db = DBMaker.newFileDB(UtilsTest.tempDbFile())
                 .closeOnJvmShutdown()
                 //.randomAccessFileEnable()
                 .make();

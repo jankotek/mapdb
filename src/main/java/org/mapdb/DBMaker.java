@@ -21,6 +21,7 @@ import org.mapdb.EngineWrapper.ReadOnlyEngine;
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.*;
 
 /**
@@ -464,7 +465,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * @return this builder
      */
     public DBMakerT encryptionEnable(String password){
-        return encryptionEnable(password.getBytes(Utils.UTF8_CHARSET));
+        return encryptionEnable(password.getBytes(Charset.forName("UTF8")));
     }
 
 
@@ -482,7 +483,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      */
     public DBMakerT encryptionEnable(byte[] password){
         props.setProperty(Keys.encryption, Keys.encryption_xtea);
-        props.setProperty(Keys.encryptionKey,Utils.toHexa(password));
+        props.setProperty(Keys.encryptionKey, toHexa(password));
         return getThis();
     }
 
@@ -729,11 +730,11 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
 
         //try to read one record from DB, to make sure encryption and compression are correctly set.
-        Fun.Tuple2<Integer,String> check = null;
+        Fun.Tuple2<Integer,byte[]> check = null;
         try{
-            check = (Fun.Tuple2<Integer, String>) engine.get(Engine.CHECK_RECORD, Serializer.BASIC);
+            check = (Fun.Tuple2<Integer, byte[]>) engine.get(Engine.CHECK_RECORD, Serializer.BASIC);
             if(check!=null){
-                if(check.a.intValue()!= check.b.hashCode())
+                if(check.a.intValue()!= Arrays.hashCode(check.b))
                     throw new RuntimeException("invalid checksum");
             }
         }catch(Throwable e){
@@ -741,8 +742,9 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         }
         if(check == null && !engine.isReadOnly()){
             //new db, so insert testing record
-            String s = Utils.randomString(127); //random string so it is not that easy to decrypt
-            check = Fun.t2(s.hashCode(), s);
+            byte[] b = new byte[127];
+            new Random().nextBytes(b);
+            check = Fun.t2(Arrays.hashCode(b), b);
             engine.update(Engine.CHECK_RECORD, check, Serializer.BASIC);
             engine.commit();
         }
@@ -773,15 +775,29 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
     protected byte[] propsGetXteaEncKey(){
         if(!Keys.encryption_xtea.equals(props.getProperty(Keys.encryption)))
             return null;
-        return Utils.fromHexa(props.getProperty(Keys.encryptionKey));
+        return fromHexa(props.getProperty(Keys.encryptionKey));
     }
+
+    /**
+     * Check if large files can be mapped into memory.
+     * For example 32bit JVM can only address 2GB and large files can not be mapped,
+     * so for 32bit JVM this function returns false.
+     *
+     */
+    protected static boolean JVMSupportsLargeMappedFiles() {
+        String prop = System.getProperty("os.arch");
+        if(prop!=null && prop.contains("64")) return true;
+        //TODO better check for 32bit JVM
+        return false;
+    }
+
 
     protected int propsGetRafMode(){
         String volume = props.getProperty(Keys.volume);
         if(volume==null||Keys.volume_raf.equals(volume)){
             return 2;
         }else if(Keys.volume_mmapfIfSupported.equals(volume)){
-            return Utils.JVMSupportsLargeMappedFiles()?0:2;
+            return JVMSupportsLargeMappedFiles()?0:2;
         }else if(Keys.volume_mmapfPartial.equals(volume)){
             return 1;
         }else if(Keys.volume_mmapf.equals(volume)){
@@ -894,4 +910,22 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
     }
 
 
+
+    protected static String toHexa( byte [] bb ) {
+        char[] HEXA_CHARS = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
+        char[] ret = new char[bb.length*2];
+        for(int i=0;i<bb.length;i++){
+            ret[i*2] =HEXA_CHARS[((bb[i]& 0xF0) >> 4)];
+            ret[i*2+1] = HEXA_CHARS[((bb[i] & 0x0F))];
+        }
+        return new String(ret);
+    }
+
+    protected static byte[] fromHexa(String s ) {
+        byte[] ret = new byte[s.length()/2];
+        for(int i=0;i<ret.length;i++){
+            ret[i] = (byte) Integer.parseInt(s.substring(i*2,i*2+2),16);
+        }
+        return ret;
+    }
 }

@@ -69,7 +69,7 @@ public class Issue162Test {
         }
     }
 
-    File path = Utils.tempDbFile();
+    File path = UtilsTest.tempDbFile();
 
     @Test public void testHashMap() {
         System.out.println("--- Testing HashMap with custom serializer");

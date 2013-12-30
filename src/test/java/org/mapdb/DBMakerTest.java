@@ -38,7 +38,7 @@ public class DBMakerTest{
 
     @Test
     public void testNewFileDB() throws Exception {
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
         DB db = DBMaker.newFileDB(f)
                 .transactionDisable().make();
         verifyDB(db);
@@ -76,7 +76,7 @@ public class DBMakerTest{
     @Test
     public void testMake() throws Exception {
         DB db = DBMaker
-                .newFileDB(Utils.tempDbFile())
+                .newFileDB(UtilsTest.tempDbFile())
                 .transactionDisable()
                 .make();
         verifyDB(db);
@@ -149,7 +149,7 @@ public class DBMakerTest{
     }
 
     @Test public void read_only() throws IOException {
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
         DB db = DBMaker.newFileDB(f).make();
         db.close();
         db = DBMaker
@@ -163,7 +163,7 @@ public class DBMakerTest{
 
     @Test(expected = IllegalArgumentException.class)
     public void reopen_wrong_checksum() throws IOException {
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
         DB db = DBMaker.newFileDB(f).make();
         db.close();
         db = DBMaker
@@ -185,7 +185,7 @@ public class DBMakerTest{
 
 
     @Test public void checksum() throws IOException {
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
         DB db = DBMaker
                 .newFileDB(f)
                 .deleteFilesAfterClose()
@@ -202,7 +202,7 @@ public class DBMakerTest{
     }
 
     @Test public void encrypt() throws IOException {
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
         DB db = DBMaker
                 .newFileDB(f)
                 .deleteFilesAfterClose()
@@ -220,7 +220,7 @@ public class DBMakerTest{
 
     @Test(expected = IllegalArgumentException.class)
     public void reopen_wrong_encrypt() throws IOException {
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
         DB db = DBMaker.newFileDB(f).make();
         db.close();
         db = DBMaker
@@ -239,7 +239,7 @@ public class DBMakerTest{
 
 
     @Test public void compress() throws IOException {
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
         DB db = DBMaker
                 .newFileDB(f)
                 .deleteFilesAfterClose()
@@ -255,7 +255,7 @@ public class DBMakerTest{
 
     @Test(expected = IllegalArgumentException.class)
     public void reopen_wrong_compress() throws IOException {
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
         DB db = DBMaker.newFileDB(f).make();
         db.close();
         db = DBMaker
@@ -310,7 +310,7 @@ public class DBMakerTest{
     }
 
     @Test public void rafEnableKeepIndexMapped(){
-        DB db = DBMaker.newFileDB(Utils.tempDbFile())
+        DB db = DBMaker.newFileDB(UtilsTest.tempDbFile())
                 .mmapFileEnablePartial()
                 .make();
         Engine e = db.getEngine();
@@ -323,7 +323,7 @@ public class DBMakerTest{
 
     @Test(expected = UnsupportedOperationException.class)
     public void limitDisabledAppend(){
-        DBMaker.newAppendFileDB(Utils.tempDbFile()).sizeLimit(1).make();
+        DBMaker.newAppendFileDB(UtilsTest.tempDbFile()).sizeLimit(1).make();
     }
 
     @Test()

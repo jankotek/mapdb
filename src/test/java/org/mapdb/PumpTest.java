@@ -30,7 +30,7 @@ public class PumpTest {
 
     DB makeDB(int i){
         switch(i){
-            case 0: return DBMaker.newAppendFileDB(Utils.tempDbFile()).deleteFilesAfterClose().snapshotEnable().make();
+            case 0: return DBMaker.newAppendFileDB(UtilsTest.tempDbFile()).deleteFilesAfterClose().snapshotEnable().make();
             case 1: return DBMaker.newMemoryDB().snapshotEnable().make();
             case 2: return DBMaker.newMemoryDB().snapshotEnable().transactionDisable().make();
             case 3: return DBMaker.newMemoryDB().snapshotEnable().makeTxMaker().makeTx();
@@ -132,7 +132,7 @@ public class PumpTest {
         Collections.shuffle(list);
 
         Iterator<Integer> sorted = Pump.sort(list.iterator(),false, max/20,
-                Utils.COMPARABLE_COMPARATOR, Serializer.INTEGER);
+                BTreeMap.COMPARABLE_COMPARATOR, Serializer.INTEGER);
 
         Integer counter=0;
         while(sorted.hasNext()){
@@ -154,7 +154,7 @@ public class PumpTest {
         Collections.shuffle(list);
 
         Iterator<Integer> sorted = Pump.sort(list.iterator(),true, max/20,
-                Utils.COMPARABLE_COMPARATOR, Serializer.INTEGER);
+                BTreeMap.COMPARABLE_COMPARATOR, Serializer.INTEGER);
 
         Integer counter=0;
         while(sorted.hasNext()){
@@ -323,11 +323,11 @@ public class PumpTest {
         List<UUID> u = new ArrayList<UUID>();
         Random r = new Random();
         for(int i=0;i<1e6;i++) u.add(new UUID(r.nextLong(),r.nextLong()));
-        Set<UUID> sorted = new TreeSet<UUID>(Collections.reverseOrder(Utils.COMPARABLE_COMPARATOR));
+        Set<UUID> sorted = new TreeSet<UUID>(Collections.reverseOrder(BTreeMap.COMPARABLE_COMPARATOR));
         sorted.addAll(u);
 
         Iterator<UUID> iter = u.iterator();
-        iter = Pump.sort(iter,false, 10000,Collections.reverseOrder(Utils.COMPARABLE_COMPARATOR),Serializer.UUID);
+        iter = Pump.sort(iter,false, 10000,Collections.reverseOrder(BTreeMap.COMPARABLE_COMPARATOR),Serializer.UUID);
         Iterator<UUID> iter2 = sorted.iterator();
 
         while(iter.hasNext()){
@@ -347,7 +347,7 @@ public class PumpTest {
                     u.add(i);
         }
 
-        Comparator c = Collections.reverseOrder(Utils.COMPARABLE_COMPARATOR);
+        Comparator c = Collections.reverseOrder(BTreeMap.COMPARABLE_COMPARATOR);
         List<Long> sorted = new ArrayList<Long>(u);
         Collections.sort(sorted,c);
 

@@ -4,11 +4,13 @@ package org.mapdb;
 import examples.*;
 import org.junit.Test;
 
+import java.io.IOException;
+
 public class ExamplesTest {
 
     static final String[] args= new String[0];
 
-    @Test public void _HelloWorld(){
+    @Test public void _HelloWorld() throws IOException {
         _HelloWorld.main(args);
     }
 
@@ -24,13 +26,13 @@ public class ExamplesTest {
         Compression.main(args);
     }
 
-    @Test public void Huge_Insert(){
+    @Test public void Huge_Insert() throws IOException {
         Huge_Insert.main(args);
     }
 
 
 
-    @Test public void Custom_Value(){
+    @Test public void Custom_Value() throws IOException {
         Custom_Value.main(args);
     }
 

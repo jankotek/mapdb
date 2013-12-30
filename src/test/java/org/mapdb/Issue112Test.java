@@ -10,7 +10,7 @@ public class Issue112Test {
 
         @Test
         public void testDoubleCommit() throws Exception {
-            final DB myTestDataFile = DBMaker.newFileDB(Utils.tempDbFile())
+            final DB myTestDataFile = DBMaker.newFileDB(UtilsTest.tempDbFile())
                     .checksumEnable()
                     .make();
             myTestDataFile.commit();

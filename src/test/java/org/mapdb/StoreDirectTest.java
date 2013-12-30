@@ -15,7 +15,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
     @Override boolean canRollback(){return false;}
 
-    File f = Utils.tempDbFile();
+    File f = UtilsTest.tempDbFile();
     Volume.Factory fac = Volume.fileFactory(false,0,f, 0L,false);
 
     static final long IO_RECID = StoreDirect.IO_FREE_RECID+32;
@@ -378,7 +378,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
 
     @Test public void delete_files_after_close(){
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
         File phys = new File(f.getPath()+StoreDirect.DATA_FILE_EXT);
 
         DB db = DBMaker.newFileDB(f).transactionDisable().deleteFilesAfterClose().make();

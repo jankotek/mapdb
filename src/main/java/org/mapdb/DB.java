@@ -764,7 +764,7 @@ public class DB {
                 catGet(name+".counterRecid",0L),
                 (BTreeKeySerializer)catGet(name+".keySerializer",new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer())),
                 catGet(name+".valueSerializer",getDefaultSerializer()),
-                (Comparator)catGet(name+".comparator",Utils.COMPARABLE_COMPARATOR)
+                (Comparator)catGet(name+".comparator",BTreeMap.COMPARABLE_COMPARATOR)
                 );
         namedPut(name, ret);
         return ret;
@@ -791,7 +791,7 @@ public class DB {
         if(m.comparator==null){
             m.comparator = m.keySerializer.getComparator();
             if(m.comparator==null){
-                m.comparator = Utils.COMPARABLE_COMPARATOR;
+                m.comparator = BTreeMap.COMPARABLE_COMPARATOR;
             }
         }
 
@@ -826,7 +826,7 @@ public class DB {
         if(keySerializer instanceof BTreeKeySerializer.Tuple2KeySerializer){
             BTreeKeySerializer.Tuple2KeySerializer s = (BTreeKeySerializer.Tuple2KeySerializer) keySerializer;
             return new BTreeKeySerializer.Tuple2KeySerializer(
-                    s.aComparator!=null?s.aComparator:Utils.COMPARABLE_COMPARATOR,
+                    s.aComparator!=null?s.aComparator:BTreeMap.COMPARABLE_COMPARATOR,
                     s.aSerializer!=null?s.aSerializer:getDefaultSerializer(),
                     s.bSerializer!=null?s.bSerializer:getDefaultSerializer()
             );
@@ -834,8 +834,8 @@ public class DB {
         if(keySerializer instanceof BTreeKeySerializer.Tuple3KeySerializer){
             BTreeKeySerializer.Tuple3KeySerializer s = (BTreeKeySerializer.Tuple3KeySerializer) keySerializer;
             return new BTreeKeySerializer.Tuple3KeySerializer(
-                    s.aComparator!=null?s.aComparator:Utils.COMPARABLE_COMPARATOR,
-                    s.bComparator!=null?s.bComparator:Utils.COMPARABLE_COMPARATOR,
+                    s.aComparator!=null?s.aComparator:BTreeMap.COMPARABLE_COMPARATOR,
+                    s.bComparator!=null?s.bComparator:BTreeMap.COMPARABLE_COMPARATOR,
                     s.aSerializer!=null?s.aSerializer:getDefaultSerializer(),
                     s.bSerializer!=null?s.bSerializer:getDefaultSerializer(),
                     s.cSerializer!=null?s.cSerializer:getDefaultSerializer()
@@ -844,9 +844,9 @@ public class DB {
         if(keySerializer instanceof BTreeKeySerializer.Tuple4KeySerializer){
             BTreeKeySerializer.Tuple4KeySerializer s = (BTreeKeySerializer.Tuple4KeySerializer) keySerializer;
             return new BTreeKeySerializer.Tuple4KeySerializer(
-                    s.aComparator!=null?s.aComparator:Utils.COMPARABLE_COMPARATOR,
-                    s.bComparator!=null?s.bComparator:Utils.COMPARABLE_COMPARATOR,
-                    s.cComparator!=null?s.cComparator:Utils.COMPARABLE_COMPARATOR,
+                    s.aComparator!=null?s.aComparator:BTreeMap.COMPARABLE_COMPARATOR,
+                    s.bComparator!=null?s.bComparator:BTreeMap.COMPARABLE_COMPARATOR,
+                    s.cComparator!=null?s.cComparator:BTreeMap.COMPARABLE_COMPARATOR,
                     s.aSerializer!=null?s.aSerializer:getDefaultSerializer(),
                     s.bSerializer!=null?s.bSerializer:getDefaultSerializer(),
                     s.cSerializer!=null?s.cSerializer:getDefaultSerializer(),
@@ -899,7 +899,7 @@ public class DB {
                 catGet(name+".counterRecid",0L),
                 (BTreeKeySerializer) catGet(name+".keySerializer",new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer())),
                 null,
-                (Comparator) catGet(name+".comparator",Utils.COMPARABLE_COMPARATOR)
+                (Comparator) catGet(name+".comparator",BTreeMap.COMPARABLE_COMPARATOR)
         ).keySet();
 
         namedPut(name, ret);
@@ -921,7 +921,7 @@ public class DB {
         checkNameNotExists(m.name);
         m.serializer = fillNulls(m.serializer);
         m.serializer = catPut(m.name+".keySerializer",m.serializer,new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer()));
-        m.comparator = catPut(m.name+".comparator",m.comparator,Utils.COMPARABLE_COMPARATOR);
+        m.comparator = catPut(m.name+".comparator",m.comparator,BTreeMap.COMPARABLE_COMPARATOR);
 
         if(m.pumpPresortBatchSize!=-1){
             m.pumpSource = Pump.sort(m.pumpSource,m.pumpIgnoreDuplicates, m.pumpPresortBatchSize,Collections.reverseOrder(m.comparator),getDefaultSerializer());

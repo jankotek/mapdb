@@ -17,7 +17,7 @@ public class QueuesTest {
 
 
     @Test public void stack_persisted(){
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
         DB db = DBMaker.newFileDB(f).transactionDisable().cacheDisable().make();
         Queue<Object> stack = db.getStack("test");
         stack.add("1");
@@ -39,7 +39,7 @@ public class QueuesTest {
 
 
     @Test public void queue_persisted(){
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
         DB db = DBMaker.newFileDB(f).transactionDisable().cacheDisable().make();
         Queue<Object> queue = db.getQueue("test");
         queue.add("1");
@@ -61,7 +61,7 @@ public class QueuesTest {
 
     @Test public void circular_queue_persisted(){
         //i put disk limit 4 objects ,
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
         DB db = DBMaker.newFileDB(f).transactionDisable().cacheDisable().make();
         Queue queue = db.createCircularQueue("test",null, 4);
         //when i put 6 objects to queue

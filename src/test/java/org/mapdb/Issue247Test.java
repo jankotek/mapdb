@@ -20,7 +20,7 @@ public class Issue247Test {
 
     @Test
     public void test(){
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
         DB db = DBMaker.newFileDB(f)
                 .transactionDisable()
                 .make();

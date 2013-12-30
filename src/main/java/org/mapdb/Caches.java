@@ -25,7 +25,11 @@ public final class Caches {
 
         protected LongMap<Object> cache;
 
-        protected final ReentrantLock[] locks = Utils.newLocks();
+        protected final ReentrantLock[] locks = new ReentrantLock[CC.CONCURRENCY];
+        {
+            for(int i=0;i<locks.length;i++)
+                locks[i] = new ReentrantLock(CC.FAIR_LOCKS);
+        }
 
 
         public LRU(Engine engine, int cacheSize) {
@@ -41,7 +45,7 @@ public final class Caches {
         public <A> long put(A value, Serializer<A> serializer) {
             long recid =  super.put(value, serializer);
             final LongMap<Object> cache2 = checkClosed(cache);
-            final Lock lock  = locks[Utils.lockPos(recid)];
+            final Lock lock  = locks[Store.lockPos(recid)];
             lock.lock();
             try{
                 cache2.put(recid, value);
@@ -59,7 +63,7 @@ public final class Caches {
             if(ret!=null)
                 return (A) ret;
 
-            final Lock lock  = locks[Utils.lockPos(recid)];
+            final Lock lock  = locks[Store.lockPos(recid)];
             lock.lock();
             try{
                 ret = super.get(recid, serializer);
@@ -75,7 +79,7 @@ public final class Caches {
         public <A> void update(long recid, A value, Serializer<A> serializer) {
             final LongMap<Object> cache2 = checkClosed(cache);
 
-            final Lock lock  = locks[Utils.lockPos(recid)];
+            final Lock lock  = locks[Store.lockPos(recid)];
             lock.lock();
             try{
                 cache2.put(recid, value);
@@ -89,7 +93,7 @@ public final class Caches {
         public <A> void delete(long recid, Serializer<A> serializer){
             final LongMap<Object> cache2 = checkClosed(cache);
 
-            final Lock lock  = locks[Utils.lockPos(recid)];
+            final Lock lock  = locks[Store.lockPos(recid)];
             lock.lock();
             try{
                 cache2.remove(recid);
@@ -104,7 +108,7 @@ public final class Caches {
             Engine engine = getWrappedEngine();
             LongMap cache2 = checkClosed(cache);
 
-            final Lock lock  = locks[Utils.lockPos(recid)];
+            final Lock lock  = locks[Store.lockPos(recid)];
             lock.lock();
             try{
                 Object oldValue = cache2.get(recid);
@@ -156,7 +160,11 @@ public final class Caches {
     public static class HashTable extends EngineWrapper implements Engine {
 
 
-        protected final ReentrantLock[] locks = Utils.newLocks();
+        protected final ReentrantLock[] locks = new ReentrantLock[CC.CONCURRENCY];
+        {
+            for(int i=0;i<locks.length;i++)
+                locks[i] = new ReentrantLock(CC.FAIR_LOCKS);
+        }
 
 
         protected HashItem[] items;
@@ -184,7 +192,7 @@ public final class Caches {
         public HashTable(Engine engine, int cacheMaxSize) {
             super(engine);
             this.items = new HashItem[cacheMaxSize];
-            this.cacheMaxSize = Utils.nextPowTwo(cacheMaxSize);
+            this.cacheMaxSize = 1 << (32 - Integer.numberOfLeadingZeros(cacheMaxSize - 1)); //next pow of two
             this.cacheMaxSizeMask = cacheMaxSize-1;
         }
 
@@ -193,7 +201,7 @@ public final class Caches {
             final long recid = getWrappedEngine().put(value, serializer);
             HashItem[] items2 = checkClosed(items);
 
-            final Lock lock  = locks[Utils.lockPos(recid)];
+            final Lock lock  = locks[Store.lockPos(recid)];
             lock.lock();
             try{
                 items2[position(recid)] = new HashItem(recid, value);
@@ -214,7 +222,7 @@ public final class Caches {
 
             Engine engine = getWrappedEngine();
 
-            final Lock lock  = locks[Utils.lockPos(recid)];
+            final Lock lock  = locks[Store.lockPos(recid)];
             lock.lock();
 
             try{
@@ -229,7 +237,7 @@ public final class Caches {
         }
 
         private int position(long recid) {
-            return Utils.longHash(recid^hashSalt)&cacheMaxSizeMask;
+            return LongHashMap.longHash(recid^hashSalt)&cacheMaxSizeMask;
         }
 
         @Override
@@ -239,7 +247,7 @@ public final class Caches {
             HashItem item = new HashItem(recid,value);
             Engine engine = getWrappedEngine();
 
-            final Lock lock  = locks[Utils.lockPos(recid)];
+            final Lock lock  = locks[Store.lockPos(recid)];
             lock.lock();
             try{
                 items2[pos] = item;
@@ -255,7 +263,7 @@ public final class Caches {
             HashItem[] items2 = checkClosed(items);
             Engine engine = getWrappedEngine();
 
-            final Lock lock  = locks[Utils.lockPos(recid)];
+            final Lock lock  = locks[Store.lockPos(recid)];
             lock.lock();
             try{
                 HashItem item = items2[pos];
@@ -285,7 +293,7 @@ public final class Caches {
             HashItem[] items2 = checkClosed(items);
             Engine engine = getWrappedEngine();
 
-            final Lock lock  = locks[Utils.lockPos(recid)];
+            final Lock lock  = locks[Store.lockPos(recid)];
             lock.lock();
             try{
                 engine.delete(recid,serializer);
@@ -332,7 +340,12 @@ public final class Caches {
     public static class WeakSoftRef extends EngineWrapper implements Engine {
 
 
-        protected final ReentrantLock[] locks = Utils.newLocks();
+        protected final ReentrantLock[] locks = new ReentrantLock[CC.CONCURRENCY];
+        {
+            for(int i=0;i<locks.length;i++)
+                locks[i] = new ReentrantLock(CC.FAIR_LOCKS);
+        }
+
 
         protected interface CacheItem{
             long getRecid();
@@ -420,7 +433,7 @@ public final class Caches {
                     new CacheWeakItem(value, q, recid) :
                     new CacheSoftItem(value, q, recid);
 
-            final Lock lock  = locks[Utils.lockPos(recid)];
+            final Lock lock  = locks[Store.lockPos(recid)];
             lock.lock();
             try{
                 items2.put(recid,item);
@@ -446,7 +459,7 @@ public final class Caches {
 
             Engine engine = getWrappedEngine();
 
-            final Lock lock  = locks[Utils.lockPos(recid)];
+            final Lock lock  = locks[Store.lockPos(recid)];
             lock.lock();
 
             try{
@@ -475,7 +488,7 @@ public final class Caches {
                     new CacheWeakItem<A>(value, q, recid) :
                     new CacheSoftItem<A>(value, q, recid);
 
-            final Lock lock  = locks[Utils.lockPos(recid)];
+            final Lock lock  = locks[Store.lockPos(recid)];
             lock.lock();
             try{
                 items2.put(recid,item);
@@ -491,7 +504,7 @@ public final class Caches {
             Engine engine = getWrappedEngine();
             LongMap items2 = checkClosed(items);
 
-            final Lock lock  = locks[Utils.lockPos(recid)];
+            final Lock lock  = locks[Store.lockPos(recid)];
             lock.lock();
             try{
                 items2.remove(recid);
@@ -509,7 +522,7 @@ public final class Caches {
             ReferenceQueue<A> q = checkClosed(queue);
 
 
-            final Lock lock  = locks[Utils.lockPos(recid)];
+            final Lock lock  = locks[Store.lockPos(recid)];
             lock.lock();
             try{
                 CacheItem item = items2.get(recid);
@@ -600,8 +613,9 @@ public final class Caches {
                 //Increasing heap size to max would increase to max
                 free = free + (max-total);
 
-                if(CC.LOG_TRACE)
-                    Utils.LOG.fine("DBCache: freemem = " +free + " = "+(free/max)+"%");
+                //TODO logging
+//                if(CC.LOG_TRACE)
+//                    Utils.LOG.fine("DBCache: freemem = " +free + " = "+(free/max)+"%");
 
                 if(free<1e7 || free*4 <max){
                     checkClosed(cache).clear();

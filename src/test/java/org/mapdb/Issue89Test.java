@@ -10,7 +10,7 @@ import java.util.NavigableSet;
 public class Issue89Test {
 
 
-        private static final String MY_TEST_DATA_FILE = Utils.tempDbFile().getAbsolutePath();
+        private static final String MY_TEST_DATA_FILE = UtilsTest.tempDbFile().getAbsolutePath();
         private static final String MAP_DB_DATA_FILE_TO_REMOVE = MY_TEST_DATA_FILE + ".0";
         private static final String TEST_TREE_SET = "TestTreeSet";
         private static final String DUMMY_CONTENT = "DummyContent";

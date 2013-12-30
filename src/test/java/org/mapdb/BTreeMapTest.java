@@ -17,9 +17,9 @@ public class BTreeMapTest{
     Engine engine = new StoreDirect(Volume.memoryFactory(false,0L, false));
 
 
-    BTreeMap m = new BTreeMap(engine,BTreeMap.createRootRef(engine,BTreeKeySerializer.BASIC,Serializer.BASIC,Utils.COMPARABLE_COMPARATOR),
+    BTreeMap m = new BTreeMap(engine,BTreeMap.createRootRef(engine,BTreeKeySerializer.BASIC,Serializer.BASIC,BTreeMap.COMPARABLE_COMPARATOR),
             6,false,0, BTreeKeySerializer.BASIC,Serializer.BASIC,
-            Utils.COMPARABLE_COMPARATOR);
+            BTreeMap.COMPARABLE_COMPARATOR);
     
 
     @Test public void test_leaf_node_serialization() throws IOException {
