@@ -336,6 +336,53 @@ public class BTreeMapTest{
     }
 
 
+    @Test public void concurrent_last_key(){
+        DB db = DBMaker.newMemoryDB().make();
+        final BTreeMap m = db.getTreeMap("name");
+
+        //fill
+        final int c = 1000000;
+        for(int i=0;i<=c;i++){
+            m.put(c,c);
+        }
+
+        Thread t = new Thread(){
+            @Override
+            public void run() {
+                for(int i=c;i>=0;i--){
+                    m.remove(i);
+                }
+            }
+        };
+        t.run();
+        while(t.isAlive()){
+            assertNotNull(m.lastKey());
+        }
+    }
+
+    @Test public void concurrent_first_key(){
+        DB db = DBMaker.newMemoryDB().make();
+        final BTreeMap m = db.getTreeMap("name");
+
+        //fill
+        final int c = 1000000;
+        for(int i=0;i<=c;i++){
+            m.put(c,c);
+        }
+
+        Thread t = new Thread(){
+            @Override
+            public void run() {
+                for(int i=0;i<=c;i++){
+                    m.remove(c);
+                }
+            }
+        };
+        t.run();
+        while(t.isAlive()){
+            assertNotNull(m.firstKey());
+        }
+    }
 
 }
 
