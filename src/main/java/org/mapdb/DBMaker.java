@@ -548,39 +548,6 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         return getThis();
     }
 
-    /**
-     * Enables power saving mode.
-     * Typically MapDB runs daemon threads in infinitive cycle with delays and spin locks:
-     * <pre>
-     *     while(true){
-     *         Thread.sleep(1000);
-     *         doSomething();
-     *     }
-     *
-     *    while(write_finished){
-     *         write_chunk;
-     *         sleep(10 nanoseconds)  //so OS gets chance to finish async writing
-     *     }
-     *
-     * </pre>
-     * This brings bit more stability (prevents deadlocks) and some extra speed.
-     * However it causes higher CPU usage then necessary, also CPU wakes-up every
-     * N seconds.
-     * <p>
-     * On power constrained devices (phones, laptops..) trading speed for energy
-     * consumption is not desired. So this settings tells MapDB to prefer
-     * energy efficiency over speed and stability. This is global settings, so
-     * this settings may affects any MapDB part where this settings makes sense
-     * <p>
-     * Currently is used only in {@link AsyncWriteEngine} where power settings
-     * may prevent Background Writer Thread from exiting, if main thread dies.
-     *
-     * @return this builder
-     */
-//    public DBMaker powerSavingModeEnable(){
-//        this._powerSavingMode = true;
-//        return this;
-//    }
 
     /**
      * Disables file sync on commit. This way transactions are preserved (rollback works),
