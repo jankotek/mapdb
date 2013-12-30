@@ -37,13 +37,31 @@ public class DB {
     /** already loaded named collections. It is important to keep collections as singletons, because of 'in-memory' locking*/
     protected Map<String, WeakReference<?>> namesInstanciated = new HashMap<String, WeakReference<?>>();
 
-    protected Map<Object, String> namesLookup =
+    protected Map<IdentityWrapper, String> namesLookup =
             Collections.synchronizedMap( //TODO remove synchronized map, after DB locking is resolved
-            new WeakIdentityHashMap<Object, String>());
+            new HashMap<IdentityWrapper, String>());
 
     /** view over named records */
     protected SortedMap<String, Object> catalog;
 
+    protected static class IdentityWrapper{
+
+        final Object o;
+
+        public IdentityWrapper(Object o) {
+            this.o = o;
+        }
+
+        @Override
+        public int hashCode() {
+            return System.identityHashCode(o);
+        }
+
+        @Override
+        public boolean equals(Object v) {
+            return ((IdentityWrapper)v).o==o;
+        }
+    }
 
     /**
      * Construct new DB. It is just thin layer over {@link Engine} which does the real work.
@@ -98,7 +116,7 @@ public class DB {
     /** returns name for this object, if it has name and was instanciated by this DB*/
     public  String getNameForObject(Object obj) {
         //TODO this method should be synchronized, but it causes deadlock.
-        return namesLookup.get(obj);
+        return namesLookup.get(new IdentityWrapper(obj));
     }
 
 
@@ -352,7 +370,7 @@ public class DB {
 
     protected  <V> V namedPut(String name, Object ret) {
         namesInstanciated.put(name, new WeakReference<Object>(ret));
-        namesLookup.put(ret, name);
+        namesLookup.put(new IdentityWrapper(ret), name);
         return (V) ret;
     }
 
@@ -1361,7 +1379,7 @@ public class DB {
             catalog.remove(n);
         }
         namesInstanciated.remove(name);
-        namesLookup.remove(r);
+        namesLookup.remove(new IdentityWrapper(r));
     }
 
 
@@ -1406,7 +1424,7 @@ public class DB {
         if(old!=null){
             Object old2 = old.get();
             if(old2!=null){
-                namesLookup.remove(old2);
+                namesLookup.remove(new IdentityWrapper(old2));
                 namedPut(newName,old2);
             }
         }
