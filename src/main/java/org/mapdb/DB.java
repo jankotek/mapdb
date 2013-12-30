@@ -600,7 +600,7 @@ public class DB {
 
         public <K,V> BTreeMapMaker pumpSource(Iterator<K> keysSource,  Fun.Function1<V,K> valueExtractor){
             this.pumpSource = keysSource;
-            this.pumpKeyExtractor = Fun.noTransformExtractor();
+            this.pumpKeyExtractor = Fun.extractNoTransform();
             this.pumpValueExtractor = valueExtractor;
             return this;
         }
@@ -608,8 +608,8 @@ public class DB {
 
         public <K,V> BTreeMapMaker pumpSource(Iterator<Fun.Tuple2<K,V>> entriesSource){
             this.pumpSource = entriesSource;
-            this.pumpKeyExtractor = Fun.keyExtractor();
-            this.pumpValueExtractor = Fun.valueExtractor();
+            this.pumpKeyExtractor = Fun.extractKey();
+            this.pumpValueExtractor = Fun.extractValue();
             return this;
         }
 
@@ -951,7 +951,7 @@ public class DB {
         if(m.pumpSource==null){
             rootRecidRef = BTreeMap.createRootRef(engine,m.serializer,null,m.comparator);
         }else{
-            rootRecidRef = Pump.buildTreeMap(m.pumpSource,engine,Fun.noTransformExtractor(),null,m.pumpIgnoreDuplicates, m.nodeSize,
+            rootRecidRef = Pump.buildTreeMap(m.pumpSource,engine,Fun.extractNoTransform(),null,m.pumpIgnoreDuplicates, m.nodeSize,
                     false,counterRecid,m.serializer,null,m.comparator);
         }
 

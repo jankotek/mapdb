@@ -355,7 +355,7 @@ public final class Pump {
                 keys.add(key);
                 if(hasVals){
                     Object val = valueExtractor.run(next);
-                    if(val==null) throw new NullPointerException("valueExtractor returned null value");
+                    if(val==null) throw new NullPointerException("extractValue returned null value");
                     if(valuesStoredOutsideNodes){
                         long recid = engine.put((V) val,valueSerializer);
                         val = new BTreeMap.ValRef(recid);

@@ -93,14 +93,6 @@ public final class Fun {
         return new Tuple4<A, B, C, D>(a,b,c,d);
     }
 
-    public static <K> Function1<K,K> noTransformExtractor() {
-        return new Function1<K, K>() {
-            @Override
-            public K run(K k) {
-                return k;
-            }
-        };
-    }
 
 
     static public final class Tuple2<A,B> implements Comparable, Serializable {
@@ -426,7 +418,7 @@ public final class Fun {
     }
 
 
-    public static <K,V> Fun.Function1<K,Fun.Tuple2<K,V>> keyExtractor(){
+    public static <K,V> Fun.Function1<K,Fun.Tuple2<K,V>> extractKey(){
         return new Fun.Function1<K, Fun.Tuple2<K, V>>() {
             @Override
             public K run(Fun.Tuple2<K, V> t) {
@@ -435,11 +427,21 @@ public final class Fun {
         };
     }
 
-    public static <K,V> Fun.Function1<V,Fun.Tuple2<K,V>> valueExtractor(){
+    public static <K,V> Fun.Function1<V,Fun.Tuple2<K,V>> extractValue(){
         return new Fun.Function1<V, Fun.Tuple2<K, V>>() {
             @Override
             public V run(Fun.Tuple2<K, V> t) {
                 return t.b;
+            }
+        };
+    }
+
+
+    public static <K> Function1<K,K> extractNoTransform() {
+        return new Function1<K, K>() {
+            @Override
+            public K run(K k) {
+                return k;
             }
         };
     }
@@ -534,7 +536,7 @@ public final class Fun {
             if(o1==o2) return 0;
             final int len = Math.min(o1.length,o2.length);
             for(int i=0;i<len;i++){
-                int r = Fun.COMPARATOR.compare((Comparable)o1[i],(Comparable)o2[i]);
+                int r = Fun.COMPARATOR.compare(o1[i],o2[i]);
                 if(r!=0)
                     return r;
             }
