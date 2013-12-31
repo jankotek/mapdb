@@ -3,10 +3,8 @@ package org.mapdb;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.NavigableMap;
-import java.util.NoSuchElementException;
+import java.util.*;
+import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.*;
@@ -384,6 +382,135 @@ public class BTreeMapTest{
         }
     }
 
+    @Test public void WriteDBInt_lastKey() {
+        int numberOfRecords = 1000;
+
+        /** Creates connections to MapDB */
+        DB db1 = DBMaker.newMemoryDB().make();
+
+
+        /** Creates maps */
+        ConcurrentNavigableMap<Integer, Integer> map1 = db1.getTreeMap("column1");
+
+        /** Inserts initial values in maps */
+        for (int i = 0; i < numberOfRecords; i++) {
+            map1.put(i, i);
+        }
+
+
+        assertEquals((Object) (numberOfRecords - 1), map1.lastKey());
+
+        map1.clear();
+
+        /** Inserts some values in maps */
+        for (int i = 0; i < 10; i++) {
+            map1.put(i, i);
+        }
+
+        assertEquals(10,map1.size());
+        assertFalse(map1.isEmpty());
+        assertEquals((Object) 9, map1.lastKey());
+        assertEquals((Object) 9, map1.lastEntry().getValue());
+        assertEquals((Object) 0, map1.firstKey());
+        assertEquals((Object) 0, map1.firstEntry().getValue());
+    }
+
+    @Test public void WriteDBInt_lastKey_set() {
+        int numberOfRecords = 1000;
+
+        /** Creates connections to MapDB */
+        DB db1 = DBMaker.newMemoryDB().make();
+
+
+        /** Creates maps */
+        NavigableSet<Integer> map1 = db1.getTreeSet("column1");
+
+        /** Inserts initial values in maps */
+        for (int i = 0; i < numberOfRecords; i++) {
+            map1.add(i);
+        }
+
+
+        assertEquals((Object) (numberOfRecords - 1), map1.last());
+
+        map1.clear();
+
+        /** Inserts some values in maps */
+        for (int i = 0; i < 10; i++) {
+            map1.add(i);
+        }
+
+        assertEquals(10,map1.size());
+        assertFalse(map1.isEmpty());
+        assertEquals((Object) 9, map1.last());
+        assertEquals((Object) 0, map1.first());
+    }
+
+    @Test public void WriteDBInt_lastKey_middle() {
+        int numberOfRecords = 1000;
+
+        /** Creates connections to MapDB */
+        DB db1 = DBMaker.newMemoryDB().make();
+
+
+        /** Creates maps */
+        ConcurrentNavigableMap<Integer, Integer> map1 = db1.getTreeMap("column1");
+
+        /** Inserts initial values in maps */
+        for (int i = 0; i < numberOfRecords; i++) {
+            map1.put(i, i);
+        }
+
+
+        assertEquals((Object) (numberOfRecords - 1), map1.lastKey());
+
+        map1.clear();
+
+        /** Inserts some values in maps */
+        for (int i = 100; i < 110; i++) {
+            map1.put(i, i);
+        }
+
+        assertEquals(10,map1.size());
+        assertFalse(map1.isEmpty());
+        assertEquals((Object) 109, map1.lastKey());
+        assertEquals((Object) 109, map1.lastEntry().getValue());
+        assertEquals((Object) 100, map1.firstKey());
+        assertEquals((Object) 100, map1.firstEntry().getValue());
+    }
+
+    @Test public void WriteDBInt_lastKey_set_middle() {
+        int numberOfRecords = 1000;
+
+        /** Creates connections to MapDB */
+        DB db1 = DBMaker.newMemoryDB().make();
+
+
+        /** Creates maps */
+        NavigableSet<Integer> map1 = db1.getTreeSet("column1");
+
+        /** Inserts initial values in maps */
+        for (int i = 0; i < numberOfRecords; i++) {
+            map1.add(i);
+        }
+
+
+        assertEquals((Object) (numberOfRecords - 1), map1.last());
+
+        map1.clear();
+
+        /** Inserts some values in maps */
+        for (int i = 100; i < 110; i++) {
+            map1.add(i);
+        }
+
+        assertEquals(10,map1.size());
+        assertFalse(map1.isEmpty());
+        assertEquals((Object) 109, map1.last());
+        assertEquals((Object) 100, map1.first());
+    }
+
 }
+
 
 

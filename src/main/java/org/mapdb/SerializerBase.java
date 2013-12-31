@@ -1170,7 +1170,7 @@ public class SerializerBase implements Serializer{
                 break;
 
             case Header.ARRAY_BOOLEAN:
-                ret = readBooleanArray(is);
+                ret = readBooleanArray(DataInput2.unpackInt(is),is);
                 break;
             case Header.ARRAY_SHORT:
                 int size = DataInput2.unpackInt(is);
@@ -1780,8 +1780,7 @@ public class SerializerBase implements Serializer{
      * @return The boolean array decompressed from the bytes read in.
      * @throws IOException If an error occurred while reading.
      */
-    protected static boolean[] readBooleanArray(DataInput is) throws IOException {
-        int numBools = DataInput2.unpackInt(is);
+    protected static boolean[] readBooleanArray(int numBools,DataInput is) throws IOException {
         int length = (numBools/8)+((numBools%8 == 0)?0:1);
         byte[] boolBytes = new byte[length];
         is.readFully(boolBytes);

@@ -313,9 +313,6 @@ public final class Pump {
 
         final double NODE_LOAD = 0.75;
 
-
-        final boolean hasVals = valueExtractor!=null;
-
         Serializer<BTreeMap.BNode> nodeSerializer = new BTreeMap.NodeSerializer(valuesStoredOutsideNodes,keySerializer,valueSerializer,comparator);
 
 
@@ -329,7 +326,7 @@ public final class Pump {
 
         //fill node with data
         List<K> keys = arrayList(null);
-        ArrayList<Object> values = hasVals?new ArrayList<Object>() : null;
+        ArrayList<Object> values = new ArrayList<Object>();
         //traverse iterator
         K oldKey = null;
         while(source.hasNext()){
@@ -353,43 +350,41 @@ public final class Pump {
                     throw new IllegalArgumentException("Keys in 'source' iterator are not reverse sorted");
                 oldKey = key;
                 keys.add(key);
-                if(hasVals){
-                    Object val = valueExtractor.run(next);
-                    if(val==null) throw new NullPointerException("extractValue returned null value");
-                    if(valuesStoredOutsideNodes){
-                        long recid = engine.put((V) val,valueSerializer);
-                        val = new BTreeMap.ValRef(recid);
-                    }
-                    values.add(val);
+
+                Object val = valueExtractor!=null?valueExtractor.run(next):BTreeMap.EMPTY;
+                if(val==null) throw new NullPointerException("extractValue returned null value");
+                if(valuesStoredOutsideNodes){
+                    long recid = engine.put((V) val,valueSerializer);
+                    val = new BTreeMap.ValRef(recid);
                 }
+                values.add(val);
+
             }
             //insert node
             if(!source.hasNext()){
                 keys.add(null);
-                if(hasVals)values.add(null);
+                values.add(null);
             }
 
             Collections.reverse(keys);
 
-            Object nextVal = null;
-            if(hasVals){
-                nextVal = values.remove(values.size()-1);
-                Collections.reverse(values);
-            }
+            Object nextVal = values.remove(values.size()-1);
+            Collections.reverse(values);
 
 
 
-            BTreeMap.LeafNode node = new BTreeMap.LeafNode(keys.toArray(),hasVals? values.toArray() : null, nextNode);
+
+            BTreeMap.LeafNode node = new BTreeMap.LeafNode(keys.toArray(),values.toArray() , nextNode);
             nextNode = engine.put(node,nodeSerializer);
             K nextKey = keys.get(0);
             keys.clear();
 
             keys.add(nextKey);
             keys.add(nextKey);
-            if(hasVals){
-                values.clear();
-                values.add(nextVal);
-            }
+
+            values.clear();
+            values.add(nextVal);
+
             dirKeys.get(0).add(node.keys()[0]);
             dirRecids.get(0).add(nextNode);
 
