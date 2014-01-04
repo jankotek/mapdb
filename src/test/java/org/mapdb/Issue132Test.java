@@ -22,7 +22,7 @@ public class Issue132Test {
         return counter;
     }
 
-    @Test
+    @Test(timeout=10000)
     public  void test_full() {
         long id= 0;
         for(int count = 0; count < 50; count++) {
@@ -60,7 +60,7 @@ public class Issue132Test {
         }
     }
 
-    @Test
+    @Test(timeout=10000)
     public  void test_isolate() {
         long id= 0;
         int count = 18;

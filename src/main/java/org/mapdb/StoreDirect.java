@@ -935,6 +935,7 @@ public class StoreDirect extends Store{
         dataOffset &= MASK_OFFSET;
 
         if(dataOffset == 0){ //empty list?
+            //TODO allocate pages of mixed size
             //yes empty, create new page and fill it with values
             final long listPhysid = freePhysTake((int) LONG_STACK_PREF_SIZE,true,true) &MASK_OFFSET;
             if(listPhysid == 0) throw new AssertionError();
