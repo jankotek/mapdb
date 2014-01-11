@@ -481,7 +481,8 @@ public class TxEngine extends EngineWrapper {
             txs.remove(ref);
             cleanTxQueue();
 
-            pojo.save(this);
+            if(pojo.hasUnsavedChanges())
+                pojo.save(this);
 
             //check no other TX has modified our data
             LongMap.LongMapIterator oldIter = old.longMapIterator();
