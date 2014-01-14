@@ -132,5 +132,7 @@ public class UtilsTest {
     }
 
 
-
+    public static int randomInt() {
+        return new Random().nextInt();
+    }
 }
