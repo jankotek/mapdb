@@ -324,6 +324,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * mode.
      */
     public DBMakerT mmapFileEnable() {
+        assertNotInMemoryVolume();
         props.setProperty(Keys.volume,Keys.volume_mmapf);
         return getThis();
     }
@@ -342,14 +343,22 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      *
      */
     public DBMakerT mmapFileEnablePartial() {
+        assertNotInMemoryVolume();
         props.setProperty(Keys.volume,Keys.volume_mmapfPartial);
         return getThis();
+    }
+
+    private void assertNotInMemoryVolume() {
+        if(Keys.volume_heap.equals(props.getProperty(Keys.volume)) ||
+           Keys.volume_offheap.equals(props.getProperty(Keys.volume)))
+            throw new IllegalArgumentException("Can not enable mmap file for in-memory store");
     }
 
     /**
      * Enable Memory Mapped Files only if current JVM supports it (is 64bit).
      */
     public DBMakerT mmapFileEnableIfSupported() {
+        assertNotInMemoryVolume();
         props.setProperty(Keys.volume,Keys.volume_mmapfIfSupported);
         return getThis();
     }
