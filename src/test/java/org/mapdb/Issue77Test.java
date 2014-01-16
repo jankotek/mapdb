@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 
 public class Issue77Test {
     private  Random random = new Random(1);
-    private  File dir = new File(Utils.tempDbFile()+"aaa");
+    private  File dir = new File(UtilsTest.tempDbFile()+"aaa");
 
     @Test
     public void run(){
@@ -27,7 +27,7 @@ public class Issue77Test {
         if (readOnly) {
             maker.readOnly();
         }
-        maker.randomAccessFileEnableIfNeeded();
+//        maker.randomAccessFileEnableIfNeeded();
         maker.closeOnJvmShutdown();
         DB db = maker.make(); // InternalError, UnsupportedOperationException
         return db;

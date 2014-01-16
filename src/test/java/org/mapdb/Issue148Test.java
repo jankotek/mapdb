@@ -13,9 +13,9 @@ import static org.junit.Assert.assertEquals;
 public class Issue148Test {
 
     @Test public void repeated_update(){
-        File mapdbFile = Utils.tempDbFile();
+        File mapdbFile = UtilsTest.tempDbFile();
 
-        String str = Utils.randomString(1000);
+        String str = UtilsTest.randomString(1000);
         Engine engine = DBMaker.newAppendFileDB(mapdbFile).closeOnJvmShutdown().cacheDisable().makeEngine();
         long recid = engine.put(str,Serializer.STRING_NOSIZE);
         engine.commit();
@@ -24,7 +24,7 @@ public class Issue148Test {
         for(int i=10;i<100;i++){
             engine = DBMaker.newAppendFileDB(mapdbFile).closeOnJvmShutdown().cacheDisable().makeEngine();
             assertEquals(str, engine.get(recid, Serializer.STRING_NOSIZE));
-            str = Utils.randomString(i);
+            str = UtilsTest.randomString(i);
             engine.update(recid,str,Serializer.STRING_NOSIZE);
             assertEquals(str, engine.get(recid, Serializer.STRING_NOSIZE));
             engine.commit();
@@ -38,7 +38,7 @@ public class Issue148Test {
     public void test(){
 
         // 1 : Create HTreeMap, put some values , Commit and Close;
-        File mapdbFile = Utils.tempDbFile();
+        File mapdbFile = UtilsTest.tempDbFile();
         DB mapdb = DBMaker.newAppendFileDB(mapdbFile).closeOnJvmShutdown().cacheDisable().make();
 
         Serializer<CustomValue> valueSerializer = new CustomValueSerializer();
@@ -167,6 +167,12 @@ public class Issue148Test {
 
             return new CustomValue( in.readUTF(), in.readInt() );
         }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+
     }
 
 

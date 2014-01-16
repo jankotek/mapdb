@@ -10,7 +10,7 @@ import java.io.IOException;
  */
 abstract public class TestFile {
 
-    protected final File index = Utils.tempDbFile();
+    protected final File index = UtilsTest.tempDbFile();
     protected final File data = new File(index.getPath()+ StoreDirect.DATA_FILE_EXT);
     protected final File log = new File(index.getPath()+ StoreWAL.TRANS_LOG_FILE_EXT);
 

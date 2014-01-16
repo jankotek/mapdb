@@ -25,7 +25,7 @@ public class Issue86Test {
         for (int i = 1; i < maxSize; i++) {
             String[] array = new String[i];
             for (int j = 0; j < i; j++) {
-                array[j] = Utils.randomString(100);
+                array[j] = UtilsTest.randomString(100);
             }
             map.put(i, array);
         }
@@ -59,7 +59,7 @@ public class Issue86Test {
         public StringContainer(int size) {
             container = new String[size];
             for (int i = 0; i < size; i++) {
-                container[i] = Utils.randomString(100);
+                container[i] = UtilsTest.randomString(100);
             }
         }
     }

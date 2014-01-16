@@ -19,7 +19,7 @@ public class Issue41Test {
 
     private static int NB_OPERATIONS = 1000;
 
-    private File DB_PATH = Utils.tempDbFile();
+    private File DB_PATH = UtilsTest.tempDbFile();
 
     private static String MAP_NAME = "mymap";
 
@@ -184,6 +184,12 @@ public class Issue41Test {
                 return new Value(new UUID(in.readLong(), in.readLong()));
             }
 
+            @Override
+            public int fixedSize() {
+                return -1;
+            }
+
+
         }
 
     }
@@ -263,6 +269,12 @@ public class Issue41Test {
                         Value.SERIALIZER.deserialize(in, available);
 
                 return new Key(subscriptionId, eventId);
+            }
+
+
+            @Override
+            public int fixedSize() {
+                return -1;
             }
 
         }

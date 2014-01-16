@@ -3,10 +3,9 @@ package org.mapdb;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.NavigableMap;
-import java.util.NoSuchElementException;
+import java.util.*;
+import java.util.concurrent.ConcurrentNavigableMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.*;
 
@@ -16,9 +15,9 @@ public class BTreeMapTest{
     Engine engine = new StoreDirect(Volume.memoryFactory(false,0L, false));
 
 
-    BTreeMap m = new BTreeMap(engine,BTreeMap.createRootRef(engine,BTreeKeySerializer.BASIC,Serializer.BASIC,Utils.COMPARABLE_COMPARATOR),
+    BTreeMap m = new BTreeMap(engine,BTreeMap.createRootRef(engine,BTreeKeySerializer.BASIC,Serializer.BASIC,BTreeMap.COMPARABLE_COMPARATOR),
             6,false,0, BTreeKeySerializer.BASIC,Serializer.BASIC,
-            Utils.COMPARABLE_COMPARATOR);
+            BTreeMap.COMPARABLE_COMPARATOR);
     
 
     @Test public void test_leaf_node_serialization() throws IOException {
@@ -301,12 +300,217 @@ public class BTreeMapTest{
         assertEquals("aa",m.lastKey());
         m.put("bb","bb");
         assertEquals("bb",m.lastKey());
+    }
+
+    @Test public void mod_listener_lock(){
+        DB db = DBMaker.newMemoryDB().make();
+        final BTreeMap m = db.getTreeMap("name");
+
+        final long rootRecid = db.getEngine().get(m.rootRecidRef, Serializer.LONG);
+        final AtomicInteger counter = new AtomicInteger();
+
+        m.addModificationListener(new Bind.MapListener() {
+            @Override
+            public void update(Object key, Object oldVal, Object newVal) {
+                assertTrue(m.nodeLocks.get(rootRecid)==Thread.currentThread());
+                assertEquals(1,m.nodeLocks.size());
+                counter.incrementAndGet();
+            }
+        });
 
 
+        m.put("aa","aa");
+        m.put("aa", "bb");
+        m.remove("aa");
 
+
+        m.put("aa","aa");
+        m.remove("aa","aa");
+        m.putIfAbsent("aa","bb");
+        m.replace("aa","bb","cc");
+        m.replace("aa","cc");
+
+        assertEquals(8, counter.get());
     }
 
 
+    @Test public void concurrent_last_key(){
+        DB db = DBMaker.newMemoryDB().make();
+        final BTreeMap m = db.getTreeMap("name");
+
+        //fill
+        final int c = 1000000;
+        for(int i=0;i<=c;i++){
+            m.put(c,c);
+        }
+
+        Thread t = new Thread(){
+            @Override
+            public void run() {
+                for(int i=c;i>=0;i--){
+                    m.remove(i);
+                }
+            }
+        };
+        t.run();
+        while(t.isAlive()){
+            assertNotNull(m.lastKey());
+        }
+    }
+
+    @Test public void concurrent_first_key(){
+        DB db = DBMaker.newMemoryDB().make();
+        final BTreeMap m = db.getTreeMap("name");
+
+        //fill
+        final int c = 1000000;
+        for(int i=0;i<=c;i++){
+            m.put(c,c);
+        }
+
+        Thread t = new Thread(){
+            @Override
+            public void run() {
+                for(int i=0;i<=c;i++){
+                    m.remove(c);
+                }
+            }
+        };
+        t.run();
+        while(t.isAlive()){
+            assertNotNull(m.firstKey());
+        }
+    }
+
+    @Test public void WriteDBInt_lastKey() {
+        int numberOfRecords = 1000;
+
+        /** Creates connections to MapDB */
+        DB db1 = DBMaker.newMemoryDB().make();
+
+
+        /** Creates maps */
+        ConcurrentNavigableMap<Integer, Integer> map1 = db1.getTreeMap("column1");
+
+        /** Inserts initial values in maps */
+        for (int i = 0; i < numberOfRecords; i++) {
+            map1.put(i, i);
+        }
+
+
+        assertEquals((Object) (numberOfRecords - 1), map1.lastKey());
+
+        map1.clear();
+
+        /** Inserts some values in maps */
+        for (int i = 0; i < 10; i++) {
+            map1.put(i, i);
+        }
+
+        assertEquals(10,map1.size());
+        assertFalse(map1.isEmpty());
+        assertEquals((Object) 9, map1.lastKey());
+        assertEquals((Object) 9, map1.lastEntry().getValue());
+        assertEquals((Object) 0, map1.firstKey());
+        assertEquals((Object) 0, map1.firstEntry().getValue());
+    }
+
+    @Test public void WriteDBInt_lastKey_set() {
+        int numberOfRecords = 1000;
+
+        /** Creates connections to MapDB */
+        DB db1 = DBMaker.newMemoryDB().make();
+
+
+        /** Creates maps */
+        NavigableSet<Integer> map1 = db1.getTreeSet("column1");
+
+        /** Inserts initial values in maps */
+        for (int i = 0; i < numberOfRecords; i++) {
+            map1.add(i);
+        }
+
+
+        assertEquals((Object) (numberOfRecords - 1), map1.last());
+
+        map1.clear();
+
+        /** Inserts some values in maps */
+        for (int i = 0; i < 10; i++) {
+            map1.add(i);
+        }
+
+        assertEquals(10,map1.size());
+        assertFalse(map1.isEmpty());
+        assertEquals((Object) 9, map1.last());
+        assertEquals((Object) 0, map1.first());
+    }
+
+    @Test public void WriteDBInt_lastKey_middle() {
+        int numberOfRecords = 1000;
+
+        /** Creates connections to MapDB */
+        DB db1 = DBMaker.newMemoryDB().make();
+
+
+        /** Creates maps */
+        ConcurrentNavigableMap<Integer, Integer> map1 = db1.getTreeMap("column1");
+
+        /** Inserts initial values in maps */
+        for (int i = 0; i < numberOfRecords; i++) {
+            map1.put(i, i);
+        }
+
+
+        assertEquals((Object) (numberOfRecords - 1), map1.lastKey());
+
+        map1.clear();
+
+        /** Inserts some values in maps */
+        for (int i = 100; i < 110; i++) {
+            map1.put(i, i);
+        }
+
+        assertEquals(10,map1.size());
+        assertFalse(map1.isEmpty());
+        assertEquals((Object) 109, map1.lastKey());
+        assertEquals((Object) 109, map1.lastEntry().getValue());
+        assertEquals((Object) 100, map1.firstKey());
+        assertEquals((Object) 100, map1.firstEntry().getValue());
+    }
+
+    @Test public void WriteDBInt_lastKey_set_middle() {
+        int numberOfRecords = 1000;
+
+        /** Creates connections to MapDB */
+        DB db1 = DBMaker.newMemoryDB().make();
+
+
+        /** Creates maps */
+        NavigableSet<Integer> map1 = db1.getTreeSet("column1");
+
+        /** Inserts initial values in maps */
+        for (int i = 0; i < numberOfRecords; i++) {
+            map1.add(i);
+        }
+
+
+        assertEquals((Object) (numberOfRecords - 1), map1.last());
+
+        map1.clear();
+
+        /** Inserts some values in maps */
+        for (int i = 100; i < 110; i++) {
+            map1.add(i);
+        }
+
+        assertEquals(10,map1.size());
+        assertFalse(map1.isEmpty());
+        assertEquals((Object) 109, map1.last());
+        assertEquals((Object) 100, map1.first());
+    }
+
 }
+
 
 

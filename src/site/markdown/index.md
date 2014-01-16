@@ -37,6 +37,8 @@ CRUD, off-heap, append only store.. we have them all. MapDB is highly modular an
 News
 ----
 
+* 2013-12-30 [MapDB 0.9.8 was released](http://www.mapdb.org/changelog.html#Version_098_2013-12-30). API and store format should be stable now. RAF on by default. Append-Only store postponed...
+
 * 2013-11-06 [MapDB 1.0 ](http://kotek.net/blog/MapDB_1_in_january) will be released in January.
 
 * 2013-10-28 [MapDB 0.9.7 was released](http://www.mapdb.org/changelog.html#Version_097_2013-10-28). Fixed locking issues on Windows. Concurrent Transactions (TxMaker) reworked and finally fixed.

@@ -147,7 +147,7 @@ class StoreAppend extends Store{
                 long pos = 8;
                 while(pos<=FILE_MASK){
                     long recid = vol.getPackedLong(pos);
-                    pos+=Utils.packedLongSize(recid);
+                    pos+=packedLongSize(recid);
                     recid -= RECIDP;
                     maxRecid = Math.max(recid,maxRecid);
 //                    System.out.println("replay "+recid+ " - "+pos);
@@ -177,7 +177,7 @@ class StoreAppend extends Store{
                     index.ensureAvailable(recid*8+8);
                     long indexVal = (num<<FILE_SHIFT)|pos;
                     long size = vol.getPackedLong(pos);
-                    pos+=Utils.packedLongSize(size);
+                    pos+=packedLongSize(size);
                     size-=SIZEP;
 
                     if(size==0){
@@ -208,7 +208,7 @@ class StoreAppend extends Store{
     }
 
     protected void rollover(){
-        if(currVolume.getLong(0)!=HEADER) throw new InternalError();
+        if(currVolume.getLong(0)!=HEADER) throw new AssertionError();
         if(currPos<=FILE_MASK || readOnly) return;
         //beyond usual file size, so create new file
         currVolume.sync();
@@ -330,7 +330,7 @@ class StoreAppend extends Store{
     @Override
     public <A> A get(long recid, Serializer<A> serializer) {
         assert(recid>0);
-        final Lock lock = locks[Utils.lockPos(recid)].readLock();
+        final Lock lock = locks[Store.lockPos(recid)].readLock();
         lock.lock();
         try{
             return getNoLock(recid, serializer);
@@ -348,7 +348,7 @@ class StoreAppend extends Store{
         Volume vol = volumes.get(indexVal>>>FILE_SHIFT);
         long fileOffset = indexVal&FILE_MASK;
         long size = vol.getPackedLong(fileOffset);
-        fileOffset+= Utils.packedLongSize(size);
+        fileOffset+= packedLongSize(size);
         size-=SIZEP;
         if(size<0) return null;
         if(size==0) return serializer.deserialize(new DataInput2(new byte[0]),0);
@@ -364,7 +364,7 @@ class StoreAppend extends Store{
         assert(recid>0);
         DataOutput2 out = serialize(value,serializer);
 
-        final Lock lock = locks[Utils.lockPos(recid)].writeLock();
+        final Lock lock = locks[Store.lockPos(recid)].writeLock();
         lock.lock();
         try{
             updateNoLock(recid, out);
@@ -404,7 +404,7 @@ class StoreAppend extends Store{
         assert(expectedOldValue!=null && newValue!=null);
         assert(recid>0);
         DataOutput2 out = serialize(newValue,serializer);
-        final Lock lock = locks[Utils.lockPos(recid)].writeLock();
+        final Lock lock = locks[Store.lockPos(recid)].writeLock();
         lock.lock();
         boolean ret;
         try{
@@ -427,7 +427,7 @@ class StoreAppend extends Store{
     @Override
     public <A> void delete(long recid, Serializer<A> serializer) {
         assert(recid>0);
-        final Lock lock = locks[Utils.lockPos(recid)].writeLock();
+        final Lock lock = locks[Store.lockPos(recid)].writeLock();
         lock.lock();
         try{
             structuralLock.lock();
@@ -598,7 +598,7 @@ class StoreAppend extends Store{
 
     @Override
     public Iterator<Long> getFreeRecids() {
-        return Utils.EMPTY_ITERATOR; //TODO free recid management
+        return Fun.EMPTY_ITERATOR; //TODO free recid management
     }
 
     @Override
@@ -634,6 +634,18 @@ class StoreAppend extends Store{
     public String calculateStatistics() {
         return null;
     }
+
+
+    /** get number of bytes occupied by packed long */
+    protected static int packedLongSize(long value) {
+        int ret = 1;
+        while ((value & ~0x7FL) != 0) {
+            ret++;
+            value >>>= 7;
+        }
+        return ret;
+    }
+
 }
 
 

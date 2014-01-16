@@ -15,7 +15,6 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * Various queue algorithms
  */
-//TODO unit tests for BlockingQueues
 public final class Queues {
 
     private Queues(){}
@@ -46,15 +45,21 @@ public final class Queues {
             @Override
             public void serialize(DataOutput out, Node<E> value) throws IOException {
                 if(value==Node.EMPTY) return;
-                Utils.packLong(out,value.next);
+                DataOutput2.packLong(out,value.next);
                 serializer.serialize(out, value.value);
             }
 
             @Override
             public Node<E> deserialize(DataInput in, int available) throws IOException {
                 if(available==0)return Node.EMPTY;
-                return new Node<E>(Utils.unpackLong(in), serializer.deserialize(in,-1));
+                return new Node<E>(DataInput2.unpackLong(in), serializer.deserialize(in,-1));
             }
+
+            @Override
+            public int fixedSize() {
+                return -1;
+            }
+
         }
 
         protected final Serializer<Node> nodeSerializer;
@@ -66,7 +71,15 @@ public final class Queues {
             head = new Atomic.Long(engine,headRecidRef);
             nodeSerializer = new NodeSerializer(serializer);
             this.useLocks = useLocks;
-            this.locks = useLocks? Utils.newLocks() : null;
+            if(useLocks){
+                locks = new ReentrantLock[CC.CONCURRENCY];
+                for(int i=0;i<locks.length;i++)
+                    locks[i] = new ReentrantLock(CC.FAIR_LOCKS);
+            }else{
+                locks = null;
+            }
+
+
         }
 
 
@@ -82,14 +95,14 @@ public final class Queues {
         @Override
         public E peek() {
             final long head2 = head.get();
-            if(useLocks)locks[Utils.lockPos(head2)].lock();
+            if(useLocks)locks[Store.lockPos(head2)].lock();
             try{
                 Node n = engine.get(head2,nodeSerializer);
                 if(n==Node.EMPTY)
                     return null; //empty queue
                 return (E) n.value;
             }finally{
-                if(useLocks)locks[Utils.lockPos(head2)].unlock();
+                if(useLocks)locks[Store.lockPos(head2)].unlock();
             }
         }
 
@@ -98,7 +111,7 @@ public final class Queues {
         public E poll() {
             for(;;){
                 final long head2 = head.get();
-                if(useLocks)locks[Utils.lockPos(head2)].lock();
+                if(useLocks)locks[Store.lockPos(head2)].lock();
                 try{
                     Node n = engine.get(head2,nodeSerializer);
                     if(n==Node.EMPTY)
@@ -116,7 +129,7 @@ public final class Queues {
                     }
 
                 }finally{
-                    if(useLocks)locks[Utils.lockPos(head2)].unlock();
+                    if(useLocks)locks[Store.lockPos(head2)].unlock();
                 }
             }
         }

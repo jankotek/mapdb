@@ -8,9 +8,9 @@ import static org.junit.Assert.assertEquals;
 public class Issue112Test {
 
 
-        @Test
+        @Test(timeout=10000)
         public void testDoubleCommit() throws Exception {
-            final DB myTestDataFile = DBMaker.newFileDB(Utils.tempDbFile())
+            final DB myTestDataFile = DBMaker.newFileDB(UtilsTest.tempDbFile())
                     .checksumEnable()
                     .make();
             myTestDataFile.commit();

@@ -3,7 +3,6 @@ package examples;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.Serializer;
-import org.mapdb.Utils;
 
 import java.io.*;
 import java.util.Map;
@@ -62,10 +61,10 @@ public class Custom_Value {
 
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
 
         // Open db in temp directory
-        File f = Utils.tempDbFile();
+        File f = File.createTempFile("mapdb","temp");
 		DB db = DBMaker.newFileDB(f)
 				.make();
 		
@@ -104,6 +103,12 @@ public class Custom_Value {
             public Person deserialize(DataInput in, int available) throws IOException {
                 return new Person(in.readUTF(), in.readUTF());
             }
+
+            @Override
+            public int fixedSize() {
+                return -1;
+            }
+
         }
 
         Serializer<Person> serializer = new CustomSerializer();

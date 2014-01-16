@@ -21,6 +21,7 @@ import org.mapdb.EngineWrapper.ReadOnlyEngine;
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.*;
 
 /**
@@ -46,8 +47,8 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
         String volume = "volume";
         String volume_raf = "raf";
-        String volume_rafIfNeeded = "rafIfNeeded";
-        String volume_rafIndexMapped = "rafIndexMapped";
+        String volume_mmapfPartial = "mmapfPartial";
+        String volume_mmapfIfSupported = "mmapfIfSupported";
         String volume_mmapf = "mmapf";
         String volume_heap = "heap";
         String volume_offheap = "offheap";
@@ -316,42 +317,49 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         return getThis();
     }
     /**
-     * Enables compatibility storage mode for 32bit JVMs.
-     * <p/>
-     * By default MapDB uses memory mapped files. However 32bit JVM can only address 4GB of memory.
-     * Also some older JVMs do not handle large memory mapped files well.
-     * We can use {@code FileChannel} which does not use memory mapped files, but is slower.
-     * Use this if you are experiencing <b>java.lang.OutOfMemoryError: Map failed</b> exceptions
-     * <p/>
-     * This options disables memory mapped files but causes storage to be slower.
+     * Enables Memory Mapped Files, much faster storage option. However on 32bit JVM this mode could corrupt
+     * your DB thanks to 4GB memory addressing limit.
+     *
+     * You may experience `java.lang.OutOfMemoryError: Map failed` exception on 32bit JVM, if you enable this
+     * mode.
      */
-    public DBMakerT randomAccessFileEnable() {
-        props.setProperty(Keys.volume,Keys.volume_raf);
+    public DBMakerT mmapFileEnable() {
+        assertNotInMemoryVolume();
+        props.setProperty(Keys.volume,Keys.volume_mmapf);
         return getThis();
     }
 
 
-    /** Same as {@code randomAccessFileEnable()}, but part of storage is kept memory mapped.
-     *  This mode is good performance compromise between memory mapped files and RAF.
-     *  <p/>
+    /**
+     *  Keeps small-frequently-used part of storage files memory mapped, but main area is accessed using Random Access File.
+     *
+     *  This mode is good performance compromise between Memory Mapped Files and old slow Random Access Files.
+     *
      *  Index file is typically 5% of storage. It contains small frequently read values,
      *  which is where memory mapped file excel.
-     *  <p/>
-     *  With this mode you will experience <b>java.lang.OutOfMemoryError: Map failed</b> exceptions
+     *
+     *  With this mode you will experience `java.lang.OutOfMemoryError: Map failed` exceptions on 32bit JVMs
      *  eventually. But storage size limit is pushed to somewhere around 40GB.
      *
      */
-    public DBMakerT randomAccessFileEnableKeepIndexMapped() {
-        props.setProperty(Keys.volume,Keys.volume_rafIndexMapped);
+    public DBMakerT mmapFileEnablePartial() {
+        assertNotInMemoryVolume();
+        props.setProperty(Keys.volume,Keys.volume_mmapfPartial);
         return getThis();
     }
 
+    private void assertNotInMemoryVolume() {
+        if(Keys.volume_heap.equals(props.getProperty(Keys.volume)) ||
+           Keys.volume_offheap.equals(props.getProperty(Keys.volume)))
+            throw new IllegalArgumentException("Can not enable mmap file for in-memory store");
+    }
+
     /**
-     * Check current JVM for known problems. If JVM does not handle large memory files well, this option
-     * disables memory mapped files, and use safer and slower {@code RandomAccessFile} instead.
+     * Enable Memory Mapped Files only if current JVM supports it (is 64bit).
      */
-    public DBMakerT randomAccessFileEnableIfNeeded() {
-        props.setProperty(Keys.volume,Keys.volume_rafIfNeeded);
+    public DBMakerT mmapFileEnableIfSupported() {
+        assertNotInMemoryVolume();
+        props.setProperty(Keys.volume,Keys.volume_mmapfIfSupported);
         return getThis();
     }
 
@@ -466,7 +474,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * @return this builder
      */
     public DBMakerT encryptionEnable(String password){
-        return encryptionEnable(password.getBytes(Utils.UTF8_CHARSET));
+        return encryptionEnable(password.getBytes(Charset.forName("UTF8")));
     }
 
 
@@ -484,7 +492,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      */
     public DBMakerT encryptionEnable(byte[] password){
         props.setProperty(Keys.encryption, Keys.encryption_xtea);
-        props.setProperty(Keys.encryptionKey,Utils.toHexa(password));
+        props.setProperty(Keys.encryptionKey, toHexa(password));
         return getThis();
     }
 
@@ -549,39 +557,6 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         return getThis();
     }
 
-    /**
-     * Enables power saving mode.
-     * Typically MapDB runs daemon threads in infinitive cycle with delays and spin locks:
-     * <pre>
-     *     while(true){
-     *         Thread.sleep(1000);
-     *         doSomething();
-     *     }
-     *
-     *    while(write_finished){
-     *         write_chunk;
-     *         sleep(10 nanoseconds)  //so OS gets chance to finish async writing
-     *     }
-     *
-     * </pre>
-     * This brings bit more stability (prevents deadlocks) and some extra speed.
-     * However it causes higher CPU usage then necessary, also CPU wakes-up every
-     * N seconds.
-     * <p>
-     * On power constrained devices (phones, laptops..) trading speed for energy
-     * consumption is not desired. So this settings tells MapDB to prefer
-     * energy efficiency over speed and stability. This is global settings, so
-     * this settings may affects any MapDB part where this settings makes sense
-     * <p>
-     * Currently is used only in {@link AsyncWriteEngine} where power settings
-     * may prevent Background Writer Thread from exiting, if main thread dies.
-     *
-     * @return this builder
-     */
-//    public DBMaker powerSavingModeEnable(){
-//        this._powerSavingMode = true;
-//        return this;
-//    }
 
     /**
      * Disables file sync on commit. This way transactions are preserved (rollback works),
@@ -731,11 +706,11 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
 
         //try to read one record from DB, to make sure encryption and compression are correctly set.
-        Fun.Tuple2<Integer,String> check = null;
+        Fun.Tuple2<Integer,byte[]> check = null;
         try{
-            check = (Fun.Tuple2<Integer, String>) engine.get(Engine.CHECK_RECORD, Serializer.BASIC);
+            check = (Fun.Tuple2<Integer, byte[]>) engine.get(Engine.CHECK_RECORD, Serializer.BASIC);
             if(check!=null){
-                if(check.a.intValue()!= check.b.hashCode())
+                if(check.a.intValue()!= Arrays.hashCode(check.b))
                     throw new RuntimeException("invalid checksum");
             }
         }catch(Throwable e){
@@ -743,8 +718,9 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         }
         if(check == null && !engine.isReadOnly()){
             //new db, so insert testing record
-            String s = Utils.randomString(127); //random string so it is not that easy to decrypt
-            check = Fun.t2(s.hashCode(), s);
+            byte[] b = new byte[127];
+            new Random().nextBytes(b);
+            check = Fun.t2(Arrays.hashCode(b), b);
             engine.update(Engine.CHECK_RECORD, check, Serializer.BASIC);
             engine.commit();
         }
@@ -775,21 +751,35 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
     protected byte[] propsGetXteaEncKey(){
         if(!Keys.encryption_xtea.equals(props.getProperty(Keys.encryption)))
             return null;
-        return Utils.fromHexa(props.getProperty(Keys.encryptionKey));
+        return fromHexa(props.getProperty(Keys.encryptionKey));
     }
+
+    /**
+     * Check if large files can be mapped into memory.
+     * For example 32bit JVM can only address 2GB and large files can not be mapped,
+     * so for 32bit JVM this function returns false.
+     *
+     */
+    protected static boolean JVMSupportsLargeMappedFiles() {
+        String prop = System.getProperty("os.arch");
+        if(prop!=null && prop.contains("64")) return true;
+        //TODO better check for 32bit JVM
+        return false;
+    }
+
 
     protected int propsGetRafMode(){
         String volume = props.getProperty(Keys.volume);
-        if(volume==null||Keys.volume_mmapf.equals(volume)){
-            return 0;
-        }else if(Keys.volume_rafIfNeeded.equals(volume)){
-            return Utils.JVMSupportsLargeMappedFiles()?0:2;
-        }else if(Keys.volume_rafIndexMapped.equals(volume)){
-            return 1;
-        }else if(Keys.volume_raf.equals(volume)){
+        if(volume==null||Keys.volume_raf.equals(volume)){
             return 2;
+        }else if(Keys.volume_mmapfIfSupported.equals(volume)){
+            return JVMSupportsLargeMappedFiles()?0:2;
+        }else if(Keys.volume_mmapfPartial.equals(volume)){
+            return 1;
+        }else if(Keys.volume_mmapf.equals(volume)){
+            return 0;
         }
-        return 0;
+        return 2; //default option is RAF
     }
 
     protected void extendShutdownHookBefore(Engine engine) {
@@ -896,4 +886,22 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
     }
 
 
+
+    protected static String toHexa( byte [] bb ) {
+        char[] HEXA_CHARS = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
+        char[] ret = new char[bb.length*2];
+        for(int i=0;i<bb.length;i++){
+            ret[i*2] =HEXA_CHARS[((bb[i]& 0xF0) >> 4)];
+            ret[i*2+1] = HEXA_CHARS[((bb[i] & 0x0F))];
+        }
+        return new String(ret);
+    }
+
+    protected static byte[] fromHexa(String s ) {
+        byte[] ret = new byte[s.length()/2];
+        for(int i=0;i<ret.length;i++){
+            ret[i] = (byte) Integer.parseInt(s.substring(i*2,i*2+2),16);
+        }
+        return ret;
+    }
 }

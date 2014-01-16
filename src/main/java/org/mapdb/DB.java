@@ -37,13 +37,31 @@ public class DB {
     /** already loaded named collections. It is important to keep collections as singletons, because of 'in-memory' locking*/
     protected Map<String, WeakReference<?>> namesInstanciated = new HashMap<String, WeakReference<?>>();
 
-    protected Map<Object, String> namesLookup =
+    protected Map<IdentityWrapper, String> namesLookup =
             Collections.synchronizedMap( //TODO remove synchronized map, after DB locking is resolved
-            new WeakIdentityHashMap<Object, String>());
+            new HashMap<IdentityWrapper, String>());
 
     /** view over named records */
     protected SortedMap<String, Object> catalog;
 
+    protected static class IdentityWrapper{
+
+        final Object o;
+
+        public IdentityWrapper(Object o) {
+            this.o = o;
+        }
+
+        @Override
+        public int hashCode() {
+            return System.identityHashCode(o);
+        }
+
+        @Override
+        public boolean equals(Object v) {
+            return ((IdentityWrapper)v).o==o;
+        }
+    }
 
     /**
      * Construct new DB. It is just thin layer over {@link Engine} which does the real work.
@@ -54,6 +72,11 @@ public class DB {
     }
 
     public DB(Engine engine, boolean strictDBGet) {
+        if(!(engine instanceof EngineWrapper)){
+            //access to Store should be prevented after `close()` was called.
+            //So for this we have to wrap raw Store into EngineWrapper
+            engine = new EngineWrapper(engine);
+        }
         this.engine = engine;
         this.strictDBGet = strictDBGet;
         engine.getSerializerPojo().setDb(this);
@@ -93,7 +116,7 @@ public class DB {
     /** returns name for this object, if it has name and was instanciated by this DB*/
     public  String getNameForObject(Object obj) {
         //TODO this method should be synchronized, but it causes deadlock.
-        return namesLookup.get(obj);
+        return namesLookup.get(new IdentityWrapper(obj));
     }
 
 
@@ -347,7 +370,7 @@ public class DB {
 
     protected  <V> V namedPut(String name, Object ret) {
         namesInstanciated.put(name, new WeakReference<Object>(ret));
-        namesLookup.put(ret,name);
+        namesLookup.put(new IdentityWrapper(ret), name);
         return (V) ret;
     }
 
@@ -577,7 +600,7 @@ public class DB {
 
         public <K,V> BTreeMapMaker pumpSource(Iterator<K> keysSource,  Fun.Function1<V,K> valueExtractor){
             this.pumpSource = keysSource;
-            this.pumpKeyExtractor = Fun.noTransformExtractor();
+            this.pumpKeyExtractor = Fun.extractNoTransform();
             this.pumpValueExtractor = valueExtractor;
             return this;
         }
@@ -585,8 +608,8 @@ public class DB {
 
         public <K,V> BTreeMapMaker pumpSource(Iterator<Fun.Tuple2<K,V>> entriesSource){
             this.pumpSource = entriesSource;
-            this.pumpKeyExtractor = Fun.keyExtractor();
-            this.pumpValueExtractor = Fun.valueExtractor();
+            this.pumpKeyExtractor = Fun.extractKey();
+            this.pumpValueExtractor = Fun.extractValue();
             return this;
         }
 
@@ -619,13 +642,13 @@ public class DB {
 
 
         /** creates map optimized for using `String` keys */
-        public <V> Map<String, V> makeStringMap() {
+        public <V> BTreeMap<String, V> makeStringMap() {
             keySerializer = BTreeKeySerializer.STRING;
             return make();
         }
 
         /** creates map optimized for using zero or positive `Long` keys */
-        public <V> Map<Long, V> makeLongMap() {
+        public <V> BTreeMap<Long, V> makeLongMap() {
             keySerializer = BTreeKeySerializer.ZERO_OR_POSITIVE_LONG;
             return make();
         }
@@ -759,7 +782,7 @@ public class DB {
                 catGet(name+".counterRecid",0L),
                 (BTreeKeySerializer)catGet(name+".keySerializer",new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer())),
                 catGet(name+".valueSerializer",getDefaultSerializer()),
-                (Comparator)catGet(name+".comparator",Utils.COMPARABLE_COMPARATOR)
+                (Comparator)catGet(name+".comparator",BTreeMap.COMPARABLE_COMPARATOR)
                 );
         namedPut(name, ret);
         return ret;
@@ -786,7 +809,7 @@ public class DB {
         if(m.comparator==null){
             m.comparator = m.keySerializer.getComparator();
             if(m.comparator==null){
-                m.comparator = Utils.COMPARABLE_COMPARATOR;
+                m.comparator = BTreeMap.COMPARABLE_COMPARATOR;
             }
         }
 
@@ -821,7 +844,7 @@ public class DB {
         if(keySerializer instanceof BTreeKeySerializer.Tuple2KeySerializer){
             BTreeKeySerializer.Tuple2KeySerializer s = (BTreeKeySerializer.Tuple2KeySerializer) keySerializer;
             return new BTreeKeySerializer.Tuple2KeySerializer(
-                    s.aComparator!=null?s.aComparator:Utils.COMPARABLE_COMPARATOR,
+                    s.aComparator!=null?s.aComparator:BTreeMap.COMPARABLE_COMPARATOR,
                     s.aSerializer!=null?s.aSerializer:getDefaultSerializer(),
                     s.bSerializer!=null?s.bSerializer:getDefaultSerializer()
             );
@@ -829,8 +852,8 @@ public class DB {
         if(keySerializer instanceof BTreeKeySerializer.Tuple3KeySerializer){
             BTreeKeySerializer.Tuple3KeySerializer s = (BTreeKeySerializer.Tuple3KeySerializer) keySerializer;
             return new BTreeKeySerializer.Tuple3KeySerializer(
-                    s.aComparator!=null?s.aComparator:Utils.COMPARABLE_COMPARATOR,
-                    s.bComparator!=null?s.bComparator:Utils.COMPARABLE_COMPARATOR,
+                    s.aComparator!=null?s.aComparator:BTreeMap.COMPARABLE_COMPARATOR,
+                    s.bComparator!=null?s.bComparator:BTreeMap.COMPARABLE_COMPARATOR,
                     s.aSerializer!=null?s.aSerializer:getDefaultSerializer(),
                     s.bSerializer!=null?s.bSerializer:getDefaultSerializer(),
                     s.cSerializer!=null?s.cSerializer:getDefaultSerializer()
@@ -839,9 +862,9 @@ public class DB {
         if(keySerializer instanceof BTreeKeySerializer.Tuple4KeySerializer){
             BTreeKeySerializer.Tuple4KeySerializer s = (BTreeKeySerializer.Tuple4KeySerializer) keySerializer;
             return new BTreeKeySerializer.Tuple4KeySerializer(
-                    s.aComparator!=null?s.aComparator:Utils.COMPARABLE_COMPARATOR,
-                    s.bComparator!=null?s.bComparator:Utils.COMPARABLE_COMPARATOR,
-                    s.cComparator!=null?s.cComparator:Utils.COMPARABLE_COMPARATOR,
+                    s.aComparator!=null?s.aComparator:BTreeMap.COMPARABLE_COMPARATOR,
+                    s.bComparator!=null?s.bComparator:BTreeMap.COMPARABLE_COMPARATOR,
+                    s.cComparator!=null?s.cComparator:BTreeMap.COMPARABLE_COMPARATOR,
                     s.aSerializer!=null?s.aSerializer:getDefaultSerializer(),
                     s.bSerializer!=null?s.bSerializer:getDefaultSerializer(),
                     s.cSerializer!=null?s.cSerializer:getDefaultSerializer(),
@@ -894,7 +917,7 @@ public class DB {
                 catGet(name+".counterRecid",0L),
                 (BTreeKeySerializer) catGet(name+".keySerializer",new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer())),
                 null,
-                (Comparator) catGet(name+".comparator",Utils.COMPARABLE_COMPARATOR)
+                (Comparator) catGet(name+".comparator",BTreeMap.COMPARABLE_COMPARATOR)
         ).keySet();
 
         namedPut(name, ret);
@@ -916,7 +939,7 @@ public class DB {
         checkNameNotExists(m.name);
         m.serializer = fillNulls(m.serializer);
         m.serializer = catPut(m.name+".keySerializer",m.serializer,new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer()));
-        m.comparator = catPut(m.name+".comparator",m.comparator,Utils.COMPARABLE_COMPARATOR);
+        m.comparator = catPut(m.name+".comparator",m.comparator,BTreeMap.COMPARABLE_COMPARATOR);
 
         if(m.pumpPresortBatchSize!=-1){
             m.pumpSource = Pump.sort(m.pumpSource,m.pumpIgnoreDuplicates, m.pumpPresortBatchSize,Collections.reverseOrder(m.comparator),getDefaultSerializer());
@@ -928,7 +951,7 @@ public class DB {
         if(m.pumpSource==null){
             rootRecidRef = BTreeMap.createRootRef(engine,m.serializer,null,m.comparator);
         }else{
-            rootRecidRef = Pump.buildTreeMap(m.pumpSource,engine,Fun.noTransformExtractor(),null,m.pumpIgnoreDuplicates, m.nodeSize,
+            rootRecidRef = Pump.buildTreeMap(m.pumpSource,engine,Fun.extractNoTransform(),null,m.pumpIgnoreDuplicates, m.nodeSize,
                     false,counterRecid,m.serializer,null,m.comparator);
         }
 
@@ -1308,7 +1331,7 @@ public class DB {
         if("Queue".equals(type)) return (E) getQueue(name);
         if("Stack".equals(type)) return (E) getStack(name);
         if("CircularQueue".equals(type)) return (E) getCircularQueue(name);
-        throw new InternalError("Unknown type: "+name);
+        throw new AssertionError("Unknown type: "+name);
     }
 
     synchronized public boolean exists(String name){
@@ -1356,7 +1379,7 @@ public class DB {
             catalog.remove(n);
         }
         namesInstanciated.remove(name);
-        namesLookup.remove(r);
+        namesLookup.remove(new IdentityWrapper(r));
     }
 
 
@@ -1401,7 +1424,7 @@ public class DB {
         if(old!=null){
             Object old2 = old.get();
             if(old2!=null){
-                namesLookup.remove(old2);
+                namesLookup.remove(new IdentityWrapper(old2));
                 namedPut(newName,old2);
             }
         }
@@ -1430,9 +1453,9 @@ public class DB {
         if(engine == null) return;
         engine.close();
         //dereference db to prevent memory leaks
-        engine = null;
-        namesInstanciated = null;
-        namesLookup = null;
+        engine = EngineWrapper.CLOSED;
+        namesInstanciated = Collections.unmodifiableMap(new HashMap());
+        namesLookup = Collections.unmodifiableMap(new HashMap());
     }
 
     /**
@@ -1457,7 +1480,7 @@ public class DB {
      * @return true if DB is closed and can no longer be used
      */
     public synchronized  boolean isClosed(){
-        return engine == null;
+        return engine == null || engine.isClosed();
     }
 
     /**

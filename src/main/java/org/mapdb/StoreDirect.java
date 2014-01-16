@@ -48,7 +48,7 @@ import java.util.concurrent.locks.Lock;
  *
  *  slot        | in code                       | description
  *  ---         | ---                               | ---
- *  0           | {@link StoreDirect#HEADER}        | File header
+ *  0           | {@link StoreDirect#HEADER}        | File header, format version and flags
  *  1           | {@link StoreDirect#IO_INDEX_SIZE} | Allocated file size of index file in bytes.
  *  2           | {@link StoreDirect#IO_PHYS_SIZE}  | Allocated file size of physical file in bytes.
  *  3           | {@link StoreDirect#IO_FREE_SIZE}  | Space occupied by free records in physical file in bytes.
@@ -122,7 +122,11 @@ public class StoreDirect extends Store{
     protected static final long MASK_DISCARD = 0x4L;
     protected static final long MASK_ARCHIVE = 0x2L;
 
-    protected static final long HEADER = 9032094932889042394L;
+    /** 4 byte file header */
+    protected static final int HEADER = 893298482;
+
+    /** 2 byte store version*/
+    protected static final short STORE_VERSION = 10000;
 
     /** maximal non linked record size */
     protected static final int MAX_REC_SIZE = 65536-1;
@@ -194,7 +198,7 @@ public class StoreDirect extends Store{
         this.spaceReclaimReuse = spaceReclaimMode>2;
         this.spaceReclaimTrack = spaceReclaimMode>0;
 
-        try {
+        try{
             index = volFac.createIndexVolume();
             phys = volFac.createPhysVolume();
             if(index.isEmpty()){
@@ -204,16 +208,16 @@ public class StoreDirect extends Store{
                 indexSize = index.getLong(IO_INDEX_SIZE);
                 physSize = index.getLong(IO_PHYS_SIZE);
                 freeSize = index.getLong(IO_FREE_SIZE);
-    
+
                 maxUsedIoList=IO_USER_START-8;
                 while(index.getLong(maxUsedIoList)!=0 && maxUsedIoList>IO_FREE_RECID)
                     maxUsedIoList-=8;
             }
-        } catch(IOError e) {
-            // Make sure we don't hog the file locks when something goes wrong.
+        }catch(IOError e){
             close();
-            throw e;
+            throw new IOError(e);
         }
+
     }
 
     public StoreDirect(Volume.Factory volFac) {
@@ -223,7 +227,19 @@ public class StoreDirect extends Store{
 
 
     protected void checkHeaders() {
-        if(index.getLong(0)!=HEADER||phys.getLong(0)!=HEADER)throw new IOError(new IOException("storage has invalid header"));
+        if(index.getInt(0)!=HEADER||phys.getInt(0)!=HEADER)
+            throw new IOError(new IOException("storage has invalid header"));
+
+        if(index.getUnsignedShort(4)>StoreDirect.STORE_VERSION || phys.getUnsignedShort(4)>StoreDirect.STORE_VERSION )
+            throw new IOError(new IOException("New store format version, please use newer MapDB version"));
+
+        final int masks = index.getUnsignedShort(6);
+        if(masks!=phys.getUnsignedShort(6))
+            throw new IllegalArgumentException("Index and Phys file have different feature masks");
+
+        if(masks!=expectedMasks())
+            throw new IllegalArgumentException("File created with different features. Please check compression, checksum or encryption");
+
 
         long checksum = index.getLong(IO_INDEX_SUM);
         if(checksum!=indexHeaderChecksum())
@@ -235,12 +251,16 @@ public class StoreDirect extends Store{
         assert(indexSize>IO_USER_START);
         index.ensureAvailable(indexSize);
         for(int i=0;i<indexSize;i+=8) index.putLong(i,0L);
-        index.putLong(0, HEADER);
+        index.putInt(0, HEADER);
+        index.putUnsignedShort(4,STORE_VERSION);
+        index.putUnsignedShort(6,expectedMasks());
         index.putLong(IO_INDEX_SIZE,indexSize);
         physSize =16;
         index.putLong(IO_PHYS_SIZE,physSize);
         phys.ensureAvailable(physSize);
-        phys.putLong(0, HEADER);
+        phys.putInt(0, HEADER);
+        phys.putUnsignedShort(4,STORE_VERSION);
+        phys.putUnsignedShort(6,expectedMasks());
         freeSize = 0;
         index.putLong(IO_FREE_SIZE,freeSize);
         index.putLong(IO_INDEX_SUM,indexHeaderChecksum());
@@ -251,7 +271,7 @@ public class StoreDirect extends Store{
         for(long offset = 0;offset<IO_USER_START;offset+=8){
             if(offset == IO_INDEX_SUM) continue;
             long indexVal = index.getLong(offset);
-            ret |=  indexVal | Utils.longHash(indexVal|offset) ;
+            ret |=  indexVal | LongHashMap.longHash(indexVal|offset) ;
         }
         return ret;
     }
@@ -268,7 +288,7 @@ public class StoreDirect extends Store{
                 structuralLock.unlock();
             }
 
-            final Lock lock  = locks[Utils.lockPos(ioRecid)].writeLock();
+            final Lock lock  = locks[Store.lockPos(ioRecid)].writeLock();
             lock.lock();
             try{
                 index.putLong(ioRecid,MASK_DISCARD);
@@ -296,7 +316,7 @@ public class StoreDirect extends Store{
             }
             for(int i=0;i<recids.length;i++){
                 final long ioRecid = recids[i];
-                final Lock lock  = locks[Utils.lockPos(ioRecid)].writeLock();
+                final Lock lock  = locks[Store.lockPos(ioRecid)].writeLock();
                 lock.lock();
                 try{
                     index.putLong(ioRecid,MASK_DISCARD);
@@ -329,7 +349,7 @@ public class StoreDirect extends Store{
             }finally {
                 structuralLock.unlock();
             }
-            final Lock lock  = locks[Utils.lockPos(ioRecid)].writeLock();
+            final Lock lock  = locks[Store.lockPos(ioRecid)].writeLock();
             lock.lock();
             try{
                 put2(out, ioRecid, indexVals);
@@ -346,7 +366,7 @@ public class StoreDirect extends Store{
     }
 
     protected void put2(DataOutput2 out, long ioRecid, long[] indexVals) {
-        assert(locks[Utils.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
+        assert(locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
         index.putLong(ioRecid, indexVals[0]|MASK_ARCHIVE);
         //write stuff
         if(indexVals.length==1||indexVals[1]==0){ //is more then one? ie linked
@@ -361,7 +381,7 @@ public class StoreDirect extends Store{
                 final int c =   i==indexVals.length-1 ? 0: 8;
                 final long indexVal = indexVals[i];
                 final boolean isLast = (indexVal & MASK_LINKED) ==0;
-                if(isLast!=(i==indexVals.length-1)) throw new InternalError();
+                assert(isLast==(i==indexVals.length-1));
                 final int size = (int) (indexVal>>>48);
                 final long offset = indexVal&MASK_OFFSET;
 
@@ -374,7 +394,7 @@ public class StoreDirect extends Store{
                     phys.putLong(offset, indexVals[i + 1]);
                 }
             }
-              if(outPos!=out.pos) throw new InternalError();
+              if(outPos!=out.pos) throw new AssertionError();
         }
     }
 
@@ -383,7 +403,7 @@ public class StoreDirect extends Store{
     public <A> A get(long recid, Serializer<A> serializer) {
         assert(recid>0);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock  = locks[Utils.lockPos(ioRecid)].readLock();
+        final Lock lock  = locks[Store.lockPos(ioRecid)].readLock();
         lock.lock();
         try{
             return get2(ioRecid,serializer);
@@ -395,8 +415,8 @@ public class StoreDirect extends Store{
     }
 
     protected <A> A get2(long ioRecid,Serializer<A> serializer) throws IOException {
-        assert(locks[Utils.lockPos(ioRecid)].getWriteHoldCount()==0||
-                locks[Utils.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
+        assert(locks[Store.lockPos(ioRecid)].getWriteHoldCount()==0||
+                locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
 
         long indexVal = index.getLong(ioRecid);
         if(indexVal == MASK_DISCARD) return null; //preallocated record
@@ -446,7 +466,7 @@ public class StoreDirect extends Store{
 
         final long ioRecid = IO_USER_START + recid*8;
 
-        final Lock lock  = locks[Utils.lockPos(ioRecid)].writeLock();
+        final Lock lock  = locks[Store.lockPos(ioRecid)].writeLock();
         lock.lock();
         try{
             update2(out, ioRecid);
@@ -460,7 +480,7 @@ public class StoreDirect extends Store{
         final long indexVal = index.getLong(ioRecid);
         final int size = (int) (indexVal>>>48);
         final boolean linked = (indexVal&MASK_LINKED)!=0;
-        assert(locks[Utils.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
+        assert(locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
 
         if(!linked && out.pos>0 && size>0 && size2ListIoRecid(size) == size2ListIoRecid(out.pos)){
             //size did change, but still fits into this location
@@ -497,7 +517,7 @@ public class StoreDirect extends Store{
 
             put2(out, ioRecid, indexVals);
         }
-        assert(locks[Utils.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
+        assert(locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
     }
 
 
@@ -506,7 +526,7 @@ public class StoreDirect extends Store{
         assert(expectedOldValue!=null && newValue!=null);
         assert(recid>0);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock  = locks[Utils.lockPos(ioRecid)].writeLock();
+        final Lock lock  = locks[Store.lockPos(ioRecid)].writeLock();
         lock.lock();
 
         DataOutput2 out;
@@ -543,7 +563,7 @@ public class StoreDirect extends Store{
     public <A> void delete(long recid, Serializer<A> serializer) {
         assert(recid>0);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock  = locks[Utils.lockPos(ioRecid)].writeLock();
+        final Lock lock  = locks[Store.lockPos(ioRecid)].writeLock();
         lock.lock();
         try{
             //get index val and zero it out
@@ -631,7 +651,7 @@ public class StoreDirect extends Store{
 
                 c = size<=MAX_REC_SIZE ? 0 : 8;
             }
-            if(size!=0) throw new InternalError();
+            if(size!=0) throw new AssertionError();
 
             return Arrays.copyOf(ret, retPos);
         }
@@ -658,8 +678,12 @@ public class StoreDirect extends Store{
                 }
             }
 
-            index.sync();
-            phys.sync();
+            // Syncs are expensive -- don't sync if the files are going to
+            // get deleted anyway.
+            if (!deleteFilesAfterClose) {
+              index.sync();
+              phys.sync();
+            }
             index.close();
             phys.close();
             if(deleteFilesAfterClose){
@@ -732,12 +756,13 @@ public class StoreDirect extends Store{
             rafMode = 0;
         }
 
-        final File compactedFile = new File((indexFile!=null?indexFile:Utils.tempDbFile())+".compact");
-        Volume.Factory fab = Volume.fileFactory(false, rafMode,compactedFile,sizeLimit,fullChunkAllocation);
-        StoreDirect store2 = new StoreDirect(fab,false,false,5,false,0L, checksum,compress,password, fullChunkAllocation);
 
         lockAllWrite();
         try{
+            final File compactedFile = new File((indexFile!=null?indexFile:File.createTempFile("mapdb","compact"))+".compact");
+            Volume.Factory fab = Volume.fileFactory(false, rafMode,compactedFile,sizeLimit,fullChunkAllocation);
+            StoreDirect store2 = new StoreDirect(fab,false,false,5,false,0L, checksum,compress,password, fullChunkAllocation);
+
             compactPreUnderLock();
 
             index.putLong(IO_PHYS_SIZE,physSize);
@@ -788,15 +813,15 @@ public class StoreDirect extends Store{
                 store2.close();
                 //not in memory, so just rename files
                 if(!indexFile.renameTo(indexFile_))
-                    throw new InternalError("could not rename file");
+                    throw new AssertionError("could not rename file");
                 if(!physFile.renameTo(physFile_))
-                    throw new InternalError("could not rename file");
+                    throw new AssertionError("could not rename file");
 
                 if(!indexFile2.renameTo(indexFile))
-                    throw new InternalError("could not rename file");
+                    throw new AssertionError("could not rename file");
                 //TODO process may fail in middle of rename, analyze sequence and add recovery
                 if(!physFile2.renameTo(physFile))
-                    throw new InternalError("could not rename file");
+                    throw new AssertionError("could not rename file");
 
                 final Volume.Factory fac2 = Volume.fileFactory(false, rafMode, indexFile,sizeLimit,fullChunkAllocation);
                 index = fac2.createIndexVolume();
@@ -860,7 +885,7 @@ public class StoreDirect extends Store{
         long pos = dataOffset>>>48;
         dataOffset &= MASK_OFFSET;
 
-        if(pos<8) throw new InternalError();
+        if(pos<8) throw new AssertionError();
 
         final long ret = phys.getSixLong(dataOffset + pos);
 
@@ -910,9 +935,10 @@ public class StoreDirect extends Store{
         dataOffset &= MASK_OFFSET;
 
         if(dataOffset == 0){ //empty list?
+            //TODO allocate pages of mixed size
             //yes empty, create new page and fill it with values
             final long listPhysid = freePhysTake((int) LONG_STACK_PREF_SIZE,true,true) &MASK_OFFSET;
-            if(listPhysid == 0) throw new InternalError();
+            if(listPhysid == 0) throw new AssertionError();
             //set previous Free Index List page to zero as this is first page
             //also set size of this record
             phys.putLong(listPhysid , LONG_STACK_PREF_SIZE << 48);
@@ -934,7 +960,7 @@ public class StoreDirect extends Store{
                 }
                 //yes it is full, so we need to allocate new page and write our number there
                 final long listPhysid = freePhysTake((int) newPageSize,true,true) &MASK_OFFSET;
-                if(listPhysid == 0) throw new InternalError();
+                if(listPhysid == 0) throw new AssertionError();
 
                 //set location to previous page and set current page size
                 phys.putLong(listPhysid, (newPageSize<<48)|(dataOffset&MASK_OFFSET));
@@ -957,7 +983,7 @@ public class StoreDirect extends Store{
 
     protected void freeIoRecidPut(long ioRecid) {
         assert(ioRecid>IO_USER_START);
-        assert(locks[Utils.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
+        assert(locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
         if(spaceReclaimTrack)
             longStackPut(IO_FREE_RECID, ioRecid,false);
     }
@@ -1045,7 +1071,7 @@ public class StoreDirect extends Store{
 
     @Override
     public Iterator<Long> getFreeRecids() {
-        return Utils.EMPTY_ITERATOR; //TODO iterate over stack of free recids, without modifying it
+        return Fun.EMPTY_ITERATOR; //TODO iterate over stack of free recids, without modifying it
     }
 
     @Override

@@ -3,8 +3,7 @@ package org.mapdb;
 
 import org.junit.Test;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -16,7 +15,8 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
     @Override boolean canRollback(){return false;}
 
-    Volume.Factory fac = Volume.fileFactory(false,0,Utils.tempDbFile(), 0L,false);
+    File f = UtilsTest.tempDbFile();
+    Volume.Factory fac = Volume.fileFactory(false,0,f, 0L,false);
 
     static final long IO_RECID = StoreDirect.IO_FREE_RECID+32;
 
@@ -378,7 +378,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
 
     @Test public void delete_files_after_close(){
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
         File phys = new File(f.getPath()+StoreDirect.DATA_FILE_EXT);
 
         DB db = DBMaker.newFileDB(f).transactionDisable().deleteFilesAfterClose().make();
@@ -410,4 +410,55 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.commit();
         assertNull(e.get(recid,UtilsTest.FAIL));
     }
+
+    @Test public void header_index_inc() throws IOException {
+        e.put(new byte[10000],Serializer.BYTE_ARRAY_NOSIZE);
+        e.commit();
+        e.close();
+
+        //increment store version
+        Volume v = Volume.volumeForFile(f,true,false,0,false);
+        v.putUnsignedShort(4,StoreDirect.STORE_VERSION+1);
+        v.sync();
+        v.close();
+
+        try{
+            e = openEngine();
+            fail();
+        }catch(IOError e){
+            Throwable e2 = e;
+            while (e2 instanceof IOError){
+                e2 = e2.getCause();
+            }
+            assertTrue(e2.getMessage().contains("version"));
+        }
+
+
+
+    }
+
+    @Test public void header_phys_inc() throws IOException {
+        e.put(new byte[10000],Serializer.BYTE_ARRAY_NOSIZE);
+        e.commit();
+        e.close();
+
+        //increment store version
+        File phys = new File(f.getPath()+StoreDirect.DATA_FILE_EXT);
+        Volume v = Volume.volumeForFile(phys,true,false,0,false);
+        v.putUnsignedShort(4,StoreDirect.STORE_VERSION+1);
+        v.sync();
+        v.close();
+
+        try{
+            e = openEngine();
+            fail();
+        }catch(IOError e){
+            Throwable e2 = e;
+            while (e2 instanceof IOError){
+                e2 = e2.getCause();
+            }
+            assertTrue(e2.getMessage().contains("version"));
+        }
+    }
+
 }

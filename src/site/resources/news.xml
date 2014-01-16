@@ -8,6 +8,15 @@
         <description>MapDB </description>
 
         <item>
+            <title>MapDB 0.9.8 released</title>
+            <link>http://www.mapdb.org/changelog.html#/Version_098_2013-12-30</link>
+            <date>December 30 2013</date>
+            <description>
+                API and store format should be stable now. RAF on by default. Append-Only store postponed...
+            </description>
+        </item>
+
+        <item>
             <title>MapDB 1.0 will be released in January</title>
             <link>http://kotek.net/blog/MapDB_1_in_january</link>
             <date>November 6 2013</date>

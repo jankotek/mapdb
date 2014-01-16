@@ -8,17 +8,19 @@ import java.util.*;
  * Data Pump moves data from one source to other.
  * It can be used to import data from text file, or copy store from memory to disk.
  */
-public class Pump {
+public final class Pump {
 
     /** copies all data from first DB to second DB */
-    public static void copy(DB db1, DB db2){
-        copy(storeForDB(db1), storeForDB(db2));
+    //TODO Pump between stores is disabled for now, make this method public once enabled
+    static void copy(DB db1, DB db2){
+        copy(Store.forDB(db1), Store.forDB(db2));
         db2.engine.clearCache();
         db2.reinit();
     }
 
     /** copies all data from first store to second store */
-    public static void copy(Store s1, Store s2){
+    //TODO Pump between stores is disabled for now, make this method public once enabled
+    static void copy(Store s1, Store s2){
         long maxRecid =s1.getMaxRecid();
         for(long recid=1;recid<=maxRecid;recid++){
             ByteBuffer bb = s1.getRaw(recid);
@@ -34,16 +36,6 @@ public class Pump {
     }
 
 
-    /** traverses {@link EngineWrapper}s and returns underlying {@link Store}*/
-    public static Store storeForDB(DB db){
-        return storeForEngine(db.engine);
-    }
-
-    /** traverses {@link EngineWrapper}s and returns underlying {@link Store}*/
-    public static Store storeForEngine(Engine e){
-        while(e instanceof EngineWrapper) e = ((EngineWrapper) e).getWrappedEngine();
-        return (Store) e;
-    }
 
     /**
      * Sorts large data set by given `Comparator`. Data are sorted with in-memory cache and temporary files.
@@ -75,7 +67,7 @@ public class Pump {
                     Arrays.sort(presort,comparator);
 
                     //flush presort into temporary file
-                    File f = Utils.tempDbFile();
+                    File f = File.createTempFile("mapdb","sort");
                     f.deleteOnExit();
                     presortFiles.add(f);
                     DataOutputStream out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(f)));
@@ -92,7 +84,7 @@ public class Pump {
             if(presortFiles.isEmpty()){
                 //no presort files were created, so on-heap sorting is enough
                 Arrays.sort(presort,0,counter,comparator);
-                return Utils.arrayIterator(presort,0, counter);
+                return arrayIterator(presort,0, counter);
             }
 
             final int[] presortCount = new int[presortFiles.size()];
@@ -131,7 +123,7 @@ public class Pump {
 
             //and add iterator over data on-heap
             Arrays.sort(presort,0,counter,comparator);
-            iterators[iterators.length-1] = Utils.arrayIterator(presort,0,counter);
+            iterators[iterators.length-1] = arrayIterator(presort,0,counter);
 
             //and finally sort presorted iterators and return iterators over them
             return sort(comparator, mergeDuplicates, iterators);
@@ -239,7 +231,7 @@ public class Pump {
      */
     public static <E> Iterator<E> merge(final Iterator... iters){
         if(iters.length==0)
-            return Utils.EMPTY_ITERATOR;
+            return Fun.EMPTY_ITERATOR;
 
         return new Iterator<E>() {
 
@@ -321,9 +313,6 @@ public class Pump {
 
         final double NODE_LOAD = 0.75;
 
-
-        final boolean hasVals = valueExtractor!=null;
-
         Serializer<BTreeMap.BNode> nodeSerializer = new BTreeMap.NodeSerializer(valuesStoredOutsideNodes,keySerializer,valueSerializer,comparator);
 
 
@@ -337,7 +326,7 @@ public class Pump {
 
         //fill node with data
         List<K> keys = arrayList(null);
-        ArrayList<Object> values = hasVals?new ArrayList<Object>() : null;
+        ArrayList<Object> values = new ArrayList<Object>();
         //traverse iterator
         K oldKey = null;
         while(source.hasNext()){
@@ -361,43 +350,41 @@ public class Pump {
                     throw new IllegalArgumentException("Keys in 'source' iterator are not reverse sorted");
                 oldKey = key;
                 keys.add(key);
-                if(hasVals){
-                    Object val = valueExtractor.run(next);
-                    if(val==null) throw new NullPointerException("valueExtractor returned null value");
-                    if(valuesStoredOutsideNodes){
-                        long recid = engine.put((V) val,valueSerializer);
-                        val = new BTreeMap.ValRef(recid);
-                    }
-                    values.add(val);
+
+                Object val = valueExtractor!=null?valueExtractor.run(next):BTreeMap.EMPTY;
+                if(val==null) throw new NullPointerException("extractValue returned null value");
+                if(valuesStoredOutsideNodes){
+                    long recid = engine.put((V) val,valueSerializer);
+                    val = new BTreeMap.ValRef(recid);
                 }
+                values.add(val);
+
             }
             //insert node
             if(!source.hasNext()){
                 keys.add(null);
-                if(hasVals)values.add(null);
+                values.add(null);
             }
 
             Collections.reverse(keys);
 
-            Object nextVal = null;
-            if(hasVals){
-                nextVal = values.remove(values.size()-1);
-                Collections.reverse(values);
-            }
+            Object nextVal = values.remove(values.size()-1);
+            Collections.reverse(values);
 
 
 
-            BTreeMap.LeafNode node = new BTreeMap.LeafNode(keys.toArray(),hasVals? values.toArray() : null, nextNode);
+
+            BTreeMap.LeafNode node = new BTreeMap.LeafNode(keys.toArray(),values.toArray() , nextNode);
             nextNode = engine.put(node,nodeSerializer);
             K nextKey = keys.get(0);
             keys.clear();
 
             keys.add(nextKey);
             keys.add(nextKey);
-            if(hasVals){
-                values.clear();
-                values.add(nextVal);
-            }
+
+            values.clear();
+            values.add(nextVal);
+
             dirKeys.get(0).add(node.keys()[0]);
             dirRecids.get(0).add(nextNode);
 
@@ -469,6 +456,29 @@ public class Pump {
         ArrayList<E> ret = new ArrayList<E>();
         ret.add(item);
         return ret;
+    }
+
+    private static <E> Iterator<E> arrayIterator(final Object[] array, final int fromIndex, final int toIndex) {
+        return new Iterator<E>(){
+
+            int index = fromIndex;
+
+            @Override
+            public boolean hasNext() {
+                return index<toIndex;
+            }
+
+            @Override
+            public E next() {
+                if(index>=toIndex) throw new NoSuchElementException();
+                return (E) array[index++];
+            }
+
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
+        };
     }
 
 }

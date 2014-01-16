@@ -3,9 +3,11 @@ package examples;
 import org.mapdb.*;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Random;
 
 /**
  * Demonstrate how-to create large BTreeMap using data pump.
@@ -15,7 +17,7 @@ import java.util.Map;
  */
 public class Huge_Insert {
 
-    public static void main(String[] args){
+    public static void main(String[] args) throws IOException {
 
         /** max number of elements to import */
         final long max = (int) 1e6;
@@ -23,7 +25,7 @@ public class Huge_Insert {
         /**
          * Open database in temporary directory
          */
-        File dbFile = Utils.tempDbFile();
+        File dbFile = File.createTempFile("mapdb","temp");
         DB db = DBMaker
                 .newFileDB(dbFile)
                 /** disabling Write Ahead Log makes import much faster */
@@ -48,7 +50,7 @@ public class Huge_Insert {
             @Override
             public String next() {
                 counter++;
-                return Utils.randomString(10);
+                return randomString(10);
             }
 
             @Override public void remove() {}
@@ -61,7 +63,7 @@ public class Huge_Insert {
          */
         source = Pump.sort(source,
                 true, 100000,
-                Collections.reverseOrder(Utils.COMPARABLE_COMPARATOR), //reverse  order comparator
+                Collections.reverseOrder(BTreeMap.COMPARABLE_COMPARATOR), //reverse  order comparator
                 db.getDefaultSerializer()
                 );
 
@@ -97,6 +99,17 @@ public class Huge_Insert {
         System.out.println("Finished; total time: "+(System.currentTimeMillis()-time)/1000+"s; there are "+map.size()+" items in map");
         db.close();
 
-
     }
+
+    public static String randomString(int size) {
+        String chars = "0123456789abcdefghijklmnopqrstuvwxyz !@#$%^&*()_+=-{}[]:\",./<>?|\\";
+        StringBuilder b = new StringBuilder(size);
+        Random r = new Random();
+        for(int i=0;i<size;i++){
+            b.append(chars.charAt(r.nextInt(chars.length())));
+        }
+        return b.toString();
+    }
+
+
 }

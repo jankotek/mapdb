@@ -12,7 +12,7 @@ import static org.junit.Assert.*;
 public class StoreAppendTest<E extends StoreAppend> extends EngineTest<E>{
 
 
-    File f = Utils.tempDbFile();
+    File f = UtilsTest.tempDbFile();
 
 
     @Override
@@ -22,7 +22,7 @@ public class StoreAppendTest<E extends StoreAppend> extends EngineTest<E>{
 
     @Test
     public void compact_file_deleted(){
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
         StoreAppend engine = new StoreAppend(f);
         File f1 = engine.getFileFromNum(0);
         File f2 = engine.getFileFromNum(1);
@@ -54,7 +54,7 @@ public class StoreAppendTest<E extends StoreAppend> extends EngineTest<E>{
     }
 
     @Test public void delete_files_after_close(){
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
         File f2 = new File(f.getPath()+".0");
         DB db = DBMaker.newAppendFileDB(f).deleteFilesAfterClose().make();
 

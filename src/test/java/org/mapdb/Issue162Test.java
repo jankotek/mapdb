@@ -54,6 +54,12 @@ public class Issue162Test {
             String s = in.readUTF();
             return new MyValue(s);
         }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+
     }
 
     private static void printEntries(Map<Long, MyValue> map) {
@@ -63,7 +69,7 @@ public class Issue162Test {
         }
     }
 
-    File path = Utils.tempDbFile();
+    File path = UtilsTest.tempDbFile();
 
     @Test public void testHashMap() {
         System.out.println("--- Testing HashMap with custom serializer");

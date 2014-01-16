@@ -1,6 +1,42 @@
 Changelog
 ============
 
+Version 0.9.8 (2013-12-30)
+--------------------------
+
+This release is considered 'beta', API and store format should be now frozen.
+Append-Only store and Store Pump are not part of MapDB for now. Random Access File
+is enabled by default.
+
+This release changes store format and is not backward compatible. There are
+also several API changes. Also some new features are added.
+
+Changes:
+
+ * Append-Only store was postponed to 1.1 release. All methods are not public now.
+ * Pump between stores was postponed to 1.1 release. All methods are not public now.
+ * Random Access File is now default option. Memory Mapped Files can be enabled with `DBMaker.mmapFileEnable()`
+ * Refactor: Utils class removed
+ * Refactor: `Bind.findValsX()` renamed to `Fun.filter()`
+ * StoreDirect and WAL format changes.
+ * Jar is now annotated as OSGIi bundle, some classloader fixes.
+ * StoreWAL commit speedup
+ * Pump sorting now handles duplicates.
+ * Fix #247: could not reopen collections with size counter.
+ * Fix #249: SerializerPojo was not rolled back.
+ * Non-existing DB.getXX() on read-only store now returns readonly empty collection
+ * BTreeKeySerializer now supplies serializers
+ * Serializer gives fixed size hint
+ * Bind: add reverse binding and secondary keys for maps
+ * Adler32 checksum replaced with stronger CRC32.
+ * Fix #237, StoreAppend dont close volume on corrupted file
+ * Fix #237, assertion fails with archived records
+ * HTreeMap: use Hasher for collection hashes.
+ * Fix #232: POJO serialization broken on complex object graphs
+ * Fix #229: compression was not working.
+ * `DB.createTreeMap()` and `DB.createHashMap()` now uses builder
+
+
 Version 0.9.7 (2013-10-28)
 --------------------------
 

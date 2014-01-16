@@ -39,7 +39,7 @@ public class StoreWAL extends StoreDirect {
     protected volatile long logSize;
 
     protected final LongConcurrentHashMap<long[]> modified = new LongConcurrentHashMap<long[]>();
-    protected final LongMap<long[]> longStackPages = new LongHashMap<long[]>();
+    protected final LongMap<byte[]> longStackPages = new LongHashMap<byte[]>();
     protected final long[] indexVals = new long[IO_USER_START/8];
     protected final boolean[] indexValsModified = new boolean[indexVals.length];
 
@@ -61,21 +61,18 @@ public class StoreWAL extends StoreDirect {
 
         structuralLock.lock();
         try{
-            try{
-                reloadIndexFile();
-                if(verifyLogFile()){
-                    replayLogFile();
-                }
-                replayPending = false;
-                checkHeaders();
-                log = null;
-            }finally {
-                structuralLock.unlock();
+            reloadIndexFile();
+            if(verifyLogFile()){
+                replayLogFile();
             }
-        } catch(Error e) {
-            // Make sure we don't hog the file locks when something goes wrong.
+            replayPending = false;
+            checkHeaders();
+            log = null;
+        }catch(IOError e){
             close();
-            throw e;
+            throw new IOError(e);
+        }finally {
+            structuralLock.unlock();
         }
     }
 
@@ -110,7 +107,9 @@ public class StoreWAL extends StoreDirect {
         if(log !=null) return;
         log = volFac.createTransLogVolume();
         log.ensureAvailable(16);
-        log.putLong(0, HEADER);
+        log.putInt(0, HEADER);
+        log.putUnsignedShort(4, STORE_VERSION);
+        log.putUnsignedShort(6, expectedMasks());
         log.putLong(8, 0L);
         logSize = 16;
     }
@@ -136,7 +135,7 @@ public class StoreWAL extends StoreDirect {
             }finally{
                 structuralLock.unlock();
             }
-            final Lock lock  = locks[Utils.lockPos(ioRecid)].writeLock();
+            final Lock lock  = locks[Store.lockPos(ioRecid)].writeLock();
             lock.lock();
             try{
 
@@ -181,7 +180,7 @@ public class StoreWAL extends StoreDirect {
             //write data into log
             for(int i=0;i<recids.length;i++){
                 final long ioRecid = recids[i];
-                final Lock lock2 = locks[Utils.lockPos(ioRecid)].writeLock();
+                final Lock lock2 = locks[Store.lockPos(ioRecid)].writeLock();
                 lock2.lock();
                 try{
                     walIndexVal(logPos, ioRecid, MASK_DISCARD);
@@ -224,7 +223,7 @@ public class StoreWAL extends StoreDirect {
             structuralLock.unlock();
         }
 
-        final Lock lock  = locks[Utils.lockPos(ioRecid)].writeLock();
+        final Lock lock  = locks[Store.lockPos(ioRecid)].writeLock();
         lock.lock();
         try{
             //write data into log
@@ -267,7 +266,7 @@ public class StoreWAL extends StoreDirect {
 
             crc32.reset();
             crc32.update(out.buf,outPos, size-c);
-            logC |= Utils.longHash( pos | header | physPos[i] | (c>0?physPos[i+1]:0) | crc32.getValue());
+            logC |= LongHashMap.longHash( pos | header | physPos[i] | (c>0?physPos[i+1]:0) | crc32.getValue());
 
             outPos +=size-c;
             assert(logSize>=outPos);
@@ -278,13 +277,13 @@ public class StoreWAL extends StoreDirect {
 
 
     protected void walIndexVal(long logPos, long ioRecid, long indexVal) {
-        assert(locks[Utils.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
+        assert(locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
         assert(logSize>=logPos+1+8+8);
         log.putByte(logPos, WAL_INDEX_LONG);
         log.putLong(logPos + 1, ioRecid);
         log.putLong(logPos + 9, indexVal);
 
-        logChecksumAdd(Utils.longHash(logPos | WAL_INDEX_LONG | ioRecid | indexVal));
+        logChecksumAdd(LongHashMap.longHash(logPos | WAL_INDEX_LONG | ioRecid | indexVal));
     }
 
 
@@ -321,7 +320,7 @@ public class StoreWAL extends StoreDirect {
     public <A> A get(long recid, Serializer<A> serializer) {
         assert(recid>0);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock  = locks[Utils.lockPos(ioRecid)].readLock();
+        final Lock lock  = locks[Store.lockPos(ioRecid)].readLock();
         lock.lock();
         try{
             return get2(ioRecid, serializer);
@@ -334,8 +333,8 @@ public class StoreWAL extends StoreDirect {
 
     @Override
     protected <A> A get2(long ioRecid, Serializer<A> serializer) throws IOException {
-        assert(locks[Utils.lockPos(ioRecid)].getWriteHoldCount()==0||
-                locks[Utils.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
+        assert(locks[Store.lockPos(ioRecid)].getWriteHoldCount()==0||
+                locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
 
         //check if record was modified in current transaction
         long[] r = modified.get(ioRecid);
@@ -365,7 +364,7 @@ public class StoreWAL extends StoreDirect {
                 log.getDataInput((r[i] & LOG_MASK_OFFSET) + c, size).readFully(b,pos,size);
                 pos+=size;
             }
-            if(pos!=totalSize)throw new InternalError();
+            if(pos!=totalSize)throw new AssertionError();
 
             return deserialize(serializer,totalSize, new DataInput2(b));
         }
@@ -377,7 +376,7 @@ public class StoreWAL extends StoreDirect {
         assert(value!=null);
         DataOutput2 out = serialize(value, serializer);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock  = locks[Utils.lockPos(ioRecid)].writeLock();
+        final Lock lock  = locks[Store.lockPos(ioRecid)].writeLock();
         lock.lock();
         try{
             final long[] physPos;
@@ -433,7 +432,7 @@ public class StoreWAL extends StoreDirect {
         assert(recid>0);
         assert(expectedOldValue!=null && newValue!=null);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock  = locks[Utils.lockPos(ioRecid)].writeLock();
+        final Lock lock  = locks[Store.lockPos(ioRecid)].writeLock();
         lock.lock();
         DataOutput2 out;
         try{
@@ -498,7 +497,7 @@ public class StoreWAL extends StoreDirect {
     public <A> void delete(long recid, Serializer<A> serializer) {
         assert(recid>0);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock  = locks[Utils.lockPos(ioRecid)].writeLock();
+        final Lock lock  = locks[Store.lockPos(ioRecid)].writeLock();
         lock.lock();
         try{
             final long logPos;
@@ -555,29 +554,29 @@ public class StoreWAL extends StoreDirect {
             }
             //dump long stack pages
             int crc = 0;
-            LongMap.LongMapIterator<long[]> iter = longStackPages.longMapIterator();
+            LongMap.LongMapIterator<byte[]> iter = longStackPages.longMapIterator();
             while(iter.moveToNext()){
-                long pageSize = iter.value()[0]>>>48;
-                long firstVal = (pageSize<<48)|iter.key();
-                long[] array = iter.value();
+                assert(iter.key()>>>48==0);
+                final byte[] array = iter.value();
+                final long pageSize = ((array[0]&0xFF)<<8)|(array[1]&0xFF) ;
+                assert(array.length==pageSize);
+                final long firstVal = (pageSize<<48)|iter.key();
                 log.ensureAvailable(logSize+1+8+pageSize);
 
-                crc |= Utils.longHash(logSize|WAL_LONGSTACK_PAGE|firstVal|array[0]);
+                crc |= LongHashMap.longHash(logSize|WAL_LONGSTACK_PAGE|firstVal);
 
                 log.putByte(logSize, WAL_LONGSTACK_PAGE);
                 logSize+=1;
                 log.putLong(logSize, firstVal);
                 logSize+=8;
-                //first long in array
 
-                log.putLong(logSize,array[0]);
-                logSize+=8;
-                int numItems = (int) ((pageSize-8)/6);
-                for(int i=1;i<=numItems;i++){
-                    crc|=Utils.longHash(logSize|array[i]);
-                    log.putSixLong(logSize,array[i]);
-                    logSize+=6;
-                }
+                //put array
+                CRC32 crc32  = new CRC32();
+                crc32.update(array);
+                crc |= crc32.getValue();
+                log.putData(logSize,array,0,array.length);
+                logSize+=array.length;
+
                 checkLogRounding();
             }
 
@@ -593,7 +592,7 @@ public class StoreWAL extends StoreDirect {
             //seal log file
             log.ensureAvailable(logSize + 1 + 3*6 + 8+4);
             long indexChecksum = indexHeaderChecksumUncommited();
-            crc|=Utils.longHash(logSize|WAL_SEAL|indexSize|physSize|freeSize|indexChecksum);
+            crc|=LongHashMap.longHash(logSize|WAL_SEAL|indexSize|physSize|freeSize|indexChecksum);
             log.putByte(logSize, WAL_SEAL);
             logSize+=1;
             log.putSixLong(logSize, indexSize);
@@ -637,7 +636,7 @@ public class StoreWAL extends StoreDirect {
             }else
                 indexVal = indexVals[offset / 8];
 
-            ret |=  indexVal | Utils.longHash(indexVal|offset) ;
+            ret |=  indexVal | LongHashMap.longHash(indexVal|offset) ;
         }
 
         return ret;
@@ -654,13 +653,22 @@ public class StoreWAL extends StoreDirect {
 
 
         //read headers
-        if(log.isEmpty() || log.getLong(0)!=HEADER || log.getLong(8) !=LOG_SEAL){
+        if(log.isEmpty() || log.getInt(0)!=HEADER  || log.getLong(8) !=LOG_SEAL){
             //wrong headers, discard log
             log.close();
             log.deleteFile();
             log = null;
             return false;
         }
+
+        if(log.getUnsignedShort(4)>STORE_VERSION){
+            throw new IOError(new IOException("New store format version, please use newer MapDB version"));
+        }
+
+        if(log.getUnsignedShort(6)!=expectedMasks())
+            throw new IllegalArgumentException("Log file created with different features. Please check compression, checksum or encryption");
+
+
 
         final CRC32 crc32 = new CRC32();
 
@@ -670,13 +678,13 @@ public class StoreWAL extends StoreDirect {
         logSize+=1;
         int crc = 0;
 
-        while(ins!=WAL_SEAL){
+        while(ins!=WAL_SEAL) try{
             if(ins == WAL_INDEX_LONG){
                 long ioRecid = log.getLong(logSize);
                 logSize+=8;
                 long indexVal = log.getLong(logSize);
                 logSize+=8;
-                crc |= Utils.longHash((logSize-1-8-8) | WAL_INDEX_LONG | ioRecid | indexVal);
+                crc |= LongHashMap.longHash((logSize-1-8-8) | WAL_INDEX_LONG | ioRecid | indexVal);
             }else if(ins == WAL_PHYS_ARRAY){
                 final long offset2 = log.getLong(logSize);
                 logSize+=8;
@@ -691,7 +699,7 @@ public class StoreWAL extends StoreDirect {
                 crc32.reset();
                 crc32.update(b);
 
-                crc |= Utils.longHash(logSize | WAL_PHYS_ARRAY | offset2 | crc32.getValue());
+                crc |= LongHashMap.longHash(logSize | WAL_PHYS_ARRAY | offset2 | crc32.getValue());
 
                 logSize+=size;
             }else if(ins == WAL_PHYS_ARRAY_ONE_LONG){
@@ -703,38 +711,40 @@ public class StoreWAL extends StoreDirect {
                 logSize+=8;
 
                 byte[] b = new byte[size];
-                try {
-                    log.getDataInput(logSize, size).readFully(b);
-                } catch (IOException e) {
-                    throw new IOError(e);
-                }
+                log.getDataInput(logSize, size).readFully(b);
                 crc32.reset();
                 crc32.update(b);
 
-                crc |= Utils.longHash((logSize) | WAL_PHYS_ARRAY_ONE_LONG | offset2 | nextPageLink | crc32.getValue());
+                crc |= LongHashMap.longHash((logSize) | WAL_PHYS_ARRAY_ONE_LONG | offset2 | nextPageLink | crc32.getValue());
 
                 logSize+=size;
             }else if(ins == WAL_LONGSTACK_PAGE){
-                long offset = log.getLong(logSize);
+                final long offset = log.getLong(logSize);
                 logSize+=8;
                 final long origLogSize = logSize;
                 final int size = (int) (offset>>>48);
-                final long nextPageLink = log.getLong(logSize);
-                logSize+=8;
-                crc |= Utils.longHash(origLogSize | WAL_LONGSTACK_PAGE | offset | nextPageLink );
-                for(;logSize<origLogSize+size;logSize+=6){
-                    crc |= Utils.longHash(logSize|log.getSixLong(logSize));
-                }
 
+                crc |= LongHashMap.longHash(origLogSize | WAL_LONGSTACK_PAGE | offset );
+
+                byte[] b = new byte[size];
+                log.getDataInput(logSize, size).readFully(b);
+                crc32.reset();
+                crc32.update(b);
+                crc|=crc32.getValue();
+
+                log.getDataInput(logSize, size).readFully(b);
             }else if(ins == WAL_SKIP_REST_OF_BLOCK){
                 logSize += Volume.CHUNK_SIZE -(logSize&Volume.CHUNK_SIZE_MOD_MASK);
             }else{
-                throw new InternalError("unknown trans log instruction '"+ins +"' at log offset: "+(logSize-1));
+                throw new AssertionError("unknown trans log instruction '"+ins +"' at log offset: "+(logSize-1));
             }
 
             ins = log.getByte(logSize);
             logSize+=1;
+        } catch (IOException e) {
+            throw new IOError(e);
         }
+
         long indexSize = log.getSixLong(logSize);
         logSize+=6;
         long physSize = log.getSixLong(logSize);
@@ -743,7 +753,7 @@ public class StoreWAL extends StoreDirect {
         logSize+=6;
         long indexSum = log.getLong(logSize);
         logSize+=8;
-        crc |= Utils.longHash((logSize-1-3*6-8)|indexSize|physSize|freeSize|indexSum);
+        crc |= LongHashMap.longHash((logSize-1-3*6-8)|indexSize|physSize|freeSize|indexSum);
 
         final int realCrc = log.getInt(logSize);
         logSize+=4;
@@ -766,7 +776,9 @@ public class StoreWAL extends StoreDirect {
 
 
         //read headers
-        if(log.isEmpty() || log.getLong(0)!=HEADER || log.getLong(8) !=LOG_SEAL){
+        if(log.isEmpty() || log.getInt(0)!=HEADER ||
+                log.getUnsignedShort(4)>STORE_VERSION || log.getLong(8) !=LOG_SEAL | 
+                log.getUnsignedShort(6)!=expectedMasks()){
             //wrong headers, discard log
             log.close();
             log.deleteFile();
@@ -807,7 +819,7 @@ public class StoreWAL extends StoreDirect {
             }else if(ins == WAL_SKIP_REST_OF_BLOCK){
                 logSize += Volume.CHUNK_SIZE -(logSize&Volume.CHUNK_SIZE_MOD_MASK);
             }else{
-                throw new InternalError("unknown trans log instruction '"+ins +"' at log offset: "+(logSize-1));
+                throw new AssertionError("unknown trans log instruction '"+ins +"' at log offset: "+(logSize-1));
             }
 
             ins = log.getByte(logSize);
@@ -858,143 +870,8 @@ public class StoreWAL extends StoreDirect {
         }
     }
 
-    private long[] getLongStackPage(final long physOffset, boolean read){
-        assert(structuralLock.isHeldByCurrentThread());
-        long[] buf = longStackPages.get(physOffset);
-        if(buf == null){
-            buf = new long[LONG_STACK_PREF_COUNT+1];
-            if(read){
-                buf[0] = phys.getLong(physOffset);
-                for(int i=1;i<buf.length;i++){
-                    buf[i] = phys.getSixLong(physOffset + 2 + i * 6);
-                }
-            }
-            longStackPages.put(physOffset,buf);
-        }
-        return buf;
-    }
-
-
-    @Override
-    protected long longStackTake(long ioList, boolean recursive) {
-        assert(structuralLock.isHeldByCurrentThread());
-        final int ii = ((int) (ioList / 8));
-
-        long dataOffset = indexVals[ii];
-        if(dataOffset == 0) return 0; //empty
-
-        long pos = dataOffset>>>48;
-        dataOffset&=MASK_OFFSET;
-
-        if(pos<8) throw new InternalError();
-
-        long[] buf = getLongStackPage(dataOffset,true);
-
-        final long ret = buf[((int) ((pos - 2) / 6))];
-
-        //was it only record at that page?
-        if(pos==8){
-            //yes, delete this page
-            long next = buf[0]&MASK_OFFSET;
-            long size = buf[0]>>>48;
-
-
-            if(next != 0){
-                //update index so it points to previous page
-                long nextSize = getLongStackPage(next,true)[0]>>>48;
-                indexVals[ii] = ((nextSize-6)<<48)|next;
-                indexValsModified[ii] = true;
-            }else{
-                indexVals[ii] = 0;
-                indexValsModified[ii] = true;
-                if(maxUsedIoList==ioList){
-                    //max value was just deleted, so find new maxima
-                    while(indexVals[((int) (maxUsedIoList / 8))]==0 && maxUsedIoList>IO_FREE_RECID){
-                        maxUsedIoList-=8;
-                    }
-                }
-            }
-
-            //put space used by this page into free list
-            longStackPages.remove(dataOffset); //TODO write zeroes to phys file
-
-            freePhysPut((size<<48)|dataOffset,true);
-        }else{
-            //no, it was not last record at this page, so just decrement the counter
-            pos-=6;
-            indexVals[ii] = (pos<<48)|dataOffset;
-            indexValsModified[ii] = true;
-        }
-        return ret;
-
-    }
-
-    @Override
-    protected void longStackPut(long ioList, long offset,boolean recursive) {
-        assert(structuralLock.isHeldByCurrentThread());
-        assert(offset>>>48==0);
-        assert(ioList>=IO_FREE_RECID && ioList<=IO_USER_START): "wrong ioList: "+ioList;
-
-//        if(recursive) throw new InternalError();
-        if(offset>>>48!=0) throw new IllegalArgumentException();
-        //index position was cleared, put into free index list
-
-        final int ii = ((int) (ioList / 8));
-
-        long dataOffset = indexVals[ii];
-        long pos = dataOffset>>>48;
-        dataOffset &= MASK_OFFSET;
-
-        if(dataOffset == 0){ //empty list?
-            //yes empty, create new page and fill it with values
-            final long listPhysid = freePhysTake((int) LONG_STACK_PREF_SIZE,false,true) &MASK_OFFSET;
-            long[] buf = getLongStackPage(listPhysid,false);
-            if(listPhysid == 0) throw new InternalError();
-
-            //set size and link to old page
-            buf[0] = (LONG_STACK_PREF_SIZE<<48) | dataOffset;
-            //set  record
-            buf[1] = offset;
-            //and update index file with new page location
-            indexVals[ii] =  (8L << 48) | listPhysid;
-            indexValsModified[ii] = true;
-            if(maxUsedIoList<=ioList) maxUsedIoList=ioList;
-        }else{
-            //non empty list
-            long[] buf = getLongStackPage(dataOffset,true);
-            final long next = buf[0]&MASK_OFFSET;
-            final long size = buf[0]>>>48;
-            final int numberOfRecordsInPage = (int) (buf[0]>>>(8*7));
-
-            if(pos+6==size){ //is current page full?
-                //yes it is full, so we need to allocate new page and write our number there
-                final long listPhysid = freePhysTake((int) LONG_STACK_PREF_SIZE, false,true) &MASK_OFFSET;
-                long[] bufNew = getLongStackPage(listPhysid,false);
-                if(listPhysid == 0) throw new InternalError();
-
-                //set location to previous page and set current page size
-                bufNew[0]=(LONG_STACK_PREF_SIZE<<48)|dataOffset;
-
-                //set the value itself
-                bufNew[1] = offset;
-
-                //and update index file with new page location and number of records
-                indexVals[ii] =  (8L<<48) | listPhysid;
-                indexValsModified[ii] = true;
-            }else{
-                //there is space on page, so just write released recid and increase the counter
-                pos+=6;
-                buf[((int) ((pos - 2) / 6))] = offset;
-                indexVals[ii] = (pos<<48)|dataOffset;
-                indexValsModified[ii] = true;
-
-            }
-        }
-        assert(structuralLock.isHeldByCurrentThread());
-    }
-
     protected long[] getLinkedRecordsFromLog(long ioRecid){
-        assert(locks[Utils.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
+        assert(locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
         long[] ret0 = modified.get(ioRecid);
         if(ret0==PREALLOC) return ret0;
 
@@ -1008,6 +885,181 @@ public class StoreWAL extends StoreDirect {
             return ret;
         }
         return null;
+    }
+
+    @Override
+    protected long longStackTake(long ioList, boolean recursive) {
+        assert(structuralLock.isHeldByCurrentThread());
+        assert(ioList>=IO_FREE_RECID && ioList<IO_USER_START) :"wrong ioList: "+ioList;
+
+
+        long dataOffset = indexVals[((int) ioList/8)];
+        if(dataOffset == 0)
+            return 0; //there is no such list, so just return 0
+
+        long pos = dataOffset>>>48;
+        dataOffset &= MASK_OFFSET;
+        byte[] page = longStackGetPage(dataOffset);
+
+        if(pos<8) throw new AssertionError();
+
+        final long ret = longStackGetSixLong(page, (int) pos);
+
+        //was it only record at that page?
+        if(pos == 8){
+            //yes, delete this page
+            long next = longStackGetSixLong(page,2);
+            long size = ((page[0]&0xFF)<<8) | (page[1]&0xFF);
+            assert(size == page.length);
+            if(next !=0){
+                //update index so it points to previous page
+                byte[] nextPage = longStackGetPage(next); //TODO this page is not modifed, but is added to LOG
+                long nextSize = ((nextPage[0]&0xFF)<<8) | (nextPage[1]&0xFF);
+                assert((nextSize-8)%6==0);
+                indexVals[((int) ioList/8)]=((nextSize-6)<<48)|next;
+                indexValsModified[((int) ioList/8)]=true;
+            }else{
+                //zero out index
+                indexVals[((int) ioList/8)]=0L;
+                indexValsModified[((int) ioList/8)]=true;
+                if(maxUsedIoList==ioList){
+                    //max value was just deleted, so find new maxima
+                    while(indexVals[((int) maxUsedIoList/8)]==0 && maxUsedIoList>IO_FREE_RECID){
+                        maxUsedIoList-=8;
+                    }
+                }
+            }
+            //put space used by this page into free list
+            freePhysPut((size<<48) | dataOffset, true);
+            assert(dataOffset>>>48==0);
+            longStackPages.remove(dataOffset);
+        }else{
+            //no, it was not last record at this page, so just decrement the counter
+            pos-=6;
+            indexVals[((int) ioList/8)] = (pos<<48)| dataOffset;
+            indexValsModified[((int) ioList/8)] = true;
+        }
+
+        //System.out.println("longStackTake: "+ioList+" - "+ret);
+
+        return ret;
+
+    }
+
+    @Override
+    protected void longStackPut(long ioList, long offset, boolean recursive) {
+        assert(structuralLock.isHeldByCurrentThread());
+        assert(offset>>>48==0);
+        assert(ioList>=IO_FREE_RECID && ioList<=IO_USER_START): "wrong ioList: "+ioList;
+
+        long dataOffset = indexVals[((int) ioList/8)];
+        long pos = dataOffset>>>48;
+        dataOffset &= MASK_OFFSET;
+
+        if(dataOffset == 0){ //empty list?
+            //yes empty, create new page and fill it with values
+            final long listPhysid = freePhysTake((int) LONG_STACK_PREF_SIZE,true,true) &MASK_OFFSET;
+            if(listPhysid == 0) throw new AssertionError();
+            assert(listPhysid>>>48==0);
+            //set previous Free Index List page to zero as this is first page
+            //also set size of this record
+            byte[] page = new byte[(int) LONG_STACK_PREF_SIZE];
+            page[0] = (byte) (0xFF & (page.length>>>8));
+            page[1] = (byte) (0xFF & (page.length));
+            longStackPutSixLong(page,2,0L);
+            //set  record
+            longStackPutSixLong(page, 8, offset);
+            //and update index file with new page location
+            indexVals[((int) ioList/8)] = ( 8L << 48) | listPhysid;
+            indexValsModified[((int) ioList/8)] = true;
+            if(maxUsedIoList<=ioList) maxUsedIoList=ioList;
+            longStackPages.put(listPhysid,page);
+        }else{
+            byte[] page = longStackGetPage(dataOffset);
+            long size = ((page[0]&0xFF)<<8)|(page[1]&0xFF);
+
+            assert(pos+6<=size);
+            if(pos+6==size){ //is current page full?
+                long newPageSize = LONG_STACK_PREF_SIZE;
+                if(ioList == size2ListIoRecid(LONG_STACK_PREF_SIZE)){
+                    //TODO double allocation fix needs more investigation
+                    newPageSize = LONG_STACK_PREF_SIZE_ALTER;
+                }
+                //yes it is full, so we need to allocate new page and write our number there
+                final long listPhysid = freePhysTake((int) newPageSize,true,true) &MASK_OFFSET;
+                if(listPhysid == 0) throw new AssertionError();
+
+                byte[] newPage = new byte[(int) newPageSize];
+
+                //set current page size
+                newPage[0] = (byte) (0xFF & (newPageSize>>>8));
+                newPage[1] = (byte) (0xFF & (newPageSize));
+                //set location to previous page and
+                longStackPutSixLong(newPage,2,dataOffset&MASK_OFFSET);
+
+
+                //set the value itself
+                longStackPutSixLong(newPage, 8, offset);
+                assert(listPhysid>>>48==0);
+                longStackPages.put(listPhysid,newPage);
+
+                //and update index file with new page location and number of records
+                indexVals[((int) ioList/8)] = (8L<<48) | listPhysid;
+                indexValsModified[((int) ioList/8)] = true;
+            }else{
+                //there is space on page, so just write offset and increase the counter
+                pos+=6;
+                longStackPutSixLong(page, (int) pos,offset);
+                indexVals[((int) ioList/8)] = (pos<<48)| dataOffset;
+                indexValsModified[((int) ioList/8)] = true;
+            }
+        }
+    }
+
+    protected static long longStackGetSixLong(byte[] page, int pos) {
+        return
+                ((long) (page[pos + 0] & 0xff) << 40) |
+                        ((long) (page[pos + 1] & 0xff) << 32) |
+                        ((long) (page[pos + 2] & 0xff) << 24) |
+                        ((long) (page[pos + 3] & 0xff) << 16) |
+                        ((long) (page[pos + 4] & 0xff) << 8) |
+                        ((long) (page[pos + 5] & 0xff) << 0);
+    }
+
+
+    protected static void longStackPutSixLong(byte[] page, int pos, long value) {
+        assert(value>=0 && (value>>>6*8)==0): "value does not fit";
+        page[pos + 0] = (byte) (0xff & (value >> 40));
+        page[pos + 1] = (byte) (0xff & (value >> 32));
+        page[pos + 2] = (byte) (0xff & (value >> 24));
+        page[pos + 3] = (byte) (0xff & (value >> 16));
+        page[pos + 4] = (byte) (0xff & (value >> 8));
+        page[pos + 5] = (byte) (0xff & (value >> 0));
+
+    }
+
+
+    protected byte[] longStackGetPage(long offset) {
+        assert(offset>=16);
+        assert(offset>>>48==0);
+
+        byte[] ret = longStackPages.get(offset);
+        if(ret==null){
+            //read page size
+            int size = phys.getUnsignedShort(offset);
+            assert(size>=8+6);
+            ret = new byte[size];
+            try {
+                phys.getDataInput(offset,size).readFully(ret);
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+
+            //and load page
+            longStackPages.put(offset,ret);
+        }
+
+        return ret;
     }
 
     @Override

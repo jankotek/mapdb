@@ -38,7 +38,7 @@ public class DBMakerTest{
 
     @Test
     public void testNewFileDB() throws Exception {
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
         DB db = DBMaker.newFileDB(f)
                 .transactionDisable().make();
         verifyDB(db);
@@ -57,7 +57,8 @@ public class DBMakerTest{
                 .cacheDisable()
                 .make();
         verifyDB(db);
-        assertEquals( db.engine.getClass(),StoreDirect.class);
+        Store s = Store.forDB(db);
+        assertEquals( s.getClass(),StoreDirect.class);
     }
 
     @Test
@@ -75,7 +76,7 @@ public class DBMakerTest{
     @Test
     public void testMake() throws Exception {
         DB db = DBMaker
-                .newMemoryDB()
+                .newFileDB(UtilsTest.tempDbFile())
                 .transactionDisable()
                 .make();
         verifyDB(db);
@@ -83,7 +84,9 @@ public class DBMakerTest{
         EngineWrapper w = (EngineWrapper) db.engine;
         assertTrue(w instanceof Caches.HashTable);
         assertEquals(1024 * 32, ((Caches.HashTable) w).cacheMaxSize);
-        assertTrue(w.getWrappedEngine().getClass() == StoreDirect.class);
+        StoreDirect s = (StoreDirect) w.getWrappedEngine();
+        assertTrue(s.index instanceof Volume.FileChannelVol);
+        assertTrue(s.phys instanceof Volume.FileChannelVol);
     }
 
     @Test
@@ -146,7 +149,7 @@ public class DBMakerTest{
     }
 
     @Test public void read_only() throws IOException {
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
         DB db = DBMaker.newFileDB(f).make();
         db.close();
         db = DBMaker
@@ -160,7 +163,7 @@ public class DBMakerTest{
 
     @Test(expected = IllegalArgumentException.class)
     public void reopen_wrong_checksum() throws IOException {
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
         DB db = DBMaker.newFileDB(f).make();
         db.close();
         db = DBMaker
@@ -173,7 +176,7 @@ public class DBMakerTest{
         EngineWrapper w = (EngineWrapper) db.engine;
         assertTrue(w instanceof TxEngine);
 
-        Store s = Pump.storeForEngine(w);
+        Store s = Store.forEngine(w);
         assertTrue(s.checksum);
         assertTrue(!s.compress);
         assertTrue(s.password==null);
@@ -182,7 +185,7 @@ public class DBMakerTest{
 
 
     @Test public void checksum() throws IOException {
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
         DB db = DBMaker
                 .newFileDB(f)
                 .deleteFilesAfterClose()
@@ -191,7 +194,7 @@ public class DBMakerTest{
                 .checksumEnable()
                 .make();
 
-        Store s = (Store) db.getEngine();
+        Store s = Store.forDB(db);
         assertTrue(s.checksum);
         assertTrue(!s.compress);
         assertTrue(s.password==null);
@@ -199,7 +202,7 @@ public class DBMakerTest{
     }
 
     @Test public void encrypt() throws IOException {
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
         DB db = DBMaker
                 .newFileDB(f)
                 .deleteFilesAfterClose()
@@ -207,7 +210,7 @@ public class DBMakerTest{
 
                 .encryptionEnable("adqdqwd")
                 .make();
-        Store s = Pump.storeForDB(db);
+        Store s = Store.forDB(db);
         assertTrue(!s.checksum);
         assertTrue(!s.compress);
         assertTrue(s.password!=null);
@@ -217,7 +220,7 @@ public class DBMakerTest{
 
     @Test(expected = IllegalArgumentException.class)
     public void reopen_wrong_encrypt() throws IOException {
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
         DB db = DBMaker.newFileDB(f).make();
         db.close();
         db = DBMaker
@@ -227,7 +230,7 @@ public class DBMakerTest{
 
                 .encryptionEnable("adqdqwd")
                 .make();
-        Store s = Pump.storeForDB(db);
+        Store s = Store.forDB(db);
         assertTrue(!s.checksum);
         assertTrue(!s.compress);
         assertTrue(s.password!=null);
@@ -236,15 +239,14 @@ public class DBMakerTest{
 
 
     @Test public void compress() throws IOException {
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
         DB db = DBMaker
                 .newFileDB(f)
                 .deleteFilesAfterClose()
                 .cacheDisable()
-
                 .compressionEnable()
                 .make();
-        Store s = (Store) db.engine;
+        Store s = Store.forDB(db);
         assertTrue(!s.checksum);
         assertTrue(s.compress);
         assertTrue(s.password==null);
@@ -253,7 +255,7 @@ public class DBMakerTest{
 
     @Test(expected = IllegalArgumentException.class)
     public void reopen_wrong_compress() throws IOException {
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
         DB db = DBMaker.newFileDB(f).make();
         db.close();
         db = DBMaker
@@ -265,7 +267,7 @@ public class DBMakerTest{
                 .make();
         EngineWrapper w = (EngineWrapper) db.engine;
         assertTrue(w instanceof TxEngine);
-        Store s = Pump.storeForEngine(w);
+        Store s = Store.forEngine(w);
         assertTrue(!s.checksum);
         assertTrue(s.compress);
         assertTrue(s.password==null);
@@ -308,8 +310,8 @@ public class DBMakerTest{
     }
 
     @Test public void rafEnableKeepIndexMapped(){
-        DB db = DBMaker.newFileDB(Utils.tempDbFile())
-                .randomAccessFileEnableKeepIndexMapped()
+        DB db = DBMaker.newFileDB(UtilsTest.tempDbFile())
+                .mmapFileEnablePartial()
                 .make();
         Engine e = db.getEngine();
         while(e instanceof EngineWrapper)
@@ -321,7 +323,7 @@ public class DBMakerTest{
 
     @Test(expected = UnsupportedOperationException.class)
     public void limitDisabledAppend(){
-        DBMaker.newAppendFileDB(Utils.tempDbFile()).sizeLimit(1).make();
+        DBMaker.newAppendFileDB(UtilsTest.tempDbFile()).sizeLimit(1).make();
     }
 
     @Test()

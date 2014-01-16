@@ -127,7 +127,7 @@ public final class DataInput2 extends InputStream implements DataInput {
 
     @Override
     public String readUTF() throws IOException {
-        final int size = Utils.unpackInt(this);
+        final int size = DataInput2.unpackInt(this);
         return SerializerBase.deserializeString(this, size);
     }
 
@@ -135,4 +135,38 @@ public final class DataInput2 extends InputStream implements DataInput {
     public int read() throws IOException {
         return readUnsignedByte();
     }
+
+    static public int unpackInt(DataInput is) throws IOException {
+        //TODO unrolled version?
+        for (int offset = 0, result = 0; offset < 32; offset += 7) {
+            int b = is.readUnsignedByte();
+            result |= (b & 0x7F) << offset;
+            if ((b & 0x80) == 0) {
+                return result;
+            }
+        }
+        throw new AssertionError("Malformed int.");
+    }
+
+
+    /**
+     * Unpack positive long value from the input stream.
+     *
+     * @param in The input stream.
+     * @return The long value.
+     * @throws java.io.IOException
+     */
+    static public long unpackLong(DataInput in) throws IOException {
+        //TODO unrolled version?
+        long result = 0;
+        for (int offset = 0; offset < 64; offset += 7) {
+            long b = in.readUnsignedByte();
+            result |= (b & 0x7F) << offset;
+            if ((b & 0x80) == 0) {
+                return result;
+            }
+        }
+        throw new AssertionError("Malformed long.");
+    }
+
 }

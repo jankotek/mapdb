@@ -40,7 +40,7 @@ public class Secondary_Key {
         System.out.println(valueHash);
 
         //get all keys where value hashCode is N
-        Iterable<Long> ids = Bind.findVals2(valueHash, 1571230533);
+        Iterable<Long> ids = Fun.filter(valueHash, 1571230533);
         System.out.println(ids.iterator().next());
 
     }

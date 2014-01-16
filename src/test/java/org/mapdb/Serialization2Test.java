@@ -79,7 +79,7 @@ public class Serialization2Test extends TestFile {
 
     @Test  public void testReopenWithDefrag(){
 
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
 
         DB db = DBMaker.newFileDB(f)
                 .transactionDisable()

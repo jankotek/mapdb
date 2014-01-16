@@ -8,7 +8,7 @@ public class Issue90Test {
 
     @Test
     public void testCounter() throws Exception {
-        File file = Utils.tempDbFile();
+        File file = UtilsTest.tempDbFile();
 
 
         final DB mapDb =DBMaker.newAppendFileDB(file)

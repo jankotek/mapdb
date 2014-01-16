@@ -221,7 +221,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
         //for this case CountDownLatch is used, it also signals when operations has been completed
         //CountDownLatch is used as special case to signalise special operation
         if(latch!=null){
-            if(!writeCache.isEmpty()) throw new InternalError();
+            assert(writeCache.isEmpty());
 
             final long count = latch.getCount();
             if(count == 0){ //close operation
@@ -239,7 +239,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
                 latch.countDown();
                 latch.countDown();
                 latch.countDown();
-            }else{throw new InternalError();}
+            }else{throw new AssertionError();}
         }
         return true;
 
@@ -443,7 +443,8 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
             checkState();
             closeInProgress = true;
             //notify background threads
-            if(!action.compareAndSet(null,new CountDownLatch(0)))throw new InternalError();
+            if(!action.compareAndSet(null,new CountDownLatch(0)))
+                throw new AssertionError();
 
             //wait for background threads to shutdown
             activeThreadsCount.await();
@@ -483,7 +484,8 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
             checkState();
             //notify background threads
             CountDownLatch msg = new CountDownLatch(1);
-            if(!action.compareAndSet(null,msg))throw new InternalError();
+            if(!action.compareAndSet(null,msg))
+                throw new AssertionError();
 
             //wait for response from writer thread
             while(!msg.await(1,TimeUnit.SECONDS)){
@@ -510,7 +512,8 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
             checkState();
             //notify background threads
             CountDownLatch msg = new CountDownLatch(2);
-            if(!action.compareAndSet(null,msg))throw new InternalError();
+            if(!action.compareAndSet(null,msg))
+                throw new AssertionError();
 
             //wait for response from writer thread
             while(!msg.await(1,TimeUnit.SECONDS)){
@@ -536,7 +539,8 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
             checkState();
             //notify background threads
             CountDownLatch msg = new CountDownLatch(3);
-            if(!action.compareAndSet(null,msg))throw new InternalError();
+            if(!action.compareAndSet(null,msg))
+                throw new AssertionError();
 
             //wait for response from writer thread
             while(!msg.await(1,TimeUnit.SECONDS)){

@@ -2,6 +2,7 @@ package examples;
 
 import org.mapdb.*;
 
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 
@@ -11,6 +12,8 @@ import java.util.concurrent.TimeUnit;
  *
  */
 public class CacheEntryExpiry {
+
+
 
     public static void main(String[] args) {
         //init off-heap store with 2GB size limit
@@ -31,18 +34,30 @@ public class CacheEntryExpiry {
 
         //load stuff
         for(int i = 0;i<100000;i++){
-            map.put(i, Utils.randomString(1000));
+            map.put(i, randomString(1000));
         }
 
         //one can monitor two space usage numbers:
 
         //free space in store
-        long freeSize = Pump.storeForDB(db).getFreeSize();
+        long freeSize = Store.forDB(db).getFreeSize();
 
         //current size of store (how much memory it has allocated
-        long currentSize = Pump.storeForDB(db).getCurrSize();
+        long currentSize = Store.forDB(db).getCurrSize();
 
 
     }
+
+
+    public static String randomString(int size) {
+        String chars = "0123456789abcdefghijklmnopqrstuvwxyz !@#$%^&*()_+=-{}[]:\",./<>?|\\";
+        StringBuilder b = new StringBuilder(size);
+        Random r = new Random();
+        for(int i=0;i<size;i++){
+            b.append(chars.charAt(r.nextInt(chars.length())));
+        }
+        return b.toString();
+    }
+
 
 }

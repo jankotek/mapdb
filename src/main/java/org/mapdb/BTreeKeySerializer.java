@@ -4,6 +4,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.io.Serializable;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Comparator;
 
@@ -107,10 +108,10 @@ public abstract class BTreeKeySerializer<K>{
             if(start>=end) return;
 //            System.out.println(start+" - "+end+" - "+Arrays.toString(keys));
             long prev = (Long)keys[start];
-            Utils.packLong(out,prev);
+            DataOutput2.packLong(out,prev);
             for(int i=start+1;i<end;i++){
                 long curr = (Long)keys[i];
-                Utils.packLong(out, curr-prev);
+                DataOutput2.packLong(out, curr-prev);
                 prev = curr;
             }
         }
@@ -120,14 +121,14 @@ public abstract class BTreeKeySerializer<K>{
             Object[] ret = new Long[size];
             long prev = 0 ;
             for(int i = start; i<end; i++){
-                ret[i] = prev = prev + Utils.unpackLong(in);
+                ret[i] = prev = prev + DataInput2.unpackLong(in);
             }
             return ret;
         }
 
         @Override
         public Comparator<Long> getComparator() {
-            return Utils.COMPARABLE_COMPARATOR;
+            return BTreeMap.COMPARABLE_COMPARATOR;
         }
     };
 
@@ -142,10 +143,10 @@ public abstract class BTreeKeySerializer<K>{
             if(start>=end) return;
 //            System.out.println(start+" - "+end+" - "+Arrays.toString(keys));
             int prev = (Integer)keys[start];
-            Utils.packLong(out,prev);
+            DataOutput2.packLong(out,prev);
             for(int i=start+1;i<end;i++){
                 int curr = (Integer)keys[i];
-                Utils.packInt(out, curr-prev);
+                DataOutput2.packInt(out, curr-prev);
                 prev = curr;
             }
         }
@@ -155,14 +156,14 @@ public abstract class BTreeKeySerializer<K>{
             Object[] ret = new Integer[size];
             int prev = 0 ;
             for(int i = start; i<end; i++){
-                ret[i] = prev = prev + Utils.unpackInt(in);
+                ret[i] = prev = prev + DataInput2.unpackInt(in);
             }
             return ret;
         }
 
         @Override
         public Comparator<Integer> getComparator() {
-            return Utils.COMPARABLE_COMPARATOR;
+            return BTreeMap.COMPARABLE_COMPARATOR;
         }
 
     };
@@ -174,11 +175,13 @@ public abstract class BTreeKeySerializer<K>{
      */
     public static final  BTreeKeySerializer<String> STRING = new BTreeKeySerializer<String>() {
 
+        private final Charset UTF8_CHARSET = Charset.forName("UTF8");
+
         @Override
         public void serialize(DataOutput out, int start, int end, Object[] keys) throws IOException {
             byte[] previous = null;
             for (int i = start; i < end; i++) {
-                byte[] b = ((String) keys[i]).getBytes(Utils.UTF8_CHARSET);
+                byte[] b = ((String) keys[i]).getBytes(UTF8_CHARSET);
                 leadingValuePackWrite(out, b, previous, 0);
                 previous = b;
             }
@@ -191,7 +194,7 @@ public abstract class BTreeKeySerializer<K>{
             for (int i = start; i < end; i++) {
                 byte[] b = leadingValuePackRead(in, previous, 0);
                 if (b == null) continue;
-                ret[i] = new String(b,Utils.UTF8_CHARSET);
+                ret[i] = new String(b,UTF8_CHARSET);
                 previous = b;
             }
             return ret;
@@ -199,7 +202,7 @@ public abstract class BTreeKeySerializer<K>{
 
         @Override
         public Comparator<String> getComparator() {
-            return Utils.COMPARABLE_COMPARATOR;
+            return BTreeMap.COMPARABLE_COMPARATOR;
         }
 
     };
@@ -210,11 +213,11 @@ public abstract class BTreeKeySerializer<K>{
      * @author Kevin Day
      */
     public static byte[] leadingValuePackRead(DataInput in, byte[] previous, int ignoreLeadingCount) throws IOException {
-        int len = Utils.unpackInt(in) - 1;  // 0 indicates null
+        int len = DataInput2.unpackInt(in) - 1;  // 0 indicates null
         if (len == -1)
             return null;
 
-        int actualCommon = Utils.unpackInt(in);
+        int actualCommon = DataInput2.unpackInt(in);
 
         byte[] buf = new byte[len];
 
@@ -240,7 +243,7 @@ public abstract class BTreeKeySerializer<K>{
      */
     public static void leadingValuePackWrite(DataOutput out, byte[] buf, byte[] previous, int ignoreLeadingCount) throws IOException {
         if (buf == null) {
-            Utils.packInt(out, 0);
+            DataOutput2.packInt(out, 0);
             return;
         }
 
@@ -259,8 +262,8 @@ public abstract class BTreeKeySerializer<K>{
 
 
         // there are enough common bytes to justify compression
-        Utils.packInt(out, buf.length + 1);// store as +1, 0 indicates null
-        Utils.packInt(out, actualCommon);
+        DataOutput2.packInt(out, buf.length + 1);// store as +1, 0 indicates null
+        DataOutput2.packInt(out, actualCommon);
         out.write(buf, 0, ignoreLeadingCount);
         out.write(buf, actualCommon, buf.length - actualCommon);
 
@@ -328,7 +331,7 @@ public abstract class BTreeKeySerializer<K>{
                     while(i+acount<end && aComparator.compare(t.a, ((Fun.Tuple2<A, B>) keys[i+acount]).a)==0){
                         acount++;
                     }
-                    Utils.packInt(out,acount);
+                    DataOutput2.packInt(out,acount);
                 }
                 bSerializer.serialize(out,t.b);
 
@@ -346,20 +349,20 @@ public abstract class BTreeKeySerializer<K>{
                 if(acount==0){
                     //read new A
                     a = aSerializer.deserialize(in,-1);
-                    acount = Utils.unpackInt(in);
+                    acount = DataInput2.unpackInt(in);
                 }
                 B b = bSerializer.deserialize(in,-1);
                 ret[i]= Fun.t2(a,b);
                 acount--;
             }
-            if(acount!=0) throw new InternalError();
+            assert(acount==0);
 
             return ret;
         }
 
         @Override
         public Comparator<Fun.Tuple2<A,B>> getComparator() {
-            return Utils.COMPARABLE_COMPARATOR;
+            return BTreeMap.COMPARABLE_COMPARATOR;
         }
 
         @Override
@@ -459,7 +462,7 @@ public abstract class BTreeKeySerializer<K>{
                     while(i+acount<end && aComparator.compare(t.a, ((Fun.Tuple3<A, B, C>) keys[i+acount]).a)==0){
                         acount++;
                     }
-                    Utils.packInt(out,acount);
+                    DataOutput2.packInt(out,acount);
                 }
                 if(bcount==0){
                     //write new B
@@ -469,7 +472,7 @@ public abstract class BTreeKeySerializer<K>{
                     while(i+bcount<end && bComparator.compare(t.b, ((Fun.Tuple3<A, B,C>) keys[i+bcount]).b)==0){
                         bcount++;
                     }
-                    Utils.packInt(out,bcount);
+                    DataOutput2.packInt(out,bcount);
                 }
 
 
@@ -494,27 +497,27 @@ public abstract class BTreeKeySerializer<K>{
                 if(acount==0){
                     //read new A
                     a = aSerializer.deserialize(in,-1);
-                    acount = Utils.unpackInt(in);
+                    acount = DataInput2.unpackInt(in);
                 }
                 if(bcount==0){
                     //read new B
                     b = bSerializer.deserialize(in,-1);
-                    bcount = Utils.unpackInt(in);
+                    bcount = DataInput2.unpackInt(in);
                 }
                 C c = cSerializer.deserialize(in,-1);
                 ret[i]= Fun.t3(a, b, c);
                 acount--;
                 bcount--;
             }
-            if(acount!=0) throw new InternalError();
-            if(bcount!=0) throw new InternalError();
+            assert(acount==0);
+            assert(bcount==0);
 
             return ret;
         }
 
         @Override
         public Comparator<Fun.Tuple3<A,B,C>> getComparator() {
-            return Utils.COMPARABLE_COMPARATOR;
+            return BTreeMap.COMPARABLE_COMPARATOR;
         }
 
 
@@ -629,7 +632,7 @@ public abstract class BTreeKeySerializer<K>{
                     while(i+acount<end && aComparator.compare(t.a, ((Fun.Tuple4<A, B, C,D>) keys[i+acount]).a)==0){
                         acount++;
                     }
-                    Utils.packInt(out,acount);
+                    DataOutput2.packInt(out,acount);
                 }
                 if(bcount==0){
                     //write new B
@@ -639,7 +642,7 @@ public abstract class BTreeKeySerializer<K>{
                     while(i+bcount<end && bComparator.compare(t.b, ((Fun.Tuple4<A, B,C,D>) keys[i+bcount]).b)==0){
                         bcount++;
                     }
-                    Utils.packInt(out,bcount);
+                    DataOutput2.packInt(out,bcount);
                 }
                 if(ccount==0){
                     //write new C
@@ -649,7 +652,7 @@ public abstract class BTreeKeySerializer<K>{
                     while(i+ccount<end && cComparator.compare(t.c, ((Fun.Tuple4<A, B,C,D>) keys[i+ccount]).c)==0){
                         ccount++;
                     }
-                    Utils.packInt(out,ccount);
+                    DataOutput2.packInt(out,ccount);
                 }
 
 
@@ -676,17 +679,17 @@ public abstract class BTreeKeySerializer<K>{
                 if(acount==0){
                     //read new A
                     a = aSerializer.deserialize(in,-1);
-                    acount = Utils.unpackInt(in);
+                    acount = DataInput2.unpackInt(in);
                 }
                 if(bcount==0){
                     //read new B
                     b = bSerializer.deserialize(in,-1);
-                    bcount = Utils.unpackInt(in);
+                    bcount = DataInput2.unpackInt(in);
                 }
                 if(ccount==0){
                     //read new C
                     c = cSerializer.deserialize(in,-1);
-                    ccount = Utils.unpackInt(in);
+                    ccount = DataInput2.unpackInt(in);
                 }
 
                 D d = dSerializer.deserialize(in,-1);
@@ -695,16 +698,16 @@ public abstract class BTreeKeySerializer<K>{
                 bcount--;
                 ccount--;
             }
-            if(acount!=0) throw new InternalError();
-            if(bcount!=0) throw new InternalError();
-            if(ccount!=0) throw new InternalError();
+            assert(acount==0);
+            assert(bcount==0);
+            assert(ccount==0);
 
             return ret;
         }
 
         @Override
         public Comparator<Fun.Tuple4<A,B,C,D>> getComparator() {
-            return Utils.COMPARABLE_COMPARATOR;
+            return BTreeMap.COMPARABLE_COMPARATOR;
         }
 
 

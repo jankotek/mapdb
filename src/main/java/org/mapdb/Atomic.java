@@ -610,7 +610,7 @@ final public class Atomic {
         protected Var(Engine engine, SerializerBase serializerBase, DataInput is, SerializerBase.FastArrayList<Object> objectStack) throws IOException {
             objectStack.add(this);
             this.engine = engine;
-            this.recid = Utils.unpackLong(is);
+            this.recid = DataInput2.unpackLong(is);
             this.serializer = (Serializer<E>) serializerBase.deserialize(is,objectStack);
         }
 

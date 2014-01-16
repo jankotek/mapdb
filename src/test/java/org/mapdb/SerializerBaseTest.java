@@ -22,6 +22,7 @@ import java.io.*;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.*;
 
@@ -455,7 +456,7 @@ public class SerializerBaseTest{
 
     @Test public void test_strings_var_sizes() throws IOException {
         for(int i=0;i<50;i++){
-            String s = Utils.randomString(i);
+            String s = UtilsTest.randomString(i);
             assertEquals(s, clone((s)));
         }
     }
@@ -479,7 +480,20 @@ public class SerializerBaseTest{
 
     /** clone value using serialization */
     <E> E clone(E value) throws IOException {
-        return Utils.clone(value,(Serializer<E>)Serializer.BASIC);
+        return clone2(value,(Serializer<E>)Serializer.BASIC);
+    }
+
+    /** clone value using serialization */
+    public static <E> E clone2(E value, Serializer<E> serializer) {
+        try{
+            DataOutput2 out = new DataOutput2();
+            serializer.serialize(out, value);
+            DataInput2 in = new DataInput2(ByteBuffer.wrap(out.copyBytes()), 0);
+
+            return serializer.deserialize(in,out.pos);
+        }catch(IOException ee){
+            throw new IOError(ee);
+        }
     }
 
     public static class SerializerBaseTestWithJUDataStreams extends SerializerBaseTest{
@@ -547,7 +561,7 @@ public class SerializerBaseTest{
     }
 
     @Test public void test_Named(){
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
         DB db = DBMaker.newFileDB(f).make();
         Map map = db.getTreeMap("map");
 
@@ -580,7 +594,7 @@ public class SerializerBaseTest{
     }
 
     @Test public void test_atomic_ref_serializable(){
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
         DB db = DBMaker.newFileDB(f).make();
         Map map = db.getTreeMap("map");
 

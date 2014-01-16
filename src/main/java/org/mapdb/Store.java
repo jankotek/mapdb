@@ -24,6 +24,10 @@ public abstract class Store implements Engine{
     protected final byte[] password;
     protected final EncryptionXTEA encryptionXTEA;
 
+    protected final static int CHECKSUM_FLAG_MASK = 1;
+    protected final static int COMPRESS_FLAG_MASK = 1<<2;
+    protected final static int ENCRYPT_FLAG_MASK = 1<<3;
+
     /** default serializer used for persistence. Handles POJO and other stuff which requires write-able access to Engine */
     protected SerializerPojo serializerPojo;
 
@@ -94,7 +98,10 @@ public abstract class Store implements Engine{
 
     protected final ReentrantLock structuralLock = new ReentrantLock(CC.FAIR_LOCKS);
     protected final ReentrantReadWriteLock newRecidLock = new ReentrantReadWriteLock(CC.FAIR_LOCKS);
-    protected final ReentrantReadWriteLock[] locks = Utils.newReadWriteLocks();
+    protected final ReentrantReadWriteLock[] locks = new ReentrantReadWriteLock[CC.CONCURRENCY];
+    {
+        for(int i=0;i<locks.length;i++) locks[i] = new ReentrantReadWriteLock(CC.FAIR_LOCKS);
+    }
 
 
     protected void lockAllWrite() {
@@ -145,7 +152,7 @@ public abstract class Store implements Engine{
                         //compression had effect, so write decompressed size and compressed array
                         final int decompSize = out.pos;
                         out.pos=0;
-                        Utils.packInt(out,decompSize);
+                        DataOutput2.packInt(out,decompSize);
                         out.write(tmp.buf,0,newLen);
                         recycledDataOuts.offer(tmp);
                     }
@@ -183,9 +190,8 @@ public abstract class Store implements Engine{
 
                     byte[] expected2 = Arrays.copyOf(expected.buf, expected.pos);
                     //check arrays equals
-                    if(!Arrays.equals(expected2,decompress)){
-                        throw new InternalError();
-                    }
+                    assert(Arrays.equals(expected2,decompress));
+
 
                 }catch(Exception e){
                     throw new RuntimeException(e);
@@ -241,7 +247,7 @@ public abstract class Store implements Engine{
 
             if(compress) {
                 final int origPos = di.pos;
-                int decompSize = Utils.unpackInt(di);
+                int decompSize = DataInput2.unpackInt(di);
                 if(decompSize==0){
                     size-=1;
                     //rest of `di` is uncompressed data
@@ -263,12 +269,41 @@ public abstract class Store implements Engine{
 
         A ret = serializer.deserialize(di,size);
         if(size+start>di.pos)
-            throw new InternalError("data were not fully read, check your serializer ");
+            throw new AssertionError("data were not fully read, check your serializer ");
         if(size+start<di.pos)
-            throw new InternalError("data were read beyond record size, check your serializer");
+            throw new AssertionError("data were read beyond record size, check your serializer");
         return ret;
     }
 
+
+    /** traverses {@link EngineWrapper}s and returns underlying {@link Store}*/
+    public static Store forDB(DB db){
+        return forEngine(db.engine);
+    }
+
+    /** traverses {@link EngineWrapper}s and returns underlying {@link Store}*/
+    public static Store forEngine(Engine e){
+        if(e instanceof EngineWrapper)
+            return forEngine(((EngineWrapper) e).getWrappedEngine());
+        if(e instanceof TxEngine.Tx)
+            return forEngine(((TxEngine.Tx) e).getWrappedEngine());
+        return (Store) e;
+    }
+
+    protected int expectedMasks(){
+        return (encrypt?ENCRYPT_FLAG_MASK:0) |
+                (checksum?CHECKSUM_FLAG_MASK:0) |
+                (checksum?COMPRESS_FLAG_MASK:0);
+    }
+
+    private static final int LOCK_MASK = CC.CONCURRENCY-1;
+
+    protected static int lockPos(final long key) {
+        int h = (int)(key ^ (key >>> 32));
+        h ^= (h >>> 20) ^ (h >>> 12);
+        h ^= (h >>> 7) ^ (h >>> 4);
+        return h & LOCK_MASK;
+    }
 
 
 }

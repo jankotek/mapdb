@@ -10,7 +10,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 public class Issue237Test {
 
-    File file = Utils.tempDbFile();
+    File file = UtilsTest.tempDbFile();
 
 
     @Test

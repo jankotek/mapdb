@@ -1,4 +1,4 @@
-package examples;
+package org.mapdb;
 
 import org.mapdb.*;
 
@@ -10,9 +10,11 @@ import java.util.Random;
  * This demonstrates using Data Pump to first create store in-memory at maximal speed,
  * and than copy the store into memory
  */
+//TODO Pump between stores is disabled for now, copy this back to examples  once enabled
 public class Pump_InMemory_Import_Then_Save_To_Disk {
 
     public static void main(String[] args) {
+        if(1==1) return;
 
         //create inMemory store which does not use serialization,
         //and has speed comparable to `java.util` collections
@@ -26,7 +28,7 @@ public class Pump_InMemory_Import_Then_Save_To_Disk {
         }
 
         //now create on-disk store, it needs to be completely empty
-        File targetFile = Utils.tempDbFile();
+        File targetFile = UtilsTest.tempDbFile();
         DB target = DBMaker.newFileDB(targetFile).make();
 
         Pump.copy(inMemory, target);

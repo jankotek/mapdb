@@ -157,6 +157,7 @@ public abstract class Volume {
     abstract public File getFile();
 
     public long getPackedLong(long pos){
+        //TODO unrolled version?
         long result = 0;
         for (int offset = 0; offset < 64; offset += 7) {
             long b = getUnsignedByte(pos++);
@@ -165,7 +166,7 @@ public abstract class Volume {
                 return result;
             }
         }
-        throw new Error("Malformed long.");
+        throw new AssertionError("Malformed long.");
     }
 
 
@@ -404,7 +405,8 @@ public abstract class Volume {
                 }
             }catch(Exception e){
                 unmapHackSupported = false;
-                Utils.LOG.log(Level.WARNING, "ByteBufferVol Unmap failed", e);
+                //TODO exception handling
+                //Utils.LOG.log(Level.WARNING, "ByteBufferVol Unmap failed", e);
             }
         }
 
@@ -594,7 +596,8 @@ public abstract class Volume {
         }
 
         @Override protected ByteBuffer makeNewBuffer(long offset, ByteBuffer[] buffers2) {
-            int newBufSize = Utils.nextPowTwo((int) ((offset &Volume.CHUNK_SIZE_MOD_MASK)));
+            int curSize = (int) (offset & Volume.CHUNK_SIZE_MOD_MASK);
+            int newBufSize = 1 << (32 - Integer.numberOfLeadingZeros(curSize - 1)); //next pow of two
             if(fullChunkAllocation && newBufSize% CHUNK_SIZE !=0){
                 //round newBufSize to multiple of BUF_SIZE_INC
                 newBufSize += CHUNK_SIZE -newBufSize% CHUNK_SIZE;

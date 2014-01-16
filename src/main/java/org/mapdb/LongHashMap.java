@@ -316,7 +316,7 @@ public class LongHashMap<V> extends LongMap<V> implements Serializable {
     }
 
     final Entry<V> getEntry(long key) {
-        int hash = Utils.longHash(key^hashSalt);
+        int hash = LongHashMap.longHash(key^hashSalt);
         int index = hash & (elementData.length - 1);
         return findNonNullKeyEntry(key, index, hash);
     }
@@ -357,7 +357,7 @@ public class LongHashMap<V> extends LongMap<V> implements Serializable {
     @Override
     public V put(long key, V value) {
         Entry<V> entry;
-        int hash = Utils.longHash(key^hashSalt);
+        int hash = LongHashMap.longHash(key^hashSalt);
         int index = hash & (elementData.length - 1);
         entry = findNonNullKeyEntry(key, index, hash);
         if (entry == null) {
@@ -429,7 +429,7 @@ public class LongHashMap<V> extends LongMap<V> implements Serializable {
         Entry<V> entry;
         Entry<V> last = null;
 
-        int hash = Utils.longHash(key^hashSalt);
+        int hash = LongHashMap.longHash(key^hashSalt);
         index = hash & (elementData.length - 1);
         entry = elementData[index];
         while (entry != null && !(entry.origKeyHash == hash && key == entry.key)) {
@@ -471,6 +471,19 @@ public class LongHashMap<V> extends LongMap<V> implements Serializable {
     }
 
 
+
+    public static int longHash(final long key) {
+        int h = (int)(key ^ (key >>> 32));
+        h ^= (h >>> 20) ^ (h >>> 12);
+        return h ^ (h >>> 7) ^ (h >>> 4);
+    }
+
+
+
+    public static int intHash(int h) {
+        h ^= (h >>> 20) ^ (h >>> 12);
+        return h ^ (h >>> 7) ^ (h >>> 4);
+    }
 
 
 

@@ -3,11 +3,9 @@ package org.mapdb;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOError;
-import java.io.IOException;
+import java.io.*;
 import java.nio.ByteBuffer;
+import java.util.Random;
 import java.util.Set;
 
 import static java.util.Arrays.asList;
@@ -23,11 +21,11 @@ public class UtilsTest {
         for(int i = 0;i>-1; i = i + 1 + i/1111){  //overflow is expected
             out.pos = 0;
 
-            Utils.packInt(out, i);
+            DataOutput2.packInt(out, i);
             in.pos = 0;
             in.buf.clear();
 
-            int i2 = Utils.unpackInt(in);
+            int i2 = DataInput2.unpackInt(in);
 
             Assert.assertEquals(i, i2);
 
@@ -42,26 +40,28 @@ public class UtilsTest {
         for(long i = 0;i>-1L  ; i=i+1 + i/111){  //overflow is expected
             out.pos = 0;
 
-            Utils.packLong(out, i);
+            DataOutput2.packLong(out, i);
             in.pos = 0;
             in.buf.clear();
 
-            long i2 = Utils.unpackLong(in);
+            long i2 = DataInput2.unpackLong(in);
             Assert.assertEquals(i, i2);
 
         }
     }
 
     @Test public void testArrayPut(){
-        assertEquals(asList(1,2,3,4,5), asList(Utils.arrayPut(new Integer[]{1, 2, 4, 5}, 2, 3)));
-        assertEquals(asList(1,2,3,4,5), asList(Utils.arrayPut(new Integer[]{2, 3, 4, 5}, 0, 1)));
-        assertEquals(asList(1,2,3,4,5), asList(Utils.arrayPut(new Integer[]{1, 2, 3, 4}, 4, 5)));
+        assertEquals(asList(1,2,3,4,5), asList(BTreeMap.arrayPut(new Integer[]{1, 2, 4, 5}, 2, 3)));
+        assertEquals(asList(1,2,3,4,5), asList(BTreeMap.arrayPut(new Integer[]{2, 3, 4, 5}, 0, 1)));
+        assertEquals(asList(1,2,3,4,5), asList(BTreeMap.arrayPut(new Integer[]{1, 2, 3, 4}, 4, 5)));
     }
 
     @Test
     public void testNextPowTwo() throws Exception {
-        assertEquals(16, Utils.nextPowTwo(9));
-        assertEquals(8, Utils.nextPowTwo(8));
+        int val=9;
+        assertEquals(16, 1 << (32 - Integer.numberOfLeadingZeros(val - 1)));
+        val = 8;
+        assertEquals(8, 1 << (32 - Integer.numberOfLeadingZeros(val - 1)));
     }
 
 
@@ -90,11 +90,49 @@ public class UtilsTest {
         public Object deserialize(DataInput in, int available) throws IOException {
             throw new RuntimeException();
         }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+
     };
 
 
     @Test public void testHexaConversion(){
         byte[] b = new byte[]{11,112,11,0,39,90};
-        assertArrayEquals(b,Utils.fromHexa(Utils.toHexa(b)));
+        assertArrayEquals(b, DBMaker.fromHexa(DBMaker.toHexa(b)));
+    }
+
+    /**
+     * Create temporary file in temp folder. All associated db files will be deleted on JVM exit.
+     */
+    public static File tempDbFile() {
+        try{
+            File index = File.createTempFile("mapdb","db");
+            index.deleteOnExit();
+            new File(index.getPath()+ StoreDirect.DATA_FILE_EXT).deleteOnExit();
+            new File(index.getPath()+ StoreWAL.TRANS_LOG_FILE_EXT).deleteOnExit();
+
+            return index;
+        }catch(IOException e){
+            throw new IOError(e);
+        }
+    }
+
+
+    public static String randomString(int size) {
+        String chars = "0123456789abcdefghijklmnopqrstuvwxyz !@#$%^&*()_+=-{}[]:\",./<>?|\\";
+        StringBuilder b = new StringBuilder(size);
+        Random r = new Random();
+        for(int i=0;i<size;i++){
+            b.append(chars.charAt(r.nextInt(chars.length())));
+        }
+        return b.toString();
+    }
+
+
+    public static int randomInt() {
+        return new Random().nextInt();
     }
 }

@@ -12,7 +12,7 @@ public class Issue183Test {
     @Test
     public void main(){
 
-        File f = Utils.tempDbFile();
+        File f = UtilsTest.tempDbFile();
 
         Map<String, String> map1;
 
@@ -67,5 +67,11 @@ public class Issue183Test {
         public String deserialize(DataInput in, int available) throws IOException {
             return in.readUTF();
         }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+
     }
 }

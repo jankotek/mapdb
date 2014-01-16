@@ -147,10 +147,53 @@ public final class DataOutput2 extends OutputStream implements DataOutput {
     @Override
     public void writeUTF(final String s) throws IOException {
         final int len = s.length();
-        Utils.packInt((DataOutput)this, len);
+        DataOutput2.packInt(this, len);
         for (int i = 0; i < len; i++) {
-            int c = (int) s.charAt(i); //TODO investigate if c could be negative here
-            Utils.packInt((DataOutput)this, c);
+            int c = (int) s.charAt(i);
+            DataOutput2.packInt(this, c);
         }
+    }
+
+    /**
+     * Pack  non-negative long into output stream.
+     * It will occupy 1-10 bytes depending on value (lower values occupy smaller space)
+     *
+     * @param out DataOutput to put value into
+     * @param value to be serialized, must be non-negative
+     * @throws java.io.IOException
+     */
+    static public void packLong(DataOutput out, long value) throws IOException {
+
+        assert(value>=0):"negative value: "+value;
+
+        while ((value & ~0x7FL) != 0) {
+            out.write((((int) value & 0x7F) | 0x80));
+            value >>>= 7;
+        }
+        out.write((byte) value);
+    }
+
+
+
+
+
+    /**
+     * Pack  non-negative long into output stream.
+     * It will occupy 1-5 bytes depending on value (lower values occupy smaller space)
+     *
+     * @param in DataOutput to put value into
+     * @param value to be serialized, must be non-negative
+     * @throws IOException
+     */
+
+    static public void packInt(DataOutput in, int value) throws IOException {
+        assert(value>=0):"negative value: "+value;
+
+        while ((value & ~0x7F) != 0) {
+            in.write(((value & 0x7F) | 0x80));
+            value >>>= 7;
+        }
+
+        in.write((byte) value);
     }
 }

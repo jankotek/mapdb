@@ -31,7 +31,7 @@ public class Bidi_Map {
         map.put(11L,"val");
 
         //now find all keys for given value
-        for(Long key: Bind.findVals2(inverseMapping, "value")){
+        for(Long key: Fun.filter(inverseMapping, "value")){
             System.out.println("Key for 'value' is: "+key);
         }
 
