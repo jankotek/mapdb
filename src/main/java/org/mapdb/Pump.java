@@ -49,8 +49,10 @@ public final class Pump {
      * @return iterator over sorted data set
      */
     public static <E> Iterator<E> sort(final Iterator<E> source, boolean mergeDuplicates, final int batchSize,
-            final Comparator comparator, final Serializer serializer){
+            Comparator comparator, final Serializer serializer){
         if(batchSize<=0) throw new IllegalArgumentException();
+        if(comparator==null)
+            comparator=BTreeMap.COMPARABLE_COMPARATOR;
 
         int counter = 0;
         final Object[] presort = new Object[batchSize];
@@ -141,17 +143,18 @@ public final class Pump {
     /**
      * Merge presorted iterators into single sorted iterator.
      *
-     * @param comparator used to compare data
+     * @param comp used to compare data
      * @param mergeDuplicates if duplicate keys should be merged into single one
      * @param iterators array of already sorted iterators
      * @param <E> type of data
      * @return sorted iterator
      */
-    public static <E> Iterator<E> sort(final Comparator comparator, final boolean mergeDuplicates, final Iterator... iterators) {
+    public static <E> Iterator<E> sort(Comparator comparator, final boolean mergeDuplicates, final Iterator... iterators) {
+        final Comparator comparator2 = comparator==null?BTreeMap.COMPARABLE_COMPARATOR:comparator;
         return new Iterator<E>(){
 
             final NavigableSet<Fun.Tuple2<Object,Integer>> items = new TreeSet<Fun.Tuple2<Object, Integer>>(
-                    new Fun.Tuple2Comparator<Object,Integer>(comparator,null));
+                    new Fun.Tuple2Comparator<Object,Integer>(comparator2,null));
 
             Object next = this; //is initialized with this so first `next()` will not throw NoSuchElementException
 
@@ -183,7 +186,7 @@ public final class Pump {
 
                 next = lo.a;
 
-                if(oldNext!=this && comparator.compare(oldNext,next)>0){
+                if(oldNext!=this && comparator2.compare(oldNext,next)>0){
                     throw new IllegalArgumentException("One of the iterators is not sorted");
                 }
 
@@ -310,6 +313,9 @@ public final class Pump {
                                              Serializer<V> valueSerializer,
                                              Comparator comparator)
         {
+
+        if(comparator==null)
+            comparator=BTreeMap.COMPARABLE_COMPARATOR;
 
         final double NODE_LOAD = 0.75;
 
