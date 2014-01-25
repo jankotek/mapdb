@@ -29,7 +29,7 @@ import java.util.*;
  *
  * @author Jan Kotek
  */
-public class DBMaker<DBMakerT extends DBMaker> {
+public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
     protected final String TRUE = "true";
 
