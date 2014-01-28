@@ -782,7 +782,8 @@ public class DB {
                 catGet(name+".counterRecid",0L),
                 (BTreeKeySerializer)catGet(name+".keySerializer",new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer())),
                 catGet(name+".valueSerializer",getDefaultSerializer()),
-                (Comparator)catGet(name+".comparator",BTreeMap.COMPARABLE_COMPARATOR)
+                catGet(name+".comparator",BTreeMap.COMPARABLE_COMPARATOR),
+                catGet(name+".numberOfNodeMetas",0)
                 );
         namedPut(name, ret);
         return ret;
@@ -819,7 +820,7 @@ public class DB {
 
         long rootRecidRef;
         if(m.pumpSource==null){
-            rootRecidRef = BTreeMap.createRootRef(engine,m.keySerializer,m.valueSerializer,m.comparator);
+            rootRecidRef = BTreeMap.createRootRef(engine,m.keySerializer,m.valueSerializer,m.comparator,0);
         }else{
             rootRecidRef = Pump.buildTreeMap(m.pumpSource,engine,m.pumpKeyExtractor,m.pumpValueExtractor,
                     m.pumpIgnoreDuplicates,m.nodeSize,
@@ -833,7 +834,8 @@ public class DB {
                 catPut(name+".counterRecid",counterRecid),
                 m.keySerializer,
                 m.valueSerializer,
-                m.comparator
+                m.comparator,
+                catPut(m.name+".numberOfNodeMetas",0)
         );
         catalog.put(name + ".type", "TreeMap");
         namedPut(name, ret);
@@ -917,7 +919,8 @@ public class DB {
                 catGet(name+".counterRecid",0L),
                 (BTreeKeySerializer) catGet(name+".keySerializer",new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer())),
                 null,
-                (Comparator) catGet(name+".comparator",BTreeMap.COMPARABLE_COMPARATOR)
+                catGet(name+".comparator",BTreeMap.COMPARABLE_COMPARATOR),
+                catGet(name+".numberOfNodeMetas",0)
         ).keySet();
 
         namedPut(name, ret);
@@ -949,7 +952,7 @@ public class DB {
         long rootRecidRef;
 
         if(m.pumpSource==null){
-            rootRecidRef = BTreeMap.createRootRef(engine,m.serializer,null,m.comparator);
+            rootRecidRef = BTreeMap.createRootRef(engine,m.serializer,null,m.comparator,0);
         }else{
             rootRecidRef = Pump.buildTreeMap(m.pumpSource,engine,Fun.extractNoTransform(),null,m.pumpIgnoreDuplicates, m.nodeSize,
                     false,counterRecid,m.serializer,null,m.comparator);
@@ -962,7 +965,8 @@ public class DB {
                 catPut(m.name+".counterRecid",counterRecid),
                 m.serializer,
                 null,
-                m.comparator
+                m.comparator,
+                catPut(m.name+".numberOfNodeMetas",0)
         ).keySet();
         catalog.put(m.name + ".type", "TreeSet");
         namedPut(m.name, ret);

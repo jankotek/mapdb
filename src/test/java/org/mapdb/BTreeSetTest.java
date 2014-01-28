@@ -13,9 +13,9 @@ public class BTreeSetTest extends HTreeSetTest{
     public void setUp() throws Exception {
         super.setUp();
 
-        hs = new BTreeMap(engine,BTreeMap.createRootRef(engine,BTreeKeySerializer.BASIC,null,BTreeMap.COMPARABLE_COMPARATOR),
+        hs = new BTreeMap(engine,BTreeMap.createRootRef(engine,BTreeKeySerializer.BASIC,null,BTreeMap.COMPARABLE_COMPARATOR,0),
                 6,false,0, BTreeKeySerializer.BASIC,null,
-                BTreeMap.COMPARABLE_COMPARATOR).keySet();
+                BTreeMap.COMPARABLE_COMPARATOR,0).keySet();
 
         Collections.addAll(hs, objArray);
     }

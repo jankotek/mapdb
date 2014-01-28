@@ -319,7 +319,7 @@ public final class Pump {
 
         final double NODE_LOAD = 0.75;
 
-        Serializer<BTreeMap.BNode> nodeSerializer = new BTreeMap.NodeSerializer(valuesStoredOutsideNodes,keySerializer,valueSerializer,comparator);
+        Serializer<BTreeMap.BNode> nodeSerializer = new BTreeMap.NodeSerializer(valuesStoredOutsideNodes,keySerializer,valueSerializer,comparator,0);
 
 
         final int nload = (int) (nodeSize * NODE_LOAD);
