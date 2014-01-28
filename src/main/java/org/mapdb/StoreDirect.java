@@ -776,7 +776,7 @@ public class StoreDirect extends Store{
             //TODO long stack take modifies the original store
             for(long recid =longStackTake(IO_FREE_RECID,false);
                 recid!=0; recid=longStackTake(IO_FREE_RECID,false)){
-                store2.longStackPut(recid, IO_FREE_RECID,false);
+                store2.longStackPut(IO_FREE_RECID,recid, false);
             }
 
             //iterate over recids and transfer physical records
