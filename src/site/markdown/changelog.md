@@ -28,7 +28,7 @@ Changes:
 
 Open problems:
 
- * #261: SerializerPojo causes data corruption under some conditions. This is not yet confirmed and can not be reproduced.
+ * Open #261: SerializerPojo causes data corruption under some conditions. This is not yet confirmed and can not be reproduced.
         https://github.com/jankotek/MapDB/issues/261
 
 
