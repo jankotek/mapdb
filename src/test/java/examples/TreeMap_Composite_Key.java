@@ -35,7 +35,7 @@ public class TreeMap_Composite_Key {
 
         //initial values
         String[] towns = {"Galway", "Ennis", "Gort", "Cong", "Tuam"};
-        String[] streets = {"Main street", "Shop street", "Second street", "Silver Strands"};
+        String[] streets = {"Main Street", "Shop Street", "Second Street", "Silver Strands"};
         int[] houseNums = {1,2,3,4,5,6,7,8,9,10};
 
         DB db = DBMaker.newMemoryDB().make();
