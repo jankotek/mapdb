@@ -23,6 +23,7 @@ import java.io.IOError;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * A builder class for creating and opening a database.
@@ -613,6 +614,8 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         props.setProperty(Keys.fullTx,TRUE);
         snapshotEnable();
         Engine e = makeEngine();
+        if(e instanceof EngineWrapper && !(e instanceof TxEngine))
+            e = ((EngineWrapper)e).getWrappedEngine();
         if(!(e instanceof TxEngine)) throw new IllegalArgumentException("Snapshot must be enabled for TxMaker");
         //init catalog if needed
         DB db = new DB(e);
@@ -690,18 +693,31 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         if(readOnly)
             engine = new ReadOnlyEngine(engine);
 
+
         if(propsGetBool(Keys.closeOnJvmShutdown)){
             final Engine engine2 = engine;
-            Runtime.getRuntime().addShutdownHook(new Thread("MapDB shutdown") {
+            final AtomicBoolean shutdown = new AtomicBoolean(false);
+            final Thread hook = new Thread("MapDB shutdown") {
                 @Override
-				public void run() {
-                    if(engine2.isClosed())
+                public void run() {
+                    shutdown.set(true);
+                    if (engine2.isClosed())
                         return;
                     extendShutdownHookBefore(engine2);
                     engine2.close();
                     extendShutdownHookAfter(engine2);
                 }
-            });
+            };
+            Runtime.getRuntime().addShutdownHook(hook);
+            //uninstall shutdown hook on close
+            engine = new EngineWrapper(engine){
+                @Override
+                public void close() {
+                    super.close();
+                    if(!shutdown.get())
+                        Runtime.getRuntime().removeShutdownHook(hook);
+                }
+            };
         }
 
 
