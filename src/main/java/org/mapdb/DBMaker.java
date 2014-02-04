@@ -64,6 +64,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
         String asyncWrite = "asyncWrite";
         String asyncWriteFlushDelay = "asyncWriteFlushDelay";
+        String asyncWriteQueueSize = "asyncWriteQueueSize";
 
         String deleteFilesAfterClose = "deleteFilesAfterClose";
         String closeOnJvmShutdown = "closeOnJvmShutdown";
@@ -409,7 +410,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
 
     /**
-     * Set flush iterval for write cache, by default is 0
+     * Set flush interval for write cache, by default is 0
      * <p/>
      * When BTreeMap is constructed from ordered set, tree node size is increasing linearly with each
      * item added. Each time new key is added to tree node, its size changes and
@@ -425,6 +426,19 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      */
     public DBMakerT asyncWriteFlushDelay(int delay){
         props.setProperty(Keys.asyncWriteFlushDelay,""+delay);
+        return getThis();
+    }
+
+    /**
+     * Set size of async Write Queue. Default size is 32 000
+     * <p/>
+     * Using too large queue size can lead to out of memory exception.
+     *
+     * @param size of queue
+     * @return this builder
+     */
+    public DBMakerT asyncWriteQueueSize(int queueSize){
+        props.setProperty(Keys.asyncWriteQueueSize,""+queueSize);
         return getThis();
     }
 
@@ -836,6 +850,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
     protected AsyncWriteEngine extendAsyncWriteEngine(Engine engine) {
         return new AsyncWriteEngine(engine,
                 propsGetInt(Keys.asyncWriteFlushDelay,CC.ASYNC_WRITE_FLUSH_DELAY),
+                propsGetInt(Keys.asyncWriteQueueSize,CC.ASYNC_WRITE_QUEUE_SIZE),
                 null);
     }
 
