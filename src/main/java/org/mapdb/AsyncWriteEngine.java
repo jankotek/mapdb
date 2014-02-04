@@ -273,8 +273,31 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
             newRecidsLock.unlock();
         }
     }
+
     @Override
     public long preallocate() {
+        commitLock.readLock().lock();
+        try{
+            return preallocateNoCommitLock();
+        }finally{
+            commitLock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public void preallocate(long[] recids) {
+        commitLock.readLock().lock();
+        try{
+            for(int i=0;i<recids.length;i++){
+                recids[i] = preallocateNoCommitLock();
+            }
+        }finally{
+            commitLock.readLock().unlock();
+        }
+    }
+
+
+    protected long preallocateNoCommitLock() {
         newRecidsLock.lock();
         try{
             if(newRecidsPos==0){
@@ -310,12 +333,6 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
 
 
 
-    @Override
-    public void preallocate(long[] recids) {
-        for(int i=0;i<recids.length;i++){
-            recids[i] = preallocate();
-        }
-    }
 
 
     /**
@@ -345,16 +362,22 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
      */
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
+        int size2 = 0;
+        long recid =0;
         commitLock.readLock().lock();
         try{
-            long recid = preallocate();
-            update(recid, value, serializer);
-            return recid;
+            checkState();
+            recid = preallocateNoCommitLock();
+            if(writeCache.put(recid, new Fun.Tuple2(value, serializer))==null)
+                size2 = size.incrementAndGet();
         }finally{
             commitLock.readLock().unlock();
         }
+        if(size2>maxSize)
+            clearCache();
+        return recid;
 
-    }
+}
 
 
     /**
