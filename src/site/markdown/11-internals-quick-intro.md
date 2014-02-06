@@ -35,7 +35,6 @@ Dictionary
 -----------
 
 | ------------- | ------------- |
-| Recid | Record Identificator, offset in Index Table |
 | Record | Atomically stored value. Usually tree node or similar. Transaction conflicts and locking is usually per record. |
 | Index Table | Table which translates recid into real offset and size in physical file. |
 | [Engine](apidocs/org/mapdb/Engine.html) | Primitive key-value store used by collections for storage. Most features are [Engine Wrappers](apidocs/org/mapdb/EngineWrapper.html) |
@@ -44,10 +43,26 @@ Dictionary
 | Chunk | Non overlapping pages used in Volume. Chunk size is 1GB or 16MB in Append Only Store |
 | Direct mode | With disabled transactions, data are written directly into file. It is fast, but store is not protected from corruption during crasches.
 | WAL | Write Ahead Log, way to protect store from corruption if db crashes during write.
-| Instance cache | Caches deserialized objects to minimize deserialization overhead.
 | RAF | Random Access File, way to access data on disk. Safer but slower method.
 | MMap file | memory mapped file. On 32bit platform has size limit around 2GB. Faster than RAF.
-
+index file | contains mapping between recid (index file offset) and record size and offset in physical file (index value). Is organized as sequence of 8-byte longs
+index value | single 8-byte number from index file. Usually contains record offset in physical file.
+recid |	record identificator, an unique 8-byte long number which identifies record. Recid is offset in index file. After record is deleted, its recid may be reused for newly inserted record.
+record | atomical value stored in storage (Engine) identified by record identifier (recid). In collections Record corresponds to tree nodes. In Maps record mey not correspond to Key->Value pair, as multiple keys may be stored inside single node.
+physical file |	Contains record binary data
+cache (or instance cache) |	caches object instances (created with 'new' keyword). MapDB does not have traditional fixes-size-buffer cache for binary pages (it relies on OS to do this). Instead deserialized objects are cached on heap to minimise deserialization overhead. Instance cache is main reason why your keys/values must be immutable.
+BTreeMap |	tree implementation behind TreeMap and TreeSet provided by MapDB
+HTreeMap |	tree implementation behind HashMap and HashSet provided by MapDB
+delta packing | compression method to minimalise space used by keys in BTreeMap. Keys are sorted, so only difference between keys needs to be stored. You need to privide specialized serializer to enable delta packing.
+append file db |	alternative storage format. In this case no existing data are modified, but all changes are appended to end of file. This may improve write speed and durability, but introduces some tradeoffs.
+temp map/set...	 | collection backed by file in temporary directory. Is usually configured to delete file after close or on JVM exit. Data written into temp collection are not persisted between JVM restarts.
+async write | 	writes may be queued and written into file on background thread. This does not affect commit durability (it blocks until queue is empty).
+TX |	equals to Concurrent Transaction.
+LongMap	| specialized map which uses primitive long for keys. It minimises boxing overhead.
+DB |	API class exposed by MapDB. It is an abstraction over Engine which manages MapDB collections and storage.
+DMaker | Builder style factory class, which opens and configures DB instances.
+Collection Binding |	MapDB mechanism to keep two collections synchronized. It provides secondary keys and values, aggregations etc.. known from SQL and other databases. All functions are provided as static methods in Bind class.
+Data Pump | Tool to import and manipulate large collections and storages.
 
 DBMaker and DB
 ---------------
