@@ -85,9 +85,6 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
 
     protected final AtomicInteger size = new AtomicInteger();
 
-    protected final AtomicBoolean clearCacheFlag = new AtomicBoolean(false);
-
-
     protected final long[] newRecids = new long[CC.ASYNC_RECID_PREALLOC_QUEUE_SIZE];
     protected int newRecidsPos = 0;
     protected final ReentrantLock newRecidsLock = new ReentrantLock(CC.FAIR_LOCKS);
@@ -143,15 +140,15 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
 
         protected final WeakReference<AsyncWriteEngine> engineRef;
         protected final long asyncFlushDelay;
-        protected final AtomicBoolean clearCacheFlag;
         protected final AtomicInteger size;
         protected final int maxParkSize;
+        private final ReentrantReadWriteLock commitLock;
 
 
         public WriterRunnable(AsyncWriteEngine engine) {
             this.engineRef = new WeakReference<AsyncWriteEngine>(engine);
             this.asyncFlushDelay = engine.asyncFlushDelay;
-            this.clearCacheFlag = engine.clearCacheFlag;
+            this.commitLock = engine.commitLock;
             this.size = engine.size;
             this.maxParkSize = engine.maxSize/4;
         }
@@ -162,7 +159,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
                 for(;;){
 
                     //if conditions are right, slow down writes a bit
-                    if(asyncFlushDelay!=0 && !clearCacheFlag.get() && size.get()<maxParkSize){
+                    if(asyncFlushDelay!=0 && !commitLock.isWriteLocked() && size.get()<maxParkSize){
                         LockSupport.parkNanos(1000L * 1000L * asyncFlushDelay);
                     }
 
@@ -522,9 +519,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
 
 
     protected void waitForAction(int actionNumber) {
-        clearCacheFlag.set(true);
         commitLock.writeLock().lock();
-        clearCacheFlag.set(true);
         try{
             checkState();
             //notify background threads
@@ -539,7 +534,6 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }finally {
-            clearCacheFlag.set(false);
             commitLock.writeLock().unlock();
         }
     }
@@ -589,9 +583,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
      */
     @Override
     public void clearCache() {
-        clearCacheFlag.set(true);
         commitLock.writeLock().lock();
-        clearCacheFlag.set(true);
         try{
 
             checkState();
@@ -603,7 +595,6 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }finally {
-            clearCacheFlag.set(false);
             commitLock.writeLock().unlock();
         }
         super.clearCache();
