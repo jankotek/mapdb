@@ -221,6 +221,52 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         }
     }
 
+    /**
+     * Creates new off-heap cache with maximal size in GBs.
+     * Entries are removed from cache in most-recently-used fashion
+     * if store becomes too big.
+     *
+     * This method uses off-heap direct ByteBuffers. See {@link java.nio.ByteBuffer#allocateDirect(int)}
+     *
+     * @param size maximal size of off-heap store in gigabytes.
+     * @param <K>
+     * @param <V>
+     * @return map
+     */
+    public static <K,V> HTreeMap<K,V> newCacheDirect(double size){
+        return DBMaker
+                .newDirectMemoryDB()
+                .transactionDisable()
+                .make()
+                .createHashMap("cache")
+                .expireStoreSize(size)
+                .counterEnable()
+                .make();
+    }
+
+    /**
+     * Creates new off-heap cache with maximal size in GBs.
+     * Entries are removed from cache in most-recently-used fashion
+     * if store becomes too big.
+     *
+     * This method uses  ByteBuffers backed by on-heap byte[]. See {@link java.nio.ByteBuffer#allocate(int)}
+     *
+     * @param size maximal size of off-heap store in gigabytes.
+     * @param <K>
+     * @param <V>
+     * @return map
+     */
+    public static <K,V> HTreeMap<K,V> newCache(double size){
+        return DBMaker
+                .newMemoryDB()
+                .transactionDisable()
+                .make()
+                .createHashMap("cache")
+                .expireStoreSize(size)
+                .counterEnable()
+                .make();
+    }
+
 
     /** Creates or open database stored in file. */
     public static DBMaker newFileDB(File file){

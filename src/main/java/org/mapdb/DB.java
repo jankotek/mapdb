@@ -134,6 +134,7 @@ public class DB {
         protected long expireMaxSize = 0L;
         protected long expire = 0L;
         protected long expireAccess = 0L;
+        protected long expireStoreSize;
         protected Hasher hasher = null;
 
         protected Fun.Function1 valueCreator = null;
@@ -164,6 +165,7 @@ public class DB {
         /** maximal number of entries in this map. Less used entries will be expired and removed to make collection smaller  */
         public HTreeMapMaker expireMaxSize(long maxSize){
             this.expireMaxSize = maxSize;
+            this.counter = true;
             return this;
         }
 
@@ -188,6 +190,11 @@ public class DB {
         /** Specifies that each entry should be automatically removed from the map once a fixed duration has elapsed after the entry's creation, the most recent replacement of its value, or its last access. Access time is reset by all map read and write operations  */
         public HTreeMapMaker expireAfterAccess(long interval){
             this.expireAccess = interval;
+            return this;
+        }
+
+        public HTreeMapMaker expireStoreSize(double maxStoreSize) {
+            this.expireStoreSize = (long) (maxStoreSize*1024L*1024L*1024L);
             return this;
         }
 
@@ -230,6 +237,7 @@ public class DB {
         protected boolean counter = false;
         protected Serializer serializer = null;
         protected long expireMaxSize = 0L;
+        protected long expireStoreSize = 0L;
         protected long expire = 0L;
         protected long expireAccess = 0L;
         protected Hasher hasher = null;
@@ -251,6 +259,13 @@ public class DB {
         /** maximal number of entries in this map. Less used entries will be expired and removed to make collection smaller  */
         public HTreeSetMaker expireMaxSize(long maxSize){
             this.expireMaxSize = maxSize;
+            this.counter = true;
+            return this;
+        }
+
+        /** maximal size of store in GB, if store is larger entries will start expiring */
+        public HTreeSetMaker expireStoreSize(double maxStoreSize){
+            this.expireStoreSize = (long) (maxStoreSize * 1024L * 1024L * 1024L);
             return this;
         }
 
@@ -358,6 +373,7 @@ public class DB {
                 catGet(name+".expire",0L),
                 catGet(name+".expireAccess",0L),
                 catGet(name+".expireMaxSize",0L),
+                catGet(name+".expireStoreSize",0L),
                 (long[])catGet(name+".expireHeads",null),
                 (long[])catGet(name+".expireTails",null),
                 valueCreator,
@@ -400,14 +416,15 @@ public class DB {
         String name = m.name;
         checkNameNotExists(name);
 
-        long expireTimeStart=0, expire=0, expireAccess=0, expireMaxSize = 0;
+        long expireTimeStart=0, expire=0, expireAccess=0, expireMaxSize = 0, expireStoreSize=0;
         long[] expireHeads=null, expireTails=null;
 
-        if(m.expire!=0 || m.expireAccess!=0 || m.expireMaxSize !=0){
+        if(m.expire!=0 || m.expireAccess!=0 || m.expireMaxSize !=0 || m.expireStoreSize!=0){
             expireTimeStart = catPut(name+".expireTimeStart",System.currentTimeMillis());
             expire = catPut(name+".expire",m.expire);
             expireAccess = catPut(name+".expireAccess",m.expireAccess);
             expireMaxSize = catPut(name+".expireMaxSize",m.expireMaxSize);
+            expireStoreSize = catPut(name+".expireStoreSize",m.expireStoreSize);
             expireHeads = new long[16];
             expireTails = new long[16];
             for(int i=0;i<16;i++){
@@ -429,7 +446,7 @@ public class DB {
                 catPut(name+".segmentRecids",HTreeMap.preallocateSegments(engine)),
                 catPut(name+".keySerializer",m.keySerializer,getDefaultSerializer()),
                 catPut(name+".valueSerializer",m.valueSerializer,getDefaultSerializer()),
-                expireTimeStart,expire,expireAccess,expireMaxSize, expireHeads ,expireTails,
+                expireTimeStart,expire,expireAccess,expireMaxSize, expireStoreSize, expireHeads ,expireTails,
                 m.valueCreator, m.hasher
 
         );
@@ -471,7 +488,7 @@ public class DB {
                 (Integer)catGet(name+".hashSalt"),
                 (long[])catGet(name+".segmentRecids"),
                 catGet(name+".serializer",getDefaultSerializer()),
-                null, 0L,0L,0L,0L,null,null,null,
+                null, 0L,0L,0L,0L,0L,null,null,null,
                 catGet(name+".hasher",Hasher.BASIC)).keySet();
 
 
@@ -493,7 +510,7 @@ public class DB {
         String name = m.name;
         checkNameNotExists(name);
 
-        long expireTimeStart=0, expire=0, expireAccess=0, expireMaxSize = 0;
+        long expireTimeStart=0, expire=0, expireAccess=0, expireMaxSize = 0, expireStoreSize = 0;
         long[] expireHeads=null, expireTails=null;
 
         if(m.expire!=0 || m.expireAccess!=0 || m.expireMaxSize !=0){
@@ -501,6 +518,7 @@ public class DB {
             expire = catPut(name+".expire",m.expire);
             expireAccess = catPut(name+".expireAccess",m.expireAccess);
             expireMaxSize = catPut(name+".expireMaxSize",m.expireMaxSize);
+            expireStoreSize = catPut(name+".expireStoreSize",m.expireStoreSize);
             expireHeads = new long[16];
             expireTails = new long[16];
             for(int i=0;i<16;i++){
@@ -522,7 +540,7 @@ public class DB {
                 catPut(name+".segmentRecids",HTreeMap.preallocateSegments(engine)),
                 catPut(name+".serializer",m.serializer,getDefaultSerializer()),
                 null,
-                expireTimeStart,expire,expireAccess,expireMaxSize, expireHeads ,expireTails,
+                expireTimeStart,expire,expireAccess,expireMaxSize, expireStoreSize, expireHeads ,expireTails,
                 null, m.hasher
 
         );

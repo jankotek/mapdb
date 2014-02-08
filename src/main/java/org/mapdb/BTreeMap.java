@@ -2794,6 +2794,11 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         engine.close();
     }
 
+    public Engine getEngine(){
+        return engine;
+    }
+
+
     public void printTreeStructure() {
         final long rootRecid = engine.get(rootRecidRef, Serializer.LONG);
         printRecur(this, rootRecid, "");
