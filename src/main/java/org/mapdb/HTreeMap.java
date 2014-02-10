@@ -23,7 +23,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.logging.Level;
 
 /**
  * Thread safe concurrent HashMap
@@ -1531,12 +1530,12 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         }
 
         for(int seg=0;seg<16;seg++){
-            exirePurgeSegment(seg,removePerSegment);
+            expirePurgeSegment(seg, removePerSegment);
         }
 
     }
 
-    protected void exirePurgeSegment(int seg, long removePerSegment) {
+    protected void expirePurgeSegment(int seg, long removePerSegment) {
         segmentLocks[seg].writeLock().lock();
         try{
 //            expireCheckSegment(seg);
