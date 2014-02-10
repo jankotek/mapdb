@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 
 /**
@@ -562,4 +563,42 @@ public class EngineWrapper implements Engine{
             throw new IllegalAccessError("already closed");
         }
     };
+
+    /**
+     * Closes Engine on JVM shutdown using shutdown hook: {@link Runtime#addShutdownHook(Thread)}
+     * If engine was closed by user before JVM shutdown, hook is removed to save memory.
+     */
+    public static class CloseOnJVMShutdown extends EngineWrapper{
+
+        final protected AtomicBoolean shutdownHappened = new AtomicBoolean(false);
+
+        final Runnable hookRunnable = new Runnable() {
+            @Override
+            public void run() {
+                shutdownHappened.set(true);
+                CloseOnJVMShutdown.this.hook = null;
+                if(CloseOnJVMShutdown.this.isClosed())
+                    return;
+                CloseOnJVMShutdown.this.close();
+            }
+        };
+
+        Thread hook;
+
+
+        public CloseOnJVMShutdown(Engine engine) {
+            super(engine);
+            hook = new Thread(hookRunnable,"MapDB shutdown hook");
+            Runtime.getRuntime().addShutdownHook(hook);
+        }
+
+        @Override
+        public void close() {
+            super.close();
+            if(!shutdownHappened.get() && hook!=null){
+                Runtime.getRuntime().removeShutdownHook(hook);
+            }
+            hook = null;
+        }
+    }
 }
