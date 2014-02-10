@@ -1,6 +1,39 @@
 Changelog
 ============
 
+Version 0.9.9 (2014-01-29)
+--------------------------
+
+This release should be release candidate for 1.0. However serious issues are still being discovered,
+and documentation is not in releasable state. From now on I will probably roll out 0.9.10, 11, 12 and so
+every week after every major bugfix. 1.0 should be released in a few weeks after bugs 'go away' and
+documentation is ready.
+
+This release fixes broken TxMaker, concurrent transactions would always generate false modification conflict.
+TreeSet in BTreeMap was also seriously broken, it would not handle deletes, I had to change TreeSet format to fix it.
+Write Ahead Transactions were broken and could sometime corrupt log, solution requires WAL format change.
+Also compaction on store was broken.
+
+
+Changes:
+
+ * Fix #259: BTreeMap & TreeSet returns incorrect values after entries were deleted.
+ * Fix #258: StoreWAL: rewrite LongStack to solve misaligned page sizes.
+ * Fix #262: TxMaker concurrent transaction always fails with conflict
+ * Fix #265: Compaction was broken
+ * Fix #268: Pump.buildTreeMap does not set a default comparator
+ * Fix #266: Serialization fail on Advanced Enums
+ * Fix #264: Fix NPA if store fails to open
+ * BTreeMap: add meta-information to BTree nodes to support counted BTree and per-node aggregations in future.
+
+Open problems:
+
+ * Open #261: SerializerPojo causes data corruption under some conditions. This is not yet confirmed and can not be reproduced.
+        https://github.com/jankotek/MapDB/issues/261
+
+
+
+
 Version 0.9.8 (2013-12-30)
 --------------------------
 

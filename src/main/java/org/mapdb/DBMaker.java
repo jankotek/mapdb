@@ -23,6 +23,7 @@ import java.io.IOError;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * A builder class for creating and opening a database.
@@ -63,6 +64,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
         String asyncWrite = "asyncWrite";
         String asyncWriteFlushDelay = "asyncWriteFlushDelay";
+        String asyncWriteQueueSize = "asyncWriteQueueSize";
 
         String deleteFilesAfterClose = "deleteFilesAfterClose";
         String closeOnJvmShutdown = "closeOnJvmShutdown";
@@ -217,6 +219,52 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         } catch (IOException e) {
             throw new IOError(e);
         }
+    }
+
+    /**
+     * Creates new off-heap cache with maximal size in GBs.
+     * Entries are removed from cache in most-recently-used fashion
+     * if store becomes too big.
+     *
+     * This method uses off-heap direct ByteBuffers. See {@link java.nio.ByteBuffer#allocateDirect(int)}
+     *
+     * @param size maximal size of off-heap store in gigabytes.
+     * @param <K>
+     * @param <V>
+     * @return map
+     */
+    public static <K,V> HTreeMap<K,V> newCacheDirect(double size){
+        return DBMaker
+                .newDirectMemoryDB()
+                .transactionDisable()
+                .make()
+                .createHashMap("cache")
+                .expireStoreSize(size)
+                .counterEnable()
+                .make();
+    }
+
+    /**
+     * Creates new off-heap cache with maximal size in GBs.
+     * Entries are removed from cache in most-recently-used fashion
+     * if store becomes too big.
+     *
+     * This method uses  ByteBuffers backed by on-heap byte[]. See {@link java.nio.ByteBuffer#allocate(int)}
+     *
+     * @param size maximal size of off-heap store in gigabytes.
+     * @param <K>
+     * @param <V>
+     * @return map
+     */
+    public static <K,V> HTreeMap<K,V> newCache(double size){
+        return DBMaker
+                .newMemoryDB()
+                .transactionDisable()
+                .make()
+                .createHashMap("cache")
+                .expireStoreSize(size)
+                .counterEnable()
+                .make();
     }
 
 
@@ -408,7 +456,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
 
     /**
-     * Set flush iterval for write cache, by default is 0
+     * Set flush interval for write cache, by default is 0
      * <p/>
      * When BTreeMap is constructed from ordered set, tree node size is increasing linearly with each
      * item added. Each time new key is added to tree node, its size changes and
@@ -424,6 +472,19 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      */
     public DBMakerT asyncWriteFlushDelay(int delay){
         props.setProperty(Keys.asyncWriteFlushDelay,""+delay);
+        return getThis();
+    }
+
+    /**
+     * Set size of async Write Queue. Default size is 32 000
+     * <p/>
+     * Using too large queue size can lead to out of memory exception.
+     *
+     * @param size of queue
+     * @return this builder
+     */
+    public DBMakerT asyncWriteQueueSize(int queueSize){
+        props.setProperty(Keys.asyncWriteQueueSize,""+queueSize);
         return getThis();
     }
 
@@ -613,6 +674,8 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         props.setProperty(Keys.fullTx,TRUE);
         snapshotEnable();
         Engine e = makeEngine();
+        if(e instanceof EngineWrapper && !(e instanceof TxEngine))
+            e = ((EngineWrapper)e).getWrappedEngine();
         if(!(e instanceof TxEngine)) throw new IllegalArgumentException("Snapshot must be enabled for TxMaker");
         //init catalog if needed
         DB db = new DB(e);
@@ -690,18 +753,31 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         if(readOnly)
             engine = new ReadOnlyEngine(engine);
 
+
         if(propsGetBool(Keys.closeOnJvmShutdown)){
             final Engine engine2 = engine;
-            Runtime.getRuntime().addShutdownHook(new Thread("MapDB shutdown") {
+            final AtomicBoolean shutdown = new AtomicBoolean(false);
+            final Thread hook = new Thread("MapDB shutdown") {
                 @Override
-				public void run() {
-                    if(engine2.isClosed())
+                public void run() {
+                    shutdown.set(true);
+                    if (engine2.isClosed())
                         return;
                     extendShutdownHookBefore(engine2);
                     engine2.close();
                     extendShutdownHookAfter(engine2);
                 }
-            });
+            };
+            Runtime.getRuntime().addShutdownHook(hook);
+            //uninstall shutdown hook on close
+            engine = new EngineWrapper(engine){
+                @Override
+                public void close() {
+                    super.close();
+                    if(!shutdown.get())
+                        Runtime.getRuntime().removeShutdownHook(hook);
+                }
+            };
         }
 
 
@@ -820,6 +896,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
     protected AsyncWriteEngine extendAsyncWriteEngine(Engine engine) {
         return new AsyncWriteEngine(engine,
                 propsGetInt(Keys.asyncWriteFlushDelay,CC.ASYNC_WRITE_FLUSH_DELAY),
+                propsGetInt(Keys.asyncWriteQueueSize,CC.ASYNC_WRITE_QUEUE_SIZE),
                 null);
     }
 

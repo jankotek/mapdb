@@ -58,6 +58,7 @@ public interface CC {
 
 
     int ASYNC_WRITE_FLUSH_DELAY = 100;
+    int ASYNC_WRITE_QUEUE_SIZE = 32000;
 
     int ASYNC_RECID_PREALLOC_QUEUE_SIZE = 128;
 

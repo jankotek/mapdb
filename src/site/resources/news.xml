@@ -8,6 +8,16 @@
         <description>MapDB </description>
 
         <item>
+            <title>MapDB 0.9.9 released</title>
+            <link>http://www.mapdb.org/changelog.html#Version_099_2014-01-29</link>
+            <date>January 29 2014</date>
+            <description>
+                TxMaker was fixed. TreeSet did not worked, fix has incompatibile format change.
+            </description>
+        </item>
+
+
+        <item>
             <title>MapDB 0.9.8 released</title>
             <link>http://www.mapdb.org/changelog.html#/Version_098_2013-12-30</link>
             <date>December 30 2013</date>

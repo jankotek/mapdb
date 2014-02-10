@@ -71,6 +71,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     protected final boolean expireAccessFlag;
     protected final long expireAccess;
     protected final long expireMaxSize;
+    protected final long expireStoreSize;
     protected final boolean expireMaxSizeFlag;
 
     protected final long[] expireHeads;
@@ -204,7 +205,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
      */
     public HTreeMap(Engine engine, long counterRecid, int hashSalt, long[] segmentRecids,
                     Serializer<K> keySerializer, Serializer<V> valueSerializer,
-                    long expireTimeStart, long expire, long expireAccess, long expireMaxSize,
+                    long expireTimeStart, long expire, long expireAccess, long expireMaxSize, long expireStoreSize,
                     long[] expireHeads, long[] expireTails, Fun.Function1<V, K> valueCreator,
                     Hasher hasher) {
         if(counterRecid<0) throw new IllegalArgumentException();
@@ -235,15 +236,16 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         }
 
 
-        this.expireFlag = expire !=0L || expireAccess!=0L || expireMaxSize!=0;
+        this.expireFlag = expire !=0L || expireAccess!=0L || expireMaxSize!=0 || expireStoreSize!=0;
         this.expire = expire;
         this.expireTimeStart = expireTimeStart;
-        this.expireAccessFlag = expireAccess !=0L || expireMaxSize!=0;
+        this.expireAccessFlag = expireAccess !=0L || expireMaxSize!=0 || expireStoreSize!=0;
         this.expireAccess = expireAccess;
         this.expireHeads = expireHeads==null? null : Arrays.copyOf(expireHeads,16);
         this.expireTails = expireTails==null? null : Arrays.copyOf(expireTails,16);
         this.expireMaxSizeFlag = expireMaxSize!=0;
         this.expireMaxSize = expireMaxSize;
+        this.expireStoreSize = expireStoreSize;
         this.valueCreator = valueCreator;
 
         if(counterRecid!=0){
@@ -1482,14 +1484,22 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         @Override
         public void run() {
+            boolean pause = false;
             while(true){
-                HTreeMap map = mapRef.get();
-                if(map==null||map.engine.isClosed()) return;
                 try{
+                    if(pause){
+                        Thread.sleep(1000);
+                    }
+                    HTreeMap map = mapRef.get();
+                    if(map==null||map.engine.isClosed()) return;
+
                     //TODO what if store gets closed while working on this?
                     map.expirePurge();
-                    if(!map.expireMaxSizeFlag || map.size()<map.expireMaxSize)
-                        Thread.sleep(1000);
+                    pause = ((!map.expireMaxSizeFlag || map.size()<map.expireMaxSize)
+                        && (map.expireStoreSize==0L ||
+                                Store.forEngine(map.engine).getCurrSize() - Store.forEngine(map.engine).getFreeSize()<map.expireStoreSize));
+
+
                 }catch(Throwable e){
                     //TODO exception handling
                     e.printStackTrace();
@@ -1509,6 +1519,14 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             long size = counter.get();
             if(size>expireMaxSize){
                 removePerSegment=1+(size-expireMaxSize)/16;
+            }
+        }
+
+
+        if(expireStoreSize!=0 && removePerSegment==0){
+            Store store = Store.forEngine(engine);
+            if(expireStoreSize<store.getCurrSize()-store.getFreeSize()){
+                removePerSegment=640;
             }
         }
 
@@ -1598,7 +1616,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     public Map<K,V> snapshot(){
         Engine snapshot = TxEngine.createSnapshotFor(engine);
         return new HTreeMap<K, V>(snapshot, counter==null?0:counter.recid,
-                hashSalt, segmentRecids, keySerializer, valueSerializer,0L,0L,0L,0L,null,null, null, null);
+                hashSalt, segmentRecids, keySerializer, valueSerializer,0L,0L,0L,0L,0L,null,null, null, null);
     }
 
 
@@ -1640,6 +1658,10 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
      */
     public void close(){
         engine.close();
+    }
+
+    public Engine getEngine(){
+        return engine;
     }
 
 }

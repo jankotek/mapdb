@@ -59,6 +59,7 @@ public class StoreWAL extends StoreDirect {
         this.volFac = volFac;
         this.log = volFac.createTransLogVolume();
 
+        boolean allGood = false;
         structuralLock.lock();
         try{
             reloadIndexFile();
@@ -68,10 +69,14 @@ public class StoreWAL extends StoreDirect {
             replayPending = false;
             checkHeaders();
             log = null;
-        }catch(IOError e){
-            close();
-            throw new IOError(e);
-        }finally {
+            allGood = true;
+        }finally{
+            if(!allGood && log!=null){
+                //exception was thrown, try to unlock files
+                log.close();
+                log = null;
+            }
+
             structuralLock.unlock();
         }
     }

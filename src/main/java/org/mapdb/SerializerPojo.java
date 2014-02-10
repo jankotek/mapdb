@@ -384,10 +384,14 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         out.write(Header.POJO);
         lock.writeLock().lock(); //TODO write lock is not necessary over entire method
         try{
-            registerClass(obj.getClass());
+            Class<?> clazz = obj.getClass();
+            if( !clazz.isEnum() && clazz.getSuperclass()!=null && clazz.getSuperclass().isEnum())
+                clazz = clazz.getSuperclass();
+
+            registerClass(clazz);
 
             //write class header
-            int classId = getClassId(obj.getClass());
+            int classId = getClassId(clazz);
             DataOutput2.packInt(out, classId);
             ClassInfo classInfo = registered.get(classId);
 
@@ -403,7 +407,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
                 DataOutput2.packInt(out, ordinal);
             }
 
-            ObjectStreamField[] fields = getFields(obj.getClass());
+            ObjectStreamField[] fields = getFields(clazz);
             DataOutput2.packInt(out, fields.length);
 
             for (ObjectStreamField f : fields) {
@@ -412,7 +416,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
                 if (fieldId == -1) {
                     //field does not exists in class definition stored in db,
                     //propably new field was added so add field descriptor
-                    fieldId = classInfo.addFieldInfo(new FieldInfo(f, obj.getClass()));
+                    fieldId = classInfo.addFieldInfo(new FieldInfo(f, clazz));
                     saveClassInfo();
                 }
                 DataOutput2.packInt(out, fieldId);

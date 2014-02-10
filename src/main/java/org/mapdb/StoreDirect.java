@@ -198,6 +198,8 @@ public class StoreDirect extends Store{
         this.spaceReclaimReuse = spaceReclaimMode>2;
         this.spaceReclaimTrack = spaceReclaimMode>0;
 
+        boolean allGood = false;
+
         try{
             index = volFac.createIndexVolume();
             phys = volFac.createPhysVolume();
@@ -213,9 +215,19 @@ public class StoreDirect extends Store{
                 while(index.getLong(maxUsedIoList)!=0 && maxUsedIoList>IO_FREE_RECID)
                     maxUsedIoList-=8;
             }
-        }catch(IOError e){
-            close();
-            throw new IOError(e);
+            allGood = true;
+        }finally{
+            if(!allGood){
+                //exception was thrown, try to unlock files
+                if(index!=null){
+                    index.close();
+                    index = null;
+                }
+                if(phys!=null){
+                    phys.close();
+                    phys = null;
+                }
+            }
         }
 
     }
@@ -667,6 +679,7 @@ public class StoreDirect extends Store{
     public void close() {
         lockAllWrite();
         try{
+
             if(!readOnly){
                 index.putLong(IO_PHYS_SIZE,physSize);
                 index.putLong(IO_INDEX_SIZE,indexSize);
@@ -776,7 +789,7 @@ public class StoreDirect extends Store{
             //TODO long stack take modifies the original store
             for(long recid =longStackTake(IO_FREE_RECID,false);
                 recid!=0; recid=longStackTake(IO_FREE_RECID,false)){
-                store2.longStackPut(recid, IO_FREE_RECID,false);
+                store2.longStackPut(IO_FREE_RECID,recid, false);
             }
 
             //iterate over recids and transfer physical records
