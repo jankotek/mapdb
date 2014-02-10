@@ -6,7 +6,7 @@ HTreeMap is *segmented Hash Tree*. Most hash collections use an array for hash t
 
 To support concurrency HTreeMap is split to 16 independent segments, each with separate read-write lock. `ConcurrentHashMap` works similar way. Number of segments (sometimes called concurrency factor) is hard wired in design and can not be changed.  
 
-HTreeMap optionally supports entry expiration based on three criteria: maximal size, time-to-live since last modification and time-to-live since last access. Expired entries are automatically removed. This feature uses FIFO queue, each segment has independent expiration queue. Priority per entry can not be set.
+HTreeMap optionally supports entry expiration based on four criteria: maximal map size, time-to-live since last modification and time-to-live since last access. Expired entries are automatically removed. This feature uses FIFO queue, each segment has independent expiration queue. Priority per entry can not be set.
 
 Parameters
 ----------------
