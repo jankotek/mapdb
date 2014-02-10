@@ -23,7 +23,6 @@ import java.io.IOError;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * A builder class for creating and opening a database.
@@ -755,29 +754,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
 
         if(propsGetBool(Keys.closeOnJvmShutdown)){
-            final Engine engine2 = engine;
-            final AtomicBoolean shutdown = new AtomicBoolean(false);
-            final Thread hook = new Thread("MapDB shutdown") {
-                @Override
-                public void run() {
-                    shutdown.set(true);
-                    if (engine2.isClosed())
-                        return;
-                    extendShutdownHookBefore(engine2);
-                    engine2.close();
-                    extendShutdownHookAfter(engine2);
-                }
-            };
-            Runtime.getRuntime().addShutdownHook(hook);
-            //uninstall shutdown hook on close
-            engine = new EngineWrapper(engine){
-                @Override
-                public void close() {
-                    super.close();
-                    if(!shutdown.get())
-                        Runtime.getRuntime().removeShutdownHook(hook);
-                }
-            };
+            engine = new EngineWrapper.CloseOnJVMShutdown(engine);
         }
 
 
@@ -858,11 +835,6 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         return 2; //default option is RAF
     }
 
-    protected void extendShutdownHookBefore(Engine engine) {
-    }
-
-    protected void extendShutdownHookAfter(Engine engine) {
-    }
 
     protected TxEngine extendSnapshotEngine(Engine engine) {
         return new TxEngine(engine,propsGetBool(Keys.fullTx));
