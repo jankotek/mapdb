@@ -588,7 +588,7 @@ public class EngineWrapper implements Engine{
 
         public CloseOnJVMShutdown(Engine engine) {
             super(engine);
-            hook = new Thread(hookRunnable,"MapDB shudown hook");
+            hook = new Thread(hookRunnable,"MapDB shutdown hook");
             Runtime.getRuntime().addShutdownHook(hook);
         }
 
