@@ -71,10 +71,20 @@ public class StoreWAL extends StoreDirect {
             log = null;
             allGood = true;
         }finally{
-            if(!allGood && log!=null){
-                //exception was thrown, try to unlock files
-                log.close();
-                log = null;
+            if(!allGood) {
+              //exception was thrown, try to unlock files
+              if (log!=null) {
+                  log.close();
+                  log = null;
+              }
+              if (index!=null) {
+                index.close();
+                index = null;
+              }
+              if (phys!=null) {
+                phys.close();
+                phys = null;
+              }
             }
 
             structuralLock.unlock();
