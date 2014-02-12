@@ -1460,7 +1460,7 @@ public class DB {
      * @throws IllegalArgumentException if name is already used
      */
     protected void checkNameNotExists(String name) {
-        if(catalog.get(name)!=null)
+        if(catalog.get(name+".type")!=null)
             throw new IllegalArgumentException("Name already used: "+name);
     }
 

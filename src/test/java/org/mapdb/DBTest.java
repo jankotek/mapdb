@@ -78,4 +78,23 @@ public class DBTest {
         assertEquals("12",db.getHashMap("aa").get(11));
     }
 
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testCollectionExists(){
+        db.getHashMap("test");
+        db.checkNameNotExists("test");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testQueueExists(){
+        db.getQueue("test");
+        db.checkNameNotExists("test");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testAtomicExists(){
+        db.getAtomicInteger("test");
+        db.checkNameNotExists("test");
+    }
+
 }
