@@ -684,11 +684,12 @@ public class StoreDirect extends Store{
                 index.putLong(IO_PHYS_SIZE,physSize);
                 index.putLong(IO_INDEX_SIZE,indexSize);
                 index.putLong(IO_FREE_SIZE,freeSize);
-                index.putLong(IO_INDEX_SUM,indexHeaderChecksum());
 
                 if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
                     serializerPojo.save(this);
                 }
+                
+                index.putLong(IO_INDEX_SUM,indexHeaderChecksum());
             }
 
             // Syncs are expensive -- don't sync if the files are going to
@@ -721,11 +722,12 @@ public class StoreDirect extends Store{
             index.putLong(IO_PHYS_SIZE,physSize);
             index.putLong(IO_INDEX_SIZE,indexSize);
             index.putLong(IO_FREE_SIZE,freeSize);
-            index.putLong(IO_INDEX_SUM,indexHeaderChecksum());
 
             if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
                 serializerPojo.save(this);
             }
+            
+            index.putLong(IO_INDEX_SUM, indexHeaderChecksum());
         }
         if(!syncOnCommitDisabled){
             index.sync();
