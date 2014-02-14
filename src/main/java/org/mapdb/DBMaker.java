@@ -673,13 +673,10 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         props.setProperty(Keys.fullTx,TRUE);
         snapshotEnable();
         Engine e = makeEngine();
-        if(e instanceof EngineWrapper && !(e instanceof TxEngine))
-            e = ((EngineWrapper)e).getWrappedEngine();
-        if(!(e instanceof TxEngine)) throw new IllegalArgumentException("Snapshot must be enabled for TxMaker");
         //init catalog if needed
         DB db = new DB(e);
         db.commit();
-        return new TxMaker((TxEngine) e);
+        return new TxMaker(e);
     }
 
     /** constructs Engine using current settings */

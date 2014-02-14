@@ -12,13 +12,15 @@ public class TxMaker {
     protected static final Object DELETED = new Object();
 
     /** parent engine under which modifications are stored */
-    protected org.mapdb.TxEngine engine;
+    protected Engine engine;
 
 
-    public TxMaker(org.mapdb.TxEngine engine) {
+    public TxMaker(Engine engine) {
         if(engine==null) throw new IllegalArgumentException();
-        if(engine.isReadOnly()) throw new IllegalArgumentException("read only");
-        if(!engine.canRollback()) throw new IllegalArgumentException("no rollback");
+        if(!engine.canSnapshot())
+            throw new IllegalArgumentException("Snapshot must be enabled for TxMaker");
+        if(engine.isReadOnly())
+            throw new IllegalArgumentException("TxMaker can not be used with read-only Engine");
         this.engine = engine;
     }
 

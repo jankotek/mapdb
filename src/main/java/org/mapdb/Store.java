@@ -305,5 +305,13 @@ public abstract class Store implements Engine{
         return h & LOCK_MASK;
     }
 
+    @Override
+    public boolean canSnapshot() {
+        return false;
+    }
 
+    @Override
+    public Engine snapshot() throws UnsupportedOperationException {
+        throw new UnsupportedOperationException("Snapshots are not supported");
+    }
 }

@@ -110,6 +110,16 @@ public class EngineWrapper implements Engine{
     }
 
     @Override
+    public boolean canSnapshot() {
+        return getWrappedEngine().canSnapshot();
+    }
+
+    @Override
+    public Engine snapshot() throws UnsupportedOperationException {
+        return getWrappedEngine().snapshot();
+    }
+
+    @Override
     public void clearCache() {
         getWrappedEngine().clearCache();
     }
@@ -192,6 +202,16 @@ public class EngineWrapper implements Engine{
         @Override
         public boolean isReadOnly() {
             return true;
+        }
+
+        @Override
+        public boolean canSnapshot() {
+            return true;
+        }
+
+        @Override
+        public Engine snapshot() throws UnsupportedOperationException {
+            return this;
         }
 
     }
@@ -426,6 +446,16 @@ public class EngineWrapper implements Engine{
         }
 
         @Override
+        synchronized public boolean canSnapshot() {
+            return super.canSnapshot();
+        }
+
+        @Override
+        synchronized public Engine snapshot() throws UnsupportedOperationException {
+            return super.snapshot();
+        }
+
+        @Override
         synchronized public void compact() {
             super.compact();
         }
@@ -545,6 +575,16 @@ public class EngineWrapper implements Engine{
 
         @Override
         public boolean canRollback() {
+            throw new IllegalAccessError("already closed");
+        }
+
+        @Override
+        public boolean canSnapshot() {
+            throw new IllegalAccessError("already closed");
+        }
+
+        @Override
+        public Engine snapshot() throws UnsupportedOperationException {
             throw new IllegalAccessError("already closed");
         }
 

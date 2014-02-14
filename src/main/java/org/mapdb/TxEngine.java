@@ -72,6 +72,12 @@ public class TxEngine extends EngineWrapper {
         throw new UnsupportedOperationException("Snapshots are not enabled, use DBMaker.snapshotEnable()");
     }
 
+    @Override
+    public boolean canSnapshot() {
+        return true;
+    }
+
+    @Override
     public Engine snapshot() {
         commitLock.writeLock().lock();
         try {
@@ -576,7 +582,18 @@ public class TxEngine extends EngineWrapper {
         return fullTx;
     }
 
-    @Override
+        @Override
+        public boolean canSnapshot() {
+            return false;
+        }
+
+        @Override
+        public Engine snapshot() throws UnsupportedOperationException {
+            throw new UnsupportedOperationException();
+            //TODO see Issue #281
+        }
+
+        @Override
     public void clearCache() {
     }
 
