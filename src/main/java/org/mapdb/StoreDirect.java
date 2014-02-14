@@ -681,14 +681,14 @@ public class StoreDirect extends Store{
         try{
 
             if(!readOnly){
+                if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
+                    serializerPojo.save(this);
+                }
+
                 index.putLong(IO_PHYS_SIZE,physSize);
                 index.putLong(IO_INDEX_SIZE,indexSize);
                 index.putLong(IO_FREE_SIZE,freeSize);
 
-                if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
-                    serializerPojo.save(this);
-                }
-                
                 index.putLong(IO_INDEX_SUM,indexHeaderChecksum());
             }
 
@@ -719,14 +719,15 @@ public class StoreDirect extends Store{
     @Override
     public void commit() {
         if(!readOnly){
-            index.putLong(IO_PHYS_SIZE,physSize);
-            index.putLong(IO_INDEX_SIZE,indexSize);
-            index.putLong(IO_FREE_SIZE,freeSize);
 
             if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
                 serializerPojo.save(this);
             }
-            
+
+            index.putLong(IO_PHYS_SIZE,physSize);
+            index.putLong(IO_INDEX_SIZE,indexSize);
+            index.putLong(IO_FREE_SIZE,freeSize);
+
             index.putLong(IO_INDEX_SUM, indexHeaderChecksum());
         }
         if(!syncOnCommitDisabled){
