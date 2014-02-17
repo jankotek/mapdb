@@ -26,7 +26,7 @@ CRUD, off-heap, append only store.. we have them all. MapDB is highly modular an
 
 
 [overview]: http://www.youtube.com/watch?v=FdZmyEHcWLI
-[intro]: /intro.html
+[intro]: 02-getting-started.html
 [benchmarks]: /benchmarks.html
 [features]: /features.html
 
