@@ -5,15 +5,14 @@
     <googleAnalyticsAccountId>UA-42074659-1</googleAnalyticsAccountId>
 
 
-
-    <publishDate position="bottom" format="yyyy-MM-dd" />
-    <version position="bottom" />
+    <publishDate position="bottom" format="yyyy-MM-dd"/>
+    <version position="bottom"/>
     <custom>
         <reflowSkin>
             <!-- Make this to 'false' for local development, i.e. file:// URLs -->
             <protocolRelativeURLs>false</protocolRelativeURLs>
             <smoothScroll>true</smoothScroll>
-            <theme>bootswatch-cerulean</theme>
+            <theme>bootswatch-spruce</theme>
             <highlightJs>true</highlightJs>
             <highlightJsTheme>github</highlightJsTheme>
             <absoluteResourceURL>http://andriusvelykis.github.com/reflow-maven-skin/</absoluteResourceURL>
@@ -47,16 +46,16 @@ MapDB is free as speech and free as beer under <a href="https://github.com/janko
             <pages>
                 <index project="mapdb">
                     <!-- Override the title -->
-                    <titleTemplate>MapDB </titleTemplate>
+                    <titleTemplate>MapDB</titleTemplate>
                     <!-- no breadcrumbs on the main index page -->
                     <breadcrumbs>false</breadcrumbs>
                     <!-- no ToC on the main index page -->
                     <toc>false</toc>
                     <markPageHeader>false</markPageHeader>
                     <sections>
-                        <carousel />
-                        <body />
-                        <sidebar />
+                        <carousel/>
+                        <body/>
+                        <sidebar/>
                     </sections>
                 </index>
                 <faq-general>
@@ -80,17 +79,23 @@ MapDB is free as speech and free as beer under <a href="https://github.com/janko
     <body>
         <head>
             <!--graphs -->
-            <script src='js/excanvas.js'></script>
-            <script src='js/js-class.js'></script>
-            <script src='js/bluff.js'></script>
+            <style type="text/css">
+                body,h1,h2,h3,h4,h5,h6,code,pre,input,button,select,textarea,.navbar-search,.navbar-search .search-query,h1 small,h2 small,h3 small,h4 small,h5 small,h6 small,.muted,.navbar .brand,.navbar .brand:hover,.navbar .nav li a,.navbar .navbar-text,.navbar .dropdown-menu li a, div.subnav, div.subnav .nav li a,.btn,legend,.alert-heading{
+                font-family:Arial, sans-serif;
+                }
+
+                @media (max-width:979px){.navbar .nav-collapse .nav li a .navbar .nav-collapse .nav li a:hover, .navbar-inverse .nav-collapse .nav li a:hover, .nav-collapse .navbar-form,.nav-collapse .navbar-search}{
+                font-family:Arial, sans-serif;
+                }
+            </style>
         </head>
 
         <menu name="MapDB">
             <item name="Index" href="index.html"/>
             <item name="Github" href="http://www.github.com/jankotek/mapdb"/>
-            <item name="Features" href="features.html" />
-            <item name="Changelog" href="changelog.html" />
-            <item name="Credits" href="credits.html" />
+            <item name="Features" href="features.html"/>
+            <item name="Changelog" href="changelog.html"/>
+            <item name="Credits" href="credits.html"/>
         </menu>
 
         <menu name="FAQ">
@@ -102,7 +107,7 @@ MapDB is free as speech and free as beer under <a href="https://github.com/janko
         <menu name="Documentation">
             <item name="Intro" href="00-intro.html"/>
             <item name="Overview Video" href="http://www.youtube.com/watch?v=FdZmyEHcWLI"/>
-            <item name="Examples" href="https://github.com/jankotek/MapDB/tree/master/src/test/java/examples" />
+            <item name="Examples" href="https://github.com/jankotek/MapDB/tree/master/src/test/java/examples"/>
             <item name="JavaDoc" href="apidocs/index.html"/>
         </menu>
 
@@ -116,8 +121,8 @@ MapDB is free as speech and free as beer under <a href="https://github.com/janko
         <menu name="Author">
             <item name="Blog" href="http://www.kotek.net/"/>
             <item name="Twitter" href="http://www.twitter.com/jankotek"/>
-            <item name="Email" href="mailto:jan&#64;kotek&#46;net" />
-            <item name="About" href="http://www.kotek.net" />
+            <item name="Email" href="mailto:jan&#64;kotek&#46;net"/>
+            <item name="About" href="http://www.kotek.net"/>
         </menu>
 
 
