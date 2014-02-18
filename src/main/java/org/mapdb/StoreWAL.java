@@ -765,8 +765,10 @@ public class StoreWAL extends StoreDirect {
 
         logSize=0;
         assert(structuralLock.isHeldByCurrentThread());
-        return realCrc == crc;
+        if(realCrc == Long.MIN_VALUE)
+            return true; //in future WAL CRC might be switched off, in that case this value will be used
 
+        return realCrc == crc ;
     }
 
 
