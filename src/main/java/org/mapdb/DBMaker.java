@@ -665,7 +665,18 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
     /** constructs DB using current settings */
     public DB make(){
-        return new DB(makeEngine(), propsGetBool(Keys.strictDBGet));
+        boolean strictGet = propsGetBool(Keys.strictDBGet);
+        Engine engine = makeEngine();
+        boolean dbCreated = false;
+        try{
+            DB db =  new  DB(engine, strictGet);
+            dbCreated = true;
+            return db;
+        }finally {
+            //did db creation fail? in that case close engine to unlock files
+            if(!dbCreated)
+                engine.close();
+        }
     }
 
     

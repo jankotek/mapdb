@@ -71,10 +71,20 @@ public class StoreWAL extends StoreDirect {
             log = null;
             allGood = true;
         }finally{
-            if(!allGood && log!=null){
+            if(!allGood) {
                 //exception was thrown, try to unlock files
-                log.close();
-                log = null;
+                if (log!=null) {
+                    log.close();
+                    log = null;
+                }
+                if (index!=null) {
+                    index.close();
+                    index = null;
+                }
+                if (phys!=null) {
+                    phys.close();
+                    phys = null;
+                }
             }
 
             structuralLock.unlock();
@@ -538,7 +548,7 @@ public class StoreWAL extends StoreDirect {
                 structuralLock.unlock();
             }
             walIndexVal(logPos,ioRecid,0|MASK_ARCHIVE);
-            modified.put(ioRecid,TOMBSTONE);
+            modified.put(ioRecid, TOMBSTONE);
         }finally {
             lock.unlock();
         }
