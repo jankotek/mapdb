@@ -473,8 +473,10 @@ public abstract class Volume {
             try{
                 fileChannel.close();
                 raf.close();
-                if(!readOnly)
-                    sync();
+                //TODO not sure if no sync causes problems while unlocking files
+                //however if it is here, it causes slow commits, sync is called on write-ahead-log just before it is deleted and closed
+//                if(!readOnly)
+//                    sync();
 
                 for(Reference<MappedByteBuffer> rb: unreleasedChunks){
                     MappedByteBuffer b = rb.get();

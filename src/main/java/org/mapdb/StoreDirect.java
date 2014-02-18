@@ -220,10 +220,12 @@ public class StoreDirect extends Store{
             if(!allGood){
                 //exception was thrown, try to unlock files
                 if(index!=null){
+                    index.sync();
                     index.close();
                     index = null;
                 }
                 if(phys!=null){
+                    index.sync();
                     phys.close();
                     phys = null;
                 }
@@ -816,8 +818,10 @@ public class StoreDirect extends Store{
 
             final boolean useDirectBuffer = index instanceof Volume.MemoryVol &&
                     ((Volume.MemoryVol)index).useDirectBuffer;
+            index.sync(); //TODO is sync needed here?
             index.close();
             index = null;
+            phys.sync(); //TODO is sync needed here?
             phys.close();
             phys = null;
 

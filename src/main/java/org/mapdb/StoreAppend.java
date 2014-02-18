@@ -135,10 +135,13 @@ class StoreAppend extends Store{
                 File f = t.b;
                 Volume vol = Volume.volumeForFile(f,useRandomAccessFile,readOnly, 0L, false);
                 if(vol.isEmpty()||vol.getLong(0)!=HEADER){
+                    vol.sync();
                     vol.close();
                     Iterator<Volume> vols = volumes.valuesIterator();
                     while(vols.hasNext()){
-                        vols.next().close();
+                        Volume next = vols.next();
+                        next.sync();
+                        next.close();
                     }
                     throw new IOError(new IOException("File corrupted: "+f));
                 }
@@ -169,7 +172,9 @@ class StoreAppend extends Store{
                     }else if(recid<=0){
                         Iterator<Volume> vols = volumes.valuesIterator();
                         while(vols.hasNext()){
-                            vols.next().close();
+                            Volume next = vols.next();
+                            next.sync();
+                            next.close();
                         }
                         throw new IOError(new IOException("File corrupted: "+f));
                     }
@@ -192,7 +197,9 @@ class StoreAppend extends Store{
             }
             Iterator<Volume> vols = volumes.valuesIterator();
             while(vols.hasNext()){
-                vols.next().close();
+                Volume next = vols.next();
+                next.sync();
+                next.close();
             }
             throw new IOError(new IOException("File not sealed, data possibly corrupted"));
         }
@@ -573,6 +580,7 @@ class StoreAppend extends Store{
                 long fileNum = iter.key();
                 if(fileNum==currFileNum || ff.get(fileNum)!=null) continue;
                 Volume v = iter.value();
+                v.sync();
                 v.close();
                 v.deleteFile();
                 iter.remove();
