@@ -4,6 +4,7 @@ import org.junit.Test;
 import org.mapdb.EngineWrapper.ReadOnlyEngine;
 
 import java.io.File;
+import java.io.IOError;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.Map;
@@ -58,7 +59,7 @@ public class DBMakerTest{
                 .make();
         verifyDB(db);
         Store s = Store.forDB(db);
-        assertEquals( s.getClass(),StoreDirect.class);
+        assertEquals(s.getClass(), StoreDirect.class);
     }
 
     @Test
@@ -346,4 +347,24 @@ public class DBMakerTest{
         }
     }
 
+    File folderDoesNotExist = new File("folder-does-not-exit/db.aaa");
+
+    @Test(expected = IOError.class)
+    public void nonExistingFolder(){
+        DBMaker.newFileDB(folderDoesNotExist).make();
+    }
+
+    public void nonExistingFolder3(){
+        DBMaker.newFileDB(folderDoesNotExist).mmapFileEnable().make();
+    }
+
+
+    @Test(expected = IOError.class)
+    public void nonExistingFolder2(){
+        DBMaker
+                .newFileDB(folderDoesNotExist)
+                .snapshotEnable()
+                .syncOnCommitDisable()
+                .makeTxMaker();
+    }
 }
