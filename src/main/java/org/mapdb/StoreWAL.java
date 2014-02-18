@@ -782,7 +782,7 @@ public class StoreWAL extends StoreDirect {
 
         //read headers
         if(log.isEmpty() || log.getInt(0)!=HEADER ||
-                log.getUnsignedShort(4)>STORE_VERSION || log.getLong(8) !=LOG_SEAL | 
+                log.getUnsignedShort(4)>STORE_VERSION || log.getLong(8) !=LOG_SEAL ||
                 log.getUnsignedShort(6)!=expectedMasks()){
             //wrong headers, discard log
             log.close();
