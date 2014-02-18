@@ -225,7 +225,7 @@ public class StoreDirect extends Store{
                     index = null;
                 }
                 if(phys!=null){
-                    index.sync();
+                    phys.sync();
                     phys.close();
                     phys = null;
                 }
