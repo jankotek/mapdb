@@ -18,7 +18,7 @@ MapDB is in Maven Central. Just add code bellow to your pom file to use it. You 
 <dependency>
     <groupId>org.mapdb</groupId>
     <artifactId>mapdb</artifactId>
-    <version>0.9.9</version>
+    <version>0.9.10</version>
 </dependency>
 ```
 
@@ -36,7 +36,7 @@ There is also repository with [daily builds](https://oss.sonatype.org/content/re
     <dependency>
         <groupId>org.mapdb</groupId>
         <artifactId>mapdb</artifactId>
-        <version>0.9.10-SNAPSHOT</version>
+        <version>0.9.11-SNAPSHOT</version>
     </dependency>
 </dependencies>
 ```

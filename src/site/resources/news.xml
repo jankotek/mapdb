@@ -8,6 +8,18 @@
         <description>MapDB </description>
 
         <item>
+            <title>MapDB 0.9.10 released</title>
+            <link>http://www.mapdb.org/changelog.html#Version_0910_2014-02-18</link>
+            <date>February 18 2014</date>
+            <description>
+                Yet another bug fix release before 1.0. There is fix for serious data corruption with disabled transactions.
+                Async-Writer queue is no longer unbounded to prevent memory leaks. In-memory cache is now much easier to use
+                with memory size limit, checkout `Map cache = DBMaker.newCache(sizeLimitInGB)`
+            </description>
+        </item>
+
+
+        <item>
             <title>MapDB 0.9.9 released</title>
             <link>http://www.mapdb.org/changelog.html#Version_099_2014-01-29</link>
             <date>January 29 2014</date>

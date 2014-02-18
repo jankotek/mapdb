@@ -37,6 +37,8 @@ CRUD, off-heap, append only store.. we have them all. MapDB is highly modular an
 News
 ----
 
+* 2014-02-18 [MapDB 0.9.10 was released](http://www.mapdb.org/changelog.html#Version_0910_2014-02-18). Fixed data corruption with disabled transaction. In-memory cache now has memory size limit.
+
 * 2014-01-29 [MapDB 0.9.9 was released](http://www.mapdb.org/changelog.html#Version_099_2014-01-29). TxMaker was fixed. TreeSet did not worked, fix has incompatibile format change.
 
 * 2013-12-30 [MapDB 0.9.8 was released](http://www.mapdb.org/changelog.html#Version_098_2013-12-30). API and store format should be stable now. RAF on by default. Append-Only store postponed...
