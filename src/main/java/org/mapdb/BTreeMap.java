@@ -587,6 +587,10 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
     @Override
 	public V get(Object key){
+    	return (V) get(key, true);
+    }
+
+    protected Object get(Object key, boolean expandValue) {
         if(key==null) throw new NullPointerException();
         K v = (K) key;
         final long rootRecid = engine.get(rootRecidRef, Serializer.LONG);
@@ -614,7 +618,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         //finish search
         if(leaf.keys[pos]!=null && 0==comparator.compare(v,leaf.keys[pos])){
             Object ret = leaf.vals[pos-1];
-            return valExpand(ret);
+            return expandValue ? valExpand(ret) : ret;
         }else
             return null;
     }
@@ -1494,7 +1498,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     @Override
     public boolean containsKey(Object key) {
         if(key==null) throw new NullPointerException();
-        return get(key)!=null;
+        return get(key, false)!=null;
     }
 
     @Override
