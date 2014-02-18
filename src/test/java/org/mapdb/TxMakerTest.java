@@ -1,5 +1,6 @@
 package org.mapdb;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.*;
@@ -190,6 +191,41 @@ public class TxMakerTest{
 
         assertEquals(Long.valueOf(threads*items+1), tx.makeTx().getEngine().get(recid,Serializer.LONG));
 
+    }
+
+    @Test @Ignore
+    public void txSnapshot(){
+
+        TxMaker txMaker = DBMaker
+                .newMemoryDB()
+                .snapshotEnable()
+                .makeTxMaker();
+
+        DB db = txMaker.makeTx();
+        long recid = db.getEngine().put("aa",Serializer.STRING);
+        DB snapshot = db.snapshot();
+        db.getEngine().update(recid,"bb",Serializer.STRING);
+        assertEquals("aa",snapshot.getEngine().get(recid,Serializer.STRING));
+        assertEquals("bb",db.getEngine().get(recid,Serializer.STRING));
+
+    }
+
+    @Test
+    public void txSnapshot2(){
+
+        TxMaker txMaker = DBMaker
+                .newMemoryDB()
+                .snapshotEnable()
+                .makeTxMaker();
+
+        DB db = txMaker.makeTx();
+        long recid = db.getEngine().put("aa",Serializer.STRING);
+        db.commit();
+        db = txMaker.makeTx();
+        DB snapshot = db.snapshot();
+        db.getEngine().update(recid,"bb",Serializer.STRING);
+        assertEquals("aa",snapshot.getEngine().get(recid,Serializer.STRING));
+        assertEquals("bb",db.getEngine().get(recid,Serializer.STRING));
 
     }
 }

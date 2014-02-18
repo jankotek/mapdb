@@ -687,7 +687,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         //init catalog if needed
         DB db = new DB(e);
         db.commit();
-        return new TxMaker(e);
+        return new TxMaker(e, propsGetBool(Keys.strictDBGet), propsGetBool(Keys.snapshots));
     }
 
     /** constructs Engine using current settings */
