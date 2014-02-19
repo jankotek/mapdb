@@ -441,6 +441,7 @@ public abstract class Volume {
             this.file = file;
             this.mapMode = readOnly? FileChannel.MapMode.READ_ONLY: FileChannel.MapMode.READ_WRITE;
             try {
+                FileChannelVol.checkFolder(file,readOnly);
                 this.raf = new java.io.RandomAccessFile(file, readOnly?"r":"rw");
                 this.fileChannel = raf.getChannel();
 
@@ -473,8 +474,10 @@ public abstract class Volume {
             try{
                 fileChannel.close();
                 raf.close();
-                if(!readOnly)
-                    sync();
+                //TODO not sure if no sync causes problems while unlocking files
+                //however if it is here, it causes slow commits, sync is called on write-ahead-log just before it is deleted and closed
+//                if(!readOnly)
+//                    sync();
 
                 for(Reference<MappedByteBuffer> rb: unreleasedChunks){
                     MappedByteBuffer b = rb.get();
@@ -665,11 +668,22 @@ public abstract class Volume {
             this.fullChunkAllocation = fullChunkAllocation;
             this.hasLimit = sizeLimit>0;
             try {
+                checkFolder(file,readOnly);
                 channel = new RandomAccessFile(file, readOnly?"r":"rw").getChannel();
                 size = channel.size();
             } catch (IOException e) {
                 throw new IOError(e);
             }
+        }
+
+        protected static void checkFolder(File file, boolean readOnly) throws IOException {
+            File parent = file.getParentFile();
+            if(!parent.exists() || !parent.isDirectory())
+                throw new IOException("Parent folder does not exist: "+file);
+            if(!parent.canRead())
+                throw new IOException("Parent folder is not readable: "+file);
+            if(readOnly && !parent.canWrite())
+                throw new IOException("Parent folder is not writeable: "+file);
         }
 
         @Override

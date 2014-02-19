@@ -293,7 +293,7 @@ public abstract class Store implements Engine{
     protected int expectedMasks(){
         return (encrypt?ENCRYPT_FLAG_MASK:0) |
                 (checksum?CHECKSUM_FLAG_MASK:0) |
-                (checksum?COMPRESS_FLAG_MASK:0);
+                (compress?COMPRESS_FLAG_MASK:0);
     }
 
     private static final int LOCK_MASK = CC.CONCURRENCY-1;
@@ -305,5 +305,13 @@ public abstract class Store implements Engine{
         return h & LOCK_MASK;
     }
 
+    @Override
+    public boolean canSnapshot() {
+        return false;
+    }
 
+    @Override
+    public Engine snapshot() throws UnsupportedOperationException {
+        throw new UnsupportedOperationException("Snapshots are not supported");
+    }
 }

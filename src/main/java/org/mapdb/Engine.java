@@ -207,6 +207,18 @@ public interface Engine {
     /** @return true if engine supports rollback*/
     boolean canRollback();
 
+    /** @return true if engine can create read-only snapshots*/
+    boolean canSnapshot();
+
+    /**
+     * Returns read-only snapshot of data in Engine.
+     *
+     * @see EngineWrapper#canSnapshot()
+     * @throws UnsupportedOperationException if snapshots are not supported/enabled
+     */
+    Engine snapshot() throws UnsupportedOperationException;
+
+
     /** clears any underlying cache */
     void clearCache();
 

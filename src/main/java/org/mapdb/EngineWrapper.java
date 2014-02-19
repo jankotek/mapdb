@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 
 /**
@@ -109,6 +110,16 @@ public class EngineWrapper implements Engine{
     }
 
     @Override
+    public boolean canSnapshot() {
+        return getWrappedEngine().canSnapshot();
+    }
+
+    @Override
+    public Engine snapshot() throws UnsupportedOperationException {
+        return getWrappedEngine().snapshot();
+    }
+
+    @Override
     public void clearCache() {
         getWrappedEngine().clearCache();
     }
@@ -191,6 +202,16 @@ public class EngineWrapper implements Engine{
         @Override
         public boolean isReadOnly() {
             return true;
+        }
+
+        @Override
+        public boolean canSnapshot() {
+            return true;
+        }
+
+        @Override
+        public Engine snapshot() throws UnsupportedOperationException {
+            return this;
         }
 
     }
@@ -425,6 +446,16 @@ public class EngineWrapper implements Engine{
         }
 
         @Override
+        synchronized public boolean canSnapshot() {
+            return super.canSnapshot();
+        }
+
+        @Override
+        synchronized public Engine snapshot() throws UnsupportedOperationException {
+            return super.snapshot();
+        }
+
+        @Override
         synchronized public void compact() {
             super.compact();
         }
@@ -548,6 +579,16 @@ public class EngineWrapper implements Engine{
         }
 
         @Override
+        public boolean canSnapshot() {
+            throw new IllegalAccessError("already closed");
+        }
+
+        @Override
+        public Engine snapshot() throws UnsupportedOperationException {
+            throw new IllegalAccessError("already closed");
+        }
+
+        @Override
         public void clearCache() {
             throw new IllegalAccessError("already closed");
         }
@@ -562,4 +603,42 @@ public class EngineWrapper implements Engine{
             throw new IllegalAccessError("already closed");
         }
     };
+
+    /**
+     * Closes Engine on JVM shutdown using shutdown hook: {@link Runtime#addShutdownHook(Thread)}
+     * If engine was closed by user before JVM shutdown, hook is removed to save memory.
+     */
+    public static class CloseOnJVMShutdown extends EngineWrapper{
+
+        final protected AtomicBoolean shutdownHappened = new AtomicBoolean(false);
+
+        final Runnable hookRunnable = new Runnable() {
+            @Override
+            public void run() {
+                shutdownHappened.set(true);
+                CloseOnJVMShutdown.this.hook = null;
+                if(CloseOnJVMShutdown.this.isClosed())
+                    return;
+                CloseOnJVMShutdown.this.close();
+            }
+        };
+
+        Thread hook;
+
+
+        public CloseOnJVMShutdown(Engine engine) {
+            super(engine);
+            hook = new Thread(hookRunnable,"MapDB shutdown hook");
+            Runtime.getRuntime().addShutdownHook(hook);
+        }
+
+        @Override
+        public void close() {
+            super.close();
+            if(!shutdownHappened.get() && hook!=null){
+                Runtime.getRuntime().removeShutdownHook(hook);
+            }
+            hook = null;
+        }
+    }
 }

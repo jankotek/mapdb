@@ -9,8 +9,8 @@ import java.util.Arrays;
 import java.util.Comparator;
 
 /**
- * Custom serializer for BTreeMap keys which enables <a href='https://en.wikipedia.org/wiki/Delta_encoding'>Delta encoding</a>.
- * <p/>
+ * Custom serializer for BTreeMap keys which enables [Delta encoding](https://en.wikipedia.org/wiki/Delta_encoding).
+ *
  * Keys in BTree Nodes are sorted, this enables number of tricks to save disk space.
  * For example for numbers we may store only difference between subsequent numbers, for string we can only take suffix, etc...
  *

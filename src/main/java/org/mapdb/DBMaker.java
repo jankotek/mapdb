@@ -23,7 +23,6 @@ import java.io.IOError;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * A builder class for creating and opening a database.
@@ -219,6 +218,52 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         } catch (IOException e) {
             throw new IOError(e);
         }
+    }
+
+    /**
+     * Creates new off-heap cache with maximal size in GBs.
+     * Entries are removed from cache in most-recently-used fashion
+     * if store becomes too big.
+     *
+     * This method uses off-heap direct ByteBuffers. See {@link java.nio.ByteBuffer#allocateDirect(int)}
+     *
+     * @param size maximal size of off-heap store in gigabytes.
+     * @param <K>
+     * @param <V>
+     * @return map
+     */
+    public static <K,V> HTreeMap<K,V> newCacheDirect(double size){
+        return DBMaker
+                .newDirectMemoryDB()
+                .transactionDisable()
+                .make()
+                .createHashMap("cache")
+                .expireStoreSize(size)
+                .counterEnable()
+                .make();
+    }
+
+    /**
+     * Creates new off-heap cache with maximal size in GBs.
+     * Entries are removed from cache in most-recently-used fashion
+     * if store becomes too big.
+     *
+     * This method uses  ByteBuffers backed by on-heap byte[]. See {@link java.nio.ByteBuffer#allocate(int)}
+     *
+     * @param size maximal size of off-heap store in gigabytes.
+     * @param <K>
+     * @param <V>
+     * @return map
+     */
+    public static <K,V> HTreeMap<K,V> newCache(double size){
+        return DBMaker
+                .newMemoryDB()
+                .transactionDisable()
+                .make()
+                .createHashMap("cache")
+                .expireStoreSize(size)
+                .counterEnable()
+                .make();
     }
 
 
@@ -513,7 +558,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
 
     /**
-     * Adds Adler32 checksum at end of each record to check data integrity.
+     * Adds CRC32 checksum at end of each record to check data integrity.
      * It throws 'IOException("Checksum does not match, data broken")' on de-serialization if data are corrupted
      * <p/>
      * Make sure you enable this every time you reopen store, otherwise record de-serialization fails.
@@ -620,7 +665,18 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
     /** constructs DB using current settings */
     public DB make(){
-        return new DB(makeEngine(), propsGetBool(Keys.strictDBGet));
+        boolean strictGet = propsGetBool(Keys.strictDBGet);
+        Engine engine = makeEngine();
+        boolean dbCreated = false;
+        try{
+            DB db =  new  DB(engine, strictGet);
+            dbCreated = true;
+            return db;
+        }finally {
+            //did db creation fail? in that case close engine to unlock files
+            if(!dbCreated)
+                engine.close();
+        }
     }
 
     
@@ -628,13 +684,10 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         props.setProperty(Keys.fullTx,TRUE);
         snapshotEnable();
         Engine e = makeEngine();
-        if(e instanceof EngineWrapper && !(e instanceof TxEngine))
-            e = ((EngineWrapper)e).getWrappedEngine();
-        if(!(e instanceof TxEngine)) throw new IllegalArgumentException("Snapshot must be enabled for TxMaker");
         //init catalog if needed
         DB db = new DB(e);
         db.commit();
-        return new TxMaker((TxEngine) e);
+        return new TxMaker(e, propsGetBool(Keys.strictDBGet), propsGetBool(Keys.snapshots));
     }
 
     /** constructs Engine using current settings */
@@ -709,29 +762,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
 
         if(propsGetBool(Keys.closeOnJvmShutdown)){
-            final Engine engine2 = engine;
-            final AtomicBoolean shutdown = new AtomicBoolean(false);
-            final Thread hook = new Thread("MapDB shutdown") {
-                @Override
-                public void run() {
-                    shutdown.set(true);
-                    if (engine2.isClosed())
-                        return;
-                    extendShutdownHookBefore(engine2);
-                    engine2.close();
-                    extendShutdownHookAfter(engine2);
-                }
-            };
-            Runtime.getRuntime().addShutdownHook(hook);
-            //uninstall shutdown hook on close
-            engine = new EngineWrapper(engine){
-                @Override
-                public void close() {
-                    super.close();
-                    if(!shutdown.get())
-                        Runtime.getRuntime().removeShutdownHook(hook);
-                }
-            };
+            engine = new EngineWrapper.CloseOnJVMShutdown(engine);
         }
 
 
@@ -812,11 +843,6 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         return 2; //default option is RAF
     }
 
-    protected void extendShutdownHookBefore(Engine engine) {
-    }
-
-    protected void extendShutdownHookAfter(Engine engine) {
-    }
 
     protected TxEngine extendSnapshotEngine(Engine engine) {
         return new TxEngine(engine,propsGetBool(Keys.fullTx));

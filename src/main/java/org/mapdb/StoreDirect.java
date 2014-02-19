@@ -220,10 +220,12 @@ public class StoreDirect extends Store{
             if(!allGood){
                 //exception was thrown, try to unlock files
                 if(index!=null){
+                    index.sync();
                     index.close();
                     index = null;
                 }
                 if(phys!=null){
+                    phys.sync();
                     phys.close();
                     phys = null;
                 }
@@ -681,14 +683,15 @@ public class StoreDirect extends Store{
         try{
 
             if(!readOnly){
-                index.putLong(IO_PHYS_SIZE,physSize);
-                index.putLong(IO_INDEX_SIZE,indexSize);
-                index.putLong(IO_FREE_SIZE,freeSize);
-                index.putLong(IO_INDEX_SUM,indexHeaderChecksum());
-
                 if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
                     serializerPojo.save(this);
                 }
+
+                index.putLong(IO_PHYS_SIZE,physSize);
+                index.putLong(IO_INDEX_SIZE,indexSize);
+                index.putLong(IO_FREE_SIZE,freeSize);
+
+                index.putLong(IO_INDEX_SUM,indexHeaderChecksum());
             }
 
             // Syncs are expensive -- don't sync if the files are going to
@@ -718,14 +721,16 @@ public class StoreDirect extends Store{
     @Override
     public void commit() {
         if(!readOnly){
-            index.putLong(IO_PHYS_SIZE,physSize);
-            index.putLong(IO_INDEX_SIZE,indexSize);
-            index.putLong(IO_FREE_SIZE,freeSize);
-            index.putLong(IO_INDEX_SUM,indexHeaderChecksum());
 
             if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
                 serializerPojo.save(this);
             }
+
+            index.putLong(IO_PHYS_SIZE,physSize);
+            index.putLong(IO_INDEX_SIZE,indexSize);
+            index.putLong(IO_FREE_SIZE,freeSize);
+
+            index.putLong(IO_INDEX_SUM, indexHeaderChecksum());
         }
         if(!syncOnCommitDisabled){
             index.sync();
@@ -813,8 +818,10 @@ public class StoreDirect extends Store{
 
             final boolean useDirectBuffer = index instanceof Volume.MemoryVol &&
                     ((Volume.MemoryVol)index).useDirectBuffer;
+            index.sync(); //TODO is sync needed here?
             index.close();
             index = null;
+            phys.sync(); //TODO is sync needed here?
             phys.close();
             phys = null;
 

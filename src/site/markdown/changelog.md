@@ -1,6 +1,33 @@
 Changelog
 ============
 
+Version 0.9.10 (2014-02-18)
+--------------------------
+
+Yet another bug fix release before 1.0. There is fix for serious data corruption with disabled transactions.
+Async-Writer queue is no longer unbounded to prevent memory leaks. In-memory cache is now much easier to use
+with memory size limit, checkout `Map cache = DBMaker.newCache(sizeLimitInGB)`
+
+Changes:
+
+ * Fix #261: SerializerPojo could cause data corruption with transaction disabled.
+ * Fix #281: txMaker.makeTx().snapshot() does not work.
+ * Fix #280: Check for parent folder when opening file db.
+ * Fix #288: syncOnCommitDisable() does not work at WAL
+ * Fix #276: In-memory cache based on HTreeMap now has memory size limit. Checkout `Map cache = DBMaker.newCache(sizeLimitInGB)`
+ * Fix #282: DB.createXXX() does not throw exception if collection already exists.
+ * Fix #275: AsyncWrite fails with OOM error, Async Write Queue has now limited size
+ * Fix #272: Memory leak when using closeOnJvmShutdown (eg. any tmp map)
+ * BTreeMap.containsKey is now  faster with valuesOutsideNodes
+ * Store: Fix invalid checksum computation with compress enabled
+
+Open problems:
+
+ * Documentation
+ * Small performance issues
+
+
+
 Version 0.9.9 (2014-01-29)
 --------------------------
 

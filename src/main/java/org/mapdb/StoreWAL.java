@@ -71,10 +71,20 @@ public class StoreWAL extends StoreDirect {
             log = null;
             allGood = true;
         }finally{
-            if(!allGood && log!=null){
+            if(!allGood) {
                 //exception was thrown, try to unlock files
-                log.close();
-                log = null;
+                if (log!=null) {
+                    log.close();
+                    log = null;
+                }
+                if (index!=null) {
+                    index.close();
+                    index = null;
+                }
+                if (phys!=null) {
+                    phys.close();
+                    phys = null;
+                }
             }
 
             structuralLock.unlock();
@@ -538,7 +548,7 @@ public class StoreWAL extends StoreDirect {
                 structuralLock.unlock();
             }
             walIndexVal(logPos,ioRecid,0|MASK_ARCHIVE);
-            modified.put(ioRecid,TOMBSTONE);
+            modified.put(ioRecid, TOMBSTONE);
         }finally {
             lock.unlock();
         }
@@ -765,8 +775,10 @@ public class StoreWAL extends StoreDirect {
 
         logSize=0;
         assert(structuralLock.isHeldByCurrentThread());
-        return realCrc == crc;
+        if(realCrc == Long.MIN_VALUE)
+            return true; //in future WAL CRC might be switched off, in that case this value will be used
 
+        return realCrc == crc ;
     }
 
 
@@ -782,7 +794,7 @@ public class StoreWAL extends StoreDirect {
 
         //read headers
         if(log.isEmpty() || log.getInt(0)!=HEADER ||
-                log.getUnsignedShort(4)>STORE_VERSION || log.getLong(8) !=LOG_SEAL | 
+                log.getUnsignedShort(4)>STORE_VERSION || log.getLong(8) !=LOG_SEAL ||
                 log.getUnsignedShort(6)!=expectedMasks()){
             //wrong headers, discard log
             log.close();
