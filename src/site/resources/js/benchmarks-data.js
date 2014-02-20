@@ -1,1 +1,1 @@
-var basic_data ={"Redis":{"write":136844,"read":120946},"MapDB skip list":{"write":5700033,"read":6234553},"MapDB in memory":{"write":1321430,"read":5409319}};
+var basic_data={"Redis":{"write":56307,"read":47956},"MapDB skip list":{"write":1782680,"read":1817993},"MapDB in memory":{"write":478446,"read":1044403}};
