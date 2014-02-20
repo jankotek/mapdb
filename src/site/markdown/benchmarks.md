@@ -4,6 +4,7 @@ Benchmarks
 <script src="js/excanvas.js" />
 <script src="js/js-class.js" />
 <script src="js/bluff.js" />
+<script src="js/benchmarks-data.js" />
 <script src="js/benchmarks.js" />
 <span id="benchmark" />
 
