@@ -678,6 +678,12 @@ public abstract class Volume {
 
         protected static void checkFolder(File file, boolean readOnly) throws IOException {
             File parent = file.getParentFile();
+            if(parent == null) {
+                parent = file.getCanonicalFile().getParentFile();
+            }
+            if (parent == null) {
+                throw new IOException("Parent folder could not be determined for: "+file);
+            }
             if(!parent.exists() || !parent.isDirectory())
                 throw new IOException("Parent folder does not exist: "+file);
             if(!parent.canRead())
