@@ -397,6 +397,23 @@ public class SerializerBase implements Serializer{
             serialize(out, t.b, objectStack);
             serialize(out, t.c, objectStack);
             serialize(out, t.d, objectStack);
+        } else if (clazz == Fun.Tuple5.class){
+            out.write(Header.TUPLE5);
+            Fun.Tuple5 t = (Fun.Tuple5) obj;
+            serialize(out, t.a, objectStack);
+            serialize(out, t.b, objectStack);
+            serialize(out, t.c, objectStack);
+            serialize(out, t.d, objectStack);
+            serialize(out, t.e, objectStack);
+        } else if (clazz == Fun.Tuple6.class){
+            out.write(Header.TUPLE6);
+            Fun.Tuple6 t = (Fun.Tuple6) obj;
+            serialize(out, t.a, objectStack);
+            serialize(out, t.b, objectStack);
+            serialize(out, t.c, objectStack);
+            serialize(out, t.d, objectStack);
+            serialize(out, t.e, objectStack);
+            serialize(out, t.f, objectStack);
         } else if (clazz == BTreeKeySerializer.Tuple2KeySerializer.class){
             out.write(Header.MAPDB);
             DataOutput2.packInt(out, HeaderMapDB.SERIALIZER_KEY_TUPLE2);
@@ -457,6 +474,25 @@ public class SerializerBase implements Serializer{
             serialize(out,c.b,objectStack );
             serialize(out,c.c,objectStack );
             serialize(out,c.d,objectStack );
+        }else if(obj instanceof Fun.Tuple5Comparator ){
+            out.write(Header.MAPDB);
+            DataOutput2.packInt(out, HeaderMapDB.TUPLE5_COMPARATOR);
+            Fun.Tuple5Comparator c = (Fun.Tuple5Comparator) obj;
+            serialize(out,c.a,objectStack );
+            serialize(out,c.b,objectStack );
+            serialize(out,c.c,objectStack );
+            serialize(out,c.d,objectStack );
+            serialize(out,c.e,objectStack );
+        }else if(obj instanceof Fun.Tuple6Comparator ){
+            out.write(Header.MAPDB);
+            DataOutput2.packInt(out, HeaderMapDB.TUPLE6_COMPARATOR);
+            Fun.Tuple6Comparator c = (Fun.Tuple6Comparator) obj;
+            serialize(out,c.a,objectStack );
+            serialize(out,c.b,objectStack );
+            serialize(out,c.c,objectStack );
+            serialize(out,c.d,objectStack );
+            serialize(out,c.e,objectStack );
+            serialize(out,c.f,objectStack );
         }else if(obj instanceof Atomic.Var ){
             out.write(Header.MA_VAR);
             Atomic.Var v = (Atomic.Var) obj;
@@ -1143,6 +1179,12 @@ public class SerializerBase implements Serializer{
             case Header.TUPLE4:
                 ret = new Fun.Tuple4(this, is, objectStack);
                 break;
+            case Header.TUPLE5:
+                ret = new Fun.Tuple5(this, is, objectStack);
+                break;
+            case Header.TUPLE6:
+                ret = new Fun.Tuple6(this, is, objectStack);
+                break;
             case Header.MA_VAR:
                 ret = new Atomic.Var(getEngine(), this,is, objectStack);
                 break;
@@ -1341,6 +1383,11 @@ public class SerializerBase implements Serializer{
 
         int SERIALIZER_STRING_INTERN = 49;
         int FUN_EMPTY_ITERATOR = 50;
+
+        int TUPLE5_COMPARATOR = 51;
+        int TUPLE6_COMPARATOR = 52;
+        int TUPLE5_COMPARATOR_STATIC = 53;
+        int TUPLE6_COMPARATOR_STATIC = 54;
     }
 
     protected static final class singletons{
@@ -1359,6 +1406,8 @@ public class SerializerBase implements Serializer{
             all.put(Fun.TUPLE2_COMPARATOR,HeaderMapDB.TUPLE2_COMPARATOR_STATIC);
             all.put(Fun.TUPLE3_COMPARATOR,HeaderMapDB.TUPLE3_COMPARATOR_STATIC);
             all.put(Fun.TUPLE4_COMPARATOR,HeaderMapDB.TUPLE4_COMPARATOR_STATIC);
+            all.put(Fun.TUPLE5_COMPARATOR,HeaderMapDB.TUPLE5_COMPARATOR_STATIC);
+            all.put(Fun.TUPLE6_COMPARATOR,HeaderMapDB.TUPLE6_COMPARATOR_STATIC);
 
             all.put(Serializer.STRING_NOSIZE,HeaderMapDB.SERIALIZER_STRING_NOSIZE);
             all.put(Serializer.STRING_ASCII,HeaderMapDB.SERIALIZER_STRING_ASCII);
@@ -1440,6 +1489,10 @@ public class SerializerBase implements Serializer{
                 return new Fun.Tuple3Comparator(this, is, objectStack,0);
             case HeaderMapDB.TUPLE4_COMPARATOR:
                 return new Fun.Tuple4Comparator(this, is, objectStack);
+            case HeaderMapDB.TUPLE5_COMPARATOR:
+                return new Fun.Tuple5Comparator(this, is, objectStack);
+            case HeaderMapDB.TUPLE6_COMPARATOR:
+                return new Fun.Tuple6Comparator(this, is, objectStack);
 
             case HeaderMapDB.B_TREE_BASIC_KEY_SERIALIZER:
                 return new BTreeKeySerializer.BasicKeySerializer(this,is,objectStack);

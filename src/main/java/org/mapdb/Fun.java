@@ -60,6 +60,9 @@ public final class Fun {
     public static final Comparator<Tuple2> TUPLE2_COMPARATOR = new Tuple2Comparator(null,null);
     public static final Comparator<Tuple3> TUPLE3_COMPARATOR = new Tuple3Comparator(null,null,null);
     public static final Comparator<Tuple4> TUPLE4_COMPARATOR = new Tuple4Comparator(null,null,null,null);
+    public static final Comparator<Tuple5> TUPLE5_COMPARATOR = new Tuple5Comparator(null,null,null,null,null);
+    public static final Comparator<Tuple6> TUPLE6_COMPARATOR = new Tuple6Comparator(null,null,null,null,null,null);
+
 
     private Fun(){}
 
@@ -91,6 +94,14 @@ public final class Fun {
 
     public static <A,B,C,D> Tuple4<A,B,C,D> t4(A a, B b, C c, D d) {
         return new Tuple4<A, B, C, D>(a,b,c,d);
+    }
+
+    public static <A,B,C,D,E> Tuple5<A,B,C,D,E> t5(A a, B b, C c, D d, E e) {
+        return new Tuple5<A,B,C,D,E>(a,b,c,d,e);
+    }
+
+    public static <A,B,C,D,E,F> Tuple6<A,B,C,D,E,F> t6(A a, B b, C c, D d, E e, F f) {
+        return new Tuple6<A,B,C,D,E,F>(a, b, c, d, e, f);
     }
 
 
@@ -257,6 +268,148 @@ public final class Fun {
     }
 
 
+    final static public class Tuple5<A, B, C, D, E> implements Comparable, Serializable {
+
+        private static final long serialVersionUID = 3975016300758650718L;
+
+        final public A a;
+        final public B b;
+        final public C c;
+        final public D d;
+        final public E e;
+
+        public Tuple5(A a, B b, C c, D d, E e) {
+            this.a = a;
+            this.b = b;
+            this.c = c;
+            this.d = d;
+            this.e = e;
+        }
+
+        /**
+         * constructor used for deserilization
+         */
+        protected Tuple5(SerializerBase serializer, DataInput in, SerializerBase.FastArrayList objectStack) throws IOException {
+            objectStack.add(this);
+            this.a = (A) serializer.deserialize(in, objectStack);
+            this.b = (B) serializer.deserialize(in, objectStack);
+            this.c = (C) serializer.deserialize(in, objectStack);
+            this.d = (D) serializer.deserialize(in, objectStack);
+            this.e = (E) serializer.deserialize(in, objectStack);
+        }
+
+        @Override
+        public int compareTo(Object o) {
+            return TUPLE5_COMPARATOR.compare(this, (Tuple5) o);
+        }
+
+
+        @Override
+        public String toString() {
+            return "Tuple5[" + a + ", " + b + ", " + c + ", " + d + ", " + e + "]";
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Tuple6 tuple6 = (Tuple6) o;
+
+            if (a != null ? !a.equals(tuple6.a) : tuple6.a != null) return false;
+            if (b != null ? !b.equals(tuple6.b) : tuple6.b != null) return false;
+            if (c != null ? !c.equals(tuple6.c) : tuple6.c != null) return false;
+            if (d != null ? !d.equals(tuple6.d) : tuple6.d != null) return false;
+            if (e != null ? !e.equals(tuple6.e) : tuple6.e != null) return false;
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = a != null ? a.hashCode() : 0;
+            result = 31 * result + (b != null ? b.hashCode() : 0);
+            result = 31 * result + (c != null ? c.hashCode() : 0);
+            result = 31 * result + (d != null ? d.hashCode() : 0);
+            result = 31 * result + (e != null ? e.hashCode() : 0);
+            return result;
+        }
+    }
+
+
+    final static public class Tuple6<A, B, C, D, E, F> implements Comparable, Serializable {
+
+        private static final long serialVersionUID = 7500397586163050718L;
+
+        final public A a;
+        final public B b;
+        final public C c;
+        final public D d;
+        final public E e;
+        final public F f;
+
+        public Tuple6(A a, B b, C c, D d, E e, F f) {
+            this.a = a;
+            this.b = b;
+            this.c = c;
+            this.d = d;
+            this.e = e;
+            this.f = f;
+        }
+
+        /**
+         * constructor used for deserilization
+         */
+        protected Tuple6(SerializerBase serializer, DataInput in, SerializerBase.FastArrayList objectStack) throws IOException {
+            objectStack.add(this);
+            this.a = (A) serializer.deserialize(in, objectStack);
+            this.b = (B) serializer.deserialize(in, objectStack);
+            this.c = (C) serializer.deserialize(in, objectStack);
+            this.d = (D) serializer.deserialize(in, objectStack);
+            this.e = (E) serializer.deserialize(in, objectStack);
+            this.f = (F) serializer.deserialize(in, objectStack);
+        }
+
+        @Override
+        public int compareTo(Object o) {
+            return TUPLE6_COMPARATOR.compare(this, (Tuple6) o);
+        }
+
+
+        @Override
+        public String toString() {
+            return "Tuple6[" + a + ", " + b + ", " + c + ", " + d + ", " + e + ", " + f + "]";
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Tuple6 tuple6 = (Tuple6) o;
+
+            if (a != null ? !a.equals(tuple6.a) : tuple6.a != null) return false;
+            if (b != null ? !b.equals(tuple6.b) : tuple6.b != null) return false;
+            if (c != null ? !c.equals(tuple6.c) : tuple6.c != null) return false;
+            if (d != null ? !d.equals(tuple6.d) : tuple6.d != null) return false;
+            if (e != null ? !e.equals(tuple6.e) : tuple6.e != null) return false;
+            if (f != null ? !f.equals(tuple6.f) : tuple6.f != null) return false;
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = a != null ? a.hashCode() : 0;
+            result = 31 * result + (b != null ? b.hashCode() : 0);
+            result = 31 * result + (c != null ? c.hashCode() : 0);
+            result = 31 * result + (d != null ? d.hashCode() : 0);
+            result = 31 * result + (e != null ? e.hashCode() : 0);
+            result = 31 * result + (f != null ? f.hashCode() : 0);
+            return result;
+        }
+    }
+
     public static final class Tuple2Comparator<A,B> implements Comparator<Tuple2<A,B>>,Serializable {
 
         protected final Comparator a;
@@ -355,7 +508,7 @@ public final class Fun {
         protected final Comparator c;
         protected final Comparator d;
 
-        public Tuple4Comparator(Comparator<A> a, Comparator<B> b, Comparator<C> c, Comparator<C> d) {
+        public Tuple4Comparator(Comparator<A> a, Comparator<B> b, Comparator<C> c, Comparator<D> d) {
             this.a = a==null? COMPARATOR :a;
             this.b = b==null? COMPARATOR :b;
             this.c = c==null? COMPARATOR :c;
@@ -397,6 +550,137 @@ public final class Fun {
             result = 31 * result + b.hashCode();
             result = 31 * result + c.hashCode();
             result = 31 * result + d.hashCode();
+            return result;
+        }
+    }
+
+
+    public static final class Tuple5Comparator<A,B,C,D,E> implements Comparator<Tuple5<A,B,C,D,E>>, Serializable {
+
+        protected final Comparator a;
+        protected final Comparator b;
+        protected final Comparator c;
+        protected final Comparator d;
+        protected final Comparator e;
+
+
+        public Tuple5Comparator(Comparator<A> a, Comparator<B> b, Comparator<C> c, Comparator<D> d, Comparator<E> e) {
+            this.a = a == null ? COMPARATOR : a;
+            this.b = b == null ? COMPARATOR : b;
+            this.c = c == null ? COMPARATOR : c;
+            this.d = d == null ? COMPARATOR : d;
+            this.e = e == null ? COMPARATOR : e;
+        }
+
+        /**
+         * constructor used for deserilization
+         */
+        protected Tuple5Comparator(SerializerBase serializer, DataInput in, SerializerBase.FastArrayList objectStack) throws IOException {
+            objectStack.add(this);
+            this.a = (Comparator) serializer.deserialize(in, objectStack);
+            this.b = (Comparator) serializer.deserialize(in, objectStack);
+            this.c = (Comparator) serializer.deserialize(in, objectStack);
+            this.d = (Comparator) serializer.deserialize(in, objectStack);
+            this.e = (Comparator) serializer.deserialize(in, objectStack);
+        }
+
+        @Override
+        public int compare(final Tuple5 o1, final Tuple5 o2) {
+            int i = a.compare(o1.a, o2.a);
+            if (i != 0) return i;
+            i = b.compare(o1.b, o2.b);
+            if (i != 0) return i;
+            i = c.compare(o1.c, o2.c);
+            if (i != 0) return i;
+            i = d.compare(o1.d, o2.d);
+            if (i != 0) return i;
+            return e.compare(o1.e, o2.e);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Tuple5Comparator that = (Tuple5Comparator) o;
+            return a.equals(that.a) && b.equals(that.b) && c.equals(that.c) && d.equals(that.d) && e.equals(that.e);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = a.hashCode();
+            result = 31 * result + b.hashCode();
+            result = 31 * result + c.hashCode();
+            result = 31 * result + d.hashCode();
+            result = 31 * result + e.hashCode();
+            return result;
+        }
+    }
+
+    public static final class Tuple6Comparator<A,B,C,D,E,F> implements Comparator<Tuple6<A,B,C,D,E,F>>, Serializable {
+
+        protected final Comparator a;
+        protected final Comparator b;
+        protected final Comparator c;
+        protected final Comparator d;
+        protected final Comparator e;
+        protected final Comparator f;
+
+
+        public Tuple6Comparator(Comparator<A> a, Comparator<B> b, Comparator<C> c, Comparator<D> d, Comparator<E> e, Comparator<F> f) {
+            this.a = a == null ? COMPARATOR : a;
+            this.b = b == null ? COMPARATOR : b;
+            this.c = c == null ? COMPARATOR : c;
+            this.d = d == null ? COMPARATOR : d;
+            this.e = e == null ? COMPARATOR : e;
+            this.f = f == null ? COMPARATOR : f;
+        }
+
+        /**
+         * constructor used for deserilization
+         */
+        protected Tuple6Comparator(SerializerBase serializer, DataInput in, SerializerBase.FastArrayList objectStack) throws IOException {
+            objectStack.add(this);
+            this.a = (Comparator) serializer.deserialize(in, objectStack);
+            this.b = (Comparator) serializer.deserialize(in, objectStack);
+            this.c = (Comparator) serializer.deserialize(in, objectStack);
+            this.d = (Comparator) serializer.deserialize(in, objectStack);
+            this.e = (Comparator) serializer.deserialize(in, objectStack);
+            this.f = (Comparator) serializer.deserialize(in, objectStack);
+        }
+
+        @Override
+        public int compare(final Tuple6 o1, final Tuple6 o2) {
+            int i = a.compare(o1.a, o2.a);
+            if (i != 0) return i;
+            i = b.compare(o1.b, o2.b);
+            if (i != 0) return i;
+            i = c.compare(o1.c, o2.c);
+            if (i != 0) return i;
+            i = d.compare(o1.d, o2.d);
+            if (i != 0) return i;
+            i = e.compare(o1.e, o2.e);
+            if (i != 0) return i;
+            return f.compare(o1.f, o2.f);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Tuple6Comparator that = (Tuple6Comparator) o;
+            return a.equals(that.a) && b.equals(that.b) && c.equals(that.c) && d.equals(that.d) && e.equals(that.e) && f.equals(that.f);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = a.hashCode();
+            result = 31 * result + b.hashCode();
+            result = 31 * result + c.hashCode();
+            result = 31 * result + d.hashCode();
+            result = 31 * result + e.hashCode();
+            result = 31 * result + f.hashCode();
             return result;
         }
     }
