@@ -676,6 +676,40 @@ public class SerializerBaseTest{
         assertEquals(a,clone(a));
     }
 
+    @Test
+    public void tuple5_comparators() throws IOException {
+        Object a = new Fun.Tuple5Comparator(Fun.REVERSE_COMPARATOR,null,null,null,null);
+        assertEquals(a,clone(a));
+        a = new Fun.Tuple5Comparator(null,Fun.REVERSE_COMPARATOR,null,null,null);
+        assertEquals(a,clone(a));
+        a = new Fun.Tuple5Comparator(null,null,Fun.REVERSE_COMPARATOR,null,null);
+        assertEquals(a,clone(a));
+        a = new Fun.Tuple5Comparator(null,null,null,Fun.REVERSE_COMPARATOR,null);
+        assertEquals(a,clone(a));
+        a = new Fun.Tuple5Comparator(null,null,null,null,Fun.REVERSE_COMPARATOR);
+        assertEquals(a,clone(a));
+        a = new Fun.Tuple5Comparator(Fun.REVERSE_COMPARATOR,Fun.REVERSE_COMPARATOR,Fun.REVERSE_COMPARATOR,Fun.REVERSE_COMPARATOR,Fun.REVERSE_COMPARATOR);
+        assertEquals(a,clone(a));
+    }
+
+    @Test
+    public void tuple6_comparators() throws IOException {
+        Object a = new Fun.Tuple6Comparator(Fun.REVERSE_COMPARATOR,null,null,null,null,null);
+        assertEquals(a,clone(a));
+        a = new Fun.Tuple6Comparator(null,Fun.REVERSE_COMPARATOR,null,null,null,null);
+        assertEquals(a,clone(a));
+        a = new Fun.Tuple6Comparator(null,null,Fun.REVERSE_COMPARATOR,null,null,null);
+        assertEquals(a,clone(a));
+        a = new Fun.Tuple6Comparator(null,null,null,Fun.REVERSE_COMPARATOR,null,null);
+        assertEquals(a,clone(a));
+        a = new Fun.Tuple6Comparator(null,null,null,null,Fun.REVERSE_COMPARATOR,null);
+        assertEquals(a,clone(a));
+        a = new Fun.Tuple6Comparator(null,null,null,null,null,Fun.REVERSE_COMPARATOR);
+        assertEquals(a,clone(a));
+        a = new Fun.Tuple6Comparator(Fun.REVERSE_COMPARATOR,Fun.REVERSE_COMPARATOR,Fun.REVERSE_COMPARATOR,Fun.REVERSE_COMPARATOR,Fun.REVERSE_COMPARATOR,Fun.REVERSE_COMPARATOR);
+        assertEquals(a,clone(a));
+    }
+
     @Test public void array_comparator() throws IOException {
         Fun.ArrayComparator c = new Fun.ArrayComparator(new Comparator[]{Fun.REVERSE_COMPARATOR, Fun.COMPARATOR, Fun.COMPARATOR});
         assertEquals(c,clone(c));

@@ -126,10 +126,94 @@ public class FunTest {
     }
 
 
+    @Test public void t5_compare(){
+
+
+        for(int a1=0;a1<vals.length;a1++){
+            for(int a2=0;a2<vals.length;a2++){
+                for(int a3=0;a3<vals.length;a3++){
+                    for(int a4=0;a4<vals.length;a4++){
+                        for(int a5=0;a5<vals.length;a5++){
+                            for(int b1=0;b1<vals.length;b1++){
+                                for(int b2=0;b2<vals.length;b2++){
+                                    for(int b3=0;b3<vals.length;b3++){
+                                        for(int b4=0;b4<vals.length;b4++){
+                                            for(int b5=0;b5<vals.length;b5++){
+
+
+                                            Tuple5 a = new Tuple5(vals[a1], vals[a2], vals[a3], vals[a4], vals[a5]);
+                                            Tuple5 b = new Tuple5(vals[b1], vals[b2], vals[b3], vals[b4], vals[b5]);
+
+                                            int i = a.compareTo(b);
+                                            int i0 = -b.compareTo(a);
+
+                                            //System.out.println(a + " - "+ b + " - "+i);
+
+                                            int i2 = compare(new int[]{a1,a2,a3,a4,a5}, new int[]{b1,b2,b3,b4,b5});
+                                            assertEquals(Math.signum(i), Math.signum(i2),1e-10);
+                                            assertEquals(Math.signum(i0), Math.signum(i2),1e-10);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+    @Test public void t6_compare(){
+
+
+        for(int a1=0;a1<vals.length;a1++){
+            for(int a2=0;a2<vals.length;a2++){
+                for(int a3=0;a3<vals.length;a3++){
+                    for(int a4=0;a4<vals.length;a4++){
+                        for(int a5=0;a5<vals.length;a5++){
+                            for(int a6=0;a6<vals.length;a6++){
+                                for(int b1=0;b1<vals.length;b1++){
+                                    for(int b2=0;b2<vals.length;b2++){
+                                        for(int b3=0;b3<vals.length;b3++){
+                                            for(int b4=0;b4<vals.length;b4++){
+                                                for(int b5=0;b5<vals.length;b5++){
+                                                    for(int b6=0;b6<vals.length;b6++){
+
+
+                                                    Tuple6 a = new Tuple6(vals[a1], vals[a2], vals[a3], vals[a4], vals[a5], vals[a6]);
+                                                    Tuple6 b = new Tuple6(vals[b1], vals[b2], vals[b3], vals[b4], vals[b5], vals[b6]);
+
+                                                    int i = a.compareTo(b);
+                                                    int i0 = -b.compareTo(a);
+
+                                                    //System.out.println(a + " - "+ b + " - "+i);
+
+                                                    int i2 = compare(new int[]{a1,a2,a3,a4,a5,a6}, new int[]{b1,b2,b3,b4,b5,b6});
+                                                    assertEquals(Math.signum(i), Math.signum(i2),1e-10);
+                                                    assertEquals(Math.signum(i0), Math.signum(i2),1e-10);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
     @Test public void lo_hi(){
         assertTrue(t2("A",null).compareTo(t2("A",HI))<0);
         assertTrue(t3("A", null, null).compareTo(t3("A", HI, null))<0);
         assertTrue(t4("A", null, null, null).compareTo(t4("A", HI, null, null))<0);
+        assertTrue(t5("A", null, null, null, null).compareTo(t5("A", HI, null, null, null))<0);
+        assertTrue(t6("A", null, null, null, null, null).compareTo(t6("A", HI, null, null, null, null))<0);
     }
 
     @Test public void testSubMap(){
