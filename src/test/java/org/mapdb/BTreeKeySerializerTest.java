@@ -212,6 +212,126 @@ public class BTreeKeySerializerTest {
 
     }
 
+    final BTreeKeySerializer.Tuple5KeySerializer tuple5_serializer = new BTreeKeySerializer.Tuple5KeySerializer(
+            BTreeMap.COMPARABLE_COMPARATOR,BTreeMap.COMPARABLE_COMPARATOR,BTreeMap.COMPARABLE_COMPARATOR,BTreeMap.COMPARABLE_COMPARATOR,
+            Serializer.BASIC, Serializer.BASIC, Serializer.BASIC, Serializer.BASIC, Serializer.BASIC);
+
+    @Test public void tuple5_simple() throws IOException {
+        List<Fun.Tuple5<String,Integer, Double, Long,String>> v = new ArrayList<Fun.Tuple5<String, Integer, Double,Long,String>>();
+
+        v.add(null);
+        v.add(Fun.t5("aa",1,1D,1L,"zz"));
+        v.add(Fun.t5("aa",1,1D,2L,"zz"));
+        v.add(Fun.t5("aa",1,2D,2L,"zz"));
+        v.add(Fun.t5("aa",2,2D,2L,"zz"));
+        v.add(Fun.t5("aa",3,2D,2L,"zz"));
+        v.add(Fun.t5("aa",3,3D,2L,"zz"));
+        v.add(Fun.t5("zz",1,2D,2L,"zz"));
+        v.add(Fun.t5("zz",2,2D,2L,"zz"));
+        v.add(Fun.t5("zz",3,2D,2L,"zz"));
+        v.add(null);
+
+        DataOutput2 out = new DataOutput2();
+
+        tuple5_serializer.serialize(out, 1, v.size() - 1, v.toArray());
+
+        DataInput2 in = new DataInput2(out.copyBytes());
+        Object[] nn = tuple5_serializer.deserialize(in,1,v.size()-1, v.size());
+
+        assertArrayEquals(v.toArray(), nn);
+
+    }
+    @Test public void tuple5() throws IOException {
+        List<Fun.Tuple5<String,Integer,Double, Long,String>> v = new ArrayList<Fun.Tuple5<String, Integer,Double,Long,String>>();
+
+        v.add(null);
+
+        String[] ss = new String[]{"aa","bb","oper","zzz"};
+        for(String s: ss){
+            for(int i = 2;i<1000;i+=i/2){
+                for(double d = 2D;i<1000;i+=i/2){
+                    for(long l = 3L;i<10000;i+=i/2){
+                        for(String s2: ss){
+                            v.add(Fun.t5(s,i,d,l,s2));
+                        }
+                    }
+                }
+            }
+        }
+
+        v.add(null);
+
+        DataOutput2 out = new DataOutput2();
+        tuple5_serializer.serialize(out, 1, v.size() - 1, v.toArray());
+
+        DataInput2 in = new DataInput2(out.copyBytes());
+        Object[] nn = tuple5_serializer.deserialize(in,1,v.size()-1, v.size());
+
+        assertArrayEquals(v.toArray(), nn);
+
+    }
+
+    final BTreeKeySerializer.Tuple6KeySerializer tuple6_serializer = new BTreeKeySerializer.Tuple6KeySerializer(
+            BTreeMap.COMPARABLE_COMPARATOR,BTreeMap.COMPARABLE_COMPARATOR,BTreeMap.COMPARABLE_COMPARATOR,BTreeMap.COMPARABLE_COMPARATOR,BTreeMap.COMPARABLE_COMPARATOR,
+            Serializer.BASIC, Serializer.BASIC, Serializer.BASIC, Serializer.BASIC, Serializer.BASIC, Serializer.BASIC);
+
+    @Test public void tuple6_simple() throws IOException {
+        List<Fun.Tuple6<String,Integer, Double, Long,String,String>> v = new ArrayList<Fun.Tuple6<String, Integer, Double,Long,String,String>>();
+
+        v.add(null);
+        v.add(Fun.t6("aa",1,1D,1L,"zz","asd"));
+        v.add(Fun.t6("aa",1,1D,2L,"zz","asd"));
+        v.add(Fun.t6("aa",1,2D,2L,"zz","asd"));
+        v.add(Fun.t6("aa",2,2D,2L,"zz","asd"));
+        v.add(Fun.t6("aa",3,2D,2L,"zz","asd"));
+        v.add(Fun.t6("aa",3,3D,2L,"zz","asd"));
+        v.add(Fun.t6("zz",1,2D,2L,"zz","asd"));
+        v.add(Fun.t6("zz",2,2D,2L,"zz","asd"));
+        v.add(Fun.t6("zz",3,2D,2L,"zz","asd"));
+        v.add(null);
+
+        DataOutput2 out = new DataOutput2();
+
+        tuple6_serializer.serialize(out, 1, v.size() - 1, v.toArray());
+
+        DataInput2 in = new DataInput2(out.copyBytes());
+        Object[] nn = tuple6_serializer.deserialize(in,1,v.size()-1, v.size());
+
+        assertArrayEquals(v.toArray(), nn);
+
+    }
+    @Test public void tuple6() throws IOException {
+        List<Fun.Tuple6<String,Integer,Double, Long,String,String>> v = new ArrayList<Fun.Tuple6<String, Integer,Double,Long,String,String>>();
+
+        v.add(null);
+
+        String[] ss = new String[]{"aa","bb","oper","zzz","asd"};
+        for(String s: ss){
+            for(int i = 2;i<1000;i+=i/2){
+                for(double d = 2D;i<1000;i+=i/2){
+                    for(long l = 3L;i<10000;i+=i/2){
+                        for(String s2: ss){
+                            for(String s3: ss){
+                                v.add(Fun.t6(s,i,d,l,s2,s3));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        v.add(null);
+
+        DataOutput2 out = new DataOutput2();
+        tuple6_serializer.serialize(out, 1, v.size() - 1, v.toArray());
+
+        DataInput2 in = new DataInput2(out.copyBytes());
+        Object[] nn = tuple6_serializer.deserialize(in,1,v.size()-1, v.size());
+
+        assertArrayEquals(v.toArray(), nn);
+
+    }
+
 
 
 }

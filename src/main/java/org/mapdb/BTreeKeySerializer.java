@@ -742,4 +742,467 @@ public abstract class BTreeKeySerializer<K>{
         }
     }
 
+
+    /**
+     * Applies delta compression on array of tuple. First, second and third tuple value may be shared between consequential tuples,
+     * so only first occurrence is serialized. An example:
+     *
+     * <pre>
+     *     Value                Serialized as
+     *     ----------------------------------
+     *     Tuple(1, 2, 1, 1)       1, 2, 1, 1
+     *     Tuple(1, 2, 1, 2)                2
+     *     Tuple(1, 3, 3, 3)          3, 3, 3
+     *     Tuple(1, 3, 4, 4)             4, 4
+     * </pre>
+     *
+     * @param <A> first tuple value
+     * @param <B> second tuple value
+     * @param <C> third tuple value
+     */
+    public static class Tuple5KeySerializer<A,B,C,D,E> extends  BTreeKeySerializer<Fun.Tuple5<A,B,C,D,E>> implements Serializable {
+
+        protected final Comparator<A> aComparator;
+        protected final Comparator<B> bComparator;
+        protected final Comparator<C> cComparator;
+        protected final Comparator<D> dComparator;
+        protected final Serializer<A> aSerializer;
+        protected final Serializer<B> bSerializer;
+        protected final Serializer<C> cSerializer;
+        protected final Serializer<D> dSerializer;
+        protected final Serializer<E> eSerializer;
+
+        /**
+         * Construct new Tuple4 Key Serializer. You may pass null for some value,
+         * In that case 'default' value will be used, Comparable comparator and Default Serializer from DB.
+         *
+         */
+        public Tuple5KeySerializer(Comparator<A> aComparator, Comparator<B> bComparator, Comparator<C> cComparator, Comparator<D> dComparator,
+                                   Serializer aSerializer, Serializer bSerializer, Serializer cSerializer, Serializer dSerializer, Serializer eSerializer){
+            this.aComparator = aComparator;
+            this.bComparator = bComparator;
+            this.cComparator = cComparator;
+            this.dComparator = dComparator;
+            this.aSerializer = aSerializer;
+            this.bSerializer = bSerializer;
+            this.cSerializer = cSerializer;
+            this.dSerializer = dSerializer;
+            this.eSerializer = eSerializer;
+        }
+
+        /** used for deserialization */
+        Tuple5KeySerializer(SerializerBase serializerBase, DataInput is, SerializerBase.FastArrayList<Object> objectStack) throws IOException {
+            objectStack.add(this);
+            aComparator = (Comparator<A>) serializerBase.deserialize(is,objectStack);
+            bComparator = (Comparator<B>) serializerBase.deserialize(is,objectStack);
+            cComparator = (Comparator<C>) serializerBase.deserialize(is,objectStack);
+            dComparator = (Comparator<D>) serializerBase.deserialize(is,objectStack);
+            aSerializer = (Serializer<A>) serializerBase.deserialize(is,objectStack);
+            bSerializer = (Serializer<B>) serializerBase.deserialize(is,objectStack);
+            cSerializer = (Serializer<C>) serializerBase.deserialize(is,objectStack);
+            dSerializer = (Serializer<D>) serializerBase.deserialize(is,objectStack);
+            eSerializer = (Serializer<E>) serializerBase.deserialize(is,objectStack);
+        }
+
+
+        @Override
+        public void serialize(DataOutput out, int start, int end, Object[] keys) throws IOException {
+            int acount=0;
+            int bcount=0;
+            int ccount=0;
+            int dcount=0;
+            for(int i=start;i<end;i++){
+                Fun.Tuple5<A,B,C,D,E> t = (Fun.Tuple5<A, B,C,D,E>) keys[i];
+                if(acount==0){
+                    //write new A
+                    aSerializer.serialize(out,t.a);
+                    //count how many A are following
+                    acount=1;
+                    while(i+acount<end && aComparator.compare(t.a, ((Fun.Tuple5<A, B, C,D, E>) keys[i+acount]).a)==0){
+                        acount++;
+                    }
+                    DataOutput2.packInt(out,acount);
+                }
+                if(bcount==0){
+                    //write new B
+                    bSerializer.serialize(out,t.b);
+                    //count how many B are following
+                    bcount=1;
+                    while(i+bcount<end && bComparator.compare(t.b, ((Fun.Tuple5<A, B,C,D, E>) keys[i+bcount]).b)==0){
+                        bcount++;
+                    }
+                    DataOutput2.packInt(out,bcount);
+                }
+                if(ccount==0){
+                    //write new C
+                    cSerializer.serialize(out,t.c);
+                    //count how many C are following
+                    ccount=1;
+                    while(i+ccount<end && cComparator.compare(t.c, ((Fun.Tuple5<A, B,C,D, E>) keys[i+ccount]).c)==0){
+                        ccount++;
+                    }
+                    DataOutput2.packInt(out,ccount);
+                }
+
+                if(dcount==0){
+                    //write new D
+                    dSerializer.serialize(out,t.d);
+                    //count how many D are following
+                    dcount=1;
+                    while(i+dcount<end && dComparator.compare(t.d, ((Fun.Tuple5<A, B,C,D,E>) keys[i+dcount]).d)==0){
+                        dcount++;
+                    }
+                    DataOutput2.packInt(out,dcount);
+                }
+
+
+                eSerializer.serialize(out,t.e);
+
+                acount--;
+                bcount--;
+                ccount--;
+                dcount--;
+            }
+        }
+
+        @Override
+        public Object[] deserialize(DataInput in, int start, int end, int size) throws IOException {
+            Object[] ret = new Object[size];
+            A a = null;
+            int acount = 0;
+            B b = null;
+            int bcount = 0;
+            C c = null;
+            int ccount = 0;
+            D d = null;
+            int dcount = 0;
+
+            for(int i=start;i<end;i++){
+                if(acount==0){
+                    //read new A
+                    a = aSerializer.deserialize(in,-1);
+                    acount = DataInput2.unpackInt(in);
+                }
+                if(bcount==0){
+                    //read new B
+                    b = bSerializer.deserialize(in,-1);
+                    bcount = DataInput2.unpackInt(in);
+                }
+                if(ccount==0){
+                    //read new C
+                    c = cSerializer.deserialize(in,-1);
+                    ccount = DataInput2.unpackInt(in);
+                }
+                if(dcount==0){
+                    //read new D
+                    d = dSerializer.deserialize(in,-1);
+                    dcount = DataInput2.unpackInt(in);
+                }
+
+
+                E e = eSerializer.deserialize(in,-1);
+                ret[i]= Fun.t5(a, b, c, d, e);
+                acount--;
+                bcount--;
+                ccount--;
+                dcount--;
+            }
+            assert(acount==0);
+            assert(bcount==0);
+            assert(ccount==0);
+            assert(dcount==0);
+
+            return ret;
+        }
+
+        @Override
+        public Comparator<Fun.Tuple5<A,B,C,D,E>> getComparator() {
+            return BTreeMap.COMPARABLE_COMPARATOR;
+        }
+
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Tuple5KeySerializer that = (Tuple5KeySerializer) o;
+
+            if (aComparator != null ? !aComparator.equals(that.aComparator) : that.aComparator != null) return false;
+            if (aSerializer != null ? !aSerializer.equals(that.aSerializer) : that.aSerializer != null) return false;
+            if (bComparator != null ? !bComparator.equals(that.bComparator) : that.bComparator != null) return false;
+            if (bSerializer != null ? !bSerializer.equals(that.bSerializer) : that.bSerializer != null) return false;
+            if (cComparator != null ? !cComparator.equals(that.cComparator) : that.cComparator != null) return false;
+            if (cSerializer != null ? !cSerializer.equals(that.cSerializer) : that.cSerializer != null) return false;
+            if (dComparator != null ? !dComparator.equals(that.dComparator) : that.dComparator != null) return false;
+            if (dSerializer != null ? !dSerializer.equals(that.dSerializer) : that.dSerializer != null) return false;
+            if (eSerializer != null ? !eSerializer.equals(that.eSerializer) : that.eSerializer != null) return false;
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = aComparator != null ? aComparator.hashCode() : 0;
+            result = 31 * result + (bComparator != null ? bComparator.hashCode() : 0);
+            result = 31 * result + (cComparator != null ? cComparator.hashCode() : 0);
+            result = 31 * result + (dComparator != null ? dComparator.hashCode() : 0);
+            result = 31 * result + (aSerializer != null ? aSerializer.hashCode() : 0);
+            result = 31 * result + (bSerializer != null ? bSerializer.hashCode() : 0);
+            result = 31 * result + (cSerializer != null ? cSerializer.hashCode() : 0);
+            result = 31 * result + (dSerializer != null ? dSerializer.hashCode() : 0);
+            result = 31 * result + (eSerializer != null ? eSerializer.hashCode() : 0);
+            return result;
+        }
+    }
+
+    /**
+     * Applies delta compression on array of tuple. First, second and third tuple value may be shared between consequential tuples,
+     * so only first occurrence is serialized. An example:
+     *
+     * <pre>
+     *     Value                Serialized as
+     *     ----------------------------------
+     *     Tuple(1, 2, 1, 1)       1, 2, 1, 1
+     *     Tuple(1, 2, 1, 2)                2
+     *     Tuple(1, 3, 3, 3)          3, 3, 3
+     *     Tuple(1, 3, 4, 4)             4, 4
+     * </pre>
+     *
+     * @param <A> first tuple value
+     * @param <B> second tuple value
+     * @param <C> third tuple value
+     */
+    public static class Tuple6KeySerializer<A,B,C,D,E,F> extends  BTreeKeySerializer<Fun.Tuple6<A,B,C,D,E,F>> implements Serializable {
+
+        protected final Comparator<A> aComparator;
+        protected final Comparator<B> bComparator;
+        protected final Comparator<C> cComparator;
+        protected final Comparator<D> dComparator;
+        protected final Comparator<E> eComparator;
+        protected final Serializer<A> aSerializer;
+        protected final Serializer<B> bSerializer;
+        protected final Serializer<C> cSerializer;
+        protected final Serializer<D> dSerializer;
+        protected final Serializer<E> eSerializer;
+        protected final Serializer<F> fSerializer;
+
+        /**
+         * Construct new Tuple4 Key Serializer. You may pass null for some value,
+         * In that case 'default' value will be used, Comparable comparator and Default Serializer from DB.
+         *
+         */
+        public Tuple6KeySerializer(Comparator<A> aComparator, Comparator<B> bComparator, Comparator<C> cComparator, Comparator<D> dComparator,Comparator<E> eComparator,
+                                   Serializer aSerializer, Serializer bSerializer, Serializer cSerializer, Serializer dSerializer, Serializer eSerializer,Serializer fSerializer){
+            this.aComparator = aComparator;
+            this.bComparator = bComparator;
+            this.cComparator = cComparator;
+            this.dComparator = dComparator;
+            this.eComparator = eComparator;
+            this.aSerializer = aSerializer;
+            this.bSerializer = bSerializer;
+            this.cSerializer = cSerializer;
+            this.dSerializer = dSerializer;
+            this.eSerializer = eSerializer;
+            this.fSerializer = fSerializer;
+        }
+
+        /** used for deserialization */
+        Tuple6KeySerializer(SerializerBase serializerBase, DataInput is, SerializerBase.FastArrayList<Object> objectStack) throws IOException {
+            objectStack.add(this);
+            aComparator = (Comparator<A>) serializerBase.deserialize(is,objectStack);
+            bComparator = (Comparator<B>) serializerBase.deserialize(is,objectStack);
+            cComparator = (Comparator<C>) serializerBase.deserialize(is,objectStack);
+            dComparator = (Comparator<D>) serializerBase.deserialize(is,objectStack);
+            eComparator = (Comparator<E>) serializerBase.deserialize(is,objectStack);
+            aSerializer = (Serializer<A>) serializerBase.deserialize(is,objectStack);
+            bSerializer = (Serializer<B>) serializerBase.deserialize(is,objectStack);
+            cSerializer = (Serializer<C>) serializerBase.deserialize(is,objectStack);
+            dSerializer = (Serializer<D>) serializerBase.deserialize(is,objectStack);
+            eSerializer = (Serializer<E>) serializerBase.deserialize(is,objectStack);
+            fSerializer = (Serializer<F>) serializerBase.deserialize(is,objectStack);
+        }
+
+
+        @Override
+        public void serialize(DataOutput out, int start, int end, Object[] keys) throws IOException {
+            int acount=0;
+            int bcount=0;
+            int ccount=0;
+            int dcount=0;
+            int ecount=0;
+            for(int i=start;i<end;i++){
+                Fun.Tuple6<A,B,C,D,E,F> t = (Fun.Tuple6<A, B,C,D,E,F>) keys[i];
+                if(acount==0){
+                    //write new A
+                    aSerializer.serialize(out,t.a);
+                    //count how many A are following
+                    acount=1;
+                    while(i+acount<end && aComparator.compare(t.a, ((Fun.Tuple6<A, B, C,D, E,F>) keys[i+acount]).a)==0){
+                        acount++;
+                    }
+                    DataOutput2.packInt(out,acount);
+                }
+                if(bcount==0){
+                    //write new B
+                    bSerializer.serialize(out,t.b);
+                    //count how many B are following
+                    bcount=1;
+                    while(i+bcount<end && bComparator.compare(t.b, ((Fun.Tuple6<A, B,C,D, E,F>) keys[i+bcount]).b)==0){
+                        bcount++;
+                    }
+                    DataOutput2.packInt(out,bcount);
+                }
+                if(ccount==0){
+                    //write new C
+                    cSerializer.serialize(out,t.c);
+                    //count how many C are following
+                    ccount=1;
+                    while(i+ccount<end && cComparator.compare(t.c, ((Fun.Tuple6<A, B,C,D, E,F>) keys[i+ccount]).c)==0){
+                        ccount++;
+                    }
+                    DataOutput2.packInt(out,ccount);
+                }
+
+                if(dcount==0){
+                    //write new C
+                    dSerializer.serialize(out,t.d);
+                    //count how many D are following
+                    dcount=1;
+                    while(i+dcount<end && dComparator.compare(t.d, ((Fun.Tuple6<A, B,C,D,E,F>) keys[i+dcount]).d)==0){
+                        dcount++;
+                    }
+                    DataOutput2.packInt(out,dcount);
+                }
+
+                if(ecount==0){
+                    //write new C
+                    eSerializer.serialize(out,t.e);
+                    //count how many E are following
+                    ecount=1;
+                    while(i+ecount<end && eComparator.compare(t.e, ((Fun.Tuple6<A, B,C,D,E,F>) keys[i+ecount]).e)==0){
+                        ecount++;
+                    }
+                    DataOutput2.packInt(out,ecount);
+                }
+
+
+                fSerializer.serialize(out,t.f);
+
+                acount--;
+                bcount--;
+                ccount--;
+                dcount--;
+                ecount--;
+            }
+        }
+
+        @Override
+        public Object[] deserialize(DataInput in, int start, int end, int size) throws IOException {
+            Object[] ret = new Object[size];
+            A a = null;
+            int acount = 0;
+            B b = null;
+            int bcount = 0;
+            C c = null;
+            int ccount = 0;
+            D d = null;
+            int dcount = 0;
+            E e = null;
+            int ecount = 0;
+
+
+            for(int i=start;i<end;i++){
+                if(acount==0){
+                    //read new A
+                    a = aSerializer.deserialize(in,-1);
+                    acount = DataInput2.unpackInt(in);
+                }
+                if(bcount==0){
+                    //read new B
+                    b = bSerializer.deserialize(in,-1);
+                    bcount = DataInput2.unpackInt(in);
+                }
+                if(ccount==0){
+                    //read new C
+                    c = cSerializer.deserialize(in,-1);
+                    ccount = DataInput2.unpackInt(in);
+                }
+                if(dcount==0){
+                    //read new D
+                    d = dSerializer.deserialize(in,-1);
+                    dcount = DataInput2.unpackInt(in);
+                }
+
+                if(ecount==0){
+                    //read new E
+                    e = eSerializer.deserialize(in,-1);
+                    ecount = DataInput2.unpackInt(in);
+                }
+
+
+                F f = fSerializer.deserialize(in,-1);
+                ret[i]= Fun.t6(a, b, c, d, e, f);
+                acount--;
+                bcount--;
+                ccount--;
+                dcount--;
+                ecount--;
+            }
+            assert(acount==0);
+            assert(bcount==0);
+            assert(ccount==0);
+            assert(dcount==0);
+            assert(ecount==0);
+
+            return ret;
+        }
+
+        @Override
+        public Comparator<Fun.Tuple6<A,B,C,D,E,F>> getComparator() {
+            return BTreeMap.COMPARABLE_COMPARATOR;
+        }
+
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Tuple6KeySerializer that = (Tuple6KeySerializer) o;
+
+            if (aComparator != null ? !aComparator.equals(that.aComparator) : that.aComparator != null) return false;
+            if (aSerializer != null ? !aSerializer.equals(that.aSerializer) : that.aSerializer != null) return false;
+            if (bComparator != null ? !bComparator.equals(that.bComparator) : that.bComparator != null) return false;
+            if (bSerializer != null ? !bSerializer.equals(that.bSerializer) : that.bSerializer != null) return false;
+            if (cComparator != null ? !cComparator.equals(that.cComparator) : that.cComparator != null) return false;
+            if (cSerializer != null ? !cSerializer.equals(that.cSerializer) : that.cSerializer != null) return false;
+            if (dComparator != null ? !dComparator.equals(that.dComparator) : that.dComparator != null) return false;
+            if (dSerializer != null ? !dSerializer.equals(that.dSerializer) : that.dSerializer != null) return false;
+            if (eSerializer != null ? !eSerializer.equals(that.eSerializer) : that.eSerializer != null) return false;
+            if (eComparator != null ? !eComparator.equals(that.eComparator) : that.eComparator != null) return false;
+            if (fSerializer != null ? !fSerializer.equals(that.fSerializer) : that.fSerializer != null) return false;
+
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = aComparator != null ? aComparator.hashCode() : 0;
+            result = 31 * result + (bComparator != null ? bComparator.hashCode() : 0);
+            result = 31 * result + (cComparator != null ? cComparator.hashCode() : 0);
+            result = 31 * result + (dComparator != null ? dComparator.hashCode() : 0);
+            result = 31 * result + (eComparator != null ? eComparator.hashCode() : 0);
+            result = 31 * result + (aSerializer != null ? aSerializer.hashCode() : 0);
+            result = 31 * result + (bSerializer != null ? bSerializer.hashCode() : 0);
+            result = 31 * result + (cSerializer != null ? cSerializer.hashCode() : 0);
+            result = 31 * result + (dSerializer != null ? dSerializer.hashCode() : 0);
+            result = 31 * result + (eSerializer != null ? eSerializer.hashCode() : 0);
+            result = 31 * result + (fSerializer != null ? fSerializer.hashCode() : 0);
+            return result;
+        }
+    }
+
+
 }

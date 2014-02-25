@@ -314,13 +314,13 @@ public final class Fun {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
 
-            Tuple6 tuple6 = (Tuple6) o;
+            Tuple5 tuple5 = (Tuple5) o;
 
-            if (a != null ? !a.equals(tuple6.a) : tuple6.a != null) return false;
-            if (b != null ? !b.equals(tuple6.b) : tuple6.b != null) return false;
-            if (c != null ? !c.equals(tuple6.c) : tuple6.c != null) return false;
-            if (d != null ? !d.equals(tuple6.d) : tuple6.d != null) return false;
-            if (e != null ? !e.equals(tuple6.e) : tuple6.e != null) return false;
+            if (a != null ? !a.equals(tuple5.a) : tuple5.a != null) return false;
+            if (b != null ? !b.equals(tuple5.b) : tuple5.b != null) return false;
+            if (c != null ? !c.equals(tuple5.c) : tuple5.c != null) return false;
+            if (d != null ? !d.equals(tuple5.d) : tuple5.d != null) return false;
+            if (e != null ? !e.equals(tuple5.e) : tuple5.e != null) return false;
 
             return true;
         }

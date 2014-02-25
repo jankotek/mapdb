@@ -427,8 +427,8 @@ public class SerializerBase implements Serializer{
             BTreeKeySerializer.Tuple3KeySerializer s = (BTreeKeySerializer.Tuple3KeySerializer) obj;
             serialize(out, s.aComparator,objectStack);
             serialize(out, s.bComparator,objectStack);
-            serialize(out, s.aSerializer,objectStack);
-            serialize(out, s.bSerializer,objectStack);
+            serialize(out, s.aSerializer, objectStack);
+            serialize(out, s.bSerializer, objectStack);
             serialize(out, s.cSerializer,objectStack);
         } else if (clazz == BTreeKeySerializer.Tuple4KeySerializer.class){
             out.write(Header.MAPDB);
@@ -438,9 +438,37 @@ public class SerializerBase implements Serializer{
             serialize(out, s.bComparator,objectStack);
             serialize(out, s.cComparator,objectStack);
             serialize(out, s.aSerializer,objectStack);
-            serialize(out, s.bSerializer,objectStack);
-            serialize(out, s.cSerializer,objectStack);
+            serialize(out, s.bSerializer, objectStack);
+            serialize(out, s.cSerializer, objectStack);
             serialize(out, s.dSerializer,objectStack);
+        } else if (clazz == BTreeKeySerializer.Tuple5KeySerializer.class){
+            out.write(Header.MAPDB);
+            DataOutput2.packInt(out, HeaderMapDB.SERIALIZER_KEY_TUPLE5);
+            BTreeKeySerializer.Tuple5KeySerializer s = (BTreeKeySerializer.Tuple5KeySerializer) obj;
+            serialize(out, s.aComparator,objectStack);
+            serialize(out, s.bComparator,objectStack);
+            serialize(out, s.cComparator,objectStack);
+            serialize(out, s.dComparator,objectStack);
+            serialize(out, s.aSerializer,objectStack);
+            serialize(out, s.bSerializer, objectStack);
+            serialize(out, s.cSerializer, objectStack);
+            serialize(out, s.dSerializer,objectStack);
+            serialize(out, s.eSerializer,objectStack);
+        } else if (clazz == BTreeKeySerializer.Tuple6KeySerializer.class){
+            out.write(Header.MAPDB);
+            DataOutput2.packInt(out, HeaderMapDB.SERIALIZER_KEY_TUPLE6);
+            BTreeKeySerializer.Tuple6KeySerializer s = (BTreeKeySerializer.Tuple6KeySerializer) obj;
+            serialize(out, s.aComparator,objectStack);
+            serialize(out, s.bComparator,objectStack);
+            serialize(out, s.cComparator,objectStack);
+            serialize(out, s.dComparator,objectStack);
+            serialize(out, s.eComparator,objectStack);
+            serialize(out, s.aSerializer,objectStack);
+            serialize(out, s.bSerializer,objectStack);
+            serialize(out, s.cSerializer, objectStack);
+            serialize(out, s.dSerializer, objectStack);
+            serialize(out, s.eSerializer,objectStack);
+            serialize(out, s.fSerializer,objectStack);
         }else if(clazz == BTreeKeySerializer.BasicKeySerializer.class){
             out.write(Header.MAPDB);
             DataOutput2.packInt(out, HeaderMapDB.B_TREE_BASIC_KEY_SERIALIZER);
@@ -1388,6 +1416,9 @@ public class SerializerBase implements Serializer{
         int TUPLE6_COMPARATOR = 52;
         int TUPLE5_COMPARATOR_STATIC = 53;
         int TUPLE6_COMPARATOR_STATIC = 54;
+        int SERIALIZER_KEY_TUPLE5 = 55;
+        int SERIALIZER_KEY_TUPLE6 = 56;
+
     }
 
     protected static final class singletons{
@@ -1482,6 +1513,10 @@ public class SerializerBase implements Serializer{
 
             case HeaderMapDB.SERIALIZER_KEY_TUPLE4:
                 return new BTreeKeySerializer.Tuple4KeySerializer(this, is, objectStack);
+            case HeaderMapDB.SERIALIZER_KEY_TUPLE5:
+                return new BTreeKeySerializer.Tuple5KeySerializer(this, is, objectStack);
+            case HeaderMapDB.SERIALIZER_KEY_TUPLE6:
+                return new BTreeKeySerializer.Tuple6KeySerializer(this, is, objectStack);
 
             case HeaderMapDB.TUPLE2_COMPARATOR:
                 return new Fun.Tuple2Comparator(this, is, objectStack);
