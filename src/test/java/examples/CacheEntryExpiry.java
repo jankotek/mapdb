@@ -18,7 +18,7 @@ public class CacheEntryExpiry {
     public static void main(String[] args) {
         //init off-heap store with 2GB size limit
         DB db = DBMaker
-                .newDirectMemoryDB()    //use off-heap memory, on-heap is `.newMemoryDB()`
+                .newMemoryDirectDB()    //use off-heap memory, on-heap is `.newMemoryDB()`
                 .sizeLimit(2)           //limit store size to 2GB
                 .transactionDisable()   //better performance
                 .make();

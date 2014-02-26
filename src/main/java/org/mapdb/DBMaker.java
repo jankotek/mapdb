@@ -115,16 +115,32 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         return getThis();
     }
 
+    /** Creates new in-memory database. Changes are lost after JVM exits.
+     * <p/>
+     * This will use DirectByteBuffer outside of HEAP, so Garbage Collector is not affected
+     */
+    public static DBMaker newMemoryDirectDB(){
+        return new DBMaker()._newMemoryDirectDB();
+    }
+
+    public  DBMakerT _newMemoryDirectDB() {
+        props.setProperty(Keys.volume,Keys.volume_offheap);
+        return getThis();
+    }
+
 
     /** Creates new in-memory database. Changes are lost after JVM exits.
      * <p/>
      * This will use DirectByteBuffer outside of HEAP, so Garbage Collector is not affected
      *
+     * @deprecated renamed to {@link DBMaker#newMemoryDirectDB}
      */
+    @Deprecated
     public static DBMaker newDirectMemoryDB(){
         return new DBMaker()._newDirectMemoryDB();
     }
 
+    @Deprecated
     public  DBMakerT _newDirectMemoryDB() {
         props.setProperty(Keys.volume,Keys.volume_offheap);
         return getThis();
@@ -234,7 +250,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      */
     public static <K,V> HTreeMap<K,V> newCacheDirect(double size){
         return DBMaker
-                .newDirectMemoryDB()
+                .newMemoryDirectDB()
                 .transactionDisable()
                 .make()
                 .createHashMap("cache")

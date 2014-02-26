@@ -23,7 +23,7 @@ public class CacheOffHeapAdvanced {
 
         //first create store
         DB db = DBMaker
-                .newDirectMemoryDB()
+                .newMemoryDirectDB()
                 .transactionDisable()
             //some additional options for DB
                // .asyncWriteEnable()
