@@ -137,7 +137,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         //test that previously deleted index slot was reused
         assertEquals(recid, recid2);
         assertEquals(1, countIndexRecords());
-        assertNotEquals(0,e.index.getLong(recid*8+ StoreDirect.IO_USER_START));
+        assertTrue(0!=e.index.getLong(recid*8+ StoreDirect.IO_USER_START));
     }
 
 

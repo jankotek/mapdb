@@ -359,7 +359,7 @@ public class HTreeMap2Test {
         m.expireLinkAdd(0,m.engine.put(HTreeMap.ExpireLinkNode.EMPTY, HTreeMap.ExpireLinkNode.SERIALIZER),  111L,222);
 
         Long recid = engine.get(m.expireHeads[0], Serializer.LONG);
-        assertNotEquals(ZERO,recid);
+        assertFalse(ZERO.equals(recid));
         assertEquals(recid, engine.get(m.expireTails[0], Serializer.LONG));
 
         HTreeMap.ExpireLinkNode n = engine.get(recid, HTreeMap.ExpireLinkNode.SERIALIZER);

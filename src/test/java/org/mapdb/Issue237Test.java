@@ -5,8 +5,8 @@ import org.junit.Test;
 import java.io.File;
 import java.util.concurrent.BlockingQueue;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
+
 
 public class Issue237Test {
 
@@ -37,7 +37,7 @@ public class Issue237Test {
         BlockingQueue<String> queue = database.getQueue( "test-queue" );
         queue.add( "test-value" );
         database.commit();
-        assertThat( queue.take(), is( "test-value" ) );
+        assertEquals(queue.take(), "test-value");
         database.commit();
         database.close();
     }
