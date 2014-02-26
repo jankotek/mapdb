@@ -644,7 +644,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         return put2(key,value, false);
     }
 
-    protected V put2(K v, V value2, final boolean putOnlyIfAbsent){
+    protected V put2(final K key, final V value2, final boolean putOnlyIfAbsent){
+        K v = key;
         if(v == null) throw new IllegalArgumentException("null key");
         if(value2 == null) throw new IllegalArgumentException("null value");
 
@@ -707,7 +708,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     engine.update(current, A, nodeSerializer);
                     //already in here
                     V ret =  valExpand(oldVal);
-                    notify(v,ret, value2);
+                    notify(key,ret, value2);
                     unlock(nodeLocks, current);
                     if(CC.PARANOID) assertNoLocks(nodeLocks);
                     return ret;
@@ -752,7 +753,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     engine.update(current, d, nodeSerializer);
                 }
 
-                notify(v,  null, value2);
+                notify(key,  null, value2);
                 unlock(nodeLocks, current);
                 if(CC.PARANOID) assertNoLocks(nodeLocks);
                 return null;
@@ -817,7 +818,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     //add newRootRecid into leftEdges
                     leftEdges.add(newRootRecid);
 
-                    notify(v, null, value2);
+                    notify(key, null, value2);
                     unlock(nodeLocks, rootRecidRef);
                     if(CC.PARANOID) assertNoLocks(nodeLocks);
                     return null;
@@ -949,7 +950,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         return remove2(key, null);
     }
 
-    private V remove2(Object key, Object value) {
+    private V remove2(final Object key, final Object value) {
         final long rootRecid = engine.get(rootRecidRef, Serializer.LONG);
         long current = rootRecid;
         BNode A = engine.get(current, nodeSerializer);
@@ -1141,7 +1142,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     }
 
     @Override
-    public boolean replace(K key, V oldValue, V newValue) {
+    public boolean replace(final K key, final V oldValue, final V newValue) {
         if(key == null || oldValue == null || newValue == null ) throw new NullPointerException();
 
         long rootRecid = engine.get(rootRecidRef, Serializer.LONG);
@@ -1175,11 +1176,12 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             if(oldValue.equals(val)){
                 Object[] vals = Arrays.copyOf(leaf.vals, leaf.vals.length);
                 notify(key, oldValue, newValue);
+                vals[pos-1] = newValue;
                 if(valsOutsideNodes){
                     long recid = engine.put(newValue, valueSerializer);
-                    newValue = (V) new ValRef(recid);
+                    vals[pos-1] =  new ValRef(recid);
                 }
-                vals[pos-1] = newValue;
+
                 leaf = new LeafNode(Arrays.copyOf(leaf.keys, leaf.keys.length), vals, leaf.next);
 
                 assert(nodeLocks.get(current)==Thread.currentThread());
@@ -1200,7 +1202,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     }
 
     @Override
-    public V replace(K key, V value) {
+    public V replace(final K key, final V value) {
         if(key == null || value == null) throw new NullPointerException();
         final long rootRecid = engine.get(rootRecidRef,Serializer.LONG);
         long current = rootRecid;
@@ -1232,11 +1234,12 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             Object oldVal = vals[pos-1];
             ret =  valExpand(oldVal);
             notify(key, (V)ret, value);
+            vals[pos-1] = value;
             if(valsOutsideNodes && value!=null){
                 long recid = engine.put(value, valueSerializer);
-                value = (V) new ValRef(recid);
+                vals[pos-1] = new ValRef(recid);
             }
-            vals[pos-1] = value;
+
             leaf = new LeafNode(Arrays.copyOf(leaf.keys, leaf.keys.length), vals, leaf.next);
             assert(nodeLocks.get(current)==Thread.currentThread());
             engine.update(current, leaf, nodeSerializer);

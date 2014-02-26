@@ -2,6 +2,9 @@ package org.mapdb;
 
 import org.junit.Test;
 import java.util.*;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicReference;
+
 import static org.mapdb.Fun.*;
 import static org.junit.Assert.*;
 
@@ -110,5 +113,87 @@ public class BindTest {
         assert(sec.contains(t2("a",2)));
 
     }
+
+    @Test public void htreemap_listeners(){
+        mapListeners(DBMaker.newMemoryDB().transactionDisable().make().getHashMap("test"));
+    }
+
+    @Test public void btreemap_listeners(){
+        mapListeners(DBMaker.newMemoryDB().transactionDisable().make().getTreeMap("test"));
+    }
+
+
+    void mapListeners(Bind.MapWithModificationListener test) {
+        final AtomicReference rkey = new AtomicReference();
+        final AtomicReference roldVal = new AtomicReference();
+        final AtomicReference rnewVal = new AtomicReference();
+
+        test.addModificationListener(new Bind.MapListener() {
+            @Override
+            public void update(Object key, Object oldVal, Object newVal) {
+                rkey.set(key);
+                roldVal.set(oldVal);
+                rnewVal.set(newVal);
+            }
+        });
+
+        int max = (int) 1e6;
+        Random r = new Random();
+        for(int i=0;i<max;i++){
+            Integer k = r.nextInt(max/100);
+            Integer v = k*1000;
+            Integer vold = null;
+
+            if(test.containsKey(k)){
+                vold = v*10;
+                test.put(k,vold);
+            }
+
+
+            test.put(k,v);
+            assertEquals(k, rkey.get());
+            assertEquals(v, rnewVal.get());
+            assertEquals(vold, roldVal.get());
+
+            final int m = i%20;
+            if(m==1){
+                test.remove(k);
+                assertEquals(k, rkey.get());
+                assertEquals(null, rnewVal.get());
+                assertEquals(v, roldVal.get());
+            }else  if(m==2){
+                test.put(k,i*20);
+                assertEquals(k, rkey.get());
+                assertEquals(i*20, rnewVal.get());
+                assertEquals(v, roldVal.get());
+            }else if(m==3&& !test.containsKey(i+1)){
+                ((ConcurrentMap)test).putIfAbsent(i+1,i+2);
+                assertEquals(i+1, rkey.get());
+                assertEquals(i+2, rnewVal.get());
+                assertEquals(null, roldVal.get());
+            }else if(m==4){
+                ((ConcurrentMap)test).remove(k,v);
+                assertEquals(k, rkey.get());
+                assertEquals(null, rnewVal.get());
+                assertEquals(v, roldVal.get());
+            }else if(m==5){
+                ((ConcurrentMap)test).replace(k,v,i*i);
+                assertEquals(k, rkey.get());
+                assertEquals(i*i, rnewVal.get());
+                assertEquals(v, roldVal.get());
+            }else if(m==5){
+                ((ConcurrentMap)test).replace(k,i*i);
+                assertEquals(k, rkey.get());
+                assertEquals(i*i, rnewVal.get());
+                assertEquals(v, roldVal.get());
+            }
+
+
+
+
+        }
+
+    }
+
 
 }
