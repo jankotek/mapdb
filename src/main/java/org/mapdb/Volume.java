@@ -514,14 +514,20 @@ public abstract class Volume {
                     unreleasedChunks.remove(ref);
                 }
 
+                //prevents BB to by synced multiple times
+                IdentityHashMap<MappedByteBuffer,Object> synced = new IdentityHashMap<MappedByteBuffer, Object>();
+
                 for(Reference<MappedByteBuffer> rb: unreleasedChunks){
                     MappedByteBuffer b = rb.get();
                     if(b==null) continue;
-                    b.force();
+                    if(synced.put(b,this)==null)
+                        b.force();
                 }
                 for(ByteBuffer b: chunks){
                     if(b!=null && (b instanceof MappedByteBuffer)){
-                        ((MappedByteBuffer) b).force();
+                        MappedByteBuffer bb = ((MappedByteBuffer) b);
+                        if(synced.put( bb,this)==null)
+                            bb.force();
                     }
                 }
 
