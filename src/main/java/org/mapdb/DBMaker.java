@@ -495,7 +495,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * <p/>
      * Using too large queue size can lead to out of memory exception.
      *
-     * @param size of queue
+     * @param queueSize of queue
      * @return this builder
      */
     public DBMakerT asyncWriteQueueSize(int queueSize){
@@ -860,36 +860,36 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
     }
 
 
-    protected TxEngine extendSnapshotEngine(Engine engine) {
+    protected Engine extendSnapshotEngine(Engine engine) {
         return new TxEngine(engine,propsGetBool(Keys.fullTx));
     }
 
-    protected Caches.LRU extendCacheLRU(Engine engine) {
+    protected Engine extendCacheLRU(Engine engine) {
         int cacheSize = propsGetInt(Keys.cacheSize, CC.DEFAULT_CACHE_SIZE);
         return new Caches.LRU(engine, cacheSize);
     }
 
-    protected Caches.WeakSoftRef extendCacheWeakRef(Engine engine) {
+    protected Engine extendCacheWeakRef(Engine engine) {
         return new Caches.WeakSoftRef(engine,true);
     }
 
-    protected Caches.WeakSoftRef extendCacheSoftRef(Engine engine) {
+    protected Engine extendCacheSoftRef(Engine engine) {
         return new Caches.WeakSoftRef(engine,false);
     }
 
 
 
-    protected Caches.HardRef extendCacheHardRef(Engine engine) {
+    protected Engine extendCacheHardRef(Engine engine) {
         int cacheSize = propsGetInt(Keys.cacheSize, CC.DEFAULT_CACHE_SIZE);
         return new Caches.HardRef(engine,cacheSize);
     }
 
-    protected Caches.HashTable extendCacheHashTable(Engine engine) {
+    protected Engine extendCacheHashTable(Engine engine) {
         int cacheSize = propsGetInt(Keys.cacheSize, CC.DEFAULT_CACHE_SIZE);
         return new Caches.HashTable(engine, cacheSize);
     }
 
-    protected AsyncWriteEngine extendAsyncWriteEngine(Engine engine) {
+    protected Engine extendAsyncWriteEngine(Engine engine) {
         return new AsyncWriteEngine(engine,
                 propsGetInt(Keys.asyncWriteFlushDelay,CC.ASYNC_WRITE_FLUSH_DELAY),
                 propsGetInt(Keys.asyncWriteQueueSize,CC.ASYNC_WRITE_QUEUE_SIZE),
@@ -914,7 +914,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
     }
 
 
-    protected StoreAppend extendStoreAppend() {
+    protected Engine extendStoreAppend() {
         final File file = props.containsKey(Keys.file)? new File(props.getProperty(Keys.file)):null;
         boolean compressionEnabled = Keys.compression_lzf.equals(props.getProperty(Keys.compression));
         return new StoreAppend(file, propsGetRafMode()>0, propsGetBool(Keys.readOnly),
@@ -924,7 +924,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
                 propsGetBool(Keys.checksum),compressionEnabled,propsGetXteaEncKey());
     }
 
-    protected Store extendStoreDirect(Volume.Factory folFac) {
+    protected Engine extendStoreDirect(Volume.Factory folFac) {
         boolean compressionEnabled = Keys.compression_lzf.equals(props.getProperty(Keys.compression));
         return new StoreDirect(folFac,  propsGetBool(Keys.readOnly),
                 propsGetBool(Keys.deleteFilesAfterClose),
@@ -934,7 +934,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
                 propsGetBool(Keys.fullChunkAllocation));
     }
 
-    protected Store extendStoreWAL(Volume.Factory folFac) {
+    protected Engine extendStoreWAL(Volume.Factory folFac) {
         boolean compressionEnabled = Keys.compression_lzf.equals(props.getProperty(Keys.compression));
         return new StoreWAL(folFac,  propsGetBool(Keys.readOnly),propsGetBool(Keys.deleteFilesAfterClose),
                 propsGetInt(Keys.freeSpaceReclaimQ,CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
