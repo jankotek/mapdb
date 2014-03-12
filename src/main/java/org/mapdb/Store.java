@@ -11,12 +11,15 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.logging.Logger;
 import java.util.zip.CRC32;
 
 /**
  * Low level record store.
  */
 public abstract class Store implements Engine{
+
+    protected static final Logger LOG = Logger.getLogger(Store.class.getName());
 
     protected final boolean checksum;
     protected final boolean compress;

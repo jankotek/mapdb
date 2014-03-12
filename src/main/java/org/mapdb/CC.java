@@ -42,9 +42,9 @@ public interface CC {
     boolean PARANOID = false;
 
     /**
-     * Compile with fine trace logging statements (Logger.debug and Logger.trace).
+     * Compile-in detailed log messages from store.
      */
-    boolean LOG_TRACE = false;
+    boolean LOG_STORE = false;
 
     /**
      * Log lock/unlock events. Useful to diagnose deadlocks

@@ -311,6 +311,8 @@ public class StoreDirect extends Store{
             }
             long recid = (ioRecid-IO_USER_START)/8;
             assert(recid>0);
+            if(CC.LOG_STORE)
+                LOG.finest("Preallocate recid=" + recid);
             return recid;
         }finally {
             newRecidLock.readLock().unlock();
@@ -340,6 +342,8 @@ public class StoreDirect extends Store{
                 recids[i] = (ioRecid-IO_USER_START)/8;
                 assert(recids[i]>0);
             }
+            if(CC.LOG_STORE)
+                LOG.finest("Preallocate recids="+Arrays.toString(recids));
         }finally {
             newRecidLock.readLock().unlock();
         }
@@ -373,9 +377,12 @@ public class StoreDirect extends Store{
         }finally {
             newRecidLock.readLock().unlock();
         }
-        recycledDataOuts.offer(out);
+
         long recid = (ioRecid-IO_USER_START)/8;
         assert(recid>0);
+        if(CC.LOG_STORE)
+            LOG.finest("Put recid="+recid+", "+" size="+out.pos+", "+" val="+value+" ser="+serializer );
+        recycledDataOuts.offer(out);
         return recid;
     }
 
@@ -487,6 +494,9 @@ public class StoreDirect extends Store{
         }finally{
             lock.unlock();
         }
+        if(CC.LOG_STORE)
+            LOG.finest("Update recid="+recid+", "+" size="+out.pos+", "+" val="+value+" ser="+serializer );
+
         recycledDataOuts.offer(out);
     }
 
