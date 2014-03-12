@@ -5,6 +5,7 @@
 target
 bin
 out
+helper
 *.iml
 *.ipr
 *.iws
