@@ -31,7 +31,7 @@ import java.util.Arrays;
 public final class DataOutput2 extends OutputStream implements DataOutput {
 
     public byte[] buf;
-    public int pos;
+    volatile public int pos;
 
     public DataOutput2(){
         pos = 0;
@@ -124,13 +124,11 @@ public final class DataOutput2 extends OutputStream implements DataOutput {
 
     @Override
     public void writeFloat(final float v) throws IOException {
-        ensureAvail(4);
         writeInt(Float.floatToIntBits(v));
     }
 
     @Override
     public void writeDouble(final double v) throws IOException {
-        ensureAvail(8);
         writeLong(Double.doubleToLongBits(v));
     }
 
