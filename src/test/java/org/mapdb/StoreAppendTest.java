@@ -1,6 +1,7 @@
 package org.mapdb;
 
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
@@ -20,7 +21,7 @@ public class StoreAppendTest<E extends StoreAppend> extends EngineTest<E>{
         return (E) new StoreAppend(f);
     }
 
-    @Test
+    @Test @Ignore
     public void compact_file_deleted(){
         File f = UtilsTest.tempDbFile();
         StoreAppend engine = new StoreAppend(f);

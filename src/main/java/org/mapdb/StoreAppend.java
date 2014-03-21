@@ -67,7 +67,7 @@ class StoreAppend extends Store{
     protected long rollbackMaxRecid;
 
     /** index table which maps recid into position in index log */
-    protected Volume index = new Volume.MemoryVol(false,0,false); //TODO option to keep index off-heap or in file
+    protected Volume index = new Volume.MemoryVol(false,0); //TODO option to keep index off-heap or in file
     /** same as `index`, but stores uncommited modifications made in this transaction*/
     protected final LongMap<Long> indexInTx;
 
@@ -104,7 +104,7 @@ class StoreAppend extends Store{
 
         if(sortedFiles.isEmpty()){
             //no files, create empty store
-            Volume zero = Volume.volumeForFile(getFileFromNum(0),useRandomAccessFile, readOnly,0L, false);
+            Volume zero = Volume.volumeForFile(getFileFromNum(0),useRandomAccessFile, readOnly,0L);
             zero.ensureAvailable(Engine.LAST_RESERVED_RECID*8+8);
             zero.putLong(0, HEADER);
             long pos = 8;
@@ -133,7 +133,7 @@ class StoreAppend extends Store{
             for(Fun.Tuple2<Long,File> t:sortedFiles){
                 Long num = t.a;
                 File f = t.b;
-                Volume vol = Volume.volumeForFile(f,useRandomAccessFile,readOnly, 0L, false);
+                Volume vol = Volume.volumeForFile(f,useRandomAccessFile,readOnly, 0L);
                 if(vol.isEmpty()||vol.getLong(0)!=HEADER){
                     vol.sync();
                     vol.close();
@@ -220,7 +220,7 @@ class StoreAppend extends Store{
         //beyond usual file size, so create new file
         currVolume.sync();
         currFileNum++;
-        currVolume = Volume.volumeForFile(getFileFromNum(currFileNum),useRandomAccessFile, readOnly,0L, false);
+        currVolume = Volume.volumeForFile(getFileFromNum(currFileNum),useRandomAccessFile, readOnly,0L);
         currVolume.ensureAvailable(8);
         currVolume.putLong(0,HEADER);
         currPos = 8;

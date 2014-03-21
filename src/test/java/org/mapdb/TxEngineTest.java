@@ -8,7 +8,7 @@ import static org.junit.Assert.*;
 
 public class TxEngineTest {
 
-    TxEngine e = new TxEngine(new StoreWAL(Volume.memoryFactory(false, 0L, false)),false);
+    TxEngine e = new TxEngine(new StoreWAL(Volume.memoryFactory(false, 0L)),false);
 
     @Test public void update(){
         long recid = e.put(111, Serializer.INTEGER);

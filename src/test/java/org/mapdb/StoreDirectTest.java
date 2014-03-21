@@ -16,7 +16,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     @Override boolean canRollback(){return false;}
 
     File f = UtilsTest.tempDbFile();
-    Volume.Factory fac = Volume.fileFactory(false,0,f, 0L,false);
+    Volume.Factory fac = Volume.fileFactory(false,0,f, 0L);
 
     static final long IO_RECID = StoreDirect.IO_FREE_RECID+32;
 
@@ -417,7 +417,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.close();
 
         //increment store version
-        Volume v = Volume.volumeForFile(f,true,false,0,false);
+        Volume v = Volume.volumeForFile(f,true,false,0);
         v.putUnsignedShort(4,StoreDirect.STORE_VERSION+1);
         v.sync();
         v.close();
@@ -444,7 +444,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
         //increment store version
         File phys = new File(f.getPath()+StoreDirect.DATA_FILE_EXT);
-        Volume v = Volume.volumeForFile(phys,true,false,0,false);
+        Volume v = Volume.volumeForFile(phys,true,false,0);
         v.putUnsignedShort(4,StoreDirect.STORE_VERSION+1);
         v.sync();
         v.close();

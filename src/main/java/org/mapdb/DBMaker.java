@@ -86,8 +86,6 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
         String strictDBGet = "strictDBGet";
 
-        String fullChunkAllocation = "fullChunkAllocation";
-
         String sizeLimit = "sizeLimit";
 
         String fullTx = "fullTx";
@@ -665,19 +663,6 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
 
 
-    /**
-     * Allocate new space in 1GB chunks rather than small increments.
-     *
-     *
-     * This will consume more space (not yet used space will be consumed).
-     * But it will also improve performance and reduce remapping.
-     *
-     */
-    public DBMakerT fullChunkAllocationEnable(){
-        props.setProperty(Keys.fullChunkAllocation,TRUE);
-        return getThis();
-    }
-
 
     /** constructs DB using current settings */
     public DB make(){
@@ -930,8 +915,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
                 propsGetBool(Keys.deleteFilesAfterClose),
                 propsGetInt(Keys.freeSpaceReclaimQ,CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
                 propsGetBool(Keys.syncOnCommitDisable),propsGetLong(Keys.sizeLimit,0),
-                propsGetBool(Keys.checksum),compressionEnabled,propsGetXteaEncKey(),
-                propsGetBool(Keys.fullChunkAllocation));
+                propsGetBool(Keys.checksum),compressionEnabled,propsGetXteaEncKey());
     }
 
     protected Engine extendStoreWAL(Volume.Factory folFac) {
@@ -939,23 +923,21 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         return new StoreWAL(folFac,  propsGetBool(Keys.readOnly),propsGetBool(Keys.deleteFilesAfterClose),
                 propsGetInt(Keys.freeSpaceReclaimQ,CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
                 propsGetBool(Keys.syncOnCommitDisable),propsGetLong(Keys.sizeLimit,-1),
-                propsGetBool(Keys.checksum),compressionEnabled,propsGetXteaEncKey(),
-                propsGetBool(Keys.fullChunkAllocation) );
+                propsGetBool(Keys.checksum),compressionEnabled,propsGetXteaEncKey());
     }
 
     protected Volume.Factory extendStoreVolumeFactory() {
         long sizeLimit = propsGetLong(Keys.sizeLimit,0);
-        boolean fullChunkAlloc = propsGetBool(Keys.fullChunkAllocation);
         String volume = props.getProperty(Keys.volume);
         if(Keys.volume_heap.equals(volume))
-            return Volume.memoryFactory(false,sizeLimit, fullChunkAlloc);
+            return Volume.memoryFactory(false,sizeLimit);
         else if(Keys.volume_offheap.equals(volume))
-            return Volume.memoryFactory(true,sizeLimit, fullChunkAlloc);
+            return Volume.memoryFactory(true,sizeLimit);
 
         File file = new File(props.getProperty(Keys.file));
 
         return Volume.fileFactory(propsGetBool(Keys.readOnly), propsGetRafMode(), file,
-                            sizeLimit, fullChunkAlloc);
+                            sizeLimit);
     }
 
 

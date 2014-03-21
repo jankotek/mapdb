@@ -12,7 +12,7 @@ import java.util.Map;
 public class BTreeMapContainsKeyTest extends JSR166TestCase {
 
 	boolean valsOutsideNodes = true;
-	Engine r = new StoreDirect(Volume.memoryFactory(false, 0L, false));
+	Engine r = new StoreDirect(Volume.memoryFactory(false, 0L));
 	RecordingSerializer valueSerializer = new RecordingSerializer();
 
     Map<Integer, String> map = new BTreeMap(r, createRootRef(r,BASIC, Serializer.BASIC, COMPARABLE_COMPARATOR,0),
