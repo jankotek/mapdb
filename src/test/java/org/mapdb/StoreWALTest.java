@@ -37,7 +37,7 @@ public class StoreWALTest extends StoreDirectTest<StoreWAL>{
         db.commit();
         assertTrue(f.exists());
         assertTrue(phys.exists());
-        assertFalse(wal.exists());
+        assertTrue(wal.exists());
         db.getHashMap("test").put("a12a","bb");
         assertTrue(wal.exists());
         db.close();

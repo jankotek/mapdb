@@ -68,7 +68,9 @@ public class StoreWAL extends StoreDirect {
             }
             replayPending = false;
             checkHeaders();
-            log = null;
+            log = volFac.createTransLogVolume();
+            if(!readOnly)
+                logReset();
             allGood = true;
         }finally{
             if(!allGood) {
@@ -99,7 +101,7 @@ public class StoreWAL extends StoreDirect {
 
     protected void reloadIndexFile() {
         assert(structuralLock.isHeldByCurrentThread());
-        logSize = 0;
+        logSize = 16;
         modified.clear();
         longStackPages.clear();
         indexSize = index.getLong(IO_INDEX_SIZE);
@@ -117,10 +119,9 @@ public class StoreWAL extends StoreDirect {
             maxUsedIoList-=8;
     }
 
-    protected void openLogIfNeeded(){
+    protected  void logReset() {
         assert(structuralLock.isHeldByCurrentThread());
-        if(log !=null) return;
-        log = volFac.createTransLogVolume();
+        log.truncate(16);
         log.ensureAvailable(16);
         log.putInt(0, HEADER);
         log.putUnsignedShort(4, STORE_VERSION);
@@ -139,11 +140,9 @@ public class StoreWAL extends StoreDirect {
         try{
             structuralLock.lock();
             try{
-                openLogIfNeeded();
                 ioRecid = freeIoRecidTake(false);
-                //now get space in log
-                openLogIfNeeded();
                 logPos = logSize;
+                //now get space in log
                 logSize+=1+8+8; //space used for index val
                 log.ensureAvailable(logSize);
 
@@ -179,13 +178,11 @@ public class StoreWAL extends StoreDirect {
 
             structuralLock.lock();
             try{
-                openLogIfNeeded();
                 logPos = logSize;
                 for(int i=0;i<recids.length;i++)
                     recids[i] = freeIoRecidTake(false) ;
 
                 //now get space in log
-                openLogIfNeeded();
                 logSize+=recids.length*(1+8+8); //space used for index vals
                 log.ensureAvailable(logSize);
 
@@ -227,7 +224,6 @@ public class StoreWAL extends StoreDirect {
 
             structuralLock.lock();
         try{
-            openLogIfNeeded();
             ioRecid = freeIoRecidTake(false);
             //first get space in phys
             physPos = physAllocate(out.pos,false,false);
@@ -304,7 +300,6 @@ public class StoreWAL extends StoreDirect {
 
     protected long[] logAllocate(long[] physPos) {
         assert(structuralLock.isHeldByCurrentThread());
-        openLogIfNeeded();
         logSize+=1+8+8; //space used for index val
 
         long[] ret = new long[physPos.length];
@@ -408,7 +403,6 @@ public class StoreWAL extends StoreDirect {
 
             structuralLock.lock();
             try{
-                openLogIfNeeded();
 
                 //free first record pointed from indexVal
                 if((indexVal>>>48)>0)
@@ -470,7 +464,6 @@ public class StoreWAL extends StoreDirect {
 
             structuralLock.lock();
             try{
-                openLogIfNeeded();
 
                 //free first record pointed from indexVal
                 if((indexVal>>>48)>0)
@@ -526,7 +519,6 @@ public class StoreWAL extends StoreDirect {
             }
             structuralLock.lock();
             try{
-                openLogIfNeeded();
                 logPos = logSize;
                 checkLogRounding();
                 logSize+=1+8+8; //space used for index val
@@ -562,11 +554,10 @@ public class StoreWAL extends StoreDirect {
                 serializerPojo.save(this);
             }
 
-            if(!longStackPages.isEmpty() && log==null) openLogIfNeeded();
-
-            if(log==null){
-                return; //no modifications
+            if(!logDirty()){
+                return;
             }
+
             //dump long stack pages
             int crc = 0;
             LongMap.LongMapIterator<byte[]> iter = longStackPages.longMapIterator();
@@ -635,6 +626,19 @@ public class StoreWAL extends StoreDirect {
 
     }
 
+    protected boolean logDirty() {
+
+        if(logSize!=16 || !longStackPages.isEmpty() || !modified.isEmpty())
+            return true;
+
+        for(boolean b: indexValsModified){
+            if(b)
+                return true;
+        }
+
+        return false;
+    }
+
     protected long indexHeaderChecksumUncommited() {
         long ret = 0;
 
@@ -670,9 +674,8 @@ public class StoreWAL extends StoreDirect {
         //read headers
         if(log.isEmpty() || log.getInt(0)!=HEADER  || log.getLong(8) !=LOG_SEAL){
             //wrong headers, discard log
-            log.close();
-            log.deleteFile();
-            log = null;
+            if(!isReadOnly())
+                logReset();
             return false;
         }
 
@@ -787,7 +790,7 @@ public class StoreWAL extends StoreDirect {
         assert(structuralLock.isHeldByCurrentThread());
 
         if(readOnly && log==null)
-            return;
+            return; //TODO how to handle log replay if we are readonly?
 
         logSize = 0;
 
@@ -797,9 +800,7 @@ public class StoreWAL extends StoreDirect {
                 log.getUnsignedShort(4)>STORE_VERSION || log.getLong(8) !=LOG_SEAL ||
                 log.getUnsignedShort(6)!=expectedMasks()){
             //wrong headers, discard log
-            log.close();
-            log.deleteFile();
-            log = null;
+            logReset();
             return;
         }
 
@@ -852,19 +853,15 @@ public class StoreWAL extends StoreDirect {
         logSize+=8;
 
 
-        logSize=0;
 
         //flush dbs
         if(!syncOnCommitDisabled){
             phys.sync();
             index.sync();
         }
-        //and discard log
-        log.putLong(0, 0);
-        log.putLong(8, 0); //destroy seal to prevent log file from being replayed
-        log.close();
-        log.deleteFile();
-        log = null;
+
+        logReset();
+
         assert(structuralLock.isHeldByCurrentThread());
     }
 
@@ -875,11 +872,7 @@ public class StoreWAL extends StoreDirect {
         lockAllWrite();
         try{
             //discard trans log
-            if(log !=null){
-                log.close();
-                log.deleteFile();
-                log = null;
-            }
+            logReset();
 
             reloadIndexFile();
         }finally {
@@ -1113,7 +1106,7 @@ public class StoreWAL extends StoreDirect {
 
     @Override protected void compactPreUnderLock() {
         assert(structuralLock.isLocked());
-        if(log!=null && !log.isEmpty())
+        if(logDirty())
             throw new IllegalAccessError("WAL not empty; commit first, than compact");
     }
 

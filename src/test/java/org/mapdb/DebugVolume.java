@@ -33,6 +33,12 @@ public class DebugVolume extends Volume{
     }
 
     @Override
+    public void truncate(long size) {
+        out.println("truncate: "+size);
+        vol.truncate(size);
+    }
+
+    @Override
     public void putLong(long offset, long value) {
         out.println("putLong: "+offset+ " - "+value);
         vol.putLong(offset, value);

@@ -58,6 +58,8 @@ public abstract class Volume {
 
     abstract public boolean tryAvailable(final long offset);
 
+    public abstract void truncate(long size);
+
 
     abstract public void putLong(final long offset, final long value);
     abstract public void putInt(long offset, int value);
@@ -207,8 +209,6 @@ public abstract class Volume {
 
             @Override
             public Volume createTransLogVolume() {
-                if(readOnly && !transLogFile.exists())
-                    return null;
                 return volumeForFile(transLogFile, rafMode>0, readOnly, sizeLimit);
             }
         };
@@ -498,6 +498,40 @@ public abstract class Volume {
             return file;
         }
 
+
+        @Override
+        public void truncate(long size) {
+            final int maxSize = 1+(int) (size >>> CHUNK_SHIFT);
+            if(maxSize==chunks.length)
+                return;
+            if(maxSize>chunks.length) {
+                ensureAvailable(size);
+                return;
+            }
+            growLock.lock();
+            try{
+                if(maxSize>=chunks.length)
+                    return;
+                ByteBuffer[] old = chunks;
+                chunks = Arrays.copyOf(chunks,maxSize);
+
+                //unmap remaining buffers
+                for(int i=maxSize;i<old.length;i++){
+                    unmap((MappedByteBuffer) old[i]);
+                    old[i] = null;
+                }
+
+                try {
+                    fileChannel.truncate(1L * CHUNK_SIZE *maxSize);
+                } catch (IOException e) {
+                    throw new IOError(e);
+                }
+
+            }finally {
+                growLock.unlock();
+            }
+        }
+
     }
 
     public static final class MemoryVol extends ByteBufferVol {
@@ -520,6 +554,34 @@ public abstract class Volume {
                     ByteBuffer.allocate(CHUNK_SIZE);
         }
 
+
+        @Override
+        public void truncate(long size) {
+            final int maxSize = 1+(int) (size >>> CHUNK_SHIFT);
+            if(maxSize==chunks.length)
+                return;
+            if(maxSize>chunks.length) {
+                ensureAvailable(size);
+                return;
+            }
+            growLock.lock();
+            try{
+                if(maxSize>=chunks.length)
+                    return;
+                ByteBuffer[] old = chunks;
+                chunks = Arrays.copyOf(chunks,maxSize);
+
+                //unmap remaining buffers
+                for(int i=maxSize;i<old.length;i++){
+                    if(old[i] instanceof  MappedByteBuffer)
+                        unmap((MappedByteBuffer) old[i]);
+                    old[i] = null;
+                }
+
+            }finally {
+                growLock.unlock();
+            }
+        }
 
         @Override public void close() {
             growLock.lock();
@@ -568,8 +630,13 @@ public abstract class Volume {
             this.hasLimit = sizeLimit>0;
             try {
                 checkFolder(file,readOnly);
-                channel = new RandomAccessFile(file, readOnly?"r":"rw").getChannel();
-                size = channel.size();
+                if(readOnly && !file.exists()){
+                    channel = null;
+                    size = 0;
+                }else {
+                    channel = new RandomAccessFile(file, readOnly ? "r" : "rw").getChannel();
+                    size = channel.size();
+                }
             } catch (IOException e) {
                 throw new IOError(e);
             }
@@ -606,6 +673,19 @@ public abstract class Volume {
                 }
             }
             return true;
+        }
+
+        @Override
+        public void truncate(long size) {
+            synchronized (growLock){
+                try {
+                    this.size = size;
+                    channel.truncate(size);
+                } catch (IOException e) {
+                    throw new IOError(e);
+                }
+            }
+
         }
 
         protected void writeFully(long offset, ByteBuffer buf) throws IOException {
@@ -764,7 +844,8 @@ public abstract class Volume {
         @Override
         public void close() {
             try{
-                channel.close();
+                if(channel!=null)
+                    channel.close();
                 channel = null;
             }catch(IOException e){
                 throw new IOError(e);

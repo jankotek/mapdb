@@ -77,6 +77,12 @@ public class LoggerVolume extends Volume{
     }
 
     @Override
+    public void truncate(long size) {
+        logged.truncate(size);
+
+    }
+
+    @Override
     synchronized public void putLong(long offset, long value) {
         logged.putLong(offset, value);
 
