@@ -194,8 +194,8 @@
                 <version>2.16</version>
                 <configuration>
 
-                    <!-- run tests in parallel -->
-                    <forkCount>3</forkCount>
+                    <!-- do not run tests in parallel, it causes out of memory errors -->
+                    <forkCount>1</forkCount>
 
                     <includes>
                         <include>**/*</include>
