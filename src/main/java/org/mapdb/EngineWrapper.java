@@ -134,6 +134,18 @@ public class EngineWrapper implements Engine{
         return getWrappedEngine().getSerializerPojo();
     }
 
+    @Override
+    public void registerCloseListener(Runnable closeListener) {
+        getWrappedEngine().registerCloseListener(closeListener);
+
+    }
+
+    @Override
+    public void unregisterCloseListener(Runnable closeListener) {
+        getWrappedEngine().unregisterCloseListener(closeListener);
+
+    }
+
     public Engine getWrappedEngine(){
         return checkClosed(engine);
     }
@@ -601,6 +613,16 @@ public class EngineWrapper implements Engine{
         @Override
         public SerializerPojo getSerializerPojo() {
             throw new IllegalAccessError("already closed");
+        }
+
+        @Override
+        public void registerCloseListener(Runnable closeListener) {
+            throw new IllegalAccessError("already closed");
+        }
+
+        @Override
+        public void unregisterCloseListener(Runnable closeListener) {
+            //this should be probably empty
         }
     };
 

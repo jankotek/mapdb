@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -317,4 +318,18 @@ public abstract class Store implements Engine{
     public Engine snapshot() throws UnsupportedOperationException {
         throw new UnsupportedOperationException("Snapshots are not supported");
     }
+
+
+    List<Runnable> closeListeners = new CopyOnWriteArrayList<Runnable>();
+
+    @Override
+    public void registerCloseListener(Runnable closeListener) {
+        closeListeners.add(closeListener);
+    }
+
+    @Override
+    public void unregisterCloseListener(Runnable closeListener) {
+        closeListeners.remove(closeListener);
+    }
+
 }

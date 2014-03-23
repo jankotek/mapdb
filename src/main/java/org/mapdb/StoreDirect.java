@@ -687,6 +687,10 @@ public class StoreDirect extends Store{
 
     @Override
     public void close() {
+        for(Runnable closeListener:closeListeners)
+            closeListener.run();
+
+
         lockAllWrite();
         try{
 

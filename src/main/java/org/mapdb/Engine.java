@@ -225,4 +225,7 @@ public interface Engine {
     void compact();
 
     SerializerPojo getSerializerPojo();
+
+    void registerCloseListener(Runnable closeListener);
+    void unregisterCloseListener(Runnable closeListener);
 }

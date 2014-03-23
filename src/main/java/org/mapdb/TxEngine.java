@@ -609,7 +609,18 @@ public class TxEngine extends EngineWrapper {
         return pojo;
     }
 
-    public Engine getWrappedEngine() {
+        @Override
+        public void registerCloseListener(Runnable closeListener) {
+            throw new UnsupportedOperationException();
+
+        }
+
+        @Override
+        public void unregisterCloseListener(Runnable closeListener) {
+            throw new UnsupportedOperationException();
+        }
+
+        public Engine getWrappedEngine() {
         return TxEngine.this.getWrappedEngine();
     }
 

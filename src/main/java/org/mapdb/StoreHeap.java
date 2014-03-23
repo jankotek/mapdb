@@ -152,6 +152,9 @@ public class StoreHeap extends Store implements Serializable{
 
     @Override
     public void close() {
+        for(Runnable closeListener:closeListeners)
+            closeListener.run();
+
         lockAllWrite();
         try{
             records.clear();

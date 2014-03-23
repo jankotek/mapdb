@@ -1074,6 +1074,9 @@ public class StoreWAL extends StoreDirect {
 
     @Override
     public void close() {
+        for(Runnable closeListener:closeListeners)
+            closeListener.run();
+
         if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
             serializerPojo.save(this);
         }

@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -78,6 +79,24 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
     protected final Fun.Function1<V,K> valueCreator;
 
+    protected final CountDownLatch closeLatch = new CountDownLatch(2);
+
+    protected final Runnable closeListener = new Runnable() {
+        @Override public void run() {
+            if(closeLatch.getCount()>1){
+                closeLatch.countDown();
+            }
+
+            try {
+                closeLatch.await();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+
+
+            HTreeMap.this.engine.unregisterCloseListener(HTreeMap.this.closeListener);
+        }
+    };
 
 
     /** node which holds key-value pair */
@@ -258,6 +277,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             Thread t = new Thread(new ExpireRunnable(this),"HTreeMap expirator");
             t.setDaemon(true);
             t.start();
+            
+            engine.registerCloseListener(closeListener);
         }
 
     }
@@ -1484,26 +1505,39 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         @Override
         public void run() {
             boolean pause = false;
-            while(true){
-                try{
-                    if(pause){
+            try {
+                while(true) {
+
+                    if (pause) {
                         Thread.sleep(1000);
                     }
+
+
                     HTreeMap map = mapRef.get();
-                    if(map==null||map.engine.isClosed()) return;
+                    if (map == null || map.engine.isClosed() || map.closeLatch.getCount()<2)
+                        return;
 
                     //TODO what if store gets closed while working on this?
                     map.expirePurge();
-                    pause = ((!map.expireMaxSizeFlag || map.size()<map.expireMaxSize)
-                        && (map.expireStoreSize==0L ||
-                                Store.forEngine(map.engine).getCurrSize() - Store.forEngine(map.engine).getFreeSize()<map.expireStoreSize));
 
+                    if (map.engine.isClosed() || map.closeLatch.getCount()<2)
+                        return;
 
-                }catch(Throwable e){
-                    //TODO exception handling
-                    e.printStackTrace();
-                    //Utils.LOG.log(Level.SEVERE, "HTreeMap expirator failed", e);
+                    pause = ((!map.expireMaxSizeFlag || map.size() < map.expireMaxSize)
+                            && (map.expireStoreSize == 0L ||
+                            Store.forEngine(map.engine).getCurrSize() - Store.forEngine(map.engine).getFreeSize() < map.expireStoreSize));
+
                 }
+
+            }catch(Throwable e){
+                //TODO exception handling
+                e.printStackTrace();
+                //Utils.LOG.log(Level.SEVERE, "HTreeMap expirator failed", e);
+            }finally {
+                HTreeMap m = mapRef.get();
+                if (m != null)
+                    m.closeLatch.countDown();
+                mapRef.clear();
             }
         }
 
@@ -1530,6 +1564,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         }
 
         for(int seg=0;seg<16;seg++){
+            if(closeLatch.getCount()<2)
+                return;
             expirePurgeSegment(seg, removePerSegment);
         }
 

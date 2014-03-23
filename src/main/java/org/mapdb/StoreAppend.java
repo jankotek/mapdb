@@ -457,6 +457,10 @@ class StoreAppend extends Store{
     @Override
     public void close() {
         if(closed) return;
+
+        for(Runnable closeListener:closeListeners)
+            closeListener.run();
+
         if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
             serializerPojo.save(this);
         }
