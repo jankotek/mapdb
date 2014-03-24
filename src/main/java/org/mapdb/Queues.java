@@ -193,8 +193,13 @@ public final class Queues {
 
         @Override
         public boolean offer(E e) {
-            return add(e);
+            try {
+                return add(e);
+            }catch (IllegalStateException ee){
+                return false;
+            }
         }
+
 
         @Override
         public void put(E e) throws InterruptedException {
