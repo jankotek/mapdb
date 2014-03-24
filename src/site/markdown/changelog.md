@@ -1,6 +1,41 @@
 Changelog
 ============
 
+Version 0.9.11 (2014-03-24)
+--------------------------
+
+This fixes serious race condition for in-memory store. Also there is fix for secondary collections containing
+wrong values. And finally all file locking problems on Windows should be solved.
+
+As result the store format was completely changed. There is no backward compatibility with previous releases.
+MapDB now allocates memory in 16MB chunks, so new empty database will always consume a few MB of memory/disk space.
+
+This is last 0.9.x release, next release will be 1.0.0.
+
+Changes:
+
+ * Fix #303 and #302: There was race condition in Volumes, which caused data corruption under concurrent access.
+ * Fix #252 and #274: File locking on Windows is now completely solved. We no longer use overlapping ByteBuffers
+ which were source of errors.
+ * Fix #297: BTreeMap modification listeners received wrong key. As result secondary collections could contain wrong data.
+ * Fix #300: `Queue.offer()` should return false, not throw an  `IllegalStateException()`. Not really isssue since MapDB does not have queues with limited size yet.
+ * Engine: add close listener, to prevent NPE on shutdown in HTreeMap Cache
+ * Maven: do not run tests in parallel, it causes out of memory errors
+ * StoreWAL: do not delete log file after every commit, keep it around. This should speedup commits a lot
+ * Volume: mmap file chunks were synced multiple times, causing slow sync and commits
+ * Volume: change 'chunk size' from 1GB to 16MB and disable incremental allocation.
+ * DBMaker: The 'full chunk allocation' option was removed and is now on by default.
+ * DBMaker: method `newDirectMemoryDB()` replaced with `newMemoryDirectDB()`
+ * Fun: Added Tuple5 and Tuple6 support
+
+
+Open problems:
+
+ * Open #304 and #283: BTreeMap fails under concurrent access: . Unconfirmed and needs more investigation.
+ * Documentation
+
+
+
 Version 0.9.10 (2014-02-18)
 --------------------------
 

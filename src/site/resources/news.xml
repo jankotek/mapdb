@@ -7,6 +7,17 @@
         <link>http://www.mapdb.org/</link>
         <description>MapDB </description>
 
+
+        <item>
+            <title>MapDB 0.9.11 released</title>
+            <link>http://www.mapdb.org/changelog.html#Version_0911_2014-03-24</link>
+            <date>March 24 2014</date>
+            <description>
+                This fixes serious race condition for in-memory store. Also there is fix for secondary collections containing
+                wrong values. And finally all file locking problems on Windows should be solved.
+            </description>
+        </item>
+
         <item>
             <title>MapDB 0.9.10 released</title>
             <link>http://www.mapdb.org/changelog.html#Version_0910_2014-02-18</link>
