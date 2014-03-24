@@ -127,22 +127,6 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
     }
 
 
-    /** Creates new in-memory database. Changes are lost after JVM exits.
-     * <p/>
-     * This will use DirectByteBuffer outside of HEAP, so Garbage Collector is not affected
-     *
-     * @deprecated renamed to {@link DBMaker#newMemoryDirectDB}
-     */
-    @Deprecated
-    public static DBMaker newDirectMemoryDB(){
-        return new DBMaker()._newDirectMemoryDB();
-    }
-
-    @Deprecated
-    public  DBMakerT _newDirectMemoryDB() {
-        props.setProperty(Keys.volume,Keys.volume_offheap);
-        return getThis();
-    }
 
 // TODO StoreAppend was held beck for 1.0 release.
     /**
