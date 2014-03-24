@@ -4,6 +4,7 @@ package org.mapdb;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 
@@ -96,5 +97,42 @@ public class QueuesTest {
         assertThat( queue.take(), is( "test-value" ) );
         database.commit();
         database.close();
+    }
+
+    @Test(timeout=1000)
+    public void queueTakeRollback() throws IOException, InterruptedException {
+        File f = File.createTempFile("mapdb","aa");
+        {
+            DB db = DBMaker.newFileDB(f).make();
+            boolean newQueue = !db.exists("test");
+            BlockingQueue queue = db.getQueue("test");
+            if (newQueue) {
+                queue.add("abc");
+                db.commit();
+            }
+            Object x = queue.take();
+            db.rollback();
+            x = queue.take();
+
+            System.out.println("got it");
+            db.close();
+        }
+
+        {
+            DB db = DBMaker.newFileDB(f).make();
+            boolean newQueue = !db.exists("test");
+            BlockingQueue queue = db.getQueue("test");
+            if (newQueue) {
+                queue.add("abc");
+                db.commit();
+            }
+            Object x = queue.take();
+            db.rollback();
+            x = queue.take();
+
+            System.out.println("got it");
+            db.commit();
+            db.close();
+        }
     }
 }
