@@ -1155,22 +1155,23 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         }
 
         lock(nodeLocks, current);
-        LeafNode leaf = (LeafNode) engine.get(current, nodeSerializer);
-
-        int pos = findChildren(key, node.keys());
         try{
+
+        LeafNode leaf = (LeafNode) engine.get(current, nodeSerializer);
+        int pos = findChildren(key, leaf.keys);
+
         while(pos==leaf.keys.length){
             //follow leaf link until necessary
             lock(nodeLocks, leaf.next);
             unlock(nodeLocks, current);
             current = leaf.next;
             leaf = (LeafNode) engine.get(current, nodeSerializer);
-            pos = findChildren(key, node.keys());
+            pos = findChildren(key, leaf.keys);
         }
 
         boolean ret = false;
-        if( key!=null && leaf.keys()[pos]!=null &&
-                0==comparator.compare(key,leaf.keys[pos])){
+        if( key!=null && leaf.keys[pos]!=null &&
+                comparator.compare(key,leaf.keys[pos])==0){
             Object val  = leaf.vals[pos-1];
             val = valExpand(val);
             if(oldValue.equals(val)){
@@ -1206,6 +1207,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         if(key == null || value == null) throw new NullPointerException();
         final long rootRecid = engine.get(rootRecidRef,Serializer.LONG);
         long current = rootRecid;
+
         BNode node = engine.get(current, nodeSerializer);
         //dive until leaf is found
         while(!node.isLeaf()){
@@ -1214,17 +1216,18 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         }
 
         lock(nodeLocks, current);
-        LeafNode leaf = (LeafNode) engine.get(current, nodeSerializer);
-
         try{
-        int pos = findChildren(key, node.keys());
+
+        LeafNode leaf = (LeafNode) engine.get(current, nodeSerializer);
+        int pos = findChildren(key, leaf.keys);
+
         while(pos==leaf.keys.length){
             //follow leaf link until necessary
             lock(nodeLocks, leaf.next);
             unlock(nodeLocks, current);
             current = leaf.next;
             leaf = (LeafNode) engine.get(current, nodeSerializer);
-            pos = findChildren(key, node.keys());
+            pos = findChildren(key, leaf.keys);
         }
 
         Object ret = null;
