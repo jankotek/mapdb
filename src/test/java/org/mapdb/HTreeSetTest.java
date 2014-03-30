@@ -37,7 +37,7 @@ import static org.junit.Assert.assertTrue;
 @SuppressWarnings({"unchecked","rawtypes"})
 public class HTreeSetTest{
 
-    Engine engine = new StoreDirect(Volume.memoryFactory(false,0L));
+    Engine engine;
 
     Set hs;
 
@@ -47,6 +47,12 @@ public class HTreeSetTest{
         objArray = new Object[1000];
         for (int i = 0; i < objArray.length; i++)
             objArray[i] = i;
+    }
+
+    @Before public void init(){
+        engine =  new StoreDirect(Volume.memoryFactory(false,0L));
+        hs = new HTreeMap(engine, 0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC,null,0,0,0,0,0,null,null,null, null).keySet();
+        Collections.addAll(hs, objArray);
     }
 
     @Test public void test_Constructor() {
@@ -122,14 +128,6 @@ public class HTreeSetTest{
     }
 
 
-    /**
-     * Sets up the fixture, for example, open a network connection. This method
-     * is called before a test is executed.
-     */
-    @Before public void setUp() throws Exception {
-        hs = new HTreeMap(engine, 0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC,null,0,0,0,0,0,null,null,null, null).keySet();
-        Collections.addAll(hs, objArray);
-    }
 
     @Test public void issue116_isEmpty(){
         Set s = DBMaker.newFileDB(UtilsTest.tempDbFile())

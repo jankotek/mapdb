@@ -1,5 +1,6 @@
 package org.mapdb;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
@@ -13,7 +14,15 @@ import static org.junit.Assert.fail;
 
 public class StoreWALTest extends StoreDirectTest<StoreWAL>{
 
-    Volume.Factory fac = Volume.fileFactory(false,0,f, 0L);
+    Volume.Factory fac;
+
+
+
+    @Before public void init(){
+        fac = Volume.fileFactory(false,0,f, 0L);
+        super.init();
+    }
+
 
     @Override
     protected StoreWAL openEngine() {

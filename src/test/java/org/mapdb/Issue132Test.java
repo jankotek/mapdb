@@ -22,13 +22,13 @@ public class Issue132Test {
         return counter;
     }
 
-    @Test(timeout=10000)
+    @Test(timeout=50000)
     public  void test_full() {
         long id= 0;
         for(int count = 0; count < 50; count++) {
 
 
-            DB db = DBMaker.newMemoryDirectDB().cacheDisable()
+            DB db = DBMaker.newMemoryDB().cacheDisable()
                     .checksumEnable().make();
 
 
@@ -66,7 +66,7 @@ public class Issue132Test {
         int count = 18;
 
 
-        DB db = DBMaker.newMemoryDirectDB().cacheDisable()
+        DB db = DBMaker.newMemoryDB().cacheDisable()
                 .checksumEnable().make();
 
 

@@ -73,12 +73,14 @@ public class BTreeMapNavigableTest extends TestCase {
 
 	private static final String MUST_CONTAINS_KA = "must contains 'ka'";
 
-	private NavigableMap<String, String> navigableMap =
-        DBMaker.newMemoryDB().make().getTreeMap("test");
-    
+	private NavigableMap<String, String> navigableMap;
 
+    @Override
+    protected void setUp() throws Exception {
+        navigableMap = DBMaker.newMemoryDB().make().getTreeMap("test");
+    }
 
-	public void testLowerEntry() {
+    public void testLowerEntry() {
 		navigableMap.put("ka", "xx");
 		navigableMap.put("kb", "aa");
 		navigableMap.put("kc", "zz");

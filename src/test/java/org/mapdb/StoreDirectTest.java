@@ -1,6 +1,7 @@
 package org.mapdb;
 
 
+import org.junit.Before;
 import org.junit.Test;
 
 import java.io.*;
@@ -15,8 +16,14 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
     @Override boolean canRollback(){return false;}
 
-    File f = UtilsTest.tempDbFile();
-    Volume.Factory fac = Volume.fileFactory(false,0,f, 0L);
+    File f  = UtilsTest.tempDbFile();
+    Volume.Factory fac;
+
+    @Before public void init(){
+
+        fac = Volume.fileFactory(false,0,f, 0L);
+        super.init();
+    }
 
     static final long IO_RECID = StoreDirect.IO_FREE_RECID+32;
 

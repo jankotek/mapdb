@@ -1,5 +1,6 @@
 package org.mapdb;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -16,9 +17,14 @@ import static org.junit.Assert.assertEquals;
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class HTreeMap2Test {
 
-    Engine engine = DBMaker.newMemoryDB().cacheDisable().makeEngine();
+    Engine engine;
 
-    DB db = new DB(engine);
+    DB db;
+
+    @Before public void init2(){
+        engine = DBMaker.newMemoryDB().cacheDisable().makeEngine();
+        db = new DB(engine);;
+    }
 
     void printMap(HTreeMap m){
         System.out.println(toString(m.segmentRecids, engine));

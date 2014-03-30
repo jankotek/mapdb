@@ -1836,9 +1836,10 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         assertTrue(sm.values().size() == 0);
     }
     
-        public static BTreeMap treeMap = newBTreeMap();
+
 
         public void test_values_1(){
+            BTreeMap treeMap = newBTreeMap();
             treeMap.put("firstKey", "firstValue");
             treeMap.put("secondKey", "secondValue");
             treeMap.put("thirdKey", "thirdValue");

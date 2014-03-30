@@ -1,5 +1,6 @@
 package org.mapdb;
 
+import org.junit.Before;
 import org.junit.Test;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
@@ -10,7 +11,14 @@ import static org.junit.Assert.*;
 
 public class BindTest {
 
-    BTreeMap<Integer,String> m = DBMaker.newMemoryDB().make().getTreeMap("test");
+    BTreeMap<Integer,String> m;
+
+    @Before
+    public void init(){
+        m = DBMaker.newMemoryDB().make().getTreeMap("test");
+    }
+
+
 
     String[] split(String s){
         if(s==null) return null;

@@ -1,5 +1,6 @@
 package org.mapdb;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Map;
@@ -8,7 +9,12 @@ import static org.junit.Assert.*;
 
 public class TxEngineTest {
 
-    TxEngine e = new TxEngine(new StoreWAL(Volume.memoryFactory(false, 0L)),false);
+    TxEngine e;
+
+
+    @Before public void init(){
+        e = new TxEngine(new StoreWAL(Volume.memoryFactory(false, 0L)),false);
+    }
 
     @Test public void update(){
         long recid = e.put(111, Serializer.INTEGER);

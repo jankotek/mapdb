@@ -1,5 +1,7 @@
 package org.mapdb;
 
+import org.junit.Before;
+
 import static org.mapdb.BTreeKeySerializer.BASIC;
 import static org.mapdb.BTreeMap.COMPARABLE_COMPARATOR;
 import static org.mapdb.BTreeMap.createRootRef;
@@ -12,11 +14,18 @@ import java.util.Map;
 public class BTreeMapContainsKeyTest extends JSR166TestCase {
 
 	boolean valsOutsideNodes = true;
-	Engine r = new StoreDirect(Volume.memoryFactory(false, 0L));
+	Engine r;
 	RecordingSerializer valueSerializer = new RecordingSerializer();
 
-    Map<Integer, String> map = new BTreeMap(r, createRootRef(r,BASIC, Serializer.BASIC, COMPARABLE_COMPARATOR,0),
+    Map<Integer, String> map;
+
+
+    @Override
+    protected void setUp() throws Exception {
+        r = new StoreDirect(Volume.memoryFactory(false, 0L));
+        map = new BTreeMap(r, createRootRef(r,BASIC, Serializer.BASIC, COMPARABLE_COMPARATOR,0),
                 6, valsOutsideNodes, 0, BASIC, valueSerializer, COMPARABLE_COMPARATOR, 0);
+    }
 
     /**
      * When valsOutsideNodes is true should not deserialize value during .containsKey

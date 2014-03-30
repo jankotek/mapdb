@@ -1,18 +1,19 @@
 package org.mapdb;
 
 import junit.framework.TestCase;
+import org.junit.Before;
 
 import java.util.*;
 
 @SuppressWarnings({ "unchecked" })
 public  class BTreeMapNavigable2Test extends TestCase
 {
-	NavigableMap<Integer, String> map = DBMaker.newTempTreeMap();
-
+	NavigableMap<Integer, String> map;
 
 	@Override
 	public void setUp() throws Exception
-	{
+    {
+        map = DBMaker.newTempTreeMap();
 		map.put(1, "one");
 		map.put(2, "two");
 		map.put(3, "three");

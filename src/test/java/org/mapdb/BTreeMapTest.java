@@ -1,5 +1,6 @@
 package org.mapdb;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -12,12 +13,17 @@ import static org.junit.Assert.*;
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class BTreeMapTest{
 
-    Engine engine = new StoreDirect(Volume.memoryFactory(false,0L));
+    Engine engine;
 
 
-    BTreeMap m = new BTreeMap(engine,BTreeMap.createRootRef(engine,BTreeKeySerializer.BASIC,Serializer.BASIC,BTreeMap.COMPARABLE_COMPARATOR,0),
-            6,false,0, BTreeKeySerializer.BASIC,Serializer.BASIC,
-            BTreeMap.COMPARABLE_COMPARATOR,0);
+    BTreeMap m;
+
+    @Before public void init(){
+        engine = new StoreDirect(Volume.memoryFactory(false,0L));
+        m = new BTreeMap(engine,BTreeMap.createRootRef(engine,BTreeKeySerializer.BASIC,Serializer.BASIC,BTreeMap.COMPARABLE_COMPARATOR,0),
+                6,false,0, BTreeKeySerializer.BASIC,Serializer.BASIC,
+                BTreeMap.COMPARABLE_COMPARATOR,0);;
+    }
     
 
     @Test public void test_leaf_node_serialization() throws IOException {

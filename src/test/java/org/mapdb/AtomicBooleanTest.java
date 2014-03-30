@@ -7,11 +7,25 @@ package org.mapdb;/*
  */
 
 import junit.framework.TestCase;
+import org.junit.Before;
 
 public class AtomicBooleanTest extends TestCase{
 
-    DB db = DBMaker.newMemoryDB().transactionDisable().make();
-    Atomic.Boolean ai = db.createAtomicBoolean("test", true);
+    DB db;
+    Atomic.Boolean ai;
+
+
+    @Override
+    protected void setUp() throws Exception {
+        db = DBMaker.newMemoryDB().transactionDisable().make();
+        ai= db.createAtomicBoolean("test", true);;
+    }
+
+    @Override
+    protected void tearDown() throws Exception {
+        db.close();
+    }
+
 
     /**
      * constructor initializes to given value

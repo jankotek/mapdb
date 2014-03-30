@@ -1,5 +1,6 @@
 package org.mapdb;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Map;
@@ -13,8 +14,14 @@ import static org.junit.Assert.assertTrue;
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class DBTest {
 
-    Engine engine = new StoreDirect(Volume.memoryFactory(false,0L));
-    DB db = new DB(engine);
+    Engine engine;
+    DB db;
+
+
+    @Before public void init(){
+        engine = new StoreDirect(Volume.memoryFactory(false,0L));
+        db = new DB(engine);
+    }
 
     @Test
     public void testGetHashMap() throws Exception {

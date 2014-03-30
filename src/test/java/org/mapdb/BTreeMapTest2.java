@@ -17,6 +17,8 @@
 
 package org.mapdb;
 
+import org.junit.Before;
+
 import java.util.concurrent.ConcurrentMap;
 
 public class BTreeMapTest2 extends ConcurrentMapInterfaceTest<Integer, String> {
@@ -25,8 +27,13 @@ public class BTreeMapTest2 extends ConcurrentMapInterfaceTest<Integer, String> {
         super(false, false, true, true, true, true, false);
     }
 
-    Engine r = new StoreDirect(Volume.memoryFactory(false,0L));
+    Engine r;
 
+
+    @Override
+    protected void setUp() throws Exception {
+        r = new StoreDirect(Volume.memoryFactory(false,0L));
+    }
 
     @Override
     protected Integer getKeyNotInPopulatedMap() throws UnsupportedOperationException {

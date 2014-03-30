@@ -7,11 +7,23 @@ package org.mapdb;/*
  */
 
 import junit.framework.TestCase;
+import org.junit.Before;
 
 public class AtomicLongTest extends TestCase {
 
-    DB db = DBMaker.newMemoryDB().transactionDisable().make();
-    Atomic.Long ai = db.createAtomicLong("test", 1);
+    DB db;
+    Atomic.Long ai;
+
+    @Override
+    protected void setUp() throws Exception {
+        db = DBMaker.newMemoryDB().transactionDisable().make();
+        ai = db.createAtomicLong("test", 1);
+    }
+
+    @Override
+    protected void tearDown() throws Exception {
+        db.close();
+    }
 
     /**
      * constructor initializes to given value

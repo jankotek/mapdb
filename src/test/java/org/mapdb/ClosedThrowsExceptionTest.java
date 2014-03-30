@@ -1,5 +1,6 @@
 package org.mapdb;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Map;
@@ -13,7 +14,12 @@ public abstract class ClosedThrowsExceptionTest {
 
     abstract DB db();
 
-    DB db = db();
+    DB db;
+
+
+    @Before public void init(){
+        db = db();
+    }
 
     static public class Def extends ClosedThrowsExceptionTest{
         @Override DB db() {

@@ -7,11 +7,25 @@ package org.mapdb;/*
  */
 
 import junit.framework.TestCase;
+import org.junit.Before;
 
 public class AtomicIntegerTest extends TestCase {
 
-    DB db = DBMaker.newMemoryDB().transactionDisable().make();
-    Atomic.Integer ai = db.createAtomicInteger("test", 1);
+    DB db;
+    Atomic.Integer ai;
+
+
+    @Override
+    protected void setUp() throws Exception {
+        db = DBMaker.newMemoryDB().transactionDisable().make();
+        ai = db.createAtomicInteger("test", 1);
+    }
+
+    @Override
+    protected void tearDown() throws Exception {
+        db.close();
+    }
+
 
     /**
      * constructor initializes to given value

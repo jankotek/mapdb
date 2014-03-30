@@ -1,5 +1,6 @@
 package org.mapdb;
 
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -13,9 +14,13 @@ import static org.junit.Assert.fail;
 
 public class TxMakerTest{
 
-    TxMaker tx =
-            //new TxMaker(new TxEngine(new DB(new StoreHeap()).getEngine(),true));
-            DBMaker.newMemoryDB().makeTxMaker();
+    TxMaker tx;
+
+    @Before public void init(){
+        tx  =
+                //new TxMaker(new TxEngine(new DB(new StoreHeap()).getEngine(),true));
+                DBMaker.newMemoryDB().makeTxMaker();
+    }
 
     @Test public void simple_commit(){
         DB db =tx.makeTx();
