@@ -32,9 +32,6 @@ public abstract class Store implements Engine{
     protected final static int COMPRESS_FLAG_MASK = 1<<2;
     protected final static int ENCRYPT_FLAG_MASK = 1<<3;
 
-    /** default serializer used for persistence. Handles POJO and other stuff which requires write-able access to Engine */
-    protected SerializerPojo serializerPojo;
-
 
     protected final ThreadLocal<CompressLZF> LZF;
 
@@ -71,33 +68,6 @@ public abstract class Store implements Engine{
 
     /** get some statistics about store. This may require traversing entire store, so it can take some time.*/
     public abstract String calculateStatistics();
-
-    public void printStatistics(){
-        System.out.println(calculateStatistics());
-    }
-
-    protected Lock serializerPojoInitLock = new ReentrantLock(CC.FAIR_LOCKS);
-
-    /**
-     * @return default serializer used in this DB, it handles POJO and other stuff.
-     */
-    public  SerializerPojo getSerializerPojo() {
-        final Lock pojoLock = serializerPojoInitLock;
-        if(pojoLock!=null) {
-            pojoLock.lock();
-            try{
-                if(serializerPojo==null){
-                    final CopyOnWriteArrayList<SerializerPojo.ClassInfo> classInfos = get(Engine.CLASS_INFO_RECID, SerializerPojo.serializer);
-                    serializerPojo = new SerializerPojo(classInfos);
-                    serializerPojoInitLock = null;
-                }
-            }finally{
-                pojoLock.unlock();
-            }
-
-        }
-        return serializerPojo;
-    }
 
 
     protected final ReentrantLock structuralLock = new ReentrantLock(CC.FAIR_LOCKS);
@@ -323,13 +293,38 @@ public abstract class Store implements Engine{
     List<Runnable> closeListeners = new CopyOnWriteArrayList<Runnable>();
 
     @Override
-    public void registerCloseListener(Runnable closeListener) {
+    public void closeListenerRegister(Runnable closeListener) {
         closeListeners.add(closeListener);
     }
 
     @Override
-    public void unregisterCloseListener(Runnable closeListener) {
+    public void closeListenerUnregister(Runnable closeListener) {
         closeListeners.remove(closeListener);
     }
+
+    List<Runnable> commitListeners = new CopyOnWriteArrayList<Runnable>();
+
+    @Override
+    public void commitListenerRegister(Runnable commitListener) {
+        commitListeners.add(commitListener);
+    }
+
+    @Override
+    public void commitListenerUnregister(Runnable commitListener) {
+        commitListeners.remove(commitListener);
+    }
+
+    List<Runnable> rollbackListeners = new CopyOnWriteArrayList<Runnable>();
+
+    @Override
+    public void rollbackListenerRegister(Runnable rollbackListener) {
+        rollbackListeners.add(rollbackListener);
+    }
+
+    @Override
+    public void rollbackListenerUnregister(Runnable rollbackListener) {
+        rollbackListeners.remove(rollbackListener);
+    }
+
 
 }

@@ -322,6 +322,7 @@ public class TxEngine extends EngineWrapper {
 
         protected boolean closed = false;
         private Store parentEngine;
+        private SerializerPojo serializerPojo;
 
         public Tx(){
             assert(commitLock.isWriteLockedByCurrentThread());
@@ -487,8 +488,8 @@ public class TxEngine extends EngineWrapper {
             txs.remove(ref);
             cleanTxQueue();
 
-            if(pojo.hasUnsavedChanges())
-                pojo.save(this);
+            if(serializerPojo!=null && serializerPojo.hasUnsavedChanges())
+                serializerPojo.save(this);
 
             //check no other TX has modified our data
             LongMap.LongMapIterator oldIter = old.longMapIterator();
@@ -536,9 +537,10 @@ public class TxEngine extends EngineWrapper {
                 }
             }
 
-            //there are no conflicts, so update the POJO in parent
-            //TODO sort of hack, is it thread safe?
-            getWrappedEngine().getSerializerPojo().registered = pojo.registered;
+
+            if(serializerPojo!=null && serializerPojo.hasUnsavedChanges())
+                serializerPojo.saveTx(TxEngine.this); //TODO could this cause two conflict writes?
+
             superCommit();
 
             close();
@@ -602,28 +604,51 @@ public class TxEngine extends EngineWrapper {
     }
 
 
-    SerializerPojo pojo = new SerializerPojo((CopyOnWriteArrayList<SerializerPojo.ClassInfo>) TxEngine.this.getSerializerPojo().registered.clone());
 
-    @Override
-    public SerializerPojo getSerializerPojo() {
-        return pojo;
-    }
 
         @Override
-        public void registerCloseListener(Runnable closeListener) {
+        public void closeListenerRegister(Runnable closeListener) {
             throw new UnsupportedOperationException();
 
         }
 
         @Override
-        public void unregisterCloseListener(Runnable closeListener) {
+        public void closeListenerUnregister(Runnable closeListener) {
             throw new UnsupportedOperationException();
         }
+
+
+        @Override
+        public void commitListenerRegister(Runnable commitListener) {
+            throw new UnsupportedOperationException();
+
+        }
+
+        @Override
+        public void commitListenerUnregister(Runnable commitListener) {
+            throw new UnsupportedOperationException();
+        }
+
+
+        @Override
+        public void rollbackListenerRegister(Runnable rollbackListener) {
+            throw new UnsupportedOperationException();
+
+        }
+
+        @Override
+        public void rollbackListenerUnregister(Runnable rollbackListener) {
+            throw new UnsupportedOperationException();
+        }
+
 
         public Engine getWrappedEngine() {
         return TxEngine.this.getWrappedEngine();
     }
 
+        protected void setSerializerPojo(SerializerPojo serializerPojo) {
+            this.serializerPojo = serializerPojo;
+        }
     }
 
 }

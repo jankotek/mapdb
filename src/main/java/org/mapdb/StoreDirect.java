@@ -690,14 +690,12 @@ public class StoreDirect extends Store{
         for(Runnable closeListener:closeListeners)
             closeListener.run();
 
+        //TODO for POJO serializer there is a race condition, metadata should be modified before shutdown. This rc is at many similar places
 
         lockAllWrite();
         try{
 
             if(!readOnly){
-                if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
-                    serializerPojo.save(this);
-                }
 
                 index.putLong(IO_PHYS_SIZE,physSize);
                 index.putLong(IO_INDEX_SIZE,indexSize);
@@ -734,9 +732,8 @@ public class StoreDirect extends Store{
     public void commit() {
         if(!readOnly){
 
-            if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
-                serializerPojo.save(this);
-            }
+            for(Runnable c:commitListeners)
+                c.run();
 
             index.putLong(IO_PHYS_SIZE,physSize);
             index.putLong(IO_INDEX_SIZE,indexSize);
