@@ -33,7 +33,7 @@ public class BTreeMapLargeValsTest extends ConcurrentMapInterfaceTest<Integer, S
 
     @Override
     protected void setUp() throws Exception {
-        r = new StoreDirect(Volume.memoryFactory(false, 0L));
+        r = new StoreDirect(Volume.memoryFactory(false, 0L,CC.VOLUME_CHUNK_SHIFT));
     }
 
     @Override

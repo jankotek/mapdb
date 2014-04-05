@@ -32,6 +32,10 @@ public abstract class Store implements Engine{
     protected final static int COMPRESS_FLAG_MASK = 1<<2;
     protected final static int ENCRYPT_FLAG_MASK = 1<<3;
 
+    protected static final int CHUNK_SIZE = 1<< CC.VOLUME_CHUNK_SHIFT;
+
+    protected static final int CHUNK_SIZE_MOD_MASK = CHUNK_SIZE -1;
+
 
     protected final ThreadLocal<CompressLZF> LZF;
 

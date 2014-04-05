@@ -23,6 +23,8 @@ class StoreAppend extends Store{
     /** mask used to get file offset from index val*/
     protected static final long FILE_MASK = 0xFFFFFF;
 
+    protected static final int MAX_FILE_SIZE_SHIFT = CC.VOLUME_CHUNK_SHIFT;
+
     /** add to size before writing it to file */
     protected static final long SIZEP = 2;
     /** add to recid before writing it to file */
@@ -67,7 +69,7 @@ class StoreAppend extends Store{
     protected long rollbackMaxRecid;
 
     /** index table which maps recid into position in index log */
-    protected Volume index = new Volume.MemoryVol(false,0); //TODO option to keep index off-heap or in file
+    protected Volume index = new Volume.MemoryVol(false,0, MAX_FILE_SIZE_SHIFT); //TODO option to keep index off-heap or in file
     /** same as `index`, but stores uncommited modifications made in this transaction*/
     protected final LongMap<Long> indexInTx;
 
@@ -104,7 +106,7 @@ class StoreAppend extends Store{
 
         if(sortedFiles.isEmpty()){
             //no files, create empty store
-            Volume zero = Volume.volumeForFile(getFileFromNum(0),useRandomAccessFile, readOnly,0L);
+            Volume zero = Volume.volumeForFile(getFileFromNum(0),useRandomAccessFile, readOnly,0L,MAX_FILE_SIZE_SHIFT);
             zero.ensureAvailable(Engine.LAST_RESERVED_RECID*8+8);
             zero.putLong(0, HEADER);
             long pos = 8;
@@ -133,7 +135,7 @@ class StoreAppend extends Store{
             for(Fun.Tuple2<Long,File> t:sortedFiles){
                 Long num = t.a;
                 File f = t.b;
-                Volume vol = Volume.volumeForFile(f,useRandomAccessFile,readOnly, 0L);
+                Volume vol = Volume.volumeForFile(f,useRandomAccessFile,readOnly, 0L, MAX_FILE_SIZE_SHIFT);
                 if(vol.isEmpty()||vol.getLong(0)!=HEADER){
                     vol.sync();
                     vol.close();
@@ -220,7 +222,7 @@ class StoreAppend extends Store{
         //beyond usual file size, so create new file
         currVolume.sync();
         currFileNum++;
-        currVolume = Volume.volumeForFile(getFileFromNum(currFileNum),useRandomAccessFile, readOnly,0L);
+        currVolume = Volume.volumeForFile(getFileFromNum(currFileNum),useRandomAccessFile, readOnly,0L, MAX_FILE_SIZE_SHIFT);
         currVolume.ensureAvailable(8);
         currVolume.putLong(0,HEADER);
         currPos = 8;

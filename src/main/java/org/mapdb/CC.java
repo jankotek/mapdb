@@ -65,17 +65,16 @@ public interface CC {
     /**
      * Concurrency level. Should be greater than number of threads accessing
      * MapDB concurrently. On other side larger number consumes more memory
-     *
+     * <p/>
      * This number must be power of two: `CONCURRENCY = 2^N`
      */
     int CONCURRENCY = 128;
 
 
-
     int BTREE_DEFAULT_MAX_NODE_SIZE = 32;
 
 
-    int DEFAULT_CACHE_SIZE = 1024*32;
+    int DEFAULT_CACHE_SIZE = 1024 * 32;
 
     String DEFAULT_CACHE = DBMaker.Keys.cache_hashTable;
 
@@ -85,5 +84,6 @@ public interface CC {
     boolean FAIR_LOCKS = false;
 
 
+    int VOLUME_CHUNK_SHIFT = 24; // 16 MB
 }
 

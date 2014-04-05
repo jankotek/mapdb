@@ -914,14 +914,14 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         long sizeLimit = propsGetLong(Keys.sizeLimit,0);
         String volume = props.getProperty(Keys.volume);
         if(Keys.volume_heap.equals(volume))
-            return Volume.memoryFactory(false,sizeLimit);
+            return Volume.memoryFactory(false,sizeLimit,CC.VOLUME_CHUNK_SHIFT);
         else if(Keys.volume_offheap.equals(volume))
-            return Volume.memoryFactory(true,sizeLimit);
+            return Volume.memoryFactory(true,sizeLimit,CC.VOLUME_CHUNK_SHIFT);
 
         File file = new File(props.getProperty(Keys.file));
 
         return Volume.fileFactory(propsGetBool(Keys.readOnly), propsGetRafMode(), file,
-                            sizeLimit);
+                            sizeLimit,CC.VOLUME_CHUNK_SHIFT);
     }
 
 

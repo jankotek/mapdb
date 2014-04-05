@@ -19,7 +19,7 @@ public class StoreWALTest extends StoreDirectTest<StoreWAL>{
 
 
     @Before public void init(){
-        fac = Volume.fileFactory(false,0,f, 0L);
+        fac = Volume.fileFactory(false,0,f, 0L,CC.VOLUME_CHUNK_SHIFT);
         super.init();
     }
 
@@ -64,7 +64,7 @@ public class StoreWALTest extends StoreDirectTest<StoreWAL>{
 
         //increment store version
         File index = new File(f.getPath()+StoreWAL.TRANS_LOG_FILE_EXT);
-        Volume v = Volume.volumeForFile(index,true,false,0);
+        Volume v = Volume.volumeForFile(index,true,false,0,CC.VOLUME_CHUNK_SHIFT);
         v.ensureAvailable(100);
         v.putInt(0,StoreWAL.HEADER);
         v.putUnsignedShort(4,StoreDirect.STORE_VERSION+1);

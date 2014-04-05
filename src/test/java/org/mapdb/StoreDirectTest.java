@@ -21,7 +21,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
     @Before public void init(){
 
-        fac = Volume.fileFactory(false,0,f, 0L);
+        fac = Volume.fileFactory(false,0,f, 0L,CC.VOLUME_CHUNK_SHIFT);
         super.init();
     }
 
@@ -424,7 +424,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.close();
 
         //increment store version
-        Volume v = Volume.volumeForFile(f,true,false,0);
+        Volume v = Volume.volumeForFile(f,true,false,0,CC.VOLUME_CHUNK_SHIFT);
         v.putUnsignedShort(4,StoreDirect.STORE_VERSION+1);
         v.sync();
         v.close();
@@ -451,7 +451,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
         //increment store version
         File phys = new File(f.getPath()+StoreDirect.DATA_FILE_EXT);
-        Volume v = Volume.volumeForFile(phys,true,false,0);
+        Volume v = Volume.volumeForFile(phys,true,false,0,CC.VOLUME_CHUNK_SHIFT);
         v.putUnsignedShort(4,StoreDirect.STORE_VERSION+1);
         v.sync();
         v.close();

@@ -37,11 +37,6 @@ import java.util.concurrent.locks.ReentrantLock;
 public abstract class Volume {
 
 
-    public static final int CHUNK_SHIFT = 24; // 16 MB
-
-    public static final int CHUNK_SIZE = 1<< CHUNK_SHIFT;
-
-    public static final int CHUNK_SIZE_MOD_MASK = CHUNK_SIZE -1;
 
     /**
      * Check space allocated by Volume is bigger or equal to given offset.
@@ -177,15 +172,15 @@ public abstract class Volume {
         Volume createTransLogVolume();
     }
 
-    public static Volume volumeForFile(File f, boolean useRandomAccessFile, boolean readOnly, long sizeLimit) {
+    public static Volume volumeForFile(File f, boolean useRandomAccessFile, boolean readOnly, long sizeLimit, int chunkShift) {
         return useRandomAccessFile ?
-                new FileChannelVol(f, readOnly,sizeLimit):
-                new MappedFileVol(f, readOnly,sizeLimit);
+                new FileChannelVol(f, readOnly,sizeLimit, chunkShift):
+                new MappedFileVol(f, readOnly,sizeLimit,chunkShift);
     }
 
 
-    public static Factory fileFactory(final boolean readOnly, final int rafMode, final File indexFile, final long sizeLimit){
-        return fileFactory(readOnly, rafMode, sizeLimit, indexFile,
+    public static Factory fileFactory(final boolean readOnly, final int rafMode, final File indexFile, final long sizeLimit, final int chunkShift){
+        return fileFactory(readOnly, rafMode, sizeLimit, chunkShift,indexFile,
                 new File(indexFile.getPath() + StoreDirect.DATA_FILE_EXT),
                 new File(indexFile.getPath() + StoreWAL.TRANS_LOG_FILE_EXT));
     }
@@ -193,41 +188,42 @@ public abstract class Volume {
     public static Factory fileFactory(final boolean readOnly,
                                       final int rafMode,
                                       final long sizeLimit,
+                                      final int chunkShift,
                                       final File indexFile,
                                       final File physFile,
                                       final File transLogFile) {
         return new Factory() {
             @Override
             public Volume createIndexVolume() {
-                return volumeForFile(indexFile, rafMode>1, readOnly, sizeLimit);
+                return volumeForFile(indexFile, rafMode>1, readOnly, sizeLimit, chunkShift);
             }
 
             @Override
             public Volume createPhysVolume() {
-                return volumeForFile(physFile, rafMode>0, readOnly, sizeLimit);
+                return volumeForFile(physFile, rafMode>0, readOnly, sizeLimit, chunkShift);
             }
 
             @Override
             public Volume createTransLogVolume() {
-                return volumeForFile(transLogFile, rafMode>0, readOnly, sizeLimit);
+                return volumeForFile(transLogFile, rafMode>0, readOnly, sizeLimit,chunkShift);
             }
         };
     }
 
 
-    public static Factory memoryFactory(final boolean useDirectBuffer, final long sizeLimit) {
+    public static Factory memoryFactory(final boolean useDirectBuffer, final long sizeLimit, final int chunkShift) {
         return new Factory() {
 
             @Override public synchronized  Volume createIndexVolume() {
-                return new MemoryVol(useDirectBuffer, sizeLimit);
+                return new MemoryVol(useDirectBuffer, sizeLimit, chunkShift);
             }
 
             @Override public synchronized Volume createPhysVolume() {
-                return new MemoryVol(useDirectBuffer, sizeLimit);
+                return new MemoryVol(useDirectBuffer, sizeLimit, chunkShift);
             }
 
             @Override public synchronized Volume createTransLogVolume() {
-                return new MemoryVol(useDirectBuffer, sizeLimit);
+                return new MemoryVol(useDirectBuffer, sizeLimit, chunkShift);
             }
         };
     }
@@ -245,13 +241,20 @@ public abstract class Volume {
 
         protected final long sizeLimit;
         protected final boolean hasLimit;
+        protected final int chunkShift;
+        protected final int chunkSizeModMask;
+        protected final int chunkSize;
 
         protected volatile ByteBuffer[] chunks = new ByteBuffer[0];
         protected final boolean readOnly;
 
-        protected ByteBufferVol(boolean readOnly, long sizeLimit) {
+        protected ByteBufferVol(boolean readOnly, long sizeLimit, int chunkShift) {
             this.readOnly = readOnly;
             this.sizeLimit = sizeLimit;
+            this.chunkShift = chunkShift;
+            this.chunkSize = 1<< chunkShift;
+            this.chunkSizeModMask = chunkSize -1;
+
             this.hasLimit = sizeLimit>0;
         }
 
@@ -260,7 +263,7 @@ public abstract class Volume {
         public final boolean tryAvailable(long offset) {
             if (hasLimit && offset > sizeLimit) return false;
 
-            int chunkPos = (int) (offset >>> CHUNK_SHIFT);
+            int chunkPos = (int) (offset >>> chunkShift);
 
             //check for most common case, this is already mapped
             if (chunkPos < chunks.length){
@@ -279,7 +282,7 @@ public abstract class Volume {
                 chunks2 = Arrays.copyOf(chunks2, Math.max(chunkPos+1, chunks2.length * 2));
 
                 for(int pos=oldSize;pos<chunks2.length;pos++) {
-                    chunks2[pos]=makeNewBuffer(CHUNK_SIZE*pos);
+                    chunks2[pos]=makeNewBuffer(chunkSize*pos);
                 }
 
 
@@ -293,53 +296,53 @@ public abstract class Volume {
         protected abstract ByteBuffer makeNewBuffer(long offset);
 
         @Override public final void putLong(final long offset, final long value) {
-            chunks[(int)(offset >>> CHUNK_SHIFT)].putLong((int) (offset & Volume.CHUNK_SIZE_MOD_MASK), value);
+            chunks[(int)(offset >>> chunkShift)].putLong((int) (offset & chunkSizeModMask), value);
         }
 
         @Override public final void putInt(final long offset, final int value) {
-            chunks[(int)(offset >>> CHUNK_SHIFT)].putInt((int) (offset & Volume.CHUNK_SIZE_MOD_MASK), value);
+            chunks[(int)(offset >>> chunkShift)].putInt((int) (offset & chunkSizeModMask), value);
         }
 
 
         @Override public final void putByte(final long offset, final byte value) {
-            chunks[(int)(offset >>> CHUNK_SHIFT)].put((int) (offset & Volume.CHUNK_SIZE_MOD_MASK), value);
+            chunks[(int)(offset >>> chunkShift)].put((int) (offset & chunkSizeModMask), value);
         }
 
 
 
         @Override public void putData(final long offset, final byte[] src, int srcPos, int srcSize){
-            final ByteBuffer b1 = chunks[(int)(offset >>> CHUNK_SHIFT)].duplicate();
-            final int bufPos = (int) (offset&Volume.CHUNK_SIZE_MOD_MASK);
+            final ByteBuffer b1 = chunks[(int)(offset >>> chunkShift)].duplicate();
+            final int bufPos = (int) (offset&chunkSizeModMask);
 
             b1.position(bufPos);
             b1.put(src, srcPos, srcSize);
         }
 
         @Override public final void putData(final long offset, final ByteBuffer buf) {
-            final ByteBuffer b1 = chunks[(int)(offset >>> CHUNK_SHIFT)].duplicate();
-            final int bufPos = (int) (offset&Volume.CHUNK_SIZE_MOD_MASK);
+            final ByteBuffer b1 = chunks[(int)(offset >>> chunkShift)].duplicate();
+            final int bufPos = (int) (offset&chunkSizeModMask);
             //no overlap, so just write the value
             b1.position(bufPos);
             b1.put(buf);
         }
 
         @Override final public long getLong(long offset) {
-            return chunks[(int)(offset >>> CHUNK_SHIFT)].getLong((int) (offset&Volume.CHUNK_SIZE_MOD_MASK));
+            return chunks[(int)(offset >>> chunkShift)].getLong((int) (offset&chunkSizeModMask));
         }
 
         @Override final public int getInt(long offset) {
-            return chunks[(int)(offset >>> CHUNK_SHIFT)].getInt((int) (offset&Volume.CHUNK_SIZE_MOD_MASK));
+            return chunks[(int)(offset >>> chunkShift)].getInt((int) (offset&chunkSizeModMask));
         }
 
 
         @Override public final byte getByte(long offset) {
-            return chunks[(int)(offset >>> CHUNK_SHIFT)].get((int) (offset&Volume.CHUNK_SIZE_MOD_MASK));
+            return chunks[(int)(offset >>> chunkShift)].get((int) (offset&chunkSizeModMask));
         }
 
 
         @Override
         public final DataInput2 getDataInput(long offset, int size) {
-            return new DataInput2(chunks[(int)(offset >>> CHUNK_SHIFT)], (int) (offset&Volume.CHUNK_SIZE_MOD_MASK));
+            return new DataInput2(chunks[(int)(offset >>> chunkShift)], (int) (offset&chunkSizeModMask));
         }
 
         @Override
@@ -405,8 +408,8 @@ public abstract class Volume {
         protected final java.io.RandomAccessFile raf;
 
 
-        public MappedFileVol(File file, boolean readOnly, long sizeLimit) {
-            super(readOnly, sizeLimit);
+        public MappedFileVol(File file, boolean readOnly, long sizeLimit, int chunkShift) {
+            super(readOnly, sizeLimit, chunkShift);
             this.file = file;
             this.mapMode = readOnly? FileChannel.MapMode.READ_ONLY: FileChannel.MapMode.READ_WRITE;
             try {
@@ -417,9 +420,9 @@ public abstract class Volume {
                 final long fileSize = fileChannel.size();
                 if(fileSize>0){
                     //map existing data
-                    chunks = new ByteBuffer[(int) (1+(fileSize>>> CHUNK_SHIFT))];
+                    chunks = new ByteBuffer[(int) (1+(fileSize>>> chunkShift))];
                     for(int i=0;i<chunks.length;i++){
-                        chunks[i] = makeNewBuffer(i*CHUNK_SIZE);
+                        chunks[i] = makeNewBuffer(i*chunkSize);
                     }
                 }else{
                     chunks = new ByteBuffer[0];
@@ -477,8 +480,8 @@ public abstract class Volume {
         @Override
         protected ByteBuffer makeNewBuffer(long offset) {
             try {
-                assert((offset&CHUNK_SIZE_MOD_MASK)==0);
-                ByteBuffer ret = fileChannel.map(mapMode,offset,CHUNK_SIZE);
+                assert((offset&chunkSizeModMask)==0);
+                ByteBuffer ret = fileChannel.map(mapMode,offset,chunkSize);
                 if(mapMode == FileChannel.MapMode.READ_ONLY) {
                     ret = ret.asReadOnlyBuffer();
                 }
@@ -502,7 +505,7 @@ public abstract class Volume {
 
         @Override
         public void truncate(long size) {
-            final int maxSize = 1+(int) (size >>> CHUNK_SHIFT);
+            final int maxSize = 1+(int) (size >>> chunkShift);
             if(maxSize==chunks.length)
                 return;
             if(maxSize>chunks.length) {
@@ -523,7 +526,7 @@ public abstract class Volume {
                 }
 
                 try {
-                    fileChannel.truncate(1L * CHUNK_SIZE *maxSize);
+                    fileChannel.truncate(1L * chunkSize *maxSize);
                 } catch (IOException e) {
                     throw new IOError(e);
                 }
@@ -543,22 +546,22 @@ public abstract class Volume {
             return super.toString()+",direct="+useDirectBuffer;
         }
 
-        public MemoryVol(final boolean useDirectBuffer, final long sizeLimit) {
-            super(false,sizeLimit);
+        public MemoryVol(final boolean useDirectBuffer, final long sizeLimit, final int chunkShift) {
+            super(false,sizeLimit, chunkShift);
             this.useDirectBuffer = useDirectBuffer;
         }
 
         @Override
         protected ByteBuffer makeNewBuffer(long offset) {
             return useDirectBuffer?
-                    ByteBuffer.allocateDirect(CHUNK_SIZE):
-                    ByteBuffer.allocate(CHUNK_SIZE);
+                    ByteBuffer.allocateDirect(chunkSize):
+                    ByteBuffer.allocate(chunkSize);
         }
 
 
         @Override
         public void truncate(long size) {
-            final int maxSize = 1+(int) (size >>> CHUNK_SHIFT);
+            final int maxSize = 1+(int) (size >>> chunkShift);
             if(maxSize==chunks.length)
                 return;
             if(maxSize>chunks.length) {
@@ -616,6 +619,7 @@ public abstract class Volume {
     public static final class FileChannelVol extends Volume {
 
         protected final File file;
+        protected final int chunkSize;
         protected FileChannel channel;
         protected final boolean readOnly;
         protected final long sizeLimit;
@@ -624,11 +628,12 @@ public abstract class Volume {
         protected volatile long size;
         protected Object growLock = new Object();
 
-        public FileChannelVol(File file, boolean readOnly, long sizeLimit){
+        public FileChannelVol(File file, boolean readOnly, long sizeLimit, int chunkShift){
             this.file = file;
             this.readOnly = readOnly;
             this.sizeLimit = sizeLimit;
             this.hasLimit = sizeLimit>0;
+            this.chunkSize = 1<<chunkShift;
             try {
                 checkFolder(file,readOnly);
                 if(readOnly && !file.exists()){
@@ -662,8 +667,8 @@ public abstract class Volume {
         @Override
         public boolean tryAvailable(long offset) {
             if(hasLimit && offset>sizeLimit) return false;
-            if(offset% CHUNK_SIZE !=0)
-                offset += CHUNK_SIZE - offset% CHUNK_SIZE; //round up to multiply of chunk size
+            if(offset% chunkSize !=0)
+                offset += chunkSize - offset% chunkSize; //round up to multiply of chunk size
 
             if(offset>size)synchronized (growLock){
                 try {
