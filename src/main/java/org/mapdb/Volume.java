@@ -477,7 +477,8 @@ public abstract class Volume {
         @Override
         protected ByteBuffer makeNewBuffer(long offset) {
             try {
-                ByteBuffer ret = fileChannel.map(mapMode,0,CHUNK_SIZE);
+                assert((offset&CHUNK_SIZE_MOD_MASK)==0);
+                ByteBuffer ret = fileChannel.map(mapMode,offset,CHUNK_SIZE);
                 if(mapMode == FileChannel.MapMode.READ_ONLY) {
                     ret = ret.asReadOnlyBuffer();
                 }
