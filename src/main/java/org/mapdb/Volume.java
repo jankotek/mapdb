@@ -660,8 +660,8 @@ public abstract class Volume {
                 throw new IOException("Parent folder does not exist: "+file);
             if(!parent.canRead())
                 throw new IOException("Parent folder is not readable: "+file);
-            if(readOnly && !parent.canWrite())
-                throw new IOException("Parent folder is not writeable: "+file);
+            if(!readOnly && !parent.canWrite())
+                throw new IOException("Parent folder is not writable: "+file);
         }
 
         @Override
