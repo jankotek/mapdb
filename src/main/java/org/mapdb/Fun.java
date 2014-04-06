@@ -685,6 +685,11 @@ public final class Fun {
         }
     }
 
+    public interface Function0<R>{
+        R run();
+    }
+
+
     public interface Function1<R,A>{
         R run(A a);
     }
