@@ -84,6 +84,6 @@ public interface CC {
     boolean FAIR_LOCKS = false;
 
 
-    int VOLUME_CHUNK_SHIFT = 24; // 16 MB
+    int VOLUME_CHUNK_SHIFT = 20; // 1 MB
 }
 

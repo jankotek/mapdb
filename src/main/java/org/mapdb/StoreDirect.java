@@ -123,7 +123,7 @@ public class StoreDirect extends Store{
     protected static final long MASK_ARCHIVE = 0x2L;
 
     /** 4 byte file header */
-    protected static final int HEADER = 234222482;
+    protected static final int HEADER = 234243482;
 
     /** 2 byte store version*/
     protected static final short STORE_VERSION = 10000;
