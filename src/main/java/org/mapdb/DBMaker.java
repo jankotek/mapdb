@@ -50,8 +50,9 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         String volume_mmapfPartial = "mmapfPartial";
         String volume_mmapfIfSupported = "mmapfIfSupported";
         String volume_mmapf = "mmapf";
-        String volume_heap = "heap";
-        String volume_offheap = "offheap";
+        String volume_byteBuffer = "byteBuffer";
+        String volume_directByteBuffer = "directByteBuffer";
+
 
         String store = "store";
         String store_direct = "direct";
@@ -100,6 +101,20 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         props.setProperty(Keys.file, file.getPath());
     }
 
+    /**
+     * Creates new in-memory database which stores all data on heap without serialization.
+     * This mode should be very fast, but data will affect Garbage Collector the same way as traditional Java Collections.
+     */
+    public static DBMaker newHeapDB(){
+        return new DBMaker()._newHeapDB();
+    }
+
+    public DBMakerT _newHeapDB(){
+        props.setProperty(Keys.store,Keys.store_heap);
+        return getThis();
+    }
+
+
     /** Creates new in-memory database. Changes are lost after JVM exits.
      * <p/>
      * This will use HEAP memory so Garbage Collector is affected.
@@ -109,7 +124,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
     }
 
     public DBMakerT _newMemoryDB(){
-        props.setProperty(Keys.volume,Keys.volume_heap);
+        props.setProperty(Keys.volume,Keys.volume_byteBuffer);
         return getThis();
     }
 
@@ -122,7 +137,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
     }
 
     public  DBMakerT _newMemoryDirectDB() {
-        props.setProperty(Keys.volume,Keys.volume_offheap);
+        props.setProperty(Keys.volume,Keys.volume_directByteBuffer);
         return getThis();
     }
 
@@ -394,8 +409,8 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
     }
 
     private void assertNotInMemoryVolume() {
-        if(Keys.volume_heap.equals(props.getProperty(Keys.volume)) ||
-           Keys.volume_offheap.equals(props.getProperty(Keys.volume)))
+        if(Keys.volume_byteBuffer.equals(props.getProperty(Keys.volume)) ||
+           Keys.volume_directByteBuffer.equals(props.getProperty(Keys.volume)))
             throw new IllegalArgumentException("Can not enable mmap file for in-memory store");
     }
 
@@ -697,17 +712,20 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
         Engine engine;
 
-        if(!Keys.store_append.equals(store)){
+        if(Keys.store_heap.equals(store)){
+            engine = extendHeapStore();
+
+        }else  if(Keys.store_append.equals(store)){
+            if(Keys.volume_byteBuffer.equals(volume)||Keys.volume_directByteBuffer.equals(volume))
+                throw new UnsupportedOperationException("Append Storage format is not supported with in-memory dbs");
+            engine = extendStoreAppend();
+
+        }else{
             Volume.Factory folFac = extendStoreVolumeFactory();
 
             engine = propsGetBool(Keys.transactionDisable) ?
                     extendStoreDirect(folFac):
                     extendStoreWAL(folFac);
-
-        }else{
-            if(Keys.volume_heap.equals(volume)||Keys.volume_offheap.equals(volume))
-                throw new UnsupportedOperationException("Append Storage format is not supported with in-memory dbs");
-            engine = extendStoreAppend();
         }
 
         engine = extendWrapStore(engine);
@@ -774,6 +792,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
         return engine;
     }
+
 
 
     protected int propsGetInt(String key, int defValue){
@@ -883,6 +902,10 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
     }
 
 
+    protected Engine extendHeapStore() {
+        return new StoreHeap();
+    }
+
     protected Engine extendStoreAppend() {
         final File file = props.containsKey(Keys.file)? new File(props.getProperty(Keys.file)):null;
         boolean compressionEnabled = Keys.compression_lzf.equals(props.getProperty(Keys.compression));
@@ -910,12 +933,13 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
                 propsGetBool(Keys.checksum),compressionEnabled,propsGetXteaEncKey());
     }
 
+
     protected Volume.Factory extendStoreVolumeFactory() {
         long sizeLimit = propsGetLong(Keys.sizeLimit,0);
         String volume = props.getProperty(Keys.volume);
-        if(Keys.volume_heap.equals(volume))
+        if(Keys.volume_byteBuffer.equals(volume))
             return Volume.memoryFactory(false,sizeLimit,CC.VOLUME_CHUNK_SHIFT);
-        else if(Keys.volume_offheap.equals(volume))
+        else if(Keys.volume_directByteBuffer.equals(volume))
             return Volume.memoryFactory(true,sizeLimit,CC.VOLUME_CHUNK_SHIFT);
 
         File file = new File(props.getProperty(Keys.file));
