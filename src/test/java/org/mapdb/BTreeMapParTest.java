@@ -40,7 +40,7 @@ public class BTreeMapParTest {
         }
 
         s.shutdown();
-        s.awaitTermination(10, TimeUnit.SECONDS);
+        s.awaitTermination(1000, TimeUnit.SECONDS);
 
         System.out.printf("  Threads %d, time %,d\n",threadNum,System.currentTimeMillis()-t);
 
