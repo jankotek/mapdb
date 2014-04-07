@@ -19,7 +19,6 @@ package org.mapdb;
 import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -64,9 +63,6 @@ public class DB {
         }
     }
 
-    protected SerializerPojo serializerPojo;
-
-
     /**
      * Construct new DB. It is just thin layer over {@link Engine} which does the real work.
      * @param engine
@@ -83,22 +79,11 @@ public class DB {
         }
         this.engine = engine;
         this.strictDBGet = strictDBGet;
+        engine.getSerializerPojo().setDb(this);
         reinit();
     }
 
     protected void reinit() {
-        //open default serializer
-        final CopyOnWriteArrayList<SerializerPojo.ClassInfo> classInfos = engine.get(Engine.CLASS_INFO_RECID, SerializerPojo.serializer);
-        serializerPojo = new SerializerPojo(classInfos);
-        serializerPojo.setDb(this);
-
-        //hack for issue #183 and issue #249
-        if(engine instanceof TxEngine){
-            TxEngine t = (TxEngine) engine;
-            if(t.getWrappedEngine() instanceof TxEngine.Tx){
-                ((TxEngine.Tx)t.getWrappedEngine()).setSerializerPojo(serializerPojo);
-            }
-        }
         //open name dir
         catalog = BTreeMap.preinitCatalog(this);
     }
@@ -1487,22 +1472,12 @@ public class DB {
      * !! it is necessary to call this method before JVM exits!!
      */
     synchronized public void close(){
-        checkNotClosed();
-        serializerPojo.lock.writeLock().lock();
-        try {
-            if(serializerPojo.hasUnsavedChanges())
-                serializerPojo.save(engine);
-
-            engine.close();
-            //dereference db to prevent memory leaks
-            engine = EngineWrapper.CLOSED;
-            namesInstanciated = Collections.unmodifiableMap(new HashMap());
-            namesLookup = Collections.unmodifiableMap(new HashMap());
-
-        }finally {
-            serializerPojo.lock.writeLock().unlock();
-            serializerPojo = null;
-        }
+        if(engine == null) return;
+        engine.close();
+        //dereference db to prevent memory leaks
+        engine = EngineWrapper.CLOSED;
+        namesInstanciated = Collections.unmodifiableMap(new HashMap());
+        namesLookup = Collections.unmodifiableMap(new HashMap());
     }
 
     /**
@@ -1520,7 +1495,7 @@ public class DB {
 
 
     protected void checkNotClosed() {
-        if(engine == null || serializerPojo==null) throw new IllegalAccessError("DB was already closed");
+        if(engine == null) throw new IllegalAccessError("DB was already closed");
     }
 
     /**
@@ -1537,14 +1512,7 @@ public class DB {
      */
     synchronized public void commit() {
         checkNotClosed();
-        serializerPojo.lock.writeLock().lock();
-        try {
-            if(serializerPojo.hasUnsavedChanges())
-                serializerPojo.save(engine);
-            engine.commit();
-        }finally {
-            serializerPojo.lock.writeLock().unlock();
-        }
+        engine.commit();
     }
 
     /**
@@ -1554,13 +1522,7 @@ public class DB {
      */
     synchronized public void rollback() {
         checkNotClosed();
-        serializerPojo.lock.writeLock().lock();
-        try {
-            serializerPojo.reload(engine.get(Engine.CLASS_INFO_RECID, SerializerPojo.serializer));
-            engine.rollback();
-        }finally {
-            serializerPojo.lock.writeLock().unlock();
-        }
+        engine.rollback();
     }
 
     /**
@@ -1591,7 +1553,7 @@ public class DB {
      * @return default serializer used in this DB, it handles POJO and other stuff.
      */
     public  Serializer getDefaultSerializer() {
-        return serializerPojo;
+        return engine.getSerializerPojo();
     }
 
     /**
@@ -1604,7 +1566,6 @@ public class DB {
     protected void checkType(String type, String expected) {
         if(!expected.equals(type)) throw new IllegalArgumentException("Wrong type: "+type);
     }
-
 
 
 }

@@ -94,7 +94,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             }
 
 
-            HTreeMap.this.engine.closeListenerUnregister(HTreeMap.this.closeListener);
+            HTreeMap.this.engine.unregisterCloseListener(HTreeMap.this.closeListener);
         }
     };
 
@@ -278,7 +278,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             t.setDaemon(true);
             t.start();
             
-            engine.closeListenerRegister(closeListener);
+            engine.registerCloseListener(closeListener);
         }
 
     }

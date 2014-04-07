@@ -101,10 +101,6 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
 
     public SerializerPojo(CopyOnWriteArrayList<ClassInfo> registered){
-        reload(registered);
-    }
-
-    public void reload(CopyOnWriteArrayList<ClassInfo> registered) {
         if(registered == null)
             registered = new CopyOnWriteArrayList<ClassInfo>();
         this.registered = registered;
@@ -635,17 +631,9 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     public boolean hasUnsavedChanges(){
         return oldSize!=registered.size();
     }
-
     public void save(Engine e){
-        assert(lock.writeLock().isHeldByCurrentThread());
+        //TODO thread safe?
         e.update(Engine.CLASS_INFO_RECID, registered, SerializerPojo.serializer);
         oldSize = registered.size();
     }
-
-    public void saveTx(TxEngine e){
-        assert(lock.writeLock().isHeldByCurrentThread());
-        e.superUpdate(Engine.CLASS_INFO_RECID, registered, SerializerPojo.serializer);
-        oldSize = registered.size();
-    }
-
 }

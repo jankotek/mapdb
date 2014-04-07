@@ -5,8 +5,6 @@ import java.util.Map;
 
 import org.junit.Test;
 
-import static org.junit.Assert.assertTrue;
-
 
 public class Issue249Test {
 
@@ -24,7 +22,6 @@ public class Issue249Test {
         map.put(x.getId(), x);
 
         db = commit(db);
-        assertTrue(db.isClosed());
         db = rollback(db);
 
         DB db2 = txMaker.makeTx();

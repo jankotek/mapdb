@@ -463,6 +463,9 @@ class StoreAppend extends Store{
         for(Runnable closeListener:closeListeners)
             closeListener.run();
 
+        if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
+            serializerPojo.save(this);
+        }
 
         Iterator<Volume> iter=volumes.valuesIterator();
         if(!readOnly && modified){ //TODO and modified since last open
@@ -492,9 +495,6 @@ class StoreAppend extends Store{
             return;
         }
 
-        for(Runnable c:commitListeners)
-            c.run();
-
         lockAllWrite();
         try{
 
@@ -517,6 +517,9 @@ class StoreAppend extends Store{
             currVolume.putUnsignedByte(rollbackCurrPos, (int) (END+RECIDP));
             currPos++;
 
+            if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
+                serializerPojo.save(this);
+            }
 
         }finally{
             unlockAllWrite();
@@ -528,10 +531,6 @@ class StoreAppend extends Store{
     @Override
     public void rollback() throws UnsupportedOperationException {
         if(!tx) throw new UnsupportedOperationException("Transactions are disabled");
-
-        for(Runnable c:rollbackListeners)
-            c.run();
-
 
         lockAllWrite();
         try{

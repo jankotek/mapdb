@@ -224,15 +224,8 @@ public interface Engine {
 
     void compact();
 
+    SerializerPojo getSerializerPojo();
 
-
-    void closeListenerRegister(Runnable closeListener);
-    void closeListenerUnregister(Runnable closeListener);
-
-    void commitListenerRegister(Runnable closeListener);
-    void commitListenerUnregister(Runnable closeListener);
-
-    void rollbackListenerRegister(Runnable closeListener);
-    void rollbackListenerUnregister(Runnable closeListener);
-
+    void registerCloseListener(Runnable closeListener);
+    void unregisterCloseListener(Runnable closeListener);
 }

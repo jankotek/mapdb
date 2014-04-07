@@ -495,7 +495,8 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
                 throw new AssertionError();
 
             //wait for background threads to shutdown
-            activeThreadsCount.await();
+
+            activeThreadsCount.await(1000,TimeUnit.MILLISECONDS);
 
             //put preallocated recids back to store
             newRecidsLock.lock();

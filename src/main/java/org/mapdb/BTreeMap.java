@@ -175,11 +175,9 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             db.getEngine().update(Engine.CATALOG_RECID,rootRef, Serializer.LONG);
             db.getEngine().commit();
         }
-        Serializer valSer = db.getDefaultSerializer();
-        assert(valSer!=null);
         return new BTreeMap<String, Object>(db.engine,Engine.CATALOG_RECID,32,false,0,
                 BTreeKeySerializer.STRING,
-                valSer,
+                db.getDefaultSerializer(),
                 COMPARABLE_COMPARATOR,0);
     }
 

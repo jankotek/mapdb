@@ -85,8 +85,7 @@ public class EngineWrapper implements Engine{
 
     @Override
     public boolean isClosed() {
-        Engine e= engine;
-        return e==CLOSED || e==null || e.isClosed();
+        return engine==CLOSED || engine==null;
     }
 
     @Override
@@ -130,42 +129,22 @@ public class EngineWrapper implements Engine{
         getWrappedEngine().compact();
     }
 
+    @Override
+    public  SerializerPojo getSerializerPojo() {
+        return getWrappedEngine().getSerializerPojo();
+    }
 
     @Override
-    public void closeListenerRegister(Runnable closeListener) {
-        getWrappedEngine().closeListenerRegister(closeListener);
+    public void registerCloseListener(Runnable closeListener) {
+        getWrappedEngine().registerCloseListener(closeListener);
 
     }
 
     @Override
-    public void closeListenerUnregister(Runnable closeListener) {
-        getWrappedEngine().closeListenerUnregister(closeListener);
+    public void unregisterCloseListener(Runnable closeListener) {
+        getWrappedEngine().unregisterCloseListener(closeListener);
 
     }
-
-    @Override
-    public void commitListenerRegister(Runnable closeListener) {
-        getWrappedEngine().commitListenerRegister(closeListener);
-
-    }
-
-    @Override
-    public void commitListenerUnregister(Runnable closeListener) {
-        getWrappedEngine().commitListenerUnregister(closeListener);
-
-    }
-
-    @Override
-    public void rollbackListenerRegister(Runnable closeListener) {
-        getWrappedEngine().rollbackListenerRegister(closeListener);
-
-    }
-
-    @Override
-    public void rollbackListenerUnregister(Runnable closeListener) {
-        getWrappedEngine().rollbackListenerUnregister(closeListener);
-    }
-
 
     public Engine getWrappedEngine(){
         return checkClosed(engine);
@@ -631,39 +610,20 @@ public class EngineWrapper implements Engine{
             throw new IllegalAccessError("already closed");
         }
 
-
         @Override
-        public void closeListenerRegister(Runnable listener) {
+        public SerializerPojo getSerializerPojo() {
             throw new IllegalAccessError("already closed");
         }
 
         @Override
-        public void commitListenerRegister(Runnable listener) {
+        public void registerCloseListener(Runnable closeListener) {
             throw new IllegalAccessError("already closed");
         }
 
         @Override
-        public void rollbackListenerRegister(Runnable listener) {
-            throw new IllegalAccessError("already closed");
-        }
-
-
-        @Override
-        public void closeListenerUnregister(Runnable listener) {
+        public void unregisterCloseListener(Runnable closeListener) {
             //this should be probably empty
         }
-
-        @Override
-        public void commitListenerUnregister(Runnable listener) {
-            //this should be probably empty
-        }
-
-        @Override
-        public void rollbackListenerUnregister(Runnable listener) {
-            //this should be probably empty
-        }
-
-
     };
 
     /**

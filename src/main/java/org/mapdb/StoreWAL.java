@@ -548,12 +548,11 @@ public class StoreWAL extends StoreDirect {
 
     @Override
     public void commit() {
-
-        for(Runnable c:commitListeners)
-            c.run();
-
         lockAllWrite();
         try{
+            if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
+                serializerPojo.save(this);
+            }
 
             if(!logDirty()){
                 return;
@@ -1077,6 +1076,10 @@ public class StoreWAL extends StoreDirect {
     public void close() {
         for(Runnable closeListener:closeListeners)
             closeListener.run();
+
+        if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
+            serializerPojo.save(this);
+        }
 
         lockAllWrite();
         try{
