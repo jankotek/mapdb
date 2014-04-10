@@ -420,7 +420,7 @@ public abstract class Volume {
                 final long fileSize = fileChannel.size();
                 if(fileSize>0){
                     //map existing data
-                    chunks = new ByteBuffer[(int) (1+(fileSize>>> chunkShift))];
+                    chunks = new ByteBuffer[(int) ((fileSize>>> chunkShift))];
                     for(int i=0;i<chunks.length;i++){
                         chunks[i] = makeNewBuffer(i*chunkSize);
                     }
@@ -481,6 +481,7 @@ public abstract class Volume {
         protected ByteBuffer makeNewBuffer(long offset) {
             try {
                 assert((offset&chunkSizeModMask)==0);
+                assert(offset>=0);
                 ByteBuffer ret = fileChannel.map(mapMode,offset,chunkSize);
                 if(mapMode == FileChannel.MapMode.READ_ONLY) {
                     ret = ret.asReadOnlyBuffer();
