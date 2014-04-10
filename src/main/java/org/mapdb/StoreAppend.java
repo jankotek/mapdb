@@ -361,7 +361,7 @@ class StoreAppend extends Store{
         size-=SIZEP;
         if(size<0) return null;
         if(size==0) return serializer.deserialize(new DataInput2(new byte[0]),0);
-        DataInput2 in = vol.getDataInput(fileOffset, (int) size);
+        DataInput2 in = (DataInput2) vol.getDataInput(fileOffset, (int) size);
 
         return deserialize(serializer, (int) size,in);
     }

@@ -169,7 +169,7 @@ public class LoggerVolume extends Volume{
 
     @Override
     public DataInput2 getDataInput(long offset, int size) {
-        return logged.getDataInput(offset, size);
+        return (DataInput2) logged.getDataInput(offset, size);
     }
 
     @Override

@@ -445,7 +445,7 @@ public class StoreDirect extends Store{
         long offset = indexVal&MASK_OFFSET;
         if((indexVal& MASK_LINKED)==0){
             //read single record
-            di = phys.getDataInput(offset, size);
+            di = (DataInput2) phys.getDataInput(offset, size);
 
         }else{
             //is linked, first construct buffer we will read data to
@@ -455,7 +455,7 @@ public class StoreDirect extends Store{
             byte[] buf = new byte[64];
             //read parts into segment
             for(;;){
-                DataInput2 in = phys.getDataInput(offset + c, size-c);
+                DataInput2 in = (DataInput2) phys.getDataInput(offset + c, size-c);
 
                 if(buf.length<pos+size-c)
                     buf = Arrays.copyOf(buf,Math.max(pos+size-c,buf.length*2)); //buf to small, grow

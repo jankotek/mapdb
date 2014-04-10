@@ -357,7 +357,7 @@ public class StoreWAL extends StoreDirect {
         if(r.length==1){
             //single record
             final int size = (int) (r[0]>>>48);
-            DataInput2 in = log.getDataInput(r[0]&LOG_MASK_OFFSET, size);
+            DataInput2 in = (DataInput2) log.getDataInput(r[0]&LOG_MASK_OFFSET, size);
             return deserialize(serializer,size,in);
         }else{
             //linked record
@@ -825,7 +825,7 @@ public class StoreWAL extends StoreDirect {
                 offset = offset&MASK_OFFSET;
 
                 //transfer byte[] directly from log file without copying into memory
-                DataInput2 input = log.getDataInput(logSize, size);
+                DataInput2 input = (DataInput2) log.getDataInput(logSize, size);
                 ByteBuffer buf = input.buf.duplicate();
 
                 buf.position(input.pos);
