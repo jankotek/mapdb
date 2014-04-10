@@ -9,7 +9,7 @@ Most dbs and old generation of MapDB (JDBM) use fixed size to cache read from di
 MapDB eliminated page layer, so it does not have regular cache.
 Instead it used memory mapped files and relies on operating system to do disk caching.
 
-When we talk about cache in mapdb we mean *instance cache.Instead of pages, MapDB caches deserialized objects
+When we talk about cache in mapdb we mean *instance cache* .Instead of pages, MapDB caches deserialized objects
 such as tree nodes, `Long`, `Person` and so on.
 Instance cache helps to minimize deserialization overhead.
 When you fetch an object twice, it will be deserialized only once, second time it will be fetched from cache.
