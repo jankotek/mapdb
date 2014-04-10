@@ -224,8 +224,15 @@ public interface Engine {
 
     void compact();
 
+    /**
+     * Returns default serializer associated with this engine.
+     * The default serializer will be moved from Engine into DB, so it is deprecated now and
+     * this method will be removed.
+     *
+     */
+    @Deprecated
     SerializerPojo getSerializerPojo();
 
-    void registerCloseListener(Runnable closeListener);
-    void unregisterCloseListener(Runnable closeListener);
+    void closeListenerRegister(Runnable closeListener);
+    void closeListenerUnregister(Runnable closeListener);
 }

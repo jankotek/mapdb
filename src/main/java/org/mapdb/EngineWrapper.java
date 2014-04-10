@@ -135,14 +135,14 @@ public class EngineWrapper implements Engine{
     }
 
     @Override
-    public void registerCloseListener(Runnable closeListener) {
-        getWrappedEngine().registerCloseListener(closeListener);
+    public void closeListenerRegister(Runnable closeListener) {
+        getWrappedEngine().closeListenerRegister(closeListener);
 
     }
 
     @Override
-    public void unregisterCloseListener(Runnable closeListener) {
-        getWrappedEngine().unregisterCloseListener(closeListener);
+    public void closeListenerUnregister(Runnable closeListener) {
+        getWrappedEngine().closeListenerUnregister(closeListener);
 
     }
 
@@ -616,12 +616,12 @@ public class EngineWrapper implements Engine{
         }
 
         @Override
-        public void registerCloseListener(Runnable closeListener) {
+        public void closeListenerRegister(Runnable closeListener) {
             throw new IllegalAccessError("already closed");
         }
 
         @Override
-        public void unregisterCloseListener(Runnable closeListener) {
+        public void closeListenerUnregister(Runnable closeListener) {
             //this should be probably empty
         }
     };

@@ -610,13 +610,13 @@ public class TxEngine extends EngineWrapper {
     }
 
         @Override
-        public void registerCloseListener(Runnable closeListener) {
+        public void closeListenerRegister(Runnable closeListener) {
             throw new UnsupportedOperationException();
 
         }
 
         @Override
-        public void unregisterCloseListener(Runnable closeListener) {
+        public void closeListenerUnregister(Runnable closeListener) {
             throw new UnsupportedOperationException();
         }
 
