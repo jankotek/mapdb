@@ -282,7 +282,7 @@ public abstract class Volume {
                 chunks2 = Arrays.copyOf(chunks2, Math.max(chunkPos+1, chunks2.length * 2));
 
                 for(int pos=oldSize;pos<chunks2.length;pos++) {
-                    chunks2[pos]=makeNewBuffer(chunkSize*pos);
+                    chunks2[pos]=makeNewBuffer(1L*chunkSize*pos);
                 }
 
 
