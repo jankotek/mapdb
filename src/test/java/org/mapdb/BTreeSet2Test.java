@@ -8,6 +8,7 @@ package org.mapdb;/*
 import java.io.Serializable;
 import java.util.*;
 
+@SuppressWarnings({ "unchecked", "rawtypes" })
 public class BTreeSet2Test extends JSR166TestCase {
 //    public static void main(String[] args) {
 //        junit.textui.TestRunner.run(suite());

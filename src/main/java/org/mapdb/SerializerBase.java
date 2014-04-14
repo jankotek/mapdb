@@ -550,7 +550,7 @@ public class SerializerBase implements Serializer<Object>{
     }
 
     private void serializeLongArray(DataOutput out, long[] obj) throws IOException {
-        long[] val = (long[]) obj;
+        long[] val =  obj;
         long max = Long.MIN_VALUE;
         long min = Long.MAX_VALUE;
         for (long i : val) {
@@ -582,7 +582,7 @@ public class SerializerBase implements Serializer<Object>{
     }
 
     private void serializeIntArray(DataOutput out, int[] obj) throws IOException {
-        int[] val = (int[]) obj;
+        int[] val = obj;
         int max = Integer.MIN_VALUE;
         int min = Integer.MAX_VALUE;
         for (int i : val) {

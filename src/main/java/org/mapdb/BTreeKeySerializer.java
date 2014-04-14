@@ -303,7 +303,7 @@ public abstract class BTreeKeySerializer<K>{
          * @param aSerializer serializer used for first tuple value
          * @param bSerializer serializer used for second tuple value
          */
-        public Tuple2KeySerializer(Comparator<A> aComparator,Serializer aSerializer, Serializer bSerializer){
+        public Tuple2KeySerializer(Comparator<A> aComparator,Serializer<A> aSerializer, Serializer<B> bSerializer){
             this.aComparator = aComparator;
             this.aSerializer = aSerializer;
             this.bSerializer = bSerializer;
@@ -427,8 +427,8 @@ public abstract class BTreeKeySerializer<K>{
          * @param bSerializer serializer used for second tuple value
          * @param cSerializer serializer used for third tuple value
          */
-        public Tuple3KeySerializer(Comparator<A> aComparator, Comparator<B> bComparator,  Serializer aSerializer,
-                                   Serializer bSerializer, Serializer cSerializer){
+        public Tuple3KeySerializer(Comparator<A> aComparator, Comparator<B> bComparator,  Serializer<A> aSerializer,
+                                   Serializer<B> bSerializer, Serializer<C> cSerializer){
             this.aComparator = aComparator;
             this.bComparator = bComparator;
             this.aSerializer = aSerializer;
@@ -593,7 +593,7 @@ public abstract class BTreeKeySerializer<K>{
          * @param dSerializer serializer used for fourth tuple value
          */
         public Tuple4KeySerializer(Comparator<A> aComparator, Comparator<B> bComparator, Comparator<C> cComparator,
-                                   Serializer aSerializer, Serializer bSerializer, Serializer cSerializer, Serializer dSerializer){
+                                   Serializer<A> aSerializer, Serializer<B> bSerializer, Serializer<C> cSerializer, Serializer<D> dSerializer){
             this.aComparator = aComparator;
             this.bComparator = bComparator;
             this.cComparator = cComparator;
@@ -777,7 +777,7 @@ public abstract class BTreeKeySerializer<K>{
          *
          */
         public Tuple5KeySerializer(Comparator<A> aComparator, Comparator<B> bComparator, Comparator<C> cComparator, Comparator<D> dComparator,
-                                   Serializer aSerializer, Serializer bSerializer, Serializer cSerializer, Serializer dSerializer, Serializer eSerializer){
+                                   Serializer<A> aSerializer, Serializer<B> bSerializer, Serializer<C> cSerializer, Serializer<D> dSerializer, Serializer<E> eSerializer){
             this.aComparator = aComparator;
             this.bComparator = bComparator;
             this.cComparator = cComparator;
@@ -992,7 +992,7 @@ public abstract class BTreeKeySerializer<K>{
          *
          */
         public Tuple6KeySerializer(Comparator<A> aComparator, Comparator<B> bComparator, Comparator<C> cComparator, Comparator<D> dComparator,Comparator<E> eComparator,
-                                   Serializer aSerializer, Serializer bSerializer, Serializer cSerializer, Serializer dSerializer, Serializer eSerializer,Serializer fSerializer){
+                                   Serializer<A> aSerializer, Serializer<B> bSerializer, Serializer<C> cSerializer, Serializer<D> dSerializer, Serializer<E> eSerializer,Serializer<F> fSerializer){
             this.aComparator = aComparator;
             this.bComparator = bComparator;
             this.cComparator = cComparator;

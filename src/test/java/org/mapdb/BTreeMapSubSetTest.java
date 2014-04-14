@@ -9,6 +9,7 @@ import junit.framework.TestSuite;
 
 import java.util.*;
 
+@SuppressWarnings({ "unchecked", "rawtypes" })
 public class BTreeMapSubSetTest extends JSR166TestCase {
     public static void main(String[] args) {
         junit.textui.TestRunner.run(suite());

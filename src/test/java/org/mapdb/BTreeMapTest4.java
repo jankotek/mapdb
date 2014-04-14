@@ -24,6 +24,7 @@ import java.util.*;
 import java.util.Map.Entry;
 
 
+@SuppressWarnings({ "unchecked", "rawtypes" })
 public class BTreeMapTest4 extends junit.framework.TestCase {
 
     protected <K,V> BTreeMap<K,V> newBTreeMap(Map map) {

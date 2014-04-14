@@ -68,7 +68,7 @@ public final class Fun {
 
     /** positive infinity object. Is larger than anything else. Used in tuple comparators.
      * Negative infinity is represented by 'null' */
-    public static final Comparable HI = new Comparable(){
+    public static final Object HI = new Comparable(){
         @Override public String toString() {
             return "HI";
         }
@@ -106,7 +106,7 @@ public final class Fun {
 
 
 
-    static public final class Tuple2<A,B> implements Comparable, Serializable {
+    static public final class Tuple2<A,B> implements Comparable<Tuple2<A,B>>, Serializable {
 		
     	private static final long serialVersionUID = -8816277286657643283L;
 		
@@ -119,15 +119,15 @@ public final class Fun {
         }
 
         /** constructor used for deserilization*/
-        protected Tuple2(SerializerBase serializer, DataInput in, SerializerBase.FastArrayList objectStack) throws IOException {
+        protected Tuple2(SerializerBase serializer, DataInput in, SerializerBase.FastArrayList<Object> objectStack) throws IOException {
             objectStack.add(this);
             this.a = (A) serializer.deserialize(in, objectStack);
             this.b =  (B) serializer.deserialize(in, objectStack);
         }
 
 
-        @Override public int compareTo(Object o) {
-            return TUPLE2_COMPARATOR.compare(this, (Tuple2) o);
+        @Override public int compareTo(Tuple2<A,B> o) {
+            return TUPLE2_COMPARATOR.compare(this, o);
         }
 
         @Override public boolean equals(Object o) {
@@ -153,7 +153,7 @@ public final class Fun {
         }
     }
 
-    final static public class Tuple3<A,B,C> implements Comparable, Serializable{
+    final static public class Tuple3<A,B,C> implements Comparable<Tuple3<A,B,C>>, Serializable{
 
     	private static final long serialVersionUID = 11785034935947868L;
     	
@@ -168,7 +168,7 @@ public final class Fun {
         }
 
         /** constructor used for deserilization, `extra` is added so the functions do not colide*/
-        protected Tuple3(SerializerBase serializer, DataInput in, SerializerBase.FastArrayList objectStack, int extra) throws IOException {
+        protected Tuple3(SerializerBase serializer, DataInput in, SerializerBase.FastArrayList<Object> objectStack, int extra) throws IOException {
             objectStack.add(this);
             this.a = (A) serializer.deserialize(in, objectStack);
             this.b =  (B) serializer.deserialize(in, objectStack);
@@ -176,8 +176,9 @@ public final class Fun {
         }
 
 
-        @Override public int compareTo(Object o) {
-            return TUPLE3_COMPARATOR.compare(this, (Tuple3) o);
+        @Override
+        public int compareTo(Tuple3<A,B,C> o) {
+            return TUPLE3_COMPARATOR.compare(this, o);
         }
 
 
@@ -208,7 +209,7 @@ public final class Fun {
         }
     }
 
-    final static public class Tuple4<A,B,C,D> implements Comparable, Serializable{
+    final static public class Tuple4<A,B,C,D> implements Comparable<Tuple4<A,B,C,D>>, Serializable{
 
     	private static final long serialVersionUID = 1630397500758650718L;
     	
@@ -225,7 +226,7 @@ public final class Fun {
         }
 
         /** constructor used for deserilization*/
-        protected Tuple4(SerializerBase serializer, DataInput in, SerializerBase.FastArrayList objectStack) throws IOException {
+        protected Tuple4(SerializerBase serializer, DataInput in, SerializerBase.FastArrayList<Object> objectStack) throws IOException {
             objectStack.add(this);
             this.a = (A) serializer.deserialize(in, objectStack);
             this.b =  (B) serializer.deserialize(in, objectStack);
@@ -233,8 +234,9 @@ public final class Fun {
             this.d =  (D) serializer.deserialize(in, objectStack);
         }
 
-        @Override public int compareTo(Object o) {
-            return TUPLE4_COMPARATOR.compare(this, (Tuple4) o);
+        @Override
+        public int compareTo(Tuple4<A,B,C,D> o) {
+            return TUPLE4_COMPARATOR.compare(this, o);
         }
 
 
@@ -268,7 +270,7 @@ public final class Fun {
     }
 
 
-    final static public class Tuple5<A, B, C, D, E> implements Comparable, Serializable {
+    final static public class Tuple5<A, B, C, D, E> implements Comparable<Tuple5<A,B,C,D,E>>, Serializable {
 
         private static final long serialVersionUID = 3975016300758650718L;
 
@@ -289,7 +291,7 @@ public final class Fun {
         /**
          * constructor used for deserilization
          */
-        protected Tuple5(SerializerBase serializer, DataInput in, SerializerBase.FastArrayList objectStack) throws IOException {
+        protected Tuple5(SerializerBase serializer, DataInput in, SerializerBase.FastArrayList<Object> objectStack) throws IOException {
             objectStack.add(this);
             this.a = (A) serializer.deserialize(in, objectStack);
             this.b = (B) serializer.deserialize(in, objectStack);
@@ -299,8 +301,8 @@ public final class Fun {
         }
 
         @Override
-        public int compareTo(Object o) {
-            return TUPLE5_COMPARATOR.compare(this, (Tuple5) o);
+        public int compareTo(Tuple5<A,B,C,D,E> o) {
+            return TUPLE5_COMPARATOR.compare(this, o);
         }
 
 
@@ -337,7 +339,7 @@ public final class Fun {
     }
 
 
-    final static public class Tuple6<A, B, C, D, E, F> implements Comparable, Serializable {
+    final static public class Tuple6<A, B, C, D, E, F> implements Comparable<Tuple6<A, B, C, D, E, F>>, Serializable {
 
         private static final long serialVersionUID = 7500397586163050718L;
 
@@ -360,7 +362,7 @@ public final class Fun {
         /**
          * constructor used for deserilization
          */
-        protected Tuple6(SerializerBase serializer, DataInput in, SerializerBase.FastArrayList objectStack) throws IOException {
+        protected Tuple6(SerializerBase serializer, DataInput in, SerializerBase.FastArrayList<Object> objectStack) throws IOException {
             objectStack.add(this);
             this.a = (A) serializer.deserialize(in, objectStack);
             this.b = (B) serializer.deserialize(in, objectStack);
@@ -371,8 +373,8 @@ public final class Fun {
         }
 
         @Override
-        public int compareTo(Object o) {
-            return TUPLE6_COMPARATOR.compare(this, (Tuple6) o);
+        public int compareTo(Tuple6<A, B, C, D, E, F> o) {
+            return TUPLE6_COMPARATOR.compare(this, o);
         }
 
 
@@ -412,8 +414,8 @@ public final class Fun {
 
     public static final class Tuple2Comparator<A,B> implements Comparator<Tuple2<A,B>>,Serializable {
 
-        protected final Comparator a;
-        protected final Comparator b;
+        protected final Comparator<A> a;
+        protected final Comparator<B> b;
 
         public Tuple2Comparator(Comparator<A> a, Comparator<B> b) {
             this.a = a==null? COMPARATOR :a;
@@ -422,14 +424,14 @@ public final class Fun {
 
 
         /** constructor used for deserilization*/
-        protected Tuple2Comparator(SerializerBase serializer, DataInput in, SerializerBase.FastArrayList objectStack) throws IOException {
+        protected Tuple2Comparator(SerializerBase serializer, DataInput in, SerializerBase.FastArrayList<Object> objectStack) throws IOException {
             objectStack.add(this);
             this.a = (Comparator) serializer.deserialize(in, objectStack);
             this.b =  (Comparator) serializer.deserialize(in, objectStack);
         }
 
         @Override
-        public int compare(final Tuple2 o1, final Tuple2 o2) {
+        public int compare(final Tuple2<A,B> o1, final Tuple2<A,B> o2) {
             int i = a.compare(o1.a,o2.a);
             if(i!=0) return i;
             i = b.compare(o1.b,o2.b);
@@ -456,9 +458,9 @@ public final class Fun {
 
     public static final class Tuple3Comparator<A,B,C> implements Comparator<Tuple3<A,B,C>>,Serializable  {
 
-        protected final Comparator a;
-        protected final Comparator b;
-        protected final Comparator c;
+        protected final Comparator<A> a;
+        protected final Comparator<B> b;
+        protected final Comparator<C> c;
 
         public Tuple3Comparator(Comparator<A> a, Comparator<B> b, Comparator<C> c) {
             this.a = a==null? COMPARATOR :a;
@@ -467,7 +469,7 @@ public final class Fun {
         }
 
         /** constructor used for deserilization, `extra` is added just to make function not to collide*/
-        protected Tuple3Comparator(SerializerBase serializer, DataInput in, SerializerBase.FastArrayList objectStack, int extra) throws IOException {
+        protected Tuple3Comparator(SerializerBase serializer, DataInput in, SerializerBase.FastArrayList<Object> objectStack, int extra) throws IOException {
             objectStack.add(this);
             this.a = (Comparator) serializer.deserialize(in, objectStack);
             this.b =  (Comparator) serializer.deserialize(in, objectStack);
@@ -475,7 +477,7 @@ public final class Fun {
         }
 
         @Override
-        public int compare(final Tuple3 o1, final Tuple3 o2) {
+        public int compare(final Tuple3<A,B,C> o1, final Tuple3<A,B,C> o2) {
             int i = a.compare(o1.a,o2.a);
             if(i!=0) return i;
             i = b.compare(o1.b,o2.b);
@@ -503,10 +505,10 @@ public final class Fun {
 
     public static final class Tuple4Comparator<A,B,C,D> implements Comparator<Tuple4<A,B,C,D>>,Serializable  {
 
-        protected final Comparator a;
-        protected final Comparator b;
-        protected final Comparator c;
-        protected final Comparator d;
+        protected final Comparator<A> a;
+        protected final Comparator<B> b;
+        protected final Comparator<C> c;
+        protected final Comparator<D> d;
 
         public Tuple4Comparator(Comparator<A> a, Comparator<B> b, Comparator<C> c, Comparator<D> d) {
             this.a = a==null? COMPARATOR :a;
@@ -516,7 +518,7 @@ public final class Fun {
         }
 
         /** constructor used for deserilization*/
-        protected Tuple4Comparator(SerializerBase serializer, DataInput in, SerializerBase.FastArrayList objectStack) throws IOException {
+        protected Tuple4Comparator(SerializerBase serializer, DataInput in, SerializerBase.FastArrayList<Object> objectStack) throws IOException {
             objectStack.add(this);
             this.a = (Comparator) serializer.deserialize(in, objectStack);
             this.b =  (Comparator) serializer.deserialize(in, objectStack);
@@ -525,7 +527,7 @@ public final class Fun {
         }
 
         @Override
-        public int compare(final Tuple4 o1, final Tuple4 o2) {
+        public int compare(final Tuple4<A,B,C,D> o1, final Tuple4<A,B,C,D> o2) {
             int i = a.compare(o1.a,o2.a);
             if(i!=0) return i;
             i = b.compare(o1.b,o2.b);
@@ -557,11 +559,11 @@ public final class Fun {
 
     public static final class Tuple5Comparator<A,B,C,D,E> implements Comparator<Tuple5<A,B,C,D,E>>, Serializable {
 
-        protected final Comparator a;
-        protected final Comparator b;
-        protected final Comparator c;
-        protected final Comparator d;
-        protected final Comparator e;
+        protected final Comparator<A> a;
+        protected final Comparator<B> b;
+        protected final Comparator<C> c;
+        protected final Comparator<D> d;
+        protected final Comparator<E> e;
 
 
         public Tuple5Comparator(Comparator<A> a, Comparator<B> b, Comparator<C> c, Comparator<D> d, Comparator<E> e) {
@@ -575,7 +577,7 @@ public final class Fun {
         /**
          * constructor used for deserilization
          */
-        protected Tuple5Comparator(SerializerBase serializer, DataInput in, SerializerBase.FastArrayList objectStack) throws IOException {
+        protected Tuple5Comparator(SerializerBase serializer, DataInput in, SerializerBase.FastArrayList<Object> objectStack) throws IOException {
             objectStack.add(this);
             this.a = (Comparator) serializer.deserialize(in, objectStack);
             this.b = (Comparator) serializer.deserialize(in, objectStack);
@@ -585,7 +587,7 @@ public final class Fun {
         }
 
         @Override
-        public int compare(final Tuple5 o1, final Tuple5 o2) {
+        public int compare(final Tuple5<A,B,C,D,E> o1, final Tuple5<A,B,C,D,E> o2) {
             int i = a.compare(o1.a, o2.a);
             if (i != 0) return i;
             i = b.compare(o1.b, o2.b);
@@ -619,12 +621,12 @@ public final class Fun {
 
     public static final class Tuple6Comparator<A,B,C,D,E,F> implements Comparator<Tuple6<A,B,C,D,E,F>>, Serializable {
 
-        protected final Comparator a;
-        protected final Comparator b;
-        protected final Comparator c;
-        protected final Comparator d;
-        protected final Comparator e;
-        protected final Comparator f;
+        protected final Comparator<A> a;
+        protected final Comparator<B> b;
+        protected final Comparator<C> c;
+        protected final Comparator<D> d;
+        protected final Comparator<E> e;
+        protected final Comparator<F> f;
 
 
         public Tuple6Comparator(Comparator<A> a, Comparator<B> b, Comparator<C> c, Comparator<D> d, Comparator<E> e, Comparator<F> f) {
@@ -639,7 +641,7 @@ public final class Fun {
         /**
          * constructor used for deserilization
          */
-        protected Tuple6Comparator(SerializerBase serializer, DataInput in, SerializerBase.FastArrayList objectStack) throws IOException {
+        protected Tuple6Comparator(SerializerBase serializer, DataInput in, SerializerBase.FastArrayList<Object> objectStack) throws IOException {
             objectStack.add(this);
             this.a = (Comparator) serializer.deserialize(in, objectStack);
             this.b = (Comparator) serializer.deserialize(in, objectStack);
@@ -650,7 +652,7 @@ public final class Fun {
         }
 
         @Override
-        public int compare(final Tuple6 o1, final Tuple6 o2) {
+        public int compare(final Tuple6<A,B,C,D,E,F> o1, final Tuple6<A,B,C,D,E,F> o2) {
             int i = a.compare(o1.a, o2.a);
             if (i != 0) return i;
             i = b.compare(o1.b, o2.b);
@@ -837,7 +839,7 @@ public final class Fun {
     public static final class ArrayComparator implements Comparator<Object[]>{
         protected final Comparator[] comparators;
 
-        public ArrayComparator(Comparator[] comparators2) {
+        public ArrayComparator(Comparator<?>[] comparators2) {
             this.comparators = comparators2.clone();
             for(int i=0;i<this.comparators.length;i++){
                 if(this.comparators[i]==null)
@@ -846,7 +848,7 @@ public final class Fun {
         }
 
         /** constructor used for deserilization*/
-        protected ArrayComparator(SerializerBase serializer, DataInput in, SerializerBase.FastArrayList objectStack) throws IOException {
+        protected ArrayComparator(SerializerBase serializer, DataInput in, SerializerBase.FastArrayList<Object> objectStack) throws IOException {
             objectStack.add(this);
             this.comparators = (Comparator[]) serializer.deserialize(in, objectStack);
         }
