@@ -1598,7 +1598,6 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             // patch linked list
             if(last ==null ){
                 //no items removed
-                return;
             }else if(recid == 0){
                 //all items were taken, so zero items
                 engine.update(expireTails[seg],0L, Serializer.LONG);

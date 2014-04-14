@@ -375,9 +375,9 @@ public abstract class BTreeKeySerializer<K>{
             Tuple2KeySerializer t = (Tuple2KeySerializer) o;
 
             return
-                    eq(aComparator,t.aComparator) &&
-                    eq(aSerializer,t.aSerializer) &&
-                    eq(bSerializer,t.bSerializer);
+                    Fun.eq(aComparator, t.aComparator) &&
+                    Fun.eq(aSerializer, t.aSerializer) &&
+                    Fun.eq(bSerializer, t.bSerializer);
         }
 
         @Override
@@ -531,11 +531,11 @@ public abstract class BTreeKeySerializer<K>{
             Tuple3KeySerializer t = (Tuple3KeySerializer) o;
 
             return
-                    eq(aComparator,t.aComparator) &&
-                    eq(bComparator,t.bComparator) &&
-                    eq(aSerializer,t.aSerializer) &&
-                    eq(bSerializer,t.bSerializer) &&
-                    eq(cSerializer,t.cSerializer);
+                    Fun.eq(aComparator, t.aComparator) &&
+                    Fun.eq(bComparator, t.bComparator) &&
+                    Fun.eq(aSerializer, t.aSerializer) &&
+                    Fun.eq(bSerializer, t.bSerializer) &&
+                    Fun.eq(cSerializer, t.cSerializer);
         }
 
         @Override
@@ -721,13 +721,13 @@ public abstract class BTreeKeySerializer<K>{
             Tuple4KeySerializer t = (Tuple4KeySerializer) o;
 
             return
-                    eq(aComparator,t.aComparator) &&
-                    eq(bComparator,t.bComparator) &&
-                    eq(cComparator,t.cComparator) &&
-                    eq(aSerializer,t.aSerializer) &&
-                    eq(bSerializer,t.bSerializer) &&
-                    eq(cSerializer,t.cSerializer) &&
-                    eq(dSerializer,t.dSerializer);
+                    Fun.eq(aComparator, t.aComparator) &&
+                    Fun.eq(bComparator, t.bComparator) &&
+                    Fun.eq(cComparator, t.cComparator) &&
+                    Fun.eq(aSerializer, t.aSerializer) &&
+                    Fun.eq(bSerializer, t.bSerializer) &&
+                    Fun.eq(cSerializer, t.cSerializer) &&
+                    Fun.eq(dSerializer, t.dSerializer);
         }
 
 
@@ -932,15 +932,15 @@ public abstract class BTreeKeySerializer<K>{
             Tuple5KeySerializer t = (Tuple5KeySerializer) o;
 
             return
-                    eq(aComparator,t.aComparator) &&
-                    eq(bComparator,t.bComparator) &&
-                    eq(cComparator,t.cComparator) &&
-                    eq(dComparator,t.dComparator) &&
-                    eq(aSerializer,t.aSerializer) &&
-                    eq(bSerializer,t.bSerializer) &&
-                    eq(cSerializer,t.cSerializer) &&
-                    eq(dSerializer,t.dSerializer) &&
-                    eq(eSerializer,t.eSerializer);
+                    Fun.eq(aComparator, t.aComparator) &&
+                    Fun.eq(bComparator, t.bComparator) &&
+                    Fun.eq(cComparator, t.cComparator) &&
+                    Fun.eq(dComparator, t.dComparator) &&
+                    Fun.eq(aSerializer, t.aSerializer) &&
+                    Fun.eq(bSerializer, t.bSerializer) &&
+                    Fun.eq(cSerializer, t.cSerializer) &&
+                    Fun.eq(dSerializer, t.dSerializer) &&
+                    Fun.eq(eSerializer, t.eSerializer);
         }
 
         @Override
@@ -1175,17 +1175,17 @@ public abstract class BTreeKeySerializer<K>{
             Tuple6KeySerializer t = (Tuple6KeySerializer) o;
 
             return
-                    eq(aComparator,t.aComparator) &&
-                    eq(bComparator,t.bComparator) &&
-                    eq(cComparator,t.cComparator) &&
-                    eq(dComparator,t.dComparator) &&
-                    eq(eComparator,t.eComparator) &&
-                    eq(aSerializer,t.aSerializer) &&
-                    eq(bSerializer,t.bSerializer) &&
-                    eq(cSerializer,t.cSerializer) &&
-                    eq(dSerializer,t.dSerializer) &&
-                    eq(eSerializer,t.eSerializer) &&
-                    eq(fSerializer,t.fSerializer);
+                    Fun.eq(aComparator, t.aComparator) &&
+                    Fun.eq(bComparator, t.bComparator) &&
+                    Fun.eq(cComparator, t.cComparator) &&
+                    Fun.eq(dComparator, t.dComparator) &&
+                    Fun.eq(eComparator, t.eComparator) &&
+                    Fun.eq(aSerializer, t.aSerializer) &&
+                    Fun.eq(bSerializer, t.bSerializer) &&
+                    Fun.eq(cSerializer, t.cSerializer) &&
+                    Fun.eq(dSerializer, t.dSerializer) &&
+                    Fun.eq(eSerializer, t.eSerializer) &&
+                    Fun.eq(fSerializer, t.fSerializer);
 
         }
 
@@ -1205,11 +1205,6 @@ public abstract class BTreeKeySerializer<K>{
             return result;
         }
     }
-
-    static protected boolean eq(Object a, Object b) {
-        return a==b || (a!=null && a.equals(b));
-    }
-
 
 
 }

@@ -104,6 +104,10 @@ public final class Fun {
         return new Tuple6<A,B,C,D,E,F>(a, b, c, d, e, f);
     }
 
+    /** returns true if all elements are equal, works with nulls*/
+    static public boolean eq(Object a, Object b) {
+        return a==b || (a!=null && a.equals(b));
+    }
 
 
     static public final class Tuple2<A,B> implements Comparable<Tuple2<A,B>>, Serializable {
@@ -134,12 +138,9 @@ public final class Fun {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
 
-            final Tuple2 tuple2 = (Tuple2) o;
+            final Tuple2 t = (Tuple2) o;
 
-            if (a != null ? !a.equals(tuple2.a) : tuple2.a != null) return false;
-            if (b != null ? !b.equals(tuple2.b) : tuple2.b != null) return false;
-
-            return true;
+            return eq(a,t.a) && eq(b,t.b);
         }
 
         @Override public int hashCode() {
@@ -191,13 +192,8 @@ public final class Fun {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
 
-            Tuple3 tuple3 = (Tuple3) o;
-
-            if (a != null ? !a.equals(tuple3.a) : tuple3.a != null) return false;
-            if (b != null ? !b.equals(tuple3.b) : tuple3.b != null) return false;
-            if (c != null ? !c.equals(tuple3.c) : tuple3.c != null) return false;
-
-            return true;
+            Tuple3 t = (Tuple3) o;
+            return eq(a,t.a) && eq(b,t.b) && eq(c,t.c);
         }
 
         @Override
@@ -249,14 +245,9 @@ public final class Fun {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
 
-            Tuple4 tuple4 = (Tuple4) o;
+            Tuple4 t = (Tuple4) o;
 
-            if (a != null ? !a.equals(tuple4.a) : tuple4.a != null) return false;
-            if (b != null ? !b.equals(tuple4.b) : tuple4.b != null) return false;
-            if (c != null ? !c.equals(tuple4.c) : tuple4.c != null) return false;
-            if (d != null ? !d.equals(tuple4.d) : tuple4.d != null) return false;
-
-            return true;
+            return eq(a,t.a) && eq(b,t.b) && eq(c,t.c) && eq(d,t.d);
         }
 
         @Override
@@ -316,15 +307,9 @@ public final class Fun {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
 
-            Tuple5 tuple5 = (Tuple5) o;
+            Tuple5 t = (Tuple5) o;
 
-            if (a != null ? !a.equals(tuple5.a) : tuple5.a != null) return false;
-            if (b != null ? !b.equals(tuple5.b) : tuple5.b != null) return false;
-            if (c != null ? !c.equals(tuple5.c) : tuple5.c != null) return false;
-            if (d != null ? !d.equals(tuple5.d) : tuple5.d != null) return false;
-            if (e != null ? !e.equals(tuple5.e) : tuple5.e != null) return false;
-
-            return true;
+            return eq(a,t.a) && eq(b,t.b) && eq(c,t.c) && eq(d,t.d) && eq(e,t.e);
         }
 
         @Override
@@ -388,16 +373,9 @@ public final class Fun {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
 
-            Tuple6 tuple6 = (Tuple6) o;
+            Tuple6 t = (Tuple6) o;
 
-            if (a != null ? !a.equals(tuple6.a) : tuple6.a != null) return false;
-            if (b != null ? !b.equals(tuple6.b) : tuple6.b != null) return false;
-            if (c != null ? !c.equals(tuple6.c) : tuple6.c != null) return false;
-            if (d != null ? !d.equals(tuple6.d) : tuple6.d != null) return false;
-            if (e != null ? !e.equals(tuple6.e) : tuple6.e != null) return false;
-            if (f != null ? !f.equals(tuple6.f) : tuple6.f != null) return false;
-
-            return true;
+            return eq(a,t.a) && eq(b,t.b) && eq(c,t.c) && eq(d,t.d) && eq(e,t.e) && eq(f,t.f);
         }
 
         @Override
