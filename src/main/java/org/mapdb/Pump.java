@@ -451,9 +451,7 @@ public final class Pump {
 
         BTreeMap.DirNode dir = new BTreeMap.DirNode(dirKeys.get(len).toArray(), dirRecids.get(len));
         long rootRecid = engine.put(dir, nodeSerializer);
-        long rootRecidRef = engine.put(rootRecid,Serializer.LONG);
-
-        return rootRecidRef;
+        return engine.put(rootRecid,Serializer.LONG); //root recid
     }
 
     /** create array list with single element*/

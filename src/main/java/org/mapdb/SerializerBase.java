@@ -546,11 +546,10 @@ public class SerializerBase implements Serializer<Object>{
             for (int i = 0; i < len; i++)
                 DataOutput2.packInt(out,(int)((String) obj).charAt(i));
         }
-        return;
     }
 
-    private void serializeLongArray(DataOutput out, long[] obj) throws IOException {
-        long[] val =  obj;
+    private void serializeLongArray(DataOutput out, final long[] val) throws IOException {
+
         long max = Long.MIN_VALUE;
         long min = Long.MAX_VALUE;
         for (long i : val) {
@@ -578,11 +577,9 @@ public class SerializerBase implements Serializer<Object>{
             DataOutput2.packInt(out, val.length);
             for (long i : val) out.writeLong(i);
         }
-        return;
     }
 
-    private void serializeIntArray(DataOutput out, int[] obj) throws IOException {
-        int[] val = obj;
+    private void serializeIntArray(DataOutput out, final int[] val) throws IOException {
         int max = Integer.MIN_VALUE;
         int min = Integer.MAX_VALUE;
         for (int i : val) {
@@ -606,7 +603,6 @@ public class SerializerBase implements Serializer<Object>{
             DataOutput2.packInt(out, val.length);
             for (int i : val) out.writeInt(i);
         }
-        return;
     }
 
     private void serializeDouble(DataOutput out, Object obj) throws IOException {
@@ -630,7 +626,6 @@ public class SerializerBase implements Serializer<Object>{
             out.write(Header.DOUBLE);
             out.writeDouble(v);
         }
-        return;
     }
 
     private void serializeFloat(DataOutput out, Object obj) throws IOException {
@@ -651,7 +646,6 @@ public class SerializerBase implements Serializer<Object>{
             out.write(Header.FLOAT);
             out.writeFloat(v);
         }
-        return;
     }
 
     private void serializeShort(DataOutput out, Object obj) throws IOException {
@@ -672,7 +666,6 @@ public class SerializerBase implements Serializer<Object>{
             out.write(Header.SHORT);
             out.writeShort(val);
         }
-        return;
     }
 
     private void serializerChar(DataOutput out, Object obj) throws IOException {
@@ -688,7 +681,6 @@ public class SerializerBase implements Serializer<Object>{
             out.write(Header.CHAR);
             out.writeChar((Character) obj);
         }
-        return;
     }
 
     private void serializeByte(DataOutput out, Object obj) throws IOException {
@@ -703,7 +695,6 @@ public class SerializerBase implements Serializer<Object>{
             out.write(Header.BYTE);
             out.writeByte(val);
         }
-        return;
     }
 
     private void serializeLong(DataOutput out, Object obj) throws IOException {
@@ -1584,8 +1575,7 @@ public class SerializerBase implements Serializer<Object>{
     private Object[] deserializeArrayObjectAllNull(DataInput is) throws IOException {
         int size = DataInput2.unpackInt(is);
         Class clazz = deserializeClass(is);
-        Object[] s = (Object[]) Array.newInstance(clazz, size);
-        return s;
+        return (Object[]) Array.newInstance(clazz, size);
     }
 
 

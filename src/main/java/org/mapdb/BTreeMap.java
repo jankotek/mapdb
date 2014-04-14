@@ -475,7 +475,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             return -1;
         }
 
-    };
+    }
 
 
     /** Constructor used to create new BTreeMap.
@@ -594,8 +594,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     protected Object get(Object key, boolean expandValue) {
         if(key==null) throw new NullPointerException();
         K v = (K) key;
-        final long rootRecid = engine.get(rootRecidRef, Serializer.LONG);
-        long current = rootRecid;
+        long current = engine.get(rootRecidRef, Serializer.LONG); //get root
+
         BNode A = engine.get(current, nodeSerializer);
 
         //dive until  leaf
@@ -952,8 +952,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     }
 
     private V remove2(final Object key, final Object value) {
-        final long rootRecid = engine.get(rootRecidRef, Serializer.LONG);
-        long current = rootRecid;
+        long current = engine.get(rootRecidRef, Serializer.LONG);
+
         BNode A = engine.get(current, nodeSerializer);
         while(!A.isLeaf()){
             current = nextDir((DirNode) A, key);
@@ -1146,8 +1146,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     public boolean replace(final K key, final V oldValue, final V newValue) {
         if(key == null || oldValue == null || newValue == null ) throw new NullPointerException();
 
-        long rootRecid = engine.get(rootRecidRef, Serializer.LONG);
-        long current = rootRecid;
+        long current = engine.get(rootRecidRef, Serializer.LONG);
+
         BNode node = engine.get(current, nodeSerializer);
         //dive until leaf is found
         while(!node.isLeaf()){
@@ -1206,8 +1206,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     @Override
     public V replace(final K key, final V value) {
         if(key == null || value == null) throw new NullPointerException();
-        final long rootRecid = engine.get(rootRecidRef,Serializer.LONG);
-        long current = rootRecid;
+        long current = engine.get(rootRecidRef,Serializer.LONG);
 
         BNode node = engine.get(current, nodeSerializer);
         //dive until leaf is found
@@ -1417,16 +1416,16 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         return findLarger(key, true);
     }
 
-    protected Entry<K, V> findLarger(K key, boolean inclusive) {
+    protected Entry<K, V> findLarger(final K key, boolean inclusive) {
         if(key==null) return null;
-        K v = key;
-        final long rootRecid = engine.get(rootRecidRef, Serializer.LONG);
-        long current = rootRecid;
+
+        long current = engine.get(rootRecidRef, Serializer.LONG);
+
         BNode A = engine.get(current, nodeSerializer);
 
         //dive until  leaf
         while(!A.isLeaf()){
-            current = nextDir((DirNode) A, v);
+            current = nextDir((DirNode) A, key);
             A = engine.get(current, nodeSerializer);
         }
 
@@ -1450,16 +1449,16 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
     }
 
-    protected Fun.Tuple2<Integer,LeafNode> findLargerNode(K key, boolean inclusive) {
+    protected Fun.Tuple2<Integer,LeafNode> findLargerNode(final K key, boolean inclusive) {
         if(key==null) return null;
-        K v = key;
-        final long rootRecid = engine.get(rootRecidRef, Serializer.LONG);
-        long current = rootRecid;
+
+        long current = engine.get(rootRecidRef, Serializer.LONG);
+
         BNode A = engine.get(current, nodeSerializer);
 
         //dive until  leaf
         while(!A.isLeaf()){
-            current = nextDir((DirNode) A, v);
+            current = nextDir((DirNode) A, key);
             A = engine.get(current, nodeSerializer);
         }
 
@@ -1625,7 +1624,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         return descendingMap.keySet();
     }
 
-    static final <E> List<E> toList(Collection<E> c) {
+    static <E> List<E> toList(Collection<E> c) {
         // Using size() here would be a pessimization.
         List<E> list = new ArrayList<E>();
         for (E e : c){

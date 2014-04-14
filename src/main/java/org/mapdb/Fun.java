@@ -80,7 +80,7 @@ public final class Fun {
     };
 
     /** autocast version of `HI`*/
-    public static final <A> A HI(){
+    public static <A> A HI(){
         return (A) HI;
     }
 
