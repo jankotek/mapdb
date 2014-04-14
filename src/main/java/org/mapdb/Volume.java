@@ -372,11 +372,11 @@ public abstract class Volume {
                     Method cleanerMethod = b.getClass().getMethod("cleaner", new Class[0]);
                     if(cleanerMethod!=null){
                         cleanerMethod.setAccessible(true);
-                        Object cleaner = cleanerMethod.invoke(b, new Object[0]);
+                        Object cleaner = cleanerMethod.invoke(b);
                         if(cleaner!=null){
                             Method clearMethod = cleaner.getClass().getMethod("clean", new Class[0]);
-                            if(cleanerMethod!=null)
-                                clearMethod.invoke(cleaner, new Object[0]);
+                            if(clearMethod!=null)
+                                clearMethod.invoke(cleaner);
                         }
                     }
                 }
@@ -627,7 +627,7 @@ public abstract class Volume {
         protected final boolean hasLimit;
 
         protected volatile long size;
-        protected Object growLock = new Object();
+        protected final Object growLock = new Object();
 
         public FileChannelVol(File file, boolean readOnly, long sizeLimit, int chunkShift){
             this.file = file;

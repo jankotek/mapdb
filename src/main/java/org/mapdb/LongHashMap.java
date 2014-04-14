@@ -180,7 +180,7 @@ public class LongHashMap<V> extends LongMap<V> implements Serializable {
 
         @Override
         public V value() {
-            return (V) currentEntry.value;
+            return currentEntry.value;
         }
     }
 

@@ -17,6 +17,7 @@ public class StoreHeap extends Store implements Serializable{
     protected final static Fun.Tuple2 TOMBSTONE = Fun.t2(null,null);
 
     protected final static Object NULL = new Object();
+    private static final long serialVersionUID = 150060834534309445L;
 
     /** All commited records in store */
     protected final ConcurrentNavigableMap<Long,Fun.Tuple2> records

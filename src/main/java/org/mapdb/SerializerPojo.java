@@ -84,6 +84,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         }
 
     };
+    private static final long serialVersionUID = 3181417366609199703L;
 
     protected final ReentrantReadWriteLock lock = new ReentrantReadWriteLock(CC.FAIR_LOCKS);
 
