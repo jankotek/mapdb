@@ -45,7 +45,7 @@ public abstract class Store implements Engine{
 
     protected final ThreadLocal<CompressLZF> LZF;
 
-    protected Store(boolean checksum, boolean compress, byte[] password) {
+    protected Store(boolean checksum, boolean compress, byte[] password, boolean disableLocks) {
 
 
         this.checksum = checksum;

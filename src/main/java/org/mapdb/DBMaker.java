@@ -664,7 +664,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         Engine engine = makeEngine();
         boolean dbCreated = false;
         try{
-            DB db =  new  DB(engine, strictGet);
+            DB db =  new  DB(engine, strictGet,false);
             dbCreated = true;
             return db;
         }finally {
@@ -849,27 +849,27 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
     protected Engine extendCacheLRU(Engine engine) {
         int cacheSize = propsGetInt(Keys.cacheSize, CC.DEFAULT_CACHE_SIZE);
-        return new Caches.LRU(engine, cacheSize);
+        return new Caches.LRU(engine, cacheSize,false);
     }
 
     protected Engine extendCacheWeakRef(Engine engine) {
-        return new Caches.WeakSoftRef(engine,true);
+        return new Caches.WeakSoftRef(engine,true,false);
     }
 
     protected Engine extendCacheSoftRef(Engine engine) {
-        return new Caches.WeakSoftRef(engine,false);
+        return new Caches.WeakSoftRef(engine,false,false);
     }
 
 
 
     protected Engine extendCacheHardRef(Engine engine) {
         int cacheSize = propsGetInt(Keys.cacheSize, CC.DEFAULT_CACHE_SIZE);
-        return new Caches.HardRef(engine,cacheSize);
+        return new Caches.HardRef(engine,cacheSize,false);
     }
 
     protected Engine extendCacheHashTable(Engine engine) {
         int cacheSize = propsGetInt(Keys.cacheSize, CC.DEFAULT_CACHE_SIZE);
-        return new Caches.HashTable(engine, cacheSize);
+        return new Caches.HashTable(engine, cacheSize,false);
     }
 
     protected Engine extendAsyncWriteEngine(Engine engine) {
@@ -908,7 +908,8 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
                 propsGetBool(Keys.transactionDisable),
                 propsGetBool(Keys.deleteFilesAfterClose),
                 propsGetBool(Keys.syncOnCommitDisable),
-                propsGetBool(Keys.checksum),compressionEnabled,propsGetXteaEncKey());
+                propsGetBool(Keys.checksum),compressionEnabled,propsGetXteaEncKey(),
+                false);
     }
 
     protected Engine extendStoreDirect(Volume.Factory folFac) {
@@ -917,7 +918,8 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
                 propsGetBool(Keys.deleteFilesAfterClose),
                 propsGetInt(Keys.freeSpaceReclaimQ,CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
                 propsGetBool(Keys.syncOnCommitDisable),propsGetLong(Keys.sizeLimit,0),
-                propsGetBool(Keys.checksum),compressionEnabled,propsGetXteaEncKey());
+                propsGetBool(Keys.checksum),compressionEnabled,propsGetXteaEncKey(),
+                false,0);
     }
 
     protected Engine extendStoreWAL(Volume.Factory folFac) {
@@ -925,7 +927,8 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         return new StoreWAL(folFac,  propsGetBool(Keys.readOnly),propsGetBool(Keys.deleteFilesAfterClose),
                 propsGetInt(Keys.freeSpaceReclaimQ,CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
                 propsGetBool(Keys.syncOnCommitDisable),propsGetLong(Keys.sizeLimit,-1),
-                propsGetBool(Keys.checksum),compressionEnabled,propsGetXteaEncKey());
+                propsGetBool(Keys.checksum),compressionEnabled,propsGetXteaEncKey(),
+                false,0);
     }
 
 

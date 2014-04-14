@@ -32,11 +32,11 @@ public final class Caches {
         }
 
 
-        public LRU(Engine engine, int cacheSize) {
-            this(engine, new LongConcurrentLRUMap<Object>(cacheSize, (int) (cacheSize*0.8)));
+        public LRU(Engine engine, int cacheSize, boolean disableLocks) {
+            this(engine, new LongConcurrentLRUMap<Object>(cacheSize, (int) (cacheSize*0.8)),disableLocks);
         }
 
-        public LRU(Engine engine, LongMap<Object> cache){
+        public LRU(Engine engine, LongMap<Object> cache, boolean disableLocks){
             super(engine);
             this.cache = cache;
         }
@@ -189,7 +189,7 @@ public final class Caches {
 
 
 
-        public HashTable(Engine engine, int cacheMaxSize) {
+        public HashTable(Engine engine, int cacheMaxSize, boolean disableLocks) {
             super(engine);
             this.items = new HashItem[cacheMaxSize];
             this.cacheMaxSize = 1 << (32 - Integer.numberOfLeadingZeros(cacheMaxSize - 1)); //next pow of two
@@ -397,7 +397,7 @@ public final class Caches {
 
         final protected boolean useWeakRef;
 
-        public WeakSoftRef(Engine engine, boolean useWeakRef){
+        public WeakSoftRef(Engine engine, boolean useWeakRef, boolean disableLocks){
             super(engine);
             this.useWeakRef = useWeakRef;
 
@@ -588,8 +588,8 @@ public final class Caches {
 
         int counter = 0;
 
-        public HardRef(Engine engine, int initialCapacity) {
-            super(engine, new LongConcurrentHashMap<Object>(initialCapacity));
+        public HardRef(Engine engine, int initialCapacity, boolean disableLocks) {
+            super(engine, new LongConcurrentHashMap<Object>(initialCapacity),disableLocks);
         }
 
         @Override

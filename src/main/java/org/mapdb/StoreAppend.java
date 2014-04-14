@@ -81,8 +81,8 @@ class StoreAppend extends Store{
 
     public StoreAppend(final File file, final boolean useRandomAccessFile, final boolean readOnly,
                        final boolean transactionDisabled, final boolean deleteFilesAfterClose,  final boolean syncOnCommitDisabled,
-                       boolean checksum, boolean compress, byte[] password) {
-        super(checksum, compress, password);
+                       boolean checksum, boolean compress, byte[] password, boolean disableLocks) {
+        super(checksum, compress, password,disableLocks);
         this.file = file;
         this.useRandomAccessFile = useRandomAccessFile;
         this.readOnly = readOnly;
@@ -211,7 +211,7 @@ class StoreAppend extends Store{
     }
 
     public StoreAppend(File file) {
-        this(file,false,false,false,false,false,false,false,null);
+        this(file,false,false,false,false,false,false,false,null,false);
     }
 
 

@@ -49,13 +49,13 @@ public class StoreWAL extends StoreDirect {
     protected final AtomicInteger logChecksum = new AtomicInteger();
 
     public StoreWAL(Volume.Factory volFac) {
-        this(volFac, false, false, 5, false, 0L, false, false, null);
+        this(volFac, false, false, 5, false, 0L, false, false, null,false,0);
     }
     public StoreWAL(Volume.Factory volFac, boolean readOnly, boolean deleteFilesAfterClose,
                     int spaceReclaimMode, boolean syncOnCommitDisabled, long sizeLimit,
-                    boolean checksum, boolean compress, byte[] password) {
+                    boolean checksum, boolean compress, byte[] password, boolean disableLocks, int sizeIncrement) {
         super(volFac, readOnly, deleteFilesAfterClose, spaceReclaimMode, syncOnCommitDisabled, sizeLimit,
-                checksum, compress, password);
+                checksum, compress, password,disableLocks, sizeIncrement);
         this.volFac = volFac;
         this.log = volFac.createTransLogVolume();
 

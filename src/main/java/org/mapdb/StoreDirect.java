@@ -185,8 +185,8 @@ public class StoreDirect extends Store{
 
     public StoreDirect(Volume.Factory volFac, boolean readOnly, boolean deleteFilesAfterClose,
                        int spaceReclaimMode, boolean syncOnCommitDisabled, long sizeLimit,
-                       boolean checksum, boolean compress, byte[] password) {
-        super(checksum, compress, password);
+                       boolean checksum, boolean compress, byte[] password, boolean disableLocks,int sizeIncrement) {
+        super(checksum, compress, password, disableLocks);
         this.readOnly = readOnly;
         this.deleteFilesAfterClose = deleteFilesAfterClose;
         this.syncOnCommitDisabled = syncOnCommitDisabled;
@@ -233,7 +233,7 @@ public class StoreDirect extends Store{
     }
 
     public StoreDirect(Volume.Factory volFac) {
-        this(volFac, false,false,5,false,0L, false,false,null);
+        this(volFac, false,false,5,false,0L, false,false,null,false,0);
     }
 
 
@@ -791,7 +791,7 @@ public class StoreDirect extends Store{
         try{
             final File compactedFile = new File((indexFile!=null?indexFile:File.createTempFile("mapdb","compact"))+".compact");
             Volume.Factory fab = Volume.fileFactory(false, rafMode,compactedFile,sizeLimit,  CC.VOLUME_CHUNK_SHIFT);
-            StoreDirect store2 = new StoreDirect(fab,false,false,5,false,0L, checksum,compress,password);
+            StoreDirect store2 = new StoreDirect(fab,false,false,5,false,0L, checksum,compress,password,false,0);
 
             compactPreUnderLock();
 

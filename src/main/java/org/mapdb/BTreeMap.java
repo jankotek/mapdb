@@ -178,7 +178,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         return new BTreeMap<String, Object>(db.engine,Engine.CATALOG_RECID,32,false,0,
                 BTreeKeySerializer.STRING,
                 db.getDefaultSerializer(),
-                COMPARABLE_COMPARATOR,0);
+                COMPARABLE_COMPARATOR,0, false);
     }
 
 
@@ -489,10 +489,11 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
      * @param valueSerializer Serializer used for values. May be null for default value
      * @param comparator Comparator to sort keys in this BTree, may be null.
      * @param numberOfNodeMetas number of meta records associated with each BTree node
+     * @param disableLocks makes class thread-unsafe but bit faster
      */
     public BTreeMap(Engine engine, long rootRecidRef,int maxNodeSize, boolean valsOutsideNodes, long counterRecid,
                     BTreeKeySerializer<K> keySerializer, Serializer<V> valueSerializer, Comparator<K> comparator,
-                    int numberOfNodeMetas) {
+                    int numberOfNodeMetas, boolean disableLocks) {
         if(maxNodeSize%2!=0) throw new IllegalArgumentException("maxNodeSize must be dividable by 2");
         if(maxNodeSize<6) throw new IllegalArgumentException("maxNodeSize too low");
         if(maxNodeSize>126) throw new IllegalArgumentException("maxNodeSize too high");
@@ -2756,7 +2757,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
         return new BTreeMap<K, V>(snapshot, rootRecidRef, maxNodeSize, valsOutsideNodes,
                 counter==null?0L:counter.recid,
-                keySerializer, valueSerializer, comparator, numberOfNodeMetas);
+                keySerializer, valueSerializer, comparator, numberOfNodeMetas, false);
     }
 
 

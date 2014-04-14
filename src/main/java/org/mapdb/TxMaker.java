@@ -36,7 +36,7 @@ public class TxMaker {
         Engine snapshot = engine.snapshot();
         if(txSnapshotsEnabled)
             snapshot = new TxEngine(snapshot,false);
-        return new DB(snapshot,strictDBGet);
+        return new DB(snapshot,strictDBGet,false);
     }
 
     public void close() {

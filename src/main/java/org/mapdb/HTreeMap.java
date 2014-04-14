@@ -225,7 +225,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                     Serializer<K> keySerializer, Serializer<V> valueSerializer,
                     long expireTimeStart, long expire, long expireAccess, long expireMaxSize, long expireStoreSize,
                     long[] expireHeads, long[] expireTails, Fun.Function1<V, K> valueCreator,
-                    Hasher hasher) {
+                    Hasher hasher, boolean disableLocks) {
         if(counterRecid<0) throw new IllegalArgumentException();
         if(engine==null) throw new NullPointerException();
         if(segmentRecids==null) throw new NullPointerException();
@@ -1651,7 +1651,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     public Map<K,V> snapshot(){
         Engine snapshot = TxEngine.createSnapshotFor(engine);
         return new HTreeMap<K, V>(snapshot, counter==null?0:counter.recid,
-                hashSalt, segmentRecids, keySerializer, valueSerializer,0L,0L,0L,0L,0L,null,null, null, null);
+                hashSalt, segmentRecids, keySerializer, valueSerializer,0L,0L,0L,0L,0L,null,null, null, null, false);
     }
 
 

@@ -53,7 +53,7 @@ public class BTreeMapTest2 extends ConcurrentMapInterfaceTest<Integer, String> {
 
         return new BTreeMap(r,BTreeMap.createRootRef(r,BTreeKeySerializer.BASIC, Serializer.BASIC, BTreeMap.COMPARABLE_COMPARATOR,0),
                 6,false,0, BTreeKeySerializer.BASIC,Serializer.BASIC,
-                BTreeMap.COMPARABLE_COMPARATOR,0);
+                BTreeMap.COMPARABLE_COMPARATOR,0,false);
     }
 
     @Override

@@ -68,10 +68,10 @@ public class DB {
      * @param engine
      */
     public DB(final Engine engine){
-        this(engine,false);
+        this(engine,false,false);
     }
 
-    public DB(Engine engine, boolean strictDBGet) {
+    public DB(Engine engine, boolean strictDBGet, boolean disableLocks) {
         if(!(engine instanceof EngineWrapper)){
             //access to Store should be prevented after `close()` was called.
             //So for this we have to wrap raw Store into EngineWrapper
@@ -372,7 +372,8 @@ public class DB {
                 (long[])catGet(name+".expireHeads",null),
                 (long[])catGet(name+".expireTails",null),
                 valueCreator,
-                null);
+                null,
+                false);
 
 
         namedPut(name, ret);
@@ -440,7 +441,7 @@ public class DB {
                 catPut(name+".keySerializer",m.keySerializer,getDefaultSerializer()),
                 catPut(name+".valueSerializer",m.valueSerializer,getDefaultSerializer()),
                 expireTimeStart,expire,expireAccess,expireMaxSize, expireStoreSize, expireHeads ,expireTails,
-                (Fun.Function1<V, K>) m.valueCreator, m.hasher
+                (Fun.Function1<V, K>) m.valueCreator, m.hasher,false
 
         );
 
@@ -481,7 +482,8 @@ public class DB {
                 (long[])catGet(name+".segmentRecids"),
                 catGet(name+".serializer",getDefaultSerializer()),
                 null, 0L,0L,0L,0L,0L,null,null,null,
-                catGet(name+".hasher",Hasher.BASIC)).keySet();
+                catGet(name+".hasher",Hasher.BASIC),
+                false).keySet();
 
 
         namedPut(name, ret);
@@ -533,7 +535,7 @@ public class DB {
                 catPut(name+".serializer",m.serializer,getDefaultSerializer()),
                 null,
                 expireTimeStart,expire,expireAccess,expireMaxSize, expireStoreSize, expireHeads ,expireTails,
-                null, m.hasher
+                null, m.hasher, false
 
         );
         Set<K> ret2 = ret.keySet();
@@ -791,7 +793,8 @@ public class DB {
                 (BTreeKeySerializer)catGet(name+".keySerializer",new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer())),
                 catGet(name+".valueSerializer",getDefaultSerializer()),
                 catGet(name+".comparator",BTreeMap.COMPARABLE_COMPARATOR),
-                catGet(name+".numberOfNodeMetas",0)
+                catGet(name+".numberOfNodeMetas",0),
+                false
                 );
         namedPut(name, ret);
         return ret;
@@ -851,7 +854,8 @@ public class DB {
                 (BTreeKeySerializer<K>)m.keySerializer,
                 (Serializer<V>)m.valueSerializer,
                 (Comparator<K>)m.comparator,
-                catPut(m.name+".numberOfNodeMetas",0)
+                catPut(m.name+".numberOfNodeMetas",0),
+                false
         );
         catalog.put(name + ".type", "TreeMap");
         namedPut(name, ret);
@@ -985,7 +989,8 @@ public class DB {
                 (BTreeKeySerializer) catGet(name+".keySerializer",new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer())),
                 null,
                 catGet(name+".comparator",BTreeMap.COMPARABLE_COMPARATOR),
-                catGet(name+".numberOfNodeMetas",0)
+                catGet(name+".numberOfNodeMetas",0),
+                false
         ).keySet();
 
         namedPut(name, ret);
@@ -1042,7 +1047,8 @@ public class DB {
                 (BTreeKeySerializer<K>)m.serializer,
                 null,
                 (Comparator<K>)m.comparator,
-                catPut(m.name+".numberOfNodeMetas",0)
+                catPut(m.name+".numberOfNodeMetas",0),
+                false
         ).keySet();
         catalog.put(m.name + ".type", "TreeSet");
         namedPut(m.name, ret);
