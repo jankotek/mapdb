@@ -15,6 +15,7 @@ import java.util.concurrent.locks.Lock;
  *
  * TODO StoreAppend is buggy and will not be part of 1.0 release.
  */
+@Deprecated
 class StoreAppend extends Store{
 
     /** header at beginning of each file */
