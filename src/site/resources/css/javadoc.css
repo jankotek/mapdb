@@ -70,12 +70,12 @@ Document title and Copyright styles
 */
 .clear {
     clear:both;
-    height:0px;
+    height:0;
     overflow:hidden;
 }
 .aboutLanguage {
     float:right;
-    padding:0px 21px;
+    padding:0 21px;
     font-size:.8em;
     z-index:200;
     margin-top:-7px;
@@ -91,10 +91,7 @@ Document title and Copyright styles
     color:#bb7a2a;
 }
 .tab {
-    background-color:#0066FF;
-    background-image:url(resources/titlebar.gif);
-    background-position:left top;
-    background-repeat:no-repeat;
+    background: #0066FF url(resources/titlebar.gif) no-repeat left top;
     color:#ffffff;
     padding:8px;
     width:5em;
@@ -104,8 +101,7 @@ Document title and Copyright styles
 Navigation bar styles
 */
 .bar {
-    background-image:url(resources/background.gif);
-    background-repeat:repeat-x;
+    background: url(resources/background.gif) repeat-x;
     color:#FFFFFF;
     padding:.8em .5em .4em .8em;
     height:auto;/*height:1.8em;*/
@@ -113,28 +109,24 @@ Navigation bar styles
     margin:0;
 }
 .topNav {
-    background-image:url(resources/background.gif);
-    background-repeat:repeat-x;
+    background: url(resources/background.gif) repeat-x;
     color:#FFFFFF;
     float:left;
-    padding:0;
     width:100%;
     clear:right;
     height:2.8em;
-    padding-top:10px;
+    padding: 10px 0 0;
     overflow:hidden;
 }
 .bottomNav {
     margin-top:10px;
-    background-image:url(resources/background.gif);
-    background-repeat:repeat-x;
+    background: url(resources/background.gif) repeat-x;
     color:#FFFFFF;
     float:left;
-    padding:0;
     width:100%;
     clear:right;
     height:2.8em;
-    padding-top:10px;
+    padding: 10px 0 0;
     overflow:hidden;
 }
 .subNav {
@@ -173,8 +165,7 @@ ul.subNavList li{
     color:#bb7a2a;
 }
 .navBarCell1Rev {
-    background-image:url(resources/tab.gif);
-    background-color:#a88834;
+    background: #a88834 url(resources/tab.gif);
     color:#FFFFFF;
     margin: auto 5px;
     border:1px solid #c9aa44;
@@ -234,7 +225,7 @@ ul.blockList ul.blockList li.blockList h3 {
     margin:15px 0;
 }
 ul.blockList li.blockList h2 {
-    padding:0px 0 20px 0;
+    padding:0 0 20px 0;
 }
 /*
 Page layout container styles
@@ -309,7 +300,7 @@ ul.blockList li.blockList, ul.blockListLast li.blockList {
     margin-bottom:25px;
 }
 ul.blockList ul.blockList li.blockList, ul.blockList ul.blockListLast li.blockList {
-    padding:0px 20px 5px 10px;
+    padding:0 20px 5px 10px;
     border:1px solid #9eadc0;
     background-color:#f9f9f9;
 }
@@ -366,8 +357,8 @@ Table styles
     font-weight:bold;
     clear:none;
     overflow:hidden;
-    padding:0px;
-    margin:0px;
+    padding:0;
+    margin:0;
 }
 caption a:link, caption a:hover, caption a:active, caption a:visited {
     color:#FFFFFF;
@@ -383,14 +374,12 @@ caption a:link, caption a:hover, caption a:active, caption a:visited {
 }
 .overviewSummary .tabEnd, .packageSummary .tabEnd, .contentContainer ul.blockList li.blockList .tabEnd, .summary .tabEnd, .classUseContainer .tabEnd, .constantValuesContainer .tabEnd {
     width:10px;
-    background-image:url(resources/titlebar_end.gif);
-    background-repeat:no-repeat;
-    background-position:top right;
+    background: url(resources/titlebar_end.gif) no-repeat top right;
     position:relative;
     float:left;
 }
 ul.blockList ul.blockList li.blockList table {
-    margin:0 0 12px 0px;
+    margin:0 0 12px 0;
     width:100%;
 }
 .tableSubHeadingColor {
@@ -428,8 +417,8 @@ td.colOne, th.colOne {
     border-left:1px solid #9eadc0;
 }
 table.overviewSummary  {
-    padding:0px;
-    margin-left:0px;
+    padding:0;
+    margin-left:0;
 }
 table.overviewSummary td.colFirst, table.overviewSummary th.colFirst,
 table.overviewSummary td.colOne, table.overviewSummary th.colOne {
