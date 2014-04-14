@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.Assert.assertEquals;
 import static org.mapdb.Fun.*;
 
+@SuppressWarnings({"rawtypes","unchecked"})
 public class BindTest {
 
     BTreeMap<Integer,String> m;

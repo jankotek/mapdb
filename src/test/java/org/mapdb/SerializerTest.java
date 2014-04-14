@@ -9,6 +9,7 @@ import java.util.UUID;
 
 import static org.junit.Assert.*;
 
+@SuppressWarnings({"rawtypes","unchecked"})
 public class SerializerTest {
 
     @Test public void UUID2(){

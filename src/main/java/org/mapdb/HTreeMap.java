@@ -136,7 +136,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                     DataInput2.unpackLong(in),
                     expireFlag?DataInput2.unpackLong(in):0L,
                     keySerializer.deserialize(in,-1),
-                    hasValues? (V) valueSerializer.deserialize(in,-1) : (V) BTreeMap.EMPTY
+                    hasValues? valueSerializer.deserialize(in,-1) : (V) BTreeMap.EMPTY
             );
         }
 

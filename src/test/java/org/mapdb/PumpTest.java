@@ -8,6 +8,7 @@ import java.util.*;
 
 import static org.junit.Assert.*;
 
+@SuppressWarnings({"rawtypes","unchecked"})
 public class PumpTest {
 
     @Test

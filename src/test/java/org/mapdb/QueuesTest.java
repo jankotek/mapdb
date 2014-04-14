@@ -11,6 +11,7 @@ import java.util.concurrent.BlockingQueue;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.*;
 
+@SuppressWarnings({"rawtypes","unchecked"})
 public class QueuesTest {
 
 

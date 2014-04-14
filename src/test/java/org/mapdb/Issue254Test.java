@@ -8,6 +8,7 @@ import java.util.Map;
 
 import static org.junit.Assert.*;
 
+@SuppressWarnings({"rawtypes","unchecked"})
 public class Issue254Test {
 
     @Test

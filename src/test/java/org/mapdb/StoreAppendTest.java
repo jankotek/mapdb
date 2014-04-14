@@ -10,6 +10,7 @@ import java.io.RandomAccessFile;
 
 import static org.junit.Assert.*;
 
+@SuppressWarnings({"rawtypes","unchecked"})
 public class StoreAppendTest<E extends StoreAppend> extends EngineTest<E>{
 
 

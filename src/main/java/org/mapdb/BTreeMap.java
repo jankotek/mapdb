@@ -285,12 +285,12 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
     protected final Serializer<BNode> nodeSerializer;
 
-    protected static class NodeSerializer implements  Serializer<BNode>{
+    protected static class NodeSerializer<A,B> implements  Serializer<BNode>{
 
         protected final boolean hasValues;
         protected final boolean valsOutsideNodes;
         protected final BTreeKeySerializer keySerializer;
-        protected final Serializer valueSerializer;
+        protected final Serializer<Object> valueSerializer;
         protected final Comparator comparator;
         protected final int numberOfNodeMetas;
 
@@ -1418,7 +1418,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
     protected Entry<K, V> findLarger(K key, boolean inclusive) {
         if(key==null) return null;
-        K v = (K) key;
+        K v = key;
         final long rootRecid = engine.get(rootRecidRef, Serializer.LONG);
         long current = rootRecid;
         BNode A = engine.get(current, nodeSerializer);
@@ -1451,7 +1451,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
     protected Fun.Tuple2<Integer,LeafNode> findLargerNode(K key, boolean inclusive) {
         if(key==null) return null;
-        K v = (K) key;
+        K v = key;
         final long rootRecid = engine.get(rootRecidRef, Serializer.LONG);
         long current = rootRecid;
         BNode A = engine.get(current, nodeSerializer);

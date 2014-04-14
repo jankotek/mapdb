@@ -61,6 +61,8 @@ public abstract class BTreeKeySerializer<K>{
      */
     public static final class BasicKeySerializer extends BTreeKeySerializer<Object> implements Serializable {
 
+        private static final long serialVersionUID = 1654710710946309279L;
+
         protected final Serializer defaultSerializer;
 
         public BasicKeySerializer(Serializer defaultSerializer) {

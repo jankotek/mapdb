@@ -18,6 +18,8 @@ public class BTreeSet2Test extends JSR166TestCase {
 //    }
 //
     static class MyReverseComparator implements Comparator,Serializable {
+        private static final long serialVersionUID = 6921783514838686569L;
+
         public int compare(Object x, Object y) {
             return ((Comparable)y).compareTo(x);
         }

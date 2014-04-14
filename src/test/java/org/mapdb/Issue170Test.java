@@ -5,6 +5,7 @@ import org.junit.Test;
 import java.util.Map;
 import java.util.UUID;
 
+@SuppressWarnings({"rawtypes","unchecked"})
 public class Issue170Test {
 
     @Test

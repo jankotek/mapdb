@@ -51,6 +51,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
     }
 
     public static class ReversedComparator implements Comparator,Serializable {
+        private static final long serialVersionUID = -6582440135976043229L;
+
         public int compare(Object o1, Object o2) {
             return -(((Comparable) o1).compareTo(o2));
         }
@@ -63,6 +65,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
     // Regression for Harmony-1026
     public static class MockComparator<T extends Comparable<T>> implements
             Comparator<T>, Serializable {
+
+        private static final long serialVersionUID = 5203668427652057645L;
 
         public int compare(T o1, T o2) {
             if (o1 == o2) {
@@ -206,6 +210,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
 
     // Regression for ill-behaved collator
     static class IllBehavedCollator extends Collator implements Serializable {
+        private static final long serialVersionUID = 3009434843065697796L;
+
         @Override
         public int compare(String o1, String o2) {
             if (o1 == null) {
@@ -355,11 +361,11 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
 		tm.put("003", "VAL003");
 		tm.put("002", "VAL002");
 		SortedMap<String, String> sm = tm;
-		String firstKey = (String) sm.firstKey();
+		String firstKey = sm.firstKey();
 		String lastKey="";
 		for (int i = 1; i <= tm.size(); i++) {
 			try{
-				lastKey = (String) sm.lastKey();
+				lastKey = sm.lastKey();
 			}
 			catch(NoSuchElementException excep){
 				fail("NoSuchElementException thrown when there are elements in the map");
@@ -628,7 +634,7 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         assertEquals(1000, vals.size());
         int j = 0;
         for (Iterator iter = vals.iterator(); iter.hasNext();) {
-            Object element = (Object) iter.next();
+            Object element = iter.next();
             j++;
         }
         assertEquals(1000, j);
@@ -644,7 +650,7 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         assertEquals(1000, vals.size());
         j = 0;
         for (Iterator iter = vals.iterator(); iter.hasNext();) {
-            Object element = (Object) iter.next();
+            Object element = iter.next();
             j++;
         }
         assertEquals(1000, j);
@@ -724,7 +730,7 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         assertEquals(99, col.size());
         j = 0;
         for (Iterator iter = col.iterator(); iter.hasNext();) {
-            Object element = (Object) iter.next();
+            Object element = iter.next();
             j++;
         }
         assertEquals(99, j);
@@ -1437,6 +1443,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
 
     // a special comparator dealing with null key
     static public class SpecialNullableComparator implements Comparator,Serializable {
+        private static final long serialVersionUID = -5651263776100656076L;
+
         public int compare(Object o1, Object o2) {
             if (o1 == null) {
                 return -1;

@@ -14,6 +14,7 @@ import java.util.List;
 import static org.junit.Assert.*;
 import static org.mapdb.StoreDirect.*;
 
+@SuppressWarnings({"rawtypes","unchecked"})
 public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
     @Override boolean canRollback(){return false;}
@@ -137,7 +138,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         long recid = e.put(1000L, Serializer.LONG);
         e.commit();
         assertEquals(1, countIndexRecords());
-        assertEquals(e.LAST_RESERVED_RECID+1, recid);
+        assertEquals(LAST_RESERVED_RECID+1, recid);
         e.delete(recid,Serializer.LONG);
         e.commit();
         assertEquals(0, countIndexRecords());

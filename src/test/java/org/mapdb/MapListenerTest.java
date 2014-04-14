@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+@SuppressWarnings({"rawtypes","unchecked"})
 public class MapListenerTest {
 
         @Test public void hashMap(){

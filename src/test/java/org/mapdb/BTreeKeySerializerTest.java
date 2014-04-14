@@ -10,6 +10,7 @@ import java.util.Map;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
+@SuppressWarnings({"rawtypes","unchecked"})
 public class BTreeKeySerializerTest {
 
     @Test public void testLong(){

@@ -24,7 +24,7 @@ import java.util.*;
 import java.util.Map.Entry;
 
 
-// 
+@SuppressWarnings({"rawtypes","unchecked"})
 public class TreeMapExtendTest extends TestCase {
 
 
