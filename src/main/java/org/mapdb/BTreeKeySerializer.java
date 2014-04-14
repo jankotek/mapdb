@@ -5,7 +5,6 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.charset.Charset;
-import java.util.Arrays;
 import java.util.Comparator;
 
 /**
@@ -210,7 +209,7 @@ public abstract class BTreeKeySerializer<K>{
     /**
      * Read previously written data from {@code leadingValuePackWrite()} method.
      *
-     * @author Kevin Day
+     * author: Kevin Day
      */
     public static byte[] leadingValuePackRead(DataInput in, byte[] previous, int ignoreLeadingCount) throws IOException {
         int len = DataInput2.unpackInt(in) - 1;  // 0 indicates null
@@ -239,7 +238,7 @@ public abstract class BTreeKeySerializer<K>{
      * Writes the contents of buf to the DataOutput out, with special encoding if
      * there are common leading bytes in the previous group stored by this compressor.
      *
-     * @author Kevin Day
+     * author: Kevin Day
      */
     public static void leadingValuePackWrite(DataOutput out, byte[] buf, byte[] previous, int ignoreLeadingCount) throws IOException {
         if (buf == null) {

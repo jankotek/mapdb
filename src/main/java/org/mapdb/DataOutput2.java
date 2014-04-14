@@ -24,7 +24,7 @@ import java.util.Arrays;
 /**
   * Provides {@link DataOutput} implementation on top of growable {@code byte[]}
  * <p/>
- *  {@link ByteArrayOutputStream} is not used as it requires {@code byte[]} copying
+ *  {@link java.io.ByteArrayOutputStream} is not used as it requires {@code byte[]} copying
  *
  * @author Jan Kotek
  */

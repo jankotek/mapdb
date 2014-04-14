@@ -17,8 +17,6 @@
 
 package org.mapdb;
 
-import org.junit.Before;
-
 import java.util.concurrent.ConcurrentMap;
 
 public class BTreeMapTest2 extends ConcurrentMapInterfaceTest<Integer, String> {

@@ -1,13 +1,11 @@
 package org.mapdb;
 
+import org.junit.Assert;
+import org.junit.Test;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Set;
-
-import org.junit.Assert;
-import org.junit.Test;
-import org.mapdb.DB;
-import org.mapdb.DBMaker;
 
 import static org.junit.Assert.assertEquals;
 

@@ -40,12 +40,11 @@ package org.mapdb;
  * In default configuration MapDB runs with this `Engine` stack:
  *
  *  * **DISK** - raw file or memory
- *  * {@link StoraWAL} - permanent record store with transactions
- *  * {@link AsyncWriteEngine} - asynchronous writes to storage
- *  * {@link EngineWrapper.ByteTransformEngine} - compression or encryption (optional)
+ *  * {@link org.mapdb.StoreWAL} - permanent record store with transactions
  *  * {@link org.mapdb.Caches.HashTable} - instance cache
- *  * {@link TxEngine} - support for snapshots
  *  * **USER** - {@link DB} and collections
+ *
+ * TODO document more examples of Engine  wrappers
  *
  * Engine uses `recid` to identify records. There is zero error handling in case recid is invalid
  * (random number or already deleted record). Passing illegal recid may result into anything
@@ -88,7 +87,6 @@ public interface Engine {
      *
      * @param value records to be added
      * @param serializer used to convert record into/from binary form
-     * @param <A> type of record
      * @return recid (record identifier) under which record is stored.
      */
     <A> long put(A value, Serializer<A> serializer);
@@ -102,7 +100,6 @@ public interface Engine {
      *
      * @param recid (record identifier) under which record was persisted
      * @param serializer used to deserialize record from binary form
-     * @param <A> record type
      * @return record matching given recid, or null if record is not found under given recid.
      */
     <A> A get(long recid, Serializer<A> serializer);
@@ -118,7 +115,6 @@ public interface Engine {
      * @param recid (record identifier) under which record was persisted.
      * @param value new record value to be stored
      * @param serializer used to serialize record into binary form
-     * @param <A> record type
      */
     <A> void update(long recid, A value, Serializer<A> serializer);
 
@@ -141,7 +137,6 @@ public interface Engine {
      * @param expectedOldValue old value to be compared with existing record
      * @param newValue to be written if values are matching
      * @param serializer used to serialize record into binary form
-     * @param <A>
      * @return true if values matched and newValue was written
      */
     <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer);

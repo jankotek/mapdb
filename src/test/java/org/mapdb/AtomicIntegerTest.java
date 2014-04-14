@@ -7,7 +7,6 @@ package org.mapdb;/*
  */
 
 import junit.framework.TestCase;
-import org.junit.Before;
 
 public class AtomicIntegerTest extends TestCase {
 

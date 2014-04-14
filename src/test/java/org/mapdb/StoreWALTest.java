@@ -6,11 +6,8 @@ import org.junit.Test;
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class StoreWALTest extends StoreDirectTest<StoreWAL>{
 

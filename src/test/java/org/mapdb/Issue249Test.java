@@ -1,9 +1,9 @@
 package org.mapdb;
 
+import org.junit.Test;
+
 import java.io.Serializable;
 import java.util.Map;
-
-import org.junit.Test;
 
 
 public class Issue249Test {

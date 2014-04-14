@@ -9,7 +9,6 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
-
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -51,7 +50,7 @@ public final class Queues {
 
             @Override
             public Node<E> deserialize(DataInput in, int available) throws IOException {
-                if(available==0)return Node.EMPTY;
+                if(available==0)return (Node<E>) Node.EMPTY;
                 return new Node<E>(DataInput2.unpackLong(in), serializer.deserialize(in,-1));
             }
 
@@ -62,7 +61,7 @@ public final class Queues {
 
         }
 
-        protected final Serializer<Node> nodeSerializer;
+        protected final Serializer<Node<E>> nodeSerializer;
 
 
         public SimpleQueue(Engine engine, Serializer<E> serializer, long headRecidRef, boolean useLocks) {
@@ -123,7 +122,7 @@ public final class Queues {
                         if(useLocks){
                             engine.delete(head2,nodeSerializer);
                         }else{
-                            engine.update(head2,Node.EMPTY,nodeSerializer);
+                            engine.update(head2, (Node<E>) Node.EMPTY,nodeSerializer);
                         }
                         return (E) n.value;
                     }
@@ -137,7 +136,7 @@ public final class Queues {
 
         protected static final class Node<E>{
 
-            protected static final Node EMPTY = new Node(0L, null);
+            protected static final Node<?> EMPTY = new Node(0L, null);
 
             final protected long next;
             final protected E value;
@@ -375,13 +374,13 @@ public final class Queues {
 
         @Override
         public boolean add(E e) {
-            long nextTail = engine.put(Node.EMPTY,nodeSerializer);
+            long nextTail = engine.put((Node<E>) Node.EMPTY,nodeSerializer);
             long tail2 = tail.get();
             while(!tail.compareAndSet(tail2,nextTail)){
                 tail2 = tail.get();
             }
             //now we have tail2 just for us
-            Node n = new Node(nextTail,e);
+            Node<E> n = new Node(nextTail,e);
             engine.update(tail2,n,nodeSerializer);
             return true;
         }
@@ -400,7 +399,7 @@ public final class Queues {
         protected final Lock lock = new ReentrantLock(CC.FAIR_LOCKS);
         protected final long size;
 
-        public CircularQueue(Engine engine, Serializer serializer, long headRecid, long headInsertRecid, long size) {
+        public CircularQueue(Engine engine, Serializer<E> serializer, long headRecid, long headInsertRecid, long size) {
             super(engine, serializer, headRecid,false);
             headInsert = new Atomic.Long(engine, headInsertRecid);
             this.size = size;

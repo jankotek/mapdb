@@ -1,6 +1,9 @@
 package examples;
 
-import org.mapdb.*;
+import org.mapdb.DB;
+import org.mapdb.DBMaker;
+import org.mapdb.HTreeMap;
+import org.mapdb.Store;
 
 import java.util.Random;
 import java.util.concurrent.TimeUnit;

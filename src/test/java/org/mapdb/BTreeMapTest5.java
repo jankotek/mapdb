@@ -11,6 +11,7 @@ import junit.framework.TestSuite;
 import java.util.*;
 import java.util.concurrent.ConcurrentNavigableMap;
 
+@SuppressWarnings({"rawtypes","unchecked"})
 public class BTreeMapTest5 extends JSR166TestCase {
     public static void main(String[] args) {
         junit.textui.TestRunner.run(suite());
@@ -22,7 +23,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
     /**
      * Returns a new map from Integers 1-5 to Strings "A"-"E".
      */
-    private static ConcurrentNavigableMap map5() {
+	private static ConcurrentNavigableMap map5() {
         ConcurrentNavigableMap map = DBMaker.newMemoryDB().make().createTreeMap("test").make();
         assertTrue(map.isEmpty());
         map.put(zero, "Z");
@@ -215,7 +216,8 @@ public class BTreeMapTest5 extends JSR166TestCase {
     /**
      * Values.toArray contains all values
      */
-    public void testValuesToArray() {
+    
+	public void testValuesToArray() {
         ConcurrentNavigableMap map = map5();
         Collection v = map.values();
         Object[] ar = v.toArray();

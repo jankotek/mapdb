@@ -18,7 +18,7 @@ package org.mapdb;
 
 import java.io.*;
 import java.nio.charset.Charset;
-import java.util.*;
+import java.util.UUID;
 
 /**
  * Provides serialization and deserialization

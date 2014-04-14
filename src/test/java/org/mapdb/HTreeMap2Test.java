@@ -12,7 +12,6 @@ import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class HTreeMap2Test {

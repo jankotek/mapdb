@@ -28,7 +28,7 @@ import java.util.*;
  * @author Jan Kotek
  */
 @SuppressWarnings({ "unchecked", "rawtypes" })
-public class SerializerBase implements Serializer{
+public class SerializerBase implements Serializer<Object>{
 
 
     protected static final String EMPTY_STRING = "";
@@ -151,7 +151,7 @@ public class SerializerBase implements Serializer{
 
     }
 
-    private void serialize2(DataOutput out, Object obj, FastArrayList<Object> objectStack, Class clazz) throws IOException {
+    private void serialize2(DataOutput out, Object obj, FastArrayList<Object> objectStack, Class<?> clazz) throws IOException {
         if (obj instanceof byte[]) {
             byte[] b = (byte[]) obj;
             serializeByteArray(out, b);
@@ -261,7 +261,7 @@ public class SerializerBase implements Serializer{
         }
 
 
-        /** classes bellow need object stack, so initialize it if not alredy initialized*/
+        /** classes bellow need object stack, so initialize it if not already initialized*/
         if (objectStack == null) {
             objectStack = new FastArrayList();
             objectStack.add(obj);

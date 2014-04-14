@@ -129,15 +129,15 @@ public class DB {
 
 
         protected boolean counter = false;
-        protected Serializer keySerializer = null;
-        protected Serializer valueSerializer = null;
+        protected Serializer<?> keySerializer = null;
+        protected Serializer<?> valueSerializer = null;
         protected long expireMaxSize = 0L;
         protected long expire = 0L;
         protected long expireAccess = 0L;
         protected long expireStoreSize;
-        protected Hasher hasher = null;
+        protected Hasher<?> hasher = null;
 
-        protected Fun.Function1 valueCreator = null;
+        protected Fun.Function1<?,?> valueCreator = null;
 
 
 
@@ -151,13 +151,13 @@ public class DB {
 
 
         /** keySerializer used to convert keys into/from binary form. */
-        public HTreeMapMaker keySerializer(Serializer keySerializer){
+        public HTreeMapMaker keySerializer(Serializer<?> keySerializer){
             this.keySerializer = keySerializer;
             return this;
         }
 
         /** valueSerializer used to convert values into/from binary form. */
-        public HTreeMapMaker valueSerializer(Serializer valueSerializer){
+        public HTreeMapMaker valueSerializer(Serializer<?> valueSerializer){
             this.valueSerializer = valueSerializer;
             return this;
         }
@@ -200,12 +200,12 @@ public class DB {
 
         /** If value is not found, HTreeMap can fetch and insert default value. `valueCreator` is used to return new value.
          * This way `HTreeMap.get()` never returns null */
-        public HTreeMapMaker valueCreator(Fun.Function1 valueCreator){
+        public HTreeMapMaker valueCreator(Fun.Function1<?,?> valueCreator){
             this.valueCreator = valueCreator;
             return this;
         }
 
-        public HTreeMapMaker hasher(Hasher hasher){
+        public HTreeMapMaker hasher(Hasher<?> hasher){
             this.hasher = hasher;
             return this;
         }
@@ -235,12 +235,12 @@ public class DB {
         }
 
         protected boolean counter = false;
-        protected Serializer serializer = null;
+        protected Serializer<?> serializer = null;
         protected long expireMaxSize = 0L;
         protected long expireStoreSize = 0L;
         protected long expire = 0L;
         protected long expireAccess = 0L;
-        protected Hasher hasher = null;
+        protected Hasher<?> hasher = null;
 
         /** by default collection does not have counter, without counter updates are faster, but entire collection needs to be traversed to count items.*/
         public HTreeSetMaker counterEnable(){
@@ -250,7 +250,7 @@ public class DB {
 
 
         /** keySerializer used to convert keys into/from binary form. */
-        public HTreeSetMaker serializer(Serializer serializer){
+        public HTreeSetMaker serializer(Serializer<?> serializer){
             this.serializer = serializer;
             return this;
         }
@@ -294,7 +294,7 @@ public class DB {
         }
 
 
-        public HTreeSetMaker hasher(Hasher hasher){
+        public HTreeSetMaker hasher(Hasher<?> hasher){
             this.hasher = hasher;
             return this;
         }
@@ -322,12 +322,9 @@ public class DB {
      * This collection perform well under concurrent access.
      * Is best for large keys and large values.
      *
-     * @param name of map
-     * @param <K> key
-     * @param <V> value
+     * @param name of the map
      * @return map
      */
-
     synchronized public <K,V> HTreeMap<K,V> getHashMap(String name){
         return getHashMap(name, null);
     }
@@ -339,8 +336,6 @@ public class DB {
      *
      * @param name of map
      * @param valueCreator if value is not found, new is created and placed into map.
-     * @param <K> key
-     * @param <V> value
      * @return map
      */
     synchronized public <K,V> HTreeMap<K,V> getHashMap(String name, Fun.Function1<V,K> valueCreator){
@@ -407,8 +402,6 @@ public class DB {
     /**
      * Creates new HashMap with more specific arguments
      *
-     * @param <K> key type
-     * @param <V> value type
      * @throws IllegalArgumentException if name is already used
      * @return newly created map
      */
@@ -447,7 +440,7 @@ public class DB {
                 catPut(name+".keySerializer",m.keySerializer,getDefaultSerializer()),
                 catPut(name+".valueSerializer",m.valueSerializer,getDefaultSerializer()),
                 expireTimeStart,expire,expireAccess,expireMaxSize, expireStoreSize, expireHeads ,expireTails,
-                m.valueCreator, m.hasher
+                (Fun.Function1<V, K>) m.valueCreator, m.hasher
 
         );
 
@@ -459,8 +452,7 @@ public class DB {
     /**
      *  Opens existing or creates new Hash Tree Set.
      *
-     * @param name of Set
-     * @param <K> values in set
+     * @param name of the Set
      * @return set
      */
     synchronized public <K> Set<K> getHashSet(String name){
@@ -483,7 +475,7 @@ public class DB {
         //check type
         checkType(type, "HashSet");
         //open existing map
-        ret = new HTreeMap(engine,
+        ret = new HTreeMap<K, Object>(engine,
                 (Long)catGet(name+".counterRecid"),
                 (Integer)catGet(name+".hashSalt"),
                 (long[])catGet(name+".segmentRecids"),
@@ -544,7 +536,7 @@ public class DB {
                 null, m.hasher
 
         );
-        Set ret2 = ret.keySet();
+        Set<K> ret2 = ret.keySet();
 
         catalog.put(name + ".type", "HashSet");
         namedPut(name, ret2);
@@ -563,13 +555,13 @@ public class DB {
         protected int nodeSize = 32;
         protected boolean valuesOutsideNodes = false;
         protected boolean counter = false;
-        protected BTreeKeySerializer keySerializer;
-        protected Serializer valueSerializer;
-        protected Comparator comparator;
+        protected BTreeKeySerializer<?> keySerializer;
+        protected Serializer<?> valueSerializer;
+        protected Comparator<?> comparator;
 
-        protected Iterator pumpSource;
-        protected Fun.Function1 pumpKeyExtractor;
-        protected Fun.Function1 pumpValueExtractor;
+        protected Iterator<?> pumpSource;
+        protected Fun.Function1<?,?> pumpKeyExtractor;
+        protected Fun.Function1<?,?> pumpValueExtractor;
         protected int pumpPresortBatchSize = -1;
         protected boolean pumpIgnoreDuplicates = false;
 
@@ -593,25 +585,25 @@ public class DB {
         }
 
         /** keySerializer used to convert keys into/from binary form. */
-        public BTreeMapMaker keySerializer(BTreeKeySerializer keySerializer){
+        public BTreeMapMaker keySerializer(BTreeKeySerializer<?> keySerializer){
             this.keySerializer = keySerializer;
             return this;
         }
         /** keySerializer used to convert keys into/from binary form.
          * This wraps ordinary serializer, with no delta packing used*/
-        public BTreeMapMaker keySerializerWrap(Serializer serializer){
+        public BTreeMapMaker keySerializerWrap(Serializer<?> serializer){
             this.keySerializer = new BTreeKeySerializer.BasicKeySerializer(serializer);
             return this;
         }
 
         /** valueSerializer used to convert values into/from binary form. */
-        public BTreeMapMaker valueSerializer(Serializer valueSerializer){
+        public BTreeMapMaker valueSerializer(Serializer<?> valueSerializer){
             this.valueSerializer = valueSerializer;
             return this;
         }
 
         /** comparator used to sort keys.  */
-        public BTreeMapMaker comparator(Comparator comparator){
+        public BTreeMapMaker comparator(Comparator<?> comparator){
             this.comparator = comparator;
             return this;
         }
@@ -682,10 +674,10 @@ public class DB {
 
         protected int nodeSize = 32;
         protected boolean counter = false;
-        protected BTreeKeySerializer serializer;
-        protected Comparator comparator;
+        protected BTreeKeySerializer<?> serializer;
+        protected Comparator<?> comparator;
 
-        protected Iterator pumpSource;
+        protected Iterator<?> pumpSource;
         protected int pumpPresortBatchSize = -1;
         protected boolean pumpIgnoreDuplicates = false;
 
@@ -703,18 +695,18 @@ public class DB {
         }
 
         /** keySerializer used to convert keys into/from binary form. */
-        public BTreeSetMaker serializer(BTreeKeySerializer serializer){
+        public BTreeSetMaker serializer(BTreeKeySerializer<?> serializer){
             this.serializer = serializer;
             return this;
         }
 
         /** comparator used to sort keys.  */
-        public BTreeSetMaker comparator(Comparator comparator){
+        public BTreeSetMaker comparator(Comparator<?> comparator){
             this.comparator = comparator;
             return this;
         }
 
-        public <K> BTreeSetMaker pumpSource(Iterator<K> source){
+        public BTreeSetMaker pumpSource(Iterator<?> source){
             this.pumpSource = source;
             return this;
         }
@@ -771,8 +763,6 @@ public class DB {
      * It is ordered and best suited for small keys and values.
      *
      * @param name of map
-     * @param <K> key
-     * @param <V> value
      * @return map
      */
     synchronized public <K,V> BTreeMap<K,V> getTreeMap(String name){
@@ -840,9 +830,17 @@ public class DB {
         if(m.pumpSource==null){
             rootRecidRef = BTreeMap.createRootRef(engine,m.keySerializer,m.valueSerializer,m.comparator,0);
         }else{
-            rootRecidRef = Pump.buildTreeMap(m.pumpSource,engine,m.pumpKeyExtractor,m.pumpValueExtractor,
+            rootRecidRef = Pump.buildTreeMap(
+                    (Iterator<K>)m.pumpSource,
+                    engine,
+                    (Fun.Function1<K,K>)m.pumpKeyExtractor,
+                    (Fun.Function1<V,K>)m.pumpValueExtractor,
                     m.pumpIgnoreDuplicates,m.nodeSize,
-                    m.valuesOutsideNodes,counterRecid,m.keySerializer,m.valueSerializer,m.comparator);
+                    m.valuesOutsideNodes,
+                    counterRecid,
+                    (BTreeKeySerializer<K>)m.keySerializer,
+                    (Serializer<V>)m.valueSerializer,
+                    m.comparator);
         }
 
         BTreeMap<K,V> ret = new BTreeMap<K,V>(engine,
@@ -850,9 +848,9 @@ public class DB {
                 catPut(name+".maxNodeSize",m.nodeSize),
                 catPut(name+".valuesOutsideNodes",m.valuesOutsideNodes),
                 catPut(name+".counterRecid",counterRecid),
-                m.keySerializer,
-                m.valueSerializer,
-                m.comparator,
+                (BTreeKeySerializer<K>)m.keySerializer,
+                (Serializer<V>)m.valueSerializer,
+                (Comparator<K>)m.comparator,
                 catPut(m.name+".numberOfNodeMetas",0)
         );
         catalog.put(name + ".type", "TreeMap");
@@ -860,9 +858,18 @@ public class DB {
         return ret;
     }
 
+    /**
+     * Replace nulls in tuple serializers with default (Comparable) values
+     *
+     * @param keySerializer with nulls
+     * @return keySerializers which does not contain any nulls
+     */
     protected <K> BTreeKeySerializer<K> fillNulls(BTreeKeySerializer<K> keySerializer) {
+        if(keySerializer==null)
+            return null;
         if(keySerializer instanceof BTreeKeySerializer.Tuple2KeySerializer){
-            BTreeKeySerializer.Tuple2KeySerializer s = (BTreeKeySerializer.Tuple2KeySerializer) keySerializer;
+            BTreeKeySerializer.Tuple2KeySerializer<?,?> s =
+                    (BTreeKeySerializer.Tuple2KeySerializer<?,?>) keySerializer;
             return new BTreeKeySerializer.Tuple2KeySerializer(
                     s.aComparator!=null?s.aComparator:BTreeMap.COMPARABLE_COMPARATOR,
                     s.aSerializer!=null?s.aSerializer:getDefaultSerializer(),
@@ -870,7 +877,8 @@ public class DB {
             );
         }
         if(keySerializer instanceof BTreeKeySerializer.Tuple3KeySerializer){
-            BTreeKeySerializer.Tuple3KeySerializer s = (BTreeKeySerializer.Tuple3KeySerializer) keySerializer;
+            BTreeKeySerializer.Tuple3KeySerializer<?,?,?> s =
+                    (BTreeKeySerializer.Tuple3KeySerializer<?,?,?>) keySerializer;
             return new BTreeKeySerializer.Tuple3KeySerializer(
                     s.aComparator!=null?s.aComparator:BTreeMap.COMPARABLE_COMPARATOR,
                     s.bComparator!=null?s.bComparator:BTreeMap.COMPARABLE_COMPARATOR,
@@ -880,7 +888,8 @@ public class DB {
             );
         }
         if(keySerializer instanceof BTreeKeySerializer.Tuple4KeySerializer){
-            BTreeKeySerializer.Tuple4KeySerializer s = (BTreeKeySerializer.Tuple4KeySerializer) keySerializer;
+            BTreeKeySerializer.Tuple4KeySerializer<?,?,?,?> s =
+                    (BTreeKeySerializer.Tuple4KeySerializer<?,?,?,?>) keySerializer;
             return new BTreeKeySerializer.Tuple4KeySerializer(
                     s.aComparator!=null?s.aComparator:BTreeMap.COMPARABLE_COMPARATOR,
                     s.bComparator!=null?s.bComparator:BTreeMap.COMPARABLE_COMPARATOR,
@@ -892,13 +901,52 @@ public class DB {
             );
         }
 
+        if(keySerializer instanceof BTreeKeySerializer.Tuple5KeySerializer){
+            BTreeKeySerializer.Tuple5KeySerializer<?,?,?,?,?> s =
+                    (BTreeKeySerializer.Tuple5KeySerializer<?,?,?,?,?>) keySerializer;
+            return new BTreeKeySerializer.Tuple5KeySerializer(
+                    s.aComparator!=null?s.aComparator:BTreeMap.COMPARABLE_COMPARATOR,
+                    s.bComparator!=null?s.bComparator:BTreeMap.COMPARABLE_COMPARATOR,
+                    s.cComparator!=null?s.cComparator:BTreeMap.COMPARABLE_COMPARATOR,
+                    s.dComparator!=null?s.dComparator:BTreeMap.COMPARABLE_COMPARATOR,
+                    s.aSerializer!=null?s.aSerializer:getDefaultSerializer(),
+                    s.bSerializer!=null?s.bSerializer:getDefaultSerializer(),
+                    s.cSerializer!=null?s.cSerializer:getDefaultSerializer(),
+                    s.dSerializer!=null?s.dSerializer:getDefaultSerializer(),
+                    s.eSerializer!=null?s.eSerializer:getDefaultSerializer()
+            );
+        }
+
+        if(keySerializer instanceof BTreeKeySerializer.Tuple6KeySerializer){
+            BTreeKeySerializer.Tuple6KeySerializer<?,?,?,?,?,?> s =
+                    (BTreeKeySerializer.Tuple6KeySerializer<?,?,?,?,?,?>) keySerializer;
+            return new BTreeKeySerializer.Tuple6KeySerializer(
+                    s.aComparator!=null?s.aComparator:BTreeMap.COMPARABLE_COMPARATOR,
+                    s.bComparator!=null?s.bComparator:BTreeMap.COMPARABLE_COMPARATOR,
+                    s.cComparator!=null?s.cComparator:BTreeMap.COMPARABLE_COMPARATOR,
+                    s.dComparator!=null?s.dComparator:BTreeMap.COMPARABLE_COMPARATOR,
+                    s.eComparator!=null?s.eComparator:BTreeMap.COMPARABLE_COMPARATOR,
+                    s.aSerializer!=null?s.aSerializer:getDefaultSerializer(),
+                    s.bSerializer!=null?s.bSerializer:getDefaultSerializer(),
+                    s.cSerializer!=null?s.cSerializer:getDefaultSerializer(),
+                    s.dSerializer!=null?s.dSerializer:getDefaultSerializer(),
+                    s.eSerializer!=null?s.eSerializer:getDefaultSerializer(),
+                    s.fSerializer!=null?s.fSerializer:getDefaultSerializer()
+            );
+        }
+
         return keySerializer;
     }
 
 
     /**
-     * Get Named directory. Key is name, value is recid under which named record is stored
-     * @return
+     * Get Name Catalog.
+     * It is metatable which contains information about named collections and records.
+     * Each collection constructor takes number of parameters, this map contains those parameters.
+     *
+     * _Note:_ Do not modify this map, unless you know what you are doing!
+     *
+     * @return Name Catalog
      */
     public SortedMap<String, Object> getCatalog(){
         return catalog;
@@ -909,7 +957,6 @@ public class DB {
      * Opens existing or creates new B-linked-tree Set.
      *
      * @param name of set
-     * @param <K> values in set
      * @return set
      */
     synchronized public <K> NavigableSet<K> getTreeSet(String name){
@@ -972,18 +1019,29 @@ public class DB {
         if(m.pumpSource==null){
             rootRecidRef = BTreeMap.createRootRef(engine,m.serializer,null,m.comparator,0);
         }else{
-            rootRecidRef = Pump.buildTreeMap(m.pumpSource,engine,Fun.extractNoTransform(),null,m.pumpIgnoreDuplicates, m.nodeSize,
-                    false,counterRecid,m.serializer,null,m.comparator);
+            rootRecidRef = Pump.buildTreeMap(
+                    (Iterator<Object>)m.pumpSource,
+                    engine,
+                    Fun.extractNoTransform(),
+                    null,
+                    m.pumpIgnoreDuplicates,
+                    m.nodeSize,
+                    false,
+                    counterRecid,
+                    (BTreeKeySerializer<Object>)m.serializer,
+                    null,
+                    m.comparator);
         }
 
-        NavigableSet<K> ret = new BTreeMap<K,Object>(engine,
+        NavigableSet<K> ret = new BTreeMap<K,Object>(
+                engine,
                 catPut(m.name+".rootRecidRef", rootRecidRef),
                 catPut(m.name+".maxNodeSize",m.nodeSize),
                 false,
                 catPut(m.name+".counterRecid",counterRecid),
-                m.serializer,
+                (BTreeKeySerializer<K>)m.serializer,
                 null,
-                m.comparator,
+                (Comparator<K>)m.comparator,
                 catPut(m.name+".numberOfNodeMetas",0)
         ).keySet();
         catalog.put(m.name + ".type", "TreeSet");
@@ -1125,14 +1183,14 @@ public class DB {
         //insert N Nodes empty nodes into a circle
         long prevRecid = 0;
         long firstRecid = 0;
-        Serializer<Queues.SimpleQueue.Node> nodeSer = new Queues.SimpleQueue.NodeSerializer(serializer);
+        Serializer<Queues.SimpleQueue.Node<E>> nodeSer = new Queues.SimpleQueue.NodeSerializer<E>(serializer);
         for(long i=0;i<size;i++){
-            Queues.SimpleQueue.Node n = new Queues.SimpleQueue.Node(prevRecid, null);
+            Queues.SimpleQueue.Node<E> n = new Queues.SimpleQueue.Node<E>(prevRecid, null);
             prevRecid = engine.put(n, nodeSer);
             if(firstRecid==0) firstRecid = prevRecid;
         }
         //update first node to point to last recid
-        engine.update(firstRecid, new Queues.SimpleQueue.Node(prevRecid, null), nodeSer );
+        engine.update(firstRecid, new Queues.SimpleQueue.Node<E>(prevRecid, null), nodeSer );
 
         long headRecid = engine.put(prevRecid, Serializer.LONG);
         long headInsertRecid = engine.put(prevRecid, Serializer.LONG);

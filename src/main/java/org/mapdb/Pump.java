@@ -45,7 +45,6 @@ public final class Pump {
      * @param batchSize how much items can fit into heap memory
      * @param comparator used to sort data
      * @param serializer used to store data in temporary files
-     * @param <E> type of data
      * @return iterator over sorted data set
      */
     public static <E> Iterator<E> sort(final Iterator<E> source, boolean mergeDuplicates, final int batchSize,
@@ -143,10 +142,9 @@ public final class Pump {
     /**
      * Merge presorted iterators into single sorted iterator.
      *
-     * @param comp used to compare data
+     * @param comparator used to compare data
      * @param mergeDuplicates if duplicate keys should be merged into single one
      * @param iterators array of already sorted iterators
-     * @param <E> type of data
      * @return sorted iterator
      */
     public static <E> Iterator<E> sort(Comparator comparator, final boolean mergeDuplicates, final Iterator... iterators) {
@@ -226,11 +224,12 @@ public final class Pump {
 
     /**
      * Merges multiple iterators into single iterator.
+     * Result iterator will return entries from all iterators.
+     * It does not do sorting or any other special functionality.
      * Does not allow null elements.
      *
-     * @param iters
-     * @param <E>
-     * @return
+     * @param iters - iterators to be merged
+     * @return union of all iterators.
      */
     public static <E> Iterator<E> merge(final Iterator... iters){
         if(iters.length==0)

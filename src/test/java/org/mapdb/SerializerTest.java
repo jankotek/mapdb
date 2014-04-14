@@ -3,7 +3,10 @@ package org.mapdb;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Random;
+import java.util.UUID;
+
 import static org.junit.Assert.*;
 
 public class SerializerTest {

@@ -2,15 +2,11 @@ package org.mapdb;
 
 import org.junit.Test;
 
-import java.io.EOFException;
 import java.io.File;
-import java.io.IOError;
 import java.util.Collection;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class Issue254Test {
 

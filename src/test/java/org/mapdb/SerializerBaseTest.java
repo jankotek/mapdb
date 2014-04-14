@@ -15,7 +15,6 @@
  ******************************************************************************/
 package org.mapdb;
 
-import junit.framework.TestCase;
 import org.junit.Test;
 
 import java.io.*;
@@ -26,9 +25,7 @@ import java.nio.ByteBuffer;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.*;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class SerializerBaseTest{

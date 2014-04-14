@@ -2,12 +2,15 @@ package org.mapdb;
 
 import org.junit.Before;
 import org.junit.Test;
-import java.util.*;
+
+import java.util.Random;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.junit.Assert.assertEquals;
 import static org.mapdb.Fun.*;
-import static org.junit.Assert.*;
 
 public class BindTest {
 

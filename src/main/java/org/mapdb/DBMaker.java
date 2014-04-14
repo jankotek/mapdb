@@ -241,8 +241,6 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * This method uses off-heap direct ByteBuffers. See {@link java.nio.ByteBuffer#allocateDirect(int)}
      *
      * @param size maximal size of off-heap store in gigabytes.
-     * @param <K>
-     * @param <V>
      * @return map
      */
     public static <K,V> HTreeMap<K,V> newCacheDirect(double size){
@@ -264,8 +262,6 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * This method uses  ByteBuffers backed by on-heap byte[]. See {@link java.nio.ByteBuffer#allocate(int)}
      *
      * @param size maximal size of off-heap store in gigabytes.
-     * @param <K>
-     * @param <V>
      * @return map
      */
     public static <K,V> HTreeMap<K,V> newCache(double size){
@@ -289,7 +285,6 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         props.setProperty(Keys.file, file.getPath());
         return getThis();
     }
-
 
 
     protected DBMakerT getThis(){

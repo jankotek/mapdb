@@ -6,8 +6,6 @@ import org.junit.Test;
 import java.io.File;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-
 public class Issue247Test {
 
         private Map getMap(DB db){

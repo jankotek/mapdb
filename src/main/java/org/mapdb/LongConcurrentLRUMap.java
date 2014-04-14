@@ -332,7 +332,7 @@ public class LongConcurrentLRUMap<V> extends LongMap<V> {
 
     private static class PQueue<V> extends PriorityQueue<CacheEntry<V>> {
         int myMaxSize;
-        final Object[] heap;
+        final CacheEntry<V>[] heap;
 
         PQueue(int maxSz) {
             super(maxSz);
@@ -342,11 +342,11 @@ public class LongConcurrentLRUMap<V> extends LongMap<V> {
 
 
         Iterable<CacheEntry<V>> getValues() {
-            return (Iterable) Collections.unmodifiableCollection(Arrays.asList(heap));
+            return Collections.unmodifiableCollection(Arrays.asList(heap));
         }
 
         @Override
-        protected boolean lessThan(CacheEntry a, CacheEntry b) {
+        protected boolean lessThan(CacheEntry<V> a, CacheEntry<V> b) {
             // reverse the parameter order so that the queue keeps the oldest items
             return b.lastAccessedCopy < a.lastAccessedCopy;
         }
@@ -356,8 +356,8 @@ public class LongConcurrentLRUMap<V> extends LongMap<V> {
             if (size() < myMaxSize) {
                 add(element);
                 return null;
-            } else if (size() > 0 && !lessThan(element, (CacheEntry<V>) heap[1])) {
-                CacheEntry<V> ret = (CacheEntry<V>) heap[1];
+            } else if (size() > 0 && !lessThan(element,  heap[1])) {
+                CacheEntry<V> ret =  heap[1];
                 heap[1] = element;
                 updateTop();
                 return ret;
@@ -608,7 +608,7 @@ public class LongConcurrentLRUMap<V> extends LongMap<V> {
         /** This method returns the internal heap array as Object[].
          * @lucene.internal
          */
-        protected final Object[] getHeapArray() {
+        protected final T[] getHeapArray() {
             return heap;
         }
     }

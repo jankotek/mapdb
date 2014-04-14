@@ -16,7 +16,9 @@
 
 package org.mapdb;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
 /**
@@ -122,7 +124,7 @@ public final class Bind {
      * @param map primary map whose size needs to be tracked
      * @param sizeCounter number updated when Map Entry is added or removed.
      */
-    public static void size(MapWithModificationListener map, final Atomic.Long sizeCounter){
+    public static <K,V> void  size(MapWithModificationListener<K,V> map, final Atomic.Long sizeCounter){
         //set initial value first if necessary
         if(sizeCounter.get() == 0){
             long size = map.sizeLong();
@@ -130,9 +132,9 @@ public final class Bind {
                 sizeCounter.set(size);
         }
 
-        map.addModificationListener(new MapListener() {
+        map.addModificationListener(new MapListener<K,V>() {
             @Override
-            public void update(Object key, Object oldVal, Object newVal) {
+            public void update(K key, V oldVal, V newVal) {
                 if(oldVal == null && newVal!=null){
                     sizeCounter.incrementAndGet();
                 }else if(oldVal!=null && newVal == null){
@@ -151,12 +153,15 @@ public final class Bind {
      * If Secondary Map is empty its content will be recreated from Primary Map.
      * This binding is not persistent. You need to restore it every time store is reopened.
      *
+     * Type params:
+     *
+     *  * `<K>` - key type in primary and Secondary Map
+     *  * `<V>` - value type in Primary Map
+     *  * `<V2>` - value type in Secondary Map
+     *  .
      * @param map Primary Map
      * @param secondary Secondary Map with custom
      * @param fun function which calculates secondary value from primary key and value
-     * @param <K> key type in primary and Secondary Map
-     * @param <V> value type in Primary Map
-     * @param <V2> value type in Secondary Map.
      */
     public static <K,V, V2> void secondaryValue(MapWithModificationListener<K, V> map,
                                               final Map<K, V2> secondary,
@@ -187,12 +192,15 @@ public final class Bind {
      * If Secondary Map is empty its content will be recreated from Primary Map.
      * This binding is not persistent. You need to restore it every time store is reopened.
      *
+     * Type params:
+     *
+     *  * `<K>` - key type in primary and Secondary Map
+     *  * `<V>` - value type in Primary Map
+     *  * `<V2>` - value type in Secondary Map
+     * .
      * @param map Primary Map
      * @param secondary Secondary Map with custom
      * @param fun function which calculates secondary values from primary key and value
-     * @param <K> key type in primary and Secondary Map
-     * @param <V> value type in Primary Map
-     * @param <V2> value type in Secondary Map.
      */
     public static <K,V, V2> void secondaryValues(MapWithModificationListener<K, V> map,
                                                 final Set<Fun.Tuple2<K, V2>> secondary,
@@ -267,18 +275,20 @@ public final class Bind {
      * Binds Secondary Set so it contains Secondary Key (Index). Usefull if you need
      * to lookup Keys from Primary Map by custom criteria. Other use is for reverse lookup
      *
-     * To lookup keys in Secondary Set use {@link Bind#findSecondaryKeys(java.util.NavigableSet, Object)}
-     *
+     * To lookup keys in Secondary Set use {@link Fun#filter(java.util.NavigableSet, Object)}
      *
      * If Secondary Set is empty its content will be recreated from Primary Map.
      * This binding is not persistent. You need to restore it every time store is reopened.
      *
+     * Type params:
+     *
+     *  * `<K>` - Key in Primary Map
+     *  * `<V>` - Value in Primary Map
+     *  * `<K2>` - Secondary
+     *
      * @param map primary map
      * @param secondary secondary set
      * @param fun function which calculates Secondary Key from Primary Key and Value
-     * @param <K> Key in Primary Map
-     * @param <V> Value in Primary Map
-     * @param <K2> Secondary
      */
     public static <K,V, K2> void secondaryKey(MapWithModificationListener<K, V> map,
                                                 final Set<Fun.Tuple2<K2, K>> secondary,
@@ -315,18 +325,18 @@ public final class Bind {
      * Binds Secondary Set so it contains Secondary Key (Index). Usefull if you need
      * to lookup Keys from Primary Map by custom criteria. Other use is for reverse lookup
      *
-     * To lookup keys in Secondary Set use {@link Bind#findSecondaryKeys(java.util.NavigableSet, Object)}
-     *
-     *
      * If Secondary Set is empty its content will be recreated from Primary Map.
      * This binding is not persistent. You need to restore it every time store is reopened.
+     *
+     * Type params:
+     *
+     *  * `<K>` - Key in Primary Map
+     *  * `<V>` - Value in Primary Map
+     *  * `<K2>` - Secondary
      *
      * @param map primary map
      * @param secondary secondary set
      * @param fun function which calculates Secondary Key from Primary Key and Value
-     * @param <K> Key in Primary Map
-     * @param <V> Value in Primary Map
-     * @param <K2> Secondary
      */
     public static <K,V, K2> void secondaryKey(MapWithModificationListener<K, V> map,
                                               final Map<K2, K> secondary,
@@ -362,18 +372,21 @@ public final class Bind {
      * Binds Secondary Set so it contains Secondary Key (Index). Useful if you need
      * to lookup Keys from Primary Map by custom criteria. Other use is for reverse lookup
      *
-     * To lookup keys in Secondary Set use {@link Bind#findSecondaryKeys(java.util.NavigableSet, Object)}
+     * To lookup keys in Secondary Set use {@link Fun#filter(java.util.NavigableSet, Object)}}
      *
      *
      * If Secondary Set is empty its content will be recreated from Primary Map.
      * This binding is not persistent. You need to restore it every time store is reopened.
      *
+     * Type params:
+     *
+     *  * `<K>` - Key in Primary Map
+     *  * `<V>` - Value in Primary Map
+     *  * `<K2>` - Secondary
+     *
      * @param map primary map
      * @param secondary secondary set
      * @param fun function which calculates Secondary Keys from Primary Key and Value
-     * @param <K> Key in Primary Map
-     * @param <V> Value in Primary Map
-     * @param <K2> Secondary
      */
     public static <K,V, K2> void secondaryKeys(MapWithModificationListener<K, V> map,
                                               final Set<Fun.Tuple2<K2, K>> secondary,
@@ -447,15 +460,18 @@ public final class Bind {
      * Binds Secondary Set so it contains inverse mapping to Primary Map: Primary Value will become Secondary Key.
      * This is useful for creating bi-directional Maps.
      *
-     * To lookup keys in Secondary Set use {@link Bind#findSecondaryKeys(java.util.NavigableSet, Object)}
+     * To lookup keys in Secondary Set use {@link Fun#filter(java.util.NavigableSet, Object)}
      *
      * If Secondary Set is empty its content will be recreated from Primary Map.
      * This binding is not persistent. You need to restore it every time store is reopened.
      *
+     * Type params:
+     *
+     *  * `<K>` - Key in Primary Map and Second Value in Secondary Set
+     *  * `<V>` - Value in Primary Map and Primary Value in Secondary Set
+     *
      * @param primary Primary Map for which inverse mapping will be created
      * @param inverse Secondary Set which will contain inverse mapping
-     * @param <K> Key in Primary Map and Second Value in Secondary Set
-     * @param <V> Value in Primary Map and Primary Value in Secondary Set
      */
     public static <K,V> void mapInverse(MapWithModificationListener<K,V> primary,
                                         Set<Fun.Tuple2<V, K>> inverse) {
@@ -470,15 +486,20 @@ public final class Bind {
      * Binds Secondary Set so it contains inverse mapping to Primary Map: Primary Value will become Secondary Key.
      * This is useful for creating bi-directional Maps.
      *
-     * To lookup keys in Secondary Set use {@link Bind#findSecondaryKeys(java.util.NavigableSet, Object)}
+     * In this case some data may be lost, if there are duplicated primary values.
+     * It is recommended to use multimap: `NavigableSet<Fun.Tuple2<V,K>>` which
+     * handles value duplicities. Use @{link Bind.mapInverse(MapWithModificationListener<K,V>Set<Fun.Tuple2<V, K>>}
      *
      * If Secondary Set is empty its content will be recreated from Primary Map.
      * This binding is not persistent. You need to restore it every time store is reopened.
      *
+     * Type params:
+     *
+     *  * `<K>` - Key in Primary Map and Second Value in Secondary Set
+     *  * `<V>` - Value in Primary Map and Primary Value in Secondary Set
+     *
      * @param primary Primary Map for which inverse mapping will be created
      * @param inverse Secondary Set which will contain inverse mapping
-     * @param <K> Key in Primary Map and Second Value in Secondary Set
-     * @param <V> Value in Primary Map and Primary Value in Secondary Set
      */
     public static <K,V> void mapInverse(MapWithModificationListener<K,V> primary,
                                         Map<V, K> inverse) {
@@ -504,12 +525,15 @@ public final class Bind {
      * If Secondary Map is empty its content will be recreated from Primary Map.
      * This binding is not persistent. You need to restore it every time store is reopened.
      *
-     * @param primary Primary Map to create histrogram for
+     * Type params:
+     *
+     *  * `<K>` - Key type in primary map
+     *  * `<V>` - Value type in primary map
+     *  * `<C>` - Category type
+     *
+     * @param primary Primary Map to create histogram for
      * @param histogram Secondary Map to create histogram for, key is Category, value is number of items in category
      * @param entryToCategory returns Category in which entry from Primary Map belongs to.
-     * @param <K> Key type in primary map
-     * @param <V> Value type in primary map
-     * @param <C> Category type
      */
     public static <K,V,C> void histogram(MapWithModificationListener<K,V> primary, final ConcurrentMap<C,Long> histogram,
                                   final Fun.Function2<C, K, V> entryToCategory){

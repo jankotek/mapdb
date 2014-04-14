@@ -1,7 +1,6 @@
 package org.mapdb;
 
 import junit.framework.TestCase;
-import org.junit.Before;
 
 import java.util.*;
 

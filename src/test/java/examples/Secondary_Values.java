@@ -3,7 +3,7 @@ package examples;
 import org.mapdb.*;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.NavigableSet;
 
 /**
  * Example demonstrate 1:N relation between two collections.

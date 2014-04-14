@@ -11,6 +11,7 @@ import junit.framework.TestSuite;
 import java.util.*;
 import java.util.concurrent.ConcurrentNavigableMap;
 
+@SuppressWarnings({"rawtypes","unchecked"})
 public class BTreeMapTest6 extends JSR166TestCase {
     public static void main(String[] args) {
         junit.textui.TestRunner.run(suite());

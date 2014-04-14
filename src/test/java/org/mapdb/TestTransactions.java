@@ -1,8 +1,9 @@
 package org.mapdb;
 
 
-import java.util.Map;
 import org.junit.Test;
+
+import java.util.Map;
 
 /**
  *

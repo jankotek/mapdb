@@ -1,13 +1,13 @@
 package org.mapdb;
 
-import java.io.*;
-import java.util.Arrays;
-
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mapdb.Volume.MappedFileVol;
+
+import java.io.*;
+import java.util.Arrays;
 
 public class BrokenDBTest {
     File index;

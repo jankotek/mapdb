@@ -1,7 +1,5 @@
 package org.mapdb;
 
-import org.mapdb.*;
-
 import java.io.File;
 import java.util.Map;
 import java.util.Random;

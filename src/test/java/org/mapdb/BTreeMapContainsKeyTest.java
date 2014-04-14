@@ -1,15 +1,13 @@
 package org.mapdb;
 
-import org.junit.Before;
-
-import static org.mapdb.BTreeKeySerializer.BASIC;
-import static org.mapdb.BTreeMap.COMPARABLE_COMPARATOR;
-import static org.mapdb.BTreeMap.createRootRef;
-
 import java.io.DataInput;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Map;
+
+import static org.mapdb.BTreeKeySerializer.BASIC;
+import static org.mapdb.BTreeMap.COMPARABLE_COMPARATOR;
+import static org.mapdb.BTreeMap.createRootRef;
 
 public class BTreeMapContainsKeyTest extends JSR166TestCase {
 

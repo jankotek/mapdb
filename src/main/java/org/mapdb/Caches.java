@@ -382,8 +382,7 @@ public final class Caches {
             }
         }
 
-        @SuppressWarnings("rawtypes")
-        protected ReferenceQueue queue = new ReferenceQueue();
+        protected ReferenceQueue<Object> queue = new ReferenceQueue<Object>();
 
         protected Thread queueThread = new Thread("MapDB GC collector"){
             @Override
@@ -427,7 +426,7 @@ public final class Caches {
         @Override
         public <A> long put(A value, Serializer<A> serializer) {
             long recid = getWrappedEngine().put(value, serializer);
-            ReferenceQueue<A> q = checkClosed(queue);
+            ReferenceQueue<A> q = (ReferenceQueue<A>) checkClosed(queue);
             LongConcurrentHashMap<CacheItem> items2 = checkClosed(items);
             CacheItem item = useWeakRef?
                     new CacheWeakItem(value, q, recid) :
@@ -465,7 +464,7 @@ public final class Caches {
             try{
                 Object value = engine.get(recid, serializer);
                 if(value!=null){
-                    ReferenceQueue<A> q = checkClosed(queue);
+                    ReferenceQueue<A> q = (ReferenceQueue<A>) checkClosed(queue);
                     item = useWeakRef?
                             new CacheWeakItem(value, q, recid) :
                             new CacheSoftItem(value, q, recid);
@@ -482,7 +481,7 @@ public final class Caches {
         @Override
         public <A> void update(long recid, A value, Serializer<A> serializer) {
             Engine engine = getWrappedEngine();
-            ReferenceQueue<A> q = checkClosed(queue);
+            ReferenceQueue<A> q = (ReferenceQueue<A>) checkClosed(queue);
             LongConcurrentHashMap<CacheItem> items2 = checkClosed(items);
             CacheItem item = useWeakRef?
                     new CacheWeakItem<A>(value, q, recid) :
@@ -519,7 +518,7 @@ public final class Caches {
         public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
             Engine engine = getWrappedEngine();
             LongMap<CacheItem> items2 = checkClosed(items);
-            ReferenceQueue<A> q = checkClosed(queue);
+            ReferenceQueue<A> q = (ReferenceQueue<A>) checkClosed(queue);
 
 
             final Lock lock  = locks[Store.lockPos(recid)];
