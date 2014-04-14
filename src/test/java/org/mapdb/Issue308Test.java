@@ -14,7 +14,7 @@ public class Issue308Test {
                 .compressionEnable()
                 .transactionDisable()
                 .checksumEnable()
-                .syncOnCommitDisable()
+                .commitFileSyncDisable()
                 .make();
         Iterator<Fun.Tuple2<Long, String>> newIterator = new Iterator<Fun.Tuple2<Long, String>>() {
             private AtomicLong value = new AtomicLong(10000000);

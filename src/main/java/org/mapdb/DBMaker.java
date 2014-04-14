@@ -81,7 +81,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         String checksum = "checksum";
 
         String freeSpaceReclaimQ = "freeSpaceReclaimQ";
-        String syncOnCommitDisable = "syncOnCommitDisable";
+        String commitFileSyncDisable = "commitFileSyncDisable";
 
         String snapshots = "snapshots";
 
@@ -634,8 +634,8 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      *
      * @return this builder
      */
-    public DBMakerT syncOnCommitDisable(){
-        props.setProperty(Keys.syncOnCommitDisable,TRUE);
+    public DBMakerT commitFileSyncDisable(){
+        props.setProperty(Keys.commitFileSyncDisable,TRUE);
         return getThis();
     }
 
@@ -907,7 +907,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         return new StoreAppend(file, propsGetRafMode()>0, propsGetBool(Keys.readOnly),
                 propsGetBool(Keys.transactionDisable),
                 propsGetBool(Keys.deleteFilesAfterClose),
-                propsGetBool(Keys.syncOnCommitDisable),
+                propsGetBool(Keys.commitFileSyncDisable),
                 propsGetBool(Keys.checksum),compressionEnabled,propsGetXteaEncKey(),
                 false);
     }
@@ -917,7 +917,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         return new StoreDirect(folFac,  propsGetBool(Keys.readOnly),
                 propsGetBool(Keys.deleteFilesAfterClose),
                 propsGetInt(Keys.freeSpaceReclaimQ,CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
-                propsGetBool(Keys.syncOnCommitDisable),propsGetLong(Keys.sizeLimit,0),
+                propsGetBool(Keys.commitFileSyncDisable),propsGetLong(Keys.sizeLimit,0),
                 propsGetBool(Keys.checksum),compressionEnabled,propsGetXteaEncKey(),
                 false,0);
     }
@@ -926,7 +926,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         boolean compressionEnabled = Keys.compression_lzf.equals(props.getProperty(Keys.compression));
         return new StoreWAL(folFac,  propsGetBool(Keys.readOnly),propsGetBool(Keys.deleteFilesAfterClose),
                 propsGetInt(Keys.freeSpaceReclaimQ,CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
-                propsGetBool(Keys.syncOnCommitDisable),propsGetLong(Keys.sizeLimit,-1),
+                propsGetBool(Keys.commitFileSyncDisable),propsGetLong(Keys.sizeLimit,-1),
                 propsGetBool(Keys.checksum),compressionEnabled,propsGetXteaEncKey(),
                 false,0);
     }

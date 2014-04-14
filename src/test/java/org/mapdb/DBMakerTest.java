@@ -364,7 +364,7 @@ public class DBMakerTest{
         DBMaker
                 .newFileDB(folderDoesNotExist)
                 .snapshotEnable()
-                .syncOnCommitDisable()
+                .commitFileSyncDisable()
                 .makeTxMaker();
     }
 }
