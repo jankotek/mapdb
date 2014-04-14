@@ -841,9 +841,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         @Override
         public int hashCode() {
             int result = 0;
-            Iterator<K> it = iterator();
-            while (it.hasNext()) {
-                result += hasher.hashCode(it.next());
+            for (K k : this) {
+                result += hasher.hashCode(k);
             }
             return result;
 
@@ -890,7 +889,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         return _values;
     }
 
-    private Set<Entry<K,V>> _entrySet = new AbstractSet<Entry<K,V>>(){
+    private final Set<Entry<K,V>> _entrySet = new AbstractSet<Entry<K,V>>(){
 
         @Override
         public int size() {
@@ -1260,7 +1259,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
     protected static final class ExpireLinkNode{
 
-        public static ExpireLinkNode EMPTY = new ExpireLinkNode(0,0,0,0,0);
+        public final static ExpireLinkNode EMPTY = new ExpireLinkNode(0,0,0,0,0);
 
         public static final Serializer<ExpireLinkNode> SERIALIZER = new Serializer<ExpireLinkNode>() {
             @Override

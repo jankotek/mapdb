@@ -1867,9 +1867,9 @@ public class SerializerBase implements Serializer<Object>{
         boolean[] tmp = new boolean[boolBytes.length*8];
         int len = boolBytes.length;
         int boolIndex = 0;
-        for (int x=0; x<len; x++) {
-            for (int y=0; y<8; y++) {
-                tmp[boolIndex++] = (boolBytes[x] & (0x01 << y)) != 0x00;
+        for (byte boolByte : boolBytes) {
+            for (int y = 0; y < 8; y++) {
+                tmp[boolIndex++] = (boolByte & (0x01 << y)) != 0x00;
             }
         }
 

@@ -16,6 +16,7 @@
 
 package org.mapdb;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -249,8 +250,7 @@ public final class Bind {
                     }
 
                     Set<V2> hashes = new HashSet<V2>();
-                    for(V2 v:oldv)
-                        hashes.add(v);
+                    Collections.addAll(hashes, oldv);
 
                     //add new non existing items
                     for(V2 v:newv){
@@ -435,8 +435,7 @@ public final class Bind {
                     }
 
                     Set<K2> hashes = new HashSet<K2>();
-                    for(K2 k:oldk)
-                        hashes.add(k);
+                    Collections.addAll(hashes, oldk);
 
                     //add new non existing items
                     for(K2 k2:newk){

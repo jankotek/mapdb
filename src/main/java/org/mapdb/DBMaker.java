@@ -769,7 +769,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         try{
             check = (Fun.Tuple2<Integer, byte[]>) engine.get(Engine.CHECK_RECORD, Serializer.BASIC);
             if(check!=null){
-                if(check.a.intValue()!= Arrays.hashCode(check.b))
+                if(check.a != Arrays.hashCode(check.b))
                     throw new RuntimeException("invalid checksum");
             }
         }catch(Throwable e){
