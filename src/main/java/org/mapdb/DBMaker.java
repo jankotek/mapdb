@@ -942,8 +942,10 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
         File file = new File(props.getProperty(Keys.file));
 
-        return Volume.fileFactory(propsGetBool(Keys.readOnly), propsGetRafMode(), file,
-                            sizeLimit,CC.VOLUME_CHUNK_SHIFT);
+        return Volume.fileFactory(
+                file,
+                propsGetRafMode(), propsGetBool(Keys.readOnly),
+                sizeLimit,CC.VOLUME_CHUNK_SHIFT,0);
     }
 
 

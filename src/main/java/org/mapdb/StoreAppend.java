@@ -110,7 +110,7 @@ class StoreAppend extends Store{
 
         if(sortedFiles.isEmpty()){
             //no files, create empty store
-            Volume zero = Volume.volumeForFile(getFileFromNum(0),useRandomAccessFile, readOnly,0L,MAX_FILE_SIZE_SHIFT);
+            Volume zero = Volume.volumeForFile(getFileFromNum(0),useRandomAccessFile, readOnly,0L,MAX_FILE_SIZE_SHIFT,0);
             zero.ensureAvailable(Engine.LAST_RESERVED_RECID*8+8);
             zero.putLong(0, HEADER);
             long pos = 8;
@@ -139,7 +139,7 @@ class StoreAppend extends Store{
             for(Fun.Tuple2<Long,File> t:sortedFiles){
                 Long num = t.a;
                 File f = t.b;
-                Volume vol = Volume.volumeForFile(f,useRandomAccessFile,readOnly, 0L, MAX_FILE_SIZE_SHIFT);
+                Volume vol = Volume.volumeForFile(f,useRandomAccessFile,readOnly, 0L, MAX_FILE_SIZE_SHIFT,0);
                 if(vol.isEmpty()||vol.getLong(0)!=HEADER){
                     vol.sync();
                     vol.close();
@@ -226,7 +226,7 @@ class StoreAppend extends Store{
         //beyond usual file size, so create new file
         currVolume.sync();
         currFileNum++;
-        currVolume = Volume.volumeForFile(getFileFromNum(currFileNum),useRandomAccessFile, readOnly,0L, MAX_FILE_SIZE_SHIFT);
+        currVolume = Volume.volumeForFile(getFileFromNum(currFileNum),useRandomAccessFile, readOnly,0L, MAX_FILE_SIZE_SHIFT,0);
         currVolume.ensureAvailable(8);
         currVolume.putLong(0,HEADER);
         currPos = 8;

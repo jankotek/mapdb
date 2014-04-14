@@ -790,7 +790,7 @@ public class StoreDirect extends Store{
         lockAllWrite();
         try{
             final File compactedFile = new File((indexFile!=null?indexFile:File.createTempFile("mapdb","compact"))+".compact");
-            Volume.Factory fab = Volume.fileFactory(false, rafMode,compactedFile,sizeLimit,  CC.VOLUME_CHUNK_SHIFT);
+            Volume.Factory fab = Volume.fileFactory(compactedFile,rafMode,false,sizeLimit,  CC.VOLUME_CHUNK_SHIFT,0);
             StoreDirect store2 = new StoreDirect(fab,false,false,5,false,0L, checksum,compress,password,false,0);
 
             compactPreUnderLock();
@@ -855,7 +855,7 @@ public class StoreDirect extends Store{
                 if(!physFile2.renameTo(physFile))
                     throw new AssertionError("could not rename file");
 
-                final Volume.Factory fac2 = Volume.fileFactory(false, rafMode, indexFile,sizeLimit, CC.VOLUME_CHUNK_SHIFT);
+                final Volume.Factory fac2 = Volume.fileFactory(indexFile,rafMode, false, sizeLimit, CC.VOLUME_CHUNK_SHIFT,0);
                 index = fac2.createIndexVolume();
                 phys = fac2.createPhysVolume();
 
