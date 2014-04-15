@@ -26,7 +26,6 @@ import java.util.*;
  *
  * @author Jan Kotek
  */
-@SuppressWarnings({ "unchecked", "rawtypes" })
 public final class Fun {
 
 
@@ -686,14 +685,6 @@ public final class Fun {
 
     public interface Function2<R,A,B>{
         R run(A a, B b);
-    }
-
-    public interface Runnable2<A,B>{
-        void run(A a, B b);
-    }
-
-    public interface Runnable3<A,B,C>{
-        void run(A a, B b, C c);
     }
 
 
