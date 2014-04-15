@@ -580,11 +580,11 @@ public class HTreeMap2Test {
         final int seg =  m.hash("aa")>>>28;
         final AtomicInteger counter = new AtomicInteger();
 
-        m.addModificationListener(new Bind.MapListener() {
+        m.modificationListenerAdd(new Bind.MapListener() {
             @Override
             public void update(Object key, Object oldVal, Object newVal) {
-                for(int i=0;i<m.segmentLocks.length;i++){
-                    assertEquals(seg==i, m.segmentLocks[i].isWriteLockedByCurrentThread());
+                for (int i = 0; i < m.segmentLocks.length; i++) {
+                    assertEquals(seg == i, m.segmentLocks[i].isWriteLockedByCurrentThread());
                 }
                 counter.incrementAndGet();
             }

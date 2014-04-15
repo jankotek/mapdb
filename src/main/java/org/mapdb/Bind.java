@@ -89,14 +89,14 @@ public final class Bind {
          * Add new modification listener notified when Map has been updated
          * @param listener callback interface notified when map changes
          */
-        public void addModificationListener(MapListener<K,V> listener);
+        public void modificationListenerAdd(MapListener<K, V> listener);
 
         /**
          * Remove registered notification listener
          *
          * @param listener  callback interface notified when map changes
          */
-        public void removeModificationListener(MapListener<K,V> listener);
+        public void modificationListenerRemove(MapListener<K, V> listener);
 
 
         /**
@@ -133,12 +133,12 @@ public final class Bind {
                 sizeCounter.set(size);
         }
 
-        map.addModificationListener(new MapListener<K,V>() {
+        map.modificationListenerAdd(new MapListener<K, V>() {
             @Override
             public void update(K key, V oldVal, V newVal) {
-                if(oldVal == null && newVal!=null){
+                if (oldVal == null && newVal != null) {
                     sizeCounter.incrementAndGet();
-                }else if(oldVal!=null && newVal == null){
+                } else if (oldVal != null && newVal == null) {
                     sizeCounter.decrementAndGet();
                 }
 
@@ -173,14 +173,14 @@ public final class Bind {
                 secondary.put(e.getKey(), fun.run(e.getKey(),e.getValue()));
         }
         //hook listener
-        map.addModificationListener(new MapListener<K, V>() {
+        map.modificationListenerAdd(new MapListener<K, V>() {
             @Override
             public void update(K key, V oldVal, V newVal) {
-                if(newVal == null){
+                if (newVal == null) {
                     //removal
                     secondary.remove(key);
-                }else{
-                    secondary.put(key, fun.run(key,newVal));
+                } else {
+                    secondary.put(key, fun.run(key, newVal));
                 }
             }
         });
@@ -216,36 +216,36 @@ public final class Bind {
             }
         }
         //hook listener
-        map.addModificationListener(new MapListener<K, V>() {
+        map.modificationListenerAdd(new MapListener<K, V>() {
             @Override
             public void update(K key, V oldVal, V newVal) {
-                if(newVal == null){
+                if (newVal == null) {
                     //removal
-                    V2[] v = fun.run(key,oldVal);
-                    if(v != null)
-                        for(V2 v2 :v)
-                            secondary.remove(Fun.t2(key,v2));
-                }else if(oldVal==null){
+                    V2[] v = fun.run(key, oldVal);
+                    if (v != null)
+                        for (V2 v2 : v)
+                            secondary.remove(Fun.t2(key, v2));
+                } else if (oldVal == null) {
                     //insert
-                    V2[] v = fun.run(key,newVal);
-                    if(v != null)
-                        for(V2 v2 :v)
-                            secondary.add(Fun.t2(key,v2));
-                }else{
+                    V2[] v = fun.run(key, newVal);
+                    if (v != null)
+                        for (V2 v2 : v)
+                            secondary.add(Fun.t2(key, v2));
+                } else {
                     //update, must remove old key and insert new
                     V2[] oldv = fun.run(key, oldVal);
                     V2[] newv = fun.run(key, newVal);
-                    if(oldv==null){
+                    if (oldv == null) {
                         //insert new
-                        if(newv!=null)
-                            for(V2 v :newv)
-                                secondary.add(Fun.t2(key,v));
+                        if (newv != null)
+                            for (V2 v : newv)
+                                secondary.add(Fun.t2(key, v));
                         return;
                     }
-                    if(newv==null){
+                    if (newv == null) {
                         //remove old
-                        for(V2 v :oldv)
-                            secondary.remove(Fun.t2(key,v));
+                        for (V2 v : oldv)
+                            secondary.remove(Fun.t2(key, v));
                         return;
                     }
 
@@ -253,17 +253,17 @@ public final class Bind {
                     Collections.addAll(hashes, oldv);
 
                     //add new non existing items
-                    for(V2 v:newv){
-                        if(!hashes.contains(v)){
-                            secondary.add(Fun.t2(key,v));
+                    for (V2 v : newv) {
+                        if (!hashes.contains(v)) {
+                            secondary.add(Fun.t2(key, v));
                         }
                     }
                     //remove items which are in old, but not in new
-                    for(V2 v:newv){
+                    for (V2 v : newv) {
                         hashes.remove(v);
                     }
-                    for(V2 v:hashes){
-                        secondary.remove(Fun.t2(key,v));
+                    for (V2 v : hashes) {
+                        secondary.remove(Fun.t2(key, v));
                     }
                 }
             }
@@ -300,22 +300,22 @@ public final class Bind {
             }
         }
         //hook listener
-        map.addModificationListener(new MapListener<K, V>() {
+        map.modificationListenerAdd(new MapListener<K, V>() {
             @Override
             public void update(K key, V oldVal, V newVal) {
-                if(newVal == null){
+                if (newVal == null) {
                     //removal
                     secondary.remove(Fun.t2(fun.run(key, oldVal), key));
-                }else if(oldVal==null){
+                } else if (oldVal == null) {
                     //insert
-                    secondary.add(Fun.t2(fun.run(key,newVal), key));
-                }else{
+                    secondary.add(Fun.t2(fun.run(key, newVal), key));
+                } else {
                     //update, must remove old key and insert new
                     K2 oldKey = fun.run(key, oldVal);
                     K2 newKey = fun.run(key, newVal);
-                    if(oldKey == newKey || oldKey.equals(newKey)) return;
+                    if (oldKey == newKey || oldKey.equals(newKey)) return;
                     secondary.remove(Fun.t2(oldKey, key));
-                    secondary.add(Fun.t2(newKey,key));
+                    secondary.add(Fun.t2(newKey, key));
                 }
             }
         });
@@ -348,22 +348,22 @@ public final class Bind {
             }
         }
         //hook listener
-        map.addModificationListener(new MapListener<K, V>() {
+        map.modificationListenerAdd(new MapListener<K, V>() {
             @Override
             public void update(K key, V oldVal, V newVal) {
-                if(newVal == null){
+                if (newVal == null) {
                     //removal
                     secondary.remove(fun.run(key, oldVal));
-                }else if(oldVal==null){
+                } else if (oldVal == null) {
                     //insert
-                    secondary.put(fun.run(key,newVal), key);
-                }else{
+                    secondary.put(fun.run(key, newVal), key);
+                } else {
                     //update, must remove old key and insert new
                     K2 oldKey = fun.run(key, oldVal);
                     K2 newKey = fun.run(key, newVal);
-                    if(oldKey == newKey || oldKey.equals(newKey)) return;
+                    if (oldKey == newKey || oldKey.equals(newKey)) return;
                     secondary.remove(oldKey);
-                    secondary.put(newKey,key);
+                    secondary.put(newKey, key);
                 }
             }
         });
@@ -401,35 +401,35 @@ public final class Bind {
             }
         }
         //hook listener
-        map.addModificationListener(new MapListener<K, V>() {
+        map.modificationListenerAdd(new MapListener<K, V>() {
             @Override
             public void update(K key, V oldVal, V newVal) {
-                if(newVal == null){
+                if (newVal == null) {
                     //removal
-                    K2[] k2 = fun.run(key,oldVal);
-                    if(k2 != null)
-                        for(K2 k22 :k2)
+                    K2[] k2 = fun.run(key, oldVal);
+                    if (k2 != null)
+                        for (K2 k22 : k2)
                             secondary.remove(Fun.t2(k22, key));
-                }else if(oldVal==null){
+                } else if (oldVal == null) {
                     //insert
-                    K2[] k2 = fun.run(key,newVal);
-                    if(k2 != null)
-                        for(K2 k22 :k2)
+                    K2[] k2 = fun.run(key, newVal);
+                    if (k2 != null)
+                        for (K2 k22 : k2)
                             secondary.add(Fun.t2(k22, key));
-                }else{
+                } else {
                     //update, must remove old key and insert new
                     K2[] oldk = fun.run(key, oldVal);
                     K2[] newk = fun.run(key, newVal);
-                    if(oldk==null){
+                    if (oldk == null) {
                         //insert new
-                        if(newk!=null)
-                            for(K2 k22 :newk)
+                        if (newk != null)
+                            for (K2 k22 : newk)
                                 secondary.add(Fun.t2(k22, key));
                         return;
                     }
-                    if(newk==null){
+                    if (newk == null) {
                         //remove old
-                        for(K2 k22 :oldk)
+                        for (K2 k22 : oldk)
                             secondary.remove(Fun.t2(k22, key));
                         return;
                     }
@@ -438,16 +438,16 @@ public final class Bind {
                     Collections.addAll(hashes, oldk);
 
                     //add new non existing items
-                    for(K2 k2:newk){
-                        if(!hashes.contains(k2)){
+                    for (K2 k2 : newk) {
+                        if (!hashes.contains(k2)) {
                             secondary.add(Fun.t2(k2, key));
                         }
                     }
                     //remove items which are in old, but not in new
-                    for(K2 k2:newk){
+                    for (K2 k2 : newk) {
                         hashes.remove(k2);
                     }
-                    for(K2 k2:hashes){
+                    for (K2 k2 : hashes) {
                         secondary.remove(Fun.t2(k2, key));
                     }
                 }
@@ -576,7 +576,7 @@ public final class Bind {
             }
         };
 
-        primary.addModificationListener(listener);
+        primary.modificationListenerAdd(listener);
     }
 
 

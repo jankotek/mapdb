@@ -35,7 +35,7 @@ public class MapListenerTest {
                 }
             };
 
-            m.addModificationListener(listener);
+            m.modificationListenerAdd(listener);
 
             //check CRUD
             m.put("aa","bb");
@@ -56,7 +56,7 @@ public class MapListenerTest {
 
             //check it was unregistered
             counter.set(0);
-            m.removeModificationListener(listener);
+            m.modificationListenerRemove(listener);
             m.put("aa","bb");
             assertEquals(0, counter.get());
     }

@@ -2765,7 +2765,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     protected Bind.MapListener<K,V>[] modListeners = new Bind.MapListener[0];
 
     @Override
-    public void addModificationListener(Bind.MapListener<K,V> listener) {
+    public void modificationListenerAdd(Bind.MapListener<K, V> listener) {
         synchronized (modListenersLock){
             Bind.MapListener<K,V>[] modListeners2 =
                     Arrays.copyOf(modListeners,modListeners.length+1);
@@ -2776,7 +2776,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     }
 
     @Override
-    public void removeModificationListener(Bind.MapListener<K,V> listener) {
+    public void modificationListenerRemove(Bind.MapListener<K, V> listener) {
         synchronized (modListenersLock){
             for(int i=0;i<modListeners.length;i++){
                 if(modListeners[i]==listener) modListeners[i]=null;

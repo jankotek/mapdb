@@ -140,7 +140,7 @@ public class BindTest {
         final AtomicReference roldVal = new AtomicReference();
         final AtomicReference rnewVal = new AtomicReference();
 
-        test.addModificationListener(new Bind.MapListener() {
+        test.modificationListenerAdd(new Bind.MapListener() {
             @Override
             public void update(Object key, Object oldVal, Object newVal) {
                 rkey.set(key);

@@ -315,11 +315,11 @@ public class BTreeMapTest{
         final long rootRecid = db.getEngine().get(m.rootRecidRef, Serializer.LONG);
         final AtomicInteger counter = new AtomicInteger();
 
-        m.addModificationListener(new Bind.MapListener() {
+        m.modificationListenerAdd(new Bind.MapListener() {
             @Override
             public void update(Object key, Object oldVal, Object newVal) {
-                assertTrue(m.nodeLocks.get(rootRecid)==Thread.currentThread());
-                assertEquals(1,m.nodeLocks.size());
+                assertTrue(m.nodeLocks.get(rootRecid) == Thread.currentThread());
+                assertEquals(1, m.nodeLocks.size());
                 counter.incrementAndGet();
             }
         });
