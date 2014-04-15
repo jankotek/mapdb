@@ -32,7 +32,7 @@ public final class EncryptionXTEA{
 
 
     public EncryptionXTEA(byte[] password) {
-        byte[] b = getHash(password, false);
+        byte[] b = getHash(password);
         int[] key = new int[4];
         for (int i = 0; i < 16;) {
             key[i / 4] = (b[i++] << 24) + ((b[i++] & 255) << 16) + ((b[i++] & 255) << 8) + (b[i++] & 255);
@@ -136,17 +136,14 @@ public final class EncryptionXTEA{
      * Calculate the hash code for the given data.
      *
      * @param data the data to hash
-     * @param nullData if the data should be filled with zeros after calculating the hash code
      * @return the hash code
      */
-    public static byte[] getHash(byte[] data, boolean nullData) {
+    public static byte[] getHash(byte[] data) {
         int byteLen = data.length;
         int intLen = ((byteLen + 9 + 63) / 64) * 16;
         byte[] bytes = new byte[intLen * 4];
         System.arraycopy(data, 0, bytes, 0, byteLen);
-        if (nullData) {
-            Arrays.fill(data, (byte) 0);
-        }
+
         bytes[byteLen] = (byte) 0x80;
         int[] buff = new int[intLen];
         for (int i = 0, j = 0; j < intLen; i += 4, j++) {

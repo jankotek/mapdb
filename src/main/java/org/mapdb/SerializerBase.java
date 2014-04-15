@@ -1409,6 +1409,7 @@ public class SerializerBase implements Serializer<Object>{
         int TUPLE6_COMPARATOR_STATIC = 54;
         int SERIALIZER_KEY_TUPLE5 = 55;
         int SERIALIZER_KEY_TUPLE6 = 56;
+        int HASHER_ARRAY = 57;
 
     }
 
@@ -1455,6 +1456,7 @@ public class SerializerBase implements Serializer<Object>{
             all.put(Hasher.INT_ARRAY,HeaderMapDB.HASHER_INT_ARRAY);
             all.put(Hasher.LONG_ARRAY,HeaderMapDB.HASHER_LONG_ARRAY);
             all.put(Hasher.DOUBLE_ARRAY,HeaderMapDB.HASHER_DOUBLE_ARRAY);
+            all.put(Hasher.ARRAY,HeaderMapDB.HASHER_ARRAY);
 
             all.put(Fun.BYTE_ARRAY_COMPARATOR,HeaderMapDB.COMPARATOR_BYTE_ARRAY);
             all.put(Fun.CHAR_ARRAY_COMPARATOR,HeaderMapDB.COMPARATOR_CHAR_ARRAY);
@@ -1462,6 +1464,7 @@ public class SerializerBase implements Serializer<Object>{
             all.put(Fun.LONG_ARRAY_COMPARATOR,HeaderMapDB.COMPARATOR_LONG_ARRAY);
             all.put(Fun.DOUBLE_ARRAY_COMPARATOR,HeaderMapDB.COMPARATOR_DOUBLE_ARRAY);
             all.put(Fun.COMPARABLE_ARRAY_COMPARATOR,HeaderMapDB.COMPARATOR_COMPARABLE_ARRAY);
+
 
             //important for assertSerializable
             all.put(Fun.HI,Integer.MIN_VALUE);

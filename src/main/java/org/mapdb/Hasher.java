@@ -85,4 +85,18 @@ public interface  Hasher<K> {
         }
     };
 
+
+    Hasher<Object[]> ARRAY = new Hasher<Object[]>() {
+        @Override
+        public final int hashCode(  Object[] k) {
+            return Arrays.hashCode(k);
+        }
+
+        @Override
+        public boolean equals(Object[] k1, Object[] k2) {
+            return Arrays.equals(k1,k2);
+        }
+    };
+
+
 }

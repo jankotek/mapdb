@@ -46,15 +46,15 @@ public interface CC {
      */
     boolean LOG_STORE = false;
 
-    /**
-     * Log lock/unlock events. Useful to diagnose deadlocks
-     */
-    boolean LOG_LOCKS = false;
-
-    /**
-     * If true MapDB will display warnings if user is using MapDB API wrong way.
-     */
-    boolean LOG_HINTS = true;
+//    /**
+//     * Log lock/unlock events. Useful to diagnose deadlocks
+//     */
+//    boolean LOG_LOCKS = false;
+//
+//    /**
+//     * If true MapDB will display warnings if user is using MapDB API wrong way.
+//     */
+//    boolean LOG_HINTS = true;
 
 
     int ASYNC_WRITE_FLUSH_DELAY = 100;
@@ -71,7 +71,7 @@ public interface CC {
     int CONCURRENCY = 128;
 
 
-    int BTREE_DEFAULT_MAX_NODE_SIZE = 32;
+//    int BTREE_DEFAULT_MAX_NODE_SIZE = 32;
 
 
     int DEFAULT_CACHE_SIZE = 1024 * 32;
