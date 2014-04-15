@@ -882,8 +882,6 @@ public final class Fun {
      *
      * @param secondaryKeys Secondary Set or 'MultiMap' to find values in
      * @param secondaryKey key to look from
-     * @param <K2> Secondary Key type
-     * @param <K1> Primary Key type
      * @return all keys where primary value equals to `secondaryKey`
      */
     public static <K2,K1> Iterable<K1> filter(final NavigableSet<Fun.Tuple2<K2, K1>> secondaryKeys, final K2 secondaryKey) {
