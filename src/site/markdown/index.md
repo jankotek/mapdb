@@ -37,6 +37,8 @@ CRUD, off-heap, append only store.. we have them all. MapDB is highly modular an
 News
 ----
 
+* 2014-04-15 [MapDB 0.9.12 was released](http://www.mapdb.org/changelog.html#Version_0912_2015-04-15). Fixed storage errors from previous release. Lot of code cleanup. Storage format not backward compatible.
+
 * 2014-03-24 [MapDB 0.9.11 was released](http://www.mapdb.org/changelog.html#Version_0911_2014-03-24). Fixed various race conditions and data corruptions. Storage format completely changed.
 
 * 2014-02-18 [MapDB 0.9.10 was released](http://www.mapdb.org/changelog.html#Version_0910_2014-02-18). Fixed data corruption with disabled transaction. In-memory cache now has memory size limit.

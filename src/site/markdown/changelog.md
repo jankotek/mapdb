@@ -1,6 +1,32 @@
 Changelog
 ============
 
+Version 0.9.12 (2014-04-15)
+--------------------------
+Previous release was broken, store larger than 16 MB or 2 GB could not be created, that is fixed now.
+This release also brings number of small cleanups and improved memory consumption.
+
+The store format has changed yet again in backward incompatible way. The chunk size is now 1 MB.
+
+This is yet another release candidate for 1.0.0. Stable release should follow in 10 days if no problems are found.
+
+Changes:
+
+ * Format change! Chunk size reduced from 16MB to 1MB, solved many Out Of Memory errors.
+ * Fix #314: mmap files larger than 2GB could not be created
+ * Fix #308: ArrayIndexOutOfBoundsException if store is larger 16MB.
+ * Fix #312: error while opening db with readonly
+ * Fix #304: BTreeMap.replace() fails under concurrent access
+ * Large scale code cleanup before 1.0.0 freeze and release
+ * DBMaker: rename `syncOnCommitDisable()` to `commitFileSyncDisable()`
+ * DBMaker: add `newHeapDB()` option, this store does not use serialization and is almost as fast as java collections
+
+Open problems:
+
+ * Open #304 and #283: BTreeMap fails under concurrent access: . Unconfirmed and needs more investigation.
+ * Documentation
+
+
 Version 0.9.11 (2014-03-24)
 --------------------------
 

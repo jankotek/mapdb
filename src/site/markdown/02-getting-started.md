@@ -18,7 +18,7 @@ MapDB is in Maven Central. Just add code bellow to your pom file to use it. You 
 <dependency>
     <groupId>org.mapdb</groupId>
     <artifactId>mapdb</artifactId>
-    <version>0.9.11</version>
+    <version>0.9.12</version>
 </dependency>
 ```
 
