@@ -104,4 +104,35 @@ public class DBTest {
         db.checkNameNotExists("test");
     }
 
+    @Test
+    public void test_issue_315() {
+        DB db = DBMaker.newMemoryDB().cacheDisable().make();
+
+        final String item1 = "ITEM_ONE";
+        final String item2 = "ITEM_ONE_TWO";
+        final String item3 = "ITEM_ONETWO";
+        final String item4 = "ITEM_ONE__TWO";
+        final String item5 = "ITEM_ONE.TWO";
+        final String item6 = "ITEM_ONE.__.TWO";
+
+
+        db.createTreeMap(item1).make();
+        db.createTreeSet(item2).make();
+        db.createTreeSet(item3).make();
+        db.createTreeSet(item4).make();
+        db.createTreeSet(item5).make();
+        db.createTreeSet(item6).make();
+
+
+        db.delete(item1);
+
+        assertTrue(db.get(item1) == null);
+        assertTrue(db.get(item2) instanceof Set);
+        assertTrue(db.get(item3) instanceof Set);
+        assertTrue(db.get(item4) instanceof Set);
+        assertTrue(db.get(item5) instanceof Set);
+        assertTrue(db.get(item6) instanceof Set);
+
+    }
+
 }

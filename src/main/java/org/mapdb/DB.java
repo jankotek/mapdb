@@ -1461,8 +1461,11 @@ public class DB {
         }
 
         for(String n:catalog.keySet()){
-            if(!n.startsWith(name)) continue;
-            catalog.remove(n);
+            if(!n.startsWith(name))
+                continue;
+            String suffix = n.substring(name.length());
+            if(suffix.charAt(0)=='.' && suffix.length()>1 && !suffix.substring(1).contains("."))
+                catalog.remove(n);
         }
         namesInstanciated.remove(name);
         namesLookup.remove(new IdentityWrapper(r));
