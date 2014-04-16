@@ -427,7 +427,7 @@ public abstract class Volume {
                     //map existing data
                     chunks = new ByteBuffer[(int) ((fileSize>>> chunkShift))];
                     for(int i=0;i<chunks.length;i++){
-                        chunks[i] = makeNewBuffer(i*chunkSize);
+                        chunks[i] = makeNewBuffer(1L*i*chunkSize);
                     }
                 }else{
                     chunks = new ByteBuffer[0];
