@@ -1,6 +1,22 @@
 Changelog
 ============
 
+Version 0.9.13 (2014-04-16)
+--------------------------
+There was another problem with mmap files larger than 2GB.
+
+This is yet another release candidate for 1.0.0. Stable release should follow in 9 days if no problems are found.
+
+Changes:
+
+ * Fix #313: mmap files larger than 2GB could not be created
+
+Open problems:
+
+ * Open #304 and #283: BTreeMap fails under concurrent access: . Unconfirmed and needs more investigation.
+ * Documentation
+
+
 Version 0.9.12 (2014-04-15)
 --------------------------
 Previous release was broken, store larger than 16 MB or 2 GB could not be created, that is fixed now.
@@ -13,7 +29,7 @@ This is yet another release candidate for 1.0.0. Stable release should follow in
 Changes:
 
  * Format change! Chunk size reduced from 16MB to 1MB, solved many Out Of Memory errors.
- * Fix #314: mmap files larger than 2GB could not be created
+ * Fix #313: mmap files larger than 2GB could not be created
  * Fix #308: ArrayIndexOutOfBoundsException if store is larger 16MB.
  * Fix #312: error while opening db with readonly
  * Fix #304: BTreeMap.replace() fails under concurrent access

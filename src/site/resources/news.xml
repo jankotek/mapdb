@@ -5,7 +5,16 @@
     <channel>
         <title>MapDB - News</title>
         <link>http://www.mapdb.org/</link>
-        <description>MapDB </description>
+        <description>MapDB</description>
+
+        <item>
+            <title>MapDB 0.9.13 released</title>
+            <link>http://www.mapdb.org/changelog.html#Version_0913_2014-04-16</link>
+            <date>April 16 2015</date>
+            <description>
+                There was another problem with mmap files larger than 2GB.
+            </description>
+        </item>
 
         <item>
             <title>MapDB 0.9.12 released</title>
