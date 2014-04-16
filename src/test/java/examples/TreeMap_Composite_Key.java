@@ -103,3 +103,18 @@ public class TreeMap_Composite_Key {
 
     }
 }
+
+
+//TODO tuple casting is bit rought, integrate this example
+//        String name="aa";
+//        String session = "aa";
+//        long timestamp = 11;
+//        ConcurrentNavigableMap<Fun.Tuple6<String, Long, String, Integer, String, Integer>, List<Long>> myMap = new ConcurrentSkipListMap<Fun.Tuple6<String, Long, String, Integer, String, Integer>, List<Long>>();
+//
+//        final ConcurrentNavigableMap<Fun.Tuple6<String, Long, String, Integer, String, Integer>, List<Long>> subMap = myMap
+//                .subMap((Fun.Tuple6)Fun.t6(session, timestamp, name, null, null, null),
+//                        (Fun.Tuple6)Fun.t6(session, timestamp, name, Fun.HI(), Fun.HI(), Fun.HI()));
+//
+//        final ConcurrentNavigableMap<Fun.Tuple6<String, Long, String, Integer, String, Integer>, List<Long>> subMap2 = myMap
+//                .subMap(Fun.t6(session, timestamp, name, (Integer)null, (String)null, (Integer)null),
+//                        Fun.t6(session, timestamp, name, Fun.<Integer>HI(), Fun.<String>HI(), Fun.<Integer>HI()));
