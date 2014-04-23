@@ -637,4 +637,75 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         e.update(Engine.CLASS_INFO_RECID, registered, SerializerPojo.serializer);
         oldSize = registered.size();
     }
+
+    protected CopyOnWriteArrayList<Fun.Function1> serializationTransformsSerialize;
+    protected CopyOnWriteArrayList<Fun.Function1> serializationTransformsDeserialize;
+
+    /**
+     * Add interceptor which may modify all deserialized/serialized objects
+     *
+     * @param beforeSerialization transform called on all object before they are serialized
+     * @param afterDeserialization transform called on all object after they are serialized
+     */
+    public <A,R> void serializerTransformAdd(Fun.Function1<A,R> beforeSerialization, Fun.Function1<R,A> afterDeserialization ){
+        lock.writeLock().lock(); //TODO ensure thread safety
+        try {
+
+            if (serializationTransformsSerialize == null) {
+                serializationTransformsSerialize = new CopyOnWriteArrayList();
+                serializationTransformsDeserialize = new CopyOnWriteArrayList();
+            }
+
+            serializationTransformsSerialize.add(beforeSerialization);
+            serializationTransformsDeserialize.add(afterDeserialization);
+        }finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+
+    /**
+     * Removes interceptor which may modify all deserialized/serialized objects
+     *
+     * @param beforeSerialization transform called on all object before they are serialized
+     * @param afterDeserialization transform called on all object after they are serialized
+     */
+
+    public <A,R> void serializerTransformRemove(Fun.Function1<A,R> beforeSerialization, Fun.Function1<R,A> afterDeserialization ){
+        lock.writeLock().lock(); //TODO ensure thread safety
+        try {
+
+            if(serializationTransformsSerialize ==null){
+                return;
+            }
+            serializationTransformsSerialize.remove(beforeSerialization);
+            serializationTransformsDeserialize.remove(afterDeserialization);
+        }finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+
+    @Override
+    public void serialize(DataOutput out, Object obj) throws IOException {
+        if(serializationTransformsSerialize!=null){
+            for(Fun.Function1 f:serializationTransformsSerialize){
+                obj = f.run(obj);
+            }
+        }
+        super.serialize(out,obj);
+    }
+
+    @Override
+    public Object deserialize(DataInput is, int capacity) throws IOException {
+        Object obj =  super.deserialize(is, capacity);
+
+        if(serializationTransformsDeserialize!=null){
+            for(Fun.Function1 f:serializationTransformsDeserialize){
+                obj = f.run(obj);
+            }
+        }
+
+        return obj;
+    }
 }

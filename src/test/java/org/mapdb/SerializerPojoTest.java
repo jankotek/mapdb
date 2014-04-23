@@ -3,6 +3,7 @@ package org.mapdb;
 
 import junit.framework.TestCase;
 
+import javax.security.sasl.RealmCallback;
 import javax.swing.*;
 import java.io.*;
 import java.net.InetAddress;
@@ -13,6 +14,7 @@ import java.util.ArrayList;
 import java.util.GregorianCalendar;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class SerializerPojoTest extends TestCase {
@@ -368,6 +370,55 @@ public class SerializerPojoTest extends TestCase {
         long recid = db.engine.put(value, db.getDefaultSerializer());
         Object value2 = db.engine.get(recid,db.getDefaultSerializer());
         assertEquals(value,value2);
+    }
+
+    //this can not be serialized, it alwaes throws exception on serialization
+    static final class RealClass implements Serializable, Externalizable{
+        @Override
+        public void writeExternal(ObjectOutput out) throws IOException {
+            throw new Error();
+        }
+
+        @Override
+        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+            throw new Error();
+        }
+    }
+
+    //this is placeholder which gets serialized instead
+    static final class PlaceHolder implements Serializable{
+
+    }
+
+    public void test_interlizeceptors(){
+        final AtomicInteger counter = new AtomicInteger();
+        Fun.Function1 ser = new Fun.Function1() {
+            @Override
+            public Object run(Object o) {
+                if(o instanceof RealClass) {
+                    counter.incrementAndGet();
+                    return new PlaceHolder();
+                }
+                return o;
+            }
+        };
+        Fun.Function1 deser = new Fun.Function1() {
+            @Override
+            public Object run(Object o) {
+                if(o instanceof PlaceHolder) {
+                    counter.incrementAndGet();
+                    return new RealClass();
+                }
+                return o;
+            }
+        };
+
+
+        p.serializerTransformAdd(ser,deser);
+
+        Object o = UtilsTest.clone(new RealClass(), p);
+        assertTrue(o instanceof RealClass);
+        assertEquals(2,counter.get());
     }
 
 }
