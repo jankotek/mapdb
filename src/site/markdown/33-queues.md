@@ -30,7 +30,7 @@ To instantiate queue use get method:
 FIFO Queue
 ------------
 
-This only takes two extra parameters. You can supply custom serializers used on entries.
+This only takes two extra parameters. Fist you  can supply custom serializers used on entries.
 
 Second param decides lock based eviction. Lock-free (false) means better concurrency, but places tomb-stones in place of removed entries, over time the store size grows and will need compaction. With locks (true) the removed entries are deleted under global locks, so there is concurrency penalty.
 
@@ -42,7 +42,7 @@ Second param decides lock based eviction. Lock-free (false) means better concurr
 Stack
 -------
 
-This only takes two extra parameters. Fist uou can supply custom serializers used on entries.
+This only takes two extra parameters. Fist you can supply custom serializers used on entries.
 
 Second param decides lock based eviction. Lock-free (false) means better concurrency, but places tomb-stones in place of removed entries, over time the store size grows and will need compaction. With locks (true) the removed entries are deleted under global locks, so there is concurrency penalty.
 
@@ -54,7 +54,7 @@ Second param decides lock based eviction. Lock-free (false) means better concurr
 CircularQueue
 ---------------
 
-This only takes two extra parameters. Fist uou can supply custom serializers used on entries.
+This only takes two extra parameters. Fist you can supply custom serializers used on entries.
 
 Second parameter is queue size. If number of entries exceeds the queue size, some entries will get overwritten and lost.
 
