@@ -78,7 +78,7 @@ Most of functionality comes from mixing `Engine` implementations and wrappers.
 For example off-heap store with asynchronous writes
 and instance cache could be instantiated by this pseudo-code:
 
-```
+```java
     Engine engine = new Caches.HashTable(         //instance cache
                         new AsyncWriteEngine(     //asynchronous writes
                          new StoreWAL(            //actual store with WAL transactions
@@ -149,7 +149,7 @@ Store
 which maps recid (8-byte long record id) to some data (record). It has 4 methods
 for CRUD operations and 2 transaction methods:
 
-```
+```java
     long put(A, Serializer<A>)
     A get(long, Serializer<A>)
     void update(long, A, Serializer<A>)
