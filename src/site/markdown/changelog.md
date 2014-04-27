@@ -1,6 +1,23 @@
 Changelog
 ============
 
+Version 1.0.0 (2014-04-27)
+--------------------------
+Fixed a few minor problems. Lot of code cleanups.
+
+This is first stable release with long term support. Thanks to everyone who helped to get MapDB this far.
+
+Changes:
+
+ * Fix #315: DB.delete(name) deletes substring matches
+ * SerializerPojo: add interceptors to alter serialized objects
+
+Open problems:
+
+ * Open #304 and #283: BTreeMap fails under concurrent access.  Unconfirmed and can not reproduce. It needs more investigation.
+ * Documentation
+
+
 Version 0.9.13 (2014-04-16)
 --------------------------
 There was another problem with mmap files larger than 2GB.
