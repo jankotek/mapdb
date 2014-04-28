@@ -13,10 +13,8 @@ import java.util.concurrent.locks.Lock;
 /**
  * Append only store. Uses different file format than Direct and WAL store
  *
- * TODO StoreAppend is buggy and will not be part of 1.0 release.
  */
-@Deprecated
-class StoreAppend extends Store{
+public class StoreAppend extends Store{
 
     /** header at beginning of each file */
     protected static final long HEADER = 1239900952130003033L;
@@ -27,7 +25,7 @@ class StoreAppend extends Store{
     /** mask used to get file offset from index val*/
     protected static final long FILE_MASK = 0xFFFFFF;
 
-    protected static final int MAX_FILE_SIZE_SHIFT = CC.VOLUME_CHUNK_SHIFT;
+    protected static final int MAX_FILE_SIZE_SHIFT = CC.VOLUME_CHUNK_SHIFT + 6; //TODO shift + 6 !!
 
     /** add to size before writing it to file */
     protected static final long SIZEP = 2;
@@ -406,6 +404,7 @@ class StoreAppend extends Store{
             structuralLock.unlock();
         }
         //write data
+        currVolume.ensureAvailable(oldPos+out.pos);
         currVolume.putData(oldPos,out.buf,0,out.pos);
 
         setIndexVal(recid, indexVal);
