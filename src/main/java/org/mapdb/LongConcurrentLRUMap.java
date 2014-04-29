@@ -18,6 +18,7 @@ package org.mapdb;
 
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -332,7 +333,7 @@ public class LongConcurrentLRUMap<V> extends LongMap<V> {
 
     private static class PQueue<V> extends PriorityQueue<CacheEntry<V>> {
         int myMaxSize;
-        final CacheEntry<V>[] heap;
+        final Object[] heap;
 
         PQueue(int maxSz) {
             super(maxSz);
@@ -342,7 +343,7 @@ public class LongConcurrentLRUMap<V> extends LongMap<V> {
 
 
         Iterable<CacheEntry<V>> getValues() {
-            return Collections.unmodifiableCollection(Arrays.asList(heap));
+            return (Collection)Collections.unmodifiableCollection(Arrays.asList(heap));
         }
 
         @Override
@@ -356,8 +357,8 @@ public class LongConcurrentLRUMap<V> extends LongMap<V> {
             if (size() < myMaxSize) {
                 add(element);
                 return null;
-            } else if (size() > 0 && !lessThan(element,  heap[1])) {
-                CacheEntry<V> ret =  heap[1];
+            } else if (size() > 0 && !lessThan(element, (CacheEntry<V>) heap[1])) {
+                CacheEntry<V> ret = (CacheEntry<V>) heap[1];
                 heap[1] = element;
                 updateTop();
                 return ret;
