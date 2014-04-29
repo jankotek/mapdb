@@ -11,7 +11,7 @@ There is also [screencast](http://www.youtube.com/watch?v=FdZmyEHcWLI) which des
 
 Maven
 ------
-MapDB is in Maven Central. Just add code bellow to your pom file to use it. You may also download jar files directly from
+MapDB is in Maven Central. Just add code bellow to your pom file to use it. You may also download jar file directly from
 [repo](http://search.maven.org/#browse%7C845836981).
 
 ```xml
