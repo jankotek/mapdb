@@ -7,10 +7,7 @@ import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.util.Map;
-import java.util.NavigableSet;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 
@@ -366,5 +363,31 @@ public class DBMakerTest{
                 .snapshotEnable()
                 .commitFileSyncDisable()
                 .makeTxMaker();
+    }
+
+    @Test public void treeset_pump_presert(){
+        List unsorted = Arrays.asList(4,7,5,12,9,10,11,0);
+
+        NavigableSet<Integer> s = DBMaker.newMemoryDB().cacheDisable().transactionDisable().make()
+                .createTreeSet("t")
+                .pumpPresort(10)
+                .pumpSource(unsorted.iterator())
+                .make();
+
+        assertEquals(Integer.valueOf(0),s.first());
+        assertEquals(Integer.valueOf(12),s.last());
+    }
+
+    @Test public void treemap_pump_presert(){
+        List unsorted = Arrays.asList(4,7,5,12,9,10,11,0);
+
+        NavigableMap<Integer,Integer> s = DBMaker.newMemoryDB().cacheDisable().transactionDisable().make()
+                .createTreeMap("t")
+                .pumpPresort(10)
+                .pumpSource(unsorted.iterator(), Fun.extractNoTransform())
+                .make();
+
+        assertEquals(Integer.valueOf(0),s.firstEntry().getKey());
+        assertEquals(Integer.valueOf(12),s.lastEntry().getKey());
     }
 }

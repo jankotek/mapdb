@@ -827,6 +827,10 @@ public class DB {
 
         m.comparator = catPut(name+".comparator",m.comparator);
 
+        if(m.pumpPresortBatchSize!=-1){
+            m.pumpSource = Pump.sort(m.pumpSource,m.pumpIgnoreDuplicates, m.pumpPresortBatchSize,Collections.reverseOrder(m.comparator),getDefaultSerializer());
+        }
+
         long counterRecid = !m.counter ?0L:engine.put(0L, Serializer.LONG);
 
         long rootRecidRef;
