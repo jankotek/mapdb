@@ -1,6 +1,21 @@
 Changelog
 ============
 
+Version 1.0.1 (2014-05-05)
+--------------------------
+Fixed MRU cache and BTree Pump Presort.
+
+Changes:
+
+ * Fix #320: BTreeMap pump presort fails
+ * Fix #319: ClassCastException in the Cache.LRU
+
+Open problems:
+
+ * Open #304 and #283: BTreeMap fails under concurrent access.  Unconfirmed and can not reproduce. It needs more investigation.
+ * Documentation
+
+
 Version 1.0.0 (2014-04-27)
 --------------------------
 Fixed a few minor problems. Lot of code cleanups.

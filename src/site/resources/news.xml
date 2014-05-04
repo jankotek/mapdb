@@ -8,6 +8,15 @@
         <description>MapDB</description>
 
         <item>
+            <title>MapDB 1.0.1 released</title>
+            <link>http://www.mapdb.org/changelog.html#Version_101_2014-05-05</link>
+            <date>May 5 2014</date>
+            <description>
+                Fixed MRU Cache.
+            </description>
+        </item>
+
+        <item>
             <title>MapDB 1.0.0 released</title>
             <link>http://www.mapdb.org/changelog.html#Version_100_2014-04-27</link>
             <date>April 27 2014</date>

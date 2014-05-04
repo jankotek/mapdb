@@ -37,6 +37,9 @@ CRUD, off-heap, append only store.. we have them all. MapDB is highly modular an
 News
 ----
 
+
+* 2014-05-05 [MapDB 1.0.1 released](http://www.mapdb.org/changelog.html#Version_101_2014-05-05). Fixed MRU Cache
+
 * 2014-04-27 [MapDB 1.0.0 released](http://www.mapdb.org/changelog.html#Version_100_2014-04-27). First release with long term support.
 
 
