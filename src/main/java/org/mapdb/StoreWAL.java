@@ -68,7 +68,6 @@ public class StoreWAL extends StoreDirect {
             }
             replayPending = false;
             checkHeaders();
-            log = volFac.createTransLogVolume();
             if(!readOnly)
                 logReset();
             allGood = true;
