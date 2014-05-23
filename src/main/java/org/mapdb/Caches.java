@@ -350,6 +350,7 @@ public final class Caches {
         protected interface CacheItem{
             long getRecid();
             Object get();
+            void clear();
         }
 
         protected static final class CacheWeakItem<A> extends WeakReference<A> implements CacheItem {
@@ -435,7 +436,9 @@ public final class Caches {
             final Lock lock  = locks[Store.lockPos(recid)];
             lock.lock();
             try{
-                items2.put(recid,item);
+                CacheItem old = items2.put(recid,item);
+                if(old!=null)
+                    old.clear();
             }finally{
                 lock.unlock();
             }
@@ -468,7 +471,9 @@ public final class Caches {
                     item = useWeakRef?
                             new CacheWeakItem(value, q, recid) :
                             new CacheSoftItem(value, q, recid);
-                    items2.put(recid,item);
+                    CacheItem old = items2.put(recid,item);
+                    if(old!=null)
+                        old.clear();
                 }
 
                 return (A) value;
@@ -490,7 +495,9 @@ public final class Caches {
             final Lock lock  = locks[Store.lockPos(recid)];
             lock.lock();
             try{
-                items2.put(recid,item);
+                CacheItem old = items2.put(recid,item);
+                if(old!=null)
+                    old.clear();
                 engine.update(recid, value, serializer);
             }finally {
                 lock.unlock();
@@ -501,12 +508,14 @@ public final class Caches {
         @Override
         public <A> void delete(long recid, Serializer<A> serializer){
             Engine engine = getWrappedEngine();
-            LongMap items2 = checkClosed(items);
+            LongMap<CacheItem> items2 = checkClosed(items);
 
             final Lock lock  = locks[Store.lockPos(recid)];
             lock.lock();
             try{
-                items2.remove(recid);
+                CacheItem old = items2.remove(recid);
+                if(old!=null)
+                    old.clear();
                 engine.delete(recid,serializer);
             }finally {
                 lock.unlock();
@@ -529,17 +538,21 @@ public final class Caches {
                 if(item!=null && item.getRecid() == recid &&
                         (oldValue == expectedOldValue || (oldValue!=null && oldValue.equals(expectedOldValue)))){
                     //found matching entry in cache, so just update and return true
-                    items2.put(recid,useWeakRef?
+                    CacheItem old = items2.put(recid,useWeakRef?
                             new CacheWeakItem<A>(newValue, q, recid) :
                             new CacheSoftItem<A>(newValue, q, recid));
+                    if(old!=null)
+                        old.clear();
                     engine.update(recid, newValue, serializer);
                     return true;
                 }else{
                     boolean ret = engine.compareAndSwap(recid, expectedOldValue, newValue, serializer);
                     if(ret){
-                        items2.put(recid,useWeakRef?
+                        CacheItem old = items2.put(recid,useWeakRef?
                                 new CacheWeakItem<A>(newValue, q, recid) :
                                 new CacheSoftItem<A>(newValue, q, recid));
+                        if(old!=null)
+                            old.clear();
                     }
                     return ret;
                 }
