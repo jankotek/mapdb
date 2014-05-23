@@ -1,5 +1,7 @@
 package org.mapdb;
 
+import com.sun.deploy.cache.CacheEntry;
+
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
@@ -583,6 +585,14 @@ public final class Caches {
 
         @Override
         public void clearCache() {
+            // release all items so those are not passed to Queue
+            LongMap.LongMapIterator<CacheItem> iter = items.longMapIterator();
+            while(iter.moveToNext()){
+                CacheItem i =  iter.value();
+                if(i!=null)
+                    i.clear();
+            }
+
             items.clear();
             super.clearCache();
         }
