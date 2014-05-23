@@ -1,7 +1,5 @@
 package org.mapdb;
 
-import com.sun.deploy.cache.CacheEntry;
-
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
