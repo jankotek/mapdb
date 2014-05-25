@@ -8,6 +8,8 @@ It also controls DB life-cycle with commit, rollback and close methods.
 Best place to checkout various features of MapDB are [Examples](https://github.com/jankotek/MapDB/tree/master/src/test/java/examples).
 There is also [screencast](http://www.youtube.com/watch?v=FdZmyEHcWLI) which describes most aspects of MapDB.
 
+There is [MapDB Cheat Sheet](http://www.mapdb.org/doc/cheatsheet.pdf), on just two pages it is quick reminder of MapDB capabilities. 
+
 
 Maven
 ------

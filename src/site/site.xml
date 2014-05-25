@@ -109,6 +109,7 @@ MapDB is free as speech and free as beer under <a href="https://github.com/janko
             <item name="Overview Video" href="http://www.youtube.com/watch?v=FdZmyEHcWLI"/>
             <item name="Examples" href="https://github.com/jankotek/MapDB/tree/master/src/test/java/examples"/>
             <item name="JavaDoc" href="apidocs/index.html"/>
+            <item name="Cheat Sheet" href="doc/cheatsheet.pdf"/>
         </menu>
 
 
