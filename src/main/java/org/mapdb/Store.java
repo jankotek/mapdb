@@ -46,7 +46,19 @@ public abstract class Store implements Engine{
     protected final ThreadLocal<CompressLZF> LZF;
 
     protected Store(boolean checksum, boolean compress, byte[] password, boolean disableLocks) {
-
+        this.disableLocks = disableLocks;
+        if(disableLocks){
+            structuralLock = null;
+            newRecidLock = null;
+            locks = new ReentrantReadWriteLock[CC.CONCURRENCY];
+        }else{
+            structuralLock = new ReentrantLock(CC.FAIR_LOCKS);
+            newRecidLock = new ReentrantReadWriteLock(CC.FAIR_LOCKS);
+            locks = new ReentrantReadWriteLock[CC.CONCURRENCY];
+            for(int i=0;i< locks.length;i++){
+                locks[i] = new ReentrantReadWriteLock(CC.FAIR_LOCKS);
+            }
+        }
 
         this.checksum = checksum;
         this.compress = compress;
@@ -107,23 +119,34 @@ public abstract class Store implements Engine{
     }
 
 
-    protected final ReentrantLock structuralLock = new ReentrantLock(CC.FAIR_LOCKS);
-    protected final ReentrantReadWriteLock newRecidLock = new ReentrantReadWriteLock(CC.FAIR_LOCKS);
-    protected final ReentrantReadWriteLock[] locks = new ReentrantReadWriteLock[CC.CONCURRENCY];
-    {
-        for(int i=0;i<locks.length;i++) locks[i] = new ReentrantReadWriteLock(CC.FAIR_LOCKS);
-    }
+    protected final boolean disableLocks;
+
+    protected final ReentrantLock structuralLock;
+    protected final ReentrantReadWriteLock newRecidLock;
+    protected final ReentrantReadWriteLock[] locks;
 
 
     protected void lockAllWrite() {
+        if(disableLocks) {
+            return;
+        }
+
         newRecidLock.writeLock().lock();
-        for(ReentrantReadWriteLock l:locks)l.writeLock().lock();
+        for(ReentrantReadWriteLock l: locks) {
+            l.writeLock().lock();
+        }
         structuralLock.lock();
     }
 
     protected void unlockAllWrite() {
+        if(disableLocks) {
+            return;
+        }
+
         structuralLock.unlock();
-        for(ReentrantReadWriteLock l:locks)l.writeLock().unlock();
+        for(ReentrantReadWriteLock l: locks) {
+            l.writeLock().unlock();
+        }
         newRecidLock.writeLock().unlock();
     }
 

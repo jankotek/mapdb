@@ -60,7 +60,9 @@ public class StoreWAL extends StoreDirect {
         this.log = volFac.createTransLogVolume();
 
         boolean allGood = false;
-        structuralLock.lock();
+        if(!disableLocks) {
+            structuralLock.lock();
+        }
         try{
             reloadIndexFile();
             if(verifyLogFile()){
@@ -89,7 +91,9 @@ public class StoreWAL extends StoreDirect {
                 }
             }
 
-            structuralLock.unlock();
+            if(!disableLocks) {
+                structuralLock.unlock();
+            }
         }
     }
 
@@ -100,7 +104,7 @@ public class StoreWAL extends StoreDirect {
     }
 
     protected void reloadIndexFile() {
-        assert(structuralLock.isHeldByCurrentThread());
+        assert(disableLocks || structuralLock.isHeldByCurrentThread());
         logSize = 16;
         modified.clear();
         longStackPages.clear();
@@ -120,7 +124,7 @@ public class StoreWAL extends StoreDirect {
     }
 
     protected  void logReset() {
-        assert(structuralLock.isHeldByCurrentThread());
+        assert(disableLocks || structuralLock.isHeldByCurrentThread());
         log.truncate(16);
         log.ensureAvailable(16);
         log.putInt(0, HEADER);
@@ -136,9 +140,13 @@ public class StoreWAL extends StoreDirect {
         final long ioRecid;
         final long logPos;
 
-        newRecidLock.readLock().lock();
+        if(!disableLocks) {
+            newRecidLock.readLock().lock();
+        }
         try{
-            structuralLock.lock();
+            if(!disableLocks) {
+                structuralLock.lock();
+            }
             try{
                 ioRecid = freeIoRecidTake(false);
                 logPos = logSize;
@@ -147,20 +155,31 @@ public class StoreWAL extends StoreDirect {
                 log.ensureAvailable(logSize);
 
             }finally{
-                structuralLock.unlock();
+                if(!disableLocks) {
+                    structuralLock.unlock();
+                }
             }
-            final Lock lock  = locks[Store.lockPos(ioRecid)].writeLock();
-            lock.lock();
+            final Lock lock;
+            if(disableLocks) {
+                lock = null;
+            }else {
+                lock = locks[Store.lockPos(ioRecid)].writeLock();
+                lock.lock();
+            }
             try{
 
                 //write data into log
                 walIndexVal(logPos, ioRecid, MASK_DISCARD);
                 modified.put(ioRecid, PREALLOC);
             }finally{
-                lock.unlock();
+                if(!disableLocks) {
+                    lock.unlock();
+                }
             }
         }finally{
-            newRecidLock.readLock().unlock();
+            if(!disableLocks) {
+                newRecidLock.readLock().unlock();
+            }
         }
 
         long recid =  (ioRecid-IO_USER_START)/8;
@@ -172,11 +191,14 @@ public class StoreWAL extends StoreDirect {
     @Override
     public void preallocate(final long[] recids) {
         long logPos;
-
-        newRecidLock.readLock().lock();
+        if(!disableLocks) {
+            newRecidLock.readLock().lock();
+        }
         try{
 
-            structuralLock.lock();
+            if(!disableLocks) {
+                structuralLock.lock();
+            }
             try{
                 logPos = logSize;
                 for(int i=0;i<recids.length;i++)
@@ -187,25 +209,36 @@ public class StoreWAL extends StoreDirect {
                 log.ensureAvailable(logSize);
 
             }finally{
-                structuralLock.unlock();
+                if(!disableLocks) {
+                    structuralLock.unlock();
+                }
             }
             //write data into log
             for(int i=0;i<recids.length;i++){
                 final long ioRecid = recids[i];
-                final Lock lock2 = locks[Store.lockPos(ioRecid)].writeLock();
-                lock2.lock();
+                final Lock lock2;
+                if(disableLocks) {
+                    lock2 = null;
+                }else {
+                    lock2 = locks[Store.lockPos(ioRecid)].writeLock();
+                    lock2.lock();
+                }
                 try{
                     walIndexVal(logPos, ioRecid, MASK_DISCARD);
                     logPos+=1+8+8;
                     modified.put(ioRecid, PREALLOC);
                 }finally{
-                    lock2.unlock();
+                    if(!disableLocks) {
+                        lock2.unlock();
+                    }
                 }
                 recids[i] =  (ioRecid-IO_USER_START)/8;
                 assert(recids[i]>0);
             }
         }finally{
-            newRecidLock.readLock().unlock();
+            if(!disableLocks) {
+                newRecidLock.readLock().unlock();
+            }
         }
     }
 
@@ -219,10 +252,13 @@ public class StoreWAL extends StoreDirect {
         final long[] physPos;
         final long[] logPos;
 
-        newRecidLock.readLock().lock();
+        if(!disableLocks) {
+            newRecidLock.readLock().lock();
+        }
         try{
-
-            structuralLock.lock();
+            if(!disableLocks) {
+                structuralLock.lock();
+            }
         try{
             ioRecid = freeIoRecidTake(false);
             //first get space in phys
@@ -231,11 +267,18 @@ public class StoreWAL extends StoreDirect {
             logPos = logAllocate(physPos);
 
         }finally{
-            structuralLock.unlock();
+            if(!disableLocks) {
+                structuralLock.unlock();
+            }
         }
 
-        final Lock lock  = locks[Store.lockPos(ioRecid)].writeLock();
-        lock.lock();
+        final Lock lock;
+        if(disableLocks) {
+            lock = null;
+        }else {
+            lock = locks[Store.lockPos(ioRecid)].writeLock();
+            lock.lock();
+        }
         try{
             //write data into log
             walIndexVal((logPos[0]&LOG_MASK_OFFSET) - 1-8-8-1-8, ioRecid, physPos[0]|MASK_ARCHIVE);
@@ -244,10 +287,14 @@ public class StoreWAL extends StoreDirect {
             modified.put(ioRecid,logPos);
             recycledDataOuts.offer(out);
         }finally{
-            lock.unlock();
+            if(!disableLocks) {
+                lock.unlock();
+            }
         }
         }finally{
-            newRecidLock.readLock().unlock();
+            if(!disableLocks) {
+                newRecidLock.readLock().unlock();
+            }
         }
 
         long recid =  (ioRecid-IO_USER_START)/8;
@@ -288,7 +335,7 @@ public class StoreWAL extends StoreDirect {
 
 
     protected void walIndexVal(long logPos, long ioRecid, long indexVal) {
-        assert(locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
+        assert(disableLocks || locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
         assert(logSize>=logPos+1+8+8);
         log.putByte(logPos, WAL_INDEX_LONG);
         log.putLong(logPos + 1, ioRecid);
@@ -299,7 +346,7 @@ public class StoreWAL extends StoreDirect {
 
 
     protected long[] logAllocate(long[] physPos) {
-        assert(structuralLock.isHeldByCurrentThread());
+        assert(disableLocks || structuralLock.isHeldByCurrentThread());
         logSize+=1+8+8; //space used for index val
 
         long[] ret = new long[physPos.length];
@@ -317,7 +364,7 @@ public class StoreWAL extends StoreDirect {
     }
 
     protected void checkLogRounding() {
-        assert(structuralLock.isHeldByCurrentThread());
+        assert(disableLocks || structuralLock.isHeldByCurrentThread());
         if((logSize&CHUNK_SIZE_MOD_MASK)+MAX_REC_SIZE*2>CHUNK_SIZE){
             log.ensureAvailable(logSize+1);
             log.putByte(logSize, WAL_SKIP_REST_OF_BLOCK);
@@ -330,20 +377,27 @@ public class StoreWAL extends StoreDirect {
     public <A> A get(long recid, Serializer<A> serializer) {
         assert(recid>0);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock  = locks[Store.lockPos(ioRecid)].readLock();
-        lock.lock();
+        final Lock lock;
+        if(disableLocks) {
+            lock = null;
+        }else {
+            lock = locks[Store.lockPos(ioRecid)].readLock();
+            lock.lock();
+        }
         try{
             return get2(ioRecid, serializer);
         }catch(IOException e){
             throw new IOError(e);
         }finally{
-            lock.unlock();
+            if(!disableLocks) {
+                lock.unlock();
+            }
         }
     }
 
     @Override
     protected <A> A get2(long ioRecid, Serializer<A> serializer) throws IOException {
-        assert(locks[Store.lockPos(ioRecid)].getWriteHoldCount()==0||
+        assert(disableLocks || locks[Store.lockPos(ioRecid)].getWriteHoldCount()==0||
                 locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
 
         //check if record was modified in current transaction
@@ -386,8 +440,13 @@ public class StoreWAL extends StoreDirect {
         assert(value!=null);
         DataOutput2 out = serialize(value, serializer);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock  = locks[Store.lockPos(ioRecid)].writeLock();
-        lock.lock();
+        final Lock lock;
+        if(disableLocks) {
+            lock = null;
+        }else {
+            lock = locks[Store.lockPos(ioRecid)].writeLock();
+            lock.lock();
+        }
         try{
             final long[] physPos;
             final long[] logPos;
@@ -401,7 +460,9 @@ public class StoreWAL extends StoreDirect {
                 linkedRecords = null;
             }
 
-            structuralLock.lock();
+            if(!disableLocks) {
+                structuralLock.lock();
+            }
             try{
 
                 //free first record pointed from indexVal
@@ -422,7 +483,9 @@ public class StoreWAL extends StoreDirect {
                 logPos = logAllocate(physPos);
 
             }finally{
-                structuralLock.unlock();
+                if(!disableLocks) {
+                    structuralLock.unlock();
+                }
             }
 
             //write data into log
@@ -431,7 +494,9 @@ public class StoreWAL extends StoreDirect {
 
             modified.put(ioRecid,logPos);
         }finally{
-            lock.unlock();
+            if(!disableLocks) {
+                lock.unlock();
+            }
         }
         recycledDataOuts.offer(out);
     }
@@ -441,8 +506,13 @@ public class StoreWAL extends StoreDirect {
         assert(recid>0);
         assert(expectedOldValue!=null && newValue!=null);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock  = locks[Store.lockPos(ioRecid)].writeLock();
-        lock.lock();
+        final Lock lock;
+        if(disableLocks) {
+            lock = null;
+        }else {
+            lock = locks[Store.lockPos(ioRecid)].writeLock();
+            lock.lock();
+        }
         DataOutput2 out;
         try{
 
@@ -462,7 +532,9 @@ public class StoreWAL extends StoreDirect {
                 linkedRecords = getLinkedRecordsIndexVals(indexVal);
             }
 
-            structuralLock.lock();
+            if(!disableLocks) {
+                structuralLock.lock();
+            }
             try{
 
                 //free first record pointed from indexVal
@@ -483,19 +555,23 @@ public class StoreWAL extends StoreDirect {
                 logPos = logAllocate(physPos);
 
             }finally{
-                structuralLock.unlock();
+                if(!disableLocks) {
+                    structuralLock.unlock();
+                }
             }
 
             //write data into log
             walIndexVal((logPos[0]&LOG_MASK_OFFSET) - 1-8-8-1-8, ioRecid, physPos[0]|MASK_ARCHIVE);
             walPhysArray(out, physPos, logPos);
 
-            modified.put(ioRecid,logPos);
+            modified.put(ioRecid, logPos);
 
         }catch(IOException e){
             throw new IOError(e);
         }finally{
-            lock.unlock();
+            if(!disableLocks) {
+                lock.unlock();
+            }
         }
         recycledDataOuts.offer(out);
         return true;
@@ -505,8 +581,13 @@ public class StoreWAL extends StoreDirect {
     public <A> void delete(long recid, Serializer<A> serializer) {
         assert(recid>0);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock  = locks[Store.lockPos(ioRecid)].writeLock();
-        lock.lock();
+        final Lock lock;
+        if(disableLocks) {
+            lock = null;
+        }else {
+            lock = locks[Store.lockPos(ioRecid)].writeLock();
+            lock.lock();
+        }
         try{
             final long logPos;
 
@@ -517,7 +598,9 @@ public class StoreWAL extends StoreDirect {
                 if(indexVal==MASK_DISCARD) return;
                 linkedRecords = getLinkedRecordsIndexVals(indexVal);
             }
-            structuralLock.lock();
+            if(!disableLocks) {
+                structuralLock.lock();
+            }
             try{
                 logPos = logSize;
                 checkLogRounding();
@@ -537,12 +620,16 @@ public class StoreWAL extends StoreDirect {
                 }
 
             }finally {
-                structuralLock.unlock();
+                if(!disableLocks) {
+                    structuralLock.unlock();
+                }
             }
             walIndexVal(logPos,ioRecid,0|MASK_ARCHIVE);
             modified.put(ioRecid, TOMBSTONE);
         }finally {
-            lock.unlock();
+            if(!disableLocks) {
+                lock.unlock();
+            }
         }
     }
 
@@ -662,7 +749,7 @@ public class StoreWAL extends StoreDirect {
     }
 
     protected boolean verifyLogFile() {
-        assert(structuralLock.isHeldByCurrentThread());
+        assert(disableLocks || structuralLock.isHeldByCurrentThread());
 
         if(readOnly && log==null)
             return false;
@@ -777,7 +864,7 @@ public class StoreWAL extends StoreDirect {
         logSize+=4;
 
         logSize=0;
-        assert(structuralLock.isHeldByCurrentThread());
+        assert(disableLocks || structuralLock.isHeldByCurrentThread());
         if(realCrc == Long.MIN_VALUE)
             return true; //in future WAL CRC might be switched off, in that case this value will be used
 
@@ -787,7 +874,7 @@ public class StoreWAL extends StoreDirect {
 
 
     protected void replayLogFile(){
-        assert(structuralLock.isHeldByCurrentThread());
+        assert(disableLocks || structuralLock.isHeldByCurrentThread());
 
         if(readOnly && log==null)
             return; //TODO how to handle log replay if we are readonly?
@@ -862,7 +949,7 @@ public class StoreWAL extends StoreDirect {
 
         logReset();
 
-        assert(structuralLock.isHeldByCurrentThread());
+        assert(disableLocks || structuralLock.isHeldByCurrentThread());
     }
 
 
@@ -881,7 +968,7 @@ public class StoreWAL extends StoreDirect {
     }
 
     protected long[] getLinkedRecordsFromLog(long ioRecid){
-        assert(locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
+        assert(disableLocks || locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
         long[] ret0 = modified.get(ioRecid);
         if(ret0==PREALLOC) return ret0;
 
@@ -899,7 +986,7 @@ public class StoreWAL extends StoreDirect {
 
     @Override
     protected long longStackTake(long ioList, boolean recursive) {
-        assert(structuralLock.isHeldByCurrentThread());
+        assert(disableLocks || structuralLock.isHeldByCurrentThread());
         assert(ioList>=IO_FREE_RECID && ioList<IO_USER_START) :"wrong ioList: "+ioList;
 
 
@@ -958,7 +1045,7 @@ public class StoreWAL extends StoreDirect {
 
     @Override
     protected void longStackPut(long ioList, long offset, boolean recursive) {
-        assert(structuralLock.isHeldByCurrentThread());
+        assert(disableLocks || structuralLock.isHeldByCurrentThread());
         assert(offset>>>48==0);
         assert(ioList>=IO_FREE_RECID && ioList<=IO_USER_START): "wrong ioList: "+ioList;
 
@@ -1108,13 +1195,13 @@ public class StoreWAL extends StoreDirect {
     }
 
     @Override protected void compactPreUnderLock() {
-        assert(structuralLock.isLocked());
+        assert(disableLocks || structuralLock.isLocked());
         if(logDirty())
             throw new IllegalAccessError("WAL not empty; commit first, than compact");
     }
 
     @Override protected void compactPostUnderLock() {
-        assert(structuralLock.isLocked());
+        assert(disableLocks || structuralLock.isLocked());
         reloadIndexFile();
     }
 

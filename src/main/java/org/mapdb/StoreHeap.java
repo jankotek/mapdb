@@ -34,30 +34,46 @@ public class StoreHeap extends Store implements Serializable{
     /** Maximal returned recid, incremented if there are no free recids*/
     protected final AtomicLong maxRecid = new AtomicLong(LAST_RESERVED_RECID);
 
-    public StoreHeap(){
-        super(false,false,null,false);
+    public StoreHeap(boolean disableLocks){
+        super(false,false,null,disableLocks);
         for(long recid=1;recid<=LAST_RESERVED_RECID;recid++){
             records.put(recid, Fun.t2(null, (Serializer)null));
         }
     }
 
+    public StoreHeap(){
+        this(false);
+    }
+
     @Override
     public long preallocate() {
-        final Lock lock  = locks[new Random().nextInt(locks.length)].writeLock();
-        lock.lock();
+        final Lock lock;
+        if(disableLocks) {
+            lock = null;
+        }else {
+            lock = locks[new Random().nextInt(locks.length)].writeLock();
+            lock.lock();
+        }
         try{
             Long recid = freeRecids.poll();
             if(recid==null) recid = maxRecid.incrementAndGet();
             return recid;
         }finally{
-            lock.unlock();
+            if(!disableLocks) {
+                lock.unlock();
+            }
         }
     }
 
     @Override
     public void preallocate(long[] recids) {
-        final Lock lock  = locks[new Random().nextInt(locks.length)].writeLock();
-        lock.lock();
+        final Lock lock;
+        if(disableLocks) {
+            lock = null;
+        }else {
+            lock = locks[new Random().nextInt(locks.length)].writeLock();
+            lock.lock();
+        }
         try{
             for(int i=0;i<recids.length;i++){
                 Long recid = freeRecids.poll();
@@ -65,14 +81,21 @@ public class StoreHeap extends Store implements Serializable{
                 recids[i] = recid;
             }
         }finally{
-            lock.unlock();
+            if(!disableLocks) {
+                lock.unlock();
+            }
         }
     }
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
         if(value==null) value= (A) NULL;
-        final Lock lock  = locks[new Random().nextInt(locks.length)].writeLock();
-        lock.lock();
+        final Lock lock;
+        if(disableLocks) {
+            lock = null;
+        }else {
+            lock = locks[new Random().nextInt(locks.length)].writeLock();
+            lock.lock();
+        }
         try{
             Long recid = freeRecids.poll();
             if(recid==null) recid = maxRecid.incrementAndGet();
@@ -81,15 +104,22 @@ public class StoreHeap extends Store implements Serializable{
             assert(recid>0);
             return recid;
         }finally{
-            lock.unlock();
+            if(!disableLocks) {
+                lock.unlock();
+            }
         }
     }
 
     @Override
     public <A> A get(long recid, Serializer<A> serializer) {
         assert(recid>0);
-        final Lock lock  = locks[Store.lockPos(recid)].readLock();
-        lock.lock();
+        final Lock lock;
+        if(disableLocks) {
+            lock = null;
+        }else {
+            lock = locks[Store.lockPos(recid)].readLock();
+            lock.lock();
+        }
         try{
             //get from commited records
             Fun.Tuple2 t = records.get(recid);
@@ -97,7 +127,9 @@ public class StoreHeap extends Store implements Serializable{
                 return null;
             return (A) t.a;
         }finally{
-            lock.unlock();
+            if(!disableLocks) {
+                lock.unlock();
+            }
         }
     }
 
@@ -107,14 +139,21 @@ public class StoreHeap extends Store implements Serializable{
         assert(serializer!=null);
         assert(recid>0);
         if(value==null) value= (A) NULL;
-        final Lock lock  = locks[Store.lockPos(recid)].writeLock();
-        lock.lock();
+        final Lock lock;
+        if(disableLocks) {
+            lock = null;
+        }else {
+            lock = locks[Store.lockPos(recid)].writeLock();
+            lock.lock();
+        }
         try{
             Fun.Tuple2 old = records.put(recid, Fun.<Object, Serializer>t2(value,serializer));
             if(old!=null) //TODO null if record was preallocated
                 rollback.putIfAbsent(recid,old);
         }finally{
-            lock.unlock();
+            if(!disableLocks) {
+                lock.unlock();
+            }
         }
     }
 
@@ -123,29 +162,43 @@ public class StoreHeap extends Store implements Serializable{
         assert(recid>0);
         if(expectedOldValue==null) expectedOldValue= (A) NULL;
         if(newValue==null) newValue= (A) NULL;
-        final Lock lock  = locks[Store.lockPos(recid)].writeLock();
-        lock.lock();
+        final Lock lock;
+        if(disableLocks) {
+            lock = null;
+        }else {
+            lock = locks[Store.lockPos(recid)].writeLock();
+            lock.lock();
+        }
         try{
             Fun.Tuple2 old = Fun.t2(expectedOldValue, serializer);
             boolean ret =  records.replace(recid, old, Fun.t2(newValue, serializer));
             if(ret) rollback.putIfAbsent(recid,old);
             return ret;
         }finally{
-            lock.unlock();
+            if(!disableLocks) {
+                lock.unlock();
+            }
         }
     }
 
     @Override
     public <A> void delete(long recid, Serializer<A> serializer) {
         assert(recid>0);
-        final Lock lock  = locks[Store.lockPos(recid)].writeLock();
-        lock.lock();
+        final Lock lock;
+        if(disableLocks) {
+            lock = null;
+        }else {
+            lock = locks[Store.lockPos(recid)].writeLock();
+            lock.lock();
+        }
         try{
             Fun.Tuple2 t2 = records.remove(recid);
             if(t2!=null) rollback.putIfAbsent(recid,t2);
             freeRecids.add(recid);
         }finally{
-            lock.unlock();
+            if(!disableLocks) {
+                lock.unlock();
+            }
         }
     }
 
