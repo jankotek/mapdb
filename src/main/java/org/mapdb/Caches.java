@@ -511,7 +511,6 @@ public final class Caches {
                 while(true){
                     CacheItem item = (CacheItem) queue.remove();
                     items.remove(item.getRecid(), item);
-                    if(Thread.interrupted()) return;
                 }
             }catch(InterruptedException e){
                 //this is expected, so just silently exit thread
