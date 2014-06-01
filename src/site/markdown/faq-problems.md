@@ -7,7 +7,7 @@ IOException is usually wrapped in IOError which is unchecked. So please always c
 java.lang.OutOfMemoryError: Map failed
 -------------------------------------
 MapDB can not map file into memory. Make sure you are using latest JVM (7+).
-This is common problem on Windows (use Linux). Workaround is to use slower RandomAccessFile mode: `DBMaker.newRandomAccessFileDB(file)`
+This is common problem on Windows (use Linux). Workaround is to use RAF files (on by default) and disable memory mapped files (`mmapFileEnable()`) 
 	
 
 InternalError, Error, AssertionFailedError, IllegalArgumentException, StackOverflowError and so on
@@ -25,7 +25,7 @@ You may also increase heap size by `-Xmx3G` switch. Workaround is to disable thi
 Can not delete or rename db files on Windows
 ------------------------------------
 MapDB uses memory mapped files, Windows locks them exclusively and prevents deletion. Solution is to close MapDB properly before JVM exits. 
-Make sure you have lattest JVM.  Workaround: Use slower RandomAccessFile mode: `DBMaker.newRandomAccessFileDB(file)`
+Make sure you have latest JVM.  Disable memory mapped files of those are enabled (`mmapFileEnable()`)
 Also restarting Windows may help. 
 
 
