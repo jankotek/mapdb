@@ -827,7 +827,7 @@ public class DB {
 
         m.comparator = catPut(name+".comparator",m.comparator);
 
-        if(m.pumpPresortBatchSize!=-1){
+        if(m.pumpPresortBatchSize!=-1 && m.pumpSource!=null){
             m.pumpSource = Pump.sort(m.pumpSource,m.pumpIgnoreDuplicates, m.pumpPresortBatchSize,Collections.reverseOrder(m.comparator),getDefaultSerializer());
         }
 

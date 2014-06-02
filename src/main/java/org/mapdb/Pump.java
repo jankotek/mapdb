@@ -47,11 +47,13 @@ public final class Pump {
      * @param serializer used to store data in temporary files
      * @return iterator over sorted data set
      */
-    public static <E> Iterator<E> sort(final Iterator<E> source, boolean mergeDuplicates, final int batchSize,
+    public static <E> Iterator<E> sort(Iterator<E> source, boolean mergeDuplicates, final int batchSize,
             Comparator comparator, final Serializer serializer){
         if(batchSize<=0) throw new IllegalArgumentException();
         if(comparator==null)
             comparator=BTreeMap.COMPARABLE_COMPARATOR;
+        if(source==null)
+            source = Fun.EMPTY_ITERATOR;
 
         int counter = 0;
         final Object[] presort = new Object[batchSize];

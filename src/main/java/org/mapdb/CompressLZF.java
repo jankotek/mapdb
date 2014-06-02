@@ -270,9 +270,13 @@ public final class CompressLZF{
                 // copy the back-reference bytes from the given
                 // location in output to current position
                 ctrl += outPos;
-                System.arraycopy(out,ctrl,out,outPos,len);
-                outPos+=len;
-                ctrl+=len;
+                if (outPos + len >= out.length) {
+                    // reduce array bounds checking
+                    throw new ArrayIndexOutOfBoundsException();
+                }
+                for (int i = 0; i < len; i++) {
+                    out[outPos++] = out[ctrl++];
+                }
             }
         } while (outPos < outLen);
     }
