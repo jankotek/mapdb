@@ -37,6 +37,8 @@ CRUD, off-heap, append only store.. we have them all. MapDB is highly modular an
 News
 ----
 
+* 2014-06-02 [MapDB 1.0.2 released](http://www.mapdb.org/changelog.html#Version_102_2014-06-02). Fixed Serializer.CompressionWrapper()
+
 * 2014-05-14 [MapDB Roadmap and future plans](http://www.kotek.net/blog/MapDB_Roadmap_and_near_future) blog post.
 
 * 2014-05-05 [MapDB 1.0.1 released](http://www.mapdb.org/changelog.html#Version_101_2014-05-05). Fixed MRU Cache

@@ -1,6 +1,21 @@
 Changelog
 ============
 
+Version 1.0.2 (2014-06-02)
+--------------------------
+Fixed `Serializer.CompressionWrapper()`, this bug does not affect `DBMaker.compressionEnable()`
+
+Changes:
+
+ * Fix #321: Small behaviour regression in BTreeMap Pump
+ * Fix #332: `Serializer.CompressionWrapper()` decompressed wrong data. Reverted some optimization which caused this issue.
+
+Open problems:
+
+ * Open #304 and #283: BTreeMap fails under concurrent access.  Unconfirmed and can not reproduce. It needs more investigation.
+ * Documentation
+
+
 Version 1.0.1 (2014-05-05)
 --------------------------
 Fixed MRU cache and BTree Pump Presort.

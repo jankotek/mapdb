@@ -8,6 +8,15 @@
         <description>MapDB</description>
 
         <item>
+            <title>MapDB 1.0.2 released</title>
+            <link>http://www.mapdb.org/changelog.html#Version_102_2014-06-02</link>
+            <date>June 2 2014</date>
+            <description>
+                Fixed Serializer.CompressionWrapper
+            </description>
+        </item>
+
+        <item>
             <title>MapDB 1.0.1 released</title>
             <link>http://www.mapdb.org/changelog.html#Version_101_2014-05-05</link>
             <date>May 5 2014</date>
