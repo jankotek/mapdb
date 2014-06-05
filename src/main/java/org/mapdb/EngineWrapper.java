@@ -76,9 +76,13 @@ public class EngineWrapper implements Engine{
     @Override
     public void close() {
         Engine e = engine;
-        if(e!=null)
-            e.close();
-        engine = CLOSED;
+        if(e!=null) {
+            try {
+                e.close();
+            } finally {
+                engine = CLOSED;
+            }
+        }
     }
 
     @Override

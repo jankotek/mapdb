@@ -184,8 +184,8 @@ public class StoreDirect extends Store{
 
 
     public StoreDirect(Volume.Factory volFac, boolean readOnly, boolean deleteFilesAfterClose,
-                       int spaceReclaimMode, boolean syncOnCommitDisabled, long sizeLimit,
-                       boolean checksum, boolean compress, byte[] password, boolean disableLocks,int sizeIncrement) {
+        int spaceReclaimMode, boolean syncOnCommitDisabled, long sizeLimit,
+        boolean checksum, boolean compress, byte[] password, boolean disableLocks,int sizeIncrement) {
         super(checksum, compress, password, disableLocks);
         this.readOnly = readOnly;
         this.deleteFilesAfterClose = deleteFilesAfterClose;
@@ -458,7 +458,7 @@ public class StoreDirect extends Store{
                     phys.putLong(offset, indexVals[i + 1]);
                 }
             }
-              if(outPos!=out.pos) throw new AssertionError();
+            if(outPos!=out.pos) throw new AssertionError();
         }
     }
 
@@ -487,7 +487,7 @@ public class StoreDirect extends Store{
 
     protected <A> A get2(long ioRecid,Serializer<A> serializer) throws IOException {
         assert(disableLocks || locks[Store.lockPos(ioRecid)].getWriteHoldCount()==0||
-                locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
+            locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
 
         long indexVal = index.getLong(ioRecid);
         if(indexVal == MASK_DISCARD) return null; //preallocated record
@@ -636,7 +636,7 @@ public class StoreDirect extends Store{
             /*
              * write new value
              */
-             out = serialize(newValue, serializer);
+            out = serialize(newValue, serializer);
 
             update2(out, ioRecid);
 
@@ -774,33 +774,42 @@ public class StoreDirect extends Store{
 
         lockAllWrite();
         try{
+            try {
+                if(!readOnly){
+                    if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
+                        serializerPojo.save(this);
+                    }
 
-            if(!readOnly){
-                if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
-                    serializerPojo.save(this);
+                    index.putLong(IO_PHYS_SIZE,physSize);
+                    index.putLong(IO_INDEX_SIZE,indexSize);
+                    index.putLong(IO_FREE_SIZE,freeSize);
+
+                    index.putLong(IO_INDEX_SUM,indexHeaderChecksum());
                 }
 
-                index.putLong(IO_PHYS_SIZE,physSize);
-                index.putLong(IO_INDEX_SIZE,indexSize);
-                index.putLong(IO_FREE_SIZE,freeSize);
+                // Syncs are expensive -- don't sync if the files are going to
+                // get deleted anyway.
+                if (!deleteFilesAfterClose) {
+                    index.sync();
+                    phys.sync();
+                }
+            } finally {
+                try {
+                    index.close();
+                } finally {
+                    try {
+                        phys.close();
+                    } finally {
+                        if(deleteFilesAfterClose){
+                            index.deleteFile();
+                            phys.deleteFile();
+                        }
+                        index = null;
+                        phys = null;
+                    }
+                }
 
-                index.putLong(IO_INDEX_SUM,indexHeaderChecksum());
             }
-
-            // Syncs are expensive -- don't sync if the files are going to
-            // get deleted anyway.
-            if (!deleteFilesAfterClose) {
-              index.sync();
-              phys.sync();
-            }
-            index.close();
-            phys.close();
-            if(deleteFilesAfterClose){
-                index.deleteFile();
-                phys.deleteFile();
-            }
-            index = null;
-            phys = null;
         }finally{
             unlockAllWrite();
         }
@@ -910,7 +919,7 @@ public class StoreDirect extends Store{
             store2.unlockAllWrite();
 
             final boolean useDirectBuffer = index instanceof Volume.MemoryVol &&
-                    ((Volume.MemoryVol)index).useDirectBuffer;
+                ((Volume.MemoryVol)index).useDirectBuffer;
             index.sync(); //TODO is sync needed here?
             index.close();
             index = null;
@@ -996,17 +1005,17 @@ public class StoreDirect extends Store{
         if(dataOffset == 0) return 0; //there is no such list, so just return 0
 
         long pos = dataOffset>>>48;
-        dataOffset &= MASK_OFFSET;
+                dataOffset &= MASK_OFFSET;
 
-        if(pos<8) throw new AssertionError();
+                if(pos<8) throw new AssertionError();
 
-        final long ret = phys.getSixLong(dataOffset + pos);
+                final long ret = phys.getSixLong(dataOffset + pos);
 
-        //was it only record at that page?
-        if(pos == 8){
-            //yes, delete this page
-            long next =phys.getLong(dataOffset);
-            long size = next>>>48;
+                //was it only record at that page?
+                if(pos == 8){
+                    //yes, delete this page
+                    long next =phys.getLong(dataOffset);
+                    long size = next>>>48;
             next &=MASK_OFFSET;
             if(next !=0){
                 //update index so it points to previous page
@@ -1025,15 +1034,15 @@ public class StoreDirect extends Store{
             }
             //put space used by this page into free list
             freePhysPut((size<<48) | dataOffset, true);
-        }else{
-            //no, it was not last record at this page, so just decrement the counter
-            pos-=6;
-            index.putLong(ioList, (pos<<48)| dataOffset); //TODO update just 2 bytes
-        }
+                }else{
+                    //no, it was not last record at this page, so just decrement the counter
+                    pos-=6;
+                    index.putLong(ioList, (pos<<48)| dataOffset); //TODO update just 2 bytes
+                }
 
-        //System.out.println("longStackTake: "+ioList+" - "+ret);
+                //System.out.println("longStackTake: "+ioList+" - "+ret);
 
-        return ret;
+                return ret;
 
     }
 
@@ -1045,51 +1054,51 @@ public class StoreDirect extends Store{
 
         long dataOffset = index.getLong(ioList);
         long pos = dataOffset>>>48;
-        dataOffset &= MASK_OFFSET;
+                dataOffset &= MASK_OFFSET;
 
-        if(dataOffset == 0){ //empty list?
-            //TODO allocate pages of mixed size
-            //yes empty, create new page and fill it with values
-            final long listPhysid = freePhysTake((int) LONG_STACK_PREF_SIZE,true,true) &MASK_OFFSET;
-            if(listPhysid == 0) throw new AssertionError();
-            //set previous Free Index List page to zero as this is first page
-            //also set size of this record
-            phys.putLong(listPhysid , LONG_STACK_PREF_SIZE << 48);
-            //set  record
-            phys.putSixLong(listPhysid + 8, offset);
-            //and update index file with new page location
-            index.putLong(ioList , ( 8L << 48) | listPhysid);
-            if(maxUsedIoList<=ioList) maxUsedIoList=ioList;
-        }else{
-            long next = phys.getLong(dataOffset);
-            long size = next>>>48;
-            next &=MASK_OFFSET;
-            assert(pos+6<=size);
-            if(pos+6==size){ //is current page full?
-                long newPageSize = LONG_STACK_PREF_SIZE;
-                if(ioList == size2ListIoRecid(LONG_STACK_PREF_SIZE)){
-                    //TODO double allocation fix needs more investigation
-                    newPageSize = LONG_STACK_PREF_SIZE_ALTER;
+                if(dataOffset == 0){ //empty list?
+                    //TODO allocate pages of mixed size
+                    //yes empty, create new page and fill it with values
+                    final long listPhysid = freePhysTake((int) LONG_STACK_PREF_SIZE,true,true) &MASK_OFFSET;
+                    if(listPhysid == 0) throw new AssertionError();
+                    //set previous Free Index List page to zero as this is first page
+                    //also set size of this record
+                    phys.putLong(listPhysid , LONG_STACK_PREF_SIZE << 48);
+                    //set  record
+                    phys.putSixLong(listPhysid + 8, offset);
+                    //and update index file with new page location
+                    index.putLong(ioList , ( 8L << 48) | listPhysid);
+                    if(maxUsedIoList<=ioList) maxUsedIoList=ioList;
+                }else{
+                    long next = phys.getLong(dataOffset);
+                    long size = next>>>48;
+                    next &=MASK_OFFSET;
+                    assert(pos+6<=size);
+                    if(pos+6==size){ //is current page full?
+                        long newPageSize = LONG_STACK_PREF_SIZE;
+                        if(ioList == size2ListIoRecid(LONG_STACK_PREF_SIZE)){
+                            //TODO double allocation fix needs more investigation
+                            newPageSize = LONG_STACK_PREF_SIZE_ALTER;
+                        }
+                        //yes it is full, so we need to allocate new page and write our number there
+                        final long listPhysid = freePhysTake((int) newPageSize,true,true) &MASK_OFFSET;
+                        if(listPhysid == 0) throw new AssertionError();
+
+                        //set location to previous page and set current page size
+                        phys.putLong(listPhysid, (newPageSize<<48)|(dataOffset&MASK_OFFSET));
+
+                        //set the value itself
+                        phys.putSixLong(listPhysid+8, offset);
+
+                        //and update index file with new page location and number of records
+                        index.putLong(ioList , (8L<<48) | listPhysid);
+                    }else{
+                        //there is space on page, so just write offset and increase the counter
+                        pos+=6;
+                        phys.putSixLong(dataOffset + pos, offset);
+                        index.putLong(ioList, (pos<<48)| dataOffset); //TODO update just 2 bytes
+                    }
                 }
-                //yes it is full, so we need to allocate new page and write our number there
-                final long listPhysid = freePhysTake((int) newPageSize,true,true) &MASK_OFFSET;
-                if(listPhysid == 0) throw new AssertionError();
-
-                //set location to previous page and set current page size
-                phys.putLong(listPhysid, (newPageSize<<48)|(dataOffset&MASK_OFFSET));
-
-                //set the value itself
-                phys.putSixLong(listPhysid+8, offset);
-
-                //and update index file with new page location and number of records
-                index.putLong(ioList , (8L<<48) | listPhysid);
-            }else{
-                //there is space on page, so just write offset and increase the counter
-                pos+=6;
-                phys.putSixLong(dataOffset + pos, offset);
-                index.putLong(ioList, (pos<<48)| dataOffset); //TODO update just 2 bytes
-            }
-        }
     }
 
 
@@ -1122,9 +1131,9 @@ public class StoreDirect extends Store{
     protected void freePhysPut(long indexVal, boolean recursive) {
         assert(disableLocks || structuralLock.isHeldByCurrentThread());
         long size = indexVal >>>48;
-        assert(size!=0);
-        freeSize+=roundTo16(size);
-        longStackPut(size2ListIoRecid(size), indexVal & MASK_OFFSET,recursive);
+                        assert(size!=0);
+                        freeSize+=roundTo16(size);
+                        longStackPut(size2ListIoRecid(size), indexVal & MASK_OFFSET,recursive);
     }
 
     protected long freePhysTake(int size, boolean ensureAvail, boolean recursive) {
@@ -1254,7 +1263,7 @@ public class StoreDirect extends Store{
             long next = v&MASK_OFFSET;
             if(next==0) return ret;
             ret+=v>>>48;
-            v = phys.getLong(next);
+        v = phys.getLong(next);
         }
 
     }
