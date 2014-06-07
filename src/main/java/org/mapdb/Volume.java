@@ -284,7 +284,7 @@ public abstract class Volume {
                 int oldSize = chunks.length;
                 ByteBuffer[] chunks2 = chunks;
 
-                chunks2 = Arrays.copyOf(chunks2, Math.max(chunkPos+1, chunks2.length * 2));
+                chunks2 = Arrays.copyOf(chunks2, Math.max(chunkPos+1, chunks2.length + chunks2.length/1000));
 
                 for(int pos=oldSize;pos<chunks2.length;pos++) {
                     chunks2[pos]=makeNewBuffer(1L*chunkSize*pos);
