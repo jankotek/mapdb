@@ -16,7 +16,7 @@
 
 /*
  * NOTE: some code (and javadoc) used in this class
- * comes from Apache Harmony with following copyright:
+ * comes from JSR-166 group with following copyright:
  *
  * Written by Doug Lea with assistance from members of JCP JSR-166
  * Expert Group and released to the public domain, as explained at
@@ -439,9 +439,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 long next = DataInput2.unpackLong(in);
                 Object[] keys = keySerializer.deserialize(in, start,end,size);
                 assert(keys.length==size);
-                Object[] vals  = null;
-
-                vals = new Object[size-2];
+                Object[] vals = new Object[size-2];
                 if(hasValues){
                     for(int i=0;i<size-2;i++){
                         if(valsOutsideNodes){

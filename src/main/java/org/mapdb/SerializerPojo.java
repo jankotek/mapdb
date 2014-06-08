@@ -416,7 +416,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
                 int fieldId = classInfo.getFieldId(f.getName());
                 if (fieldId == -1) {
                     //field does not exists in class definition stored in db,
-                    //propably new field was added so add field descriptor
+                    //probably new field was added so add field descriptor
                     fieldId = classInfo.addFieldInfo(new FieldInfo(f, clazz));
                     saveClassInfo();
                 }
@@ -538,7 +538,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     protected static Map<Class<?>, Constructor<?>> class2constuctor = new ConcurrentHashMap<Class<?>, Constructor<?>>();
 
     /**
-     * For pojo serialization we need to instanciate class without invoking its constructor.
+     * For pojo serialization we need to instantiate class without invoking its constructor.
      * There are two ways to do it:
      * <p/>
      *   Using proprietary API on Oracle JDK and OpenJDK

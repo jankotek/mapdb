@@ -117,6 +117,7 @@ public interface Serializer<A> {
         @Override
         public void serialize(DataOutput out, String value) throws IOException {
             char[] cc = new char[value.length()];
+            //TODO does this really works? is not char 2 byte unsigned?
             value.getChars(0,cc.length,cc,0);
             DataOutput2.packInt(out,cc.length);
             for(char c:cc){
@@ -199,7 +200,7 @@ public interface Serializer<A> {
 
     };
 
-    /** Serializes Integer into 4 bytes, used mainly for testing.
+    /** Serializes Integer into 4 bytes.
      * Does not handle null values.*/
     
     Serializer<Integer> INTEGER = new Serializer<Integer>() {

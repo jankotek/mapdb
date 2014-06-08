@@ -25,7 +25,7 @@ import java.util.concurrent.ConcurrentMap;
 /**
  * Binding is simple yet powerful way to keep secondary collection synchronized with primary collection.
  * Primary collection provides notification on updates and secondary collection is modified accordingly.
- * This way MapDB provides secondary indexes, values and keys. It also supports less usual scenarious such
+ * This way MapDB provides secondary indexes, values and keys. It also supports less usual scenarios such
  * as histograms, inverse lookup index (on maps), group counters and so on.
  *
  * There are two things to keep on mind when using binding:
@@ -46,6 +46,10 @@ import java.util.concurrent.ConcurrentMap;
  *
  *  There are many [code examples](https://github.com/jankotek/MapDB/tree/master/src/test/java/examples)
  *  how Collection Binding can be used.
+ *
+ *  NOTE: Binding just installs Modification Listener on primary collection. Binding itself is not persistent
+ *  and has to be restored after primary collection is loaded. Data contained in secondary collection are persistent.
+ *
  *
  * @author Jan Kotek
  */
@@ -114,7 +118,9 @@ public final class Bind {
      * If `Atomic.Long` has zero value, it will be updated with value from `map.size()` and than
      * bind to map.
      *
-     * This binding is not persistent. You need to restore it every time store is reopened.
+     * NOTE: Binding just installs Modification Listener on primary collection. Binding itself is not persistent
+     * and has to be restored after primary collection is loaded. Data contained in secondary collection are persistent.
+     *
      *
      * NOTE: {@link BTreeMap} and {@link HTreeMap} already supports this directly as optional parameter named `counter`.
      * In that case all calls to `Map.size()` are forwarded to underlying counter. Check parameters at
@@ -154,6 +160,10 @@ public final class Bind {
      * If Secondary Map is empty its content will be recreated from Primary Map.
      * This binding is not persistent. You need to restore it every time store is reopened.
      *
+     *
+     * NOTE: Binding just installs Modification Listener on primary collection. Binding itself is not persistent
+     * and has to be restored after primary collection is loaded. Data contained in secondary collection are persistent.
+     *
      * Type params:
      *
      *  * `<K>` - key type in primary and Secondary Map
@@ -192,6 +202,10 @@ public final class Bind {
      *
      * If Secondary Map is empty its content will be recreated from Primary Map.
      * This binding is not persistent. You need to restore it every time store is reopened.
+     *
+     *
+     * NOTE: Binding just installs Modification Listener on primary collection. Binding itself is not persistent
+     * and has to be restored after primary collection is loaded. Data contained in secondary collection are persistent.
      *
      * Type params:
      *
@@ -280,6 +294,9 @@ public final class Bind {
      * If Secondary Set is empty its content will be recreated from Primary Map.
      * This binding is not persistent. You need to restore it every time store is reopened.
      *
+     * NOTE: Binding just installs Modification Listener on primary collection. Binding itself is not persistent
+     * and has to be restored after primary collection is loaded. Data contained in secondary collection are persistent.
+     *
      * Type params:
      *
      *  * `<K>` - Key in Primary Map
@@ -327,6 +344,9 @@ public final class Bind {
      *
      * If Secondary Set is empty its content will be recreated from Primary Map.
      * This binding is not persistent. You need to restore it every time store is reopened.
+     *
+     * NOTE: Binding just installs Modification Listener on primary collection. Binding itself is not persistent
+     * and has to be restored after primary collection is loaded. Data contained in secondary collection are persistent.
      *
      * Type params:
      *
@@ -376,7 +396,10 @@ public final class Bind {
      *
      *
      * If Secondary Set is empty its content will be recreated from Primary Map.
-     * This binding is not persistent. You need to restore it every time store is reopened.
+     *
+     * NOTE: Binding just installs Modification Listener on primary collection. Binding itself is not persistent
+     * and has to be restored after primary collection is loaded. Data contained in secondary collection are persistent.
+     *
      *
      * Type params:
      *
@@ -462,7 +485,9 @@ public final class Bind {
      * To lookup keys in Secondary Set use {@link Fun#filter(java.util.NavigableSet, Object)}
      *
      * If Secondary Set is empty its content will be recreated from Primary Map.
-     * This binding is not persistent. You need to restore it every time store is reopened.
+     *
+     * NOTE: Binding just installs Modification Listener on primary collection. Binding itself is not persistent
+     * and has to be restored after primary collection is loaded. Data contained in secondary collection are persistent.
      *
      * Type params:
      *
@@ -490,7 +515,9 @@ public final class Bind {
      * handles value duplicities. Use @{link Bind.mapInverse(MapWithModificationListener<K,V>Set<Fun.Tuple2<V, K>>}
      *
      * If Secondary Set is empty its content will be recreated from Primary Map.
-     * This binding is not persistent. You need to restore it every time store is reopened.
+     *
+     * NOTE: Binding just installs Modification Listener on primary collection. Binding itself is not persistent
+     * and has to be restored after primary collection is loaded. Data contained in secondary collection are persistent.
      *
      * Type params:
      *
@@ -522,7 +549,10 @@ public final class Bind {
      *
      *
      * If Secondary Map is empty its content will be recreated from Primary Map.
-     * This binding is not persistent. You need to restore it every time store is reopened.
+     *
+     * NOTE: Binding just installs Modification Listener on primary collection. Binding itself is not persistent
+     * and has to be restored after primary collection is loaded. Data contained in secondary collection are persistent.
+     *
      *
      * Type params:
      *

@@ -107,7 +107,6 @@ public abstract class BTreeKeySerializer<K>{
         @Override
         public void serialize(DataOutput out, int start, int end, Object[] keys) throws IOException {
             if(start>=end) return;
-//            System.out.println(start+" - "+end+" - "+Arrays.toString(keys));
             long prev = (Long)keys[start];
             DataOutput2.packLong(out,prev);
             for(int i=start+1;i<end;i++){
@@ -142,7 +141,6 @@ public abstract class BTreeKeySerializer<K>{
         @Override
         public void serialize(DataOutput out, int start, int end, Object[] keys) throws IOException {
             if(start>=end) return;
-//            System.out.println(start+" - "+end+" - "+Arrays.toString(keys));
             int prev = (Integer)keys[start];
             DataOutput2.packLong(out,prev);
             for(int i=start+1;i<end;i++){

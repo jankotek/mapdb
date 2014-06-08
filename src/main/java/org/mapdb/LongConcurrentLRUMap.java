@@ -1,4 +1,3 @@
-package org.mapdb;
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -16,6 +15,7 @@ package org.mapdb;
  * limitations under the License.
  */
 
+package org.mapdb;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -35,8 +35,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * remove more items forcefully regardless of access order.
  *
  * MapDB note: reworked to implement LongMap. Original comes from:
- * https://svn.apache.org/repos/asf/lucene/dev/trunk/solr/core/src/java/org/apache/solr/util/LongConcurrentLRUMap.java
- *
+ * https://svn.apache.org/repos/asf/lucene/dev/trunk/solr/core/src/java/org/apache/solr/util/ConcurrentLRUCache.java
  */
 public class LongConcurrentLRUMap<V> extends LongMap<V> {
 

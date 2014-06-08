@@ -1,0 +1,40 @@
+MapDB
+Copyright 2012-2014 Jan Kotek
+
+This product includes software developed by Thomas Mueller and H2 group
+Relicensed under Apache License 2 with Thomas permission.
+(CompressLZF.java and EncryptionXTEA.java)
+Copyright (c) 2004-2011 H2 Group
+
+
+This product includes software developed by Doug Lea and JSR 166 group:
+(LongConcurrentMap.java, Atomic.java)
+ * Written by Doug Lea with assistance from members of JCP JSR-166
+ * Expert Group and released to the public domain, as explained at
+ * http://creativecommons.org/licenses/publicdomain
+
+
+This product includes software developed for Apache Solr
+(LongConcurrentLRUMap.java)
+Copyright 2006-2014 The Apache Software Foundation
+
+This product includes software developed for Apache Harmony
+(LongHashMap.java)
+Copyright 2008-2012 The Apache Software Foundation
+
+
+This product includes software developed by Nathen Sweet for Kryo
+Relicensed under Apache License 2 (or later) with Nathans permission.
+(DataInput2.packInt/Long and DataOutput.unpackInt/Long methods)
+Copyright (c) 2012 Nathan Sweet
+
+This product includes software developed for Android project
+(SerializerPojo, a few lines to invoke constructor, see comments)
+//Copyright (C) 2012 The Android Open Source Project, licenced under Apache 2 license
+
+
+This product includes software developed by Heinz Kabutz for javaspecialists.eu
+(SerializerPojo, a few lines to invoke constructor, see comments)
+2010-2014 Heinz Kabutz
+
+
