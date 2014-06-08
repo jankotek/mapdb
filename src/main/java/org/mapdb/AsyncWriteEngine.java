@@ -29,9 +29,9 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * {@link Engine} wrapper which provides asynchronous serialization and asynchronous write.
- * This class takes an object instance, passes it to background writer thread (using Write Cache)
+ * This class takes an object instance, passes it to background writer thread (using Write Queue)
  * where it is serialized and written to disk. Async write does not affect commit durability,
- * write cache is flushed into disk on each commit. Modified records are held in small instance cache,
+ * Write Queue is flushed into disk on each commit. Modified records are held in small instance cache,
  * until they are written into disk.
  *
  * This feature is disabled by default and can be enabled by calling {@link DBMaker#asyncWriteEnable()}.
@@ -40,12 +40,13 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * in scenarios where frequently modified items should be cached, typically {@link BTreeMap} import where keys
  * are presorted.
  *
- * Asynchronous write does not affect commit durability. Write Cache is flushed during each commit, rollback and close call.
- * You may also flush Write Cache manually by using {@link org.mapdb.AsyncWriteEngine#clearCache()}  method.
+ * Asynchronous write does not affect commit durability. Write Queue is flushed during each commit, rollback and close call.
+ * Those method also block until all records are written.
+ * You may flush Write Queue manually by using {@link org.mapdb.AsyncWriteEngine#clearCache()}  method.
  * There is global lock which prevents record being updated while commit is in progress.
  *
  * This wrapper starts one threads named `MapDB writer #N` (where N is static counter).
- * Async Writer takes modified records from Write Cache and writes them into store.
+ * Async Writer takes modified records from Write Queue and writes them into store.
  * It also preallocates new recids, as finding empty `recids` takes time so small stash is pre-allocated.
  * It runs as `daemon`, so it does not prevent JVM to exit.
  *
@@ -56,10 +57,12 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *    When you insert record into MapDB and modify it latter, this modification may happen before item
  *    was serialized and you may not be sure what version was persisted
  *
- *  * Asynchronous writes have some overhead and introduce single bottle-neck. This usually not issue for
+ *  * Inter-thread communication has some overhead.
+ *    There is also only single Writer Thread, which may create  single bottle-neck.
+ *    This usually not issue for
  *    single or two threads, but in multi-threaded environment it may decrease performance.
  *    So in truly concurrent environments with many updates (network servers, parallel computing )
- *    you should disable Asynchronous Writes.
+ *    you should keep Asynchronous Writes disabled.
  *
  *
  * @see Engine

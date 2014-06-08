@@ -256,10 +256,11 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
     }
 
     /**
-     * Creates new off-heap cache with maximal size in GBs.
+     * Creates new cache with maximal size in GBs.
      * Entries are removed from cache in most-recently-used fashion
      * if store becomes too big.
      *
+     * This cache uses on-heap `byte[]`, but does not affect GC since objects are serialized into binary form.
      * This method uses  ByteBuffers backed by on-heap byte[]. See {@link java.nio.ByteBuffer#allocate(int)}
      *
      * @param size maximal size of off-heap store in gigabytes.

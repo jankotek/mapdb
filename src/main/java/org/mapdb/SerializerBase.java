@@ -221,7 +221,7 @@ public class SerializerBase implements Serializer<Object>{
             out.writeLong(((UUID) obj).getMostSignificantBits());
             out.writeLong(((UUID) obj).getLeastSignificantBits());
             return;
-        } else if(obj == Fun.HI){
+        } else if(obj == Fun.HI){ //TODO singleton
             out.write(Header.FUN_HI);
             return;
         }
@@ -392,6 +392,7 @@ public class SerializerBase implements Serializer<Object>{
             serialize(out, t.c, objectStack);
         } else if (clazz == Fun.Tuple4.class){
             out.write(Header.TUPLE4);
+            //TODO Tuple serialization code away
             Fun.Tuple4 t = (Fun.Tuple4) obj;
             serialize(out, t.a, objectStack);
             serialize(out, t.b, objectStack);
@@ -1728,6 +1729,8 @@ public class SerializerBase implements Serializer<Object>{
     /**
      * Builds a byte array from the array of booleans, compressing up to 8 booleans per byte.
      *
+     * Author of this method is Chris Alexander.
+     *
      * @param bool The booleans to be compressed.
      * @return The fully compressed byte array.
      */
@@ -1857,6 +1860,8 @@ public class SerializerBase implements Serializer<Object>{
      * the number of bytes, reads them in, and decompresses and converts them into an array of booleans using the
      * toBooleanArray(byte[]); method. The array of booleans are trimmed to <code>numBools</code> elements. This is
      * necessary in situations where the number of booleans is not a multiple of 8.
+     *
+     * Author of this method is Chris Alexander.
      *
      * @return The boolean array decompressed from the bytes read in.
      * @throws IOException If an error occurred while reading.

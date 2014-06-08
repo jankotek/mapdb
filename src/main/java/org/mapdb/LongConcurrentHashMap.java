@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-/* This code was adopted from Apache Harmony 'ConcurrentHashMap' with following
+/* This code was adopted from JSR 166 group  with following
  * copyright:
  *
  * Written by Doug Lea with assistance from members of JCP JSR-166

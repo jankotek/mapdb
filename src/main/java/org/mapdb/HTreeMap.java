@@ -36,7 +36,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * will degrade linearly with number of records (separate chaining).
  * <p/>
  * Concurrent scalability is achieved by splitting HashMap into 16 segments, each with separate lock.
- * Very similar to ConcurrentHashMap
+ * Very similar to {@link java.util.concurrent.ConcurrentHashMap}
  *
  * @author Jan Kotek
  */
