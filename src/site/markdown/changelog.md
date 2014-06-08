@@ -1,6 +1,21 @@
 Changelog
 ============
 
+Version 1.0.3 (2014-06-08)
+--------------------------
+Fixed new space allocation problem, file now increases in 1MB increments. Updated copyright info and added notice.txt  
+
+Changes:
+
+ * Fix #338 Excess storage size on Memory mapped files
+ * Add notice.txt with list of copyright holders
+ * Updated javadocs
+
+Open problems:
+
+ * Open #304 and #283: BTreeMap fails under concurrent access.  Unconfirmed and can not reproduce. It needs more investigation.
+ * Documentation
+
 Version 1.0.2 (2014-06-02)
 --------------------------
 Fixed `Serializer.CompressionWrapper()`, this bug does not affect `DBMaker.compressionEnable()`

@@ -7,6 +7,17 @@
         <link>http://www.mapdb.org/</link>
         <description>MapDB</description>
 
+
+        <item>
+            <title>MapDB 1.0.3 released</title>
+            <link>http://www.mapdb.org/changelog.html#Version_103_2014-06-08</link>
+            <date>June 8 2014</date>
+            <description>
+                Fixed new space allocation, updated copyrights.
+            </description>
+        </item>
+
+
         <item>
             <title>MapDB 1.0.2 released</title>
             <link>http://www.mapdb.org/changelog.html#Version_102_2014-06-02</link>
