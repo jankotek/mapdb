@@ -1,0 +1,13 @@
+language: java
+cache:
+  directories:
+  - $HOME/.m2
+
+jdk:
+  - oraclejdk7
+  - openjdk7
+  - openjdk6
+
+install: true
+
+script: mvn test
