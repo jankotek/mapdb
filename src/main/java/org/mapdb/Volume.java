@@ -402,6 +402,9 @@ public abstract class Volume {
             }
         }
 
+        // Workaround for https://github.com/jankotek/MapDB/issues/326
+        // File locking after .close() on Windows.
+        private static boolean windowsWorkaround = System.getProperty("os.name").toLowerCase().startsWith("win");
 
     }
 
@@ -531,10 +534,23 @@ public abstract class Volume {
                     old[i] = null;
                 }
 
+                if (ByteBufferVol.windowsWorkaround) {
+                    for(int i=0;i<maxSize;i++){
+                        unmap((MappedByteBuffer) old[i]);
+                        old[i] = null;
+                    }
+                }
+
                 try {
                     fileChannel.truncate(1L * chunkSize *maxSize);
                 } catch (IOException e) {
                     throw new IOError(e);
+                }
+
+                if (ByteBufferVol.windowsWorkaround) {
+                    for(int pos=0;pos<maxSize;pos++) {
+                        chunks[pos]=makeNewBuffer(1L*chunkSize*pos);
+                    }
                 }
 
             }finally {
@@ -626,6 +642,7 @@ public abstract class Volume {
 
         protected final File file;
         protected final int chunkSize;
+        protected RandomAccessFile raf;
         protected FileChannel channel;
         protected final boolean readOnly;
         protected final long sizeLimit;
@@ -643,10 +660,12 @@ public abstract class Volume {
             try {
                 checkFolder(file,readOnly);
                 if(readOnly && !file.exists()){
+                    raf = null;
                     channel = null;
                     size = 0;
                 }else {
-                    channel = new RandomAccessFile(file, readOnly ? "r" : "rw").getChannel();
+                    raf = new RandomAccessFile(file, readOnly ? "r" : "rw");
+                    channel = raf.getChannel();
                     size = channel.size();
                 }
             } catch (IOException e) {
@@ -859,6 +878,9 @@ public abstract class Volume {
                 if(channel!=null)
                     channel.close();
                 channel = null;
+                if (raf != null)
+                    raf.close();
+                raf = null;
             }catch(IOException e){
                 throw new IOError(e);
             }
