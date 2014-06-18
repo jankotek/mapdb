@@ -774,33 +774,42 @@ public class StoreDirect extends Store{
 
         lockAllWrite();
         try{
+            try {
+                if(!readOnly){
+                    if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
+                        serializerPojo.save(this);
+                    }
 
-            if(!readOnly){
-                if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
-                    serializerPojo.save(this);
+                    index.putLong(IO_PHYS_SIZE,physSize);
+                    index.putLong(IO_INDEX_SIZE,indexSize);
+                    index.putLong(IO_FREE_SIZE,freeSize);
+
+                    index.putLong(IO_INDEX_SUM,indexHeaderChecksum());
                 }
 
-                index.putLong(IO_PHYS_SIZE,physSize);
-                index.putLong(IO_INDEX_SIZE,indexSize);
-                index.putLong(IO_FREE_SIZE,freeSize);
+                // Syncs are expensive -- don't sync if the files are going to
+                // get deleted anyway.
+                if (!deleteFilesAfterClose) {
+                    index.sync();
+                    phys.sync();
+                }
+            } finally {
+                try {
+                    index.close();
+                } finally {
+                    try {
+                        phys.close();
+                    } finally {
+                        if(deleteFilesAfterClose){
+                            index.deleteFile();
+                            phys.deleteFile();
+                        }
+                        index = null;
+                        phys = null;
+                    }
+                }
 
-                index.putLong(IO_INDEX_SUM,indexHeaderChecksum());
             }
-
-            // Syncs are expensive -- don't sync if the files are going to
-            // get deleted anyway.
-            if (!deleteFilesAfterClose) {
-              index.sync();
-              phys.sync();
-            }
-            index.close();
-            phys.close();
-            if(deleteFilesAfterClose){
-                index.deleteFile();
-                phys.deleteFile();
-            }
-            index = null;
-            phys = null;
         }finally{
             unlockAllWrite();
         }
