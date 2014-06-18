@@ -73,19 +73,20 @@ public class StoreWAL extends StoreDirect {
         super(volFac, readOnly, deleteFilesAfterClose, spaceReclaimMode, syncOnCommitDisabled, sizeLimit,
                 checksum, compress, password,disableLocks, sizeIncrement);
         this.volFac = volFac;
-        this.log = volFac.createTransLogVolume();
 
         boolean allGood = false;
         if(!disableLocks) {
             structuralLock.lock();
         }
         try{
+		    this.log = volFac.createTransLogVolume();
             reloadIndexFile();
             if(verifyLogFile()){
                 replayLogFile();
             }
             replayPending = false;
             checkHeaders();
+			log.close();
             log = volFac.createTransLogVolume();
             if(!readOnly)
                 logReset();
