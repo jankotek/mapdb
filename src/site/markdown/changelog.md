@@ -1,6 +1,15 @@
 Changelog
 ============
 
+Version 1.0.4 (2014-06-26)
+--------------------------
+Fixed transaction file locking on Windows.   
+
+Changes:
+
+ * Fix #326, #327, #346 and  #323: Transaction log was not unlocked on Windows, causing various issues. Kudos to Rémi Alvergnat for discovering and fixing it.  
+ * Fix #335: Ensures that file resources are always released on close. Kudos to Luke Butters. 
+
 Version 1.0.3 (2014-06-08)
 --------------------------
 Fixed new space allocation problem, file now increases in 1MB increments. Updated copyright info and added notice.txt  

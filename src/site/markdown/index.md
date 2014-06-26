@@ -37,6 +37,8 @@ CRUD, off-heap, append only store.. we have them all. MapDB is highly modular an
 News
 ----
 
+* 2014-06-26 [MapDB 1.0.4 released](http://www.mapdb.org/changelog.html#Version_104_2014-06-26). Fixed file locking on Windows.
+
 * 2014-06-08 [MapDB 1.0.3 released](http://www.mapdb.org/changelog.html#Version_103_2014-06-08). Fixed new space allocation, updated copyrights.
 
 * 2014-06-02 [MapDB 1.0.2 released](http://www.mapdb.org/changelog.html#Version_102_2014-06-02). Fixed Serializer.CompressionWrapper()

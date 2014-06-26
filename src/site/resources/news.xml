@@ -9,6 +9,16 @@
 
 
         <item>
+            <title>MapDB 1.0.4 released</title>
+            <link>http://www.mapdb.org/changelog.html#Version_104_2014-06-26</link>
+            <date>June 26 2014</date>
+            <description>
+                Fixed file locking on Windows.
+            </description>
+        </item>
+
+
+        <item>
             <title>MapDB 1.0.3 released</title>
             <link>http://www.mapdb.org/changelog.html#Version_103_2014-06-08</link>
             <date>June 8 2014</date>
