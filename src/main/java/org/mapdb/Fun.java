@@ -874,7 +874,9 @@ public final class Fun {
      * @param secondaryKeys Secondary Set or 'MultiMap' to find values in
      * @param secondaryKey key to look from
      * @return all keys where primary value equals to `secondaryKey`
+     *
      */
+    //TODO there is an idea this could return NavigableSet instead of Iterable
     public static <K2,K1> Iterable<K1> filter(final NavigableSet<Fun.Tuple2<K2, K1>> secondaryKeys, final K2 secondaryKey) {
         return filter(secondaryKeys, secondaryKey, true, secondaryKey, true);
     }
