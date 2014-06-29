@@ -5,10 +5,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.*;
@@ -603,6 +600,33 @@ public class HTreeMap2Test {
         m.replace("aa","cc");
 
         assertEquals(8, counter.get());
+    }
+
+    @Test
+    public void test_iterate_and_remove(){
+        final long max= (long) 1e5;
+
+        Set m = DBMaker.newMemoryDB().cacheDisable().transactionDisable().make().getHashSet("test");
+
+        for(long i=0;i<max;i++){
+            m.add(i);
+        }
+
+
+        Set control = new HashSet();
+        Iterator iter = m.iterator();
+
+        for(long i=0;i<max/2; i++){
+            assertTrue(iter.hasNext());
+            control.add(iter.next());
+        }
+
+        m.clear();
+
+        while(iter.hasNext()){
+            control.add(iter.next());
+        }
+
     }
 
 }
