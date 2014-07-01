@@ -16,6 +16,7 @@
 
 package org.mapdb;
 
+import java.io.Closeable;
 import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
@@ -28,7 +29,7 @@ import java.util.concurrent.TimeUnit;
  */
 //TODO DB uses global lock, replace it with ReadWrite lock or fine grained locking.
 @SuppressWarnings("unchecked")
-public class DB {
+public class DB implements Closeable {
 
     protected final boolean strictDBGet;
 

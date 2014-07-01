@@ -34,7 +34,7 @@ import java.util.concurrent.locks.ReentrantLock;
  *
  * @author Jan Kotek
  */
-public abstract class Volume {
+public abstract class Volume implements Closeable{
 
 
 

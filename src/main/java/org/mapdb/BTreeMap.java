@@ -26,6 +26,7 @@
 package org.mapdb;
 
 
+import java.io.Closeable;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -93,7 +94,7 @@ import java.util.concurrent.locks.LockSupport;
  */
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class BTreeMap<K,V> extends AbstractMap<K,V>
-        implements ConcurrentNavigableMap<K,V>, Bind.MapWithModificationListener<K,V>{
+        implements ConcurrentNavigableMap<K,V>, Bind.MapWithModificationListener<K,V>, Closeable {
 
     @SuppressWarnings("rawtypes")
     public static final Comparator COMPARABLE_COMPARATOR = new Comparator<Comparable>() {

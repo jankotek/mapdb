@@ -16,6 +16,8 @@
 
 package org.mapdb;
 
+import java.io.Closeable;
+
 /**
  * Centerpiece for record management, `Engine` is simple key value store.
  * Engine is low-level interface and is not meant to be used directly
@@ -61,7 +63,7 @@ package org.mapdb;
  *
  * @author Jan Kotek
  */
-public interface Engine {
+public interface Engine  extends Closeable {
 
     long CATALOG_RECID = 1;
     long CLASS_INFO_RECID = 2;

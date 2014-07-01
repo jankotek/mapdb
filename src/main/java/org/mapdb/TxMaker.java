@@ -17,12 +17,14 @@
 package org.mapdb;
 
 
+import java.io.Closeable;
+
 /**
  * Transaction factory
  *
  * @author Jan Kotek
  */
-public class TxMaker {
+public class TxMaker implements Closeable {
 
     /** marker for deleted records*/
     protected static final Object DELETED = new Object();

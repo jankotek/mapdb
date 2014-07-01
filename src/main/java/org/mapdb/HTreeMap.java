@@ -15,6 +15,7 @@
  */
 package org.mapdb;
 
+import java.io.Closeable;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -41,7 +42,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * @author Jan Kotek
  */
 @SuppressWarnings({ "unchecked", "rawtypes" })
-public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K, V>, Bind.MapWithModificationListener<K,V> {
+public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K, V>, Bind.MapWithModificationListener<K,V>, Closeable {
 
 
     protected static final int BUCKET_OVERFLOW = 4;
