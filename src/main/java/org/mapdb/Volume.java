@@ -75,6 +75,12 @@ public abstract class Volume {
 
     abstract public void sync();
 
+    /**
+     *
+     * @return slice size or `-1` if not sliced
+     */
+    abstract public int sliceSize();
+
     public abstract boolean isEmpty();
 
     public abstract void deleteFile();
@@ -162,6 +168,26 @@ public abstract class Volume {
         throw new AssertionError("Malformed long.");
     }
 
+    /**
+     * Transfers data from this Volume into target volume.
+     * If its possible, the implementation should override this method to enable direct memory transfer.
+     *
+     * Caller must respect slice boundaries. ie it is not possible to transfer data which cross slice boundaries.
+     *
+     * @param inputOffset offset inside this Volume, ie data will be read from this offset
+     * @param target Volume to copy data into
+     * @param targetOffset position in target volume where data will be copied into
+     * @param size size of data to copy
+     */
+    public void transferInto(long inputOffset, Volume target, long targetOffset, int size) {
+        byte[] data = new byte[size];
+        try {
+            getDataInput(inputOffset, size).readFully(data);
+        }catch(IOException e){
+            throw new IOError(e);
+        }
+        target.putData(targetOffset,data,0,size);
+    }
 
     /**
      * Factory which creates two/three volumes used by each MapDB Storage Engine
@@ -220,15 +246,20 @@ public abstract class Volume {
         return new Factory() {
 
             @Override public synchronized  Volume createIndexVolume() {
-                return new MemoryVol(useDirectBuffer, sizeLimit, chunkShift);
+                return useDirectBuffer?
+                        new MemoryVol(useDirectBuffer, sizeLimit, chunkShift):
+                        new ByteArrayVol(sizeLimit, chunkShift);
             }
 
             @Override public synchronized Volume createPhysVolume() {
-                return new MemoryVol(useDirectBuffer, sizeLimit, chunkShift);
-            }
+                return useDirectBuffer?
+                        new MemoryVol(useDirectBuffer, sizeLimit, chunkShift):
+                        new ByteArrayVol(sizeLimit, chunkShift);            }
 
             @Override public synchronized Volume createTransLogVolume() {
-                return new MemoryVol(useDirectBuffer, sizeLimit, chunkShift);
+                return useDirectBuffer?
+                        new MemoryVol(useDirectBuffer, sizeLimit, chunkShift):
+                        new ByteArrayVol(sizeLimit, chunkShift);
             }
         };
     }
@@ -331,6 +362,16 @@ public abstract class Volume {
             b1.put(buf);
         }
 
+        @Override
+        public void transferInto(long inputOffset, Volume target, long targetOffset, int size) {
+            final ByteBuffer b1 = chunks[(int)(inputOffset >>> chunkShift)].duplicate();
+            final int bufPos = (int) (inputOffset&chunkSizeModMask);
+
+            b1.position(bufPos);
+            b1.limit(bufPos+size);
+            target.putData(targetOffset,b1);
+        }
+
         @Override final public long getLong(long offset) {
             return chunks[(int)(offset >>> chunkShift)].getLong((int) (offset&chunkSizeModMask));
         }
@@ -360,7 +401,10 @@ public abstract class Volume {
             return true;
         }
 
-
+        @Override
+        public int sliceSize() {
+            return chunkSize;
+        }
 
         /**
          * Hack to unmap MappedByteBuffer.
@@ -405,6 +449,7 @@ public abstract class Volume {
         // Workaround for https://github.com/jankotek/MapDB/issues/326
         // File locking after .close() on Windows.
         private static boolean windowsWorkaround = System.getProperty("os.name").toLowerCase().startsWith("win");
+
 
     }
 
@@ -486,11 +531,16 @@ public abstract class Volume {
         }
 
         @Override
+        public int sliceSize() {
+            return chunkSize;
+        }
+
+        @Override
         protected ByteBuffer makeNewBuffer(long offset) {
             try {
                 assert((offset&chunkSizeModMask)==0);
                 assert(offset>=0);
-                ByteBuffer ret = fileChannel.map(mapMode,offset,chunkSize);
+                ByteBuffer ret = fileChannel.map(mapMode,offset, chunkSize);
                 if(mapMode == FileChannel.MapMode.READ_ONLY) {
                     ret = ret.asReadOnlyBuffer();
                 }
@@ -910,6 +960,11 @@ public abstract class Volume {
         }
 
         @Override
+        public int sliceSize() {
+            return -1;
+        }
+
+        @Override
         public boolean isSliced() {
             return false;
         }
@@ -922,17 +977,225 @@ public abstract class Volume {
 
     /** transfer data from one volume to second. Second volume will be expanded if needed*/
     public static void volumeTransfer(long size, Volume from, Volume to){
-        int bufSize = 1024*64;
+        int bufSize = Math.min(from.sliceSize(),to.sliceSize());
+
+        if(bufSize<0 || bufSize>1024*1024*128){
+            bufSize = 64 * 1024; //something strange, set safe limit
+        }
+        to.ensureAvailable(size);
 
         for(long offset=0;offset<size;offset+=bufSize){
             int bb = (int) Math.min(bufSize, size-offset);
-            DataInput2 input = (DataInput2) from.getDataInput(offset, bb);
-            ByteBuffer buf = input.buf.duplicate();
-            buf.position(input.pos);
-            buf.limit(input.pos+bb);
-            to.ensureAvailable(offset+bb);
-            to.putData(offset,buf);
+            from.transferInto(offset,to,offset,bb);
         }
+    }
+
+
+    public static final class ByteArrayVol extends Volume{
+
+        protected final ReentrantLock growLock = new ReentrantLock(CC.FAIR_LOCKS);
+
+        protected final long sizeLimit;
+        protected final boolean hasLimit;
+        protected final int chunkShift;
+        protected final int chunkSizeModMask;
+        protected final int chunkSize;
+
+        protected volatile byte[][] chunks = new byte[0][];
+
+        protected ByteArrayVol(long sizeLimit, int chunkShift) {
+            this.sizeLimit = sizeLimit;
+            this.chunkShift = chunkShift;
+            this.chunkSize = 1<< chunkShift;
+            this.chunkSizeModMask = chunkSize -1;
+
+            this.hasLimit = sizeLimit>0;
+        }
+
+
+        @Override
+        public final boolean tryAvailable(long offset) {
+            if (hasLimit && offset > sizeLimit) return false;
+
+            int chunkPos = (int) (offset >>> chunkShift);
+
+            //check for most common case, this is already mapped
+            if (chunkPos < chunks.length){
+                return true;
+            }
+
+            growLock.lock();
+            try{
+                //check second time
+                if(chunkPos< chunks.length)
+                    return true;
+
+                int oldSize = chunks.length;
+                byte[][] chunks2 = chunks;
+
+                chunks2 = Arrays.copyOf(chunks2, Math.max(chunkPos+1, chunks2.length + chunks2.length/1000));
+
+                for(int pos=oldSize;pos<chunks2.length;pos++) {
+                    chunks2[pos]=new byte[chunkSize];
+                }
+
+
+                chunks = chunks2;
+            }finally{
+                growLock.unlock();
+            }
+            return true;
+        }
+
+
+        @Override
+        public void truncate(long size) {
+            final int maxSize = 1+(int) (size >>> chunkShift);
+            if(maxSize==chunks.length)
+                return;
+            if(maxSize>chunks.length) {
+                ensureAvailable(size);
+                return;
+            }
+            growLock.lock();
+            try{
+                if(maxSize>=chunks.length)
+                    return;
+                chunks = Arrays.copyOf(chunks,maxSize);
+            }finally {
+                growLock.unlock();
+            }
+        }
+
+        @Override
+        public void putLong(long offset, long v) {
+            int pos = (int) (offset & chunkSizeModMask);
+            byte[] buf = chunks[((int) (offset >>> chunkShift))];
+            buf[pos++] = (byte) (0xff & (v >> 56));
+            buf[pos++] = (byte) (0xff & (v >> 48));
+            buf[pos++] = (byte) (0xff & (v >> 40));
+            buf[pos++] = (byte) (0xff & (v >> 32));
+            buf[pos++] = (byte) (0xff & (v >> 24));
+            buf[pos++] = (byte) (0xff & (v >> 16));
+            buf[pos++] = (byte) (0xff & (v >> 8));
+            buf[pos++] = (byte) (0xff & (v));
+        }
+
+        @Override
+        public void putInt(long offset, int value) {
+            int pos = (int) (offset & chunkSizeModMask);
+            byte[] buf = chunks[((int) (offset >>> chunkShift))];
+            buf[pos++] = (byte) (0xff & (value >> 24));
+            buf[pos++] = (byte) (0xff & (value >> 16));
+            buf[pos++] = (byte) (0xff & (value >> 8));
+            buf[pos++] = (byte) (0xff & (value));
+        }
+
+        @Override
+        public void putByte(long offset, byte value) {
+            final byte[] b = chunks[((int) (offset >>> chunkShift))];
+            b[((int) (offset & chunkSizeModMask))] = value;
+        }
+
+        @Override
+        public void putData(long offset, byte[] src, int srcPos, int srcSize) {
+            int pos = (int) (offset & chunkSizeModMask);
+            byte[] buf = chunks[((int) (offset >>> chunkShift))];
+
+            System.arraycopy(src,srcPos,buf,pos,srcSize);
+        }
+
+        @Override
+        public void putData(long offset, ByteBuffer buf) {
+            int pos = (int) (offset & chunkSizeModMask);
+            byte[] dst = chunks[((int) (offset >>> chunkShift))];
+            buf.get(dst,pos, buf.remaining());
+        }
+
+
+        @Override
+        public void transferInto(long inputOffset, Volume target, long targetOffset, int size) {
+            int pos = (int) (inputOffset & chunkSizeModMask);
+            byte[] buf = chunks[((int) (inputOffset >>> chunkShift))];
+
+            target.putData(targetOffset,buf,pos, size);
+        }
+
+        @Override
+        public long getLong(long offset) {
+            int pos = (int) (offset & chunkSizeModMask);
+            byte[] buf = chunks[((int) (offset >>> chunkShift))];
+
+            final int end = pos + 8;
+            long ret = 0;
+            for (; pos < end; pos++) {
+                ret = (ret << 8) | (buf[pos] & 0xFF);
+            }
+            return ret;
+        }
+
+        @Override
+        public int getInt(long offset) {
+            int pos = (int) (offset & chunkSizeModMask);
+            byte[] buf = chunks[((int) (offset >>> chunkShift))];
+
+            final int end = pos + 4;
+            int ret = 0;
+            for (; pos < end; pos++) {
+                ret = (ret << 8) | (buf[pos] & 0xFF);
+            }
+            return ret;
+        }
+
+        @Override
+        public byte getByte(long offset) {
+            final byte[] b = chunks[((int) (offset >>> chunkShift))];
+            return b[((int) (offset & chunkSizeModMask))];
+        }
+
+        @Override
+        public DataInput getDataInput(long offset, int size) {
+            int pos = (int) (offset & chunkSizeModMask);
+            byte[] buf = chunks[((int) (offset >>> chunkShift))];
+            return new DataIO.DataInputByteArray(buf,pos);
+        }
+
+        @Override
+        public void close() {
+            chunks=null;
+        }
+
+        @Override
+        public void sync() {
+
+        }
+
+
+        @Override
+        public boolean isEmpty() {
+            return chunks.length==0;
+        }
+
+        @Override
+        public void deleteFile() {
+
+        }
+
+        @Override
+        public int sliceSize() {
+            return chunkSize;
+        }
+
+        @Override
+        public boolean isSliced() {
+            return true;
+        }
+
+        @Override
+        public File getFile() {
+            return null;
+        }
+
     }
 }
 

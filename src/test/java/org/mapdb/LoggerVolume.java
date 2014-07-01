@@ -184,6 +184,11 @@ public class LoggerVolume extends Volume{
     }
 
     @Override
+    public int sliceSize() {
+        return  logged.sliceSize();
+    }
+
+    @Override
     public boolean isEmpty() {
         return logged.isEmpty();
     }

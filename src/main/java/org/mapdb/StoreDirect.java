@@ -15,6 +15,7 @@
  */
 package org.mapdb;
 
+import java.io.DataInput;
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
@@ -493,11 +494,11 @@ public class StoreDirect extends Store{
         if(indexVal == MASK_DISCARD) return null; //preallocated record
 
         int size = (int) (indexVal>>>48);
-        DataInput2 di;
+        DataInput di;
         long offset = indexVal&MASK_OFFSET;
         if((indexVal& MASK_LINKED)==0){
             //read single record
-            di = (DataInput2) phys.getDataInput(offset, size);
+            di = phys.getDataInput(offset, size);
 
         }else{
             //is linked, first construct buffer we will read data to
@@ -507,7 +508,7 @@ public class StoreDirect extends Store{
             byte[] buf = new byte[64];
             //read parts into segment
             for(;;){
-                DataInput2 in = (DataInput2) phys.getDataInput(offset + c, size-c);
+                DataInput in =  phys.getDataInput(offset + c, size-c);
 
                 if(buf.length<pos+size-c)
                     buf = Arrays.copyOf(buf,Math.max(pos+size-c,buf.length*2)); //buf to small, grow
@@ -521,7 +522,7 @@ public class StoreDirect extends Store{
                 //is the next part last?
                 c =  ((next& MASK_LINKED)==0)? 0 : 8;
             }
-            di = new DataInput2(buf);
+            di = new DataIO.DataInputByteArray(buf);
             size = pos;
         }
         return deserialize(serializer, size, di);

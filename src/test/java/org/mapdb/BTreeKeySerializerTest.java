@@ -2,6 +2,7 @@ package org.mapdb;
 
 import org.junit.Test;
 
+import java.io.DataInput;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -74,7 +75,7 @@ public class BTreeKeySerializerTest {
 
         tuple2_serializer.serialize(out, 1, v.size() - 1, v.toArray());
 
-        DataInput2 in = new DataInput2(out.copyBytes());
+        DataInput in = new DataIO.DataInputByteArray(out.copyBytes());
         Object[] nn = tuple2_serializer.deserialize(in,1,v.size()-1, v.size());
 
         assertArrayEquals(v.toArray(), nn);
@@ -96,7 +97,7 @@ public class BTreeKeySerializerTest {
         DataOutput2 out = new DataOutput2();
         tuple2_serializer.serialize(out, 1, v.size() - 1, v.toArray());
 
-        DataInput2 in = new DataInput2(out.copyBytes());
+        DataInput in = new DataIO.DataInputByteArray(out.copyBytes());
         Object[] nn = tuple2_serializer.deserialize(in,1,v.size()-1, v.size());
 
         assertArrayEquals(v.toArray(), nn);
@@ -126,7 +127,7 @@ public class BTreeKeySerializerTest {
 
         tuple3_serializer.serialize(out, 1, v.size() - 1, v.toArray());
 
-        DataInput2 in = new DataInput2(out.copyBytes());
+        DataInput in = new DataIO.DataInputByteArray(out.copyBytes());
         Object[] nn = tuple3_serializer.deserialize(in,1,v.size()-1, v.size());
 
         assertArrayEquals(v.toArray(), nn);
@@ -150,7 +151,7 @@ public class BTreeKeySerializerTest {
         DataOutput2 out = new DataOutput2();
         tuple3_serializer.serialize(out, 1, v.size() - 1, v.toArray());
 
-        DataInput2 in = new DataInput2(out.copyBytes());
+        DataInput in = new DataIO.DataInputByteArray(out.copyBytes());
         Object[] nn = tuple3_serializer.deserialize(in,1,v.size()-1, v.size());
 
         assertArrayEquals(v.toArray(), nn);
@@ -180,7 +181,7 @@ public class BTreeKeySerializerTest {
 
         tuple4_serializer.serialize(out, 1, v.size() - 1, v.toArray());
 
-        DataInput2 in = new DataInput2(out.copyBytes());
+        DataInput in = new DataIO.DataInputByteArray(out.copyBytes());
         Object[] nn = tuple4_serializer.deserialize(in,1,v.size()-1, v.size());
 
         assertArrayEquals(v.toArray(), nn);
@@ -206,7 +207,7 @@ public class BTreeKeySerializerTest {
         DataOutput2 out = new DataOutput2();
         tuple4_serializer.serialize(out, 1, v.size() - 1, v.toArray());
 
-        DataInput2 in = new DataInput2(out.copyBytes());
+        DataInput in = new DataIO.DataInputByteArray(out.copyBytes());
         Object[] nn = tuple4_serializer.deserialize(in,1,v.size()-1, v.size());
 
         assertArrayEquals(v.toArray(), nn);
@@ -236,7 +237,7 @@ public class BTreeKeySerializerTest {
 
         tuple5_serializer.serialize(out, 1, v.size() - 1, v.toArray());
 
-        DataInput2 in = new DataInput2(out.copyBytes());
+        DataInput in = new DataIO.DataInputByteArray(out.copyBytes());
         Object[] nn = tuple5_serializer.deserialize(in,1,v.size()-1, v.size());
 
         assertArrayEquals(v.toArray(), nn);
@@ -265,7 +266,7 @@ public class BTreeKeySerializerTest {
         DataOutput2 out = new DataOutput2();
         tuple5_serializer.serialize(out, 1, v.size() - 1, v.toArray());
 
-        DataInput2 in = new DataInput2(out.copyBytes());
+        DataInput in = new DataIO.DataInputByteArray(out.copyBytes());
         Object[] nn = tuple5_serializer.deserialize(in,1,v.size()-1, v.size());
 
         assertArrayEquals(v.toArray(), nn);
@@ -295,7 +296,7 @@ public class BTreeKeySerializerTest {
 
         tuple6_serializer.serialize(out, 1, v.size() - 1, v.toArray());
 
-        DataInput2 in = new DataInput2(out.copyBytes());
+        DataInput in = new DataIO.DataInputByteArray(out.copyBytes());
         Object[] nn = tuple6_serializer.deserialize(in,1,v.size()-1, v.size());
 
         assertArrayEquals(v.toArray(), nn);
@@ -326,7 +327,7 @@ public class BTreeKeySerializerTest {
         DataOutput2 out = new DataOutput2();
         tuple6_serializer.serialize(out, 1, v.size() - 1, v.toArray());
 
-        DataInput2 in = new DataInput2(out.copyBytes());
+        DataInput in = new DataIO.DataInputByteArray(out.copyBytes());
         Object[] nn = tuple6_serializer.deserialize(in,1,v.size()-1, v.size());
 
         assertArrayEquals(v.toArray(), nn);

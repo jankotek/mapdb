@@ -18,7 +18,6 @@ package org.mapdb;
 
 import java.io.DataInput;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 
 /**
@@ -26,9 +25,9 @@ import java.nio.ByteBuffer;
  *
  * @author Jan Kotek
  */
-public final class DataInput2 extends InputStream implements DataInput {
+public final class DataInput2 implements DataInput, DataIO.DataInputInternal {
 
-    public ByteBuffer buf;
+    public final ByteBuffer buf;
     public int pos;
 
     public DataInput2(final ByteBuffer buf, final int pos) {
@@ -36,6 +35,9 @@ public final class DataInput2 extends InputStream implements DataInput {
         this.pos = pos;
     }
 
+    /**
+     * @deprecated  use {@link org.mapdb.DataIO.DataInputByteArray}
+     */
     public DataInput2(byte[] b) {
         this(ByteBuffer.wrap(b),0);
     }
@@ -89,6 +91,8 @@ public final class DataInput2 extends InputStream implements DataInput {
 
     @Override
     public char readChar() throws IOException {
+        // I know: 4 bytes, but char only consumes 2,
+        // has to stay here for backward compatibility
         return (char) readInt();
     }
 
@@ -131,10 +135,6 @@ public final class DataInput2 extends InputStream implements DataInput {
         return SerializerBase.deserializeString(this, size);
     }
 
-    @Override
-    public int read() throws IOException {
-        return readUnsignedByte();
-    }
 
 
 
@@ -214,4 +214,31 @@ public final class DataInput2 extends InputStream implements DataInput {
         throw new AssertionError("Malformed long.");
     }
 
+    @Override
+    public int getPos() {
+        return pos;
+    }
+
+    @Override
+    public void setPos(int pos) {
+        this.pos = pos;
+    }
+
+    @Override
+    public byte[] internalByteArray() {
+        return null;
+    }
+
+    @Override
+    public ByteBuffer internalByteBuffer() {
+        return buf;
+    }
+
+    @Override
+    public void close() {
+
+    }
+
+
 }
+

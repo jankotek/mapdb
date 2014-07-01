@@ -16,9 +16,9 @@
 
 package org.mapdb;
 
+import java.io.DataInput;
 import java.io.IOError;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
@@ -426,7 +426,7 @@ public class StoreWAL extends StoreDirect {
         if(r.length==1){
             //single record
             final int size = (int) (r[0]>>>48);
-            DataInput2 in = (DataInput2) log.getDataInput(r[0]&LOG_MASK_OFFSET, size);
+            DataInput in = log.getDataInput(r[0]&LOG_MASK_OFFSET, size);
             return deserialize(serializer,size,in);
         }else{
             //linked record
@@ -445,7 +445,7 @@ public class StoreWAL extends StoreDirect {
             }
             if(pos!=totalSize)throw new AssertionError();
 
-            return deserialize(serializer,totalSize, new DataInput2(b));
+            return deserialize(serializer,totalSize, new DataIO.DataInputByteArray(b));
         }
     }
 
@@ -926,14 +926,9 @@ public class StoreWAL extends StoreDirect {
                 final int size = (int) (offset>>>48);
                 offset = offset&MASK_OFFSET;
 
-                //transfer byte[] directly from log file without copying into memory
-                DataInput2 input = (DataInput2) log.getDataInput(logSize, size);
-                ByteBuffer buf = input.buf.duplicate();
-
-                buf.position(input.pos);
-                buf.limit(input.pos+size);
+                //transfer buffer directly from log file without copying into memory
                 phys.ensureAvailable(offset+size);
-                phys.putData(offset, buf);
+                log.transferInto(logSize,phys,offset,size);
 
                 logSize+=size;
             }else if(ins == WAL_SKIP_REST_OF_BLOCK){

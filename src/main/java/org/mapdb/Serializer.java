@@ -551,7 +551,7 @@ public interface Serializer<A> {
 
             byte[] unpacked = new byte[unpackedSize];
             LZF.get().expand(in,unpacked,0,unpackedSize);
-            DataInput2 in2 = new DataInput2(unpacked);
+            DataIO.DataInputByteArray in2 = new DataIO.DataInputByteArray(unpacked);
             E ret =  serializer.deserialize(in2,unpackedSize);
             assert(in2.pos==unpackedSize): "data were not fully read";
             return ret;

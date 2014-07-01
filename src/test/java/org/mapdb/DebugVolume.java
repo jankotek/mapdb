@@ -123,6 +123,11 @@ public class DebugVolume extends Volume{
     }
 
     @Override
+    public int sliceSize() {
+        return vol.sliceSize();
+    }
+
+    @Override
     public boolean isEmpty() {
         out.println("isEmpty()");
         return vol.isEmpty();

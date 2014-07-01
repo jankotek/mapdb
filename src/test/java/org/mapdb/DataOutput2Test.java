@@ -7,6 +7,8 @@ import static org.junit.Assert.assertEquals;
 
 public class DataOutput2Test {
 
+    //TODO more tests here for compability between DataOutput2 and other DataInputs
+
     DataOutput2 out = new DataOutput2();
 
     DataInput2 in(){

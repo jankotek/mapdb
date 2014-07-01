@@ -48,7 +48,7 @@ public final class DataOutput2 extends OutputStream implements DataOutput {
     }
 
     /**
-     * make sure there will be enought space in buffer to write N bytes
+     * make sure there will be enough space in buffer to write N bytes
      */
     public void ensureAvail(final int n) {
         if (pos + n >= buf.length) {
@@ -62,11 +62,6 @@ public final class DataOutput2 extends OutputStream implements DataOutput {
     public void write(final int b) throws IOException {
         ensureAvail(1);
         buf[pos++] = (byte) b;
-    }
-
-    @Override
-    public void write(final byte[] b) throws IOException {
-        write(b, 0, b.length);
     }
 
     @Override
@@ -97,6 +92,8 @@ public final class DataOutput2 extends OutputStream implements DataOutput {
 
     @Override
     public void writeChar(final int v) throws IOException {
+        // I know: 4 bytes, but char only consumes 2,
+        // has to stay here for backward compatibility
         writeInt(v);
     }
 

@@ -457,7 +457,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             Object o;
 
             if(classInfo.useObjectStream){
-                ObjectInputStream2 in2 = new ObjectInputStream2((InputStream) in);
+                ObjectInputStream2 in2 = new ObjectInputStream2(in);
                 o = in2.readObject();
             }else if(classInfo.isEnum) {
                 int ordinal = DataInput2.unpackInt(in);
@@ -606,8 +606,8 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
     protected final class ObjectInputStream2 extends ObjectInputStream{
 
-        protected ObjectInputStream2(InputStream in) throws IOException, SecurityException {
-            super(in);
+        protected ObjectInputStream2(DataInput in) throws IOException, SecurityException {
+            super(new DataIO.DataInputToStream(in));
         }
 
         @Override

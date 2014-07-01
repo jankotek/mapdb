@@ -231,7 +231,7 @@ public abstract class Store implements Engine{
 
                 if(CC.PARANOID)try{
                     //check that array is the same after deserialization
-                    DataInput2 inp = new DataInput2(Arrays.copyOf(out.buf,out.pos));
+                    DataInput inp = new DataIO.DataInputByteArray(Arrays.copyOf(out.buf,out.pos));
                     byte[] decompress = deserialize(Serializer.BYTE_ARRAY_NOSIZE,out.pos,inp);
 
                     DataOutput2 expected = newDataOut2();
@@ -262,7 +262,7 @@ public abstract class Store implements Engine{
 
 
     protected <A> A deserialize(Serializer<A> serializer, int size, DataInput input) throws IOException {
-        DataInput2 di = (DataInput2) input;
+        DataIO.DataInputInternal di = (DataIO.DataInputInternal) input;
         if(size>0){
             if(checksum){
                 //last two digits is checksum
@@ -271,15 +271,15 @@ public abstract class Store implements Engine{
                 //read data into tmp buffer
                 DataOutput2 tmp = newDataOut2();
                 tmp.ensureAvail(size);
-                int oldPos = di.pos;
-                di.read(tmp.buf,0,size);
-                di.pos = oldPos;
+                int oldPos = di.getPos();
+                di.readFully(tmp.buf, 0, size);
+                final int checkExpected = di.readInt();
+                di.setPos(oldPos);
                 //calculate checksums
                 CRC32 crc = new CRC32();
                 crc.update(tmp.buf, 0, size);
                 recycledDataOuts.offer(tmp);
                 int check = (int) crc.getValue();
-                int checkExpected = di.buf.getInt(di.pos+size);
                 if(check!=checkExpected)
                     throw new IOException("Checksum does not match, data broken");
             }
@@ -288,10 +288,10 @@ public abstract class Store implements Engine{
                 DataOutput2 tmp = newDataOut2();
                 size-=1;
                 tmp.ensureAvail(size);
-                di.read(tmp.buf,0,size);
+                di.readFully(tmp.buf, 0, size);
                 encryptionXTEA.decrypt(tmp.buf, 0, size);
                 int cut = di.readUnsignedByte(); //length dif from 16bytes
-                di = new DataInput2(tmp.buf);
+                di = new DataIO.DataInputByteArray(tmp.buf);
                 size -= cut;
             }
 
@@ -307,20 +307,30 @@ public abstract class Store implements Engine{
                     CompressLZF lzf = LZF.get();
                     //TODO copy to heap if Volume is not mapped
                     //argument is not needed; unpackedSize= size-(di.pos-origPos),
-                    lzf.expand(di.buf,di.pos,out.buf,0,decompSize);
-                    di = new DataInput2(out.buf);
+                    byte[] b = di.internalByteArray();
+                    if(b!=null) {
+                        lzf.expand(b, di.getPos(), out.buf, 0, decompSize);
+                    }else{
+                        ByteBuffer bb = di.internalByteBuffer();
+                        if(bb!=null) {
+                            lzf.expand(bb, di.getPos(), out.buf, 0, decompSize);
+                        }else{
+                            lzf.expand(di,out.buf, 0, decompSize);
+                        }
+                    }
+                    di = new DataIO.DataInputByteArray(out.buf);
                     size = decompSize;
                 }
             }
 
         }
 
-        int start = di.pos;
+        int start = di.getPos();
 
         A ret = serializer.deserialize(di,size);
-        if(size+start>di.pos)
+        if(size+start>di.getPos())
             throw new AssertionError("data were not fully read, check your serializer ");
-        if(size+start<di.pos)
+        if(size+start<di.getPos())
             throw new AssertionError("data were read beyond record size, check your serializer");
         return ret;
     }

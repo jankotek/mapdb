@@ -16,6 +16,7 @@
 
 package org.mapdb;
 
+import java.io.DataInput;
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
@@ -417,8 +418,8 @@ public class StoreAppend extends Store{
         fileOffset+= packedLongSize(size);
         size-=SIZEP;
         if(size<0) return null;
-        if(size==0) return serializer.deserialize(new DataInput2(new byte[0]),0);
-        DataInput2 in = (DataInput2) vol.getDataInput(fileOffset, (int) size);
+        if(size==0) return serializer.deserialize(new DataIO.DataInputByteArray(new byte[0]),0);
+        DataInput in =  vol.getDataInput(fileOffset, (int) size);
 
         return deserialize(serializer, (int) size,in);
     }
