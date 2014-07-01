@@ -198,18 +198,18 @@ public abstract class Volume implements Closeable{
         Volume createTransLogVolume();
     }
 
-    public static Volume volumeForFile(File f, boolean useRandomAccessFile, boolean readOnly, long sizeLimit, int chunkShift, int sizeIncrement) {
+    public static Volume volumeForFile(File f, boolean useRandomAccessFile, boolean readOnly, long sizeLimit, int sliceShift, int sizeIncrement) {
         return useRandomAccessFile ?
-                new FileChannelVol(f, readOnly,sizeLimit, chunkShift, sizeIncrement):
-                new MappedFileVol(f, readOnly,sizeLimit,chunkShift, sizeIncrement);
+                new FileChannelVol(f, readOnly,sizeLimit, sliceShift, sizeIncrement):
+                new MappedFileVol(f, readOnly,sizeLimit,sliceShift, sizeIncrement);
     }
 
 
     public static Factory fileFactory(final File indexFile, final int rafMode, final boolean readOnly, final long sizeLimit,
-                                      final int chunkShift, final int sizeIncrement){
+                                      final int sliceShift, final int sizeIncrement){
         return fileFactory(
                 indexFile,
-                rafMode, readOnly, sizeLimit, chunkShift, sizeIncrement,
+                rafMode, readOnly, sizeLimit, sliceShift, sizeIncrement,
                 new File(indexFile.getPath() + StoreDirect.DATA_FILE_EXT),
                 new File(indexFile.getPath() + StoreWAL.TRANS_LOG_FILE_EXT));
     }
@@ -218,7 +218,7 @@ public abstract class Volume implements Closeable{
                                       final int rafMode,
                                       final boolean readOnly,
                                       final long sizeLimit,
-                                      final int chunkShift,
+                                      final int sliceShift,
                                       final int sizeIncrement,
 
                                       final File physFile,
@@ -226,40 +226,40 @@ public abstract class Volume implements Closeable{
         return new Factory() {
             @Override
             public Volume createIndexVolume() {
-                return volumeForFile(indexFile, rafMode>1, readOnly, sizeLimit, chunkShift, sizeIncrement);
+                return volumeForFile(indexFile, rafMode>1, readOnly, sizeLimit, sliceShift, sizeIncrement);
             }
 
             @Override
             public Volume createPhysVolume() {
-                return volumeForFile(physFile, rafMode>0, readOnly, sizeLimit, chunkShift, sizeIncrement);
+                return volumeForFile(physFile, rafMode>0, readOnly, sizeLimit, sliceShift, sizeIncrement);
             }
 
             @Override
             public Volume createTransLogVolume() {
-                return volumeForFile(transLogFile, rafMode>0, readOnly, sizeLimit,chunkShift, sizeIncrement);
+                return volumeForFile(transLogFile, rafMode>0, readOnly, sizeLimit,sliceShift, sizeIncrement);
             }
         };
     }
 
 
-    public static Factory memoryFactory(final boolean useDirectBuffer, final long sizeLimit, final int chunkShift) {
+    public static Factory memoryFactory(final boolean useDirectBuffer, final long sizeLimit, final int sliceShift) {
         return new Factory() {
 
             @Override public synchronized  Volume createIndexVolume() {
                 return useDirectBuffer?
-                        new MemoryVol(useDirectBuffer, sizeLimit, chunkShift):
-                        new ByteArrayVol(sizeLimit, chunkShift);
+                        new MemoryVol(useDirectBuffer, sizeLimit, sliceShift):
+                        new ByteArrayVol(sizeLimit, sliceShift);
             }
 
             @Override public synchronized Volume createPhysVolume() {
                 return useDirectBuffer?
-                        new MemoryVol(useDirectBuffer, sizeLimit, chunkShift):
-                        new ByteArrayVol(sizeLimit, chunkShift);            }
+                        new MemoryVol(useDirectBuffer, sizeLimit, sliceShift):
+                        new ByteArrayVol(sizeLimit, sliceShift);            }
 
             @Override public synchronized Volume createTransLogVolume() {
                 return useDirectBuffer?
-                        new MemoryVol(useDirectBuffer, sizeLimit, chunkShift):
-                        new ByteArrayVol(sizeLimit, chunkShift);
+                        new MemoryVol(useDirectBuffer, sizeLimit, sliceShift):
+                        new ByteArrayVol(sizeLimit, sliceShift);
             }
         };
     }
@@ -277,19 +277,19 @@ public abstract class Volume implements Closeable{
 
         protected final long sizeLimit;
         protected final boolean hasLimit;
-        protected final int chunkShift;
-        protected final int chunkSizeModMask;
-        protected final int chunkSize;
+        protected final int sliceShift;
+        protected final int sliceSizeModMask;
+        protected final int sliceSize;
 
-        protected volatile ByteBuffer[] chunks = new ByteBuffer[0];
+        protected volatile ByteBuffer[] slices = new ByteBuffer[0];
         protected final boolean readOnly;
 
-        protected ByteBufferVol(boolean readOnly, long sizeLimit, int chunkShift) {
+        protected ByteBufferVol(boolean readOnly, long sizeLimit, int sliceShift) {
             this.readOnly = readOnly;
             this.sizeLimit = sizeLimit;
-            this.chunkShift = chunkShift;
-            this.chunkSize = 1<< chunkShift;
-            this.chunkSizeModMask = chunkSize -1;
+            this.sliceShift = sliceShift;
+            this.sliceSize = 1<< sliceShift;
+            this.sliceSizeModMask = sliceSize -1;
 
             this.hasLimit = sizeLimit>0;
         }
@@ -299,30 +299,30 @@ public abstract class Volume implements Closeable{
         public final boolean tryAvailable(long offset) {
             if (hasLimit && offset > sizeLimit) return false;
 
-            int chunkPos = (int) (offset >>> chunkShift);
+            int slicePos = (int) (offset >>> sliceShift);
 
             //check for most common case, this is already mapped
-            if (chunkPos < chunks.length){
+            if (slicePos < slices.length){
                 return true;
             }
 
             growLock.lock();
             try{
                 //check second time
-                if(chunkPos< chunks.length)
+                if(slicePos< slices.length)
                     return true;
 
-                int oldSize = chunks.length;
-                ByteBuffer[] chunks2 = chunks;
+                int oldSize = slices.length;
+                ByteBuffer[] slices2 = slices;
 
-                chunks2 = Arrays.copyOf(chunks2, Math.max(chunkPos+1, chunks2.length + chunks2.length/1000));
+                slices2 = Arrays.copyOf(slices2, Math.max(slicePos+1, slices2.length + slices2.length/1000));
 
-                for(int pos=oldSize;pos<chunks2.length;pos++) {
-                    chunks2[pos]=makeNewBuffer(1L*chunkSize*pos);
+                for(int pos=oldSize;pos<slices2.length;pos++) {
+                    slices2[pos]=makeNewBuffer(1L* sliceSize *pos);
                 }
 
 
-                chunks = chunks2;
+                slices = slices2;
             }finally{
                 growLock.unlock();
             }
@@ -332,31 +332,31 @@ public abstract class Volume implements Closeable{
         protected abstract ByteBuffer makeNewBuffer(long offset);
 
         @Override public final void putLong(final long offset, final long value) {
-            chunks[(int)(offset >>> chunkShift)].putLong((int) (offset & chunkSizeModMask), value);
+            slices[(int)(offset >>> sliceShift)].putLong((int) (offset & sliceSizeModMask), value);
         }
 
         @Override public final void putInt(final long offset, final int value) {
-            chunks[(int)(offset >>> chunkShift)].putInt((int) (offset & chunkSizeModMask), value);
+            slices[(int)(offset >>> sliceShift)].putInt((int) (offset & sliceSizeModMask), value);
         }
 
 
         @Override public final void putByte(final long offset, final byte value) {
-            chunks[(int)(offset >>> chunkShift)].put((int) (offset & chunkSizeModMask), value);
+            slices[(int)(offset >>> sliceShift)].put((int) (offset & sliceSizeModMask), value);
         }
 
 
 
         @Override public void putData(final long offset, final byte[] src, int srcPos, int srcSize){
-            final ByteBuffer b1 = chunks[(int)(offset >>> chunkShift)].duplicate();
-            final int bufPos = (int) (offset&chunkSizeModMask);
+            final ByteBuffer b1 = slices[(int)(offset >>> sliceShift)].duplicate();
+            final int bufPos = (int) (offset& sliceSizeModMask);
 
             b1.position(bufPos);
             b1.put(src, srcPos, srcSize);
         }
 
         @Override public final void putData(final long offset, final ByteBuffer buf) {
-            final ByteBuffer b1 = chunks[(int)(offset >>> chunkShift)].duplicate();
-            final int bufPos = (int) (offset&chunkSizeModMask);
+            final ByteBuffer b1 = slices[(int)(offset >>> sliceShift)].duplicate();
+            final int bufPos = (int) (offset& sliceSizeModMask);
             //no overlap, so just write the value
             b1.position(bufPos);
             b1.put(buf);
@@ -364,8 +364,8 @@ public abstract class Volume implements Closeable{
 
         @Override
         public void transferInto(long inputOffset, Volume target, long targetOffset, int size) {
-            final ByteBuffer b1 = chunks[(int)(inputOffset >>> chunkShift)].duplicate();
-            final int bufPos = (int) (inputOffset&chunkSizeModMask);
+            final ByteBuffer b1 = slices[(int)(inputOffset >>> sliceShift)].duplicate();
+            final int bufPos = (int) (inputOffset& sliceSizeModMask);
 
             b1.position(bufPos);
             b1.limit(bufPos+size);
@@ -373,27 +373,27 @@ public abstract class Volume implements Closeable{
         }
 
         @Override final public long getLong(long offset) {
-            return chunks[(int)(offset >>> chunkShift)].getLong((int) (offset&chunkSizeModMask));
+            return slices[(int)(offset >>> sliceShift)].getLong((int) (offset& sliceSizeModMask));
         }
 
         @Override final public int getInt(long offset) {
-            return chunks[(int)(offset >>> chunkShift)].getInt((int) (offset&chunkSizeModMask));
+            return slices[(int)(offset >>> sliceShift)].getInt((int) (offset& sliceSizeModMask));
         }
 
 
         @Override public final byte getByte(long offset) {
-            return chunks[(int)(offset >>> chunkShift)].get((int) (offset&chunkSizeModMask));
+            return slices[(int)(offset >>> sliceShift)].get((int) (offset& sliceSizeModMask));
         }
 
 
         @Override
         public final DataInput2 getDataInput(long offset, int size) {
-            return new DataInput2(chunks[(int)(offset >>> chunkShift)], (int) (offset&chunkSizeModMask));
+            return new DataInput2(slices[(int)(offset >>> sliceShift)], (int) (offset& sliceSizeModMask));
         }
 
         @Override
         public boolean isEmpty() {
-            return chunks.length==0;
+            return slices.length==0;
         }
 
         @Override
@@ -403,7 +403,7 @@ public abstract class Volume implements Closeable{
 
         @Override
         public int sliceSize() {
-            return chunkSize;
+            return sliceSize;
         }
 
         /**
@@ -461,8 +461,8 @@ public abstract class Volume implements Closeable{
         protected final java.io.RandomAccessFile raf;
 
 
-        public MappedFileVol(File file, boolean readOnly, long sizeLimit, int chunkShift, int sizeIncrement) {
-            super(readOnly, sizeLimit, chunkShift);
+        public MappedFileVol(File file, boolean readOnly, long sizeLimit, int sliceShift, int sizeIncrement) {
+            super(readOnly, sizeLimit, sliceShift);
             this.file = file;
             this.mapMode = readOnly? FileChannel.MapMode.READ_ONLY: FileChannel.MapMode.READ_WRITE;
             try {
@@ -473,12 +473,12 @@ public abstract class Volume implements Closeable{
                 final long fileSize = fileChannel.size();
                 if(fileSize>0){
                     //map existing data
-                    chunks = new ByteBuffer[(int) ((fileSize>>> chunkShift))];
-                    for(int i=0;i<chunks.length;i++){
-                        chunks[i] = makeNewBuffer(1L*i*chunkSize);
+                    slices = new ByteBuffer[(int) ((fileSize>>> sliceShift))];
+                    for(int i=0;i< slices.length;i++){
+                        slices[i] = makeNewBuffer(1L*i* sliceSize);
                     }
                 }else{
-                    chunks = new ByteBuffer[0];
+                    slices = new ByteBuffer[0];
                 }
             } catch (IOException e) {
                 throw new IOError(e);
@@ -496,13 +496,13 @@ public abstract class Volume implements Closeable{
 //                if(!readOnly)
 //                    sync();
 
-                for(ByteBuffer b: chunks){
+                for(ByteBuffer b: slices){
                     if(b!=null && (b instanceof MappedByteBuffer)){
                         unmap((MappedByteBuffer) b);
                     }
                 }
 
-                chunks = null;
+                slices = null;
 
             } catch (IOException e) {
                 throw new IOError(e);
@@ -517,7 +517,7 @@ public abstract class Volume implements Closeable{
             if(readOnly) return;
             growLock.lock();
             try{
-                for(ByteBuffer b: chunks){
+                for(ByteBuffer b: slices){
                     if(b!=null && (b instanceof MappedByteBuffer)){
                         MappedByteBuffer bb = ((MappedByteBuffer) b);
                         bb.force();
@@ -532,15 +532,15 @@ public abstract class Volume implements Closeable{
 
         @Override
         public int sliceSize() {
-            return chunkSize;
+            return sliceSize;
         }
 
         @Override
         protected ByteBuffer makeNewBuffer(long offset) {
             try {
-                assert((offset&chunkSizeModMask)==0);
+                assert((offset& sliceSizeModMask)==0);
                 assert(offset>=0);
-                ByteBuffer ret = fileChannel.map(mapMode,offset, chunkSize);
+                ByteBuffer ret = fileChannel.map(mapMode,offset, sliceSize);
                 if(mapMode == FileChannel.MapMode.READ_ONLY) {
                     ret = ret.asReadOnlyBuffer();
                 }
@@ -564,19 +564,19 @@ public abstract class Volume implements Closeable{
 
         @Override
         public void truncate(long size) {
-            final int maxSize = 1+(int) (size >>> chunkShift);
-            if(maxSize==chunks.length)
+            final int maxSize = 1+(int) (size >>> sliceShift);
+            if(maxSize== slices.length)
                 return;
-            if(maxSize>chunks.length) {
+            if(maxSize> slices.length) {
                 ensureAvailable(size);
                 return;
             }
             growLock.lock();
             try{
-                if(maxSize>=chunks.length)
+                if(maxSize>= slices.length)
                     return;
-                ByteBuffer[] old = chunks;
-                chunks = Arrays.copyOf(chunks,maxSize);
+                ByteBuffer[] old = slices;
+                slices = Arrays.copyOf(slices,maxSize);
 
                 //unmap remaining buffers
                 for(int i=maxSize;i<old.length;i++){
@@ -592,14 +592,14 @@ public abstract class Volume implements Closeable{
                 }
 
                 try {
-                    fileChannel.truncate(1L * chunkSize *maxSize);
+                    fileChannel.truncate(1L * sliceSize *maxSize);
                 } catch (IOException e) {
                     throw new IOError(e);
                 }
 
                 if (ByteBufferVol.windowsWorkaround) {
                     for(int pos=0;pos<maxSize;pos++) {
-                        chunks[pos]=makeNewBuffer(1L*chunkSize*pos);
+                        slices[pos]=makeNewBuffer(1L* sliceSize *pos);
                     }
                 }
 
@@ -618,34 +618,34 @@ public abstract class Volume implements Closeable{
             return super.toString()+",direct="+useDirectBuffer;
         }
 
-        public MemoryVol(final boolean useDirectBuffer, final long sizeLimit, final int chunkShift) {
-            super(false,sizeLimit, chunkShift);
+        public MemoryVol(final boolean useDirectBuffer, final long sizeLimit, final int sliceShift) {
+            super(false,sizeLimit, sliceShift);
             this.useDirectBuffer = useDirectBuffer;
         }
 
         @Override
         protected ByteBuffer makeNewBuffer(long offset) {
             return useDirectBuffer?
-                    ByteBuffer.allocateDirect(chunkSize):
-                    ByteBuffer.allocate(chunkSize);
+                    ByteBuffer.allocateDirect(sliceSize):
+                    ByteBuffer.allocate(sliceSize);
         }
 
 
         @Override
         public void truncate(long size) {
-            final int maxSize = 1+(int) (size >>> chunkShift);
-            if(maxSize==chunks.length)
+            final int maxSize = 1+(int) (size >>> sliceShift);
+            if(maxSize== slices.length)
                 return;
-            if(maxSize>chunks.length) {
+            if(maxSize> slices.length) {
                 ensureAvailable(size);
                 return;
             }
             growLock.lock();
             try{
-                if(maxSize>=chunks.length)
+                if(maxSize>= slices.length)
                     return;
-                ByteBuffer[] old = chunks;
-                chunks = Arrays.copyOf(chunks,maxSize);
+                ByteBuffer[] old = slices;
+                slices = Arrays.copyOf(slices,maxSize);
 
                 //unmap remaining buffers
                 for(int i=maxSize;i<old.length;i++){
@@ -662,12 +662,12 @@ public abstract class Volume implements Closeable{
         @Override public void close() {
             growLock.lock();
             try{
-                for(ByteBuffer b: chunks){
+                for(ByteBuffer b: slices){
                     if(b!=null && (b instanceof MappedByteBuffer)){
                         unmap((MappedByteBuffer)b);
                     }
                 }
-                chunks = null;
+                slices = null;
             }finally{
                 growLock.unlock();
             }
@@ -691,7 +691,7 @@ public abstract class Volume implements Closeable{
     public static final class FileChannelVol extends Volume {
 
         protected final File file;
-        protected final int chunkSize;
+        protected final int sliceSize;
         protected RandomAccessFile raf;
         protected FileChannel channel;
         protected final boolean readOnly;
@@ -701,12 +701,12 @@ public abstract class Volume implements Closeable{
         protected volatile long size;
         protected final Object growLock = new Object();
 
-        public FileChannelVol(File file, boolean readOnly, long sizeLimit, int chunkShift, int sizeIncrement){
+        public FileChannelVol(File file, boolean readOnly, long sizeLimit, int sliceShift, int sizeIncrement){
             this.file = file;
             this.readOnly = readOnly;
             this.sizeLimit = sizeLimit;
             this.hasLimit = sizeLimit>0;
-            this.chunkSize = 1<<chunkShift;
+            this.sliceSize = 1<<sliceShift;
             try {
                 checkFolder(file,readOnly);
                 if(readOnly && !file.exists()){
@@ -742,8 +742,8 @@ public abstract class Volume implements Closeable{
         @Override
         public boolean tryAvailable(long offset) {
             if(hasLimit && offset>sizeLimit) return false;
-            if(offset% chunkSize !=0)
-                offset += chunkSize - offset% chunkSize; //round up to multiply of chunk size
+            if(offset% sliceSize !=0)
+                offset += sliceSize - offset% sliceSize; //round up to multiply of slice size
 
             if(offset>size)synchronized (growLock){
                 try {
@@ -997,17 +997,17 @@ public abstract class Volume implements Closeable{
 
         protected final long sizeLimit;
         protected final boolean hasLimit;
-        protected final int chunkShift;
-        protected final int chunkSizeModMask;
-        protected final int chunkSize;
+        protected final int sliceShift;
+        protected final int sliceSizeModMask;
+        protected final int sliceSize;
 
-        protected volatile byte[][] chunks = new byte[0][];
+        protected volatile byte[][] slices = new byte[0][];
 
-        protected ByteArrayVol(long sizeLimit, int chunkShift) {
+        protected ByteArrayVol(long sizeLimit, int sliceShift) {
             this.sizeLimit = sizeLimit;
-            this.chunkShift = chunkShift;
-            this.chunkSize = 1<< chunkShift;
-            this.chunkSizeModMask = chunkSize -1;
+            this.sliceShift = sliceShift;
+            this.sliceSize = 1<< sliceShift;
+            this.sliceSizeModMask = sliceSize -1;
 
             this.hasLimit = sizeLimit>0;
         }
@@ -1017,30 +1017,30 @@ public abstract class Volume implements Closeable{
         public final boolean tryAvailable(long offset) {
             if (hasLimit && offset > sizeLimit) return false;
 
-            int chunkPos = (int) (offset >>> chunkShift);
+            int slicePos = (int) (offset >>> sliceShift);
 
             //check for most common case, this is already mapped
-            if (chunkPos < chunks.length){
+            if (slicePos < slices.length){
                 return true;
             }
 
             growLock.lock();
             try{
                 //check second time
-                if(chunkPos< chunks.length)
+                if(slicePos< slices.length)
                     return true;
 
-                int oldSize = chunks.length;
-                byte[][] chunks2 = chunks;
+                int oldSize = slices.length;
+                byte[][] slices2 = slices;
 
-                chunks2 = Arrays.copyOf(chunks2, Math.max(chunkPos+1, chunks2.length + chunks2.length/1000));
+                slices2 = Arrays.copyOf(slices2, Math.max(slicePos+1, slices2.length + slices2.length/1000));
 
-                for(int pos=oldSize;pos<chunks2.length;pos++) {
-                    chunks2[pos]=new byte[chunkSize];
+                for(int pos=oldSize;pos<slices2.length;pos++) {
+                    slices2[pos]=new byte[sliceSize];
                 }
 
 
-                chunks = chunks2;
+                slices = slices2;
             }finally{
                 growLock.unlock();
             }
@@ -1050,18 +1050,18 @@ public abstract class Volume implements Closeable{
 
         @Override
         public void truncate(long size) {
-            final int maxSize = 1+(int) (size >>> chunkShift);
-            if(maxSize==chunks.length)
+            final int maxSize = 1+(int) (size >>> sliceShift);
+            if(maxSize== slices.length)
                 return;
-            if(maxSize>chunks.length) {
+            if(maxSize> slices.length) {
                 ensureAvailable(size);
                 return;
             }
             growLock.lock();
             try{
-                if(maxSize>=chunks.length)
+                if(maxSize>= slices.length)
                     return;
-                chunks = Arrays.copyOf(chunks,maxSize);
+                slices = Arrays.copyOf(slices,maxSize);
             }finally {
                 growLock.unlock();
             }
@@ -1069,8 +1069,8 @@ public abstract class Volume implements Closeable{
 
         @Override
         public void putLong(long offset, long v) {
-            int pos = (int) (offset & chunkSizeModMask);
-            byte[] buf = chunks[((int) (offset >>> chunkShift))];
+            int pos = (int) (offset & sliceSizeModMask);
+            byte[] buf = slices[((int) (offset >>> sliceShift))];
             buf[pos++] = (byte) (0xff & (v >> 56));
             buf[pos++] = (byte) (0xff & (v >> 48));
             buf[pos++] = (byte) (0xff & (v >> 40));
@@ -1083,8 +1083,8 @@ public abstract class Volume implements Closeable{
 
         @Override
         public void putInt(long offset, int value) {
-            int pos = (int) (offset & chunkSizeModMask);
-            byte[] buf = chunks[((int) (offset >>> chunkShift))];
+            int pos = (int) (offset & sliceSizeModMask);
+            byte[] buf = slices[((int) (offset >>> sliceShift))];
             buf[pos++] = (byte) (0xff & (value >> 24));
             buf[pos++] = (byte) (0xff & (value >> 16));
             buf[pos++] = (byte) (0xff & (value >> 8));
@@ -1093,38 +1093,38 @@ public abstract class Volume implements Closeable{
 
         @Override
         public void putByte(long offset, byte value) {
-            final byte[] b = chunks[((int) (offset >>> chunkShift))];
-            b[((int) (offset & chunkSizeModMask))] = value;
+            final byte[] b = slices[((int) (offset >>> sliceShift))];
+            b[((int) (offset & sliceSizeModMask))] = value;
         }
 
         @Override
         public void putData(long offset, byte[] src, int srcPos, int srcSize) {
-            int pos = (int) (offset & chunkSizeModMask);
-            byte[] buf = chunks[((int) (offset >>> chunkShift))];
+            int pos = (int) (offset & sliceSizeModMask);
+            byte[] buf = slices[((int) (offset >>> sliceShift))];
 
             System.arraycopy(src,srcPos,buf,pos,srcSize);
         }
 
         @Override
         public void putData(long offset, ByteBuffer buf) {
-            int pos = (int) (offset & chunkSizeModMask);
-            byte[] dst = chunks[((int) (offset >>> chunkShift))];
-            buf.get(dst,pos, buf.remaining());
+            int pos = (int) (offset & sliceSizeModMask);
+            byte[] dst = slices[((int) (offset >>> sliceShift))];
+            buf.get(dst, pos, buf.remaining());
         }
 
 
         @Override
         public void transferInto(long inputOffset, Volume target, long targetOffset, int size) {
-            int pos = (int) (inputOffset & chunkSizeModMask);
-            byte[] buf = chunks[((int) (inputOffset >>> chunkShift))];
+            int pos = (int) (inputOffset & sliceSizeModMask);
+            byte[] buf = slices[((int) (inputOffset >>> sliceShift))];
 
             target.putData(targetOffset,buf,pos, size);
         }
 
         @Override
         public long getLong(long offset) {
-            int pos = (int) (offset & chunkSizeModMask);
-            byte[] buf = chunks[((int) (offset >>> chunkShift))];
+            int pos = (int) (offset & sliceSizeModMask);
+            byte[] buf = slices[((int) (offset >>> sliceShift))];
 
             final int end = pos + 8;
             long ret = 0;
@@ -1136,8 +1136,8 @@ public abstract class Volume implements Closeable{
 
         @Override
         public int getInt(long offset) {
-            int pos = (int) (offset & chunkSizeModMask);
-            byte[] buf = chunks[((int) (offset >>> chunkShift))];
+            int pos = (int) (offset & sliceSizeModMask);
+            byte[] buf = slices[((int) (offset >>> sliceShift))];
 
             final int end = pos + 4;
             int ret = 0;
@@ -1149,20 +1149,20 @@ public abstract class Volume implements Closeable{
 
         @Override
         public byte getByte(long offset) {
-            final byte[] b = chunks[((int) (offset >>> chunkShift))];
-            return b[((int) (offset & chunkSizeModMask))];
+            final byte[] b = slices[((int) (offset >>> sliceShift))];
+            return b[((int) (offset & sliceSizeModMask))];
         }
 
         @Override
         public DataInput getDataInput(long offset, int size) {
-            int pos = (int) (offset & chunkSizeModMask);
-            byte[] buf = chunks[((int) (offset >>> chunkShift))];
+            int pos = (int) (offset & sliceSizeModMask);
+            byte[] buf = slices[((int) (offset >>> sliceShift))];
             return new DataIO.DataInputByteArray(buf,pos);
         }
 
         @Override
         public void close() {
-            chunks=null;
+            slices =null;
         }
 
         @Override
@@ -1173,7 +1173,7 @@ public abstract class Volume implements Closeable{
 
         @Override
         public boolean isEmpty() {
-            return chunks.length==0;
+            return slices.length==0;
         }
 
         @Override
@@ -1183,7 +1183,7 @@ public abstract class Volume implements Closeable{
 
         @Override
         public int sliceSize() {
-            return chunkSize;
+            return sliceSize;
         }
 
         @Override

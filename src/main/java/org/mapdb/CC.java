@@ -84,6 +84,9 @@ public interface CC {
     boolean FAIR_LOCKS = false;
 
 
-    int VOLUME_CHUNK_SHIFT = 20; // 1 MB
+    int VOLUME_SLICE_SHIFT = 20; // 1 MB
+
+    @Deprecated
+    int VOLUME_CHUNK_SHIFT = VOLUME_SLICE_SHIFT;
 }
 

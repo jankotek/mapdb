@@ -958,16 +958,16 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         long sizeLimit = propsGetLong(Keys.sizeLimit,0);
         String volume = props.getProperty(Keys.volume);
         if(Keys.volume_byteBuffer.equals(volume))
-            return Volume.memoryFactory(false,sizeLimit,CC.VOLUME_CHUNK_SHIFT);
+            return Volume.memoryFactory(false,sizeLimit,CC.VOLUME_SLICE_SHIFT);
         else if(Keys.volume_directByteBuffer.equals(volume))
-            return Volume.memoryFactory(true,sizeLimit,CC.VOLUME_CHUNK_SHIFT);
+            return Volume.memoryFactory(true,sizeLimit,CC.VOLUME_SLICE_SHIFT);
 
         File file = new File(props.getProperty(Keys.file));
 
         return Volume.fileFactory(
                 file,
                 propsGetRafMode(), propsGetBool(Keys.readOnly),
-                sizeLimit,CC.VOLUME_CHUNK_SHIFT,0);
+                sizeLimit,CC.VOLUME_SLICE_SHIFT,0);
     }
 
 

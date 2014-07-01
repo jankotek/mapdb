@@ -19,7 +19,7 @@ public class DBTest {
 
 
     @Before public void init(){
-        engine = new StoreDirect(Volume.memoryFactory(false,0L,CC.VOLUME_CHUNK_SHIFT));
+        engine = new StoreDirect(Volume.memoryFactory(false,0L,CC.VOLUME_SLICE_SHIFT));
         db = new DB(engine);
     }
 

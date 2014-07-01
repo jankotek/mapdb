@@ -41,7 +41,7 @@ Dictionary
 | [Engine](apidocs/org/mapdb/Engine.html) | Primitive key-value store used by collections for storage. Most features are [Engine Wrappers](apidocs/org/mapdb/EngineWrapper.html) |
 | [Store](apidocs/org/mapdb/Store.html) | Engine implementation which actually persist data. Is wrapped by other Engines. |
 | [Volume](apidocs/org/mapdb/Volume.html) | Abstraction over ByteBuffer or other raw data store. Used for files, memory, partition etc.. |
-| Chunk | Non overlapping pages used in Volume. Chunk size is 1GB or 16MB in Append Only Store |
+| Slice | Non overlapping pages used in Volume. Slice size is 1MB. Older name was 'chunk'|
 | Direct mode | With disabled transactions, data are written directly into file. It is fast, but store is not protected from corruption during crasches. |
 | WAL | Write Ahead Log, way to protect store from corruption if db crashes during write. |
 | RAF | Random Access File, way to access data on disk. Safer but slower method. |
@@ -128,16 +128,16 @@ Volume
 ---------
 `ByteBuffer` is best raw buffer abstraction Java has. However its size is limited by 31 bits addressing to 2GB.
 For that purpose MapDB uses `Volume` as raw buffer abstraction. It takes multiple `ByteBuffer`s and uses them
-together with 64bit addressing. Each `ByteBuffer` has 1GB size and represents *chunk*. IO operations which cross
-chunk boundaries are not supported (`readLong(1GB-3)` will throw an exception). It is responsibility
-of higher layer `Store` to ensure data do not overlap chunk boundaries.
+together with 64bit addressing. Each `ByteBuffer` has 1GB size and represents *slice*. IO operations which cross
+slice boundaries are not supported (`readLong(1GB-3)` will throw an exception). It is responsibility
+of higher layer `Store` to ensure data do not overlap slice boundaries.
 
 MapDB provides some Volume implementations: heap buffers, direct (off-heap) buffers, memory mapped files and
 random access file. Each implementation fits different situation. For example memory mapped files have
 great performance, however 32bit desktop app will probably prefer random access files. All implementations share
 the same format, so it is possible to copy data (and entire store) between implementations.
 
-User can also supply their own `Volume` implementations. For example each 1Gb chunk can be stored in
+User can also supply their own `Volume` implementations. For example each 1Gb slice can be stored in
 separate file on multiple disks, to create software RAID. `Volume` could also handle duplication,
 binary snapshots (MapDB snapshots are at different layer) or raw disks.
 

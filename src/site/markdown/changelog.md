@@ -93,13 +93,13 @@ Version 0.9.12 (2014-04-15)
 Previous release was broken, store larger than 16 MB or 2 GB could not be created, that is fixed now.
 This release also brings number of small cleanups and improved memory consumption.
 
-The store format has changed yet again in backward incompatible way. The chunk size is now 1 MB.
+The store format has changed yet again in backward incompatible way. The chunk (slice) size is now 1 MB.
 
 This is yet another release candidate for 1.0.0. Stable release should follow in 10 days if no problems are found.
 
 Changes:
 
- * Format change! Chunk size reduced from 16MB to 1MB, solved many Out Of Memory errors.
+ * Format change! Chunk (slice) size reduced from 16MB to 1MB, solved many Out Of Memory errors.
  * Fix #313: mmap files larger than 2GB could not be created
  * Fix #308: ArrayIndexOutOfBoundsException if store is larger 16MB.
  * Fix #312: error while opening db with readonly
@@ -121,7 +121,7 @@ This fixes serious race condition for in-memory store. Also there is fix for sec
 wrong values. And finally all file locking problems on Windows should be solved.
 
 As result the store format was completely changed. There is no backward compatibility with previous releases.
-MapDB now allocates memory in 16MB chunks, so new empty database will always consume a few MB of memory/disk space.
+MapDB now allocates memory in 16MB chunks (slices), so new empty database will always consume a few MB of memory/disk space.
 
 This is last 0.9.x release, next release will be 1.0.0.
 
@@ -135,8 +135,8 @@ Changes:
  * Engine: add close listener, to prevent NPE on shutdown in HTreeMap Cache
  * Maven: do not run tests in parallel, it causes out of memory errors
  * StoreWAL: do not delete log file after every commit, keep it around. This should speedup commits a lot
- * Volume: mmap file chunks were synced multiple times, causing slow sync and commits
- * Volume: change 'chunk size' from 1GB to 16MB and disable incremental allocation.
+ * Volume: mmap file chunks (slices) were synced multiple times, causing slow sync and commits
+ * Volume: change 'chunk size' (slice size) from 1GB to 16MB and disable incremental allocation.
  * DBMaker: The 'full chunk allocation' option was removed and is now on by default.
  * DBMaker: method `newDirectMemoryDB()` replaced with `newMemoryDirectDB()`
  * Fun: Added Tuple5 and Tuple6 support

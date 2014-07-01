@@ -19,7 +19,7 @@ public class BTreeMapTest{
     BTreeMap m;
 
     @Before public void init(){
-        engine = new StoreDirect(Volume.memoryFactory(false,0L,CC.VOLUME_CHUNK_SHIFT));
+        engine = new StoreDirect(Volume.memoryFactory(false,0L,CC.VOLUME_SLICE_SHIFT));
         m = new BTreeMap(engine,BTreeMap.createRootRef(engine,BTreeKeySerializer.BASIC,Serializer.BASIC,BTreeMap.COMPARABLE_COMPARATOR,0),
                 6,false,0, BTreeKeySerializer.BASIC,Serializer.BASIC,
                 BTreeMap.COMPARABLE_COMPARATOR,0,false);;

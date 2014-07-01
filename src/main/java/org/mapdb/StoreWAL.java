@@ -380,10 +380,10 @@ public class StoreWAL extends StoreDirect {
 
     protected void checkLogRounding() {
         assert(disableLocks || structuralLock.isHeldByCurrentThread());
-        if((logSize&CHUNK_SIZE_MOD_MASK)+MAX_REC_SIZE*2>CHUNK_SIZE){
+        if((logSize& SLICE_SIZE_MOD_MASK)+MAX_REC_SIZE*2> SLICE_SIZE){
             log.ensureAvailable(logSize+1);
             log.putByte(logSize, WAL_SKIP_REST_OF_BLOCK);
-            logSize += CHUNK_SIZE - (logSize&CHUNK_SIZE_MOD_MASK);
+            logSize += SLICE_SIZE - (logSize& SLICE_SIZE_MOD_MASK);
         }
     }
 
@@ -854,7 +854,7 @@ public class StoreWAL extends StoreDirect {
 
                 log.getDataInput(logSize, size).readFully(b);
             }else if(ins == WAL_SKIP_REST_OF_BLOCK){
-                logSize += CHUNK_SIZE -(logSize&CHUNK_SIZE_MOD_MASK);
+                logSize += SLICE_SIZE -(logSize& SLICE_SIZE_MOD_MASK);
             }else{
                 throw new AssertionError("unknown trans log instruction '"+ins +"' at log offset: "+(logSize-1));
             }
@@ -932,7 +932,7 @@ public class StoreWAL extends StoreDirect {
 
                 logSize+=size;
             }else if(ins == WAL_SKIP_REST_OF_BLOCK){
-                logSize += CHUNK_SIZE -(logSize&CHUNK_SIZE_MOD_MASK);
+                logSize += SLICE_SIZE -(logSize& SLICE_SIZE_MOD_MASK);
             }else{
                 throw new AssertionError("unknown trans log instruction '"+ins +"' at log offset: "+(logSize-1));
             }

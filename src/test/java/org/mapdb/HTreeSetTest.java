@@ -50,7 +50,7 @@ public class HTreeSetTest{
     }
 
     @Before public void init(){
-        engine =  new StoreDirect(Volume.memoryFactory(false,0L,CC.VOLUME_CHUNK_SHIFT));
+        engine =  new StoreDirect(Volume.memoryFactory(false,0L,CC.VOLUME_SLICE_SHIFT));
         hs = new HTreeMap(engine, 0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC,null,0,0,0,0,0,null,null,null, null,false).keySet();
         Collections.addAll(hs, objArray);
     }

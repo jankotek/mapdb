@@ -49,9 +49,9 @@ public abstract class Store implements Engine{
     protected final static int ENCRYPT_FLAG_MASK = 1<<3;
 
 
-    protected static final int CHUNK_SIZE = 1<< CC.VOLUME_CHUNK_SHIFT;
+    protected static final int SLICE_SIZE = 1<< CC.VOLUME_SLICE_SHIFT;
 
-    protected static final int CHUNK_SIZE_MOD_MASK = CHUNK_SIZE -1;
+    protected static final int SLICE_SIZE_MOD_MASK = SLICE_SIZE -1;
 
     /** default serializer used for persistence. Handles POJO and other stuff which requires write-able access to Engine */
     protected SerializerPojo serializerPojo;

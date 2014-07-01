@@ -13,7 +13,7 @@ public class StoreDirectFreeSpaceTest {
     final Map<Long,Deque<Long>> longStacks = new TreeMap <Long,Deque<Long>>();
 
     /** mock longStacks so their page allocations wont mess up tests */
-    StoreDirect stub = new  StoreDirect(Volume.memoryFactory(false,max,CC.VOLUME_CHUNK_SHIFT),false,false,5,false,max,false,false,null,false,0){
+    StoreDirect stub = new  StoreDirect(Volume.memoryFactory(false,max,CC.VOLUME_SLICE_SHIFT),false,false,5,false,max,false,false,null,false,0){
         {
             structuralLock.lock();
         }
