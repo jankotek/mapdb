@@ -390,4 +390,11 @@ public class DBMakerTest{
         assertEquals(Integer.valueOf(0),s.firstEntry().getKey());
         assertEquals(Integer.valueOf(12),s.lastEntry().getKey());
     }
+
+    @Test public void heap_store(){
+        DB db = DBMaker.newHeapDB().make();
+        Engine  s = Store.forDB(db);
+
+        assertTrue(s instanceof  StoreHeap);
+    }
 }
