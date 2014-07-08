@@ -558,13 +558,13 @@ public class DB implements Closeable {
         protected int nodeSize = 32;
         protected boolean valuesOutsideNodes = false;
         protected boolean counter = false;
-        protected BTreeKeySerializer<?> keySerializer;
-        protected Serializer<?> valueSerializer;
-        protected Comparator<?> comparator;
+        protected BTreeKeySerializer keySerializer;
+        protected Serializer valueSerializer;
+        protected Comparator comparator;
 
-        protected Iterator<?> pumpSource;
-        protected Fun.Function1<?,?> pumpKeyExtractor;
-        protected Fun.Function1<?,?> pumpValueExtractor;
+        protected Iterator pumpSource;
+        protected Fun.Function1 pumpKeyExtractor;
+        protected Fun.Function1 pumpValueExtractor;
         protected int pumpPresortBatchSize = -1;
         protected boolean pumpIgnoreDuplicates = false;
 
@@ -813,7 +813,7 @@ public class DB implements Closeable {
     }
 
 
-    synchronized protected <K,V> BTreeMap<K,V> createTreeMap(BTreeMapMaker m){
+    synchronized protected <K,V> BTreeMap<K,V> createTreeMap(final BTreeMapMaker m){
         String name = m.name;
         checkNameNotExists(name);
         m.keySerializer = fillNulls(m.keySerializer);
@@ -829,7 +829,16 @@ public class DB implements Closeable {
         m.comparator = catPut(name+".comparator",m.comparator);
 
         if(m.pumpPresortBatchSize!=-1 && m.pumpSource!=null){
-            m.pumpSource = Pump.sort(m.pumpSource,m.pumpIgnoreDuplicates, m.pumpPresortBatchSize,Collections.reverseOrder(m.comparator),getDefaultSerializer());
+            Comparator presortComp =  new Comparator() {
+
+                @Override
+                public int compare(Object o1, Object o2) {
+                    return - m.comparator.compare(m.pumpKeyExtractor.run(o1), m.pumpKeyExtractor.run(o2));
+                }
+            };
+
+            m.pumpSource = Pump.sort(m.pumpSource,m.pumpIgnoreDuplicates, m.pumpPresortBatchSize,
+                    presortComp,getDefaultSerializer());
         }
 
         long counterRecid = !m.counter ?0L:engine.put(0L, Serializer.LONG);
