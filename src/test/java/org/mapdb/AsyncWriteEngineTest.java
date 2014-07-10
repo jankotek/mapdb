@@ -113,15 +113,15 @@ public class AsyncWriteEngineTest extends TestFile{
         a.commit();
         assertEquals(max, putCounter.longValue() );
         assertTrue(a.writeCache.isEmpty());
-        t.close();
+        a.close();
 
         //now reopen db and check ths
         t = new StoreWAL(fac);
         a = new AsyncWriteEngine(t);
-        for(Integer i=0;i<max;i++){
-            long recid = l.get(i);
+        for(Long recid : l){
             assertArrayEquals(b, (byte[]) a.get(recid, Serializer.BASIC));
         }
+        a.close();
     }
 
 }
