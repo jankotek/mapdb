@@ -303,8 +303,10 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
                 getWrappedEngine().preallocate(newRecids);
                 newRecidsPos = newRecids.length;
             }
-
-            return newRecids[--newRecidsPos];
+            --newRecidsPos;
+            long ret = newRecids[newRecidsPos];
+            newRecids[newRecidsPos]=0;
+            return ret;
         }finally {
             newRecidsLock.unlock();
         }
@@ -498,7 +500,9 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
 
             //wait for background threads to shutdown
 
-            activeThreadsCount.await(1000,TimeUnit.MILLISECONDS);
+            while(!activeThreadsCount.await(1000,TimeUnit.MILLISECONDS)) {
+                //nothing here
+            }
 
             //put preallocated recids back to store
             newRecidsLock.lock();
