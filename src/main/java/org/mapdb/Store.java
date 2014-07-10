@@ -36,7 +36,8 @@ import java.util.zip.CRC32;
  */
 public abstract class Store implements Engine{
 
-    protected static final Logger LOG = Logger.getLogger(Store.class.getName());
+    protected static final Logger LOG = !CC.LOG_STORE?null :
+            Logger.getLogger(Store.class.getName());
 
     protected final boolean checksum;
     protected final boolean compress;

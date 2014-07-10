@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
+import java.util.logging.Level;
 import java.util.zip.CRC32;
 
 /**
@@ -906,6 +907,8 @@ public class StoreWAL extends StoreDirect {
             return;
         }
 
+        if(CC.LOG_STORE && LOG.isLoggable(Level.FINE))
+            LOG.log(Level.FINE,"Replay WAL started {0}",log);
 
         //all good, start replay
         logSize=16;
@@ -956,6 +959,9 @@ public class StoreWAL extends StoreDirect {
             phys.sync();
             index.sync();
         }
+
+        if(CC.LOG_STORE && LOG.isLoggable(Level.FINE))
+            LOG.log(Level.FINE,"Replay WAL done at size {0,number,integer}",logSize);
 
         logReset();
 

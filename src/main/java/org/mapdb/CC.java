@@ -46,6 +46,11 @@ public interface CC {
      */
     boolean LOG_STORE = false;
 
+    /**
+     * Compile-in detailed log messages from Engine Wrappers
+     */
+    boolean LOG_EWRAP = false;
+
 //    /**
 //     * Log lock/unlock events. Useful to diagnose deadlocks
 //     */

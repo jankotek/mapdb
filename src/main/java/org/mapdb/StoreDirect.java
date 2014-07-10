@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.concurrent.locks.Lock;
+import java.util.logging.Level;
 
 /**
  * Storage Engine which saves record directly into file.
@@ -323,7 +324,7 @@ public class StoreDirect extends Store{
             }
             long recid = (ioRecid-IO_USER_START)/8;
             assert(recid>0);
-            if(CC.LOG_STORE)
+            if(CC.LOG_STORE && LOG.isLoggable(Level.FINEST))
                 LOG.finest("Preallocate recid=" + recid);
             return recid;
         }finally {
@@ -369,7 +370,7 @@ public class StoreDirect extends Store{
                 recids[i] = (ioRecid-IO_USER_START)/8;
                 assert(recids[i]>0);
             }
-            if(CC.LOG_STORE)
+            if(CC.LOG_STORE && LOG.isLoggable(Level.FINEST))
                 LOG.finest("Preallocate recids="+Arrays.toString(recids));
         }finally {
             if(!disableLocks) {
@@ -424,7 +425,7 @@ public class StoreDirect extends Store{
 
         long recid = (ioRecid-IO_USER_START)/8;
         assert(recid>0);
-        if(CC.LOG_STORE)
+        if(CC.LOG_STORE && LOG.isLoggable(Level.FINEST))
             LOG.finest("Put recid="+recid+", "+" size="+out.pos+", "+" val="+value+" ser="+serializer );
         recycledDataOuts.offer(out);
         return recid;
@@ -476,7 +477,10 @@ public class StoreDirect extends Store{
             lock.lock();
         }
         try{
-            return get2(ioRecid,serializer);
+            final A ret = get2(ioRecid,serializer);
+            if(CC.LOG_STORE && LOG.isLoggable(Level.FINEST))
+                LOG.finest("GET recid="+recid+", "+" ret="+ret+", "+" ser="+serializer );
+            return ret;
         }catch(IOException e){
             throw new IOError(e);
         }finally{
@@ -552,7 +556,7 @@ public class StoreDirect extends Store{
                 lock.unlock();
             }
         }
-        if(CC.LOG_STORE)
+        if(CC.LOG_STORE && LOG.isLoggable(Level.FINEST))
             LOG.finest("Update recid="+recid+", "+" size="+out.pos+", "+" val="+value+" ser="+serializer );
 
         recycledDataOuts.offer(out);

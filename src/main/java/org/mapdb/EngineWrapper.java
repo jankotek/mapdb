@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Logger;
 
 
 /**
@@ -30,6 +31,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @author Jan Kotek
  */
 public class EngineWrapper implements Engine{
+
+    protected static final Logger LOG = !CC.LOG_EWRAP?null :
+            Logger.getLogger(EngineWrapper.class.getName());
+
+
 
     private Engine engine;
 

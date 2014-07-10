@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.logging.Level;
 
 /**
  * {@link Engine} wrapper which provides asynchronous serialization and asynchronous write.
@@ -242,17 +243,27 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
 
             final long count = latch.getCount();
             if(count == 0){ //close operation
+                if(CC.LOG_EWRAP && LOG.isLoggable(Level.FINE))
+                    LOG.fine("Async close finished");
                 return false;
             }else if(count == 1){ //commit operation
                 AsyncWriteEngine.super.commit();
+                if(CC.LOG_EWRAP && LOG.isLoggable(Level.FINE))
+                    LOG.fine("Async commit finished");
+
                 latch.countDown();
             }else if(count==2){ //rollback operation
                 AsyncWriteEngine.super.rollback();
                 preallocateRollback();
+                if(CC.LOG_EWRAP && LOG.isLoggable(Level.FINE))
+                    LOG.fine("Async rollback finished");
+
                 latch.countDown();
                 latch.countDown();
             }else if(count==3){ //compact operation
                 AsyncWriteEngine.super.compact();
+                if(CC.LOG_EWRAP && LOG.isLoggable(Level.FINE))
+                    LOG.fine("Async compact finished");
                 latch.countDown();
                 latch.countDown();
                 latch.countDown();
