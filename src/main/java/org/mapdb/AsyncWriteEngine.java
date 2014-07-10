@@ -87,9 +87,9 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
 
     protected final AtomicInteger size = new AtomicInteger();
 
-    protected final long[] newRecids = new long[CC.ASYNC_RECID_PREALLOC_QUEUE_SIZE];
-    protected int newRecidsPos = 0;
-    protected final ReentrantLock newRecidsLock = new ReentrantLock(CC.FAIR_LOCKS);
+//    protected final long[] newRecids = new long[CC.ASYNC_RECID_PREALLOC_QUEUE_SIZE];
+//    protected int newRecidsPos = 0;
+//    protected final ReentrantLock newRecidsLock = new ReentrantLock(CC.FAIR_LOCKS);
 
 
     /** Associates `recid` from Write Queue with record data and serializer. */
@@ -205,8 +205,6 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     protected boolean runWriter() throws InterruptedException {
         final CountDownLatch latch = action.getAndSet(null);
 
-        int counter=0;
-
         do{
             LongMap.LongMapIterator<Fun.Tuple2<Object, Serializer>> iter = writeCache.longMapIterator();
             while(iter.moveToNext()){
@@ -225,13 +223,8 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
                 if(writeCache.remove(recid, item))
                     size.decrementAndGet();
 
-                if(((++counter)&(63))==0){   //it is like modulo 64, but faster
-                    preallocateRefill();
-                }
             }
         }while(latch!=null && !writeCache.isEmpty());
-
-        preallocateRefill();
 
 
         //operations such as commit,close, compact or close needs to be executed in Writer Thread
@@ -248,7 +241,6 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
                 latch.countDown();
             }else if(count==2){ //rollback operation
                 AsyncWriteEngine.super.rollback();
-                preallocateRollback();
                 latch.countDown();
                 latch.countDown();
             }else if(count==3){ //compact operation
@@ -262,68 +254,6 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
 
 
     }
-
-    protected void preallocateRollback(){
-        newRecidsLock.lock();
-        try{
-            getWrappedEngine().preallocate(newRecids);
-            newRecidsPos = newRecids.length;
-        }finally {
-            newRecidsLock.unlock();
-        }
-    }
-
-    @Override
-    public long preallocate() {
-        commitLock.readLock().lock();
-        try{
-            return preallocateNoCommitLock();
-        }finally{
-            commitLock.readLock().unlock();
-        }
-    }
-
-    @Override
-    public void preallocate(long[] recids) {
-        commitLock.readLock().lock();
-        try{
-            for(int i=0;i<recids.length;i++){
-                recids[i] = preallocateNoCommitLock();
-            }
-        }finally{
-            commitLock.readLock().unlock();
-        }
-    }
-
-
-    protected long preallocateNoCommitLock() {
-        newRecidsLock.lock();
-        try{
-            if(newRecidsPos==0){
-                getWrappedEngine().preallocate(newRecids);
-                newRecidsPos = newRecids.length;
-            }
-            --newRecidsPos;
-            long ret = newRecids[newRecidsPos];
-            newRecids[newRecidsPos]=0;
-            return ret;
-        }finally {
-            newRecidsLock.unlock();
-        }
-    }
-
-    protected void preallocateRefill(){
-        newRecidsLock.lock();
-        try{
-            if(newRecidsPos==0){
-                getWrappedEngine().preallocate(newRecids);
-                newRecidsPos = newRecids.length;
-            }
-        }finally {
-            newRecidsLock.unlock();
-        }
-    }
-
 
 
     /** checks that background threads are ready and throws exception if not */
@@ -368,7 +298,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
         commitLock.readLock().lock();
         try{
             checkState();
-            recid = preallocateNoCommitLock();
+            recid = preallocate();
             if(writeCache.put(recid, new Fun.Tuple2(value, serializer))==null)
                 size2 = size.incrementAndGet();
         }finally{
@@ -502,16 +432,6 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
 
             while(!activeThreadsCount.await(1000,TimeUnit.MILLISECONDS)) {
                 //nothing here
-            }
-
-            //put preallocated recids back to store
-            newRecidsLock.lock();
-            try{
-                while(newRecidsPos>0){
-                    super.delete(newRecids[--newRecidsPos],Serializer.ILLEGAL_ACCESS);
-                }
-            }finally{
-                newRecidsLock.unlock();
             }
 
             AsyncWriteEngine.super.close();
