@@ -111,6 +111,13 @@ final public class Atomic {
         }
 
         /**
+         * @return recid under which value is saved
+         */
+        public long getRecid(){
+            return recid;
+        }
+
+        /**
          * Gets the current value.
          *
          * @return the current value
@@ -291,6 +298,13 @@ final public class Atomic {
             this.recid = recid;
         }
 
+        /**
+         * @return recid under which value is saved
+         */
+        public long getRecid(){
+            return recid;
+        }
+
 
         /**
          * Gets the current value.
@@ -466,6 +480,13 @@ final public class Atomic {
             this.recid = recid;
         }
 
+        /**
+         * @return recid under which value is saved
+         */
+        public long getRecid(){
+            return recid;
+        }
+
 
         /**
          * Returns the current value.
@@ -537,6 +558,13 @@ final public class Atomic {
             this.recid = recid;
         }
 
+
+        /**
+         * @return recid under which value is saved
+         */
+        public long getRecid(){
+            return recid;
+        }
 
         public java.lang.String toString() {
             return get();
@@ -613,6 +641,14 @@ final public class Atomic {
             this.recid = DataInput2.unpackLong(is);
             this.serializer = (Serializer<E>) serializerBase.deserialize(is,objectStack);
         }
+
+        /**
+         * @return recid under which value is saved
+         */
+        public long getRecid(){
+            return recid;
+        }
+
 
         public java.lang.String toString() {
             E v = get();
