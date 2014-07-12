@@ -98,7 +98,7 @@ public class QueuesTest {
         database.close();
     }
 
-    @Test(timeout=1000)
+    @Test(timeout=10000)
     public void queueTakeRollback() throws IOException, InterruptedException {
         File f = File.createTempFile("mapdb","aa");
         {
