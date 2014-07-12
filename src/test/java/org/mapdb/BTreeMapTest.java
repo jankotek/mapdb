@@ -347,7 +347,7 @@ public class BTreeMapTest{
         //fill
         final int c = 1000000;
         for(int i=0;i<=c;i++){
-            m.put(c,c);
+            m.put(i,i);
         }
 
         Thread t = new Thread(){
@@ -371,7 +371,7 @@ public class BTreeMapTest{
         //fill
         final int c = 1000000;
         for(int i=0;i<=c;i++){
-            m.put(c,c);
+            m.put(i,i);
         }
 
         Thread t = new Thread(){
