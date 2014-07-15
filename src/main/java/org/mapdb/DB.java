@@ -88,25 +88,25 @@ public class DB {
         catalog = BTreeMap.preinitCatalog(this);
     }
 
-    protected <A> A catGet(String name, A init){
+    public <A> A catGet(String name, A init){
         assert(Thread.holdsLock(DB.this));
         A ret = (A) catalog.get(name);
         return ret!=null? ret : init;
     }
 
 
-    protected <A> A catGet(String name){
+    public <A> A catGet(String name){
         assert(Thread.holdsLock(DB.this));
         return (A) catalog.get(name);
     }
 
-    protected <A> A catPut(String name, A value){
+    public <A> A catPut(String name, A value){
         assert(Thread.holdsLock(DB.this));
         catalog.put(name, value);
         return value;
     }
 
-    protected <A> A catPut(String name, A value, A retValueIfNull){
+    public <A> A catPut(String name, A value, A retValueIfNull){
         assert(Thread.holdsLock(DB.this));
         if(value==null) return retValueIfNull;
         catalog.put(name, value);
@@ -380,7 +380,7 @@ public class DB {
         return ret;
     }
 
-    protected  <V> V namedPut(String name, Object ret) {
+    public  <V> V namedPut(String name, Object ret) {
         namesInstanciated.put(name, new WeakReference<Object>(ret));
         namesLookup.put(new IdentityWrapper(ret), name);
         return (V) ret;
@@ -1336,7 +1336,7 @@ public class DB {
         return ret;
     }
 
-    protected void checkShouldCreate(String name) {
+    public void checkShouldCreate(String name) {
         if(strictDBGet) throw new NoSuchElementException("No record with this name was found: "+name);
     }
 
@@ -1539,7 +1539,7 @@ public class DB {
      * @param name to check
      * @throws IllegalArgumentException if name is already used
      */
-    protected void checkNameNotExists(String name) {
+    public void checkNameNotExists(String name) {
         if(catalog.get(name+".type")!=null)
             throw new IllegalArgumentException("Name already used: "+name);
     }
@@ -1564,7 +1564,7 @@ public class DB {
      * All collections are weakly referenced to prevent two instances of the same collection in memory.
      * This is mainly for locking, two instances of the same lock would not simply work.
      */
-    protected Object getFromWeakCollection(String name){
+    public Object getFromWeakCollection(String name){
         WeakReference<?> r =  namesInstanciated.get(name);
         if(r==null) return null;
         Object o = r.get();
@@ -1574,7 +1574,7 @@ public class DB {
 
 
 
-    protected void checkNotClosed() {
+    public void checkNotClosed() {
         if(engine == null) throw new IllegalAccessError("DB was already closed");
     }
 
@@ -1643,7 +1643,7 @@ public class DB {
         return engine;
     }
 
-    protected void checkType(String type, String expected) {
+    public void checkType(String type, String expected) {
         if(!expected.equals(type)) throw new IllegalArgumentException("Wrong type: "+type);
     }
 
