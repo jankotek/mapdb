@@ -373,7 +373,7 @@ public class DB implements Closeable {
                 (long[])catGet(name+".expireHeads",null),
                 (long[])catGet(name+".expireTails",null),
                 valueCreator,
-                null,
+                catGet(name+".hasher", Hasher.BASIC),
                 false);
 
 
