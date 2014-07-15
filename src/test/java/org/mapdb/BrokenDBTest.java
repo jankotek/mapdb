@@ -67,21 +67,21 @@ public class BrokenDBTest {
         DBMaker.newFileDB(index).make().close();
 
         // trash the log
-        MappedFileVol logVol = new Volume.MappedFileVol(log, false, 0,CC.VOLUME_SLICE_SHIFT,0);
-        logVol.ensureAvailable(32);
-        logVol.putInt(0, StoreWAL.HEADER);
-        logVol.putUnsignedShort(4, StoreWAL.STORE_VERSION);
-        logVol.putLong(8, StoreWAL.LOG_SEAL);
-        logVol.putLong(16, 123456789L);
-        logVol.sync();
-        logVol.close();
+        MappedFileVol physVol = new Volume.MappedFileVol(data, false, 0,CC.VOLUME_SLICE_SHIFT,0);
+        physVol.ensureAvailable(32);
+        physVol.putInt(0, StoreWAL.HEADER);
+        physVol.putUnsignedShort(4, StoreWAL.STORE_VERSION);
+        physVol.putLong(8, StoreWAL.LOG_SEAL);
+        physVol.putLong(16, 123456789L);
+        physVol.sync();
+        physVol.close();
 
         try {
             DBMaker.newFileDB(index).make();
             Assert.fail("Expected exception not thrown");
-        } catch (final Error e) {
+        } catch (final Exception e) {
             // will fail!
-            Assert.assertTrue("Wrong message", e.getMessage().contains("unknown trans log instruction"));
+            Assert.assertTrue("Wrong message", e.getMessage().contains("Error while opening"));
         }
 
         index.delete();

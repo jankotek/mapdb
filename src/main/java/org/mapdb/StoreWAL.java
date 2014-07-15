@@ -775,116 +775,118 @@ public class StoreWAL extends StoreDirect {
 
 
         //read headers
-        if(log.isEmpty() || log.getInt(0)!=HEADER  || log.getLong(8) !=LOG_SEAL){
-            //wrong headers, discard log
-            if(!isReadOnly())
-                logReset();
+        if (log.isEmpty() ||
+                (log.getFile()!=null && log.getFile().length()<16) ||
+                log.getInt(0) != HEADER || log.getLong(8) != LOG_SEAL) {
             return false;
         }
 
-        if(log.getUnsignedShort(4)>STORE_VERSION){
+        if (log.getUnsignedShort(4) > STORE_VERSION) {
             throw new IOError(new IOException("New store format version, please use newer MapDB version"));
         }
 
-        if(log.getUnsignedShort(6)!=expectedMasks())
+        if (log.getUnsignedShort(6) != expectedMasks())
             throw new IllegalArgumentException("Log file created with different features. Please check compression, checksum or encryption");
 
+        try {
+            final CRC32 crc32 = new CRC32();
 
+            //all good, calculate checksum
+            logSize = 16;
+            byte ins = log.getByte(logSize);
+            logSize += 1;
+            int crc = 0;
 
-        final CRC32 crc32 = new CRC32();
+            while (ins != WAL_SEAL){
+                if (ins == WAL_INDEX_LONG) {
+                    long ioRecid = log.getLong(logSize);
+                    logSize += 8;
+                    long indexVal = log.getLong(logSize);
+                    logSize += 8;
+                    crc |= LongHashMap.longHash((logSize - 1 - 8 - 8) | WAL_INDEX_LONG | ioRecid | indexVal);
+                } else if (ins == WAL_PHYS_ARRAY) {
+                    final long offset2 = log.getLong(logSize);
+                    logSize += 8;
+                    final int size = (int) (offset2 >>> 48);
 
-        //all good, calculate checksum
-        logSize=16;
-        byte ins = log.getByte(logSize);
-        logSize+=1;
-        int crc = 0;
-
-        while(ins!=WAL_SEAL) try{
-            if(ins == WAL_INDEX_LONG){
-                long ioRecid = log.getLong(logSize);
-                logSize+=8;
-                long indexVal = log.getLong(logSize);
-                logSize+=8;
-                crc |= LongHashMap.longHash((logSize-1-8-8) | WAL_INDEX_LONG | ioRecid | indexVal);
-            }else if(ins == WAL_PHYS_ARRAY){
-                final long offset2 = log.getLong(logSize);
-                logSize+=8;
-                final int size = (int) (offset2>>>48);
-
-                byte[] b = new byte[size];
-                try{
+                    byte[] b = new byte[size];
                     log.getDataInput(logSize, size).readFully(b);
-                } catch (IOException e) {
-                    throw new IOError(e);
+
+                    crc32.reset();
+                    crc32.update(b);
+
+                    crc |= LongHashMap.longHash(logSize | WAL_PHYS_ARRAY | offset2 | crc32.getValue());
+
+                    logSize += size;
+                } else if (ins == WAL_PHYS_ARRAY_ONE_LONG) {
+                    final long offset2 = log.getLong(logSize);
+                    logSize += 8;
+                    final int size = (int) (offset2 >>> 48) - 8;
+
+                    final long nextPageLink = log.getLong(logSize);
+                    logSize += 8;
+
+                    byte[] b = new byte[size];
+                    log.getDataInput(logSize, size).readFully(b);
+                    crc32.reset();
+                    crc32.update(b);
+
+                    crc |= LongHashMap.longHash((logSize) | WAL_PHYS_ARRAY_ONE_LONG | offset2 | nextPageLink | crc32.getValue());
+
+                    logSize += size;
+                } else if (ins == WAL_LONGSTACK_PAGE) {
+                    final long offset = log.getLong(logSize);
+                    logSize += 8;
+                    final long origLogSize = logSize;
+                    final int size = (int) (offset >>> 48);
+
+                    crc |= LongHashMap.longHash(origLogSize | WAL_LONGSTACK_PAGE | offset);
+
+                    byte[] b = new byte[size];
+                    log.getDataInput(logSize, size).readFully(b);
+                    crc32.reset();
+                    crc32.update(b);
+                    crc |= crc32.getValue();
+
+                    log.getDataInput(logSize, size).readFully(b);
+                } else if (ins == WAL_SKIP_REST_OF_BLOCK) {
+                    logSize += SLICE_SIZE - (logSize & SLICE_SIZE_MOD_MASK);
+                } else {
+                    return false;
                 }
-                crc32.reset();
-                crc32.update(b);
 
-                crc |= LongHashMap.longHash(logSize | WAL_PHYS_ARRAY | offset2 | crc32.getValue());
-
-                logSize+=size;
-            }else if(ins == WAL_PHYS_ARRAY_ONE_LONG){
-                final long offset2 = log.getLong(logSize);
-                logSize+=8;
-                final int size = (int) (offset2>>>48)-8;
-
-                final long nextPageLink = log.getLong(logSize);
-                logSize+=8;
-
-                byte[] b = new byte[size];
-                log.getDataInput(logSize, size).readFully(b);
-                crc32.reset();
-                crc32.update(b);
-
-                crc |= LongHashMap.longHash((logSize) | WAL_PHYS_ARRAY_ONE_LONG | offset2 | nextPageLink | crc32.getValue());
-
-                logSize+=size;
-            }else if(ins == WAL_LONGSTACK_PAGE){
-                final long offset = log.getLong(logSize);
-                logSize+=8;
-                final long origLogSize = logSize;
-                final int size = (int) (offset>>>48);
-
-                crc |= LongHashMap.longHash(origLogSize | WAL_LONGSTACK_PAGE | offset );
-
-                byte[] b = new byte[size];
-                log.getDataInput(logSize, size).readFully(b);
-                crc32.reset();
-                crc32.update(b);
-                crc|=crc32.getValue();
-
-                log.getDataInput(logSize, size).readFully(b);
-            }else if(ins == WAL_SKIP_REST_OF_BLOCK){
-                logSize += SLICE_SIZE -(logSize& SLICE_SIZE_MOD_MASK);
-            }else{
-                throw new AssertionError("unknown trans log instruction '"+ins +"' at log offset: "+(logSize-1));
+                ins = log.getByte(logSize);
+                logSize += 1;
             }
 
-            ins = log.getByte(logSize);
-            logSize+=1;
+            long indexSize = log.getSixLong(logSize);
+            logSize += 6;
+            long physSize = log.getSixLong(logSize);
+            logSize += 6;
+            long freeSize = log.getSixLong(logSize);
+            logSize += 6;
+            long indexSum = log.getLong(logSize);
+            logSize += 8;
+            crc |= LongHashMap.longHash((logSize - 1 - 3 * 6 - 8) | indexSize | physSize | freeSize | indexSum);
+
+            final int realCrc = log.getInt(logSize);
+            logSize += 4;
+
+            logSize = 0;
+            assert (disableLocks || structuralLock.isHeldByCurrentThread());
+            if (realCrc == Long.MIN_VALUE)
+                return true; //in future WAL CRC might be switched off, in that case this value will be used
+
+            return realCrc == crc;
         } catch (IOException e) {
-            throw new IOError(e);
+            if(CC.LOG_STORE)
+                LOG.log(Level.FINE, "Rollback corrupted log.",e);
+            return false;
+        }catch(IOError e){
+            if(CC.LOG_STORE)
+                LOG.log(Level.FINE, "Rollback corrupted log.",e);
+            return false;
         }
-
-        long indexSize = log.getSixLong(logSize);
-        logSize+=6;
-        long physSize = log.getSixLong(logSize);
-        logSize+=6;
-        long freeSize = log.getSixLong(logSize);
-        logSize+=6;
-        long indexSum = log.getLong(logSize);
-        logSize+=8;
-        crc |= LongHashMap.longHash((logSize-1-3*6-8)|indexSize|physSize|freeSize|indexSum);
-
-        final int realCrc = log.getInt(logSize);
-        logSize+=4;
-
-        logSize=0;
-        assert(disableLocks || structuralLock.isHeldByCurrentThread());
-        if(realCrc == Long.MIN_VALUE)
-            return true; //in future WAL CRC might be switched off, in that case this value will be used
-
-        return realCrc == crc ;
     }
 
 
