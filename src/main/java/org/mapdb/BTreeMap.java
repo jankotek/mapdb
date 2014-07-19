@@ -338,34 +338,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             final boolean right = value.keys()[value.keys().length-1] == null;
 
 
-            final int header;
-
-            if(isLeaf){
-                if(right){
-                    if(left)
-                        header = B_TREE_NODE_LEAF_LR;
-                    else
-                        header = B_TREE_NODE_LEAF_R;
-                }else{
-                    if(left)
-                        header = B_TREE_NODE_LEAF_L;
-                    else
-                        header = B_TREE_NODE_LEAF_C;
-                }
-            }else{
-                if(right){
-                    if(left)
-                        header = B_TREE_NODE_DIR_LR;
-                    else
-                        header = B_TREE_NODE_DIR_R;
-                }else{
-                    if(left)
-                        header = B_TREE_NODE_DIR_L;
-                    else
-                        header = B_TREE_NODE_DIR_C;
-                }
-            }
-
+            final int header =  makeHeader(isLeaf, left, right);
 
 
             out.write(header);
@@ -414,6 +387,34 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             }
         }
 
+        private int makeHeader(final boolean isLeaf, final boolean left, final boolean right) {
+            if(isLeaf){
+                if(right){
+                    if(left)
+                        return B_TREE_NODE_LEAF_LR;
+                    else
+                        return B_TREE_NODE_LEAF_R;
+                }else{
+                    if(left)
+                        return B_TREE_NODE_LEAF_L;
+                    else
+                        return B_TREE_NODE_LEAF_C;
+                }
+            }else{
+                if(right){
+                    if(left)
+                        return B_TREE_NODE_DIR_LR;
+                    else
+                        return B_TREE_NODE_DIR_R;
+                }else{
+                    if(left)
+                        return B_TREE_NODE_DIR_L;
+                    else
+                        return B_TREE_NODE_DIR_C;
+                }
+            }
+        }
+
         @Override
         public BNode deserialize(DataInput in, int available) throws IOException {
             final int header = in.readUnsignedByte();
@@ -439,36 +440,45 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
 
             if(isLeaf){
-                long next = DataInput2.unpackLong(in);
-                Object[] keys = keySerializer.deserialize(in, start,end,size);
-                assert(keys.length==size);
-                Object[] vals = new Object[size-2];
-                if(hasValues){
-                    for(int i=0;i<size-2;i++){
-                        if(valsOutsideNodes){
-                            long recid = DataInput2.unpackLong(in);
-                            vals[i] = recid==0? null: new ValRef(recid);
-                        }else{
-                            vals[i] = valueSerializer.deserialize(in, -1);
-                        }
-                    }
-                }else{
-                    //restore values which were deleted
-                    boolean[] bools = SerializerBase.readBooleanArray(vals.length,in);
-                    for(int i=0;i<bools.length;i++){
-                        if(bools[i])
-                            vals[i]=EMPTY;
+                return deserializeLeaf(in, size, start, end);
+            }else{
+                return deserializeDir(in, size, start, end);
+            }
+        }
+
+        private BNode deserializeDir(final DataInput in, final int size, final int start, final int end) throws IOException {
+            final long[] child = new long[size];
+            for(int i=0;i<size;i++)
+                child[i] = DataInput2.unpackLong(in);
+            final Object[] keys = keySerializer.deserialize(in, start,end,size);
+            assert(keys.length==size);
+            return new DirNode(keys, child);
+        }
+
+        private BNode deserializeLeaf(final DataInput in, final int size, final int start, final int end) throws IOException {
+            final long next = DataInput2.unpackLong(in);
+            final Object[] keys = keySerializer.deserialize(in, start,end,size);
+            assert(keys.length==size);
+            assert(keys.length==size);
+            Object[] vals = new Object[size-2];
+            if(hasValues){
+                for(int i=0;i<size-2;i++){
+                    if(valsOutsideNodes){
+                        long recid = DataInput2.unpackLong(in);
+                        vals[i] = recid==0? null: new ValRef(recid);
+                    }else{
+                        vals[i] = valueSerializer.deserialize(in, -1);
                     }
                 }
-                return new LeafNode(keys, vals, next);
             }else{
-                long[] child = new long[size];
-                for(int i=0;i<size;i++)
-                    child[i] = DataInput2.unpackLong(in);
-                Object[] keys = keySerializer.deserialize(in, start,end,size);
-                assert(keys.length==size);
-                return new DirNode(keys, child);
+                //restore values which were deleted
+                boolean[] bools = SerializerBase.readBooleanArray(vals.length, in);
+                for(int i=0;i<bools.length;i++){
+                    if(bools[i])
+                        vals[i]=EMPTY;
+                }
             }
+            return new LeafNode(keys, vals, next);
         }
 
         @Override
