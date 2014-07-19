@@ -213,7 +213,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
 
     /** common interface for BTree node */
-    protected interface BNode{
+    public interface BNode{
         boolean isLeaf();
         Object[] keys();
         Object[] vals();
@@ -222,7 +222,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         long next();
     }
 
-    protected final static class DirNode implements BNode{
+    public final static class DirNode implements BNode{
         final Object[] keys;
         final long[] child;
 
@@ -258,7 +258,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     }
 
 
-    protected final static class LeafNode implements BNode{
+    public final static class LeafNode implements BNode{
         final Object[] keys;
         final Object[] vals;
         final long next;
