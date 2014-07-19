@@ -879,12 +879,10 @@ public class StoreWAL extends StoreDirect {
 
             return realCrc == crc;
         } catch (IOException e) {
-            if(CC.LOG_STORE)
-                LOG.log(Level.FINE, "Rollback corrupted log.",e);
+            LOG.log(Level.INFO, "Revert corrupted Write-Ahead-Log.",e);
             return false;
         }catch(IOError e){
-            if(CC.LOG_STORE)
-                LOG.log(Level.FINE, "Rollback corrupted log.",e);
+            LOG.log(Level.INFO, "Revert corrupted Write-Ahead-Log.",e);
             return false;
         }
     }
