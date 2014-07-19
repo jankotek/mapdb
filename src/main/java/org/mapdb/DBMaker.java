@@ -33,6 +33,8 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
     protected final String TRUE = "true";
 
+    protected  Fun.RecordCondition cacheCondition;
+
     protected interface Keys{
         String cache = "cache";
         String cacheSize = "cacheSize";
@@ -311,6 +313,28 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         return getThis();
     }
 
+    /**
+     * Install callback condition, which decides if some record is to be included in cache.
+     * Condition should return `true` for every record which should be included
+     *
+     * This could be for example useful to include only BTree Directory Nodes and leave values and Leaf nodes outside of cache.
+     *
+     * !!! Warning:!!!
+     *
+     * Cache requires **consistent** true or false. Failing to do so will result in inconsitent cache and possible data corruption.
+
+     * Condition is also executed several times, so it must be very fast
+     *
+     * You should only use very simple logic such as `value instanceof SomeClass`.
+     *
+     * @return this builder
+     */
+    public DBMakerT cacheCondition(Fun.RecordCondition cacheCondition){
+        this.cacheCondition = cacheCondition;
+        return getThis();
+    }
+
+    /**
 
     /**
      * Instance cache is enabled by default.
@@ -871,27 +895,27 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
     protected Engine extendCacheLRU(Engine engine) {
         int cacheSize = propsGetInt(Keys.cacheSize, CC.DEFAULT_CACHE_SIZE);
-        return new Caches.LRU(engine, cacheSize,propsGetBool(Keys.concurrencyDisable));
+        return new Caches.LRU(engine, cacheSize,propsGetBool(Keys.concurrencyDisable), cacheCondition);
     }
 
     protected Engine extendCacheWeakRef(Engine engine) {
-        return new Caches.WeakSoftRef(engine,true,propsGetBool(Keys.concurrencyDisable));
+        return new Caches.WeakSoftRef(engine,true,propsGetBool(Keys.concurrencyDisable), cacheCondition);
     }
 
     protected Engine extendCacheSoftRef(Engine engine) {
-        return new Caches.WeakSoftRef(engine,false,propsGetBool(Keys.concurrencyDisable));
+        return new Caches.WeakSoftRef(engine,false,propsGetBool(Keys.concurrencyDisable), cacheCondition);
     }
 
 
 
     protected Engine extendCacheHardRef(Engine engine) {
         int cacheSize = propsGetInt(Keys.cacheSize, CC.DEFAULT_CACHE_SIZE);
-        return new Caches.HardRef(engine,cacheSize,propsGetBool(Keys.concurrencyDisable));
+        return new Caches.HardRef(engine,cacheSize,propsGetBool(Keys.concurrencyDisable), cacheCondition);
     }
 
     protected Engine extendCacheHashTable(Engine engine) {
         int cacheSize = propsGetInt(Keys.cacheSize, CC.DEFAULT_CACHE_SIZE);
-        return new Caches.HashTable(engine, cacheSize,propsGetBool(Keys.concurrencyDisable));
+        return new Caches.HashTable(engine, cacheSize,propsGetBool(Keys.concurrencyDisable), cacheCondition);
     }
 
     protected Engine extendAsyncWriteEngine(Engine engine) {

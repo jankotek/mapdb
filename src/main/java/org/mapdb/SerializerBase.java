@@ -1412,6 +1412,8 @@ public class SerializerBase implements Serializer<Object>{
         int SERIALIZER_KEY_TUPLE6 = 56;
         int HASHER_ARRAY = 57;
 
+        int RECORD_ALWAYS_TRUE = 58;
+
     }
 
     protected static final class singletons{
@@ -1465,6 +1467,8 @@ public class SerializerBase implements Serializer<Object>{
             all.put(Fun.LONG_ARRAY_COMPARATOR,HeaderMapDB.COMPARATOR_LONG_ARRAY);
             all.put(Fun.DOUBLE_ARRAY_COMPARATOR,HeaderMapDB.COMPARATOR_DOUBLE_ARRAY);
             all.put(Fun.COMPARABLE_ARRAY_COMPARATOR,HeaderMapDB.COMPARATOR_COMPARABLE_ARRAY);
+
+            all.put(Fun.RECORD_ALWAYS_TRUE,HeaderMapDB.RECORD_ALWAYS_TRUE);
 
 
             //important for assertSerializable

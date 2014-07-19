@@ -986,4 +986,19 @@ public final class Fun {
     }
 
 
+    /** decides if some action should be executed on an record*/
+    public interface RecordCondition<A>{
+        boolean run(final long recid, final A value, final Serializer<A> serializer);
+    }
+
+    /**  record condition which always returns true*/
+    public static final RecordCondition RECORD_ALWAYS_TRUE = new RecordCondition() {
+        @Override
+        public boolean run(long recid, Object value, Serializer serializer) {
+            return true;
+        }
+    };
+
+
+
 }
