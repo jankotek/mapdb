@@ -674,15 +674,17 @@ public final class Fun {
         }
     }
 
+    /** function which takes no argument and returns one value*/
     public interface Function0<R>{
         R run();
     }
 
-
+    /** function which takes one argument and returns one value*/
     public interface Function1<R,A>{
         R run(A a);
     }
 
+    /** function which takes two argument and returns one value*/
     public interface Function2<R,A,B>{
         R run(A a, B b);
     }
@@ -707,6 +709,7 @@ public final class Fun {
     }
 
 
+    /** returns function which always returns the value itself without transformation */
     public static <K> Function1<K,K> extractNoTransform() {
         return new Function1<K, K>() {
             @Override
