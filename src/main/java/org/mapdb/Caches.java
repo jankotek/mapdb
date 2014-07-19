@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.Random;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.Level;
 
 /**
  * Contains various instance cache implementations
@@ -810,7 +811,7 @@ public final class Caches {
      */
     public static class HardRef extends LRU {
 
-        final static int CHECK_EVERY_N = 10000;
+        final static int CHECK_EVERY_N = 0xFFFF;
 
         int counter = 0;
 
@@ -825,13 +826,13 @@ public final class Caches {
 
         @Override
         public <A> A get(long recid, Serializer<A> serializer) {
-            checkFreeMem();
+            if(((counter++)& CHECK_EVERY_N)==0 ) {
+                checkFreeMem();
+            }
             return super.get(recid, serializer);
         }
 
         private void checkFreeMem() {
-            if((counter++)%CHECK_EVERY_N==0 ){
-
                 Runtime r = Runtime.getRuntime();
                 long max = r.maxMemory();
                 if(max == Long.MAX_VALUE)
@@ -843,31 +844,39 @@ public final class Caches {
                 //Increasing heap size to max would increase to max
                 free = free + (max-total);
 
-                //TODO logging
-//                if(CC.LOG_TRACE)
-//                    Utils.LOG.fine("DBCache: freemem = " +free + " = "+(free/max)+"%");
+                if(CC.LOG_EWRAP && LOG.isLoggable(Level.FINE))
+                    LOG.fine("HardRefCache: freemem = " +free + " = "+(free/max)+"%");
 
                 if(free<1e7 || free*4 <max){
                     checkClosed(cache).clear();
+                    if(CC.LOG_EWRAP && LOG.isLoggable(Level.FINE))
+                        LOG.fine("Clear HardRef cache");
                 }
-            }
         }
 
         @Override
         public <A> void update(long recid, A value, Serializer<A> serializer) {
-            checkFreeMem();
+            if(((counter++)& CHECK_EVERY_N)==0 ) {
+                checkFreeMem();
+            }
+
             super.update(recid, value, serializer);
         }
 
         @Override
         public <A> void delete(long recid, Serializer<A> serializer){
-            checkFreeMem();
+            if(((counter++)& CHECK_EVERY_N)==0 ) {
+                checkFreeMem();
+            }
+
             super.delete(recid,serializer);
         }
 
         @Override
         public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
-            checkFreeMem();
+            if(((counter++)& CHECK_EVERY_N)==0 ) {
+                checkFreeMem();
+            }
             return super.compareAndSwap(recid, expectedOldValue, newValue, serializer);
         }
     }
