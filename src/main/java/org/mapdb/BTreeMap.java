@@ -461,7 +461,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             assert(keys.length==size);
             Object[] vals = new Object[size-2];
             if(hasValues){
-                for(int i=0;i<size-2;i++){
+                for(int i=0;i<vals.length;i++){
                     if(valsOutsideNodes){
                         long recid = DataInput2.unpackLong(in);
                         vals[i] = recid==0? null: new ValRef(recid);
