@@ -459,7 +459,6 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             final long next = DataInput2.unpackLong(in);
             final Object[] keys = keySerializer.deserialize(in, start,end,size);
             assert(keys.length==size);
-            assert(keys.length==size);
             Object[] vals = new Object[size-2];
             if(hasValues){
                 for(int i=0;i<size-2;i++){
