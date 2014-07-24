@@ -101,7 +101,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     @SuppressWarnings("rawtypes")
     public static final Comparator COMPARABLE_COMPARATOR = new Comparator<Comparable>() {
         @Override
-        public int compare(Comparable o1, Comparable o2) {
+        final public int compare(final Comparable o1, final Comparable o2) {
             return o1.compareTo(o2);
         }
     };
@@ -288,7 +288,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
     protected final Serializer<BNode> nodeSerializer;
 
-    protected static class NodeSerializer<A,B> implements  Serializer<BNode>{
+    protected static final class NodeSerializer<A,B> implements  Serializer<BNode>{
 
         protected final boolean hasValues;
         protected final boolean valsOutsideNodes;
