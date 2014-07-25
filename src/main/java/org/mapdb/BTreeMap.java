@@ -642,7 +642,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         return (V) ret;
     }
 
-    protected long nextDir(DirNode d, Object key) {
+    protected final long nextDir(DirNode d, Object key) {
         int pos = findChildren(key, d.keys) - 1;
         if(pos<0) pos = 0;
         return d.child[pos];
