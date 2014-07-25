@@ -121,7 +121,7 @@ public abstract class BTreeKeySerializer<K>{
             Object[] ret = new Long[size];
             long prev = 0 ;
             for(int i = start; i<end; i++){
-                ret[i] = prev = prev + DataInput2.unpackLong(in);
+                ret[i] = prev = new Long(prev + DataInput2.unpackLong(in));
             }
             return ret;
         }
