@@ -574,16 +574,17 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
      * If all items are smaller it returns `keys.length`
      */
     protected final int findChildren(final Object key, final Object[] keys) {
-        int left = 0;
-        if(keys[0] == null) left++;
+        int left = keys[0] == null ? 1 : 0;
+
         int right = keys[keys.length-1] == null ? keys.length-1 :  keys.length;
 
         int middle;
 
         // binary search
-        while (true) {
-            middle = (left + right) / 2;
-            if(keys[middle]==null) return middle; //null is positive infinitive
+        for(;;) {
+            middle = (left + right) >>> 1;
+            if(keys[middle]==null)
+                return middle; //null is positive infinitive
             if (comparator.compare(keys[middle], key) < 0) {
                 left = middle + 1;
             } else {
