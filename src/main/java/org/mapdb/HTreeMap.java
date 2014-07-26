@@ -25,6 +25,8 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Thread safe concurrent HashMap
@@ -44,6 +46,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K, V>, Bind.MapWithModificationListener<K,V>, Closeable {
 
+    protected static final Logger LOG = Logger.getLogger(HTreeMap.class.getName());
 
     protected static final int BUCKET_OVERFLOW = 4;
 
@@ -1504,6 +1507,9 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         @Override
         public void run() {
+            if(CC.LOG_HTREEMAP && LOG.isLoggable(Level.FINE)){
+                LOG.log(Level.FINE, "HTreeMap expirator thread started");
+            }
             boolean pause = false;
             try {
                 while(true) {
@@ -1530,14 +1536,15 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 }
 
             }catch(Throwable e){
-                //TODO exception handling
-                e.printStackTrace();
-                //Utils.LOG.log(Level.SEVERE, "HTreeMap expirator failed", e);
+                LOG.log(Level.SEVERE, "HTreeMap expirator thread failed", e);
             }finally {
                 HTreeMap m = mapRef.get();
                 if (m != null)
                     m.closeLatch.countDown();
                 mapRef.clear();
+                if(CC.LOG_HTREEMAP && LOG.isLoggable(Level.FINE)){
+                    LOG.log(Level.FINE, "HTreeMap expirator finished");
+                }
             }
         }
 
@@ -1552,26 +1559,40 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             long size = counter.get();
             if(size>expireMaxSize){
                 removePerSegment=1+(size-expireMaxSize)/16;
+                if(LOG.isLoggable(Level.FINE)){
+                    LOG.log(Level.FINE, "HTreeMap expirator expireMaxSize, will remove {0,number,integer} entries per segment",
+                            removePerSegment);
+                }
             }
         }
 
 
         if(expireStoreSize!=0 && removePerSegment==0){
             Store store = Store.forEngine(engine);
-            if(expireStoreSize<store.getCurrSize()-store.getFreeSize()){
+            long storeSize = store.getCurrSize()-store.getFreeSize();
+            if(expireStoreSize<storeSize){
                 removePerSegment=640;
+                if(LOG.isLoggable(Level.FINE)){
+                    LOG.log(Level.FINE, "HTreeMap store store size ({0,number,integer}) over limit," +
+                                    "will remove {2,number,integer} entries per segment",
+                            new Object[]{storeSize, removePerSegment});
+                }
             }
         }
 
+        long counter = 0;
         for(int seg=0;seg<16;seg++){
             if(closeLatch.getCount()<2)
                 return;
-            expirePurgeSegment(seg, removePerSegment);
+            counter+=expirePurgeSegment(seg, removePerSegment);
+        }
+        if(LOG.isLoggable(Level.FINE)){
+            LOG.log(Level.FINE, "HTreeMap expirator removed {0,number,integer}", counter);
         }
 
     }
 
-    protected void expirePurgeSegment(int seg, long removePerSegment) {
+    protected long expirePurgeSegment(int seg, long removePerSegment) {
         segmentLocks[seg].writeLock().lock();
         try{
 //            expireCheckSegment(seg);
@@ -1611,6 +1632,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 n = n.copyPrev(0);
                 engine.update(recid,n,ExpireLinkNode.SERIALIZER);
             }
+            return counter;
 //            expireCheckSegment(seg);
         }finally{
             segmentLocks[seg].writeLock().unlock();

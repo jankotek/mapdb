@@ -62,6 +62,13 @@ public interface CC {
 //    boolean LOG_HINTS = true;
 
 
+
+    /**
+     * Compile-in detailed log messages from HTreeMap.
+     */
+    boolean LOG_HTREEMAP = false;
+
+
     int ASYNC_WRITE_FLUSH_DELAY = 100;
     int ASYNC_WRITE_QUEUE_SIZE = 32000;
 

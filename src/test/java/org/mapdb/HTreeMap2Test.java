@@ -6,6 +6,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.*;
@@ -629,5 +630,49 @@ public class HTreeMap2Test {
 
     }
 
+/*
+    Hi jan,
+
+    Today i found another problem.
+
+    my code is
+
+    HTreeMap<Object, Object>  map = db.createHashMap("cache").expireMaxSize(MAX_ITEM_SIZE).counterEnable()
+            .expireAfterWrite(EXPIRE_TIME, TimeUnit.SECONDS).expireStoreSize(MAX_GB_SIZE).make();
+
+    i set EXPIRE_TIME = 216000
+
+    but the data was expired right now,the expire time is not 216000s, it seems there is a bug for expireAfterWrite.
+
+    if i call expireAfterAccess ,everything seems ok.
+
+*/
+    @Test public void expireAfterWrite() throws InterruptedException {
+  //NOTE this test has race condition and may fail under heavy load.
+        //TODO increase timeout and move into integration tests.
+
+        DB db = DBMaker.newMemoryDB().transactionDisable().make();
+
+        int MAX_ITEM_SIZE = (int) 1e7;
+        int EXPIRE_TIME = 3;
+        double MAX_GB_SIZE = 1e7;
+
+        Map m = db.createHashMap("cache").expireMaxSize(MAX_ITEM_SIZE).counterEnable()
+                .expireAfterWrite(EXPIRE_TIME, TimeUnit.SECONDS).expireStoreSize(MAX_GB_SIZE).make();
+
+        for(int i=0;i<1000;i++){
+            m.put(i,i);
+        }
+        Thread.sleep(2000);
+
+        for(int i=0;i<500;i++){
+            m.put(i,i+1);
+        }
+        assertEquals(m.size(),1000);
+
+        Thread.sleep(2000);
+
+        assertEquals(m.size(),500);
+    }
 }
 
