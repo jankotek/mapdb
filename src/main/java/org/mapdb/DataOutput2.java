@@ -195,8 +195,6 @@ public final class DataOutput2 extends OutputStream implements DataOutput {
         if(CC.PARANOID && value<0)
             throw new AssertionError("negative value: "+value);
 
-        assert(value>=0):"negative value: "+value;
-
         while ((value & ~0x7FL) != 0) {
             out.write((((int) value & 0x7F) | 0x80));
             value >>>= 7;
