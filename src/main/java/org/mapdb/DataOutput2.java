@@ -192,6 +192,8 @@ public final class DataOutput2 extends OutputStream implements DataOutput {
      *
      */
     static public void packLong(DataOutput out, long value) throws IOException {
+        if(CC.PARANOID && value<0)
+            throw new AssertionError("negative value: "+value);
 
         assert(value>=0):"negative value: "+value;
 
@@ -219,7 +221,8 @@ public final class DataOutput2 extends OutputStream implements DataOutput {
      */
 
     static public void packInt(DataOutput in, int value) throws IOException {
-        assert(value>=0):"negative value: "+value;
+        if(CC.PARANOID && value<0)
+            throw new AssertionError("negative value: "+value);
 
         while ((value & ~0x7F) != 0) {
             in.write(((value & 0x7F) | 0x80));

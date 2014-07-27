@@ -172,46 +172,44 @@ public final class DataInput2 implements DataInput, DataIO.DataInputInternal {
      * Unpack positive int value from the input stream.
      *
      * This method originally comes from Kryo Framework, author Nathan Sweet.
-     * It was modified to fit MapDB needs.
+     * It was heavily modified to fit MapDB needs.
      *
      * @param is The input stream.
      * @return The long value.
      * @throws java.io.IOException
      */
     static public int unpackInt(DataInput is) throws IOException {
-        //TODO unrolled version?
-        for (int offset = 0, result = 0; offset < 32; offset += 7) {
-            int b = is.readUnsignedByte();
+        int offset = 0;
+        int result=0;
+        int b;
+        do {
+            b = is.readUnsignedByte();
             result |= (b & 0x7F) << offset;
-            if ((b & 0x80) == 0) {
-                return result;
-            }
-        }
-        throw new AssertionError("Malformed int.");
+            offset += 7;
+        }while((b & 0x80) != 0);
+        return result;
     }
-
 
     /**
      * Unpack positive long value from the input stream.
      *
      * This method originally comes from Kryo Framework, author Nathan Sweet.
-     * It was modified to fit MapDB needs.
+     * It was heavily modified to fit MapDB needs.
      *
      * @param in The input stream.
      * @return The long value.
      * @throws java.io.IOException
      */
     static public long unpackLong(DataInput in) throws IOException {
-        //TODO unrolled version?
-        long result = 0;
-        for (int offset = 0; offset < 64; offset += 7) {
-            long b = in.readUnsignedByte();
+        int offset = 0;
+        long result=0;
+        long b;
+        do {
+            b = in.readUnsignedByte();
             result |= (b & 0x7F) << offset;
-            if ((b & 0x80) == 0) {
-                return result;
-            }
-        }
-        throw new AssertionError("Malformed long.");
+            offset += 7;
+        }while((b & 0x80) != 0);
+        return result;
     }
 
     @Override
