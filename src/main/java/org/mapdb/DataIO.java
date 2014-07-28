@@ -135,8 +135,11 @@ public final class DataIO {
 
         @Override
         public String readUTF() throws IOException {
-            final int size = DataInput2.unpackInt(this);
-            return SerializerBase.deserializeString(this, size);
+            final int len = unpackInt();
+            char[] b = new char[len];
+            for (int i = 0; i < len; i++)
+                b[i] = (char) unpackInt();
+            return new String(b);
         }
 
         @Override
@@ -162,6 +165,19 @@ public final class DataIO {
         @Override
         public void close() {
         }
+
+        protected int unpackInt() throws IOException {
+            int offset = 0;
+            int result=0;
+            int b;
+            do {
+                b = buf[pos++];
+                result |= (b & 0x7F) << offset;
+                offset += 7;
+            }while((b & 0x80) != 0);
+            return result;
+        }
+
 
     }
 

@@ -142,10 +142,10 @@ public final class DataOutput2 extends OutputStream implements DataOutput {
     @Override
     public void writeUTF(final String s) throws IOException {
         final int len = s.length();
-        DataOutput2.packInt(this, len);
+        packInt(len);
         for (int i = 0; i < len; i++) {
             int c = (int) s.charAt(i);
-            DataOutput2.packInt(this, c);
+            packInt(c);
         }
     }
 
@@ -229,4 +229,20 @@ public final class DataOutput2 extends OutputStream implements DataOutput {
 
         in.write((byte) value);
     }
+
+
+
+    protected void packInt(int value) throws IOException {
+        if(CC.PARANOID && value<0)
+            throw new AssertionError("negative value: "+value);
+
+        while ((value & ~0x7F) != 0) {
+            ensureAvail(1);
+            buf[pos++]= (byte) ((value & 0x7F) | 0x80);
+            value >>>= 7;
+        }
+        ensureAvail(1);
+        buf[pos++]= (byte) value;
+    }
+
 }
