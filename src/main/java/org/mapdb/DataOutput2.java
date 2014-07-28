@@ -31,17 +31,16 @@ import java.util.Arrays;
 public final class DataOutput2 extends OutputStream implements DataOutput {
 
     public byte[] buf;
-    volatile public int pos;
+    public int pos;
+    public int sizeMask;
+
 
     public DataOutput2(){
         pos = 0;
         buf = new byte[16]; //TODO take hint from serializer for initial size
+        sizeMask = 0xFFFFFFFF-(buf.length-1);
     }
 
-    public DataOutput2(byte[] buf){
-        pos=0;
-        this.buf = buf;
-    }
 
     public byte[] copyBytes(){
         return Arrays.copyOf(buf, pos);
@@ -50,11 +49,27 @@ public final class DataOutput2 extends OutputStream implements DataOutput {
     /**
      * make sure there will be enough space in buffer to write N bytes
      */
-    public void ensureAvail(final int n) {
-        if (pos + n >= buf.length) {
-            int newSize = Math.max(pos + n, buf.length * 2);
+    public void ensureAvail(int n) {
+
+        n+=pos;
+        if ((n&sizeMask)!=0) {
+            int newSize = buf.length;
+            while(newSize<n){
+                newSize<<=2;
+                sizeMask<<=2;
+            }
             buf = Arrays.copyOf(buf, newSize);
         }
+    }
+
+    public static int nextPowTwo(final int a)
+    {
+        int b = 1;
+        while (b < a)
+        {
+            b = b << 1;
+        }
+        return b;
     }
 
 
