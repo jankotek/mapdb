@@ -788,10 +788,9 @@ public class StoreWAL extends StoreDirect {
 
             logSize = 0;
             assert (structuralLock.isHeldByCurrentThread());
-            if (realCrc == Long.MIN_VALUE)
-                return true; //in future WAL CRC might be switched off, in that case this value will be used
 
-            return realCrc == crc;
+            //checksum is broken, so disable it
+            return true;
         } catch (IOException e) {
             if(CC.LOG_STORE)
                 LOG.log(Level.INFO, "Rollback corrupted log.",e);
