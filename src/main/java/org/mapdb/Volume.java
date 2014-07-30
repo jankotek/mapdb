@@ -1197,5 +1197,105 @@ public abstract class Volume implements Closeable{
         }
 
     }
+
+
+    public static class ReadOnly extends Volume{
+
+        protected final Volume vol;
+
+        public ReadOnly(Volume vol) {
+            this.vol = vol;
+        }
+
+        @Override
+        public boolean tryAvailable(long offset) {
+            return vol.tryAvailable(offset);
+        }
+
+        @Override
+        public void truncate(long size) {
+            throw new IllegalAccessError("read-only");
+        }
+
+        @Override
+        public void putLong(long offset, long value) {
+            throw new IllegalAccessError("read-only");
+        }
+
+        @Override
+        public void putInt(long offset, int value) {
+            throw new IllegalAccessError("read-only");
+        }
+
+        @Override
+        public void putByte(long offset, byte value) {
+            throw new IllegalAccessError("read-only");
+        }
+
+        @Override
+        public void putData(long offset, byte[] src, int srcPos, int srcSize) {
+            throw new IllegalAccessError("read-only");
+        }
+
+        @Override
+        public void putData(long offset, ByteBuffer buf) {
+            throw new IllegalAccessError("read-only");
+        }
+
+        @Override
+        public long getLong(long offset) {
+            return vol.getLong(offset);
+        }
+
+        @Override
+        public int getInt(long offset) {
+            return vol.getInt(offset);
+        }
+
+        @Override
+        public byte getByte(long offset) {
+            return vol.getByte(offset);
+        }
+
+        @Override
+        public DataInput getDataInput(long offset, int size) {
+            return vol.getDataInput(offset,size);
+        }
+
+        @Override
+        public void close() {
+            vol.close();
+        }
+
+        @Override
+        public void sync() {
+            vol.sync();
+        }
+
+        @Override
+        public int sliceSize() {
+            return vol.sliceSize();
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return vol.isEmpty();
+        }
+
+        @Override
+        public void deleteFile() {
+            throw new IllegalAccessError("read-only");
+        }
+
+        @Override
+        public boolean isSliced() {
+            return vol.isSliced();
+        }
+
+        @Override
+        public File getFile() {
+            return vol.getFile();
+        }
+    }
 }
 
