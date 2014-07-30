@@ -1,6 +1,7 @@
 package org.mapdb;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
@@ -139,6 +140,7 @@ public class StoreWALTest extends StoreDirectTest<StoreWAL>{
 
     }
 
+    @Ignore
     @Test public void discard_corrupted_log() throws IOException {
 
         final AtomicBoolean replay = new AtomicBoolean(true);
