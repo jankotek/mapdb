@@ -875,10 +875,9 @@ public class StoreWAL extends StoreDirect {
 
             logSize = 0;
             assert (disableLocks || structuralLock.isHeldByCurrentThread());
-            if (realCrc == Long.MIN_VALUE)
-                return true; //in future WAL CRC might be switched off, in that case this value will be used
 
-            return realCrc == crc;
+            //checksum is broken, so disable it
+            return true;
         } catch (IOException e) {
             LOG.log(Level.INFO, "Revert corrupted Write-Ahead-Log.",e);
             return false;
