@@ -84,6 +84,61 @@ public class StoreWALTest extends StoreDirectTest<StoreWAL>{
         }
     }
 
+
+    @Test public void replay_good_log() throws IOException {
+
+        final AtomicBoolean replay = new AtomicBoolean(true);
+
+        StoreWAL wal = new StoreWAL(fac){
+            @Override
+            protected void replayLogFile() {
+                if(replay.get())
+                    super.replayLogFile();
+                else
+                    throw new IllegalAccessError();
+            }
+        };
+
+        DB db = new DB(wal);
+
+        Map m = db.getHashMap("map");
+
+        //fill map and commit
+        int max = (int) 1e5;
+        for(int i=0;i<max;i++){
+            m.put(i,i);
+        }
+        wal.commit();
+
+        //fill log, commit but do not replay
+        replay.set(false);
+        try {
+            for (int i = max; i < max*2; i++) {
+                m.put(i, i);
+            }
+            wal.commit();
+            fail("Should throw an error");
+        }catch(IllegalAccessError e){
+        }
+
+        wal.log.close();
+        wal.phys.close();
+        wal.index.close();
+
+        //now reopen and check content
+        wal = new StoreWAL(fac);
+
+        db = new DB(wal);
+
+        m = db.getHashMap("map");
+
+        assertEquals(max*2, m.size());
+        for(int i=0;i<max;i++){
+            assertEquals(i,m.get(i));
+        }
+
+    }
+
     @Test public void discard_corrupted_log() throws IOException {
 
         final AtomicBoolean replay = new AtomicBoolean(true);
@@ -140,4 +195,5 @@ public class StoreWALTest extends StoreDirectTest<StoreWAL>{
         }
 
     }
+
 }
