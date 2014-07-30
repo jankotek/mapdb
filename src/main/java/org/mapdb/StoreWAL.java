@@ -762,6 +762,7 @@ public class StoreWAL extends StoreDirect {
                     crc |= crc32.getValue();
 
                     log.getDataInput(logSize, size).readFully(b);
+                    logSize+=size;
                 } else if (ins == WAL_SKIP_REST_OF_BLOCK) {
                     logSize += CHUNK_SIZE - (logSize & CHUNK_SIZE_MOD_MASK);
                 } else {
