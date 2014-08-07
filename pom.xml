@@ -4,7 +4,7 @@
 
     <groupId>org.mapdb</groupId>
     <artifactId>mapdb</artifactId>
-    <version>1.0.6-SNAPSHOT</version>
+    <version>1.0.6</version>
     <name>mapdb</name>
     <description>MapDB provides concurrent Maps, Sets and Queues backed by disk storage or off-heap memory. It is a fast, scalable and easy to use embedded Java database.</description>
     <url>http://www.mapdb.org</url>
