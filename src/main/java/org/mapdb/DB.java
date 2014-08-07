@@ -1026,7 +1026,13 @@ public class DB implements Closeable {
         checkNameNotExists(m.name);
         m.serializer = fillNulls(m.serializer);
         m.serializer = catPut(m.name+".keySerializer",m.serializer,new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer()));
-        m.comparator = catPut(m.name+".comparator",m.comparator,BTreeMap.COMPARABLE_COMPARATOR);
+        if(m.comparator==null){
+            m.comparator = m.serializer.getComparator();
+            if(m.comparator==null){
+                m.comparator = BTreeMap.COMPARABLE_COMPARATOR;
+            }
+        }
+        m.comparator = catPut(m.name+".comparator",m.comparator);
 
         if(m.pumpPresortBatchSize!=-1){
             m.pumpSource = Pump.sort(m.pumpSource,m.pumpIgnoreDuplicates, m.pumpPresortBatchSize,Collections.reverseOrder(m.comparator),getDefaultSerializer());
