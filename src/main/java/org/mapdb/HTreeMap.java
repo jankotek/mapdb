@@ -395,16 +395,24 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         LinkedNode<K,V> ln;
         try{
             ln = getInner(o, h, segment);
-            if(ln==null) return null;
-            if(expireAccessFlag) expireLinkBump(segment,ln.expireLinkNodeRecid,true);
+
+            if(ln!=null && expireAccessFlag)
+                expireLinkBump(segment,ln.expireLinkNodeRecid,true);
         }finally {
             lock.unlock();
         }
-        if(valueCreator==null|| ln.value!=null) return ln.value;
+        if(valueCreator==null){
+            if(ln==null)
+                return null;
+            return ln.value;
+        }
 
+        //value creator is set, so create and put new value
         V value = valueCreator.run((K) o);
+        //there is race condition, vc could be called twice. But map will be updated only once
         V prevVal = putIfAbsent((K) o,value);
-        if(prevVal!=null) return prevVal;
+        if(prevVal!=null)
+            return prevVal;
         return value;
     }
 

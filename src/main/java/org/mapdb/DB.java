@@ -351,6 +351,8 @@ public class DB {
                 return namedPut(name,
                         new DB(new EngineWrapper.ReadOnlyEngine(e)).getHashMap("a"));
             }
+            if(valueCreator!=null)
+                return createHashMap(name).valueCreator(valueCreator).make();
             return createHashMap(name).make();
         }
 

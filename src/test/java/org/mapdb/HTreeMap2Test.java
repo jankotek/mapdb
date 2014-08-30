@@ -4,11 +4,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.*;
@@ -604,6 +603,123 @@ public class HTreeMap2Test {
 
         assertEquals(8, counter.get());
     }
+
+    @Test
+    public void test_iterate_and_remove(){
+        final long max= (long) 1e5;
+
+        Set m = DBMaker.newMemoryDB().cacheDisable().transactionDisable().make().getHashSet("test");
+
+        for(long i=0;i<max;i++){
+            m.add(i);
+        }
+
+
+        Set control = new HashSet();
+        Iterator iter = m.iterator();
+
+        for(long i=0;i<max/2; i++){
+            assertTrue(iter.hasNext());
+            control.add(iter.next());
+        }
+
+        m.clear();
+
+        while(iter.hasNext()){
+            control.add(iter.next());
+        }
+
+    }
+
+/*
+    Hi jan,
+
+    Today i found another problem.
+
+    my code is
+
+    HTreeMap<Object, Object>  map = db.createHashMap("cache").expireMaxSize(MAX_ITEM_SIZE).counterEnable()
+            .expireAfterWrite(EXPIRE_TIME, TimeUnit.SECONDS).expireStoreSize(MAX_GB_SIZE).make();
+
+    i set EXPIRE_TIME = 216000
+
+    but the data was expired right now,the expire time is not 216000s, it seems there is a bug for expireAfterWrite.
+
+    if i call expireAfterAccess ,everything seems ok.
+
+*/
+    @Test public void expireAfterWrite() throws InterruptedException {
+  //NOTE this test has race condition and may fail under heavy load.
+        //TODO increase timeout and move into integration tests.
+
+        DB db = DBMaker.newMemoryDB().transactionDisable().make();
+
+        int MAX_ITEM_SIZE = (int) 1e7;
+        int EXPIRE_TIME = 3;
+        double MAX_GB_SIZE = 1e7;
+
+        Map m = db.createHashMap("cache").expireMaxSize(MAX_ITEM_SIZE).counterEnable()
+                .expireAfterWrite(EXPIRE_TIME, TimeUnit.SECONDS).expireStoreSize(MAX_GB_SIZE).make();
+
+        for(int i=0;i<1000;i++){
+            m.put(i,i);
+        }
+        Thread.sleep(2000);
+
+        for(int i=0;i<500;i++){
+            m.put(i,i+1);
+        }
+        assertEquals(m.size(),1000);
+
+        Thread.sleep(2000);
+
+        assertEquals(m.size(),500);
+    }
+
+
+    public static class AA implements Serializable {
+        final int val;
+
+        public AA(int val) {
+            this.val = val;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return obj instanceof AA && ((AA)obj).val == val;
+        }
+    }
+
+
+    @Test(expected = IllegalArgumentException.class)
+    public void inconsistentHash(){
+        DB db = DBMaker.newMemoryDB()
+                .transactionDisable()
+                .make();
+
+        HTreeMap m = db.createHashMap("test")
+
+                .make();
+
+        for(int i=0;i<1e5;i++){
+            m.put(new AA(i),i);
+        }
+    }
+
+    @Test
+    public void test()
+    {
+        DB db = DBMaker.newMemoryDB().make();
+        Map<String, Integer> map = db.getHashMap("map", new Fun.Function1<Integer, String>() {
+            @Override
+            public Integer run(String s) {
+                return Integer.MIN_VALUE;
+            }
+        });
+        Integer v1 = map.get("s1");
+        assertEquals(Integer.valueOf(Integer.MIN_VALUE), v1);
+    }
+
 
 }
 
