@@ -1,8 +1,8 @@
 package examples;
 
-import org.mapdb.DBMaker;
-import org.mapdb.HTreeMap;
-import org.mapdb.Store;
+import org.mapdb10.DBMaker;
+import org.mapdb10.HTreeMap;
+import org.mapdb10.Store;
 
 import java.util.Random;
 

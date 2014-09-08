@@ -1,9 +1,9 @@
 package examples;
 
-import org.mapdb.BTreeKeySerializer;
-import org.mapdb.DB;
-import org.mapdb.DBMaker;
-import org.mapdb.Fun;
+import org.mapdb10.BTreeKeySerializer;
+import org.mapdb10.DB;
+import org.mapdb10.DBMaker;
+import org.mapdb10.Fun;
 
 import java.util.NavigableSet;
 

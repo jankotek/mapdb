@@ -1,9 +1,9 @@
 package examples;
 
-import org.mapdb.DB;
-import org.mapdb.DBMaker;
-import org.mapdb.TxMaker;
-import org.mapdb.TxRollbackException;
+import org.mapdb10.DB;
+import org.mapdb10.DBMaker;
+import org.mapdb10.TxMaker;
+import org.mapdb10.TxRollbackException;
 
 import java.util.Map;
 

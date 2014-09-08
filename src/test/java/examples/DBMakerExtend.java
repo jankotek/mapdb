@@ -1,6 +1,6 @@
 package examples;
 
-import org.mapdb.*;
+import org.mapdb10.*;
 
 import java.io.File;
 import java.util.Queue;
