@@ -213,21 +213,30 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
 
     /** common interface for BTree node */
-    public interface BNode{
-        boolean isLeaf();
-        Object[] keys();
-        Object[] vals();
-        Object highKey();
-        long[] child();
-        long next();
+    public abstract static class BNode{
+        final Object[] keys;
+
+        public BNode(Object[] keys) {
+            this.keys = keys;
+        }
+
+
+        public Object[] keys(){
+            return keys;
+        }
+
+        public abstract boolean isLeaf();
+        public abstract Object[] vals();
+        public abstract Object highKey();
+        public abstract long[] child();
+        public abstract long next();
     }
 
-    public final static class DirNode implements BNode{
-        final Object[] keys;
+    public final static class DirNode extends BNode{
         final long[] child;
 
         DirNode(Object[] keys, long[] child) {
-            this.keys = keys;
+            super(keys);
             this.child = child;
         }
 
@@ -251,13 +260,12 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     }
 
 
-    public final static class LeafNode implements BNode{
-        final Object[] keys;
+    public final static class LeafNode extends BNode{
         final Object[] vals;
         final long next;
 
         LeafNode(Object[] keys, Object[] vals, long next) {
-            this.keys = keys;
+            super(keys);
             this.vals = vals;
             this.next = next;
             assert(vals==null||keys.length == vals.length+2);
