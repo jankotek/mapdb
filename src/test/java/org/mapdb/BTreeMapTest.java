@@ -29,7 +29,7 @@ public class BTreeMapTest{
     @Test public void test_leaf_node_serialization() throws IOException {
 
 
-        BTreeMap.LeafNode n = new BTreeMap.LeafNode(new Object[]{null,1,2,3, null}, new Object[]{1,2,3}, 111);
+        BTreeMap.LeafNode n = new BTreeMap.LeafNode(new Object[]{null,1,2,3, null}, new Object[]{1,2,3}, 0);
         BTreeMap.LeafNode n2 = (BTreeMap.LeafNode) UtilsTest.clone(n, m.nodeSerializer);
         assertArrayEquals(n.keys(), n2.keys());
         assertEquals(n.next, n2.next);
@@ -39,7 +39,7 @@ public class BTreeMapTest{
 	@Test public void test_dir_node_serialization() throws IOException {
 
 
-        BTreeMap.DirNode n = new BTreeMap.DirNode(new Object[]{1,2,3, null}, new long[]{4,5,6,7});
+        BTreeMap.DirNode n = new BTreeMap.DirNode(new Object[]{1,2,3, null}, new long[]{4,5,6,0});
         BTreeMap.DirNode n2 = (BTreeMap.DirNode) UtilsTest.clone(n, m.nodeSerializer);
 
         assertArrayEquals(n.keys(), n2.keys());
@@ -90,7 +90,7 @@ public class BTreeMapTest{
 
         d = new BTreeMap.DirNode(
                 new Object[]{44,62,68, null},
-                new long[]{10,20,30,40});
+                new long[]{10,20,30,0});
 
         assertEquals(10, m.nextDir(d, 62));
         assertEquals(10, m.nextDir(d, 44));

@@ -238,6 +238,19 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         DirNode(Object[] keys, long[] child) {
             super(keys);
             this.child = child;
+            if(CC.PARANOID){
+                if(child.length!=keys.length)
+                    throw new AssertionError();
+                if((highKey()==null) != (child()[child().length-1]==0))
+                    throw new InternalError();
+                //check for duplicates in children
+                Set s = new HashSet();
+                for(long l:child)
+                    s.add(l);
+                if(s.size()!=child.length)
+                    throw new AssertionError("Children duplicates");
+            }
+
         }
 
 
@@ -268,7 +281,13 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             super(keys);
             this.vals = vals;
             this.next = next;
-            assert(vals==null||keys.length == vals.length+2);
+            if(CC.PARANOID){
+                if(vals==null&& keys.length != vals.length+2)
+                    throw new AssertionError();
+                if((highKey()==null)!=(next==0)){
+                    throw new AssertionError();
+                }
+            }
         }
 
         @Override public boolean isLeaf() { return true;}
@@ -313,12 +332,6 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         public void serialize(DataOutput out, BNode value) throws IOException {
             final boolean isLeaf = value.isLeaf();
 
-            //first byte encodes if is leaf (first bite) and length (last seven bites)
-            assert(value.keys().length<=255);
-            assert(!(!isLeaf && value.child().length!= value.keys().length));
-            assert(!(isLeaf && hasValues && value.vals().length!= value.keys().length-2));
-            assert(!(!isLeaf && value.highKey()!=null && value.child()[value.child().length-1]==0));
-
             //check node integrity in paranoid mode
             if(CC.PARANOID){
                 int len = value.keys().length;
@@ -328,7 +341,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     int comp = comparator.compare(value.keys()[i-1], value.keys()[i]);
                     int limit = i==len-1 ? 1:0 ;
                     if(comp>=limit){
-                        throw new AssertionError("BTreeNode format error, wrong key order at #"+i+"\n"+value);
+                        throw new AssertionError("BTreeNode format error, wrong key order at #"+i+" - "+value);
                     }
                 }
 
