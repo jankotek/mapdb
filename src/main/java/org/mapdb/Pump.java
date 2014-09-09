@@ -417,7 +417,7 @@ public final class Pump {
                 Collections.reverse(dirKeys.get(i));
                 Collections.reverse(dirRecids.get(i));
                 //put node into store
-                BTreeMap.DirNode dir = new BTreeMap.DirNode(dirKeys.get(i).toArray(), dirRecids.get(i));
+                BTreeMap.DirNode dir = new BTreeMap.DirNode(dirKeys.get(i).toArray(), toLongArray(dirRecids.get(i)));
                 long dirRecid = engine.put(dir,nodeSerializer);
                 Object dirStart = dirKeys.get(i).get(0);
                 dirKeys.get(i).clear();
@@ -449,7 +449,7 @@ public final class Pump {
             }
 
             //put node into store
-            BTreeMap.DirNode dir = new BTreeMap.DirNode(keys2.toArray(), dirRecids.get(i));
+            BTreeMap.DirNode dir = new BTreeMap.DirNode(keys2.toArray(), toLongArray(dirRecids.get(i)));
             long dirRecid = engine.put(dir,nodeSerializer);
             Object dirStart = keys2.get(0);
             dirKeys.get(i+1).add(dirStart);
@@ -466,9 +466,17 @@ public final class Pump {
         if(counterRecid!=0)
             engine.update(counterRecid, counter, Serializer.LONG);
 
-        BTreeMap.DirNode dir = new BTreeMap.DirNode(dirKeys.get(len).toArray(), dirRecids.get(len));
+        BTreeMap.DirNode dir = new BTreeMap.DirNode(dirKeys.get(len).toArray(), toLongArray(dirRecids.get(len)));
         long rootRecid = engine.put(dir, nodeSerializer);
         return engine.put(rootRecid,Serializer.LONG); //root recid
+    }
+
+    private static long[] toLongArray(ArrayList<Long> child) {
+        long[] ret= new long[child.size()];
+        for(int i=0;i<child.size();i++){
+            ret[i] = child.get(i);
+        }
+        return ret;
     }
 
     /** create array list with single element*/

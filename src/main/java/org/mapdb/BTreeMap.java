@@ -231,13 +231,6 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             this.child = child;
         }
 
-        DirNode(Object[] keys, List<Long> child) {
-            this.keys = keys;
-            this.child = new long[child.size()];
-            for(int i=0;i<child.size();i++){
-                this.child[i] = child.get(i);
-            }
-        }
 
 
         @Override public boolean isLeaf() { return false;}
