@@ -816,9 +816,10 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                       }
                     assert(current>0);
                 }else{
-                    BNode R = new DirNode(
-                            new Object[]{A.keys()[0], A.highKey(), B.isLeaf()?null:B.highKey()},
-                            new long[]{current,q, 0});
+                    BNode R =
+                            new DirNode(
+                                    new Object[]{null, B.highKey(),null},
+                                    new long[]{current,q, 0});
 
                     lock(nodeLocks, rootRecidRef);
                     unlock(nodeLocks, current);
