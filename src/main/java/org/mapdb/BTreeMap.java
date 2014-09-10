@@ -230,6 +230,24 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         public abstract Object highKey();
         public abstract long[] child();
         public abstract long next();
+
+        public void checkStructure(Comparator comparator){
+            //check all keys are sorted
+            int start = keys[0]==null?1:0;
+            int end = keys.length-2;
+            if(end-start>1){
+                for(int i = start+1;i<=end;i++){
+                    if(comparator.compare(keys[i-1], keys[i])>=0)
+                        throw new AssertionError("keys are not sorted: "+Arrays.toString(keys));
+                }
+            }
+            //check last key is sorted or null
+            if(keys[keys.length-1]!=null && keys.length-start>2){
+                if(comparator.compare(keys[keys.length-2], keys[keys.length-1])>0){
+                    throw new AssertionError("Last key is not sorted "+Arrays.toString(keys));
+                }
+            }
+        }
     }
 
     public final static class DirNode extends BNode{
@@ -238,19 +256,6 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         DirNode(Object[] keys, long[] child) {
             super(keys);
             this.child = child;
-            if(CC.PARANOID){
-                if(child.length!=keys.length)
-                    throw new AssertionError();
-                if((highKey()==null) != (child()[child().length-1]==0))
-                    throw new InternalError();
-                //check for duplicates in children
-                Set s = new HashSet();
-                for(long l:child)
-                    s.add(l);
-                if(s.size()!=child.length)
-                    throw new AssertionError("Children duplicates");
-            }
-
         }
 
 
@@ -270,6 +275,17 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             return "Dir(K"+Arrays.toString(keys)+", C"+Arrays.toString(child)+")";
         }
 
+
+        @Override
+        public void checkStructure(Comparator comparator) {
+            super.checkStructure(comparator);
+
+            if(child.length!=keys.length)
+                throw new AssertionError();
+            if((highKey()==null) != (child()[child().length-1]==0))
+                throw new AssertionError();
+
+        }
     }
 
 
@@ -281,13 +297,6 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             super(keys);
             this.vals = vals;
             this.next = next;
-            if(CC.PARANOID){
-                if(vals==null&& keys.length != vals.length+2)
-                    throw new AssertionError();
-                if((highKey()==null)!=(next==0)){
-                    throw new AssertionError();
-                }
-            }
         }
 
         @Override public boolean isLeaf() { return true;}
@@ -302,6 +311,24 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
         @Override public String toString(){
             return "Leaf(K"+Arrays.toString(keys)+", V"+Arrays.toString(vals)+", L="+next+")";
+        }
+
+        @Override
+        public void checkStructure(Comparator comparator) {
+            super.checkStructure(comparator);
+            if((next==0)!=(highKey()==null)){
+                throw new AssertionError("Next link inconsistent: "+this);
+            }
+
+            if(keys.length != vals.length+2) {
+                throw new AssertionError("Inconsistent vals size: " + this);
+            }
+
+            for(int i=0;i<vals.length;i++){
+                if(vals[i]==null)
+                    throw new AssertionError("Val is null: "+this);
+            }
+
         }
     }
 
@@ -334,17 +361,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
             //check node integrity in paranoid mode
             if(CC.PARANOID){
-                int len = value.keys().length;
-                for(int i=value.keys()[0]==null?2:1;
-                  i<(value.keys()[len-1]==null?len-1:len);
-                  i++){
-                    int comp = comparator.compare(value.keys()[i-1], value.keys()[i]);
-                    int limit = i==len-1 ? 1:0 ;
-                    if(comp>=limit){
-                        throw new AssertionError("BTreeNode format error, wrong key order at #"+i+" - "+value);
-                    }
-                }
-
+                value.checkStructure(comparator);
             }
 
 
@@ -2910,6 +2927,46 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     }
 
 
+    public void checkStructure(){
+        LongHashMap recids = new LongHashMap();
+        final long recid = engine.get(rootRecidRef, Serializer.LONG);
+
+        checkNodeRecur(recid,recids);
+
+    }
+
+    private void checkNodeRecur(long rootRecid, LongHashMap recids) {
+        BNode n = engine.get(rootRecid, nodeSerializer);
+        n.checkStructure(comparator);
+
+        if(recids.get(rootRecid)!=null){
+            throw new AssertionError("Duplicate recid: "+rootRecid);
+        }
+        recids.put(rootRecid,this);
+
+        if(n.next()!=0L && recids.get(n.next())==null){
+            throw new AssertionError("Next link was not found: "+n);
+        }
+        if(n.next()==rootRecid){
+            throw new AssertionError("Recursive next: "+n);
+        }
+        if(!n.isLeaf()){
+            long[] child = n.child();
+            for(int i=child.length-1; i>=0; i--){
+                long recid = child[i];
+                if(recid==rootRecid){
+                    throw new AssertionError("Recursive recid: "+n);
+                }
+
+                if(recid==0 || recid==n.next()){
+                    continue;
+                }
+                checkNodeRecur(recid, recids);;
+
+            }
+        }
+
+    }
 
 
 }

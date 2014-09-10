@@ -516,6 +516,22 @@ public class BTreeMapTest{
         assertEquals((Object) 100, map1.first());
     }
 
+    @Test public void randomStructuralCheck(){
+        Random r = new Random();
+        BTreeMap map = DBMaker.newMemoryDB().transactionDisable().make().createTreeMap("aa")
+                .keySerializer(BTreeKeySerializer.ZERO_OR_POSITIVE_INT)
+                .valueSerializer(Serializer.INTEGER)
+                .make();
+
+        int max =100000;
+
+        for(int i=0;i<max*10;i++){
+            map.put(r.nextInt(max),r.nextInt());
+        }
+
+        map.checkStructure();
+    }
+
 }
 
 
