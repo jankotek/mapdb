@@ -4,7 +4,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.sql.Array;
 import java.util.*;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -35,7 +34,7 @@ public class BTreeMapTest{
                 true,true,false,
                 new Object[]{1,2,3}, 0);
         BTreeMap.LeafNode n2 = (BTreeMap.LeafNode) UtilsTest.clone(n, m.nodeSerializer);
-        assertArrayEquals(n.keys(), n2.keys());
+        assertArrayEquals(nodeKeysToArray(n), nodeKeysToArray(n2));
         assertEquals(n.next, n2.next);
     }
 
@@ -49,7 +48,7 @@ public class BTreeMapTest{
                 new long[]{4,5,6,0});
         BTreeMap.DirNode n2 = (BTreeMap.DirNode) UtilsTest.clone(n, m.nodeSerializer);
 
-        assertArrayEquals(n.keys(), n2.keys());
+        assertArrayEquals(nodeKeysToArray(n), nodeKeysToArray(n2));
         assertArrayEquals(n.child, n2.child);
     }
 
@@ -170,12 +169,20 @@ public class BTreeMapTest{
         assertEquals(null, m.get(31));
     }
 
+    Object[] nodeKeysToArray(BTreeMap.BNode n){
+        Object[] ret = new Object[n.keysLen()];
+        for(int i=0;i<ret.length;i++){
+            ret[i] = n.key(i);
+        }
+        return ret;
+    }
+
     @Test public void root_leaf_insert(){
 
         m.put(11,12);
         final long rootRecid = engine.get(m.rootRecidRef, Serializer.LONG);
         BTreeMap.LeafNode n = (BTreeMap.LeafNode) engine.get(rootRecid, m.nodeSerializer);
-        assertArrayEquals(new Object[]{null, 11, null}, n.keys());
+        assertArrayEquals(new Object[]{null, 11, null}, nodeKeysToArray(n));
         assertArrayEquals(new Object[]{12}, n.vals);
         assertEquals(0, n.next);
     }
