@@ -1144,10 +1144,10 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
     @Override
 	public V remove(Object key) {
-        return remove2(key, null);
+        return removeOrReplace(key, null,null);
     }
 
-    private V remove2(final Object key, final Object value) {
+    private V removeOrReplace(final Object key, final Object value, final  Object putNewValue) {
         long current = engine.get(rootRecidRef, Serializer.LONG);
 
         BNode A = engine.get(current, nodeSerializer);
@@ -1176,10 +1176,12 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     return null;
                 }
 
-                A = ((LeafNode)A).copyRemoveKey(pos);
+                A = putNewValue!=null?
+                        ((LeafNode)A).copyChangeValue(pos,putNewValue):
+                        ((LeafNode)A).copyRemoveKey(pos);
                 assert(nodeLocks.get(current)==Thread.currentThread());
                 engine.update(current, A, nodeSerializer);
-                notify((K)key, (V)oldVal, null);
+                notify((K)key, (V)oldVal, (V)putNewValue);
                 unlock(nodeLocks, current);
                 return (V) oldVal;
             }else if(pos<=0 && -pos-1!=A.keysLen()-1){
@@ -1325,125 +1327,21 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     public boolean remove(Object key, Object value) {
         if(key == null) throw new NullPointerException();
         if(value == null) return false;
-        return remove2(key, value)!=null;
+        return removeOrReplace(key, value,null)!=null;
     }
 
     @Override
     public boolean replace(final K key, final V oldValue, final V newValue) {
         if(key == null || oldValue == null || newValue == null ) throw new NullPointerException();
 
-        long current = engine.get(rootRecidRef, Serializer.LONG);
-
-        BNode node = engine.get(current, nodeSerializer);
-        //dive until leaf is found
-        while(!node.isLeaf()){
-            current = nextDir((DirNode) node, key);
-            node = engine.get(current, nodeSerializer);
-        }
-
-        lock(nodeLocks, current);
-        try{
-
-        LeafNode leaf = (LeafNode) engine.get(current, nodeSerializer);
-        int pos = leaf.findChildren(comparator, key);
-
-        while(pos==leaf.keysLen()){
-            //follow leaf link until necessary
-            lock(nodeLocks, leaf.next);
-            unlock(nodeLocks, current);
-            current = leaf.next;
-            leaf = (LeafNode) engine.get(current, nodeSerializer);
-            pos = leaf.findChildren(comparator, key);
-        }
-
-        boolean ret = false;
-        if( key!=null && leaf.key(pos)!=null && //TODO keys compared to null
-                leaf.compare(comparator,pos, key)==0){
-            Object val  = leaf.vals[pos-1];
-            val = valExpand(val);
-            if(oldValue.equals(val)){
-                notify(key, oldValue, newValue);
-                Object newValue2 = newValue;
-                if(valsOutsideNodes){
-                    long recid = engine.put(newValue, valueSerializer);
-                    newValue2 =  new ValRef(recid);
-                }
-
-                leaf = leaf.copyChangeValue(pos,newValue2);
-
-                assert(nodeLocks.get(current)==Thread.currentThread());
-                engine.update(current, leaf, nodeSerializer);
-
-                ret = true;
-            }
-        }
-        unlock(nodeLocks, current);
-        return ret;
-        }catch(RuntimeException e){
-            unlockAll(nodeLocks);
-            throw e;
-        }catch(Exception e){
-            unlockAll(nodeLocks);
-            throw new RuntimeException(e);
-        }
+        return removeOrReplace(key,oldValue,newValue)!=null;
     }
 
     @Override
     public V replace(final K key, final V value) {
         if(key == null || value == null) throw new NullPointerException();
-        long current = engine.get(rootRecidRef,Serializer.LONG);
 
-        BNode node = engine.get(current, nodeSerializer);
-        //dive until leaf is found
-        while(!node.isLeaf()){
-            current = nextDir((DirNode) node, key);
-            node = engine.get(current, nodeSerializer);
-        }
-
-        lock(nodeLocks, current);
-        try{
-
-        LeafNode leaf = (LeafNode) engine.get(current, nodeSerializer);
-        int pos = leaf.findChildren(comparator, key);
-
-        while(pos==leaf.keysLen()){
-            //follow leaf link until necessary
-            lock(nodeLocks, leaf.next);
-            unlock(nodeLocks, current);
-            current = leaf.next;
-            leaf = (LeafNode) engine.get(current, nodeSerializer);
-            pos = leaf.findChildren(comparator, key);
-        }
-
-        Object ret = null;
-        if( key!=null && leaf.key(pos)!=null && //TODO keys compared to null
-                0==leaf.compare(comparator,pos,key)){
-
-            Object oldVal = leaf.vals[pos-1];
-            ret =  valExpand(oldVal);
-            notify(key, (V)ret, value);
-            Object newVal = value;
-            if(valsOutsideNodes && value!=null){
-                long recid = engine.put(value, valueSerializer);
-                newVal = new ValRef(recid);
-            }
-
-            leaf = leaf.copyChangeValue(pos,newVal);
-            assert(nodeLocks.get(current)==Thread.currentThread());
-            engine.update(current, leaf, nodeSerializer);
-
-
-        }
-        unlock(nodeLocks, current);
-        return (V)ret;
-        }catch(RuntimeException e){
-            unlockAll(nodeLocks);
-            throw e;
-        }catch(Exception e){
-            unlockAll(nodeLocks);
-            throw new RuntimeException(e);
-        }
-
+        return removeOrReplace(key, null, value);
     }
 
 
