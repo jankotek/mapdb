@@ -55,14 +55,16 @@ public class BTreeMapTest{
 
     @Test public void test_find_children(){
 
-        assertEquals(8,m.findChildren(11, new BTreeMap.DirNode(new Integer[]{1,2,3,4,5,6,7,8},false,false,false,null)));
-        assertEquals(0,m.findChildren(1, new BTreeMap.DirNode(new Integer[]{1,2,3,4,5,6,7,8},false,false,false,null)));
-        assertEquals(0,m.findChildren(0, new BTreeMap.DirNode(new Integer[]{1,2,3,4,5,6,7,8},false,false,false,null)));
-        assertEquals(7,m.findChildren(8, new BTreeMap.DirNode(new Integer[]{1,2,3,4,5,6,7,8},false,false,false,null)));
-        assertEquals(4,m.findChildren(49, new BTreeMap.DirNode(new Integer[]{10,20,30,40,50},false,false,false,null)));
-        assertEquals(4,m.findChildren(50, new BTreeMap.DirNode(new Integer[]{10,20,30,40,50},false,false,false,null)));
-        assertEquals(3,m.findChildren(40, new BTreeMap.DirNode(new Integer[]{10,20,30,40,50},false,false,false,null)));
-        assertEquals(3,m.findChildren(39, new BTreeMap.DirNode(new Integer[]{10,20,30,40,50},false,false,false,null)));
+        BTreeMap.BNode n1 = new BTreeMap.DirNode(new Integer[]{1,2,3,4,5,6,7,8},false,false,false,null);
+        assertEquals(8, n1.findChildren(Fun.COMPARATOR, 11));
+        assertEquals(0,n1.findChildren(Fun.COMPARATOR, 1));
+        assertEquals(0,n1.findChildren(Fun.COMPARATOR, 0));
+        assertEquals(7,n1.findChildren(Fun.COMPARATOR, 8));
+        BTreeMap.BNode n2 = new BTreeMap.DirNode(new Integer[]{10,20,30,40,50},false,false,false,null);
+        assertEquals(4,n2.findChildren(Fun.COMPARATOR, 49));
+        assertEquals(4,n2.findChildren(Fun.COMPARATOR, 50));
+        assertEquals(3,n2.findChildren(Fun.COMPARATOR, 40));
+        assertEquals(3,n2.findChildren(Fun.COMPARATOR, 39));
     }
 
 
@@ -81,7 +83,7 @@ public class BTreeMapTest{
                 BTreeMap.BNode n = new BTreeMap.DirNode(keys.toArray(), left,right,false,null);
 
                 for(int i=-10;i<110;i++){
-                    int pos = m.findChildren(i,n);
+                    int pos = n.findChildren(Fun.COMPARATOR,i);
                     int expected = (i+(left?19:9))/10;
                     expected = Math.max(left?1:0,expected);
                     expected = Math.min(left?11:10,expected);

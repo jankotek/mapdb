@@ -287,6 +287,34 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         public abstract long[] child();
         public abstract long next();
 
+        /**
+         * Find the first children node with a key equal or greater than the given key.
+         * If all items are smaller it returns `keys.length`
+         */
+        public final int findChildren(final Comparator comparator,final Object key) {
+
+
+            int left = isLeftEdge()? 1 : 0;
+            int right =isRightEdge() ? keys.length-1 :  keys.length;
+
+            int middle;
+
+            // binary search
+            while (true) {
+                middle = (left + right) / 2;
+                if(keys[middle]==null) return middle; //null is positive infinitive
+                if (comparator.compare(keys[middle], key) < 0) {
+                    left = middle + 1;
+                } else {
+                    right = middle;
+                }
+                if (left >= right) {
+                    return  right;
+                }
+            }
+
+        }
+
         public void checkStructure(Comparator comparator){
             //check all keys are sorted
             int start = keys[0]==null?1:0;
@@ -623,34 +651,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
 
 
-    /**
-     * Find the first children node with a key equal or greater than the given key.
-     * If all items are smaller it returns `keys.length`
-     */
-    protected final int findChildren(final Object key, final BNode node) {
 
-        Object[] keys = node.keys();
-
-        int left = node.isLeftEdge()? 1 : 0;
-        int right = node.isRightEdge() ? keys.length-1 :  keys.length;
-
-        int middle;
-
-        // binary search
-        while (true) {
-            middle = (left + right) / 2;
-            if(keys[middle]==null) return middle; //null is positive infinitive
-            if (comparator.compare(keys[middle], key) < 0) {
-                left = middle + 1;
-            } else {
-                right = middle;
-            }
-            if (left >= right) {
-                return  right;
-            }
-        }
-
-    }
 
     @Override
 	public V get(Object key){
@@ -672,11 +673,11 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
         //now at leaf level
         LeafNode leaf = (LeafNode) A;
-        int pos = findChildren(v, leaf);
+        int pos = leaf.findChildren(comparator, v);
         while(pos == leaf.keysLen()){
             //follow next link on leaf until necessary
             leaf = (LeafNode) engine.get(leaf.next, nodeSerializer);
-            pos = findChildren(v, leaf);
+            pos = leaf.findChildren(comparator, v);
         }
 
         if(pos==leaf.keysLen()-1){
@@ -699,7 +700,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     }
 
     protected final long nextDir(DirNode d, Object key) {
-        int pos = findChildren(key, d) - 1;
+        int pos = d.findChildren(comparator, key) - 1;
         if(pos<0) pos = 0;
         return d.child[pos];
     }
@@ -754,7 +755,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 lock(nodeLocks, current);
                 found = true;
                 A = engine.get(current, nodeSerializer);
-                int pos = findChildren(v, A);
+                int pos = A.findChildren(comparator, v);
                 //check if keys is already in tree
                 if(pos<A.keysLen()-1 &&  v!=null && A.key(pos)!=null && //TODO A.key(pos]!=null??
                         0==comparator.compare(v,A.key(pos))){
@@ -786,7 +787,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     //follow link until necessary
                     unlock(nodeLocks, current);
                     found = false;
-                    int pos2 = findChildren(v, A);
+                    int pos2 = A.findChildren(comparator, v);
                     while(A!=null && pos2 == A.keysLen()){
                         //TODO lock?
                         long next = A.next();
@@ -794,7 +795,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                         if(next==0) break;
                         current = next;
                         A = engine.get(current, nodeSerializer);
-                        pos2 = findChildren(v, A);
+                        pos2 = A.findChildren(comparator, v);
                     }
 
                 }
@@ -804,7 +805,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
             // can be new item inserted into A without splitting it?
             if(A.keysLen() - (A.isLeaf()?2:1)<maxNodeSize){
-                int pos = findChildren(v, A);
+                int pos = A.findChildren(comparator, v);
                 Object[] keys = arrayPut(A.keys(), pos, v);
 
                 if(A.isLeaf()){
@@ -826,7 +827,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 return null;
             }else{
                 //node is not safe, it requires splitting
-                final int pos = findChildren(v, A);
+                final int pos = A.findChildren(comparator, v);
                 final Object[] keys = arrayPut(A.keys(), pos, v);
                 final Object[] vals = (A.isLeaf())? arrayPut(A.vals(), pos-1, value) : null;
                 final long[] child = A.isLeaf()? null : arrayLongPut(A.child(), pos, p);
@@ -1036,7 +1037,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
             lock(nodeLocks, current);
             A = engine.get(current, nodeSerializer);
-            int pos = findChildren(key, A);
+            int pos = A.findChildren(comparator, key);
             if(pos<A.keysLen()&& key!=null && A.key(pos)!=null && //TODO A.key(pos]!=null??
                     0==comparator.compare(key,A.key(pos))){
                 //check for last node which was already deleted
@@ -1072,7 +1073,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 unlock(nodeLocks, current);
                 //follow link until necessary
                 if(A.highKey() != null && comparator.compare(key, A.highKey())>0){
-                    int pos2 = findChildren(key, A);
+                    int pos2 = A.findChildren(comparator, key);
                     while(pos2 == A.keysLen()){
                         //TODO lock?
                         current = ((LeafNode)A).next;
@@ -1230,7 +1231,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         try{
 
         LeafNode leaf = (LeafNode) engine.get(current, nodeSerializer);
-        int pos = findChildren(key, leaf);
+        int pos = leaf.findChildren(comparator,key);
 
         while(pos==leaf.keysLen()){
             //follow leaf link until necessary
@@ -1238,7 +1239,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             unlock(nodeLocks, current);
             current = leaf.next;
             leaf = (LeafNode) engine.get(current, nodeSerializer);
-            pos = findChildren(key, leaf);
+            pos = leaf.findChildren(comparator,key);
         }
 
         boolean ret = false;
@@ -1292,7 +1293,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         try{
 
         LeafNode leaf = (LeafNode) engine.get(current, nodeSerializer);
-        int pos = findChildren(key, leaf);
+        int pos = leaf.findChildren(comparator, key);
 
         while(pos==leaf.keysLen()){
             //follow leaf link until necessary
@@ -1300,7 +1301,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             unlock(nodeLocks, current);
             current = leaf.next;
             leaf = (LeafNode) engine.get(current, nodeSerializer);
-            pos = findChildren(key, leaf);
+            pos = leaf.findChildren(comparator, key);
         }
 
         Object ret = null;
