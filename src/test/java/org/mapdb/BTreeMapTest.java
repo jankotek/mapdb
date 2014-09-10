@@ -48,14 +48,14 @@ public class BTreeMapTest{
 
     @Test public void test_find_children(){
 
-        assertEquals(8,m.findChildren(11, new Integer[]{1,2,3,4,5,6,7,8}));
-        assertEquals(0,m.findChildren(1, new Integer[]{1,2,3,4,5,6,7,8}));
-        assertEquals(0,m.findChildren(0, new Integer[]{1,2,3,4,5,6,7,8}));
-        assertEquals(7,m.findChildren(8, new Integer[]{1,2,3,4,5,6,7,8}));
-        assertEquals(4,m.findChildren(49, new Integer[]{10,20,30,40,50}));
-        assertEquals(4,m.findChildren(50, new Integer[]{10,20,30,40,50}));
-        assertEquals(3,m.findChildren(40, new Integer[]{10,20,30,40,50}));
-        assertEquals(3,m.findChildren(39, new Integer[]{10,20,30,40,50}));
+        assertEquals(8,m.findChildren(11, new BTreeMap.DirNode(new Integer[]{1,2,3,4,5,6,7,8},null)));
+        assertEquals(0,m.findChildren(1, new BTreeMap.DirNode(new Integer[]{1,2,3,4,5,6,7,8},null)));
+        assertEquals(0,m.findChildren(0, new BTreeMap.DirNode(new Integer[]{1,2,3,4,5,6,7,8},null)));
+        assertEquals(7,m.findChildren(8, new BTreeMap.DirNode(new Integer[]{1,2,3,4,5,6,7,8},null)));
+        assertEquals(4,m.findChildren(49, new BTreeMap.DirNode(new Integer[]{10,20,30,40,50},null)));
+        assertEquals(4,m.findChildren(50, new BTreeMap.DirNode(new Integer[]{10,20,30,40,50},null)));
+        assertEquals(3,m.findChildren(40, new BTreeMap.DirNode(new Integer[]{10,20,30,40,50},null)));
+        assertEquals(3,m.findChildren(39, new BTreeMap.DirNode(new Integer[]{10,20,30,40,50},null)));
     }
 
 
