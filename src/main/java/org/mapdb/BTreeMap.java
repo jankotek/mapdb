@@ -362,6 +362,36 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
         }
 
+        public final int findChildren2(final Comparator comparator,final Object key) {
+            int left = 0;
+            int right = keys.length;
+            int comp;
+            int middle;
+
+            // binary search
+            while (true) {
+                middle = (left + right) / 2;
+                if(middle==keys.length)
+                    return -1-(middle+leftEdgeInc()); //null is positive infinitive
+                comp = comparator.compare(keys[middle], key);
+                if(comp==0){
+                    //try one before last, in some cases it might be duplicate of last
+                    if(!isRightEdge() && middle==keys.length-1 && comparator.compare(key,keys[middle-1])==0){
+                        middle--;
+                    }
+                    return middle+leftEdgeInc();
+                } else if ( comp< 0) {
+                    left = middle +1;
+                } else {
+                    right = middle;
+                }
+                if (left >= right) {
+                    return  -1-(right+leftEdgeInc());
+                }
+            }
+
+        }
+
         public void checkStructure(Comparator comparator){
             //check all keys are sorted;
             int end = keys.length-2+rightEdgeInc();
@@ -408,7 +438,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         @Override public long next() {return child[child.length-1];}
 
         @Override public String toString(){
-            return "Dir(K"+Arrays.toString(keys())+", C"+Arrays.toString(child)+")";
+            return "Dir("+leftEdgeInc()+"-"+rightEdgeInc()+"-K"+Arrays.toString(keys())+", C"+Arrays.toString(child)+")";
         }
 
 
@@ -478,7 +508,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         @Override public long next() {return next;}
 
         @Override public String toString(){
-            return "Leaf(K"+Arrays.toString(keys())+", V"+Arrays.toString(vals)+", L="+next+")";
+            return "Leaf("+leftEdgeInc()+"-"+rightEdgeInc()+"-"+"K"+Arrays.toString(keys())+", V"+Arrays.toString(vals)+", L="+next+")";
         }
 
         @Override
@@ -1126,21 +1156,19 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             A = engine.get(current, nodeSerializer);
         }
 
-        try{
-        while(true){
+        long old =0;
+        try{for(;;){
 
             lock(nodeLocks, current);
+            if(old!=0)
+                unlock(nodeLocks,old);
             A = engine.get(current, nodeSerializer);
-            int pos = A.findChildren(comparator, key);
-            if(pos<A.keysLen()&& key!=null && A.key(pos)!=null && //TODO A.key(pos]!=null??
-                    0==A.compare(comparator, pos, key)){
-                //check for last node which was already deleted
-                if(pos == A.keysLen()-1 && value == null){
-                    unlock(nodeLocks, current);
-                    return null;
-                }
 
-                //delete from node
+            int pos = A.findChildren2(comparator, key);
+//            System.out.println(key+" - "+pos+" - "+A);
+            if(pos>0 && pos!=A.keysLen()-1){
+                //found, delete from node
+
                 Object oldVal =   A.vals()[pos-1];
                 oldVal = valExpand(oldVal);
                 if(value!=null && !value.equals(oldVal)){
@@ -1154,20 +1182,21 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 notify((K)key, (V)oldVal, null);
                 unlock(nodeLocks, current);
                 return (V) oldVal;
-            }else{
+            }else if(pos<=0 && -pos-1!=A.keysLen()-1){
+                //not found
                 unlock(nodeLocks, current);
-                //follow link until necessary
-                if(A.highKey() != null && comparator.compare(key, A.highKey())>0){
-                    int pos2 = A.findChildren(comparator, key);
-                    while(pos2 == A.keysLen()){
-                        //TODO lock?
-                        current = ((LeafNode)A).next;
-                        A = engine.get(current, nodeSerializer);
-                    }
-                }else{
+                return null;
+            }else{
+                //move to next link
+                old = current;
+                current = A.next();
+                if(current==0){
+                    //end reached
+                    unlock(nodeLocks,old);
                     return null;
                 }
             }
+
         }
         }catch(RuntimeException e){
             unlockAll(nodeLocks);
