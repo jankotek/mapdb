@@ -173,7 +173,7 @@ public class BTreeMapTest{
         m.put(11,12);
         final long rootRecid = engine.get(m.rootRecidRef, Serializer.LONG);
         BTreeMap.LeafNode n = (BTreeMap.LeafNode) engine.get(rootRecid, m.nodeSerializer);
-        assertArrayEquals(new Object[]{null, 11, null}, n.keys);
+        assertArrayEquals(new Object[]{null, 11, null}, n.keys());
         assertArrayEquals(new Object[]{12}, n.vals);
         assertEquals(0, n.next);
     }

@@ -415,7 +415,7 @@ public final class Pump {
             values.clear();
             values.add(nextVal);
 
-            dirKeys.get(0).add(node.keys()[0]);
+            dirKeys.get(0).add(node.key(0));
             dirRecids.get(0).add(nextNode);
 
             //check node sizes and split them if needed
