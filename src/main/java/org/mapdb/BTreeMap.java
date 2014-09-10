@@ -287,6 +287,14 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         public abstract long[] child();
         public abstract long next();
 
+        public final int compare(final Comparator comparator, int pos1, int pos2){
+            return comparator.compare(keys[pos1],keys[pos2]);
+        }
+
+        public final int compare(final Comparator comparator, int pos, Object second){
+            return comparator.compare(keys[pos],second);
+        }
+
         /**
          * Find the first children node with a key equal or greater than the given key.
          * If all items are smaller it returns `keys.length`
@@ -684,7 +692,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             return null; //last key is always deleted
         }
         //finish search
-        if(leaf.key(pos)!=null && 0==comparator.compare(v,leaf.key(pos))){
+        if(leaf.key(pos)!=null && 0==leaf.compare(comparator,pos,v)){
             Object ret = leaf.vals[pos-1];
             return expandValue ? valExpand(ret) : ret;
         }else
@@ -758,7 +766,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 int pos = A.findChildren(comparator, v);
                 //check if keys is already in tree
                 if(pos<A.keysLen()-1 &&  v!=null && A.key(pos)!=null && //TODO A.key(pos]!=null??
-                        0==comparator.compare(v,A.key(pos))){
+                        0==A.compare(comparator,pos,v)){
                     //yes key is already in tree
                     Object oldVal = A.vals()[pos-1];
                     if(putOnlyIfAbsent){
@@ -1039,7 +1047,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             A = engine.get(current, nodeSerializer);
             int pos = A.findChildren(comparator, key);
             if(pos<A.keysLen()&& key!=null && A.key(pos)!=null && //TODO A.key(pos]!=null??
-                    0==comparator.compare(key,A.key(pos))){
+                    0==A.compare(comparator,pos,key)){
                 //check for last node which was already deleted
                 if(pos == A.keysLen()-1 && value == null){
                     unlock(nodeLocks, current);
@@ -1244,7 +1252,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
         boolean ret = false;
         if( key!=null && leaf.key(pos)!=null && //TODO keys compared to null
-                comparator.compare(key,leaf.key(pos))==0){
+                leaf.compare(comparator,pos, key)==0){
             Object val  = leaf.vals[pos-1];
             val = valExpand(val);
             if(oldValue.equals(val)){
@@ -1306,7 +1314,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
         Object ret = null;
         if( key!=null && leaf.key(pos)!=null && //TODO keys compared to null
-                0==comparator.compare(key,leaf.key(pos))){
+                0==leaf.compare(comparator,pos,key)){
             Object[] vals = Arrays.copyOf(leaf.vals, leaf.vals.length);
             Object oldVal = vals[pos-1];
             ret =  valExpand(oldVal);
@@ -1513,7 +1521,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             for(int i=1;i<leaf.keysLen()-1;i++){
                 if(leaf.key(i)==null) continue;
 
-                if(comparator.compare(key, leaf.key(i))<comp){
+                if(-leaf.compare(comparator, i, key)<comp){
                     return makeEntry(leaf.key(i), valExpand(leaf.vals[i-1]));
                 }
 
@@ -1546,7 +1554,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             for(int i=1;i<leaf.keysLen()-1;i++){
                 if(leaf.key(i)==null) continue;
 
-                if(comparator.compare(key, leaf.key(i))<comp){
+                if(-leaf.compare(comparator,i, key)<comp){
                     return Fun.t2(i, leaf);
                 }
             }
