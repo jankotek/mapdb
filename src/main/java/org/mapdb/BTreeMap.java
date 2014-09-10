@@ -340,6 +340,12 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 }
             }
         }
+
+        public abstract BNode copyAddKey(int pos, Object newKey, long newChild, Object newValue);
+
+        public abstract BNode copySplitRight(int splitPos);
+
+        public abstract BNode copySplitLeft(int splitPos, long newNext);
     }
 
     public final static class DirNode extends BNode{
@@ -374,6 +380,33 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             if(isRightEdge() != (child()[child().length-1]==0))
                 throw new AssertionError();
 
+        }
+
+        @Override
+        public DirNode copyAddKey(int pos, Object newKey, long newChild, Object newValue) {
+            Object[] keys2 = BTreeMap.arrayPut(keys(),pos,newKey);
+
+            long[] child2 = BTreeMap.arrayLongPut(child,pos,newChild);
+
+            return new DirNode(keys2, isLeftEdge(),isRightEdge(),false,child2);
+        }
+
+        @Override
+        public DirNode copySplitRight(int splitPos) {
+            Object[] keys2 = Arrays.copyOfRange(keys(),splitPos,keysLen());
+            long[] child2 = Arrays.copyOfRange(child,splitPos,child.length);
+
+            return new DirNode(keys2,false,isRightEdge(),false,child2);
+        }
+
+        @Override
+        public DirNode copySplitLeft(int splitPos, long newNext) {
+            Object[] keys2 = Arrays.copyOf(keys(), splitPos+1);
+
+            long[] child2 = Arrays.copyOf(child, splitPos+1);
+            child2[splitPos] = newNext;
+
+            return new DirNode(keys2,isLeftEdge(),false,false,child2);
         }
 
     }
@@ -418,6 +451,55 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     throw new AssertionError("Val is null: "+this);
             }
 
+        }
+
+        @Override
+        public LeafNode copyAddKey(int pos, Object newKey, long newChild, Object newValue) {
+            if(CC.PARANOID && newChild!=0)
+                throw new AssertionError();
+
+            Object[] keys2 = BTreeMap.arrayPut(keys(),pos,newKey);
+            Object[] vals2 = arrayPut(vals, pos-1, newValue);
+
+            return new LeafNode(keys2, isLeftEdge(), isRightEdge(), false, vals2,next);
+        }
+
+        @Override
+        public LeafNode copySplitRight(int splitPos) {
+            Object[] keys2 = Arrays.copyOfRange(keys(), splitPos, keysLen());
+            Object[] vals2 = Arrays.copyOfRange(vals, splitPos, vals.length);
+
+            return new LeafNode(keys2,false, isRightEdge(), false, vals2, next);
+        }
+
+        @Override
+        public LeafNode copySplitLeft(int splitPos, long newNext) {
+            Object[] keys2 = Arrays.copyOf(keys(), splitPos+2);
+            keys2[keys2.length-1] = keys2[keys2.length-2];
+
+            Object[] vals2 = Arrays.copyOf(vals, splitPos);
+
+            //TODO check high/low keys overlap
+            return new LeafNode(keys2, isLeftEdge(), false, false, vals2, newNext);
+        }
+
+        public LeafNode copyChangeValue(int pos, Object value) {
+            Object[] vals2 = Arrays.copyOf(vals,vals.length);
+            vals2[pos-1] = value;
+            return new LeafNode(keys(), isLeftEdge(), isRightEdge(), false, vals2, next);
+        }
+
+        public LeafNode copyRemoveKey(int pos) {
+            Object[] keys_ = keys();
+            Object[] keys2 = new Object[keys_.length-1];
+            System.arraycopy(keys_,0,keys2, 0, pos);
+            System.arraycopy(keys_, pos+1, keys2, pos, keys2.length-pos);
+
+            Object[] vals2 = new Object[vals.length-1];
+            System.arraycopy(vals,0,vals2, 0, pos-1);
+            System.arraycopy(vals, pos, vals2, pos-1, vals2.length-(pos-1));
+
+            return new LeafNode(keys2, isLeftEdge(), isRightEdge(), false, vals2, next);
         }
     }
 
@@ -692,7 +774,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             return null; //last key is always deleted
         }
         //finish search
-        if(leaf.key(pos)!=null && 0==leaf.compare(comparator,pos,v)){
+        if(leaf.key(pos)!=null && 0==leaf.compare(comparator, pos, v)){
             Object ret = leaf.vals[pos-1];
             return expandValue ? valExpand(ret) : ret;
         }else
@@ -776,10 +858,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                         return valExpand(oldVal);
                     }
                     //insert new
-                    Object[] vals = Arrays.copyOf(A.vals(), A.vals().length);
-                    vals[pos-1] = value;
-
-                    A = new LeafNode(A.keys(), A.isLeftEdge(), A.isRightEdge(), false, vals, ((LeafNode)A).next);
+                    A = ((LeafNode)A).copyChangeValue(pos,value);
                     assert(nodeLocks.get(current)==Thread.currentThread());
                     engine.update(current, A, nodeSerializer);
                     //already in here
@@ -811,23 +890,14 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
             }while(!found);
 
-            // can be new item inserted into A without splitting it?
-            if(A.keysLen() - (A.isLeaf()?2:1)<maxNodeSize){
-                int pos = A.findChildren(comparator, v);
-                Object[] keys = arrayPut(A.keys(), pos, v);
+            int pos = A.findChildren(comparator, v);
+            A = A.copyAddKey(pos,v,p,value);
 
-                if(A.isLeaf()){
-                    Object[] vals = arrayPut(A.vals(), pos-1, value);
-                    LeafNode n = new LeafNode(keys, A.isLeftEdge(), A.isRightEdge(), false, vals, A.next());
-                    assert(nodeLocks.get(current)==Thread.currentThread());
-                    engine.update(current, n, nodeSerializer);
-                }else{
-                    assert(p!=0);
-                    long[] child = arrayLongPut(A.child(), pos, p);
-                    DirNode d = new DirNode(keys, A.isLeftEdge(), A.isRightEdge(), false, child);
-                    assert(nodeLocks.get(current)==Thread.currentThread());
-                    engine.update(current, d, nodeSerializer);
-                }
+            // can be new item inserted into A without splitting it?
+            if(A.keysLen() - (A.isLeaf()?1:0)<maxNodeSize){
+
+                assert(nodeLocks.get(current)==Thread.currentThread());
+                engine.update(current, A, nodeSerializer);
 
                 notify(key,  null, value2);
                 unlock(nodeLocks, current);
@@ -835,40 +905,13 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 return null;
             }else{
                 //node is not safe, it requires splitting
-                final int pos = A.findChildren(comparator, v);
-                final Object[] keys = arrayPut(A.keys(), pos, v);
-                final Object[] vals = (A.isLeaf())? arrayPut(A.vals(), pos-1, value) : null;
-                final long[] child = A.isLeaf()? null : arrayLongPut(A.child(), pos, p);
-                final int splitPos = keys.length/2;
-                BNode B;
-                if(A.isLeaf()){
-                    Object[] vals2 = Arrays.copyOfRange(vals, splitPos, vals.length);
 
-                    B = new LeafNode(
-                                Arrays.copyOfRange(keys,  splitPos, keys.length),
-                                false,A.isRightEdge(), false,
-                                vals2,
-                                ((LeafNode)A).next);
-                }else{
-                    B = new DirNode(Arrays.copyOfRange(keys, splitPos, keys.length),
-                                false,A.isRightEdge(), false,
-                                Arrays.copyOfRange(child, splitPos, keys.length));
-                }
+                final int splitPos = A.keysLen()/2;
+
+                BNode B = A.copySplitRight(splitPos);
                 long q = engine.put(B, nodeSerializer);
-                if(A.isLeaf()){  //  splitPos+1 is there so A gets new high  value (key)
-                    Object[] keys2 = Arrays.copyOf(keys, splitPos+2);
-                    keys2[keys2.length-1] = keys2[keys2.length-2];
-                    Object[] vals2 = Arrays.copyOf(vals, splitPos);
+                A = A.copySplitLeft(splitPos, q);
 
-                    //TODO check high/low keys overlap
-                    A = new LeafNode(keys2, A.isLeftEdge(), false, false, vals2, q);
-                }else{
-                    long[] child2 = Arrays.copyOf(child, splitPos+1);
-                    child2[splitPos] = q;
-                    A = new DirNode(Arrays.copyOf(keys, splitPos+1),
-                            A.isLeftEdge(), false, false,
-                            child2);
-                }
                 assert(nodeLocks.get(current)==Thread.currentThread());
                 engine.update(current, A, nodeSerializer);
 
@@ -1047,7 +1090,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             A = engine.get(current, nodeSerializer);
             int pos = A.findChildren(comparator, key);
             if(pos<A.keysLen()&& key!=null && A.key(pos)!=null && //TODO A.key(pos]!=null??
-                    0==A.compare(comparator,pos,key)){
+                    0==A.compare(comparator, pos, key)){
                 //check for last node which was already deleted
                 if(pos == A.keysLen()-1 && value == null){
                     unlock(nodeLocks, current);
@@ -1062,16 +1105,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     return null;
                 }
 
-                Object[] keys2 = new Object[A.keysLen()-1];
-                System.arraycopy(A.keys(),0,keys2, 0, pos);
-                System.arraycopy(A.keys(), pos+1, keys2, pos, keys2.length-pos);
-
-                Object[] vals2 = new Object[A.vals().length-1];
-                System.arraycopy(A.vals(),0,vals2, 0, pos-1);
-                System.arraycopy(A.vals(), pos, vals2, pos-1, vals2.length-(pos-1));
-
-
-                A = new LeafNode(keys2, A.isLeftEdge(), A.isRightEdge(), false, vals2, ((LeafNode)A).next);
+                A = ((LeafNode)A).copyRemoveKey(pos);
                 assert(nodeLocks.get(current)==Thread.currentThread());
                 engine.update(current, A, nodeSerializer);
                 notify((K)key, (V)oldVal, null);
@@ -1239,7 +1273,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         try{
 
         LeafNode leaf = (LeafNode) engine.get(current, nodeSerializer);
-        int pos = leaf.findChildren(comparator,key);
+        int pos = leaf.findChildren(comparator, key);
 
         while(pos==leaf.keysLen()){
             //follow leaf link until necessary
@@ -1247,7 +1281,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             unlock(nodeLocks, current);
             current = leaf.next;
             leaf = (LeafNode) engine.get(current, nodeSerializer);
-            pos = leaf.findChildren(comparator,key);
+            pos = leaf.findChildren(comparator, key);
         }
 
         boolean ret = false;
@@ -1256,17 +1290,14 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             Object val  = leaf.vals[pos-1];
             val = valExpand(val);
             if(oldValue.equals(val)){
-                Object[] vals = Arrays.copyOf(leaf.vals, leaf.vals.length);
                 notify(key, oldValue, newValue);
-                vals[pos-1] = newValue;
+                Object newValue2 = newValue;
                 if(valsOutsideNodes){
                     long recid = engine.put(newValue, valueSerializer);
-                    vals[pos-1] =  new ValRef(recid);
+                    newValue2 =  new ValRef(recid);
                 }
 
-                leaf = new LeafNode(Arrays.copyOf(leaf.keys(), leaf.keysLen()),
-                        leaf.isLeftEdge(), leaf.isRightEdge(), false,
-                        vals, leaf.next);
+                leaf = leaf.copyChangeValue(pos,newValue2);
 
                 assert(nodeLocks.get(current)==Thread.currentThread());
                 engine.update(current, leaf, nodeSerializer);
@@ -1315,19 +1346,17 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         Object ret = null;
         if( key!=null && leaf.key(pos)!=null && //TODO keys compared to null
                 0==leaf.compare(comparator,pos,key)){
-            Object[] vals = Arrays.copyOf(leaf.vals, leaf.vals.length);
-            Object oldVal = vals[pos-1];
+
+            Object oldVal = leaf.vals[pos-1];
             ret =  valExpand(oldVal);
             notify(key, (V)ret, value);
-            vals[pos-1] = value;
+            Object newVal = value;
             if(valsOutsideNodes && value!=null){
                 long recid = engine.put(value, valueSerializer);
-                vals[pos-1] = new ValRef(recid);
+                newVal = new ValRef(recid);
             }
 
-            leaf = new LeafNode(Arrays.copyOf(leaf.keys(), leaf.keysLen()),
-                    leaf.isLeftEdge(), leaf.isRightEdge(), false,
-                    vals, leaf.next);
+            leaf = leaf.copyChangeValue(pos,newVal);
             assert(nodeLocks.get(current)==Thread.currentThread());
             engine.update(current, leaf, nodeSerializer);
 
