@@ -399,8 +399,8 @@ public final class Pump {
             if(rightEdge)
                 keys.remove(keys.size()-1);
             boolean leftEdge = keys.get(0)==null;
-//            if(leftEdge)
-//                keys.remove(0);
+            if(leftEdge)
+                keys.remove(0);
             BTreeMap.LeafNode node = new BTreeMap.LeafNode(
                     keys.toArray(),
                     leftEdge,rightEdge, false,
@@ -430,9 +430,9 @@ public final class Pump {
                     dirKeys.get(i).remove(dirKeys.get(i).size()-1);
                 }
                 boolean leftEdge2 = dirKeys.get(i).get(0)==null;
-//                if(leftEdge2){
-//                    dirKeys.get(i).remove(0);
-//                }
+                if(leftEdge2){
+                    dirKeys.get(i).remove(0);
+                }
                 BTreeMap.DirNode dir = new BTreeMap.DirNode(
                         dirKeys.get(i).toArray(),
                         leftEdge2,rightEdge2, false,
@@ -473,9 +473,9 @@ public final class Pump {
                 keys2.remove(keys2.size()-1);
             }
             boolean leftEdge3 = keys2.get(0)==null;
-//            if(leftEdge3){
-//                keys2.remove(0);
-//            }
+            if(leftEdge3){
+                keys2.remove(0);
+            }
             BTreeMap.DirNode dir = new BTreeMap.DirNode(
                     keys2.toArray(),
                     leftEdge3,rightEdge3, false,
@@ -502,9 +502,9 @@ public final class Pump {
             dirKeys.get(len).remove(dirKeys.get(len).size()-1);
         }
         boolean leftEdge4 = dirKeys.get(len).get(0)==null;
-//        if(leftEdge4){
-//            dirKeys.get(len).remove(0);
-//        }
+        if(leftEdge4){
+            dirKeys.get(len).remove(0);
+        }
         BTreeMap.DirNode dir = new BTreeMap.DirNode(
                 dirKeys.get(len).toArray(),
                 leftEdge4,rightEdge4, false,

@@ -30,7 +30,7 @@ public class BTreeMapTest{
 
 
         BTreeMap.LeafNode n = new BTreeMap.LeafNode(
-                new Object[]{null,1,2,3},
+                new Object[]{1,2,3},
                 true,true,false,
                 new Object[]{1,2,3}, 0);
         BTreeMap.LeafNode n2 = (BTreeMap.LeafNode) UtilsTest.clone(n, m.nodeSerializer);
@@ -81,13 +81,11 @@ public class BTreeMapTest{
         for(boolean left:new boolean[]{true,false}){
             for(boolean right:new boolean[]{true,false}){
                 List  keys = new ArrayList();
-                if(left)
-                    keys.add(null);
                 for(int i=0;i<100;i+=10){
                     keys.add(i);
                 }
 
-                long[] child = new long[keys.size()+(right?1:0)];
+                long[] child = new long[keys.size()+(right?1:0)+(left?1:0)];
                 Arrays.fill(child,11);
                 if(right)
                     child[child.length-1]=0;
@@ -132,7 +130,7 @@ public class BTreeMapTest{
     @Test public void test_next_dir_infinity(){
 
         BTreeMap.DirNode d = new BTreeMap.DirNode(
-                new Object[]{null,62,68, 71},
+                new Object[]{62,68, 71},
                 true,false,false,
                 new long[]{10,20,30,40});
         assertEquals(10, m.nextDir(d, 33));
@@ -164,7 +162,7 @@ public class BTreeMapTest{
     @Test public void simple_root_get(){
 
         BTreeMap.LeafNode l = new BTreeMap.LeafNode(
-                new Object[]{null, 10,20,30},
+                new Object[]{10,20,30},
                 true,true,false,
                 new Object[]{10,20,30},
                 0);
