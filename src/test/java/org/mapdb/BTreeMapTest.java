@@ -4,6 +4,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.sql.Array;
 import java.util.*;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -62,6 +63,34 @@ public class BTreeMapTest{
         assertEquals(4,m.findChildren(50, new BTreeMap.DirNode(new Integer[]{10,20,30,40,50},false,false,false,null)));
         assertEquals(3,m.findChildren(40, new BTreeMap.DirNode(new Integer[]{10,20,30,40,50},false,false,false,null)));
         assertEquals(3,m.findChildren(39, new BTreeMap.DirNode(new Integer[]{10,20,30,40,50},false,false,false,null)));
+    }
+
+
+    @Test public void test_find_children_2(){
+        for(boolean left:new boolean[]{true,false}){
+            for(boolean right:new boolean[]{true,false}){
+                List  keys = new ArrayList();
+                if(left)
+                    keys.add(null);
+                for(int i=0;i<100;i+=10){
+                    keys.add(i);
+                }
+                if(right)
+                    keys.add(null);
+
+                BTreeMap.BNode n = new BTreeMap.DirNode(keys.toArray(), left,right,false,null);
+
+                for(int i=-10;i<110;i++){
+                    int pos = m.findChildren(i,n);
+                    int expected = (i+(left?19:9))/10;
+                    expected = Math.max(left?1:0,expected);
+                    expected = Math.min(left?11:10,expected);
+                    assertEquals("i:"+i+" - l:"+left+" - r:"+right,expected,pos);
+                }
+            }
+        }
+
+
     }
 
 
