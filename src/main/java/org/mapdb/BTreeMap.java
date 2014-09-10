@@ -211,6 +211,23 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         }
     }
 
+    protected static final class ValRefSerializer implements Serializer<ValRef>{
+
+        @Override
+        public void serialize(DataOutput out, ValRef value) throws IOException {
+            DataOutput2.packLong(out,value.recid);
+        }
+
+        @Override
+        public ValRef deserialize(DataInput in, int available) throws IOException {
+            return new ValRef(DataInput2.unpackLong(in));
+        }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+    }
 
     /** common interface for BTree node */
     public abstract static class BNode{
@@ -359,7 +376,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             this.hasValues = valueSerializer!=null;
             this.valsOutsideNodes = valsOutsideNodes;
             this.keySerializer = keySerializer;
-            this.valueSerializer = valueSerializer;
+            this.valueSerializer = valsOutsideNodes? new ValRefSerializer() : valueSerializer;
             this.comparator = comparator;
             this.numberOfNodeMetas = numberOfNodeMetas;
         }
@@ -405,13 +422,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             if(isLeaf){
                 if(hasValues){
                     for(Object val:value.vals()){
-                        assert(val!=null);
-                        if(valsOutsideNodes){
-                            long recid = ((ValRef)val).recid;
-                            DataOutput2.packLong(out, recid);
-                        }else{
-                            valueSerializer.serialize(out,  val);
-                        }
+                       valueSerializer.serialize(out,  val);
                     }
                 }else{
                     //write bits if values are null
@@ -507,13 +518,9 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             Object[] vals = new Object[size-2];
             if(hasValues){
                 for(int i=0;i<vals.length;i++){
-                    if(valsOutsideNodes){
-                        long recid = DataInput2.unpackLong(in);
-                        vals[i] = recid==0? null: new ValRef(recid);
-                    }else{
-                        vals[i] = valueSerializer.deserialize(in, -1);
-                    }
+                    vals[i] = valueSerializer.deserialize(in, -1);
                 }
+
             }else{
                 //restore values which were deleted
                 boolean[] bools = SerializerBase.readBooleanArray(vals.length, in);
