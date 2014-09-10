@@ -376,7 +376,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 comp = comparator.compare(keys[middle], key);
                 if(comp==0){
                     //try one before last, in some cases it might be duplicate of last
-                    if(!isRightEdge() && middle==keys.length-1 && comparator.compare(key,keys[middle-1])==0){
+                    if(!isRightEdge() && middle==keys.length-1 && middle>0
+                            && comparator.compare(keys[middle-1],key)==0){
                         middle--;
                     }
                     return middle+leftEdgeInc();
@@ -834,24 +835,25 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             A = engine.get(current, nodeSerializer);
         }
 
-        //now at leaf level
-        LeafNode leaf = (LeafNode) A;
-        int pos = leaf.findChildren(comparator, v);
-        while(pos == leaf.keysLen()){
-            //follow next link on leaf until necessary
-            leaf = (LeafNode) engine.get(leaf.next, nodeSerializer);
-            pos = leaf.findChildren(comparator, v);
+        for(;;) {
+            int pos = A.findChildren2(comparator, key);
+
+            if (pos > 0 && pos != A.keysLen() - 1) {
+                //found
+                return A.vals()[pos - 1];
+            } else if (pos <= 0 && -pos - 1 != A.keysLen() - 1) {
+                //not found
+                return null;
+            } else {
+                //move to next link
+                current = A.next();
+                if (current == 0) {
+                    return null;
+                }
+                A = engine.get(current, nodeSerializer);
+            }
         }
 
-        if(pos==leaf.keysLen()-1){
-            return null; //last key is always deleted
-        }
-        //finish search
-        if(leaf.key(pos)!=null && 0==leaf.compare(comparator, pos, v)){
-            Object ret = leaf.vals[pos-1];
-            return expandValue ? valExpand(ret) : ret;
-        }else
-            return null;
     }
 
     protected V valExpand(Object ret) {
@@ -1144,7 +1146,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
     @Override
 	public V remove(Object key) {
-        return removeOrReplace(key, null,null);
+        return removeOrReplace(key, null, null);
     }
 
     private V removeOrReplace(final Object key, final Object value, final  Object putNewValue) {
@@ -1327,7 +1329,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     public boolean remove(Object key, Object value) {
         if(key == null) throw new NullPointerException();
         if(value == null) return false;
-        return removeOrReplace(key, value,null)!=null;
+        return removeOrReplace(key, value, null)!=null;
     }
 
     @Override
