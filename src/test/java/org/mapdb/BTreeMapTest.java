@@ -30,7 +30,7 @@ public class BTreeMapTest{
 
 
         BTreeMap.LeafNode n = new BTreeMap.LeafNode(
-                new Object[]{null,1,2,3, null},
+                new Object[]{null,1,2,3},
                 true,true,false,
                 new Object[]{1,2,3}, 0);
         BTreeMap.LeafNode n2 = (BTreeMap.LeafNode) UtilsTest.clone(n, m.nodeSerializer);
@@ -43,7 +43,7 @@ public class BTreeMapTest{
 
 
         BTreeMap.DirNode n = new BTreeMap.DirNode(
-                new Object[]{1,2,3, null},
+                new Object[]{1,2,3},
                 false,true,false,
                 new long[]{4,5,6,0});
         BTreeMap.DirNode n2 = (BTreeMap.DirNode) UtilsTest.clone(n, m.nodeSerializer);
@@ -53,13 +53,23 @@ public class BTreeMapTest{
     }
 
     @Test public void test_find_children(){
+        long[] child = new long[8];
+        for(int i=0;i<child.length;i++){
+            child[i] = new Random().nextInt(1000)+1;
+        }
 
-        BTreeMap.BNode n1 = new BTreeMap.DirNode(new Integer[]{1,2,3,4,5,6,7,8},false,false,false,null);
+        BTreeMap.BNode n1 = new BTreeMap.DirNode(new Integer[]{1,2,3,4,5,6,7,8},false,false,false,child);
         assertEquals(8, n1.findChildren(Fun.COMPARATOR, 11));
         assertEquals(0,n1.findChildren(Fun.COMPARATOR, 1));
         assertEquals(0,n1.findChildren(Fun.COMPARATOR, 0));
         assertEquals(7,n1.findChildren(Fun.COMPARATOR, 8));
-        BTreeMap.BNode n2 = new BTreeMap.DirNode(new Integer[]{10,20,30,40,50},false,false,false,null);
+
+        child = new long[5];
+        for(int i=0;i<child.length;i++){
+            child[i] = new Random().nextInt(1000)+1;
+        }
+
+        BTreeMap.BNode n2 = new BTreeMap.DirNode(new Integer[]{10,20,30,40,50},false,false,false,child);
         assertEquals(4,n2.findChildren(Fun.COMPARATOR, 49));
         assertEquals(4,n2.findChildren(Fun.COMPARATOR, 50));
         assertEquals(3,n2.findChildren(Fun.COMPARATOR, 40));
@@ -76,10 +86,14 @@ public class BTreeMapTest{
                 for(int i=0;i<100;i+=10){
                     keys.add(i);
                 }
-                if(right)
-                    keys.add(null);
 
-                BTreeMap.BNode n = new BTreeMap.DirNode(keys.toArray(), left,right,false,null);
+                long[] child = new long[keys.size()+(right?1:0)];
+                Arrays.fill(child,11);
+                if(right)
+                    child[child.length-1]=0;
+
+
+                BTreeMap.BNode n = new BTreeMap.DirNode(keys.toArray(), left,right,false,child);
 
                 for(int i=-10;i<110;i++){
                     int pos = n.findChildren(Fun.COMPARATOR,i);
@@ -126,7 +140,7 @@ public class BTreeMapTest{
         assertEquals(20, m.nextDir(d, 63));
 
         d = new BTreeMap.DirNode(
-                new Object[]{44,62,68, null},
+                new Object[]{44,62,68},
                 false,true,false,
                 new long[]{10,20,30,0});
 
@@ -150,7 +164,7 @@ public class BTreeMapTest{
     @Test public void simple_root_get(){
 
         BTreeMap.LeafNode l = new BTreeMap.LeafNode(
-                new Object[]{null, 10,20,30, null},
+                new Object[]{null, 10,20,30},
                 true,true,false,
                 new Object[]{10,20,30},
                 0);

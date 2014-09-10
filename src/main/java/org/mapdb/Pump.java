@@ -396,8 +396,8 @@ public final class Pump {
 
 
             boolean rightEdge = keys.get(keys.size()-1)==null;
-//            if(rightEdge)
-//                keys.remove(keys.size()-1);
+            if(rightEdge)
+                keys.remove(keys.size()-1);
             boolean leftEdge = keys.get(0)==null;
 //            if(leftEdge)
 //                keys.remove(0);
@@ -426,9 +426,9 @@ public final class Pump {
                 Collections.reverse(dirRecids.get(i));
                 //put node into store
                 boolean rightEdge2 = dirKeys.get(i).get(dirKeys.get(i).size()-1) == null;
-//                if(rightEdge2){
-//                    dirKeys.get(i).remove(dirKeys.get(i).size()-1);
-//                }
+                if(rightEdge2){
+                    dirKeys.get(i).remove(dirKeys.get(i).size()-1);
+                }
                 boolean leftEdge2 = dirKeys.get(i).get(0)==null;
 //                if(leftEdge2){
 //                    dirKeys.get(i).remove(0);
@@ -469,9 +469,9 @@ public final class Pump {
 
             //put node into store
             boolean rightEdge3 = keys2.get(keys2.size()-1)==null;
-//            if(rightEdge3){
-//                keys2.remove(keys2.size()-1);
-//            }
+            if(rightEdge3){
+                keys2.remove(keys2.size()-1);
+            }
             boolean leftEdge3 = keys2.get(0)==null;
 //            if(leftEdge3){
 //                keys2.remove(0);
@@ -498,9 +498,9 @@ public final class Pump {
 
 
         boolean rightEdge4 = dirKeys.get(len).get(dirKeys.get(len).size()-1)==null;
-//        if(rightEdge4){
-//            dirKeys.get(len).remove(dirKeys.get(len).size()-1);
-//        }
+        if(rightEdge4){
+            dirKeys.get(len).remove(dirKeys.get(len).size()-1);
+        }
         boolean leftEdge4 = dirKeys.get(len).get(0)==null;
 //        if(leftEdge4){
 //            dirKeys.get(len).remove(0);
