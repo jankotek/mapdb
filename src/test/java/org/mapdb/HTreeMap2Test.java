@@ -3,7 +3,10 @@ package org.mapdb;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.DataInput;
+import java.io.DataOutput;
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -47,38 +50,38 @@ public class HTreeMap2Test {
             s+=prefix+"null,\n";
         }else{
             s+= prefix+"Arrays.asList(\n";
-        for(long[] n:nn){
-            if(n==null){
-                s+=prefix+"  null,\n";
-            }else{
-                s+=prefix+"  Arrays.asList(\n";
-                for(long r2:n){
-                    if(r2==0){
-                        s+=prefix+"    "+"null,\n";
-                    }else{
-                        if((r2&1)==0){
-                            s+=recursiveToString(r2>>>1, prefix+"    ", engine);
+            for(long[] n:nn){
+                if(n==null){
+                    s+=prefix+"  null,\n";
+                }else{
+                    s+=prefix+"  Arrays.asList(\n";
+                    for(long r2:n){
+                        if(r2==0){
+                            s+=prefix+"    "+"null,\n";
                         }else{
-                            s+=prefix+"    "+"Array.asList(";
-                            TreeMap m = new TreeMap();
-                            HTreeMap.LinkedNode node =
-                                    (HTreeMap.LinkedNode) engine.get
-                                            (r2 >>> 1, serializer);
-                            while(node!=null){
-                                m.put(node.key, node.value);
-                                node = (HTreeMap.LinkedNode) engine.get(node.next, serializer);
+                            if((r2&1)==0){
+                                s+=recursiveToString(r2>>>1, prefix+"    ", engine);
+                            }else{
+                                s+=prefix+"    "+"Array.asList(";
+                                TreeMap m = new TreeMap();
+                                HTreeMap.LinkedNode node =
+                                        (HTreeMap.LinkedNode) engine.get
+                                                (r2 >>> 1, serializer);
+                                while(node!=null){
+                                    m.put(node.key, node.value);
+                                    node = (HTreeMap.LinkedNode) engine.get(node.next, serializer);
+                                }
+                                for(Object k:m.keySet()){
+                                    s+= k+","+m.get(k)+",";
+                                }
+                                //s=s.substring(0,s.length()-1);
+                                s+="),\n";
                             }
-                            for(Object k:m.keySet()){
-                                s+= k+","+m.get(k)+",";
-                            }
-                            //s=s.substring(0,s.length()-1);
-                            s+="),\n";
                         }
                     }
+                    s+=prefix+"  ),\n";
                 }
-                s+=prefix+"  ),\n";
             }
-        }
 //            s=s.substring(0,s.length()-2);
             s+=prefix+"),\n";
         }
@@ -95,7 +98,7 @@ public class HTreeMap2Test {
         DataIO.DataOutputByteArray out = new DataIO.DataOutputByteArray();
         HTreeMap.DIR_SERIALIZER.serialize(out,l);
 
-        DataIO.DataInputByteArray in = swap(out);
+        DataIO.DataInputByteBuffer in = swap(out);
 
         long[][] b = HTreeMap.DIR_SERIALIZER.deserialize(in, -1);
 
@@ -112,9 +115,9 @@ public class HTreeMap2Test {
 
     }
 
-    DataIO.DataInputByteArray swap(DataIO.DataOutputByteArray d){
+    DataIO.DataInputByteBuffer swap(DataIO.DataOutputByteArray d){
         byte[] b = d.copyBytes();
-        return new DataIO.DataInputByteArray(b,0);
+        return new DataIO.DataInputByteBuffer(ByteBuffer.wrap(b),0);
     }
 
 
@@ -125,7 +128,7 @@ public class HTreeMap2Test {
 
         serializer.serialize(out, n);
 
-        DataIO.DataInputByteArray in = swap(out);
+        DataIO.DataInputByteBuffer in = swap(out);
 
         HTreeMap.LinkedNode n2  = (HTreeMap.LinkedNode) serializer.deserialize(in, -1);
 
@@ -137,7 +140,7 @@ public class HTreeMap2Test {
 
     @Test public void test_simple_put(){
 
-        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC, Serializer.BASIC,0,0,0,0,0,null,null,null, null,false);
+        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC, Serializer.BASIC,0,0,0,0,0,null,null,null, null,false,null);
 
         m.put(111L, 222L);
         m.put(333L, 444L);
@@ -152,7 +155,7 @@ public class HTreeMap2Test {
     }
 
     @Test public void test_hash_collision(){
-        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC, Serializer.BASIC,0,0,0,0,0,null,null,null, null,false){
+        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC, Serializer.BASIC,0,0,0,0,0,null,null,null, null,false,null){
             @Override
             protected int hash(Object key) {
                 return 0;
@@ -173,7 +176,7 @@ public class HTreeMap2Test {
     }
 
     @Test public void test_hash_dir_expand(){
-        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC, Serializer.BASIC,0,0,0,0,0,null,null,null, null,false){
+        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC, Serializer.BASIC,0,0,0,0,0,null,null,null, null,false,null){
             @Override
             protected int hash(Object key) {
                 return 0;
@@ -209,12 +212,12 @@ public class HTreeMap2Test {
         l = engine.get(recid, HTreeMap.DIR_SERIALIZER);
         assertNotNull(l[0]);
         for(int j=1;j<8;j++){ //all others should be null
-           assertEquals(null, l[j]);
+            assertEquals(null, l[j]);
         }
 
         assertEquals(0, l[0][0]&1); //last bite indicates leaf
         for(int j=1;j<8;j++){ //all others should be zero
-          assertEquals(0, l[0][j]);
+            assertEquals(0, l[0][j]);
         }
 
         recid = l[0][0]>>>1;
@@ -247,7 +250,7 @@ public class HTreeMap2Test {
 
 
     @Test public void test_delete(){
-        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC, Serializer.BASIC,0,0,0,0,0,null,null,null, null,false){
+        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC, Serializer.BASIC,0,0,0,0,0,null,null,null, null,false,null){
             @Override
             protected int hash(Object key) {
                 return 0;
@@ -275,7 +278,7 @@ public class HTreeMap2Test {
     }
 
     @Test public void clear(){
-        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC, Serializer.BASIC,0,0,0,0,0,null,null,null, null,false);
+        HTreeMap m = new HTreeMap(engine,0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC, Serializer.BASIC,0,0,0,0,0,null,null,null, null,false,null);
         for(Integer i=0;i<100;i++){
             m.put(i,i);
         }
@@ -285,8 +288,8 @@ public class HTreeMap2Test {
     }
 
     @Test //(timeout = 10000)
-     public void testIteration(){
-        HTreeMap m = new HTreeMap(engine, 0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC,Serializer.BASIC,0,0,0,0,0,null,null,null, null,false){
+    public void testIteration(){
+        HTreeMap m = new HTreeMap(engine, 0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC,Serializer.BASIC,0,0,0,0,0,null,null,null, null,false,null){
             @Override
             protected int hash(Object key) {
                 return (Integer) key;
@@ -510,10 +513,10 @@ public class HTreeMap2Test {
     public void cache_load_time_expire(){
         DB db =
                 DBMaker.newMemoryDB()
-                .sizeLimit(1)
-                .transactionDisable()
-                .cacheDisable()
-                .make();
+                        .sizeLimit(1)
+                        .transactionDisable()
+                        .cacheDisable()
+                        .make();
 
         HTreeMap m = db.createHashMap("test")
                 //.expireMaxSize(11000000)
@@ -558,9 +561,9 @@ public class HTreeMap2Test {
     @Test public void hasher(){
         HTreeMap m =
                 DBMaker.newMemoryDB().make()
-                .createHashMap("test")
-                .hasher(Hasher.INT_ARRAY)
-                .make();
+                        .createHashMap("test")
+                        .hasher(Hasher.INT_ARRAY)
+                        .make();
 
         for(int i=0;i<1e5;i++){
             m.put(new int[]{i,i,i},i);
@@ -630,25 +633,25 @@ public class HTreeMap2Test {
 
     }
 
-/*
-    Hi jan,
+    /*
+        Hi jan,
 
-    Today i found another problem.
+        Today i found another problem.
 
-    my code is
+        my code is
 
-    HTreeMap<Object, Object>  map = db.createHashMap("cache").expireMaxSize(MAX_ITEM_SIZE).counterEnable()
-            .expireAfterWrite(EXPIRE_TIME, TimeUnit.SECONDS).expireStoreSize(MAX_GB_SIZE).make();
+        HTreeMap<Object, Object>  map = db.createHashMap("cache").expireMaxSize(MAX_ITEM_SIZE).counterEnable()
+                .expireAfterWrite(EXPIRE_TIME, TimeUnit.SECONDS).expireStoreSize(MAX_GB_SIZE).make();
 
-    i set EXPIRE_TIME = 216000
+        i set EXPIRE_TIME = 216000
 
-    but the data was expired right now,the expire time is not 216000s, it seems there is a bug for expireAfterWrite.
+        but the data was expired right now,the expire time is not 216000s, it seems there is a bug for expireAfterWrite.
 
-    if i call expireAfterAccess ,everything seems ok.
+        if i call expireAfterAccess ,everything seems ok.
 
-*/
+    */
     @Test public void expireAfterWrite() throws InterruptedException {
-  //NOTE this test has race condition and may fail under heavy load.
+        //NOTE this test has race condition and may fail under heavy load.
         //TODO increase timeout and move into integration tests.
 
         DB db = DBMaker.newMemoryDB().transactionDisable().make();
@@ -674,5 +677,50 @@ public class HTreeMap2Test {
 
         assertEquals(m.size(),500);
     }
+
+
+    public static class AA implements Serializable{
+        final int val;
+
+        public AA(int val) {
+            this.val = val;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return obj instanceof AA && ((AA)obj).val == val;
+        }
+    }
+
+
+    @Test(expected = IllegalArgumentException.class)
+    public void inconsistentHash(){
+        DB db = DBMaker.newMemoryDB()
+                .transactionDisable()
+                .make();
+
+        HTreeMap m = db.createHashMap("test")
+
+                .make();
+
+        for(int i=0;i<1e5;i++){
+            m.put(new AA(i),i);
+        }
+    }
+
+    @Test
+    public void test()
+    {
+        DB db = DBMaker.newMemoryDB().make();
+        Map<String, Integer> map = db.getHashMap("map", new Fun.Function1<Integer, String>() {
+            @Override
+            public Integer run(String s) {
+                return Integer.MIN_VALUE;
+            }
+        });
+        Integer v1 = map.get("s1");
+        assertEquals(Integer.valueOf(Integer.MIN_VALUE), v1);
+    }
+
 }
 

@@ -41,13 +41,12 @@ public class CacheWeakSoftRefTest {
             Integer a = m.remove(i);
             assertEquals(i, a);
         }
-        Thread t = engine.queueThread;
         db.close();
         int counter = 10000;
-        while(Thread.State.TERMINATED!=t.getState() && counter>0){
+        while(engine.cleanerFinished.getCount()!=0 && counter>0){
             Thread.sleep(1);
             counter--;
         }
-        assertEquals(Thread.State.TERMINATED, t.getState());
+        assertEquals(0,engine.cleanerFinished.getCount());
     }
 }

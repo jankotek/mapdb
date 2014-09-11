@@ -3,6 +3,7 @@ package org.mapdb;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentNavigableMap;
@@ -604,6 +605,41 @@ public class BTreeMapTest{
         }
 
         map.checkStructure();
+    }
+
+
+
+    @Test public void large_node_size(){
+        for(int i :new int[]{10,200,6000}){
+
+            int max = i*100;
+            File f = UtilsTest.tempDbFile();
+            DB db = DBMaker.newFileDB(f)
+                    .transactionDisable()
+                    .make();
+            Map m = db
+                    .createTreeMap("map")
+                    .nodeSize(i)
+                    .keySerializer(BTreeKeySerializer.ZERO_OR_POSITIVE_INT)
+                    .valueSerializer(Serializer.INTEGER)
+                    .make();
+
+            for(int j=0;j<max;j++){
+                m.put(j,j);
+            }
+
+            db.close();
+            db = DBMaker.newFileDB(f)
+                    .deleteFilesAfterClose()
+                    .transactionDisable()
+                    .make();
+            m = db.getTreeMap("map");
+
+            for(Integer j=0;j<max;j++){
+                assertEquals(j, m.get(j));
+            }
+            db.close();
+        }
     }
 
 }

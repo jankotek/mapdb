@@ -1375,7 +1375,8 @@ public class SerializerBase implements Serializer<Object>{
         int HASHER_ARRAY = 54;
 
         int RECORD_ALWAYS_TRUE = 55;
-        int B_TREE_SERIALIZER_STRING2 = 56;
+        int FUN_THREADFACTORY_BASIC = 56;
+        int B_TREE_SERIALIZER_STRING2 = 57;
     }
 
     protected static final class singletons{
@@ -1398,6 +1399,7 @@ public class SerializerBase implements Serializer<Object>{
             all.put(Fun.TUPLE4_COMPARATOR,HeaderMapDB.TUPLE4_COMPARATOR_STATIC);
             all.put(Fun.TUPLE5_COMPARATOR,HeaderMapDB.TUPLE5_COMPARATOR_STATIC);
             all.put(Fun.TUPLE6_COMPARATOR,HeaderMapDB.TUPLE6_COMPARATOR_STATIC);
+            all.put(Fun.ThreadFactory.BASIC,HeaderMapDB.FUN_THREADFACTORY_BASIC);
 
             all.put(Serializer.STRING_NOSIZE,HeaderMapDB.SERIALIZER_STRING_NOSIZE);
             all.put(Serializer.STRING_ASCII,HeaderMapDB.SERIALIZER_STRING_ASCII);

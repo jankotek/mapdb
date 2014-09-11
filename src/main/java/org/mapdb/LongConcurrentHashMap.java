@@ -484,7 +484,7 @@ public class LongConcurrentHashMap< V>
                         HashEntry<V> newFirst = e.next;
                         for (HashEntry<V> p = first; p != e; p = p.next)
                             newFirst = new HashEntry<V>(p.key, p.hash,
-                                                          newFirst, p.value);
+                                    newFirst, p.value);
                         tab[index] = newFirst;
                         count = c; // write-volatile
                     }
@@ -590,7 +590,7 @@ public class LongConcurrentHashMap< V>
      * @return <tt>true</tt> if this map contains no key-value mappings
      */
     @Override
-	public boolean isEmpty() {
+    public boolean isEmpty() {
         final Segment<V>[] segments = this.segments;
         /*
          * We keep track of per-segment modCounts to avoid ABA
@@ -615,7 +615,7 @@ public class LongConcurrentHashMap< V>
         if (mcsum != 0) {
             for (int i = 0; i < segments.length; ++i) {
                 if (segments[i].count != 0 ||
-                    mc[i] != segments[i].modCount)
+                        mc[i] != segments[i].modCount)
                     return false;
             }
         }
@@ -630,7 +630,7 @@ public class LongConcurrentHashMap< V>
      * @return the number of key-value mappings in this map
      */
     @Override
-	public int size() {
+    public int size() {
         final Segment<V>[] segments = this.segments;
         long sum = 0;
         long check = 0;
@@ -691,8 +691,8 @@ public class LongConcurrentHashMap< V>
      * @throws NullPointerException if the specified key is null
      */
     @Override
-	public V get(long key) {
-        final int hash = LongHashMap.longHash(key^hashSalt);
+    public V get(long key) {
+        final int hash = DataIO.longHash(key ^ hashSalt);
         return segmentFor(hash).get(key, hash);
     }
 
@@ -706,7 +706,7 @@ public class LongConcurrentHashMap< V>
      * @throws NullPointerException if the specified key is null
      */
     public boolean containsKey(long key) {
-        final int hash = LongHashMap.longHash(key^hashSalt);
+        final int hash = DataIO.longHash(key ^ hashSalt);
         return segmentFor(hash).containsKey(key, hash);
     }
 
@@ -784,15 +784,15 @@ public class LongConcurrentHashMap< V>
      * @throws NullPointerException if the specified key or value is null
      */
     @Override
-	public V put(long key, V value) {
+    public V put(long key, V value) {
         if (value == null)
             throw new NullPointerException();
-        final int hash = LongHashMap.longHash(key^hashSalt);
+        final int hash = DataIO.longHash(key ^ hashSalt);
         return segmentFor(hash).put(key, hash, value, false);
     }
 
     /**
-     * 
+     *
      *
      * @return the previous value associated with the specified key,
      *         or <tt>null</tt> if there was no mapping for the key
@@ -801,7 +801,7 @@ public class LongConcurrentHashMap< V>
     public V putIfAbsent(long key, V value) {
         if (value == null)
             throw new NullPointerException();
-        final int hash = LongHashMap.longHash(key^hashSalt);
+        final int hash = DataIO.longHash(key ^ hashSalt);
         return segmentFor(hash).put(key, hash, value, true);
     }
 
@@ -816,35 +816,35 @@ public class LongConcurrentHashMap< V>
      * @throws NullPointerException if the specified key is null
      */
     @Override
-	public V remove(long key) {
-        final int hash = LongHashMap.longHash(key^hashSalt);
+    public V remove(long key) {
+        final int hash = DataIO.longHash(key ^ hashSalt);
         return segmentFor(hash).remove(key, hash, null);
     }
 
     /**
-     * 
+     *
      *
      * @throws NullPointerException if the specified key is null
      */
     public boolean remove(long key, Object value) {
-        final int hash = LongHashMap.longHash(key^hashSalt);
+        final int hash = DataIO.longHash(key ^ hashSalt);
         return value != null && segmentFor(hash).remove(key, hash, value) != null;
     }
 
     /**
-     * 
+     *
      *
      * @throws NullPointerException if any of the arguments are null
      */
     public boolean replace(long key, V oldValue, V newValue) {
         if (oldValue == null || newValue == null)
             throw new NullPointerException();
-        final int hash = LongHashMap.longHash(key^hashSalt);
+        final int hash = DataIO.longHash(key ^ hashSalt);
         return segmentFor(hash).replace(key, hash, oldValue, newValue);
     }
 
     /**
-     * 
+     *
      *
      * @return the previous value associated with the specified key,
      *         or <tt>null</tt> if there was no mapping for the key
@@ -853,7 +853,7 @@ public class LongConcurrentHashMap< V>
     public V replace(long key, V value) {
         if (value == null)
             throw new NullPointerException();
-        final int hash = LongHashMap.longHash(key^hashSalt);
+        final int hash = DataIO.longHash(key ^ hashSalt);
         return segmentFor(hash).replace(key, hash, value);
     }
 
@@ -861,7 +861,7 @@ public class LongConcurrentHashMap< V>
      * Removes all of the mappings from this map.
      */
     @Override
-	public void clear() {
+    public void clear() {
         for (Segment<V> segment : segments) segment.clear();
     }
 
@@ -927,19 +927,19 @@ public class LongConcurrentHashMap< V>
     }
 
     final class KeyIterator
-        extends HashIterator
-        implements Iterator<Long>
+            extends HashIterator
+            implements Iterator<Long>
     {
         @Override
-		public Long next()        { return super.nextEntry().key; }
+        public Long next()        { return super.nextEntry().key; }
     }
 
     final class ValueIterator
-        extends HashIterator
-        implements Iterator<V>
+            extends HashIterator
+            implements Iterator<V>
     {
         @Override
-		public V next()        { return super.nextEntry().value; }
+        public V next()        { return super.nextEntry().value; }
     }
 
 

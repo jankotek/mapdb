@@ -20,6 +20,7 @@ import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
 import java.util.Arrays;
 import java.util.Random;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
@@ -49,13 +50,6 @@ public final class Caches {
 
         public LRU(Engine engine, int cacheSize, boolean disableLocks, Fun.RecordCondition condition) {
             this(engine, new LongConcurrentLRUMap<Object>(cacheSize, (int) (cacheSize*0.8)),disableLocks, condition);
-        }
-        public LRU(Engine engine, int cacheSize, boolean disableLocks) {
-            this(engine,cacheSize,disableLocks,Fun.RECORD_ALWAYS_TRUE);
-        }
-
-        public LRU(Engine engine, LongMap<Object> cache, boolean disableLocks){
-            this(engine,cache,disableLocks, Fun.RECORD_ALWAYS_TRUE);
         }
 
         public LRU(Engine engine, LongMap<Object> cache, boolean disableLocks, Fun.RecordCondition condition){
@@ -258,7 +252,7 @@ public final class Caches {
 
         protected final Fun.RecordCondition condition;
 
-        private static class HashItem {
+        private static final class HashItem {
             final long key;
             final Object val;
 
@@ -268,9 +262,6 @@ public final class Caches {
             }
         }
 
-        public HashTable(Engine engine, int cacheMaxSize, boolean disableLocks) {
-            this(engine,cacheMaxSize, disableLocks, Fun.RECORD_ALWAYS_TRUE);
-        }
 
         public HashTable(Engine engine, int cacheMaxSize, boolean disableLocks, Fun.RecordCondition condition) {
             super(engine);
@@ -323,7 +314,7 @@ public final class Caches {
         public <A> A get(long recid, Serializer<A> serializer) {
             final int pos = position(recid);
             HashItem[] items2 = checkClosed(items);
-            HashItem item = items2[pos];
+            HashItem item = items2[pos]; //TODO race condition? non volatile access
             if(item!=null && recid == item.key)
                 return (A) item.val;
 
@@ -351,7 +342,7 @@ public final class Caches {
         }
 
         private int position(long recid) {
-            return LongHashMap.longHash(recid^hashSalt)&cacheMaxSizeMask;
+            return DataIO.longHash(recid ^ hashSalt)&cacheMaxSizeMask;
         }
 
         @Override
@@ -443,7 +434,7 @@ public final class Caches {
                 engine.delete(recid,serializer);
                 HashItem item = items2[pos];
                 if(item!=null && recid == item.key)
-                items[pos] = null;
+                    items[pos] = null;
             }finally {
                 if(locksEnabled) {
                     lock.unlock();
@@ -490,6 +481,7 @@ public final class Caches {
         protected final boolean locksEnabled;
         protected final Fun.RecordCondition condition;
 
+        protected final CountDownLatch cleanerFinished;
 
         protected interface CacheItem{
             long getRecid();
@@ -529,24 +521,14 @@ public final class Caches {
 
         protected ReferenceQueue<Object> queue = new ReferenceQueue<Object>();
 
-        protected Thread queueThread = new Thread("MapDB GC collector"){
-            @Override
-            public void run(){
-                runRefQueue();
-            }
-        };
-
-
         protected LongConcurrentHashMap<CacheItem> items = new LongConcurrentHashMap<CacheItem>();
 
 
         final protected boolean useWeakRef;
+        protected boolean shutdown = false;
 
-        public WeakSoftRef(Engine engine, boolean useWeakRef, boolean disableLocks){
-            this(engine,useWeakRef, disableLocks,Fun.RECORD_ALWAYS_TRUE);
-        }
-
-        public WeakSoftRef(Engine engine, boolean useWeakRef, boolean disableLocks, Fun.RecordCondition condition){
+        public WeakSoftRef(Engine engine, boolean useWeakRef, boolean disableLocks,
+                           Fun.RecordCondition condition, Fun.ThreadFactory threadFactory){
             super(engine);
             this.locksEnabled = !disableLocks;
             if(disableLocks) {
@@ -561,24 +543,36 @@ public final class Caches {
             this.useWeakRef = useWeakRef;
             this.condition = condition!=null? condition : Fun.RECORD_ALWAYS_TRUE;
 
-            queueThread.setDaemon(true);
-            queueThread.start();
+            this.cleanerFinished = new CountDownLatch(1);
+
+            threadFactory.newThread("MapDB: WeakCache cleaner", new Runnable() {
+                @Override
+                public void run() {
+                    runRefQueue();
+                }
+            });
         }
 
 
         /** Collects items from GC and removes them from cache */
         protected void runRefQueue(){
-            try{
+            try {
                 final ReferenceQueue<?> queue = this.queue;
-                if(queue == null)return;
                 final LongConcurrentHashMap<CacheItem> items = this.items;
+                if (queue == null || items==null)
+                    return;
 
-                while(true){
-                    CacheItem item = (CacheItem) queue.remove();
+                while (!shutdown) {
+                    CacheItem item = (CacheItem) queue.remove(200);
+                    if(item==null)
+                        continue;
                     items.remove(item.getRecid(), item);
                 }
+                items.clear();
             }catch(InterruptedException e){
                 //this is expected, so just silently exit thread
+            }finally {
+                cleanerFinished.countDown();
             }
         }
 
@@ -770,13 +764,15 @@ public final class Caches {
 
         @Override
         public void close() {
+            shutdown = true;
             super.close();
             items = null;
             queue = null;
-
-            if (queueThread != null) {
-                queueThread.interrupt();
-                queueThread = null;
+            try {
+                cleanerFinished.await();
+                //TODO should we wait for cleaner threads to shutdown? I guess it prevents memory leaks
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
         }
 
@@ -815,10 +811,6 @@ public final class Caches {
 
         int counter = 0;
 
-        public HardRef(Engine engine, int initialCapacity, boolean disableLocks) {
-            super(engine, new LongConcurrentHashMap<Object>(initialCapacity),disableLocks);
-        }
-
         public HardRef(Engine engine, int initialCapacity, boolean disableLocks, Fun.RecordCondition condition) {
             super(engine, new LongConcurrentHashMap<Object>(initialCapacity),disableLocks, condition);
         }
@@ -833,25 +825,25 @@ public final class Caches {
         }
 
         private void checkFreeMem() {
-                Runtime r = Runtime.getRuntime();
-                long max = r.maxMemory();
-                if(max == Long.MAX_VALUE)
-                    return;
+            Runtime r = Runtime.getRuntime();
+            long max = r.maxMemory();
+            if(max == Long.MAX_VALUE)
+                return;
 
-                double free = r.freeMemory();
-                double total = r.totalMemory();
-                //We believe that free refers to total not max.
-                //Increasing heap size to max would increase to max
-                free = free + (max-total);
+            double free = r.freeMemory();
+            double total = r.totalMemory();
+            //We believe that free refers to total not max.
+            //Increasing heap size to max would increase to max
+            free = free + (max-total);
 
+            if(CC.LOG_EWRAP && LOG.isLoggable(Level.FINE))
+                LOG.fine("HardRefCache: freemem = " +free + " = "+(free/max)+"%");
+
+            if(free<1e7 || free*4 <max){
+                checkClosed(cache).clear();
                 if(CC.LOG_EWRAP && LOG.isLoggable(Level.FINE))
-                    LOG.fine("HardRefCache: freemem = " +free + " = "+(free/max)+"%");
-
-                if(free<1e7 || free*4 <max){
-                    checkClosed(cache).clear();
-                    if(CC.LOG_EWRAP && LOG.isLoggable(Level.FINE))
-                        LOG.fine("Clear HardRef cache");
-                }
+                    LOG.fine("Clear HardRef cache");
+            }
         }
 
         @Override

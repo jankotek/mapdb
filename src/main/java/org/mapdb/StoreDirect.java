@@ -285,7 +285,7 @@ public class StoreDirect extends Store{
         for(long offset = 0;offset<IO_USER_START;offset+=8){
             if(offset == IO_INDEX_SUM) continue;
             long indexVal = index.getLong(offset);
-            ret |=  indexVal | LongHashMap.longHash(indexVal|offset) ;
+            ret +=  indexVal + DataIO.longHash(indexVal + offset) ;
         }
         return ret;
     }

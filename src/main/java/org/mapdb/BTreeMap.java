@@ -96,7 +96,7 @@ import java.util.concurrent.locks.LockSupport;
  */
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class BTreeMap<K,V> extends AbstractMap<K,V>
-        implements ConcurrentNavigableMap<K,V>, Bind.MapWithModificationListener<K,V>, Closeable {
+        implements ConcurrentNavigableMap<K,V>, Bind.MapWithModificationListener<K,V>{
 
 
     protected static final Object EMPTY = new Object();
@@ -217,8 +217,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         static final int RIGHT_MASK = 1<<1;
         static final int TOO_LARGE_MASK = 1<<2;
 
-        final protected Object keys;
-        final private byte flags;
+        final Object keys;
+        final byte flags;
 
 
         public BNode(Object keys, boolean leftEdge, boolean rightEdge, boolean tooLarge){
@@ -665,16 +665,19 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 for(int i=0;i<vals.length;i++){
                     vals[i] = valueSerializer.deserialize(in, -1);
                 }
-
             }else{
+                deserSetVals(in, vals);
+            }
+            return new LeafNode(keys,  left!=0, right!=0, false , vals, next);
+        }
+
+        private void deserSetVals(DataInput in, Object[] vals) throws IOException {
                 //restore values which were deleted
                 boolean[] bools = SerializerBase.readBooleanArray(vals.length, in);
                 for(int i=0;i<bools.length;i++){
                     if(bools[i])
                         vals[i]=EMPTY;
                 }
-            }
-            return new LeafNode(keys,  left!=0, right!=0, false , vals, next);
         }
 
         @Override
@@ -702,13 +705,12 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     int numberOfNodeMetas, boolean disableLocks) {
         if(maxNodeSize%2!=0) throw new IllegalArgumentException("maxNodeSize must be dividable by 2");
         if(maxNodeSize<6) throw new IllegalArgumentException("maxNodeSize too low");
-        if(maxNodeSize>126) throw new IllegalArgumentException("maxNodeSize too high");
+        if((maxNodeSize& NodeSerializer.SIZE_MASK) !=maxNodeSize)
+            throw new IllegalArgumentException("maxNodeSize too high");
         if(rootRecidRef<=0||counterRecid<0 || numberOfNodeMetas<0) throw new IllegalArgumentException();
         if(keySerializer==null) throw new NullPointerException();
         SerializerBase.assertSerializable(keySerializer);
         SerializerBase.assertSerializable(valueSerializer);
-
-
 
         this.rootRecidRef = rootRecidRef;
         this.hasValues = valueSerializer!=null;
@@ -716,7 +718,6 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         this.engine = engine;
         this.maxNodeSize = maxNodeSize;
         this.numberOfNodeMetas = numberOfNodeMetas;
-
 
         this.keySerializer = keySerializer;
         this.valueSerializer = valueSerializer;
@@ -824,8 +825,6 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
     protected V put2(final K key, final V value2, final boolean putOnlyIfAbsent){
         K v = key;
-        if(v == null) throw new IllegalArgumentException("null key");
-        if(value2 == null) throw new IllegalArgumentException("null value");
 
         V value = value2;
         if(valsOutsideNodes){
@@ -1006,7 +1005,6 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 currentPos = l!=null? l.a : -1;
                 currentLeaf = l!=null ? l.b : null;
             }
-
             this.hi = hi;
             this.hiInclusive = hiInclusive;
             if(hi!=null && currentLeaf!=null){
@@ -2867,6 +2865,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         }
     }
 
+    //TODO check  references to notify
     protected void notify(K key, V oldValue, V newValue) {
         assert(!(oldValue instanceof ValRef));
         assert(!(newValue instanceof ValRef));
@@ -2878,14 +2877,6 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         }
     }
 
-
-    /**
-     * Closes underlying storage and releases all resources.
-     * Used mostly with temporary collections where engine is not accessible.
-     */
-    public void close(){
-        engine.close();
-    }
 
     public Engine getEngine(){
         return engine;

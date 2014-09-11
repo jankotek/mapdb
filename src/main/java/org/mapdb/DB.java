@@ -17,6 +17,8 @@
 package org.mapdb;
 
 import java.io.Closeable;
+import java.io.IOError;
+import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
@@ -44,6 +46,8 @@ public class DB implements Closeable {
 
     /** view over named records */
     protected SortedMap<String, Object> catalog;
+
+    protected final Fun.ThreadFactory threadFactory = Fun.ThreadFactory.BASIC;
 
     protected static class IdentityWrapper{
 
@@ -352,6 +356,8 @@ public class DB implements Closeable {
                 return namedPut(name,
                         new DB(new EngineWrapper.ReadOnlyEngine(e)).getHashMap("a"));
             }
+            if(valueCreator!=null)
+                return createHashMap(name).valueCreator(valueCreator).make();
             return createHashMap(name).make();
         }
 
@@ -374,7 +380,8 @@ public class DB implements Closeable {
                 (long[])catGet(name+".expireTails",null),
                 valueCreator,
                 catGet(name+".hasher", Hasher.BASIC),
-                false);
+                false,
+                threadFactory);
 
 
         namedPut(name, ret);
@@ -442,7 +449,8 @@ public class DB implements Closeable {
                 catPut(name+".keySerializer",m.keySerializer,getDefaultSerializer()),
                 catPut(name+".valueSerializer",m.valueSerializer,getDefaultSerializer()),
                 expireTimeStart,expire,expireAccess,expireMaxSize, expireStoreSize, expireHeads ,expireTails,
-                (Fun.Function1<V, K>) m.valueCreator, m.hasher,false
+                (Fun.Function1<V, K>) m.valueCreator, m.hasher,false,
+                threadFactory
 
         );
 
@@ -484,7 +492,9 @@ public class DB implements Closeable {
                 catGet(name+".serializer",getDefaultSerializer()),
                 null, 0L,0L,0L,0L,0L,null,null,null,
                 catGet(name+".hasher",Hasher.BASIC),
-                false).keySet();
+                false,
+                threadFactory
+         ).keySet();
 
 
         namedPut(name, ret);
@@ -536,8 +546,8 @@ public class DB implements Closeable {
                 catPut(name+".serializer",m.serializer,getDefaultSerializer()),
                 null,
                 expireTimeStart,expire,expireAccess,expireMaxSize, expireStoreSize, expireHeads ,expireTails,
-                null, m.hasher, false
-
+                null, m.hasher, false,
+                threadFactory
         );
         Set<K> ret2 = ret.keySet();
 
@@ -571,6 +581,8 @@ public class DB implements Closeable {
 
         /** nodeSize maximal size of node, larger node causes overflow and creation of new BTree node. Use large number for small keys, use small number for large keys.*/
         public BTreeMapMaker nodeSize(int nodeSize){
+            if(nodeSize>=BTreeMap.NodeSerializer.SIZE_MASK)
+                throw new IllegalArgumentException("Too large max node size");
             this.nodeSize = nodeSize;
             return this;
         }
@@ -594,7 +606,7 @@ public class DB implements Closeable {
         }
         /** keySerializer used to convert keys into/from binary form.
          * This wraps ordinary serializer, with no delta packing used*/
-        public BTreeMapMaker keySerializerWrap(Serializer<?> serializer){
+        public BTreeMapMaker keySerializer(Serializer serializer){
             this.keySerializer = new BTreeKeySerializer.BasicKeySerializer(serializer, comparator);
             return this;
         }
@@ -791,7 +803,7 @@ public class DB implements Closeable {
                 catGet(name+".maxNodeSize",32),
                 catGet(name+".valuesOutsideNodes",false),
                 catGet(name+".counterRecid",0L),
-                (BTreeKeySerializer)catGet(name+".keySerializer",new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer(),Fun.COMPARATOR)),
+                catGet(name+".keySerializer",new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer(),Fun.COMPARATOR)),
                 catGet(name+".valueSerializer",getDefaultSerializer()),
                 catGet(name+".numberOfNodeMetas",0),
                 false
@@ -851,8 +863,7 @@ public class DB implements Closeable {
                     m.valuesOutsideNodes,
                     counterRecid,
                     m.keySerializer,
-                    (Serializer<V>)m.valueSerializer,
-                    m.comparator);
+                    (Serializer<V>)m.valueSerializer);
         }
 
         BTreeMap<K,V> ret = new BTreeMap<K,V>(engine,
@@ -885,8 +896,8 @@ public class DB implements Closeable {
             return new BTreeKeySerializer.Tuple2KeySerializer(
                     s.aComparator!=null?s.aComparator:Fun.COMPARATOR,
                     s.bComparator!=null?s.bComparator:Fun.COMPARATOR,
-                    s.aSerializer!=null?s.aSerializer:getDefaultSerializer(),
-                    s.bSerializer!=null?s.bSerializer:getDefaultSerializer()
+                    s.aSerializer!=null && s.aSerializer!=Serializer.BASIC ?s.aSerializer:getDefaultSerializer(),
+                    s.bSerializer!=null && s.bSerializer!=Serializer.BASIC ?s.bSerializer:getDefaultSerializer()
             );
         }
 
@@ -903,7 +914,6 @@ public class DB implements Closeable {
 
             return new BTreeKeySerializer.TupleKeySerializer(k.tsize, comparators, serializers);
         }
-
 
         return keySerializer;
     }
@@ -952,7 +962,7 @@ public class DB implements Closeable {
                 catGet(name+".maxNodeSize",32),
                 false,
                 catGet(name+".counterRecid",0L),
-                (BTreeKeySerializer) catGet(name+".keySerializer",new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer(),Fun.COMPARATOR)),
+                catGet(name+".keySerializer",new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer(),Fun.COMPARATOR)),
                 null,
                 catGet(name+".numberOfNodeMetas",0),
                 false
@@ -1002,8 +1012,7 @@ public class DB implements Closeable {
                     false,
                     counterRecid,
                     m.serializer,
-                    null,
-                    m.comparator);
+                    null);
         }
 
         NavigableSet<K> ret = new BTreeMap<K,Object>(

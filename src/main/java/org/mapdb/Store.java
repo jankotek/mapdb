@@ -378,14 +378,6 @@ public abstract class Store implements Engine{
 
     List<Runnable> closeListeners = new CopyOnWriteArrayList<Runnable>();
 
-    @Override
-    public void closeListenerRegister(Runnable closeListener) {
-        closeListeners.add(closeListener);
-    }
 
-    @Override
-    public void closeListenerUnregister(Runnable closeListener) {
-        closeListeners.remove(closeListener);
-    }
 
 }

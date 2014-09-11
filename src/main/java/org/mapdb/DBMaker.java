@@ -29,11 +29,12 @@ import java.util.*;
  *
  * @author Jan Kotek
  */
-public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
+public class DBMaker{
 
     protected final String TRUE = "true";
 
-    protected  Fun.RecordCondition cacheCondition;
+    protected Fun.RecordCondition cacheCondition;
+    protected Fun.ThreadFactory threadFactory = Fun.ThreadFactory.BASIC;
 
     protected interface Keys{
         String cache = "cache";
@@ -113,9 +114,9 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         return new DBMaker()._newHeapDB();
     }
 
-    public DBMakerT _newHeapDB(){
+    public DBMaker _newHeapDB(){
         props.setProperty(Keys.store,Keys.store_heap);
-        return getThis();
+        return this;
     }
 
 
@@ -127,9 +128,9 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         return new DBMaker()._newMemoryDB();
     }
 
-    public DBMakerT _newMemoryDB(){
+    public DBMaker _newMemoryDB(){
         props.setProperty(Keys.volume,Keys.volume_byteBuffer);
-        return getThis();
+        return this;
     }
 
     /** Creates new in-memory database. Changes are lost after JVM exits.
@@ -140,9 +141,9 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         return new DBMaker()._newMemoryDirectDB();
     }
 
-    public  DBMakerT _newMemoryDirectDB() {
+    public  DBMaker _newMemoryDirectDB() {
         props.setProperty(Keys.volume,Keys.volume_directByteBuffer);
-        return getThis();
+        return this;
     }
 
 
@@ -158,10 +159,10 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         return new DBMaker()._newAppendFileDB(file);
     }
 
-    public DBMakerT _newAppendFileDB(File file) {
+    public DBMaker _newAppendFileDB(File file) {
         props.setProperty(Keys.file, file.getPath());
         props.setProperty(Keys.store, Keys.store_append);
-        return getThis();
+        return this;
     }
 
 
@@ -285,15 +286,11 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         return new DBMaker(file);
     }
 
-    public DBMakerT _newFileDB(File file){
+    public DBMaker _newFileDB(File file){
         props.setProperty(Keys.file, file.getPath());
-        return getThis();
+        return this;
     }
 
-
-    protected DBMakerT getThis(){
-        return (DBMakerT)this;
-    }
 
     /**
      * Transaction journal is enabled by default
@@ -308,9 +305,9 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      *
      * @return this builder
      */
-    public DBMakerT transactionDisable(){
+    public DBMaker transactionDisable(){
         props.put(Keys.transactionDisable,TRUE);
-        return getThis();
+        return this;
     }
 
     /**
@@ -329,9 +326,9 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      *
      * @return this builder
      */
-    public DBMakerT cacheCondition(Fun.RecordCondition cacheCondition){
+    public DBMaker cacheCondition(Fun.RecordCondition cacheCondition){
         this.cacheCondition = cacheCondition;
-        return getThis();
+        return this;
     }
 
     /**
@@ -345,9 +342,9 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      *
      * @return this builder
      */
-    public DBMakerT cacheDisable(){
+    public DBMaker cacheDisable(){
         props.put(Keys.cache,Keys.cache_disable);
-        return getThis();
+        return this;
     }
 
     /**
@@ -360,9 +357,9 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      *
      * @return this builder
      */
-    public DBMakerT cacheHardRefEnable(){
+    public DBMaker cacheHardRefEnable(){
         props.put(Keys.cache,Keys.cache_hardRef);
-        return getThis();
+        return this;
     }
 
 
@@ -372,9 +369,9 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      *
      * @return this builder
      */
-    public DBMakerT cacheWeakRefEnable(){
+    public DBMaker cacheWeakRefEnable(){
         props.put(Keys.cache,Keys.cache_weakRef);
-        return getThis();
+        return this;
     }
 
     /**
@@ -383,9 +380,9 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      *
      * @return this builder
      */
-    public DBMakerT cacheSoftRefEnable(){
+    public DBMaker cacheSoftRefEnable(){
         props.put(Keys.cache,Keys.cache_softRef);
-        return getThis();
+        return this;
     }
 
     /**
@@ -393,9 +390,9 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      *
      * @return this builder
      */
-    public DBMakerT cacheLRUEnable(){
+    public DBMaker cacheLRUEnable(){
         props.put(Keys.cache,Keys.cache_lru);
-        return getThis();
+        return this;
     }
     /**
      * Enables Memory Mapped Files, much faster storage option. However on 32bit JVM this mode could corrupt
@@ -404,10 +401,10 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * You may experience `java.lang.OutOfMemoryError: Map failed` exception on 32bit JVM, if you enable this
      * mode.
      */
-    public DBMakerT mmapFileEnable() {
+    public DBMaker mmapFileEnable() {
         assertNotInMemoryVolume();
         props.setProperty(Keys.volume,Keys.volume_mmapf);
-        return getThis();
+        return this;
     }
 
 
@@ -423,10 +420,10 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      *  eventually. But storage size limit is pushed to somewhere around 40GB.
      *
      */
-    public DBMakerT mmapFileEnablePartial() {
+    public DBMaker mmapFileEnablePartial() {
         assertNotInMemoryVolume();
         props.setProperty(Keys.volume,Keys.volume_mmapfPartial);
-        return getThis();
+        return this;
     }
 
     private void assertNotInMemoryVolume() {
@@ -438,10 +435,10 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
     /**
      * Enable Memory Mapped Files only if current JVM supports it (is 64bit).
      */
-    public DBMakerT mmapFileEnableIfSupported() {
+    public DBMaker mmapFileEnableIfSupported() {
         assertNotInMemoryVolume();
         props.setProperty(Keys.volume,Keys.volume_mmapfIfSupported);
-        return getThis();
+        return this;
     }
 
     /**
@@ -455,9 +452,9 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * @param cacheSize new cache size
      * @return this builder
      */
-    public DBMakerT cacheSize(int cacheSize){
+    public DBMaker cacheSize(int cacheSize){
         props.setProperty(Keys.cacheSize,""+cacheSize);
-        return getThis();
+        return this;
     }
 
     /**
@@ -466,9 +463,9 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      *
      * @return this builder
      */
-    public DBMakerT snapshotEnable(){
+    public DBMaker snapshotEnable(){
         props.setProperty(Keys.snapshots,TRUE);
-        return getThis();
+        return this;
     }
 
 
@@ -481,9 +478,9 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      *
      * @return this builder
      */
-    public DBMakerT asyncWriteEnable(){
+    public DBMaker asyncWriteEnable(){
         props.setProperty(Keys.asyncWrite,TRUE);
-        return getThis();
+        return this;
     }
 
 
@@ -503,9 +500,9 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * @param delay flush write cache every N miliseconds
      * @return this builder
      */
-    public DBMakerT asyncWriteFlushDelay(int delay){
+    public DBMaker asyncWriteFlushDelay(int delay){
         props.setProperty(Keys.asyncWriteFlushDelay,""+delay);
-        return getThis();
+        return this;
     }
 
     /**
@@ -516,9 +513,9 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * @param queueSize of queue
      * @return this builder
      */
-    public DBMakerT asyncWriteQueueSize(int queueSize){
+    public DBMaker asyncWriteQueueSize(int queueSize){
         props.setProperty(Keys.asyncWriteQueueSize,""+queueSize);
-        return getThis();
+        return this;
     }
 
 
@@ -533,9 +530,9 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      *
      * @return this builder
      */
-    public DBMakerT concurrencyDisable(){
+    public DBMaker concurrencyDisable(){
         props.setProperty(Keys.concurrencyDisable,TRUE);
-        return getThis();
+        return this;
     }
 
     /**
@@ -544,9 +541,9 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      *
      * @return this builder
      */
-    public DBMakerT deleteFilesAfterClose(){
+    public DBMaker deleteFilesAfterClose(){
         props.setProperty(Keys.deleteFilesAfterClose,TRUE);
-        return getThis();
+        return this;
     }
 
     /**
@@ -554,9 +551,9 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      *
      * @return this builder
      */
-    public DBMakerT closeOnJvmShutdown(){
+    public DBMaker closeOnJvmShutdown(){
         props.setProperty(Keys.closeOnJvmShutdown,TRUE);
-        return getThis();
+        return this;
     }
 
     /**
@@ -566,9 +563,9 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      *
      * @return this builder
      */
-    public DBMakerT compressionEnable(){
+    public DBMaker compressionEnable(){
         props.setProperty(Keys.compression,Keys.compression_lzf);
-        return getThis();
+        return this;
     }
 
 
@@ -583,7 +580,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * @param password for encryption
      * @return this builder
      */
-    public DBMakerT encryptionEnable(String password){
+    public DBMaker encryptionEnable(String password){
         return encryptionEnable(password.getBytes(Charset.forName("UTF8")));
     }
 
@@ -600,10 +597,10 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * @param password for encryption
      * @return this builder
      */
-    public DBMakerT encryptionEnable(byte[] password){
+    public DBMaker encryptionEnable(byte[] password){
         props.setProperty(Keys.encryption, Keys.encryption_xtea);
         props.setProperty(Keys.encryptionKey, toHexa(password));
-        return getThis();
+        return this;
     }
 
 
@@ -615,9 +612,9 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      *
      * @return this builder
      */
-    public DBMakerT checksumEnable(){
+    public DBMaker checksumEnable(){
         props.setProperty(Keys.checksum,TRUE);
-        return getThis();
+        return this;
     }
 
 
@@ -630,9 +627,9 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      *
      * @return this builder
      */
-    public DBMakerT strictDBGet(){
+    public DBMaker strictDBGet(){
         props.setProperty(Keys.strictDBGet,TRUE);
-        return getThis();
+        return this;
     }
 
 
@@ -644,9 +641,9 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      *
      * @return this builder
      */
-    public DBMakerT readOnly(){
+    public DBMaker readOnly(){
         props.setProperty(Keys.readOnly,TRUE);
-        return getThis();
+        return this;
     }
 
 
@@ -661,10 +658,10 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      *
      * @return this builder
      */
-    public DBMakerT freeSpaceReclaimQ(int q){
+    public DBMaker freeSpaceReclaimQ(int q){
         if(q<0||q>10) throw new IllegalArgumentException("wrong Q");
         props.setProperty(Keys.freeSpaceReclaimQ,""+q);
-        return getThis();
+        return this;
     }
 
 
@@ -676,9 +673,9 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      *
      * @return this builder
      */
-    public DBMakerT commitFileSyncDisable(){
+    public DBMaker commitFileSyncDisable(){
         props.setProperty(Keys.commitFileSyncDisable,TRUE);
-        return getThis();
+        return this;
     }
 
 
@@ -691,10 +688,10 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
      * @param maxSize maximal store size in GB
      * @return this builder
      */
-    public DBMakerT sizeLimit(double maxSize){
+    public DBMaker sizeLimit(double maxSize){
         long size = (long) (maxSize * 1024D*1024D*1024D);
         props.setProperty(Keys.sizeLimit,""+size);
-        return getThis();
+        return this;
     }
 
 
@@ -899,11 +896,11 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
     }
 
     protected Engine extendCacheWeakRef(Engine engine) {
-        return new Caches.WeakSoftRef(engine,true,propsGetBool(Keys.concurrencyDisable), cacheCondition);
+        return new Caches.WeakSoftRef(engine,true,propsGetBool(Keys.concurrencyDisable), cacheCondition, threadFactory);
     }
 
     protected Engine extendCacheSoftRef(Engine engine) {
-        return new Caches.WeakSoftRef(engine,false,propsGetBool(Keys.concurrencyDisable), cacheCondition);
+        return new Caches.WeakSoftRef(engine,false,propsGetBool(Keys.concurrencyDisable), cacheCondition, threadFactory);
     }
 
 

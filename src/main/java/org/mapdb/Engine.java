@@ -230,6 +230,4 @@ public interface Engine  extends Closeable {
     @Deprecated
     SerializerPojo getSerializerPojo();
 
-    void closeListenerRegister(Runnable closeListener);
-    void closeListenerUnregister(Runnable closeListener);
 }

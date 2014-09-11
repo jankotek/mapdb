@@ -192,7 +192,7 @@ public class LongHashMap<V> extends LongMap<V> implements Serializable {
         }
 
         @Override
-		public V next() {
+        public V next() {
             makeNext();
             return currentEntry.value;
         }
@@ -316,7 +316,7 @@ public class LongHashMap<V> extends LongMap<V> implements Serializable {
     }
 
     final Entry<V> getEntry(long key) {
-        int hash = LongHashMap.longHash(key^hashSalt);
+        int hash = DataIO.longHash(key ^ hashSalt);
         int index = hash & (elementData.length - 1);
         return findNonNullKeyEntry(key, index, hash);
     }
@@ -357,15 +357,15 @@ public class LongHashMap<V> extends LongMap<V> implements Serializable {
     @Override
     public V put(long key, V value) {
         Entry<V> entry;
-        int hash = LongHashMap.longHash(key^hashSalt);
+        int hash = DataIO.longHash(key ^ hashSalt);
         int index = hash & (elementData.length - 1);
         entry = findNonNullKeyEntry(key, index, hash);
         if (entry == null) {
-           modCount++;
-           entry = createHashedEntry(key, index, hash);
-           if (++elementCount > threshold) {
-               rehash();
-           }
+            modCount++;
+            entry = createHashedEntry(key, index, hash);
+            if (++elementCount > threshold) {
+                rehash();
+            }
         }
 
         V result = entry.value;
@@ -429,12 +429,12 @@ public class LongHashMap<V> extends LongMap<V> implements Serializable {
         Entry<V> entry;
         Entry<V> last = null;
 
-        int hash = LongHashMap.longHash(key^hashSalt);
+        int hash = DataIO.longHash(key ^ hashSalt);
         index = hash & (elementData.length - 1);
         entry = elementData[index];
         while (entry != null && !(entry.origKeyHash == hash && key == entry.key)) {
-             last = entry;
-             entry = entry.next;
+            last = entry;
+            entry = entry.next;
         }
 
         if (entry == null) {
@@ -469,22 +469,6 @@ public class LongHashMap<V> extends LongMap<V> implements Serializable {
     public LongMapIterator<V> longMapIterator() {
         return new EntryIterator<V>(this);
     }
-
-
-
-    public static int longHash(final long key) {
-        int h = (int)(key ^ (key >>> 32));
-        h ^= (h >>> 20) ^ (h >>> 12);
-        return h ^ (h >>> 7) ^ (h >>> 4);
-    }
-
-
-
-    public static int intHash(int h) {
-        h ^= (h >>> 20) ^ (h >>> 12);
-        return h ^ (h >>> 7) ^ (h >>> 4);
-    }
-
 
 
 }

@@ -326,12 +326,9 @@ public final class Pump {
                                              boolean valuesStoredOutsideNodes,
                                              long counterRecid,
                                              BTreeKeySerializer keySerializer,
-                                             Serializer<V> valueSerializer,
-                                             Comparator comparator)
+                                             Serializer<V> valueSerializer)
         {
 
-        if(comparator==null)
-            comparator=Fun.COMPARATOR;
 
         final double NODE_LOAD = 0.75;
 
@@ -358,14 +355,14 @@ public final class Pump {
                 E next = source.next();
                 if(next==null) throw new NullPointerException("source returned null element");
                 K key = keyExtractor==null? (K) next : keyExtractor.run(next);
-                int compared=oldKey==null?-1:comparator.compare(key, oldKey);
+                int compared=oldKey==null?-1:keySerializer.comparator().compare(key, oldKey);
                 while(ignoreDuplicates && compared==0){
                     //move to next
                     if(!source.hasNext())break nodeLoop;
                     next = source.next();
                     if(next==null) throw new NullPointerException("source returned null element");
                     key = keyExtractor==null? (K) next : keyExtractor.run(next);
-                    compared=comparator.compare(key, oldKey);
+                    compared=keySerializer.comparator().compare(key, oldKey);
                 }
 
                 if(oldKey!=null && compared>=0)
@@ -513,7 +510,7 @@ public final class Pump {
         return engine.put(rootRecid,Serializer.LONG); //root recid
     }
 
-    private static long[] toLongArray(ArrayList<Long> child) {
+    private static long[] toLongArray(List<Long> child) {
         long[] ret= new long[child.size()];
         for(int i=0;i<child.size();i++){
             ret[i] = child.get(i);

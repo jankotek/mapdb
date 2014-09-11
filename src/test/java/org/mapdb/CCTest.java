@@ -6,7 +6,7 @@ import org.junit.Test;
 public class CCTest {
 
     @Test public void  concurency(){
-        int i = 2;
+        long i = 2;
         while(i<Integer.MAX_VALUE){
             i = i*2;
             if(i==CC.CONCURRENCY) return;
