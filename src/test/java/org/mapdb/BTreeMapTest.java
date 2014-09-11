@@ -36,6 +36,8 @@ public class BTreeMapTest{
 
     @Test public void test_leaf_node_serialization() throws IOException {
 
+        if(valsOutside)
+            return;
 
         BTreeMap.LeafNode n = new BTreeMap.LeafNode(
                 new Object[]{1,2,3},
@@ -169,6 +171,9 @@ public class BTreeMapTest{
 
     @Test public void simple_root_get(){
 
+        if(valsOutside)
+            return;
+
         BTreeMap.LeafNode l = new BTreeMap.LeafNode(
                 new Object[]{10,20,30},
                 true,true,false,
@@ -198,6 +203,8 @@ public class BTreeMapTest{
     }
 
     @Test public void root_leaf_insert(){
+        if(valsOutside)
+            return;
 
         m.put(11,12);
         final long rootRecid = engine.get(m.rootRecidRef, Serializer.LONG);

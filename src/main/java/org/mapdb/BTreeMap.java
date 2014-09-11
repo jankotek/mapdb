@@ -850,7 +850,10 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
             if (pos > 0 && pos != A.keysLen() - 1) {
                 //found
-                return A.vals()[pos - 1];
+                Object val =  A.vals()[pos - 1];
+                if(expandValue)
+                    val = valExpand(val);
+                return val;
             } else if (pos <= 0 && -pos - 1 != A.keysLen() - 1) {
                 //not found
                 return null;
@@ -1188,8 +1191,14 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     return null;
                 }
 
+                Object putNewValueOutside = putNewValue;
+                if(putNewValue!=null && valsOutsideNodes){
+                    long recid = engine.put((V)putNewValue,valueSerializer);
+                    putNewValueOutside = new ValRef(recid);
+                }
+
                 A = putNewValue!=null?
-                        ((LeafNode)A).copyChangeValue(pos,putNewValue):
+                        ((LeafNode)A).copyChangeValue(pos,putNewValueOutside):
                         ((LeafNode)A).copyRemoveKey(pos);
                 assert(nodeLocks.get(current)==Thread.currentThread());
                 engine.update(current, A, nodeSerializer);
