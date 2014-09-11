@@ -29,7 +29,7 @@ import java.util.*;
 public final class Fun {
 
 
-	public static final Comparator COMPARATOR = new Comparator<Comparable>() {
+	public static final Comparator COMPARATOR_NULLABLE = new Comparator<Comparable>() {
         @Override
         public int compare(Comparable o1, Comparable o2) {
             if(o1 == null)
@@ -40,6 +40,13 @@ public final class Fun {
                 return o2 == HI?0:1;
             if(o2 == HI) return -1;
 
+            return o1.compareTo(o2);
+        }
+    };
+
+    public static final Comparator COMPARATOR = new Comparator<Comparable>() {
+        @Override
+        public int compare(Comparable o1, Comparable o2) {
             return o1.compareTo(o2);
         }
     };
@@ -397,8 +404,8 @@ public final class Fun {
         protected final Comparator<B> b;
 
         public Tuple2Comparator(Comparator<A> a, Comparator<B> b) {
-            this.a = a==null? COMPARATOR :a;
-            this.b = b==null? COMPARATOR :b;
+            this.a = a==null? COMPARATOR_NULLABLE   :a;
+            this.b = b==null? COMPARATOR_NULLABLE   :b;
         }
 
 
@@ -444,9 +451,9 @@ public final class Fun {
         protected final Comparator<C> c;
 
         public Tuple3Comparator(Comparator<A> a, Comparator<B> b, Comparator<C> c) {
-            this.a = a==null? COMPARATOR :a;
-            this.b = b==null? COMPARATOR :b;
-            this.c = c==null? COMPARATOR :c;
+            this.a = a==null? COMPARATOR_NULLABLE   :a;
+            this.b = b==null? COMPARATOR_NULLABLE   :b;
+            this.c = c==null? COMPARATOR_NULLABLE   :c;
         }
 
         /** constructor used for deserialization, `extra` is added just to make function not to collide*/
@@ -494,10 +501,10 @@ public final class Fun {
         protected final Comparator<D> d;
 
         public Tuple4Comparator(Comparator<A> a, Comparator<B> b, Comparator<C> c, Comparator<D> d) {
-            this.a = a==null? COMPARATOR :a;
-            this.b = b==null? COMPARATOR :b;
-            this.c = c==null? COMPARATOR :c;
-            this.d = d==null? COMPARATOR :d;
+            this.a = a==null? COMPARATOR_NULLABLE   :a;
+            this.b = b==null? COMPARATOR_NULLABLE   :b;
+            this.c = c==null? COMPARATOR_NULLABLE   :c;
+            this.d = d==null? COMPARATOR_NULLABLE   :d;
         }
 
         /** constructor used for deserialization*/
@@ -552,11 +559,11 @@ public final class Fun {
 
 
         public Tuple5Comparator(Comparator<A> a, Comparator<B> b, Comparator<C> c, Comparator<D> d, Comparator<E> e) {
-            this.a = a == null ? COMPARATOR : a;
-            this.b = b == null ? COMPARATOR : b;
-            this.c = c == null ? COMPARATOR : c;
-            this.d = d == null ? COMPARATOR : d;
-            this.e = e == null ? COMPARATOR : e;
+            this.a = a == null ? COMPARATOR_NULLABLE   : a;
+            this.b = b == null ? COMPARATOR_NULLABLE   : b;
+            this.c = c == null ? COMPARATOR_NULLABLE   : c;
+            this.d = d == null ? COMPARATOR_NULLABLE   : d;
+            this.e = e == null ? COMPARATOR_NULLABLE   : e;
         }
 
         /**
@@ -617,12 +624,12 @@ public final class Fun {
 
 
         public Tuple6Comparator(Comparator<A> a, Comparator<B> b, Comparator<C> c, Comparator<D> d, Comparator<E> e, Comparator<F> f) {
-            this.a = a == null ? COMPARATOR : a;
-            this.b = b == null ? COMPARATOR : b;
-            this.c = c == null ? COMPARATOR : c;
-            this.d = d == null ? COMPARATOR : d;
-            this.e = e == null ? COMPARATOR : e;
-            this.f = f == null ? COMPARATOR : f;
+            this.a = a == null ? COMPARATOR_NULLABLE   : a;
+            this.b = b == null ? COMPARATOR_NULLABLE   : b;
+            this.c = c == null ? COMPARATOR_NULLABLE   : c;
+            this.d = d == null ? COMPARATOR_NULLABLE   : d;
+            this.e = e == null ? COMPARATOR_NULLABLE   : e;
+            this.f = f == null ? COMPARATOR_NULLABLE   : f;
         }
 
         /**

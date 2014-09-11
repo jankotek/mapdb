@@ -133,7 +133,7 @@ public class PumpTest {
         Collections.shuffle(list);
 
         Iterator<Integer> sorted = Pump.sort(list.iterator(),false, max/20,
-                BTreeMap.COMPARABLE_COMPARATOR, Serializer.INTEGER);
+                Fun.COMPARATOR, Serializer.INTEGER);
 
         Integer counter=0;
         while(sorted.hasNext()){
@@ -155,7 +155,7 @@ public class PumpTest {
         Collections.shuffle(list);
 
         Iterator<Integer> sorted = Pump.sort(list.iterator(),true, max/20,
-                BTreeMap.COMPARABLE_COMPARATOR, Serializer.INTEGER);
+                Fun.COMPARATOR, Serializer.INTEGER);
 
         Integer counter=0;
         while(sorted.hasNext()){
@@ -324,11 +324,11 @@ public class PumpTest {
         List<UUID> u = new ArrayList<UUID>();
         Random r = new Random();
         for(int i=0;i<1e6;i++) u.add(new UUID(r.nextLong(),r.nextLong()));
-        Set<UUID> sorted = new TreeSet<UUID>(Collections.reverseOrder(BTreeMap.COMPARABLE_COMPARATOR));
+        Set<UUID> sorted = new TreeSet<UUID>(Collections.reverseOrder(Fun.COMPARATOR));
         sorted.addAll(u);
 
         Iterator<UUID> iter = u.iterator();
-        iter = Pump.sort(iter,false, 10000,Collections.reverseOrder(BTreeMap.COMPARABLE_COMPARATOR),Serializer.UUID);
+        iter = Pump.sort(iter,false, 10000,Collections.reverseOrder(Fun.COMPARATOR),Serializer.UUID);
         Iterator<UUID> iter2 = sorted.iterator();
 
         while(iter.hasNext()){
@@ -348,7 +348,7 @@ public class PumpTest {
                     u.add(i);
         }
 
-        Comparator c = Collections.reverseOrder(BTreeMap.COMPARABLE_COMPARATOR);
+        Comparator c = Collections.reverseOrder(Fun.COMPARATOR);
         List<Long> sorted = new ArrayList<Long>(u);
         Collections.sort(sorted,c);
 

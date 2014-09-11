@@ -474,6 +474,7 @@ public class SerializerBase implements Serializer<Object>{
             out.write(Header.MAPDB);
             DataOutput2.packInt(out, HeaderMapDB.B_TREE_BASIC_KEY_SERIALIZER);
             serialize(out,((BTreeKeySerializer.BasicKeySerializer)obj).defaultSerializer,objectStack);
+            serialize(out,((BTreeKeySerializer.BasicKeySerializer)obj).comparator,objectStack);
         } else if (clazz == Fun.ArrayComparator.class){
             out.write(Header.MAPDB);
             DataOutput2.packInt(out, HeaderMapDB.COMPARATOR_ARRAY);
@@ -1358,7 +1359,7 @@ public class SerializerBase implements Serializer<Object>{
         int SERIALIZER_KEY_TUPLE3 = 8;
         int SERIALIZER_KEY_TUPLE4 = 9;
         int FUN_COMPARATOR = 10;
-        int COMPARABLE_COMPARATOR = 11;
+        int FUN_COMPARATOR_NULLABLE = 11; //TODO hole
         int THIS_SERIALIZER = 12;
         int SERIALIZER_BASIC = 13;
         int SERIALIZER_STRING_NOSIZE = 14;
@@ -1425,8 +1426,8 @@ public class SerializerBase implements Serializer<Object>{
             all.put(BTreeKeySerializer.ZERO_OR_POSITIVE_LONG, HeaderMapDB.B_TREE_SERIALIZER_POS_LONG);
             all.put(BTreeKeySerializer.ZERO_OR_POSITIVE_INT, HeaderMapDB.B_TREE_SERIALIZER_POS_INT);
 
-            all.put(BTreeMap.COMPARABLE_COMPARATOR,HeaderMapDB.COMPARABLE_COMPARATOR);
             all.put(Fun.COMPARATOR,HeaderMapDB.FUN_COMPARATOR);
+            all.put(Fun.COMPARATOR_NULLABLE,HeaderMapDB.FUN_COMPARATOR_NULLABLE);
             all.put(Fun.REVERSE_COMPARATOR,HeaderMapDB.FUN_COMPARATOR_REVERSE);
             all.put(Fun.EMPTY_ITERATOR,HeaderMapDB.FUN_EMPTY_ITERATOR);
             all.put(Fun.TUPLE2_COMPARATOR,HeaderMapDB.TUPLE2_COMPARATOR_STATIC);

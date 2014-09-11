@@ -66,7 +66,7 @@ public final class Pump {
             Comparator comparator, final Serializer serializer){
         if(batchSize<=0) throw new IllegalArgumentException();
         if(comparator==null)
-            comparator=BTreeMap.COMPARABLE_COMPARATOR;
+            comparator=Fun.COMPARATOR;
         if(source==null)
             source = Fun.EMPTY_ITERATOR;
 
@@ -165,7 +165,7 @@ public final class Pump {
      * @return sorted iterator
      */
     public static <E> Iterator<E> sort(Comparator comparator, final boolean mergeDuplicates, final Iterator... iterators) {
-        final Comparator comparator2 = comparator==null?BTreeMap.COMPARABLE_COMPARATOR:comparator;
+        final Comparator comparator2 = comparator==null?Fun.COMPARATOR:comparator;
         return new Iterator<E>(){
 
             final NavigableSet<Fun.Tuple2<Object,Integer>> items = new TreeSet<Fun.Tuple2<Object, Integer>>(
@@ -331,11 +331,11 @@ public final class Pump {
         {
 
         if(comparator==null)
-            comparator=BTreeMap.COMPARABLE_COMPARATOR;
+            comparator=Fun.COMPARATOR;
 
         final double NODE_LOAD = 0.75;
 
-        Serializer<BTreeMap.BNode> nodeSerializer = new BTreeMap.NodeSerializer(valuesStoredOutsideNodes,keySerializer,valueSerializer,comparator,0);
+        Serializer<BTreeMap.BNode> nodeSerializer = new BTreeMap.NodeSerializer(valuesStoredOutsideNodes,keySerializer,valueSerializer,0);
 
 
         final int nload = (int) (nodeSize * NODE_LOAD);

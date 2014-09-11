@@ -6,7 +6,6 @@ import java.io.Serializable;
 import java.util.Map;
 
 import static org.mapdb.BTreeKeySerializer.BASIC;
-import static org.mapdb.BTreeMap.COMPARABLE_COMPARATOR;
 import static org.mapdb.BTreeMap.createRootRef;
 
 public class BTreeMapContainsKeyTest extends JSR166TestCase {
@@ -27,8 +26,8 @@ public class BTreeMapContainsKeyTest extends JSR166TestCase {
     @Override
     protected void setUp() throws Exception {
         r = new StoreDirect(Volume.memoryFactory(false, 0L,CC.VOLUME_SLICE_SHIFT));
-        map = new BTreeMap(r, createRootRef(r,BASIC, Serializer.BASIC, COMPARABLE_COMPARATOR,0),
-                6, valsOutsideNodes, 0, BASIC, valueSerializer, COMPARABLE_COMPARATOR, 0,false);
+        map = new BTreeMap(r, createRootRef(r,BASIC, Serializer.BASIC,0),
+                6, valsOutsideNodes, 0, BASIC, valueSerializer, 0,false);
     }
 
     /**

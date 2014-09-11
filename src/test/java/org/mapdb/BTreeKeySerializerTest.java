@@ -55,7 +55,7 @@ public class BTreeKeySerializerTest {
     }
 
     final BTreeKeySerializer.Tuple2KeySerializer tuple2_serializer = new BTreeKeySerializer.Tuple2KeySerializer(
-            BTreeMap.COMPARABLE_COMPARATOR,
+            Fun.COMPARATOR,
             Serializer.BASIC, Serializer.BASIC);
 
     @Test public void tuple2_simple() throws IOException {
@@ -106,7 +106,7 @@ public class BTreeKeySerializerTest {
 
 
     final BTreeKeySerializer.Tuple3KeySerializer tuple3_serializer = new BTreeKeySerializer.Tuple3KeySerializer(
-            BTreeMap.COMPARABLE_COMPARATOR,BTreeMap.COMPARABLE_COMPARATOR,
+            Fun.COMPARATOR,Fun.COMPARATOR,
             Serializer.BASIC, Serializer.BASIC, Serializer.BASIC);
 
     @Test public void tuple3_simple() throws IOException {
@@ -159,7 +159,7 @@ public class BTreeKeySerializerTest {
     }
 
     final BTreeKeySerializer.Tuple4KeySerializer tuple4_serializer = new BTreeKeySerializer.Tuple4KeySerializer(
-            BTreeMap.COMPARABLE_COMPARATOR,BTreeMap.COMPARABLE_COMPARATOR,BTreeMap.COMPARABLE_COMPARATOR,
+            Fun.COMPARATOR,Fun.COMPARATOR,Fun.COMPARATOR,
             Serializer.BASIC, Serializer.BASIC, Serializer.BASIC, Serializer.BASIC);
 
     @Test public void tuple4_simple() throws IOException {
@@ -215,7 +215,7 @@ public class BTreeKeySerializerTest {
     }
 
     final BTreeKeySerializer.Tuple5KeySerializer tuple5_serializer = new BTreeKeySerializer.Tuple5KeySerializer(
-            BTreeMap.COMPARABLE_COMPARATOR,BTreeMap.COMPARABLE_COMPARATOR,BTreeMap.COMPARABLE_COMPARATOR,BTreeMap.COMPARABLE_COMPARATOR,
+            Fun.COMPARATOR,Fun.COMPARATOR,Fun.COMPARATOR,Fun.COMPARATOR,
             Serializer.BASIC, Serializer.BASIC, Serializer.BASIC, Serializer.BASIC, Serializer.BASIC);
 
     @Test public void tuple5_simple() throws IOException {
@@ -274,7 +274,7 @@ public class BTreeKeySerializerTest {
     }
 
     final BTreeKeySerializer.Tuple6KeySerializer tuple6_serializer = new BTreeKeySerializer.Tuple6KeySerializer(
-            BTreeMap.COMPARABLE_COMPARATOR,BTreeMap.COMPARABLE_COMPARATOR,BTreeMap.COMPARABLE_COMPARATOR,BTreeMap.COMPARABLE_COMPARATOR,BTreeMap.COMPARABLE_COMPARATOR,
+            Fun.COMPARATOR,Fun.COMPARATOR,Fun.COMPARATOR,Fun.COMPARATOR,Fun.COMPARATOR,
             Serializer.BASIC, Serializer.BASIC, Serializer.BASIC, Serializer.BASIC, Serializer.BASIC, Serializer.BASIC);
 
     @Test public void tuple6_simple() throws IOException {

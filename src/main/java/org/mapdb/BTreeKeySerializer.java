@@ -53,7 +53,7 @@ public abstract class BTreeKeySerializer<K>{
      */
     public abstract Comparator<K> getComparator();
 
-    public static final BTreeKeySerializer BASIC = new BTreeKeySerializer.BasicKeySerializer(Serializer.BASIC);
+    public static final BTreeKeySerializer BASIC = new BTreeKeySerializer.BasicKeySerializer(Serializer.BASIC,Fun.COMPARATOR);
 
     /**
      * Basic Key Serializer which just writes data without applying any compression.
@@ -64,15 +64,20 @@ public abstract class BTreeKeySerializer<K>{
         private static final long serialVersionUID = 1654710710946309279L;
 
         protected final Serializer defaultSerializer;
+        protected final Comparator comparator;
 
-        public BasicKeySerializer(Serializer defaultSerializer) {
+        public BasicKeySerializer(Serializer defaultSerializer, Comparator comparator) {
             this.defaultSerializer = defaultSerializer;
+            if(comparator==null)
+                comparator = Fun.COMPARATOR;
+            this.comparator = comparator;
         }
 
         /** used for deserialization*/
         protected BasicKeySerializer(SerializerBase serializerBase, DataInput is, SerializerBase.FastArrayList<Object> objectStack) throws IOException {
             objectStack.add(this);
             defaultSerializer = (Serializer) serializerBase.deserialize(is,objectStack);
+            comparator = (Comparator) serializerBase.deserialize(is,objectStack);
         }
 
         @Override
@@ -93,7 +98,7 @@ public abstract class BTreeKeySerializer<K>{
 
         @Override
         public Comparator<Object> getComparator() {
-            return null;
+            return comparator;
         }
     }
 
@@ -129,7 +134,7 @@ public abstract class BTreeKeySerializer<K>{
 
         @Override
         public Comparator<Long> getComparator() {
-            return BTreeMap.COMPARABLE_COMPARATOR;
+            return Fun.COMPARATOR;
         }
     };
 
@@ -164,7 +169,7 @@ public abstract class BTreeKeySerializer<K>{
 
         @Override
         public Comparator<Integer> getComparator() {
-            return BTreeMap.COMPARABLE_COMPARATOR;
+            return Fun.COMPARATOR;
         }
 
     };
@@ -203,7 +208,7 @@ public abstract class BTreeKeySerializer<K>{
 
         @Override
         public Comparator<String> getComparator() {
-            return BTreeMap.COMPARABLE_COMPARATOR;
+            return Fun.COMPARATOR;
         }
 
     };
@@ -364,7 +369,7 @@ public abstract class BTreeKeySerializer<K>{
 
         @Override
         public Comparator<Fun.Tuple2<A,B>> getComparator() {
-            return BTreeMap.COMPARABLE_COMPARATOR;
+            return Fun.COMPARATOR;
         }
 
         @Override
@@ -519,7 +524,7 @@ public abstract class BTreeKeySerializer<K>{
 
         @Override
         public Comparator<Fun.Tuple3<A,B,C>> getComparator() {
-            return BTreeMap.COMPARABLE_COMPARATOR;
+            return Fun.COMPARATOR;
         }
 
 
@@ -709,7 +714,7 @@ public abstract class BTreeKeySerializer<K>{
 
         @Override
         public Comparator<Fun.Tuple4<A,B,C,D>> getComparator() {
-            return BTreeMap.COMPARABLE_COMPARATOR;
+            return Fun.COMPARATOR;
         }
 
 
@@ -920,7 +925,7 @@ public abstract class BTreeKeySerializer<K>{
 
         @Override
         public Comparator<Fun.Tuple5<A,B,C,D,E>> getComparator() {
-            return BTreeMap.COMPARABLE_COMPARATOR;
+            return Fun.COMPARATOR;
         }
 
 
@@ -1163,7 +1168,7 @@ public abstract class BTreeKeySerializer<K>{
 
         @Override
         public Comparator<Fun.Tuple6<A,B,C,D,E,F>> getComparator() {
-            return BTreeMap.COMPARABLE_COMPARATOR;
+            return Fun.COMPARATOR;
         }
 
 

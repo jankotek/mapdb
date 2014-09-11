@@ -98,13 +98,6 @@ import java.util.concurrent.locks.LockSupport;
 public class BTreeMap<K,V> extends AbstractMap<K,V>
         implements ConcurrentNavigableMap<K,V>, Bind.MapWithModificationListener<K,V>, Closeable {
 
-    @SuppressWarnings("rawtypes")
-    public static final Comparator COMPARABLE_COMPARATOR = new Comparator<Comparable>() {
-        @Override
-        final public int compare(final Comparable o1, final Comparable o2) {
-            return o1.compareTo(o2);
-        }
-    };
 
     protected static final Object EMPTY = new Object();
 
@@ -117,9 +110,6 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
     /** Serializer used to convert keys from/into binary form*/
     protected final Serializer<V> valueSerializer;
-
-    /** keys are sorted by this*/
-    protected final Comparator comparator;
 
     /** holds node level locks*/
     protected final LongConcurrentHashMap<Thread> nodeLocks = new LongConcurrentHashMap<Thread>();
@@ -161,7 +151,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 return Collections.unmodifiableSortedMap(new TreeMap<String, Object>());
 
             NodeSerializer rootSerializer = new NodeSerializer(false,BTreeKeySerializer.STRING,
-                    db.getDefaultSerializer(),COMPARABLE_COMPARATOR, 0);
+                    db.getDefaultSerializer(), 0);
             BNode root = new LeafNode(new Object[]{}, true,true,false, new Object[]{}, 0);
             rootRef = db.getEngine().put(root, rootSerializer);
             db.getEngine().update(Engine.CATALOG_RECID,rootRef, Serializer.LONG);
@@ -170,7 +160,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         return new BTreeMap<String, Object>(db.engine,Engine.CATALOG_RECID,32,false,0,
                 BTreeKeySerializer.STRING,
                 db.getDefaultSerializer(),
-                COMPARABLE_COMPARATOR,0, false);
+                0, false);
     }
 
 
@@ -294,7 +284,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         public abstract long[] child();
         public abstract long next();
 
-        public final int compare(final Comparator comparator, int pos1, int pos2){
+        public final int compare(final BTreeKeySerializer keyser, int pos1, int pos2){
             if(pos1==pos2)
                 return 0;
 
@@ -315,10 +305,10 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     return -1;
             }
 
-            return comparator.compare(keys[pos1],keys[pos2]);
+            return keyser.getComparator().compare(keys[pos1],keys[pos2]);
         }
 
-        public final int compare(final Comparator comparator, int pos, Object second){
+        public final int compare(final BTreeKeySerializer keyser, int pos, Object second){
             if(isLeftEdge()) {
                 //first position is negative infinity, so everything else is bigger
                 //first keys is missing in array, so adjust positions
@@ -330,14 +320,14 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 //last position is positive infinity, so everything else is smaller
                 return 1;
             }
-            return comparator.compare(keys[pos],second);
+            return keyser.getComparator().compare(keys[pos],second);
         }
 
         /**
          * Find the first children node with a key equal or greater than the given key.
          * If all items are smaller it returns `keys.length`
          */
-        public final int findChildren(final Comparator comparator,final Object key) {
+        public final int findChildren(final BTreeKeySerializer keyser,final Object key) {
 
 
             int left = 0;
@@ -350,7 +340,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 middle = (left + right) / 2;
                 if(middle==keys.length)
                     return middle+leftEdgeInc(); //null is positive infinitive
-                if (comparator.compare(keys[middle], key) < 0) {
+                if (keyser.getComparator().compare(keys[middle], key) < 0) {
                     left = middle + 1;
                 } else {
                     right = middle;
@@ -362,7 +352,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
         }
 
-        public final int findChildren2(final Comparator comparator,final Object key) {
+        public final int findChildren2(final BTreeKeySerializer keyser,final Object key) {
             int left = 0;
             int right = keys.length;
             int comp;
@@ -373,11 +363,11 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 middle = (left + right) / 2;
                 if(middle==keys.length)
                     return -1-(middle+leftEdgeInc()); //null is positive infinitive
-                comp = comparator.compare(keys[middle], key);
+                comp = keyser.getComparator().compare(keys[middle], key);
                 if(comp==0){
                     //try one before last, in some cases it might be duplicate of last
                     if(!isRightEdge() && middle==keys.length-1 && middle>0
-                            && comparator.compare(keys[middle-1],key)==0){
+                            && keyser.getComparator().compare(keys[middle-1],key)==0){
                         middle--;
                     }
                     return middle+leftEdgeInc();
@@ -393,18 +383,18 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
         }
 
-        public void checkStructure(Comparator comparator){
+        public void checkStructure(BTreeKeySerializer keyser){
             //check all keys are sorted;
             int end = keys.length-2+rightEdgeInc();
-            if(comparator!=null && end>1){
+            if(keyser !=null && end>1){
                 for(int i = 1;i<=end;i++){
-                    if(comparator.compare(keys[i-1], keys[i])>=0)
+                    if(keyser.getComparator().compare(keys[i-1], keys[i])>=0)
                         throw new AssertionError("keys are not sorted: "+Arrays.toString(keys));
                 }
             }
             //check last key is sorted or null
-            if(comparator!=null && !isRightEdge() && keys.length>2){
-                if(comparator.compare(keys[keys.length-2], keys[keys.length-1])>0){
+            if(keyser !=null && !isRightEdge() && keys.length>2){
+                if(keyser.getComparator().compare(keys[keys.length-2], keys[keys.length-1])>0){
                     throw new AssertionError("Last key is not sorted "+Arrays.toString(keys));
                 }
             }
@@ -444,8 +434,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
 
         @Override
-        public void checkStructure(Comparator comparator) {
-            super.checkStructure(comparator);
+        public void checkStructure(BTreeKeySerializer keyser) {
+            super.checkStructure(keyser);
 
             if(child.length!=keysLen())
                 throw new AssertionError();
@@ -513,8 +503,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         }
 
         @Override
-        public void checkStructure(Comparator comparator) {
-            super.checkStructure(comparator);
+        public void checkStructure(BTreeKeySerializer keyser) {
+            super.checkStructure(keyser);
             if((next==0)!=isRightEdge()){
                 throw new AssertionError("Next link inconsistent: "+this);
             }
@@ -609,17 +599,14 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         protected final boolean valsOutsideNodes;
         protected final BTreeKeySerializer keySerializer;
         protected final Serializer<Object> valueSerializer;
-        protected final Comparator comparator;
         protected final int numberOfNodeMetas;
 
-        public NodeSerializer(boolean valsOutsideNodes, BTreeKeySerializer keySerializer, Serializer valueSerializer, Comparator comparator, int numberOfNodeMetas) {
+        public NodeSerializer(boolean valsOutsideNodes, BTreeKeySerializer keySerializer, Serializer valueSerializer,  int numberOfNodeMetas) {
             assert(keySerializer!=null);
-            assert(comparator!=null);
             this.hasValues = valueSerializer!=null;
             this.valsOutsideNodes = valsOutsideNodes;
             this.keySerializer = keySerializer;
             this.valueSerializer = valsOutsideNodes? new ValRefSerializer() : valueSerializer;
-            this.comparator = comparator;
             this.numberOfNodeMetas = numberOfNodeMetas;
         }
 
@@ -629,7 +616,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
             //check node integrity in paranoid mode
             if(CC.PARANOID){
-                value.checkStructure(comparator);
+                value.checkStructure(keySerializer);
             }
 
 
@@ -703,7 +690,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 node = deserializeDir(in, size, left, size-right);
             }
             if(CC.PARANOID){
-                node.checkStructure(comparator);
+                node.checkStructure(keySerializer);
             }
             return node;
         }
@@ -753,22 +740,19 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
      * @param counterRecid recid under which `Atomic.Long` is stored, or `0` for no counter
      * @param keySerializer Serializer used for keys. May be null for default value.
      * @param valueSerializer Serializer used for values. May be null for default value
-     * @param comparator Comparator to sort keys in this BTree, may be null.
      * @param numberOfNodeMetas number of meta records associated with each BTree node
      * @param disableLocks makes class thread-unsafe but bit faster
      */
     public BTreeMap(Engine engine, long rootRecidRef,int maxNodeSize, boolean valsOutsideNodes, long counterRecid,
-                    BTreeKeySerializer<K> keySerializer, Serializer<V> valueSerializer, Comparator<K> comparator,
+                    BTreeKeySerializer<K> keySerializer, Serializer<V> valueSerializer,
                     int numberOfNodeMetas, boolean disableLocks) {
         if(maxNodeSize%2!=0) throw new IllegalArgumentException("maxNodeSize must be dividable by 2");
         if(maxNodeSize<6) throw new IllegalArgumentException("maxNodeSize too low");
         if(maxNodeSize>126) throw new IllegalArgumentException("maxNodeSize too high");
         if(rootRecidRef<=0||counterRecid<0 || numberOfNodeMetas<0) throw new IllegalArgumentException();
         if(keySerializer==null) throw new NullPointerException();
-        if(comparator==null) throw new NullPointerException();
         SerializerBase.assertSerializable(keySerializer);
         SerializerBase.assertSerializable(valueSerializer);
-        SerializerBase.assertSerializable(comparator);
 
 
 
@@ -777,20 +761,14 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         this.valsOutsideNodes = valsOutsideNodes;
         this.engine = engine;
         this.maxNodeSize = maxNodeSize;
-        this.comparator = comparator;
         this.numberOfNodeMetas = numberOfNodeMetas;
 
-        {
-            Comparator requiredComparator = keySerializer.getComparator();
-            if(requiredComparator!=null && !requiredComparator.equals(comparator))
-                throw new IllegalArgumentException("KeySerializers requires its own comparator");
-        }
 
         this.keySerializer = keySerializer;
         this.valueSerializer = valueSerializer;
 
 
-        this.nodeSerializer = new NodeSerializer(valsOutsideNodes,keySerializer,valueSerializer,comparator,numberOfNodeMetas);
+        this.nodeSerializer = new NodeSerializer(valsOutsideNodes,keySerializer,valueSerializer,numberOfNodeMetas);
 
         this.keySet = new KeySet(this, hasValues);
 
@@ -816,10 +794,10 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     }
 
     /** creates empty root node and returns recid of its reference*/
-    static protected long createRootRef(Engine engine, BTreeKeySerializer keySer, Serializer valueSer, Comparator comparator, int numberOfNodeMetas){
+    static protected long createRootRef(Engine engine, BTreeKeySerializer keySer, Serializer valueSer, int numberOfNodeMetas){
         final LeafNode emptyRoot = new LeafNode(new Object[]{}, true,true, false,new Object[]{}, 0);
         //empty root is serializer simpler way, so we can use dummy values
-        long rootRecidVal = engine.put(emptyRoot,  new NodeSerializer(false,keySer, valueSer, comparator, numberOfNodeMetas));
+        long rootRecidVal = engine.put(emptyRoot,  new NodeSerializer(false,keySer, valueSer, numberOfNodeMetas));
         return engine.put(rootRecidVal,Serializer.LONG);
     }
 
@@ -846,7 +824,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         }
 
         for(;;) {
-            int pos = A.findChildren2(comparator, key);
+            int pos = A.findChildren2(keySerializer, key);
 
             if (pos > 0 && pos != A.keysLen() - 1) {
                 //found
@@ -878,7 +856,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     }
 
     protected final long nextDir(DirNode d, Object key) {
-        int pos = d.findChildren(comparator, key) - 1;
+        int pos = d.findChildren(keySerializer, key) - 1;
         if(pos<0) pos = 0;
         return d.child[pos];
     }
@@ -933,10 +911,10 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 lock(nodeLocks, current);
                 found = true;
                 A = engine.get(current, nodeSerializer);
-                int pos = A.findChildren(comparator, v);
+                int pos = A.findChildren(keySerializer, v);
                 //check if keys is already in tree
                 if(pos<A.keysLen()-1 &&  v!=null && A.key(pos)!=null && //TODO A.key(pos]!=null??
-                        0==A.compare(comparator,pos,v)){
+                        0==A.compare(keySerializer,pos,v)){
                     //yes key is already in tree
                     Object oldVal = A.vals()[pos-1];
                     if(putOnlyIfAbsent){
@@ -958,11 +936,11 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 }
 
                 //if v > highvalue(a)
-                if(!A.isRightEdge() && comparator.compare(v, A.highKey())>0){
+                if(!A.isRightEdge() && A.compare(keySerializer,A.keysLen()-1,v)<0){
                     //follow link until necessary
                     unlock(nodeLocks, current);
                     found = false;
-                    int pos2 = A.findChildren(comparator, v);
+                    int pos2 = A.findChildren(keySerializer, v);
                     while(A!=null && pos2 == A.keysLen()){
                         //TODO lock?
                         long next = A.next();
@@ -970,7 +948,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                         if(next==0) break;
                         current = next;
                         A = engine.get(current, nodeSerializer);
-                        pos2 = A.findChildren(comparator, v);
+                        pos2 = A.findChildren(keySerializer, v);
                     }
 
                 }
@@ -978,7 +956,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
             }while(!found);
 
-            int pos = A.findChildren(comparator, v);
+            int pos = A.findChildren(keySerializer, v);
             A = A.copyAddKey(pos,v,p,value);
 
             // can be new item inserted into A without splitting it?
@@ -1079,8 +1057,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             this.hiInclusive = hiInclusive;
             if(hi!=null && currentLeaf!=null){
                 //check in bounds
-                Object key =  currentLeaf.key(currentPos);
-                int c = m.comparator.compare(key, hi);
+                int c = currentLeaf.compare(m.keySerializer,currentPos,hi);
                 if (c > 0 || (c == 0 && !hiInclusive)){
                     //out of high bound
                     currentLeaf=null;
@@ -1146,8 +1123,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             }
             if(hi!=null && currentLeaf!=null){
                 //check in bounds
-                Object key =  currentLeaf.key(currentPos);
-                int c = m.comparator.compare(key, hi);
+                int c = currentLeaf.compare(m.keySerializer,currentPos,hi);
                 if (c > 0 || (c == 0 && !hiInclusive)){
                     //out of high bound
                     currentLeaf=null;
@@ -1163,6 +1139,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     }
 
     private V removeOrReplace(final Object key, final Object value, final  Object putNewValue) {
+        if(key==null)
+            throw new NullPointerException("null key");
         long current = engine.get(rootRecidRef, Serializer.LONG);
 
         BNode A = engine.get(current, nodeSerializer);
@@ -1179,7 +1157,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 unlock(nodeLocks,old);
             A = engine.get(current, nodeSerializer);
 
-            int pos = A.findChildren2(comparator, key);
+            int pos = A.findChildren2(keySerializer, key);
 //            System.out.println(key+" - "+pos+" - "+A);
             if(pos>0 && pos!=A.keysLen()-1){
                 //found, delete from node
@@ -1410,7 +1388,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
     @Override
     public Comparator<? super K> comparator() {
-        return comparator;
+        return keySerializer.getComparator();
     }
 
 
@@ -1463,13 +1441,14 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     }
 
     private Entry<K, V> findSmallerRecur(BNode n, K key, boolean inclusive) {
+        //TODO optimize comparation in this method
         final boolean leaf = n.isLeaf();
         final int start = leaf ? n.keysLen()-2 : n.keysLen()-1;
         final int end = leaf?1:0;
         final int res = inclusive? 1 : 0;
         for(int i=start;i>=end; i--){
             final Object key2 = n.key(i);
-            int comp = (key2==null)? -1 : comparator.compare(key2, key);
+            int comp = (key2==null)? -1 : keySerializer.getComparator().compare(key2, key);
             if(comp<res){
                 if(leaf){
                     return key2==null ? null :
@@ -1583,7 +1562,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             for(int i=1;i<leaf.keysLen()-1;i++){
                 if(leaf.key(i)==null) continue;
 
-                if(-leaf.compare(comparator, i, key)<comp){
+                if(-leaf.compare(keySerializer, i, key)<comp){
                     return makeEntry(leaf.key(i), valExpand(leaf.vals[i-1]));
                 }
 
@@ -1616,7 +1595,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             for(int i=1;i<leaf.keysLen()-1;i++){
                 if(leaf.key(i)==null) continue;
 
-                if(-leaf.compare(comparator,i, key)<comp){
+                if(-leaf.compare(keySerializer,i, key)<comp){
                     return Fun.t2(i, leaf);
                 }
             }
@@ -2018,7 +1997,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             this.loInclusive = loInclusive;
             this.hi = hi;
             this.hiInclusive = hiInclusive;
-            if(lo!=null && hi!=null && m.comparator.compare(lo, hi)>0){
+            if(lo!=null && hi!=null && m.keySerializer.getComparator().compare(lo, hi)>0){
                     throw new IllegalArgumentException();
             }
 
@@ -2050,6 +2029,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
         @Override
 		public V remove(Object key) {
+            if(key==null)
+                throw new NullPointerException("key null");
             K k = (K)key;
             return (!inBounds(k))? null : m.remove(k);
         }
@@ -2277,7 +2258,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     fromInclusive = loInclusive;
                 }
                 else {
-                    int c = m.comparator.compare(fromKey, lo);
+                    int c = m.keySerializer.getComparator().compare(fromKey, lo);
                     if (c < 0 || (c == 0 && !loInclusive && fromInclusive))
                         throw new IllegalArgumentException("key out of range");
                 }
@@ -2288,7 +2269,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     toInclusive = hiInclusive;
                 }
                 else {
-                    int c = m.comparator.compare(toKey, hi);
+                    int c = m.keySerializer.getComparator().compare(toKey, hi);
                     if (c > 0 || (c == 0 && !hiInclusive && toInclusive))
                         throw new IllegalArgumentException("key out of range");
                 }
@@ -2355,7 +2336,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
         private boolean tooLow(K key) {
             if (lo != null) {
-                int c = m.comparator.compare(key, lo);
+                int c = m.keySerializer.getComparator().compare(key, lo);
                 if (c < 0 || (c == 0 && !loInclusive))
                     return true;
             }
@@ -2364,7 +2345,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
         private boolean tooHigh(K key) {
             if (hi != null) {
-                int c = m.comparator.compare(key, hi);
+                int c = m.keySerializer.getComparator().compare(key, hi);
                 if (c > 0 || (c == 0 && !hiInclusive))
                     return true;
             }
@@ -2436,7 +2417,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             this.loInclusive = loInclusive;
             this.hi = hi;
             this.hiInclusive = hiInclusive;
-            if(lo!=null && hi!=null && m.comparator.compare(lo, hi)>0){
+            if(lo!=null && hi!=null && m.keySerializer.getComparator().compare(lo, hi)>0){
                 throw new IllegalArgumentException();
             }
 
@@ -2696,7 +2677,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     fromInclusive = loInclusive;
                 }
                 else {
-                    int c = m.comparator.compare(fromKey, lo);
+                    int c = m.keySerializer.getComparator().compare(fromKey, lo);
                     if (c < 0 || (c == 0 && !loInclusive && fromInclusive))
                         throw new IllegalArgumentException("key out of range");
                 }
@@ -2707,7 +2688,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     toInclusive = hiInclusive;
                 }
                 else {
-                    int c = m.comparator.compare(toKey, hi);
+                    int c = m.keySerializer.getComparator().compare(toKey, hi);
                     if (c > 0 || (c == 0 && !hiInclusive && toInclusive))
                         throw new IllegalArgumentException("key out of range");
                 }
@@ -2775,7 +2756,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
         private boolean tooLow(K key) {
             if (lo != null) {
-                int c = m.comparator.compare(key, lo);
+                int c = m.keySerializer.getComparator().compare(key, lo);
                 if (c < 0 || (c == 0 && !loInclusive))
                     return true;
             }
@@ -2784,7 +2765,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
         private boolean tooHigh(K key) {
             if (hi != null) {
-                int c = m.comparator.compare(key, hi);
+                int c = m.keySerializer.getComparator().compare(key, hi);
                 if (c > 0 || (c == 0 && !hiInclusive))
                     return true;
             }
@@ -2902,7 +2883,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
         return new BTreeMap<K, V>(snapshot, rootRecidRef, maxNodeSize, valsOutsideNodes,
                 counter==null?0L:counter.recid,
-                keySerializer, valueSerializer, comparator, numberOfNodeMetas, false);
+                keySerializer, valueSerializer, numberOfNodeMetas, false);
     }
 
 
@@ -3042,7 +3023,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
     private void checkNodeRecur(long rootRecid, LongHashMap recids) {
         BNode n = engine.get(rootRecid, nodeSerializer);
-        n.checkStructure(comparator);
+        n.checkStructure(keySerializer);
 
         if(recids.get(rootRecid)!=null){
             throw new AssertionError("Duplicate recid: "+rootRecid);

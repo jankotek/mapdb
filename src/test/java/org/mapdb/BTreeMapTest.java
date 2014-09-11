@@ -22,9 +22,9 @@ public class BTreeMapTest{
 
     @Before public void init(){
         engine = new StoreDirect(Volume.memoryFactory(false,0L,CC.VOLUME_SLICE_SHIFT));
-        m = new BTreeMap(engine,BTreeMap.createRootRef(engine,BTreeKeySerializer.BASIC,Serializer.BASIC,BTreeMap.COMPARABLE_COMPARATOR,0),
+        m = new BTreeMap(engine,BTreeMap.createRootRef(engine,BTreeKeySerializer.BASIC,Serializer.BASIC,0),
                 6,valsOutside,0, BTreeKeySerializer.BASIC,Serializer.BASIC,
-                BTreeMap.COMPARABLE_COMPARATOR,0,false);;
+                0,false);;
     }
 
 
@@ -69,10 +69,10 @@ public class BTreeMapTest{
         }
 
         BTreeMap.BNode n1 = new BTreeMap.DirNode(new Integer[]{1,2,3,4,5,6,7,8},false,false,false,child);
-        assertEquals(8, n1.findChildren(Fun.COMPARATOR, 11));
-        assertEquals(0,n1.findChildren(Fun.COMPARATOR, 1));
-        assertEquals(0,n1.findChildren(Fun.COMPARATOR, 0));
-        assertEquals(7,n1.findChildren(Fun.COMPARATOR, 8));
+        assertEquals(8, n1.findChildren(BTreeKeySerializer.BASIC, 11));
+        assertEquals(0,n1.findChildren(BTreeKeySerializer.BASIC, 1));
+        assertEquals(0,n1.findChildren(BTreeKeySerializer.BASIC, 0));
+        assertEquals(7,n1.findChildren(BTreeKeySerializer.BASIC, 8));
 
         child = new long[5];
         for(int i=0;i<child.length;i++){
@@ -80,10 +80,10 @@ public class BTreeMapTest{
         }
 
         BTreeMap.BNode n2 = new BTreeMap.DirNode(new Integer[]{10,20,30,40,50},false,false,false,child);
-        assertEquals(4,n2.findChildren(Fun.COMPARATOR, 49));
-        assertEquals(4,n2.findChildren(Fun.COMPARATOR, 50));
-        assertEquals(3,n2.findChildren(Fun.COMPARATOR, 40));
-        assertEquals(3,n2.findChildren(Fun.COMPARATOR, 39));
+        assertEquals(4,n2.findChildren(BTreeKeySerializer.BASIC, 49));
+        assertEquals(4,n2.findChildren(BTreeKeySerializer.BASIC, 50));
+        assertEquals(3,n2.findChildren(BTreeKeySerializer.BASIC, 40));
+        assertEquals(3,n2.findChildren(BTreeKeySerializer.BASIC, 39));
     }
 
 
@@ -104,7 +104,7 @@ public class BTreeMapTest{
                 BTreeMap.BNode n = new BTreeMap.DirNode(keys.toArray(), left,right,false,child);
 
                 for(int i=-10;i<110;i++){
-                    int pos = n.findChildren(Fun.COMPARATOR,i);
+                    int pos = n.findChildren(BTreeKeySerializer.BASIC,i);
                     int expected = (i+(left?19:9))/10;
                     expected = Math.max(left?1:0,expected);
                     expected = Math.min(left?11:10,expected);

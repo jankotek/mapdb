@@ -595,7 +595,7 @@ public class DB implements Closeable {
         /** keySerializer used to convert keys into/from binary form.
          * This wraps ordinary serializer, with no delta packing used*/
         public BTreeMapMaker keySerializerWrap(Serializer<?> serializer){
-            this.keySerializer = new BTreeKeySerializer.BasicKeySerializer(serializer);
+            this.keySerializer = new BTreeKeySerializer.BasicKeySerializer(serializer, comparator);
             return this;
         }
 
@@ -791,9 +791,8 @@ public class DB implements Closeable {
                 catGet(name+".maxNodeSize",32),
                 catGet(name+".valuesOutsideNodes",false),
                 catGet(name+".counterRecid",0L),
-                (BTreeKeySerializer)catGet(name+".keySerializer",new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer())),
+                (BTreeKeySerializer)catGet(name+".keySerializer",new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer(),Fun.COMPARATOR)),
                 catGet(name+".valueSerializer",getDefaultSerializer()),
-                catGet(name+".comparator",BTreeMap.COMPARABLE_COMPARATOR),
                 catGet(name+".numberOfNodeMetas",0),
                 false
                 );
@@ -816,17 +815,13 @@ public class DB implements Closeable {
     synchronized protected <K,V> BTreeMap<K,V> createTreeMap(final BTreeMapMaker m){
         String name = m.name;
         checkNameNotExists(name);
-        m.keySerializer = fillNulls(m.keySerializer);
-        m.keySerializer = catPut(name+".keySerializer",m.keySerializer,new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer()));
-        m.valueSerializer = catPut(name+".valueSerializer",m.valueSerializer,getDefaultSerializer());
         if(m.comparator==null){
-            m.comparator = m.keySerializer.getComparator();
-            if(m.comparator==null){
-                m.comparator = BTreeMap.COMPARABLE_COMPARATOR;
-            }
+            m.comparator = Fun.COMPARATOR;
         }
 
-        m.comparator = catPut(name+".comparator",m.comparator);
+        m.keySerializer = fillNulls(m.keySerializer);
+        m.keySerializer = catPut(name+".keySerializer",m.keySerializer,new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer(),m.comparator));
+        m.valueSerializer = catPut(name+".valueSerializer",m.valueSerializer,getDefaultSerializer());
 
         if(m.pumpPresortBatchSize!=-1 && m.pumpSource!=null){
             Comparator presortComp =  new Comparator() {
@@ -845,7 +840,7 @@ public class DB implements Closeable {
 
         long rootRecidRef;
         if(m.pumpSource==null){
-            rootRecidRef = BTreeMap.createRootRef(engine,m.keySerializer,m.valueSerializer,m.comparator,0);
+            rootRecidRef = BTreeMap.createRootRef(engine,m.keySerializer,m.valueSerializer,0);
         }else{
             rootRecidRef = Pump.buildTreeMap(
                     (Iterator<K>)m.pumpSource,
@@ -867,7 +862,6 @@ public class DB implements Closeable {
                 catPut(name+".counterRecid",counterRecid),
                 (BTreeKeySerializer<K>)m.keySerializer,
                 (Serializer<V>)m.valueSerializer,
-                (Comparator<K>)m.comparator,
                 catPut(m.name+".numberOfNodeMetas",0),
                 false
         );
@@ -889,7 +883,7 @@ public class DB implements Closeable {
             BTreeKeySerializer.Tuple2KeySerializer<?,?> s =
                     (BTreeKeySerializer.Tuple2KeySerializer<?,?>) keySerializer;
             return new BTreeKeySerializer.Tuple2KeySerializer(
-                    s.aComparator!=null?s.aComparator:BTreeMap.COMPARABLE_COMPARATOR,
+                    s.aComparator!=null?s.aComparator:Fun.COMPARATOR,
                     s.aSerializer!=null?s.aSerializer:getDefaultSerializer(),
                     s.bSerializer!=null?s.bSerializer:getDefaultSerializer()
             );
@@ -898,8 +892,8 @@ public class DB implements Closeable {
             BTreeKeySerializer.Tuple3KeySerializer<?,?,?> s =
                     (BTreeKeySerializer.Tuple3KeySerializer<?,?,?>) keySerializer;
             return new BTreeKeySerializer.Tuple3KeySerializer(
-                    s.aComparator!=null?s.aComparator:BTreeMap.COMPARABLE_COMPARATOR,
-                    s.bComparator!=null?s.bComparator:BTreeMap.COMPARABLE_COMPARATOR,
+                    s.aComparator!=null?s.aComparator:Fun.COMPARATOR,
+                    s.bComparator!=null?s.bComparator:Fun.COMPARATOR,
                     s.aSerializer!=null?s.aSerializer:getDefaultSerializer(),
                     s.bSerializer!=null?s.bSerializer:getDefaultSerializer(),
                     s.cSerializer!=null?s.cSerializer:getDefaultSerializer()
@@ -909,9 +903,9 @@ public class DB implements Closeable {
             BTreeKeySerializer.Tuple4KeySerializer<?,?,?,?> s =
                     (BTreeKeySerializer.Tuple4KeySerializer<?,?,?,?>) keySerializer;
             return new BTreeKeySerializer.Tuple4KeySerializer(
-                    s.aComparator!=null?s.aComparator:BTreeMap.COMPARABLE_COMPARATOR,
-                    s.bComparator!=null?s.bComparator:BTreeMap.COMPARABLE_COMPARATOR,
-                    s.cComparator!=null?s.cComparator:BTreeMap.COMPARABLE_COMPARATOR,
+                    s.aComparator!=null?s.aComparator:Fun.COMPARATOR,
+                    s.bComparator!=null?s.bComparator:Fun.COMPARATOR,
+                    s.cComparator!=null?s.cComparator:Fun.COMPARATOR,
                     s.aSerializer!=null?s.aSerializer:getDefaultSerializer(),
                     s.bSerializer!=null?s.bSerializer:getDefaultSerializer(),
                     s.cSerializer!=null?s.cSerializer:getDefaultSerializer(),
@@ -923,10 +917,10 @@ public class DB implements Closeable {
             BTreeKeySerializer.Tuple5KeySerializer<?,?,?,?,?> s =
                     (BTreeKeySerializer.Tuple5KeySerializer<?,?,?,?,?>) keySerializer;
             return new BTreeKeySerializer.Tuple5KeySerializer(
-                    s.aComparator!=null?s.aComparator:BTreeMap.COMPARABLE_COMPARATOR,
-                    s.bComparator!=null?s.bComparator:BTreeMap.COMPARABLE_COMPARATOR,
-                    s.cComparator!=null?s.cComparator:BTreeMap.COMPARABLE_COMPARATOR,
-                    s.dComparator!=null?s.dComparator:BTreeMap.COMPARABLE_COMPARATOR,
+                    s.aComparator!=null?s.aComparator:Fun.COMPARATOR,
+                    s.bComparator!=null?s.bComparator:Fun.COMPARATOR,
+                    s.cComparator!=null?s.cComparator:Fun.COMPARATOR,
+                    s.dComparator!=null?s.dComparator:Fun.COMPARATOR,
                     s.aSerializer!=null?s.aSerializer:getDefaultSerializer(),
                     s.bSerializer!=null?s.bSerializer:getDefaultSerializer(),
                     s.cSerializer!=null?s.cSerializer:getDefaultSerializer(),
@@ -939,11 +933,11 @@ public class DB implements Closeable {
             BTreeKeySerializer.Tuple6KeySerializer<?,?,?,?,?,?> s =
                     (BTreeKeySerializer.Tuple6KeySerializer<?,?,?,?,?,?>) keySerializer;
             return new BTreeKeySerializer.Tuple6KeySerializer(
-                    s.aComparator!=null?s.aComparator:BTreeMap.COMPARABLE_COMPARATOR,
-                    s.bComparator!=null?s.bComparator:BTreeMap.COMPARABLE_COMPARATOR,
-                    s.cComparator!=null?s.cComparator:BTreeMap.COMPARABLE_COMPARATOR,
-                    s.dComparator!=null?s.dComparator:BTreeMap.COMPARABLE_COMPARATOR,
-                    s.eComparator!=null?s.eComparator:BTreeMap.COMPARABLE_COMPARATOR,
+                    s.aComparator!=null?s.aComparator:Fun.COMPARATOR,
+                    s.bComparator!=null?s.bComparator:Fun.COMPARATOR,
+                    s.cComparator!=null?s.cComparator:Fun.COMPARATOR,
+                    s.dComparator!=null?s.dComparator:Fun.COMPARATOR,
+                    s.eComparator!=null?s.eComparator:Fun.COMPARATOR,
                     s.aSerializer!=null?s.aSerializer:getDefaultSerializer(),
                     s.bSerializer!=null?s.bSerializer:getDefaultSerializer(),
                     s.cSerializer!=null?s.cSerializer:getDefaultSerializer(),
@@ -1000,9 +994,8 @@ public class DB implements Closeable {
                 catGet(name+".maxNodeSize",32),
                 false,
                 catGet(name+".counterRecid",0L),
-                (BTreeKeySerializer) catGet(name+".keySerializer",new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer())),
+                (BTreeKeySerializer) catGet(name+".keySerializer",new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer(),Fun.COMPARATOR)),
                 null,
-                catGet(name+".comparator",BTreeMap.COMPARABLE_COMPARATOR),
                 catGet(name+".numberOfNodeMetas",0),
                 false
         ).keySet();
@@ -1024,15 +1017,12 @@ public class DB implements Closeable {
 
     synchronized public <K> NavigableSet<K> createTreeSet(BTreeSetMaker m){
         checkNameNotExists(m.name);
-        m.serializer = fillNulls(m.serializer);
-        m.serializer = catPut(m.name+".keySerializer",m.serializer,new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer()));
         if(m.comparator==null){
-            m.comparator = m.serializer.getComparator();
-            if(m.comparator==null){
-                m.comparator = BTreeMap.COMPARABLE_COMPARATOR;
-            }
+            m.comparator = Fun.COMPARATOR;
         }
-        m.comparator = catPut(m.name+".comparator",m.comparator);
+
+        m.serializer = fillNulls(m.serializer);
+        m.serializer = catPut(m.name+".keySerializer",m.serializer,new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer(),m.comparator));
 
         if(m.pumpPresortBatchSize!=-1){
             m.pumpSource = Pump.sort(m.pumpSource,m.pumpIgnoreDuplicates, m.pumpPresortBatchSize,Collections.reverseOrder(m.comparator),getDefaultSerializer());
@@ -1042,7 +1032,7 @@ public class DB implements Closeable {
         long rootRecidRef;
 
         if(m.pumpSource==null){
-            rootRecidRef = BTreeMap.createRootRef(engine,m.serializer,null,m.comparator,0);
+            rootRecidRef = BTreeMap.createRootRef(engine,m.serializer,null,0);
         }else{
             rootRecidRef = Pump.buildTreeMap(
                     (Iterator<Object>)m.pumpSource,
@@ -1066,7 +1056,6 @@ public class DB implements Closeable {
                 catPut(m.name+".counterRecid",counterRecid),
                 (BTreeKeySerializer<K>)m.serializer,
                 null,
-                (Comparator<K>)m.comparator,
                 catPut(m.name+".numberOfNodeMetas",0),
                 false
         ).keySet();
