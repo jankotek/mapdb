@@ -588,7 +588,7 @@ public class DB implements Closeable {
         }
 
         /** keySerializer used to convert keys into/from binary form. */
-        public BTreeMapMaker keySerializer(BTreeKeySerializer<?> keySerializer){
+        public BTreeMapMaker keySerializer(BTreeKeySerializer keySerializer){
             this.keySerializer = keySerializer;
             return this;
         }
@@ -677,7 +677,7 @@ public class DB implements Closeable {
 
         protected int nodeSize = 32;
         protected boolean counter = false;
-        protected BTreeKeySerializer<?> serializer;
+        protected BTreeKeySerializer serializer;
         protected Comparator<?> comparator;
 
         protected Iterator<?> pumpSource;
@@ -698,7 +698,7 @@ public class DB implements Closeable {
         }
 
         /** keySerializer used to convert keys into/from binary form. */
-        public BTreeSetMaker serializer(BTreeKeySerializer<?> serializer){
+        public BTreeSetMaker serializer(BTreeKeySerializer serializer){
             this.serializer = serializer;
             return this;
         }
@@ -850,7 +850,7 @@ public class DB implements Closeable {
                     m.pumpIgnoreDuplicates,m.nodeSize,
                     m.valuesOutsideNodes,
                     counterRecid,
-                    (BTreeKeySerializer<K>)m.keySerializer,
+                    m.keySerializer,
                     (Serializer<V>)m.valueSerializer,
                     m.comparator);
         }
@@ -860,7 +860,7 @@ public class DB implements Closeable {
                 catPut(name+".maxNodeSize",m.nodeSize),
                 catPut(name+".valuesOutsideNodes",m.valuesOutsideNodes),
                 catPut(name+".counterRecid",counterRecid),
-                (BTreeKeySerializer<K>)m.keySerializer,
+                m.keySerializer,
                 (Serializer<V>)m.valueSerializer,
                 catPut(m.name+".numberOfNodeMetas",0),
                 false
@@ -876,7 +876,7 @@ public class DB implements Closeable {
      * @param keySerializer with nulls
      * @return keySerializers which does not contain any nulls
      */
-    protected <K> BTreeKeySerializer<K> fillNulls(BTreeKeySerializer<K> keySerializer) {
+    protected BTreeKeySerializer fillNulls(BTreeKeySerializer keySerializer) {
         if(keySerializer==null)
             return null;
         if(keySerializer instanceof BTreeKeySerializer.Tuple2KeySerializer){
@@ -884,68 +884,26 @@ public class DB implements Closeable {
                     (BTreeKeySerializer.Tuple2KeySerializer<?,?>) keySerializer;
             return new BTreeKeySerializer.Tuple2KeySerializer(
                     s.aComparator!=null?s.aComparator:Fun.COMPARATOR,
+                    s.bComparator!=null?s.bComparator:Fun.COMPARATOR,
                     s.aSerializer!=null?s.aSerializer:getDefaultSerializer(),
                     s.bSerializer!=null?s.bSerializer:getDefaultSerializer()
             );
         }
-        if(keySerializer instanceof BTreeKeySerializer.Tuple3KeySerializer){
-            BTreeKeySerializer.Tuple3KeySerializer<?,?,?> s =
-                    (BTreeKeySerializer.Tuple3KeySerializer<?,?,?>) keySerializer;
-            return new BTreeKeySerializer.Tuple3KeySerializer(
-                    s.aComparator!=null?s.aComparator:Fun.COMPARATOR,
-                    s.bComparator!=null?s.bComparator:Fun.COMPARATOR,
-                    s.aSerializer!=null?s.aSerializer:getDefaultSerializer(),
-                    s.bSerializer!=null?s.bSerializer:getDefaultSerializer(),
-                    s.cSerializer!=null?s.cSerializer:getDefaultSerializer()
-            );
-        }
-        if(keySerializer instanceof BTreeKeySerializer.Tuple4KeySerializer){
-            BTreeKeySerializer.Tuple4KeySerializer<?,?,?,?> s =
-                    (BTreeKeySerializer.Tuple4KeySerializer<?,?,?,?>) keySerializer;
-            return new BTreeKeySerializer.Tuple4KeySerializer(
-                    s.aComparator!=null?s.aComparator:Fun.COMPARATOR,
-                    s.bComparator!=null?s.bComparator:Fun.COMPARATOR,
-                    s.cComparator!=null?s.cComparator:Fun.COMPARATOR,
-                    s.aSerializer!=null?s.aSerializer:getDefaultSerializer(),
-                    s.bSerializer!=null?s.bSerializer:getDefaultSerializer(),
-                    s.cSerializer!=null?s.cSerializer:getDefaultSerializer(),
-                    s.dSerializer!=null?s.dSerializer:getDefaultSerializer()
-            );
+
+        if(keySerializer instanceof BTreeKeySerializer.TupleKeySerializer) {
+            BTreeKeySerializer.TupleKeySerializer k = (BTreeKeySerializer.TupleKeySerializer) keySerializer;
+
+            Serializer[] serializers = new Serializer[k.tsize];
+            Comparator[] comparators = new Comparator[k.tsize];
+
+            for (int i = 0; i < k.tsize; i++) {
+                serializers[i] = k.serializers[i] != null && k.serializers[i]!=Serializer.BASIC ? k.serializers[i] : getDefaultSerializer();
+                comparators[i] = k.comparators[i] != null ? k.comparators[i] : Fun.COMPARATOR;
+            }
+
+            return new BTreeKeySerializer.TupleKeySerializer(k.tsize, comparators, serializers);
         }
 
-        if(keySerializer instanceof BTreeKeySerializer.Tuple5KeySerializer){
-            BTreeKeySerializer.Tuple5KeySerializer<?,?,?,?,?> s =
-                    (BTreeKeySerializer.Tuple5KeySerializer<?,?,?,?,?>) keySerializer;
-            return new BTreeKeySerializer.Tuple5KeySerializer(
-                    s.aComparator!=null?s.aComparator:Fun.COMPARATOR,
-                    s.bComparator!=null?s.bComparator:Fun.COMPARATOR,
-                    s.cComparator!=null?s.cComparator:Fun.COMPARATOR,
-                    s.dComparator!=null?s.dComparator:Fun.COMPARATOR,
-                    s.aSerializer!=null?s.aSerializer:getDefaultSerializer(),
-                    s.bSerializer!=null?s.bSerializer:getDefaultSerializer(),
-                    s.cSerializer!=null?s.cSerializer:getDefaultSerializer(),
-                    s.dSerializer!=null?s.dSerializer:getDefaultSerializer(),
-                    s.eSerializer!=null?s.eSerializer:getDefaultSerializer()
-            );
-        }
-
-        if(keySerializer instanceof BTreeKeySerializer.Tuple6KeySerializer){
-            BTreeKeySerializer.Tuple6KeySerializer<?,?,?,?,?,?> s =
-                    (BTreeKeySerializer.Tuple6KeySerializer<?,?,?,?,?,?>) keySerializer;
-            return new BTreeKeySerializer.Tuple6KeySerializer(
-                    s.aComparator!=null?s.aComparator:Fun.COMPARATOR,
-                    s.bComparator!=null?s.bComparator:Fun.COMPARATOR,
-                    s.cComparator!=null?s.cComparator:Fun.COMPARATOR,
-                    s.dComparator!=null?s.dComparator:Fun.COMPARATOR,
-                    s.eComparator!=null?s.eComparator:Fun.COMPARATOR,
-                    s.aSerializer!=null?s.aSerializer:getDefaultSerializer(),
-                    s.bSerializer!=null?s.bSerializer:getDefaultSerializer(),
-                    s.cSerializer!=null?s.cSerializer:getDefaultSerializer(),
-                    s.dSerializer!=null?s.dSerializer:getDefaultSerializer(),
-                    s.eSerializer!=null?s.eSerializer:getDefaultSerializer(),
-                    s.fSerializer!=null?s.fSerializer:getDefaultSerializer()
-            );
-        }
 
         return keySerializer;
     }
@@ -1043,7 +1001,7 @@ public class DB implements Closeable {
                     m.nodeSize,
                     false,
                     counterRecid,
-                    (BTreeKeySerializer<Object>)m.serializer,
+                    m.serializer,
                     null,
                     m.comparator);
         }
@@ -1054,7 +1012,7 @@ public class DB implements Closeable {
                 catPut(m.name+".maxNodeSize",m.nodeSize),
                 false,
                 catPut(m.name+".counterRecid",counterRecid),
-                (BTreeKeySerializer<K>)m.serializer,
+                m.serializer,
                 null,
                 catPut(m.name+".numberOfNodeMetas",0),
                 false

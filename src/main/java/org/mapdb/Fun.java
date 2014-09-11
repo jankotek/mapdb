@@ -115,6 +115,27 @@ public final class Fun {
         return a==b || (a!=null && a.equals(b));
     }
 
+    /** Convert object to string, even if it is primitive array */
+    static String toString(Object keys) {
+        if(keys instanceof long[])
+            return Arrays.toString((long[]) keys);
+        else if(keys instanceof int[])
+            return Arrays.toString((int[]) keys);
+        else if(keys instanceof byte[])
+            return Arrays.toString((byte[]) keys);
+        else if(keys instanceof char[])
+            return Arrays.toString((char[]) keys);
+        else if(keys instanceof float[])
+            return Arrays.toString((float[]) keys);
+        else if(keys instanceof double[])
+            return Arrays.toString((double[]) keys);
+        else  if(keys instanceof boolean[])
+            return Arrays.toString((boolean[]) keys);
+        else  if(keys instanceof Object[])
+            return Arrays.toString((Object[]) keys);
+        else
+            return keys.toString();
+    }
 
     public interface Tuple {
 		
@@ -896,7 +917,7 @@ public final class Fun {
                     return 1;
                 return -1;
             }
-            return intCompare(o1.length, o2.length);
+            return compareInt(o1.length, o2.length);
         }
     };
 
@@ -913,7 +934,7 @@ public final class Fun {
                     return 1;
                 return -1;
             }
-            return intCompare(o1.length, o2.length);
+            return compareInt(o1.length, o2.length);
         }
     };
 
@@ -929,7 +950,7 @@ public final class Fun {
                     return 1;
                 return -1;
             }
-            return intCompare(o1.length, o2.length);
+            return compareInt(o1.length, o2.length);
         }
     };
 
@@ -945,7 +966,7 @@ public final class Fun {
                     return 1;
                 return -1;
             }
-            return intCompare(o1.length, o2.length);
+            return compareInt(o1.length, o2.length);
         }
     };
 
@@ -961,7 +982,7 @@ public final class Fun {
                     return 1;
                 return -1;
             }
-            return intCompare(o1.length, o2.length);
+            return compareInt(o1.length, o2.length);
         }
     };
 
@@ -977,7 +998,7 @@ public final class Fun {
                 if(r!=0)
                     return r;
             }
-            return intCompare(o1.length, o2.length);
+            return compareInt(o1.length, o2.length);
         }
     };
 
@@ -1009,7 +1030,7 @@ public final class Fun {
                 if(r!=0)
                     return r;
             }
-            return intCompare(o1.length, o2.length);
+            return compareInt(o1.length, o2.length);
         }
 
         @Override
@@ -1027,10 +1048,14 @@ public final class Fun {
         }
     }
 
-    private static int intCompare(int x, int y) {
+
+    public static int compareInt(int x, int y) {
         return (x < y) ? -1 : ((x == y) ? 0 : 1);
     }
 
+    public static int compareLong(long x, long y) {
+        return (x < y) ? -1 : ((x == y) ? 0 : 1);
+    }
 
     /**
      * Find all Primary Keys associated with Secondary Key.

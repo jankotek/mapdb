@@ -69,10 +69,10 @@ public class BTreeMapTest{
         }
 
         BTreeMap.BNode n1 = new BTreeMap.DirNode(new Integer[]{1,2,3,4,5,6,7,8},false,false,false,child);
-        assertEquals(8, n1.findChildren(BTreeKeySerializer.BASIC, 11));
-        assertEquals(0,n1.findChildren(BTreeKeySerializer.BASIC, 1));
-        assertEquals(0,n1.findChildren(BTreeKeySerializer.BASIC, 0));
-        assertEquals(7,n1.findChildren(BTreeKeySerializer.BASIC, 8));
+        assertEquals(8, BTreeKeySerializer.BASIC.findChildren(n1, 11));
+        assertEquals(0,BTreeKeySerializer.BASIC.findChildren(n1, 1));
+        assertEquals(0,BTreeKeySerializer.BASIC.findChildren(n1, 0));
+        assertEquals(7,BTreeKeySerializer.BASIC.findChildren(n1, 8));
 
         child = new long[5];
         for(int i=0;i<child.length;i++){
@@ -80,10 +80,10 @@ public class BTreeMapTest{
         }
 
         BTreeMap.BNode n2 = new BTreeMap.DirNode(new Integer[]{10,20,30,40,50},false,false,false,child);
-        assertEquals(4,n2.findChildren(BTreeKeySerializer.BASIC, 49));
-        assertEquals(4,n2.findChildren(BTreeKeySerializer.BASIC, 50));
-        assertEquals(3,n2.findChildren(BTreeKeySerializer.BASIC, 40));
-        assertEquals(3,n2.findChildren(BTreeKeySerializer.BASIC, 39));
+        assertEquals(4,BTreeKeySerializer.BASIC.findChildren(n2, 49));
+        assertEquals(4,BTreeKeySerializer.BASIC.findChildren(n2, 50));
+        assertEquals(3,BTreeKeySerializer.BASIC.findChildren(n2, 40));
+        assertEquals(3,BTreeKeySerializer.BASIC.findChildren(n2, 39));
     }
 
 
@@ -104,7 +104,7 @@ public class BTreeMapTest{
                 BTreeMap.BNode n = new BTreeMap.DirNode(keys.toArray(), left,right,false,child);
 
                 for(int i=-10;i<110;i++){
-                    int pos = n.findChildren(BTreeKeySerializer.BASIC,i);
+                    int pos = BTreeKeySerializer.BASIC.findChildren(n,i);
                     int expected = (i+(left?19:9))/10;
                     expected = Math.max(left?1:0,expected);
                     expected = Math.min(left?11:10,expected);
@@ -195,9 +195,9 @@ public class BTreeMapTest{
     }
 
     Object[] nodeKeysToArray(BTreeMap.BNode n){
-        Object[] ret = new Object[n.keysLen()];
+        Object[] ret = new Object[n.keysLen(BTreeKeySerializer.BASIC)];
         for(int i=0;i<ret.length;i++){
-            ret[i] = n.key(i);
+            ret[i] = n.key(BTreeKeySerializer.BASIC,i);
         }
         return ret;
     }

@@ -325,7 +325,7 @@ public final class Pump {
                                              int nodeSize,
                                              boolean valuesStoredOutsideNodes,
                                              long counterRecid,
-                                             BTreeKeySerializer<K> keySerializer,
+                                             BTreeKeySerializer keySerializer,
                                              Serializer<V> valueSerializer,
                                              Comparator comparator)
         {
@@ -402,7 +402,7 @@ public final class Pump {
             if(leftEdge)
                 keys.remove(0);
             BTreeMap.LeafNode node = new BTreeMap.LeafNode(
-                    keys.toArray(),
+                    keySerializer.arrayToKeys(keys.toArray()),
                     leftEdge,rightEdge, false,
                     values.toArray() , nextNode);
             nextNode = engine.put(node,nodeSerializer);
@@ -415,7 +415,7 @@ public final class Pump {
             values.clear();
             values.add(nextVal);
 
-            dirKeys.get(0).add(node.key(0));
+            dirKeys.get(0).add(node.key(keySerializer,0));
             dirRecids.get(0).add(nextNode);
 
             //check node sizes and split them if needed
@@ -434,7 +434,7 @@ public final class Pump {
                     dirKeys.get(i).remove(0);
                 }
                 BTreeMap.DirNode dir = new BTreeMap.DirNode(
-                        dirKeys.get(i).toArray(),
+                        keySerializer.arrayToKeys(dirKeys.get(i).toArray()),
                         leftEdge2,rightEdge2, false,
                         toLongArray(dirRecids.get(i)));
                 long dirRecid = engine.put(dir,nodeSerializer);
@@ -477,7 +477,7 @@ public final class Pump {
                 keys2.remove(0);
             }
             BTreeMap.DirNode dir = new BTreeMap.DirNode(
-                    keys2.toArray(),
+                    keySerializer.arrayToKeys(keys2.toArray()),
                     leftEdge3,rightEdge3, false,
                     toLongArray(dirRecids.get(i)));
             long dirRecid = engine.put(dir,nodeSerializer);
@@ -506,7 +506,7 @@ public final class Pump {
             dirKeys.get(len).remove(0);
         }
         BTreeMap.DirNode dir = new BTreeMap.DirNode(
-                dirKeys.get(len).toArray(),
+                keySerializer.arrayToKeys(dirKeys.get(len).toArray()),
                 leftEdge4,rightEdge4, false,
                 toLongArray(dirRecids.get(len)));
         long rootRecid = engine.put(dir, nodeSerializer);

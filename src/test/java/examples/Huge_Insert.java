@@ -74,7 +74,7 @@ public class Huge_Insert {
          * Keys are sorted, so only difference between consequential keys is stored.
          * This method is called delta-packing and typically saves 60% of disk space.
          */
-        BTreeKeySerializer<String> keySerializer = BTreeKeySerializer.STRING;
+        BTreeKeySerializer keySerializer = BTreeKeySerializer.STRING;
 
 
         /**
