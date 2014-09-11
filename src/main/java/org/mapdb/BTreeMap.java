@@ -580,6 +580,16 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
             return new LeafNode(keys2, isLeftEdge(), isRightEdge(), false, vals2, next);
         }
+
+        public LeafNode copyClear() {
+            Object[] keys2 = new Object[2-leftEdgeInc()-rightEdgeInc()];
+            if(!isLeftEdge())
+                keys2[0] = key(0);
+            if(!isRightEdge())
+                keys2[1-leftEdgeInc()] = highKey();
+
+            return new LeafNode (keys2, isLeftEdge(), isRightEdge(), false, new Object[]{}, next);
+        }
     }
 
 
@@ -1214,11 +1224,53 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
     @Override
     public void clear() {
-        Iterator iter = keyIterator();
-        while(iter.hasNext()){
-            iter.next();
-            iter.remove();
+        boolean hasListeners = modListeners.length>0;
+        long current = engine.get(rootRecidRef, Serializer.LONG);
+
+        BNode A = engine.get(current, nodeSerializer);
+        while(!A.isLeaf()){
+            current = A.child()[0];
+            A = engine.get(current, nodeSerializer);
         }
+
+        long old =0;
+        try{for(;;) {
+
+            //lock nodes
+            lock(nodeLocks, current);
+            if (old != 0)
+                unlock(nodeLocks, old);
+
+            //notify about deletion
+            int size = A.keysLen()-1;
+            if(hasListeners) {
+                for (int i = 1; i < size; i++) {
+                    notify((K) A.key(i), (V) A.vals()[i - 1], null);
+                }
+            }
+
+            //remove all node content
+            A = ((LeafNode) A).copyClear();
+            engine.update(current, A, nodeSerializer);
+
+            //move to next link
+            old = current;
+            current = A.next();
+            if (current == 0) {
+                //end reached
+                unlock(nodeLocks, old);
+                return;
+            }
+            A = engine.get(current, nodeSerializer);
+        }
+        }catch(RuntimeException e){
+            unlockAll(nodeLocks);
+            throw e;
+        }catch(Exception e){
+            unlockAll(nodeLocks);
+            throw new RuntimeException(e);
+        }
+
     }
 
 
