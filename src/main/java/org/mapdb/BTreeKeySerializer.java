@@ -75,11 +75,11 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
      * Find the first children node with a key equal or greater than the given key.
      * If all items are smaller it returns `keyser.length(keys)`
      */
-    public final int findChildren(final BTreeMap.BNode node, final Object key) {
+    public int findChildren(final BTreeMap.BNode node, final Object key) {
         KEYS keys = (KEYS) node.keys;
         int keylen = length(keys);
         int left = 0;
-        int right = length(keys);
+        int right = keylen;
 
         int middle;
 
@@ -99,7 +99,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         }
     }
 
-    public final int findChildren2(final BTreeMap.BNode node, final Object key) {
+    public int findChildren2(final BTreeMap.BNode node, final Object key) {
         KEYS keys = (KEYS) node.keys;
         int keylen = length(keys);
 
@@ -331,6 +331,66 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             System.arraycopy(keys, pos+1, keys2, pos, keys2.length-pos);
             return keys2;
         }
+
+        @Override
+        public final int findChildren(final BTreeMap.BNode node, final Object key) {
+            long[] keys = (long[]) node.keys;
+            long key2 = (Long)key;
+
+            int left = 0;
+            int right = keys.length;
+
+            int middle;
+
+            // binary search
+            for(;;) {
+                middle = (left + right) / 2;
+                if(middle==keys.length)
+                    return middle+node.leftEdgeInc(); //null is positive infinitive
+                if (keys[middle]<key2) {
+                    left = middle + 1;
+                } else {
+                    right = middle;
+                }
+                if (left >= right) {
+                    return  right+node.leftEdgeInc();
+                }
+            }
+        }
+
+        @Override
+        public final int findChildren2(final BTreeMap.BNode node, final Object key) {
+            long[] keys = (long[]) node.keys;
+            long key2 = (Long)key;
+
+            int left = 0;
+            int right = keys.length;
+            int middle;
+
+            // binary search
+            while (true) {
+                middle = (left + right) / 2;
+                if(middle==keys.length)
+                    return -1-(middle+node.leftEdgeInc()); //null is positive infinitive
+
+                if(keys[middle]==key2){
+                    //try one before last, in some cases it might be duplicate of last
+                    if(!node.isRightEdge() && middle==keys.length-1 && middle>0
+                            && keys[middle-1]==key2){
+                        middle--;
+                    }
+                    return middle+node.leftEdgeInc();
+                } else if ( keys[middle]<key2) {
+                    left = middle +1;
+                } else {
+                    right = middle;
+                }
+                if (left >= right) {
+                    return  -1-(right+node.leftEdgeInc());
+                }
+            }
+        }
+
     };
 
     /**
@@ -434,6 +494,63 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             return keys2;
         }
 
+        @Override
+        public final int findChildren(final BTreeMap.BNode node, final Object key) {
+            int[] keys = (int[]) node.keys;
+            int key2 = (Integer)key;
+            int left = 0;
+            int right = keys.length;
+
+            int middle;
+
+            // binary search
+            for(;;) {
+                middle = (left + right) / 2;
+                if(middle==keys.length)
+                    return middle+node.leftEdgeInc(); //null is positive infinitive
+                if (keys[middle]<key2) {
+                    left = middle + 1;
+                } else {
+                    right = middle;
+                }
+                if (left >= right) {
+                    return  right+node.leftEdgeInc();
+                }
+            }
+        }
+
+        @Override
+        public final int findChildren2(final BTreeMap.BNode node, final Object key) {
+            int[] keys = (int[]) node.keys;
+            int key2 = (Integer)key;
+
+            int left = 0;
+            int right = keys.length;
+            int middle;
+
+            // binary search
+            while (true) {
+                middle = (left + right) / 2;
+                if(middle==keys.length)
+                    return -1-(middle+node.leftEdgeInc()); //null is positive infinitive
+
+                if(keys[middle]==key2){
+                    //try one before last, in some cases it might be duplicate of last
+                    if(!node.isRightEdge() && middle==keys.length-1 && middle>0
+                            && keys[middle-1]==key2){
+                        middle--;
+                    }
+                    return middle+node.leftEdgeInc();
+                } else if ( keys[middle]<key2) {
+                    left = middle +1;
+                } else {
+                    right = middle;
+                }
+                if (left >= right) {
+                    return  -1-(right+node.leftEdgeInc());
+                }
+            }
+        }
     };
 
     /**
