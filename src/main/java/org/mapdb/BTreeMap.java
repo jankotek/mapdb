@@ -1232,7 +1232,9 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             int size = A.keysLen()-1;
             if(hasListeners) {
                 for (int i = 1; i < size; i++) {
-                    notify((K) A.key(i), (V) A.vals()[i - 1], null);
+                    Object val = (V) A.vals()[i - 1];
+                    val = valExpand(val);
+                    notify((K) A.key(i),(V) val, null);
                 }
             }
 
