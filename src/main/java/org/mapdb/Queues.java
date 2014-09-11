@@ -59,14 +59,14 @@ public final class Queues {
             @Override
             public void serialize(DataOutput out, Node<E> value) throws IOException {
                 if(value==Node.EMPTY) return;
-                DataOutput2.packLong(out,value.next);
+                DataIO.packLong(out,value.next);
                 serializer.serialize(out, value.value);
             }
 
             @Override
             public Node<E> deserialize(DataInput in, int available) throws IOException {
                 if(available==0)return (Node<E>) Node.EMPTY;
-                return new Node<E>(DataInput2.unpackLong(in), serializer.deserialize(in,-1));
+                return new Node<E>(DataIO.unpackLong(in), serializer.deserialize(in,-1));
             }
 
             @Override

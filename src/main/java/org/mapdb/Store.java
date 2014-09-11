@@ -167,19 +167,19 @@ public abstract class Store implements Engine{
 
 
 
-    protected final Queue<DataOutput2> recycledDataOuts = new ArrayBlockingQueue<DataOutput2>(128);
+    protected final Queue<DataIO.DataOutputByteArray> recycledDataOuts = new ArrayBlockingQueue<DataIO.DataOutputByteArray>(128);
 
 
-    protected <A> DataOutput2 serialize(A value, Serializer<A> serializer){
+    protected <A> DataIO.DataOutputByteArray serialize(A value, Serializer<A> serializer){
         try {
-            DataOutput2 out = newDataOut2();
+            DataIO.DataOutputByteArray out = newDataOut2();
 
             serializer.serialize(out,value);
 
             if(out.pos>0){
 
                 if(compress){
-                    DataOutput2 tmp = newDataOut2();
+                    DataIO.DataOutputByteArray tmp = newDataOut2();
                     tmp.ensureAvail(out.pos+40);
                     final CompressLZF lzf = LZF.get();
                     int newLen;
@@ -201,7 +201,7 @@ public abstract class Store implements Engine{
                         //compression had effect, so write decompressed size and compressed array
                         final int decompSize = out.pos;
                         out.pos=0;
-                        DataOutput2.packInt(out,decompSize);
+                        DataIO.packInt(out,decompSize);
                         out.write(tmp.buf,0,newLen);
                         recycledDataOuts.offer(tmp);
                     }
@@ -234,7 +234,7 @@ public abstract class Store implements Engine{
                     DataInput inp = new DataIO.DataInputByteArray(Arrays.copyOf(out.buf,out.pos));
                     byte[] decompress = deserialize(Serializer.BYTE_ARRAY_NOSIZE,out.pos,inp);
 
-                    DataOutput2 expected = newDataOut2();
+                    DataIO.DataOutputByteArray expected = newDataOut2();
                     serializer.serialize(expected,value);
 
                     byte[] expected2 = Arrays.copyOf(expected.buf, expected.pos);
@@ -253,9 +253,9 @@ public abstract class Store implements Engine{
 
     }
 
-    protected DataOutput2 newDataOut2() {
-        DataOutput2 tmp = recycledDataOuts.poll();
-        if(tmp==null) tmp = new DataOutput2();
+    protected DataIO.DataOutputByteArray newDataOut2() {
+        DataIO.DataOutputByteArray tmp = recycledDataOuts.poll();
+        if(tmp==null) tmp = new DataIO.DataOutputByteArray();
         else tmp.pos=0;
         return tmp;
     }
@@ -269,7 +269,7 @@ public abstract class Store implements Engine{
                 size -= 4;
 
                 //read data into tmp buffer
-                DataOutput2 tmp = newDataOut2();
+                DataIO.DataOutputByteArray tmp = newDataOut2();
                 tmp.ensureAvail(size);
                 int oldPos = di.getPos();
                 di.readFully(tmp.buf, 0, size);
@@ -285,7 +285,7 @@ public abstract class Store implements Engine{
             }
 
             if(encrypt){
-                DataOutput2 tmp = newDataOut2();
+                DataIO.DataOutputByteArray tmp = newDataOut2();
                 size-=1;
                 tmp.ensureAvail(size);
                 di.readFully(tmp.buf, 0, size);
@@ -297,12 +297,12 @@ public abstract class Store implements Engine{
 
             if(compress) {
                 //final int origPos = di.pos;
-                int decompSize = DataInput2.unpackInt(di);
+                int decompSize = DataIO.unpackInt(di);
                 if(decompSize==0){
                     size-=1;
                     //rest of `di` is uncompressed data
                 }else{
-                    DataOutput2 out = newDataOut2();
+                    DataIO.DataOutputByteArray out = newDataOut2();
                     out.ensureAvail(decompSize);
                     CompressLZF lzf = LZF.get();
                     //TODO copy to heap if Volume is not mapped

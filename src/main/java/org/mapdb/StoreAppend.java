@@ -337,7 +337,7 @@ public class StoreAppend extends Store{
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
         assert(value!=null);
-        DataOutput2 out = serialize(value,serializer);
+        DataIO.DataOutputByteArray out = serialize(value,serializer);
 
         final Lock lock;
         if(disableLocks) {
@@ -429,7 +429,7 @@ public class StoreAppend extends Store{
     public <A> void update(long recid, A value, Serializer<A> serializer) {
         assert(value!=null);
         assert(recid>0);
-        DataOutput2 out = serialize(value,serializer);
+        DataIO.DataOutputByteArray out = serialize(value,serializer);
 
         final Lock lock;
         if(disableLocks) {
@@ -448,7 +448,7 @@ public class StoreAppend extends Store{
         recycledDataOuts.offer(out);
     }
 
-    protected void updateNoLock(long recid, DataOutput2 out) {
+    protected void updateNoLock(long recid, DataIO.DataOutputByteArray out) {
         final long indexVal, oldPos;
 
         if(!disableLocks) {
@@ -482,7 +482,7 @@ public class StoreAppend extends Store{
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
         assert(expectedOldValue!=null && newValue!=null);
         assert(recid>0);
-        DataOutput2 out = serialize(newValue,serializer);
+        DataIO.DataOutputByteArray out = serialize(newValue,serializer);
         final Lock lock;
         if(disableLocks) {
             lock = null;

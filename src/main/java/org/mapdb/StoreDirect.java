@@ -383,7 +383,7 @@ public class StoreDirect extends Store{
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
         assert(value!=null);
-        DataOutput2 out = serialize(value, serializer);
+        DataIO.DataOutputByteArray out = serialize(value, serializer);
         final long ioRecid;
         if(!disableLocks) {
             newRecidLock.readLock().lock();
@@ -431,7 +431,7 @@ public class StoreDirect extends Store{
         return recid;
     }
 
-    protected void put2(DataOutput2 out, long ioRecid, long[] indexVals) {
+    protected void put2(DataIO.DataOutputByteArray out, long ioRecid, long[] indexVals) {
         assert(disableLocks || locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
         index.putLong(ioRecid, indexVals[0]|MASK_ARCHIVE);
         //write stuff
@@ -538,7 +538,7 @@ public class StoreDirect extends Store{
     public <A> void update(long recid, A value, Serializer<A> serializer) {
         assert(value!=null);
         assert(recid>0);
-        DataOutput2 out = serialize(value, serializer);
+        DataIO.DataOutputByteArray out = serialize(value, serializer);
 
         final long ioRecid = IO_USER_START + recid*8;
 
@@ -562,7 +562,7 @@ public class StoreDirect extends Store{
         recycledDataOuts.offer(out);
     }
 
-    protected void update2(DataOutput2 out, long ioRecid) {
+    protected void update2(DataIO.DataOutputByteArray out, long ioRecid) {
         final long indexVal = index.getLong(ioRecid);
         final int size = (int) (indexVal>>>48);
         final boolean linked = (indexVal&MASK_LINKED)!=0;
@@ -624,7 +624,7 @@ public class StoreDirect extends Store{
             lock.lock();
         }
 
-        DataOutput2 out;
+        DataIO.DataOutputByteArray out;
         try{
             /*
              * deserialize old value
@@ -913,7 +913,7 @@ public class StoreDirect extends Store{
                 if(bb==null||bb.length==0){
                     store2.index.putLong(ioRecid,0);
                 }else{
-                    DataOutput2 out = serialize(bb,Serializer.BYTE_ARRAY_NOSIZE);
+                    DataIO.DataOutputByteArray out = serialize(bb,Serializer.BYTE_ARRAY_NOSIZE);
                     long[] indexVals = store2.physAllocate(out.pos,true,false);
                     store2.put2(out, ioRecid,indexVals);
                 }

@@ -257,7 +257,7 @@ public class EngineWrapper implements Engine{
 
             private int checksum(){
                 try {
-                    DataOutput2 out = new DataOutput2();
+                    DataIO.DataOutputByteArray out = new DataIO.DataOutputByteArray();
                     serializer.serialize(out, item);
                     byte[] bb = out.copyBytes();
                     return Arrays.hashCode(bb);

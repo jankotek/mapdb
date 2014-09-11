@@ -27,13 +27,13 @@ public class SerializerPojoTest extends TestCase {
         DESCENDING
     }
     private byte[] serialize(Object i) throws IOException {
-        DataOutput2 in = new DataOutput2();
+        DataIO.DataOutputByteArray in = new DataIO.DataOutputByteArray();
         p.serialize(in, i);
         return in.copyBytes();
     }
 
     private Object deserialize(byte[] buf) throws IOException {
-        return p.deserialize(new DataInput2(ByteBuffer.wrap(buf),0),-1);
+        return p.deserialize(new DataIO.DataInputByteBuffer(ByteBuffer.wrap(buf),0),-1);
     }
 
 

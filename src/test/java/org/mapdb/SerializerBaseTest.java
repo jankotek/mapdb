@@ -51,7 +51,7 @@ public class SerializerBaseTest{
     }
 
     void serSize(int expected, Object val) throws IOException {
-        DataOutput2 out = new DataOutput2();
+        DataIO.DataOutputByteArray out = new DataIO.DataOutputByteArray();
         Serializer.BASIC.serialize(out,val);
         assertEquals(expected, out.pos);
     }
@@ -483,9 +483,9 @@ public class SerializerBaseTest{
     /** clone value using serialization */
     public static <E> E clone2(E value, Serializer<E> serializer) {
         try{
-            DataOutput2 out = new DataOutput2();
+            DataIO.DataOutputByteArray out = new DataIO.DataOutputByteArray();
             serializer.serialize(out, value);
-            DataInput2 in = new DataInput2(ByteBuffer.wrap(out.copyBytes()), 0);
+            DataIO.DataInputByteBuffer in = new DataIO.DataInputByteBuffer(ByteBuffer.wrap(out.copyBytes()), 0);
 
             return serializer.deserialize(in,out.pos);
         }catch(IOException ee){

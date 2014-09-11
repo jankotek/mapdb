@@ -40,14 +40,14 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
         @Override
 		public void serialize(DataOutput out, CopyOnWriteArrayList<ClassInfo> obj) throws IOException {
-            DataOutput2.packInt(out, obj.size());
+            DataIO.packInt(out, obj.size());
             for (ClassInfo ci : obj) {
                 out.writeUTF(ci.name);
                 out.writeBoolean(ci.isEnum);
                 out.writeBoolean(ci.useObjectStream);
                 if(ci.useObjectStream) continue; //no fields
 
-                DataOutput2.packInt(out, ci.fields.size());
+                DataIO.packInt(out, ci.fields.size());
                 for (FieldInfo fi : ci.fields) {
                     out.writeUTF(fi.name);
                     out.writeBoolean(fi.primitive);
@@ -60,7 +60,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 		public CopyOnWriteArrayList<ClassInfo> deserialize(DataInput in, int available) throws IOException{
             if(available==0) return new CopyOnWriteArrayList<ClassInfo>();
 
-            int size = DataInput2.unpackInt(in);
+            int size = DataIO.unpackInt(in);
             ArrayList<ClassInfo> ret = new ArrayList<ClassInfo>(size);
 
             for (int i = 0; i < size; i++) {
@@ -68,7 +68,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
                 boolean isEnum = in.readBoolean();
                 boolean isExternalizable = in.readBoolean();
 
-                int fieldsNum = isExternalizable? 0 : DataInput2.unpackInt(in);
+                int fieldsNum = isExternalizable? 0 : DataIO.unpackInt(in);
                 FieldInfo[] fields = new FieldInfo[fieldsNum];
                 for (int j = 0; j < fieldsNum; j++) {
                     fields[j] = new FieldInfo(in.readUTF(), in.readBoolean(), in.readUTF(), classForName(className));
@@ -393,7 +393,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
             //write class header
             int classId = getClassId(clazz);
-            DataOutput2.packInt(out, classId);
+            DataIO.packInt(out, classId);
             ClassInfo classInfo = registered.get(classId);
 
             if(classInfo.useObjectStream){
@@ -405,11 +405,11 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
             if(classInfo.isEnum) {
                 int ordinal = ((Enum<?>)obj).ordinal();
-                DataOutput2.packInt(out, ordinal);
+                DataIO.packInt(out, ordinal);
             }
 
             ObjectStreamField[] fields = getFields(clazz);
-            DataOutput2.packInt(out, fields.length);
+            DataIO.packInt(out, fields.length);
 
             for (ObjectStreamField f : fields) {
                 //write field ID
@@ -420,7 +420,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
                     fieldId = classInfo.addFieldInfo(new FieldInfo(f, clazz));
                     saveClassInfo();
                 }
-                DataOutput2.packInt(out, fieldId);
+                DataIO.packInt(out, fieldId);
                 //and write value
                 Object fieldValue = getFieldValue(classInfo.fields.get(fieldId), obj);
                 serialize(out, fieldValue, objectStack);
@@ -446,7 +446,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         lock.readLock().lock();
         //read class header
         try {
-            int classId = DataInput2.unpackInt(in);
+            int classId = DataIO.unpackInt(in);
             ClassInfo classInfo = registered.get(classId);
 
             Class<?> clazz = classId2class.get(classId);
@@ -460,7 +460,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
                 ObjectInputStream2 in2 = new ObjectInputStream2(in);
                 o = in2.readObject();
             }else if(classInfo.isEnum) {
-                int ordinal = DataInput2.unpackInt(in);
+                int ordinal = DataIO.unpackInt(in);
                 o = clazz.getEnumConstants()[ordinal];
             }
             else{
@@ -470,9 +470,9 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             objectStack.add(o);
 
             if(!classInfo.useObjectStream){
-                int fieldCount = DataInput2.unpackInt(in);
+                int fieldCount = DataIO.unpackInt(in);
                 for (int i = 0; i < fieldCount; i++) {
-                    int fieldId = DataInput2.unpackInt(in);
+                    int fieldId = DataIO.unpackInt(in);
                     FieldInfo f = classInfo.fields.get(fieldId);
                     Object fieldValue = deserialize(in, objectStack);
                     setFieldValue(f, o, fieldValue);
@@ -600,7 +600,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
                 registerClass(desc.forClass());
                 classId = class2classId.get(desc.forClass());
             }
-            DataOutput2.packInt(this,classId);
+            DataIO.packInt(this,classId);
         }
     }
 
@@ -612,7 +612,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
         @Override
         protected ObjectStreamClass readClassDescriptor() throws IOException, ClassNotFoundException {
-            Integer classId = DataInput2.unpackInt(this);
+            Integer classId = DataIO.unpackInt(this);
             Class clazz = classId2class.get(classId);
             return ObjectStreamClass.lookup(clazz);
         }

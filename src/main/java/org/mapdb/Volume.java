@@ -387,8 +387,8 @@ public abstract class Volume implements Closeable{
 
 
         @Override
-        public final DataInput2 getDataInput(long offset, int size) {
-            return new DataInput2(slices[(int)(offset >>> sliceShift)], (int) (offset& sliceSizeModMask));
+        public final DataIO.DataInputByteBuffer getDataInput(long offset, int size) {
+            return new DataIO.DataInputByteBuffer(slices[(int)(offset >>> sliceShift)], (int) (offset& sliceSizeModMask));
         }
 
         @Override
@@ -912,11 +912,11 @@ public abstract class Volume implements Closeable{
         }
 
         @Override
-        public DataInput2 getDataInput(long offset, int size) {
+        public DataIO.DataInputByteBuffer getDataInput(long offset, int size) {
             try{
                 ByteBuffer buf = ByteBuffer.allocate(size);
                 readFully(offset,buf);
-                return new DataInput2(buf,0);
+                return new DataIO.DataInputByteBuffer(buf,0);
             }catch(IOException e){
                 throw new IOError(e);
             }

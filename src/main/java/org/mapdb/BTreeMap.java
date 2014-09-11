@@ -196,12 +196,12 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
         @Override
         public void serialize(DataOutput out, ValRef value) throws IOException {
-            DataOutput2.packLong(out,value.recid);
+            DataIO.packLong(out,value.recid);
         }
 
         @Override
         public ValRef deserialize(DataInput in, int available) throws IOException {
-            return new ValRef(DataInput2.unpackLong(in));
+            return new ValRef(DataIO.unpackLong(in));
         }
 
         @Override
@@ -580,15 +580,15 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
             //write node metas, right now this is ignored, but in future it could be used for counted btrees or aggregations
             for(int i=0;i<numberOfNodeMetas;i++){
-                DataOutput2.packLong(out,0);
+                DataIO.packLong(out,0);
             }
 
             //longs go first, so it is possible to reconstruct tree without serializer
             if(isLeaf){
-                DataOutput2.packLong(out, ((LeafNode) value).next);
+                DataIO.packLong(out, ((LeafNode) value).next);
             }else{
                 for(long child : ((DirNode)value).child)
-                    DataOutput2.packLong(out, child);
+                    DataIO.packLong(out, child);
             }
 
 
@@ -622,7 +622,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
             //read node metas, right now this is ignored, but in future it could be used for counted btrees or aggregations
             for(int i=0;i<numberOfNodeMetas;i++){
-                DataInput2.unpackLong(in);
+                DataIO.unpackLong(in);
             }
 
             //first bite indicates leaf
@@ -645,7 +645,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         private BNode deserializeDir(final DataInput in, final int size, final int left, final int right) throws IOException {
             final long[] child = new long[size];
             for(int i=0;i<size;i++)
-                child[i] = DataInput2.unpackLong(in);
+                child[i] = DataIO.unpackLong(in);
             int keysize = size - left- right;
             final Object keys = keysize==0?
                     keySerializer.emptyKeys():
@@ -654,7 +654,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         }
 
         private BNode deserializeLeaf(final DataInput in, final int size, final int left, final int right) throws IOException {
-            final long next = DataInput2.unpackLong(in);
+            final long next = DataIO.unpackLong(in);
             int keysize = size - left- right;
             final Object keys = keysize==0?
                     keySerializer.emptyKeys():

@@ -56,7 +56,7 @@ public class CompressTest{
         assertArrayEquals(b, UtilsTest.clone(b, ser));
 
         //check compressed size is actually smaller
-        DataOutput2 out = new DataOutput2();
+        DataIO.DataOutputByteArray out = new DataIO.DataOutputByteArray();
         ser.serialize(out,b);
         assertTrue(out.pos<100);
     }

@@ -35,7 +35,7 @@ public class SerializerTest {
         b = Arrays.copyOf(b, 10000);
         assertArrayEquals(b, SerializerBaseTest.clone2(b,ser));
 
-        DataOutput2 out = new DataOutput2();
+        DataIO.DataOutputByteArray out = new DataIO.DataOutputByteArray();
         ser.serialize(out,b);
         assertTrue(out.pos<1000);
     }

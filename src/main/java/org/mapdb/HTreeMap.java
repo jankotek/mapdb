@@ -125,9 +125,9 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     protected final Serializer<LinkedNode<K,V>> LN_SERIALIZER = new Serializer<LinkedNode<K,V>>() {
         @Override
         public void serialize(DataOutput out, LinkedNode<K,V> value) throws IOException {
-            DataOutput2.packLong(out, value.next);
+            DataIO.packLong(out, value.next);
             if(expireFlag)
-                DataOutput2.packLong(out, value.expireLinkNodeRecid);
+                DataIO.packLong(out, value.expireLinkNodeRecid);
             keySerializer.serialize(out,value.key);
             if(hasValues)
                 valueSerializer.serialize(out,value.value);
@@ -137,8 +137,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         public LinkedNode<K,V> deserialize(DataInput in, int available) throws IOException {
             assert(available!=0);
             return new LinkedNode<K, V>(
-                    DataInput2.unpackLong(in),
-                    expireFlag?DataInput2.unpackLong(in):0L,
+                    DataIO.unpackLong(in),
+                    expireFlag?DataIO.unpackLong(in):0L,
                     keySerializer.deserialize(in,-1),
                     hasValues? valueSerializer.deserialize(in,-1) : (V) BTreeMap.EMPTY
             );
@@ -176,7 +176,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 if(value[i]!=null){
                     assert(value[i].length==8);
                     for(long l:value[i]){
-                        DataOutput2.packLong(out, l);
+                        DataIO.packLong(out, l);
                     }
                 }
             }
@@ -194,7 +194,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 if((nulls & 1)!=0){
                     final long[] subarray = new long[8];
                     for(int j=0;j<8;j++){
-                        subarray[j] = DataInput2.unpackLong(in);
+                        subarray[j] = DataIO.unpackLong(in);
                     }
                     ret[i] = subarray;
                 }
@@ -1269,10 +1269,10 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             @Override
             public void serialize(DataOutput out, ExpireLinkNode value) throws IOException {
                 if(value == EMPTY) return;
-                DataOutput2.packLong(out,value.prev);
-                DataOutput2.packLong(out,value.next);
-                DataOutput2.packLong(out,value.keyRecid);
-                DataOutput2.packLong(out,value.time);
+                DataIO.packLong(out,value.prev);
+                DataIO.packLong(out,value.next);
+                DataIO.packLong(out,value.keyRecid);
+                DataIO.packLong(out,value.time);
                 out.writeInt(value.hash);
             }
 
@@ -1280,7 +1280,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             public ExpireLinkNode deserialize(DataInput in, int available) throws IOException {
                 if(available==0) return EMPTY;
                 return new ExpireLinkNode(
-                        DataInput2.unpackLong(in),DataInput2.unpackLong(in),DataInput2.unpackLong(in),DataInput2.unpackLong(in),
+                        DataIO.unpackLong(in),DataIO.unpackLong(in),DataIO.unpackLong(in),DataIO.unpackLong(in),
                         in.readInt()
                 );
             }

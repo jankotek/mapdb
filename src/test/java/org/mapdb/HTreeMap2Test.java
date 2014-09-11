@@ -92,10 +92,10 @@ public class HTreeMap2Test {
         l[3] = new long[] {0,0,12,13,14,0,Long.MAX_VALUE,0};
         l[6] = new long[] {1,2,3,4,5,6,7,8};
 
-        DataOutput2 out = new DataOutput2();
+        DataIO.DataOutputByteArray out = new DataIO.DataOutputByteArray();
         HTreeMap.DIR_SERIALIZER.serialize(out,l);
 
-        DataInput2 in = swap(out);
+        DataIO.DataInputByteArray in = swap(out);
 
         long[][] b = HTreeMap.DIR_SERIALIZER.deserialize(in, -1);
 
@@ -112,20 +112,20 @@ public class HTreeMap2Test {
 
     }
 
-    DataInput2 swap(DataOutput2 d){
+    DataIO.DataInputByteArray swap(DataIO.DataOutputByteArray d){
         byte[] b = d.copyBytes();
-        return new DataInput2(ByteBuffer.wrap(b),0);
+        return new DataIO.DataInputByteArray(b,0);
     }
 
 
     @Test public void ln_serialization() throws IOException {
         HTreeMap.LinkedNode n = new HTreeMap.LinkedNode(123456, 1111L, 123L, 456L);
 
-        DataOutput2 out = new DataOutput2();
+        DataIO.DataOutputByteArray out = new DataIO.DataOutputByteArray();
 
         serializer.serialize(out, n);
 
-        DataInput2 in = swap(out);
+        DataIO.DataInputByteArray in = swap(out);
 
         HTreeMap.LinkedNode n2  = (HTreeMap.LinkedNode) serializer.deserialize(in, -1);
 

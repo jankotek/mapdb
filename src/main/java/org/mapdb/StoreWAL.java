@@ -262,7 +262,7 @@ public class StoreWAL extends StoreDirect {
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
         assert(value!=null);
-        DataOutput2 out = serialize(value, serializer);
+        DataIO.DataOutputByteArray out = serialize(value, serializer);
 
         final long ioRecid;
         final long[] physPos;
@@ -318,7 +318,7 @@ public class StoreWAL extends StoreDirect {
         return recid;
     }
 
-    protected void walPhysArray(DataOutput2 out, long[] physPos, long[] logPos) {
+    protected void walPhysArray(DataIO.DataOutputByteArray out, long[] physPos, long[] logPos) {
         //write byte[] data
         int outPos = 0;
         int logC = 0;
@@ -454,7 +454,7 @@ public class StoreWAL extends StoreDirect {
     public <A> void update(long recid, A value, Serializer<A> serializer) {
         assert(recid>0);
         assert(value!=null);
-        DataOutput2 out = serialize(value, serializer);
+        DataIO.DataOutputByteArray out = serialize(value, serializer);
         final long ioRecid = IO_USER_START + recid*8;
         final Lock lock;
         if(disableLocks) {
@@ -529,7 +529,7 @@ public class StoreWAL extends StoreDirect {
             lock = locks[Store.lockPos(ioRecid)].writeLock();
             lock.lock();
         }
-        DataOutput2 out;
+        DataIO.DataOutputByteArray out;
         try{
 
             A oldVal = get2(ioRecid,serializer);
