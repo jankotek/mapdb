@@ -12,7 +12,7 @@ public  class BTreeMapNavigable2Test extends TestCase
 	@Override
 	public void setUp() throws Exception
     {
-        map = DBMaker.newTempTreeMap();
+        map = newMap();
 		map.put(1, "one");
 		map.put(2, "two");
 		map.put(3, "three");
@@ -24,8 +24,18 @@ public  class BTreeMapNavigable2Test extends TestCase
 		map.put(10, "ten");
 	}
 
+    protected NavigableMap<Integer, String> newMap() {
+        return DBMaker.newMemoryDB().make().createTreeMap("map").make();
+    }
 
-	public void testSize()
+
+    public static class Outside extends BTreeMapNavigable2Test{
+        @Override protected NavigableMap<Integer, String> newMap() {
+            return DBMaker.newMemoryDB().make().createTreeMap("map").valuesOutsideNodesEnable().make();
+        }
+    }
+
+    public void testSize()
 	{
 		int i = 8;
 		assertEquals(map.size(), i);

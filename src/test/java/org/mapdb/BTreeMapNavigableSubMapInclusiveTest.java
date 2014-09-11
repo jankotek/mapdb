@@ -1,6 +1,15 @@
 package org.mapdb;
 
+import java.util.NavigableMap;
+
 public class BTreeMapNavigableSubMapInclusiveTest extends BTreeMapNavigable2Test{
+
+    public static class Outside extends BTreeMapNavigableSubMapInclusiveTest{
+        @Override protected NavigableMap<Integer, String> newMap() {
+            return DBMaker.newMemoryDB().make().createTreeMap("map").valuesOutsideNodesEnable().make();
+        }
+    }
+
 
     @Override
 	public void setUp() throws Exception {

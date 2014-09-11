@@ -13,18 +13,24 @@ import java.util.concurrent.ConcurrentNavigableMap;
 
 @SuppressWarnings({"rawtypes","unchecked"})
 public class BTreeMapTest5 extends JSR166TestCase {
-    public static void main(String[] args) {
-        junit.textui.TestRunner.run(suite());
+
+    public static class Outside extends BTreeMapTest5{
+        @Override
+        protected BTreeMap newMap() {
+            return DBMaker.newMemoryDB().make().createTreeMap("test").valuesOutsideNodesEnable().make();
+        }
     }
-    public static Test suite() {
-        return new TestSuite(BTreeMapTest5.class);
+
+    protected  BTreeMap newMap() {
+        return DBMaker.newMemoryDB().make().createTreeMap("test").make();
     }
+
 
     /**
      * Returns a new map from Integers 1-5 to Strings "A"-"E".
      */
-	private static ConcurrentNavigableMap map5() {
-        ConcurrentNavigableMap map = DBMaker.newMemoryDB().make().createTreeMap("test").make();
+	private  ConcurrentNavigableMap map5() {
+        ConcurrentNavigableMap map = newMap();
         assertTrue(map.isEmpty());
         map.put(zero, "Z");
         map.put(one, "A");
@@ -38,11 +44,12 @@ public class BTreeMapTest5 extends JSR166TestCase {
         return map.subMap(one, true, seven, false);
     }
 
+
     /**
      * Returns a new map from Integers -5 to -1 to Strings "A"-"E".
      */
-    private static ConcurrentNavigableMap dmap5() {
-        ConcurrentNavigableMap map = DBMaker.newMemoryDB().make().createTreeMap("test").make();
+    private  ConcurrentNavigableMap dmap5() {
+        ConcurrentNavigableMap map = newMap();
         assertTrue(map.isEmpty());
         map.put(m1, "A");
         map.put(m5, "E");
@@ -54,14 +61,14 @@ public class BTreeMapTest5 extends JSR166TestCase {
         return map.descendingMap();
     }
 
-    private static ConcurrentNavigableMap map0() {
-        ConcurrentNavigableMap map = DBMaker.newMemoryDB().make().createTreeMap("test").make();
+    private  ConcurrentNavigableMap map0() {
+        ConcurrentNavigableMap map = newMap();
         assertTrue(map.isEmpty());
         return map.tailMap(one, true);
     }
 
-    private static ConcurrentNavigableMap dmap0() {
-        ConcurrentNavigableMap map = DBMaker.newMemoryDB().make().createTreeMap("test").make();
+    private ConcurrentNavigableMap dmap0() {
+        ConcurrentNavigableMap map = newMap();
         assertTrue(map.isEmpty());
         return map;
     }

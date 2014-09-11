@@ -11,6 +11,12 @@ import static org.mapdb.BTreeMap.createRootRef;
 
 public class BTreeMapContainsKeyTest extends JSR166TestCase {
 
+    public static class OutsideNot extends BTreeMapContainsKeyTest{
+        {
+            valsOutsideNodes=false;
+        }
+    }
+
 	boolean valsOutsideNodes = true;
 	Engine r;
 	RecordingSerializer valueSerializer = new RecordingSerializer();
@@ -35,7 +41,7 @@ public class BTreeMapContainsKeyTest extends JSR166TestCase {
     	boolean contains = map.containsKey(1);
 
 		assertEquals(true, contains );
-    	assertEquals("Deserialize was called", false, valueSerializer.isDeserializeCalled() );
+    	assertEquals("Deserialize was called", !valsOutsideNodes, valueSerializer.isDeserializeCalled() );
     }
 
     static class RecordingSerializer extends SerializerBase implements Serializable {

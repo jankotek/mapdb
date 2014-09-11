@@ -18,13 +18,21 @@ public class BTreeMapTest{
 
     BTreeMap m;
 
+    boolean valsOutside = false;
+
     @Before public void init(){
         engine = new StoreDirect(Volume.memoryFactory(false,0L,CC.VOLUME_SLICE_SHIFT));
         m = new BTreeMap(engine,BTreeMap.createRootRef(engine,BTreeKeySerializer.BASIC,Serializer.BASIC,BTreeMap.COMPARABLE_COMPARATOR,0),
-                6,false,0, BTreeKeySerializer.BASIC,Serializer.BASIC,
+                6,valsOutside,0, BTreeKeySerializer.BASIC,Serializer.BASIC,
                 BTreeMap.COMPARABLE_COMPARATOR,0,false);;
     }
-    
+
+
+    public static class Outside extends BTreeMapTest{
+        {
+            valsOutside=true;
+        }
+    }
 
     @Test public void test_leaf_node_serialization() throws IOException {
 

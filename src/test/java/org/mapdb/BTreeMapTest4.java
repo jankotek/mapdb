@@ -43,11 +43,43 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
                 .createTreeMap("test").nodeSize(6).comparator(comp).make();
     }
 
-    protected static <K,V> BTreeMap<K,V> newBTreeMap() {
+    protected  <K,V> BTreeMap<K,V> newBTreeMap() {
         return DBMaker.newMemoryDB()
                 .cacheDisable()
                 .transactionDisable().make()
                 .getTreeMap("test");
+    }
+
+    public static class Outside extends  BTreeMapTest4{
+
+        @Override protected <K,V> BTreeMap<K,V> newBTreeMap(Map map) {
+            BTreeMap ret = DBMaker.newMemoryDB()
+                    .cacheDisable()
+                    .transactionDisable().make()
+                    .createTreeMap("test").nodeSize(6)
+                    .valuesOutsideNodesEnable()
+                    .make();
+            ret.putAll(map);
+            return ret;
+        }
+
+        @Override protected <K,V> BTreeMap<K,V> newBTreeMap(Comparator comp) {
+            return DBMaker.newMemoryDB()
+                    .cacheDisable()
+                    .transactionDisable().make()
+                    .createTreeMap("test").nodeSize(6).comparator(comp)
+                    .valuesOutsideNodesEnable()
+                    .make();
+        }
+
+        @Override protected  <K,V> BTreeMap<K,V> newBTreeMap() {
+            return DBMaker.newMemoryDB()
+                    .cacheDisable()
+                    .transactionDisable().make()
+                    .createTreeMap("test")
+                    .valuesOutsideNodesEnable()
+                    .make();
+        }
     }
 
     public static class ReversedComparator implements Comparator,Serializable {

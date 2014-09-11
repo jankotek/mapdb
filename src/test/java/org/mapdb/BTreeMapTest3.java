@@ -41,6 +41,14 @@ public class BTreeMapTest3
         return DBMaker.newMemoryDB().make().getTreeMap("test");
     }
 
+    public static class Outside extends BTreeMapTest3{
+        @Override
+        protected ConcurrentNavigableMap<Integer, String> makeEmptyMap() throws UnsupportedOperationException {
+            return DBMaker.newMemoryDB().make().createTreeMap("test").valuesOutsideNodesEnable().make();
+        }
+
+    }
+
     @Override
     protected ConcurrentNavigableMap<Integer, String> makePopulatedMap() throws UnsupportedOperationException {
         ConcurrentNavigableMap<Integer, String> map = makeEmptyMap();

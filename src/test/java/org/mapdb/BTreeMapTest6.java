@@ -13,18 +13,12 @@ import java.util.concurrent.ConcurrentNavigableMap;
 
 @SuppressWarnings({"rawtypes","unchecked"})
 public class BTreeMapTest6 extends JSR166TestCase {
-    public static void main(String[] args) {
-        junit.textui.TestRunner.run(suite());
-    }
-    public static Test suite() {
-        return new TestSuite(BTreeMapTest6.class);
-    }
 
     /**
      * Returns a new map from Integers 1-5 to Strings "A"-"E".
      */
-    private static ConcurrentNavigableMap map5() {
-        ConcurrentNavigableMap map = DBMaker.newMemoryDB().make().createTreeMap("test").make();
+    ConcurrentNavigableMap map5() {
+        ConcurrentNavigableMap map = newEmptyMap();
         assertTrue(map.isEmpty());
         map.put(one, "A");
         map.put(five, "E");
@@ -34,6 +28,17 @@ public class BTreeMapTest6 extends JSR166TestCase {
         assertFalse(map.isEmpty());
         assertEquals(5, map.size());
         return map;
+    }
+
+    protected BTreeMap newEmptyMap() {
+        return DBMaker.newMemoryDB().make().createTreeMap("test").make();
+    }
+
+    public static class Outside extends BTreeMapTest6{
+        @Override protected BTreeMap newEmptyMap() {
+            return DBMaker.newMemoryDB().make().createTreeMap("test").valuesOutsideNodesEnable().make();
+        }
+
     }
 
     /**
@@ -92,7 +97,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
     public void testGet() {
         ConcurrentNavigableMap map = map5();
         assertEquals("A", (String)map.get(one));
-        ConcurrentNavigableMap empty = DBMaker.newMemoryDB().make().createTreeMap("test").make();
+        ConcurrentNavigableMap empty = newEmptyMap();
         assertNull(empty.get(one));
     }
 
@@ -100,7 +105,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * isEmpty is true of empty map and false for non-empty
      */
     public void testIsEmpty() {
-        ConcurrentNavigableMap empty = DBMaker.newMemoryDB().make().createTreeMap("test").make();
+        ConcurrentNavigableMap empty = newEmptyMap();
         ConcurrentNavigableMap map = map5();
         assertTrue(empty.isEmpty());
         assertFalse(map.isEmpty());
@@ -338,7 +343,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * putAll adds all key-value pairs from the given map
      */
     public void testPutAll() {
-        ConcurrentNavigableMap empty = DBMaker.newMemoryDB().make().createTreeMap("test").make();
+        ConcurrentNavigableMap empty = newEmptyMap();
         ConcurrentNavigableMap map = map5();
         empty.putAll(map);
         assertEquals(5, empty.size());
@@ -664,7 +669,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      */
     public void testSize() {
         ConcurrentNavigableMap map = map5();
-        ConcurrentNavigableMap empty = DBMaker.newMemoryDB().make().createTreeMap("test").make();
+        ConcurrentNavigableMap empty = newEmptyMap();
         assertEquals(0, empty.size());
         assertEquals(5, map.size());
     }
@@ -709,7 +714,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      */
     public void testContainsValue_NullPointerException() {
         try {
-            ConcurrentNavigableMap c = DBMaker.newMemoryDB().make().createTreeMap("test").make();
+            ConcurrentNavigableMap c = newEmptyMap();
             c.containsValue(null);
             shouldThrow();
         } catch (NullPointerException success) {}
@@ -764,7 +769,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      */
     public void testRemove1_NullPointerException() {
         try {
-            ConcurrentNavigableMap c = DBMaker.newMemoryDB().make().createTreeMap("test").make();
+            ConcurrentNavigableMap c = newEmptyMap();
             c.put("sadsdf", "asdads");
             c.remove(null);
             shouldThrow();
@@ -776,7 +781,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      */
     public void testRemove2_NullPointerException() {
         try {
-            ConcurrentNavigableMap c = DBMaker.newMemoryDB().make().createTreeMap("test").make();
+            ConcurrentNavigableMap c = newEmptyMap();
             c.put("sadsdf", "asdads");
             c.remove(null, "whatever");
             shouldThrow();
@@ -787,7 +792,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * remove(x, null) returns false
      */
     public void testRemove3() {
-        ConcurrentNavigableMap c = DBMaker.newMemoryDB().make().createTreeMap("test").make();
+        ConcurrentNavigableMap c = newEmptyMap();
         c.put("sadsdf", "asdads");
         assertFalse(c.remove("sadsdf", null));
     }
@@ -975,7 +980,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
         int mapSize = expensiveTests ? 1000 : 100;
         //Class cl = ConcurrentSkipListMap.class;
         NavigableMap<Integer, Integer> map = // newMap(cl);
-                DBMaker.newMemoryDB().make().createTreeMap("test").make();
+                newEmptyMap();
         bs = new BitSet(mapSize);
 
         populate(map, mapSize);

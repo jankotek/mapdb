@@ -21,6 +21,14 @@ import java.util.concurrent.ConcurrentMap;
 
 public class BTreeMapTest2 extends ConcurrentMapInterfaceTest<Integer, String> {
 
+    protected boolean valsOutside = false;
+
+    public static class Outside extends BTreeMapTest2{
+        {
+            valsOutside = true;
+        }
+    }
+
     public BTreeMapTest2() {
         super(false, false, true, true, true, true, false);
     }
@@ -52,7 +60,7 @@ public class BTreeMapTest2 extends ConcurrentMapInterfaceTest<Integer, String> {
     protected ConcurrentMap<Integer, String> makeEmptyMap() throws UnsupportedOperationException {
 
         return new BTreeMap(r,BTreeMap.createRootRef(r,BTreeKeySerializer.BASIC, Serializer.BASIC, BTreeMap.COMPARABLE_COMPARATOR,0),
-                6,false,0, BTreeKeySerializer.BASIC,Serializer.BASIC,
+                6,valsOutside,0, BTreeKeySerializer.BASIC,Serializer.BASIC,
                 BTreeMap.COMPARABLE_COMPARATOR,0,false);
     }
 

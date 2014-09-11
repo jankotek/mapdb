@@ -75,9 +75,21 @@ public class BTreeMapNavigableTest extends TestCase {
 
 	private NavigableMap<String, String> navigableMap;
 
+
+    protected NavigableMap<String, String> newMap() {
+            return DBMaker.newMemoryDB().make().createTreeMap("map").make();
+    }
+
+    public static class Outside extends BTreeMapNavigableTest{
+        @Override protected NavigableMap<String, String> newMap() {
+            return DBMaker.newMemoryDB().make().createTreeMap("map").valuesOutsideNodesEnable().make();
+        }
+    }
+
+
     @Override
     protected void setUp() throws Exception {
-        navigableMap = DBMaker.newMemoryDB().make().getTreeMap("test");
+        navigableMap = newMap();
     }
 
     public void testLowerEntry() {
