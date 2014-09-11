@@ -116,8 +116,18 @@ public final class Fun {
     }
 
 
-    static public final class Tuple2<A,B> implements Comparable<Tuple2<A,B>>, Serializable {
+    public interface Tuple {
 		
+        void copyIntoArray(Object[] array, int offset);
+
+        int compare(Comparator[] comparators, Object[] values, int offset);
+
+        Object get(int i);
+    }
+
+
+    static public final class Tuple2<A,B> implements Comparable<Tuple2<A,B>>, Serializable, Tuple {
+
     	private static final long serialVersionUID = -8816277286657643283L;
 		
 		final public A a;
@@ -158,9 +168,30 @@ public final class Fun {
         @Override public String toString() {
             return "Tuple2[" + a +", "+b+"]";
         }
+
+        @Override
+        public void copyIntoArray(Object[] array, int offset) {
+            array[offset++] = a;
+            array[offset]=b;
     }
 
-    final static public class Tuple3<A,B,C> implements Comparable<Tuple3<A,B,C>>, Serializable{
+        @Override
+        public int compare(Comparator[] comparators, Object[] values, int offset) {
+            int i = comparators[0].compare(a,values[offset++]);
+            if(i!=0) return i;
+            return comparators[1].compare(b,values[offset]);
+         }
+
+        @Override
+        public Object get(int i) {
+            switch(i){
+                case 0: return a;
+                default: return b;
+            }
+        }
+    }
+
+    final static public class Tuple3<A,B,C> implements Comparable<Tuple3<A,B,C>>, Serializable, Tuple {
 
     	private static final long serialVersionUID = 11785034935947868L;
     	
@@ -209,9 +240,35 @@ public final class Fun {
             result = 31 * result + (c != null ? c.hashCode() : 0);
             return result;
         }
+
+        @Override
+        public void copyIntoArray(Object[] array, int offset) {
+            array[offset++]=a;
+            array[offset++]=b;
+            array[offset]=c;
     }
 
-    final static public class Tuple4<A,B,C,D> implements Comparable<Tuple4<A,B,C,D>>, Serializable{
+        @Override
+        public int compare(Comparator[] comparators, Object[] values, int offset) {
+            int i = comparators[0].compare(a,values[offset++]);
+            if(i!=0) return i;
+            i = comparators[1].compare(b,values[offset++]);
+            if(i!=0) return i;
+            return comparators[2].compare(c,values[offset]);
+        }
+
+        @Override
+        public Object get(int i) {
+            switch(i){
+                case 0: return a;
+                case 1: return b;
+                default: return c;
+            }
+        }
+
+    }
+
+    final static public class Tuple4<A,B,C,D> implements Comparable<Tuple4<A,B,C,D>>, Serializable, Tuple {
 
     	private static final long serialVersionUID = 1630397500758650718L;
     	
@@ -264,10 +321,40 @@ public final class Fun {
             result = 31 * result + (d != null ? d.hashCode() : 0);
             return result;
         }
+
+        @Override
+        public void copyIntoArray(Object[] array, int offset) {
+            array[offset++] = a;
+            array[offset++]=b;
+            array[offset++]=c;
+            array[offset]=d;
     }
 
 
-    final static public class Tuple5<A, B, C, D, E> implements Comparable<Tuple5<A,B,C,D,E>>, Serializable {
+        @Override
+        public int compare(Comparator[] comparators, Object[] values, int offset) {
+            int i = comparators[0].compare(a,values[offset++]);
+            if(i!=0) return i;
+            i = comparators[1].compare(b,values[offset++]);
+            if(i!=0) return i;
+            i =  comparators[2].compare(c,values[offset++]);
+            if(i!=0) return i;
+            return comparators[3].compare(d,values[offset]);
+        }
+
+        @Override
+        public Object get(int i) {
+            switch(i){
+                case 0: return a;
+                case 1: return b;
+                case 2: return c;
+                default: return d;
+            }
+        }
+    }
+
+
+    final static public class Tuple5<A, B, C, D, E> implements Comparable<Tuple5<A,B,C,D,E>>, Serializable, Tuple {
 
         private static final long serialVersionUID = 3975016300758650718L;
 
@@ -327,10 +414,43 @@ public final class Fun {
             result = 31 * result + (e != null ? e.hashCode() : 0);
             return result;
         }
+
+        @Override
+        public int compare(Comparator[] comparators, Object[] values, int offset) {
+            int i = comparators[0].compare(a, values[offset++]);
+            if(i!=0) return i;
+            i = comparators[1].compare(b, values[offset++]);
+            if(i!=0) return i;
+            i =  comparators[2].compare(c,values[offset++]);
+            if(i!=0) return i;
+            i =  comparators[3].compare(d,values[offset++]);
+            if(i!=0) return i;
+            return comparators[4].compare(e,values[offset]);
+    }
+
+        @Override
+        public void copyIntoArray(Object[] array, int offset) {
+            array[offset++] = a;
+            array[offset++]=b;
+            array[offset++]=c;
+            array[offset++]=d;
+            array[offset]=e;
+        }
+
+        @Override
+        public Object get(int i) {
+            switch(i){
+                case 0: return a;
+                case 1: return b;
+                case 2: return c;
+                case 3: return d;
+                default: return e;
+            }
+        }
     }
 
 
-    final static public class Tuple6<A, B, C, D, E, F> implements Comparable<Tuple6<A, B, C, D, E, F>>, Serializable {
+    final static public class Tuple6<A, B, C, D, E, F> implements Comparable<Tuple6<A, B, C, D, E, F>>, Serializable, Tuple {
 
         private static final long serialVersionUID = 7500397586163050718L;
 
@@ -393,6 +513,43 @@ public final class Fun {
             result = 31 * result + (e != null ? e.hashCode() : 0);
             result = 31 * result + (f != null ? f.hashCode() : 0);
             return result;
+        }
+
+        @Override
+        public void copyIntoArray(Object[] array, int offset) {
+            array[offset++] = a;
+            array[offset++]=b;
+            array[offset++]=c;
+            array[offset++]=d;
+            array[offset++]=e;
+            array[offset]=f;
+    }
+
+        @Override
+        public int compare(Comparator[] comparators, Object[] values, int offset) {
+            int i = comparators[0].compare(a,values[offset++]);
+            if(i!=0) return i;
+            i = comparators[1].compare(b,values[offset++]);
+            if(i!=0) return i;
+            i =  comparators[2].compare(c,values[offset++]);
+            if(i!=0) return i;
+            i =  comparators[3].compare(d,values[offset++]);
+            if(i!=0) return i;
+            i =  comparators[4].compare(e,values[offset++]);
+            if(i!=0) return i;
+            return comparators[5].compare(f,values[offset]);
+        }
+
+        @Override
+        public Object get(int i) {
+            switch(i){
+                case 0: return a;
+                case 1: return b;
+                case 2: return c;
+                case 3: return d;
+                case 4: return e;
+                default: return f;
+            }
         }
     }
 
