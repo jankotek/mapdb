@@ -601,18 +601,20 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                        valueSerializer.serialize(out,  val);
                     }
                 }else{
-                    //write bits if values are null
-                    boolean[] bools = new boolean[value.vals().length];
-                    for(int i=0;i<bools.length;i++){
-                        bools[i] = value.vals()[i]!=null;
-                    }
-                    //pack
-                    byte[] bb = SerializerBase.booleanToByteArray(bools);
-                    out.write(bb);
+                    serializeSetFlags(out, value);
                 }
-
             }
+        }
 
+        public void serializeSetFlags(DataOutput out, BNode value) throws IOException {
+            //write bits if values are null
+            boolean[] bools = new boolean[value.vals().length];
+            for(int i=0;i<bools.length;i++){
+                bools[i] = value.vals()[i]!=null;
+            }
+            //pack
+            byte[] bb = SerializerBase.booleanToByteArray(bools);
+            out.write(bb);
         }
 
         @Override
