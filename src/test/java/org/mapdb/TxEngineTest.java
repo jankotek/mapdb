@@ -13,7 +13,7 @@ public class TxEngineTest {
 
 
     @Before public void init(){
-        e = new TxEngine(new StoreWAL(Volume.memoryFactory(false, 0L,CC.VOLUME_SLICE_SHIFT)),false);
+        e = new TxEngine(new StoreWAL(null),false);
     }
 
     @Test public void update(){

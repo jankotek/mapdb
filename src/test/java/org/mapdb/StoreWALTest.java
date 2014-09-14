@@ -14,19 +14,10 @@ import static org.junit.Assert.*;
 
 public class StoreWALTest extends StoreDirectTest<StoreWAL>{
 
-    Volume.Factory fac;
-
-
-
-    @Before public void init(){
-        fac = Volume.fileFactory(f,0,false, 0L,CC.VOLUME_SLICE_SHIFT,0);
-        super.init();
-    }
-
 
     @Override
     protected StoreWAL openEngine() {
-        return new StoreWAL(fac);
+        return new StoreWAL(f.getPath());
     }
 
     @Override
@@ -90,7 +81,7 @@ public class StoreWALTest extends StoreDirectTest<StoreWAL>{
 
         final AtomicBoolean replay = new AtomicBoolean(true);
 
-        StoreWAL wal = new StoreWAL(fac){
+        StoreWAL wal = new StoreWAL(f.getPath()){
             @Override
             protected void replayLogFile() {
                 if(replay.get())
@@ -127,7 +118,7 @@ public class StoreWALTest extends StoreDirectTest<StoreWAL>{
         wal.index.close();
 
         //now reopen and check content
-        wal = new StoreWAL(fac);
+        wal = new StoreWAL(f.getPath());
 
         db = new DB(wal);
 
@@ -145,7 +136,7 @@ public class StoreWALTest extends StoreDirectTest<StoreWAL>{
 
         final AtomicBoolean replay = new AtomicBoolean(true);
 
-        StoreWAL wal = new StoreWAL(fac){
+        StoreWAL wal = new StoreWAL(f.getPath()){
             @Override
             protected void replayLogFile() {
                 if(replay.get())
@@ -185,7 +176,7 @@ public class StoreWALTest extends StoreDirectTest<StoreWAL>{
         wal.index.close();
 
         //now reopen and check content
-        wal = new StoreWAL(fac);
+        wal = new StoreWAL(f.getPath());
 
         db = new DB(wal);
 

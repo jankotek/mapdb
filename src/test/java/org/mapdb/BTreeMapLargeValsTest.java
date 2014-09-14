@@ -17,6 +17,8 @@
 
 package org.mapdb;
 
+import org.junit.After;
+
 import java.util.concurrent.ConcurrentMap;
 
 public class BTreeMapLargeValsTest extends ConcurrentMapInterfaceTest<Integer, String> {
@@ -31,7 +33,13 @@ public class BTreeMapLargeValsTest extends ConcurrentMapInterfaceTest<Integer, S
 
     @Override
     protected void setUp() throws Exception {
-        r = new StoreDirect(Volume.memoryFactory(false, 0L,CC.VOLUME_SLICE_SHIFT));
+        r = new StoreDirect(null);
+    }
+
+
+    @After
+    public void close(){
+        r.close();
     }
 
     @Override

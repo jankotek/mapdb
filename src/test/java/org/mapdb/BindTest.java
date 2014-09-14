@@ -1,5 +1,6 @@
 package org.mapdb;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -22,6 +23,11 @@ public class BindTest {
         m = DBMaker.newMemoryDB().make().getTreeMap("test");
     }
 
+
+    @After
+    public void close(){
+        m.engine.close();
+    }
 
 
     String[] split(String s){

@@ -38,6 +38,7 @@ public abstract class Store implements Engine{
 
     protected static final Logger LOG = Logger.getLogger(Store.class.getName());
 
+    protected final String fileName;
     protected final boolean checksum;
     protected final boolean compress;
     protected final boolean encrypt;
@@ -52,6 +53,7 @@ public abstract class Store implements Engine{
     protected static final int SLICE_SIZE = 1<< CC.VOLUME_SLICE_SHIFT;
 
     protected static final int SLICE_SIZE_MOD_MASK = SLICE_SIZE -1;
+    protected final Fun.Function1<Volume, String> volumeFactory;
 
     /** default serializer used for persistence. Handles POJO and other stuff which requires write-able access to Engine */
     protected SerializerPojo serializerPojo;
@@ -60,7 +62,9 @@ public abstract class Store implements Engine{
 
     protected final ThreadLocal<CompressLZF> LZF;
 
-    protected Store(boolean checksum, boolean compress, byte[] password, boolean disableLocks) {
+    protected Store(String fileName, Fun.Function1<Volume, String> volumeFactory, boolean checksum, boolean compress, byte[] password, boolean disableLocks) {
+        this.fileName = fileName;
+        this.volumeFactory = volumeFactory;
         this.disableLocks = disableLocks;
         if(disableLocks){
             structuralLock = null;

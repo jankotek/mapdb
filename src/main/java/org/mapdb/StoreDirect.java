@@ -183,12 +183,27 @@ public class StoreDirect extends Store{
     /** maximal non zero slot in free phys record, access requires `structuralLock`*/
     protected long maxUsedIoList = 0;
 
+    protected Fun.Function1<Volume,String> indexVolumeFactory;
 
 
-    public StoreDirect(Volume.Factory volFac, boolean readOnly, boolean deleteFilesAfterClose,
-                       int spaceReclaimMode, boolean syncOnCommitDisabled, long sizeLimit,
-                       boolean checksum, boolean compress, byte[] password, boolean disableLocks,int sizeIncrement) {
-        super(checksum, compress, password, disableLocks);
+    public StoreDirect(
+            String fileName,
+            Fun.Function1<Volume,String> volumeFactory,
+            Fun.Function1<Volume,String> indexVolumeFactory,
+            boolean readOnly,
+            boolean deleteFilesAfterClose,
+            int spaceReclaimMode,
+            boolean syncOnCommitDisabled,
+            long sizeLimit,
+            boolean checksum,
+            boolean compress,
+            byte[] password,
+            boolean disableLocks,
+            int sizeIncrement) {
+        super(fileName, volumeFactory, checksum, compress, password, disableLocks);
+
+        this.indexVolumeFactory = indexVolumeFactory;
+
         this.readOnly = readOnly;
         this.deleteFilesAfterClose = deleteFilesAfterClose;
         this.syncOnCommitDisabled = syncOnCommitDisabled;
@@ -201,8 +216,8 @@ public class StoreDirect extends Store{
         boolean allGood = false;
 
         try{
-            index = volFac.createIndexVolume();
-            phys = volFac.createPhysVolume();
+            index = indexVolumeFactory.run(fileName);
+            phys = volumeFactory.run(fileName+DATA_FILE_EXT);
             if(index.isEmpty()){
                 createStructure();
             }else{
@@ -234,11 +249,23 @@ public class StoreDirect extends Store{
 
     }
 
-    public StoreDirect(Volume.Factory volFac) {
-        this(volFac, false,false,5,false,0L, false,false,null,false,0);
+    public StoreDirect(String fileName) {
+
+        this(   fileName,
+                fileName==null || fileName.isEmpty()?Volume.memoryFactory():Volume.fileFactory(),
+                fileName==null || fileName.isEmpty()?Volume.memoryFactory():Volume.fileFactory(),
+                false,
+                false,
+                CC.DEFAULT_FREE_SPACE_RECLAIM_Q,
+                false,
+                0,
+                false,
+                false,
+                null,
+                false,
+                0
+        );
     }
-
-
 
     protected void checkHeaders() {
         if(index.getInt(0)!=HEADER||phys.getInt(0)!=HEADER)
@@ -872,21 +899,13 @@ public class StoreDirect extends Store{
         final File indexFile = index.getFile();
         final File physFile = phys.getFile();
 
-        final int rafMode;
-        if(index instanceof  Volume.FileChannelVol){
-            rafMode=2;
-        }else if(index instanceof  Volume.MappedFileVol && phys instanceof Volume.FileChannelVol){
-            rafMode = 1;
-        }else{
-            rafMode = 0;
-        }
-
-
         lockAllWrite();
         try{
             final File compactedFile = new File((indexFile!=null?indexFile:File.createTempFile("mapdb","compact"))+".compact");
-            Volume.Factory fab = Volume.fileFactory(compactedFile,rafMode,false,sizeLimit,  CC.VOLUME_SLICE_SHIFT,0);
-            StoreDirect store2 = new StoreDirect(fab,false,false,5,false,0L, checksum,compress,password,false,0);
+            StoreDirect store2 = new StoreDirect(compactedFile.getPath(),
+                    volumeFactory,
+                    indexVolumeFactory,
+                    false,false,5,false,0L, checksum,compress,password,false,0);
 
             compactPreUnderLock();
 
@@ -950,9 +969,8 @@ public class StoreDirect extends Store{
                 if(!physFile2.renameTo(physFile))
                     throw new AssertionError("could not rename file");
 
-                final Volume.Factory fac2 = Volume.fileFactory(indexFile,rafMode, false, sizeLimit, CC.VOLUME_SLICE_SHIFT,0);
-                index = fac2.createIndexVolume();
-                phys = fac2.createPhysVolume();
+                index = indexVolumeFactory.run(fileName);
+                phys = volumeFactory.run(fileName+DATA_FILE_EXT);
 
                 indexFile_.delete();
                 physFile_.delete();

@@ -92,6 +92,11 @@ public class BTreeMapNavigableTest extends TestCase {
         navigableMap = newMap();
     }
 
+    @Override
+    protected void tearDown() throws Exception {
+        ((BTreeMap)navigableMap).engine.close();
+    }
+
     public void testLowerEntry() {
 		navigableMap.put("ka", "xx");
 		navigableMap.put("kb", "aa");

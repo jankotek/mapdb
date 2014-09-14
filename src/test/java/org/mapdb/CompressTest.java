@@ -1,5 +1,6 @@
 package org.mapdb;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -19,6 +20,11 @@ public class CompressTest{
                 .make();
     }
 
+
+    @After
+    public void close(){
+        db.close();
+    }
 
     @Test
     public void check_instance() throws Exception {

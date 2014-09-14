@@ -15,6 +15,8 @@
  ******************************************************************************/
 package org.mapdb;
 
+import org.junit.After;
+
 import java.util.concurrent.ConcurrentMap;
 
 public class HTreeMap3Test extends ConcurrentMapInterfaceTest<Integer, String> {
@@ -27,7 +29,13 @@ public class HTreeMap3Test extends ConcurrentMapInterfaceTest<Integer, String> {
 
     @Override
     protected void setUp() throws Exception {
-        r = new StoreDirect(Volume.memoryFactory(false,0L,CC.VOLUME_SLICE_SHIFT));
+        r = new StoreDirect(null);
+    }
+
+
+    @Override
+    protected void tearDown() throws Exception {
+        r.close();
     }
 
     @Override

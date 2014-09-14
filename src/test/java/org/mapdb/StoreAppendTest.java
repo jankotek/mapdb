@@ -17,13 +17,12 @@ public class StoreAppendTest<E extends StoreAppend> extends EngineTest<E>{
 
     @Override
     protected E openEngine() {
-        return (E) new StoreAppend(f);
+        return (E) new StoreAppend(f.getPath());
     }
 
     @Test
     public void compact_file_deleted(){
-        File f = UtilsTest.tempDbFile();
-        StoreAppend engine = new StoreAppend(f);
+        StoreAppend engine = new StoreAppend(f.getPath());
         File f1 = engine.getFileFromNum(0);
         File f2 = engine.getFileFromNum(1);
         long recid = engine.put(111L, Serializer.LONG);

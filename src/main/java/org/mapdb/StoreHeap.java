@@ -51,7 +51,7 @@ public class StoreHeap extends Store implements Serializable{
     protected final AtomicLong maxRecid = new AtomicLong(LAST_RESERVED_RECID);
 
     public StoreHeap(boolean disableLocks){
-        super(false,false,null,disableLocks);
+        super(null, null, false,false,null,disableLocks);
         for(long recid=1;recid<=LAST_RESERVED_RECID;recid++){
             records.put(recid, Fun.t2(null, (Serializer)null));
         }

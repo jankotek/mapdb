@@ -118,6 +118,10 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
 
     Object objArray[] = new Object[1000];
 
+    @Override
+    protected void tearDown() throws Exception {
+        tm.engine.close();
+    }
 
     /**
      * @tests java.util.TreeMap#TreeMap(java.util.Comparator)

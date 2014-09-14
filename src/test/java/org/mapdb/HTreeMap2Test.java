@@ -1,5 +1,6 @@
 package org.mapdb;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -24,6 +25,12 @@ public class HTreeMap2Test {
     @Before public void init2(){
         engine = DBMaker.newMemoryDB().cacheDisable().makeEngine();
         db = new DB(engine);;
+    }
+
+
+    @After
+    public void close(){
+        db.close();
     }
 
     void printMap(HTreeMap m){

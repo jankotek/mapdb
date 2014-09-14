@@ -11,12 +11,6 @@ import java.util.*;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class BTreeMapSubSetTest extends JSR166TestCase {
-    public static void main(String[] args) {
-        junit.textui.TestRunner.run(suite());
-    }
-    public static Test suite() {
-        return new TestSuite(BTreeMapSubSetTest.class);
-    }
 
     static class MyReverseComparator implements Comparator {
         public int compare(Object x, Object y) {

@@ -7,12 +7,12 @@ package org.mapdb;/*
  */
 
 import junit.framework.TestCase;
+import org.junit.After;
 
 public class AtomicBooleanTest extends TestCase{
 
     DB db;
     Atomic.Boolean ai;
-
 
     @Override
     protected void setUp() throws Exception {

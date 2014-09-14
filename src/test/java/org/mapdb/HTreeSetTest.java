@@ -18,6 +18,7 @@
 package org.mapdb;
 
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -50,7 +51,7 @@ public class HTreeSetTest{
     }
 
     @Before public void init(){
-        engine =  new StoreDirect(Volume.memoryFactory(false,0L,CC.VOLUME_SLICE_SHIFT));
+        engine =  new StoreDirect(null);
         hs = new HTreeMap(engine, 0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC,null,0,0,0,0,0,null,null,null, null,false,null).keySet();
         Collections.addAll(hs, objArray);
     }
@@ -59,6 +60,11 @@ public class HTreeSetTest{
         // Test for method java.util.HashSet()
         Set hs2 = new HTreeMap(engine, 0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC,null,0,0,0,0,0,null,null,null, null,false,null).keySet();
         assertEquals("Created incorrect HashSet", 0, hs2.size());
+    }
+
+    @After
+    public void close(){
+        engine.close();
     }
 
 

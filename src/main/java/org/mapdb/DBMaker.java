@@ -728,14 +728,14 @@ public class DBMaker{
     public Engine makeEngine(){
 
         final boolean readOnly = propsGetBool(Keys.readOnly);
-        final File file = props.containsKey(Keys.file)? new File(props.getProperty(Keys.file)):null;
+        final String file = props.containsKey(Keys.file)? props.getProperty(Keys.file):"";
         final String volume = props.getProperty(Keys.volume);
         final String store = props.getProperty(Keys.store);
 
-        if(readOnly && file==null)
+        if(readOnly && file.isEmpty())
             throw new UnsupportedOperationException("Can not open in-memory DB in read-only mode.");
 
-        if(readOnly && !file.exists() && !Keys.store_append.equals(store)){
+        if(readOnly && !new File(file).exists() && !Keys.store_append.equals(store)){
             throw new UnsupportedOperationException("Can not open non-existing file in read-only mode.");
         }
 
@@ -756,14 +756,16 @@ public class DBMaker{
         }else  if(Keys.store_append.equals(store)){
             if(Keys.volume_byteBuffer.equals(volume)||Keys.volume_directByteBuffer.equals(volume))
                 throw new UnsupportedOperationException("Append Storage format is not supported with in-memory dbs");
-            engine = extendStoreAppend();
+
+            Fun.Function1<Volume, String> volFac = extendStoreVolumeFactory(false);
+            engine = extendStoreAppend(file, volFac);
 
         }else{
-            Volume.Factory folFac = extendStoreVolumeFactory();
-
+            Fun.Function1<Volume, String> volFac = extendStoreVolumeFactory(false);
+            Fun.Function1<Volume, String> indexVolFac = extendStoreVolumeFactory(true);
             engine = propsGetBool(Keys.transactionDisable) ?
-                    extendStoreDirect(folFac):
-                    extendStoreWAL(folFac);
+                    extendStoreDirect(file, volFac,indexVolFac):
+                    extendStoreWAL(file, volFac, indexVolFac);
         }
 
         engine = extendWrapStore(engine);
@@ -944,10 +946,10 @@ public class DBMaker{
         return new StoreHeap(propsGetBool(Keys.concurrencyDisable));
     }
 
-    protected Engine extendStoreAppend() {
-        final File file = props.containsKey(Keys.file)? new File(props.getProperty(Keys.file)):null;
+    protected Engine extendStoreAppend(String fileName, Fun.Function1<Volume,String> volumeFactory) {
         boolean compressionEnabled = Keys.compression_lzf.equals(props.getProperty(Keys.compression));
-        return new StoreAppend(file, propsGetRafMode()>0, propsGetBool(Keys.readOnly),
+        return new StoreAppend(fileName, volumeFactory,
+                propsGetRafMode()>0, propsGetBool(Keys.readOnly),
                 propsGetBool(Keys.transactionDisable),
                 propsGetBool(Keys.deleteFilesAfterClose),
                 propsGetBool(Keys.commitFileSyncDisable),
@@ -955,27 +957,44 @@ public class DBMaker{
                 propsGetBool(Keys.concurrencyDisable));
     }
 
-    protected Engine extendStoreDirect(Volume.Factory folFac) {
+    protected Engine extendStoreDirect(
+            String fileName,
+            Fun.Function1<Volume,String> volumeFactory,
+            Fun.Function1<Volume,String> indexVolumeFactory) {
         boolean compressionEnabled = Keys.compression_lzf.equals(props.getProperty(Keys.compression));
-        return new StoreDirect(folFac,  propsGetBool(Keys.readOnly),
+        return new StoreDirect(
+                fileName,
+                volumeFactory,
+                indexVolumeFactory,
+                propsGetBool(Keys.readOnly),
                 propsGetBool(Keys.deleteFilesAfterClose),
                 propsGetInt(Keys.freeSpaceReclaimQ,CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
-                propsGetBool(Keys.commitFileSyncDisable),propsGetLong(Keys.sizeLimit,0),
+                propsGetBool(Keys.commitFileSyncDisable),
+                propsGetLong(Keys.sizeLimit,0),
                 propsGetBool(Keys.checksum),compressionEnabled,propsGetXteaEncKey(),
                 propsGetBool(Keys.concurrencyDisable),0);
     }
 
-    protected Engine extendStoreWAL(Volume.Factory folFac) {
+    protected Engine extendStoreWAL(
+            String fileName,
+            Fun.Function1<Volume,String> volumeFactory,
+            Fun.Function1<Volume,String> indexVolumeFactory) {
         boolean compressionEnabled = Keys.compression_lzf.equals(props.getProperty(Keys.compression));
-        return new StoreWAL(folFac,  propsGetBool(Keys.readOnly),propsGetBool(Keys.deleteFilesAfterClose),
+        return new StoreWAL(
+                fileName,
+                volumeFactory,
+                indexVolumeFactory,
+                propsGetBool(Keys.readOnly),
+                propsGetBool(Keys.deleteFilesAfterClose),
                 propsGetInt(Keys.freeSpaceReclaimQ,CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
-                propsGetBool(Keys.commitFileSyncDisable),propsGetLong(Keys.sizeLimit,-1),
+                propsGetBool(Keys.commitFileSyncDisable),
+                propsGetLong(Keys.sizeLimit,-1),
                 propsGetBool(Keys.checksum),compressionEnabled,propsGetXteaEncKey(),
                 propsGetBool(Keys.concurrencyDisable),0);
     }
 
 
-    protected Volume.Factory extendStoreVolumeFactory() {
+    protected Fun.Function1<Volume,String>  extendStoreVolumeFactory(boolean index) {
         long sizeLimit = propsGetLong(Keys.sizeLimit,0);
         String volume = props.getProperty(Keys.volume);
         if(Keys.volume_byteBuffer.equals(volume))
@@ -983,15 +1002,13 @@ public class DBMaker{
         else if(Keys.volume_directByteBuffer.equals(volume))
             return Volume.memoryFactory(true,sizeLimit,CC.VOLUME_SLICE_SHIFT);
 
-        File file = new File(props.getProperty(Keys.file));
+        boolean raf = propsGetRafMode()!=0;
+        if(raf && index && propsGetRafMode()==1)
+            raf = false;
 
-        return Volume.fileFactory(
-                file,
-                propsGetRafMode(), propsGetBool(Keys.readOnly),
+        return Volume.fileFactory(raf, propsGetBool(Keys.readOnly),
                 sizeLimit,CC.VOLUME_SLICE_SHIFT,0);
     }
-
-
 
     protected static String toHexa( byte [] bb ) {
         char[] HEXA_CHARS = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};

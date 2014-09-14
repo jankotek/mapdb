@@ -50,7 +50,6 @@ public class StoreWAL extends StoreDirect {
     protected static final long[] TOMBSTONE = new long[0];
     protected static final long[] PREALLOC = new long[0];
 
-    protected final Volume.Factory volFac;
     protected Volume log;
 
     protected volatile long logSize;
@@ -65,16 +64,27 @@ public class StoreWAL extends StoreDirect {
 
     protected final AtomicInteger logChecksum = new AtomicInteger();
 
-    public StoreWAL(Volume.Factory volFac) {
-        this(volFac, false, false, 5, false, 0L, false, false, null,false,0);
-    }
-    public StoreWAL(Volume.Factory volFac, boolean readOnly, boolean deleteFilesAfterClose,
-                    int spaceReclaimMode, boolean syncOnCommitDisabled, long sizeLimit,
-                    boolean checksum, boolean compress, byte[] password, boolean disableLocks, int sizeIncrement) {
-        super(volFac, readOnly, deleteFilesAfterClose, spaceReclaimMode, syncOnCommitDisabled, sizeLimit,
-                checksum, compress, password,disableLocks, sizeIncrement);
-        this.volFac = volFac;
-        this.log = volFac.createTransLogVolume();
+    public StoreWAL(
+            String fileName,
+            Fun.Function1<Volume,String> volFac,
+            Fun.Function1<Volume,String> indexVolFac,
+            boolean readOnly,
+            boolean deleteFilesAfterClose,
+            int spaceReclaimMode,
+            boolean syncOnCommitDisabled,
+            long sizeLimit,
+            boolean checksum,
+            boolean compress,
+            byte[] password,
+            boolean disableLocks,
+            int sizeIncrement) {
+        super(fileName, volFac, indexVolFac,
+                readOnly, deleteFilesAfterClose,
+                spaceReclaimMode, syncOnCommitDisabled, sizeLimit,
+                checksum, compress, password,
+                disableLocks, sizeIncrement);
+
+        this.log = volFac.run(fileName+TRANS_LOG_FILE_EXT);
 
         boolean allGood = false;
         if(!disableLocks) {
@@ -111,6 +121,24 @@ public class StoreWAL extends StoreDirect {
                 structuralLock.unlock();
             }
         }
+    }
+
+
+    public StoreWAL(String fileName) {
+        this(   fileName,
+                fileName==null || fileName.isEmpty()?Volume.memoryFactory():Volume.fileFactory(),
+                fileName==null || fileName.isEmpty()?Volume.memoryFactory():Volume.fileFactory(),
+                false,
+                false,
+                CC.DEFAULT_FREE_SPACE_RECLAIM_Q,
+                false,
+                0,
+                false,
+                false,
+                null,
+                false,
+                0
+        );
     }
 
     @Override

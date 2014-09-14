@@ -11,10 +11,11 @@ import java.util.Map;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-public class Serialization2Test extends TestFile {
+public class Serialization2Test{
 
 
     @Test public void test2() throws IOException {
+        File index = UtilsTest.tempDbFile();
         DB db = DBMaker.newFileDB(index).cacheDisable().transactionDisable().make();
 
         Serialization2Bean processView = new Serialization2Bean();
@@ -33,6 +34,7 @@ public class Serialization2Test extends TestFile {
 
 
     @Test public void test2_engine() throws IOException {
+        File index = UtilsTest.tempDbFile();
         DB db = DBMaker.newFileDB(index).cacheDisable().make();
 
         Serialization2Bean processView = new Serialization2Bean();
@@ -49,7 +51,7 @@ public class Serialization2Test extends TestFile {
 
 
     @Test  public void test3() throws IOException {
-
+        File index = UtilsTest.tempDbFile();
 
         Serialized2DerivedBean att = new Serialized2DerivedBean();
         DB db = DBMaker.newFileDB(index).cacheDisable().make();

@@ -1,5 +1,6 @@
 package org.mapdb;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -19,6 +20,10 @@ public abstract class ClosedThrowsExceptionTest {
 
     @Before public void init(){
         db = db();
+    }
+
+    @After public void close(){
+        db = null;
     }
 
     static public class Def extends ClosedThrowsExceptionTest{

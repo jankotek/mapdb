@@ -1,5 +1,6 @@
 package org.mapdb;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -22,10 +23,15 @@ public class BTreeMapTest{
     boolean valsOutside = false;
 
     @Before public void init(){
-        engine = new StoreDirect(Volume.memoryFactory(false,0L,CC.VOLUME_SLICE_SHIFT));
+        engine = new StoreDirect(null);
         m = new BTreeMap(engine,BTreeMap.createRootRef(engine,BTreeKeySerializer.BASIC,Serializer.BASIC,0),
                 6,valsOutside,0, BTreeKeySerializer.BASIC,Serializer.BASIC,
                 0,false);;
+    }
+
+    @After
+    public void close(){
+        engine.close();
     }
 
 

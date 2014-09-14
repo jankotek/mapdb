@@ -19,19 +19,13 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
     @Override boolean canRollback(){return false;}
 
-    File f  = UtilsTest.tempDbFile();
-    Volume.Factory fac;
+    File f = UtilsTest.tempDbFile();
 
-    @Before public void init(){
-
-        fac = Volume.fileFactory(f, 0,false,0L,CC.VOLUME_SLICE_SHIFT, 0);
-        super.init();
-    }
 
     static final long IO_RECID = StoreDirect.IO_FREE_RECID+32;
 
     @Override protected E openEngine() {
-        return (E) new StoreDirect(fac);
+        return (E) new StoreDirect(f.getPath());
     }
 
     int countIndexRecords(){

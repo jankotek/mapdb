@@ -1,8 +1,10 @@
 package org.mapdb;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Map;
@@ -16,14 +18,23 @@ import static org.junit.Assert.*;
 * @author Jan Kotek
 */
 @SuppressWarnings({ "unchecked", "rawtypes" })
-public class AsyncWriteEngineTest extends TestFile{
+public class AsyncWriteEngineTest{
+
+    File index = UtilsTest.tempDbFile();
     AsyncWriteEngine engine;
 
     @Before public void reopenStore() throws IOException {
         assertNotNull(index);
         if(engine !=null)
            engine.close();
-        engine =  new AsyncWriteEngine(new StoreDirect(fac));
+        engine =  new AsyncWriteEngine(
+                DBMaker.newFileDB(index).transactionDisable().cacheDisable().makeEngine()
+        );
+    }
+
+    @After
+    public void close(){
+        engine.close();
     }
 
 
@@ -84,7 +95,7 @@ public class AsyncWriteEngineTest extends TestFile{
     @Test(timeout = 1000000)
     public void async_commit(){
         final AtomicLong putCounter = new AtomicLong();
-        StoreWAL t = new StoreWAL(fac){
+        StoreWAL t = new StoreWAL(index.getPath()){
             @Override
             public <A> long put(A value, Serializer<A> serializer) {
                 putCounter.incrementAndGet();
@@ -116,7 +127,7 @@ public class AsyncWriteEngineTest extends TestFile{
         a.close();
 
         //now reopen db and check ths
-        t = new StoreWAL(fac);
+        t = (StoreWAL) DBMaker.newFileDB(index).cacheDisable().makeEngine();
         a = new AsyncWriteEngine(t);
         for(Long recid : l){
             assertArrayEquals(b, (byte[]) a.get(recid, Serializer.BASIC));

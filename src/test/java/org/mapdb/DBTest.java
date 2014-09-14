@@ -1,5 +1,6 @@
 package org.mapdb;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -19,8 +20,14 @@ public class DBTest {
 
 
     @Before public void init(){
-        engine = new StoreDirect(Volume.memoryFactory(false,0L,CC.VOLUME_SLICE_SHIFT));
+        engine = new StoreDirect(null);
         db = new DB(engine);
+    }
+
+
+    @After
+    public void close(){
+        db = null;
     }
 
     @Test

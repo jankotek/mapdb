@@ -36,8 +36,6 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public abstract class Volume implements Closeable{
 
-
-
     /**
      * Check space allocated by Volume is bigger or equal to given offset.
      * So it is safe to write into smaller offsets.
@@ -189,14 +187,6 @@ public abstract class Volume implements Closeable{
         target.putData(targetOffset,data,0,size);
     }
 
-    /**
-     * Factory which creates two/three volumes used by each MapDB Storage Engine
-     */
-    public static interface Factory {
-        Volume createIndexVolume();
-        Volume createPhysVolume();
-        Volume createTransLogVolume();
-    }
 
     public static Volume volumeForFile(File f, boolean useRandomAccessFile, boolean readOnly, long sizeLimit, int sliceShift, int sizeIncrement) {
         return useRandomAccessFile ?
@@ -205,60 +195,38 @@ public abstract class Volume implements Closeable{
     }
 
 
-    public static Factory fileFactory(final File indexFile, final int rafMode, final boolean readOnly, final long sizeLimit,
-                                      final int sliceShift, final int sizeIncrement){
-        return fileFactory(
-                indexFile,
-                rafMode, readOnly, sizeLimit, sliceShift, sizeIncrement,
-                new File(indexFile.getPath() + StoreDirect.DATA_FILE_EXT),
-                new File(indexFile.getPath() + StoreWAL.TRANS_LOG_FILE_EXT));
+    public static Fun.Function1<Volume,String> fileFactory(){
+        return fileFactory(false,false,0,CC.VOLUME_SLICE_SHIFT,0);
     }
 
-    public static Factory fileFactory(final File indexFile,
-                                      final int rafMode,
+    public static Fun.Function1<Volume,String> fileFactory(
+                                      final boolean useRandomAccessFile,
                                       final boolean readOnly,
                                       final long sizeLimit,
                                       final int sliceShift,
-                                      final int sizeIncrement,
-
-                                      final File physFile,
-                                      final File transLogFile) {
-        return new Factory() {
+                                      final int sizeIncrement) {
+        return new Fun.Function1<Volume, String>() {
             @Override
-            public Volume createIndexVolume() {
-                return volumeForFile(indexFile, rafMode>1, readOnly, sizeLimit, sliceShift, sizeIncrement);
-            }
-
-            @Override
-            public Volume createPhysVolume() {
-                return volumeForFile(physFile, rafMode>0, readOnly, sizeLimit, sliceShift, sizeIncrement);
-            }
-
-            @Override
-            public Volume createTransLogVolume() {
-                return volumeForFile(transLogFile, rafMode>0, readOnly, sizeLimit,sliceShift, sizeIncrement);
+            public Volume run(String file) {
+                return volumeForFile(new File(file), useRandomAccessFile,
+                        readOnly, sizeLimit, sliceShift, sizeIncrement);
             }
         };
     }
 
 
-    public static Factory memoryFactory(final boolean useDirectBuffer, final long sizeLimit, final int sliceShift) {
-        return new Factory() {
+    public static Fun.Function1<Volume,String> memoryFactory(){
+        return memoryFactory(false,0L,CC.VOLUME_SLICE_SHIFT);
+    }
 
-            @Override public synchronized  Volume createIndexVolume() {
-                return useDirectBuffer?
-                        new MemoryVol(useDirectBuffer, sizeLimit, sliceShift):
-                        new ByteArrayVol(sizeLimit, sliceShift);
-            }
+    public static Fun.Function1<Volume,String> memoryFactory(
+            final boolean useDirectBuffer, final long sizeLimit, final int sliceShift) {
+        return new Fun.Function1<Volume,String>() {
 
-            @Override public synchronized Volume createPhysVolume() {
+            @Override
+            public Volume run(String s) {
                 return useDirectBuffer?
-                        new MemoryVol(useDirectBuffer, sizeLimit, sliceShift):
-                        new ByteArrayVol(sizeLimit, sliceShift);            }
-
-            @Override public synchronized Volume createTransLogVolume() {
-                return useDirectBuffer?
-                        new MemoryVol(useDirectBuffer, sizeLimit, sliceShift):
+                        new MemoryVol(true, sizeLimit, sliceShift):
                         new ByteArrayVol(sizeLimit, sliceShift);
             }
         };

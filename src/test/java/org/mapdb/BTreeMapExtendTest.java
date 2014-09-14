@@ -68,6 +68,7 @@ public class BTreeMapExtendTest extends TestCase {
         return DBMaker.newMemoryDB().cacheDisable().transactionDisable().make().getTreeMap("Test");
     }
 
+
     public static class Outside extends BTreeMapExtendTest{
         @Override protected BTreeMap newBTreeMap() {
             return DBMaker.newMemoryDB().cacheDisable().transactionDisable().make()
@@ -7502,6 +7503,7 @@ public class BTreeMapExtendTest extends TestCase {
 
     @Override
     protected void tearDown() {
+        tm.engine.close();
         tm = null;
         tm_comparator = null;
 

@@ -1,5 +1,7 @@
 package org.mapdb;
 
+import org.junit.After;
+
 import java.io.DataInput;
 import java.io.IOException;
 import java.io.Serializable;
@@ -25,9 +27,15 @@ public class BTreeMapContainsKeyTest extends JSR166TestCase {
 
     @Override
     protected void setUp() throws Exception {
-        r = new StoreDirect(Volume.memoryFactory(false, 0L,CC.VOLUME_SLICE_SHIFT));
+        r = DBMaker.newMemoryDB().transactionDisable().cacheDisable().makeEngine();
         map = new BTreeMap(r, createRootRef(r,BASIC, Serializer.BASIC,0),
                 6, valsOutsideNodes, 0, BASIC, valueSerializer, 0,false);
+    }
+
+
+    @After
+    public void close(){
+        r.close();
     }
 
     /**

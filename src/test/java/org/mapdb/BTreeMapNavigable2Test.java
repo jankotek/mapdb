@@ -1,6 +1,7 @@
 package org.mapdb;
 
 import junit.framework.TestCase;
+import org.junit.After;
 
 import java.util.*;
 
@@ -23,6 +24,12 @@ public  class BTreeMapNavigable2Test extends TestCase
 		map.put(9, "nine");
 		map.put(10, "ten");
 	}
+
+
+    @Override
+    protected void tearDown() throws Exception {
+        map = null;
+    }
 
     protected NavigableMap<Integer, String> newMap() {
         return DBMaker.newMemoryDB().make().createTreeMap("map").make();

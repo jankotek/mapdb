@@ -88,6 +88,23 @@ public class DBMakerTest{
     }
 
     @Test
+    public void testMakeMapped() throws Exception {
+        DB db = DBMaker
+                .newFileDB(UtilsTest.tempDbFile())
+                .transactionDisable()
+                .mmapFileEnable()
+                .make();
+        verifyDB(db);
+        //check default values are set
+        EngineWrapper w = (EngineWrapper) db.engine;
+        assertTrue(w instanceof Caches.HashTable);
+        assertEquals(1024 * 32, ((Caches.HashTable) w).cacheMaxSize);
+        StoreDirect s = (StoreDirect) w.getWrappedEngine();
+        assertTrue(s.index instanceof Volume.MappedFileVol);
+        assertTrue(s.phys instanceof Volume.MappedFileVol);
+    }
+
+    @Test
     public void testCacheHardRefEnable() throws Exception {
         DB db = DBMaker
                 .newMemoryDB()
