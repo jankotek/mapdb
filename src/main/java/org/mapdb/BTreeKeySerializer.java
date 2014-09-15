@@ -731,8 +731,23 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
 
     }
 
+    public static final BTreeKeySerializer ARRAY2 = new ArrayKeySerializer(
+            new Comparator[]{Fun.COMPARATOR,Fun.COMPARATOR},
+            new Serializer[]{Serializer.BASIC, Serializer.BASIC}
+    );
 
-    public final static class TupleKeySerializer extends BTreeKeySerializer<Fun.Tuple,Object[]> implements Serializable{
+    public static final BTreeKeySerializer ARRAY3 = new ArrayKeySerializer(
+            new Comparator[]{Fun.COMPARATOR,Fun.COMPARATOR,Fun.COMPARATOR},
+            new Serializer[]{Serializer.BASIC, Serializer.BASIC, Serializer.BASIC}
+    );
+
+    public static final BTreeKeySerializer ARRAY4 = new ArrayKeySerializer(
+            new Comparator[]{Fun.COMPARATOR,Fun.COMPARATOR,Fun.COMPARATOR,Fun.COMPARATOR},
+            new Serializer[]{Serializer.BASIC, Serializer.BASIC, Serializer.BASIC, Serializer.BASIC}
+    );
+
+
+    public final static class ArrayKeySerializer extends BTreeKeySerializer<Object[],Object[]> implements Serializable{
 
         private static final long serialVersionUID = 998929894238939892L;
 
@@ -740,44 +755,23 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         protected final Comparator[] comparators;
         protected final Serializer[] serializers;
 
-        protected Comparator comparator;
+        protected final Comparator comparator;
 
-        public TupleKeySerializer(int tsize, Comparator[] comparators, Serializer[] serializers) {
-            if(tsize!=comparators.length ||tsize!=serializers.length){
+        public ArrayKeySerializer(Comparator[] comparators, Serializer[] serializers) {
+            if(comparators.length!=serializers.length){
                 throw new IllegalArgumentException("array sizes do not match");
             }
-            this.tsize = tsize;
+
+            this.tsize = comparators.length;
             this.comparators = comparators;
             this.serializers = serializers;
 
-            initComparator();
-        }
-
-        private void initComparator() {
-            switch(tsize){
-                case 2:comparator=new Fun.Tuple2Comparator(
-                        comparators[0],comparators[1]);
-                    break;
-                case 3:comparator=new Fun.Tuple3Comparator(
-                        comparators[0],comparators[1],comparators[2]);
-                    break;
-                case 4:comparator=new Fun.Tuple4Comparator(
-                        comparators[0],comparators[1],comparators[2],comparators[3]);
-                    break;
-                case 5:comparator=new Fun.Tuple5Comparator(
-                        comparators[0],comparators[1],comparators[2],comparators[3],comparators[4]);
-                    break;
-                case 6:comparator=new Fun.Tuple6Comparator(
-                        comparators[0],comparators[1],comparators[2],comparators[3],comparators[4],comparators[5]);
-                    break;
-                default:
-                    throw new IllegalArgumentException("Unsupported tuple size: "+tsize);
-            }
+            this.comparator = new Fun.ArrayComparator(comparators);
         }
 
         /** used for deserialization, `extra` is to avoid argument collision */
-        public TupleKeySerializer(SerializerBase serializerBase, DataInput is,
-                                  SerializerBase.FastArrayList<Object>  objectStack) throws IOException {
+        public ArrayKeySerializer(SerializerBase serializerBase, DataInput is,
+                                  SerializerBase.FastArrayList<Object> objectStack) throws IOException {
             objectStack.add(this);
             tsize = DataIO.unpackInt(is);
             comparators = new Comparator[tsize];
@@ -788,7 +782,8 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             for(int i=0;i<tsize;i++){
                 serializers[i] = (Serializer) serializerBase.deserialize(is,objectStack);
             }
-            initComparator();
+
+            this.comparator = new Fun.ArrayComparator(comparators);
         }
 
         @Override
@@ -862,20 +857,22 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         }
 
         @Override
-        public int compare(Object[] keys, int pos, Fun.Tuple tuple) {
-            return -tuple.compare(comparators,keys,pos*tsize);
+        public int compare(Object[] keys, int pos, Object[] tuple) {
+            pos*=tsize;
+            int len = Math.min(tuple.length, tsize);
+            int r;
+            for(int i=0;i<len;i++){
+                r = comparators[i].compare(keys[pos++],tuple[i]);
+                if(r!=0)
+                    return r;
+            }
+            return Fun.compareInt(tsize, tuple.length);
         }
 
         @Override
-        public Fun.Tuple getKey(Object[] keys, int pos) {
+        public Object[] getKey(Object[] keys, int pos) {
             pos*=tsize;
-            switch (tsize) {
-                case 2: return new Fun.Tuple2(keys[pos++],keys[pos]);
-                case 3: return new Fun.Tuple3(keys[pos++],keys[pos++],keys[pos]);
-                case 4: return new Fun.Tuple4(keys[pos++],keys[pos++],keys[pos++],keys[pos]);
-                case 5: return new Fun.Tuple5(keys[pos++],keys[pos++],keys[pos++],keys[pos++],keys[pos]);
-                default: return new Fun.Tuple6(keys[pos++],keys[pos++],keys[pos++],keys[pos++],keys[pos++],keys[pos]);
-            }
+            return Arrays.copyOfRange(keys,pos,pos+tsize);
         }
 
         @Override
@@ -894,21 +891,27 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         }
 
         @Override
-        public Object[] putKey(Object[] keys, int pos, Fun.Tuple newKey) {
+        public Object[] putKey(Object[] keys, int pos, Object[] newKey) {
+            if(CC.PARANOID && newKey.length!=tsize)
+                throw new AssertionError();
             pos*=tsize;
             Object[] ret = new Object[keys.length+tsize];
             System.arraycopy(keys, 0, ret, 0, pos);
-            newKey.copyIntoArray(ret,pos);
+            System.arraycopy(newKey,0,ret,pos,tsize);
             System.arraycopy(keys,pos,ret,pos+tsize,keys.length-pos);
             return ret;
         }
 
         @Override
         public Object[] arrayToKeys(Object[] keys) {
+            if(CC.PARANOID && keys.length%tsize!=0)
+                throw new AssertionError();
             Object[] ret = new Object[keys.length*tsize];
             int pos=0;
             for(Object o:keys){
-                ((Fun.Tuple)o).copyIntoArray(ret,pos);
+                if(CC.PARANOID && ((Object[])o).length!=tsize)
+                    throw new AssertionError();
+                System.arraycopy(o,0,ret,pos,tsize);
                 pos+=tsize;
             }
             return ret;
@@ -935,7 +938,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
 
-            TupleKeySerializer that = (TupleKeySerializer) o;
+            ArrayKeySerializer that = (ArrayKeySerializer) o;
 
             if (tsize != that.tsize) return false;
             if (!Arrays.equals(comparators, that.comparators)) return false;
@@ -952,227 +955,6 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             return result;
         }
     }
-
-    /**
-     * Tuple2 Serializer which uses Default Serializer from DB and expect values to implement {@code Comparable} interface.
-     */
-    public static final BTreeKeySerializer<Fun.Tuple2,Fun.Tuple2[]> TUPLE2 = new Tuple2KeySerializer(
-            Fun.COMPARATOR_NULLABLE, Fun.COMPARATOR_NULLABLE,
-            Serializer.BASIC,Serializer.BASIC);
-
-
-    /**
-     * Tuple3 Serializer which uses Default Serializer from DB and expect values to implement {@code Comparable} interface.
-     */
-    public static final BTreeKeySerializer TUPLE3 = new TupleKeySerializer(3,
-            new Comparator[]{Fun.COMPARATOR_NULLABLE, Fun.COMPARATOR_NULLABLE, Fun.COMPARATOR_NULLABLE},
-            new Serializer[]{Serializer.BASIC,Serializer.BASIC,Serializer.BASIC});
-    /**
-     * Tuple4 Serializer which uses Default Serializer from DB and expect values to implement {@code Comparable} interface.
-     */
-    public static final BTreeKeySerializer TUPLE4 = new TupleKeySerializer(4,
-            new Comparator[]{Fun.COMPARATOR_NULLABLE, Fun.COMPARATOR_NULLABLE, Fun.COMPARATOR_NULLABLE,
-                    Fun.COMPARATOR_NULLABLE},
-            new Serializer[]{Serializer.BASIC,Serializer.BASIC,Serializer.BASIC,Serializer.BASIC});
-
-    /**
-     * Tuple5 Serializer which uses Default Serializer from DB and expect values to implement {@code Comparable} interface.
-     */
-    public static final BTreeKeySerializer TUPLE5 = new TupleKeySerializer(5,
-            new Comparator[]{Fun.COMPARATOR_NULLABLE, Fun.COMPARATOR_NULLABLE, Fun.COMPARATOR_NULLABLE,
-                    Fun.COMPARATOR_NULLABLE, Fun.COMPARATOR_NULLABLE},
-            new Serializer[]{Serializer.BASIC,Serializer.BASIC,Serializer.BASIC,Serializer.BASIC,Serializer.BASIC});
-    /**
-     * Tuple6 Serializer which uses Default Serializer from DB and expect values to implement {@code Comparable} interface.
-     */
-    public static final BTreeKeySerializer TUPLE6 = new TupleKeySerializer(6,
-            new Comparator[]{Fun.COMPARATOR_NULLABLE, Fun.COMPARATOR_NULLABLE, Fun.COMPARATOR_NULLABLE,
-                    Fun.COMPARATOR_NULLABLE, Fun.COMPARATOR_NULLABLE, Fun.COMPARATOR_NULLABLE},
-            new Serializer[]{Serializer.BASIC,Serializer.BASIC,Serializer.BASIC,Serializer.BASIC,Serializer.BASIC,Serializer.BASIC});
-
-    /**
-     * Applies delta compression on array of tuple. First tuple value may be shared between consequentive tuples, so only
-     * first occurrence is serialized. An example:
-     *
-     * <pre>
-     *     Value            Serialized as
-     *     -------------------------
-     *     Tuple(1, 1)       1, 1
-     *     Tuple(1, 2)          2
-     *     Tuple(1, 3)          3
-     *     Tuple(1, 4)          4
-     * </pre>
-     *
-     * @param <A> first tuple value
-     * @param <B> second tuple value
-     */
-    public final  static class Tuple2KeySerializer<A,B> extends  BTreeKeySerializer<Fun.Tuple2<A,B>,Fun.Tuple2<A,B>[]> implements Serializable {
-
-        private static final long serialVersionUID = 2183804367032891772L;
-        protected final Comparator<A> aComparator;
-        protected final Comparator<B> bComparator;
-        protected final Serializer<A> aSerializer;
-        protected final Serializer<B> bSerializer;
-        protected final Comparator<Fun.Tuple2<A, B>> comparator;
-
-        /**
-         * Construct new Tuple2 Key Serializer. You may pass null for some value,
-         * In that case 'default' value will be used, Comparable comparator and Default Serializer from DB.
-         *
-         * @param aComparator comparator used for first tuple value
-         * @param bComparator comparator used for second tuple value
-         * @param aSerializer serializer used for first tuple value
-         * @param bSerializer serializer used for second tuple value
-         */
-        public Tuple2KeySerializer(Comparator<A> aComparator,Comparator<B> bComparator,Serializer<A> aSerializer, Serializer<B> bSerializer){
-            this.aComparator = aComparator;
-            this.bComparator = bComparator;
-            this.aSerializer = aSerializer;
-            this.bSerializer = bSerializer;
-
-            this.comparator = new Fun.Tuple2Comparator<A,B>(aComparator,bComparator);
-        }
-
-        /** used for deserialization, `extra` is to avoid argument collision */
-        Tuple2KeySerializer(SerializerBase serializerBase, DataInput is, SerializerBase.FastArrayList<Object> objectStack, int extra) throws IOException {
-            objectStack.add(this);
-            aComparator = (Comparator<A>) serializerBase.deserialize(is,objectStack);
-            bComparator = (Comparator<B>) serializerBase.deserialize(is,objectStack);
-            aSerializer = (Serializer<A>) serializerBase.deserialize(is,objectStack);
-            bSerializer = (Serializer<B>) serializerBase.deserialize(is,objectStack);
-            comparator = new Fun.Tuple2Comparator<A,B>(aComparator,bComparator);
-        }
-
-
-        @Override
-        public void serialize(DataOutput out,  Fun.Tuple2<A,B>[] keys) throws IOException {
-            int acount=0;
-            for(int i=0;i<keys.length;i++){
-                Fun.Tuple2<A,B> t = keys[i];
-                if(acount==0){
-                    //write new A
-                    aSerializer.serialize(out,t.a);
-                    //count how many A are following
-                    acount=1;
-                    while(i+acount<keys.length && aComparator.compare(t.a, ((Fun.Tuple2<A, B>) keys[i+acount]).a)==0){
-                        acount++;
-                    }
-                    DataIO.packInt(out, acount);
-                }
-                bSerializer.serialize(out,t.b);
-
-                acount--;
-            }
-        }
-
-        @Override
-        public Fun.Tuple2<A,B>[] deserialize(DataInput in, int nodeSize) throws IOException {
-            Fun.Tuple2<A,B>[] ret = new Fun.Tuple2[nodeSize];
-            A a = null;
-            int acount = 0;
-
-            for(int i=0;i<nodeSize;i++){
-                if(acount==0){
-                    //read new A
-                    a = aSerializer.deserialize(in,-1);
-                    acount = DataIO.unpackInt(in);
-                }
-                B b = bSerializer.deserialize(in,-1);
-                ret[i]= Fun.t2(a,b);
-                acount--;
-            }
-            assert(acount==0);
-
-            return ret;
-        }
-
-        @Override
-        public int compare(Fun.Tuple2<A, B>[] keys, int pos1, int pos2) {
-            return comparator.compare(keys[pos1],keys[pos2]);
-        }
-
-        @Override
-        public int compare(Fun.Tuple2<A, B>[] keys, int pos, Fun.Tuple2<A, B> preDigestedKey) {
-            return comparator.compare(keys[pos], preDigestedKey);
-        }
-
-        @Override
-        public Fun.Tuple2<A, B> getKey(Fun.Tuple2<A, B>[] keys, int pos) {
-            return keys[pos];
-        }
-
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            Tuple2KeySerializer t = (Tuple2KeySerializer) o;
-
-            return
-                    Fun.eq(aComparator, t.aComparator) &&
-                            Fun.eq(bComparator, t.bComparator) &&
-                            Fun.eq(aSerializer, t.aSerializer) &&
-                            Fun.eq(bSerializer, t.bSerializer);
-        }
-
-        @Override
-        public int hashCode() {
-            return aComparator.hashCode() + bComparator.hashCode() + aSerializer.hashCode() + bSerializer.hashCode();
-        }
-
-        @Override
-        public Comparator comparator() {
-            return comparator;
-        }
-
-        @Override
-        public Fun.Tuple2[] emptyKeys() {
-            return new Fun.Tuple2[0];
-        }
-
-        @Override
-        public int length(Fun.Tuple2[] keys) {
-            return keys.length;
-        }
-
-        @Override
-        public Fun.Tuple2[] putKey(Fun.Tuple2[] keys, int pos, Fun.Tuple2 newKey) {
-            final Fun.Tuple2[] ret = Arrays.copyOf(keys, keys.length+1);
-            if(pos<keys.length){
-                System.arraycopy(keys, pos, ret, pos+1, keys.length-pos);
-            }
-            ret[pos] = newKey;
-            return ret;
-        }
-
-        @Override
-        public Fun.Tuple2[] copyOfRange(Fun.Tuple2[] keys, int from, int to) {
-            return Arrays.copyOfRange(keys,from,to);
-        }
-
-
-        @Override
-        public Fun.Tuple2[] arrayToKeys(Object[] keys) {
-            Fun.Tuple2[] ret = new Fun.Tuple2[keys.length];
-            for(int i=ret.length-1;i>=0;i--){
-                ret[i] = (Fun.Tuple2) keys[i];
-            }
-            return ret;
-        }
-
-        @Override
-        public Fun.Tuple2<A, B>[] deleteKey(Fun.Tuple2<A, B>[] keys, int pos) {
-            Fun.Tuple2<A, B>[] keys2 = new Fun.Tuple2[keys.length-1];
-            System.arraycopy(keys,0,keys2, 0, pos);
-            System.arraycopy(keys, pos+1, keys2, pos, keys2.length-pos);
-            return keys2;
-        }
-
-
-    }
-
-
 
     public static final BTreeKeySerializer<java.util.UUID,long[]> UUID = new BTreeKeySerializer<java.util.UUID,long[]>() {
 

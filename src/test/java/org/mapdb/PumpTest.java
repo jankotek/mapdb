@@ -338,28 +338,35 @@ public class PumpTest {
     }
 
 
-    @Test public void duplicates_reversed(){
+    @Test public void merge_with_duplicates(){
         List<Long> u = new ArrayList<Long>();
-
-        for(long i=0;i<1e6;i++){
+        for(long i=0;i<100;i++){
             u.add(i);
-            if(i%100==0)
-                for(int j=0;j<10;j++)
-                    u.add(i);
         }
 
-        Comparator c = Collections.reverseOrder(Fun.COMPARATOR);
-        List<Long> sorted = new ArrayList<Long>(u);
-        Collections.sort(sorted,c);
+        Iterator res = Pump.sort(Fun.COMPARATOR,false,u.iterator(),u.iterator());
 
-        Iterator<Long> iter = u.iterator();
-        iter = Pump.sort(iter,false, 10000,c,Serializer.LONG);
-        Iterator<Long> iter2 = sorted.iterator();
-
-        while(iter.hasNext()){
-            assertEquals(iter2.next(),iter.next());
+        for(long i=0;i<100;i++){
+            assertTrue(res.hasNext());
+            assertEquals(i, res.next());
+            assertTrue(res.hasNext());
+            assertEquals(i, res.next());
         }
-        assertFalse(iter2.hasNext());
+        assertFalse(res.hasNext());
+    }
+    @Test public void merge_without_duplicates(){
+        List<Long> u = new ArrayList<Long>();
+        for(long i=0;i<100;i++){
+            u.add(i);
+        }
+
+        Iterator res = Pump.sort(Fun.COMPARATOR,true,u.iterator(),u.iterator());
+
+        for(long i=0;i<100;i++){
+            assertTrue(res.hasNext());
+            assertEquals(i, res.next());
+        }
+        assertFalse(res.hasNext());
     }
 
 

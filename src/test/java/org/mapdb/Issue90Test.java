@@ -19,11 +19,11 @@ public class Issue90Test {
                 .make();
         final Atomic.Long myCounter = mapDb.getAtomicLong("MyCounter");
 
-        final BTreeMap<String, Fun.Tuple2<String, Integer>> treeMap = mapDb.getTreeMap("map");
+        final BTreeMap<String, Fun.Pair<String, Integer>> treeMap = mapDb.getTreeMap("map");
         Bind.size(treeMap, myCounter);
 
         for (int i = 0; i < 3; i++) {
-            treeMap.put("key_" + i, new Fun.Tuple2<String, Integer>("value_", i));
+            treeMap.put("key_" + i, new Fun.Pair<String, Integer>("value_", i));
         }
     }
 

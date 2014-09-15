@@ -16,7 +16,7 @@ public class Issue308Test {
                 .checksumEnable()
                 .commitFileSyncDisable()
                 .make();
-        Iterator<Fun.Tuple2<Long, String>> newIterator = new Iterator<Fun.Tuple2<Long, String>>() {
+        Iterator<Fun.Pair<Long, String>> newIterator = new Iterator<Fun.Pair<Long, String>>() {
             private AtomicLong value = new AtomicLong(10000000);
 
             @Override
@@ -25,9 +25,9 @@ public class Issue308Test {
             }
 
             @Override
-            public Fun.Tuple2<Long, String> next() {
+            public Fun.Pair<Long, String> next() {
                 Long v = value.decrementAndGet();
-                return new Fun.Tuple2<Long, String>(v, v.toString());
+                return new Fun.Pair<Long, String>(v, v.toString());
             }
 
             @Override

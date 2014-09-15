@@ -328,8 +328,8 @@ public class TxEngine extends EngineWrapper {
     public class Tx implements Engine{
 
         protected LongConcurrentHashMap old = new LongConcurrentHashMap();
-        protected LongConcurrentHashMap<Fun.Tuple2> mod =
-                fullTx ? new LongConcurrentHashMap<Fun.Tuple2>() : null;
+        protected LongConcurrentHashMap<Fun.Pair> mod =
+                fullTx ? new LongConcurrentHashMap<Fun.Pair>() : null;
 
         protected Collection<Long> usedPreallocatedRecids =
                 fullTx ? new ArrayList<Long>() : null;
@@ -384,7 +384,7 @@ public class TxEngine extends EngineWrapper {
         try{
             Long recid = preallocRecidTake();
             usedPreallocatedRecids.add(recid);
-            mod.put(recid, Fun.t2(value,serializer));
+            mod.put(recid, new Fun.Pair(value,serializer));
             return recid;
         }finally {
             commitLock.writeLock().unlock();
@@ -410,7 +410,7 @@ public class TxEngine extends EngineWrapper {
 
     private <A> A getNoLock(long recid, Serializer<A> serializer) {
         if(fullTx){
-            Fun.Tuple2 tu = mod.get(recid);
+            Fun.Pair tu = mod.get(recid);
             if(tu!=null){
                 if(tu.a==TOMBSTONE)
                     return null;
@@ -433,7 +433,7 @@ public class TxEngine extends EngineWrapper {
             throw new UnsupportedOperationException("read-only");
         commitLock.readLock().lock();
         try{
-            mod.put(recid, Fun.t2(value,serializer));
+            mod.put(recid, new Fun.Pair(value,serializer));
         }finally {
             commitLock.readLock().unlock();
         }
@@ -453,7 +453,7 @@ public class TxEngine extends EngineWrapper {
                 A oldVal = getNoLock(recid, serializer);
                 boolean ret = oldVal!=null && oldVal.equals(expectedOldValue);
                 if(ret){
-                    mod.put(recid,Fun.t2(newValue,serializer));
+                    mod.put(recid,new Fun.Pair(newValue,serializer));
                 }
                 return ret;
             }finally {
@@ -471,7 +471,7 @@ public class TxEngine extends EngineWrapper {
 
         commitLock.readLock().lock();
         try{
-            mod.put(recid,Fun.t2(TOMBSTONE,serializer));
+            mod.put(recid,new Fun.Pair(TOMBSTONE,serializer));
         }finally {
             commitLock.readLock().unlock();
         }
@@ -520,7 +520,7 @@ public class TxEngine extends EngineWrapper {
                 }
             }
 
-            LongMap.LongMapIterator<Fun.Tuple2> iter = mod.longMapIterator();
+            LongMap.LongMapIterator<Fun.Pair> iter = mod.longMapIterator();
             while(iter.moveToNext()){
                 long recid = iter.key();
                 if(old.containsKey(recid)){
@@ -533,7 +533,7 @@ public class TxEngine extends EngineWrapper {
             while(iter.moveToNext()){
                 long recid = iter.key();
 
-                Fun.Tuple2 val = iter.value();
+                Fun.Pair val = iter.value();
                 Serializer ser = (Serializer) val.b;
                 Object old = superGet(recid,ser);
                 if(old==null)

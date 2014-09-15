@@ -111,14 +111,14 @@ public class StoreAppend extends Store{
             throw new IllegalArgumentException("Parent dir does not exist: "+fileName);
 
         //list all matching files and sort them by number
-        final SortedSet<Fun.Tuple2<Long,File>> sortedFiles = new TreeSet<Fun.Tuple2<Long, File>>();
+        final SortedSet<Fun.Pair<Long,File>> sortedFiles = new TreeSet<Fun.Pair<Long, File>>();
         final String prefix = new File(fileName).getName();
         for(File f:parent.listFiles()){
             String name= f.getName();
             if(!name.startsWith(prefix) || name.length()<=prefix.length()+1) continue;
             String number = name.substring(prefix.length()+1, name.length());
             if(!number.matches("^[0-9]+$")) continue;
-            sortedFiles.add(Fun.t2(Long.valueOf(number),f));
+            sortedFiles.add(new Fun.Pair(Long.valueOf(number),f));
         }
 
 
@@ -150,7 +150,7 @@ public class StoreAppend extends Store{
             currPos = pos;
         }else{
             //some files exists, open, check header and replay index
-            for(Fun.Tuple2<Long,File> t:sortedFiles){
+            for(Fun.Pair<Long,File> t:sortedFiles){
                 Long num = t.a;
                 File f = t.b;
                 Volume vol = Volume.volumeForFile(f,useRandomAccessFile,readOnly, 0L, MAX_FILE_SIZE_SHIFT,0);

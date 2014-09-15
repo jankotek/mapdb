@@ -42,7 +42,7 @@ public class BindTest {
         m.put(1,"jedna");
         m.put(2,"dve");
 
-        Set<Tuple2<Integer,String>> sec = new TreeSet<Tuple2<Integer, String>>();
+        Set<Object[]> sec = new TreeSet(Fun.COMPARABLE_ARRAY_COMPARATOR);
 
         Bind.secondaryValues(m,sec,new Function2<String[], Integer, String>() {
             @Override
@@ -53,24 +53,24 @@ public class BindTest {
 
         //filled if empty
         assertEquals(5+3,sec.size());
-        assert(sec.contains(t2(2,"d")));
-        assert(sec.contains(t2(2,"v")));
-        assert(sec.contains(t2(2,"e")));
+        assert(sec.contains(new Object[]{2,"d"}));
+        assert(sec.contains(new Object[]{2,"v"}));
+        assert(sec.contains(new Object[]{2,"e"}));
 
         //old values preserved
         m.put(2,"dvea");
         assertEquals(5+4,sec.size());
-        assert(sec.contains(t2(2,"d")));
-        assert(sec.contains(t2(2,"v")));
-        assert(sec.contains(t2(2,"e")));
-        assert(sec.contains(t2(2,"a")));
+        assert(sec.contains(new Object[]{2,"d"}));
+        assert(sec.contains(new Object[]{2,"v"}));
+        assert(sec.contains(new Object[]{2,"e"}));
+        assert(sec.contains(new Object[]{2,"a"}));
 
         //old values deleted
         m.put(2,"dva");
         assertEquals(5+3,sec.size());
-        assert(sec.contains(t2(2,"d")));
-        assert(sec.contains(t2(2,"v")));
-        assert(sec.contains(t2(2,"a")));
+        assert(sec.contains(new Object[]{2,"d"}));
+        assert(sec.contains(new Object[]{2,"v"}));
+        assert(sec.contains(new Object[]{2,"a"}));
 
         //all removed on delete
         m.remove(2);
@@ -79,9 +79,9 @@ public class BindTest {
         //all added on put
         m.put(2,"dva");
         assertEquals(5+3,sec.size());
-        assert(sec.contains(t2(2,"d")));
-        assert(sec.contains(t2(2,"v")));
-        assert(sec.contains(t2(2,"a")));
+        assert(sec.contains(new Object[]{2,"d"}));
+        assert(sec.contains(new Object[]{2,"v"}));
+        assert(sec.contains(new Object[]{2,"a"}));
 
     }
 
@@ -89,7 +89,7 @@ public class BindTest {
         m.put(1,"jedna");
         m.put(2,"dve");
 
-        Set<Tuple2<String,Integer>> sec = new TreeSet<Tuple2<String,Integer>>();
+        Set<Object[]> sec = new TreeSet(Fun.COMPARABLE_ARRAY_COMPARATOR);
 
         Bind.secondaryKeys(m,sec,new Function2<String[], Integer, String>() {
             @Override
@@ -100,24 +100,24 @@ public class BindTest {
 
         //filled if empty
         assertEquals(5+3,sec.size());
-        assert(sec.contains(t2("d",2)));
-        assert(sec.contains(t2("v",2)));
-        assert(sec.contains(t2("e",2)));
+        assert(sec.contains(new Object[]{"d",2}));
+        assert(sec.contains(new Object[]{"v",2}));
+        assert(sec.contains(new Object[]{"e",2}));
 
         //old values preserved
         m.put(2,"dvea");
         assertEquals(5+4,sec.size());
-        assert(sec.contains(t2("d",2)));
-        assert(sec.contains(t2("v",2)));
-        assert(sec.contains(t2("e",2)));
-        assert(sec.contains(t2("a",2)));
+        assert(sec.contains(new Object[]{"d",2}));
+        assert(sec.contains(new Object[]{"v",2}));
+        assert(sec.contains(new Object[]{"e",2}));
+        assert(sec.contains(new Object[]{"a",2}));
 
         //old values deleted
         m.put(2,"dva");
         assertEquals(5+3,sec.size());
-        assert(sec.contains(t2("d",2)));
-        assert(sec.contains(t2("v",2)));
-        assert(sec.contains(t2("a",2)));
+        assert(sec.contains(new Object[]{"d",2}));
+        assert(sec.contains(new Object[]{"v",2}));
+        assert(sec.contains(new Object[]{"a",2}));
 
         //all removed on delete
         m.remove(2);
@@ -126,9 +126,9 @@ public class BindTest {
         //all added on put
         m.put(2,"dva");
         assertEquals(5+3,sec.size());
-        assert(sec.contains(t2("d",2)));
-        assert(sec.contains(t2("v",2)));
-        assert(sec.contains(t2("a",2)));
+        assert(sec.contains(new Object[]{"d",2}));
+        assert(sec.contains(new Object[]{"v",2}));
+        assert(sec.contains(new Object[]{"a",2}));
 
     }
 

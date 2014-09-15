@@ -20,8 +20,8 @@ public class Secondary_Key {
 
 
         // stores value hash from primary map
-        NavigableSet<Fun.Tuple2<Integer,Long>> valueHash =
-                new TreeSet<Fun.Tuple2<Integer,Long>>(); //any Set will do
+        NavigableSet<Object[]> valueHash =
+                new TreeSet<Object[]>(Fun.COMPARABLE_ARRAY_COMPARATOR); //any Set will do
 
         // bind secondary to primary so it contains secondary key
         Bind.secondaryKey(primary, valueHash, new Fun.Function2<Integer, Long, String>() {
@@ -40,8 +40,8 @@ public class Secondary_Key {
         System.out.println(valueHash);
 
         //get all keys where value hashCode is N
-        Iterable<Long> ids = Fun.filter(valueHash, 1571230533);
-        System.out.println(ids.iterator().next());
+        Iterable<Object[]> ids = Fun.filter(valueHash, 1571230533);
+        System.out.println(ids.iterator().next()[1]);
 
     }
 }

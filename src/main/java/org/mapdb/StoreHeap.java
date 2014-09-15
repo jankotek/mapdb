@@ -30,18 +30,18 @@ import java.util.concurrent.locks.Lock;
  */
 public class StoreHeap extends Store implements Serializable{
 
-    protected final static Fun.Tuple2 TOMBSTONE = Fun.t2(null,null);
+    protected final static Fun.Pair TOMBSTONE = new Fun.Pair(null,null);
 
     protected final static Object NULL = new Object();
     private static final long serialVersionUID = 150060834534309445L;
 
     /** All commited records in store */
-    protected final ConcurrentNavigableMap<Long,Fun.Tuple2> records
-            = new ConcurrentSkipListMap<Long, Fun.Tuple2>();
+    protected final ConcurrentNavigableMap<Long,Fun.Pair> records
+            = new ConcurrentSkipListMap<Long, Fun.Pair>();
 
     /** All not-yet commited records in store */
-    protected final ConcurrentNavigableMap<Long,Fun.Tuple2> rollback
-            = new ConcurrentSkipListMap<Long, Fun.Tuple2>();
+    protected final ConcurrentNavigableMap<Long,Fun.Pair> rollback
+            = new ConcurrentSkipListMap<Long, Fun.Pair>();
 
 
     /** Queue of deleted recids, those are reused for new records */
@@ -53,7 +53,7 @@ public class StoreHeap extends Store implements Serializable{
     public StoreHeap(boolean disableLocks){
         super(null, null, false,false,null,disableLocks);
         for(long recid=1;recid<=LAST_RESERVED_RECID;recid++){
-            records.put(recid, Fun.t2(null, (Serializer)null));
+            records.put(recid, new Fun.Pair(null, (Serializer)null));
         }
     }
 
@@ -115,8 +115,8 @@ public class StoreHeap extends Store implements Serializable{
         try{
             Long recid = freeRecids.poll();
             if(recid==null) recid = maxRecid.incrementAndGet();
-            records.put(recid, Fun.<Object, Serializer>t2(value,serializer));
-            rollback.put(recid, Fun.t2(TOMBSTONE,serializer ));
+            records.put(recid, new Fun.Pair<Object, Serializer>(value,serializer));
+            rollback.put(recid, new Fun.Pair(TOMBSTONE,serializer ));
             assert(recid>0);
             return recid;
         }finally{
@@ -138,7 +138,7 @@ public class StoreHeap extends Store implements Serializable{
         }
         try{
             //get from commited records
-            Fun.Tuple2 t = records.get(recid);
+            Fun.Pair t = records.get(recid);
             if(t==null || t.a==NULL)
                 return null;
             return (A) t.a;
@@ -163,7 +163,7 @@ public class StoreHeap extends Store implements Serializable{
             lock.lock();
         }
         try{
-            Fun.Tuple2 old = records.put(recid, Fun.<Object, Serializer>t2(value,serializer));
+            Fun.Pair old = records.put(recid, new Fun.Pair<Object, Serializer>(value,serializer));
             if(old!=null) //TODO null if record was preallocated
                 rollback.putIfAbsent(recid,old);
         }finally{
@@ -186,8 +186,8 @@ public class StoreHeap extends Store implements Serializable{
             lock.lock();
         }
         try{
-            Fun.Tuple2 old = Fun.t2(expectedOldValue, serializer);
-            boolean ret =  records.replace(recid, old, Fun.t2(newValue, serializer));
+            Fun.Pair old = new Fun.Pair(expectedOldValue, serializer);
+            boolean ret =  records.replace(recid, old, new Fun.Pair(newValue, serializer));
             if(ret) rollback.putIfAbsent(recid,old);
             return ret;
         }finally{
@@ -208,7 +208,7 @@ public class StoreHeap extends Store implements Serializable{
             lock.lock();
         }
         try{
-            Fun.Tuple2 t2 = records.remove(recid);
+            Fun.Pair t2 = records.remove(recid);
             if(t2!=null) rollback.putIfAbsent(recid,t2);
             freeRecids.add(recid);
         }finally{
@@ -253,9 +253,9 @@ public class StoreHeap extends Store implements Serializable{
         lockAllWrite();
         try{
             //put all stuff from `rollback` into `records`
-            for(Map.Entry<Long,Fun.Tuple2> e:rollback.entrySet()){
+            for(Map.Entry<Long,Fun.Pair> e:rollback.entrySet()){
                 Long recid = e.getKey();
-                Fun.Tuple2 val = e.getValue();
+                Fun.Pair val = e.getValue();
                 if(val == TOMBSTONE) records.remove(recid);
                 else records.put(recid, val);
             }
@@ -291,7 +291,7 @@ public class StoreHeap extends Store implements Serializable{
 
     @Override
     public ByteBuffer getRaw(long recid) {
-        Fun.Tuple2 t = records.get(recid);
+        Fun.Pair t = records.get(recid);
         if(t==null||t.a == null) return null;
         return ByteBuffer.wrap(serialize(t.a, (Serializer<Object>) t.b).copyBytes());
     }

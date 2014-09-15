@@ -24,7 +24,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 
@@ -94,8 +93,8 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
 
 
     /** Associates `recid` from Write Queue with record data and serializer. */
-    protected final LongConcurrentHashMap<Fun.Tuple2<Object, Serializer>> writeCache
-            = new LongConcurrentHashMap<Fun.Tuple2<Object, Serializer>>();
+    protected final LongConcurrentHashMap<Fun.Pair<Object, Serializer>> writeCache
+            = new LongConcurrentHashMap<Fun.Pair<Object, Serializer>>();
 
     /** Each insert to Write Queue must hold read lock.
      *  Commit, rollback and close operations must hold write lock
@@ -207,11 +206,11 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
         final CountDownLatch latch = action.getAndSet(null);
 
         do{
-            LongMap.LongMapIterator<Fun.Tuple2<Object, Serializer>> iter = writeCache.longMapIterator();
+            LongMap.LongMapIterator<Fun.Pair<Object, Serializer>> iter = writeCache.longMapIterator();
             while(iter.moveToNext()){
                 //usual write
                 final long recid = iter.key();
-                Fun.Tuple2<Object, Serializer> item = iter.value();
+                Fun.Pair<Object, Serializer> item = iter.value();
                 if(item == null) continue; //item was already written
                 if(item.a==TOMBSTONE){
                     //item was not updated, but deleted
@@ -310,7 +309,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
         try{
             checkState();
             recid = preallocate();
-            if(writeCache.put(recid, new Fun.Tuple2(value, serializer))==null)
+            if(writeCache.put(recid, new Fun.Pair(value, serializer))==null)
                 size2 = size.incrementAndGet();
         }finally{
             commitLock.readLock().unlock();
@@ -335,7 +334,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
         commitLock.readLock().lock();
         try{
             checkState();
-            Fun.Tuple2<Object,Serializer> item = writeCache.get(recid);
+            Fun.Pair<Object,Serializer> item = writeCache.get(recid);
             if(item!=null){
                 if(item.a == TOMBSTONE) return null;
                 return (A) item.a;
@@ -371,7 +370,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
         commitLock.readLock().lock();
         try{
             checkState();
-            if(writeCache.put(recid, new Fun.Tuple2(value, serializer))==null)
+            if(writeCache.put(recid, new Fun.Pair(value, serializer))==null)
                 size2 = size.incrementAndGet();
         }finally{
             commitLock.readLock().unlock();
@@ -394,10 +393,10 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
         commitLock.writeLock().lock();
         try{
             checkState();
-            Fun.Tuple2<Object, Serializer> existing = writeCache.get(recid);
+            Fun.Pair<Object, Serializer> existing = writeCache.get(recid);
             A oldValue = existing!=null? (A) existing.a : super.get(recid, serializer);
             if(oldValue == expectedOldValue || (oldValue!=null && oldValue.equals(expectedOldValue))){
-                if(writeCache.put(recid, new Fun.Tuple2(newValue, serializer))==null)
+                if(writeCache.put(recid, new Fun.Pair(newValue, serializer))==null)
                     size2 = size.incrementAndGet();
                 ret = true;
             }else{

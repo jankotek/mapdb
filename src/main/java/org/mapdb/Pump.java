@@ -168,15 +168,15 @@ public final class Pump {
         final Comparator comparator2 = comparator==null?Fun.COMPARATOR:comparator;
         return new Iterator<E>(){
 
-            final NavigableSet<Fun.Tuple2<Object,Integer>> items = new TreeSet<Fun.Tuple2<Object, Integer>>(
-                    new Fun.Tuple2Comparator<Object,Integer>(comparator2,null));
+            final NavigableSet<Object[]> items = new TreeSet<Object[]>(
+                    new Fun.ArrayComparator(new Comparator[]{comparator2,Fun.COMPARATOR}));
 
             Object next = this; //is initialized with this so first `next()` will not throw NoSuchElementException
 
             {
                 for(int i=0;i<iterators.length;i++){
                     if(iterators[i].hasNext()){
-                        items.add(Fun.t2(iterators[i].next(), i));
+                        items.add(new  Object[]{iterators[i].next(), i});
                     }
                 }
                 next();
@@ -193,37 +193,36 @@ public final class Pump {
 
                 Object oldNext = next;
 
-                Fun.Tuple2<Object,Integer> lo = items.pollFirst();
+                Object[] lo = items.pollFirst();
                 if(lo == null){
                     next = null;
                     return (E) oldNext;
                 }
 
-                next = lo.a;
+                next = lo[0];
 
                 if(oldNext!=this && comparator2.compare(oldNext,next)>0){
                     throw new IllegalArgumentException("One of the iterators is not sorted");
                 }
 
-                Iterator iter = iterators[lo.b];
+                Iterator iter = iterators[(Integer)lo[1]];
                 if(iter.hasNext()){
-                    items.add(Fun.t2(iter.next(),lo.b));
+                    items.add(new Object[]{iter.next(),lo[1]});
                 }
 
                 if(mergeDuplicates){
                     while(true){
-                        Set<Fun.Tuple2<Object,Integer>> subset =
-                                ((NavigableSet)items).subSet(Fun.t2(next, null),
-                                        Fun.t2(next, Fun.HI));
-                        if(subset.isEmpty())
+                        Iterator<Object[]> subset = Fun.filter(items,next).iterator();
+                        if(!subset.hasNext())
                             break;
                         List toadd = new ArrayList();
-                        for(Fun.Tuple2<Object,Integer> t:subset){
-                            iter = iterators[t.b];
+                        while(subset.hasNext()){
+                            Object[] t = subset.next();
+                            items.remove(t);
+                            iter = iterators[(Integer)t[1]];
                             if(iter.hasNext())
-                                toadd.add(Fun.t2(iter.next(),t.b));
+                                toadd.add(new Object[]{iter.next(),t[1]});
                         }
-                        subset.clear();
                         items.addAll(toadd);
                     }
                 }
@@ -314,7 +313,6 @@ public final class Pump {
      * @param counterRecid TODO make size counter friendly to use
      * @param keySerializer serializer for keys, use null for default value
      * @param valueSerializer serializer for value, use null for default value
-     * @param comparator comparator used to compare keys, use null for 'comparable comparator'
      * @throws IllegalArgumentException if source iterator is not reverse sorted
      */
     public static  <E,K,V> long buildTreeMap(Iterator<E> source,
@@ -351,7 +349,7 @@ public final class Pump {
         while(source.hasNext()){
 
             nodeLoop:for(int i=0;i<nload && source.hasNext();i++){
-                counter++;
+
                 E next = source.next();
                 if(next==null) throw new NullPointerException("source returned null element");
                 K key = keyExtractor==null? (K) next : keyExtractor.run(next);
@@ -369,6 +367,7 @@ public final class Pump {
                     throw new IllegalArgumentException("Keys in 'source' iterator are not reverse sorted");
                 oldKey = key;
                 keys.add(key);
+                counter++;
 
                 Object val = valueExtractor!=null?valueExtractor.run(next):BTreeMap.EMPTY;
                 if(val==null) throw new NullPointerException("extractValue returned null value");

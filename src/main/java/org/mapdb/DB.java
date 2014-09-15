@@ -17,8 +17,6 @@
 package org.mapdb;
 
 import java.io.Closeable;
-import java.io.IOError;
-import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
@@ -631,7 +629,7 @@ public class DB implements Closeable {
         }
 
 
-        public <K,V> BTreeMapMaker pumpSource(Iterator<Fun.Tuple2<K,V>> entriesSource){
+        public <K,V> BTreeMapMaker pumpSource(Iterator<Fun.Pair<K,V>> entriesSource){
             this.pumpSource = entriesSource;
             this.pumpKeyExtractor = Fun.extractKey();
             this.pumpValueExtractor = Fun.extractValue();
@@ -890,19 +888,8 @@ public class DB implements Closeable {
     protected BTreeKeySerializer fillNulls(BTreeKeySerializer keySerializer) {
         if(keySerializer==null)
             return null;
-        if(keySerializer instanceof BTreeKeySerializer.Tuple2KeySerializer){
-            BTreeKeySerializer.Tuple2KeySerializer<?,?> s =
-                    (BTreeKeySerializer.Tuple2KeySerializer<?,?>) keySerializer;
-            return new BTreeKeySerializer.Tuple2KeySerializer(
-                    s.aComparator!=null?s.aComparator:Fun.COMPARATOR,
-                    s.bComparator!=null?s.bComparator:Fun.COMPARATOR,
-                    s.aSerializer!=null && s.aSerializer!=Serializer.BASIC ?s.aSerializer:getDefaultSerializer(),
-                    s.bSerializer!=null && s.bSerializer!=Serializer.BASIC ?s.bSerializer:getDefaultSerializer()
-            );
-        }
-
-        if(keySerializer instanceof BTreeKeySerializer.TupleKeySerializer) {
-            BTreeKeySerializer.TupleKeySerializer k = (BTreeKeySerializer.TupleKeySerializer) keySerializer;
+        if(keySerializer instanceof BTreeKeySerializer.ArrayKeySerializer) {
+            BTreeKeySerializer.ArrayKeySerializer k = (BTreeKeySerializer.ArrayKeySerializer) keySerializer;
 
             Serializer[] serializers = new Serializer[k.tsize];
             Comparator[] comparators = new Comparator[k.tsize];
@@ -912,7 +899,7 @@ public class DB implements Closeable {
                 comparators[i] = k.comparators[i] != null ? k.comparators[i] : Fun.COMPARATOR;
             }
 
-            return new BTreeKeySerializer.TupleKeySerializer(k.tsize, comparators, serializers);
+            return new BTreeKeySerializer.ArrayKeySerializer(comparators, serializers);
         }
 
         return keySerializer;

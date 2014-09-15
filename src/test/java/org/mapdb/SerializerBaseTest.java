@@ -442,9 +442,9 @@ public class SerializerBaseTest{
 
 
     @Test public void test_tuple_key_serializer() throws IOException {
-        assertEquals(BTreeKeySerializer.TUPLE2, clone(BTreeKeySerializer.TUPLE2));
-        assertEquals(BTreeKeySerializer.TUPLE3, clone(BTreeKeySerializer.TUPLE3));
-        assertEquals(BTreeKeySerializer.TUPLE4, clone(BTreeKeySerializer.TUPLE4));
+        assertEquals(BTreeKeySerializer.ARRAY2, clone(BTreeKeySerializer.ARRAY2));
+        assertEquals(BTreeKeySerializer.ARRAY3, clone(BTreeKeySerializer.ARRAY3));
+        assertEquals(BTreeKeySerializer.ARRAY4, clone(BTreeKeySerializer.ARRAY4));
     }
 
 
@@ -637,75 +637,6 @@ public class SerializerBaseTest{
         assertEquals(db.getDefaultSerializer(), v.serializer);
     }
 
-    @Test
-    public void tuple2_comparators() throws IOException {
-        Object a = new Fun.Tuple2Comparator(Fun.REVERSE_COMPARATOR,null);
-        assertEquals(a,clone(a));
-        a = new Fun.Tuple2Comparator(null,Fun.REVERSE_COMPARATOR);
-        assertEquals(a,clone(a));
-        a = new Fun.Tuple2Comparator(Fun.REVERSE_COMPARATOR,Fun.REVERSE_COMPARATOR);
-        assertEquals(a,clone(a));
-    }
-
-    @Test
-    public void tuple3_comparators() throws IOException {
-        Object a = new Fun.Tuple3Comparator(Fun.REVERSE_COMPARATOR,null,null);
-        assertEquals(a,clone(a));
-        a = new Fun.Tuple3Comparator(null,Fun.REVERSE_COMPARATOR,null);
-        assertEquals(a,clone(a));
-        a = new Fun.Tuple3Comparator(null,null,Fun.REVERSE_COMPARATOR);
-        assertEquals(a,clone(a));
-        a = new Fun.Tuple3Comparator(Fun.REVERSE_COMPARATOR,Fun.REVERSE_COMPARATOR,Fun.REVERSE_COMPARATOR);
-        assertEquals(a,clone(a));
-    }
-
-    @Test
-    public void tuple4_comparators() throws IOException {
-        Object a = new Fun.Tuple4Comparator(Fun.REVERSE_COMPARATOR,null,null,null);
-        assertEquals(a,clone(a));
-        a = new Fun.Tuple4Comparator(null,Fun.REVERSE_COMPARATOR,null,null);
-        assertEquals(a,clone(a));
-        a = new Fun.Tuple4Comparator(null,null,Fun.REVERSE_COMPARATOR,null);
-        assertEquals(a,clone(a));
-        a = new Fun.Tuple4Comparator(null,null,null,Fun.REVERSE_COMPARATOR);
-        assertEquals(a,clone(a));
-        a = new Fun.Tuple4Comparator(Fun.REVERSE_COMPARATOR,Fun.REVERSE_COMPARATOR,Fun.REVERSE_COMPARATOR,Fun.REVERSE_COMPARATOR);
-        assertEquals(a,clone(a));
-    }
-
-    @Test
-    public void tuple5_comparators() throws IOException {
-        Object a = new Fun.Tuple5Comparator(Fun.REVERSE_COMPARATOR,null,null,null,null);
-        assertEquals(a,clone(a));
-        a = new Fun.Tuple5Comparator(null,Fun.REVERSE_COMPARATOR,null,null,null);
-        assertEquals(a,clone(a));
-        a = new Fun.Tuple5Comparator(null,null,Fun.REVERSE_COMPARATOR,null,null);
-        assertEquals(a,clone(a));
-        a = new Fun.Tuple5Comparator(null,null,null,Fun.REVERSE_COMPARATOR,null);
-        assertEquals(a,clone(a));
-        a = new Fun.Tuple5Comparator(null,null,null,null,Fun.REVERSE_COMPARATOR);
-        assertEquals(a,clone(a));
-        a = new Fun.Tuple5Comparator(Fun.REVERSE_COMPARATOR,Fun.REVERSE_COMPARATOR,Fun.REVERSE_COMPARATOR,Fun.REVERSE_COMPARATOR,Fun.REVERSE_COMPARATOR);
-        assertEquals(a,clone(a));
-    }
-
-    @Test
-    public void tuple6_comparators() throws IOException {
-        Object a = new Fun.Tuple6Comparator(Fun.REVERSE_COMPARATOR,null,null,null,null,null);
-        assertEquals(a,clone(a));
-        a = new Fun.Tuple6Comparator(null,Fun.REVERSE_COMPARATOR,null,null,null,null);
-        assertEquals(a,clone(a));
-        a = new Fun.Tuple6Comparator(null,null,Fun.REVERSE_COMPARATOR,null,null,null);
-        assertEquals(a,clone(a));
-        a = new Fun.Tuple6Comparator(null,null,null,Fun.REVERSE_COMPARATOR,null,null);
-        assertEquals(a,clone(a));
-        a = new Fun.Tuple6Comparator(null,null,null,null,Fun.REVERSE_COMPARATOR,null);
-        assertEquals(a,clone(a));
-        a = new Fun.Tuple6Comparator(null,null,null,null,null,Fun.REVERSE_COMPARATOR);
-        assertEquals(a,clone(a));
-        a = new Fun.Tuple6Comparator(Fun.REVERSE_COMPARATOR,Fun.REVERSE_COMPARATOR,Fun.REVERSE_COMPARATOR,Fun.REVERSE_COMPARATOR,Fun.REVERSE_COMPARATOR,Fun.REVERSE_COMPARATOR);
-        assertEquals(a,clone(a));
-    }
 
     @Test public void array_comparator() throws IOException {
         Fun.ArrayComparator c = new Fun.ArrayComparator(new Comparator[]{Fun.REVERSE_COMPARATOR, Fun.COMPARATOR, Fun.COMPARATOR});
@@ -716,7 +647,7 @@ public class SerializerBaseTest{
 
     @Test public void object_stack_issue232_n2() throws IOException {
         Integer i = 1;
-        Fun.Tuple2 t = Fun.t2(i,i);
+        Fun.Pair t = new Fun.Pair(i,i);
         assertEquals(t,clone(t));
     }
 

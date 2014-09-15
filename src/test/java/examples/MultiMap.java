@@ -21,26 +21,26 @@ public class MultiMap {
         //  Map<String,List<Long>> map
 
         //correct way is to use composite set, where 'map key' is primary key and 'map value' is secondary value
-        NavigableSet<Fun.Tuple2<String,Long>> multiMap = db.getTreeSet("test");
+        NavigableSet<Object[]> multiMap = db.getTreeSet("test");
 
         //optionally you can use set with Delta Encoding. This may save lot of space
         multiMap = db.createTreeSet("test2")
-                .serializer(BTreeKeySerializer.TUPLE2)
+                .serializer(BTreeKeySerializer.ARRAY2)
                 .make();
 
-        multiMap.add(Fun.t2("aa",1L));
-        multiMap.add(Fun.t2("aa",2L));
-        multiMap.add(Fun.t2("aa",3L));
-        multiMap.add(Fun.t2("bb",1L));
+        multiMap.add(new Object[]{"aa",1});
+        multiMap.add(new Object[]{"aa",2});
+        multiMap.add(new Object[]{"aa",3});
+        multiMap.add(new Object[]{"bb",1});
 
         //find all values for a key
-        for(Long l: Fun.filter(multiMap, "aa")){
-            System.out.println("value for key 'aa': "+l);
+        for(Object[] l: Fun.filter(multiMap, "aa")){
+            System.out.println("value for key 'aa': "+l[1]);
         }
 
         //check if pair exists
 
-        boolean found = multiMap.contains(Fun.t2("bb",1L));
+        boolean found = multiMap.contains(new Object[]{"bb",1});
         System.out.println("Found: " + found);
 
         db.close();

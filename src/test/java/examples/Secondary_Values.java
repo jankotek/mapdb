@@ -33,7 +33,9 @@ public class Secondary_Values {
         BTreeMap<Integer,Person> friends = db.getTreeMap("friends");
 
         //secondary collections which lists all friends for given id
-        NavigableSet<Fun.Tuple2<Integer,String>> id2friends = db.getTreeSet("id2friends");
+        NavigableSet<Object[]> id2friends = db.createTreeSet("id2friends")
+                .serializer(BTreeKeySerializer.ARRAY2)
+                .makeOrGet();
 
         //keep secondary synchronized with primary
         Bind.secondaryValues(friends,id2friends, new Fun.Function2<String[], Integer, Person>() {
@@ -50,7 +52,8 @@ public class Secondary_Values {
         System.out.println(id2friends);
 
         //list all friends associated with John. This does range query on NavigableMap
-        for(String name:Fun.filter(id2friends, 1)){
+        for(Object[] k:Fun.filter(id2friends, 1)){
+            String name = (String) k[1];
             System.out.println(name);
         }
 
