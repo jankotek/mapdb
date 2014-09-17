@@ -904,8 +904,6 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
 
         @Override
         public Object[] arrayToKeys(Object[] keys) {
-            if(CC.PARANOID && keys.length%tsize!=0)
-                throw new AssertionError();
             Object[] ret = new Object[keys.length*tsize];
             int pos=0;
             for(Object o:keys){
