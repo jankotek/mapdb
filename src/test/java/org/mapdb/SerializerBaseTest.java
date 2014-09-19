@@ -431,13 +431,16 @@ public class SerializerBaseTest{
 
 
     @Test public void test_static_objects() throws IOException {
-        for(Object o:SerializerBase.singletons.all.keySet()){
+        for(Object o:new SerializerBase().mapdb_all.keySet()){
+            if(o instanceof SerializerBase.Deser)
+                continue;
             assertTrue(o==clone(o));
         }
     }
 
     @Test public void test_singleton_reverse() throws IOException {
-        assertEquals(SerializerBase.singletons.all.size(), SerializerBase.singletons.reverse.size());
+        SerializerBase b = new SerializerBase();
+        assertEquals(b.mapdb_all.size(), b.mapdb_reverse.size());
     }
 
 
@@ -505,6 +508,7 @@ public class SerializerBaseTest{
 
     @SuppressWarnings({  "rawtypes" })
     @Test public void testHeaderUnique() throws IllegalAccessException {
+        SerializerBase b = new SerializerBase();
         Class c = SerializerBase.Header.class;
         Set<Integer> s = new TreeSet<Integer>();
         for (Field f : c.getDeclaredFields()) {
@@ -513,6 +517,10 @@ public class SerializerBaseTest{
 
             assertTrue("Value already used: " + value, !s.contains(value));
             s.add(value);
+
+            if(value!=SerializerBase.Header.POJO && value!=SerializerBase.Header.NAMED)
+                assertNotNull("deser does not contain value: "+value + " - "+f.getName(), b.headerDeser[value]);
+
         }
         assertTrue(!s.isEmpty());
     }
@@ -527,32 +535,36 @@ public class SerializerBaseTest{
 
             assertTrue("Value already used: " + value, !s.contains(value));
             s.add(value);
+
         }
         assertTrue(!s.isEmpty());
     }
 
 
     @Test public void test_All_Serializer_Fields_Serializable() throws IllegalAccessException, IOException {
+        SerializerBase b = new SerializerBase();
         for(Field f:Serializer.class.getDeclaredFields()){
             Object a = f.get(null);
-            assertTrue("field: "+f.getName(), SerializerBase.singletons.all.containsKey(a));
+            assertTrue("field: "+f.getName(), b.mapdb_all.containsKey(a));
             assertTrue("field: "+f.getName(),a == clone(a));
         }
     }
 
     @Test public void test_All_Hasher_Fields_Serializable() throws IllegalAccessException, IOException {
+        SerializerBase b = new SerializerBase();
         for(Field f:Hasher.class.getDeclaredFields()){
             Object a = f.get(null);
-            assertTrue("field: "+f.getName(), SerializerBase.singletons.all.containsKey(a));
+            assertTrue("field: "+f.getName(), b.mapdb_all.containsKey(a));
             assertTrue("field: "+f.getName(),a == clone(a));
         }
     }
 
 
     @Test public void test_All_Fun_Fields_Serializable() throws IllegalAccessException, IOException {
+        SerializerBase b = new SerializerBase();
         for(Field f:Fun.class.getDeclaredFields()){
             Object a = f.get(null);
-            assertTrue("field: "+f.getName(), SerializerBase.singletons.all.containsKey(a));
+            assertTrue("field: "+f.getName(), b.mapdb_all.containsKey(a));
             assertTrue("field: "+f.getName(),a == clone(a));
         }
     }
@@ -581,6 +593,7 @@ public class SerializerBaseTest{
         map = db.getTreeMap("map");
 
         map2 = (Map) map.get("map2_");
+        assertNotNull(map2);
         assertEquals(map2.get("some"),"stuff");
 
         stack = (Queue<Object>) map.get("stack_");

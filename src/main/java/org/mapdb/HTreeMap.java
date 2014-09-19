@@ -245,10 +245,10 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         if(segmentRecids==null) throw new NullPointerException();
         if(keySerializer==null) throw new NullPointerException();
 
-        SerializerBase.assertSerializable(keySerializer);
+//        SerializerBase.assertSerializable(keySerializer); //TODO serializer serialization
         this.hasValues = valueSerializer!=null;
         if(hasValues) {
-            SerializerBase.assertSerializable(valueSerializer);
+//            SerializerBase.assertSerializable(valueSerializer);
         }
 
 

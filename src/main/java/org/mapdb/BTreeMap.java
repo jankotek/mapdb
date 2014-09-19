@@ -710,8 +710,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             throw new IllegalArgumentException("maxNodeSize too high");
         if(rootRecidRef<=0||counterRecid<0 || numberOfNodeMetas<0) throw new IllegalArgumentException();
         if(keySerializer==null) throw new NullPointerException();
-        SerializerBase.assertSerializable(keySerializer);
-        SerializerBase.assertSerializable(valueSerializer);
+//        SerializerBase.assertSerializable(keySerializer); //TODO serializer serialization
+//        SerializerBase.assertSerializable(valueSerializer);
 
         this.rootRecidRef = rootRecidRef;
         this.hasValues = valueSerializer!=null;

@@ -17,7 +17,10 @@ package org.mapdb;
 
 
 import java.io.*;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.charset.Charset;
+import java.util.Date;
 import java.util.UUID;
 
 /**
@@ -28,36 +31,23 @@ import java.util.UUID;
 public interface Serializer<A> {
 
 
+    Serializer<Character> CHAR =  new Serializer<Character>() {
+        @Override
+        public void serialize(DataOutput out, Character value) throws IOException {
+            out.writeChar(value.charValue());
+        }
 
-    /**
-     * Serialize the content of an object into a ObjectOutput
-     *
-     * @param out ObjectOutput to save object into
-     * @param value Object to serialize
-     */
-    public void serialize( DataOutput out, A value)
-            throws IOException;
+        @Override
+        public Character deserialize(DataInput in, int available) throws IOException {
+            return in.readChar();
+        }
 
+        @Override
+        public int fixedSize() {
+            return 2;
+        }
+    };
 
-    /**
-     * Deserialize the content of an object from a DataInput.
-     *
-     * @param in to read serialized data from
-     * @param available how many bytes are available in DataInput for reading, may be -1 (in streams) or 0 (null).
-     * @return deserialized object
-     * @throws java.io.IOException
-     */
-    public A deserialize( DataInput in, int available)
-            throws IOException;
-
-
-    /**
-     * Data could be serialized into record with variable size or fixed size.
-     * Some optimizations can be applied to serializers with fixed size
-     *
-     * @return fixed size or -1 for variable size
-     */
-    public int fixedSize();
 
     /**
      * Serializes strings using UTF8 encoding.
@@ -264,14 +254,6 @@ public interface Serializer<A> {
         }
 
     };
-
-    /**
-     * Basic serializer for most classes in 'java.lang' and 'java.util' packages.
-     * It does not handle custom POJO classes. It also does not handle classes which
-     * require access to `DB` itself.
-     */
-    @SuppressWarnings("unchecked")
-    Serializer<Object> BASIC = new SerializerBase();
 
 
     /**
@@ -496,6 +478,219 @@ public interface Serializer<A> {
 
     };
 
+    Serializer<Byte> BYTE = new Serializer<Byte>() {
+        @Override
+        public void serialize(DataOutput out, Byte value) throws IOException {
+            out.writeByte(value); //TODO test all new serialziers
+        }
+
+        @Override
+        public Byte deserialize(DataInput in, int available) throws IOException {
+            return in.readByte();
+        }
+
+        @Override
+        public int fixedSize() {
+            return 1;
+        }
+    } ;
+    Serializer<Float> FLOAT = new Serializer<Float>() {
+        @Override
+        public void serialize(DataOutput out, Float value) throws IOException {
+            out.writeFloat(value); //TODO test all new serialziers
+        }
+
+        @Override
+        public Float deserialize(DataInput in, int available) throws IOException {
+            return in.readFloat();
+        }
+
+        @Override
+        public int fixedSize() {
+            return 4;
+        }
+    } ;
+
+
+    Serializer<Double> DOUBLE = new Serializer<Double>() {
+        @Override
+        public void serialize(DataOutput out, Double value) throws IOException {
+            out.writeDouble(value);
+        }
+
+        @Override
+        public Double deserialize(DataInput in, int available) throws IOException {
+            return in.readDouble();
+        }
+
+        @Override
+        public int fixedSize() {
+            return 8;
+        }
+    } ;
+
+    Serializer<Short> SHORT = new Serializer<Short>() {
+        @Override
+        public void serialize(DataOutput out, Short value) throws IOException {
+            out.writeShort(value.shortValue());
+        }
+
+        @Override
+        public Short deserialize(DataInput in, int available) throws IOException {
+            return in.readShort();
+        }
+
+        @Override
+        public int fixedSize() {
+            return 2;
+        }
+    } ;
+
+    Serializer<boolean[]> BOOLEAN_ARRAY = new Serializer<boolean[]>() {
+        @Override
+        public void serialize(DataOutput out, boolean[] value) throws IOException {
+            DataIO.packInt(out, value.length);//write the number of booleans not the number of bytes
+            byte[] a = SerializerBase.booleanToByteArray(value);
+            out.write(a);
+        }
+
+        @Override
+        public boolean[] deserialize(DataInput in, int available) throws IOException {
+            return SerializerBase.readBooleanArray(DataIO.unpackInt(in), in);
+        }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+    };
+
+
+
+    Serializer<short[]> SHORT_ARRAY = new Serializer<short[]>() {
+        @Override
+        public void serialize(DataOutput out, short[] value) throws IOException {
+            DataIO.packInt(out,value.length);
+            for(short v:value){
+                out.writeShort(v);
+            }
+        }
+
+        @Override
+        public short[] deserialize(DataInput in, int available) throws IOException {
+            short[] ret = new short[DataIO.unpackInt(in)];
+            for(int i=0;i<ret.length;i++){
+                ret[i] = in.readShort();
+            }
+            return ret;
+        }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+    };
+
+
+    Serializer<float[]> FLOAT_ARRAY = new Serializer<float[]>() {
+        @Override
+        public void serialize(DataOutput out, float[] value) throws IOException {
+            DataIO.packInt(out,value.length);
+            for(float v:value){
+                out.writeFloat(v);
+            }
+        }
+
+        @Override
+        public float[] deserialize(DataInput in, int available) throws IOException {
+            float[] ret = new float[DataIO.unpackInt(in)];
+            for(int i=0;i<ret.length;i++){
+                ret[i] = in.readFloat();
+            }
+            return ret;
+        }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+    };
+
+    Serializer<BigInteger> BIG_INTEGER = new Serializer<BigInteger>() {
+        @Override
+        public void serialize(DataOutput out, BigInteger value) throws IOException {
+            BYTE_ARRAY.serialize(out,value.toByteArray());
+        }
+
+        @Override
+        public BigInteger deserialize(DataInput in, int available) throws IOException {
+            return new BigInteger(BYTE_ARRAY.deserialize(in,available));
+        }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+    } ;
+
+    Serializer<BigDecimal> BIG_DECIMAL = new Serializer<BigDecimal>() {
+        @Override
+        public void serialize(DataOutput out, BigDecimal value) throws IOException {
+            BYTE_ARRAY.serialize(out,value.unscaledValue().toByteArray());
+            DataIO.packInt(out, value.scale());
+        }
+
+        @Override
+        public BigDecimal deserialize(DataInput in, int available) throws IOException {
+            return new BigDecimal(new BigInteger(
+                    BYTE_ARRAY.deserialize(in,-1)),
+                    DataIO.unpackInt(in));
+        }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+    } ;
+
+
+    Serializer<Class> CLASS = new Serializer<Class>() {
+
+        @Override
+        public void serialize(DataOutput out, Class value) throws IOException {
+            out.writeUTF(value.getName());
+        }
+
+        @Override
+        public Class deserialize(DataInput in, int available) throws IOException {
+            return SerializerPojo.classForName(in.readUTF());
+        }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+    };
+
+    Serializer<Date> DATE = new Serializer<Date>() {
+
+        @Override
+        public void serialize(DataOutput out, Date value) throws IOException {
+            out.writeLong(value.getTime());
+        }
+
+        @Override
+        public Date deserialize(DataInput in, int available) throws IOException {
+            return new Date(in.readLong());
+        }
+
+        @Override
+        public int fixedSize() {
+            return 8;
+        }
+    };
+
+
     /** wraps another serializer and (de)compresses its output/input*/
     public final static class CompressionWrapper<E> implements Serializer<E>, Serializable {
 
@@ -577,4 +772,65 @@ public interface Serializer<A> {
         }
 
     }
+
+    //this has to be lazily initialized due to circular dependencies
+    static final  class __BasicInstance {
+        final static Serializer s = new SerializerBase();
+    }
+
+
+    /**
+     * Basic serializer for most classes in 'java.lang' and 'java.util' packages.
+     * It does not handle custom POJO classes. It also does not handle classes which
+     * require access to `DB` itself.
+     */
+    @SuppressWarnings("unchecked")
+    Serializer<Object> BASIC = new Serializer(){
+
+        @Override
+        public void serialize(DataOutput out, Object value) throws IOException {
+            __BasicInstance.s.serialize(out,value);
+        }
+
+        @Override
+        public Object deserialize(DataInput in, int available) throws IOException {
+            return __BasicInstance.s.deserialize(in,available);
+        }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+    };
+
+
+    /**
+     * Serialize the content of an object into a ObjectOutput
+     *
+     * @param out ObjectOutput to save object into
+     * @param value Object to serialize
+     */
+    public void serialize( DataOutput out, A value)
+            throws IOException;
+
+
+    /**
+     * Deserialize the content of an object from a DataInput.
+     *
+     * @param in to read serialized data from
+     * @param available how many bytes are available in DataInput for reading, may be -1 (in streams) or 0 (null).
+     * @return deserialized object
+     * @throws java.io.IOException
+     */
+    public A deserialize( DataInput in, int available)
+            throws IOException;
+
+    /**
+     * Data could be serialized into record with variable size or fixed size.
+     * Some optimizations can be applied to serializers with fixed size
+     *
+     * @return fixed size or -1 for variable size
+     */
+    public int fixedSize();
+
 }

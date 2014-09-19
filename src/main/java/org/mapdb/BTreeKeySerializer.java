@@ -157,6 +157,8 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         protected final Comparator comparator;
 
         public BasicKeySerializer(Serializer serializer, Comparator comparator) {
+            if(serializer == null || comparator == null)
+                throw new  NullPointerException();
             this.serializer = serializer;
             this.comparator = comparator;
         }
@@ -166,6 +168,8 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             objectStack.add(this);
             serializer = (Serializer) serializerBase.deserialize(is,objectStack);
             comparator = (Comparator) serializerBase.deserialize(is,objectStack);
+            if(serializer == null || comparator == null)
+                throw new  NullPointerException();
         }
 
         @Override
