@@ -1532,6 +1532,8 @@ public class SerializerBase implements Serializer<Object>{
             });
 
             mapdb_add(61, BTreeKeySerializer.BASIC);
+            mapdb_add(62, BTreeKeySerializer.BYTE_ARRAY);
+            mapdb_add(63, BTreeKeySerializer.BYTE_ARRAY2);
         }
 
 
