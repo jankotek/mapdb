@@ -910,6 +910,127 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             }
         }
 
+        public int length() {
+            return offset.length;
+        }
+
+        public ByteArrayKeys deleteKey(int pos) {
+            int split = pos==0? 0: offset[pos-1];
+            int next = offset[pos];
+
+            byte[] bb = new byte[array.length - (next-split)];
+            int[] offsets = new  int[offset.length - 1];
+
+            System.arraycopy(array,0,bb,0,split);
+            System.arraycopy(array,next,bb,split,array.length-next);
+
+            int minus=0;
+            int plusI=0;
+            for(int i=0;i<offsets.length;i++){
+                if(i==pos){
+                    //skip current item and normalize offsets
+                    plusI=1;
+                    minus = next-split;
+                }
+                offsets[i] = offset[i+plusI] - minus;
+            }
+            return new ByteArrayKeys(offsets,bb);
+        }
+
+        public ByteArrayKeys copyOfRange(int from, int to) {
+            int start = from==0? 0: offset[from-1];
+            int end = to==0? 0: offset[to-1];
+            byte[] bb = Arrays.copyOfRange(array,start,end);
+
+            int[] offsets = new int[to-from];
+            for(int i=0;i<offsets.length;i++){
+                offsets[i] = offset[i+from] - start;
+            }
+
+            return new ByteArrayKeys(offsets,bb);
+        }
+
+        public ByteArrayKeys putKey(int pos, byte[] newKey) {
+            byte[] bb = new byte[array.length+ newKey.length];
+            int split1 = pos==0? 0: offset[pos-1];
+            System.arraycopy(array,0,bb,0,split1);
+            System.arraycopy(newKey,0,bb,split1,newKey.length);
+            System.arraycopy(array,split1,bb,split1+newKey.length,array.length-split1);
+
+            int[] offsets = new int[offset.length+1];
+
+            int plus = 0;
+            int plusI = 0;
+            for(int i=0;i<offset.length;i++){
+                if(i==pos){
+                    //skip one item and increase space
+                    plus = newKey.length;
+                    plusI = 1;
+
+                }
+                offsets[i+plusI] = offset[i] + plus;
+            }
+            offsets[pos] = split1+newKey.length;
+
+            return new ByteArrayKeys(offsets,bb);
+        }
+
+        public byte[] getKey(int pos) {
+            int from =  pos==0 ? 0 : offset[pos-1];
+            int to =  offset[pos];
+            return Arrays.copyOfRange(array, from, to);
+        }
+
+        public int compare(int pos1, byte[] string) {
+            int strLen = string.length;
+            int start1 = pos1==0 ? 0 : offset[pos1-1];
+            int start2 = 0;
+            int len1 = offset[pos1] - start1;
+            int len = Math.min(len1,strLen);
+
+            while(len-- != 0){
+                byte b1 = array[start1++];
+                byte b2 = string[start2++];
+                if(b1!=b2){
+                    return b1-b2;
+                }
+            }
+            return len1 - strLen;
+        }
+
+        public int compare(int pos1, String string) {
+            int strLen = string.length();
+            int start1 = pos1==0 ? 0 : offset[pos1-1];
+            int start2 = 0;
+            int len1 = offset[pos1] - start1;
+            int len = Math.min(len1,strLen);
+
+            while(len-- != 0){
+                byte b1 = array[start1++];
+                byte b2 = (byte) string.charAt(start2++);
+                if(b1!=b2){
+                    return b1-b2;
+                }
+            }
+            return len1 - strLen;
+        }
+
+        public int compare(int pos1, int pos2) {
+            int start1 = pos1==0 ? 0 : offset[pos1-1];
+            int start2 = pos2==0 ? 0 : offset[pos2-1];
+            int len1 = offset[pos1] - start1;
+            int len2 = offset[pos2] - start2;
+            int len = Math.min(len1,len2);
+
+            while(len-- != 0){
+                byte b1 = array[start1++];
+                byte b2 = array[start2++];
+                if(b1!=b2){
+                    return b1-b2;
+                }
+            }
+            return len1 - len2;
+        }
     }
 
 
@@ -1106,38 +1227,12 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
 
         @Override
         public int compare(ByteArrayKeys byteArrayKeys, int pos1, int pos2) {
-            int start1 = pos1==0 ? 0 : byteArrayKeys.offset[pos1-1];
-            int start2 = pos2==0 ? 0 : byteArrayKeys.offset[pos2-1];
-            int len1 = byteArrayKeys.offset[pos1] - start1;
-            int len2 = byteArrayKeys.offset[pos2] - start2;
-            int len = Math.min(len1,len2);
-
-            while(len-- != 0){
-                byte b1 = byteArrayKeys.array[start1++];
-                byte b2 = byteArrayKeys.array[start2++];
-                if(b1!=b2){
-                    return b1-b2;
-                }
-            }
-            return len1 - len2;
+            return byteArrayKeys.compare(pos1,pos2);
         }
 
         @Override
         public int compare(ByteArrayKeys byteArrayKeys, int pos1, String string) {
-            int strLen = string.length();
-            int start1 = pos1==0 ? 0 : byteArrayKeys.offset[pos1-1];
-            int start2 = 0;
-            int len1 = byteArrayKeys.offset[pos1] - start1;
-            int len = Math.min(len1,strLen);
-
-            while(len-- != 0){
-                byte b1 = byteArrayKeys.array[start1++];
-                byte b2 = (byte) string.charAt(start2++);
-                if(b1!=b2){
-                    return b1-b2;
-                }
-            }
-            return len1 - strLen;
+            return byteArrayKeys.compare(pos1,string);
         }
 
 
@@ -1152,10 +1247,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
 
         @Override
         public String getKey(ByteArrayKeys byteArrayKeys, int pos) {
-            int from =  pos==0 ? 0 : byteArrayKeys.offset[pos-1];
-            int to =  byteArrayKeys.offset[pos];
-            byte[] ret =  Arrays.copyOfRange(byteArrayKeys.array, from, to);
-            return toString(ret);
+            return toString(byteArrayKeys.getKey(pos));
         }
 
         private String toString(byte[] ret) {
@@ -1178,34 +1270,13 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
 
         @Override
         public int length(ByteArrayKeys byteArrayKeys) {
-            return byteArrayKeys.offset.length;
+            return byteArrayKeys.length();
         }
 
         @Override
         public ByteArrayKeys putKey(ByteArrayKeys byteArrayKeys, int pos, String string) {
             byte[] newKey = toBytes(string);
-            byte[] bb = new byte[byteArrayKeys.array.length+ newKey.length];
-            int split1 = pos==0? 0: byteArrayKeys.offset[pos-1];
-            System.arraycopy(byteArrayKeys.array,0,bb,0,split1);
-            System.arraycopy(newKey,0,bb,split1,newKey.length);
-            System.arraycopy(byteArrayKeys.array,split1,bb,split1+newKey.length,byteArrayKeys.array.length-split1);
-
-            int[] offsets = new int[byteArrayKeys.offset.length+1];
-
-            int plus = 0;
-            int plusI = 0;
-            for(int i=0;i<byteArrayKeys.offset.length;i++){
-                if(i==pos){
-                    //skip one item and increase space
-                    plus = newKey.length;
-                    plusI = 1;
-
-                }
-                offsets[i+plusI] = byteArrayKeys.offset[i] + plus;
-            }
-            offsets[pos] = split1+newKey.length;
-
-            return new ByteArrayKeys(offsets,bb);
+            return byteArrayKeys.putKey(pos,newKey);
         }
 
         @Override
@@ -1235,40 +1306,12 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
 
         @Override
         public ByteArrayKeys copyOfRange(ByteArrayKeys byteArrayKeys, int from, int to) {
-            int start = from==0? 0: byteArrayKeys.offset[from-1];
-            int end = to==0? 0: byteArrayKeys.offset[to-1];
-            byte[] bb = Arrays.copyOfRange(byteArrayKeys.array,start,end);
-
-            int[] offsets = new int[to-from];
-            for(int i=0;i<offsets.length;i++){
-                offsets[i] = byteArrayKeys.offset[i+from] - start;
-            }
-
-            return new ByteArrayKeys(offsets,bb);
+            return byteArrayKeys.copyOfRange(from,to);
         }
 
         @Override
         public ByteArrayKeys deleteKey(ByteArrayKeys byteArrayKeys, int pos) {
-            int split = pos==0? 0: byteArrayKeys.offset[pos-1];
-            int next = byteArrayKeys.offset[pos];
-
-            byte[] bb = new byte[byteArrayKeys.array.length - (next-split)];
-            int[] offsets = new  int[byteArrayKeys.offset.length - 1];
-
-            System.arraycopy(byteArrayKeys.array,0,bb,0,split);
-            System.arraycopy(byteArrayKeys.array,next,bb,split,byteArrayKeys.array.length-next);
-
-            int minus=0;
-            int plusI=0;
-            for(int i=0;i<offsets.length;i++){
-                if(i==pos){
-                    //skip current item and normalize offsets
-                    plusI=1;
-                    minus = next-split;
-                }
-                offsets[i] = byteArrayKeys.offset[i+plusI] - minus;
-            }
-            return new ByteArrayKeys(offsets,bb);
+            return byteArrayKeys.deleteKey(pos);
         }
     };
 
@@ -1284,7 +1327,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             //find common prefix
             int prefixLen = commonPrefixLen(chars);
             DataIO.packInt(out,prefixLen);
-            out.write(chars[0],0,prefixLen);
+            out.write(chars[0], 0, prefixLen);
 
             for(byte[] b:chars){
                 out.write(b,prefixLen,b.length-prefixLen);
@@ -1309,7 +1352,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
 
             //read suffixes
             for(int i=0;i<ret.length;i++){
-                in.readFully(ret[i],prefixLen, ret[i].length-prefixLen);
+                in.readFully(ret[i], prefixLen, ret[i].length - prefixLen);
             }
 
             return ret;
@@ -1331,7 +1374,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
 
         @Override
         public int compare(byte[][] chars, int pos1, int pos2) {
-            return compare(chars[pos1],chars[pos2]);
+            return compare(chars[pos1], chars[pos2]);
         }
 
         @Override
@@ -1399,7 +1442,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
 
             //find and write common prefix
             int prefixLen = keys.commonPrefixLen();
-            DataIO.packInt(out,prefixLen);
+            DataIO.packInt(out, prefixLen);
             out.write(keys.array,0,prefixLen);
 
             //write suffixes
@@ -1425,7 +1468,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             int prefixLen = DataIO.unpackInt(in);
             in.readFully(bb, 0, prefixLen);
             for(int i=0; i<offsets.length-1;i++){
-                System.arraycopy(bb,0,bb,offsets[i],prefixLen);
+                System.arraycopy(bb, 0, bb, offsets[i], prefixLen);
             }
 
             //read suffixes
@@ -1440,55 +1483,17 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
 
         @Override
         public int compare(ByteArrayKeys byteArrayKeys, int pos1, int pos2) {
-            int start1 = pos1==0 ? 0 : byteArrayKeys.offset[pos1-1];
-            int start2 = pos2==0 ? 0 : byteArrayKeys.offset[pos2-1];
-            int len1 = byteArrayKeys.offset[pos1] - start1;
-            int len2 = byteArrayKeys.offset[pos2] - start2;
-            int len = Math.min(len1,len2);
-
-            while(len-- != 0){
-                byte b1 = byteArrayKeys.array[start1++];
-                byte b2 = byteArrayKeys.array[start2++];
-                if(b1!=b2){
-                    return b1-b2;
-                }
-            }
-            return len1 - len2;
+            return byteArrayKeys.compare(pos1,pos2);
         }
 
         @Override
         public int compare(ByteArrayKeys byteArrayKeys, int pos1, byte[] string) {
-            int strLen = string.length;
-            int start1 = pos1==0 ? 0 : byteArrayKeys.offset[pos1-1];
-            int start2 = 0;
-            int len1 = byteArrayKeys.offset[pos1] - start1;
-            int len = Math.min(len1,strLen);
-
-            while(len-- != 0){
-                byte b1 = byteArrayKeys.array[start1++];
-                byte b2 = string[start2++];
-                if(b1!=b2){
-                    return b1-b2;
-                }
-            }
-            return len1 - strLen;
-        }
-
-
-
-        private byte[] toBytes(String string) {
-            byte[] ret = new byte[string.length()];
-            for(int i=ret.length-1;i!=-1;i--){
-                ret[i] = (byte) string.charAt(i);
-            }
-            return ret;
+            return byteArrayKeys.compare(pos1,string);
         }
 
         @Override
         public byte[] getKey(ByteArrayKeys byteArrayKeys, int pos) {
-            int from =  pos==0 ? 0 : byteArrayKeys.offset[pos-1];
-            int to =  byteArrayKeys.offset[pos];
-            return Arrays.copyOfRange(byteArrayKeys.array, from, to);
+            return byteArrayKeys.getKey(pos);
         }
 
         @Override
@@ -1503,33 +1508,12 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
 
         @Override
         public int length(ByteArrayKeys byteArrayKeys) {
-            return byteArrayKeys.offset.length;
+            return byteArrayKeys.length();
         }
 
         @Override
         public ByteArrayKeys putKey(ByteArrayKeys byteArrayKeys, int pos, byte[] newKey) {
-            byte[] bb = new byte[byteArrayKeys.array.length+ newKey.length];
-            int split1 = pos==0? 0: byteArrayKeys.offset[pos-1];
-            System.arraycopy(byteArrayKeys.array,0,bb,0,split1);
-            System.arraycopy(newKey,0,bb,split1,newKey.length);
-            System.arraycopy(byteArrayKeys.array,split1,bb,split1+newKey.length,byteArrayKeys.array.length-split1);
-
-            int[] offsets = new int[byteArrayKeys.offset.length+1];
-
-            int plus = 0;
-            int plusI = 0;
-            for(int i=0;i<byteArrayKeys.offset.length;i++){
-                if(i==pos){
-                    //skip one item and increase space
-                    plus = newKey.length;
-                    plusI = 1;
-
-                }
-                offsets[i+plusI] = byteArrayKeys.offset[i] + plus;
-            }
-            offsets[pos] = split1+newKey.length;
-
-            return new ByteArrayKeys(offsets,bb);
+            return byteArrayKeys.putKey(pos,newKey);
         }
 
         @Override
@@ -1558,40 +1542,12 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
 
         @Override
         public ByteArrayKeys copyOfRange(ByteArrayKeys byteArrayKeys, int from, int to) {
-            int start = from==0? 0: byteArrayKeys.offset[from-1];
-            int end = to==0? 0: byteArrayKeys.offset[to-1];
-            byte[] bb = Arrays.copyOfRange(byteArrayKeys.array,start,end);
-
-            int[] offsets = new int[to-from];
-            for(int i=0;i<offsets.length;i++){
-                offsets[i] = byteArrayKeys.offset[i+from] - start;
-            }
-
-            return new ByteArrayKeys(offsets,bb);
+            return byteArrayKeys.copyOfRange(from,to);
         }
 
         @Override
         public ByteArrayKeys deleteKey(ByteArrayKeys byteArrayKeys, int pos) {
-            int split = pos==0? 0: byteArrayKeys.offset[pos-1];
-            int next = byteArrayKeys.offset[pos];
-
-            byte[] bb = new byte[byteArrayKeys.array.length - (next-split)];
-            int[] offsets = new  int[byteArrayKeys.offset.length - 1];
-
-            System.arraycopy(byteArrayKeys.array,0,bb,0,split);
-            System.arraycopy(byteArrayKeys.array,next,bb,split,byteArrayKeys.array.length-next);
-
-            int minus=0;
-            int plusI=0;
-            for(int i=0;i<offsets.length;i++){
-                if(i==pos){
-                    //skip current item and normalize offsets
-                    plusI=1;
-                    minus = next-split;
-                }
-                offsets[i] = byteArrayKeys.offset[i+plusI] - minus;
-            }
-            return new ByteArrayKeys(offsets,bb);
+            return byteArrayKeys.deleteKey(pos);
         }
     };
 
