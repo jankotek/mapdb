@@ -316,4 +316,116 @@ public class BTreeKeySerializerTest {
         });
     }
 
+
+
+    @Test public void string_formats_compatible() throws IOException {
+        ArrayList keys = new ArrayList();
+        for(int i=0;i<1000;i++){
+            keys.add("common prefix "+ UtilsTest.randomString(10+new Random().nextInt(100)));
+        }
+
+        checkStringSerializers(keys);
+    }
+
+
+    @Test public void string_formats_compatible_no_prefix() throws IOException {
+        ArrayList keys = new ArrayList();
+        for(int i=0;i<1000;i++){
+            keys.add(UtilsTest.randomString(10+new Random().nextInt(100)));
+        }
+
+        checkStringSerializers(keys);
+    }
+
+    @Test public void string_formats_compatible_equal_size() throws IOException {
+        ArrayList keys = new ArrayList();
+        for(int i=0;i<1000;i++){
+            keys.add("common prefix "+ UtilsTest.randomString(10));
+        }
+
+        checkStringSerializers(keys);
+    }
+
+
+
+    public void checkStringSerializers(ArrayList keys) throws IOException {
+        Collections.sort(keys);
+        //first check clone on both
+        checkKeyClone(BTreeKeySerializer.STRING,keys.toArray());
+        checkKeyClone(BTreeKeySerializer.STRING2,keys.toArray());
+
+        //now serializer and deserialize with other and compare
+        {
+            DataIO.DataOutputByteArray out = new DataIO.DataOutputByteArray();
+            BTreeKeySerializer.STRING.serialize(out, BTreeKeySerializer.STRING.arrayToKeys(keys.toArray()));
+
+            DataIO.DataInputByteArray in = new DataIO.DataInputByteArray(out.buf);
+            Object[] keys2 = BTreeKeySerializer.STRING2.keysToArray(BTreeKeySerializer.STRING2.deserialize(in, keys.size()));
+
+            assertArrayEquals(keys.toArray(), keys2);
+        }
+
+        {
+            DataIO.DataOutputByteArray out = new DataIO.DataOutputByteArray();
+            BTreeKeySerializer.STRING2.serialize(out, BTreeKeySerializer.STRING2.arrayToKeys(keys.toArray()));
+
+            DataIO.DataInputByteArray in = new DataIO.DataInputByteArray(out.buf);
+            Object[] keys2 = BTreeKeySerializer.STRING.keysToArray(BTreeKeySerializer.STRING.deserialize(in, keys.size()));
+
+            assertArrayEquals(keys.toArray(), keys2);
+        }
+
+        //convert to byte[] and check with BYTE_ARRAY serializers
+        for(int i=0;i<keys.size();i++){
+            keys.set(i,((String)keys.get(i)).getBytes());
+        }
+
+        //first check clone on both
+        checkKeyClone(BTreeKeySerializer.BYTE_ARRAY,keys.toArray());
+        checkKeyClone(BTreeKeySerializer.BYTE_ARRAY2,keys.toArray());
+
+        //now serializer and deserialize with other and compare
+        {
+            DataIO.DataOutputByteArray out = new DataIO.DataOutputByteArray();
+            BTreeKeySerializer.BYTE_ARRAY.serialize(out, BTreeKeySerializer.BYTE_ARRAY.arrayToKeys(keys.toArray()));
+
+            DataIO.DataInputByteArray in = new DataIO.DataInputByteArray(out.buf);
+            Object[] keys2 = BTreeKeySerializer.BYTE_ARRAY2.keysToArray(BTreeKeySerializer.BYTE_ARRAY2.deserialize(in, keys.size()));
+
+            assertArrayEquals(keys.toArray(), keys2);
+        }
+
+        {
+            DataIO.DataOutputByteArray out = new DataIO.DataOutputByteArray();
+            BTreeKeySerializer.BYTE_ARRAY2.serialize(out, BTreeKeySerializer.BYTE_ARRAY2.arrayToKeys(keys.toArray()));
+
+            DataIO.DataInputByteArray in = new DataIO.DataInputByteArray(out.buf);
+            Object[] keys2 = BTreeKeySerializer.BYTE_ARRAY.keysToArray(BTreeKeySerializer.BYTE_ARRAY.deserialize(in, keys.size()));
+
+            assertArrayEquals(keys.toArray(), keys2);
+        }
+
+    }
+
+    @Test public void stringPrefixLen(){
+        checkPrefixLen(0, "");
+        checkPrefixLen(4, "aaaa");
+        checkPrefixLen(2, "aa","aaaa");
+        checkPrefixLen(2, "aaaa","aa");
+        checkPrefixLen(2, "aa","aabb");
+        checkPrefixLen(2, "aaBB","aabb");
+        checkPrefixLen(2, "aaBB","aabb","aabbaa");
+        checkPrefixLen(2, "aabbaa","aaBB","aabb");
+    }
+
+    void checkPrefixLen(int expected, Object... keys){
+        ByteArrayKeys keys1 = BTreeKeySerializer.STRING.arrayToKeys(keys);
+        assertEquals(expected, keys1.commonPrefixLen());
+
+        byte[][] keys2 = BTreeKeySerializer.STRING2.arrayToKeys(keys);
+        assertEquals(expected, BTreeKeySerializer.commonPrefixLen(keys2));
+
+    }
+
+
 }
