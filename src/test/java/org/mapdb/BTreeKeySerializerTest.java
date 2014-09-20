@@ -305,6 +305,25 @@ public class BTreeKeySerializerTest {
     }
 
 
+    @Test public void compress_tuple2_random(){
+        randomSerializer(new  BTreeKeySerializer.Compress(BTreeKeySerializer.ARRAY2), new Fun.Function0() {
+            @Override
+            public Object run() {
+                return new Object[]{"aa",r.nextInt()};
+            }
+        });
+    }
+
+    @Test public void compress_basic_random(){
+        randomSerializer(new  BTreeKeySerializer.Compress(BTreeKeySerializer.BASIC), new Fun.Function0() {
+            @Override
+            public Object run() {
+                return UtilsTest.randomString(100);
+            }
+        });
+    }
+
+
     @Test public void tuple2_random(){
         randomSerializer(BTreeKeySerializer.ARRAY2, new Fun.Function0() {
             @Override

@@ -1,9 +1,6 @@
 package org.mapdb;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
-import java.io.Serializable;
+import java.io.*;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.UUID;
@@ -1899,4 +1896,112 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         }
     };
 
+    public static class Compress extends BTreeKeySerializer {
+
+        final BTreeKeySerializer wrapped;
+        final CompressLZF lzf = new CompressLZF();
+
+        public Compress(BTreeKeySerializer wrapped) {
+            if(wrapped == null)
+                throw new  NullPointerException();
+
+            this.wrapped = wrapped;
+        }
+
+        protected Compress(SerializerBase serializerBase, DataInput in, SerializerBase.FastArrayList objectStack) throws IOException {
+            objectStack.add(this);
+            wrapped = (BTreeKeySerializer) serializerBase.deserialize(in,objectStack);
+            if(wrapped == null)
+                throw new  NullPointerException();
+        }
+
+        @Override
+        public void serialize(DataOutput out, Object o) throws IOException {
+            DataIO.DataOutputByteArray out2 = new DataIO.DataOutputByteArray();
+            wrapped.serialize(out2, o);
+            DataIO.packInt(out,out2.pos);
+            byte[] out3 = new byte[out2.pos+100];
+            int compSize = lzf.compress(out2.buf,out2.pos,out3,0);
+            out.write(out3,0,compSize);
+        }
+
+        @Override
+        public Object deserialize(DataInput in, int nodeSize) throws IOException {
+            int unpackSize = DataIO.unpackInt(in);
+            byte[] in2 = new byte[unpackSize];
+            lzf.expand(in,in2,0,in2.length);
+            return wrapped.deserialize(new DataIO.DataInputByteArray(in2),nodeSize);
+        }
+
+        @Override
+        public int compare(Object o, int pos1, int pos2) {
+            return wrapped.compare(o, pos1, pos2);
+        }
+
+        @Override
+        public int compare(Object o, int pos, Object o2) {
+            return wrapped.compare(o, pos, o2);
+        }
+
+        @Override
+        public boolean compareIsSmaller(Object o, int pos, Object o2) {
+            return wrapped.compareIsSmaller(o, pos, o2);
+        }
+
+        @Override
+        public Object getKey(Object o, int pos) {
+            return wrapped.getKey(o, pos);
+        }
+
+        @Override
+        public Comparator comparator() {
+            return wrapped.comparator();
+        }
+
+        @Override
+        public Object emptyKeys() {
+            return wrapped.emptyKeys();
+        }
+
+        @Override
+        public int length(Object o) {
+            return wrapped.length(o);
+        }
+
+        @Override
+        public Object putKey(Object o, int pos, Object newKey) {
+            return wrapped.putKey(o, pos, newKey);
+        }
+
+        @Override
+        public Object copyOfRange(Object o, int from, int to) {
+            return wrapped.copyOfRange(o, from, to);
+        }
+
+        @Override
+        public Object deleteKey(Object o, int pos) {
+            return wrapped.deleteKey(o, pos);
+        }
+
+        @Override
+        public int findChildren(BTreeMap.BNode node, Object key) {
+            return wrapped.findChildren(node, key);
+        }
+
+        @Override
+        public int findChildren2(BTreeMap.BNode node, Object key) {
+            return wrapped.findChildren2(node, key);
+        }
+
+        @Override
+        public Object arrayToKeys(Object[] keys) {
+            return wrapped.arrayToKeys(keys);
+        }
+
+        @Override
+        public Object[] keysToArray(Object o) {
+            return wrapped.keysToArray(o);
+        }
+
+    }
 }

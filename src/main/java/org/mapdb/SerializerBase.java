@@ -343,7 +343,16 @@ public class SerializerBase implements Serializer<Object>{
                 SerializerBase.this.serialize(out, value.serializer,objectStack);
             }
         });
-        }
+        ser.put(BTreeKeySerializer.Compress.class, new Ser< BTreeKeySerializer.Compress>(){
+            @Override
+            public void serialize(DataOutput out, BTreeKeySerializer.Compress value, FastArrayList objectStack) throws IOException {
+                out.write(Header.MAPDB);
+                DataIO.packInt(out, HeaderMapDB.B_TREE_COMPRESS_KEY_SERIALIZER);
+                SerializerBase.this.serialize(out, value.wrapped,objectStack);
+            }
+        });
+
+    }
 
     public void serializeObjectArray(DataOutput out, Object[] b, FastArrayList objectStack) throws IOException {
         boolean allNull = true;
@@ -1397,6 +1406,7 @@ public class SerializerBase implements Serializer<Object>{
         int B_TREE_BASIC_KEY_SERIALIZER = 58;
         int COMPARATOR_ARRAY = 59;
         int SERIALIZER_COMPRESSION_WRAPPER = 60;
+        int B_TREE_COMPRESS_KEY_SERIALIZER = 64;
     }
 
 
@@ -1534,6 +1544,15 @@ public class SerializerBase implements Serializer<Object>{
             mapdb_add(61, BTreeKeySerializer.BASIC);
             mapdb_add(62, BTreeKeySerializer.BYTE_ARRAY);
             mapdb_add(63, BTreeKeySerializer.BYTE_ARRAY2);
+
+            //64
+            mapdb_add(HeaderMapDB.B_TREE_COMPRESS_KEY_SERIALIZER, new Deser() {
+                @Override
+                public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+                    return new BTreeKeySerializer.Compress(SerializerBase.this, in, objectStack);
+                }
+            });
+
         }
 
 
