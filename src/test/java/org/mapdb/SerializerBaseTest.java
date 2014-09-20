@@ -725,4 +725,13 @@ public class SerializerBaseTest{
         assertEquals(o, clone(o));
     }
 
+    @Test public void mapdb_singletons_equalent_after_clone() throws IOException {
+        SerializerBase b = new SerializerBase();
+        for(Object o:b.mapdb_all.keySet()){
+            if(o instanceof SerializerBase.Deser)
+                continue;
+            assertTrue(o==clone(o));
+        }
+    }
+
 }
