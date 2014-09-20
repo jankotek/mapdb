@@ -392,6 +392,7 @@ public class HTreeMap2Test {
         assertEquals(ZERO, engine.get(m.expireHeads[0], Serializer.LONG));
         assertEquals(ZERO, engine.get(m.expireTails[0], Serializer.LONG));
         assertArrayEquals(new int[]{},getExpireList(m,0));
+        m.segmentLocks[0].writeLock().unlock();
     }
 
     @Test public void expire_link_test(){
@@ -429,7 +430,7 @@ public class HTreeMap2Test {
 
         assertEquals(100, m.expireLinkRemove(2,recids[1]).hash);
         assertArrayEquals(new int[]{700,900,800,500},getExpireList(m,2));
-
+        m.segmentLocks[2].writeLock().unlock();
 
     }
 
