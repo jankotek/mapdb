@@ -260,6 +260,50 @@ public class BTreeKeySerializerTest {
     }
 
 
+    @Test public void stringUTF(){
+        randomSerializer(BTreeKeySerializer.STRING, new Fun.Function0() {
+
+            @Override
+            public Object run() {
+                int size = r.nextInt(100);
+                return UtilsTest.randomString(size)+((char)200);
+            }
+        });
+    }
+
+    @Test public void string2UTF(){
+        randomSerializer(BTreeKeySerializer.STRING2, new Fun.Function0() {
+
+            @Override
+            public Object run() {
+                int size = r.nextInt(100);
+                return UtilsTest.randomString(size)+((char)200);
+            }
+        });
+    }
+
+    @Test public void stringUTFXX(){
+        randomSerializer(BTreeKeySerializer.STRING, new Fun.Function0() {
+
+            @Override
+            public Object run() {
+                int size = r.nextInt(100);
+                return UtilsTest.randomString(size)+((char)2222);
+            }
+        });
+    }
+
+    @Test public void string2UTFXX(){
+        randomSerializer(BTreeKeySerializer.STRING2, new Fun.Function0() {
+
+            @Override
+            public Object run() {
+                int size = r.nextInt(100);
+                return UtilsTest.randomString(size)+((char)2222);
+            }
+        });
+    }
+
 
     @Test public void tuple2_random(){
         randomSerializer(BTreeKeySerializer.ARRAY2, new Fun.Function0() {
@@ -419,10 +463,10 @@ public class BTreeKeySerializerTest {
     }
 
     void checkPrefixLen(int expected, Object... keys){
-        ByteArrayKeys keys1 = BTreeKeySerializer.STRING.arrayToKeys(keys);
+        StringArrayKeys keys1 = BTreeKeySerializer.STRING.arrayToKeys(keys);
         assertEquals(expected, keys1.commonPrefixLen());
 
-        byte[][] keys2 = BTreeKeySerializer.STRING2.arrayToKeys(keys);
+        char[][] keys2 = BTreeKeySerializer.STRING2.arrayToKeys(keys);
         assertEquals(expected, BTreeKeySerializer.commonPrefixLen(keys2));
 
     }
