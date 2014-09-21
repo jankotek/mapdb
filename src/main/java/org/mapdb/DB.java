@@ -17,6 +17,8 @@
 package org.mapdb;
 
 import java.io.Closeable;
+import java.io.IOError;
+import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
@@ -1503,6 +1505,15 @@ public class DB implements Closeable {
      */
     synchronized public void close(){
         if(engine == null) return;
+        for(WeakReference r:namesInstanciated.values()){
+            Object rr = r.get();
+            if(rr !=null && rr instanceof Closeable)
+                try {
+                    ((Closeable)rr).close();
+                } catch (IOException e) {
+                    throw new IOError(e);
+                }
+        }
         engine.close();
         //dereference db to prevent memory leaks
         engine = EngineWrapper.CLOSED;
