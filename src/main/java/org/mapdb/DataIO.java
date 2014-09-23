@@ -76,19 +76,23 @@ public final class DataIO {
      * @throws java.io.IOException
      */
     static public long unpackLong(DataInput in) throws IOException {
+        //$DELAY$
         int offset = 0;
         long result=0;
         long b;
         do {
+            //$DELAY$
             b = in.readUnsignedByte();
             result |= (b & 0x7F) << offset;
             offset += 7;
         }while((b & 0x80) != 0);
+        //$DELAY$
         return result;
     }
 
     public static int nextPowTwo(final int a)
     {
+        //$DELAY$
         int b = 1;
         while (b < a)
         {
@@ -110,10 +114,13 @@ public final class DataIO {
      *
      */
     static public void packLong(DataOutput out, long value) throws IOException {
+        //$DELAY$
         while ((value & ~0x7FL) != 0) {
             out.write((((int) value & 0x7F) | 0x80));
             value >>>= 7;
+            //$DELAY$
         }
+        //$DELAY$
         out.write((byte) value);
     }
 
@@ -130,21 +137,25 @@ public final class DataIO {
      */
 
     static public void packInt(DataOutput in, int value) throws IOException {
+        //$DELAY$
         while ((value & ~0x7F) != 0) {
+            //$DELAY$
             in.write(((value & 0x7F) | 0x80));
             value >>>= 7;
         }
-
+        //$DELAY$
         in.write((byte) value);
     }
 
     public static int longHash(final long key) {
+        //$DELAY$
         int h = (int)(key ^ (key >>> 32));
         h ^= (h >>> 20) ^ (h >>> 12);
         return h ^ (h >>> 7) ^ (h >>> 4);
     }
 
     public static int intHash(int h) {
+        //$DELAY$
         h ^= (h >>> 20) ^ (h >>> 12);
         return h ^ (h >>> 7) ^ (h >>> 4);
     }
@@ -180,6 +191,7 @@ public final class DataIO {
         }
 
         public DataInputByteArray(byte[] bb, int pos) {
+            //$DELAY$
             buf = bb;
             this.pos = pos;
         }
@@ -192,45 +204,54 @@ public final class DataIO {
         @Override
         public void readFully(byte[] b, int off, int len) throws IOException {
             System.arraycopy(buf, pos, b, off, len);
+            //$DELAY$
             pos += len;
         }
 
         @Override
         public int skipBytes(final int n) throws IOException {
             pos += n;
+            //$DELAY$
             return n;
         }
 
         @Override
         public boolean readBoolean() throws IOException {
+            //$DELAY$
             return buf[pos++] == 1;
         }
 
         @Override
         public byte readByte() throws IOException {
+            //$DELAY$
             return buf[pos++];
         }
 
         @Override
         public int readUnsignedByte() throws IOException {
+            //$DELAY$
             return buf[pos++] & 0xff;
         }
 
         @Override
         public short readShort() throws IOException {
+            //$DELAY$
             return (short)((buf[pos++] << 8) | (buf[pos++] & 0xff));
         }
 
         @Override
         public int readUnsignedShort() throws IOException {
+            //$DELAY$
             return (((buf[pos++] & 0xff) << 8) |
                     ((buf[pos++] & 0xff)));
         }
 
         @Override
         public char readChar() throws IOException {
+            //$DELAY$
             // I know: 4 bytes, but char only consumes 2,
             // has to stay here for backward compatibility
+            //TODO char 4 byte
             return (char) readInt();
         }
 
@@ -239,6 +260,7 @@ public final class DataIO {
             final int end = pos + 4;
             int ret = 0;
             for (; pos < end; pos++) {
+                //$DELAY$
                 ret = (ret << 8) | (buf[pos] & 0xFF);
             }
             return ret;
@@ -249,6 +271,7 @@ public final class DataIO {
             final int end = pos + 8;
             long ret = 0;
             for (; pos < end; pos++) {
+                //$DELAY$
                 ret = (ret << 8) | (buf[pos] & 0xFF);
             }
             return ret;
@@ -274,6 +297,8 @@ public final class DataIO {
             final int len = unpackInt();
             char[] b = new char[len];
             for (int i = 0; i < len; i++)
+                //$DELAY$
+                //TODO char 4 bytes
                 b[i] = (char) unpackInt();
             return new String(b);
         }
@@ -307,10 +332,12 @@ public final class DataIO {
             int result=0;
             int b;
             do {
+                //$DELAY$
                 b = buf[pos++];
                 result |= (b & 0x7F) << offset;
                 offset += 7;
             }while((b & 0x80) != 0);
+            //$DELAY$
             return result;
         }
 
@@ -338,6 +365,7 @@ public final class DataIO {
         @Override
         public long skip(long n) throws IOException {
             n = Math.min(n, Integer.MAX_VALUE);
+            //$DELAY$
             return in.skipBytes((int) n);
         }
 
@@ -365,6 +393,7 @@ public final class DataIO {
         public int pos;
 
         public DataInputByteBuffer(final ByteBuffer buf, final int pos) {
+            //$DELAY$
             this.buf = buf;
             this.pos = pos;
         }
@@ -385,6 +414,7 @@ public final class DataIO {
         public void readFully(byte[] b, int off, int len) throws IOException {
             ByteBuffer clone = buf.duplicate();
             clone.position(pos);
+            //$DELAY$
             pos+=len;
             clone.get(b, off, len);
         }
@@ -392,47 +422,56 @@ public final class DataIO {
         @Override
         public int skipBytes(final int n) throws IOException {
             pos +=n;
+            //$DELAY$
             return n;
         }
 
         @Override
         public boolean readBoolean() throws IOException {
+            //$DELAY$
             return buf.get(pos++) ==1;
         }
 
         @Override
         public byte readByte() throws IOException {
+            //$DELAY$
             return buf.get(pos++);
         }
 
         @Override
         public int readUnsignedByte() throws IOException {
+            //$DELAY$
             return buf.get(pos++)& 0xff;
         }
 
         @Override
         public short readShort() throws IOException {
             final short ret = buf.getShort(pos);
+            //$DELAY$
             pos+=2;
             return ret;
         }
 
         @Override
         public int readUnsignedShort() throws IOException {
+            //$DELAY$
             return (( (buf.get(pos++) & 0xff) << 8) |
                     ( (buf.get(pos++) & 0xff)));
         }
 
         @Override
         public char readChar() throws IOException {
+            //$DELAY$
             // I know: 4 bytes, but char only consumes 2,
             // has to stay here for backward compatibility
+            //TODO 4 byte char
             return (char) readInt();
         }
 
         @Override
         public int readInt() throws IOException {
             final int ret = buf.getInt(pos);
+            //$DELAY$
             pos+=4;
             return ret;
         }
@@ -440,6 +479,7 @@ public final class DataIO {
         @Override
         public long readLong() throws IOException {
             final long ret = buf.getLong(pos);
+            //$DELAY$
             pos+=8;
             return ret;
         }
@@ -447,6 +487,7 @@ public final class DataIO {
         @Override
         public float readFloat() throws IOException {
             final float ret = buf.getFloat(pos);
+            //$DELAY$
             pos+=4;
             return ret;
         }
@@ -454,6 +495,7 @@ public final class DataIO {
         @Override
         public double readDouble() throws IOException {
             final double ret = buf.getDouble(pos);
+            //$DELAY$
             pos+=8;
             return ret;
         }
@@ -466,6 +508,7 @@ public final class DataIO {
         @Override
         public String readUTF() throws IOException {
             final int size = unpackInt(this);
+            //$DELAY$
             return SerializerBase.deserializeString(this, size);
         }
 
@@ -496,7 +539,6 @@ public final class DataIO {
 
         @Override
         public void close() {
-
         }
     }
 
@@ -529,14 +571,17 @@ public final class DataIO {
          * make sure there will be enough space in buffer to write N bytes
          */
         public void ensureAvail(int n) {
-
+            //$DELAY$
             n+=pos;
             if ((n&sizeMask)!=0) {
+                //$DELAY$
                 int newSize = buf.length;
                 while(newSize<n){
+                    //$DELAY$
                     newSize<<=2;
                     sizeMask<<=2;
                 }
+                //$DELAY$
                 buf = Arrays.copyOf(buf, newSize);
             }
         }
@@ -545,12 +590,14 @@ public final class DataIO {
         @Override
         public void write(final int b) throws IOException {
             ensureAvail(1);
+            //$DELAY$
             buf[pos++] = (byte) b;
         }
 
         @Override
         public void write(final byte[] b, final int off, final int len) throws IOException {
             ensureAvail(len);
+            //$DELAY$
             System.arraycopy(b, off, buf, pos, len);
             pos += len;
         }
@@ -558,19 +605,23 @@ public final class DataIO {
         @Override
         public void writeBoolean(final boolean v) throws IOException {
             ensureAvail(1);
+            //$DELAY$
             buf[pos++] = (byte) (v ? 1 : 0);
         }
 
         @Override
         public void writeByte(final int v) throws IOException {
             ensureAvail(1);
+            //$DELAY$
             buf[pos++] = (byte) (v);
         }
 
         @Override
         public void writeShort(final int v) throws IOException {
             ensureAvail(2);
+            //$DELAY$
             buf[pos++] = (byte) (0xff & (v >> 8));
+            //$DELAY$
             buf[pos++] = (byte) (0xff & (v));
         }
 
@@ -578,6 +629,7 @@ public final class DataIO {
         public void writeChar(final int v) throws IOException {
             // I know: 4 bytes, but char only consumes 2,
             // has to stay here for backward compatibility
+            //TODO 4 byte char
             writeInt(v);
         }
 
@@ -585,8 +637,10 @@ public final class DataIO {
         public void writeInt(final int v) throws IOException {
             ensureAvail(4);
             buf[pos++] = (byte) (0xff & (v >> 24));
+            //$DELAY$
             buf[pos++] = (byte) (0xff & (v >> 16));
             buf[pos++] = (byte) (0xff & (v >> 8));
+            //$DELAY$
             buf[pos++] = (byte) (0xff & (v));
         }
 
@@ -595,12 +649,15 @@ public final class DataIO {
             ensureAvail(8);
             buf[pos++] = (byte) (0xff & (v >> 56));
             buf[pos++] = (byte) (0xff & (v >> 48));
+            //$DELAY$
             buf[pos++] = (byte) (0xff & (v >> 40));
             buf[pos++] = (byte) (0xff & (v >> 32));
             buf[pos++] = (byte) (0xff & (v >> 24));
+            //$DELAY$
             buf[pos++] = (byte) (0xff & (v >> 16));
             buf[pos++] = (byte) (0xff & (v >> 8));
             buf[pos++] = (byte) (0xff & (v));
+            //$DELAY$
         }
 
         @Override
@@ -628,20 +685,24 @@ public final class DataIO {
             final int len = s.length();
             packInt(len);
             for (int i = 0; i < len; i++) {
+                //$DELAY$
                 int c = (int) s.charAt(i);
                 packInt(c);
             }
         }
 
+        //TODO remove pack methods  perhaps
         protected void packInt(int value) throws IOException {
             if(CC.PARANOID && value<0)
                 throw new AssertionError("negative value: "+value);
 
             while ((value & ~0x7F) != 0) {
                 ensureAvail(1);
+                //$DELAY$
                 buf[pos++]= (byte) ((value & 0x7F) | 0x80);
                 value >>>= 7;
             }
+            //$DELAY$
             ensureAvail(1);
             buf[pos++]= (byte) value;
         }

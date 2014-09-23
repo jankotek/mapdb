@@ -133,20 +133,29 @@ public final class Bind {
      */
     public static <K,V> void  size(MapWithModificationListener<K,V> map, final Atomic.Long sizeCounter){
         //set initial value first if necessary
+        //$DELAY$
         if(sizeCounter.get() == 0){
+            //$DELAY$
             long size = map.sizeLong();
-            if(sizeCounter.get()!=size)
+            if(sizeCounter.get()!=size) {
+                //$DELAY$
                 sizeCounter.set(size);
+                //$DELAY$
+            }
         }
 
         map.modificationListenerAdd(new MapListener<K, V>() {
             @Override
             public void update(K key, V oldVal, V newVal) {
+                //$DELAY$
                 if (oldVal == null && newVal != null) {
+                    //$DELAY$
                     sizeCounter.incrementAndGet();
                 } else if (oldVal != null && newVal == null) {
+                    //$DELAY$
                     sizeCounter.decrementAndGet();
                 }
+                //$DELAY$
 
                 //update does not change collection size
             }
@@ -177,21 +186,28 @@ public final class Bind {
     public static <K,V, V2> void secondaryValue(MapWithModificationListener<K, V> map,
                                               final Map<K, V2> secondary,
                                               final Fun.Function2<V2, K, V> fun){
+        //$DELAY$
         //fill if empty
         if(secondary.isEmpty()){
+            //$DELAY$
             for(Map.Entry<K,V> e:map.entrySet())
                 secondary.put(e.getKey(), fun.run(e.getKey(),e.getValue()));
         }
+        //$DELAY$
         //hook listener
         map.modificationListenerAdd(new MapListener<K, V>() {
             @Override
             public void update(K key, V oldVal, V newVal) {
+                //$DELAY$
                 if (newVal == null) {
                     //removal
                     secondary.remove(key);
+                    //$DELAY$
                 } else {
+                    //$DELAY$
                     secondary.put(key, fun.run(key, newVal));
                 }
+                //$DELAY$
             }
         });
     }
@@ -220,52 +236,78 @@ public final class Bind {
     public static <K,V, V2> void secondaryValues(MapWithModificationListener<K, V> map,
                                                 final Set<Object[]> secondary,
                                                 final Fun.Function2<V2[], K, V> fun){
+        //$DELAY$
         //fill if empty
         if(secondary.isEmpty()){
+            //$DELAY$
             for(Map.Entry<K,V> e:map.entrySet()){
                 V2[] v = fun.run(e.getKey(),e.getValue());
-                if(v!=null)
-                    for(V2 v2:v)
+                //$DELAY$
+                if(v!=null) {
+                    for (V2 v2 : v) {
+                        //$DELAY$
                         secondary.add(new Object[]{e.getKey(), v2});
+                        //$DELAY$
+                    }
+                }
             }
         }
+
+        //$DELAY$
+
         //hook listener
         map.modificationListenerAdd(new MapListener<K, V>() {
             @Override
             public void update(K key, V oldVal, V newVal) {
+                //$DELAY$
                 if (newVal == null) {
+                    //$DELAY$
                     //removal
                     V2[] v = fun.run(key, oldVal);
-                    if (v != null)
-                        for (V2 v2 : v)
+                    if (v != null) {
+                        for (V2 v2 : v) {
+                            //$DELAY$
                             secondary.remove(new Object[]{key, v2});
+                        }
+                    }
                 } else if (oldVal == null) {
+                    //$DELAY$
                     //insert
                     V2[] v = fun.run(key, newVal);
-                    if (v != null)
-                        for (V2 v2 : v)
+                    if (v != null) {
+                        for (V2 v2 : v) {
+                            //$DELAY$
                             secondary.add(new Object[]{key, v2});
+                        }
+                    }
                 } else {
+                    //$DELAY$
                     //update, must remove old key and insert new
                     V2[] oldv = fun.run(key, oldVal);
                     V2[] newv = fun.run(key, newVal);
                     if (oldv == null) {
+                        //$DELAY$
                         //insert new
-                        if (newv != null)
-                            for (V2 v : newv)
+                        if (newv != null) {
+                            for (V2 v : newv) {
+                                //$DELAY$
                                 secondary.add(new Object[]{key, v});
+                            }
+                        }
                         return;
                     }
                     if (newv == null) {
                         //remove old
-                        for (V2 v : oldv)
+                        for (V2 v : oldv) {
+                            //$DELAY$
                             secondary.remove(new Object[]{key, v});
+                        }
                         return;
                     }
 
                     Set<V2> hashes = new HashSet<V2>();
                     Collections.addAll(hashes, oldv);
-
+                    //$DELAY$
                     //add new non existing items
                     for (V2 v : newv) {
                         if (!hashes.contains(v)) {
@@ -274,9 +316,11 @@ public final class Bind {
                     }
                     //remove items which are in old, but not in new
                     for (V2 v : newv) {
+                        //$DELAY$
                         hashes.remove(v);
                     }
                     for (V2 v : hashes) {
+                        //$DELAY$
                         secondary.remove(new Object[]{key, v});
                     }
                 }
@@ -310,9 +354,11 @@ public final class Bind {
     public static <K,V, K2> void secondaryKey(MapWithModificationListener<K, V> map,
                                                 final Set<Object[]> secondary,
                                                 final Fun.Function2<K2, K, V> fun){
+        //$DELAY$
         //fill if empty
         if(secondary.isEmpty()){
             for(Map.Entry<K,V> e:map.entrySet()){
+                //$DELAY$
                 secondary.add(new Object[]{fun.run(e.getKey(),e.getValue()), e.getKey()});
             }
         }
@@ -320,19 +366,26 @@ public final class Bind {
         map.modificationListenerAdd(new MapListener<K, V>() {
             @Override
             public void update(K key, V oldVal, V newVal) {
+                //$DELAY$
                 if (newVal == null) {
                     //removal
+                    //$DELAY$
                     secondary.remove(new Object[]{fun.run(key, oldVal), key});
                 } else if (oldVal == null) {
                     //insert
+                    //$DELAY$
                     secondary.add(new Object[]{fun.run(key, newVal), key});
                 } else {
                     //update, must remove old key and insert new
+                    //$DELAY$
                     K2 oldKey = fun.run(key, oldVal);
                     K2 newKey = fun.run(key, newVal);
                     if (oldKey == newKey || oldKey.equals(newKey)) return;
+                    //$DELAY$
                     secondary.remove(new Object[]{oldKey, key});
+                    //$DELAY$
                     secondary.add(new Object[]{newKey, key});
+                    //$DELAY$
                 }
             }
         });
@@ -361,16 +414,20 @@ public final class Bind {
     public static <K,V, K2> void secondaryKey(MapWithModificationListener<K, V> map,
                                               final Map<K2, K> secondary,
                                               final Fun.Function2<K2, K, V> fun){
+        //$DELAY$
         //fill if empty
         if(secondary.isEmpty()){
             for(Map.Entry<K,V> e:map.entrySet()){
+                //$DELAY$
                 secondary.put(fun.run(e.getKey(), e.getValue()), e.getKey());
             }
         }
+        //$DELAY$
         //hook listener
         map.modificationListenerAdd(new MapListener<K, V>() {
             @Override
             public void update(K key, V oldVal, V newVal) {
+                //$DELAY$
                 if (newVal == null) {
                     //removal
                     secondary.remove(fun.run(key, oldVal));
@@ -378,11 +435,14 @@ public final class Bind {
                     //insert
                     secondary.put(fun.run(key, newVal), key);
                 } else {
+                    //$DELAY$
                     //update, must remove old key and insert new
                     K2 oldKey = fun.run(key, oldVal);
                     K2 newKey = fun.run(key, newVal);
                     if (oldKey == newKey || oldKey.equals(newKey)) return;
+                    //$DELAY$
                     secondary.remove(oldKey);
+                    //$DELAY$
                     secondary.put(newKey, key);
                 }
             }
@@ -414,63 +474,91 @@ public final class Bind {
     public static <K,V, K2> void secondaryKeys(MapWithModificationListener<K, V> map,
                                               final Set<Object[]> secondary,
                                               final Fun.Function2<K2[], K, V> fun){
+        //$DELAY$
         //fill if empty
         if(secondary.isEmpty()){
             for(Map.Entry<K,V> e:map.entrySet()){
+                //$DELAY$
                 K2[] k2 = fun.run(e.getKey(), e.getValue());
-                if(k2 != null)
-                    for(K2 k22 :k2)
+                if(k2 != null) {
+                    for (K2 k22 : k2) {
+                        //$DELAY$
                         secondary.add(new Object[]{k22, e.getKey()});
+                    }
+                }
             }
         }
+        //$DELAY$
         //hook listener
         map.modificationListenerAdd(new MapListener<K, V>() {
             @Override
             public void update(K key, V oldVal, V newVal) {
+                //$DELAY$
                 if (newVal == null) {
+                    //$DELAY$
                     //removal
                     K2[] k2 = fun.run(key, oldVal);
-                    if (k2 != null)
-                        for (K2 k22 : k2)
+                    if (k2 != null) {
+                        for (K2 k22 : k2) {
+                            //$DELAY$
                             secondary.remove(new Object[]{k22, key});
+                        }
+                    }
                 } else if (oldVal == null) {
+                    //$DELAY$
                     //insert
                     K2[] k2 = fun.run(key, newVal);
-                    if (k2 != null)
-                        for (K2 k22 : k2)
+                    //$DELAY$
+                    if (k2 != null) {
+                        for (K2 k22 : k2) {
+                            //$DELAY$
                             secondary.add(new Object[]{k22, key});
+                        }
+                    }
                 } else {
+                    //$DELAY$
                     //update, must remove old key and insert new
                     K2[] oldk = fun.run(key, oldVal);
                     K2[] newk = fun.run(key, newVal);
                     if (oldk == null) {
                         //insert new
-                        if (newk != null)
-                            for (K2 k22 : newk)
+                        if (newk != null) {
+                            for (K2 k22 : newk) {
+                                //$DELAY$
                                 secondary.add(new Object[]{k22, key});
+                            }
+                        }
                         return;
                     }
                     if (newk == null) {
                         //remove old
-                        for (K2 k22 : oldk)
+                        for (K2 k22 : oldk) {
+                            //$DELAY$
                             secondary.remove(new Object[]{k22, key});
+                        }
                         return;
                     }
 
+                    //$DELAY$
                     Set<K2> hashes = new HashSet<K2>();
+                    //$DELAY$
                     Collections.addAll(hashes, oldk);
 
                     //add new non existing items
                     for (K2 k2 : newk) {
+                        //$DELAY$
                         if (!hashes.contains(k2)) {
+                            //$DELAY$
                             secondary.add(new Object[]{k2, key});
                         }
                     }
                     //remove items which are in old, but not in new
                     for (K2 k2 : newk) {
+                        //$DELAY$
                         hashes.remove(k2);
                     }
                     for (K2 k2 : hashes) {
+                        //$DELAY$
                         secondary.remove(new Object[]{k2, key});
                     }
                 }
@@ -567,20 +655,26 @@ public final class Bind {
     public static <K,V,C> void histogram(MapWithModificationListener<K,V> primary, final ConcurrentMap<C,Long> histogram,
                                   final Fun.Function2<C, K, V> entryToCategory){
 
+        //$DELAY$
         MapListener<K,V> listener = new MapListener<K, V>() {
             @Override public void update(K key, V oldVal, V newVal) {
+                //$DELAY$
                 if(newVal == null){
+                    //$DELAY$
                     //removal
                     C category = entryToCategory.run(key,oldVal);
                     incrementHistogram(category, -1);
                 }else if(oldVal==null){
+                    //$DELAY$
                     //insert
                     C category = entryToCategory.run(key,newVal);
                     incrementHistogram(category, 1);
                 }else{
+                    //$DELAY$
                     //update, must remove old key and insert new
                     C oldCat = entryToCategory.run(key, oldVal);
                     C newCat = entryToCategory.run(key, newVal);
+                    //$DELAY$
                     if(oldCat == newCat || oldCat.equals(newCat)) return;
                     incrementHistogram(oldCat,-1);
                     incrementHistogram(oldCat,1);
@@ -590,17 +684,25 @@ public final class Bind {
 
             /** atomically update counter in histogram*/
             private void incrementHistogram(C category, long i) {
+                //$DELAY$
                 for(;;){
+                    //$DELAY$
                     Long oldCount = histogram.get(category);
                     if(oldCount == null){
+                        //$DELAY$
                         //insert new count
-                        if(histogram.putIfAbsent(category,i) == null)
+                        if(histogram.putIfAbsent(category,i) == null) {
+                            //$DELAY$
                             return;
+                        }
                     }else{
                         //increase existing count
+                        //$DELAY$
                         Long newCount = oldCount+i;
-                        if(histogram.replace(category,oldCount, newCount))
+                        if(histogram.replace(category,oldCount, newCount)) {
+                            //$DELAY$
                             return;
+                        }
                     }
                 }
             }
@@ -608,8 +710,4 @@ public final class Bind {
 
         primary.modificationListenerAdd(listener);
     }
-
-
-
-
 }

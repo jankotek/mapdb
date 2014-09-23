@@ -85,11 +85,14 @@ public class DB implements Closeable {
         this.engine = engine;
         this.strictDBGet = strictDBGet;
         engine.getSerializerPojo().setDb(this);
+        //$DELAY$
         reinit();
+        //$DELAY$
     }
 
     protected void reinit() {
         //open name dir
+        //$DELAY$
         catalog = BTreeMap.preinitCatalog(this);
     }
 
@@ -102,11 +105,13 @@ public class DB implements Closeable {
 
     public <A> A catGet(String name){
         assert(Thread.holdsLock(DB.this));
+        //$DELAY$
         return (A) catalog.get(name);
     }
 
     public <A> A catPut(String name, A value){
         assert(Thread.holdsLock(DB.this));
+        //$DELAY$
         catalog.put(name, value);
         return value;
     }
@@ -114,6 +119,7 @@ public class DB implements Closeable {
     public <A> A catPut(String name, A value, A retValueIfNull){
         assert(Thread.holdsLock(DB.this));
         if(value==null) return retValueIfNull;
+        //$DELAY$
         catalog.put(name, value);
         return value;
     }
@@ -222,8 +228,10 @@ public class DB implements Closeable {
         }
 
         public <K,V> HTreeMap<K,V> makeOrGet(){
+            //$DELAY$
             synchronized (DB.this){
                 //TODO add parameter check
+                //$DELAY$
                 return (HTreeMap<K, V>) (catGet(name+".type")==null?
                                     make():getHashMap(name));
             }
@@ -312,6 +320,7 @@ public class DB implements Closeable {
 
         public <K> Set<K> makeOrGet(){
             synchronized (DB.this){
+                //$DELAY$
                 //TODO add parameter check
                 return (Set<K>) (catGet(name+".type")==null?
                         make():getHashSet(name));
@@ -348,10 +357,13 @@ public class DB implements Closeable {
         HTreeMap<K,V> ret = (HTreeMap<K, V>) getFromWeakCollection(name);
         if(ret!=null) return ret;
         String type = catGet(name + ".type", null);
+        //$DELAY$
         if(type==null){
+            //$DELAY$
             checkShouldCreate(name);
             if(engine.isReadOnly()){
                 Engine e = new StoreHeap();
+                //$DELAY$
                 new DB(e).getHashMap("a");
                 return namedPut(name,
                         new DB(new EngineWrapper.ReadOnlyEngine(e)).getHashMap("a"));
@@ -365,6 +377,7 @@ public class DB implements Closeable {
         //check type
         checkType(type, "HashMap");
         //open existing map
+        //$DELAY$
         ret = new HTreeMap<K,V>(engine,
                 (Long)catGet(name+".counterRecid"),
                 (Integer)catGet(name+".hashSalt"),
@@ -383,13 +396,16 @@ public class DB implements Closeable {
                 false,
                 threadFactory);
 
-
+        //$DELAY$
         namedPut(name, ret);
+        //$DELAY$
         return ret;
     }
 
     public  <V> V namedPut(String name, Object ret) {
+        //$DELAY$
         namesInstanciated.put(name, new WeakReference<Object>(ret));
+        //$DELAY$
         namesLookup.put(new IdentityWrapper(ret), name);
         return (V) ret;
     }
@@ -417,7 +433,7 @@ public class DB implements Closeable {
     synchronized protected <K,V> HTreeMap<K,V> createHashMap(HTreeMapMaker m){
         String name = m.name;
         checkNameNotExists(name);
-
+        //$DELAY$
         long expireTimeStart=0, expire=0, expireAccess=0, expireMaxSize = 0, expireStoreSize=0;
         long[] expireHeads=null, expireTails=null;
 
@@ -427,6 +443,7 @@ public class DB implements Closeable {
             expireAccess = catPut(name+".expireAccess",m.expireAccess);
             expireMaxSize = catPut(name+".expireMaxSize",m.expireMaxSize);
             expireStoreSize = catPut(name+".expireStoreSize",m.expireStoreSize);
+            //$DELAY$
             expireHeads = new long[16];
             expireTails = new long[16];
             for(int i=0;i<16;i++){
@@ -436,7 +453,7 @@ public class DB implements Closeable {
             catPut(name+".expireHeads",expireHeads);
             catPut(name+".expireTails",expireHeads);
         }
-
+        //$DELAY$
         if(m.hasher!=null){
             catPut(name+".hasher",m.hasher);
         }
@@ -453,7 +470,7 @@ public class DB implements Closeable {
                 threadFactory
 
         );
-
+        //$DELAY$
         catalog.put(name + ".type", "HashMap");
         namedPut(name, ret);
         return ret;
@@ -470,15 +487,18 @@ public class DB implements Closeable {
         Set<K> ret = (Set<K>) getFromWeakCollection(name);
         if(ret!=null) return ret;
         String type = catGet(name + ".type", null);
+        //$DELAY$
         if(type==null){
             checkShouldCreate(name);
             if(engine.isReadOnly()){
                 Engine e = new StoreHeap();
+                //$DELAY$
                 new DB(e).getHashSet("a");
                 return namedPut(name,
                         new DB(new EngineWrapper.ReadOnlyEngine(e)).getHashSet("a"));
             }
             return createHashSet(name).makeOrGet();
+            //$DELAY$
         }
 
 
@@ -496,8 +516,9 @@ public class DB implements Closeable {
                 threadFactory
          ).keySet();
 
-
+        //$DELAY$
         namedPut(name, ret);
+        //$DELAY$
         return ret;
     }
 
@@ -525,6 +546,7 @@ public class DB implements Closeable {
             expireMaxSize = catPut(name+".expireMaxSize",m.expireMaxSize);
             expireStoreSize = catPut(name+".expireStoreSize",m.expireStoreSize);
             expireHeads = new long[16];
+            //$DELAY$
             expireTails = new long[16];
             for(int i=0;i<16;i++){
                 expireHeads[i] = engine.put(0L,Serializer.LONG);
@@ -533,12 +555,12 @@ public class DB implements Closeable {
             catPut(name+".expireHeads",expireHeads);
             catPut(name+".expireTails",expireHeads);
         }
-
+        //$DELAY$
         if(m.hasher!=null){
             catPut(name+".hasher",m.hasher);
         }
 
-
+        //$DELAY$
         HTreeMap<K,Object> ret = new HTreeMap<K,Object>(engine,
                 catPut(name+".counterRecid",!m.counter ?0L:engine.put(0L, Serializer.LONG)),
                 catPut(name+".hashSalt",new Random().nextInt()),
@@ -550,9 +572,10 @@ public class DB implements Closeable {
                 threadFactory
         );
         Set<K> ret2 = ret.keySet();
-
+        //$DELAY$
         catalog.put(name + ".type", "HashSet");
         namedPut(name, ret2);
+        //$DELAY$
         return ret2;
     }
 
@@ -785,11 +808,13 @@ public class DB implements Closeable {
         BTreeMap<K,V> ret = (BTreeMap<K,V>) getFromWeakCollection(name);
         if(ret!=null) return ret;
         String type = catGet(name + ".type", null);
+        //$DELAY$
         if(type==null){
             checkShouldCreate(name);
             if(engine.isReadOnly()){
                 Engine e = new StoreHeap();
                 new DB(e).getTreeMap("a");
+                //$DELAY$
                 return namedPut(name,
                         new DB(new EngineWrapper.ReadOnlyEngine(e)).getTreeMap("a"));
             }
@@ -808,6 +833,7 @@ public class DB implements Closeable {
                 catGet(name+".numberOfNodeMetas",0),
                 false
                 );
+        //$DELAY$
         namedPut(name, ret);
         return ret;
     }
@@ -827,6 +853,7 @@ public class DB implements Closeable {
     synchronized protected <K,V> BTreeMap<K,V> createTreeMap(final BTreeMapMaker m){
         String name = m.name;
         checkNameNotExists(name);
+        //$DELAY$
         if(m.comparator==null){
             m.comparator = Fun.COMPARATOR;
         }
@@ -847,7 +874,7 @@ public class DB implements Closeable {
             m.pumpSource = Pump.sort(m.pumpSource,m.pumpIgnoreDuplicates, m.pumpPresortBatchSize,
                     presortComp,getDefaultSerializer());
         }
-
+        //$DELAY$
         long counterRecid = !m.counter ?0L:engine.put(0L, Serializer.LONG);
 
         long rootRecidRef;
@@ -865,7 +892,7 @@ public class DB implements Closeable {
                     m.keySerializer,
                     (Serializer<V>)m.valueSerializer);
         }
-
+        //$DELAY$
         BTreeMap<K,V> ret = new BTreeMap<K,V>(engine,
                 catPut(name+".rootRecidRef", rootRecidRef),
                 catPut(name+".maxNodeSize",m.nodeSize),
@@ -876,6 +903,7 @@ public class DB implements Closeable {
                 catPut(m.name+".numberOfNodeMetas",0),
                 false
         );
+        //$DELAY$
         catalog.put(name + ".type", "TreeMap");
         namedPut(name, ret);
         return ret;
@@ -895,15 +923,15 @@ public class DB implements Closeable {
 
             Serializer[] serializers = new Serializer[k.tsize];
             Comparator[] comparators = new Comparator[k.tsize];
-
+            //$DELAY$
             for (int i = 0; i < k.tsize; i++) {
                 serializers[i] = k.serializers[i] != null && k.serializers[i]!=Serializer.BASIC ? k.serializers[i] : getDefaultSerializer();
                 comparators[i] = k.comparators[i] != null ? k.comparators[i] : Fun.COMPARATOR;
             }
-
+            //$DELAY$
             return new BTreeKeySerializer.ArrayKeySerializer(comparators, serializers);
         }
-
+        //$DELAY$
         return keySerializer;
     }
 
@@ -941,11 +969,12 @@ public class DB implements Closeable {
                 return namedPut(name,
                         new DB(new EngineWrapper.ReadOnlyEngine(e)).getTreeSet("a"));
             }
+            //$DELAY$
             return createTreeSet(name).make();
 
         }
         checkType(type, "TreeSet");
-
+        //$DELAY$
         ret = new BTreeMap<K, Object>(engine,
                 (Long) catGet(name+".rootRecidRef"),
                 catGet(name+".maxNodeSize",32),
@@ -956,7 +985,7 @@ public class DB implements Closeable {
                 catGet(name+".numberOfNodeMetas",0),
                 false
         ).keySet();
-
+        //$DELAY$
         namedPut(name, ret);
         return ret;
 
@@ -977,7 +1006,7 @@ public class DB implements Closeable {
         if(m.comparator==null){
             m.comparator = Fun.COMPARATOR;
         }
-
+        //$DELAY$
         m.serializer = fillNulls(m.serializer);
         m.serializer = catPut(m.name+".keySerializer",m.serializer,new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer(),m.comparator));
 
@@ -987,7 +1016,7 @@ public class DB implements Closeable {
 
         long counterRecid = !m.counter ?0L:engine.put(0L, Serializer.LONG);
         long rootRecidRef;
-
+        //$DELAY$
         if(m.pumpSource==null){
             rootRecidRef = BTreeMap.createRootRef(engine,m.serializer,null,0);
         }else{
@@ -1003,7 +1032,7 @@ public class DB implements Closeable {
                     m.serializer,
                     null);
         }
-
+        //$DELAY$
         NavigableSet<K> ret = new BTreeMap<K,Object>(
                 engine,
                 catPut(m.name+".rootRecidRef", rootRecidRef),
@@ -1015,6 +1044,7 @@ public class DB implements Closeable {
                 catPut(m.name+".numberOfNodeMetas",0),
                 false
         ).keySet();
+        //$DELAY$
         catalog.put(m.name + ".type", "TreeSet");
         namedPut(m.name, ret);
         return ret;
@@ -1025,6 +1055,7 @@ public class DB implements Closeable {
         Queues.Queue<E> ret = (Queues.Queue<E>) getFromWeakCollection(name);
         if(ret!=null) return ret;
         String type = catGet(name + ".type", null);
+        //$DELAY$
         if(type==null){
             checkShouldCreate(name);
             if(engine.isReadOnly()){
@@ -1033,17 +1064,18 @@ public class DB implements Closeable {
                 return namedPut(name,
                         new DB(new EngineWrapper.ReadOnlyEngine(e)).getQueue("a"));
             }
+            //$DELAY$
             return createQueue(name,null,true);
         }
         checkType(type, "Queue");
-
+        //$DELAY$
         ret = new Queues.Queue<E>(engine,
                 (Serializer<E>) catGet(name+".serializer",getDefaultSerializer()),
                 (Long)catGet(name+".headRecid"),
                 (Long)catGet(name+".tailRecid"),
                 (Boolean)catGet(name+".useLocks")
                 );
-
+        //$DELAY$
         namedPut(name, ret);
         return ret;
     }
@@ -1054,7 +1086,7 @@ public class DB implements Closeable {
         long node = engine.put(Queues.SimpleQueue.Node.EMPTY, new Queues.SimpleQueue.NodeSerializer(serializer));
         long headRecid = engine.put(node, Serializer.LONG);
         long tailRecid = engine.put(node, Serializer.LONG);
-
+        //$DELAY$
         Queues.Queue<E> ret = new Queues.Queue<E>(engine,
                 catPut(name+".serializer",serializer,getDefaultSerializer()),
                 catPut(name+".headRecid",headRecid),
@@ -1062,6 +1094,7 @@ public class DB implements Closeable {
                 catPut(name+".useLocks",useLocks)
                 );
         catalog.put(name + ".type", "Queue");
+        //$DELAY$
         namedPut(name, ret);
         return ret;
 
@@ -1072,18 +1105,20 @@ public class DB implements Closeable {
         checkNotClosed();
         Queues.Stack<E> ret = (Queues.Stack<E>) getFromWeakCollection(name);
         if(ret!=null) return ret;
+        //$DELAY$
         String type = catGet(name + ".type", null);
         if(type==null){
             checkShouldCreate(name);
             if(engine.isReadOnly()){
                 Engine e = new StoreHeap();
-                new DB(e).getStack("a");
+                //$DELAY$
+                new DB(e).getStack("a"); //TODO WFT?
                 return namedPut(name,
                         new DB(new EngineWrapper.ReadOnlyEngine(e)).getStack("a"));
             }
             return createStack(name,null,true);
         }
-
+        //$DELAY$
         checkType(type, "Stack");
 
         ret = new Queues.Stack<E>(engine,
@@ -1091,8 +1126,9 @@ public class DB implements Closeable {
                 (Long)catGet(name+".headRecid"),
                 (Boolean)catGet(name+".useLocks")
         );
-
+        //$DELAY$
         namedPut(name, ret);
+        //$DELAY$
         return ret;
     }
 
@@ -1103,12 +1139,13 @@ public class DB implements Closeable {
 
         long node = engine.put(Queues.SimpleQueue.Node.EMPTY, new Queues.SimpleQueue.NodeSerializer(serializer));
         long headRecid = engine.put(node, Serializer.LONG);
-
+        //$DELAY$
         Queues.Stack<E> ret = new Queues.Stack<E>(engine,
                 catPut(name+".serializer",serializer,getDefaultSerializer()),
                 catPut(name+".headRecid",headRecid),
                 catPut(name+".useLocks",useLocks)
         );
+        //$DELAY$
         catalog.put(name + ".type", "Stack");
         namedPut(name, ret);
         return ret;
@@ -1120,11 +1157,13 @@ public class DB implements Closeable {
         BlockingQueue<E> ret = (BlockingQueue<E>) getFromWeakCollection(name);
         if(ret!=null) return ret;
         String type = catGet(name + ".type", null);
+        //$DELAY$
         if(type==null){
             checkShouldCreate(name);
             if(engine.isReadOnly()){
                 Engine e = new StoreHeap();
                 new DB(e).getCircularQueue("a");
+                //$DELAY$
                 return namedPut(name,
                         new DB(new EngineWrapper.ReadOnlyEngine(e)).getCircularQueue("a"));
             }
@@ -1139,6 +1178,7 @@ public class DB implements Closeable {
                 (Long)catGet(name+".headInsertRecid"),
                 (Long)catGet(name+".size")
         );
+        //$DELAY$
 
         namedPut(name, ret);
         return ret;
@@ -1154,6 +1194,7 @@ public class DB implements Closeable {
         //insert N Nodes empty nodes into a circle
         long prevRecid = 0;
         long firstRecid = 0;
+        //$DELAY$
         Serializer<Queues.SimpleQueue.Node<E>> nodeSer = new Queues.SimpleQueue.NodeSerializer<E>(serializer);
         for(long i=0;i<size;i++){
             Queues.SimpleQueue.Node<E> n = new Queues.SimpleQueue.Node<E>(prevRecid, null);
@@ -1165,7 +1206,7 @@ public class DB implements Closeable {
 
         long headRecid = engine.put(prevRecid, Serializer.LONG);
         long headInsertRecid = engine.put(prevRecid, Serializer.LONG);
-
+        //$DELAY$
 
 
         Queues.CircularQueue<E> ret = new Queues.CircularQueue<E>(engine,
@@ -1174,6 +1215,7 @@ public class DB implements Closeable {
                 catPut(name+".headInsertRecid",headInsertRecid),
                 catPut(name+".size",size)
         );
+        //$DELAY$
         catalog.put(name + ".type", "CircularQueue");
         namedPut(name, ret);
         return ret;
@@ -1185,6 +1227,7 @@ public class DB implements Closeable {
         Atomic.Long ret = new Atomic.Long(engine,
                 catPut(name+".recid",recid)
         );
+        //$DELAY$
         catalog.put(name + ".type", "AtomicLong");
         namedPut(name, ret);
         return ret;
@@ -1196,19 +1239,21 @@ public class DB implements Closeable {
         checkNotClosed();
         Atomic.Long ret = (Atomic.Long) getFromWeakCollection(name);
         if(ret!=null) return ret;
+        //$DELAY$
         String type = catGet(name + ".type", null);
         if(type==null){
             checkShouldCreate(name);
             if(engine.isReadOnly()){
                 Engine e = new StoreHeap();
                 new DB(e).getAtomicLong("a");
+                //$DELAY$
                 return namedPut(name,
                         new DB(new EngineWrapper.ReadOnlyEngine(e)).getAtomicLong("a"));
             }
             return createAtomicLong(name,0L);
         }
         checkType(type, "AtomicLong");
-
+        //$DELAY$
         ret = new Atomic.Long(engine, (Long) catGet(name+".recid"));
         namedPut(name, ret);
         return ret;
@@ -1222,6 +1267,7 @@ public class DB implements Closeable {
         Atomic.Integer ret = new Atomic.Integer(engine,
                 catPut(name+".recid",recid)
         );
+        //$DELAY$
         catalog.put(name + ".type", "AtomicInteger");
         namedPut(name, ret);
         return ret;
@@ -1233,12 +1279,14 @@ public class DB implements Closeable {
         checkNotClosed();
         Atomic.Integer ret = (Atomic.Integer) getFromWeakCollection(name);
         if(ret!=null) return ret;
+        //$DELAY$
         String type = catGet(name + ".type", null);
         if(type==null){
             checkShouldCreate(name);
             if(engine.isReadOnly()){
                 Engine e = new StoreHeap();
                 new DB(e).getAtomicInteger("a");
+                //$DELAY$
                 return namedPut(name,
                         new DB(new EngineWrapper.ReadOnlyEngine(e)).getAtomicInteger("a"));
             }
@@ -1256,10 +1304,12 @@ public class DB implements Closeable {
     synchronized public Atomic.Boolean createAtomicBoolean(String name, boolean initValue){
         checkNameNotExists(name);
         long recid = engine.put(initValue,Serializer.BOOLEAN);
+        //$DELAY$
         Atomic.Boolean ret = new Atomic.Boolean(engine,
                 catPut(name+".recid",recid)
         );
         catalog.put(name + ".type", "AtomicBoolean");
+        //$DELAY$
         namedPut(name, ret);
         return ret;
 
@@ -1270,6 +1320,7 @@ public class DB implements Closeable {
         checkNotClosed();
         Atomic.Boolean ret = (Atomic.Boolean) getFromWeakCollection(name);
         if(ret!=null) return ret;
+        //$DELAY$
         String type = catGet(name + ".type", null);
         if(type==null){
             checkShouldCreate(name);
@@ -1279,10 +1330,11 @@ public class DB implements Closeable {
                 return namedPut(name,
                         new DB(new EngineWrapper.ReadOnlyEngine(e)).getAtomicBoolean("a"));
             }
+            //$DELAY$
             return createAtomicBoolean(name, false);
         }
         checkType(type, "AtomicBoolean");
-
+        //$DELAY$
         ret = new Atomic.Boolean(engine, (Long) catGet(name+".recid"));
         namedPut(name, ret);
         return ret;
@@ -1297,9 +1349,11 @@ public class DB implements Closeable {
         checkNameNotExists(name);
         if(initValue==null) throw new IllegalArgumentException("initValue may not be null");
         long recid = engine.put(initValue,Serializer.STRING_NOSIZE);
+        //$DELAY$
         Atomic.String ret = new Atomic.String(engine,
                 catPut(name+".recid",recid)
         );
+        //$DELAY$
         catalog.put(name + ".type", "AtomicString");
         namedPut(name, ret);
         return ret;
@@ -1312,11 +1366,13 @@ public class DB implements Closeable {
         Atomic.String ret = (Atomic.String) getFromWeakCollection(name);
         if(ret!=null) return ret;
         String type = catGet(name + ".type", null);
+        //$DELAY$
         if(type==null){
             checkShouldCreate(name);
             if(engine.isReadOnly()){
                 Engine e = new StoreHeap();
                 new DB(e).getAtomicString("a");
+                //$DELAY$
                 return namedPut(name,
                         new DB(new EngineWrapper.ReadOnlyEngine(e)).getAtomicString("a"));
             }
@@ -1333,10 +1389,12 @@ public class DB implements Closeable {
         checkNameNotExists(name);
         if(serializer==null) serializer=getDefaultSerializer();
         long recid = engine.put(initValue,serializer);
+        //$DELAY$
         Atomic.Var ret = new Atomic.Var(engine,
                 catPut(name+".recid",recid),
                 catPut(name+".serializer",serializer)
         );
+        //$DELAY$
         catalog.put(name + ".type", "AtomicVar");
         namedPut(name, ret);
         return ret;
@@ -1346,6 +1404,7 @@ public class DB implements Closeable {
 
     synchronized public <E> Atomic.Var<E> getAtomicVar(String name){
         checkNotClosed();
+
         Atomic.Var ret = (Atomic.Var) getFromWeakCollection(name);
         if(ret!=null) return ret;
         String type = catGet(name + ".type", null);
@@ -1357,6 +1416,7 @@ public class DB implements Closeable {
                 return namedPut(name,
                         new DB(new EngineWrapper.ReadOnlyEngine(e)).getAtomicVar("a"));
             }
+            //$DELAY$
             return createAtomicVar(name, null, getDefaultSerializer());
         }
         checkType(type, "AtomicVar");
@@ -1368,6 +1428,7 @@ public class DB implements Closeable {
 
     /** return record with given name or null if name does not exist*/
     synchronized public <E> E get(String name){
+        //$DELAY$
         String type = catGet(name+".type");
         if(type==null) return null;
         if("HashMap".equals(type)) return (E) getHashMap(name);
@@ -1391,6 +1452,7 @@ public class DB implements Closeable {
 
     /** delete record/collection with given name*/
     synchronized public void delete(String name){
+        //$DELAY$
         Object r = get(name);
         if(r instanceof Atomic.Boolean){
             engine.delete(((Atomic.Boolean)r).recid, Serializer.BOOLEAN);
@@ -1411,13 +1473,14 @@ public class DB implements Closeable {
         }else if(r instanceof HTreeMap || r instanceof HTreeMap.KeySet){
             HTreeMap m = (r instanceof HTreeMap)? (HTreeMap) r : ((HTreeMap.KeySet)r).parent();
             m.clear();
+            //$DELAY$
             //delete segments
             for(long segmentRecid:m.segmentRecids){
                 engine.delete(segmentRecid, HTreeMap.DIR_SERIALIZER);
             }
         }else if(r instanceof BTreeMap || r instanceof BTreeMap.KeySet){
             BTreeMap m = (r instanceof BTreeMap)? (BTreeMap) r : (BTreeMap) ((BTreeMap.KeySet) r).m;
-
+            //$DELAY$
             //TODO on BTreeMap recursively delete all nodes
             m.clear();
 
@@ -1442,9 +1505,10 @@ public class DB implements Closeable {
      */
     synchronized public Map<String,Object> getAll(){
         TreeMap<String,Object> ret= new TreeMap<String, Object>();
-
+        //$DELAY$
         for(String name:catalog.keySet()){
             if(!name.endsWith(".type")) continue;
+            //$DELAY$
             name = name.substring(0,name.length()-5);
             ret.put(name,get(name));
         }
@@ -1461,10 +1525,10 @@ public class DB implements Closeable {
      */
     synchronized public void rename(String oldName, String newName){
         if(oldName.equals(newName)) return;
-
+        //$DELAY$
         Map<String, Object> sub = catalog.tailMap(oldName);
         List<String> toRemove = new ArrayList<String>();
-
+        //$DELAY$
         for(String param:sub.keySet()){
             if(!param.startsWith(oldName)) break;
 
@@ -1473,7 +1537,7 @@ public class DB implements Closeable {
             toRemove.add(param);
         }
         if(toRemove.isEmpty()) throw new NoSuchElementException("Could not rename, name does not exist: "+oldName);
-
+        //$DELAY$
         WeakReference old = namesInstanciated.remove(oldName);
         if(old!=null){
             Object old2 = old.get();
@@ -1525,9 +1589,11 @@ public class DB implements Closeable {
      * All collections are weakly referenced to prevent two instances of the same collection in memory.
      * This is mainly for locking, two instances of the same lock would not simply work.
      */
-    public Object getFromWeakCollection(String name){
+    synchronized public Object getFromWeakCollection(String name){
         WeakReference<?> r =  namesInstanciated.get(name);
+        //$DELAY$
         if(r==null) return null;
+        //$DELAY$
         Object o = r.get();
         if(o==null) namesInstanciated.remove(name);
         return o;
@@ -1605,6 +1671,7 @@ public class DB implements Closeable {
     }
 
     public void checkType(String type, String expected) {
+        //$DELAY$
         if(!expected.equals(type)) throw new IllegalArgumentException("Wrong type: "+type);
     }
 

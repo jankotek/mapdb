@@ -70,26 +70,30 @@ public final class Caches {
 
         @Override
         public <A> long put(A value, Serializer<A> serializer) {
+            //$DELAY$
             long recid =  super.put(value, serializer);
 
             if(!condition.run(recid, value, serializer))
                 return recid;
-
+            //$DELAY$
             final LongMap<Object> cache2 = checkClosed(cache);
             final Lock lock;
             if(locksEnabled) {
+                //$DELAY$
                 lock = locks[Store.lockPos(recid)];
                 lock.lock();
             }else {
                 lock = null;
             }
             try{
+                //$DELAY$
                 cache2.put(recid, value);
             }finally {
                 if(locksEnabled) {
                     lock.unlock();
                 }
             }
+            //$DELAY$
             return recid;
         }
 
@@ -97,21 +101,27 @@ public final class Caches {
         @Override
         public <A> A get(long recid, Serializer<A> serializer) {
             final LongMap<Object> cache2 = checkClosed(cache);
+            //$DELAY$
             Object ret = cache2.get(recid);
             if(ret!=null)
                 return (A) ret;
-
+            //$DELAY$
             final Lock lock;
             if(locksEnabled) {
                 lock = locks[Store.lockPos(recid)];
                 lock.lock();
+                //$DELAY$
             }else {
                 lock = null;
             }
             try{
+                //$DELAY$
                 ret = super.get(recid, serializer);
-                if(ret!=null && condition.run(recid, ret, serializer))
+                if(ret!=null && condition.run(recid, ret, serializer)) {
+                    //$DELAY$
                     cache2.put(recid, ret);
+                }
+                //$DELAY$
                 return (A) ret;
             }finally {
                 if(locksEnabled) {
@@ -122,14 +132,16 @@ public final class Caches {
 
         @Override
         public <A> void update(long recid, A value, Serializer<A> serializer) {
+            //$DELAY$
             if(!condition.run(recid, value, serializer)){
+                //$DELAY$
                 super.update(recid,value,serializer);
                 return;
             }
 
 
             final LongMap<Object> cache2 = checkClosed(cache);
-
+            //$DELAY$
             final Lock lock;
             if(locksEnabled) {
                 lock = locks[Store.lockPos(recid)];
@@ -137,20 +149,23 @@ public final class Caches {
             }else {
                 lock = null;
             }
+            //$DELAY$
             try{
                 cache2.put(recid, value);
+                //$DELAY$
                 super.update(recid, value, serializer);
             }finally {
                 if(locksEnabled) {
                     lock.unlock();
                 }
             }
+            //$DELAY$
         }
 
         @Override
         public <A> void delete(long recid, Serializer<A> serializer){
             final LongMap<Object> cache2 = checkClosed(cache);
-
+            //$DELAY$
             final Lock lock;
             if(locksEnabled) {
                 lock = locks[Store.lockPos(recid)];
@@ -159,7 +174,9 @@ public final class Caches {
                 lock = null;
             }
             try{
+                //$DELAY$
                 cache2.remove(recid);
+                //$DELAY$
                 super.delete(recid,serializer);
             }finally {
                 if(locksEnabled) {
@@ -171,12 +188,13 @@ public final class Caches {
         @Override
         public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
             if(!condition.run(recid, newValue, serializer)){
+                //$DELAY$
                 return super.compareAndSwap(recid,expectedOldValue,newValue,serializer);
             }
 
             Engine engine = getWrappedEngine();
             LongMap cache2 = checkClosed(cache);
-
+            //$DELAY$
             final Lock lock;
             if(locksEnabled) {
                 lock = locks[Store.lockPos(recid)];
@@ -184,16 +202,23 @@ public final class Caches {
             }else {
                 lock = null;
             }
+            //$DELAY$
             try{
                 Object oldValue = cache2.get(recid);
+                //$DELAY$
                 if(oldValue == expectedOldValue || (oldValue!=null&&oldValue.equals(expectedOldValue))){
                     //found matching entry in cache, so just update and return true
                     cache2.put(recid, newValue);
+                    //$DELAY$
                     engine.update(recid, newValue, serializer);
+                    //$DELAY$
                     return true;
                 }else{
+                    //$DELAY$
                     boolean ret = engine.compareAndSwap(recid, expectedOldValue, newValue, serializer);
+                    //$DELAY$
                     if(ret) cache2.put(recid, newValue);
+                    //$DELAY$
                     return ret;
                 }
             }finally {
@@ -202,6 +227,7 @@ public final class Caches {
                 }
 
             }
+            //$DELAY$
         }
 
 
@@ -285,9 +311,10 @@ public final class Caches {
 
         @Override
         public <A> long put(A value, Serializer<A> serializer) {
+            //$DELAY$
             final long recid = getWrappedEngine().put(value, serializer);
             HashItem[] items2 = checkClosed(items);
-
+            //$DELAY$
             if(!condition.run(recid, value, serializer))
                 return recid;
 
@@ -298,26 +325,29 @@ public final class Caches {
             }else {
                 lock = null;
             }
-
+            //$DELAY$
             try{
                 items2[position(recid)] = new HashItem(recid, value);
+                //$DELAY$
             }finally{
                 if(locksEnabled) {
                     lock.unlock();
                 }
             }
+            //$DELAY$
             return recid;
         }
 
         @Override
         @SuppressWarnings("unchecked")
         public <A> A get(long recid, Serializer<A> serializer) {
+            //$DELAY$
             final int pos = position(recid);
             HashItem[] items2 = checkClosed(items);
             HashItem item = items2[pos]; //TODO race condition? non volatile access
             if(item!=null && recid == item.key)
                 return (A) item.val;
-
+            //$DELAY$
             Engine engine = getWrappedEngine();
 
             final Lock lock;
@@ -327,18 +357,21 @@ public final class Caches {
             }else {
                 lock = null;
             }
-
+            //$DELAY$
             try{
                 //not in cache, fetch and add
                 final A value = engine.get(recid, serializer);
                 if(value!=null && condition.run(recid, value, serializer))
                     items2[pos] = new HashItem(recid, value);
+                //$DELAY$
                 return value;
+
             }finally{
                 if(locksEnabled) {
                     lock.unlock();
                 }
             }
+            //$DELAY$
         }
 
         private int position(long recid) {
@@ -352,12 +385,12 @@ public final class Caches {
                 return;
             }
 
-
+            //$DELAY$
             final int pos = position(recid);
             HashItem[] items2 = checkClosed(items);
             HashItem item = new HashItem(recid,value);
             Engine engine = getWrappedEngine();
-
+             //$DELAY$
             final Lock lock;
             if(locksEnabled) {
                 lock = locks[Store.lockPos(recid)];
@@ -365,6 +398,7 @@ public final class Caches {
             }else {
                 lock = null;
             }
+            //$DELAY$
             try{
                 items2[pos] = item;
                 engine.update(recid, value, serializer);
@@ -373,6 +407,7 @@ public final class Caches {
                     lock.unlock();
                 }
             }
+            //$DELAY$
         }
 
         @Override
@@ -380,12 +415,12 @@ public final class Caches {
             if(!condition.run(recid, newValue, serializer)){
                 return super.compareAndSwap(recid,expectedOldValue,newValue,serializer);
             }
-
+            //$DELAY$
 
             final int pos = position(recid);
             HashItem[] items2 = checkClosed(items);
             Engine engine = getWrappedEngine();
-
+            //$DELAY$
             final Lock lock;
             if(locksEnabled) {
                 lock = locks[Store.lockPos(recid)];
@@ -393,14 +428,17 @@ public final class Caches {
             }else {
                 lock = null;
             }
+            //$DELAY$
             try{
                 HashItem item = items2[pos];
                 if(item!=null && item.key == recid){
                     //found in cache, so compare values
                     if(item.val == expectedOldValue || item.val.equals(expectedOldValue)){
+                        //$DELAY$
                         //found matching entry in cache, so just update and return true
                         items2[pos] = new HashItem(recid, newValue);
                         engine.update(recid, newValue, serializer);
+                        //$DELAY$
                         return true;
                     }else{
                         return false;
@@ -408,6 +446,7 @@ public final class Caches {
                 }else{
                     boolean ret = engine.compareAndSwap(recid, expectedOldValue, newValue, serializer);
                     if(ret) items2[pos] = new HashItem(recid, newValue);
+                    //$DELAY$
                     return ret;
                 }
             }finally {
@@ -422,7 +461,7 @@ public final class Caches {
             final int pos = position(recid);
             HashItem[] items2 = checkClosed(items);
             Engine engine = getWrappedEngine();
-
+            //$DELAY$
             final Lock lock;
             if(locksEnabled) {
                 lock = locks[Store.lockPos(recid)];
@@ -430,9 +469,11 @@ public final class Caches {
             }else {
                 lock = null;
             }
+            //$DELAY$
             try{
                 engine.delete(recid,serializer);
                 HashItem item = items2[pos];
+                //$DELAY$
                 if(item!=null && recid == item.key)
                     items[pos] = null;
             }finally {
@@ -440,7 +481,7 @@ public final class Caches {
                     lock.unlock();
                 }
             }
-
+            //$DELAY$
         }
 
 
@@ -454,6 +495,7 @@ public final class Caches {
         @Override
         public void rollback() {
             //TODO lock all in caches on rollback/commit?
+            //$DELAY$
             for(int i = 0;i<items.length;i++)
                 items[i] = null;
             super.rollback();
@@ -462,6 +504,7 @@ public final class Caches {
         @Override
         public void clearCache() {
             Arrays.fill(items, null);
+            //$DELAY$
             super.clearCache();
         }
 
@@ -561,34 +604,37 @@ public final class Caches {
                 final LongConcurrentHashMap<CacheItem> items = this.items;
                 if (queue == null || items==null)
                     return;
-
+                //$DELAY$
                 while (!shutdown) {
                     CacheItem item = (CacheItem) queue.remove(200);
                     if(item==null)
                         continue;
+                    //$DELAY$
                     items.remove(item.getRecid(), item);
                 }
+                //$DELAY$
                 items.clear();
             }catch(InterruptedException e){
                 //this is expected, so just silently exit thread
             }finally {
                 cleanerFinished.countDown();
             }
+            //$DELAY$
         }
 
         @Override
         public <A> long put(A value, Serializer<A> serializer) {
             long recid = getWrappedEngine().put(value, serializer);
-
+            //$DELAY$
             if(!condition.run(recid, value, serializer))
                 return recid;
-
+            //$DELAY$
             ReferenceQueue<A> q = (ReferenceQueue<A>) checkClosed(queue);
             LongConcurrentHashMap<CacheItem> items2 = checkClosed(items);
             CacheItem item = useWeakRef?
                     new CacheWeakItem(value, q, recid) :
                     new CacheSoftItem(value, q, recid);
-
+            //$DELAY$
             final Lock lock;
             if(locksEnabled) {
                 lock = locks[Store.lockPos(recid)];
@@ -596,25 +642,31 @@ public final class Caches {
             }else {
                 lock = null;
             }
+            //$DELAY$
             try{
                 CacheItem old = items2.put(recid,item);
                 if(old!=null)
                     old.clear();
+                //$DELAY$
             }finally{
                 if(locksEnabled) {
                     lock.unlock();
                 }
             }
+            //$DELAY$
             return recid;
         }
 
         @SuppressWarnings("unchecked")
         @Override
         public <A> A get(long recid, Serializer<A> serializer) {
+            //$DELAY$
             LongConcurrentHashMap<CacheItem> items2 = checkClosed(items);
             CacheItem item = items2.get(recid);
+            //$DELAY$
             if(item!=null){
                 Object o = item.get();
+                //$DELAY$
                 if(o == null)
                     items2.remove(recid);
                 else{
@@ -631,42 +683,49 @@ public final class Caches {
             }else {
                 lock = null;
             }
-
+            //$DELAY$
             try{
                 Object value = engine.get(recid, serializer);
                 if(value!=null && condition.run(recid, value, serializer)){
                     ReferenceQueue<A> q = (ReferenceQueue<A>) checkClosed(queue);
+                    //$DELAY$
                     item = useWeakRef?
                             new CacheWeakItem(value, q, recid) :
                             new CacheSoftItem(value, q, recid);
                     CacheItem old = items2.put(recid,item);
+                    //$DELAY$
                     if(old!=null)
                         old.clear();
                 }
-
+                //$DELAY$
                 return (A) value;
             }finally{
                 if(locksEnabled) {
                     lock.unlock();
                 }
             }
+            //$DELAY$
 
         }
 
         @Override
         public <A> void update(long recid, A value, Serializer<A> serializer) {
+            //$DELAY$
             if(!condition.run(recid, value, serializer)){
+                //$DELAY$
                 super.update(recid,value,serializer);
                 return;
             }
+            //$DELAY$
 
             Engine engine = getWrappedEngine();
             ReferenceQueue<A> q = (ReferenceQueue<A>) checkClosed(queue);
             LongConcurrentHashMap<CacheItem> items2 = checkClosed(items);
+            //$DELAY$
             CacheItem item = useWeakRef?
                     new CacheWeakItem<A>(value, q, recid) :
                     new CacheSoftItem<A>(value, q, recid);
-
+            //$DELAY$
             final Lock lock;
             if(locksEnabled) {
                 lock = locks[Store.lockPos(recid)];
@@ -674,16 +733,19 @@ public final class Caches {
             }else {
                 lock = null;
             }
+            //$DELAY$
             try{
                 CacheItem old = items2.put(recid,item);
                 if(old!=null)
                     old.clear();
+                //$DELAY$
                 engine.update(recid, value, serializer);
             }finally {
                 if(locksEnabled) {
                     lock.unlock();
                 }
             }
+            //$DELAY$
         }
 
 
@@ -691,7 +753,7 @@ public final class Caches {
         public <A> void delete(long recid, Serializer<A> serializer){
             Engine engine = getWrappedEngine();
             LongMap<CacheItem> items2 = checkClosed(items);
-
+            //$DELAY$
             final Lock lock;
             if(locksEnabled) {
                 lock = locks[Store.lockPos(recid)];
@@ -699,25 +761,29 @@ public final class Caches {
             }else {
                 lock = null;
             }
+            //$DELAY$
             try{
                 CacheItem old = items2.remove(recid);
                 if(old!=null)
                     old.clear();
+                //$DELAY$
                 engine.delete(recid,serializer);
             }finally {
                 if(locksEnabled) {
                     lock.unlock();
                 }
             }
-
+            //$DELAY$
         }
 
         @Override
         public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+            //$DELAY$
             if(!condition.run(recid, newValue, serializer)){
+                //$DELAY$
                 return super.compareAndSwap(recid,expectedOldValue,newValue,serializer);
             }
-
+            //$DELAY$
             Engine engine = getWrappedEngine();
             LongMap<CacheItem> items2 = checkClosed(items);
             ReferenceQueue<A> q = (ReferenceQueue<A>) checkClosed(queue);
@@ -730,22 +796,28 @@ public final class Caches {
             }else {
                 lock = null;
             }
+            //$DELAY$
             try{
                 CacheItem item = items2.get(recid);
                 Object oldValue = item==null? null: item.get() ;
+                //$DELAY$
                 if(item!=null && item.getRecid() == recid &&
                         (oldValue == expectedOldValue || (oldValue!=null && oldValue.equals(expectedOldValue)))){
                     //found matching entry in cache, so just update and return true
+                    //$DELAY$
                     CacheItem old = items2.put(recid,useWeakRef?
                             new CacheWeakItem<A>(newValue, q, recid) :
                             new CacheSoftItem<A>(newValue, q, recid));
+                    //$DELAY$
                     if(old!=null)
                         old.clear();
                     engine.update(recid, newValue, serializer);
+                    //$DELAY$
                     return true;
                 }else{
                     boolean ret = engine.compareAndSwap(recid, expectedOldValue, newValue, serializer);
                     if(ret){
+                        //$DELAY$
                         CacheItem old = items2.put(recid,useWeakRef?
                                 new CacheWeakItem<A>(newValue, q, recid) :
                                 new CacheSoftItem<A>(newValue, q, recid));
@@ -759,6 +831,7 @@ public final class Caches {
                     lock.unlock();
                 }
             }
+            //$DELAY$
         }
 
 
@@ -787,7 +860,9 @@ public final class Caches {
         public void clearCache() {
             // release all items so those are not passed to Queue
             LongMap.LongMapIterator<CacheItem> iter = items.longMapIterator();
+            //$DELAY$
             while(iter.moveToNext()){
+                //$DELAY$
                 CacheItem i =  iter.value();
                 if(i!=null)
                     i.clear();
@@ -818,6 +893,7 @@ public final class Caches {
 
         @Override
         public <A> A get(long recid, Serializer<A> serializer) {
+            //$DELAY$
             if(((counter++)& CHECK_EVERY_N)==0 ) {
                 checkFreeMem();
             }
@@ -838,7 +914,7 @@ public final class Caches {
 
             if(CC.LOG_EWRAP && LOG.isLoggable(Level.FINE))
                 LOG.fine("HardRefCache: freemem = " +free + " = "+(free/max)+"%");
-
+            //$DELAY$
             if(free<1e7 || free*4 <max){
                 checkClosed(cache).clear();
                 if(CC.LOG_EWRAP && LOG.isLoggable(Level.FINE))
@@ -851,7 +927,7 @@ public final class Caches {
             if(((counter++)& CHECK_EVERY_N)==0 ) {
                 checkFreeMem();
             }
-
+            //$DELAY$
             super.update(recid, value, serializer);
         }
 

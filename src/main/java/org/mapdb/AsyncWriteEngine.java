@@ -160,15 +160,19 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
                 //run in loop
                 for(;;){
 
+                    //$DELAY$
                     //if conditions are right, slow down writes a bit
                     if(asyncFlushDelay!=0 && !commitLock.isWriteLocked() && size.get()<maxParkSize){
+                        //$DELAY$
                         LockSupport.parkNanos(1000L * 1000L * asyncFlushDelay);
+                        //$DELAY$
                     }
 
                     AsyncWriteEngine engine = engineRef.get();
+                    //$DELAY$
                     if(engine==null) return; //stop thread if this engine has been GCed
                     if(engine.threadFailedException !=null) return; //other thread has failed, no reason to continue
-
+                    //$DELAY$
                     if(!engine.runWriter()) return;
                 }
             } catch (Throwable e) {
@@ -189,7 +193,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
      */
     protected void startThreads(Executor executor) {
         final Runnable writerRun = new WriterRunnable(this);
-
+        //$DELAY$
         if(executor!=null){
             executor.execute(writerRun);
             return;
@@ -197,6 +201,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
         final long threadNum = threadCounter.incrementAndGet();
         Thread writerThread = new Thread(writerRun,"MapDB writer #"+threadNum);
         writerThread.setDaemon(true);
+        //$DELAY$
         writerThread.start();
     }
 
@@ -206,11 +211,14 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
         final CountDownLatch latch = action.getAndSet(null);
 
         do{
+            //$DELAY$
             LongMap.LongMapIterator<Fun.Pair<Object, Serializer>> iter = writeCache.longMapIterator();
             while(iter.moveToNext()){
+                //$DELAY$
                 //usual write
                 final long recid = iter.key();
                 Fun.Pair<Object, Serializer> item = iter.value();
+                //$DELAY$
                 if(item == null) continue; //item was already written
                 if(item.a==TOMBSTONE){
                     //item was not updated, but deleted
@@ -220,9 +228,12 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
                     AsyncWriteEngine.super.update(recid, item.a, item.b);
                 }
                 //record has been written to underlying Engine, so remove it from cache with CAS
-                if(writeCache.remove(recid, item))
+                //$DELAY$
+                if(writeCache.remove(recid, item)) {
+                    //$DELAY$
                     size.decrementAndGet();
-
+                }
+                //$DELAY$
             }
         }while(latch!=null && !writeCache.isEmpty());
 
@@ -232,44 +243,48 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
         //CountDownLatch is used as special case to signalise special operation
         if(latch!=null){
             assert(writeCache.isEmpty());
-
+            //$DELAY$
             final long count = latch.getCount();
             if(count == 0){ //close operation
                 if(CC.LOG_EWRAP && LOG.isLoggable(Level.FINE))
                     LOG.fine("Async close finished");
                 return false;
             }else if(count == 1){ //commit operation
+                //$DELAY$
                 AsyncWriteEngine.super.commit();
                 if(CC.LOG_EWRAP && LOG.isLoggable(Level.FINE))
                     LOG.fine("Async commit finished");
-
+                //$DELAY$
                 latch.countDown();
             }else if(count==2){ //rollback operation
+                //$DELAY$
                 AsyncWriteEngine.super.rollback();
                 if(CC.LOG_EWRAP && LOG.isLoggable(Level.FINE))
                     LOG.fine("Async rollback finished");
-
                 latch.countDown();
                 latch.countDown();
             }else if(count==3){ //compact operation
                 AsyncWriteEngine.super.compact();
+                //$DELAY$
                 if(CC.LOG_EWRAP && LOG.isLoggable(Level.FINE))
                     LOG.fine("Async compact finished");
                 latch.countDown();
                 latch.countDown();
                 latch.countDown();
+                //$DELAY$
             }else{throw new AssertionError();}
         }
+        //$DELAY$
         return true;
-
-
     }
 
 
     /** checks that background threads are ready and throws exception if not */
     protected void checkState() {
+        //$DELAY$
         if(closeInProgress) throw new IllegalAccessError("db has been closed");
         if(threadFailedException !=null) throw new RuntimeException("Writer thread failed", threadFailedException);
+        //$DELAY$
     }
 
 
@@ -303,21 +318,29 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
      */
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
+        //$DELAY$
         int size2 = 0;
         long recid =0;
         commitLock.readLock().lock();
         try{
+            //$DELAY$
             checkState();
             recid = preallocate();
+            //$DELAY$
             if(writeCache.put(recid, new Fun.Pair(value, serializer))==null)
+                //$DELAY$
                 size2 = size.incrementAndGet();
+            //$DELAY$
         }finally{
             commitLock.readLock().unlock();
         }
-        if(size2>maxSize)
+        //$DELAY$
+        if(size2>maxSize) {
+            //$DELAY$
             clearCache();
+        }
+        //$DELAY$
         return recid;
-
 }
 
 
@@ -331,19 +354,25 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
      */
     @Override
     public <A> A get(long recid, Serializer<A> serializer) {
+        //$DELAY$
         commitLock.readLock().lock();
+        //$DELAY$
         try{
             checkState();
+            //$DELAY$
             Fun.Pair<Object,Serializer> item = writeCache.get(recid);
             if(item!=null){
+                //$DELAY$
                 if(item.a == TOMBSTONE) return null;
                 return (A) item.a;
             }
-
+            //$DELAY$
             return super.get(recid, serializer);
+            //$DELAY$
         }finally{
             commitLock.readLock().unlock();
         }
+        //$DELAY$
     }
 
 
@@ -367,16 +396,24 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
         int size2 = 0;
+        //$DELAY$
         commitLock.readLock().lock();
+        //$DELAY$
         try{
             checkState();
-            if(writeCache.put(recid, new Fun.Pair(value, serializer))==null)
+            if(writeCache.put(recid, new Fun.Pair(value, serializer))==null) {
+                //$DELAY$
                 size2 = size.incrementAndGet();
+            }
         }finally{
+            //$DELAY$
             commitLock.readLock().unlock();
         }
-        if(size2>maxSize)
+        if(size2>maxSize) {
+            //$DELAY$
             clearCache();
+        }
+        //$DELAY$
     }
 
     /**
@@ -390,23 +427,34 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
         int size2 = 0;
         boolean ret;
+        //$DELAY$
         commitLock.writeLock().lock();
+        //$DELAY$
         try{
             checkState();
             Fun.Pair<Object, Serializer> existing = writeCache.get(recid);
+            //$DELAY$
             A oldValue = existing!=null? (A) existing.a : super.get(recid, serializer);
+            //$DELAY$
             if(oldValue == expectedOldValue || (oldValue!=null && oldValue.equals(expectedOldValue))){
-                if(writeCache.put(recid, new Fun.Pair(newValue, serializer))==null)
+                //$DELAY$
+                if(writeCache.put(recid, new Fun.Pair(newValue, serializer))==null) {
+                    //$DELAY$
                     size2 = size.incrementAndGet();
+                }
                 ret = true;
             }else{
                 ret = false;
             }
+            //$DELAY$
         }finally{
             commitLock.writeLock().unlock();
         }
-        if(size2>maxSize)
+        //$DELAY$
+        if(size2>maxSize) {
             clearCache();
+        }
+        //$DELAY$
         return ret;
     }
 
@@ -429,9 +477,12 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
      */
     @Override
     public void close() {
+        //$DELAY$
         commitLock.writeLock().lock();
         try {
+            //$DELAY$
             if(closeInProgress) return;
+            //$DELAY$
             checkState();
             closeInProgress = true;
             //notify background threads
@@ -439,40 +490,47 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
                 throw new AssertionError();
 
             //wait for background threads to shutdown
-
+            //$DELAY$
             while(!activeThreadsCount.await(1000,TimeUnit.MILLISECONDS)) {
+                //$DELAY$
                 //nothing here
             }
 
             AsyncWriteEngine.super.close();
-
+            //$DELAY$
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }finally {
             commitLock.writeLock().unlock();
         }
+        //$DELAY$
     }
 
 
 
     protected void waitForAction(int actionNumber) {
+        //$DELAY$
         commitLock.writeLock().lock();
         try{
             checkState();
             //notify background threads
             CountDownLatch msg = new CountDownLatch(actionNumber);
+            //$DELAY$
             if(!action.compareAndSet(null,msg))
                 throw new AssertionError();
+            //$DELAY$
 
             //wait for response from writer thread
             while(!msg.await(100, TimeUnit.MILLISECONDS)){
                 checkState();
             }
+            //$DELAY$
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }finally {
             commitLock.writeLock().unlock();
         }
+        //$DELAY$
     }
 
 
@@ -520,20 +578,22 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
      */
     @Override
     public void clearCache() {
+        //$DELAY$
         commitLock.writeLock().lock();
         try{
-
             checkState();
             //wait for response from writer thread
             while(!writeCache.isEmpty()){
                 checkState();
                 Thread.sleep(100);
             }
+            //$DELAY$
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }finally {
             commitLock.writeLock().unlock();
         }
+        //$DELAY$
         super.clearCache();
     }
 
