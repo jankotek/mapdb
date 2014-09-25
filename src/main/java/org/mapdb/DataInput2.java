@@ -17,6 +17,7 @@
 package org.mapdb;
 
 import java.io.DataInput;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -71,7 +72,12 @@ public final class DataInput2 extends InputStream implements DataInput {
 
     @Override
     public int readUnsignedByte() throws IOException {
-        return buf.get(pos++)& 0xff;
+        try {
+            return buf.get(pos++)& 0xff;
+        }
+        catch( IndexOutOfBoundsException e ) {
+            throw new EOFException();
+        }
     }
 
     @Override
@@ -133,7 +139,12 @@ public final class DataInput2 extends InputStream implements DataInput {
 
     @Override
     public int read() throws IOException {
-        return readUnsignedByte();
+        try {
+            return readUnsignedByte();
+        }
+        catch( EOFException e ) {
+            return -1;
+        }
     }
 
 
