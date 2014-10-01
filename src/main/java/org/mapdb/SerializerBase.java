@@ -28,7 +28,7 @@ import java.util.*;
  * @author Jan Kotek
  */
 @SuppressWarnings({ "unchecked", "rawtypes" })
-public class SerializerBase implements Serializer<Object>{
+public class SerializerBase implements Serializer.Trusted<Object>{
 
 
     protected interface Ser<A> {

@@ -49,7 +49,7 @@ public final class Queues {
         protected final Atomic.Long head;
 
 
-        protected static class NodeSerializer<E> implements Serializer<Node<E>> {
+        protected static class NodeSerializer<E> implements Serializer.Trusted<Node<E>> {
             private final Serializer<E> serializer;
 
             public NodeSerializer(Serializer<E> serializer) {

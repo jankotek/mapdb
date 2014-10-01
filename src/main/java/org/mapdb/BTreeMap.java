@@ -192,7 +192,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         }
     }
 
-    protected static final class ValRefSerializer implements Serializer<ValRef>{
+    protected static final class ValRefSerializer implements Serializer.Trusted<ValRef>{
 
         @Override
         public void serialize(DataOutput out, ValRef value) throws IOException {
@@ -537,7 +537,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
     protected final Serializer<BNode> nodeSerializer;
 
-    protected static final class NodeSerializer<A,B> implements  Serializer<BNode>{
+    protected static final class NodeSerializer<A,B> implements  Serializer.Trusted<BNode>{
 
         protected static final int LEAF_MASK = 1<<15;
         protected static final int LEFT_SHIFT = 14;
