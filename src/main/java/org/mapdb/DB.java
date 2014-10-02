@@ -1564,7 +1564,7 @@ public class DB implements Closeable {
     /**
      * Closes database.
      * All other methods will throw 'IllegalAccessError' after this method was called.
-     * <p/>
+     * <p>
      * !! it is necessary to call this method before JVM exits!!
      */
     synchronized public void close(){
@@ -1635,7 +1635,7 @@ public class DB implements Closeable {
     /**
      * Perform storage maintenance.
      * Typically compact underlying storage and reclaim unused space.
-     * <p/>
+     * <p>
      * NOTE: MapDB does not have smart defragmentation algorithms. So compaction usually recreates entire
      * store from scratch. This may require additional disk space.
      */

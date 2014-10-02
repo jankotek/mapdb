@@ -214,7 +214,7 @@ public final class Caches {
      * Fixed size cache which uses hash table.
      * Is thread-safe and requires only minimal locking.
      * Items are randomly removed and replaced by hash collisions.
-     * <p/>
+     * <p>
      * This is simple, concurrent, small-overhead, random cache.
      *
      * @author Jan Kotek

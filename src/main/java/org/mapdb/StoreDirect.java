@@ -48,22 +48,23 @@ import java.util.logging.Level;
  *
  * Basic **structure of index file** is bellow. Each slot is 8-bytes long so `offset=slot*8`
  *
- *  slot        | in code                       | description
- *  ---         | ---                               | ---
- *  0           | {@link StoreDirect#HEADER}        | File header, format version and flags
- *  1           | {@link StoreDirect#IO_INDEX_SIZE} | Allocated file size of index file in bytes.
- *  2           | {@link StoreDirect#IO_PHYS_SIZE}  | Allocated file size of physical file in bytes.
- *  3           | {@link StoreDirect#IO_FREE_SIZE}  | Space occupied by free records in physical file in bytes.
- *  4           | {@link StoreDirect#IO_INDEX_SUM}  | Checksum of all Index file headers. Checks if store was closed correctly
- *  5..9        |                                   | Reserved for future use
- *  10..14      |                                   | For usage by user
- *  15          | {@link StoreDirect#IO_FREE_RECID} |Long Stack of deleted recids, those will be reused and returned by {@link Engine#put(Object, Serializer)}
- *  16..4111    |                                   |Long Stack of free physical records. This contains free space released by record update or delete. Each slots corresponds to free record size. TODO check 4111 is right
- *  4112        | {@link StoreDirect#IO_USER_START} |Record size and offset in physical file for recid=1
- *  4113        |                                   |Record size and offset in physical file for recid=2
- *  ...         | ...                               |... snip ...
- *  N+4111      |                                   |Record size and offset in physical file for recid=N
+ * <table summary="index">
+ * <tr><td> slot        </td><td>  in code                       </td><td>  description </td></tr>
  *
+ * <tr><td> 0           </td><td>  {@link StoreDirect#HEADER}        </td><td>  File header, format version and flags</td></tr>
+ * <tr><td> 1           </td><td>  {@link StoreDirect#IO_INDEX_SIZE} </td><td>  Allocated file size of index file in bytes.</td></tr>
+ * <tr><td> 2           </td><td>  {@link StoreDirect#IO_PHYS_SIZE}  </td><td>  Allocated file size of physical file in bytes.</td></tr>
+ * <tr><td> 3           </td><td>  {@link StoreDirect#IO_FREE_SIZE}  </td><td>  Space occupied by free records in physical file in bytes.</td></tr>
+ * <tr><td> 4           </td><td>  {@link StoreDirect#IO_INDEX_SUM}  </td><td>  Checksum of all Index file headers. Checks if store was closed correctly</td></tr>
+ * <tr><td> 5..9       </td><td>                                    </td><td>  Reserved for future use</td></tr>
+ * <tr><td> 10..14      </td><td>                                    </td><td>  For usage by user</td></tr>
+ * <tr><td> 15          </td><td>  {@link StoreDirect#IO_FREE_RECID} </td><td> Long Stack of deleted recids, those will be reused and returned by {@link Engine#put(Object, Serializer)}</td></tr>
+ * <tr><td> 16..4111    </td><td>                                    </td><td> Long Stack of free physical records. This contains free space released by record update or delete. Each slots corresponds to free record size. TODO check 4111 is right</td></tr>
+ * <tr><td> 4112        </td><td>  {@link StoreDirect#IO_USER_START} </td><td> Record size and offset in physical file for recid=1</td></tr>
+ * <tr><td> 4113        </td><td>                                    </td><td> Record size and offset in physical file for recid=2</td></tr>
+ * <tr><td> ...         </td><td>  ...                               </td><td> ... snip ...</td></tr>
+ * <tr><td> N+4111     </td><td>                                   </td><td> Record size and offset in physical file for recid=N</td></tr>
+ *</table>
  *
  * Long Stack
  * ------------
@@ -71,13 +72,15 @@ import java.util.logging.Level;
  * Long Stack is identified by slot in Index File, which stores pointer to Long Stack head.  The structure of
  * of index pointer is following:
  *
+ * <pre>{@code
  *  byte    | description
  *  ---     |---
  *  0..1    | relative offset in head Long Stack Record to take value from. This value decreases by 8 each take
  *  2..7    | physical file offset of head Long Stack Record, zero if Long Stack is empty
- *
+ * }</pre>
  * Each Long Stack Record  is sequence of 8-byte longs, first slot is header. Long Stack Record structure is following:
  *
+ * <pre>{@code
  *  byte    | description
  *  ---     |---
  *  0..1    | length of current Long Stack Record in bytes
@@ -85,7 +88,7 @@ import java.util.logging.Level;
  *  8-15    | Long Stack value
  *  16-23   | Long Stack value
  *   ...    | and so on until end of Long Stack Record
- *
+ * }</pre>
  * Physical pointer
  * ----------------
  * Index slot value typically contains physical pointer (information about record location and size in physical file). First 2 bytes
@@ -93,6 +96,7 @@ import java.util.logging.Level;
  * Physical file offset must always be multiple of 16, so last 4 bites are used to flag extra record information.
  * Structure of **physical pointer**:
  *
+ * <pre>{@code
  * bite     | in code                                   | description
  *   ---    | ---                                       | ---
  * 0-15     |`val>>>48`                                 | record size
@@ -101,7 +105,7 @@ import java.util.logging.Level;
  * 61       |`val&{@link StoreDirect#MASK_DISCARD}!=0`  | to be discarded while storage is offline flag
  * 62       |`val&{@link StoreDirect#MASK_ARCHIVE}!=0`  | record modified since last backup flag
  * 63       |                                           | not used yet
- *
+ * }</pre>
  * Records in Physical File
  * ---------------------------
  * Records are stored in physical file. Maximal record size size is 64KB, so larger records must

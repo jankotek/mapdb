@@ -42,7 +42,7 @@ import java.util.concurrent.ConcurrentMap;
  *  and scaling your data. For example primary data can be stored in durable DB with transactions and large secondary
  *  indexes may be stored in other faster non-durable DB. Or primary collection may be stored on disk and smaller
  *  secondary index (such as category counters) can be stored in memory for faster lookups. Also you may use
- *  ordinary `java.util.*` collections (if they are thread safe) to get additional speed.
+ *  ordinary {@code java.util.*} collections (if they are thread safe) to get additional speed.
  *
  *  There are many [code examples](https://github.com/jankotek/MapDB/tree/master/src/test/java/examples)
  *  how Collection Binding can be used.
@@ -60,13 +60,13 @@ public final class Bind {
 
 
     /**
-     * Listener called when `Map` is modified.
+     * Listener called when {@code Map} is modified.
      * @param <K> key type  in map
      * @param <V> value type in map
      */
     public interface MapListener<K,V>{
         /**
-         * Callback method called after `Map` was modified.
+         * Callback method called after {@code Map} was modified.
          * It is called on insert, update or delete.
          *
          * MapDB collections do not support null keys or values.
@@ -112,18 +112,18 @@ public final class Bind {
 
     /**
      * Binds {@link Atomic.Long} to Primary Map so the Atomic.Long contains size of Map.
-     * `Atomic.Long` is incremented on each insert and decremented on each entry removal.
+     * {@code Atomic.Long} is incremented on each insert and decremented on each entry removal.
      * MapDB collections usually do not keep their size, but require complete traversal to count items.
      *
-     * If `Atomic.Long` has zero value, it will be updated with value from `map.size()` and than
+     * If {@code Atomic.Long} has zero value, it will be updated with value from {@code map.size()} and than
      * bind to map.
      *
      * NOTE: Binding just installs Modification Listener on primary collection. Binding itself is not persistent
      * and has to be restored after primary collection is loaded. Data contained in secondary collection are persistent.
      *
      *
-     * NOTE: {@link BTreeMap} and {@link HTreeMap} already supports this directly as optional parameter named `counter`.
-     * In that case all calls to `Map.size()` are forwarded to underlying counter. Check parameters at
+     * NOTE: {@link BTreeMap} and {@link HTreeMap} already supports this directly as optional parameter named {@code counter}.
+     * In that case all calls to {@code Map.size()} are forwarded to underlying counter. Check parameters at
      * {@link DB#createHashMap(String)} and
      * {@link DB#createTreeMap(String)}
      *
@@ -175,10 +175,10 @@ public final class Bind {
      *
      * Type params:
      *
-     *  * `<K>` - key type in primary and Secondary Map
-     *  * `<V>` - value type in Primary Map
-     *  * `<V2>` - value type in Secondary Map
-     *  .
+     *  @param <K> - key type in primary and Secondary Map
+     *  @param <V> - value type in Primary Map
+     *  @param <V2> - value type in Secondary Map
+     *
      * @param map Primary Map
      * @param secondary Secondary Map with custom
      * @param fun function which calculates secondary value from primary key and value
@@ -225,9 +225,9 @@ public final class Bind {
      *
      * Type params:
      *
-     *  * `<K>` - key type in primary and Secondary Map
-     *  * `<V>` - value type in Primary Map
-     *  * `<V2>` - value type in Secondary Map
+     *  @param <K> - key type in primary and Secondary Map
+     *  @param <V> - value type in Primary Map
+     *  @param <V2> - value type in Secondary Map
      * .
      * @param map Primary Map
      * @param secondary Secondary Map with custom
@@ -343,9 +343,9 @@ public final class Bind {
      *
      * Type params:
      *
-     *  * `<K>` - Key in Primary Map
-     *  * `<V>` - Value in Primary Map
-     *  * `<K2>` - Secondary
+     *  @param <K> - Key in Primary Map
+     *  @param <V> - Value in Primary Map
+     *  @param <K2> - Secondary
      *
      * @param map primary map
      * @param secondary secondary set
@@ -403,9 +403,9 @@ public final class Bind {
      *
      * Type params:
      *
-     *  * `<K>` - Key in Primary Map
-     *  * `<V>` - Value in Primary Map
-     *  * `<K2>` - Secondary
+     *  @param <K> - Key in Primary Map
+     *  @param <V> - Value in Primary Map
+     *  @param <K2> - Secondary
      *
      * @param map primary map
      * @param secondary secondary set
@@ -463,9 +463,9 @@ public final class Bind {
      *
      * Type params:
      *
-     *  * `<K>` - Key in Primary Map
-     *  * `<V>` - Value in Primary Map
-     *  * `<K2>` - Secondary
+     *  @param <K> - Key in Primary Map
+     *  @param <V> - Value in Primary Map
+     *  @param <K2> - Secondary
      *
      * @param map primary map
      * @param secondary secondary set
@@ -579,8 +579,8 @@ public final class Bind {
      *
      * Type params:
      *
-     *  * `<K>` - Key in Primary Map and Second Value in Secondary Set
-     *  * `<V>` - Value in Primary Map and Primary Value in Secondary Set
+     *  @param <K> - Key in Primary Map and Second Value in Secondary Set
+     *  @param <V> - Value in Primary Map and Primary Value in Secondary Set
      *
      * @param primary Primary Map for which inverse mapping will be created
      * @param inverse Secondary Set which will contain inverse mapping
@@ -599,8 +599,8 @@ public final class Bind {
      * This is useful for creating bi-directional Maps.
      *
      * In this case some data may be lost, if there are duplicated primary values.
-     * It is recommended to use multimap: `NavigableSet<Fun.Tuple2<V,K>>` which
-     * handles value duplicities. Use @{link Bind.mapInverse(MapWithModificationListener<K,V>Set<Fun.Tuple2<V, K>>}
+     * It is recommended to use multimap: {@code NavigableSet<Fun.Tuple2<V,K>>} which
+     * handles value duplicities. Use {@link Bind#mapInverse(org.mapdb.Bind.MapWithModificationListener, java.util.Map)}
      *
      * If Secondary Set is empty its content will be recreated from Primary Map.
      *
@@ -609,8 +609,8 @@ public final class Bind {
      *
      * Type params:
      *
-     *  * `<K>` - Key in Primary Map and Second Value in Secondary Set
-     *  * `<V>` - Value in Primary Map and Primary Value in Secondary Set
+     * @param <K> - Key in Primary Map and Second Value in Secondary Set
+     * @param <V> - Value in Primary Map and Primary Value in Secondary Set
      *
      * @param primary Primary Map for which inverse mapping will be created
      * @param inverse Secondary Set which will contain inverse mapping
@@ -644,9 +644,9 @@ public final class Bind {
      *
      * Type params:
      *
-     *  * `<K>` - Key type in primary map
-     *  * `<V>` - Value type in primary map
-     *  * `<C>` - Category type
+     *  @param <K> - Key type in primary map
+     *  @param <V> - Value type in primary map
+     *  @param <C> - Category type
      *
      * @param primary Primary Map to create histogram for
      * @param histogram Secondary Map to create histogram for, key is Category, value is number of items in category

@@ -6,7 +6,7 @@ import java.util.Map;
 
 /**
  * Keep tracks of number of items in map.
- * <p/>
+ * <p>
  * {@code Collections.size()} typically requires traversing entire collection in MapDB, but there is optional parameter
  * which controls if Map keeps track of its count.
  */

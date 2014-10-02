@@ -170,18 +170,6 @@
                         </reports>
                     </reportSet>
                 </reportSets>
-
-                <configuration>
-                    <!-- JavaDOC is written in Markdown, this config sets convertor -->
-                    <doclet>ch.raffael.doclets.pegdown.PegdownDoclet</doclet>
-                    <docletArtifact>
-                        <groupId>ch.raffael.pegdown-doclet</groupId>
-                        <artifactId>pegdown-doclet</artifactId>
-                        <version>1.1</version>
-                    </docletArtifact>
-                    <useStandardDocletOptions>true</useStandardDocletOptions>
-                    <notimestamp>true</notimestamp>
-                </configuration>
             </plugin>
 
         </plugins>

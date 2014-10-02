@@ -544,7 +544,7 @@ public final class DataIO {
 
     /**
      * Provides {@link java.io.DataOutput} implementation on top of growable {@code byte[]}
-     * <p/>
+     * <p>
      *  {@link java.io.ByteArrayOutputStream} is not used as it requires {@code byte[]} copying
      *
      * @author Jan Kotek

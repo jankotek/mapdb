@@ -8,7 +8,7 @@ import java.util.Map;
 
 /**
  * Demonstrates how-to apply compression in various modes.
- * <p/>
+ * <p>
  * MapDB uses LZF compression, there is discussion to support other compression alghorithms
  *
  */

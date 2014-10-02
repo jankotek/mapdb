@@ -27,7 +27,7 @@ import static java.util.Collections.singleton;
  * Tests representing the contract of {@link Map}. Concrete subclasses of this
  * base class test conformance of concrete {@link Map} subclasses to that
  * contract.
- * <p/>
+ * <p>
  *
  * @param <K> the type of keys used by the maps under test
  * @param <V> the type of mapped values used the maps under test

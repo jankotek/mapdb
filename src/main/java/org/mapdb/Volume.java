@@ -26,7 +26,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * MapDB abstraction over raw storage (file, disk partition, memory etc...).
- * <p/>
+ * <p>
  * Implementations needs to be thread safe (especially
  'ensureAvailable') operation.
  * However updates do not have to be atomic, it is clients responsibility

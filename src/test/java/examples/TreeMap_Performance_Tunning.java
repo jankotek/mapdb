@@ -22,7 +22,7 @@ import java.util.Random;
  *
  *
  *
- * <p/>
+ * <p>
  * Sample output
  * <pre>
  *  Node size |  small vals  |  large vals  |  large vals outside node

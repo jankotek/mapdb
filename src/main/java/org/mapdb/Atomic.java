@@ -77,7 +77,7 @@ import java.io.IOException;
  * mutated, they are poor choices for hash table keys.)  Additionally,
  * classes are provided only for those types that are commonly useful in
  * intended applications. Other types has to be wrapped into general {@link Atomic.Var}
- * <p/>
+ * <p>
  * You can also hold floats using
  * {@link java.lang.Float#floatToIntBits} and
  * {@link java.lang.Float#intBitsToFloat} conversions, and doubles using

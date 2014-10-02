@@ -45,10 +45,10 @@ import java.util.logging.Level;
  * You may flush Write Queue manually by using {@link org.mapdb.AsyncWriteEngine#clearCache()}  method.
  * There is global lock which prevents record being updated while commit is in progress.
  *
- * This wrapper starts one threads named `MapDB writer #N` (where N is static counter).
+ * This wrapper starts one threads named {@code MapDB writer #N} (where N is static counter).
  * Async Writer takes modified records from Write Queue and writes them into store.
- * It also preallocates new recids, as finding empty `recids` takes time so small stash is pre-allocated.
- * It runs as `daemon`, so it does not prevent JVM to exit.
+ * It also preallocates new recids, as finding empty {@code recids} takes time so small stash is pre-allocated.
+ * It runs as {@code daemon}, so it does not prevent JVM to exit.
  *
  * Asynchronous Writes have several advantages (especially for single threaded user). But there are two things
  * user should be aware of:
@@ -92,7 +92,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
 //    protected final ReentrantLock newRecidsLock = new ReentrantLock(CC.FAIR_LOCKS);
 
 
-    /** Associates `recid` from Write Queue with record data and serializer. */
+    /** Associates {@code recid} from Write Queue with record data and serializer. */
     protected final LongConcurrentHashMap<Fun.Pair<Object, Serializer>> writeCache
             = new LongConcurrentHashMap<Fun.Pair<Object, Serializer>>();
 
@@ -107,7 +107,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     /** If background thread fails with exception, it is stored here, and rethrown to all callers.*/
     protected volatile Throwable threadFailedException = null;
 
-    /** indicates that `close()` was called and background threads are being terminated*/
+    /** indicates that {@code close()} was called and background threads are being terminated*/
     protected volatile boolean closeInProgress = false;
 
     /** flush Write Queue every N milliseconds  */
@@ -302,20 +302,6 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
      *
      * Newly inserted records are not written synchronously, but forwarded to background Writer Thread via queue.
      *
-     * ![async-put](async-put.png)
-     *
-     @uml async-put.png
-     actor user
-     participant "put method" as put
-     participant "Writer Thread" as wri
-     note over wri: has preallocated \n recids in queue
-     activate put
-     user -> put: User calls put method
-     wri-> put: takes preallocated recid
-     put -> wri: forward record into Write Queue
-     put -> user: return recid to user
-     deactivate put
-     note over wri: eventually\n writes record\n before commit
      */
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
@@ -382,17 +368,6 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
      *
      * This methods forwards record into Writer Thread and returns asynchronously.
      *
-     * ![async-update](async-update.png)
-     * @uml async-update.png
-     * actor user
-     * participant "update method" as upd
-     * participant "Writer Thread" as wri
-     * activate upd
-     * user -> upd: User calls update method
-     * upd -> wri: forward record into Write Queue
-     * upd -> user: returns
-     * deactivate upd
-     * note over wri: eventually\n writes record\n before commit
      */
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
@@ -474,7 +449,7 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
      * {@inheritDoc}
      *
      *  This method blocks until Write Queue is flushed and Writer Thread writes all records and finishes.
-     *  When this method was called `closeInProgress` is set and no record can be modified.
+     *  When this method was called {@code closeInProgress} is set and no record can be modified.
      */
     @Override
     public void close() {

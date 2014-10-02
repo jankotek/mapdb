@@ -27,7 +27,7 @@ import java.util.Arrays;
  * <p>
  * This implementation uses 32 rounds.
  * The best attack reported as of 2009 is 36 rounds (Wikipedia).
- * <p/>
+ * <p>
  * It requires 32 byte long encryption key, so SHA256 password hash is used.
  */
 public final class EncryptionXTEA{

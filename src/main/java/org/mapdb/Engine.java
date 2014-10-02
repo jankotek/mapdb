@@ -53,10 +53,10 @@ import java.io.Closeable;
  * (return null, throw EOF or even corrupt store). Engine is considered low-level component
  * and it is responsibility of upper layers (collections) to ensure recid is consistent.
  * Lack of error handling is trade of for speed (similar way as manual memory management in C++)
- * <p/>
+ * <p>
  * Engine must support `null` record values. You may insert, update and fetch null records.
  * Nulls play important role in recid preallocation and asynchronous writes.
- * <p/>
+ * <p>
  * Recid can be reused after it was deleted. If your application relies on unique being unique,
  * you should update record with null value, instead of delete.
  * Null record consumes only 8 bytes in store and is preserved during defragmentation.
@@ -95,7 +95,7 @@ public interface Engine  extends Closeable {
 
     /**
      * Get existing record.
-     * <p/>
+     * <p>
      * Recid must be a number returned by 'put' method.
      * Behaviour for invalid recid (random number or already deleted record)
      * is not defined, typically it returns null or throws 'EndOfFileException'
@@ -108,7 +108,7 @@ public interface Engine  extends Closeable {
 
     /**
      * Update existing record with new value.
-     * <p/>
+     * <p>
      * Recid must be a number returned by 'put' method.
      * Behaviour for invalid recid (random number or already deleted record)
      * is not defined, typically it throws 'EndOfFileException',
@@ -129,7 +129,7 @@ public interface Engine  extends Closeable {
      *    <li>Deserializing <code>oldValue</code> using <code>serializer</code> and checking <code>oldValue.equals(expectedOldValue)</code></li>
      *    <li>Serializing <code>expectedOldValue</code> using <code>serializer </code> and comparing binary array with already serialized <code>oldValue</code>
      * </ol>
-     * <p/>
+     * <p>
      * Recid must be a number returned by 'put' method.
      * Behaviour for invalid recid (random number or already deleted record)
      * is not defined, typically it throws 'EndOfFileException',
@@ -146,7 +146,7 @@ public interface Engine  extends Closeable {
     /**
      * Remove existing record from store/cache
      *
-     * <p/>
+     * <p>
      * Recid must be a number returned by 'put' method.
      * Behaviour for invalid recid (random number or already deleted record)
      * is not defined, typically it throws 'EndOfFileException',
@@ -162,10 +162,10 @@ public interface Engine  extends Closeable {
     /**
      * Close store/cache. This method must be called before JVM exits to flush all caches and prevent store corruption.
      * Also it releases resources used by MapDB (disk, memory..).
-     * <p/>
+     * <p>
      * Engine can no longer be used after this method was called. If Engine is used after closing, it may
      * throw any exception including <code>NullPointerException</code>
-     * </p>
+     * <p>
      * There is an configuration option {@link DBMaker#closeOnJvmShutdown()} which uses shutdown hook to automatically
      * close Engine when JVM shutdowns.
      */

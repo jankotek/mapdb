@@ -60,7 +60,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
 
     public abstract int length(KEYS keys);
 
-    /** expand keys array by one and put `newKey` at position `pos` */
+    /** expand keys array by one and put {@code newKey} at position {@code pos} */
     public abstract KEYS putKey(KEYS keys, int pos, KEY newKey);
 
 
@@ -70,7 +70,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
 
     /**
      * Find the first children node with a key equal or greater than the given key.
-     * If all items are smaller it returns `keyser.length(keys)`
+     * If all items are smaller it returns {@code keyser.length(keys)}
      */
     public int findChildren(final BTreeMap.BNode node, final Object key) {
         KEYS keys = (KEYS) node.keys;
@@ -623,7 +623,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             this.comparator = new Fun.ArrayComparator(comparators);
         }
 
-        /** used for deserialization, `extra` is to avoid argument collision */
+        /** used for deserialization, extra is to avoid argument collision */
         public ArrayKeySerializer(SerializerBase serializerBase, DataInput is,
                                   SerializerBase.FastArrayList<Object> objectStack) throws IOException {
             objectStack.add(this);

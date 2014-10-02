@@ -28,7 +28,7 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * A LRU cache implementation based upon ConcurrentHashMap and other techniques to reduce
  * contention and synchronization overhead to utilize multiple CPU cores more effectively.
- * <p/>
+ * <p>
  * Note that the implementation does not follow a true LRU (least-recently-used) eviction
  * strategy. Instead it strives to remove least recently used items but when the initial
  * cleanup does not remove enough items to reach the 'acceptableWaterMark' limit, it can
@@ -128,11 +128,11 @@ public class LongConcurrentLRUMap<V> extends LongMap<V> {
     /**
      * Removes items from the cache to bring the size down
      * to an acceptable value ('acceptableWaterMark').
-     * <p/>
+     * <p>
      * It is done in two stages. In the first stage, least recently used items are evicted.
      * If, after the first stage, the cache size is still greater than 'acceptableSize'
      * config parameter, the second stage takes over.
-     * <p/>
+     * <p>
      * The second stage is more intensive and tries to bring down the cache size
      * to the 'lowerWaterMark' config parameter.
      */

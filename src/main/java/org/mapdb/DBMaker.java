@@ -119,7 +119,7 @@ public class DBMaker{
 
 
     /** Creates new in-memory database. Changes are lost after JVM exits.
-     * <p/>
+     * <p>
      * This will use HEAP memory so Garbage Collector is affected.
      */
     public static DBMaker newMemoryDB(){
@@ -132,7 +132,7 @@ public class DBMaker{
     }
 
     /** Creates new in-memory database. Changes are lost after JVM exits.
-     * <p/>
+     * <p>
      * This will use DirectByteBuffer outside of HEAP, so Garbage Collector is not affected
      */
     public static DBMaker newMemoryDirectDB(){
@@ -295,7 +295,7 @@ public class DBMaker{
      * You must call <b>DB.commit()</b> to save your changes.
      * It is possible to disable transaction journal for better write performance
      * In this case all integrity checks are sacrificed for faster speed.
-     * <p/>
+     * <p>
      * If transaction journal is disabled, all changes are written DIRECTLY into store.
      * You must call DB.close() method before exit,
      * otherwise your store <b>WILL BE CORRUPTED</b>
@@ -335,7 +335,7 @@ public class DBMaker{
      * Instance cache is enabled by default.
      * This greatly decreases serialization overhead and improves performance.
      * Call this method to disable instance cache, so an object will always be deserialized.
-     * <p/>
+     * <p>
      * This may workaround some problems
      *
      * @return this builder
@@ -348,7 +348,7 @@ public class DBMaker{
     /**
      * Enables unbounded hard reference cache.
      * This cache is good if you have lot of available memory.
-     * <p/>
+     * <p>
      * All fetched records are added to HashMap and stored with hard reference.
      * To prevent OutOfMemoryExceptions MapDB monitors free memory,
      * if it is bellow 25% cache is cleared.
@@ -442,9 +442,9 @@ public class DBMaker{
     /**
      * Set cache size. Interpretations depends on cache type.
      * For fixed size caches (such as FixedHashTable cache) it is maximal number of items in cache.
-     * <p/>
+     * <p>
      * For unbounded caches (such as HardRef cache) it is initial capacity of underlying table (HashMap).
-     * <p/>
+     * <p>
      * Default cache size is 32768.
      *
      * @param cacheSize new cache size
@@ -471,7 +471,7 @@ public class DBMaker{
      * Enables mode where all modifications are queued and written into disk on Background Writer Thread.
      * So all modifications are performed in asynchronous mode and do not block.
      *
-     * <p/>
+     * <p>
      * Enabling this mode might increase performance for single threaded apps.
      *
      * @return this builder
@@ -485,12 +485,12 @@ public class DBMaker{
 
     /**
      * Set flush interval for write cache, by default is 0
-     * <p/>
+     * <p>
      * When BTreeMap is constructed from ordered set, tree node size is increasing linearly with each
      * item added. Each time new key is added to tree node, its size changes and
      * storage needs to find new place. So constructing BTreeMap from ordered set leads to large
      * store fragmentation.
-     * <p/>
+     * <p>
      *  Setting flush interval is workaround as BTreeMap node is always updated in memory (write cache)
      *  and only final version of node is stored on disk.
      *
@@ -505,7 +505,7 @@ public class DBMaker{
 
     /**
      * Set size of async Write Queue. Default size is 32 000
-     * <p/>
+     * <p>
      * Using too large queue size can lead to out of memory exception.
      *
      * @param queueSize of queue
@@ -540,7 +540,7 @@ public class DBMaker{
 
     /**
      * Enables record compression.
-     * <p/>
+     * <p>
      * Make sure you enable this every time you reopen store, otherwise record de-serialization fails unpredictably.
      *
      * @return this builder
@@ -553,10 +553,10 @@ public class DBMaker{
 
     /**
      * Encrypt storage using XTEA algorithm.
-     * <p/>
+     * <p>
      * XTEA is sound encryption algorithm. However implementation in MapDB was not peer-reviewed.
      * MapDB only encrypts records data, so attacker may see number of records and their sizes.
-     * <p/>
+     * <p>
      * Make sure you enable this every time you reopen store, otherwise record de-serialization fails unpredictably.
      *
      * @param password for encryption
@@ -570,10 +570,10 @@ public class DBMaker{
 
     /**
      * Encrypt storage using XTEA algorithm.
-     * <p/>
+     * <p>
      * XTEA is sound encryption algorithm. However implementation in MapDB was not peer-reviewed.
      * MapDB only encrypts records data, so attacker may see number of records and their sizes.
-     * <p/>
+     * <p>
      * Make sure you enable this every time you reopen store, otherwise record de-serialization fails unpredictably.
      *
      * @param password for encryption
@@ -589,7 +589,7 @@ public class DBMaker{
     /**
      * Adds CRC32 checksum at end of each record to check data integrity.
      * It throws 'IOException("Checksum does not match, data broken")' on de-serialization if data are corrupted
-     * <p/>
+     * <p>
      * Make sure you enable this every time you reopen store, otherwise record de-serialization fails.
      *
      * @return this builder
