@@ -121,7 +121,8 @@ public abstract class Volume implements Closeable{
      * Writes a long to the indicated position
      */
     public void putSixLong(long pos, long value) {
-        assert(value>=0 && (value>>>6*8)==0): "value does not fit";
+        if(CC.PARANOID && ! (value>=0 && (value>>>6*8)==0))
+            throw new AssertionError("value does not fit");
         //TODO read/write as integer+short, might be faster
         putByte(pos + 0, (byte) (0xff & (value >> 40)));
         putByte(pos + 1, (byte) (0xff & (value >> 32)));
@@ -136,7 +137,8 @@ public abstract class Volume implements Closeable{
      * Writes packed long at given position and returns number of bytes used.
      */
     public int putPackedLong(long pos, long value) {
-        assert(value>=0):"negative value";
+        if(CC.PARANOID && ! (value>=0))
+            throw new AssertionError("negative value");
 
         int ret = 0;
 
@@ -506,8 +508,10 @@ public abstract class Volume implements Closeable{
         @Override
         protected ByteBuffer makeNewBuffer(long offset) {
             try {
-                assert((offset& sliceSizeModMask)==0);
-                assert(offset>=0);
+                if(CC.PARANOID && ! ((offset& sliceSizeModMask)==0))
+                    throw new AssertionError();
+                if(CC.PARANOID && ! (offset>=0))
+                    throw new AssertionError();
                 ByteBuffer ret = fileChannel.map(mapMode,offset, sliceSize);
                 if(mapMode == FileChannel.MapMode.READ_ONLY) {
                     ret = ret.asReadOnlyBuffer();
@@ -748,7 +752,8 @@ public abstract class Volume implements Closeable{
 
         @Override
         public final void putSixLong(long offset, long value) {
-            assert(value>=0 && (value>>>6*8)==0): "value does not fit";
+            if(CC.PARANOID && ! (value>=0 && (value>>>6*8)==0))
+                throw new AssertionError("value does not fit");
 
             try{
 

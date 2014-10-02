@@ -97,27 +97,31 @@ public class DB implements Closeable {
     }
 
     public <A> A catGet(String name, A init){
-        assert(Thread.holdsLock(DB.this));
+        if(CC.PARANOID && ! (Thread.holdsLock(DB.this)))
+            throw new AssertionError();
         A ret = (A) catalog.get(name);
         return ret!=null? ret : init;
     }
 
 
     public <A> A catGet(String name){
-        assert(Thread.holdsLock(DB.this));
+        if(CC.PARANOID && ! (Thread.holdsLock(DB.this)))
+            throw new AssertionError();
         //$DELAY$
         return (A) catalog.get(name);
     }
 
     public <A> A catPut(String name, A value){
-        assert(Thread.holdsLock(DB.this));
+        if(CC.PARANOID && ! (Thread.holdsLock(DB.this)))
+            throw new AssertionError();
         //$DELAY$
         catalog.put(name, value);
         return value;
     }
 
     public <A> A catPut(String name, A value, A retValueIfNull){
-        assert(Thread.holdsLock(DB.this));
+        if(CC.PARANOID && ! (Thread.holdsLock(DB.this)))
+            throw new AssertionError();
         if(value==null) return retValueIfNull;
         //$DELAY$
         catalog.put(name, value);

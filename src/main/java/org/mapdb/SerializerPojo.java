@@ -242,7 +242,8 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         if (containsClass(clazz))
             return;
 
-        assert(lock.isWriteLockedByCurrentThread());
+        if(CC.PARANOID && ! (lock.isWriteLockedByCurrentThread()))
+            throw new AssertionError();
 
         final boolean advancedSer = usesAdvancedSerialization(clazz);
         ObjectStreamField[] streamFields = advancedSer? new ObjectStreamField[0]:getFields(clazz);

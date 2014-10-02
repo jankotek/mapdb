@@ -760,7 +760,8 @@ public interface Serializer<A> {
             LZF.get().expand(in,unpacked,0,unpackedSize);
             DataIO.DataInputByteArray in2 = new DataIO.DataInputByteArray(unpacked);
             E ret =  serializer.deserialize(in2,unpackedSize);
-            assert(in2.pos==unpackedSize): "data were not fully read";
+            if(CC.PARANOID && ! (in2.pos==unpackedSize))
+                throw new AssertionError( "data were not fully read");
             return ret;
         }
 

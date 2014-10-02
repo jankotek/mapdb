@@ -226,7 +226,8 @@ public abstract class Store implements Engine{
 
                     byte[] expected2 = Arrays.copyOf(expected.buf, expected.pos);
                     //check arrays equals
-                    assert(Arrays.equals(expected2,decompress));
+                    if(CC.PARANOID && ! (Arrays.equals(expected2,decompress)))
+                        throw new AssertionError();
 
 
                 }catch(Exception e){

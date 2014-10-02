@@ -957,7 +957,8 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             this.offset = offset;
             this.array = array;
 
-            assert(array.length==0 || array.length == offset[offset.length-1]);
+            if(CC.PARANOID && ! (array.length==0 || array.length == offset[offset.length-1]))
+                throw new AssertionError();
         }
 
         ByteArrayKeys(DataInput in, int[] offsets, int prefixLen) throws IOException {
@@ -1194,7 +1195,8 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             this.offset = offset;
             this.array = array;
 
-            assert(array.length==0 || array.length == offset[offset.length-1]);
+            if(CC.PARANOID && ! (array.length==0 || array.length == offset[offset.length-1]))
+                throw new AssertionError();
         }
 
         public CharArrayKeys(DataInput in, int[] offsets, int prefixLen) throws IOException {

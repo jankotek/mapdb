@@ -242,7 +242,8 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
         //for this case CountDownLatch is used, it also signals when operations has been completed
         //CountDownLatch is used as special case to signalise special operation
         if(latch!=null){
-            assert(writeCache.isEmpty());
+            if(CC.PARANOID && ! (writeCache.isEmpty()))
+                throw new AssertionError();
             //$DELAY$
             final long count = latch.getCount();
             if(count == 0){ //close operation

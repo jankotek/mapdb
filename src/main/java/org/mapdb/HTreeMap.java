@@ -127,7 +127,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         @Override
         public LinkedNode<K,V> deserialize(DataInput in, int available) throws IOException {
-            assert(available!=0);
+            if(CC.PARANOID && ! (available!=0))
+                throw new AssertionError();
             return new LinkedNode<K, V>(
                     DataIO.unpackLong(in),
                     expireFlag? DataIO.unpackLong(in):0L,
@@ -165,7 +166,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     protected static final Serializer<long[][]>DIR_SERIALIZER = new Serializer.Trusted<long[][]>() {
         @Override
         public void serialize(DataOutput out, long[][] value) throws IOException {
-            assert(value.length==16);
+            if(CC.PARANOID && ! (value.length==16))
+                throw new AssertionError();
 
             //first write mask which indicate subarray nullability
             int nulls = 0;
@@ -184,7 +186,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             //write non null subarrays
             for(long[] vali:value){
                 if(vali!=null){
-                    assert(vali.length==8);
+                    if(CC.PARANOID && ! (vali.length==8))
+                        throw new AssertionError();
                     for(long l:vali){
                         DataIO.packLong(out, l);
                     }
@@ -461,7 +464,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             long[][] dir = engine.get(recid, DIR_SERIALIZER);
             if(dir == null) return null;
             final int slot = (h>>>(level*7 )) & 0x7F;
-            assert(slot<128);
+            if(CC.PARANOID && ! (slot<128))
+                throw new AssertionError();
             final int slotDiv8 = slot >>> DIV8;
             if(dir[slotDiv8]==null) return null;
             recid = dir[slotDiv8][slot&MOD8];
@@ -472,7 +476,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                     LinkedNode<K,V> ln = engine.get(recid, LN_SERIALIZER);
                     if(ln == null) return null;
                     if(hasher.equals(ln.key, (K) o)){
-                        assert(hash(ln.key)==h);
+                        if(CC.PARANOID && ! (hash(ln.key)==h))
+                            throw new AssertionError();
                         return ln;
                     }
                     if(ln.next==0) return null;
@@ -514,7 +519,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             long[][] dir = engine.get(dirRecid, DIR_SERIALIZER);
             final int slot =  (h>>>(7*level )) & 0x7F;
             final int slotDiv8 = slot >>> DIV8;
-            assert(slot<=127);
+            if(CC.PARANOID && ! (slot<=127))
+                throw new AssertionError();
 
             if(dir == null ){
                 //create new dir
@@ -638,12 +644,14 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         int level = 3;
         dirRecids[level] = segmentRecids[segment];
 
-        assert(segment==h>>>28);
+        if(CC.PARANOID && ! (segment==h>>>28))
+            throw new AssertionError();
 
         while(true){
             long[][] dir = engine.get(dirRecids[level], DIR_SERIALIZER);
             final int slot =  (h>>>(7*level )) & 0x7F;
-            assert(slot<=127);
+            if(CC.PARANOID && ! (slot<=127))
+                throw new AssertionError();
 
             if(dir == null ){
                 //create new dir
@@ -694,7 +702,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                             engine.update(prevRecid, prevLn, LN_SERIALIZER);
                         }
                         //found, remove this node
-                        assert(hash(ln.key)==h);
+                        if(CC.PARANOID && ! (hash(ln.key)==h))
+                            throw new AssertionError();
                         engine.delete(recid, LN_SERIALIZER);
                         if(removeExpire && expireFlag) expireLinkRemove(segment, ln.expireLinkNodeRecid);
                         notify((K) key, ln.value, null);
@@ -1076,8 +1085,9 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                     lastSegment = Math.max(segment,lastSegment);
                     long dirRecid = segmentRecids[segment];
                     LinkedNode ret[] = findNextLinkedNodeRecur(dirRecid, hash, 3);
-                    if(ret!=null) for(LinkedNode ln:ret){
-                        assert hash(ln.key)>>>28==segment;
+                    if(CC.PARANOID && ret!=null) for(LinkedNode ln:ret){
+                        if(( hash(ln.key)>>>28!=segment))
+                            throw new AssertionError();
                     }
                     //System.out.println(Arrays.asList(ret));
                     if(ret !=null){
@@ -1351,9 +1361,12 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
 
     protected void expireLinkAdd(int segment, long expireNodeRecid, long keyRecid, int hash){
-        assert(segmentLocks[segment].writeLock().isHeldByCurrentThread());
-        assert(expireNodeRecid>0);
-        assert(keyRecid>0);
+        if(CC.PARANOID && ! (segmentLocks[segment].writeLock().isHeldByCurrentThread()))
+            throw new AssertionError();
+        if(CC.PARANOID && ! (expireNodeRecid>0))
+            throw new AssertionError();
+        if(CC.PARANOID && ! (keyRecid>0))
+            throw new AssertionError();
 
         long time = expire==0 ? 0: expire+System.currentTimeMillis()-expireTimeStart;
         long head = engine.get(expireHeads[segment],Serializer.LONG);
@@ -1379,7 +1392,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     }
 
     protected void expireLinkBump(int segment, long nodeRecid, boolean access){
-        assert(segmentLocks[segment].writeLock().isHeldByCurrentThread());
+        if(CC.PARANOID && ! (segmentLocks[segment].writeLock().isHeldByCurrentThread()))
+            throw new AssertionError();
 
         ExpireLinkNode n = engine.get(nodeRecid,ExpireLinkNode.SERIALIZER);
         long newTime =
@@ -1426,7 +1440,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     }
 
     protected ExpireLinkNode expireLinkRemoveLast(int segment){
-        assert(segmentLocks[segment].writeLock().isHeldByCurrentThread());
+        if(CC.PARANOID && ! (segmentLocks[segment].writeLock().isHeldByCurrentThread()))
+            throw new AssertionError();
 
         long tail = engine.get(expireTails[segment],Serializer.LONG);
         if(tail==0) return null;
@@ -1451,7 +1466,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
 
     protected ExpireLinkNode expireLinkRemove(int segment, long nodeRecid){
-        assert(segmentLocks[segment].writeLock().isHeldByCurrentThread());
+        if(CC.PARANOID && ! (segmentLocks[segment].writeLock().isHeldByCurrentThread()))
+            throw new AssertionError();
 
         ExpireLinkNode n = engine.get(nodeRecid,ExpireLinkNode.SERIALIZER);
         engine.delete(nodeRecid,ExpireLinkNode.SERIALIZER);
@@ -1629,8 +1645,10 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             ExpireLinkNode last =null,n=null;
             while(recid!=0){
                 n = engine.get(recid, ExpireLinkNode.SERIALIZER);
-                assert(n!=ExpireLinkNode.EMPTY);
-                assert( n.hash>>>28 == seg);
+                if(CC.PARANOID && ! (n!=ExpireLinkNode.EMPTY))
+                    throw new AssertionError();
+                if(CC.PARANOID && ! ( n.hash>>>28 == seg))
+                    throw new AssertionError();
 
                 final boolean remove = ++counter < removePerSegment ||
                         ((expire!=0 || expireAccess!=0) &&  n.time+expireTimeStart<System.currentTimeMillis());
@@ -1679,7 +1697,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         long prev = 0;
         while(current!=0){
             ExpireLinkNode curr = engine.get(current,ExpireLinkNode.SERIALIZER);
-            assert(curr.prev==prev):"wrong prev "+curr.prev +" - "+prev;
+            if(CC.PARANOID && ! (curr.prev==prev))
+                throw new AssertionError("wrong prev "+curr.prev +" - "+prev);
             prev= current;
             current = curr.next;
         }
@@ -1730,7 +1749,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     }
 
     protected void notify(K key, V oldValue, V newValue) {
-        assert(segmentLocks[hash(key)>>>28].isWriteLockedByCurrentThread());
+        if(CC.PARANOID && ! (segmentLocks[hash(key)>>>28].isWriteLockedByCurrentThread()))
+            throw new AssertionError();
         Bind.MapListener<K,V>[] modListeners2  = modListeners;
         for(Bind.MapListener<K,V> listener:modListeners2){
             if(listener!=null)

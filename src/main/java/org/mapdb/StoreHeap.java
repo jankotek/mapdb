@@ -99,7 +99,8 @@ public class StoreHeap extends Store implements Serializable{
             if(recid==null) recid = maxRecid.incrementAndGet();
             records.put(recid, new Fun.Pair<Object, Serializer>(value,serializer));
             rollback.put(recid, new Fun.Pair(TOMBSTONE,serializer ));
-            assert(recid>0);
+            if(CC.PARANOID && ! (recid>0))
+                throw new AssertionError();
             return recid;
         }finally{
             lock.unlock();
@@ -108,7 +109,8 @@ public class StoreHeap extends Store implements Serializable{
 
     @Override
     public <A> A get(long recid, Serializer<A> serializer) {
-        assert(recid>0);
+        if(CC.PARANOID && ! (recid>0))
+            throw new AssertionError();
         final Lock lock = locks[Store.lockPos(recid)].readLock();
         lock.lock();
 
@@ -125,9 +127,12 @@ public class StoreHeap extends Store implements Serializable{
 
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
-        assert(recid>0);
-        assert(serializer!=null);
-        assert(recid>0);
+        if(CC.PARANOID && ! (recid>0))
+            throw new AssertionError();
+        if(CC.PARANOID && ! (serializer!=null))
+            throw new AssertionError();
+        if(CC.PARANOID && ! (recid>0))
+            throw new AssertionError();
         if(value==null) value= (A) NULL;
         final Lock lock = locks[Store.lockPos(recid)].writeLock();
         lock.lock();
@@ -143,7 +148,8 @@ public class StoreHeap extends Store implements Serializable{
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
-        assert(recid>0);
+        if(CC.PARANOID && ! (recid>0))
+            throw new AssertionError();
         if(expectedOldValue==null) expectedOldValue= (A) NULL;
         if(newValue==null) newValue= (A) NULL;
         final Lock lock = locks[Store.lockPos(recid)].writeLock();
@@ -161,7 +167,8 @@ public class StoreHeap extends Store implements Serializable{
 
     @Override
     public <A> void delete(long recid, Serializer<A> serializer) {
-        assert(recid>0);
+        if(CC.PARANOID && ! (recid>0))
+            throw new AssertionError();
         final Lock lock = locks[Store.lockPos(recid)].writeLock();
         lock.lock();
 

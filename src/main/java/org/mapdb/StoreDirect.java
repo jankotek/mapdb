@@ -287,7 +287,8 @@ public class StoreDirect extends Store{
 
     protected void createStructure() {
         indexSize = IO_USER_START+LAST_RESERVED_RECID*8+8;
-        assert(indexSize>IO_USER_START);
+        if(CC.PARANOID && ! (indexSize>IO_USER_START))
+            throw new AssertionError();
         index.ensureAvailable(indexSize);
         for(int i=0;i<indexSize;i+=8) index.putLong(i,0L);
         index.putInt(0, HEADER);
@@ -339,7 +340,8 @@ public class StoreDirect extends Store{
                 lock.unlock();
             }
             long recid = (ioRecid-IO_USER_START)/8;
-            assert(recid>0);
+            if(CC.PARANOID && ! (recid>0))
+                throw new AssertionError();
             if(CC.LOG_STORE && LOG.isLoggable(Level.FINEST))
                 LOG.finest("Preallocate recid=" + recid);
             return recid;
@@ -372,7 +374,8 @@ public class StoreDirect extends Store{
                     lock.unlock();
                 }
                 recids[i] = (ioRecid-IO_USER_START)/8;
-                assert(recids[i]>0);
+                if(CC.PARANOID && ! (recids[i]>0))
+                    throw new AssertionError();
             }
             if(CC.LOG_STORE && LOG.isLoggable(Level.FINEST))
                 LOG.finest("Preallocate recids="+Arrays.toString(recids));
@@ -384,7 +387,8 @@ public class StoreDirect extends Store{
 
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
-        assert(value!=null);
+        if(CC.PARANOID && ! (value!=null))
+            throw new AssertionError();
         DataIO.DataOutputByteArray out = serialize(value, serializer);
         final long ioRecid;
         newRecidLock.readLock().lock();
@@ -411,7 +415,8 @@ public class StoreDirect extends Store{
         }
 
         long recid = (ioRecid-IO_USER_START)/8;
-        assert(recid>0);
+        if(CC.PARANOID && ! (recid>0))
+            throw new AssertionError();
         if(CC.LOG_STORE && LOG.isLoggable(Level.FINEST))
             LOG.finest("Put recid="+recid+", "+" size="+out.pos+", "+" val="+value+" ser="+serializer );
         recycledDataOuts.offer(out);
@@ -419,7 +424,8 @@ public class StoreDirect extends Store{
     }
 
     protected void put2(DataIO.DataOutputByteArray out, long ioRecid, long[] indexVals) {
-        assert(locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
+        if(CC.PARANOID && ! (locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread()))
+            throw new AssertionError();
         index.putLong(ioRecid, indexVals[0]|MASK_ARCHIVE);
         //write stuff
         if(indexVals.length==1||indexVals[1]==0){ //is more then one? ie linked
@@ -434,7 +440,8 @@ public class StoreDirect extends Store{
                 final int c =   i==indexVals.length-1 ? 0: 8;
                 final long indexVal = indexVals[i];
                 final boolean isLast = (indexVal & MASK_LINKED) ==0;
-                assert(isLast==(i==indexVals.length-1));
+                if(CC.PARANOID && ! (isLast==(i==indexVals.length-1)))
+                    throw new AssertionError();
                 final int size = (int) (indexVal>>>48);
                 final long offset = indexVal&MASK_OFFSET;
 
@@ -454,7 +461,8 @@ public class StoreDirect extends Store{
 
     @Override
     public <A> A get(long recid, Serializer<A> serializer) {
-        assert(recid>0);
+        if(CC.PARANOID && ! (recid>0))
+            throw new AssertionError();
         final long ioRecid = IO_USER_START + recid*8;
         final Lock lock = locks[Store.lockPos(ioRecid)].readLock();
         lock.lock();
@@ -472,8 +480,9 @@ public class StoreDirect extends Store{
     }
 
     protected <A> A get2(long ioRecid,Serializer<A> serializer) throws IOException {
-        assert(locks[Store.lockPos(ioRecid)].getWriteHoldCount()==0||
-                locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
+        if(CC.PARANOID && ! (locks[Store.lockPos(ioRecid)].getWriteHoldCount()==0||
+                locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread()))
+            throw new AssertionError();
 
         long indexVal = index.getLong(ioRecid);
         if(indexVal == MASK_DISCARD) return null; //preallocated record
@@ -517,8 +526,10 @@ public class StoreDirect extends Store{
 
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
-        assert(value!=null);
-        assert(recid>0);
+        if(CC.PARANOID && ! (value!=null))
+            throw new AssertionError();
+        if(CC.PARANOID && ! (recid>0))
+            throw new AssertionError();
         DataIO.DataOutputByteArray out = serialize(value, serializer);
 
         final long ioRecid = IO_USER_START + recid*8;
@@ -541,7 +552,8 @@ public class StoreDirect extends Store{
         final long indexVal = index.getLong(ioRecid);
         final int size = (int) (indexVal>>>48);
         final boolean linked = (indexVal&MASK_LINKED)!=0;
-        assert(locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
+        if(CC.PARANOID && ! (locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread()))
+            throw new AssertionError();
 
         if(!linked && out.pos>0 && size>0 && size2ListIoRecid(size) == size2ListIoRecid(out.pos)){
             //size did change, but still fits into this location
@@ -576,14 +588,17 @@ public class StoreDirect extends Store{
 
             put2(out, ioRecid, indexVals);
         }
-        assert(locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
+        if(CC.PARANOID && ! (locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread()))
+            throw new AssertionError();
     }
 
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
-        assert(expectedOldValue!=null && newValue!=null);
-        assert(recid>0);
+        if(CC.PARANOID && ! (expectedOldValue!=null && newValue!=null))
+            throw new AssertionError();
+        if(CC.PARANOID && ! (recid>0))
+            throw new AssertionError();
         final long ioRecid = IO_USER_START + recid*8;
         final Lock lock = locks[Store.lockPos(ioRecid)].writeLock();
         lock.lock();
@@ -621,7 +636,8 @@ public class StoreDirect extends Store{
 
     @Override
     public <A> void delete(long recid, Serializer<A> serializer) {
-        assert(recid>0);
+        if(CC.PARANOID && ! (recid>0))
+            throw new AssertionError();
         final long ioRecid = IO_USER_START + recid*8;
         final Lock lock = locks[Store.lockPos(ioRecid)].writeLock();
         lock.lock();
@@ -688,7 +704,8 @@ public class StoreDirect extends Store{
     }
 
     protected long[] physAllocate(int size, boolean ensureAvail,boolean recursive) {
-        assert(structuralLock.isHeldByCurrentThread());
+        if(CC.PARANOID && ! (structuralLock.isHeldByCurrentThread()))
+            throw new AssertionError();
         if(size==0L) return new long[]{0L};
         //append to end of file
         if(size<MAX_REC_SIZE){
@@ -944,8 +961,10 @@ public class StoreDirect extends Store{
 
 
     protected long longStackTake(final long ioList, boolean recursive) {
-        assert(structuralLock.isHeldByCurrentThread());
-        assert(ioList>=IO_FREE_RECID && ioList<IO_USER_START) :"wrong ioList: "+ioList;
+        if(CC.PARANOID && ! (structuralLock.isHeldByCurrentThread()))
+            throw new AssertionError();
+        if(CC.PARANOID && ! (ioList>=IO_FREE_RECID && ioList<IO_USER_START))
+            throw new AssertionError("wrong ioList: "+ioList);
 
         long dataOffset = index.getLong(ioList);
         if(dataOffset == 0) return 0; //there is no such list, so just return 0
@@ -966,7 +985,8 @@ public class StoreDirect extends Store{
             if(next !=0){
                 //update index so it points to previous page
                 long nextSize = phys.getUnsignedShort(next);
-                assert((nextSize-8)%6==0);
+                if(CC.PARANOID && ! ((nextSize-8)%6==0))
+                    throw new AssertionError();
                 index.putLong(ioList , ((nextSize-6)<<48)|next);
             }else{
                 //zero out index
@@ -994,9 +1014,12 @@ public class StoreDirect extends Store{
 
 
     protected void longStackPut(final long ioList, long offset, boolean recursive){
-        assert(structuralLock.isHeldByCurrentThread());
-        assert(offset>>>48==0);
-        assert(ioList>=IO_FREE_RECID && ioList<=IO_USER_START): "wrong ioList: "+ioList;
+        if(CC.PARANOID && ! (structuralLock.isHeldByCurrentThread()))
+            throw new AssertionError();
+        if(CC.PARANOID && ! (offset>>>48==0))
+            throw new AssertionError();
+        if(CC.PARANOID && ! (ioList>=IO_FREE_RECID && ioList<=IO_USER_START))
+            throw new AssertionError( "wrong ioList: "+ioList);
 
         long dataOffset = index.getLong(ioList);
         long pos = dataOffset>>>48;
@@ -1019,7 +1042,8 @@ public class StoreDirect extends Store{
             long next = phys.getLong(dataOffset);
             long size = next>>>48;
             next &=MASK_OFFSET;
-            assert(pos+6<=size);
+            if(CC.PARANOID && ! (pos+6<=size))
+                throw new AssertionError();
             if(pos+6==size){ //is current page full?
                 long newPageSize = LONG_STACK_PREF_SIZE;
                 if(ioList == size2ListIoRecid(LONG_STACK_PREF_SIZE)){
@@ -1050,8 +1074,10 @@ public class StoreDirect extends Store{
 
 
     protected void freeIoRecidPut(long ioRecid) {
-        assert(ioRecid>IO_USER_START);
-        assert(locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
+        if(CC.PARANOID && ! (ioRecid>IO_USER_START))
+            throw new AssertionError();
+        if(CC.PARANOID && ! (locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread()))
+            throw new AssertionError();
         if(spaceReclaimTrack)
             longStackPut(IO_FREE_RECID, ioRecid,false);
     }
@@ -1060,14 +1086,16 @@ public class StoreDirect extends Store{
         if(spaceReclaimTrack){
             long ioRecid = longStackTake(IO_FREE_RECID,false);
             if(ioRecid!=0){
-                assert(ioRecid>IO_USER_START);
+                if(CC.PARANOID && ! (ioRecid>IO_USER_START))
+                    throw new AssertionError();
                 return ioRecid;
             }
         }
         indexSize+=8;
         if(ensureAvail)
             index.ensureAvailable(indexSize);
-        assert(indexSize-8>IO_USER_START);
+        if(CC.PARANOID && ! (indexSize-8>IO_USER_START))
+            throw new AssertionError();
         return indexSize-8;
     }
 
@@ -1075,16 +1103,20 @@ public class StoreDirect extends Store{
         return IO_FREE_RECID + 8 + ((size-1)/16)*8;
     }
     protected void freePhysPut(long indexVal, boolean recursive) {
-        assert(structuralLock.isHeldByCurrentThread());
+        if(CC.PARANOID && ! (structuralLock.isHeldByCurrentThread()))
+            throw new AssertionError();
         long size = indexVal >>>48;
-        assert(size!=0);
+        if(CC.PARANOID && ! (size!=0))
+            throw new AssertionError();
         freeSize+=roundTo16(size);
         longStackPut(size2ListIoRecid(size), indexVal & MASK_OFFSET,recursive);
     }
 
     protected long freePhysTake(int size, boolean ensureAvail, boolean recursive) {
-        assert(structuralLock.isHeldByCurrentThread());
-        assert(size>0);
+        if(CC.PARANOID && ! (structuralLock.isHeldByCurrentThread()))
+            throw new AssertionError();
+        if(CC.PARANOID && ! (size>0))
+            throw new AssertionError();
         //check free space
         if(spaceReclaimReuse){
             long ret =  longStackTake(size2ListIoRecid(size),recursive);

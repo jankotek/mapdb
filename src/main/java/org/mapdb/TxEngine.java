@@ -62,7 +62,8 @@ public class TxEngine extends EngineWrapper {
     }
 
     protected Long preallocRecidTake() {
-        assert(commitLock.isWriteLockedByCurrentThread());
+        if(CC.PARANOID && ! (commitLock.isWriteLockedByCurrentThread()))
+            throw new AssertionError();
         Long recid = preallocRecids.poll();
         if(recid!=null) return recid;
 
@@ -107,7 +108,8 @@ public class TxEngine extends EngineWrapper {
     }
 
     protected void cleanTxQueue(){
-        assert(commitLock.writeLock().isHeldByCurrentThread());
+        if(CC.PARANOID && ! (commitLock.writeLock().isHeldByCurrentThread()))
+            throw new AssertionError();
         for(Reference<? extends Tx> ref = txQueue.poll(); ref!=null; ref=txQueue.poll()){
             txs.remove(ref);
         }
@@ -306,22 +308,26 @@ public class TxEngine extends EngineWrapper {
     }
 
     protected void superCommit() {
-        assert(commitLock.isWriteLockedByCurrentThread());
+        if(CC.PARANOID && ! (commitLock.isWriteLockedByCurrentThread()))
+            throw new AssertionError();
         super.commit();
     }
 
     protected <A> void superUpdate(long recid, A value, Serializer<A> serializer) {
-        assert(commitLock.isWriteLockedByCurrentThread());
+        if(CC.PARANOID && ! (commitLock.isWriteLockedByCurrentThread()))
+            throw new AssertionError();
         super.update(recid,value,serializer);
     }
 
     protected <A> void superDelete(long recid, Serializer<A> serializer) {
-        assert(commitLock.isWriteLockedByCurrentThread());
+        if(CC.PARANOID && ! (commitLock.isWriteLockedByCurrentThread()))
+            throw new AssertionError();
         super.delete(recid,serializer);
     }
 
     protected <A> A superGet(long recid, Serializer<A> serializer) {
-        assert(commitLock.isWriteLockedByCurrentThread());
+        if(CC.PARANOID && ! (commitLock.isWriteLockedByCurrentThread()))
+            throw new AssertionError();
         return super.get(recid,serializer);
     }
 
@@ -340,7 +346,8 @@ public class TxEngine extends EngineWrapper {
         private Store parentEngine;
 
         public Tx(){
-            assert(commitLock.isWriteLockedByCurrentThread());
+            if(CC.PARANOID && ! (commitLock.isWriteLockedByCurrentThread()))
+                throw new AssertionError();
             txs.add(ref);
         }
 

@@ -292,7 +292,8 @@ public class StoreAppend extends Store{
                 structuralLock.unlock();
             }
 
-            assert(recid>0);
+            if(CC.PARANOID && ! (recid>0))
+                throw new AssertionError();
             return recid;
         }finally {
             lock.unlock();
@@ -310,7 +311,8 @@ public class StoreAppend extends Store{
             try{
                 for(int i = 0;i<recids.length;i++){
                     recids[i] = ++maxRecid;
-                    assert(recids[i]>0);
+                    if(CC.PARANOID && ! (recids[i]>0))
+                        throw new AssertionError();
                 }
 
                 modified = true;
@@ -324,7 +326,8 @@ public class StoreAppend extends Store{
 
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
-        assert(value!=null);
+        if(CC.PARANOID && ! (value!=null))
+            throw new AssertionError();
         DataIO.DataOutputByteArray out = serialize(value,serializer);
 
         final Lock lock = locks[new Random().nextInt(locks.length)].readLock();
@@ -359,7 +362,8 @@ public class StoreAppend extends Store{
             recycledDataOuts.offer(out);
             setIndexVal(recid, indexVal);
 
-            assert(recid>0);
+            if(CC.PARANOID && ! (recid>0))
+                throw new AssertionError();
             return recid;
         }finally {
             lock.unlock();
@@ -368,7 +372,8 @@ public class StoreAppend extends Store{
 
     @Override
     public <A> A get(long recid, Serializer<A> serializer) {
-        assert(recid>0);
+        if(CC.PARANOID && ! (recid>0))
+            throw new AssertionError();
         final Lock lock = locks[Store.lockPos(recid)].readLock();
         lock.lock();
         try{
@@ -399,8 +404,10 @@ public class StoreAppend extends Store{
 
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
-        assert(value!=null);
-        assert(recid>0);
+        if(CC.PARANOID && ! (value!=null))
+            throw new AssertionError();
+        if(CC.PARANOID && ! (recid>0))
+            throw new AssertionError();
         DataIO.DataOutputByteArray out = serialize(value,serializer);
 
         final Lock lock = locks[Store.lockPos(recid)].writeLock();
@@ -442,8 +449,10 @@ public class StoreAppend extends Store{
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
-        assert(expectedOldValue!=null && newValue!=null);
-        assert(recid>0);
+        if(CC.PARANOID && ! (expectedOldValue!=null && newValue!=null))
+            throw new AssertionError();
+        if(CC.PARANOID && ! (recid>0))
+            throw new AssertionError();
         DataIO.DataOutputByteArray out = serialize(newValue,serializer);
         final Lock lock = locks[Store.lockPos(recid)].writeLock();
         lock.lock();
@@ -468,7 +477,8 @@ public class StoreAppend extends Store{
 
     @Override
     public <A> void delete(long recid, Serializer<A> serializer) {
-        assert(recid>0);
+        if(CC.PARANOID && ! (recid>0))
+            throw new AssertionError();
         final Lock lock = locks[Store.lockPos(recid)].writeLock();
         lock.lock();
 
