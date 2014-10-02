@@ -62,21 +62,14 @@ public abstract class Store implements Engine{
 
     protected final ThreadLocal<CompressLZF> LZF;
 
-    protected Store(String fileName, Fun.Function1<Volume, String> volumeFactory, boolean checksum, boolean compress, byte[] password, boolean disableLocks) {
+    protected Store(String fileName, Fun.Function1<Volume, String> volumeFactory, boolean checksum, boolean compress, byte[] password) {
         this.fileName = fileName;
         this.volumeFactory = volumeFactory;
-        this.disableLocks = disableLocks;
-        if(disableLocks){
-            structuralLock = null;
-            newRecidLock = null;
-            locks = new ReentrantReadWriteLock[CC.CONCURRENCY];
-        }else{
-            structuralLock = new ReentrantLock(CC.FAIR_LOCKS);
-            newRecidLock = new ReentrantReadWriteLock(CC.FAIR_LOCKS);
-            locks = new ReentrantReadWriteLock[CC.CONCURRENCY];
-            for(int i=0;i< locks.length;i++){
-                locks[i] = new ReentrantReadWriteLock(CC.FAIR_LOCKS);
-            }
+        structuralLock = new ReentrantLock(CC.FAIR_LOCKS);
+        newRecidLock = new ReentrantReadWriteLock(CC.FAIR_LOCKS);
+        locks = new ReentrantReadWriteLock[CC.CONCURRENCY];
+        for(int i=0;i< locks.length;i++){
+            locks[i] = new ReentrantReadWriteLock(CC.FAIR_LOCKS);
         }
 
         this.checksum = checksum;
@@ -138,18 +131,12 @@ public abstract class Store implements Engine{
     }
 
 
-    protected final boolean disableLocks;
-
     protected final ReentrantLock structuralLock;
     protected final ReentrantReadWriteLock newRecidLock;
     protected final ReentrantReadWriteLock[] locks;
 
 
     protected void lockAllWrite() {
-        if(disableLocks) {
-            return;
-        }
-
         newRecidLock.writeLock().lock();
         for(ReentrantReadWriteLock l: locks) {
             l.writeLock().lock();
@@ -158,10 +145,6 @@ public abstract class Store implements Engine{
     }
 
     protected void unlockAllWrite() {
-        if(disableLocks) {
-            return;
-        }
-
         structuralLock.unlock();
         for(ReentrantReadWriteLock l: locks) {
             l.writeLock().unlock();
@@ -378,9 +361,6 @@ public abstract class Store implements Engine{
     public Engine snapshot() throws UnsupportedOperationException {
         throw new UnsupportedOperationException("Snapshots are not supported");
     }
-
-
-    List<Runnable> closeListeners = new CopyOnWriteArrayList<Runnable>();
 
 
 

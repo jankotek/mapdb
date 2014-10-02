@@ -83,8 +83,6 @@ public class DBMaker{
 
         String checksum = "checksum";
 
-        String concurrencyDisable = "concurrencyDisable";
-
         String freeSpaceReclaimQ = "freeSpaceReclaimQ";
         String commitFileSyncDisable = "commitFileSyncDisable";
 
@@ -519,22 +517,6 @@ public class DBMaker{
     }
 
 
-
-    /**
-     * MapDB is thread-safe by default.
-     * Concurrency locking brings some overhead which is unnecessary for single-threaded applications.
-     * This switch will disable concurrency locks and make MapDB thread-unsafe,
-     * in exchange for small performance bonus in single-threaded use.
-     *
-     * Usafull for data imports etc.
-     *
-     * @return this builder
-     */
-    public DBMaker concurrencyDisable(){
-        props.setProperty(Keys.concurrencyDisable,TRUE);
-        return this;
-    }
-
     /**
      * Try to delete files after DB is closed.
      * File deletion may silently fail, especially on Windows where buffer needs to be unmapped file delete.
@@ -742,10 +724,6 @@ public class DBMaker{
         if(propsGetLong(Keys.sizeLimit,0)>0 && Keys.store_append.equals(store))
             throw new UnsupportedOperationException("Append-Only store does not support Size Limit");
 
-        if(propsGetBool(Keys.concurrencyDisable) && propsGetBool(Keys.asyncWrite)){
-            throw new UnsupportedOperationException("Can not use `concurrencyDisable` together with Async Writer");
-        }
-
         extendArgumentCheck();
 
         Engine engine;
@@ -894,27 +872,27 @@ public class DBMaker{
 
     protected Engine extendCacheLRU(Engine engine) {
         int cacheSize = propsGetInt(Keys.cacheSize, CC.DEFAULT_CACHE_SIZE);
-        return new Caches.LRU(engine, cacheSize,propsGetBool(Keys.concurrencyDisable), cacheCondition);
+        return new Caches.LRU(engine, cacheSize, cacheCondition);
     }
 
     protected Engine extendCacheWeakRef(Engine engine) {
-        return new Caches.WeakSoftRef(engine,true,propsGetBool(Keys.concurrencyDisable), cacheCondition, threadFactory);
+        return new Caches.WeakSoftRef(engine,true, cacheCondition, threadFactory);
     }
 
     protected Engine extendCacheSoftRef(Engine engine) {
-        return new Caches.WeakSoftRef(engine,false,propsGetBool(Keys.concurrencyDisable), cacheCondition, threadFactory);
+        return new Caches.WeakSoftRef(engine,false,cacheCondition, threadFactory);
     }
 
 
 
     protected Engine extendCacheHardRef(Engine engine) {
         int cacheSize = propsGetInt(Keys.cacheSize, CC.DEFAULT_CACHE_SIZE);
-        return new Caches.HardRef(engine,cacheSize,propsGetBool(Keys.concurrencyDisable), cacheCondition);
+        return new Caches.HardRef(engine,cacheSize, cacheCondition);
     }
 
     protected Engine extendCacheHashTable(Engine engine) {
         int cacheSize = propsGetInt(Keys.cacheSize, CC.DEFAULT_CACHE_SIZE);
-        return new Caches.HashTable(engine, cacheSize,propsGetBool(Keys.concurrencyDisable), cacheCondition);
+        return new Caches.HashTable(engine, cacheSize, cacheCondition);
     }
 
     protected Engine extendAsyncWriteEngine(Engine engine) {
@@ -943,7 +921,7 @@ public class DBMaker{
 
 
     protected Engine extendHeapStore() {
-        return new StoreHeap(propsGetBool(Keys.concurrencyDisable));
+        return new StoreHeap();
     }
 
     protected Engine extendStoreAppend(String fileName, Fun.Function1<Volume,String> volumeFactory) {
@@ -953,8 +931,7 @@ public class DBMaker{
                 propsGetBool(Keys.transactionDisable),
                 propsGetBool(Keys.deleteFilesAfterClose),
                 propsGetBool(Keys.commitFileSyncDisable),
-                propsGetBool(Keys.checksum),compressionEnabled,propsGetXteaEncKey(),
-                propsGetBool(Keys.concurrencyDisable));
+                propsGetBool(Keys.checksum),compressionEnabled,propsGetXteaEncKey());
     }
 
     protected Engine extendStoreDirect(
@@ -972,7 +949,7 @@ public class DBMaker{
                 propsGetBool(Keys.commitFileSyncDisable),
                 propsGetLong(Keys.sizeLimit,0),
                 propsGetBool(Keys.checksum),compressionEnabled,propsGetXteaEncKey(),
-                propsGetBool(Keys.concurrencyDisable),0);
+                0);
     }
 
     protected Engine extendStoreWAL(
@@ -990,7 +967,7 @@ public class DBMaker{
                 propsGetBool(Keys.commitFileSyncDisable),
                 propsGetLong(Keys.sizeLimit,-1),
                 propsGetBool(Keys.checksum),compressionEnabled,propsGetXteaEncKey(),
-                propsGetBool(Keys.concurrencyDisable),0);
+                0);
     }
 
 

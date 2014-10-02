@@ -50,46 +50,34 @@ public class StoreHeap extends Store implements Serializable{
     /** Maximal returned recid, incremented if there are no free recids*/
     protected final AtomicLong maxRecid = new AtomicLong(LAST_RESERVED_RECID);
 
-    public StoreHeap(boolean disableLocks){
-        super(null, null, false,false,null,disableLocks);
+    public StoreHeap(){
+        super(null, null, false,false,null);
         for(long recid=1;recid<=LAST_RESERVED_RECID;recid++){
             records.put(recid, new Fun.Pair(null, (Serializer)null));
         }
     }
 
-    public StoreHeap(){
-        this(false);
-    }
+
 
     @Override
     public long preallocate() {
-        final Lock lock;
-        if(disableLocks) {
-            lock = null;
-        }else {
-            lock = locks[new Random().nextInt(locks.length)].writeLock();
-            lock.lock();
-        }
+        final Lock lock = locks[new Random().nextInt(locks.length)].writeLock();
+        lock.lock();
+
         try{
             Long recid = freeRecids.poll();
             if(recid==null) recid = maxRecid.incrementAndGet();
             return recid;
         }finally{
-            if(!disableLocks) {
-                lock.unlock();
-            }
+           lock.unlock();
         }
     }
 
     @Override
     public void preallocate(long[] recids) {
-        final Lock lock;
-        if(disableLocks) {
-            lock = null;
-        }else {
-            lock = locks[new Random().nextInt(locks.length)].writeLock();
-            lock.lock();
-        }
+        final Lock lock = locks[new Random().nextInt(locks.length)].writeLock();
+        lock.lock();
+
         try{
             for(int i=0;i<recids.length;i++){
                 Long recid = freeRecids.poll();
@@ -97,21 +85,15 @@ public class StoreHeap extends Store implements Serializable{
                 recids[i] = recid;
             }
         }finally{
-            if(!disableLocks) {
-                lock.unlock();
-            }
+            lock.unlock();
         }
     }
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
         if(value==null) value= (A) NULL;
-        final Lock lock;
-        if(disableLocks) {
-            lock = null;
-        }else {
-            lock = locks[new Random().nextInt(locks.length)].writeLock();
-            lock.lock();
-        }
+        final Lock lock = locks[new Random().nextInt(locks.length)].writeLock();
+        lock.lock();
+
         try{
             Long recid = freeRecids.poll();
             if(recid==null) recid = maxRecid.incrementAndGet();
@@ -120,22 +102,16 @@ public class StoreHeap extends Store implements Serializable{
             assert(recid>0);
             return recid;
         }finally{
-            if(!disableLocks) {
-                lock.unlock();
-            }
+            lock.unlock();
         }
     }
 
     @Override
     public <A> A get(long recid, Serializer<A> serializer) {
         assert(recid>0);
-        final Lock lock;
-        if(disableLocks) {
-            lock = null;
-        }else {
-            lock = locks[Store.lockPos(recid)].readLock();
-            lock.lock();
-        }
+        final Lock lock = locks[Store.lockPos(recid)].readLock();
+        lock.lock();
+
         try{
             //get from commited records
             Fun.Pair t = records.get(recid);
@@ -143,9 +119,7 @@ public class StoreHeap extends Store implements Serializable{
                 return null;
             return (A) t.a;
         }finally{
-            if(!disableLocks) {
-                lock.unlock();
-            }
+            lock.unlock();
         }
     }
 
@@ -155,21 +129,15 @@ public class StoreHeap extends Store implements Serializable{
         assert(serializer!=null);
         assert(recid>0);
         if(value==null) value= (A) NULL;
-        final Lock lock;
-        if(disableLocks) {
-            lock = null;
-        }else {
-            lock = locks[Store.lockPos(recid)].writeLock();
-            lock.lock();
-        }
+        final Lock lock = locks[Store.lockPos(recid)].writeLock();
+        lock.lock();
+
         try{
             Fun.Pair old = records.put(recid, new Fun.Pair<Object, Serializer>(value,serializer));
             if(old!=null) //TODO null if record was preallocated
                 rollback.putIfAbsent(recid,old);
         }finally{
-            if(!disableLocks) {
-                lock.unlock();
-            }
+             lock.unlock();
         }
     }
 
@@ -178,51 +146,36 @@ public class StoreHeap extends Store implements Serializable{
         assert(recid>0);
         if(expectedOldValue==null) expectedOldValue= (A) NULL;
         if(newValue==null) newValue= (A) NULL;
-        final Lock lock;
-        if(disableLocks) {
-            lock = null;
-        }else {
-            lock = locks[Store.lockPos(recid)].writeLock();
-            lock.lock();
-        }
+        final Lock lock = locks[Store.lockPos(recid)].writeLock();
+        lock.lock();
+
         try{
             Fun.Pair old = new Fun.Pair(expectedOldValue, serializer);
             boolean ret =  records.replace(recid, old, new Fun.Pair(newValue, serializer));
             if(ret) rollback.putIfAbsent(recid,old);
             return ret;
         }finally{
-            if(!disableLocks) {
-                lock.unlock();
-            }
+            lock.unlock();
         }
     }
 
     @Override
     public <A> void delete(long recid, Serializer<A> serializer) {
         assert(recid>0);
-        final Lock lock;
-        if(disableLocks) {
-            lock = null;
-        }else {
-            lock = locks[Store.lockPos(recid)].writeLock();
-            lock.lock();
-        }
+        final Lock lock = locks[Store.lockPos(recid)].writeLock();
+        lock.lock();
+
         try{
             Fun.Pair t2 = records.remove(recid);
             if(t2!=null) rollback.putIfAbsent(recid,t2);
             freeRecids.add(recid);
         }finally{
-            if(!disableLocks) {
-                lock.unlock();
-            }
+            lock.unlock();
         }
     }
 
     @Override
     public void close() {
-        for(Runnable closeListener:closeListeners)
-            closeListener.run();
-
         lockAllWrite();
         try{
             records.clear();

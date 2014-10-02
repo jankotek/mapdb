@@ -830,8 +830,7 @@ public class DB implements Closeable {
                 catGet(name+".counterRecid",0L),
                 catGet(name+".keySerializer",new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer(),Fun.COMPARATOR)),
                 catGet(name+".valueSerializer",getDefaultSerializer()),
-                catGet(name+".numberOfNodeMetas",0),
-                false
+                catGet(name+".numberOfNodeMetas",0)
                 );
         //$DELAY$
         namedPut(name, ret);
@@ -900,8 +899,7 @@ public class DB implements Closeable {
                 catPut(name+".counterRecid",counterRecid),
                 m.keySerializer,
                 (Serializer<V>)m.valueSerializer,
-                catPut(m.name+".numberOfNodeMetas",0),
-                false
+                catPut(m.name+".numberOfNodeMetas",0)
         );
         //$DELAY$
         catalog.put(name + ".type", "TreeMap");
@@ -982,8 +980,7 @@ public class DB implements Closeable {
                 catGet(name+".counterRecid",0L),
                 catGet(name+".keySerializer",new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer(),Fun.COMPARATOR)),
                 null,
-                catGet(name+".numberOfNodeMetas",0),
-                false
+                catGet(name+".numberOfNodeMetas",0)
         ).keySet();
         //$DELAY$
         namedPut(name, ret);
@@ -1041,8 +1038,7 @@ public class DB implements Closeable {
                 catPut(m.name+".counterRecid",counterRecid),
                 m.serializer,
                 null,
-                catPut(m.name+".numberOfNodeMetas",0),
-                false
+                catPut(m.name+".numberOfNodeMetas",0)
         ).keySet();
         //$DELAY$
         catalog.put(m.name + ".type", "TreeSet");

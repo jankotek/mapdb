@@ -39,8 +39,6 @@ public final class Caches {
      */
     public static class LRU extends EngineWrapper {
 
-
-        protected final boolean locksEnabled;
         protected LongMap<Object> cache;
 
         protected final Fun.RecordCondition condition;
@@ -48,20 +46,16 @@ public final class Caches {
         protected final ReentrantLock[] locks;
 
 
-        public LRU(Engine engine, int cacheSize, boolean disableLocks, Fun.RecordCondition condition) {
-            this(engine, new LongConcurrentLRUMap<Object>(cacheSize, (int) (cacheSize*0.8)),disableLocks, condition);
+        public LRU(Engine engine, int cacheSize,  Fun.RecordCondition condition) {
+            this(engine, new LongConcurrentLRUMap<Object>(cacheSize, (int) (cacheSize*0.8)), condition);
         }
 
-        public LRU(Engine engine, LongMap<Object> cache, boolean disableLocks, Fun.RecordCondition condition){
+        public LRU(Engine engine, LongMap<Object> cache,  Fun.RecordCondition condition){
             super(engine);
-            this.locksEnabled = !disableLocks;
-            if(disableLocks) {
-                locks = null;
-            }else{
-                locks = new ReentrantLock[CC.CONCURRENCY];
-                for(int i=0;i<locks.length;i++) {
-                    locks[i] = new ReentrantLock(CC.FAIR_LOCKS);
-                }
+
+            locks = new ReentrantLock[CC.CONCURRENCY];
+            for(int i=0;i<locks.length;i++) {
+                locks[i] = new ReentrantLock(CC.FAIR_LOCKS);
             }
 
             this.cache = cache;
@@ -77,21 +71,15 @@ public final class Caches {
                 return recid;
             //$DELAY$
             final LongMap<Object> cache2 = checkClosed(cache);
-            final Lock lock;
-            if(locksEnabled) {
-                //$DELAY$
-                lock = locks[Store.lockPos(recid)];
-                lock.lock();
-            }else {
-                lock = null;
-            }
+            final Lock lock = locks[Store.lockPos(recid)];
+            lock.lock();
             try{
                 //$DELAY$
                 cache2.put(recid, value);
             }finally {
-                if(locksEnabled) {
-                    lock.unlock();
-                }
+
+                lock.unlock();
+
             }
             //$DELAY$
             return recid;
@@ -106,14 +94,9 @@ public final class Caches {
             if(ret!=null)
                 return (A) ret;
             //$DELAY$
-            final Lock lock;
-            if(locksEnabled) {
-                lock = locks[Store.lockPos(recid)];
-                lock.lock();
-                //$DELAY$
-            }else {
-                lock = null;
-            }
+            final Lock lock = locks[Store.lockPos(recid)];
+            lock.lock();
+            //$DELAY$
             try{
                 //$DELAY$
                 ret = super.get(recid, serializer);
@@ -124,9 +107,7 @@ public final class Caches {
                 //$DELAY$
                 return (A) ret;
             }finally {
-                if(locksEnabled) {
-                    lock.unlock();
-                }
+                lock.unlock();
             }
         }
 
@@ -142,22 +123,15 @@ public final class Caches {
 
             final LongMap<Object> cache2 = checkClosed(cache);
             //$DELAY$
-            final Lock lock;
-            if(locksEnabled) {
-                lock = locks[Store.lockPos(recid)];
-                lock.lock();
-            }else {
-                lock = null;
-            }
+            final Lock lock = locks[Store.lockPos(recid)];
+            lock.lock();
             //$DELAY$
             try{
                 cache2.put(recid, value);
                 //$DELAY$
                 super.update(recid, value, serializer);
             }finally {
-                if(locksEnabled) {
-                    lock.unlock();
-                }
+                lock.unlock();
             }
             //$DELAY$
         }
@@ -166,22 +140,15 @@ public final class Caches {
         public <A> void delete(long recid, Serializer<A> serializer){
             final LongMap<Object> cache2 = checkClosed(cache);
             //$DELAY$
-            final Lock lock;
-            if(locksEnabled) {
-                lock = locks[Store.lockPos(recid)];
-                lock.lock();
-            }else {
-                lock = null;
-            }
+            final Lock lock = locks[Store.lockPos(recid)];
+            lock.lock();
             try{
                 //$DELAY$
                 cache2.remove(recid);
                 //$DELAY$
                 super.delete(recid,serializer);
             }finally {
-                if(locksEnabled) {
-                    lock.unlock();
-                }
+                lock.unlock();
             }
         }
 
@@ -195,13 +162,8 @@ public final class Caches {
             Engine engine = getWrappedEngine();
             LongMap cache2 = checkClosed(cache);
             //$DELAY$
-            final Lock lock;
-            if(locksEnabled) {
-                lock = locks[Store.lockPos(recid)];
-                lock.lock();
-            }else {
-                lock = null;
-            }
+            final Lock lock = locks[Store.lockPos(recid)];
+            lock.lock();
             //$DELAY$
             try{
                 Object oldValue = cache2.get(recid);
@@ -222,10 +184,7 @@ public final class Caches {
                     return ret;
                 }
             }finally {
-                if(locksEnabled) {
-                    lock.unlock();
-                }
-
+                lock.unlock();
             }
             //$DELAY$
         }
@@ -264,8 +223,6 @@ public final class Caches {
 
 
         protected final ReentrantLock[] locks;
-        protected final boolean locksEnabled;
-
 
         protected HashItem[] items;
         protected final int cacheMaxSize;
@@ -289,19 +246,13 @@ public final class Caches {
         }
 
 
-        public HashTable(Engine engine, int cacheMaxSize, boolean disableLocks, Fun.RecordCondition condition) {
+        public HashTable(Engine engine, int cacheMaxSize,  Fun.RecordCondition condition) {
             super(engine);
-            this.locksEnabled = !disableLocks;
-            if(disableLocks) {
-                locks = null;
-            }else{
-                locks = new ReentrantLock[CC.CONCURRENCY];
-                for(int i=0;i<locks.length;i++) {
-                    locks[i] = new ReentrantLock(CC.FAIR_LOCKS);
-                }
+            locks = new ReentrantLock[CC.CONCURRENCY];
+            for(int i=0;i<locks.length;i++) {
+                locks[i] = new ReentrantLock(CC.FAIR_LOCKS);
+
             }
-
-
             this.items = new HashItem[cacheMaxSize];
             this.cacheMaxSize = 1 << (32 - Integer.numberOfLeadingZeros(cacheMaxSize - 1)); //next pow of two
             this.cacheMaxSizeMask = cacheMaxSize-1;
@@ -318,21 +269,15 @@ public final class Caches {
             if(!condition.run(recid, value, serializer))
                 return recid;
 
-            final Lock lock;
-            if(locksEnabled) {
-                lock = locks[Store.lockPos(recid)];
-                lock.lock();
-            }else {
-                lock = null;
-            }
+            final Lock lock = locks[Store.lockPos(recid)];
+            lock.lock();
             //$DELAY$
             try{
                 items2[position(recid)] = new HashItem(recid, value);
                 //$DELAY$
             }finally{
-                if(locksEnabled) {
-                    lock.unlock();
-                }
+                lock.unlock();
+
             }
             //$DELAY$
             return recid;
@@ -350,13 +295,9 @@ public final class Caches {
             //$DELAY$
             Engine engine = getWrappedEngine();
 
-            final Lock lock;
-            if(locksEnabled) {
-                lock = locks[Store.lockPos(recid)];
-                lock.lock();
-            }else {
-                lock = null;
-            }
+
+            final Lock lock = locks[Store.lockPos(recid)];
+            lock.lock();
             //$DELAY$
             try{
                 //not in cache, fetch and add
@@ -367,9 +308,7 @@ public final class Caches {
                 return value;
 
             }finally{
-                if(locksEnabled) {
-                    lock.unlock();
-                }
+                lock.unlock();
             }
             //$DELAY$
         }
@@ -390,22 +329,15 @@ public final class Caches {
             HashItem[] items2 = checkClosed(items);
             HashItem item = new HashItem(recid,value);
             Engine engine = getWrappedEngine();
-             //$DELAY$
-            final Lock lock;
-            if(locksEnabled) {
-                lock = locks[Store.lockPos(recid)];
-                lock.lock();
-            }else {
-                lock = null;
-            }
+            //$DELAY$
+            final Lock lock = locks[Store.lockPos(recid)];
+            lock.lock();
             //$DELAY$
             try{
                 items2[pos] = item;
                 engine.update(recid, value, serializer);
             }finally {
-                if(locksEnabled) {
-                    lock.unlock();
-                }
+                lock.unlock();
             }
             //$DELAY$
         }
@@ -421,13 +353,8 @@ public final class Caches {
             HashItem[] items2 = checkClosed(items);
             Engine engine = getWrappedEngine();
             //$DELAY$
-            final Lock lock;
-            if(locksEnabled) {
-                lock = locks[Store.lockPos(recid)];
-                lock.lock();
-            }else {
-                lock = null;
-            }
+            final Lock lock = locks[Store.lockPos(recid)];
+            lock.lock();
             //$DELAY$
             try{
                 HashItem item = items2[pos];
@@ -450,9 +377,7 @@ public final class Caches {
                     return ret;
                 }
             }finally {
-                if(locksEnabled) {
-                    lock.unlock();
-                }
+                lock.unlock();
             }
         }
 
@@ -462,13 +387,8 @@ public final class Caches {
             HashItem[] items2 = checkClosed(items);
             Engine engine = getWrappedEngine();
             //$DELAY$
-            final Lock lock;
-            if(locksEnabled) {
-                lock = locks[Store.lockPos(recid)];
-                lock.lock();
-            }else {
-                lock = null;
-            }
+            final Lock lock = locks[Store.lockPos(recid)];
+            lock.lock();
             //$DELAY$
             try{
                 engine.delete(recid,serializer);
@@ -477,9 +397,7 @@ public final class Caches {
                 if(item!=null && recid == item.key)
                     items[pos] = null;
             }finally {
-                if(locksEnabled) {
-                    lock.unlock();
-                }
+                lock.unlock();
             }
             //$DELAY$
         }
@@ -521,7 +439,6 @@ public final class Caches {
 
 
         protected final ReentrantLock[] locks;
-        protected final boolean locksEnabled;
         protected final Fun.RecordCondition condition;
 
         protected final CountDownLatch cleanerFinished;
@@ -570,17 +487,12 @@ public final class Caches {
         final protected boolean useWeakRef;
         protected boolean shutdown = false;
 
-        public WeakSoftRef(Engine engine, boolean useWeakRef, boolean disableLocks,
+        public WeakSoftRef(Engine engine, boolean useWeakRef,
                            Fun.RecordCondition condition, Fun.ThreadFactory threadFactory){
             super(engine);
-            this.locksEnabled = !disableLocks;
-            if(disableLocks) {
-                locks = null;
-            }else{
-                locks = new ReentrantLock[CC.CONCURRENCY];
-                for(int i=0;i<locks.length;i++) {
-                    locks[i] = new ReentrantLock(CC.FAIR_LOCKS);
-                }
+            locks = new ReentrantLock[CC.CONCURRENCY];
+            for(int i=0;i<locks.length;i++) {
+                locks[i] = new ReentrantLock(CC.FAIR_LOCKS);
             }
 
             this.useWeakRef = useWeakRef;
@@ -635,13 +547,8 @@ public final class Caches {
                     new CacheWeakItem(value, q, recid) :
                     new CacheSoftItem(value, q, recid);
             //$DELAY$
-            final Lock lock;
-            if(locksEnabled) {
-                lock = locks[Store.lockPos(recid)];
-                lock.lock();
-            }else {
-                lock = null;
-            }
+            final Lock lock = locks[Store.lockPos(recid)];
+            lock.lock();
             //$DELAY$
             try{
                 CacheItem old = items2.put(recid,item);
@@ -649,9 +556,7 @@ public final class Caches {
                     old.clear();
                 //$DELAY$
             }finally{
-                if(locksEnabled) {
-                    lock.unlock();
-                }
+                lock.unlock();
             }
             //$DELAY$
             return recid;
@@ -676,13 +581,8 @@ public final class Caches {
 
             Engine engine = getWrappedEngine();
 
-            final Lock lock;
-            if(locksEnabled) {
-                lock = locks[Store.lockPos(recid)];
-                lock.lock();
-            }else {
-                lock = null;
-            }
+            final Lock lock = locks[Store.lockPos(recid)];
+            lock.lock();
             //$DELAY$
             try{
                 Object value = engine.get(recid, serializer);
@@ -700,9 +600,7 @@ public final class Caches {
                 //$DELAY$
                 return (A) value;
             }finally{
-                if(locksEnabled) {
-                    lock.unlock();
-                }
+                lock.unlock();
             }
             //$DELAY$
 
@@ -726,13 +624,8 @@ public final class Caches {
                     new CacheWeakItem<A>(value, q, recid) :
                     new CacheSoftItem<A>(value, q, recid);
             //$DELAY$
-            final Lock lock;
-            if(locksEnabled) {
-                lock = locks[Store.lockPos(recid)];
-                lock.lock();
-            }else {
-                lock = null;
-            }
+            final Lock lock = locks[Store.lockPos(recid)];
+            lock.lock();
             //$DELAY$
             try{
                 CacheItem old = items2.put(recid,item);
@@ -741,9 +634,7 @@ public final class Caches {
                 //$DELAY$
                 engine.update(recid, value, serializer);
             }finally {
-                if(locksEnabled) {
-                    lock.unlock();
-                }
+                lock.unlock();
             }
             //$DELAY$
         }
@@ -754,13 +645,8 @@ public final class Caches {
             Engine engine = getWrappedEngine();
             LongMap<CacheItem> items2 = checkClosed(items);
             //$DELAY$
-            final Lock lock;
-            if(locksEnabled) {
-                lock = locks[Store.lockPos(recid)];
-                lock.lock();
-            }else {
-                lock = null;
-            }
+            final Lock lock = locks[Store.lockPos(recid)];
+            lock.lock();
             //$DELAY$
             try{
                 CacheItem old = items2.remove(recid);
@@ -769,9 +655,7 @@ public final class Caches {
                 //$DELAY$
                 engine.delete(recid,serializer);
             }finally {
-                if(locksEnabled) {
-                    lock.unlock();
-                }
+                lock.unlock();
             }
             //$DELAY$
         }
@@ -789,13 +673,8 @@ public final class Caches {
             ReferenceQueue<A> q = (ReferenceQueue<A>) checkClosed(queue);
 
 
-            final Lock lock;
-            if(locksEnabled) {
-                lock = locks[Store.lockPos(recid)];
-                lock.lock();
-            }else {
-                lock = null;
-            }
+            final Lock lock = locks[Store.lockPos(recid)];
+            lock.lock();
             //$DELAY$
             try{
                 CacheItem item = items2.get(recid);
@@ -827,9 +706,7 @@ public final class Caches {
                     return ret;
                 }
             }finally {
-                if(locksEnabled) {
-                    lock.unlock();
-                }
+                lock.unlock();
             }
             //$DELAY$
         }
@@ -886,8 +763,8 @@ public final class Caches {
 
         int counter = 0;
 
-        public HardRef(Engine engine, int initialCapacity, boolean disableLocks, Fun.RecordCondition condition) {
-            super(engine, new LongConcurrentHashMap<Object>(initialCapacity),disableLocks, condition);
+        public HardRef(Engine engine, int initialCapacity, Fun.RecordCondition condition) {
+            super(engine, new LongConcurrentHashMap<Object>(initialCapacity), condition);
         }
 
 
