@@ -48,11 +48,11 @@ public class StoreHeap extends Store implements Serializable{
     protected final Queue<Long> freeRecids = new ConcurrentLinkedQueue<Long>();
 
     /** Maximal returned recid, incremented if there are no free recids*/
-    protected final AtomicLong maxRecid = new AtomicLong(LAST_RESERVED_RECID);
+    protected final AtomicLong maxRecid = new AtomicLong(RECID_LAST_RESERVED);
 
     public StoreHeap(){
         super(null, null, false,false,null);
-        for(long recid=1;recid<=LAST_RESERVED_RECID;recid++){
+        for(long recid=1;recid<=RECID_LAST_RESERVED;recid++){
             records.put(recid, new Fun.Pair(null, (Serializer)null));
         }
     }

@@ -66,14 +66,14 @@ public class StoreAppendTest<E extends StoreAppend> extends EngineTest<E>{
 
     @Test public void header_created() throws IOException {
         //check offset
-        assertEquals(StoreAppend.LAST_RESERVED_RECID, e.maxRecid);
-        assertEquals(1+8+2*StoreAppend.LAST_RESERVED_RECID, e.currPos);
+        assertEquals(StoreAppend.RECID_LAST_RESERVED, e.maxRecid);
+        assertEquals(1+8+2*StoreAppend.RECID_LAST_RESERVED, e.currPos);
         RandomAccessFile raf = new RandomAccessFile(e.getFileFromNum(0),"r");
         //check header
         raf.seek(0);
         assertEquals(StoreAppend.HEADER, raf.readLong());
         //check reserved recids
-        for(int recid=1;recid<=StoreAppend.LAST_RESERVED_RECID;recid++){
+        for(int recid=1;recid<=StoreAppend.RECID_LAST_RESERVED;recid++){
             assertEquals(0, e.index.getLong(recid*8));
             assertEquals(recid+StoreAppend.RECIDP,raf.read()); //packed long
             assertEquals(0+StoreAppend.SIZEP,raf.read()); //packed long

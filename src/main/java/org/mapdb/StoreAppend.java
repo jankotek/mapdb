@@ -125,16 +125,16 @@ public class StoreAppend extends Store{
         if(sortedFiles.isEmpty()){
             //no files, create empty store
             Volume zero = Volume.volumeForFile(getFileFromNum(0),useRandomAccessFile, readOnly,0L,MAX_FILE_SIZE_SHIFT,0);
-            zero.ensureAvailable(Engine.LAST_RESERVED_RECID*8+8);
+            zero.ensureAvailable(Engine.RECID_LAST_RESERVED*8+8);
             zero.putLong(0, HEADER);
             long pos = 8;
             //put reserved records as empty
-            for(long recid=1;recid<=LAST_RESERVED_RECID;recid++){
+            for(long recid=1;recid<=RECID_LAST_RESERVED;recid++){
                 pos+=zero.putPackedLong(pos, recid+RECIDP);
                 pos+=zero.putPackedLong(pos, 0+SIZEP); //and mark it with zero size (0==tombstone)
             }
-            maxRecid = LAST_RESERVED_RECID;
-            index.ensureAvailable(LAST_RESERVED_RECID * 8 + 8);
+            maxRecid = RECID_LAST_RESERVED;
+            index.ensureAvailable(RECID_LAST_RESERVED * 8 + 8);
 
             volumes.put(0L, zero);
 

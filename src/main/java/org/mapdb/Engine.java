@@ -19,42 +19,44 @@ package org.mapdb;
 import java.io.Closeable;
 
 /**
- * Centerpiece for record management, `Engine` is simple key value store.
+ * Centerpiece for record management, {@code Engine} is simple key value store.
  * Engine is low-level interface and is not meant to be used directly
- * by user. For most operations user should use {@link DB} class.
- *
- * In this store key is primitive `long` number, typically pointer to index table.
+ * by user. For most operations user should use {@link org.mapdb.DB} class.
+ * <p>
+ * In this store key is primitive {@code long} number, typically pointer to index table.
  * Value is class instance. To turn value into/from binary form serializer is
  * required as extra argument for most operations.
- *
+ * <p>
  * Unlike other DBs MapDB does not expect user to (de)serialize data before
  * they are passed as arguments. Instead MapDB controls (de)serialization itself.
  * This gives DB a lot of flexibility: for example instances may be held in
  * cache to minimise number of deserializations, or modified instance can
  * be placed into queue and asynchronously written on background thread.
- *
+ * <p>
  * There is {@link Store} subinterface for raw persistence
  * Most of MapDB features comes from {@link EngineWrapper}s, which are stacked on
  * top of each other to provide asynchronous writes, instance cache, encryption etc..
- * `Engine` stack is very elegant and uniform way to handle additional functionality.
+ * {@code Engine} stack is very elegant and uniform way to handle additional functionality.
  * Other DBs need an ORM framework to achieve similar features.
-
- * In default configuration MapDB runs with this `Engine` stack:
+ * <p>
+ * In default configuration MapDB runs with this {@code Engine} stack:
  *
- *  * **DISK** - raw file or memory
- *  * {@link org.mapdb.StoreWAL} - permanent record store with transactions
- *  * {@link org.mapdb.Caches.HashTable} - instance cache
- *  * **USER** - {@link DB} and collections
+ * <ol>
+ *  <li> <b>DISK</b> - raw file or memory
+ *  <li> {@link org.mapdb.StoreWAL} - permanent record store with transactions
+ *  <li> {@link org.mapdb.Caches.HashTable} - instance cache
+ *  <li> <b>USER</b> - {@link DB} and collections
+ * </ol>
  *
  * TODO document more examples of Engine  wrappers
  *
- * Engine uses `recid` to identify records. There is zero error handling in case recid is invalid
+ * Engine uses {@code recid} to identify records. There is zero error handling in case recid is invalid
  * (random number or already deleted record). Passing illegal recid may result into anything
  * (return null, throw EOF or even corrupt store). Engine is considered low-level component
  * and it is responsibility of upper layers (collections) to ensure recid is consistent.
  * Lack of error handling is trade of for speed (similar way as manual memory management in C++)
  * <p>
- * Engine must support `null` record values. You may insert, update and fetch null records.
+ * Engine must support {@code null} record values. You may insert, update and fetch null records.
  * Nulls play important role in recid preallocation and asynchronous writes.
  * <p>
  * Recid can be reused after it was deleted. If your application relies on unique being unique,
@@ -65,10 +67,50 @@ import java.io.Closeable;
  */
 public interface Engine  extends Closeable {
 
-    long CATALOG_RECID = 1;
+    /**
     long CLASS_INFO_RECID = 2;
-    long CHECK_RECORD = 3;
-    long LAST_RESERVED_RECID = 7;
+     * Content of this map is manipulated by {@link org.mapdb.DB} classs.
+     * <p>
+     * There are 8 reserved record ids. They store information relevant to
+     * {@link org.mapdb.DB} and higher level functions. Those are preallocated when store is created.
+     */
+    long RECID_NAME_CATALOG = 1;
+
+    /**
+     * Points to class catalog. A list of classes used in {@link org.mapdb.SerializerPojo}
+     * to serialize java objects.
+     * <p>
+     * There are 8 reserved record ids. They store information relevant to
+     * {@link org.mapdb.DB} and higher level functions. Those are preallocated when store is created.
+     */
+    long RECID_CLASS_CATALOG = 2;
+
+    /**
+     * Recid used for 'record check'. This record is loaded when store is open,
+     * to ensure configuration such as encryption and compression is correctly set and \
+     * data are read-able.
+     * <p>
+     * There are 8 reserved record ids. They store information relevant to
+     * {@link org.mapdb.DB} and higher level functions. Those are preallocated when store is created.
+     */
+    long RECID_RECORD_CHECK = 3;
+
+    /**
+     * There are 8 reserved record ids. They store information relevant to
+     * {@link org.mapdb.DB} and higher level functions. Those are preallocated when store is created.
+     * <p>
+     * This value is last reserved record id. User ids (recids returned by {@link Engine#put(Object, Serializer)})
+     * starts from {@code RECID_LAST_RESERVED+1}
+     */
+    long RECID_LAST_RESERVED = 7;
+
+    /**
+     * There are 8 reserved record ids. They store information relevant to
+     * {@link org.mapdb.DB} and higher level functions. Those are preallocated when store is created.
+     * <p>
+     * This constant is first recid available to user. It is first value returned by {@link #put(Object, Serializer)} if store is empty.
+     */
+    long RECID_FIRST = RECID_LAST_RESERVED+1;
 
 
     /**
@@ -81,6 +123,7 @@ public interface Engine  extends Closeable {
      * Preallocates recids  for not yet created record. It does not insert any data into it.
      * This is done in batch of given size (determied by size of array in argument)
      * @param recids array to put result into
+     * @throws java.lang.NullPointerException if any of arguments is null
      */
     void preallocate(long[] recids);
 
@@ -90,6 +133,7 @@ public interface Engine  extends Closeable {
      * @param value records to be added
      * @param serializer used to convert record into/from binary form
      * @return recid (record identifier) under which record is stored.
+     * @throws java.lang.NullPointerException if serializer is null
      */
     <A> long put(A value, Serializer<A> serializer);
 
@@ -103,6 +147,7 @@ public interface Engine  extends Closeable {
      * @param recid (record identifier) under which record was persisted
      * @param serializer used to deserialize record from binary form
      * @return record matching given recid, or null if record is not found under given recid.
+     * @throws java.lang.NullPointerException if serializer is null
      */
     <A> A get(long recid, Serializer<A> serializer);
 
@@ -117,6 +162,7 @@ public interface Engine  extends Closeable {
      * @param recid (record identifier) under which record was persisted.
      * @param value new record value to be stored
      * @param serializer used to serialize record into binary form
+     * @throws java.lang.NullPointerException if serializer is null
      */
     <A> void update(long recid, A value, Serializer<A> serializer);
 
@@ -140,6 +186,7 @@ public interface Engine  extends Closeable {
      * @param newValue to be written if values are matching
      * @param serializer used to serialize record into binary form
      * @return true if values matched and newValue was written
+     * @throws java.lang.NullPointerException if serializer is null
      */
     <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer);
 
@@ -154,9 +201,9 @@ public interface Engine  extends Closeable {
      *
      * @param recid (record identifier) under which was record persisted
      * @param serializer which may be used in some circumstances to deserialize and store old object
+      * @throws java.lang.NullPointerException if serializer is null
      */
     <A> void delete(long recid, Serializer<A>  serializer);
-
 
 
     /**

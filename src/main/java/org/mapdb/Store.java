@@ -118,7 +118,7 @@ public abstract class Store implements Engine{
             pojoLock.lock();
             try{
                 if(serializerPojo==null){
-                    final CopyOnWriteArrayList<SerializerPojo.ClassInfo> classInfos = get(Engine.CLASS_INFO_RECID, SerializerPojo.serializer);
+                    final CopyOnWriteArrayList<SerializerPojo.ClassInfo> classInfos = get(Engine.RECID_CLASS_CATALOG, SerializerPojo.serializer);
                     serializerPojo = new SerializerPojo(classInfos);
                     serializerPojoInitLock = null;
                 }

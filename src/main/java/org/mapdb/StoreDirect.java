@@ -290,7 +290,7 @@ public class StoreDirect extends Store{
     }
 
     protected void createStructure() {
-        indexSize = IO_USER_START+LAST_RESERVED_RECID*8+8;
+        indexSize = IO_USER_START+RECID_LAST_RESERVED*8+8;
         if(CC.PARANOID && ! (indexSize>IO_USER_START))
             throw new AssertionError();
         index.ensureAvailable(indexSize);

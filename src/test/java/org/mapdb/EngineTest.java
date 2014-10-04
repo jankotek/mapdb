@@ -68,7 +68,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
 
     @Test public void first_recid(){
-        assertEquals(Store.LAST_RESERVED_RECID+1, e.put(1,Serializer.INTEGER));
+        assertEquals(Store.RECID_LAST_RESERVED+1, e.put(1,Serializer.INTEGER));
     }
 
 

@@ -143,7 +143,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     /** hack used for DB Catalog*/
     protected static SortedMap<String, Object> preinitCatalog(DB db) {
 
-        Long rootRef = db.getEngine().get(Engine.CATALOG_RECID, Serializer.LONG);
+        Long rootRef = db.getEngine().get(Engine.RECID_NAME_CATALOG, Serializer.LONG);
 
         BTreeKeySerializer keyser = BTreeKeySerializer.STRING;
         //$DELAY$
@@ -156,10 +156,10 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             BNode root = new LeafNode(keyser.emptyKeys(), true,true,false, new Object[]{}, 0);
             rootRef = db.getEngine().put(root, rootSerializer);
             //$DELAY$
-            db.getEngine().update(Engine.CATALOG_RECID,rootRef, Serializer.LONG);
+            db.getEngine().update(Engine.RECID_NAME_CATALOG,rootRef, Serializer.LONG);
             db.getEngine().commit();
         }
-        return new BTreeMap<String, Object>(db.engine,Engine.CATALOG_RECID,32,false,0,
+        return new BTreeMap<String, Object>(db.engine,Engine.RECID_NAME_CATALOG,32,false,0,
                 keyser,
                 db.getDefaultSerializer(),
                 0);

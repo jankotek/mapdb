@@ -790,7 +790,7 @@ public class DBMaker{
         //try to read one record from DB, to make sure encryption and compression are correctly set.
         Fun.Pair<Integer,byte[]> check = null;
         try{
-            check = (Fun.Pair<Integer, byte[]>) engine.get(Engine.CHECK_RECORD, Serializer.BASIC);
+            check = (Fun.Pair<Integer, byte[]>) engine.get(Engine.RECID_RECORD_CHECK, Serializer.BASIC);
             if(check!=null){
                 if(check.a != Arrays.hashCode(check.b))
                     throw new RuntimeException("invalid checksum");
@@ -803,7 +803,7 @@ public class DBMaker{
             byte[] b = new byte[127];
             new Random().nextBytes(b);
             check = new Fun.Pair(Arrays.hashCode(b), b);
-            engine.update(Engine.CHECK_RECORD, check, Serializer.BASIC);
+            engine.update(Engine.RECID_RECORD_CHECK, check, Serializer.BASIC);
             engine.commit();
         }
 

@@ -132,7 +132,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         long recid = e.put(1000L, Serializer.LONG);
         e.commit();
         assertEquals(1, countIndexRecords());
-        assertEquals(LAST_RESERVED_RECID+1, recid);
+        assertEquals(RECID_FIRST, recid);
         e.delete(recid,Serializer.LONG);
         e.commit();
         assertEquals(0, countIndexRecords());
