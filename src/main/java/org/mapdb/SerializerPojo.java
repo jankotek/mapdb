@@ -256,7 +256,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         ClassInfo i = new ClassInfo(clazz.getName(), fields,clazz.isEnum(), advancedSer);
         class2classId.put(clazz, registered.size());
         classId2class.put(registered.size(), clazz);
-        registered.add(i);
+        registered.add(i); //TODO mutating cached objects
 
         saveClassInfo();
     }
