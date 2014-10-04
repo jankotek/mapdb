@@ -154,14 +154,14 @@ public interface Serializer<A> {
         private final Charset UTF8_CHARSET = Charset.forName("UTF8");
 
         @Override
-		public void serialize(DataOutput out, String value) throws IOException {
+        public void serialize(DataOutput out, String value) throws IOException {
             final byte[] bytes = value.getBytes(UTF8_CHARSET);
             out.write(bytes);
         }
 
 
         @Override
-		public String deserialize(DataInput in, int available) throws IOException {
+        public String deserialize(DataInput in, int available) throws IOException {
             if(available==-1) throw new IllegalArgumentException("STRING_NOSIZE does not work with collections.");
             byte[] bytes = new byte[available];
             in.readFully(bytes);
@@ -181,17 +181,15 @@ public interface Serializer<A> {
 
     /** Serializes Long into 8 bytes, used mainly for testing.
      * Does not handle null values.*/
-     
-     Serializer<Long> LONG = new Serializer.Trusted<Long>() {
+
+    Serializer<Long> LONG = new Serializer.Trusted<Long>() {
         @Override
         public void serialize(DataOutput out, Long value) throws IOException {
-            if(value != null)
-                out.writeLong(value);
+            out.writeLong(value);
         }
 
         @Override
         public Long deserialize(DataInput in, int available) throws IOException {
-            if(available==0) return null;
             return in.readLong();
         }
 
@@ -204,7 +202,7 @@ public interface Serializer<A> {
 
     /** Serializes Integer into 4 bytes.
      * Does not handle null values.*/
-    
+
     Serializer<Integer> INTEGER = new Serializer.Trusted<Integer>() {
         @Override
         public void serialize(DataOutput out, Integer value) throws IOException {
@@ -223,7 +221,7 @@ public interface Serializer<A> {
 
     };
 
-    
+
     Serializer<Boolean> BOOLEAN = new Serializer.Trusted<Boolean>() {
         @Override
         public void serialize(DataOutput out, Boolean value) throws IOException {
@@ -232,7 +230,6 @@ public interface Serializer<A> {
 
         @Override
         public Boolean deserialize(DataInput in, int available) throws IOException {
-            if(available==0) return null;
             return in.readBoolean();
         }
 
@@ -243,7 +240,7 @@ public interface Serializer<A> {
 
     };
 
-    
+
 
 
     /**
@@ -302,14 +299,11 @@ public interface Serializer<A> {
 
         @Override
         public void serialize(DataOutput out, byte[] value) throws IOException {
-            if(value==null||value.length==0) return;
             out.write(value);
         }
 
         @Override
         public byte[] deserialize(DataInput in, int available) throws IOException {
-            if(available==-1) throw new IllegalArgumentException("BYTE_ARRAY_NOSIZE does not work with collections.");
-            if(available==0) return null;
             byte[] ret = new byte[available];
             in.readFully(ret);
             return ret;
@@ -709,10 +703,10 @@ public interface Serializer<A> {
         private static final long serialVersionUID = 4440826457939614346L;
         protected final Serializer<E> serializer;
         protected final ThreadLocal<CompressLZF> LZF = new ThreadLocal<CompressLZF>() {
-                @Override protected CompressLZF initialValue() {
-                    return new CompressLZF();
-                }
-            };
+            @Override protected CompressLZF initialValue() {
+                return new CompressLZF();
+            }
+        };
 
         public CompressionWrapper(Serializer<E> serializer) {
             this.serializer = serializer;
