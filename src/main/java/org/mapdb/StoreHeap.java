@@ -74,21 +74,6 @@ public class StoreHeap extends Store implements Serializable{
     }
 
     @Override
-    public void preallocate(long[] recids) {
-        final Lock lock = locks[new Random().nextInt(locks.length)].writeLock();
-        lock.lock();
-
-        try{
-            for(int i=0;i<recids.length;i++){
-                Long recid = freeRecids.poll();
-                if(recid==null) recid = maxRecid.incrementAndGet();
-                recids[i] = recid;
-            }
-        }finally{
-            lock.unlock();
-        }
-    }
-    @Override
     public <A> long put(A value, Serializer<A> serializer) {
         if(value==null) value= (A) NULL;
         final Lock lock = locks[new Random().nextInt(locks.length)].writeLock();

@@ -302,29 +302,6 @@ public class StoreAppend extends Store{
 
 
     @Override
-    public void preallocate(long[] recids) {
-        final Lock lock  = locks[new Random().nextInt(locks.length)].readLock();
-        lock.lock();
-
-        try{
-            structuralLock.lock();
-            try{
-                for(int i = 0;i<recids.length;i++){
-                    recids[i] = ++maxRecid;
-                    if(CC.PARANOID && ! (recids[i]>0))
-                        throw new AssertionError();
-                }
-
-                modified = true;
-            }finally{
-                structuralLock.unlock();
-            }
-        }finally {
-            lock.unlock();
-        }
-    }
-
-    @Override
     public <A> long put(A value, Serializer<A> serializer) {
         if(CC.PARANOID && ! (value!=null))
             throw new AssertionError();

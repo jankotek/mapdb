@@ -217,48 +217,6 @@ public class StoreWAL extends StoreDirect {
     }
 
 
-    @Override
-    public void preallocate(final long[] recids) {
-        long logPos;
-
-        newRecidLock.readLock().lock();
-        try{
-            structuralLock.lock();
-
-            try{
-                logPos = logSize;
-                for(int i=0;i<recids.length;i++)
-                    recids[i] = freeIoRecidTake(false) ;
-
-                //now get space in log
-                logSize+=recids.length*(1+8+8); //space used for index vals
-                log.ensureAvailable(logSize);
-
-            }finally{
-                structuralLock.unlock();
-            }
-            //write data into log
-            for(int i=0;i<recids.length;i++){
-                final long ioRecid = recids[i];
-                final Lock lock2 = locks[Store.lockPos(ioRecid)].writeLock();
-                lock2.lock();
-
-                try{
-                    walIndexVal(logPos, ioRecid, MASK_DISCARD);
-                    logPos+=1+8+8;
-                    modified.put(ioRecid, PREALLOC);
-                }finally{
-                    lock2.unlock();
-                }
-                recids[i] =  (ioRecid-IO_USER_START)/8;
-                if(CC.PARANOID && ! (recids[i]>0))
-                    throw new AssertionError();
-            }
-        }finally{
-            newRecidLock.readLock().unlock();
-        }
-    }
-
 
     @Override
     public <A> long put(A value, Serializer<A> serializer) {

@@ -49,10 +49,6 @@ public class EngineWrapper implements Engine{
         return getWrappedEngine().preallocate();
     }
 
-    @Override
-    public void preallocate(long[] recids){
-        getWrappedEngine().preallocate(recids);
-    }
 
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
@@ -167,11 +163,6 @@ public class EngineWrapper implements Engine{
 
         @Override
         public long preallocate() {
-            throw new UnsupportedOperationException("Read-only");
-        }
-
-        @Override
-        public void preallocate(long[] recids){
             throw new UnsupportedOperationException("Read-only");
         }
 
@@ -323,11 +314,6 @@ public class EngineWrapper implements Engine{
             return super.preallocate();
         }
 
-        @Override
-        synchronized public void preallocate(long[] recids){
-            super.preallocate(recids);
-        }
-
 
         @Override
         synchronized public <A> long put(A value, Serializer<A> serializer) {
@@ -452,10 +438,6 @@ public class EngineWrapper implements Engine{
             throw new IllegalAccessError("already closed");
         }
 
-        @Override
-        public void preallocate(long[] recids) {
-            throw new IllegalAccessError("already closed");
-        }
 
         @Override
         public <A> long put(A value, Serializer<A> serializer) {
