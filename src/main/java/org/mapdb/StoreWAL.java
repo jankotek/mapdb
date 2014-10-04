@@ -220,6 +220,8 @@ public class StoreWAL extends StoreDirect {
 
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
+        if(serializer == null)
+            throw new NullPointerException();
         if(CC.PARANOID && ! (value!=null))
             throw new AssertionError();
         DataIO.DataOutputByteArray out = serialize(value, serializer);
@@ -346,6 +348,8 @@ public class StoreWAL extends StoreDirect {
 
     @Override
     public <A> A get(long recid, Serializer<A> serializer) {
+        if(serializer == null)
+            throw new NullPointerException();
         if(CC.PARANOID && ! (recid>0))
             throw new AssertionError();
         final long ioRecid = IO_USER_START + recid*8;
@@ -403,6 +407,8 @@ public class StoreWAL extends StoreDirect {
 
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
+        if(serializer == null)
+            throw new NullPointerException();
         if(CC.PARANOID && ! (recid>0))
             throw new AssertionError();
         if(CC.PARANOID && ! (value!=null))
@@ -463,6 +469,8 @@ public class StoreWAL extends StoreDirect {
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+        if(serializer == null)
+            throw new NullPointerException();
         if(CC.PARANOID && ! (recid>0))
             throw new AssertionError();
         if(CC.PARANOID && ! (expectedOldValue!=null && newValue!=null))
@@ -532,6 +540,8 @@ public class StoreWAL extends StoreDirect {
 
     @Override
     public <A> void delete(long recid, Serializer<A> serializer) {
+        if(serializer == null)
+            throw new NullPointerException();
         if(CC.PARANOID && ! (recid>0))
             throw new AssertionError();
         final long ioRecid = IO_USER_START + recid*8;

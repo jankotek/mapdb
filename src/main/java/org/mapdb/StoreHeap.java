@@ -75,6 +75,8 @@ public class StoreHeap extends Store implements Serializable{
 
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
+        if(serializer == null)
+            throw new NullPointerException();
         if(value==null) value= (A) NULL;
         final Lock lock = locks[new Random().nextInt(locks.length)].writeLock();
         lock.lock();
@@ -94,6 +96,8 @@ public class StoreHeap extends Store implements Serializable{
 
     @Override
     public <A> A get(long recid, Serializer<A> serializer) {
+        if(serializer == null)
+            throw new NullPointerException();
         if(CC.PARANOID && ! (recid>0))
             throw new AssertionError();
         final Lock lock = locks[Store.lockPos(recid)].readLock();
@@ -112,6 +116,8 @@ public class StoreHeap extends Store implements Serializable{
 
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
+        if(serializer == null)
+            throw new NullPointerException();
         if(CC.PARANOID && ! (recid>0))
             throw new AssertionError();
         if(CC.PARANOID && ! (serializer!=null))
@@ -133,6 +139,8 @@ public class StoreHeap extends Store implements Serializable{
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+        if(serializer == null)
+            throw new NullPointerException();
         if(CC.PARANOID && ! (recid>0))
             throw new AssertionError();
         if(expectedOldValue==null) expectedOldValue= (A) NULL;
@@ -152,6 +160,8 @@ public class StoreHeap extends Store implements Serializable{
 
     @Override
     public <A> void delete(long recid, Serializer<A> serializer) {
+        if(serializer == null)
+            throw new NullPointerException();
         if(CC.PARANOID && ! (recid>0))
             throw new AssertionError();
         final Lock lock = locks[Store.lockPos(recid)].writeLock();

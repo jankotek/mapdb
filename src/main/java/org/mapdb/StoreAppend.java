@@ -303,6 +303,8 @@ public class StoreAppend extends Store{
 
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
+        if(serializer == null)
+            throw new NullPointerException();
         if(CC.PARANOID && ! (value!=null))
             throw new AssertionError();
         DataIO.DataOutputByteArray out = serialize(value,serializer);
@@ -349,6 +351,8 @@ public class StoreAppend extends Store{
 
     @Override
     public <A> A get(long recid, Serializer<A> serializer) {
+        if(serializer == null)
+            throw new NullPointerException();
         if(CC.PARANOID && ! (recid>0))
             throw new AssertionError();
         final Lock lock = locks[Store.lockPos(recid)].readLock();
@@ -381,6 +385,8 @@ public class StoreAppend extends Store{
 
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
+        if(serializer == null)
+            throw new NullPointerException();
         if(CC.PARANOID && ! (value!=null))
             throw new AssertionError();
         if(CC.PARANOID && ! (recid>0))
@@ -426,6 +432,8 @@ public class StoreAppend extends Store{
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+        if(serializer == null)
+            throw new NullPointerException();
         if(CC.PARANOID && ! (expectedOldValue!=null && newValue!=null))
             throw new AssertionError();
         if(CC.PARANOID && ! (recid>0))
@@ -454,6 +462,8 @@ public class StoreAppend extends Store{
 
     @Override
     public <A> void delete(long recid, Serializer<A> serializer) {
+        if(serializer == null)
+            throw new NullPointerException();
         if(CC.PARANOID && ! (recid>0))
             throw new AssertionError();
         final Lock lock = locks[Store.lockPos(recid)].writeLock();

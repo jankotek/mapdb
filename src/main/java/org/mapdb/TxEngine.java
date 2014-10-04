@@ -313,9 +313,6 @@ public class TxEngine extends EngineWrapper {
         protected LongConcurrentHashMap<Fun.Pair> mod =
                 fullTx ? new LongConcurrentHashMap<Fun.Pair>() : null;
 
-        protected Collection<Long> usedPreallocatedRecids =
-                fullTx ? new ArrayList<Long>() : null;
-
         protected final Reference<Tx> ref = new WeakReference<Tx>(this,txQueue);
 
         protected boolean closed = false;
@@ -334,9 +331,7 @@ public class TxEngine extends EngineWrapper {
 
             commitLock.writeLock().lock();
             try{
-                Long recid = preallocRecidTake();
-                usedPreallocatedRecids.add(recid);
-                return recid;
+                return preallocRecidTake();
             }finally {
                 commitLock.writeLock().unlock();
             }
@@ -350,7 +345,6 @@ public class TxEngine extends EngineWrapper {
         commitLock.writeLock().lock();
         try{
             Long recid = preallocRecidTake();
-            usedPreallocatedRecids.add(recid);
             mod.put(recid, new Fun.Pair(value,serializer));
             return recid;
         }finally {
@@ -544,9 +538,6 @@ public class TxEngine extends EngineWrapper {
             txs.remove(ref);
             cleanTxQueue();
 
-            for(Long prealloc:usedPreallocatedRecids){
-                TxEngine.this.superDelete(prealloc,null);
-            }
             TxEngine.this.superCommit();
 
             close();

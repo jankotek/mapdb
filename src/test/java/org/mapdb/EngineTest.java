@@ -9,8 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 import static org.mapdb.Serializer.BYTE_ARRAY_NOSIZE;
 
 /**
@@ -247,4 +246,28 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
 
 
+    @Test(expected = NullPointerException.class)
+    public void NPE_get(){
+        e.get(1,null);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void NPE_put(){
+        e.put(1L,null);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void NPE_update(){
+        e.update(1,1L, null);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void NPE_cas(){
+        e.compareAndSwap(1,1L, 1L,  null);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void NPE_delete(){
+        e.delete(1L, null);
+    }
 }
