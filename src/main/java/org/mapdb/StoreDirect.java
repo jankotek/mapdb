@@ -308,6 +308,11 @@ public class StoreDirect extends Store{
         freeSize = 0;
         index.putLong(IO_FREE_SIZE,freeSize);
         index.putLong(IO_INDEX_SUM,indexHeaderChecksum());
+
+        //set reserved recids
+        for(long recid=1;recid<RECID_FIRST;recid++){
+            index.putLong(recid*8+IO_USER_START, MASK_DISCARD | MASK_ARCHIVE);
+        }
     }
 
     protected long indexHeaderChecksum(){
@@ -462,15 +467,26 @@ public class StoreDirect extends Store{
             throw new AssertionError();
 
         long indexVal = index.getLong(ioRecid);
-        if(indexVal == MASK_DISCARD) return null; //preallocated record
-
         int size = (int) (indexVal>>>48);
-        DataInput di;
         long offset = indexVal&MASK_OFFSET;
+
+        if((indexVal & MASK_DISCARD) !=0){
+            if(CC.PARANOID && (size!=0 ||offset!=0))
+                throw new AssertionError();
+            return null; //preallocated record
+        }
+
+        if(size==0 ||offset==0){
+            if(ioRecid<IO_USER_START+Engine.RECID_LAST_RESERVED*8) {
+                return null;
+            }
+            throw new DBException(DBException.Code.ENGINE_GET_VOID);
+        }
+
+        DataInput di;
         if((indexVal& MASK_LINKED)==0){
             //read single record
             di = phys.getDataInput(offset, size);
-
         }else{
             //is linked, first construct buffer we will read data to
             int pos = 0;
@@ -574,8 +590,6 @@ public class StoreDirect extends Store{
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
         if(serializer == null)
             throw new NullPointerException();
-        if(CC.PARANOID && ! (expectedOldValue!=null && newValue!=null))
-            throw new AssertionError();
         if(CC.PARANOID && ! (recid>0))
             throw new AssertionError();
         final long ioRecid = IO_USER_START + recid*8;
@@ -583,33 +597,31 @@ public class StoreDirect extends Store{
         lock.lock();
 
 
-        DataIO.DataOutputByteArray out;
+        DataIO.DataOutputByteArray out=null;
         try{
-            /*
-             * deserialize old value
-             */
-
+            // deserializer old value
             A oldVal = get2(ioRecid,serializer);
 
-            /*
-             * compare oldValue and expected
-             */
+            // compare oldValue and expected
             if((oldVal == null && expectedOldValue!=null) || (oldVal!=null && !oldVal.equals(expectedOldValue)))
                 return false;
 
-            /*
-             * write new value
-             */
-             out = serialize(newValue, serializer);
-
-            update2(out, ioRecid);
+            if(newValue==null){
+                // delete record
+                delete2(IO_USER_START + recid*8);
+            }else {
+                //write new value
+                out = serialize(newValue, serializer);
+                update2(out, ioRecid);
+            }
 
         }catch(IOException e){
             throw new IOError(e);
         }finally{
             lock.unlock();
         }
-        recycledDataOuts.offer(out);
+        if(out!=null)
+            recycledDataOuts.offer(out);
         return true;
     }
 
@@ -622,38 +634,38 @@ public class StoreDirect extends Store{
         final long ioRecid = IO_USER_START + recid*8;
         final Lock lock = locks[Store.lockPos(ioRecid)].writeLock();
         lock.lock();
-
         try{
-            //get index val and zero it out
-            final long indexVal = index.getLong(ioRecid);
-            index.putLong(ioRecid,0L|MASK_ARCHIVE);
-
-            if(!spaceReclaimTrack) return; //free space is not tracked, so do not mark stuff as free
-
-            long[] linkedRecords = getLinkedRecordsIndexVals(indexVal);
-
-            //now lock everything and mark free space
-            structuralLock.lock();
-
-            try{
-                //free recid
-                freeIoRecidPut(ioRecid);
-                //free first record pointed from indexVal\
-                if((indexVal>>>48)>0)
-                    freePhysPut(indexVal,false);
-
-                //if there are more linked records, free those as well
-                if(linkedRecords!=null){
-                    for(int i=0; i<linkedRecords.length &&linkedRecords[i]!=0;i++){
-                        freePhysPut(linkedRecords[i],false);
-                    }
-                }
-            }finally {
-                 structuralLock.unlock();
-            }
-
+            delete2(ioRecid);
         }finally{
              lock.unlock();
+        }
+    }
+
+    private void delete2(long ioRecid){
+        //get index val and put it into preallocated state
+        final long indexVal = index.getLong(ioRecid);
+        index.putLong(ioRecid, MASK_DISCARD | MASK_ARCHIVE);
+
+        if(!spaceReclaimTrack) return; //free space is not tracked, so do not mark stuff as free
+
+        long[] linkedRecords = getLinkedRecordsIndexVals(indexVal);
+
+        //now lock everything and mark free space
+        structuralLock.lock();
+
+        try{
+            //free first record pointed from indexVal\
+            if((indexVal>>>48)>0)
+                freePhysPut(indexVal,false);
+
+            //if there are more linked records, free those as well
+            if(linkedRecords!=null){
+                for(int i=0; i<linkedRecords.length &&linkedRecords[i]!=0;i++){
+                    freePhysPut(linkedRecords[i],false);
+                }
+            }
+        }finally {
+            structuralLock.unlock();
         }
     }
 
@@ -839,23 +851,34 @@ public class StoreDirect extends Store{
 
             //transfer stack of free recids
             //TODO long stack take modifies the original store
-            for(long recid =longStackTake(IO_FREE_RECID,false);
-                recid!=0; recid=longStackTake(IO_FREE_RECID,false)){
-                store2.longStackPut(IO_FREE_RECID,recid, false);
+            for(long ioRecid =longStackTake(IO_FREE_RECID,false);
+                ioRecid!=0; ioRecid=longStackTake(IO_FREE_RECID,false)){
+                store2.longStackPut(IO_FREE_RECID,ioRecid, false);
             }
 
             //iterate over recids and transfer physical records
             store2.index.putLong(IO_INDEX_SIZE, indexSize);
 
             for(long ioRecid = IO_USER_START; ioRecid<indexSize;ioRecid+=8){
+                long indexVal = index.getLong(ioRecid);
+                long archiveFlag = indexVal & MASK_ARCHIVE;
+                if((indexVal&MASK_DISCARD)!=0){
+                    // null record, mark recid as free
+                    if(((indexVal  >>>48)!=0) || (indexVal & MASK_OFFSET)!=0 )
+                        throw new AssertionError();
+                    store2.longStackPut(IO_FREE_RECID,ioRecid, false);
+                    store2.index.putLong(ioRecid,0L | archiveFlag);
+                    continue;
+                }
+
                 byte[] bb = get2(ioRecid,Serializer.BYTE_ARRAY_NOSIZE);
                 store2.index.ensureAvailable(ioRecid+8);
                 if(bb==null||bb.length==0){
-                    store2.index.putLong(ioRecid,0);
+                    store2.index.putLong(ioRecid, 0L| archiveFlag);
                 }else{
                     DataIO.DataOutputByteArray out = serialize(bb,Serializer.BYTE_ARRAY_NOSIZE);
                     long[] indexVals = store2.physAllocate(out.pos,true,false);
-                    store2.put2(out, ioRecid,indexVals);
+                    store2.put2(out, ioRecid,indexVals); //TODO preserve archiveFlag here
                 }
             }
 
@@ -907,9 +930,6 @@ public class StoreDirect extends Store{
                 index = indexVol2;
                 phys = physVol2;
             }
-
-
-
 
             physSize = store2.physSize;
             freeSize = store2.freeSize;

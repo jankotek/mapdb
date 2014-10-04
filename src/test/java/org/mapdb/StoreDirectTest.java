@@ -33,8 +33,9 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         for(int pos = StoreDirect.IO_USER_START; pos<e.indexSize; pos+=8){
             long val = e.index.getLong(pos);
             if(val!=0 && val != StoreDirect.MASK_ARCHIVE
-                    && (val&StoreDirect.MASK_DISCARD)==0)
+                    && (val&StoreDirect.MASK_DISCARD)==0) {
                 ret++; //TODO proper check for non zero offset and size
+            }
         }
         return ret;
     }
@@ -42,9 +43,11 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
     int countIndexPrealloc(){
         int ret = 0;
-        for(int pos = StoreDirect.IO_USER_START; pos<e.indexSize; pos+=8){
+        for(int pos = (int) (StoreDirect.IO_USER_START+Engine.RECID_FIRST*8); pos<e.indexSize; pos+=8){
             long val = e.index.getLong(pos);
-            if((val&StoreDirect.MASK_DISCARD)!=0) ret++; //TODO check for zero offset and zero size
+            if((val&StoreDirect.MASK_DISCARD)!=0){
+                ret++; //TODO check for zero offset and zero size
+            }
         }
         return ret;
     }
@@ -119,7 +122,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.commit();
         assertEquals(1, countIndexRecords());
         assertEquals(0, countIndexPrealloc());
-        e.delete(recid,Serializer.LONG);
+        e.delete(recid, Serializer.LONG);
         e.commit();
         assertEquals(0, countIndexRecords());
         assertEquals(1, countIndexPrealloc());
@@ -132,11 +135,12 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         long recid = e.put(1000L, Serializer.LONG);
         e.commit();
         assertEquals(1, countIndexRecords());
-        e.delete(recid,Serializer.LONG);
+        e.delete(recid, Serializer.ILLEGAL_ACCESS);
         e.commit();
         assertEquals(0, countIndexRecords());
+        assertEquals(1, countIndexPrealloc());
         e.structuralLock.lock();
-        assertEquals(recid*8 + StoreDirect.IO_USER_START, e.freeIoRecidTake(true));
+        assertEquals(recid*8 +8+ StoreDirect.IO_USER_START, e.freeIoRecidTake(true));
     }
 
     @Test public void test_size2IoList(){
@@ -191,7 +195,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         //test that previously deleted index slot was reused
         assertEquals(recid, recid2);
         assertEquals(1, countIndexRecords());
-        assertTrue(0!=e.index.getLong(recid*8+ StoreDirect.IO_USER_START));
+        assertTrue(0 != e.index.getLong(recid * 8 + StoreDirect.IO_USER_START));
     }
 
 
@@ -241,11 +245,9 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
             recids2.add(e.put(0L, Serializer.LONG));
         }
 
-
         //second list should be reverse of first, as Linked Offset List is LIFO
         Collections.reverse(recids);
         assertEquals(recids, recids2);
-
     }
 
 
@@ -272,7 +274,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         assertEquals((Long)1L, e.get(recid2, Serializer.LONG));
 
         assertEquals(recid, recid2);
-        assertEquals(physRecid, e.index.getLong(recid*8+ StoreDirect.IO_USER_START));
+        assertEquals(physRecid+StoreDirect.LONG_STACK_PREF_SIZE, e.index.getLong(recid*8+ StoreDirect.IO_USER_START));
 
     }
 
