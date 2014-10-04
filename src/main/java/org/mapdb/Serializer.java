@@ -149,7 +149,7 @@ public interface Serializer<A> {
      * Used mainly for testing.
      * Does not handle null values.
      */
-    Serializer<String> STRING_NOSIZE = new Serializer.Trusted<String>() {
+    Serializer<String> STRING_NOSIZE = new Serializer<String>() {
 
         private final Charset UTF8_CHARSET = Charset.forName("UTF8");
 
@@ -298,7 +298,7 @@ public interface Serializer<A> {
      * Serializes `byte[]` directly into underlying store
      * It does not store size, so it can not be used in Maps and other collections.
      */
-    Serializer<byte[] > BYTE_ARRAY_NOSIZE = new Serializer.Trusted<byte[]>() {
+    Serializer<byte[] > BYTE_ARRAY_NOSIZE = new Serializer<byte[]>() {
 
         @Override
         public void serialize(DataOutput out, byte[] value) throws IOException {
