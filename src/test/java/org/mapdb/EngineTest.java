@@ -241,6 +241,76 @@ public abstract class EngineTest<ENGINE extends Engine>{
         assertEquals("aaa",e.get(recid, Serializer.STRING_NOSIZE));
         reopen();
         assertEquals("aaa",e.get(recid, Serializer.STRING_NOSIZE));
+    }
+
+    /** after deletion it enters preallocated state */
+    @Test public void delete_and_get(){
+        long recid = e.put("aaa", Serializer.STRING);
+        e.delete(recid,Serializer.STRING);
+        assertNull(e.get(recid,Serializer.ILLEGAL_ACCESS));
+        long recid2 = e.put("bbb", Serializer.STRING);
+        assertNotEquals(recid,recid2);
+    }
+
+    @Test public void get_non_existent(){
+        long recid = Engine.RECID_FIRST;
+        try{
+            e.get(recid,Serializer.ILLEGAL_ACCESS);
+            fail();
+        }catch(DBException e){
+            assertEquals(DBException.Code.ENGINE_GET_VOID, e.getCode());
+        }
+    }
+
+    @Test public void get_non_existent_after_delete_and_compact(){
+        long recid = e.put(1L,Serializer.LONG);
+        e.delete(recid,Serializer.LONG);
+        assertNull(e.get(recid,Serializer.ILLEGAL_ACCESS));
+        e.commit();
+        e.compact();
+        try{
+            e.get(recid,Serializer.STRING);
+            fail();
+        }catch(DBException e){
+            assertEquals(DBException.Code.ENGINE_GET_VOID, e.getCode());
+        }
+    }
+
+    @Test public void preallocate_cas(){
+        long recid = e.preallocate();
+        assertFalse(e.compareAndSwap(recid,1L,2L,Serializer.ILLEGAL_ACCESS));
+        assertTrue(e.compareAndSwap(recid,null,2L,Serializer.LONG));
+        assertEquals((Long)2L, e.get(recid,Serializer.LONG));
+    }
+
+
+    @Test public void preallocate_get_update_delete_update_get(){
+        long recid = e.preallocate();
+        assertNull(e.get(recid,Serializer.ILLEGAL_ACCESS));
+        e.update(recid,1L, Serializer.LONG);
+        assertEquals((Long)1L, e.get(recid,Serializer.LONG));
+        e.delete(recid,Serializer.LONG);
+        assertNull(e.get(recid,Serializer.ILLEGAL_ACCESS));
+        e.update(recid,1L, Serializer.LONG);
+        assertEquals((Long)1L, e.get(recid,Serializer.LONG));
+    }
+
+    @Test public void cas_delete(){
+        long recid = e.put(1L,Serializer.LONG);
+        assertTrue(e.compareAndSwap(recid,1L,null,Serializer.LONG));
+        assertNull(e.get(recid,Serializer.ILLEGAL_ACCESS));
+    }
+
+    @Test public void reserved_recid_exists(){
+        for(long recid=1;recid<Engine.RECID_FIRST;recid++){
+            assertNull(e.get(recid,Serializer.ILLEGAL_ACCESS));
+        }
+        try{
+            e.get(Engine.RECID_FIRST,Serializer.ILLEGAL_ACCESS);
+            fail();
+        }catch(DBException e){
+            assertEquals(DBException.Code.ENGINE_GET_VOID, e.getCode());
+        }
 
     }
 

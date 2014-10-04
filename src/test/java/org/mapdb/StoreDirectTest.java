@@ -32,10 +32,23 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         int ret = 0;
         for(int pos = StoreDirect.IO_USER_START; pos<e.indexSize; pos+=8){
             long val = e.index.getLong(pos);
-            if(val!=0 && val != StoreDirect.MASK_ARCHIVE) ret++;
+            if(val!=0 && val != StoreDirect.MASK_ARCHIVE
+                    && (val&StoreDirect.MASK_DISCARD)==0)
+                ret++; //TODO proper check for non zero offset and size
         }
         return ret;
     }
+
+
+    int countIndexPrealloc(){
+        int ret = 0;
+        for(int pos = StoreDirect.IO_USER_START; pos<e.indexSize; pos+=8){
+            long val = e.index.getLong(pos);
+            if((val&StoreDirect.MASK_DISCARD)!=0) ret++; //TODO check for zero offset and zero size
+        }
+        return ret;
+    }
+
 
     List<Long> getLongStack(long ioRecid){
 
@@ -105,6 +118,20 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         long recid = e.put(1000L, Serializer.LONG);
         e.commit();
         assertEquals(1, countIndexRecords());
+        assertEquals(0, countIndexPrealloc());
+        e.delete(recid,Serializer.LONG);
+        e.commit();
+        assertEquals(0, countIndexRecords());
+        assertEquals(1, countIndexPrealloc());
+        e.structuralLock.lock();
+        assertEquals(recid*8 + StoreDirect.IO_USER_START + 8, e.freeIoRecidTake(true));
+    }
+
+
+    @Test public void test_index_record_delete_COMPACT(){
+        long recid = e.put(1000L, Serializer.LONG);
+        e.commit();
+        assertEquals(1, countIndexRecords());
         e.delete(recid,Serializer.LONG);
         e.commit();
         assertEquals(0, countIndexRecords());
@@ -132,9 +159,32 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         long recid = e.put(1000L, Serializer.LONG);
         e.commit();
         assertEquals(1, countIndexRecords());
-        assertEquals(RECID_FIRST, recid);
+        assertEquals(0, countIndexPrealloc());
+        assertEquals(RECID_LAST_RESERVED +1, recid);
         e.delete(recid,Serializer.LONG);
         e.commit();
+        assertEquals(0, countIndexRecords());
+        assertEquals(1, countIndexPrealloc());
+        long recid2 = e.put(1000L, Serializer.LONG);
+        e.commit();
+        //test that previously deleted index slot was reused
+        assertEquals(recid+1, recid2);
+        assertEquals(1, countIndexRecords());
+        assertEquals(1, countIndexPrealloc());
+        assertTrue(0!=e.index.getLong(recid*8+ StoreDirect.IO_USER_START));
+    }
+
+
+
+
+    @Test public void test_index_record_delete_and_reusef_COMPACT(){
+        long recid = e.put(1000L, Serializer.LONG);
+        e.commit();
+        assertEquals(1, countIndexRecords());
+        assertEquals(RECID_LAST_RESERVED +1, recid);
+        e.delete(recid, Serializer.LONG);
+        e.commit();
+        e.compact();
         assertEquals(0, countIndexRecords());
         long recid2 = e.put(1000L, Serializer.LONG);
         e.commit();
@@ -163,9 +213,39 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
             recids2.add(e.put(0L, Serializer.LONG));
         }
 
+        for(Long recid: recids){
+            assertFalse(recids2.contains(recid));
+            assertTrue(recids2.contains(recid+MAX));
+        }
+    }
+
+    @Test public void test_index_record_delete_and_reuse_large_COMPACT(){
+        final long MAX = 10;
+
+        List<Long> recids= new ArrayList<Long>();
+        for(int i = 0;i<MAX;i++){
+            recids.add(e.put(0L, Serializer.LONG));
+        }
+
+        for(long recid:recids){
+            e.delete(recid,Serializer.LONG);
+        }
+
+        //compaction will reclai recid
+        e.commit();
+        e.compact();
+
+        //now allocate again second recid list
+        List<Long> recids2= new ArrayList<Long>();
+        for(int i = 0;i<MAX;i++){
+            recids2.add(e.put(0L, Serializer.LONG));
+        }
+
+
         //second list should be reverse of first, as Linked Offset List is LIFO
         Collections.reverse(recids);
         assertEquals(recids, recids2);
+
     }
 
 
@@ -175,6 +255,19 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         assertEquals((Long)1L, e.get(recid, Serializer.LONG));
         final long physRecid = e.index.getLong(recid*8+ StoreDirect.IO_USER_START);
         e.delete(recid, Serializer.LONG);
+        final long recid2 = e.put(1L, Serializer.LONG);
+        assertEquals((Long)1L, e.get(recid2, Serializer.LONG));
+        assertNotEquals(recid, recid2);
+        assertEquals(physRecid, e.index.getLong(recid2*8+ StoreDirect.IO_USER_START));
+    }
+
+    @Test public void test_phys_record_reused_COMPACT(){
+        final long recid = e.put(1L, Serializer.LONG);
+        assertEquals((Long)1L, e.get(recid, Serializer.LONG));
+        final long physRecid = e.index.getLong(recid*8+ StoreDirect.IO_USER_START);
+        e.delete(recid, Serializer.LONG);
+        e.commit();
+        e.compact();
         final long recid2 = e.put(1L, Serializer.LONG);
         assertEquals((Long)1L, e.get(recid2, Serializer.LONG));
 

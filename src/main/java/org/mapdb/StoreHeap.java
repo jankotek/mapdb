@@ -53,7 +53,7 @@ public class StoreHeap extends Store implements Serializable{
     public StoreHeap(){
         super(null, null, false,false,null);
         for(long recid=1;recid<=RECID_LAST_RESERVED;recid++){
-            records.put(recid, new Fun.Pair(null, (Serializer)null));
+            records.put(recid, TOMBSTONE);
         }
     }
 
@@ -61,16 +61,10 @@ public class StoreHeap extends Store implements Serializable{
 
     @Override
     public long preallocate() {
-        final Lock lock = locks[new Random().nextInt(locks.length)].writeLock();
-        lock.lock();
-
-        try{
-            Long recid = freeRecids.poll();
-            if(recid==null) recid = maxRecid.incrementAndGet();
-            return recid;
-        }finally{
-           lock.unlock();
-        }
+        Long recid = freeRecids.poll();
+        if(recid==null) recid = maxRecid.incrementAndGet();
+        records.put(recid,TOMBSTONE);
+        return recid;
     }
 
     @Override
@@ -106,7 +100,10 @@ public class StoreHeap extends Store implements Serializable{
         try{
             //get from commited records
             Fun.Pair t = records.get(recid);
-            if(t==null || t.a==NULL)
+            if(t==null)
+                throw new DBException(DBException.Code.ENGINE_GET_VOID);
+
+            if(t.a==NULL)
                 return null;
             return (A) t.a;
         }finally{
@@ -143,14 +140,13 @@ public class StoreHeap extends Store implements Serializable{
             throw new NullPointerException();
         if(CC.PARANOID && ! (recid>0))
             throw new AssertionError();
-        if(expectedOldValue==null) expectedOldValue= (A) NULL;
-        if(newValue==null) newValue= (A) NULL;
         final Lock lock = locks[Store.lockPos(recid)].writeLock();
         lock.lock();
 
         try{
-            Fun.Pair old = new Fun.Pair(expectedOldValue, serializer);
-            boolean ret =  records.replace(recid, old, new Fun.Pair(newValue, serializer));
+            Fun.Pair old = expectedOldValue==null? TOMBSTONE : new Fun.Pair(expectedOldValue, serializer);
+            Fun.Pair newPair = newValue==null? TOMBSTONE : new Fun.Pair(newValue,serializer);
+            boolean ret =  records.replace(recid, old, newPair);
             if(ret) rollback.putIfAbsent(recid,old);
             return ret;
         }finally{
@@ -168,9 +164,8 @@ public class StoreHeap extends Store implements Serializable{
         lock.lock();
 
         try{
-            Fun.Pair t2 = records.remove(recid);
+            Fun.Pair t2 = records.put(recid,TOMBSTONE);
             if(t2!=null) rollback.putIfAbsent(recid,t2);
-            freeRecids.add(recid);
         }finally{
             lock.unlock();
         }
@@ -231,6 +226,19 @@ public class StoreHeap extends Store implements Serializable{
 
     @Override
     public void compact() {
+        lockAllWrite();
+        try {
+            if(!rollback.isEmpty()) {
+                throw new DBException(DBException.Code.ENGINE_COMPACT_UNCOMMITED);
+            }
+            Iterator<Map.Entry<Long, Fun.Pair>> iter = records.entrySet().iterator();
+            while (iter.hasNext()) {
+                if (TOMBSTONE == iter.next().getValue())
+                    iter.remove();
+            }
+        }finally {
+            unlockAllWrite();
+        }
     }
 
     @Override
