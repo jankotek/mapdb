@@ -97,20 +97,16 @@ public final class Fun {
 
 
         @Override public int compareTo(Pair<A,B> o) {
-               int i = ((Comparable)a).compareTo(o.a);
-                if(i!=0)
-                    return i;
-                i = ((Comparable)b).compareTo(o.b);
+            int i = ((Comparable)a).compareTo(o.a);
+            if(i!=0)
                 return i;
-
+            return ((Comparable)b).compareTo(o.b);
         }
 
         @Override public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-
             final Pair t = (Pair) o;
-
             return eq(a,t.a) && eq(b,t.b);
         }
 
@@ -121,13 +117,8 @@ public final class Fun {
         }
 
         @Override public String toString() {
-            return "Tuple2[" + a +", "+b+"]";
+            return "Pair[" + a +", "+b+"]";
         }
-
-        public void copyIntoArray(Object[] array, int offset) {
-            array[offset++] = a;
-            array[offset]=b;
-    }
 
     }
 
