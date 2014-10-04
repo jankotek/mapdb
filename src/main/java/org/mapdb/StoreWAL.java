@@ -566,7 +566,7 @@ public class StoreWAL extends StoreDirect {
                 checkLogRounding();
                 logSize+=1+8+8; //space used for index val
                 log.ensureAvailable(logSize);
-                longStackPut(IO_FREE_RECID, ioRecid,false);
+                longStackPut(IO_FREE_RECID, ioRecid, false);
 
                 //free first record pointed from indexVal
                 if((indexVal>>>48)>0)
@@ -1173,7 +1173,7 @@ public class StoreWAL extends StoreDirect {
         if(CC.PARANOID && ! ( structuralLock.isLocked()))
             throw new AssertionError();
         if(logDirty())
-            throw new IllegalAccessError("WAL not empty; commit first, than compact");
+            throw new DBException(DBException.Code.ENGINE_COMPACT_UNCOMMITED);
     }
 
     @Override protected void compactPostUnderLock() {
