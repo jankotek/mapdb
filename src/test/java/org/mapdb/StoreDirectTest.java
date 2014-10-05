@@ -272,8 +272,10 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.compact();
         final long recid2 = e.put(1L, Serializer.LONG);
         assertEquals((Long)1L, e.get(recid2, Serializer.LONG));
+        e.commit();
 
         assertEquals(recid, recid2);
+        //TODO this does not encode record size?
         assertEquals(physRecid+StoreDirect.LONG_STACK_PREF_SIZE, e.index.getLong(recid*8+ StoreDirect.IO_USER_START));
 
     }

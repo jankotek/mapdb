@@ -641,7 +641,7 @@ public class StoreDirect extends Store{
         }
     }
 
-    private void delete2(long ioRecid){
+    protected void delete2(long ioRecid){
         //get index val and put it into preallocated state
         final long indexVal = index.getLong(ioRecid);
         index.putLong(ioRecid, MASK_DISCARD | MASK_ARCHIVE);
