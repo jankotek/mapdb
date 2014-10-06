@@ -968,26 +968,27 @@ public class StoreWAL extends StoreDirect {
         }
     }
 
+    //TODO move those two methods into Volume.ByteArrayVol
     protected static long longStackGetSixLong(byte[] page, int pos) {
         return
-                ((long) (page[pos + 0] & 0xff) << 40) |
-                        ((long) (page[pos + 1] & 0xff) << 32) |
-                        ((long) (page[pos + 2] & 0xff) << 24) |
-                        ((long) (page[pos + 3] & 0xff) << 16) |
-                        ((long) (page[pos + 4] & 0xff) << 8) |
-                        ((long) (page[pos + 5] & 0xff) << 0);
+                ((long) (page[pos++] & 0xff) << 40) |
+                        ((long) (page[pos++ ] & 0xff) << 32) |
+                        ((long) (page[pos++] & 0xff) << 24) |
+                        ((long) (page[pos++] & 0xff) << 16) |
+                        ((long) (page[pos++] & 0xff) << 8) |
+                        ((long) (page[pos] & 0xff));
     }
 
 
     protected static void longStackPutSixLong(byte[] page, int pos, long value) {
-        if(CC.PARANOID && ! (value>=0 && (value>>>6*8)==0))
+        if(CC.PARANOID && (value>>>48)!=0)
             throw new AssertionError("value does not fit");
-        page[pos + 0] = (byte) (0xff & (value >> 40));
-        page[pos + 1] = (byte) (0xff & (value >> 32));
-        page[pos + 2] = (byte) (0xff & (value >> 24));
-        page[pos + 3] = (byte) (0xff & (value >> 16));
-        page[pos + 4] = (byte) (0xff & (value >> 8));
-        page[pos + 5] = (byte) (0xff & (value >> 0));
+        page[pos++] = (byte) (0xff & (value >> 40));
+        page[pos++] = (byte) (0xff & (value >> 32));
+        page[pos++] = (byte) (0xff & (value >> 24));
+        page[pos++] = (byte) (0xff & (value >> 16));
+        page[pos++] = (byte) (0xff & (value >> 8));
+        page[pos] = (byte) (0xff & (value));
 
     }
 

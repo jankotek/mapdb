@@ -286,6 +286,7 @@ public class StoreAppend extends Store{
             final long recid;
             try{
                 recid = ++maxRecid;
+                deleteNoLock(recid);
 
                 modified = true;
             }finally{
@@ -368,8 +369,9 @@ public class StoreAppend extends Store{
 
     protected <A> A getNoLock(long recid, Serializer<A> serializer) throws IOException {
         long indexVal = indexVal(recid);
+        if(indexVal==0)
+            throw new DBException(DBException.Code.ENGINE_GET_VOID);
 
-        if(indexVal==0) return null;
         Volume vol = volumes.get(indexVal>>>FILE_SHIFT);
         long fileOffset = indexVal&FILE_MASK;
         long size = vol.getPackedLong(fileOffset);
@@ -434,30 +436,34 @@ public class StoreAppend extends Store{
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
         if(serializer == null)
             throw new NullPointerException();
-        if(CC.PARANOID && ! (expectedOldValue!=null && newValue!=null))
-            throw new AssertionError();
         if(CC.PARANOID && ! (recid>0))
             throw new AssertionError();
-        DataIO.DataOutputByteArray out = serialize(newValue,serializer);
+        DataIO.DataOutputByteArray out = null;
         final Lock lock = locks[Store.lockPos(recid)].writeLock();
         lock.lock();
 
-        boolean ret;
         try{
-            Object old = getNoLock(recid,serializer);
-            if(expectedOldValue.equals(old)){
-                updateNoLock(recid,out);
-                ret = true;
+            Object oldVal = getNoLock(recid,serializer);
+
+            // compare oldValue and expected
+            if((oldVal == null && expectedOldValue!=null) || (oldVal!=null && !oldVal.equals(expectedOldValue)))
+                return false;
+
+            if(newValue==null){
+                //delete here
+                deleteNoLock(recid);
             }else{
-                ret = false;
+                out = serialize(newValue,serializer);
+                updateNoLock(recid,out);
             }
         }catch(IOException e){
             throw new IOError(e);
         }finally {
             lock.unlock();
         }
-        recycledDataOuts.offer(out);
-        return ret;
+        if(out!=null)
+            recycledDataOuts.offer(out);
+        return true;
     }
 
     @Override
@@ -470,20 +476,24 @@ public class StoreAppend extends Store{
         lock.lock();
 
         try{
-            structuralLock.lock();
-            try{
-                rollover();
-                currVolume.ensureAvailable(currPos+6+0);
-                currPos+=currVolume.putPackedLong(currPos, recid+SIZEP);
-                setIndexVal(recid, (currFileNum<<FILE_SHIFT) | currPos);
-                //write tombstone
-                currPos+=currVolume.putPackedLong(currPos, 1);
-                modified = true;
-            }finally{
-                structuralLock.unlock();
-            }
+            deleteNoLock(recid);
         }finally{
             lock.unlock();
+        }
+    }
+
+    protected void deleteNoLock(long recid) {
+        structuralLock.lock();
+        try{
+            rollover();
+            currVolume.ensureAvailable(currPos+6+0);
+            currPos+=currVolume.putPackedLong(currPos, recid+SIZEP);
+            setIndexVal(recid, (currFileNum<<FILE_SHIFT) | currPos);
+            //write tombstone
+            currPos+=currVolume.putPackedLong(currPos, 1);
+            modified = true;
+        }finally{
+            structuralLock.unlock();
         }
     }
 

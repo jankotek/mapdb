@@ -966,6 +966,8 @@ public class StoreDirect extends Store{
             throw new AssertionError();
         if(CC.PARANOID && ! (ioList>=IO_FREE_RECID && ioList<IO_USER_START))
             throw new AssertionError("wrong ioList: "+ioList);
+        if(CC.PARANOID && this instanceof StoreWAL)
+            throw new AssertionError();
 
         long dataOffset = index.getLong(ioList);
         if(dataOffset == 0) return 0; //there is no such list, so just return 0
@@ -1021,6 +1023,9 @@ public class StoreDirect extends Store{
             throw new AssertionError();
         if(CC.PARANOID && ! (ioList>=IO_FREE_RECID && ioList<=IO_USER_START))
             throw new AssertionError( "wrong ioList: "+ioList);
+
+        if(CC.PARANOID && this instanceof StoreWAL)
+            throw new AssertionError();
 
         long dataOffset = index.getLong(ioList);
         long pos = dataOffset>>>48;

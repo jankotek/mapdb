@@ -273,11 +273,17 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         final long recid2 = e.put(1L, Serializer.LONG);
         assertEquals((Long)1L, e.get(recid2, Serializer.LONG));
         e.commit();
-
+        assertEquals((Long)1L, e.get(recid2, Serializer.LONG));
         assertEquals(recid, recid2);
-        //TODO this does not encode record size?
-        assertEquals(physRecid+StoreDirect.LONG_STACK_PREF_SIZE, e.index.getLong(recid*8+ StoreDirect.IO_USER_START));
 
+        long indexVal = e.index.getLong(recid*8+ StoreDirect.IO_USER_START);
+        assertEquals(8L, indexVal>>>48); // size
+        assertEquals((physRecid&MASK_OFFSET)+StoreDirect.LONG_STACK_PREF_SIZE
+                + (e instanceof StoreWAL?16:0), //TODO investigate why space allocation in WAL works differently
+                indexVal&MASK_OFFSET); //offset
+        assertEquals(0, indexVal & StoreDirect.MASK_LINKED);
+        assertEquals(0, indexVal & StoreDirect.MASK_DISCARD);
+        assertNotEquals(0, indexVal & StoreDirect.MASK_ARCHIVE);
     }
 
 
@@ -533,9 +539,6 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
             }
             assertTrue(e2.getMessage().contains("version"));
         }
-
-
-
     }
 
     @Test public void header_phys_inc() throws IOException {
