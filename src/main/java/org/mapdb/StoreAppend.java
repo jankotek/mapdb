@@ -369,8 +369,11 @@ public class StoreAppend extends Store{
 
     protected <A> A getNoLock(long recid, Serializer<A> serializer) throws IOException {
         long indexVal = indexVal(recid);
-        if(indexVal==0)
+        if(indexVal==0) {
+            if(recid<=RECID_LAST_RESERVED)
+                return null;
             throw new DBException(DBException.Code.ENGINE_GET_VOID);
+        }
 
         Volume vol = volumes.get(indexVal>>>FILE_SHIFT);
         long fileOffset = indexVal&FILE_MASK;
