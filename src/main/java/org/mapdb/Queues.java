@@ -37,10 +37,6 @@ public final class Queues {
 
     public static abstract class SimpleQueue<E> implements BlockingQueue<E> {
 
-        protected final boolean useLocks;
-        protected final ReentrantLock[] locks;
-
-
         protected static final int TICK = 10*1000;
 
         protected final Engine engine;
@@ -58,14 +54,12 @@ public final class Queues {
 
             @Override
             public void serialize(DataOutput out, Node<E> value) throws IOException {
-                if(value==Node.EMPTY) return;
                 DataIO.packLong(out,value.next);
                 serializer.serialize(out, value.value);
             }
 
             @Override
             public Node<E> deserialize(DataInput in, int available) throws IOException {
-                if(available==0)return (Node<E>) Node.EMPTY;
                 return new Node<E>(DataIO.unpackLong(in), serializer.deserialize(in,-1));
             }
 
@@ -79,21 +73,11 @@ public final class Queues {
         protected final Serializer<Node<E>> nodeSerializer;
 
 
-        public SimpleQueue(Engine engine, Serializer<E> serializer, long headRecidRef, boolean useLocks) {
+        public SimpleQueue(Engine engine, Serializer<E> serializer, long headRecidRef) {
             this.engine = engine;
             this.serializer = serializer;
             head = new Atomic.Long(engine,headRecidRef);
             nodeSerializer = new NodeSerializer(serializer);
-            this.useLocks = useLocks;
-            if(useLocks){
-                locks = new ReentrantLock[CC.CONCURRENCY];
-                for(int i=0;i<locks.length;i++)
-                    locks[i] = new ReentrantLock(CC.FAIR_LOCKS);
-            }else{
-                locks = null;
-            }
-
-
         }
 
 
@@ -109,15 +93,10 @@ public final class Queues {
         @Override
         public E peek() {
             final long head2 = head.get();
-            if(useLocks)locks[Store.lockPos(head2)].lock();
-            try{
-                Node n = engine.get(head2,nodeSerializer);
-                if(n==Node.EMPTY)
-                    return null; //empty queue
-                return (E) n.value;
-            }finally{
-                if(useLocks)locks[Store.lockPos(head2)].unlock();
-            }
+            Node n = engine.get(head2,nodeSerializer);
+            if(n==null)
+                return null; //empty queue
+            return (E) n.value;
         }
 
 
@@ -125,33 +104,21 @@ public final class Queues {
         public E poll() {
             for(;;){
                 final long head2 = head.get();
-                if(useLocks)locks[Store.lockPos(head2)].lock();
-                try{
-                    Node n = engine.get(head2,nodeSerializer);
-                    if(n==Node.EMPTY)
-                        return null; //empty queue
+                Node n = engine.get(head2,nodeSerializer);
+                if(n==null)
+                    return null; //empty queue
 
-                    //update head
-                    if(head.compareAndSet(head2,n.next)){
-                        //updated fine, so we can take a value
-                        if(useLocks){
-                            engine.delete(head2,nodeSerializer);
-                        }else{
-                            engine.update(head2, (Node<E>) Node.EMPTY,nodeSerializer);
-                        }
-                        return (E) n.value;
-                    }
-
-                }finally{
-                    if(useLocks)locks[Store.lockPos(head2)].unlock();
+                //update head
+                if(head.compareAndSet(head2,n.next)){
+                    //updated fine, so we can take a value
+                    engine.delete(head2,nodeSerializer);
+                    return (E) n.value;
                 }
             }
         }
 
 
         protected static final class Node<E>{
-
-            protected static final Node<?> EMPTY = new Node(0L, null);
 
             final protected long next;
             final protected E value;
@@ -352,8 +319,8 @@ public final class Queues {
 
 
 
-        public Stack(Engine engine,  Serializer<E> serializer, long headerRecidRef, boolean useLocks) {
-            super(engine, serializer, headerRecidRef, useLocks);
+        public Stack(Engine engine,  Serializer<E> serializer, long headerRecidRef) {
+            super(engine, serializer, headerRecidRef);
         }
 
         @Override
@@ -383,13 +350,14 @@ public final class Queues {
 
         public Queue(Engine engine, Serializer<E> serializer, long headerRecid,
                      long nextTailRecid, boolean useLocks) {
-            super(engine, serializer,headerRecid,useLocks);
+            super(engine, serializer,headerRecid);
             tail = new Atomic.Long(engine,nextTailRecid);
         }
 
         @Override
         public boolean add(E e) {
-            long nextTail = engine.put((Node<E>) Node.EMPTY,nodeSerializer);
+            long nextTail = engine.preallocate(); //nodeSerializer
+
             long tail2 = tail.get();
             while(!tail.compareAndSet(tail2,nextTail)){
                 tail2 = tail.get();
@@ -400,12 +368,7 @@ public final class Queues {
             return true;
         }
 
-
-
     }
-
-
-
 
     public static class CircularQueue<E> extends SimpleQueue<E> {
 
@@ -415,7 +378,7 @@ public final class Queues {
         protected final long size;
 
         public CircularQueue(Engine engine, Serializer<E> serializer, long headRecid, long headInsertRecid, long size) {
-            super(engine, serializer, headRecid,false);
+            super(engine, serializer, headRecid);
             headInsert = new Atomic.Long(engine, headInsertRecid);
             this.size = size;
         }

@@ -1083,7 +1083,7 @@ public class DB implements Closeable {
     synchronized public <E> BlockingQueue<E> createQueue(String name, Serializer<E> serializer, boolean useLocks) {
         checkNameNotExists(name);
 
-        long node = engine.put(Queues.SimpleQueue.Node.EMPTY, new Queues.SimpleQueue.NodeSerializer(serializer));
+        long node = engine.preallocate(); //serializer is new Queues.SimpleQueue.NodeSerializer(serializer)
         long headRecid = engine.put(node, Serializer.LONG);
         long tailRecid = engine.put(node, Serializer.LONG);
         //$DELAY$
@@ -1123,8 +1123,7 @@ public class DB implements Closeable {
 
         ret = new Queues.Stack<E>(engine,
                 (Serializer<E>) catGet(name+".serializer",getDefaultSerializer()),
-                (Long)catGet(name+".headRecid"),
-                (Boolean)catGet(name+".useLocks")
+                (Long)catGet(name+".headRecid")
         );
         //$DELAY$
         namedPut(name, ret);
@@ -1137,13 +1136,12 @@ public class DB implements Closeable {
     synchronized public <E> BlockingQueue<E> createStack(String name, Serializer<E> serializer, boolean useLocks) {
         checkNameNotExists(name);
 
-        long node = engine.put(Queues.SimpleQueue.Node.EMPTY, new Queues.SimpleQueue.NodeSerializer(serializer));
+        long node = engine.preallocate();
         long headRecid = engine.put(node, Serializer.LONG);
         //$DELAY$
         Queues.Stack<E> ret = new Queues.Stack<E>(engine,
                 catPut(name+".serializer",serializer,getDefaultSerializer()),
-                catPut(name+".headRecid",headRecid),
-                catPut(name+".useLocks",useLocks)
+                catPut(name+".headRecid",headRecid)
         );
         //$DELAY$
         catalog.put(name + ".type", "Stack");
