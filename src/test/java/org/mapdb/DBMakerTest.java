@@ -344,8 +344,11 @@ public class DBMakerTest{
     @Test()
     public void sizeLimit(){
         long g = 1024*1024*1024;
-        assertEquals(g/2,DBMaker.newMemoryDB().sizeLimit(0.5).propsGetLong(DBMaker.Keys.sizeLimit,0));
-        assertEquals(g,DBMaker.newMemoryDB().sizeLimit(1).propsGetLong(DBMaker.Keys.sizeLimit,0));
+        assertEquals(g/2,DBMaker.newMemoryDB().sizeLimit(0.5d).propsGetLong(DBMaker.Keys.sizeLimit,0));
+        assertEquals(g,DBMaker.newMemoryDB().sizeLimit(1.0d).propsGetLong(DBMaker.Keys.sizeLimit,0));
+
+        assertEquals(g/2,DBMaker.newMemoryDB().sizeLimitBytes(512*1024*1024).propsGetLong(DBMaker.Keys.sizeLimit,0));
+        assertEquals(g,DBMaker.newMemoryDB().sizeLimitBytes(1024*1024*1024).propsGetLong(DBMaker.Keys.sizeLimit,0));
     }
 
 

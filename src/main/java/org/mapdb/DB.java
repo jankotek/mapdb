@@ -208,8 +208,15 @@ public class DB implements Closeable {
             return this;
         }
 
+        /** maximal size of store in GB, if store is larger entries will start expiring */
         public HTreeMapMaker expireStoreSize(double maxStoreSize) {
             this.expireStoreSize = (long) (maxStoreSize*1024L*1024L*1024L);
+            return this;
+        }
+
+        /** maximal size of store in bytes, if store is larger entries will start expiring */
+        public HTreeMapMaker expireStoreSizeBytes(long maxStoreSize) {
+            this.expireStoreSize = maxStoreSize;
             return this;
         }
 
@@ -283,6 +290,12 @@ public class DB implements Closeable {
         /** maximal size of store in GB, if store is larger entries will start expiring */
         public HTreeSetMaker expireStoreSize(double maxStoreSize){
             this.expireStoreSize = (long) (maxStoreSize * 1024L * 1024L * 1024L);
+            return this;
+        }
+
+        /** maximal size of store in bytes, if store is larger entries will start expiring */
+        public HTreeSetMaker expireStoreSizeBytes(long maxStoreSize){
+            this.expireStoreSize = maxStoreSize;
             return this;
         }
 
