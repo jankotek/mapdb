@@ -12,7 +12,12 @@ public class DBException extends RuntimeException{
 
         ENGINE_GET_VOID("Recid passed to Engine.get() does not exist. Possible data corruption!"),
 
-        ENGINE_COMPACT_UNCOMMITED("Engine.compact() called while uncommited data exist. Commit first, than compact!");
+        ENGINE_COMPACT_UNCOMMITED("Engine.compact() called while uncommited data exist. Commit first, than compact!"),
+
+        /** @see java.nio.channels.ClosedByInterruptException */
+        //TODO this thread was interrupted while doing IO?
+        VOLUME_CLOSED_BY_INTERRUPT("Some thread was interrupted while doing IO, and FileChannel was closed in result."),
+        VOLUME_CLOSED("Volume (file or other device) was already closed.")  ;
 
         private final String message;
 

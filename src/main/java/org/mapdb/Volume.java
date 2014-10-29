@@ -20,6 +20,8 @@ import java.io.*;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
+import java.nio.channels.ClosedByInterruptException;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.FileChannel;
 import java.util.Arrays;
 import java.util.concurrent.locks.ReentrantLock;
@@ -45,7 +47,7 @@ public abstract class Volume implements Closeable{
      */
     public void ensureAvailable(final long offset){
         if(!tryAvailable(offset))
-            throw new IOError(new IOException("no free space to expand Volume"));
+            handleIOException(new IOException("no free space to expand Volume"));
     }
 
 
@@ -184,7 +186,7 @@ public abstract class Volume implements Closeable{
         try {
             getDataInput(inputOffset, size).readFully(data);
         }catch(IOException e){
-            throw new IOError(e);
+            handleIOException(e);
         }
         target.putData(targetOffset,data,0,size);
     }
@@ -451,7 +453,8 @@ public abstract class Volume implements Closeable{
                     slices = new ByteBuffer[0];
                 }
             } catch (IOException e) {
-                throw new IOError(e);
+                handleIOException(e);
+                throw new IllegalStateException(); //satisfy compiler
             }
         }
 
@@ -475,7 +478,7 @@ public abstract class Volume implements Closeable{
                 slices = null;
 
             } catch (IOException e) {
-                throw new IOError(e);
+                handleIOException(e);
             }finally{
                 growLock.unlock();
             }
@@ -518,7 +521,8 @@ public abstract class Volume implements Closeable{
                 }
                 return ret;
             } catch (IOException e) {
-                throw new IOError(e);
+                handleIOException(e);
+                throw new IllegalStateException(); //satisfy compiler
             }
         }
 
@@ -566,7 +570,7 @@ public abstract class Volume implements Closeable{
                 try {
                     fileChannel.truncate(1L * sliceSize *maxSize);
                 } catch (IOException e) {
-                    throw new IOError(e);
+                    handleIOException(e);
                 }
 
                 if (ByteBufferVol.windowsWorkaround) {
@@ -680,18 +684,18 @@ public abstract class Volume implements Closeable{
             this.hasLimit = sizeLimit>0;
             this.sliceSize = 1<<sliceShift;
             try {
-                checkFolder(file,readOnly);
-                if(readOnly && !file.exists()){
+                checkFolder(file, readOnly);
+                if (readOnly && !file.exists()) {
                     raf = null;
                     channel = null;
                     size = 0;
-                }else {
+                } else {
                     raf = new RandomAccessFile(file, readOnly ? "r" : "rw");
                     channel = raf.getChannel();
                     size = channel.size();
                 }
             } catch (IOException e) {
-                throw new IOError(e);
+                handleIOException(e);
             }
         }
 
@@ -722,7 +726,7 @@ public abstract class Volume implements Closeable{
                     channel.truncate(offset);
                     size = offset;
                 } catch (IOException e) {
-                    throw new IOError(e);
+                    handleIOException(e);
                 }
             }
             return true;
@@ -735,7 +739,7 @@ public abstract class Volume implements Closeable{
                     this.size = size;
                     channel.truncate(size);
                 } catch (IOException e) {
-                    throw new IOError(e);
+                    handleIOException(e);
                 }
             }
 
@@ -767,7 +771,7 @@ public abstract class Volume implements Closeable{
 
                 writeFully(offset, buf);
             }catch(IOException e){
-                throw new IOError(e);
+                handleIOException(e);
             }
         }
 
@@ -778,7 +782,7 @@ public abstract class Volume implements Closeable{
                 buf.putLong(0, value);
                 writeFully(offset, buf);
             }catch(IOException e){
-                throw new IOError(e);
+                handleIOException(e);
             }
         }
 
@@ -789,7 +793,7 @@ public abstract class Volume implements Closeable{
                 buf.putInt(0, value);
                 writeFully(offset, buf);
             }catch(IOException e){
-                throw new IOError(e);
+                handleIOException(e);
             }
         }
 
@@ -800,7 +804,7 @@ public abstract class Volume implements Closeable{
                 buf.put(0, value);
                 writeFully(offset, buf);
             }catch(IOException e){
-                throw new IOError(e);
+                handleIOException(e);
             }
         }
 
@@ -810,7 +814,7 @@ public abstract class Volume implements Closeable{
                 ByteBuffer buf = ByteBuffer.wrap(src,srcPos, srcSize);
                 writeFully(offset, buf);
             }catch(IOException e){
-                throw new IOError(e);
+                handleIOException(e);
             }
         }
 
@@ -819,7 +823,7 @@ public abstract class Volume implements Closeable{
             try{
                 writeFully(offset,buf);
             }catch(IOException e){
-                throw new IOError(e);
+                handleIOException(e);
             }
         }
 
@@ -845,7 +849,8 @@ public abstract class Volume implements Closeable{
                         ((long) (buf.get(5) & 0xff) << 0);
 
             }catch(IOException e){
-                throw new IOError(e);
+                handleIOException(e);
+                throw new IllegalStateException(); //satisfy compiler
             }
         }
 
@@ -857,7 +862,8 @@ public abstract class Volume implements Closeable{
                 readFully(offset,buf);
                 return buf.getLong(0);
             }catch(IOException e){
-                throw new IOError(e);
+                handleIOException(e);
+                throw new IllegalStateException(); //satisfy compiler
             }
         }
 
@@ -868,7 +874,8 @@ public abstract class Volume implements Closeable{
                 readFully(offset,buf);
                 return buf.getInt(0);
             }catch(IOException e){
-                throw new IOError(e);
+                handleIOException(e);
+                throw new IllegalStateException(); //satisfy compiler
             }
 
         }
@@ -880,7 +887,8 @@ public abstract class Volume implements Closeable{
                 readFully(offset,buf);
                 return buf.get(0);
             }catch(IOException e){
-                throw new IOError(e);
+                handleIOException(e);
+                throw new IllegalStateException(); //satisfy compiler
             }
         }
 
@@ -891,7 +899,8 @@ public abstract class Volume implements Closeable{
                 readFully(offset,buf);
                 return new DataIO.DataInputByteBuffer(buf,0);
             }catch(IOException e){
-                throw new IOError(e);
+                handleIOException(e);
+                throw new IllegalStateException(); //satisfy compiler
             }
         }
 
@@ -905,7 +914,7 @@ public abstract class Volume implements Closeable{
                     raf.close();
                 raf = null;
             }catch(IOException e){
-                throw new IOError(e);
+                handleIOException(e);
             }
         }
 
@@ -914,7 +923,7 @@ public abstract class Volume implements Closeable{
             try{
                 channel.force(true);
             }catch(IOException e){
-                throw new IOError(e);
+                handleIOException(e);
             }
         }
 
@@ -923,7 +932,8 @@ public abstract class Volume implements Closeable{
             try {
                 return channel==null || channel.size()==0;
             } catch (IOException e) {
-                throw new IOError(e);
+                handleIOException(e);
+                throw new IllegalStateException(); //satisfy compiler
             }
         }
 
@@ -946,6 +956,16 @@ public abstract class Volume implements Closeable{
         public File getFile() {
             return file;
         }
+    }
+
+    protected static void handleIOException(IOException e) {
+        if (e instanceof ClosedByInterruptException) {
+            throw new DBException(DBException.Code.VOLUME_CLOSED_BY_INTERRUPT, e);
+        }
+        if(e instanceof ClosedChannelException){
+            throw new DBException(DBException.Code.VOLUME_CLOSED,e);
+        }
+        throw new IOError(e);
     }
 
     /** transfer data from one volume to second. Second volume will be expanded if needed*/
