@@ -681,11 +681,10 @@ public class DBMaker{
      * Limit is not strict and does not apply to some parts such as index table. Actual store size might
      * be 10% or more bigger.
      *
-     *
      * @param maxSize maximal store size in bytes
      * @return this builder
      */
-    public DBMaker sizeLimitBytes(long maxSize){
+    public DBMaker sizeLimitInBytes(long maxSize){
         props.setProperty(Keys.sizeLimit,""+maxSize);
         return this;
     }
