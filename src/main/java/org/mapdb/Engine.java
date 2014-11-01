@@ -117,6 +117,8 @@ public interface Engine  extends Closeable {
      * Preallocates recid for not yet created record. It does not insert any data into it.
      * @return new recid
      */
+    //TODO in some cases recid is persisted and used between compaction. perhaps use put(null)
+    //TODO clarify difference between put/update(null) and delete/preallocate
     long preallocate();
 
 
