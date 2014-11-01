@@ -491,7 +491,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     static protected Object sunReflFac = null;
     static protected Method androidConstructor = null;
     static private Method androidConstructorGinger = null;
-    static private int constructorId;
+    static private Object constructorId;
 
     static{
         try{
@@ -523,9 +523,9 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             //try android post ginger way
             Method getConstructorId = ObjectStreamClass.class.getDeclaredMethod("getConstructorId", Class.class);
             getConstructorId.setAccessible(true);
-            constructorId = (Integer) getConstructorId.invoke(null, Object.class);
+            constructorId = getConstructorId.invoke(null, Object.class);
 
-            Method newInstance = ObjectStreamClass.class.getDeclaredMethod("newInstance", Class.class, int.class);
+            Method newInstance = ObjectStreamClass.class.getDeclaredMethod("newInstance", Class.class, getConstructorId.getReturnType());
             newInstance.setAccessible(true);
             androidConstructorGinger = newInstance;
 
