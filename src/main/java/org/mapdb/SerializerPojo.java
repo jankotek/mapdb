@@ -492,7 +492,8 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     static protected Object sunReflFac = null;
     static protected Method androidConstructor = null;
     static private Method androidConstructorGinger = null;
-    static private int constructorId;
+    static private Method androidConstructorJelly = null;
+    static private long constructorId;
 
     static{
         try{
@@ -529,6 +530,20 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             Method newInstance = ObjectStreamClass.class.getDeclaredMethod("newInstance", Class.class, int.class);
             newInstance.setAccessible(true);
             androidConstructorGinger = newInstance;
+
+        }catch(Exception e){
+            //ignore
+        }
+        
+        if(sunConstructor == null && androidConstructor == null && androidConstructorGinger == null)try{
+            //try android post 4.2 way
+            Method getConstructorId = ObjectStreamClass.class.getDeclaredMethod("getConstructorId", Class.class);
+            getConstructorId.setAccessible(true);
+            constructorId = (Long) getConstructorId.invoke(null, Object.class);
+
+            Method newInstance = ObjectStreamClass.class.getDeclaredMethod("newInstance", Class.class, long.class);
+            newInstance.setAccessible(true);
+            androidConstructorJelly = newInstance;
 
         }catch(Exception e){
             //ignore
@@ -571,7 +586,10 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             return (T)androidConstructor.invoke(null, clazz, Object.class);
         }else if(androidConstructorGinger!=null){
             //android (post ginger) specific way
-            return (T)androidConstructorGinger.invoke(null, clazz, constructorId);
+            return (T)androidConstructorGinger.invoke(null, clazz, (int) constructorId);
+        }else if(androidConstructorJelly!=null){
+            //android (post 4.2) specific way
+            return (T)androidConstructorJelly.invoke(null, clazz, constructorId);
         }
         else{
             //try usual generic stuff which does not skip constructor
