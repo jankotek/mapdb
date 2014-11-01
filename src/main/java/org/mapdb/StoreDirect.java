@@ -1079,15 +1079,6 @@ public class StoreDirect extends Store{
 
 
 
-    protected void freeIoRecidPut(long ioRecid) {
-        if(CC.PARANOID && ! (ioRecid>IO_USER_START))
-            throw new AssertionError();
-        if(CC.PARANOID && ! (locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread()))
-            throw new AssertionError();
-        if(spaceReclaimTrack)
-            longStackPut(IO_FREE_RECID, ioRecid,false);
-    }
-
     protected long freeIoRecidTake(boolean ensureAvail){
         if(spaceReclaimTrack){
             long ioRecid = longStackTake(IO_FREE_RECID,false);
