@@ -676,8 +676,18 @@ public class DBMaker{
         return this;
     }
 
-
-
+    /**
+     * Sets store size limit. Disk or memory space consumed be storage should not grow over this space.
+     * Limit is not strict and does not apply to some parts such as index table. Actual store size might
+     * be 10% or more bigger.
+     *
+     * @param maxSize maximal store size in bytes
+     * @return this builder
+     */
+    public DBMaker sizeLimitInBytes(long maxSize){
+        props.setProperty(Keys.sizeLimit,""+maxSize);
+        return this;
+    }
 
     /** constructs DB using current settings */
     public DB make(){
