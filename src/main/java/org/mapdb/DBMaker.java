@@ -90,8 +90,6 @@ public class DBMaker{
 
         String strictDBGet = "strictDBGet";
 
-        String sizeLimit = "sizeLimit";
-
         String fullTx = "fullTx";
     }
 
@@ -661,23 +659,6 @@ public class DBMaker{
     }
 
 
-    /**
-     * Sets store size limit. Disk or memory space consumed be storage should not grow over this space.
-     * Limit is not strict and does not apply to some parts such as index table. Actual store size might
-     * be 10% or more bigger.
-     *
-     *
-     * @param maxSize maximal store size in GB
-     * @return this builder
-     */
-    public DBMaker sizeLimit(double maxSize){
-        long size = (long) (maxSize * 1024D*1024D*1024D);
-        props.setProperty(Keys.sizeLimit,""+size);
-        return this;
-    }
-
-
-
 
     /** constructs DB using current settings */
     public DB make(){
@@ -721,8 +702,6 @@ public class DBMaker{
             throw new UnsupportedOperationException("Can not open non-existing file in read-only mode.");
         }
 
-        if(propsGetLong(Keys.sizeLimit,0)>0 && Keys.store_append.equals(store))
-            throw new UnsupportedOperationException("Append-Only store does not support Size Limit");
 
         extendArgumentCheck();
 
@@ -947,7 +926,6 @@ public class DBMaker{
                 propsGetBool(Keys.deleteFilesAfterClose),
                 propsGetInt(Keys.freeSpaceReclaimQ,CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
                 propsGetBool(Keys.commitFileSyncDisable),
-                propsGetLong(Keys.sizeLimit,0),
                 propsGetBool(Keys.checksum),compressionEnabled,propsGetXteaEncKey(),
                 0);
     }
@@ -965,26 +943,24 @@ public class DBMaker{
                 propsGetBool(Keys.deleteFilesAfterClose),
                 propsGetInt(Keys.freeSpaceReclaimQ,CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
                 propsGetBool(Keys.commitFileSyncDisable),
-                propsGetLong(Keys.sizeLimit,-1),
                 propsGetBool(Keys.checksum),compressionEnabled,propsGetXteaEncKey(),
                 0);
     }
 
 
     protected Fun.Function1<Volume,String>  extendStoreVolumeFactory(boolean index) {
-        long sizeLimit = propsGetLong(Keys.sizeLimit,0);
         String volume = props.getProperty(Keys.volume);
         if(Keys.volume_byteBuffer.equals(volume))
-            return Volume.memoryFactory(false,sizeLimit,CC.VOLUME_SLICE_SHIFT);
+            return Volume.memoryFactory(false,CC.VOLUME_SLICE_SHIFT);
         else if(Keys.volume_directByteBuffer.equals(volume))
-            return Volume.memoryFactory(true,sizeLimit,CC.VOLUME_SLICE_SHIFT);
+            return Volume.memoryFactory(true,CC.VOLUME_SLICE_SHIFT);
 
         boolean raf = propsGetRafMode()!=0;
         if(raf && index && propsGetRafMode()==1)
             raf = false;
 
         return Volume.fileFactory(raf, propsGetBool(Keys.readOnly),
-                sizeLimit,CC.VOLUME_SLICE_SHIFT,0);
+                CC.VOLUME_SLICE_SHIFT,0);
     }
 
     protected static String toHexa( byte [] bb ) {

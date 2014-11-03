@@ -67,7 +67,7 @@ public class BrokenDBTest {
         DBMaker.newFileDB(index).make().close();
 
         // trash the log
-        MappedFileVol physVol = new Volume.MappedFileVol(data, false, 0,CC.VOLUME_SLICE_SHIFT,0);
+        MappedFileVol physVol = new Volume.MappedFileVol(data, false, CC.VOLUME_SLICE_SHIFT,0);
         physVol.ensureAvailable(32);
         physVol.putInt(0, StoreWAL.HEADER);
         physVol.putUnsignedShort(4, StoreWAL.STORE_VERSION);

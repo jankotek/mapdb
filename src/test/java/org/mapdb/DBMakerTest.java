@@ -336,17 +336,6 @@ public class DBMakerTest{
         assertTrue(d.phys instanceof Volume.FileChannelVol);
     }
 
-    @Test(expected = UnsupportedOperationException.class)
-    public void limitDisabledAppend(){
-        DBMaker.newAppendFileDB(UtilsTest.tempDbFile()).sizeLimit(1).make();
-    }
-
-    @Test()
-    public void sizeLimit(){
-        long g = 1024*1024*1024;
-        assertEquals(g/2,DBMaker.newMemoryDB().sizeLimit(0.5).propsGetLong(DBMaker.Keys.sizeLimit,0));
-        assertEquals(g,DBMaker.newMemoryDB().sizeLimit(1).propsGetLong(DBMaker.Keys.sizeLimit,0));
-    }
 
 
     @Test public void keys_value_matches() throws IllegalAccessException {

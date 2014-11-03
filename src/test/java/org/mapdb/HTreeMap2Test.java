@@ -521,7 +521,6 @@ public class HTreeMap2Test {
     public void cache_load_time_expire(){
         DB db =
                 DBMaker.newMemoryDB()
-                        .sizeLimit(1)
                         .transactionDisable()
                         .cacheDisable()
                         .make();
@@ -541,7 +540,6 @@ public class HTreeMap2Test {
     @Test(timeout = 20000)
     public void cache_load_size_expire(){
         DB db = DBMaker.newMemoryDB()
-                .sizeLimit(1)
                 .transactionDisable()
                 .make();
 

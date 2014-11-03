@@ -86,7 +86,7 @@ public class StoreAppend extends Store{
     protected long rollbackMaxRecid;
 
     /** index table which maps recid into position in index log */
-    protected Volume index = new Volume.MemoryVol(false,0, MAX_FILE_SIZE_SHIFT); //TODO option to keep index off-heap or in file
+    protected Volume index = new Volume.MemoryVol(false, MAX_FILE_SIZE_SHIFT); //TODO option to keep index off-heap or in file
     /** same as `index`, but stores uncommited modifications made in this transaction*/
     protected final LongMap<Long> indexInTx;
 
@@ -124,7 +124,7 @@ public class StoreAppend extends Store{
 
         if(sortedFiles.isEmpty()){
             //no files, create empty store
-            Volume zero = Volume.volumeForFile(getFileFromNum(0),useRandomAccessFile, readOnly,0L,MAX_FILE_SIZE_SHIFT,0);
+            Volume zero = Volume.volumeForFile(getFileFromNum(0),useRandomAccessFile, readOnly,MAX_FILE_SIZE_SHIFT,0);
             zero.ensureAvailable(Engine.RECID_LAST_RESERVED*8+8);
             zero.putLong(0, HEADER);
             long pos = 8;
@@ -153,7 +153,7 @@ public class StoreAppend extends Store{
             for(Fun.Pair<Long,File> t:sortedFiles){
                 Long num = t.a;
                 File f = t.b;
-                Volume vol = Volume.volumeForFile(f,useRandomAccessFile,readOnly, 0L, MAX_FILE_SIZE_SHIFT,0);
+                Volume vol = Volume.volumeForFile(f,useRandomAccessFile,readOnly, MAX_FILE_SIZE_SHIFT,0);
                 if(vol.isEmpty()||vol.getLong(0)!=HEADER){
                     vol.sync();
                     vol.close();
@@ -250,7 +250,7 @@ public class StoreAppend extends Store{
         //beyond usual file size, so create new file
         currVolume.sync();
         currFileNum++;
-        currVolume = Volume.volumeForFile(getFileFromNum(currFileNum),useRandomAccessFile, readOnly,0L, MAX_FILE_SIZE_SHIFT,0);
+        currVolume = Volume.volumeForFile(getFileFromNum(currFileNum),useRandomAccessFile, readOnly, MAX_FILE_SIZE_SHIFT,0);
         currVolume.ensureAvailable(8);
         currVolume.putLong(0,HEADER);
         currPos = 8;

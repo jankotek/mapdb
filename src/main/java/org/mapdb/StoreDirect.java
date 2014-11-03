@@ -182,8 +182,6 @@ public class StoreDirect extends Store{
     protected final boolean spaceReclaimSplit;
     protected final boolean spaceReclaimTrack;
 
-    protected final long sizeLimit;
-
     /** maximal non zero slot in free phys record, access requires `structuralLock`*/
     protected long maxUsedIoList = 0;
 
@@ -198,7 +196,6 @@ public class StoreDirect extends Store{
             boolean deleteFilesAfterClose,
             int spaceReclaimMode,
             boolean syncOnCommitDisabled,
-            long sizeLimit,
             boolean checksum,
             boolean compress,
             byte[] password,
@@ -210,7 +207,6 @@ public class StoreDirect extends Store{
         this.readOnly = readOnly;
         this.deleteFilesAfterClose = deleteFilesAfterClose;
         this.syncOnCommitDisabled = syncOnCommitDisabled;
-        this.sizeLimit = sizeLimit;
 
         this.spaceReclaimSplit = spaceReclaimMode>4;
         this.spaceReclaimReuse = spaceReclaimMode>2;
@@ -261,7 +257,6 @@ public class StoreDirect extends Store{
                 false,
                 CC.DEFAULT_FREE_SPACE_RECLAIM_Q,
                 false,
-                0,
                 false,
                 false,
                 null,
@@ -838,7 +833,7 @@ public class StoreDirect extends Store{
             StoreDirect store2 = new StoreDirect(compactedFile.getPath(),
                     volumeFactory,
                     indexVolumeFactory,
-                    false,false,5,false,0L, checksum,compress,password,0);
+                    false,false,5,false,checksum,compress,password,0);
 
             compactPreUnderLock();
 
@@ -920,9 +915,9 @@ public class StoreDirect extends Store{
                 physFile_.delete();
             }else{
                 //in memory, so copy files into memory
-                Volume indexVol2 = new Volume.MemoryVol(useDirectBuffer,sizeLimit, CC.VOLUME_SLICE_SHIFT);
+                Volume indexVol2 = new Volume.MemoryVol(useDirectBuffer,CC.VOLUME_SLICE_SHIFT);
                 Volume.volumeTransfer(indexSize, store2.index, indexVol2);
-                Volume physVol2 = new Volume.MemoryVol(useDirectBuffer,sizeLimit, CC.VOLUME_SLICE_SHIFT);
+                Volume physVol2 = new Volume.MemoryVol(useDirectBuffer,CC.VOLUME_SLICE_SHIFT);
                 Volume.volumeTransfer(store2.physSize, store2.phys, physVol2);
 
                 store2.close();
@@ -1192,7 +1187,7 @@ public class StoreDirect extends Store{
 
     @Override
     public long getSizeLimit() {
-        return sizeLimit;
+        return 0;
     }
 
     @Override

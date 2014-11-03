@@ -524,7 +524,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.close();
 
         //increment store version
-        Volume v = Volume.volumeForFile(f,true,false,0,CC.VOLUME_SLICE_SHIFT, 0);
+        Volume v = Volume.volumeForFile(f,true,false,CC.VOLUME_SLICE_SHIFT, 0);
         v.putUnsignedShort(4,StoreDirect.STORE_VERSION+1);
         v.sync();
         v.close();
@@ -548,7 +548,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
         //increment store version
         File phys = new File(f.getPath()+StoreDirect.DATA_FILE_EXT);
-        Volume v = Volume.volumeForFile(phys,true,false,0,CC.VOLUME_SLICE_SHIFT, 0);
+        Volume v = Volume.volumeForFile(phys,true,false,CC.VOLUME_SLICE_SHIFT, 0);
         v.putUnsignedShort(4,StoreDirect.STORE_VERSION+1);
         v.sync();
         v.close();

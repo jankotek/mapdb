@@ -13,7 +13,7 @@ public class VolumeTest {
     @Test
     public void interrupt_raf_file_exception() throws IOException, InterruptedException {
         // when IO thread is interrupted, channel gets closed and it throws  ClosedByInterruptException
-        final Volume.FileChannelVol v = new Volume.FileChannelVol(File.createTempFile("mapdb", "mapdb"), false, 0, 0, 0);
+        final Volume.FileChannelVol v = new Volume.FileChannelVol(File.createTempFile("mapdb", "mapdb"), false, 0, 0);
         final AtomicReference ref = new AtomicReference();
         Thread t = new Thread() {
             @Override

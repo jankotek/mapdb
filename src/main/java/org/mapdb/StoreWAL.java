@@ -72,14 +72,13 @@ public class StoreWAL extends StoreDirect {
             boolean deleteFilesAfterClose,
             int spaceReclaimMode,
             boolean syncOnCommitDisabled,
-            long sizeLimit,
             boolean checksum,
             boolean compress,
             byte[] password,
             int sizeIncrement) {
         super(fileName, volFac, indexVolFac,
                 readOnly, deleteFilesAfterClose,
-                spaceReclaimMode, syncOnCommitDisabled, sizeLimit,
+                spaceReclaimMode, syncOnCommitDisabled,
                 checksum, compress, password,
                 sizeIncrement);
 
@@ -127,7 +126,6 @@ public class StoreWAL extends StoreDirect {
                 false,
                 CC.DEFAULT_FREE_SPACE_RECLAIM_Q,
                 false,
-                0,
                 false,
                 false,
                 null,
