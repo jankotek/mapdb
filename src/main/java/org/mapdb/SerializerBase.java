@@ -977,6 +977,7 @@ public class SerializerBase implements Serializer.Trusted<Object>{
                     DataIO.packInt(out, len);
                 }
                 for (int i = 0; i < len; i++)
+                    //TODO native UTF8 might be faster, investigate and perhaps elimite packInt for chars!
                     DataIO.packInt(out,(int)(value.charAt(i)));
             }
         }
