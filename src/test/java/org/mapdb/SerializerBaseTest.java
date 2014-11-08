@@ -550,14 +550,6 @@ public class SerializerBaseTest{
         }
     }
 
-    @Test public void test_All_Hasher_Fields_Serializable() throws IllegalAccessException, IOException {
-        SerializerBase b = new SerializerBase();
-        for(Field f:Hasher.class.getDeclaredFields()){
-            Object a = f.get(null);
-            assertTrue("field: "+f.getName(), b.mapdb_all.containsKey(a));
-            assertTrue("field: "+f.getName(),a == clone(a));
-        }
-    }
 
 
     @Test public void test_All_Fun_Fields_Serializable() throws IllegalAccessException, IOException {

@@ -1452,14 +1452,6 @@ public class SerializerBase extends Serializer<Object>{
             mapdb_add(25, Serializer.LONG_ARRAY);
             mapdb_add(26, Serializer.DOUBLE_ARRAY);
 
-            mapdb_add(27, Hasher.BASIC);
-            mapdb_add(28, Hasher.BYTE_ARRAY);
-            mapdb_add(29, Hasher.CHAR_ARRAY);
-            mapdb_add(30, Hasher.INT_ARRAY);
-            mapdb_add(31, Hasher.LONG_ARRAY);
-            mapdb_add(32, Hasher.DOUBLE_ARRAY);
-            mapdb_add(33, Hasher.ARRAY);
-
             mapdb_add(34, Fun.BYTE_ARRAY_COMPARATOR);
             mapdb_add(35, Fun.CHAR_ARRAY_COMPARATOR);
             mapdb_add(36, Fun.INT_ARRAY_COMPARATOR);

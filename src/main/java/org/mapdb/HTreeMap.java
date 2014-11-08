@@ -65,7 +65,6 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
     protected final Serializer<K> keySerializer;
     protected final Serializer<V> valueSerializer;
-    protected final Hasher<K> hasher;
 
     protected final Engine engine;
 
@@ -144,16 +143,16 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     };
 
     private final  void assertHashConsistent(K key) throws IOException {
-        int hash = hasher.hashCode(key);
+        int hash = keySerializer.hashCode(key);
         DataIO.DataOutputByteArray out = new DataIO.DataOutputByteArray();
         keySerializer.serialize(out,key);
         DataIO.DataInputByteArray in = new DataIO.DataInputByteArray(out.buf, 0);
 
         K key2 = keySerializer.deserialize(in,-1);
-        if(hash!=hasher.hashCode(key2)){
+        if(hash!=keySerializer.hashCode(key2)){
             throw new IllegalArgumentException("Key does not have consistent hash before and after deserialization. Class: "+key.getClass());
         }
-        if(!hasher.equals(key,key2)){
+        if(!keySerializer.equals(key,key2)){
             throw new IllegalArgumentException("Key does not have consistent equals before and after deserialization. Class: "+key.getClass());
         }
         if(out.pos!=in.pos){
@@ -239,8 +238,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     public HTreeMap(Engine engine, long counterRecid, int hashSalt, long[] segmentRecids,
                     Serializer<K> keySerializer, Serializer<V> valueSerializer,
                     long expireTimeStart, long expire, long expireAccess, long expireMaxSize, long expireStoreSize,
-                    long[] expireHeads, long[] expireTails, Fun.Function1<V, K> valueCreator,
-                    Hasher hasher, boolean disableLocks, Fun.ThreadFactory threadFactory) {
+                    long[] expireHeads, long[] expireTails, Fun.Function1<V, K> valueCreator, Fun.ThreadFactory threadFactory) {
         if(counterRecid<0) throw new IllegalArgumentException();
         if(engine==null) throw new NullPointerException();
         if(segmentRecids==null) throw new NullPointerException();
@@ -260,7 +258,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         this.segmentRecids = Arrays.copyOf(segmentRecids,16);
         this.keySerializer = keySerializer;
         this.valueSerializer = valueSerializer;
-        this.hasher = hasher!=null ? hasher : Hasher.BASIC;
+
         if(expire==0 && expireAccess!=0){
             expire = expireAccess;
         }
@@ -473,7 +471,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 while(true){
                     LinkedNode<K,V> ln = engine.get(recid, LN_SERIALIZER);
                     if(ln == null) return null;
-                    if(hasher.equals(ln.key, (K) o)){
+                    if(keySerializer.equals(ln.key, (K) o)){
                         if(CC.PARANOID && ! (hash(ln.key)==h))
                             throw new AssertionError();
                         return ln;
@@ -545,7 +543,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 LinkedNode<K,V> ln = engine.get(recid, LN_SERIALIZER);
 
                 while(ln!=null){
-                    if(hasher.equals(ln.key,key)){
+                    if(keySerializer.equals(ln.key,key)){
                         //found, replace value at this node
                         V oldVal = ln.value;
                         ln = new LinkedNode<K, V>(ln.next, ln.expireLinkNodeRecid, ln.key, value);
@@ -679,7 +677,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 LinkedNode<K,V> prevLn = null;
                 long prevRecid = 0;
                 while(ln!=null){
-                    if(hasher.equals(ln.key, (K) key)){
+                    if(keySerializer.equals(ln.key, (K) key)){
                         //remove from linkedList
                         if(prevLn == null ){
                             //referenced directly from dir
@@ -818,7 +816,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     @Override
     public boolean containsValue(Object value) {
         for (V v : values()) {
-            if (v.equals(value)) return true;
+            if (valueSerializer.equals(v, (V) value)) return true;
         }
         return false;
     }
@@ -879,7 +877,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         public int hashCode() {
             int result = 0;
             for (K k : this) {
-                result += hasher.hashCode(k);
+                result += keySerializer.hashCode(k);
             }
             return result;
 
@@ -943,7 +941,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             if(o instanceof  Entry){
                 Entry e = (Entry) o;
                 Object val = HTreeMap.this.get(e.getKey());
-                return val!=null && val.equals(e.getValue());
+                return val!=null && valueSerializer.equals((V)val,(V)e.getValue());
             }else
                 return false;
         }
@@ -988,7 +986,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
 
     protected int hash(final Object key) {
-        int h = hasher.hashCode((K) key) ^ hashSalt;
+        int h = keySerializer.hashCode((K) key) ^ hashSalt;
         h ^= (h >>> 20) ^ (h >>> 12);
         return h ^ (h >>> 7) ^ (h >>> 4);
     }
@@ -1206,13 +1204,13 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         @Override
         public boolean equals(Object o) {
-            return (o instanceof Entry) && hasher.equals(key, (K) ((Entry) o).getKey());
+            return (o instanceof Entry) && keySerializer.equals(key, (K) ((Entry) o).getKey());
         }
 
         @Override
         public int hashCode() {
             final V value = HTreeMap.this.get(key);
-            return (key == null ? 0 : hasher.hashCode(key)) ^
+            return (key == null ? 0 : keySerializer.hashCode(key)) ^
                     (value == null ? 0 : value.hashCode());
         }
     }
@@ -1247,7 +1245,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             segmentLocks[segment].writeLock().lock();
 
             LinkedNode otherVal = getInner(key, h, segment);
-            if (otherVal!=null && otherVal.value.equals(value)) {
+            if (otherVal!=null && valueSerializer.equals((V)otherVal.value,(V)value)) {
                 removeInternal(key, segment, h, true);
                 return true;
             }else
@@ -1267,7 +1265,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             segmentLocks[segment].writeLock().lock();
 
             LinkedNode<K,V> ln = getInner(key, h,segment);
-            if (ln!=null && ln.value.equals(oldValue)) {
+            if (ln!=null && valueSerializer.equals(ln.value, oldValue)) {
                 putInner(key, newValue,h,segment);
                 return true;
             } else
@@ -1718,7 +1716,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         return new HTreeMap<K, V>(snapshot, counter==null?0:counter.recid,
                 hashSalt, segmentRecids, keySerializer, valueSerializer,
                 0L,0L,0L,0L,0L,
-                null,null, null, null, false, null);
+                null,null, null, null);
     }
 
 

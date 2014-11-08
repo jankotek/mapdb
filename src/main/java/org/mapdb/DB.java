@@ -150,7 +150,6 @@ public class DB implements Closeable {
         protected long expire = 0L;
         protected long expireAccess = 0L;
         protected long expireStoreSize;
-        protected Hasher<?> hasher = null;
 
         protected Fun.Function1<?,?> valueCreator = null;
 
@@ -220,11 +219,6 @@ public class DB implements Closeable {
             return this;
         }
 
-        public HTreeMapMaker hasher(Hasher<?> hasher){
-            this.hasher = hasher;
-            return this;
-        }
-
 
         public <K,V> HTreeMap<K,V> make(){
             if(expireMaxSize!=0) counter =true;
@@ -257,7 +251,6 @@ public class DB implements Closeable {
         protected long expireStoreSize = 0L;
         protected long expire = 0L;
         protected long expireAccess = 0L;
-        protected Hasher<?> hasher = null;
 
         /** by default collection does not have counter, without counter updates are faster, but entire collection needs to be traversed to count items.*/
         public HTreeSetMaker counterEnable(){
@@ -310,11 +303,6 @@ public class DB implements Closeable {
             return this;
         }
 
-
-        public HTreeSetMaker hasher(Hasher<?> hasher){
-            this.hasher = hasher;
-            return this;
-        }
 
 
         public <K> Set<K> make(){
@@ -396,8 +384,6 @@ public class DB implements Closeable {
                 (long[])catGet(name+".expireHeads",null),
                 (long[])catGet(name+".expireTails",null),
                 valueCreator,
-                catGet(name+".hasher", Hasher.BASIC),
-                false,
                 threadFactory);
 
         //$DELAY$
@@ -458,9 +444,6 @@ public class DB implements Closeable {
             catPut(name+".expireTails",expireHeads);
         }
         //$DELAY$
-        if(m.hasher!=null){
-            catPut(name+".hasher",m.hasher);
-        }
 
 
         HTreeMap<K,V> ret = new HTreeMap<K,V>(engine,
@@ -470,7 +453,7 @@ public class DB implements Closeable {
                 catPut(name+".keySerializer",m.keySerializer,getDefaultSerializer()),
                 catPut(name+".valueSerializer",m.valueSerializer,getDefaultSerializer()),
                 expireTimeStart,expire,expireAccess,expireMaxSize, expireStoreSize, expireHeads ,expireTails,
-                (Fun.Function1<V, K>) m.valueCreator, m.hasher,false,
+                (Fun.Function1<V, K>) m.valueCreator,
                 threadFactory
 
         );
@@ -515,8 +498,6 @@ public class DB implements Closeable {
                 (long[])catGet(name+".segmentRecids"),
                 catGet(name+".serializer",getDefaultSerializer()),
                 null, 0L,0L,0L,0L,0L,null,null,null,
-                catGet(name+".hasher",Hasher.BASIC),
-                false,
                 threadFactory
          ).keySet();
 
@@ -559,10 +540,6 @@ public class DB implements Closeable {
             catPut(name+".expireHeads",expireHeads);
             catPut(name+".expireTails",expireHeads);
         }
-        //$DELAY$
-        if(m.hasher!=null){
-            catPut(name+".hasher",m.hasher);
-        }
 
         //$DELAY$
         HTreeMap<K,Object> ret = new HTreeMap<K,Object>(engine,
@@ -572,7 +549,7 @@ public class DB implements Closeable {
                 catPut(name+".serializer",m.serializer,getDefaultSerializer()),
                 null,
                 expireTimeStart,expire,expireAccess,expireMaxSize, expireStoreSize, expireHeads ,expireTails,
-                null, m.hasher, false,
+                null,
                 threadFactory
         );
         Set<K> ret2 = ret.keySet();
