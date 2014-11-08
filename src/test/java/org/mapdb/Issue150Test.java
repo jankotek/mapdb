@@ -38,8 +38,8 @@ public class Issue150Test {
         txMaker.close();
     }
 
-    private static final class CustomSerializer implements
-            Serializer<Issue150Test.EntityA>, Serializable {
+    private static final class CustomSerializer extends
+            Serializer<Issue150Test.EntityA> implements Serializable {
 
         @Override
         public void serialize(DataOutput out, EntityA value) throws IOException {
@@ -55,11 +55,6 @@ public class Issue150Test {
             a.setId(in.readLong());
             a.setName(in.readUTF());
             return a;
-        }
-
-        @Override
-        public int fixedSize() {
-            return -1;
         }
 
     }

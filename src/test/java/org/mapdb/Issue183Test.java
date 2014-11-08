@@ -54,7 +54,7 @@ public class Issue183Test {
 
     }
 
-    private static final class StringSerializer implements Serializer<String>, Serializable {
+    private static final class StringSerializer extends Serializer<String> implements Serializable {
 
         private static final long serialVersionUID = -8356516782418439492L;
 
@@ -68,10 +68,6 @@ public class Issue183Test {
             return in.readUTF();
         }
 
-        @Override
-        public int fixedSize() {
-            return -1;
-        }
 
     }
 }

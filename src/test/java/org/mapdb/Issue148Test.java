@@ -152,7 +152,7 @@ public class Issue148Test {
         }
     }
 
-    public static class CustomValueSerializer implements Serializer<CustomValue>, Serializable {
+    public static class CustomValueSerializer extends Serializer<CustomValue> implements Serializable {
 
         private static final long serialVersionUID = -6987588810823227467L;
 
@@ -166,11 +166,6 @@ public class Issue148Test {
                 throws IOException {
 
             return new CustomValue( in.readUTF(), in.readInt() );
-        }
-
-        @Override
-        public int fixedSize() {
-            return -1;
         }
 
     }

@@ -20,6 +20,7 @@ import java.io.*;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.UUID;
 
@@ -28,10 +29,10 @@ import java.util.UUID;
  *
  * @author Jan Kotek
  */
-public interface Serializer<A> {
+public abstract class Serializer<A> {
 
 
-    Serializer<Character> CHAR =  new Serializer.Trusted<Character>() {
+    public static final Serializer<Character> CHAR =  new Serializer<Character>() {
         @Override
         public void serialize(DataOutput out, Character value) throws IOException {
             out.writeChar(value.charValue());
@@ -46,27 +47,20 @@ public interface Serializer<A> {
         public int fixedSize() {
             return 2;
         }
+
+        @Override
+        public boolean isTrusted() {
+            return true;
+        }
     };
 
-
-    /**
-     *  Indicates that serializer can be trusted with data sizes.
-     *  Should be only implemented by build-in serializers from MapDB
-     *
-     *  TODO explain trusted serializers
-     *
-     * @param <A> serialized type
-     */
-    interface Trusted<A> extends Serializer<A>{
-
-    }
 
     /**
      * Serializes strings using UTF8 encoding.
      * Stores string size so can be used as collection serializer.
      * Does not handle null values
      */
-    Serializer<String> STRING = new Serializer.Trusted<String>() {
+    public static final Serializer<String> STRING = new Serializer<String>() {
         @Override
         public void serialize(DataOutput out, String value) throws IOException {
             out.writeUTF(value);
@@ -78,9 +72,10 @@ public interface Serializer<A> {
         }
 
         @Override
-        public int fixedSize() {
-            return -1;
+        public boolean isTrusted() {
+            return true;
         }
+
     };
 
     /**
@@ -91,7 +86,7 @@ public interface Serializer<A> {
      * Stores string size so can be used as collection serializer.
      * Does not handle null values
      */
-    Serializer<String> STRING_INTERN = new Serializer.Trusted<String>() {
+    public static final Serializer<String> STRING_INTERN = new Serializer<String>() {
         @Override
         public void serialize(DataOutput out, String value) throws IOException {
             out.writeUTF(value);
@@ -103,8 +98,8 @@ public interface Serializer<A> {
         }
 
         @Override
-        public int fixedSize() {
-            return -1;
+        public boolean isTrusted() {
+            return true;
         }
 
     };
@@ -115,7 +110,7 @@ public interface Serializer<A> {
      * Stores string size so can be used as collection serializer.
      * Does not handle null values
      */
-    Serializer<String> STRING_ASCII = new Serializer.Trusted<String>() {
+    public static final Serializer<String> STRING_ASCII = new Serializer<String>() {
         @Override
         public void serialize(DataOutput out, String value) throws IOException {
             char[] cc = new char[value.length()];
@@ -138,8 +133,8 @@ public interface Serializer<A> {
         }
 
         @Override
-        public int fixedSize() {
-            return -1;
+        public boolean isTrusted() {
+            return true;
         }
 
     };
@@ -149,7 +144,7 @@ public interface Serializer<A> {
      * Used mainly for testing.
      * Does not handle null values.
      */
-    Serializer<String> STRING_NOSIZE = new Serializer<String>() {
+    public static final Serializer<String> STRING_NOSIZE = new Serializer<String>() {
 
         private final Charset UTF8_CHARSET = Charset.forName("UTF8");
 
@@ -169,8 +164,8 @@ public interface Serializer<A> {
         }
 
         @Override
-        public int fixedSize() {
-            return -1;
+        public boolean isTrusted() {
+            return true;
         }
 
     };
@@ -182,7 +177,7 @@ public interface Serializer<A> {
     /** Serializes Long into 8 bytes, used mainly for testing.
      * Does not handle null values.*/
 
-    Serializer<Long> LONG = new Serializer.Trusted<Long>() {
+    public static final Serializer<Long> LONG = new Serializer<Long>() {
         @Override
         public void serialize(DataOutput out, Long value) throws IOException {
             out.writeLong(value);
@@ -198,12 +193,19 @@ public interface Serializer<A> {
             return 8;
         }
 
+        @Override
+        public boolean isTrusted() {
+            return true;
+        }
+
+
     };
 
     /** Serializes Integer into 4 bytes.
      * Does not handle null values.*/
 
-    Serializer<Integer> INTEGER = new Serializer.Trusted<Integer>() {
+    public static final Serializer<Integer> INTEGER = new Serializer<Integer>(){
+
         @Override
         public void serialize(DataOutput out, Integer value) throws IOException {
             out.writeInt(value);
@@ -219,10 +221,16 @@ public interface Serializer<A> {
             return 4;
         }
 
+        @Override
+        public boolean isTrusted() {
+            return true;
+        }
+
+
     };
 
 
-    Serializer<Boolean> BOOLEAN = new Serializer.Trusted<Boolean>() {
+    public static final Serializer<Boolean> BOOLEAN = new Serializer<Boolean>() {
         @Override
         public void serialize(DataOutput out, Boolean value) throws IOException {
             out.writeBoolean(value);
@@ -238,6 +246,12 @@ public interface Serializer<A> {
             return 1;
         }
 
+        @Override
+        public boolean isTrusted() {
+            return true;
+        }
+
+
     };
 
 
@@ -246,7 +260,7 @@ public interface Serializer<A> {
     /**
      * Always throws {@link IllegalAccessError} when invoked. Useful for testing and assertions.
      */
-    Serializer<Object> ILLEGAL_ACCESS = new Serializer.Trusted<Object>() {
+    public static final Serializer<Object> ILLEGAL_ACCESS = new Serializer<Object>() {
         @Override
         public void serialize(DataOutput out, Object value) throws IOException {
             throw new IllegalAccessError();
@@ -258,8 +272,8 @@ public interface Serializer<A> {
         }
 
         @Override
-        public int fixedSize() {
-            return -1;
+        public boolean isTrusted() {
+            return true;
         }
 
     };
@@ -268,7 +282,7 @@ public interface Serializer<A> {
     /**
      * Serializes `byte[]` it adds header which contains size information
      */
-    Serializer<byte[] > BYTE_ARRAY = new Serializer.Trusted<byte[]>() {
+    public static final Serializer<byte[] > BYTE_ARRAY = new Serializer<byte[]>() {
 
         @Override
         public void serialize(DataOutput out, byte[] value) throws IOException {
@@ -285,17 +299,26 @@ public interface Serializer<A> {
         }
 
         @Override
-        public int fixedSize() {
-            return -1;
+        public boolean isTrusted() {
+            return true;
         }
 
+        @Override
+        public boolean equals(byte[] a1, byte[] a2) {
+            return Arrays.equals(a1,a2);
+        }
+
+        @Override
+        public int hashCode(byte[] bytes) {
+            return Arrays.hashCode(bytes);
+        }
     } ;
 
     /**
      * Serializes `byte[]` directly into underlying store
      * It does not store size, so it can not be used in Maps and other collections.
      */
-    Serializer<byte[] > BYTE_ARRAY_NOSIZE = new Serializer<byte[]>() {
+    public static final Serializer<byte[] > BYTE_ARRAY_NOSIZE = new Serializer<byte[]>() {
 
         @Override
         public void serialize(DataOutput out, byte[] value) throws IOException {
@@ -310,20 +333,31 @@ public interface Serializer<A> {
         }
 
         @Override
-        public int fixedSize() {
-            return -1;
+        public boolean isTrusted() {
+            return true;
         }
+
+        @Override
+        public boolean equals(byte[] a1, byte[] a2) {
+            return Arrays.equals(a1,a2);
+        }
+
+        @Override
+        public int hashCode(byte[] bytes) {
+            return Arrays.hashCode(bytes);
+        }
+
 
     } ;
 
     /**
      * Serializes `char[]` it adds header which contains size information
      */
-    Serializer<char[] > CHAR_ARRAY = new Serializer.Trusted<char[]>() {
+    public static final Serializer<char[] > CHAR_ARRAY = new Serializer<char[]>() {
 
         @Override
         public void serialize(DataOutput out, char[] value) throws IOException {
-            DataIO.packInt(out,value.length);
+            DataIO.packInt(out, value.length);
             for(char c:value){
                 out.writeChar(c);
             }
@@ -340,9 +374,20 @@ public interface Serializer<A> {
         }
 
         @Override
-        public int fixedSize() {
-            return -1;
+        public boolean isTrusted() {
+            return true;
         }
+
+        @Override
+        public boolean equals(char[] a1, char[] a2) {
+            return Arrays.equals(a1,a2);
+        }
+
+        @Override
+        public int hashCode(char[] bytes) {
+            return Arrays.hashCode(bytes);
+        }
+
 
     };
 
@@ -350,7 +395,7 @@ public interface Serializer<A> {
     /**
      * Serializes `int[]` it adds header which contains size information
      */
-    Serializer<int[] > INT_ARRAY = new Serializer.Trusted<int[]>() {
+    public static final Serializer<int[] > INT_ARRAY = new Serializer<int[]>() {
 
         @Override
         public void serialize(DataOutput out, int[] value) throws IOException {
@@ -371,16 +416,27 @@ public interface Serializer<A> {
         }
 
         @Override
-        public int fixedSize() {
-            return -1;
+        public boolean isTrusted() {
+            return true;
         }
+
+        @Override
+        public boolean equals(int[] a1, int[] a2) {
+            return Arrays.equals(a1,a2);
+        }
+
+        @Override
+        public int hashCode(int[] bytes) {
+            return Arrays.hashCode(bytes);
+        }
+
 
     };
 
     /**
      * Serializes `long[]` it adds header which contains size information
      */
-    Serializer<long[] > LONG_ARRAY = new Serializer.Trusted<long[]>() {
+    public static final Serializer<long[] > LONG_ARRAY = new Serializer<long[]>() {
 
         @Override
         public void serialize(DataOutput out, long[] value) throws IOException {
@@ -400,17 +456,29 @@ public interface Serializer<A> {
             return ret;
         }
 
+
         @Override
-        public int fixedSize() {
-            return -1;
+        public boolean isTrusted() {
+            return true;
         }
+
+        @Override
+        public boolean equals(long[] a1, long[] a2) {
+            return Arrays.equals(a1,a2);
+        }
+
+        @Override
+        public int hashCode(long[] bytes) {
+            return Arrays.hashCode(bytes);
+        }
+
 
     };
 
     /**
      * Serializes `double[]` it adds header which contains size information
      */
-    Serializer<double[] > DOUBLE_ARRAY = new Serializer.Trusted<double[]>() {
+    public static final Serializer<double[] > DOUBLE_ARRAY = new Serializer<double[]>() {
 
         @Override
         public void serialize(DataOutput out, double[] value) throws IOException {
@@ -430,16 +498,28 @@ public interface Serializer<A> {
             return ret;
         }
 
+
         @Override
-        public int fixedSize() {
-            return -1;
+        public boolean isTrusted() {
+            return true;
         }
+
+        @Override
+        public boolean equals(double[] a1, double[] a2) {
+            return Arrays.equals(a1,a2);
+        }
+
+        @Override
+        public int hashCode(double[] bytes) {
+            return Arrays.hashCode(bytes);
+        }
+
 
     };
 
 
     /** Serializer which uses standard Java Serialization with {@link java.io.ObjectInputStream} and {@link java.io.ObjectOutputStream} */
-    Serializer<Object> JAVA = new Serializer.Trusted<Object>() {
+    public static final Serializer<Object> JAVA = new Serializer<Object>() {
         @Override
         public void serialize(DataOutput out, Object value) throws IOException {
             ObjectOutputStream out2 = new ObjectOutputStream((OutputStream) out);
@@ -457,15 +537,10 @@ public interface Serializer<A> {
             }
         }
 
-        @Override
-        public int fixedSize() {
-            return -1;
-        }
-
     };
 
     /** Serializers {@link java.util.UUID} class */
-    Serializer<java.util.UUID> UUID = new Serializer.Trusted<java.util.UUID>() {
+    public static final Serializer<java.util.UUID> UUID = new Serializer<java.util.UUID>() {
         @Override
         public void serialize(DataOutput out, UUID value) throws IOException {
             out.writeLong(value.getMostSignificantBits());
@@ -482,9 +557,29 @@ public interface Serializer<A> {
             return 16;
         }
 
+        @Override
+        public boolean isTrusted() {
+            return true;
+        }
+
+
+        @Override
+        public boolean equals(UUID a1, UUID a2) {
+            //on java6 equals method is not thread safe
+            return a1==a2 || (a1!=null && a1.getLeastSignificantBits() == a2.getLeastSignificantBits()
+                    && a1.getMostSignificantBits()==a2.getMostSignificantBits());
+        }
+
+        @Override
+        public int hashCode(UUID uuid) {
+            //on java6 uuid.hashCode is not thread safe. This is workaround
+            long a = uuid.getLeastSignificantBits() ^ uuid.getMostSignificantBits();
+            return ((int)(a>>32))^(int) a;
+
+        }
     };
 
-    Serializer<Byte> BYTE = new Serializer.Trusted<Byte>() {
+    public static final Serializer<Byte> BYTE = new Serializer<Byte>() {
         @Override
         public void serialize(DataOutput out, Byte value) throws IOException {
             out.writeByte(value); //TODO test all new serialziers
@@ -499,8 +594,14 @@ public interface Serializer<A> {
         public int fixedSize() {
             return 1;
         }
+
+        @Override
+        public boolean isTrusted() {
+            return true;
+        }
+
     } ;
-    Serializer<Float> FLOAT = new Serializer.Trusted<Float>() {
+    public static final Serializer<Float> FLOAT = new Serializer<Float>() {
         @Override
         public void serialize(DataOutput out, Float value) throws IOException {
             out.writeFloat(value); //TODO test all new serialziers
@@ -515,10 +616,16 @@ public interface Serializer<A> {
         public int fixedSize() {
             return 4;
         }
+
+        @Override
+        public boolean isTrusted() {
+            return true;
+        }
+
     } ;
 
 
-    Serializer<Double> DOUBLE = new Serializer.Trusted<Double>() {
+    public static final Serializer<Double> DOUBLE = new Serializer<Double>() {
         @Override
         public void serialize(DataOutput out, Double value) throws IOException {
             out.writeDouble(value);
@@ -533,9 +640,15 @@ public interface Serializer<A> {
         public int fixedSize() {
             return 8;
         }
+
+        @Override
+        public boolean isTrusted() {
+            return true;
+        }
+
     } ;
 
-    Serializer<Short> SHORT = new Serializer.Trusted<Short>() {
+    public static final Serializer<Short> SHORT = new Serializer<Short>() {
         @Override
         public void serialize(DataOutput out, Short value) throws IOException {
             out.writeShort(value.shortValue());
@@ -550,9 +663,15 @@ public interface Serializer<A> {
         public int fixedSize() {
             return 2;
         }
+
+        @Override
+        public boolean isTrusted() {
+            return true;
+        }
+
     } ;
 
-    Serializer<boolean[]> BOOLEAN_ARRAY = new Serializer.Trusted<boolean[]>() {
+    public static final Serializer<boolean[]> BOOLEAN_ARRAY = new Serializer<boolean[]>() {
         @Override
         public void serialize(DataOutput out, boolean[] value) throws IOException {
             DataIO.packInt(out, value.length);//write the number of booleans not the number of bytes
@@ -566,14 +685,24 @@ public interface Serializer<A> {
         }
 
         @Override
-        public int fixedSize() {
-            return -1;
+        public boolean isTrusted() {
+            return true;
+        }
+
+        @Override
+        public boolean equals(boolean[] a1, boolean[] a2) {
+            return Arrays.equals(a1,a2);
+        }
+
+        @Override
+        public int hashCode(boolean[] booleans) {
+            return Arrays.hashCode(booleans);
         }
     };
 
 
 
-    Serializer<short[]> SHORT_ARRAY = new Serializer.Trusted<short[]>() {
+    public static final Serializer<short[]> SHORT_ARRAY = new Serializer<short[]>() {
         @Override
         public void serialize(DataOutput out, short[] value) throws IOException {
             DataIO.packInt(out,value.length);
@@ -592,13 +721,23 @@ public interface Serializer<A> {
         }
 
         @Override
-        public int fixedSize() {
-            return -1;
+        public boolean isTrusted() {
+            return true;
+        }
+
+        @Override
+        public boolean equals(short[] a1, short[] a2) {
+            return Arrays.equals(a1, a2);
+        }
+
+        @Override
+        public int hashCode(short[] shorts) {
+            return Arrays.hashCode(shorts);
         }
     };
 
 
-    Serializer<float[]> FLOAT_ARRAY = new Serializer.Trusted<float[]>() {
+    public static final Serializer<float[]> FLOAT_ARRAY = new Serializer<float[]>() {
         @Override
         public void serialize(DataOutput out, float[] value) throws IOException {
             DataIO.packInt(out,value.length);
@@ -617,15 +756,25 @@ public interface Serializer<A> {
         }
 
         @Override
-        public int fixedSize() {
-            return -1;
+        public boolean isTrusted() {
+            return true;
+        }
+
+        @Override
+        public boolean equals(float[] a1, float[] a2) {
+            return Arrays.equals(a1, a2);
+        }
+
+        @Override
+        public int hashCode(float[] floats) {
+            return Arrays.hashCode(floats);
         }
     };
 
-    Serializer<BigInteger> BIG_INTEGER = new Serializer.Trusted<BigInteger>() {
+    public static final Serializer<BigInteger> BIG_INTEGER = new Serializer<BigInteger>() {
         @Override
         public void serialize(DataOutput out, BigInteger value) throws IOException {
-            BYTE_ARRAY.serialize(out,value.toByteArray());
+            BYTE_ARRAY.serialize(out, value.toByteArray());
         }
 
         @Override
@@ -634,12 +783,12 @@ public interface Serializer<A> {
         }
 
         @Override
-        public int fixedSize() {
-            return -1;
+        public boolean isTrusted() {
+            return true;
         }
     } ;
 
-    Serializer<BigDecimal> BIG_DECIMAL = new Serializer.Trusted<BigDecimal>() {
+    public static final Serializer<BigDecimal> BIG_DECIMAL = new Serializer<BigDecimal>() {
         @Override
         public void serialize(DataOutput out, BigDecimal value) throws IOException {
             BYTE_ARRAY.serialize(out,value.unscaledValue().toByteArray());
@@ -654,13 +803,13 @@ public interface Serializer<A> {
         }
 
         @Override
-        public int fixedSize() {
-            return -1;
+        public boolean isTrusted() {
+            return true;
         }
     } ;
 
 
-    Serializer<Class> CLASS = new Serializer.Trusted<Class>() {
+    public static final Serializer<Class> CLASS = new Serializer<Class>() {
 
         @Override
         public void serialize(DataOutput out, Class value) throws IOException {
@@ -673,12 +822,23 @@ public interface Serializer<A> {
         }
 
         @Override
-        public int fixedSize() {
-            return -1;
+        public boolean isTrusted() {
+            return true;
+        }
+
+        @Override
+        public boolean equals(Class a1, Class a2) {
+            return a1==a2 || (a1.toString().equals(a2.toString()));
+        }
+
+        @Override
+        public int hashCode(Class aClass) {
+            //class does not override identity hash code
+            return aClass.toString().hashCode();
         }
     };
 
-    Serializer<Date> DATE = new Serializer.Trusted<Date>() {
+    public static final Serializer<Date> DATE = new Serializer<Date>() {
 
         @Override
         public void serialize(DataOutput out, Date value) throws IOException {
@@ -694,11 +854,16 @@ public interface Serializer<A> {
         public int fixedSize() {
             return 8;
         }
+
+        @Override
+        public boolean isTrusted() {
+            return true;
+        }
     };
 
 
     /** wraps another serializer and (de)compresses its output/input*/
-    public final static class CompressionWrapper<E> implements Serializer.Trusted<E>, Serializable {
+    public final static class CompressionWrapper<E> extends Serializer<E> implements Serializable {
 
         private static final long serialVersionUID = 4440826457939614346L;
         protected final Serializer<E> serializer;
@@ -774,10 +939,9 @@ public interface Serializer<A> {
         }
 
         @Override
-        public int fixedSize() {
-            return -1;
+        public boolean isTrusted() {
+            return true;
         }
-
     }
 
     //this has to be lazily initialized due to circular dependencies
@@ -792,7 +956,7 @@ public interface Serializer<A> {
      * require access to `DB` itself.
      */
     @SuppressWarnings("unchecked")
-    Serializer<Object> BASIC = new Serializer.Trusted(){
+    public static final Serializer<Object> BASIC = new Serializer(){
 
         @Override
         public void serialize(DataOutput out, Object value) throws IOException {
@@ -805,8 +969,8 @@ public interface Serializer<A> {
         }
 
         @Override
-        public int fixedSize() {
-            return -1;
+        public boolean isTrusted() {
+            return true;
         }
     };
 
@@ -817,7 +981,7 @@ public interface Serializer<A> {
      * @param out ObjectOutput to save object into
      * @param value Object to serialize
      */
-    public void serialize( DataOutput out, A value)
+    abstract public void serialize( DataOutput out, A value)
             throws IOException;
 
 
@@ -829,7 +993,7 @@ public interface Serializer<A> {
      * @return deserialized object
      * @throws java.io.IOException
      */
-    public A deserialize( DataInput in, int available)
+    abstract public A deserialize( DataInput in, int available)
             throws IOException;
 
     /**
@@ -838,6 +1002,20 @@ public interface Serializer<A> {
      *
      * @return fixed size or -1 for variable size
      */
-    public int fixedSize();
+    public int fixedSize(){
+        return -1;
+    }
+
+    public boolean isTrusted(){
+        return false;
+    }
+
+    public boolean equals(A a1, A a2){
+        return a1==a2 || (a1!=null && a1.equals(a2));
+    }
+
+    public int hashCode(A a){
+        return a.hashCode();
+    }
 
 }

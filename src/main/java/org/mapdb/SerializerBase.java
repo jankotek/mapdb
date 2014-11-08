@@ -28,7 +28,7 @@ import java.util.*;
  * @author Jan Kotek
  */
 @SuppressWarnings({ "unchecked", "rawtypes" })
-public class SerializerBase implements Serializer.Trusted<Object>{
+public class SerializerBase extends Serializer<Object>{
 
 
     protected interface Ser<A> {
@@ -2120,9 +2120,7 @@ public class SerializerBase implements Serializer.Trusted<Object>{
     }
 
     @Override
-    public int fixedSize() {
-        return -1;
+    public boolean isTrusted() {
+        return true;
     }
-
-
 }

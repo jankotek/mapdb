@@ -144,6 +144,10 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         return ret;
     }
 
+    public boolean isTrusted() {
+        return false;
+    }
+
 
     /**
      * Basic Key Serializer which just writes data without applying any compression.

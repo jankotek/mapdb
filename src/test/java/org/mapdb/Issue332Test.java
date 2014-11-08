@@ -16,7 +16,7 @@ public class Issue332Test {
     final static  String problem = "76fa135e7d216e829a53845a983469ac1e4edb6120b79667d667e7d4f8560101010100000022bf456901000000230000002102123eeaa90e2f5786ce028e60ec03702706dadecee373a90b09b88a99cc668f46ac3358c8ea6433279c678846fb6e06eeccd82e2fe888f2ac203476d3918cd405790100000038ffffff9e000000be438253be43825301000000109bf45901000000230000002102123eeaa90e2f5786ce028e60ec03702706dadecee373a90b09b88a99cc668f46ac38bf80f10129594a7e949cc43c3bd6f8670ba5ab59874305f6839406738a9cf90100000038ffffff9e00000081bd175381bd1753";
     public static final Serializer.CompressionWrapper<String> VALUE_SERIALIZER = new Serializer.CompressionWrapper<String>(new TestSerializer());
 
-    public static final class TestSerializer implements Serializer<String>, Serializable {
+    public static final class TestSerializer extends  Serializer<String> implements Serializable {
 
         // http://stackoverflow.com/a/140430
         private static byte[] fromHexString(final String encoded) {

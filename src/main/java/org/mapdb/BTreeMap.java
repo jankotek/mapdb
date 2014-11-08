@@ -192,7 +192,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         }
     }
 
-    protected static final class ValRefSerializer implements Serializer.Trusted<ValRef>{
+    protected static final class ValRefSerializer extends Serializer<ValRef>{
 
         @Override
         public void serialize(DataOutput out, ValRef value) throws IOException {
@@ -205,8 +205,18 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         }
 
         @Override
-        public int fixedSize() {
-            return -1;
+        public boolean isTrusted() {
+            return true;
+        }
+
+        @Override
+        public boolean equals(ValRef a1, ValRef a2) {
+            throw new IllegalAccessError();
+        }
+
+        @Override
+        public int hashCode(ValRef valRef) {
+            throw new IllegalAccessError();
         }
     }
 
@@ -537,7 +547,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
     protected final Serializer<BNode> nodeSerializer;
 
-    protected static final class NodeSerializer<A,B> implements  Serializer.Trusted<BNode>{
+    protected static final class NodeSerializer<A,B> extends Serializer<BNode>{
 
         protected static final int LEAF_MASK = 1<<15;
         protected static final int LEFT_SHIFT = 14;
@@ -694,10 +704,9 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         }
 
         @Override
-        public int fixedSize() {
-            return -1;
+        public boolean isTrusted() {
+            return keySerializer.isTrusted() && valueSerializer.isTrusted();
         }
-
     }
 
 

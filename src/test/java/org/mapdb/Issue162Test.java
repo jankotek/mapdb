@@ -40,7 +40,7 @@ public class Issue162Test {
         }
     }
 
-    public static class MyValueSerializer implements Serializable, Serializer<MyValue> {
+    public static class MyValueSerializer extends Serializer<MyValue> implements Serializable {
 
         @Override
         public void serialize(DataOutput out, MyValue value) throws IOException {
@@ -53,11 +53,6 @@ public class Issue162Test {
         public MyValue deserialize(DataInput in, int available) throws IOException {
             String s = in.readUTF();
             return new MyValue(s);
-        }
-
-        @Override
-        public int fixedSize() {
-            return -1;
         }
 
     }

@@ -91,7 +91,7 @@ public class Custom_Value {
         // analyze the class structure.
         //
 
-        class CustomSerializer implements Serializer<Person>, Serializable{
+        class CustomSerializer extends Serializer<Person> implements Serializable{
 
             @Override
             public void serialize(DataOutput out, Person value) throws IOException {

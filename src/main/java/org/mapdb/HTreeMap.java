@@ -106,7 +106,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
 
 
-    protected final Serializer<LinkedNode<K,V>> LN_SERIALIZER = new Serializer.Trusted<LinkedNode<K,V>>() {
+    protected final Serializer<LinkedNode<K,V>> LN_SERIALIZER = new Serializer<LinkedNode<K,V>>() {
 
         /** used to check that every 64000 th element has consistent has befor and after (de)serialization*/
         int serCounter = 0;
@@ -138,10 +138,9 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         }
 
         @Override
-        public int fixedSize() {
-            return -1;
+        public boolean isTrusted() {
+            return keySerializer.isTrusted() && valueSerializer.isTrusted();
         }
-
     };
 
     private final  void assertHashConsistent(K key) throws IOException {
@@ -163,7 +162,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     }
 
 
-    protected static final Serializer<long[][]>DIR_SERIALIZER = new Serializer.Trusted<long[][]>() {
+    protected static final Serializer<long[][]>DIR_SERIALIZER = new Serializer<long[][]>() {
         @Override
         public void serialize(DataOutput out, long[][] value) throws IOException {
             if(CC.PARANOID && ! (value.length==16))
@@ -218,10 +217,9 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         }
 
         @Override
-        public int fixedSize() {
-            return -1;
+        public boolean isTrusted() {
+            return true;
         }
-
     };
 
     /** list of segments, this is immutable*/
@@ -1303,7 +1301,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         public final static ExpireLinkNode EMPTY = new ExpireLinkNode(0,0,0,0,0);
 
-        public static final Serializer<ExpireLinkNode> SERIALIZER = new Serializer.Trusted<ExpireLinkNode>() {
+        public static final Serializer<ExpireLinkNode> SERIALIZER = new Serializer<ExpireLinkNode>() {
             @Override
             public void serialize(DataOutput out, ExpireLinkNode value) throws IOException {
                 if(value == EMPTY) return;
@@ -1324,10 +1322,9 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             }
 
             @Override
-            public int fixedSize() {
-                return -1;
+            public boolean isTrusted() {
+                return true;
             }
-
         };
 
         public final long prev;

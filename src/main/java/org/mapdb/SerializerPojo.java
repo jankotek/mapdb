@@ -36,7 +36,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class SerializerPojo extends SerializerBase implements Serializable{
 
 
-    protected static final Serializer<CopyOnWriteArrayList<ClassInfo>> serializer = new Serializer.Trusted<CopyOnWriteArrayList<ClassInfo>>() {
+    protected static final Serializer<CopyOnWriteArrayList<ClassInfo>> serializer = new Serializer<CopyOnWriteArrayList<ClassInfo>>() {
 
         @Override
 		public void serialize(DataOutput out, CopyOnWriteArrayList<ClassInfo> obj) throws IOException {
@@ -79,10 +79,9 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         }
 
         @Override
-        public int fixedSize() {
-            return -1;
+        public boolean isTrusted() {
+            return true;
         }
-
     };
     private static final long serialVersionUID = 3181417366609199703L;
 

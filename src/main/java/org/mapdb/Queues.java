@@ -45,7 +45,7 @@ public final class Queues {
         protected final Atomic.Long head;
 
 
-        protected static class NodeSerializer<E> implements Serializer.Trusted<Node<E>> {
+        protected static class NodeSerializer<E> extends Serializer<Node<E>> {
             private final Serializer<E> serializer;
 
             public NodeSerializer(Serializer<E> serializer) {
@@ -63,10 +63,6 @@ public final class Queues {
                 return new Node<E>(DataIO.unpackLong(in), serializer.deserialize(in,-1));
             }
 
-            @Override
-            public int fixedSize() {
-                return -1;
-            }
 
         }
 

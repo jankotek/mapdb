@@ -166,8 +166,8 @@ public class Issue41Test {
             return true;
         }
 
-        public static final class Serializer implements
-                org.mapdb.Serializer<Value>, Serializable {
+        public static final class Serializer extends
+                org.mapdb.Serializer<Value> implements Serializable {
 
             private static final long serialVersionUID = 140L;
 
@@ -247,8 +247,8 @@ public class Issue41Test {
             return true;
         }
 
-        public static final class Serializer implements
-                org.mapdb.Serializer<Key>, Serializable {
+        public static final class Serializer extends
+                org.mapdb.Serializer<Key> implements Serializable {
 
             private static final long serialVersionUID = 1L;
 
@@ -271,11 +271,6 @@ public class Issue41Test {
                 return new Key(subscriptionId, eventId);
             }
 
-
-            @Override
-            public int fixedSize() {
-                return -1;
-            }
 
         }
 
