@@ -343,6 +343,15 @@ public class SerializerBase extends Serializer<Object>{
                 SerializerBase.this.serialize(out, value.serializer,objectStack);
             }
         });
+        ser.put(Array.class, new Ser<Array>(){
+            @Override
+            public void serialize(DataOutput out, Array value, FastArrayList objectStack) throws IOException {
+                out.write(Header.MAPDB);
+                DataIO.packInt(out, HeaderMapDB.SERIALIZER_ARRAY);
+                SerializerBase.this.serialize(out, value.serializer,objectStack);
+            }
+        });
+
         ser.put(BTreeKeySerializer.Compress.class, new Ser< BTreeKeySerializer.Compress>(){
             @Override
             public void serialize(DataOutput out, BTreeKeySerializer.Compress value, FastArrayList objectStack) throws IOException {
@@ -687,7 +696,7 @@ public class SerializerBase extends Serializer<Object>{
             @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
                 int size = DataIO.unpackInt(in);
                 Class clazz = deserializeClass(in);
-                return (Object[]) Array.newInstance(clazz, size);
+                return java.lang.reflect.Array.newInstance(clazz, size);
             }
         };
         headerDeser[Header.ARRAY_OBJECT_NO_REFS] = new Deser(){
@@ -695,7 +704,7 @@ public class SerializerBase extends Serializer<Object>{
                 //TODO serializatio code for this does not exist, add it in future
                 int size = DataIO.unpackInt(in);
                 Class clazz = deserializeClass(in);
-                Object[] s = (Object[]) Array.newInstance(clazz, size);
+                Object[] s = (Object[]) java.lang.reflect.Array.newInstance(clazz, size);
                 for (int i = 0; i < size; i++){
                     s[i] = SerializerBase.this.deserialize(in, null);
                 }
@@ -1408,6 +1417,7 @@ public class SerializerBase extends Serializer<Object>{
         int COMPARATOR_ARRAY = 59;
         int SERIALIZER_COMPRESSION_WRAPPER = 60;
         int B_TREE_COMPRESS_KEY_SERIALIZER = 64;
+        int SERIALIZER_ARRAY = 65;
     }
 
 
@@ -1545,7 +1555,18 @@ public class SerializerBase extends Serializer<Object>{
                     return new BTreeKeySerializer.Compress(SerializerBase.this, in, objectStack);
                 }
             });
+            //65
+            mapdb_add(HeaderMapDB.SERIALIZER_ARRAY, new Deser() {
+                @Override
+                public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+                    return new Array(SerializerBase.this, in, objectStack);
+                }
 
+                @Override
+                public boolean needsObjectStack() {
+                    return true;
+                }
+            });
         }
 
 
@@ -1598,7 +1619,7 @@ public class SerializerBase extends Serializer<Object>{
     private Object[] deserializeArrayObject(DataInput is, FastArrayList<Object> objectStack) throws IOException {
         int size = DataIO.unpackInt(is);
         Class clazz = deserializeClass(is);
-        Object[] s = (Object[]) Array.newInstance(clazz, size);
+        Object[] s = (Object[]) java.lang.reflect.Array.newInstance(clazz, size);
         objectStack.add(s);
         for (int i = 0; i < size; i++){
             s[i] = deserialize(is, objectStack);

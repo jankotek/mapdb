@@ -39,4 +39,14 @@ public class SerializerTest {
         ser.serialize(out,b);
         assertTrue(out.pos<1000);
     }
+
+    @Test public void array(){
+        Serializer.Array s = new Serializer.Array(Serializer.INTEGER);
+
+        Object[] a = new Object[]{1,2,3,4};
+
+        assertArrayEquals(a, UtilsTest.clone(a,s));
+        assertEquals(s,UtilsTest.clone(s,Serializer.BASIC));
+
+    }
 }

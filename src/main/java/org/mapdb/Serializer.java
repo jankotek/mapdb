@@ -944,6 +944,80 @@ public abstract class Serializer<A> {
         }
     }
 
+    public static final class Array extends Serializer<Object[]> implements  Serializable{
+
+        protected final Serializer serializer;
+
+        public Array(Serializer serializer) {
+            this.serializer = serializer;
+        }
+
+        /** used for deserialization */
+        protected Array(SerializerBase serializerBase, DataInput is, SerializerBase.FastArrayList<Object> objectStack) throws IOException {
+            objectStack.add(this);
+            this.serializer = (Serializer) serializerBase.deserialize(is,objectStack);
+        }
+
+
+        @Override
+        public void serialize(DataOutput out, Object[] value) throws IOException {
+            DataIO.packInt(out,value.length);
+            for(Object a:value){
+                serializer.serialize(out,a);
+            }
+        }
+
+        @Override
+        public Object[] deserialize(DataInput in, int available) throws IOException {
+            Object[] ret = new Object[DataIO.unpackInt(in)];
+            for(int i=0;i<ret.length;i++){
+                ret[i] = serializer.deserialize(in,-1);
+            }
+            return ret;
+        }
+
+        @Override
+        public boolean isTrusted() {
+            return serializer.isTrusted();
+        }
+
+        @Override
+        public boolean equals(Object[] a1, Object[] a2) {
+            if(a1==a2)
+                return true;
+            if(a1==null || a1.length!=a2.length)
+                return false;
+
+            for(int i=0;i<a1.length;i++){
+                if(!serializer.equals(a1[i],a2[i]))
+                    return false;
+            }
+            return true;
+        }
+
+        @Override
+        public int hashCode(Object[] objects) {
+            int ret = objects.length;
+            for(Object a:objects){
+                ret=31*ret+serializer.hashCode(a);
+            }
+            return ret;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            return serializer.equals(((Array) o).serializer);
+
+        }
+
+        @Override
+        public int hashCode() {
+            return serializer.hashCode();
+        }
+    }
+
     //this has to be lazily initialized due to circular dependencies
     static final  class __BasicInstance {
         final static Serializer s = new SerializerBase();
