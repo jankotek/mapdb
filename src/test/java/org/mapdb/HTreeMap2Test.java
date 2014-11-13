@@ -736,7 +736,7 @@ public class HTreeMap2Test {
     }
 
     @Test public void pump(){
-        DB db = DBMaker.newMemoryDB().make();
+        DB db = DBMaker.newMemoryDB().transactionDisable().make();
         Set<Long> s = new HashSet();
 
         for(long i=0;i<1e6;i++){
@@ -755,7 +755,7 @@ public class HTreeMap2Test {
                 .make();
 
         assertEquals(s.size(),m.size());
-        assertTrue(s.containsAll(m.keySet()));
+        assertTrue(m.keySet().containsAll(s));
 
         for(Long o:s){
             assertEquals((Long)(o*o),m.get(o));
@@ -764,7 +764,7 @@ public class HTreeMap2Test {
     }
 
     @Test public void pump_duplicates(){
-        DB db = DBMaker.newMemoryDB().make();
+        DB db = DBMaker.newMemoryDB().transactionDisable().make();
         List<Long> s = new ArrayList();
 
         for(long i=0;i<1e6;i++){
@@ -789,7 +789,7 @@ public class HTreeMap2Test {
                 .make();
 
         assertEquals(s.size()-1,m.size());
-        assertTrue(s.containsAll(m.keySet()));
+        assertTrue(m.keySet().containsAll(s));
 
         for(Long o:s){
             assertEquals((Long)(o*o),m.get(o));
@@ -799,7 +799,7 @@ public class HTreeMap2Test {
 
     @Test(expected = IllegalArgumentException.class) //TODO better exception here
     public void pump_duplicates_fail(){
-        DB db = DBMaker.newMemoryDB().make();
+        DB db = DBMaker.newMemoryDB().transactionDisable().make();
         List<Long> s = new ArrayList();
 
         for(long i=0;i<1e6;i++){
@@ -825,7 +825,7 @@ public class HTreeMap2Test {
     }
 
     @Test public void pumpset(){
-        DB db = DBMaker.newMemoryDB().make();
+        DB db = DBMaker.newMemoryDB().transactionDisable().make();
         Set<Long> s = new HashSet();
 
         for(long i=0;i<1e6;i++){
@@ -843,7 +843,7 @@ public class HTreeMap2Test {
     }
 
     @Test public void pumpset_duplicates() {
-        DB db = DBMaker.newMemoryDB().make();
+        DB db = DBMaker.newMemoryDB().transactionDisable().make();
         List<Long> s = new ArrayList();
 
         for (long i = 0; i < 1e6; i++) {
@@ -866,7 +866,7 @@ public class HTreeMap2Test {
 
     @Test(expected = IllegalArgumentException.class) //TODO better exception here
     public void pumpset_duplicates_fail(){
-        DB db = DBMaker.newMemoryDB().make();
+        DB db = DBMaker.newMemoryDB().transactionDisable().make();
         List<Long> s = new ArrayList();
 
         for(long i=0;i<1e6;i++){
