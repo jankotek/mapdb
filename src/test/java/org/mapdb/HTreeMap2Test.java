@@ -735,5 +735,155 @@ public class HTreeMap2Test {
         assertEquals(Integer.valueOf(Integer.MIN_VALUE), v1);
     }
 
+    @Test public void pump(){
+        DB db = DBMaker.newMemoryDB().make();
+        Set<Long> s = new HashSet();
+
+        for(long i=0;i<1e6;i++){
+            s.add(i);
+        }
+
+        HTreeMap<Long,Long> m = db.createHashMap("a")
+                .pumpSource(s.iterator(), new Fun.Function1<Long,Long>() {
+                    @Override
+                    public Long run(Long l) {
+                        return l*l;
+                    }
+                })
+                .keySerializer(Serializer.LONG)
+                .valueSerializer(Serializer.LONG)
+                .make();
+
+        assertEquals(s.size(),m.size());
+        assertTrue(s.containsAll(m.keySet()));
+
+        for(Long o:s){
+            assertEquals((Long)(o*o),m.get(o));
+        }
+
+    }
+
+    @Test public void pump_duplicates(){
+        DB db = DBMaker.newMemoryDB().make();
+        List<Long> s = new ArrayList();
+
+        for(long i=0;i<1e6;i++){
+            s.add(i);
+        }
+
+        s.add(-1L);
+        s.add(-1L);
+
+
+        HTreeMap<Long,Long> m = db.createHashMap("a")
+                .pumpSource(s.iterator(), new Fun.Function1<Long,Long>() {
+                    @Override
+                    public Long run(Long l) {
+                        return l*l;
+                    }
+                })
+                .pumpIgnoreDuplicates()
+                .keySerializer(Serializer.LONG)
+                .valueSerializer(Serializer.LONG)
+
+                .make();
+
+        assertEquals(s.size()-1,m.size());
+        assertTrue(s.containsAll(m.keySet()));
+
+        for(Long o:s){
+            assertEquals((Long)(o*o),m.get(o));
+        }
+
+    }
+
+    @Test(expected = IllegalArgumentException.class) //TODO better exception here
+    public void pump_duplicates_fail(){
+        DB db = DBMaker.newMemoryDB().make();
+        List<Long> s = new ArrayList();
+
+        for(long i=0;i<1e6;i++){
+            s.add(i);
+        }
+
+        s.add(-1L);
+        s.add(-1L);
+
+
+        HTreeMap<Long,Long> m = db.createHashMap("a")
+                .pumpSource(s.iterator(), new Fun.Function1<Long,Long>() {
+                    @Override
+                    public Long run(Long l) {
+                        return l*l;
+                    }
+                })
+                .keySerializer(Serializer.LONG)
+                .valueSerializer(Serializer.LONG)
+
+                .make();
+
+    }
+
+    @Test public void pumpset(){
+        DB db = DBMaker.newMemoryDB().make();
+        Set<Long> s = new HashSet();
+
+        for(long i=0;i<1e6;i++){
+            s.add(i);
+        }
+
+        Set<Long> m = db.createHashSet("a")
+                .pumpSource(s.iterator())
+                .serializer(Serializer.LONG)
+                .make();
+
+        assertEquals(s.size(),m.size());
+        assertTrue(s.containsAll(m));
+
+    }
+
+    @Test public void pumpset_duplicates() {
+        DB db = DBMaker.newMemoryDB().make();
+        List<Long> s = new ArrayList();
+
+        for (long i = 0; i < 1e6; i++) {
+            s.add(i);
+        }
+
+        s.add(-1L);
+        s.add(-1L);
+
+
+        Set<Long> m = db.createHashSet("a")
+                .pumpSource(s.iterator())
+                .pumpIgnoreDuplicates()
+                .serializer(Serializer.LONG)
+                .make();
+
+        assertEquals(s.size() - 1, m.size());
+        assertTrue(m.containsAll(s));
+    }
+
+    @Test(expected = IllegalArgumentException.class) //TODO better exception here
+    public void pumpset_duplicates_fail(){
+        DB db = DBMaker.newMemoryDB().make();
+        List<Long> s = new ArrayList();
+
+        for(long i=0;i<1e6;i++){
+            s.add(i);
+        }
+
+        s.add(-1L);
+        s.add(-1L);
+
+
+        db.createHashSet("a")
+                .pumpSource(s.iterator())
+                .serializer(Serializer.LONG)
+                .make();
+
+    }
+
+
 }
 

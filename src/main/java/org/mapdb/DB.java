@@ -153,6 +153,11 @@ public class DB implements Closeable {
 
         protected Fun.Function1<?,?> valueCreator = null;
 
+        protected Iterator pumpSource;
+        protected Fun.Function1 pumpKeyExtractor;
+        protected Fun.Function1 pumpValueExtractor;
+        protected int pumpPresortBatchSize = (int) 1e7;
+        protected boolean pumpIgnoreDuplicates = false;
 
 
 
@@ -219,6 +224,38 @@ public class DB implements Closeable {
             return this;
         }
 
+        public <K,V> HTreeMapMaker pumpSource(Iterator<K> keysSource,  Fun.Function1<V,K> valueExtractor){
+            this.pumpSource = keysSource;
+            this.pumpKeyExtractor = Fun.extractNoTransform();
+            this.pumpValueExtractor = valueExtractor;
+            return this;
+        }
+
+
+        public <K,V> HTreeMapMaker pumpSource(Iterator<Fun.Pair<K,V>> entriesSource){
+            this.pumpSource = entriesSource;
+            this.pumpKeyExtractor = Fun.extractKey();
+            this.pumpValueExtractor = Fun.extractValue();
+            return this;
+        }
+
+        public HTreeMapMaker pumpPresort(int batchSize){
+            this.pumpPresortBatchSize = batchSize;
+            return this;
+        }
+
+
+
+        /**
+         * If source iteretor contains an duplicate key, exception is thrown.
+         * This options will only use firts key and ignore any consequentive duplicates.
+         */
+        public <K> HTreeMapMaker pumpIgnoreDuplicates(){
+            this.pumpIgnoreDuplicates = true;
+            return this;
+        }
+
+
 
         public <K,V> HTreeMap<K,V> make(){
             if(expireMaxSize!=0) counter =true;
@@ -251,6 +288,11 @@ public class DB implements Closeable {
         protected long expireStoreSize = 0L;
         protected long expire = 0L;
         protected long expireAccess = 0L;
+
+        protected Iterator<?> pumpSource;
+        protected int pumpPresortBatchSize = (int) 1e7;
+        protected boolean pumpIgnoreDuplicates = false;
+
 
         /** by default collection does not have counter, without counter updates are faster, but entire collection needs to be traversed to count items.*/
         public HTreeSetMaker counterEnable(){
@@ -300,6 +342,26 @@ public class DB implements Closeable {
         /** Specifies that each entry should be automatically removed from the map once a fixed duration has elapsed after the entry's creation, the most recent replacement of its value, or its last access. Access time is reset by all map read and write operations  */
         public HTreeSetMaker expireAfterAccess(long interval){
             this.expireAccess = interval;
+            return this;
+        }
+
+
+        public HTreeSetMaker pumpSource(Iterator<?> source){
+            this.pumpSource = source;
+            return this;
+        }
+
+        /**
+         * If source iteretor contains an duplicate key, exception is thrown.
+         * This options will only use firts key and ignore any consequentive duplicates.
+         */
+        public HTreeSetMaker pumpIgnoreDuplicates(){
+            this.pumpIgnoreDuplicates = true;
+            return this;
+        }
+
+        public HTreeSetMaker pumpPresort(int batchSize){
+            this.pumpPresortBatchSize = batchSize;
             return this;
         }
 
@@ -460,6 +522,16 @@ public class DB implements Closeable {
         //$DELAY$
         catalog.put(name + ".type", "HashMap");
         namedPut(name, ret);
+
+
+        //pump data if specified2
+        if(m.pumpSource!=null) {
+            Pump.fillHTreeMap(ret, m.pumpSource,
+                    m.pumpKeyExtractor,m.pumpValueExtractor,
+                    m.pumpPresortBatchSize, m.pumpIgnoreDuplicates,
+                    getDefaultSerializer());
+        }
+
         return ret;
     }
 
@@ -557,6 +629,16 @@ public class DB implements Closeable {
         catalog.put(name + ".type", "HashSet");
         namedPut(name, ret2);
         //$DELAY$
+
+
+        //pump data if specified2
+        if(m.pumpSource!=null) {
+            Pump.fillHTreeMap(ret, m.pumpSource,
+                    (Fun.Function1)Fun.extractNoTransform(),null,
+                    m.pumpPresortBatchSize, m.pumpIgnoreDuplicates,
+                    getDefaultSerializer());
+        }
+
         return ret2;
     }
 

@@ -547,4 +547,45 @@ public final class Pump {
         };
     }
 
+    public static <K, V,A> void fillHTreeMap(final HTreeMap<K, V> m,
+                                             Iterator<A> pumpSource,
+                                             final Fun.Function1<K,A> pumpKeyExtractor,
+                                             Fun.Function1<V,A> pumpValueExtractor,
+                                             int pumpPresortBatchSize, boolean pumpIgnoreDuplicates,
+                                             Serializer<A> sortSerializer) {
+
+        //first sort by hash code
+        Comparator hashComparator = new Comparator() {
+            @Override
+            public int compare(Object o1, Object o2) {
+                o1 = pumpKeyExtractor.run((A) o1);
+                o2 = pumpKeyExtractor.run((A) o2);
+                int h1 = m.hash(o1);
+                int h2 = m.hash(o2);
+                if(h1<h2)
+                    return -1;
+                if(h1==h2)
+                    return 0;
+                return 1;
+            }
+        };
+
+        pumpSource = sort(pumpSource,false,pumpPresortBatchSize,hashComparator,sortSerializer);
+
+
+        //got sorted, now fill the map
+        while(pumpSource.hasNext()){
+            A o = pumpSource.next();
+            K key = pumpKeyExtractor.run(o);
+            V val = pumpValueExtractor==null? (V) BTreeMap.EMPTY : pumpValueExtractor.run(o);
+            if(pumpIgnoreDuplicates) {
+                m.put(key,val);
+            }else{
+                Object old = m.putIfAbsent(key,val);
+                if(old!=null)
+                    throw new IllegalArgumentException("Duplicate at: "+o.toString());
+            }
+        }
+
+    }
 }
