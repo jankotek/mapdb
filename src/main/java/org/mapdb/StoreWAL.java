@@ -32,6 +32,7 @@ public class StoreWAL extends StoreDirect {
 
 
     public static final String TRANS_LOG_FILE_EXT = ".t";
+    public static final long LOG_SEAL = 123321234423334324L;
 
     public StoreWAL(String fileName) {
         super(fileName);

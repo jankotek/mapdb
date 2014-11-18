@@ -13,7 +13,7 @@ public class TxEngineTest {
 
 
     @Before public void init(){
-        e = new TxEngine(new StoreWAL(null),false);
+        e = new TxEngine(new StoreWAL(null));
     }
 
     @Test public void update(){

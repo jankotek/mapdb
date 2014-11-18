@@ -60,6 +60,9 @@ public abstract class Store implements Engine {
 
     @Override
     public <A> A get(long recid, Serializer<A> serializer) {
+        if(serializer==null)
+            throw new NullPointerException();
+
         final Lock lock = locks[lockPos(recid)].readLock();
         lock.lock();
         try{
@@ -73,6 +76,9 @@ public abstract class Store implements Engine {
 
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
+        if(serializer==null)
+            throw new NullPointerException();
+
         //serialize outside lock
         DataIO.DataOutputByteArray out = serialize(value, serializer);
 
@@ -99,6 +105,9 @@ public abstract class Store implements Engine {
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+        if(serializer==null)
+            throw new NullPointerException();
+
         //TODO binary CAS
         final Lock lock = locks[lockPos(recid)].writeLock();
         lock.lock();
@@ -116,6 +125,9 @@ public abstract class Store implements Engine {
 
     @Override
     public <A> void delete(long recid, Serializer<A> serializer) {
+        if(serializer==null)
+            throw new NullPointerException();
+
         final Lock lock = locks[lockPos(recid)].writeLock();
         lock.lock();
         try{

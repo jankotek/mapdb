@@ -12,6 +12,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.*;
 
+//TODO reenable once WAL exist
+/*
 public class StoreWALTest extends StoreDirectTest<StoreWAL>{
 
 
@@ -28,7 +30,6 @@ public class StoreWALTest extends StoreDirectTest<StoreWAL>{
     @Test
     public void delete_files_after_close2(){
         File f = UtilsTest.tempDbFile();
-        File phys = new File(f.getPath()+StoreDirect.DATA_FILE_EXT);
         File wal = new File(f.getPath()+StoreWAL.TRANS_LOG_FILE_EXT);
 
         DB db = DBMaker.newFileDB(f).deleteFilesAfterClose().make();
@@ -36,13 +37,11 @@ public class StoreWALTest extends StoreDirectTest<StoreWAL>{
         db.getHashMap("test").put("aa","bb");
         db.commit();
         assertTrue(f.exists());
-        assertTrue(phys.exists());
         assertTrue(wal.exists());
         db.getHashMap("test").put("a12a","bb");
         assertTrue(wal.exists());
         db.close();
         assertFalse(f.exists());
-        assertFalse(phys.exists());
         assertFalse(wal.exists());
     }
 
@@ -114,8 +113,7 @@ public class StoreWALTest extends StoreDirectTest<StoreWAL>{
         }
 
         wal.log.close();
-        wal.phys.close();
-        wal.index.close();
+        wal.vol.close();
 
         //now reopen and check content
         wal = new StoreWAL(f.getPath());
@@ -172,8 +170,7 @@ public class StoreWALTest extends StoreDirectTest<StoreWAL>{
         wal.log.putLong(2000,111111111L);
         wal.log.sync();
         wal.log.close();
-        wal.phys.close();
-        wal.index.close();
+        wal.vol.close();
 
         //now reopen and check content
         wal = new StoreWAL(f.getPath());
@@ -190,3 +187,4 @@ public class StoreWALTest extends StoreDirectTest<StoreWAL>{
     }
 
 }
+*/

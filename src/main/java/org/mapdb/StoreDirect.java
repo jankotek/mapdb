@@ -9,6 +9,13 @@ import static org.mapdb.DataIO.*;
 
 public class StoreDirect extends Store {
 
+    /** 4 byte file header */
+    protected static final int HEADER = 234243482;
+
+    /** 2 byte store version*/
+    protected static final short STORE_VERSION = 10000;
+
+
     protected static final long PAGE_SIZE = 1<< CC.VOLUME_PAGE_SHIFT;
     protected static final long PAGE_MASK = PAGE_SIZE-1;
     protected static final long PAGE_MASK_INVERSE = 0xFFFFFFFFFFFFFFFFL<<CC.VOLUME_PAGE_SHIFT;
@@ -22,9 +29,9 @@ public class StoreDirect extends Store {
     protected static final long MARCHIVE = 0x2L;
     protected static final long MPARITY = 0x1L;
 
-    protected static final long HEADER = 0;
-    protected static final long HEAD_CHECKSUM =4;
-    protected static final long FORMAT_FEATURES =8*1;
+
+    protected static final long HEAD_CHECKSUM = 4;
+    protected static final long FORMAT_FEATURES = 8*1;
     protected static final long STORE_SIZE = 8*2;
     /** offset of maximal allocated recid. It is <<3 parity1*/
     protected static final long MAX_RECID_OFFSET = 8*3;

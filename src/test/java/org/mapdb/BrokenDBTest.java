@@ -62,12 +62,13 @@ public class BrokenDBTest {
         // init empty, but valid DB
         DBMaker.newFileDB(index).make().close();
 
-        // trash the log
-        MappedFileVol physVol = new Volume.MappedFileVol(data, false, CC.VOLUME_PAGE_SHIFT,0);
+        // corrupt file
+        MappedFileVol physVol = new Volume.MappedFileVol(index, false, CC.VOLUME_PAGE_SHIFT,0);
         physVol.ensureAvailable(32);
-        physVol.putInt(0, StoreDirect.HEADER);
-        physVol.putUnsignedShort(4, StoreDirect.STORE_VERSION);
-        physVol.putLong(8, StoreWAL.LOG_SEAL);
+        //TODO corrupt file somehow
+//        physVol.putInt(0, StoreDirect.HEADER);
+//        physVol.putUnsignedShort(4, StoreDirect.STORE_VERSION);
+//        physVol.putLong(8, StoreWAL.LOG_SEAL);
         physVol.putLong(16, 123456789L);
         physVol.sync();
         physVol.close();
@@ -121,7 +122,7 @@ public class BrokenDBTest {
         db.close();
 
         // Fudge the content so that the data refers to an undefined field in SomeDataObject.
-        RandomAccessFile dataFile = new RandomAccessFile(data, "rw");
+        RandomAccessFile dataFile = new RandomAccessFile(index, "rw");
         byte grep[] = "someField".getBytes();
         int p = 0, read;
         while ((read = dataFile.read()) >= 0)
