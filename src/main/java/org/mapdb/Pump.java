@@ -25,30 +25,6 @@ import java.util.*;
  */
 public final class Pump {
 
-    /** copies all data from first DB to second DB */
-    //TODO Pump between stores is disabled for now, make this method public once enabled
-    static void copy(DB db1, DB db2){
-        copy(Store.forDB(db1), Store.forDB(db2));
-        db2.engine.clearCache();
-        db2.reinit();
-    }
-
-    /** copies all data from first store to second store */
-    //TODO Pump between stores is disabled for now, make this method public once enabled
-    static void copy(Store s1, Store s2){
-        long maxRecid =s1.getMaxRecid();
-        for(long recid=1;recid<=maxRecid;recid++){
-            ByteBuffer bb = s1.getRaw(recid);
-            //System.out.println(recid+" - "+(bb==null?0:bb.remaining()));
-            if(bb==null) continue;
-            s2.updateRaw(recid, bb);
-        }
-
-        //now release unused recids
-        for(Iterator<Long> iter = s1.getFreeRecids(); iter.hasNext();){
-            s2.delete(iter.next(), null);
-        }
-    }
 
 
 
@@ -587,5 +563,9 @@ public final class Pump {
             }
         }
 
+    }
+
+    public static void copy(DB src, DB target) {
+        //TODO implement
     }
 }

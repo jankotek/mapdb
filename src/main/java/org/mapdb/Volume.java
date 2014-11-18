@@ -100,69 +100,10 @@ public abstract class Volume implements Closeable{
         putByte(offset, (byte)(b & 0xff));
     }
 
-    /**
-     * Reads a long from the indicated position
-     */
-    public long getSixLong(long pos) {
-        return
-                ((long) (getByte(pos + 0) & 0xff) << 40) |
-                        ((long) (getByte(pos + 1) & 0xff) << 32) |
-                        ((long) (getByte(pos + 2) & 0xff) << 24) |
-                        ((long) (getByte(pos + 3) & 0xff) << 16) |
-                        ((long) (getByte(pos + 4) & 0xff) << 8) |
-                        ((long) (getByte(pos + 5) & 0xff) << 0);
-    }
-
-    /**
-     * Writes a long to the indicated position
-     */
-    public void putSixLong(long pos, long value) {
-        if(CC.PARANOID && ! (value>=0 && (value>>>6*8)==0))
-            throw new AssertionError("value does not fit");
-        //TODO read/write as integer+short, might be faster
-        putByte(pos + 0, (byte) (0xff & (value >> 40)));
-        putByte(pos + 1, (byte) (0xff & (value >> 32)));
-        putByte(pos + 2, (byte) (0xff & (value >> 24)));
-        putByte(pos + 3, (byte) (0xff & (value >> 16)));
-        putByte(pos + 4, (byte) (0xff & (value >> 8)));
-        putByte(pos + 5, (byte) (0xff & (value >> 0)));
-
-    }
-
-    /**
-     * Writes packed long at given position and returns number of bytes used.
-     */
-    public int putPackedLong(long pos, long value) {
-        if(CC.PARANOID && ! (value>=0))
-            throw new AssertionError("negative value");
-
-        int ret = 0;
-
-        while ((value & ~0x7FL) != 0) {
-            putUnsignedByte(pos+(ret++), (((int) value & 0x7F) | 0x80));
-            value >>>= 7;
-        }
-        putUnsignedByte(pos + (ret++), (byte) value);
-        return ret;
-    }
-
 
 
     /** returns underlying file if it exists */
     abstract public File getFile();
-
-    public long getPackedLong(long pos){
-        //TODO unrolled version?
-        long result = 0;
-        for (int offset = 0; offset < 64; offset += 7) {
-            long b = getUnsignedByte(pos++);
-            result |= (b & 0x7F) << offset;
-            if ((b & 0x80) == 0) {
-                return result;
-            }
-        }
-        throw new AssertionError("Malformed long.");
-    }
 
     /**
      * Transfers data from this Volume into target volume.
@@ -192,16 +133,26 @@ public abstract class Volume implements Closeable{
                 new MappedFileVol(f, readOnly,sliceShift, sizeIncrement);
     }
 
+    /**
+     * Set all bytes between {@code startOffset} and {@code endOffset} to zero.
+     * Area between offsets must be ready for write once clear finishes.
+     */
+    public void clear(long startOffset, long endOffset) {
+        for(long i=startOffset;i<endOffset;i++){
+            putUnsignedByte(i, 0); //TODO optimize by copying array
+        }
+    }
+
 
     public static Fun.Function1<Volume,String> fileFactory(){
-        return fileFactory(false,false,CC.VOLUME_SLICE_SHIFT,0);
+        return fileFactory(false,false,CC.VOLUME_PAGE_SHIFT,0);
     }
 
     public static Fun.Function1<Volume,String> fileFactory(
-                                      final boolean useRandomAccessFile,
-                                      final boolean readOnly,
-                                      final int sliceShift,
-                                      final int sizeIncrement) {
+            final boolean useRandomAccessFile,
+            final boolean readOnly,
+            final int sliceShift,
+            final int sizeIncrement) {
         return new Fun.Function1<Volume, String>() {
             @Override
             public Volume run(String file) {
@@ -213,7 +164,7 @@ public abstract class Volume implements Closeable{
 
 
     public static Fun.Function1<Volume,String> memoryFactory(){
-        return memoryFactory(false,CC.VOLUME_SLICE_SHIFT);
+        return memoryFactory(false,CC.VOLUME_PAGE_SHIFT);
     }
 
     public static Fun.Function1<Volume,String> memoryFactory(
@@ -732,26 +683,6 @@ public abstract class Volume implements Closeable{
             }
         }
 
-        @Override
-        public final void putSixLong(long offset, long value) {
-            if(CC.PARANOID && ! (value>=0 && (value>>>6*8)==0))
-                throw new AssertionError("value does not fit");
-
-            try{
-
-                ByteBuffer buf = ByteBuffer.allocate(6);
-                buf.put(0, (byte) (0xff & (value >> 40)));
-                buf.put(1, (byte) (0xff & (value >> 32)));
-                buf.put(2, (byte) (0xff & (value >> 24)));
-                buf.put(3, (byte) (0xff & (value >> 16)));
-                buf.put(4, (byte) (0xff & (value >> 8)));
-                buf.put(5, (byte) (0xff & (value >> 0)));
-
-                writeFully(offset, buf);
-            }catch(IOException e){
-                handleIOException(e);
-            }
-        }
 
         @Override
         public void putLong(long offset, long value) {
@@ -813,25 +744,6 @@ public abstract class Volume implements Closeable{
                 remaining-=read;
             }
         }
-
-        @Override
-        public final long getSixLong(long offset) {
-            try{
-                ByteBuffer buf = ByteBuffer.allocate(6);
-                readFully(offset,buf);
-                return ((long) (buf.get(0) & 0xff) << 40) |
-                        ((long) (buf.get(1) & 0xff) << 32) |
-                        ((long) (buf.get(2) & 0xff) << 24) |
-                        ((long) (buf.get(3) & 0xff) << 16) |
-                        ((long) (buf.get(4) & 0xff) << 8) |
-                        ((long) (buf.get(5) & 0xff) << 0);
-
-            }catch(IOException e){
-                handleIOException(e);
-                throw new IllegalStateException(); //satisfy compiler
-            }
-        }
-
 
         @Override
         public long getLong(long offset) {
@@ -1260,6 +1172,182 @@ public abstract class Volume implements Closeable{
         @Override
         public File getFile() {
             return vol.getFile();
+        }
+    }
+
+
+    public static final class RandomAccessFileVol extends Volume{
+
+        protected final File file;
+        protected final RandomAccessFile raf;
+
+        public RandomAccessFileVol(File file, boolean readOnly) {
+            this.file = file;
+            try {
+                this.raf = new RandomAccessFile(file,readOnly?"r":"w");
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+        }
+
+        @Override
+        public void ensureAvailable(long offset) {
+            //TODO ensure avail
+        }
+
+        @Override
+        public void truncate(long size) {
+            try {
+                raf.setLength(size);
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+        }
+
+        @Override
+        public synchronized void putLong(long offset, long value) {
+            try {
+                raf.seek(offset);
+                raf.writeLong(value);
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+        }
+
+
+        @Override
+        public synchronized  void putInt(long offset, int value) {
+            try {
+                raf.seek(offset);
+                raf.writeInt(value);
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+
+        }
+
+        @Override
+        public  synchronized void putByte(long offset, byte value) {
+            try {
+                raf.seek(offset);
+                raf.writeByte(value);
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+
+        }
+
+        @Override
+        public  synchronized void putData(long offset, byte[] src, int srcPos, int srcSize) {
+            try {
+                raf.seek(offset);
+                raf.write(src,srcPos,srcSize);
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+        }
+
+        @Override
+        public synchronized void putData(long offset, ByteBuffer buf) {
+            byte[] bb = buf.array();
+            int pos = buf.position();
+            int size = buf.limit()-pos;
+            if(bb==null) {
+                bb = new byte[size];
+                buf.get(bb);
+                pos = 0;
+            }
+            putData(offset,bb,pos, size);
+        }
+
+        @Override
+        public synchronized long getLong(long offset) {
+            try {
+                raf.seek(offset);
+                return raf.readLong();
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+        }
+
+        @Override
+        public synchronized int getInt(long offset) {
+            try {
+                raf.seek(offset);
+                return raf.readInt();
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+
+        }
+
+        @Override
+        public synchronized byte getByte(long offset) {
+            try {
+                raf.seek(offset);
+                return raf.readByte();
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+        }
+
+        @Override
+        public synchronized DataInput getDataInput(long offset, int size) {
+            try {
+                raf.seek(offset);
+                byte[] b = new byte[size];
+                raf.read(b);
+                return new DataIO.DataInputByteArray(b);
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+        }
+
+        @Override
+        public void close() {
+            try {
+                raf.close();
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+        }
+
+        @Override
+        public void sync() {
+            try {
+                raf.getFD().sync();
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+        }
+
+        @Override
+        public int sliceSize() {
+            return 0;
+        }
+
+        @Override
+        public boolean isEmpty() {
+            try {
+                return raf.length()==0;
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+        }
+
+        @Override
+        public void deleteFile() {
+            file.delete();
+        }
+
+        @Override
+        public boolean isSliced() {
+            return false;
+        }
+
+        @Override
+        public File getFile() {
+            return file;
         }
     }
 }

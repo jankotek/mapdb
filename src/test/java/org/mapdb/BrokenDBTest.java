@@ -11,13 +11,11 @@ import java.util.Arrays;
 
 public class BrokenDBTest {
     File index;
-    File data;
     File log;
 
     @Before
     public void before() throws IOException {
         index = UtilsTest.tempDbFile();
-        data = new File(index.getPath() + StoreDirect.DATA_FILE_EXT);
         log = new File(index.getPath() + StoreWAL.TRANS_LOG_FILE_EXT);
     }
 
@@ -30,7 +28,7 @@ public class BrokenDBTest {
      */
     @Test
     public void canDeleteDBOnBrokenIndex() throws FileNotFoundException, IOException {
-        for (final File f : Arrays.asList(index, data, log)) {
+        for (final File f : Arrays.asList(index, log)) {
             final FileOutputStream fos = new FileOutputStream(f);
             fos.write("Some Junk".getBytes());
             fos.close();
@@ -45,12 +43,10 @@ public class BrokenDBTest {
         }
 
         index.delete();
-        data.delete();
         log.delete();
 
         // assert that we can delete the db files
         Assert.assertFalse("Can't delete index", index.exists());
-        Assert.assertFalse("Can't delete data", data.exists());
         Assert.assertFalse("Can't delete log", log.exists());
     }
 
@@ -67,10 +63,10 @@ public class BrokenDBTest {
         DBMaker.newFileDB(index).make().close();
 
         // trash the log
-        MappedFileVol physVol = new Volume.MappedFileVol(data, false, CC.VOLUME_SLICE_SHIFT,0);
+        MappedFileVol physVol = new Volume.MappedFileVol(data, false, CC.VOLUME_PAGE_SHIFT,0);
         physVol.ensureAvailable(32);
-        physVol.putInt(0, StoreWAL.HEADER);
-        physVol.putUnsignedShort(4, StoreWAL.STORE_VERSION);
+        physVol.putInt(0, StoreDirect.HEADER);
+        physVol.putUnsignedShort(4, StoreDirect.STORE_VERSION);
         physVol.putLong(8, StoreWAL.LOG_SEAL);
         physVol.putLong(16, 123456789L);
         physVol.sync();
@@ -85,12 +81,10 @@ public class BrokenDBTest {
         }
 
         index.delete();
-        data.delete();
         log.delete();
 
         // assert that we can delete the db files
         Assert.assertFalse("Can't delete index", index.exists());
-        Assert.assertFalse("Can't delete data", data.exists());
         Assert.assertFalse("Can't delete log", log.exists());
     }
 
@@ -98,8 +92,6 @@ public class BrokenDBTest {
     public void after() throws IOException {
         if (index != null)
             index.deleteOnExit();
-        if (data != null)
-            data.deleteOnExit();
         if (log != null)
             log.deleteOnExit();
     }
@@ -152,12 +144,10 @@ public class BrokenDBTest {
         }
 
         index.delete();
-        data.delete();
         log.delete();
 
         // assert that we can delete the db files
         Assert.assertFalse("Can't delete index", index.exists());
-        Assert.assertFalse("Can't delete data", data.exists());
         Assert.assertFalse("Can't delete log", log.exists());
     }
 }

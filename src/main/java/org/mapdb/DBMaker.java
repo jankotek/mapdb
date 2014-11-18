@@ -50,7 +50,6 @@ public class DBMaker{
 
         String volume = "volume";
         String volume_raf = "raf";
-        String volume_mmapfPartial = "mmapfPartial";
         String volume_mmapfIfSupported = "mmapfIfSupported";
         String volume_mmapf = "mmapf";
         String volume_byteBuffer = "byteBuffer";
@@ -403,25 +402,6 @@ public class DBMaker{
         return this;
     }
 
-
-    /**
-     *  Keeps small-frequently-used part of storage files memory mapped, but main area is accessed using Random Access File.
-     *
-     *  This mode is good performance compromise between Memory Mapped Files and old slow Random Access Files.
-     *
-     *  Index file is typically 5% of storage. It contains small frequently read values,
-     *  which is where memory mapped file excel.
-     *
-     *  With this mode you will experience `java.lang.OutOfMemoryError: Map failed` exceptions on 32bit JVMs
-     *  eventually. But storage size limit is pushed to somewhere around 40GB.
-     *
-     */
-    public DBMaker mmapFileEnablePartial() {
-        assertNotInMemoryVolume();
-        props.setProperty(Keys.volume,Keys.volume_mmapfPartial);
-        return this;
-    }
-
     private void assertNotInMemoryVolume() {
         if(Keys.volume_byteBuffer.equals(props.getProperty(Keys.volume)) ||
            Keys.volume_directByteBuffer.equals(props.getProperty(Keys.volume)))
@@ -719,10 +699,9 @@ public class DBMaker{
 
         }else{
             Fun.Function1<Volume, String> volFac = extendStoreVolumeFactory(false);
-            Fun.Function1<Volume, String> indexVolFac = extendStoreVolumeFactory(true);
             engine = propsGetBool(Keys.transactionDisable) ?
-                    extendStoreDirect(file, volFac,indexVolFac):
-                    extendStoreWAL(file, volFac, indexVolFac);
+                    extendStoreDirect(file, volFac):
+                    extendStoreWAL(file, volFac);
         }
 
         engine = extendWrapStore(engine);
@@ -836,8 +815,9 @@ public class DBMaker{
             return 2;
         }else if(Keys.volume_mmapfIfSupported.equals(volume)){
             return JVMSupportsLargeMappedFiles()?0:2;
-        }else if(Keys.volume_mmapfPartial.equals(volume)){
-            return 1;
+            //TODO clear mmap values
+//        }else if(Keys.volume_mmapfPartial.equals(volume)){
+//            return 1;
         }else if(Keys.volume_mmapf.equals(volume)){
             return 0;
         }
@@ -846,7 +826,8 @@ public class DBMaker{
 
 
     protected Engine extendSnapshotEngine(Engine engine) {
-        return new TxEngine(engine,propsGetBool(Keys.fullTx));
+        return null; //TODO tx
+//        return new TxEngine(engine,propsGetBool(Keys.fullTx));
     }
 
     protected Engine extendCacheLRU(Engine engine) {
@@ -875,10 +856,12 @@ public class DBMaker{
     }
 
     protected Engine extendAsyncWriteEngine(Engine engine) {
-        return new AsyncWriteEngine(engine,
-                propsGetInt(Keys.asyncWriteFlushDelay,CC.ASYNC_WRITE_FLUSH_DELAY),
-                propsGetInt(Keys.asyncWriteQueueSize,CC.ASYNC_WRITE_QUEUE_SIZE),
-                null);
+        return engine;
+        //TODO async write
+//        return new AsyncWriteEngine(engine,
+//                propsGetInt(Keys.asyncWriteFlushDelay,CC.ASYNC_WRITE_FLUSH_DELAY),
+//                propsGetInt(Keys.asyncWriteQueueSize,CC.ASYNC_WRITE_QUEUE_SIZE),
+//                null);
     }
 
 
@@ -900,67 +883,69 @@ public class DBMaker{
 
 
     protected Engine extendHeapStore() {
-        return new StoreHeap();
+        return new StoreHeap(propsGetBool(Keys.transactionDisable));
     }
 
     protected Engine extendStoreAppend(String fileName, Fun.Function1<Volume,String> volumeFactory) {
         boolean compressionEnabled = Keys.compression_lzf.equals(props.getProperty(Keys.compression));
-        return new StoreAppend(fileName, volumeFactory,
-                propsGetRafMode()>0, propsGetBool(Keys.readOnly),
-                propsGetBool(Keys.transactionDisable),
-                propsGetBool(Keys.deleteFilesAfterClose),
-                propsGetBool(Keys.commitFileSyncDisable),
-                propsGetBool(Keys.checksum),compressionEnabled,propsGetXteaEncKey());
+        return null;
+//        return new StoreAppend(fileName, volumeFactory,
+//                propsGetRafMode()>0, propsGetBool(Keys.readOnly),
+//                propsGetBool(Keys.transactionDisable),
+//                propsGetBool(Keys.deleteFilesAfterClose),
+//                propsGetBool(Keys.commitFileSyncDisable),
+//                propsGetBool(Keys.checksum),compressionEnabled,propsGetXteaEncKey());
     }
 
     protected Engine extendStoreDirect(
             String fileName,
-            Fun.Function1<Volume,String> volumeFactory,
-            Fun.Function1<Volume,String> indexVolumeFactory) {
+            Fun.Function1<Volume,String> volumeFactory) {
         boolean compressionEnabled = Keys.compression_lzf.equals(props.getProperty(Keys.compression));
         return new StoreDirect(
                 fileName,
                 volumeFactory,
-                indexVolumeFactory,
+                propsGetBool(Keys.checksum),
+                compressionEnabled,
+                propsGetXteaEncKey(),
                 propsGetBool(Keys.readOnly),
                 propsGetBool(Keys.deleteFilesAfterClose),
                 propsGetInt(Keys.freeSpaceReclaimQ,CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
                 propsGetBool(Keys.commitFileSyncDisable),
-                propsGetBool(Keys.checksum),compressionEnabled,propsGetXteaEncKey(),
+
                 0);
     }
 
     protected Engine extendStoreWAL(
             String fileName,
-            Fun.Function1<Volume,String> volumeFactory,
-            Fun.Function1<Volume,String> indexVolumeFactory) {
+            Fun.Function1<Volume,String> volumeFactory) {
         boolean compressionEnabled = Keys.compression_lzf.equals(props.getProperty(Keys.compression));
-        return new StoreWAL(
-                fileName,
-                volumeFactory,
-                indexVolumeFactory,
-                propsGetBool(Keys.readOnly),
-                propsGetBool(Keys.deleteFilesAfterClose),
-                propsGetInt(Keys.freeSpaceReclaimQ,CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
-                propsGetBool(Keys.commitFileSyncDisable),
-                propsGetBool(Keys.checksum),compressionEnabled,propsGetXteaEncKey(),
-                0);
+        return null;
+
+//        return new StoreWAL(
+//                fileName,
+//                volumeFactory,
+//                propsGetBool(Keys.readOnly),
+//                propsGetBool(Keys.deleteFilesAfterClose),
+//                propsGetInt(Keys.freeSpaceReclaimQ,CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
+//                propsGetBool(Keys.commitFileSyncDisable),
+//                propsGetBool(Keys.checksum),compressionEnabled,propsGetXteaEncKey(),
+//                0);
     }
 
 
     protected Fun.Function1<Volume,String>  extendStoreVolumeFactory(boolean index) {
         String volume = props.getProperty(Keys.volume);
         if(Keys.volume_byteBuffer.equals(volume))
-            return Volume.memoryFactory(false,CC.VOLUME_SLICE_SHIFT);
+            return Volume.memoryFactory(false,CC.VOLUME_PAGE_SHIFT);
         else if(Keys.volume_directByteBuffer.equals(volume))
-            return Volume.memoryFactory(true,CC.VOLUME_SLICE_SHIFT);
+            return Volume.memoryFactory(true,CC.VOLUME_PAGE_SHIFT);
 
         boolean raf = propsGetRafMode()!=0;
         if(raf && index && propsGetRafMode()==1)
             raf = false;
 
         return Volume.fileFactory(raf, propsGetBool(Keys.readOnly),
-                CC.VOLUME_SLICE_SHIFT,0);
+                CC.VOLUME_PAGE_SHIFT,0);
     }
 
     protected static String toHexa( byte [] bb ) {

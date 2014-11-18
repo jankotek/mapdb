@@ -68,7 +68,7 @@ import java.io.Closeable;
 public interface Engine  extends Closeable {
 
     /**
-    long CLASS_INFO_RECID = 2;
+     long CLASS_INFO_RECID = 2;
      * Content of this map is manipulated by {@link org.mapdb.DB} classs.
      * <p>
      * There are 8 reserved record ids. They store information relevant to
@@ -196,7 +196,7 @@ public interface Engine  extends Closeable {
      *
      * @param recid (record identifier) under which was record persisted
      * @param serializer which may be used in some circumstances to deserialize and store old object
-      * @throws java.lang.NullPointerException if serializer is null
+     * @throws java.lang.NullPointerException if serializer is null
      */
     <A> void delete(long recid, Serializer<A>  serializer);
 
@@ -262,14 +262,5 @@ public interface Engine  extends Closeable {
     void clearCache();
 
     void compact();
-
-    /**
-     * Returns default serializer associated with this engine.
-     * The default serializer will be moved from Engine into DB, so it is deprecated now and
-     * this method will be removed.
-     *
-     */
-    @Deprecated
-    SerializerPojo getSerializerPojo();
 
 }

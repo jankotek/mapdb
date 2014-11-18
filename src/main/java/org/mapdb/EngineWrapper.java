@@ -132,11 +132,6 @@ public class EngineWrapper implements Engine{
         getWrappedEngine().compact();
     }
 
-    @Override
-    public  SerializerPojo getSerializerPojo() {
-        return getWrappedEngine().getSerializerPojo();
-    }
-
 
     public Engine getWrappedEngine(){
         return checkClosed(engine);
@@ -511,11 +506,6 @@ public class EngineWrapper implements Engine{
 
         @Override
         public void compact() {
-            throw new IllegalAccessError("already closed");
-        }
-
-        @Override
-        public SerializerPojo getSerializerPojo() {
             throw new IllegalAccessError("already closed");
         }
 

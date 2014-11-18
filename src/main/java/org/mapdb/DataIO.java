@@ -60,6 +60,8 @@ public final class DataIO {
         do {
             b = is.readUnsignedByte();
             result |= (b & 0x7F) << offset;
+            if(CC.PARANOID && offset>32)
+                throw new AssertionError();
             offset += 7;
         }while((b & 0x80) != 0);
         return result;
@@ -84,22 +86,14 @@ public final class DataIO {
             //$DELAY$
             b = in.readUnsignedByte();
             result |= (b & 0x7F) << offset;
+            if(CC.PARANOID && offset>64)
+                throw new AssertionError();
             offset += 7;
         }while((b & 0x80) != 0);
         //$DELAY$
         return result;
     }
 
-    public static int nextPowTwo(final int a)
-    {
-        //$DELAY$
-        int b = 1;
-        while (b < a)
-        {
-            b = b << 1;
-        }
-        return b;
-    }
 
     /**
      * Pack long into output stream.
@@ -158,6 +152,74 @@ public final class DataIO {
         //$DELAY$
         h ^= (h >>> 20) ^ (h >>> 12);
         return h ^ (h >>> 7) ^ (h >>> 4);
+    }
+
+
+    public static int packLongBidi(DataOutput out, long value) throws IOException {
+        out.write((((int) value & 0x7F)));
+        value >>>= 7;
+        int counter = 2;
+
+        //$DELAY$
+        while ((value & ~0x7FL) != 0) {
+            out.write((((int) value & 0x7F) | 0x80));
+            value >>>= 7;
+            //$DELAY$
+            counter++;
+        }
+        //$DELAY$
+        out.write((byte) value);
+        return counter;
+    }
+
+    public static long unpackLongBidi(byte[] bb, int pos) throws IOException {
+        //$DELAY$
+        long b = bb[pos++];
+        if(CC.PARANOID && (b&0x80)!=0)
+            throw new AssertionError();
+        long result = (b & 0x7F) ;
+        int offset = 7;
+        do {
+            //$DELAY$
+            b = bb[pos++];
+            result |= (b & 0x7F) << offset;
+            if(CC.PARANOID && offset>64)
+                throw new AssertionError();
+            offset += 7;
+        }while((b & 0x80) != 0);
+        //$DELAY$
+        return (((long)(offset/7))<<56) | result;
+    }
+
+
+    public static long unpackLongBidiReverse(byte[] bb, int pos) throws IOException {
+        //$DELAY$
+        long b = bb[--pos];
+        if(CC.PARANOID && (b&0x80)!=0)
+            throw new AssertionError();
+        long result = (b & 0x7F) ;
+        int counter = 1;
+        do {
+            //$DELAY$
+            b = bb[--pos];
+            result = (b & 0x7F) | (result<<7);
+            if(CC.PARANOID && counter>8)
+                throw new AssertionError();
+            counter++;
+        }while((b & 0x80) != 0);
+        //$DELAY$
+        return (((long)counter)<<56) | result;
+    }
+
+    public static int nextPowTwo(final int a)
+    {
+        //$DELAY$
+        int b = 1;
+        while (b < a)
+        {
+            b = b << 1;
+        }
+        return b;
     }
 
 
@@ -507,9 +569,7 @@ public final class DataIO {
 
         @Override
         public String readUTF() throws IOException {
-            final int size = unpackInt(this);
-            //$DELAY$
-            return SerializerBase.deserializeString(this, size);
+            throw new UnsupportedEncodingException();
         }
 
 
@@ -708,5 +768,48 @@ public final class DataIO {
         }
 
     }
+
+
+    public static long parity1Set(long i) {
+        if(CC.PARANOID && (i&1)!=0)
+            throw new InternalError("Parity error");
+        return i | ((Long.bitCount(i)+1)%2);
+    }
+
+    public static long parity1Get(long i) {
+        if(Long.bitCount(i)%2!=1){
+            throw new InternalError("bit parity error");
+        }
+        return i&0xFFFFFFFFFFFFFFFEL;
+    }
+
+    public static long parity3Set(long i) {
+        if(CC.PARANOID && (i&0x7)!=0)
+            throw new InternalError("Parity error"); //TODO stronger parity
+        return i | ((Long.bitCount(i)+1)%2);
+    }
+
+    public static long parity3Get(long i) {
+        if(Long.bitCount(i)%2!=1){
+            throw new InternalError("bit parity error");
+        }
+        return i&0xFFFFFFFFFFFFFFFEL;
+    }
+
+    public static long parity16Set(long i) {
+        if(CC.PARANOID && (i&0xFF)!=0)
+            throw new InternalError("Parity error"); //TODO stronger parity
+        return i | ((Long.bitCount(i)+1)%2);
+    }
+
+    public static long parity16Get(long i) {
+        if(Long.bitCount(i)%2!=1){
+            throw new InternalError("bit parity error");
+        }
+        return i&0xFFFFFFFFFFFFFFFEL;
+    }
+
+
+
 
 }

@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 
 import static org.junit.Assert.*;
-
+/* TODO append tests
 @SuppressWarnings({"rawtypes","unchecked"})
 public class StoreAppendTest<E extends StoreAppend> extends EngineTest<E>{
 
@@ -110,3 +110,4 @@ public class StoreAppendTest<E extends StoreAppend> extends EngineTest<E>{
         //TODO ignored test
     }
 }
+*/

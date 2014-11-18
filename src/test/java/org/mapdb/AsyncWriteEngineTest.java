@@ -17,6 +17,7 @@ import static org.junit.Assert.*;
 /**
 * @author Jan Kotek
 */
+/*
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class AsyncWriteEngineTest{
 
@@ -136,3 +137,4 @@ public class AsyncWriteEngineTest{
     }
 
 }
+*/

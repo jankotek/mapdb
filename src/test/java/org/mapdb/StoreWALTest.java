@@ -55,7 +55,7 @@ public class StoreWALTest extends StoreDirectTest<StoreWAL>{
 
         //increment store version
         File index = new File(f.getPath()+StoreWAL.TRANS_LOG_FILE_EXT);
-        Volume v = Volume.volumeForFile(index,true,false,CC.VOLUME_SLICE_SHIFT,0);
+        Volume v = Volume.volumeForFile(index,true,false,CC.VOLUME_PAGE_SHIFT,0);
         v.ensureAvailable(100);
         v.putInt(0,StoreWAL.HEADER);
         v.putUnsignedShort(4,StoreDirect.STORE_VERSION+1);
