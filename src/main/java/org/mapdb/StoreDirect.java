@@ -133,7 +133,9 @@ public class StoreDirect extends Store {
     }
 
     public StoreDirect(String fileName) {
-        super(fileName, fileName==null? Volume.memoryFactory() : Volume.fileFactory(),false,false,null,false);
+        this(fileName, fileName==null? Volume.memoryFactory() : Volume.fileFactory(),
+                false,false,null,false,false,0,
+                false,0);
     }
 
     protected int headChecksum() {
