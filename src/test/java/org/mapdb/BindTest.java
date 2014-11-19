@@ -20,7 +20,7 @@ public class BindTest {
 
     @Before
     public void init(){
-        m = DBMaker.newMemoryDB().make().getTreeMap("test");
+        m = DBMaker.newMemoryDB().transactionDisable().make().getTreeMap("test");
     }
 
 

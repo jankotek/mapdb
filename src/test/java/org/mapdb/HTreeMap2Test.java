@@ -23,7 +23,7 @@ public class HTreeMap2Test {
     DB db;
 
     @Before public void init2(){
-        engine = DBMaker.newMemoryDB().cacheDisable().makeEngine();
+        engine = DBMaker.newMemoryDB().transactionDisable().cacheDisable().makeEngine();
         db = new DB(engine);;
     }
 

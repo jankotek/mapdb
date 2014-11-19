@@ -77,12 +77,12 @@ public class BTreeMapNavigableTest extends TestCase {
 
 
     protected NavigableMap<String, String> newMap() {
-            return DBMaker.newMemoryDB().make().createTreeMap("map").make();
+            return DBMaker.newMemoryDB().transactionDisable().make().createTreeMap("map").make();
     }
 
     public static class Outside extends BTreeMapNavigableTest{
         @Override protected NavigableMap<String, String> newMap() {
-            return DBMaker.newMemoryDB().make().createTreeMap("map").valuesOutsideNodesEnable().make();
+            return DBMaker.newMemoryDB().transactionDisable().make().createTreeMap("map").valuesOutsideNodesEnable().make();
         }
     }
 

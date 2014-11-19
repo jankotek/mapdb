@@ -283,7 +283,7 @@ public class BTreeMapTest{
 
     @Test public void issue_38(){
         Map<Integer, String[]> map = DBMaker
-                .newMemoryDB()
+                .newMemoryDB().transactionDisable()
                 .make().getTreeMap("test");
 
         for (int i = 0; i < 50000; i++) {
@@ -390,7 +390,7 @@ public class BTreeMapTest{
     }
 
     @Test public void mod_listener_lock(){
-        DB db = DBMaker.newMemoryDB().make();
+        DB db = DBMaker.newMemoryDB().transactionDisable().make();
         final BTreeMap m = db.getTreeMap("name");
 
         final long rootRecid = db.getEngine().get(m.rootRecidRef, Serializer.LONG);
@@ -422,7 +422,7 @@ public class BTreeMapTest{
 
 
     @Test public void concurrent_last_key(){
-        DB db = DBMaker.newMemoryDB().make();
+        DB db = DBMaker.newMemoryDB().transactionDisable().make();
         final BTreeMap m = db.getTreeMap("name");
 
         //fill
@@ -446,7 +446,7 @@ public class BTreeMapTest{
     }
 
     @Test public void concurrent_first_key(){
-        DB db = DBMaker.newMemoryDB().make();
+        DB db = DBMaker.newMemoryDB().transactionDisable().make();
         final BTreeMap m = db.getTreeMap("name");
 
         //fill
@@ -473,7 +473,7 @@ public class BTreeMapTest{
         int numberOfRecords = 1000;
 
         /** Creates connections to MapDB */
-        DB db1 = DBMaker.newMemoryDB().make();
+        DB db1 = DBMaker.newMemoryDB().transactionDisable().make();
 
 
         /** Creates maps */
@@ -506,7 +506,7 @@ public class BTreeMapTest{
         int numberOfRecords = 1000;
 
         /** Creates connections to MapDB */
-        DB db1 = DBMaker.newMemoryDB().make();
+        DB db1 = DBMaker.newMemoryDB().transactionDisable().make();
 
 
         /** Creates maps */
@@ -537,7 +537,7 @@ public class BTreeMapTest{
         int numberOfRecords = 1000;
 
         /** Creates connections to MapDB */
-        DB db1 = DBMaker.newMemoryDB().make();
+        DB db1 = DBMaker.newMemoryDB().transactionDisable().make();
 
 
         /** Creates maps */
@@ -570,7 +570,7 @@ public class BTreeMapTest{
         int numberOfRecords = 1000;
 
         /** Creates connections to MapDB */
-        DB db1 = DBMaker.newMemoryDB().make();
+        DB db1 = DBMaker.newMemoryDB().transactionDisable().make();
 
 
         /** Creates maps */

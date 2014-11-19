@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -48,7 +49,7 @@ public class DB implements Closeable {
     protected SortedMap<String, Object> catalog;
 
     protected final Fun.ThreadFactory threadFactory = Fun.ThreadFactory.BASIC;
-    protected Serializer serializerPojo;
+    protected SerializerPojo serializerPojo;
 
     protected static class IdentityWrapper{
 
@@ -85,11 +86,12 @@ public class DB implements Closeable {
         }
         this.engine = engine;
         this.strictDBGet = strictDBGet;
-        //TODO init serializer pojo
-        //engine.getSerializerPojo().setDb(this);
-        //$DELAY$
         reinit();
-        //$DELAY$
+        final CopyOnWriteArrayList<SerializerPojo.ClassInfo> classInfos =
+                engine.get(Engine.RECID_CLASS_CATALOG,
+                SerializerPojo.serializer);
+        serializerPojo = new SerializerPojo(classInfos);
+        serializerPojo.setDb(this);
     }
 
     protected void reinit() {

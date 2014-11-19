@@ -888,7 +888,7 @@ public class DBMaker{
 
     protected Engine extendStoreAppend(String fileName, Fun.Function1<Volume,String> volumeFactory) {
         boolean compressionEnabled = Keys.compression_lzf.equals(props.getProperty(Keys.compression));
-        return null;
+        throw new RuntimeException("StoreAppend");
 //        return new StoreAppend(fileName, volumeFactory,
 //                propsGetRafMode()>0, propsGetBool(Keys.readOnly),
 //                propsGetBool(Keys.transactionDisable),
@@ -919,7 +919,7 @@ public class DBMaker{
             String fileName,
             Fun.Function1<Volume,String> volumeFactory) {
         boolean compressionEnabled = Keys.compression_lzf.equals(props.getProperty(Keys.compression));
-        return null;
+        throw new RuntimeException("StoreWAL");
 
 //        return new StoreWAL(
 //                fileName,
