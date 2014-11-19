@@ -64,6 +64,7 @@ public abstract class Volume implements Closeable{
 
 
     abstract public DataInput getDataInput(final long offset, final int size);
+    abstract public void getData(long offset, byte[] bytes, int bytesPos, int size);
 
     abstract public void close();
 
@@ -181,6 +182,8 @@ public abstract class Volume implements Closeable{
     }
 
 
+
+
     /**
      * Abstract Volume over bunch of ByteBuffers
      * It leaves ByteBufferVol details (allocation, disposal) on subclasses.
@@ -261,6 +264,7 @@ public abstract class Volume implements Closeable{
             b1.put(src, srcPos, srcSize);
         }
 
+
         @Override public final void putData(final long offset, final ByteBuffer buf) {
             final ByteBuffer b1 = slices[(int)(offset >>> sliceShift)].duplicate();
             final int bufPos = (int) (offset& sliceSizeModMask);
@@ -278,6 +282,15 @@ public abstract class Volume implements Closeable{
             b1.limit(bufPos+size);
             target.putData(targetOffset,b1);
         }
+
+        @Override public void getData(final long offset, final byte[] src, int srcPos, int srcSize){
+            final ByteBuffer b1 = slices[(int)(offset >>> sliceShift)].duplicate();
+            final int bufPos = (int) (offset& sliceSizeModMask);
+
+            b1.position(bufPos);
+            b1.get(src, srcPos, srcSize);
+        }
+
 
         @Override final public long getLong(long offset) {
             return slices[(int)(offset >>> sliceShift)].getLong((int) (offset& sliceSizeModMask));
@@ -795,6 +808,17 @@ public abstract class Volume implements Closeable{
         }
 
         @Override
+        public void getData(long offset, byte[] bytes, int bytesPos, int size) {
+            try{
+                ByteBuffer buf = ByteBuffer.wrap(bytes,bytesPos,size);
+                readFully(offset,buf);
+            }catch(IOException e){
+                handleIOException(e);
+                throw new IllegalStateException(); //satisfy compiler
+            }
+        }
+
+        @Override
         public void close() {
             try{
                 if(channel!=null)
@@ -1037,6 +1061,13 @@ public abstract class Volume implements Closeable{
         }
 
         @Override
+        public void getData(long offset, byte[] bytes, int bytesPos, int length) {
+            int pos = (int) (offset & sliceSizeModMask);
+            byte[] buf = slices[((int) (offset >>> sliceShift))];
+            System.arraycopy(buf,pos,bytes,bytesPos,length);
+        }
+
+        @Override
         public void close() {
             slices =null;
         }
@@ -1137,6 +1168,11 @@ public abstract class Volume implements Closeable{
         @Override
         public DataInput getDataInput(long offset, int size) {
             return vol.getDataInput(offset,size);
+        }
+
+        @Override
+        public void getData(long offset, byte[] bytes, int bytesPos, int size) {
+            vol.getData(offset,bytes,bytesPos,size);
         }
 
         @Override
@@ -1298,6 +1334,16 @@ public abstract class Volume implements Closeable{
                 byte[] b = new byte[size];
                 raf.read(b);
                 return new DataIO.DataInputByteArray(b);
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+        }
+
+        @Override
+        public synchronized void getData(long offset, byte[] bytes, int bytesPos, int size) {
+            try {
+                raf.seek(offset);
+                raf.read(bytes,bytesPos,size);
             } catch (IOException e) {
                 throw new IOError(e);
             }

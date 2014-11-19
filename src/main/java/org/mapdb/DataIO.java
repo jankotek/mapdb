@@ -569,7 +569,8 @@ public final class DataIO {
 
         @Override
         public String readUTF() throws IOException {
-            throw new UnsupportedEncodingException();
+            //TODO verify this method accross multiple serializers
+            throw new UnsupportedOperationException();
         }
 
 

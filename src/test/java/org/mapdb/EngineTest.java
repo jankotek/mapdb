@@ -341,4 +341,19 @@ public abstract class EngineTest<ENGINE extends Engine>{
     public void NPE_delete(){
         e.delete(1L, null);
     }
+
+    @Test public void putGetUpdateDelete(){
+        Engine st = openEngine();
+        String s = "aaaad9009";
+        long recid = st.put(s,Serializer.STRING);
+
+        assertEquals(s,st.get(recid,Serializer.STRING));
+
+        s = "da8898fe89w98fw98f9";
+        st.update(recid,s,Serializer.STRING);
+        assertEquals(s,st.get(recid,Serializer.STRING));
+
+        st.delete(recid,Serializer.STRING);
+        assertNull(st.get(recid, Serializer.STRING));
+    }
 }

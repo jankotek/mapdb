@@ -83,6 +83,11 @@ public class StoreDirect extends Store {
                 vol.putLong(MAX_RECID_OFFSET, parity3Set(RECID_LAST_RESERVED * 8));
                 vol.putLong(INDEX_PAGE, parity16Set(0));
 
+                //put reserved recids
+                for(long recid=1;recid<RECID_FIRST;recid++){
+                    indexValPut(recid,0,0,false,false);
+                }
+
                 //and set header checksum
                 vol.putInt(HEAD_CHECKSUM, headChecksum());
                 vol.sync();
@@ -152,46 +157,52 @@ public class StoreDirect extends Store {
 
     @Override
     protected <A> A get2(long recid, Serializer<A> serializer) {
-        if(CC.PARANOID) assertReadLocked(recid);
+        if (CC.PARANOID)
+            assertReadLocked(recid);
 
-        long indexVal = indexValGet(recid);
-        long offset = indexVal & MOFFSET;
-        int size = (int) (indexVal >>>48);
-
-        if(size==0){
-            return null;
-        }
-
-        if(offset< PAGE_SIZE) {
-            //first page is occupied by index page
-            throw new AssertionError();
-        }
-
-
-        DataInput in;
-        if((indexVal & MLINKED)==0){
+        long[] offsets = offsetsGet(recid);
+        if (offsets == null) {
+            return null; //zero size
+        }else if (offsets.length == 1) {
             //not linked
-            in = vol.getDataInput(offset,size);
-        }else{
-            throw new UnsupportedOperationException("linked");
-//            TODO linked records
-//            for(;;){
-//                //is linked, so collect all chunks into single DataInput
-//                indexVal = vol.getLong(offset);
-//                //TODO check parity on indexVal
-//                offset = indexVal & MOFFSET;
-//                size = (int) (indexVal >>> 48);
-//
-//                if(offset==0) {
-//                    break; // next record does not exist
-//                }
-//            }
+            int size = (int) (offsets[0] >>> 48);
+            long offset = offsets[0] & MOFFSET;
+            DataInput in = vol.getDataInput(offset, size);
+            return deserialize(serializer, size, in);
+        } else {
+            //calculate total size
+            int totalSize = offsetsTotalSize(offsets);
+
+            //load data
+            byte[] b = new byte[totalSize];
+            int bpos = 0;
+            for (int i = 0; i < offsets.length; i++) {
+                int plus = (i == offsets.length - 1)?0:8;
+                long size = (offsets[i] >>> 48) - plus;
+                if(CC.PARANOID && (size&0xFFFF)!=size)
+                    throw new AssertionError("size mismatch");
+                long offset = offsets[i] & MOFFSET;
+                //System.out.println("GET "+(offset + plus)+ " - "+size+" - "+bpos);
+                vol.getData(offset + plus, b, bpos, (int) size);
+                bpos += size;
+            }
+            if (CC.PARANOID && bpos != totalSize)
+                throw new AssertionError("size does not match");
+
+            DataInput in = new DataInputByteArray(b);
+            return deserialize(serializer, totalSize, in);
         }
-        return deserialize(serializer,in,size);
     }
 
-
-
+    protected int offsetsTotalSize(long[] offsets) {
+        if(offsets==null)
+            return 0;
+        int totalSize = 8;
+        for (long l : offsets) {
+            totalSize += (l >>> 48) - 8;
+        }
+        return totalSize;
+    }
 
 
     @Override
@@ -199,32 +210,75 @@ public class StoreDirect extends Store {
         if(CC.PARANOID)
             assertWriteLocked(recid);
 
-        long offset;
-        long oldOffset = indexValGet(recid);
-        int oldSize = (int) (oldOffset>>>48);
-        oldOffset&=MOFFSET;
+        long[] oldOffsets = offsetsGet(recid);
+        int oldSize = offsetsTotalSize(oldOffsets);
+        int newSize = out==null?0:out.pos;
+        long[] newOffsets;
 
         //if new version fits into old one, reuse space
-        if(round16Up(oldSize)==round16Up(out.pos)){
-            offset = oldOffset;
+        if(oldSize==newSize){
+            //TODO more precise check of linked records
+            //TODO check rounUp 16 for non-linked records
+            newOffsets = oldOffsets;
         }else {
             structuralLock.lock();
             try {
-                freeDataPut(oldOffset,round16Up(oldSize));
-                offset = freeDataTake(round16Up(out.pos));
+                freeDataPut(oldOffsets);
+                newOffsets = newSize==0?null:freeDataTake(out.pos);
 
             } finally {
                 structuralLock.unlock();
             }
         }
 
-        if(CC.PARANOID && offset<PAGE_SIZE)
-            throw new AssertionError();
-        if(CC.PARANOID && (out.pos&0xFF)!=out.pos)
-            throw new AssertionError();
+        if(CC.PARANOID)
+            offsetsVerify(newOffsets);
 
-        vol.putData(offset,out.buf,0,out.pos);
-        indexValPut(recid, out.pos, offset,false,true);
+        putData(recid, newOffsets,out);
+    }
+
+    protected void offsetsVerify(long[] linkedOffsets) {
+        //TODO check non tail records are mod 16
+        //TODO check linkage
+    }
+
+
+    /** return positions of (possibly) linked record */
+    protected long[] offsetsGet(long recid) {
+        long indexVal = indexValGet(recid);
+        if(indexVal>>>48==0){
+            return null;
+        }
+
+        long[] ret = new long[]{indexVal};
+        while((ret[ret.length-1]&MLINKED)!=0){
+            ret = Arrays.copyOf(ret,ret.length+1);
+            ret[ret.length-1] = parity3Get(vol.getLong(ret[ret.length-2]&MOFFSET));
+        }
+
+        if(CC.PARANOID){
+            for(int i=0;i<ret.length;i++) {
+                boolean last = (i==ret.length-1);
+                boolean linked = (ret[i]&MLINKED)!=0;
+                if(!last && !linked)
+                    throw new AssertionError("body not linked");
+                if(last && linked)
+                    throw new AssertionError("tail is linked");
+
+                long offset = ret[i]&MOFFSET;
+                if(offset<PAGE_SIZE)
+                    throw new AssertionError("offset is too small");
+                if(((offset&MOFFSET)%16)!=0)
+                    throw new AssertionError("offset not mod 16");
+
+                int size = (int) (ret[i] >>>48);
+                if(size<=0)
+                    throw new AssertionError("size too small");
+            }
+
+        }
+
+        return ret;
     }
 
     private void indexValPut(long recid, int size, long offset, boolean linked, boolean unused) {
@@ -248,7 +302,13 @@ public class StoreDirect extends Store {
 
     @Override
     protected <A> void delete2(long recid, Serializer<A> serializer) {
-        //TODO release old space
+        long[] offsets = offsetsGet(recid);
+        structuralLock.lock();
+        try {
+            freeDataPut(offsets);
+        }finally {
+            structuralLock.unlock();
+        }
         indexValPut(recid,0,0,false,false);
     }
 
@@ -279,25 +339,69 @@ public class StoreDirect extends Store {
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
         long recid;
-        long offset;
+        long[] offsets;
         DataOutputByteArray out = serialize(value,serializer);
         structuralLock.lock();
         try {
             recid = freeRecidTake();
-            offset = freeDataTake(round16Up(out.pos));
+            offsets = out==null?null:freeDataTake(out.pos);
         }finally {
             structuralLock.unlock();
         }
-        if(CC.PARANOID && offset<PAGE_SIZE)
-            throw new AssertionError();
-        if(CC.PARANOID && (out.pos&0xFF)!=out.pos)
+        if(CC.PARANOID && out!=null && (offsets[0]&MOFFSET)<PAGE_SIZE)
             throw new AssertionError();
 
-        vol.putData(offset, out.buf, 0, out.pos);
-        indexValPut(recid, out.pos, offset, false, false);
+        putData(recid,offsets, out);
 
         return recid;
     }
+
+    protected void putData(long recid, long[] offsets, DataOutputByteArray out) {
+        if(CC.PARANOID && offsetsTotalSize(offsets)!=(out==null?0:out.pos))
+            throw new AssertionError("size mismatch");
+
+        if(offsets!=null) {
+            int outPos = 0;
+            for (int i = 0; i < offsets.length; i++) {
+                boolean last = (i == offsets.length - 1);
+                if (CC.PARANOID && ((offsets[i] & MLINKED) == 0) != last)
+                    throw new AssertionError("linked bit set wrong way");
+
+                long offset = (offsets[i] & MOFFSET);
+                if(CC.PARANOID && offset%16!=0)
+                    throw new AssertionError("not alligned to 16");
+
+                //write offset to next page
+                if (!last) {
+                    vol.putLong(offset, parity3Set(offsets[i + 1]));
+                }
+
+                int plus = (last?0:8);
+                long size =  (offsets[i]>>>48) - plus;
+                if(CC.PARANOID && ((size&0xFFFF)!=size || size==0))
+                    throw new AssertionError("size mismatch");
+
+                //System.out.println("SET "+(offset + plus)+ " - "+size + " - "+outPos);
+                vol.putData(offset + plus, out.buf,outPos, (int)size);
+                outPos += size;
+            }
+            if(CC.PARANOID && outPos!=out.pos)
+                throw new AssertionError("size mismatch");
+        }
+        //update index val
+        boolean firstLinked = (offsets!=null && offsets.length>1);
+        int firstSize = (int) (offsets==null? 0L : offsets[0]>>>48);
+        long firstOffset =  offsets==null? 0L : offsets[0]&MOFFSET;
+        indexValPut(recid,firstSize,firstOffset,firstLinked,false);
+    }
+
+    protected void freeDataPut(long[] linkedOffsets) {
+        if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+            throw new AssertionError();
+        //TODO add assertions here
+        //TODO not yet implemented
+    }
+
 
     protected void freeDataPut(long offset, int size) {
         if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
@@ -309,10 +413,29 @@ public class StoreDirect extends Store {
     }
 
 
-    protected long freeDataTake(int size) {
+    protected long[] freeDataTake(int size) {
+        if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+            throw new AssertionError();
+
+        //compose of multiple single records
+        long[] ret = new long[0];
+        while(size>MAX_REC_SIZE){
+            ret = Arrays.copyOf(ret,ret.length+1);
+            ret[ret.length-1] = (((long)MAX_REC_SIZE)<<48) | freeDataTakeSingle(round16Up(MAX_REC_SIZE)) | MLINKED;
+            size = size-MAX_REC_SIZE+8;
+        }
+        //allocate last section
+        ret = Arrays.copyOf(ret,ret.length+1);
+        ret[ret.length-1] = (((long)size)<<48) | freeDataTakeSingle(round16Up(size)) ;
+        return ret;
+    }
+
+    protected long freeDataTakeSingle(int size) {
         if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
         if(CC.PARANOID && size%16!=0)
+            throw new AssertionError();
+        if(CC.PARANOID && size>round16Up(MAX_REC_SIZE))
             throw new AssertionError();
 
 
@@ -329,7 +452,7 @@ public class StoreDirect extends Store {
         if((lastAllocatedData%PAGE_SIZE + size)/PAGE_SIZE !=0){
             //throw away rest of the page and allocate new
             lastAllocatedData=0;
-            freeDataTake(size);
+            freeDataTakeSingle(size);
         }
         //yes it fits here, increase pointer
         long ret = lastAllocatedData;
@@ -398,18 +521,15 @@ public class StoreDirect extends Store {
     }
 
 
-    protected <A> A deserialize(Serializer<A> serializer, DataInput in, int size) {
-        try {
-            //TODO if serializer is not trusted, use boundary check
-            //TODO return future and finish deserialization outside lock, does even bring any performance bonus?
-            return serializer.deserialize(in,size);
-        } catch (IOException e) {
-            throw new IOError(e);
-        }
-    }
-
     protected long indexValGet(long recid) {
-        return parity1Get(vol.getLong(recidToOffset(recid)));
+        long indexVal = vol.getLong(recidToOffset(recid));
+        //check parity and throw recid does not exist if broken
+        try {
+            return DataIO.parity1Get(indexVal);
+        }catch(InternalError e){
+            //TODO do not throw/catch exception
+            throw new DBException(DBException.Code.ENGINE_GET_VOID);
+        }
     }
 
     protected final long recidToOffset(long recid){
@@ -436,9 +556,9 @@ public class StoreDirect extends Store {
     protected static long composeIndexVal(int size, long offset,
         boolean linked, boolean unused, boolean archive){
         if(CC.PARANOID && (size&0xFFFF)!=size)
-            throw new AssertionError();
+            throw new AssertionError("size too large");
         if(CC.PARANOID && (offset&MOFFSET)!=offset)
-            throw new AssertionError();
+            throw new AssertionError("offset too large");
         offset = ((((long)size))<<48) |
                 offset |
                 (linked?MLINKED:0L)|
