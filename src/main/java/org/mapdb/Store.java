@@ -106,6 +106,10 @@ public abstract class Store implements Engine {
             DataIO.DataOutputByteArray out = newDataOut2();
 
             serializer.serialize(out,value);
+            if(out.pos==0)
+                throw new AssertionError("Serializer had not written any data"); //TODO more specific exception for
+                // this.
+
 
             if(out.pos>0){
 
