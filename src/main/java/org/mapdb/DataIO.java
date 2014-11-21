@@ -570,7 +570,9 @@ public final class DataIO {
         @Override
         public String readUTF() throws IOException {
             //TODO verify this method accross multiple serializers
-            throw new UnsupportedOperationException();
+            final int size = unpackInt(this);
+            //$DELAY$
+            return SerializerBase.deserializeString(this, size);
         }
 
 

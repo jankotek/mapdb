@@ -1,9 +1,13 @@
 package org.mapdb;
 
 
+import junit.framework.AssertionFailedError;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -355,5 +359,43 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
         st.delete(recid,Serializer.STRING);
         assertNull(st.get(recid, Serializer.STRING));
+    }
+
+
+    @Test public void zero_size_serializer(){
+        Serializer s = new Serializer<String>() {
+
+            @Override
+            public void serialize(DataOutput out, String value) throws IOException {
+                if("".equals(value))
+                    return;
+                Serializer.STRING.serialize(out,value);
+            }
+
+            @Override
+            public String deserialize(DataInput in, int available) throws IOException {
+                if(available==0)
+                    return "";
+                return Serializer.STRING.deserialize(in,available);
+            }
+        };
+
+        Engine e = openEngine();
+        long recid = e.put("", s);
+        assertEquals("",e.get(recid,s));
+
+        e.update(recid, "a", s);
+        assertEquals("a",e.get(recid,s));
+
+        e.compareAndSwap(recid,"a","", s);
+        assertEquals("",e.get(recid,s));
+
+
+        e.update(recid, "a", s);
+        assertEquals("a",e.get(recid,s));
+
+        e.update(recid,"", s);
+        assertEquals("",e.get(recid,s));
+
     }
 }

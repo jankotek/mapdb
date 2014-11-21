@@ -85,7 +85,7 @@ public class StoreDirect extends Store {
 
                 //put reserved recids
                 for(long recid=1;recid<RECID_FIRST;recid++){
-                    indexValPut(recid,0,0,false,false);
+                    indexValPut(recid,0,0,true,false);
                 }
 
                 //and set header checksum
@@ -163,6 +163,8 @@ public class StoreDirect extends Store {
         long[] offsets = offsetsGet(recid);
         if (offsets == null) {
             return null; //zero size
+        }else if (offsets.length==0){
+            return deserialize(serializer,0,new DataInputByteArray(new byte[0]));
         }else if (offsets.length == 1) {
             //not linked
             int size = (int) (offsets[0] >>> 48);
@@ -247,7 +249,8 @@ public class StoreDirect extends Store {
     protected long[] offsetsGet(long recid) {
         long indexVal = indexValGet(recid);
         if(indexVal>>>48==0){
-            return null;
+
+            return ((indexVal&MLINKED)!=0) ? null : new long[0];
         }
 
         long[] ret = new long[]{indexVal};
@@ -341,14 +344,15 @@ public class StoreDirect extends Store {
         long recid;
         long[] offsets;
         DataOutputByteArray out = serialize(value,serializer);
+        boolean notalloc = out==null || out.pos==0;
         structuralLock.lock();
         try {
             recid = freeRecidTake();
-            offsets = out==null?null:freeDataTake(out.pos);
+            offsets = notalloc?null:freeDataTake(out.pos);
         }finally {
             structuralLock.unlock();
         }
-        if(CC.PARANOID && out!=null && (offsets[0]&MOFFSET)<PAGE_SIZE)
+        if(CC.PARANOID && offsets!=null && (offsets[0]&MOFFSET)<PAGE_SIZE)
             throw new AssertionError();
 
         putData(recid,offsets, out);
@@ -389,7 +393,9 @@ public class StoreDirect extends Store {
                 throw new AssertionError("size mismatch");
         }
         //update index val
-        boolean firstLinked = (offsets!=null && offsets.length>1);
+        boolean firstLinked =
+                (offsets!=null && offsets.length>1) || //too large record
+                (out==null); //null records
         int firstSize = (int) (offsets==null? 0L : offsets[0]>>>48);
         long firstOffset =  offsets==null? 0L : offsets[0]&MOFFSET;
         indexValPut(recid,firstSize,firstOffset,firstLinked,false);
@@ -415,6 +421,8 @@ public class StoreDirect extends Store {
 
     protected long[] freeDataTake(int size) {
         if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+            throw new AssertionError();
+        if(CC.PARANOID && size<=0)
             throw new AssertionError();
 
         //compose of multiple single records
