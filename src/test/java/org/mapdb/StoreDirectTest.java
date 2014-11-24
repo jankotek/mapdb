@@ -23,7 +23,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     File f = UtilsTest.tempDbFile();
 
 
-//    static final long IO_RECID = StoreDirect.IO_FREE_RECID+32;
+//    static final long FREE_RECID_STACK = StoreDirect.IO_FREE_RECID+32;
 
     @Override protected E openEngine() {
         return (E) new StoreDirect(f.getPath());
@@ -279,7 +279,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 //
 //        long indexVal = e.vol.getLong(recid*8+ StoreDirect.IO_USER_START);
 //        assertEquals(8L, indexVal>>>48); // size
-//        assertEquals((physRecid&MOFFSET)+StoreDirect.LONG_STACK_PREF_SIZE
+//        assertEquals((physRecid&MOFFSET)+StoreDirect.CHUNKSIZE
 //                + (e instanceof StoreWAL?16:0), //TODO investigate why space allocation in WAL works differently
 //                indexVal&MOFFSET); //offset
 //        assertEquals(0, indexVal & StoreDirect.MLINKED);
@@ -302,187 +302,187 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 //
 //    }
 //
-//    @Test public void test_long_stack_puts_record_offset_into_index() throws IOException {
-//        e.structuralLock.lock();
-//        e.longStackPut(IO_RECID, 1,false);
-//        e.commit();
-//        assertEquals(8,
-//                e.vol.getLong(IO_RECID)>>>48);
-//
-//    }
-//
-//    @Test public void test_long_stack_put_take() throws IOException {
-//        e.structuralLock.lock();
-//
-//        final long max = 150;
-//        for(long i=1;i<max;i++){
-//            e.longStackPut(IO_RECID, i,false);
-//        }
-//
-//        for(long i = max-1;i>0;i--){
-//            assertEquals(i, e.longStackTake(IO_RECID,false));
-//        }
-//
-//        assertEquals(0, getLongStack(IO_RECID).size());
-//
-//    }
-//
-//    @Test public void test_long_stack_put_take_simple() throws IOException {
-//        e.structuralLock.lock();
-//        e.longStackPut(IO_RECID, 111,false);
-//        assertEquals(111L, e.longStackTake(IO_RECID,false));
-//    }
-//
-//
-//    @Test public void test_basic_long_stack() throws IOException {
-//        //dirty hack to make sure we have lock
-//        e.structuralLock.lock();
-//        final long max = 150;
-//        ArrayList<Long> list = new ArrayList<Long>();
-//        for(long i=1;i<max;i++){
-//            e.longStackPut(IO_RECID, i,false);
-//            list.add(i);
-//        }
-//
-//        Collections.reverse(list);
-//        e.commit();
-//
-//        assertEquals(list, getLongStack(IO_RECID));
-//
-//        for(long i =max-1;i>=1;i--){
-//            assertEquals(i, e.longStackTake(IO_RECID,false));
-//        }
-//    }
-//
-//    @Test public void test_large_long_stack() throws IOException {
-//        //dirty hack to make sure we have lock
-//        e.structuralLock.lock();
-//        final long max = 15000;
-//        ArrayList<Long> list = new ArrayList<Long>();
-//        for(long i=1;i<max;i++){
-//            e.longStackPut(IO_RECID, i,false);
-//            list.add(i);
-//        }
-//
-//        Collections.reverse(list);
-//        e.commit();
-//
-//        assertEquals(list, getLongStack(IO_RECID));
-//
-//        for(long i =max-1;i>=1;i--){
-//            assertEquals(i, e.longStackTake(IO_RECID,false));
-//        }
-//    }
-//
-//    @Test public void test_basic_long_stack_no_commit() throws IOException {
-//        //dirty hack to make sure we have lock
-//        e.structuralLock.lock();
-//        final long max = 150;
-//        for(long i=1;i<max;i++){
-//            e.longStackPut(IO_RECID, i,false);
-//        }
-//
-//        for(long i =max-1;i>=1;i--){
-//            assertEquals(i, e.longStackTake(IO_RECID,false));
-//        }
-//    }
-//
-//    @Test public void test_large_long_stack_no_commit() throws IOException {
-//        //dirty hack to make sure we have lock
-//        e.structuralLock.lock();
-//        final long max = 15000;
-//        for(long i=1;i<max;i++){
-//            e.longStackPut(IO_RECID, i,false);
-//        }
-//
-//
-//        for(long i =max-1;i>=1;i--){
-//            assertEquals(i, e.longStackTake(IO_RECID,false));
-//        }
-//    }
-//
-//
-//
-//    @Test public void long_stack_page_created_after_put() throws IOException {
-//        e.structuralLock.lock();
-//        e.longStackPut(IO_RECID, 111,false);
-//        e.commit();
-//        long pageId = e.vol.getLong(IO_RECID);
-//        assertEquals(8, pageId>>>48);
-//        pageId = pageId & StoreDirect.MOFFSET;
-//        assertEquals(16L, pageId);
-//        assertEquals(LONG_STACK_PREF_SIZE, e.vol.getLong(pageId)>>>48);
-//        assertEquals(0, e.vol.getLong(pageId)& StoreDirect.MOFFSET);
-//        assertEquals(111, e.vol.getSixLong(pageId + 8));
-//    }
-//
-//    @Test public void long_stack_put_five() throws IOException {
-//        e.structuralLock.lock();
-//        e.longStackPut(IO_RECID, 111,false);
-//        e.longStackPut(IO_RECID, 112,false);
-//        e.longStackPut(IO_RECID, 113,false);
-//        e.longStackPut(IO_RECID, 114,false);
-//        e.longStackPut(IO_RECID, 115,false);
-//
-//        e.commit();
-//        long pageId = e.vol.getLong(IO_RECID);
-//        assertEquals(8+6*4, pageId>>>48);
-//        pageId = pageId & StoreDirect.MOFFSET;
-//        assertEquals(16L, pageId);
-//        assertEquals(LONG_STACK_PREF_SIZE, e.vol.getLong(pageId)>>>48);
-//        assertEquals(0, e.vol.getLong(pageId)&MOFFSET);
-//        assertEquals(111, e.vol.getSixLong(pageId + 8));
-//        assertEquals(112, e.vol.getSixLong(pageId + 14));
-//        assertEquals(113, e.vol.getSixLong(pageId + 20));
-//        assertEquals(114, e.vol.getSixLong(pageId + 26));
-//        assertEquals(115, e.vol.getSixLong(pageId + 32));
-//    }
-//
-//    @Test public void long_stack_page_deleted_after_take() throws IOException {
-//        e.structuralLock.lock();
-//        e.longStackPut(IO_RECID, 111,false);
-//        e.commit();
-//        assertEquals(111L, e.longStackTake(IO_RECID,false));
-//        e.commit();
-//        assertEquals(0L, e.vol.getLong(IO_RECID));
-//    }
-//
-//    @Test public void long_stack_page_overflow() throws IOException {
-//        e.structuralLock.lock();
-//        //fill page until near overflow
-//        for(int i=0;i< StoreDirect.LONG_STACK_PREF_COUNT;i++){
-//            e.longStackPut(IO_RECID, 1000L+i,false);
-//        }
-//        e.commit();
-//
-//        //check content
-//        long pageId = e.vol.getLong(IO_RECID);
-//        assertEquals(StoreDirect.LONG_STACK_PREF_SIZE-6, pageId>>>48);
-//        pageId = pageId & StoreDirect.MOFFSET;
-//        assertEquals(16L, pageId);
-//        assertEquals(StoreDirect.LONG_STACK_PREF_SIZE, e.vol.getLong(pageId)>>>48);
-//        for(int i=0;i< StoreDirect.LONG_STACK_PREF_COUNT;i++){
-//            assertEquals(1000L+i, e.vol.getSixLong(pageId + 8 + i * 6));
-//        }
-//
-//        //add one more item, this will trigger page overflow
-//        e.longStackPut(IO_RECID, 11L,false);
-//        e.commit();
-//        //check page overflowed
-//        pageId = e.vol.getLong(IO_RECID);
-//        assertEquals(8, pageId>>>48);
-//        pageId = pageId & StoreDirect.MOFFSET;
-//        assertEquals(16L+ StoreDirect.LONG_STACK_PREF_SIZE, pageId);
-//        assertEquals(LONG_STACK_PREF_SIZE, e.vol.getLong(pageId)>>>48);
-//        assertEquals(16L, e.vol.getLong(pageId)& StoreDirect.MOFFSET);
-//        assertEquals(11L, e.vol.getSixLong(pageId + 8));
-//    }
-//
-//
-//    @Test public void test_constants(){
-//        assertTrue(StoreDirect.LONG_STACK_PREF_SIZE%16==0);
-//
-//    }
+    @Test public void test_long_stack_puts_record_offset_into_index() throws IOException {
+        e.structuralLock.lock();
+        e.longStackPut(FREE_RECID_STACK, 1,false);
+        e.commit();
+        assertEquals(12 + 2,
+                e.vol.getLong(FREE_RECID_STACK)>>>48);
+
+    }
+
+    @Test public void test_long_stack_put_take() throws IOException {
+        e.structuralLock.lock();
+
+        final long max = 150;
+        for(long i=1;i<max;i++){
+            e.longStackPut(FREE_RECID_STACK, i,false);
+        }
+
+        for(long i = max-1;i>0;i--){
+            assertEquals(i, e.longStackTake(FREE_RECID_STACK,false));
+        }
+
+        assertEquals(0, getLongStack(FREE_RECID_STACK).size());
+
+    }
+
+    protected List<Long> getLongStack(long masterLinkOffset) {
+        List<Long> ret = new ArrayList<Long>();
+        for(long v = e.longStackTake(masterLinkOffset,false); v!=0; v=e.longStackTake(masterLinkOffset,false)){
+            ret.add(v);
+        }
+        return ret;
+    }
+
+    @Test public void test_long_stack_put_take_simple() throws IOException {
+        e.structuralLock.lock();
+        e.longStackPut(FREE_RECID_STACK, 111,false);
+        assertEquals(111L, e.longStackTake(FREE_RECID_STACK,false));
+    }
+
+
+    @Test public void test_basic_long_stack() throws IOException {
+        //dirty hack to make sure we have lock
+        e.structuralLock.lock();
+        final long max = 150;
+        ArrayList<Long> list = new ArrayList<Long>();
+        for(long i=1;i<max;i++){
+            e.longStackPut(FREE_RECID_STACK, i,false);
+            list.add(i);
+        }
+
+        Collections.reverse(list);
+        e.commit();
+
+        assertEquals(list, getLongStack(FREE_RECID_STACK));
+    }
+
+    @Test public void test_large_long_stack() throws IOException {
+        //dirty hack to make sure we have lock
+        e.structuralLock.lock();
+        final long max = 15000;
+        ArrayList<Long> list = new ArrayList<Long>();
+        for(long i=1;i<max;i++){
+            e.longStackPut(FREE_RECID_STACK, i,false);
+            list.add(i);
+        }
+
+        Collections.reverse(list);
+        e.commit();
+
+        assertEquals(list, getLongStack(FREE_RECID_STACK));
+    }
+
+    @Test public void test_basic_long_stack_no_commit() throws IOException {
+        //dirty hack to make sure we have lock
+        e.structuralLock.lock();
+        final long max = 150;
+        for(long i=1;i<max;i++){
+            e.longStackPut(FREE_RECID_STACK, i,false);
+        }
+
+        for(long i =max-1;i>=1;i--){
+            assertEquals(i, e.longStackTake(FREE_RECID_STACK,false));
+        }
+    }
+
+    @Test public void test_large_long_stack_no_commit() throws IOException {
+        //dirty hack to make sure we have lock
+        e.structuralLock.lock();
+        final long max = 15000;
+        for(long i=1;i<max;i++){
+            e.longStackPut(FREE_RECID_STACK, i,false);
+        }
+
+
+        for(long i =max-1;i>=1;i--){
+            assertEquals(i, e.longStackTake(FREE_RECID_STACK,false));
+        }
+    }
+
+
+
+    @Test public void long_stack_page_created_after_put() throws IOException {
+        e.structuralLock.lock();
+        e.longStackPut(FREE_RECID_STACK, 111,false);
+        e.commit();
+        long pageId = e.vol.getLong(FREE_RECID_STACK);
+        assertEquals(12+2, pageId>>>48);
+        pageId = pageId & StoreDirect.MOFFSET;
+        assertEquals(PAGE_SIZE, pageId);
+        assertEquals(CHUNKSIZE, DataIO.parity4Get(e.vol.getLong(pageId + 4))>>>48);
+        assertEquals(0, DataIO.parity4Get(e.vol.getLong(pageId+4))&MOFFSET);
+        assertEquals(DataIO.parity1Set(111<<1), e.vol.getLongPackBidi(pageId + 12)&DataIO.PACK_LONG_BIDI_MASK);
+    }
+/*
+    @Test public void long_stack_put_five() throws IOException {
+        e.structuralLock.lock();
+        e.longStackPut(FREE_RECID_STACK, 111,false);
+        e.longStackPut(FREE_RECID_STACK, 112,false);
+        e.longStackPut(FREE_RECID_STACK, 113,false);
+        e.longStackPut(FREE_RECID_STACK, 114,false);
+        e.longStackPut(FREE_RECID_STACK, 115,false);
+
+        e.commit();
+        long pageId = e.vol.getLong(FREE_RECID_STACK);
+        assertEquals(8+6*4, pageId>>>48);
+        pageId = pageId & StoreDirect.MOFFSET;
+        assertEquals(16L, pageId);
+        assertEquals(CHUNKSIZE, e.vol.getLong(pageId)>>>48);
+        assertEquals(0, e.vol.getLong(pageId)&MOFFSET);
+        assertEquals(111, e.vol.getSixLong(pageId + 8));
+        assertEquals(112, e.vol.getSixLong(pageId + 14));
+        assertEquals(113, e.vol.getSixLong(pageId + 20));
+        assertEquals(114, e.vol.getSixLong(pageId + 26));
+        assertEquals(115, e.vol.getSixLong(pageId + 32));
+    }
+
+    @Test public void long_stack_page_deleted_after_take() throws IOException {
+        e.structuralLock.lock();
+        e.longStackPut(FREE_RECID_STACK, 111,false);
+        e.commit();
+        assertEquals(111L, e.longStackTake(FREE_RECID_STACK,false));
+        e.commit();
+        assertEquals(0L, e.vol.getLong(FREE_RECID_STACK));
+    }
+
+    @Test public void long_stack_page_overflow() throws IOException {
+        e.structuralLock.lock();
+        //fill page until near overflow
+        for(int i=0;i< StoreDirect.LONG_STACK_PREF_COUNT;i++){
+            e.longStackPut(FREE_RECID_STACK, 1000L+i,false);
+        }
+        e.commit();
+
+        //check content
+        long pageId = e.vol.getLong(FREE_RECID_STACK);
+        assertEquals(StoreDirect.CHUNKSIZE-6, pageId>>>48);
+        pageId = pageId & StoreDirect.MOFFSET;
+        assertEquals(16L, pageId);
+        assertEquals(StoreDirect.CHUNKSIZE, e.vol.getLong(pageId)>>>48);
+        for(int i=0;i< StoreDirect.LONG_STACK_PREF_COUNT;i++){
+            assertEquals(1000L+i, e.vol.getSixLong(pageId + 8 + i * 6));
+        }
+
+        //add one more item, this will trigger page overflow
+        e.longStackPut(FREE_RECID_STACK, 11L,false);
+        e.commit();
+        //check page overflowed
+        pageId = e.vol.getLong(FREE_RECID_STACK);
+        assertEquals(8, pageId>>>48);
+        pageId = pageId & StoreDirect.MOFFSET;
+        assertEquals(16L+ StoreDirect.CHUNKSIZE, pageId);
+        assertEquals(CHUNKSIZE, e.vol.getLong(pageId)>>>48);
+        assertEquals(16L, e.vol.getLong(pageId)& StoreDirect.MOFFSET);
+        assertEquals(11L, e.vol.getSixLong(pageId + 8));
+    }
+*/
+
+    @Test public void test_constants(){
+        assertTrue(StoreDirect.CHUNKSIZE%16==0);
+        
+    }
 
 
     @Test public void delete_files_after_close(){

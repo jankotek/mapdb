@@ -154,28 +154,31 @@ public final class DataIO {
         return h ^ (h >>> 7) ^ (h >>> 4);
     }
 
+    public static final long PACK_LONG_BIDI_MASK = 0xFFFFFFFFFFFFFFL;
 
+    //TODO perhaps remove if this is already in Volume
     public static int packLongBidi(DataOutput out, long value) throws IOException {
-        out.write((((int) value & 0x7F)));
+        out.write((((int) value & 0x7F))| 0x80);
         value >>>= 7;
         int counter = 2;
 
         //$DELAY$
         while ((value & ~0x7FL) != 0) {
-            out.write((((int) value & 0x7F) | 0x80));
+            out.write((((int) value & 0x7F)));
             value >>>= 7;
             //$DELAY$
             counter++;
         }
         //$DELAY$
-        out.write((byte) value);
+        out.write((byte) value| 0x80);
         return counter;
     }
 
+    //TODO perhaps remove if this is already in Volume
     public static long unpackLongBidi(byte[] bb, int pos) throws IOException {
         //$DELAY$
         long b = bb[pos++];
-        if(CC.PARANOID && (b&0x80)!=0)
+        if(CC.PARANOID && (b&0x80)==0)
             throw new AssertionError();
         long result = (b & 0x7F) ;
         int offset = 7;
@@ -186,16 +189,16 @@ public final class DataIO {
             if(CC.PARANOID && offset>64)
                 throw new AssertionError();
             offset += 7;
-        }while((b & 0x80) != 0);
+        }while((b & 0x80) == 0);
         //$DELAY$
         return (((long)(offset/7))<<56) | result;
     }
 
-
+    //TODO perhaps remove if this is already in Volume
     public static long unpackLongBidiReverse(byte[] bb, int pos) throws IOException {
         //$DELAY$
         long b = bb[--pos];
-        if(CC.PARANOID && (b&0x80)!=0)
+        if(CC.PARANOID && (b&0x80)==0)
             throw new AssertionError();
         long result = (b & 0x7F) ;
         int counter = 1;
@@ -206,7 +209,7 @@ public final class DataIO {
             if(CC.PARANOID && counter>8)
                 throw new AssertionError();
             counter++;
-        }while((b & 0x80) != 0);
+        }while((b & 0x80) == 0);
         //$DELAY$
         return (((long)counter)<<56) | result;
     }
@@ -799,8 +802,22 @@ public final class DataIO {
         return i&0xFFFFFFFFFFFFFFFEL;
     }
 
+    public static long parity4Set(long i) {
+        if(CC.PARANOID && (i&0xF)!=0)
+            throw new InternalError("Parity error"); //TODO stronger parity
+        return i | ((Long.bitCount(i)+1)%2);
+    }
+
+    public static long parity4Get(long i) {
+        if(Long.bitCount(i)%2!=1){
+            throw new InternalError("bit parity error");
+        }
+        return i&0xFFFFFFFFFFFFFFF0L;
+    }
+
+
     public static long parity16Set(long i) {
-        if(CC.PARANOID && (i&0xFF)!=0)
+        if(CC.PARANOID && (i&0xFFFF)!=0)
             throw new InternalError("Parity error"); //TODO stronger parity
         return i | ((Long.bitCount(i)+1)%2);
     }
@@ -809,7 +826,7 @@ public final class DataIO {
         if(Long.bitCount(i)%2!=1){
             throw new InternalError("bit parity error");
         }
-        return i&0xFFFFFFFFFFFFFFFEL;
+        return i&0xFFFFFFFFFFFF0000L;
     }
 
 

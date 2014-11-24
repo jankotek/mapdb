@@ -102,6 +102,60 @@ public abstract class Volume implements Closeable{
     }
 
 
+    public int putLongPackBidi(long offset, long value){
+        putUnsignedByte(offset++, (((int) value & 0x7F)) | 0x80);
+        value >>>= 7;
+        int counter = 2;
+
+        //$DELAY$
+        while ((value & ~0x7FL) != 0) {
+            putUnsignedByte(offset++, (((int) value & 0x7F)));
+            value >>>= 7;
+            //$DELAY$
+            counter++;
+        }
+        //$DELAY$
+        putUnsignedByte(offset, (byte) value | 0x80);
+        return counter;
+    }
+
+    public long getLongPackBidi(long offset){
+        //$DELAY$
+        long b = getUnsignedByte(offset++);
+        if(CC.PARANOID && (b&0x80)==0)
+            throw new AssertionError();
+        long result = (b & 0x7F) ;
+        int shift = 7;
+        do {
+            //$DELAY$
+            b = getUnsignedByte(offset++);
+            result |= (b & 0x7F) << shift;
+            if(CC.PARANOID && shift>64)
+                throw new AssertionError();
+            shift += 7;
+        }while((b & 0x80) == 0);
+        //$DELAY$
+        return (((long)(shift/7))<<56) | result;
+    }
+
+    public long getLongPackBidiReverse(long offset){
+        //$DELAY$
+        long b = getUnsignedByte(--offset);
+        if(CC.PARANOID && (b&0x80)==0)
+            throw new AssertionError();
+        long result = (b & 0x7F) ;
+        int counter = 1;
+        do {
+            //$DELAY$
+            b = getUnsignedByte(--offset);
+            result = (b & 0x7F) | (result<<7);
+            if(CC.PARANOID && counter>8)
+                throw new AssertionError();
+            counter++;
+        }while((b & 0x80) == 0);
+        //$DELAY$
+        return (((long)counter)<<56) | result;
+    }
 
     /** returns underlying file if it exists */
     abstract public File getFile();

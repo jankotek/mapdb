@@ -7,6 +7,9 @@ import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.*;
+import static org.mapdb.DataIO.packLongBidi;
+import static org.mapdb.DataIO.unpackLongBidi;
+import static org.mapdb.DataIO.unpackLongBidiReverse;
 
 public class VolumeTest {
 
@@ -41,6 +44,23 @@ public class VolumeTest {
             fail();
         }catch(DBException e){
             assertEquals(DBException.Code.VOLUME_CLOSED, e.getCode());
+        }
+    }
+
+
+    @Test
+    public void testPackLongBidi() throws Exception {
+        Volume v = new Volume.ByteArrayVol(CC.VOLUME_PAGE_SHIFT);
+        v.ensureAvailable(10000);
+
+        long max = (long) 1e14;
+        for(long i=0;i<max;i=i+1 +i/100000){
+            v.clear(0, 20);
+            long size = v.putLongPackBidi(10,i);
+            assertTrue(i>100000 || size<6);
+
+            assertEquals(i | (size<<56), v.getLongPackBidi(10));
+            assertEquals(i | (size<<56), v.getLongPackBidiReverse(10+size));
         }
     }
 }

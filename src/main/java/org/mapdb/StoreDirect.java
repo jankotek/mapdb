@@ -36,6 +36,7 @@ public class StoreDirect extends Store {
     /** offset of maximal allocated recid. It is <<3 parity1*/
     protected static final long MAX_RECID_OFFSET = 8*3;
     protected static final long INDEX_PAGE = 8*4;
+    protected static final long FREE_RECID_STACK = 8*5;
 
 
     protected static final int MAX_REC_SIZE = 0xFFFF;
@@ -86,6 +87,11 @@ public class StoreDirect extends Store {
                 //put reserved recids
                 for(long recid=1;recid<RECID_FIRST;recid++){
                     indexValPut(recid,0,0,true,false);
+                }
+
+                //put long stack master links
+                for(long masterLinkOffset = FREE_RECID_STACK;masterLinkOffset<HEAD_END;masterLinkOffset+=8){
+                    vol.putLong(masterLinkOffset,parity4Set(0));
                 }
 
                 //and set header checksum
@@ -312,7 +318,7 @@ public class StoreDirect extends Store {
         }finally {
             structuralLock.unlock();
         }
-        indexValPut(recid,0,0,false,false);
+        indexValPut(recid,0,0,true,false);
     }
 
     @Override
@@ -334,7 +340,7 @@ public class StoreDirect extends Store {
         }finally {
             structuralLock.unlock();
         }
-        indexValPut(recid,0,0L,false,true);
+        indexValPut(recid,0,0L,true,true);
         return recid;
     }
 
@@ -470,6 +476,117 @@ public class StoreDirect extends Store {
             throw new AssertionError();
         if(CC.PARANOID && lastAllocatedData%16!=0)
             throw new AssertionError();
+
+        return ret;
+    }
+
+
+    //TODO use var size
+    protected final static long CHUNKSIZE = 100*16;
+
+    protected void longStackPut(final long masterLinkOffset, final long value, boolean recursive){
+        if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+            throw new AssertionError();
+        if(CC.PARANOID && (masterLinkOffset<=0 || masterLinkOffset>PAGE_SIZE || masterLinkOffset % 8!=0))
+            throw new AssertionError();
+
+        long masterLinkVal = parity4Get(vol.getLong(masterLinkOffset));
+        long pageOffset = masterLinkVal&MOFFSET;
+
+        if(masterLinkVal==0L){
+            longStackNewPage(masterLinkOffset, 0L, value);
+            return;
+        }
+
+        long currSize = masterLinkVal>>>48;
+
+        long prevLinkVal = parity4Get(vol.getLong(pageOffset + 4));
+        long pageSize = prevLinkVal>>>48;
+        //is there enough space in current page?
+        if(currSize+8>=pageSize){
+            //TODO zero out remaining bytes, they are part of storage format
+            longStackNewPage(masterLinkOffset,pageOffset,value);
+        }
+
+        //there is enough space, so just write new value
+        currSize += vol.putLongPackBidi(pageOffset+currSize,parity1Set(value<<1));
+        //and update master pointer
+        vol.putLong(masterLinkOffset, parity4Set(currSize<<48 | pageOffset));
+    }
+
+    protected void longStackNewPage(long masterLinkOffset, long prevPageOffset, long value) {
+        long newPageOffset = freeDataTakeSingle((int) CHUNKSIZE);
+        //write size of current chunk with link to prev page
+        vol.putLong(newPageOffset+4, parity4Set((CHUNKSIZE<<48) | prevPageOffset));
+        //put value
+        long currSize = 12 + vol.putLongPackBidi(newPageOffset+12, parity1Set(value<<1));
+        //update master pointer
+        vol.putLong(masterLinkOffset, parity4Set((currSize<<48)|newPageOffset));
+    }
+
+
+    protected long longStackTake(long masterLinkOffset, boolean recursive){
+        if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+            throw new AssertionError();
+        if(CC.PARANOID && (masterLinkOffset<=0 || masterLinkOffset>PAGE_SIZE || masterLinkOffset % 8!=0))
+            throw new AssertionError();
+
+        long masterLinkVal = parity4Get(vol.getLong(masterLinkOffset));
+        if(masterLinkVal==0 ){
+            return 0;
+        }
+        long currSize = masterLinkVal>>>48;
+        long pageOffset = masterLinkVal&MOFFSET;
+
+        //read packed link from stack
+        long ret = vol.getLongPackBidiReverse(pageOffset+currSize);
+        currSize-= ret >>>56;
+        ret = parity1Get(ret &DataIO.PACK_LONG_BIDI_MASK)>>>1;
+
+        if(CC.PARANOID && currSize<12)
+            throw new AssertionError();
+
+        //is there space left on current page?
+        if(currSize>12){
+            //yes, just update master link
+            vol.putLong(masterLinkOffset, parity4Set(currSize << 48 | pageOffset));
+            return ret;
+        }
+
+        //there is no space at current page, so delete current page and update master pointer
+        long prevPageOffset = parity4Get(vol.getLong(pageOffset + 4));
+
+        //release current page, size is stored as part of prev page value
+        freeDataPut(pageOffset, (int) (prevPageOffset>>>48));
+
+        prevPageOffset &= MOFFSET;
+
+        //does previous page exists?
+        if(prevPageOffset!=0) {
+            //yes previous page exists
+
+            //find pointer to end of previous page
+            // (data are packed with var size, traverse from end of page, until zeros
+            //TODO swap bit indicators in bidi packed
+
+            //first read size of current page
+            currSize = parity4Get(vol.getLong(prevPageOffset + 4)) >>> 48;
+
+            //now read bytes from end of page, until they are zeros
+            while (vol.getUnsignedByte(prevPageOffset + currSize) == 0) {
+                currSize--;
+            }
+
+            if (CC.PARANOID && currSize < 14)
+                throw new AssertionError();
+        }else{
+            //no prev page does not exist
+            currSize=0;
+        }
+
+        //update master link with curr page size and offset
+        vol.putLong(masterLinkOffset, parity4Set(currSize<<48 | prevPageOffset));
+
 
         return ret;
     }

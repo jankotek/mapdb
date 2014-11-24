@@ -44,4 +44,17 @@ public class DataIOTest {
             assertEquals(i | (size<<56), unpackLongBidiReverse(b.buf, (int) size));
         }
     }
+
+    @Test public void parityBasic(){
+        for(long i=0;i<Integer.MAX_VALUE;i+= 1 + i/1000000L){
+            if(i%2==0)
+                assertEquals(i, parity1Get(parity1Set(i)));
+            if(i%8==0)
+                assertEquals(i, parity3Get(parity3Set(i)));
+            if(i%16==0)
+                assertEquals(i, parity4Get(parity4Set(i)));
+            if((i&0xFFFF)==0)
+                assertEquals(i, parity16Get(parity16Set(i)));
+        }
+    }
 }
