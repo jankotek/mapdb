@@ -192,11 +192,8 @@ public abstract class Volume implements Closeable{
      * Set all bytes between {@code startOffset} and {@code endOffset} to zero.
      * Area between offsets must be ready for write once clear finishes.
      */
-    public void clear(long startOffset, long endOffset) {
-        for(long i=startOffset;i<endOffset;i++){
-            putUnsignedByte(i, 0); //TODO optimize by copying array
-        }
-    }
+    public abstract void clear(long startOffset, long endOffset);
+
 
 
     public static Fun.Function1<Volume,String> fileFactory(){
@@ -244,6 +241,7 @@ public abstract class Volume implements Closeable{
      * Most methods are final for better performance (JIT compiler can inline those).
      */
     abstract static public class ByteBufferVol extends Volume{
+
 
 
         protected final ReentrantLock growLock = new ReentrantLock(CC.FAIR_LOCKS);
@@ -363,6 +361,21 @@ public abstract class Volume implements Closeable{
         @Override
         public final DataIO.DataInputByteBuffer getDataInput(long offset, int size) {
             return new DataIO.DataInputByteBuffer(slices[(int)(offset >>> sliceShift)], (int) (offset& sliceSizeModMask));
+        }
+
+        @Override
+        public void clear(long startOffset, long endOffset) {
+            if(CC.PARANOID && (startOffset >>> sliceShift) != ((endOffset-1) >>> sliceShift))
+                throw new AssertionError();
+            ByteBuffer buf = slices[(int)(startOffset >>> sliceShift)];
+            int start = (int) (startOffset&sliceSizeModMask);
+            int end = (int) (endOffset&sliceSizeModMask);
+
+            int pos = start;
+            while(pos<end){
+                buf.get(CLEAR, start, Math.min(CLEAR.length, end-pos));
+                pos+=CLEAR.length;
+            }
         }
 
         @Override
@@ -924,6 +937,20 @@ public abstract class Volume implements Closeable{
         public File getFile() {
             return file;
         }
+
+        @Override
+        public void clear(long startOffset, long endOffset) {
+            try {
+                while(startOffset<endOffset){
+                    ByteBuffer b = ByteBuffer.wrap(CLEAR);
+                    b.limit((int) Math.min(CLEAR.length, endOffset - startOffset));
+                    channel.write(b, startOffset);
+                    startOffset+=CLEAR.length;
+                }
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+        }
     }
 
     protected static void handleIOException(IOException e) {
@@ -1073,6 +1100,21 @@ public abstract class Volume implements Closeable{
             byte[] buf = slices[((int) (inputOffset >>> sliceShift))];
 
             target.putData(targetOffset,buf,pos, size);
+        }
+
+        @Override
+        public void clear(long startOffset, long endOffset) {
+            if(CC.PARANOID && (startOffset >>> sliceShift) != ((endOffset-1) >>> sliceShift))
+                throw new AssertionError();
+            byte[] buf = slices[(int)(startOffset >>> sliceShift)];
+            int start = (int) (startOffset&sliceSizeModMask);
+            int end = (int) (endOffset&sliceSizeModMask);
+
+            int pos = start;
+            while(pos<end){
+                System.arraycopy(CLEAR,0,buf,pos, Math.min(CLEAR.length, end-pos));
+                pos+=CLEAR.length;
+            }
         }
 
         @Override
@@ -1263,6 +1305,11 @@ public abstract class Volume implements Closeable{
         public File getFile() {
             return vol.getFile();
         }
+
+        @Override
+        public void clear(long startOffset, long endOffset) {
+            throw new IllegalAccessError("read-only");
+        }
     }
 
 
@@ -1449,6 +1496,23 @@ public abstract class Volume implements Closeable{
         public File getFile() {
             return file;
         }
+
+        @Override
+        public synchronized void clear(long startOffset, long endOffset) {
+            try {
+                raf.seek(startOffset);
+                while(startOffset<endOffset){
+                    long remaining = Math.min(CLEAR.length, endOffset - startOffset);
+                    raf.write(CLEAR, 0, (int)remaining);
+                    startOffset+=CLEAR.length;
+                }
+
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+        }
     }
+
+    private static final byte[] CLEAR = new byte[1024];
 }
 
