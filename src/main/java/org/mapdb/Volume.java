@@ -373,7 +373,9 @@ public abstract class Volume implements Closeable{
 
             int pos = start;
             while(pos<end){
-                buf.get(CLEAR, start, Math.min(CLEAR.length, end-pos));
+                buf = buf.duplicate();
+                buf.position(pos);
+                buf.put(CLEAR, 0, Math.min(CLEAR.length, end-pos));
                 pos+=CLEAR.length;
             }
         }
