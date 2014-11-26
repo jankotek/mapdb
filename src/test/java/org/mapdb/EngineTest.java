@@ -1,7 +1,6 @@
 package org.mapdb;
 
 
-import junit.framework.AssertionFailedError;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -12,6 +11,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.*;
 
 import static org.junit.Assert.*;
 import static org.mapdb.Serializer.BYTE_ARRAY_NOSIZE;
@@ -396,6 +396,79 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
         e.update(recid,"", s);
         assertEquals("",e.get(recid,s));
+    }
+
+    @Test(timeout = 1000*100)
+    public void par_update_get() throws InterruptedException {
+        int threadNum = 32;
+        final long end = (long) (System.currentTimeMillis()+20000);
+        final Engine e = openEngine();
+        final BlockingQueue<Fun.Pair<Long,byte[]>> q = new ArrayBlockingQueue(threadNum*10);
+        for(int i=0;i<threadNum;i++){
+            byte[] b = new  byte[new Random().nextInt(10000)];
+            new Random().nextBytes(b);
+            long recid = e.put(b,BYTE_ARRAY_NOSIZE);
+            q.put(new Fun.Pair(recid,b));
+        }
+
+
+        Exec.execNTimes(threadNum, new Callable() {
+            @Override
+            public Object call() throws Exception {
+                Random r = new Random();
+                while(System.currentTimeMillis()<end){
+                    Fun.Pair<Long,byte[]> t = q.take();
+                    assertArrayEquals(t.b,e.get(t.a,Serializer.BYTE_ARRAY_NOSIZE));
+                    byte[] b = new byte[r.nextInt(100000)];
+                    r.nextBytes(b);
+                    e.update(t.a, b, Serializer.BYTE_ARRAY_NOSIZE);
+                    q.put(new Fun.Pair<Long,byte[]>(t.a,b));
+                }
+                return null;
+            }
+        });
+
+        for( Fun.Pair<Long,byte[]> t :q){
+            assertArrayEquals(t.b, e.get(t.a,Serializer.BYTE_ARRAY_NOSIZE));
+        }
 
     }
+
+
+    @Test(timeout = 1000*100)
+    public void par_cas() throws InterruptedException {
+        int threadNum = 32;
+        final long end = (long) (System.currentTimeMillis()+20000);
+        final Engine e = openEngine();
+        final BlockingQueue<Fun.Pair<Long,byte[]>> q = new ArrayBlockingQueue(threadNum*10);
+        for(int i=0;i<threadNum;i++){
+            byte[] b = new  byte[new Random().nextInt(10000)];
+            new Random().nextBytes(b);
+            long recid = e.put(b,BYTE_ARRAY_NOSIZE);
+            q.put(new Fun.Pair(recid,b));
+        }
+
+
+        Exec.execNTimes(threadNum, new Callable() {
+            @Override
+            public Object call() throws Exception {
+                Random r = new Random();
+                while(System.currentTimeMillis()<end){
+                    Fun.Pair<Long,byte[]> t = q.take();
+                    byte[] b = new byte[r.nextInt(100000)];
+                    r.nextBytes(b);
+                    assertTrue(e.compareAndSwap(t.a, t.b, b, Serializer.BYTE_ARRAY_NOSIZE));
+                    q.put(new Fun.Pair<Long,byte[]>(t.a,b));
+                }
+                return null;
+            }
+        });
+
+        for( Fun.Pair<Long,byte[]> t :q){
+            assertArrayEquals(t.b, e.get(t.a,Serializer.BYTE_ARRAY_NOSIZE));
+        }
+
+    }
+
+
 }

@@ -1,6 +1,5 @@
 package org.mapdb;
 
-import jdk.internal.org.objectweb.asm.tree.MultiANewArrayInsnNode;
 import org.junit.Test;
 
 import java.io.IOError;

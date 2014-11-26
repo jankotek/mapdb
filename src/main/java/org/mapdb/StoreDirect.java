@@ -47,13 +47,15 @@ public class StoreDirect extends Store {
 
     protected static final long INITCRC_INDEX_PAGE = 4329042389490239043L;
 
+    private static final long[] EMPTY_LONGS = new long[0];
+
 
     protected Volume vol;
 
-    //TODO this only grows under structural lock, but reads are outside structural lock, perhaps volatile?
+    //TODO this only grows under structural lock, but reads are outside structural lock, does it have to be volatile?
     protected long[] indexPages;
 
-    protected long lastAllocatedData=0;
+    protected volatile long lastAllocatedData=0; //TODO this is under structural lock, does it have to be volatile?
 
     public StoreDirect(String fileName,
                        Fun.Function1<Volume, String> volumeFactory,
@@ -203,7 +205,7 @@ public class StoreDirect extends Store {
     }
 
     protected int offsetsTotalSize(long[] offsets) {
-        if(offsets==null)
+        if(offsets==null || offsets.length==0)
             return 0;
         int totalSize = 8;
         for (long l : offsets) {
@@ -231,7 +233,8 @@ public class StoreDirect extends Store {
         }else {
             structuralLock.lock();
             try {
-                freeDataPut(oldOffsets);
+                if(oldOffsets!=null)
+                    freeDataPut(oldOffsets);
                 newOffsets = newSize==0?null:freeDataTake(out.pos);
 
             } finally {
@@ -256,7 +259,7 @@ public class StoreDirect extends Store {
         long indexVal = indexValGet(recid);
         if(indexVal>>>48==0){
 
-            return ((indexVal&MLINKED)!=0) ? null : new long[0];
+            return ((indexVal&MLINKED)!=0) ? null : EMPTY_LONGS;
         }
 
         long[] ret = new long[]{indexVal};
@@ -410,18 +413,33 @@ public class StoreDirect extends Store {
     protected void freeDataPut(long[] linkedOffsets) {
         if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
-        //TODO add assertions here
-        //TODO not yet implemented
+        for(long v:linkedOffsets){
+            int size = round16Up((int) (v >>> 48));
+            v &= MOFFSET;
+            freeDataPut(v,size);
+        }
     }
 
 
     protected void freeDataPut(long offset, int size) {
         if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
-        if(CC.PARANOID && size%16!=0)
+        if(CC.PARANOID && size%16!=0 )
+            throw new AssertionError();
+        if(CC.PARANOID && (offset%16!=0 || offset<PAGE_SIZE))
             throw new AssertionError();
 
-        //TODO not implemented
+        //System.out.println(offset +" - " + size + " - ");
+        vol.clear(offset,offset+size);
+
+        //shrink store if this is last record
+        if(offset+size==lastAllocatedData){
+            lastAllocatedData-=size;
+            return;
+        }
+
+        long masterPointerOffset = size/2 + FREE_RECID_STACK; // really is size*8/16
+        longStackPut(masterPointerOffset, offset, false);
     }
 
 
@@ -432,7 +450,7 @@ public class StoreDirect extends Store {
             throw new AssertionError();
 
         //compose of multiple single records
-        long[] ret = new long[0];
+        long[] ret = EMPTY_LONGS;
         while(size>MAX_REC_SIZE){
             ret = Arrays.copyOf(ret,ret.length+1);
             ret[ret.length-1] = (((long)MAX_REC_SIZE)<<48) | freeDataTakeSingle(round16Up(MAX_REC_SIZE)) | MLINKED;
@@ -453,7 +471,11 @@ public class StoreDirect extends Store {
             throw new AssertionError();
 
 
-        //TODO free space reuse
+        long masterPointerOffset = size/2 + FREE_RECID_STACK; // really is size*8/16
+        long ret = longStackTake(masterPointerOffset,false);
+        if(ret!=0) {
+            return ret;
+        }
 
         if(lastAllocatedData==0){
             //allocate new data page
@@ -469,7 +491,7 @@ public class StoreDirect extends Store {
             freeDataTakeSingle(size);
         }
         //yes it fits here, increase pointer
-        long ret = lastAllocatedData;
+        ret = lastAllocatedData;
         lastAllocatedData+=size;
 
         if(CC.PARANOID && ret%16!=0)
@@ -504,7 +526,10 @@ public class StoreDirect extends Store {
         long pageSize = prevLinkVal>>>48;
         //is there enough space in current page?
         if(currSize+8>=pageSize){
-            //TODO zero out remaining bytes, they are part of storage format
+            //no there is not enough space
+            //first zero out rest of the page
+            vol.clear(pageOffset+currSize, pageOffset+pageSize);
+            //allocate new page
             longStackNewPage(masterLinkOffset,pageOffset,value);
         }
 
@@ -536,11 +561,16 @@ public class StoreDirect extends Store {
             return 0;
         }
         long currSize = masterLinkVal>>>48;
-        long pageOffset = masterLinkVal&MOFFSET;
+        final long pageOffset = masterLinkVal&MOFFSET;
 
         //read packed link from stack
         long ret = vol.getLongPackBidiReverse(pageOffset+currSize);
+        //extract number of read bytes
+        long oldCurrSize = currSize;
         currSize-= ret >>>56;
+        //clear bytes occupied by prev value
+        vol.clear(pageOffset+currSize, pageOffset+oldCurrSize);
+        //and finally set return value
         ret = parity1Get(ret &DataIO.PACK_LONG_BIDI_MASK)>>>1;
 
         if(CC.PARANOID && currSize<12)
@@ -555,10 +585,7 @@ public class StoreDirect extends Store {
 
         //there is no space at current page, so delete current page and update master pointer
         long prevPageOffset = parity4Get(vol.getLong(pageOffset + 4));
-
-        //release current page, size is stored as part of prev page value
-        freeDataPut(pageOffset, (int) (prevPageOffset>>>48));
-
+        final int currPageSize = (int) (prevPageOffset>>>48);
         prevPageOffset &= MOFFSET;
 
         //does previous page exists?
@@ -587,6 +614,8 @@ public class StoreDirect extends Store {
         //update master link with curr page size and offset
         vol.putLong(masterLinkOffset, parity4Set(currSize<<48 | prevPageOffset));
 
+        //release old page, size is stored as part of prev page value
+        freeDataPut(pageOffset, currPageSize);
 
         return ret;
     }

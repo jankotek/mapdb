@@ -14,7 +14,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.zip.CRC32;
 
 /**
- * Created by jan on 11/8/14.
+ *
  */
 public abstract class Store implements Engine {
 
