@@ -41,7 +41,8 @@ public class StoreDirect extends Store {
 
     protected static final int MAX_REC_SIZE = 0xFFFF;
     /** number of free physical slots */
-    protected static final int SLOTS_COUNT = (MAX_REC_SIZE+1)/16;
+    protected static final int SLOTS_COUNT = 5+(MAX_REC_SIZE)/16;
+        //TODO check exact number of slots +5 is just to be sure
 
     protected static final long HEAD_END = INDEX_PAGE + SLOTS_COUNT * 8;
 
@@ -321,7 +322,7 @@ public class StoreDirect extends Store {
         }finally {
             structuralLock.unlock();
         }
-        indexValPut(recid,0,0,true,false);
+        indexValPut(recid,0,0,true,true);
     }
 
     @Override
@@ -470,10 +471,14 @@ public class StoreDirect extends Store {
         if(CC.PARANOID && size>round16Up(MAX_REC_SIZE))
             throw new AssertionError();
 
-
         long masterPointerOffset = size/2 + FREE_RECID_STACK; // really is size*8/16
         long ret = longStackTake(masterPointerOffset,false);
         if(ret!=0) {
+            if(CC.PARANOID && ret<PAGE_SIZE)
+                throw new AssertionError();
+            if(CC.PARANOID && ret%16!=0)
+                throw new AssertionError();
+
             return ret;
         }
 
@@ -481,6 +486,10 @@ public class StoreDirect extends Store {
             //allocate new data page
             long page = pageAllocate();
             lastAllocatedData = page+size;
+            if(CC.PARANOID && page<PAGE_SIZE)
+                throw new AssertionError();
+            if(CC.PARANOID && page%16!=0)
+                throw new AssertionError();
             return page;
         }
 
@@ -497,6 +506,8 @@ public class StoreDirect extends Store {
         if(CC.PARANOID && ret%16!=0)
             throw new AssertionError();
         if(CC.PARANOID && lastAllocatedData%16!=0)
+            throw new AssertionError();
+        if(CC.PARANOID && ret<PAGE_SIZE)
             throw new AssertionError();
 
         return ret;
@@ -531,6 +542,7 @@ public class StoreDirect extends Store {
             vol.clear(pageOffset+currSize, pageOffset+pageSize);
             //allocate new page
             longStackNewPage(masterLinkOffset,pageOffset,value);
+            return;
         }
 
         //there is enough space, so just write new value
@@ -553,7 +565,9 @@ public class StoreDirect extends Store {
     protected long longStackTake(long masterLinkOffset, boolean recursive){
         if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
-        if(CC.PARANOID && (masterLinkOffset<=0 || masterLinkOffset>PAGE_SIZE || masterLinkOffset % 8!=0))
+        if(CC.PARANOID && (masterLinkOffset<FREE_RECID_STACK ||
+                masterLinkOffset>FREE_RECID_STACK+round16Up(MAX_REC_SIZE)/2 ||
+                masterLinkOffset % 8!=0))
             throw new AssertionError();
 
         long masterLinkVal = parity4Get(vol.getLong(masterLinkOffset));
@@ -594,13 +608,12 @@ public class StoreDirect extends Store {
 
             //find pointer to end of previous page
             // (data are packed with var size, traverse from end of page, until zeros
-            //TODO swap bit indicators in bidi packed
 
             //first read size of current page
             currSize = parity4Get(vol.getLong(prevPageOffset + 4)) >>> 48;
 
             //now read bytes from end of page, until they are zeros
-            while (vol.getUnsignedByte(prevPageOffset + currSize) == 0) {
+            while (vol.getUnsignedByte(prevPageOffset + currSize-1) == 0) {
                 currSize--;
             }
 
