@@ -4,13 +4,12 @@ package org.mapdb;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
+import java.util.concurrent.*;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mapdb.Serializer.BYTE_ARRAY_NOSIZE;
 
 /**
@@ -246,5 +245,116 @@ public abstract class EngineTest<ENGINE extends Engine>{
     }
 
 
+    public static void execNTimes(int n, final Callable r){
+        ExecutorService s = Executors.newFixedThreadPool(n);
+        final CountDownLatch wait = new CountDownLatch(n);
+
+        List<Future> f = new ArrayList();
+
+        Runnable r2 = new Runnable(){
+
+            @Override
+            public void run() {
+                wait.countDown();
+                try {
+                    wait.await();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                try {
+                    r.call();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        };
+
+        for(int i=0;i<n;i++){
+            f.add(s.submit(r2));
+        }
+
+        s.shutdown();
+
+        for(Future ff:f){
+            try {
+                ff.get();
+            } catch (Exception e) {
+                throw new Error(e);
+            }
+        }
+
+    }
+
+    @Test(timeout = 1000*100)
+    public void par_update_get() throws InterruptedException {
+        int threadNum = 32;
+        final long end = (long) (System.currentTimeMillis()+20000);
+        final Engine e = openEngine();
+        final BlockingQueue<Fun.Tuple2<Long,byte[]>> q = new ArrayBlockingQueue(threadNum*10);
+        for(int i=0;i<threadNum;i++){
+            byte[] b = new  byte[new Random().nextInt(10000)];
+            new Random().nextBytes(b);
+            long recid = e.put(b,BYTE_ARRAY_NOSIZE);
+            q.put(new Fun.Tuple2(recid,b));
+        }
+
+
+        execNTimes(threadNum, new Callable() {
+            @Override
+            public Object call() throws Exception {
+                Random r = new Random();
+                while (System.currentTimeMillis() < end) {
+                    Fun.Tuple2<Long, byte[]> t = q.take();
+                    assertArrayEquals(t.b, e.get(t.a, Serializer.BYTE_ARRAY_NOSIZE));
+                    byte[] b = new byte[r.nextInt(100000)];
+                    r.nextBytes(b);
+                    e.update(t.a, b, Serializer.BYTE_ARRAY_NOSIZE);
+                    q.put(new Fun.Tuple2<Long, byte[]>(t.a, b));
+                }
+                return null;
+            }
+        });
+
+        for( Fun.Tuple2<Long,byte[]> t :q){
+            assertArrayEquals(t.b, e.get(t.a,Serializer.BYTE_ARRAY_NOSIZE));
+        }
+
+    }
+
+
+    @Test(timeout = 1000*100)
+    public void par_cas() throws InterruptedException {
+        int threadNum = 32;
+        final long end = (long) (System.currentTimeMillis()+20000);
+        final Engine e = openEngine();
+        final BlockingQueue<Fun.Tuple2<Long,byte[]>> q = new ArrayBlockingQueue(threadNum*10);
+        for(int i=0;i<threadNum;i++){
+            byte[] b = new  byte[new Random().nextInt(10000)];
+            new Random().nextBytes(b);
+            long recid = e.put(b,BYTE_ARRAY_NOSIZE);
+            q.put(new Fun.Tuple2(recid,b));
+        }
+
+
+        execNTimes(threadNum, new Callable() {
+            @Override
+            public Object call() throws Exception {
+                Random r = new Random();
+                while (System.currentTimeMillis() < end) {
+                    Fun.Tuple2<Long, byte[]> t = q.take();
+                    byte[] b = new byte[r.nextInt(100000)];
+                    r.nextBytes(b);
+                    assertTrue(e.compareAndSwap(t.a, t.b, b, Serializer.BYTE_ARRAY_NOSIZE));
+                    q.put(new Fun.Tuple2<Long, byte[]>(t.a, b));
+                }
+                return null;
+            }
+        });
+
+        for( Fun.Tuple2<Long,byte[]> t :q){
+            assertArrayEquals(t.b, e.get(t.a,Serializer.BYTE_ARRAY_NOSIZE));
+        }
+
+    }
 
 }
