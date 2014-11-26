@@ -86,12 +86,13 @@ public class DB implements Closeable {
         }
         this.engine = engine;
         this.strictDBGet = strictDBGet;
-        reinit();
+
         final CopyOnWriteArrayList<SerializerPojo.ClassInfo> classInfos =
                 engine.get(Engine.RECID_CLASS_CATALOG,
                 SerializerPojo.serializer);
         serializerPojo = new SerializerPojo(classInfos);
         serializerPojo.setDb(this);
+        reinit();
     }
 
     protected void reinit() {
