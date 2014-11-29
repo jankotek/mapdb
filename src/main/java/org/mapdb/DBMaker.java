@@ -911,7 +911,6 @@ public class DBMaker{
                 propsGetBool(Keys.deleteFilesAfterClose),
                 propsGetInt(Keys.freeSpaceReclaimQ,CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
                 propsGetBool(Keys.commitFileSyncDisable),
-
                 0);
     }
 
@@ -919,17 +918,18 @@ public class DBMaker{
             String fileName,
             Fun.Function1<Volume,String> volumeFactory) {
         boolean compressionEnabled = Keys.compression_lzf.equals(props.getProperty(Keys.compression));
-        throw new RuntimeException("StoreWAL");
 
-//        return new StoreWAL(
-//                fileName,
-//                volumeFactory,
-//                propsGetBool(Keys.readOnly),
-//                propsGetBool(Keys.deleteFilesAfterClose),
-//                propsGetInt(Keys.freeSpaceReclaimQ,CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
-//                propsGetBool(Keys.commitFileSyncDisable),
-//                propsGetBool(Keys.checksum),compressionEnabled,propsGetXteaEncKey(),
-//                0);
+        return new StoreWAL(
+                fileName,
+                volumeFactory,
+                propsGetBool(Keys.checksum),
+                compressionEnabled,
+                propsGetXteaEncKey(),
+                propsGetBool(Keys.readOnly),
+                propsGetBool(Keys.deleteFilesAfterClose),
+                propsGetInt(Keys.freeSpaceReclaimQ, CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
+                propsGetBool(Keys.commitFileSyncDisable),
+                0);
     }
 
 
