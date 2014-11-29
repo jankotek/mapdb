@@ -281,7 +281,7 @@ public abstract class Store implements Engine {
         if(serializer==null)
             throw new NullPointerException();
 
-        //TODO binary CAS
+        //TODO binary CAS & serialize outside lock
         final Lock lock = locks[lockPos(recid)].writeLock();
         lock.lock();
         try{
