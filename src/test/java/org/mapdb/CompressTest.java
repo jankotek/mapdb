@@ -15,6 +15,7 @@ public class CompressTest{
     @Before public void init(){
         db = DBMaker
                 .newMemoryDB()
+                .transactionDisable()
                 .cacheDisable()
                 .compressionEnable()
                 .make();

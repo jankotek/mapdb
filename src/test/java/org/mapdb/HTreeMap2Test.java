@@ -566,7 +566,7 @@ public class HTreeMap2Test {
 
     @Test public void hasher(){
         HTreeMap m =
-                DBMaker.newMemoryDB().make()
+                DBMaker.newMemoryDB().transactionDisable().make()
                         .createHashMap("test")
                         .keySerializer(Serializer.INT_ARRAY)
                         .make();
@@ -581,7 +581,7 @@ public class HTreeMap2Test {
     }
 
     @Test public void mod_listener_lock(){
-        DB db = DBMaker.newMemoryDB().make();
+        DB db = DBMaker.newMemoryDB().transactionDisable().make();
         final HTreeMap m = db.getHashMap("name");
 
         final int seg =  m.hash("aa")>>>28;
