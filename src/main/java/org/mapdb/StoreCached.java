@@ -243,6 +243,7 @@ public class StoreCached extends StoreDirect {
                         update2(recid,buf);
                         recycledDataOuts.offer(buf);
                     }
+                    iter.remove();
                 }
 
             }finally {
