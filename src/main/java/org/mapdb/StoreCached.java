@@ -246,6 +246,9 @@ public class StoreCached extends StoreDirect {
                     iter.remove();
                 }
 
+                if(CC.PARANOID && !writeCache[i].isEmpty())
+                    throw new AssertionError();
+
             }finally {
                 lock.unlock();
             }
