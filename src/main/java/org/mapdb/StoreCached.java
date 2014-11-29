@@ -241,7 +241,7 @@ public class StoreCached extends StoreDirect {
                     }else{
                         DataOutputByteArray buf = serialize(p.a, p.b); //TODO somehow serialize outside lock?
                         update2(recid,buf);
-                        recycledDataOuts.offer(buf);
+                        recycledDataOut.lazySet(buf);
                     }
                     iter.remove();
                 }

@@ -5,9 +5,9 @@ import java.io.IOError;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -97,7 +97,8 @@ public abstract class Store implements Engine {
         }
     }
 
-    protected final Queue<DataIO.DataOutputByteArray> recycledDataOuts = new ArrayBlockingQueue<DataIO.DataOutputByteArray>(128);
+    protected final AtomicReference<DataIO.DataOutputByteArray> recycledDataOut =
+            new AtomicReference<DataIO.DataOutputByteArray>();
 
     protected <A> DataIO.DataOutputByteArray serialize(A value, Serializer<A> serializer){
         if(value==null)
@@ -122,7 +123,7 @@ public abstract class Store implements Engine {
                     if(newLen>=out.pos) newLen= 0; //larger after compression
 
                     if(newLen==0){
-                        recycledDataOuts.offer(tmp);
+                        recycledDataOut.lazySet(tmp);
                         //compression had no effect, so just write zero at beginning and move array by 1
                         out.ensureAvail(out.pos+1);
                         System.arraycopy(out.buf,0,out.buf,1,out.pos);
@@ -134,7 +135,7 @@ public abstract class Store implements Engine {
                         out.pos=0;
                         DataIO.packInt(out,decompSize);
                         out.write(tmp.buf,0,newLen);
-                        recycledDataOuts.offer(tmp);
+                        recycledDataOut.lazySet(tmp);
                     }
 
                 }
@@ -186,7 +187,7 @@ public abstract class Store implements Engine {
     }
 
     protected DataIO.DataOutputByteArray newDataOut2() {
-        DataIO.DataOutputByteArray tmp = recycledDataOuts.poll();
+        DataIO.DataOutputByteArray tmp = recycledDataOut.getAndSet(null);
         if(tmp==null) tmp = new DataIO.DataOutputByteArray();
         else tmp.pos=0;
         return tmp;
@@ -214,7 +215,7 @@ public abstract class Store implements Engine {
                     //calculate checksums
                     CRC32 crc = new CRC32();
                     crc.update(tmp.buf, 0, size);
-                    recycledDataOuts.offer(tmp);
+                    recycledDataOut.lazySet(tmp);
                     int check = (int) crc.getValue();
                     if (check != checkExpected)
                         throw new IOException("Checksum does not match, data broken");
