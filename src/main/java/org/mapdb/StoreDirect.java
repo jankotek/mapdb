@@ -1,8 +1,6 @@
 package org.mapdb;
 
 import java.io.DataInput;
-import java.io.IOError;
-import java.io.IOException;
 import java.util.Arrays;
 
 import static org.mapdb.DataIO.*;
@@ -52,6 +50,7 @@ public class StoreDirect extends Store {
 
 
     protected Volume vol;
+    protected Volume headVol;
 
     //TODO this only grows under structural lock, but reads are outside structural lock, does it have to be volatile?
     protected long[] indexPages;
@@ -98,17 +97,18 @@ public class StoreDirect extends Store {
                 }
 
                 //and set header checksum
-                vol.putInt(HEAD_CHECKSUM, headChecksum());
+                vol.putInt(HEAD_CHECKSUM, headChecksum(vol));
                 vol.sync();
-
+                initHeadVol();
                 lastAllocatedData = 0L;
             }else {
                 //TODO header
-                //TOOD feature bit field
+                //TODO feature bit field
 
+                initHeadVol();
                 //check head checksum
                 int expectedChecksum = vol.getInt(HEAD_CHECKSUM);
-                int actualChecksum = headChecksum();
+                int actualChecksum = headChecksum(vol);
                 if (actualChecksum != expectedChecksum) {
                     throw new InternalError("Head checksum broken");
                 }
@@ -138,12 +138,18 @@ public class StoreDirect extends Store {
                     indexPage = parity16Get(vol.getLong(indexPage+PAGE_SIZE_M16));
                 }
                 indexPages = Arrays.copyOf(ip,i);
-
             }
         } finally {
             structuralLock.unlock();
         }
 
+    }
+
+    protected void initHeadVol() {
+        if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+            throw new AssertionError();
+
+        this.headVol = vol;
     }
 
     public StoreDirect(String fileName) {
@@ -152,13 +158,13 @@ public class StoreDirect extends Store {
                 false,0);
     }
 
-    protected int headChecksum() {
+    protected int headChecksum(Volume vol2) {
         if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
         int ret = 0;
         for(int offset = 8;offset<HEAD_END;offset+=8){
             //TODO include some recids in checksum
-            ret = ret*31 + DataIO.longHash(vol.getLong(offset));
+            ret = ret*31 + DataIO.longHash(vol2.getLong(offset));
             ret = ret*31 + DataIO.intHash(offset);
         }
         return ret;
@@ -523,7 +529,7 @@ public class StoreDirect extends Store {
         if(CC.PARANOID && (masterLinkOffset<=0 || masterLinkOffset>PAGE_SIZE || masterLinkOffset % 8!=0))
             throw new AssertionError();
 
-        long masterLinkVal = parity4Get(vol.getLong(masterLinkOffset));
+        long masterLinkVal = parity4Get(headVol.getLong(masterLinkOffset));
         long pageOffset = masterLinkVal&MOFFSET;
 
         if(masterLinkVal==0L){
@@ -548,17 +554,20 @@ public class StoreDirect extends Store {
         //there is enough space, so just write new value
         currSize += vol.putLongPackBidi(pageOffset+currSize,parity1Set(value<<1));
         //and update master pointer
-        vol.putLong(masterLinkOffset, parity4Set(currSize<<48 | pageOffset));
+        headVol.putLong(masterLinkOffset, parity4Set(currSize<<48 | pageOffset));
     }
 
     protected void longStackNewPage(long masterLinkOffset, long prevPageOffset, long value) {
+        if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+            throw new AssertionError();
+
         long newPageOffset = freeDataTakeSingle((int) CHUNKSIZE);
         //write size of current chunk with link to prev page
         vol.putLong(newPageOffset+4, parity4Set((CHUNKSIZE<<48) | prevPageOffset));
         //put value
         long currSize = 12 + vol.putLongPackBidi(newPageOffset+12, parity1Set(value<<1));
         //update master pointer
-        vol.putLong(masterLinkOffset, parity4Set((currSize<<48)|newPageOffset));
+        headVol.putLong(masterLinkOffset, parity4Set((currSize<<48)|newPageOffset));
     }
 
 
@@ -570,7 +579,7 @@ public class StoreDirect extends Store {
                 masterLinkOffset % 8!=0))
             throw new AssertionError();
 
-        long masterLinkVal = parity4Get(vol.getLong(masterLinkOffset));
+        long masterLinkVal = parity4Get(headVol.getLong(masterLinkOffset));
         if(masterLinkVal==0 ){
             return 0;
         }
@@ -593,7 +602,7 @@ public class StoreDirect extends Store {
         //is there space left on current page?
         if(currSize>12){
             //yes, just update master link
-            vol.putLong(masterLinkOffset, parity4Set(currSize << 48 | pageOffset));
+            headVol.putLong(masterLinkOffset, parity4Set(currSize << 48 | pageOffset));
             return ret;
         }
 
@@ -625,7 +634,7 @@ public class StoreDirect extends Store {
         }
 
         //update master link with curr page size and offset
-        vol.putLong(masterLinkOffset, parity4Set(currSize<<48 | prevPageOffset));
+        headVol.putLong(masterLinkOffset, parity4Set(currSize<<48 | prevPageOffset));
 
         //release old page, size is stored as part of prev page value
         freeDataPut(pageOffset, currPageSize);
@@ -636,7 +645,7 @@ public class StoreDirect extends Store {
     @Override
     public void close() {
         closed = true;
-        commit();
+        flush();
         vol.close();
         vol = null;
     }
@@ -644,12 +653,16 @@ public class StoreDirect extends Store {
 
     @Override
     public void commit() {
+        flush();
+    }
+
+    protected void flush() {
         if(isReadOnly())
             return;
         structuralLock.lock();
         try{
             //and set header checksum
-            vol.putInt(HEAD_CHECKSUM, headChecksum());
+            vol.putInt(HEAD_CHECKSUM, headChecksum(vol));
         }finally {
             structuralLock.unlock();
         }
@@ -739,9 +752,9 @@ public class StoreDirect extends Store {
     protected long freeRecidTake() {
         if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
-        long currentRecid = parity3Get(vol.getLong(MAX_RECID_OFFSET));
+        long currentRecid = parity3Get(headVol.getLong(MAX_RECID_OFFSET));
         currentRecid+=8;
-        vol.putLong(MAX_RECID_OFFSET,parity3Set(currentRecid));
+        headVol.putLong(MAX_RECID_OFFSET, parity3Set(currentRecid));
 
         currentRecid/=8;
         //check if new index page has to be allocated
@@ -759,20 +772,22 @@ public class StoreDirect extends Store {
         //allocate new index page
         long indexPage = pageAllocate();
 
-        //add link to this page
-        long nextPagePointerOffset =
-                indexPages.length==1? INDEX_PAGE : //first index page
-                indexPages[indexPages.length-1]+PAGE_SIZE_M16; //update link on previous page
-
-        if(CC.STORE_INDEX_CRC && indexPages.length!=1){
-            //update crc by increasing crc value
-            long crc = vol.getLong(nextPagePointerOffset+8);
-            crc-=vol.getLong(nextPagePointerOffset);
-            crc+=parity16Set(indexPage);
-            vol.putLong(nextPagePointerOffset+8,crc);
+        //add link to previous page
+        if(indexPages.length==1){
+            //first index page
+            headVol.putLong(INDEX_PAGE, parity16Set(indexPage));
+        }else{
+            //update link on previous page
+            long nextPagePointerOffset = indexPages[indexPages.length-1]+PAGE_SIZE_M16;
+            vol.putLong(nextPagePointerOffset, parity16Set(indexPage));
+            if(CC.STORE_INDEX_CRC){
+                //update crc by increasing crc value
+                long crc = vol.getLong(nextPagePointerOffset+8);
+                crc-=vol.getLong(nextPagePointerOffset);
+                crc+=parity16Set(indexPage);
+                vol.putLong(nextPagePointerOffset+8,crc);
+            }
         }
-
-        vol.putLong(nextPagePointerOffset, parity16Set(indexPage));
 
         //set zero link on next page
         vol.putLong(indexPage+PAGE_SIZE_M16,parity16Set(0));
@@ -792,10 +807,10 @@ public class StoreDirect extends Store {
         if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
-        long storeSize = parity16Get(vol.getLong(STORE_SIZE));
+        long storeSize = parity16Get(headVol.getLong(STORE_SIZE));
         vol.ensureAvailable(storeSize+PAGE_SIZE);
         vol.clear(storeSize,storeSize+PAGE_SIZE);
-        vol.putLong(STORE_SIZE, parity16Set(storeSize + PAGE_SIZE));
+        headVol.putLong(STORE_SIZE, parity16Set(storeSize + PAGE_SIZE));
 
         if(CC.PARANOID && storeSize%PAGE_SIZE!=0)
             throw new AssertionError();

@@ -1061,8 +1061,9 @@ public abstract class Volume implements Closeable{
             buf[pos++] = (byte) (0xff & (v >> 24));
             buf[pos++] = (byte) (0xff & (v >> 16));
             buf[pos++] = (byte) (0xff & (v >> 8));
-            buf[pos++] = (byte) (0xff & (v));
+            buf[pos] = (byte) (0xff & (v));
         }
+
 
         @Override
         public void putInt(long offset, int value) {
@@ -1131,6 +1132,8 @@ public abstract class Volume implements Closeable{
             }
             return ret;
         }
+
+
 
         @Override
         public int getInt(long offset) {

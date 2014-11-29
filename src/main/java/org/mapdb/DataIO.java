@@ -156,7 +156,7 @@ public final class DataIO {
 
     public static final long PACK_LONG_BIDI_MASK = 0xFFFFFFFFFFFFFFL;
 
-    //TODO perhaps remove if this is already in Volume
+
     public static int packLongBidi(DataOutput out, long value) throws IOException {
         out.write((((int) value & 0x7F))| 0x80);
         value >>>= 7;
@@ -174,8 +174,25 @@ public final class DataIO {
         return counter;
     }
 
-    //TODO perhaps remove if this is already in Volume
-    public static long unpackLongBidi(byte[] bb, int pos) throws IOException {
+    public static int packLongBidi(byte[] buf, int pos, long value) {
+        buf[pos++] = (byte) ((((int) value & 0x7F))| 0x80);
+        value >>>= 7;
+        int counter = 2;
+
+        //$DELAY$
+        while ((value & ~0x7FL) != 0) {
+            buf[pos++] = (byte) (((int) value & 0x7F));
+            value >>>= 7;
+            //$DELAY$
+            counter++;
+        }
+        //$DELAY$
+        buf[pos++] = (byte) ((byte) value| 0x80);
+        return counter;
+    }
+
+
+    public static long unpackLongBidi(byte[] bb, int pos){
         //$DELAY$
         long b = bb[pos++];
         if(CC.PARANOID && (b&0x80)==0)
@@ -194,8 +211,8 @@ public final class DataIO {
         return (((long)(offset/7))<<56) | result;
     }
 
-    //TODO perhaps remove if this is already in Volume
-    public static long unpackLongBidiReverse(byte[] bb, int pos) throws IOException {
+
+    public static long unpackLongBidiReverse(byte[] bb, int pos){
         //$DELAY$
         long b = bb[--pos];
         if(CC.PARANOID && (b&0x80)==0)
@@ -213,6 +230,29 @@ public final class DataIO {
         //$DELAY$
         return (((long)counter)<<56) | result;
     }
+
+    public static long getLong(byte[] buf, int pos) {
+        final int end = pos + 8;
+        long ret = 0;
+        for (; pos < end; pos++) {
+            ret = (ret << 8) | (buf[pos] & 0xFF);
+        }
+        return ret;
+    }
+
+    public static void putLong(byte[] buf, int pos,long v) {
+        buf[pos++] = (byte) (0xff & (v >> 56));
+        buf[pos++] = (byte) (0xff & (v >> 48));
+        buf[pos++] = (byte) (0xff & (v >> 40));
+        buf[pos++] = (byte) (0xff & (v >> 32));
+        buf[pos++] = (byte) (0xff & (v >> 24));
+        buf[pos++] = (byte) (0xff & (v >> 16));
+        buf[pos++] = (byte) (0xff & (v >> 8));
+        buf[pos] = (byte) (0xff & (v));
+    }
+
+
+
 
     public static int nextPowTwo(final int a)
     {
