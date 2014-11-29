@@ -15,14 +15,12 @@ import static org.junit.Assert.*;
 import static org.mapdb.StoreDirect.*;
 
 @SuppressWarnings({"rawtypes","unchecked"})
-public class StoreCachedTest<E extends StoreCached> extends EngineTest<E>{
+public class StoreCachedTest<E extends StoreCached> extends StoreDirectTest<E>{
 
     @Override boolean canRollback(){return false;}
 
     File f = UtilsTest.tempDbFile();
 
-
-//    static final long FREE_RECID_STACK = StoreDirect.IO_FREE_RECID+32;
 
     @Override protected E openEngine() {
         return (E) new StoreCached(f.getPath());
