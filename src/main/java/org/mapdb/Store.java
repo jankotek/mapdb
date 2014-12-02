@@ -18,8 +18,14 @@ import java.util.zip.CRC32;
  */
 public abstract class Store implements Engine {
 
-    protected final ReentrantLock structuralLock;
 
+    /** protects structural layout of records. Memory allocator is single threaded under this lock */
+    protected final ReentrantLock structuralLock = new ReentrantLock(CC.FAIR_LOCKS);
+
+    /** protects lifecycle methods such as commit, rollback and close() */
+    protected final ReentrantLock commitLock = new ReentrantLock(CC.FAIR_LOCKS);
+
+    /** protects data from being overwritten while read */
     protected final ReentrantReadWriteLock[] locks;
 
 
@@ -44,7 +50,6 @@ public abstract class Store implements Engine {
             boolean readonly) {
         this.fileName = fileName;
         this.volumeFactory = volumeFactory;
-        structuralLock = new ReentrantLock(CC.FAIR_LOCKS);
         locks = new ReentrantReadWriteLock[CC.CONCURRENCY];
         for(int i=0;i< locks.length;i++){
             locks[i] = new ReentrantReadWriteLock(CC.FAIR_LOCKS);

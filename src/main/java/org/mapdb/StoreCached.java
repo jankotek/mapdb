@@ -190,6 +190,9 @@ public class StoreCached extends StoreDirect {
 
     @Override
     protected void flush() {
+        if (CC.PARANOID && !commitLock.isHeldByCurrentThread())
+            throw new AssertionError();
+
         if (isReadOnly())
             return;
         flushWriteCache();
@@ -227,32 +230,39 @@ public class StoreCached extends StoreDirect {
     }
 
     protected void flushWriteCache() {
+        if (CC.PARANOID && !commitLock.isHeldByCurrentThread())
+            throw new AssertionError();
+
         //flush modified records
         for(int i=0;i<locks.length;i++){
             Lock lock = locks[i].writeLock();
             lock.lock();
             try {
-                LongMap.LongMapIterator<Fun.Pair<Object, Serializer>> iter = writeCache[i].longMapIterator();
-                while(iter.moveToNext()){
-                    long recid = iter.key();
-                    Fun.Pair<Object, Serializer> p = iter.value();
-                    if(p==TOMBSTONE){
-                        delete2(recid,Serializer.ILLEGAL_ACCESS);
-                    }else{
-                        DataOutputByteArray buf = serialize(p.a, p.b); //TODO somehow serialize outside lock?
-                        update2(recid,buf);
-                        recycledDataOut.lazySet(buf);
-                    }
-                    iter.remove();
-                }
-
-                if(CC.PARANOID && !writeCache[i].isEmpty())
-                    throw new AssertionError();
+                flushWriteCacheSegment(i);
 
             }finally {
                 lock.unlock();
             }
         }
+    }
+
+    protected void flushWriteCacheSegment(int segment) {
+        LongMap.LongMapIterator<Fun.Pair<Object, Serializer>> iter = writeCache[segment].longMapIterator();
+        while(iter.moveToNext()){
+            long recid = iter.key();
+            Fun.Pair<Object, Serializer> p = iter.value();
+            if(p==TOMBSTONE){
+                delete2(recid,Serializer.ILLEGAL_ACCESS);
+            }else{
+                DataOutputByteArray buf = serialize(p.a, p.b); //TODO somehow serialize outside lock?
+                update2(recid,buf);
+                recycledDataOut.lazySet(buf);
+            }
+            iter.remove();
+        }
+
+        if(CC.PARANOID && !writeCache[segment].isEmpty())
+            throw new AssertionError();
     }
 
     @Override

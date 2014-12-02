@@ -157,6 +157,29 @@ public abstract class Volume implements Closeable{
         return (((long)counter)<<56) | result;
     }
 
+    public long getSixLong(long pos) {
+        return
+                ((long) (getByte(pos++) & 0xff) << 40) |
+                        ((long) (getByte(pos++) & 0xff) << 32) |
+                        ((long) (getByte(pos++) & 0xff) << 24) |
+                        ((long) (getByte(pos++) & 0xff) << 16) |
+                        ((long) (getByte(pos++) & 0xff) << 8) |
+                        ((long) (getByte(pos) & 0xff));
+    }
+
+    public void putSixLong(long pos, long value) {
+        if(CC.PARANOID && (value>>>48!=0))
+            throw new AssertionError();
+
+        putByte(pos++, (byte) (0xff & (value >> 40)));
+        putByte(pos++, (byte) (0xff & (value >> 32)));
+        putByte(pos++, (byte) (0xff & (value >> 24)));
+        putByte(pos++, (byte) (0xff & (value >> 16)));
+        putByte(pos++, (byte) (0xff & (value >> 8)));
+        putByte(pos, (byte) (0xff & (value)));
+    }
+
+
     /** returns underlying file if it exists */
     abstract public File getFile();
 

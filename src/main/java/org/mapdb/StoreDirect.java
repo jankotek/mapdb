@@ -321,6 +321,9 @@ public class StoreDirect extends Store {
 
     @Override
     protected <A> void delete2(long recid, Serializer<A> serializer) {
+        if(CC.PARANOID)
+            assertWriteLocked(recid);
+
         long[] offsets = offsetsGet(recid);
         structuralLock.lock();
         try {
@@ -644,16 +647,26 @@ public class StoreDirect extends Store {
 
     @Override
     public void close() {
-        closed = true;
-        flush();
-        vol.close();
-        vol = null;
+        commitLock.lock();
+        try {
+            closed = true;
+            flush();
+            vol.close();
+            vol = null;
+        }finally{
+            commitLock.unlock();
+        }
     }
 
 
     @Override
     public void commit() {
-        flush();
+        commitLock.lock();
+        try {
+            flush();
+        }finally{
+            commitLock.unlock();
+        }
     }
 
     protected void flush() {
