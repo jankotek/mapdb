@@ -1051,8 +1051,15 @@ public class StoreDirect extends Store{
         assert(structuralLock.isHeldByCurrentThread());
         long size = indexVal >>>48;
         assert(size!=0);
+        indexVal &= MASK_OFFSET; //turn index val into offset
+        if(physSize == indexVal+roundTo16(size)){
+            //if is at end of file, just decrease file size
+            physSize = indexVal;
+            return;
+        }
+
         freeSize+=roundTo16(size);
-        longStackPut(size2ListIoRecid(size), indexVal & MASK_OFFSET,recursive);
+        longStackPut(size2ListIoRecid(size), indexVal,recursive);
     }
 
     protected long freePhysTake(int size, boolean ensureAvail, boolean recursive) {
