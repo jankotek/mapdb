@@ -52,6 +52,8 @@ public class StoreDirect extends Store {
 
     protected Volume vol;
     protected Volume headVol;
+    /** used in WAL */
+    protected Volume realVol;
 
     //TODO this only grows under structural lock, but reads are outside structural lock, does it have to be volatile?
     protected long[] indexPages;
@@ -105,7 +107,6 @@ public class StoreDirect extends Store {
             }else {
                 //TODO header
                 //TODO feature bit field
-
                 initHeadVol();
                 //check head checksum
                 int expectedChecksum = vol.getInt(HEAD_CHECKSUM);

@@ -18,6 +18,7 @@ package org.mapdb;
 
 
 import java.io.DataInput;
+import java.io.File;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
@@ -66,34 +67,55 @@ public class StoreWAL extends StoreCached {
         super(fileName, volumeFactory, checksum, compress, password, readonly, deleteFilesAfterClose,
                 freeSpaceReclaimQ, commitFileSyncDisable, sizeIncrement);
 
-        structuralLock.lock();
+        commitLock.lock();
         try {
 
-            realVol = vol;
-            //make main vol readonly, to make sure it is never overwritten outside WAL replay
-            vol = new Volume.ReadOnly(vol);
+            structuralLock.lock();
+            try {
 
-            prevLongs = new LongMap[CC.CONCURRENCY];
-            currLongs = new LongMap[CC.CONCURRENCY];
-            for (int i = 0; i < CC.CONCURRENCY; i++) {
-                prevLongs[i] = new LongHashMap<Long>();
-                currLongs[i] = new LongHashMap<Long>();
+                realVol = vol;
+                //make main vol readonly, to make sure it is never overwritten outside WAL replay
+                vol = new Volume.ReadOnly(vol);
+
+                prevLongs = new LongMap[CC.CONCURRENCY];
+                currLongs = new LongMap[CC.CONCURRENCY];
+                for (int i = 0; i < CC.CONCURRENCY; i++) {
+                    prevLongs[i] = new LongHashMap<Long>();
+                    currLongs[i] = new LongHashMap<Long>();
+                }
+
+                //TODO disable readonly feature for this store
+
+                //backup headVol
+                headVolBackup = new Volume.ByteArrayVol(CC.VOLUME_PAGE_SHIFT);
+                headVolBackup.ensureAvailable(HEAD_END);
+                byte[] b = new byte[(int) HEAD_END];
+                //TODO use direct copy
+                headVol.getData(0,b,0,b.length);
+                headVolBackup.putData(0,b,0,b.length);
+
+                String wal0Name = getWalFileName(0);
+                if(wal0Name!=null && new File(wal0Name).exists()){
+                    //fill wal files
+                    for(int i=0;;i++){
+                        String wname = getWalFileName(i);
+                        if(!new File(wname).exists())
+                            break;
+                        volumes.add(volumeFactory.run(wname));
+                    }
+
+                    replayWAL();
+
+                    volumes.clear();
+                }
+
+                //start new WAL file
+                walStartNextFile();
+            }finally {
+                structuralLock.unlock();
             }
-
-            //TODO disable readonly feature for this store
-
-            //backup headVol
-            headVolBackup = new Volume.ByteArrayVol(CC.VOLUME_PAGE_SHIFT);
-            headVolBackup.ensureAvailable(HEAD_END);
-            byte[] b = new byte[(int) HEAD_END];
-            //TODO use direct copy
-            headVol.getData(0,b,0,b.length);
-            headVolBackup.putData(0,b,0,b.length);
-
-            //start new WAL file
-            walStartNextFile();
         }finally {
-            structuralLock.unlock();
+            commitLock.unlock();
         }
     }
 
@@ -119,9 +141,7 @@ public class StoreWAL extends StoreCached {
                 fileName+"."+fileNum+".wal";
     }
 
-    protected void walPutLong(long offset, long value, int segment){
-        if(CC.PARANOID && !locks[segment].isWriteLockedByCurrentThread())
-            throw new AssertionError();
+    protected void walPutLong(long offset, long value){
         final int plusSize = +1+8+6;
         long walOffset2;
         do{
@@ -129,13 +149,11 @@ public class StoreWAL extends StoreCached {
         }while(!walOffset.compareAndSet(walOffset2, walOffset2+plusSize));
 
         curVol.ensureAvailable(walOffset2+plusSize);
-        curVol.putByte(walOffset2, (byte) (1<<5));
+        curVol.putUnsignedByte(walOffset2, (byte) (1 << 5));
         walOffset2+=1;
         curVol.putLong(walOffset2, value);
         walOffset2+=8;
         curVol.putSixLong(walOffset2, offset);
-
-        currLongs[segment].put(offset, value);
     }
 
     protected long walGetLong(long offset, int segment){
@@ -152,6 +170,8 @@ public class StoreWAL extends StoreCached {
 
     @Override
     protected void putDataSingleWithLink(int segment, long offset, long link, byte[] buf, int bufPos, int size) {
+        if(CC.PARANOID && (size&0xFFFF)!=size)
+            throw new AssertionError();
         //TODO optimize so array copy is not necessary, that means to clone and modify putDataSingleWithoutLink method
         byte[] buf2 = new  byte[size+8];
         DataIO.putLong(buf2,0,link);
@@ -161,6 +181,8 @@ public class StoreWAL extends StoreCached {
 
     @Override
     protected void putDataSingleWithoutLink(int segment, long offset, byte[] buf, int bufPos, int size) {
+        if(CC.PARANOID && (size&0xFFFF)!=size)
+            throw new AssertionError();
         if(CC.PARANOID && offset%16!=0)
             throw new AssertionError();
 //        if(CC.PARANOID && size%16!=0)
@@ -179,7 +201,7 @@ public class StoreWAL extends StoreCached {
         //TODO if offset overlaps, write skip instruction and try again
 
         curVol.ensureAvailable(walOffset2+plusSize);
-        curVol.putByte(walOffset2, (byte) (2<<5));
+        curVol.putUnsignedByte(walOffset2, (byte) (2 << 5));
         walOffset2+=1;
         curVol.putLong(walOffset2, ((long) size) << 48 | offset);
         walOffset2+=8;
@@ -217,12 +239,12 @@ public class StoreWAL extends StoreCached {
         if(CC.PARANOID)
             assertReadLocked(recid);
         int segment = lockPos(recid);
-        recid = recidToOffset(recid);
-        Long ret = currLongs[segment].get(recid);
+        long offset = recidToOffset(recid);
+        Long ret = currLongs[segment].get(offset);
         if(ret!=null) {
             return ret;
         }
-        ret = prevLongs[segment].get(recid);
+        ret = prevLongs[segment].get(offset);
         if(ret!=null)
             return ret;
         return super.indexValGet(recid);
@@ -329,7 +351,11 @@ public class StoreWAL extends StoreCached {
 
                     LongMap.LongMapIterator<Long> iter = currLongs[segment].longMapIterator();
                     while(iter.moveToNext()){
-                        prevLongs[segment].put(iter.key(),iter.value());
+                        long offset = iter.key();
+                        long value = iter.value();
+                        prevLongs[segment].put(offset,value);
+                        if((value&MARCHIVE)!=0)
+                            walPutLong(offset,value);
                         iter.remove();
                     }
                 }finally {
@@ -351,20 +377,21 @@ public class StoreWAL extends StoreCached {
                     if (CC.PARANOID && val.length <= 0 || val.length > MAX_REC_SIZE)
                         throw new AssertionError();
 
-                    putDataSingleWithoutLink(-1,offset,val,0,val.length);
+                    putDataSingleWithoutLink(-1, offset, val, 0, val.length);
 
                     iter.remove();
                 }
 
-
-                //make copy of current headVol
                 byte[] b = new byte[(int) HEAD_END];
                 //TODO use direct copy
-                headVol.getData(0,b,0,b.length);
-                headVolBackup.putData(0,b,0,b.length);
+                headVol.getData(0, b, 0, b.length);
+                //put headVol into WAL
+                putDataSingleWithoutLink(-1, 0L, b, 0, b.length);
 
+                //make copy of current headVol
+                headVolBackup.putData(0, b, 0, b.length);
+                curVol.putUnsignedByte(walOffset.get(),0);
                 curVol.sync();
-
                 walStartNextFile();
             } finally {
                 structuralLock.unlock();
@@ -374,6 +401,55 @@ public class StoreWAL extends StoreCached {
         }
     }
 
+
+    protected void replayWAL(){
+        if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+            throw new AssertionError();
+        if(CC.PARANOID && !commitLock.isHeldByCurrentThread())
+            throw new AssertionError();
+
+        file:for(Volume wal:volumes){
+            long pos = 16;
+            for(;;) {
+                int instruction = wal.getUnsignedByte(pos++)>>>5;
+                if (instruction == 0) {
+                    //EOF
+                    continue file;
+                } else if (instruction == 1) {
+                    //write long
+                    long val = wal.getLong(pos);
+                    pos += 8;
+                    long offset = wal.getSixLong(pos);
+                    pos += 6;
+                    realVol.putLong(offset, val);
+                } else if (instruction == 2) {
+                    //write byte[]
+                    int dataSize = wal.getUnsignedShort(pos);
+                    pos += 2;
+                    long offset = wal.getSixLong(pos);
+                    pos += 6;
+                    byte[] data = new byte[dataSize];
+                    wal.getData(pos, data, 0, data.length);
+                    pos += data.length;
+                    //TODO direct transfer
+                    realVol.putData(offset, data, 0, data.length);
+                } else if (instruction == 3) {
+                    //skip N bytes
+                    int skipN = wal.getInt(pos - 1) & 0xFFFFFF; //read 3 bytes
+                    pos += 3 + skipN;
+                }
+            }
+        }
+
+        realVol.sync();
+
+        //destroy old wal files
+        for(Volume wal:volumes){
+            wal.truncate(0);
+            wal.deleteFile();
+        }
+        volumes.clear();
+    }
 
     @Override
     public boolean canRollback() {
