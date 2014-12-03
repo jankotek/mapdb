@@ -2,6 +2,7 @@ package org.mapdb;
 
 import java.io.DataInput;
 import java.util.Arrays;
+import java.util.concurrent.locks.Lock;
 
 import static org.mapdb.DataIO.*;
 
@@ -88,7 +89,7 @@ public class StoreDirect extends Store {
 
                 //put reserved recids
                 for(long recid=1;recid<RECID_FIRST;recid++){
-                    indexValPut(recid,0,0,true,false);
+                    vol.putLong(recidToOffset(recid),parity1Set(MLINKED | MARCHIVE));
                 }
 
                 //put long stack master links
@@ -144,6 +145,7 @@ public class StoreDirect extends Store {
         }
 
     }
+
 
     protected void initHeadVol() {
         if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
@@ -300,7 +302,10 @@ public class StoreDirect extends Store {
         return ret;
     }
 
-    private void indexValPut(long recid, int size, long offset, boolean linked, boolean unused) {
+    protected void indexValPut(long recid, int size, long offset, boolean linked, boolean unused) {
+        if(CC.PARANOID)
+            assertWriteLocked(recid);
+
         long indexOffset = recidToOffset(recid);
         long newval = composeIndexVal(size,offset,linked,unused,true);
         if(CC.STORE_INDEX_CRC){
@@ -353,7 +358,13 @@ public class StoreDirect extends Store {
         }finally {
             structuralLock.unlock();
         }
-        indexValPut(recid,0,0L,true,true);
+        Lock lock = locks[lockPos(recid)].writeLock();
+        lock.lock();
+        try {
+            indexValPut(recid, 0, 0L, true, true);
+        }finally {
+            lock.unlock();
+        }
         return recid;
     }
 
@@ -386,7 +397,7 @@ public class StoreDirect extends Store {
         if(offsets!=null) {
             int outPos = 0;
             for (int i = 0; i < offsets.length; i++) {
-                boolean last = (i == offsets.length - 1);
+                final boolean last = (i == offsets.length - 1);
                 if (CC.PARANOID && ((offsets[i] & MLINKED) == 0) != last)
                     throw new AssertionError("linked bit set wrong way");
 
@@ -394,19 +405,20 @@ public class StoreDirect extends Store {
                 if(CC.PARANOID && offset%16!=0)
                     throw new AssertionError("not alligned to 16");
 
-                //write offset to next page
-                if (!last) {
-                    vol.putLong(offset, parity3Set(offsets[i + 1]));
-                }
-
                 int plus = (last?0:8);
-                long size =  (offsets[i]>>>48) - plus;
+                int size = (int) ((offsets[i]>>>48) - plus);
                 if(CC.PARANOID && ((size&0xFFFF)!=size || size==0))
                     throw new AssertionError("size mismatch");
 
-                //System.out.println("SET "+(offset + plus)+ " - "+size + " - "+outPos);
-                vol.putData(offset + plus, out.buf,outPos, (int)size);
+                int segment = lockPos(recid);
+                //write offset to next page
+                if (!last) {
+                    putDataSingleWithLink(segment, offset,parity3Set(offsets[i + 1]), out.buf,outPos,size);
+                }else{
+                    putDataSingleWithoutLink(segment, offset, out.buf, outPos, size);
+                }
                 outPos += size;
+
             }
             if(CC.PARANOID && outPos!=out.pos)
                 throw new AssertionError("size mismatch");
@@ -418,6 +430,15 @@ public class StoreDirect extends Store {
         int firstSize = (int) (offsets==null? 0L : offsets[0]>>>48);
         long firstOffset =  offsets==null? 0L : offsets[0]&MOFFSET;
         indexValPut(recid,firstSize,firstOffset,firstLinked,false);
+    }
+
+    protected void putDataSingleWithoutLink(int segment, long offset, byte[] buf, int bufPos, int size) {
+        vol.putData(offset,buf,bufPos,size);
+    }
+
+    protected void putDataSingleWithLink(int segment, long offset, long link, byte[] buf, int bufPos, int size) {
+        vol.putLong(offset,link);
+        vol.putData(offset+8, buf,bufPos,size);
     }
 
     protected void freeDataPut(long[] linkedOffsets) {
@@ -439,8 +460,8 @@ public class StoreDirect extends Store {
         if(CC.PARANOID && (offset%16!=0 || offset<PAGE_SIZE))
             throw new AssertionError();
 
-        //System.out.println(offset +" - " + size + " - ");
-        vol.clear(offset,offset+size);
+        if(!(this instanceof  StoreWAL)) //TODO WAL needs to handle record clear, perhaps WAL instruction?
+            vol.clear(offset,offset+size);
 
         //shrink store if this is last record
         if(offset+size==lastAllocatedData){
