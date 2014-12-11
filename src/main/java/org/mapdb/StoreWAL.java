@@ -172,7 +172,9 @@ public class StoreWAL extends StoreCached {
         //TODO in case of overlap, put Skip Bytes instruction
 
         curVol.ensureAvailable(walOffset2+plusSize);
-        curVol.putUnsignedByte(walOffset2, (1 << 5));
+        int parity = 1+Long.bitCount(value)+Long.bitCount(offset);
+        parity %=31;
+        curVol.putUnsignedByte(walOffset2, (1 << 5)|parity);
         walOffset2+=1;
         curVol.putLong(walOffset2, value);
         walOffset2+=8;
@@ -222,7 +224,7 @@ public class StoreWAL extends StoreCached {
 
         if(walOffset2/PAGE_SIZE !=(walOffset2+plusSize)/PAGE_SIZE){
             //if offset overlaps page, write skip instruction and try again
-            int val = (3<<(5+3*8)) | plusSize;
+            int val = (3<<(5+3*8)) | (plusSize-4) | ((Integer.bitCount(plusSize)&31)<<(3*8));
             curVol.ensureAvailable(walOffset2+4);
             curVol.putInt(walOffset2,val);
             putDataSingleWithoutLink(segment,offset,buf,bufPos,size);
@@ -230,7 +232,9 @@ public class StoreWAL extends StoreCached {
         }
 
         curVol.ensureAvailable(walOffset2+plusSize);
-        curVol.putUnsignedByte(walOffset2, (2 << 5));
+        int checksum = 1+Integer.bitCount(size)+Long.bitCount(offset)+sum(buf,bufPos,size);
+        checksum %= 31;
+        curVol.putUnsignedByte(walOffset2, (2 << 5)|checksum);
         walOffset2+=1;
         curVol.putLong(walOffset2, ((long) size) << 48 | offset);
         walOffset2+=8;
@@ -243,6 +247,7 @@ public class StoreWAL extends StoreCached {
 
         (segment==-1?pageLongStack:currLongs[segment]).put(offset, val);
     }
+
 
     protected DataInput walGetData(long offset, int segment) {
         if (CC.PARANOID && offset % 16 != 0)
@@ -423,7 +428,6 @@ public class StoreWAL extends StoreCached {
                 if(CC.PARANOID && (size&0xFFFF)!=size)
                     throw new AssertionError("size mismatch");
                 long offset = offsets[i] & MOFFSET;
-                //System.out.println("GET "+(offset + plus)+ " - "+size+" - "+bpos);
                 vol.getData(offset + plus, b, bpos, (int) size);
                 bpos += size;
             }
@@ -569,9 +573,13 @@ public class StoreWAL extends StoreCached {
 
             long pos = 16;
             for(;;) {
-                int instruction = wal.getUnsignedByte(pos++)>>>5;
+                int checksum = wal.getUnsignedByte(pos++);
+                int instruction = checksum>>>5;
+                checksum = (checksum&WAL_CHECKSUM_MASK);
                 if (instruction == 0) {
                     //EOF
+                    if(Long.bitCount(pos-1)%31 != checksum)
+                        throw new InternalError("WAL corrupted");
                     continue file;
                 } else if (instruction == 1) {
                     //write long
@@ -579,6 +587,8 @@ public class StoreWAL extends StoreCached {
                     pos += 8;
                     long offset = wal.getSixLong(pos);
                     pos += 6;
+                    if((1+Long.bitCount(val)+Long.bitCount(offset))%31!=checksum)
+                        throw new InternalError("WAL corrupted");
                     realVol.putLong(offset, val);
                 } else if (instruction == 2) {
                     //write byte[]
@@ -589,11 +599,16 @@ public class StoreWAL extends StoreCached {
                     byte[] data = new byte[dataSize];
                     wal.getData(pos, data, 0, data.length);
                     pos += data.length;
+                    if((1+Integer.bitCount(dataSize)+Long.bitCount(offset)+sum(data))%31!=checksum)
+                        throw new InternalError("WAL corrupted");
                     //TODO direct transfer
+                    realVol.ensureAvailable(offset+data.length);
                     realVol.putData(offset, data, 0, data.length);
                 } else if (instruction == 3) {
                     //skip N bytes
                     int skipN = wal.getInt(pos - 1) & 0xFFFFFF; //read 3 bytes
+                    if((Integer.bitCount(skipN)%31) != checksum)
+                        throw new InternalError("WAL corrupted");
                     pos += 3 + skipN;
                 }
             }
@@ -611,6 +626,24 @@ public class StoreWAL extends StoreCached {
         volumes.clear();
 
     }
+
+    private int sum(byte[] data) {
+        int ret = 0;
+        for(byte b:data){
+            ret+=b;
+        }
+        return Math.abs(ret);
+    }
+
+    private int sum(byte[] buf, int bufPos, int size) {
+        int ret = 0;
+        size+=bufPos;
+        while(bufPos<size){
+            ret+=buf[bufPos++];
+        }
+        return Math.abs(ret);
+    }
+
 
     @Override
     public boolean canRollback() {
