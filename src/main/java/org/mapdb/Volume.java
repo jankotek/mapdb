@@ -845,7 +845,8 @@ public abstract class Volume implements Closeable{
             int remaining = buf.limit()-buf.position();
             while(remaining>0){
                 int read = channel.read(buf, offset);
-                if(read<0) throw new EOFException();
+                if(read<0)
+                    throw new EOFException();
                 remaining-=read;
             }
         }

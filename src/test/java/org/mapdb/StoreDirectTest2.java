@@ -32,7 +32,7 @@ public class StoreDirectTest2 {
         StoreDirect st = newStore();
         long recid = st.preallocate();
         assertEquals(Engine.RECID_FIRST,recid);
-        assertEquals(st.composeIndexVal(0,0,false,true,true),st.vol.getLong(st.recidToOffset(recid)));
+        assertEquals(st.composeIndexVal(0,0,true,true,true),st.vol.getLong(st.recidToOffset(recid)));
         assertEquals(parity3Set(8 * Engine.RECID_FIRST), st.vol.getLong(st.MAX_RECID_OFFSET));
     }
 
@@ -42,13 +42,15 @@ public class StoreDirectTest2 {
         for(long i=0;i<1e6;i++) {
             long recid = st.preallocate();
             assertEquals(Engine.RECID_FIRST+i, recid);
-            assertEquals(st.composeIndexVal(0, 0, false, true, true), st.vol.getLong(st.recidToOffset(recid)));
+            assertEquals(st.composeIndexVal(0, 0, true, true, true), st.vol.getLong(st.recidToOffset(recid)));
             assertEquals(parity3Set(8 * (Engine.RECID_FIRST + i)), st.vol.getLong(st.MAX_RECID_OFFSET));
         }
     }
 
     protected StoreDirect newStore() {
-        return new StoreDirect(null);
+        StoreDirect st =  new StoreDirect(null);
+        st.init();
+        return st;
     }
 
     @Test public void round16Up__(){
@@ -72,6 +74,7 @@ public class StoreDirectTest2 {
             }
         };
         StoreDirect st = new StoreDirect(null, fab, false, false,null, false,false, 0,false,0);
+        st.init();
 
         Map<Long,String> recids = new HashMap();
         for(long i=0;i<1e6;i++){
@@ -84,6 +87,7 @@ public class StoreDirectTest2 {
         st.commit();
 
         st = new StoreDirect(null, fab, false, false,null, false,false, 0,false,0);
+        st.init();
 
         for(Map.Entry<Long,String> e:recids.entrySet()){
             assertEquals(e.getValue(), st.get(e.getKey(),Serializer.STRING));
@@ -149,6 +153,7 @@ public class StoreDirectTest2 {
         //write data
         long recid = RECID_FIRST;
         long[] offsets = {19L << 48 | o};
+        st.locks[st.lockPos(recid)].writeLock().lock();
         st.putData(recid,offsets,newBuf(19));
 
         //verify index val
@@ -172,6 +177,7 @@ public class StoreDirectTest2 {
                 19L << 48 | o | MLINKED,
                 100L <<48 | o+round16Up(19)
         };
+        st.locks[st.lockPos(recid)].writeLock().lock();
         st.putData(recid,offsets,newBuf(19+100-8));
 
         //verify index val
@@ -205,6 +211,7 @@ public class StoreDirectTest2 {
                 103L <<48 | o+round16Up(101)+round16Up(102)
 
         };
+        st.locks[st.lockPos(recid)].writeLock().lock();
         st.putData(recid,offsets,newBuf(101+102+103-2*8));
 
         //verify pointers

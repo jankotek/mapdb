@@ -19,6 +19,9 @@ package org.mapdb;
 
 import java.io.DataInput;
 import java.io.File;
+import java.io.IOError;
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
@@ -35,7 +38,10 @@ public class StoreWAL extends StoreCached {
 
 
     public static final String TRANS_LOG_FILE_EXT = ".t";
-    public static final long LOG_SEAL = 123321234423334324L;
+
+    protected static final long WAL_SEAL = 8234892392398238983L;
+    protected static final int WAL_CHECKSUM_MASK = 0x1F; //5 bits
+
 
     protected final LongMap<Long>[] prevLongs;
     protected final LongMap<Long>[] currLongs;
@@ -50,6 +56,8 @@ public class StoreWAL extends StoreCached {
     protected final AtomicLong walOffset = new AtomicLong();
 
     protected Volume headVolBackup;
+
+    protected long[] indexPagesBackup;
 
     protected Volume realVol;
 
@@ -66,59 +74,72 @@ public class StoreWAL extends StoreCached {
                     boolean commitFileSyncDisable, int sizeIncrement) {
         super(fileName, volumeFactory, checksum, compress, password, readonly, deleteFilesAfterClose,
                 freeSpaceReclaimQ, commitFileSyncDisable, sizeIncrement);
-
-        commitLock.lock();
-        try {
-
-            structuralLock.lock();
-            try {
-
-                realVol = vol;
-                //make main vol readonly, to make sure it is never overwritten outside WAL replay
-                vol = new Volume.ReadOnly(vol);
-
-                prevLongs = new LongMap[CC.CONCURRENCY];
-                currLongs = new LongMap[CC.CONCURRENCY];
-                for (int i = 0; i < CC.CONCURRENCY; i++) {
-                    prevLongs[i] = new LongHashMap<Long>();
-                    currLongs[i] = new LongHashMap<Long>();
-                }
-
-                //TODO disable readonly feature for this store
-
-                //backup headVol
-                headVolBackup = new Volume.ByteArrayVol(CC.VOLUME_PAGE_SHIFT);
-                headVolBackup.ensureAvailable(HEAD_END);
-                byte[] b = new byte[(int) HEAD_END];
-                //TODO use direct copy
-                headVol.getData(0,b,0,b.length);
-                headVolBackup.putData(0,b,0,b.length);
-
-                String wal0Name = getWalFileName(0);
-                if(wal0Name!=null && new File(wal0Name).exists()){
-                    //fill wal files
-                    for(int i=0;;i++){
-                        String wname = getWalFileName(i);
-                        if(!new File(wname).exists())
-                            break;
-                        volumes.add(volumeFactory.run(wname));
-                    }
-
-                    replayWAL();
-
-                    volumes.clear();
-                }
-
-                //start new WAL file
-                walStartNextFile();
-            }finally {
-                structuralLock.unlock();
-            }
-        }finally {
-            commitLock.unlock();
+        prevLongs = new LongMap[CC.CONCURRENCY];
+        currLongs = new LongMap[CC.CONCURRENCY];
+        for (int i = 0; i < CC.CONCURRENCY; i++) {
+            prevLongs[i] = new LongHashMap<Long>();
+            currLongs[i] = new LongHashMap<Long>();
         }
     }
 
+
+    @Override
+    protected void initCreate() {
+        super.initCreate();
+        indexPagesBackup = indexPages.clone();
+        realVol = vol;
+        //make main vol readonly, to make sure it is never overwritten outside WAL replay
+        vol = new Volume.ReadOnly(vol);
+
+        //start new WAL file
+        walStartNextFile();
+    }
+
+    @Override
+    public void initOpen(){
+        //TODO disable readonly feature for this store
+
+        realVol = vol;
+
+        //replay WAL files
+        String wal0Name = getWalFileName(0);
+        if(wal0Name!=null && new File(wal0Name).exists()){
+            //fill wal files
+            for(int i=0;;i++){
+                String wname = getWalFileName(i);
+                if(!new File(wname).exists())
+                    break;
+                volumes.add(volumeFactory.run(wname));
+            }
+
+            replayWAL();
+
+            volumes.clear();
+        }
+
+        //start new WAL file
+        walStartNextFile();
+
+        super.initOpen();
+        indexPagesBackup = indexPages.clone();
+
+        //make main vol readonly, to make sure it is never overwritten outside WAL replay
+        //all data are written to realVol
+        vol = new Volume.ReadOnly(vol);
+    }
+
+
+    @Override
+    protected void initHeadVol() {
+        super.initHeadVol();
+        //backup headVol
+        headVolBackup = new Volume.ByteArrayVol(CC.VOLUME_PAGE_SHIFT);
+        headVolBackup.ensureAvailable(HEAD_END);
+        byte[] b = new byte[(int) HEAD_END];
+        //TODO use direct copy
+        headVol.getData(0,b,0,b.length);
+        headVolBackup.putData(0,b,0,b.length);
+    }
 
     protected void walStartNextFile(){
         if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
@@ -148,8 +169,10 @@ public class StoreWAL extends StoreCached {
             walOffset2 = walOffset.get();
         }while(!walOffset.compareAndSet(walOffset2, walOffset2+plusSize));
 
+        //TODO in case of overlap, put Skip Bytes instruction
+
         curVol.ensureAvailable(walOffset2+plusSize);
-        curVol.putUnsignedByte(walOffset2, (byte) (1 << 5));
+        curVol.putUnsignedByte(walOffset2, (1 << 5));
         walOffset2+=1;
         curVol.putLong(walOffset2, value);
         walOffset2+=8;
@@ -166,7 +189,6 @@ public class StoreWAL extends StoreCached {
 
         return ret==null?0L:ret;
     }
-
 
     @Override
     protected void putDataSingleWithLink(int segment, long offset, long link, byte[] buf, int bufPos, int size) {
@@ -198,10 +220,17 @@ public class StoreWAL extends StoreCached {
             walOffset2 = walOffset.get();
         }while(!walOffset.compareAndSet(walOffset2, walOffset2+plusSize));
 
-        //TODO if offset overlaps, write skip instruction and try again
+        if(walOffset2/PAGE_SIZE !=(walOffset2+plusSize)/PAGE_SIZE){
+            //if offset overlaps page, write skip instruction and try again
+            int val = (3<<(5+3*8)) | plusSize;
+            curVol.ensureAvailable(walOffset2+4);
+            curVol.putInt(walOffset2,val);
+            putDataSingleWithoutLink(segment,offset,buf,bufPos,size);
+            return;
+        }
 
         curVol.ensureAvailable(walOffset2+plusSize);
-        curVol.putUnsignedByte(walOffset2, (byte) (2 << 5));
+        curVol.putUnsignedByte(walOffset2, (2 << 5));
         walOffset2+=1;
         curVol.putLong(walOffset2, ((long) size) << 48 | offset);
         walOffset2+=8;
@@ -221,7 +250,7 @@ public class StoreWAL extends StoreCached {
 
         Long longval = currLongs[segment].get(offset);
         if(longval==null){
-            prevLongs[segment].get(offset);
+            longval = prevLongs[segment].get(offset);
         }
         if(longval==null)
             return null;
@@ -254,7 +283,7 @@ public class StoreWAL extends StoreCached {
     protected void indexValPut(long recid, int size, long offset, boolean linked, boolean unused) {
         if(CC.PARANOID)
             assertWriteLocked(recid);
-        long newVal = composeIndexVal(size,offset,linked,unused,true);
+        long newVal = composeIndexVal(size, offset, linked, unused, true);
         currLongs[lockPos(recid)].put(recidToOffset(recid),newVal);
     }
 
@@ -301,6 +330,109 @@ public class StoreWAL extends StoreCached {
         vol.getData(pageOffset, page, 0, pageSize);
         dirtyStackPages.put(pageOffset, page);
         return page;
+    }
+
+    @Override
+    protected <A> A get2(long recid, Serializer<A> serializer) {
+        if (CC.PARANOID)
+            assertReadLocked(recid);
+        int segment = lockPos(recid);
+
+        //is in write cache?
+        {
+            Fun.Pair<A, Serializer<A>> cached = (Fun.Pair<A, Serializer<A>>) writeCache[segment].get(recid);
+            if (cached != null)
+                return cached.a;
+        }
+        //is in wal?
+        {
+            Long walval = currLongs[segment].get(recidToOffset(recid));
+            if(walval==null) {
+                walval = prevLongs[segment].get(recidToOffset(recid));
+            }
+
+            if(walval!=null){
+                //read record from WAL
+                boolean linked = (walval&MLINKED)!=0;
+                int size = (int) (walval>>>48);
+                if(linked && size==0)
+                    return null;
+                if(size==0){
+                    return deserialize(serializer,0,new DataIO.DataInputByteArray(new byte[0]));
+                }
+                if(linked)try {
+                    //read linked record
+                    int totalSize = 0;
+                    byte[] in = new byte[100];
+                    long link = walval;
+                    while((link&MLINKED)!=0){
+                        DataInput in2 = walGetData(link&MOFFSET, segment);
+                        int chunkSize = (int) (link>>>48);
+                        //get value of next link
+                        link = in2.readLong();
+                        //copy data into in
+                        if(in.length<totalSize+chunkSize-8){
+                            in = Arrays.copyOf(in, Math.max(in.length*2,totalSize+chunkSize-8 ));
+                        }
+                        in2.readFully(in,totalSize, chunkSize-8);
+                        totalSize+=chunkSize-8;
+                    }
+
+                    //copy last chunk of data
+                    DataInput in2 = walGetData(link&MOFFSET, segment);
+                    int chunkSize = (int) (link>>>48);
+                    //copy data into in
+                    if(in.length<totalSize+chunkSize){
+                        in = Arrays.copyOf(in, Math.max(in.length*2,totalSize+chunkSize ));
+                    }
+                    in2.readFully(in,totalSize, chunkSize);
+                    totalSize+=chunkSize;
+
+                    return deserialize(serializer, totalSize,new DataIO.DataInputByteArray(in,0));
+                } catch (IOException e) {
+                    throw new IOError(e);
+                }
+
+                //read  non-linked record
+                DataInput in = walGetData(walval&MOFFSET, segment);
+                return deserialize(serializer, (int) (walval>>>48),in);
+            }
+        }
+
+        long[] offsets = offsetsGet(recid);
+        if (offsets == null) {
+            return null; //zero size
+        }else if (offsets.length==0){
+            return deserialize(serializer,0,new DataIO.DataInputByteArray(new byte[0]));
+        }else if (offsets.length == 1) {
+            //not linked
+            int size = (int) (offsets[0] >>> 48);
+            long offset = offsets[0] & MOFFSET;
+            DataInput in = vol.getDataInput(offset, size);
+            return deserialize(serializer, size, in);
+        } else {
+            //calculate total size
+            int totalSize = offsetsTotalSize(offsets);
+
+            //load data
+            byte[] b = new byte[totalSize];
+            int bpos = 0;
+            for (int i = 0; i < offsets.length; i++) {
+                int plus = (i == offsets.length - 1)?0:8;
+                long size = (offsets[i] >>> 48) - plus;
+                if(CC.PARANOID && (size&0xFFFF)!=size)
+                    throw new AssertionError("size mismatch");
+                long offset = offsets[i] & MOFFSET;
+                //System.out.println("GET "+(offset + plus)+ " - "+size+" - "+bpos);
+                vol.getData(offset + plus, b, bpos, (int) size);
+                bpos += size;
+            }
+            if (CC.PARANOID && bpos != totalSize)
+                throw new AssertionError("size does not match");
+
+            DataInput in = new DataIO.DataInputByteArray(b);
+            return deserialize(serializer, totalSize, in);
+        }
 
     }
 
@@ -308,32 +440,38 @@ public class StoreWAL extends StoreCached {
     public void rollback() throws UnsupportedOperationException {
         commitLock.lock();
         try {
-
-            //flush modified records
-            for (int segment = 0; segment < locks.length; segment++) {
-                Lock lock = locks[segment].writeLock();
-                lock.lock();
-                try {
-                    writeCache[segment].clear();
-                } finally {
-                    lock.unlock();
-                }
-            }
-
-            structuralLock.lock();
-            try {
-                dirtyStackPages.clear();
-
-                //restore headVol from backup
-                byte[] b = new byte[(int) HEAD_END];
-                //TODO use direct copy
-                headVolBackup.getData(0,b,0,b.length);
-                headVol.putData(0,b,0,b.length);
-            } finally {
-                structuralLock.unlock();
-            }
+            clearEverything();
         }finally {
             commitLock.unlock();
+        }
+    }
+
+    protected void clearEverything() {
+        //flush modified records
+        for (int segment = 0; segment < locks.length; segment++) {
+            Lock lock = locks[segment].writeLock();
+            lock.lock();
+            try {
+                writeCache[segment].clear();
+            } finally {
+                lock.unlock();
+            }
+        }
+
+        structuralLock.lock();
+        try {
+            dirtyStackPages.clear();
+
+            //restore headVol from backup
+            byte[] b = new byte[(int) HEAD_END];
+            //TODO use direct copy
+            headVolBackup.getData(0,b,0,b.length);
+            headVol.putData(0,b,0,b.length);
+
+            indexPages = indexPagesBackup.clone();
+            pageLongStack.clear();
+        } finally {
+            structuralLock.unlock();
         }
     }
 
@@ -382,6 +520,10 @@ public class StoreWAL extends StoreCached {
                     iter.remove();
                 }
 
+                //update index checksum
+                headVol.putInt(HEAD_CHECKSUM, headChecksum(headVol));
+
+                // flush headVol into WAL
                 byte[] b = new byte[(int) HEAD_END];
                 //TODO use direct copy
                 headVol.getData(0, b, 0, b.length);
@@ -390,8 +532,16 @@ public class StoreWAL extends StoreCached {
 
                 //make copy of current headVol
                 headVolBackup.putData(0, b, 0, b.length);
-                curVol.putUnsignedByte(walOffset.get(),0);
+                indexPagesBackup = indexPages.clone();
+
+                long finalOffset = walOffset.get();
+                curVol.ensureAvailable(finalOffset+1); //TODO overlap here
+                //put EOF instruction
+                curVol.putUnsignedByte(finalOffset, (0<<5) | (Long.bitCount(finalOffset)));
                 curVol.sync();
+                //put wal seal
+                curVol.putLong(8, WAL_SEAL);
+
                 walStartNextFile();
             } finally {
                 structuralLock.unlock();
@@ -409,6 +559,14 @@ public class StoreWAL extends StoreCached {
             throw new AssertionError();
 
         file:for(Volume wal:volumes){
+            if(wal.isEmpty()) {
+                break file;
+            }
+            if(wal.getLong(8)!=WAL_SEAL) {
+                break file;
+                //TODO better handling for corrupted logs
+            }
+
             long pos = 16;
             for(;;) {
                 int instruction = wal.getUnsignedByte(pos++)>>>5;
@@ -448,7 +606,10 @@ public class StoreWAL extends StoreCached {
             wal.truncate(0);
             wal.deleteFile();
         }
+        fileNum = -1;
+        curVol = null;
         volumes.clear();
+
     }
 
     @Override

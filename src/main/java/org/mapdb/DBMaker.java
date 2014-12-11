@@ -704,6 +704,10 @@ public class DBMaker{
                     extendStoreWAL(file, volFac);
         }
 
+        if(engine instanceof Store){
+            ((Store)engine).init();
+        }
+
         engine = extendWrapStore(engine);
 
         if(propsGetBool(Keys.asyncWrite) && !readOnly){

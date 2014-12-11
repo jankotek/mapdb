@@ -73,78 +73,104 @@ public class StoreDirect extends Store {
                        ) {
         super(fileName,volumeFactory,checksum,compress,password,readonly);
         this.vol = volumeFactory.run(fileName);
-        structuralLock.lock();
-        try{
-            if(vol.isEmpty()) {
-                //create initial structure
+    }
 
-                //create new store
-                indexPages = new long[]{0};
-
-                vol.ensureAvailable(PAGE_SIZE);
-                vol.clear(0, PAGE_SIZE);
-
-                //set sizes
-                vol.putLong(STORE_SIZE, parity16Set(PAGE_SIZE));
-                vol.putLong(MAX_RECID_OFFSET, parity3Set(RECID_LAST_RESERVED * 8));
-                vol.putLong(INDEX_PAGE, parity16Set(0));
-
-                //put reserved recids
-                for(long recid=1;recid<RECID_FIRST;recid++){
-                    vol.putLong(recidToOffset(recid),parity1Set(MLINKED | MARCHIVE));
+    @Override
+    public void init() {
+        commitLock.lock();
+        try {
+            structuralLock.lock();
+            try {
+                if (vol.isEmpty()) {
+                    initCreate();
+                } else {
+                    initOpen();
                 }
-
-                //put long stack master links
-                for(long masterLinkOffset = FREE_RECID_STACK;masterLinkOffset<HEAD_END;masterLinkOffset+=8){
-                    vol.putLong(masterLinkOffset,parity4Set(0));
-                }
-
-                //and set header checksum
-                vol.putInt(HEAD_CHECKSUM, headChecksum(vol));
-                vol.sync();
-                initHeadVol();
-                lastAllocatedData = 0L;
-            }else {
-                //TODO header
-                //TODO feature bit field
-                initHeadVol();
-                //check head checksum
-                int expectedChecksum = vol.getInt(HEAD_CHECKSUM);
-                int actualChecksum = headChecksum(vol);
-                if (actualChecksum != expectedChecksum) {
-                    throw new InternalError("Head checksum broken");
-                }
-
-                //load index pages
-                long[] ip = new long[]{0};
-                long indexPage = parity16Get(vol.getLong(INDEX_PAGE));
-                int i=1;
-                for(;indexPage!=0;i++){
-                    if(CC.PARANOID && indexPage%PAGE_SIZE!=0)
-                        throw new AssertionError();
-                    if(ip.length==i){
-                        ip = Arrays.copyOf(ip,ip.length*4);
-                    }
-                    ip[i] = indexPage;
-                    //checksum
-                    if(CC.STORE_INDEX_CRC){
-                        long res = INITCRC_INDEX_PAGE;
-                        for(long j=0;j<PAGE_SIZE-8;j+=8){
-                            res+=vol.getLong(indexPage+j);
-                        }
-                        if(res!=vol.getLong(indexPage+PAGE_SIZE-8))
-                            throw new InternalError("Page CRC error at offset: "+indexPage);
-                    }
-
-                    //move to next page
-                    indexPage = parity16Get(vol.getLong(indexPage+PAGE_SIZE_M16));
-                }
-                indexPages = Arrays.copyOf(ip,i);
+            } finally {
+                structuralLock.unlock();
             }
-        } finally {
-            structuralLock.unlock();
+        }finally {
+            commitLock.lock();
+        }
+    }
+
+    protected void initOpen() {
+        if(CC.PARANOID && !commitLock.isHeldByCurrentThread())
+            throw new AssertionError();
+        if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+            throw new AssertionError();
+
+        //TODO header
+        //TODO feature bit field
+        initHeadVol();
+        //check head checksum
+        int expectedChecksum = vol.getInt(HEAD_CHECKSUM);
+        int actualChecksum = headChecksum(vol);
+        if (actualChecksum != expectedChecksum) {
+            throw new InternalError("Head checksum broken");
         }
 
+        //load index pages
+        long[] ip = new long[]{0};
+        long indexPage = parity16Get(vol.getLong(INDEX_PAGE));
+        int i=1;
+        for(;indexPage!=0;i++){
+            if(CC.PARANOID && indexPage%PAGE_SIZE!=0)
+                throw new AssertionError();
+            if(ip.length==i){
+                ip = Arrays.copyOf(ip, ip.length * 4);
+            }
+            ip[i] = indexPage;
+            //checksum
+            if(CC.STORE_INDEX_CRC){
+                long res = INITCRC_INDEX_PAGE;
+                for(long j=0;j<PAGE_SIZE-8;j+=8){
+                    res+=vol.getLong(indexPage+j);
+                }
+                if(res!=vol.getLong(indexPage+PAGE_SIZE-8))
+                    throw new InternalError("Page CRC error at offset: "+indexPage);
+            }
+
+            //move to next page
+            indexPage = parity16Get(vol.getLong(indexPage+PAGE_SIZE_M16));
+        }
+        indexPages = Arrays.copyOf(ip,i);
+    }
+
+    protected void initCreate() {
+        if(CC.PARANOID && !commitLock.isHeldByCurrentThread())
+            throw new AssertionError();
+        if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+            throw new AssertionError();
+
+        //create initial structure
+
+        //create new store
+        indexPages = new long[]{0};
+
+        vol.ensureAvailable(PAGE_SIZE);
+        vol.clear(0, PAGE_SIZE);
+
+        //set sizes
+        vol.putLong(STORE_SIZE, parity16Set(PAGE_SIZE));
+        vol.putLong(MAX_RECID_OFFSET, parity3Set(RECID_LAST_RESERVED * 8));
+        vol.putLong(INDEX_PAGE, parity16Set(0));
+
+        //put reserved recids
+        for(long recid=1;recid<RECID_FIRST;recid++){
+            vol.putLong(recidToOffset(recid),parity1Set(MLINKED | MARCHIVE));
+        }
+
+        //put long stack master links
+        for(long masterLinkOffset = FREE_RECID_STACK;masterLinkOffset<HEAD_END;masterLinkOffset+=8){
+            vol.putLong(masterLinkOffset,parity4Set(0));
+        }
+
+        //and set header checksum
+        vol.putInt(HEAD_CHECKSUM, headChecksum(vol));
+        vol.sync();
+        initHeadVol();
+        lastAllocatedData = 0L;
     }
 
 
@@ -386,12 +412,20 @@ public class StoreDirect extends Store {
         if(CC.PARANOID && offsets!=null && (offsets[0]&MOFFSET)<PAGE_SIZE)
             throw new AssertionError();
 
-        putData(recid,offsets, out);
+        Lock lock = locks[lockPos(recid)].writeLock();
+        lock.lock();
+        try {
+            putData(recid,offsets, out);
+        }finally {
+            lock.unlock();
+        }
 
         return recid;
     }
 
     protected void putData(long recid, long[] offsets, DataOutputByteArray out) {
+        if(CC.PARANOID)
+            assertWriteLocked(recid);
         if(CC.PARANOID && offsetsTotalSize(offsets)!=(out==null?0:out.pos))
             throw new AssertionError("size mismatch");
 
@@ -742,6 +776,7 @@ public class StoreDirect extends Store {
         try {
             return DataIO.parity1Get(indexVal);
         }catch(InternalError e){
+            e.printStackTrace();
             //TODO do not throw/catch exception
             throw new DBException(DBException.Code.ENGINE_GET_VOID);
         }

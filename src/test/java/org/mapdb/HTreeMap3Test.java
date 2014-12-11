@@ -30,6 +30,7 @@ public class HTreeMap3Test extends ConcurrentMapInterfaceTest<Integer, String> {
     @Override
     protected void setUp() throws Exception {
         r = new StoreDirect(null);
+        r.init();
     }
 
 

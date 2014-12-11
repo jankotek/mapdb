@@ -15,7 +15,7 @@ import static org.junit.Assert.*;
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class BTreeMapTest{
 
-    Engine engine;
+    StoreDirect engine;
 
 
     BTreeMap m;
@@ -24,9 +24,10 @@ public class BTreeMapTest{
 
     @Before public void init(){
         engine = new StoreDirect(null);
+        engine.init();
         m = new BTreeMap(engine,BTreeMap.createRootRef(engine,BTreeKeySerializer.BASIC,Serializer.BASIC,0),
                 6,valsOutside,0, BTreeKeySerializer.BASIC,Serializer.BASIC,
-                0);;
+                0);
     }
 
     @After

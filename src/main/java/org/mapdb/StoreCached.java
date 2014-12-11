@@ -40,6 +40,22 @@ public class StoreCached extends StoreDirect {
                 false, 0);
     }
 
+    @Override
+    protected void initHeadVol() {
+        if (CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+            throw new AssertionError();
+
+        this.headVol = new Volume.ByteArrayVol(CC.VOLUME_PAGE_SHIFT);
+        //TODO limit size
+        //TODO introduce SingleByteArrayVol which uses only single byte[]
+
+        byte[] buf = new byte[(int) HEAD_END]; //TODO copy directly
+        vol.getData(0, buf, 0, buf.length);
+        headVol.ensureAvailable(buf.length);
+        headVol.putData(0, buf, 0, buf.length);
+    }
+
+
 
     @Override
     protected void longStackPut(long masterLinkOffset, long value, boolean recursive) {
@@ -265,20 +281,6 @@ public class StoreCached extends StoreDirect {
             throw new AssertionError();
     }
 
-    @Override
-    protected void initHeadVol() {
-        if (CC.PARANOID && !structuralLock.isHeldByCurrentThread())
-            throw new AssertionError();
-
-        this.headVol = new Volume.ByteArrayVol(CC.VOLUME_PAGE_SHIFT);
-        //TODO limit size
-        //TODO introduce SingleByteArrayVol which uses only single byte[]
-
-        byte[] buf = new byte[(int) HEAD_END]; //TODO copy directly
-        vol.getData(0, buf, 0, buf.length);
-        headVol.ensureAvailable(buf.length);
-        headVol.putData(0, buf, 0, buf.length);
-    }
 
 
     @Override

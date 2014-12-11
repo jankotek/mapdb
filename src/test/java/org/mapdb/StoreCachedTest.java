@@ -23,7 +23,10 @@ public class StoreCachedTest<E extends StoreCached> extends StoreDirectTest<E>{
 
 
     @Override protected E openEngine() {
-        return (E) new StoreCached(f.getPath());
+        StoreCached e =new StoreCached(f.getPath());
+        e.init();
+        return (E)e;
+
     }
 
 }

@@ -38,7 +38,7 @@ import static org.junit.Assert.assertTrue;
 @SuppressWarnings({"unchecked","rawtypes"})
 public class HTreeSetTest{
 
-    Engine engine;
+    Store engine;
 
     Set hs;
 
@@ -52,6 +52,7 @@ public class HTreeSetTest{
 
     @Before public void init(){
         engine =  new StoreDirect(null);
+        engine.init();
         hs = new HTreeMap(engine, 0,0,HTreeMap.preallocateSegments(engine),Serializer.BASIC,null,0,0,0,0,0,null,null,null,null).keySet();
         Collections.addAll(hs, objArray);
     }

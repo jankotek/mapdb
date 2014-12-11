@@ -763,6 +763,9 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         ArrayList leftEdges2 = new ArrayList<Long>();
         long r = engine.get(rootRecidRef,Serializer.LONG);
         for(;;){
+            if(CC.PARANOID && r<=0)
+                throw new AssertionError();
+
             //$DELAY$
             BNode n= engine.get(r,nodeSerializer);
             leftEdges2.add(r);

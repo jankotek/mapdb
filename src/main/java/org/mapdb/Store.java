@@ -69,6 +69,8 @@ public abstract class Store implements Engine {
         };
     }
 
+    public void init(){}
+
     @Override
     public <A> A get(long recid, Serializer<A> serializer) {
         if(serializer==null)

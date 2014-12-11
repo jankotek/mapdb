@@ -15,12 +15,13 @@ import static org.junit.Assert.assertTrue;
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class DBTest {
 
-    Engine engine;
+    Store engine;
     DB db;
 
 
     @Before public void init(){
         engine = new StoreDirect(null);
+        engine.init();
         db = new DB(engine);
     }
 

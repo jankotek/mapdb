@@ -160,7 +160,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
     @Test
     public void large_record(){
         byte[] b = new byte[100000];
-        Arrays.fill(b, (byte) 111);
+        new Random().nextBytes(b);
         long recid = e.put(b, BYTE_ARRAY_NOSIZE);
         byte[] b2 = e.get(recid, BYTE_ARRAY_NOSIZE);
         assertArrayEquals(b,b2);
@@ -168,9 +168,9 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
     @Test public void large_record_update(){
         byte[] b = new byte[100000];
-        Arrays.fill(b, (byte) 111);
+        new Random().nextBytes(b);
         long recid = e.put(b, BYTE_ARRAY_NOSIZE);
-        Arrays.fill(b, (byte)222);
+        new Random().nextBytes(b);
         e.update(recid, b, BYTE_ARRAY_NOSIZE);
         byte[] b2 = e.get(recid, BYTE_ARRAY_NOSIZE);
         assertArrayEquals(b,b2);
@@ -182,7 +182,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
     @Test public void large_record_delete(){
         byte[] b = new byte[100000];
-        Arrays.fill(b, (byte) 111);
+        new Random().nextBytes(b);
         long recid = e.put(b, BYTE_ARRAY_NOSIZE);
         e.delete(recid, BYTE_ARRAY_NOSIZE);
     }
@@ -190,7 +190,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
     @Test public void large_record_larger(){
         byte[] b = new byte[10000000];
-        Arrays.fill(b, (byte) 111);
+        new Random().nextBytes(b);
         long recid = e.put(b, BYTE_ARRAY_NOSIZE);
         byte[] b2 = e.get(recid, BYTE_ARRAY_NOSIZE);
         assertArrayEquals(b,b2);
@@ -198,7 +198,6 @@ public abstract class EngineTest<ENGINE extends Engine>{
         reopen();
         b2 = e.get(recid, BYTE_ARRAY_NOSIZE);
         assertArrayEquals(b,b2);
-
     }
 
 
@@ -470,5 +469,24 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
     }
 
+    @Test public void update_reserved_recid(){
+        Engine e = openEngine();
+        e.update(Engine.RECID_NAME_CATALOG,111L,Serializer.LONG);
+        assertEquals(new Long(111L),e.get(Engine.RECID_NAME_CATALOG,Serializer.LONG));
+        e.commit();
+        assertEquals(new Long(111L),e.get(Engine.RECID_NAME_CATALOG,Serializer.LONG));
+    }
+
+
+
+    @Test public void update_reserved_recid_large(){
+        Engine e = openEngine();
+        byte[] data = new byte[(int) 1e7];
+        new Random().nextBytes(data);
+        e.update(Engine.RECID_NAME_CATALOG,data,Serializer.BYTE_ARRAY_NOSIZE);
+        assertArrayEquals(data, e.get(Engine.RECID_NAME_CATALOG, Serializer.BYTE_ARRAY_NOSIZE));
+        e.commit();
+        assertArrayEquals(data, e.get(Engine.RECID_NAME_CATALOG, Serializer.BYTE_ARRAY_NOSIZE));
+    }
 
 }

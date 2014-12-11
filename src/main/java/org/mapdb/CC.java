@@ -98,7 +98,7 @@ public interface CC {
 
     int VOLUME_PAGE_SHIFT = 20; // 1 MB
 
-    boolean STORE_INDEX_CRC = true; //TODO move to feature bit field
+    boolean STORE_INDEX_CRC = false; //TODO move to feature bit field
 
 }
 
