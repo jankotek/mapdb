@@ -4,10 +4,13 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 
@@ -142,5 +145,39 @@ public class DBTest {
         assertTrue(db.get(item6) instanceof Set);
 
     }
+
+
+    @Test public void basic_reopen(){
+        File f = UtilsTest.tempDbFile();
+        DB db = DBMaker.newFileDB(f).make();
+        Map map = db.getTreeMap("map");
+        map.put("aa","bb");
+
+        db.commit();
+        db.close();
+
+        db = DBMaker.newFileDB(f).deleteFilesAfterClose().make();
+        map = db.getTreeMap("map");
+        assertEquals(1,map.size());
+        assertEquals("bb",map.get("aa"));
+        db.close();
+    }
+
+    @Test public void basic_reopen_notx(){
+        File f = UtilsTest.tempDbFile();
+        DB db = DBMaker.newFileDB(f).transactionDisable().make();
+        Map map = db.getTreeMap("map");
+        map.put("aa","bb");
+
+        db.commit();
+        db.close();
+
+        db = DBMaker.newFileDB(f).deleteFilesAfterClose().transactionDisable().make();
+        map = db.getTreeMap("map");
+        assertEquals(1,map.size());
+        assertEquals("bb",map.get("aa"));
+        db.close();
+    }
+
 
 }

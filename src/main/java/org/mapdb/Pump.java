@@ -482,7 +482,7 @@ public final class Pump {
                 leftEdge4,rightEdge4, false,
                 toLongArray(dirRecids.get(len)));
         long rootRecid = engine.put(dir, nodeSerializer);
-        return engine.put(rootRecid,Serializer.LONG); //root recid
+        return engine.put(rootRecid,Serializer.RECID); //root recid
     }
 
     private static long[] toLongArray(List<Long> child) {

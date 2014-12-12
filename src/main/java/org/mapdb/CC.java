@@ -100,5 +100,11 @@ public interface CC {
 
     boolean STORE_INDEX_CRC = false; //TODO move to feature bit field
 
+    /**
+     * Will print stack trace of all operations which are write any data at given offset
+     * Used for debugging.
+     */
+    long VOLUME_PRINT_STACK_AT_OFFSET = 0;
+
 }
 

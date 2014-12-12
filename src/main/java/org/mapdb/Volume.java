@@ -317,21 +317,38 @@ public abstract class Volume implements Closeable{
         protected abstract ByteBuffer makeNewBuffer(long offset);
 
         @Override public final void putLong(final long offset, final long value) {
+            if(CC.VOLUME_PRINT_STACK_AT_OFFSET!=0 && CC.VOLUME_PRINT_STACK_AT_OFFSET>=offset && CC.VOLUME_PRINT_STACK_AT_OFFSET <= offset+8){
+                new IOException("VOL STACK:").printStackTrace();
+            }
+
             slices[(int)(offset >>> sliceShift)].putLong((int) (offset & sliceSizeModMask), value);
         }
 
         @Override public final void putInt(final long offset, final int value) {
+            if(CC.VOLUME_PRINT_STACK_AT_OFFSET!=0 && CC.VOLUME_PRINT_STACK_AT_OFFSET>=offset && CC.VOLUME_PRINT_STACK_AT_OFFSET <= offset+4){
+                new IOException("VOL STACK:").printStackTrace();
+            }
+
             slices[(int)(offset >>> sliceShift)].putInt((int) (offset & sliceSizeModMask), value);
         }
 
 
         @Override public final void putByte(final long offset, final byte value) {
+            if(CC.VOLUME_PRINT_STACK_AT_OFFSET!=0 && CC.VOLUME_PRINT_STACK_AT_OFFSET>=offset && CC.VOLUME_PRINT_STACK_AT_OFFSET <= offset+1){
+                new IOException("VOL STACK:").printStackTrace();
+            }
+
             slices[(int)(offset >>> sliceShift)].put((int) (offset & sliceSizeModMask), value);
         }
 
 
 
         @Override public void putData(final long offset, final byte[] src, int srcPos, int srcSize){
+            if(CC.VOLUME_PRINT_STACK_AT_OFFSET!=0 && CC.VOLUME_PRINT_STACK_AT_OFFSET>=offset && CC.VOLUME_PRINT_STACK_AT_OFFSET <= offset+srcSize){
+                new IOException("VOL STACK:").printStackTrace();
+            }
+
+
             final ByteBuffer b1 = slices[(int)(offset >>> sliceShift)].duplicate();
             final int bufPos = (int) (offset& sliceSizeModMask);
 
@@ -341,6 +358,10 @@ public abstract class Volume implements Closeable{
 
 
         @Override public final void putData(final long offset, final ByteBuffer buf) {
+            if(CC.VOLUME_PRINT_STACK_AT_OFFSET!=0 && CC.VOLUME_PRINT_STACK_AT_OFFSET>=offset && CC.VOLUME_PRINT_STACK_AT_OFFSET <= offset+buf.remaining()){
+                new IOException("VOL STACK:").printStackTrace();
+            }
+
             final ByteBuffer b1 = slices[(int)(offset >>> sliceShift)].duplicate();
             final int bufPos = (int) (offset& sliceSizeModMask);
             //no overlap, so just write the value
@@ -781,6 +802,9 @@ public abstract class Volume implements Closeable{
 
         protected void writeFully(long offset, ByteBuffer buf) throws IOException {
             int remaining = buf.limit()-buf.position();
+            if(CC.VOLUME_PRINT_STACK_AT_OFFSET!=0 && CC.VOLUME_PRINT_STACK_AT_OFFSET>=offset && CC.VOLUME_PRINT_STACK_AT_OFFSET <= offset+remaining){
+                new IOException("VOL STACK:").printStackTrace();
+            }
             while(remaining>0){
                 int write = channel.write(buf, offset);
                 if(write<0) throw new EOFException();
@@ -791,6 +815,10 @@ public abstract class Volume implements Closeable{
 
         @Override
         public void putLong(long offset, long value) {
+            if(CC.VOLUME_PRINT_STACK_AT_OFFSET!=0 && CC.VOLUME_PRINT_STACK_AT_OFFSET>=offset && CC.VOLUME_PRINT_STACK_AT_OFFSET <= offset+8){
+                new IOException("VOL STACK:").printStackTrace();
+            }
+
             try{
                 ByteBuffer buf = ByteBuffer.allocate(8);
                 buf.putLong(0, value);
@@ -802,6 +830,10 @@ public abstract class Volume implements Closeable{
 
         @Override
         public void putInt(long offset, int value) {
+            if(CC.VOLUME_PRINT_STACK_AT_OFFSET!=0 && CC.VOLUME_PRINT_STACK_AT_OFFSET>=offset && CC.VOLUME_PRINT_STACK_AT_OFFSET <= offset+4){
+                new IOException("VOL STACK:").printStackTrace();
+            }
+
             try{
                 ByteBuffer buf = ByteBuffer.allocate(4);
                 buf.putInt(0, value);
@@ -813,6 +845,10 @@ public abstract class Volume implements Closeable{
 
         @Override
         public void putByte(long offset, byte value) {
+            if(CC.VOLUME_PRINT_STACK_AT_OFFSET!=0 && CC.VOLUME_PRINT_STACK_AT_OFFSET>=offset && CC.VOLUME_PRINT_STACK_AT_OFFSET <= offset+1){
+                new IOException("VOL STACK:").printStackTrace();
+            }
+
             try{
                 ByteBuffer buf = ByteBuffer.allocate(1);
                 buf.put(0, value);

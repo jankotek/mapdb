@@ -1567,6 +1567,8 @@ public class SerializerBase extends Serializer<Object>{
                     return true;
                 }
             });
+
+            mapdb_add(66, Serializer.RECID);
         }
 
 

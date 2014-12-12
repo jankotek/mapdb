@@ -255,6 +255,33 @@ public abstract class Serializer<A> {
     };
 
 
+    /** Packs recid + it adds 3bits checksum. */
+
+    public static final Serializer<Long> RECID = new Serializer<Long>() {
+        @Override
+        public void serialize(DataOutput out, Long value) throws IOException {
+            long val = value<<3;
+            val = DataIO.parity3Set(val);
+            DataIO.packLong(out,val);
+        }
+
+        @Override
+        public Long deserialize(DataInput in, int available) throws IOException {
+            long val =  DataIO.unpackLong(in);
+            val = DataIO.parity3Get(val);
+            return val >>> 3;
+        }
+
+        @Override
+        public int fixedSize() {
+            return 8;
+        }
+
+        @Override
+        public boolean isTrusted() {
+            return true;
+        }
+    };
 
 
     /**

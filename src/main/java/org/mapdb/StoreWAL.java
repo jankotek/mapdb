@@ -43,8 +43,11 @@ public class StoreWAL extends StoreCached {
     protected static final int WAL_CHECKSUM_MASK = 0x1F; //5 bits
 
 
-    protected final LongMap<Long>[] prevLongs;
-    protected final LongMap<Long>[] currLongs;
+    protected final LongMap<Long>[] prevLongLongs;
+    protected final LongMap<Long>[] currLongLongs;
+    protected final LongMap<Long>[] prevDataLongs;
+    protected final LongMap<Long>[] currDataLongs;
+
     protected final LongMap<Long> pageLongStack = new LongHashMap<Long>();
     protected final List<Volume> volumes = new CopyOnWriteArrayList<Volume>();
 
@@ -74,12 +77,19 @@ public class StoreWAL extends StoreCached {
                     boolean commitFileSyncDisable, int sizeIncrement) {
         super(fileName, volumeFactory, checksum, compress, password, readonly, deleteFilesAfterClose,
                 freeSpaceReclaimQ, commitFileSyncDisable, sizeIncrement);
-        prevLongs = new LongMap[CC.CONCURRENCY];
-        currLongs = new LongMap[CC.CONCURRENCY];
+        prevLongLongs = new LongMap[CC.CONCURRENCY];
+        currLongLongs = new LongMap[CC.CONCURRENCY];
         for (int i = 0; i < CC.CONCURRENCY; i++) {
-            prevLongs[i] = new LongHashMap<Long>();
-            currLongs[i] = new LongHashMap<Long>();
+            prevLongLongs[i] = new LongHashMap<Long>();
+            currLongLongs[i] = new LongHashMap<Long>();
         }
+        prevDataLongs = new LongMap[CC.CONCURRENCY];
+        currDataLongs = new LongMap[CC.CONCURRENCY];
+        for (int i = 0; i < CC.CONCURRENCY; i++) {
+            prevDataLongs[i] = new LongHashMap<Long>();
+            currDataLongs[i] = new LongHashMap<Long>();
+        }
+
     }
 
 
@@ -184,9 +194,9 @@ public class StoreWAL extends StoreCached {
     protected long walGetLong(long offset, int segment){
         if(CC.PARANOID && offset%8!=0)
             throw new AssertionError();
-        Long ret = currLongs[segment].get(offset);
+        Long ret = currLongLongs[segment].get(offset);
         if(ret==null) {
-            ret = prevLongs[segment].get(offset);
+            ret = prevLongLongs[segment].get(offset);
         }
 
         return ret==null?0L:ret;
@@ -245,7 +255,7 @@ public class StoreWAL extends StoreCached {
         val |= ((long)fileNum)<<32;
         val |= walOffset2;
 
-        (segment==-1?pageLongStack:currLongs[segment]).put(offset, val);
+        (segment==-1?pageLongStack:currDataLongs[segment]).put(offset, val);
     }
 
 
@@ -253,9 +263,9 @@ public class StoreWAL extends StoreCached {
         if (CC.PARANOID && offset % 16 != 0)
             throw new AssertionError();
 
-        Long longval = currLongs[segment].get(offset);
+        Long longval = currDataLongs[segment].get(offset);
         if(longval==null){
-            longval = prevLongs[segment].get(offset);
+            longval = prevDataLongs[segment].get(offset);
         }
         if(longval==null)
             return null;
@@ -274,11 +284,11 @@ public class StoreWAL extends StoreCached {
             assertReadLocked(recid);
         int segment = lockPos(recid);
         long offset = recidToOffset(recid);
-        Long ret = currLongs[segment].get(offset);
+        Long ret = currLongLongs[segment].get(offset);
         if(ret!=null) {
             return ret;
         }
-        ret = prevLongs[segment].get(offset);
+        ret = prevLongLongs[segment].get(offset);
         if(ret!=null)
             return ret;
         return super.indexValGet(recid);
@@ -289,7 +299,7 @@ public class StoreWAL extends StoreCached {
         if(CC.PARANOID)
             assertWriteLocked(recid);
         long newVal = composeIndexVal(size, offset, linked, unused, true);
-        currLongs[lockPos(recid)].put(recidToOffset(recid),newVal);
+        currLongLongs[lockPos(recid)].put(recidToOffset(recid),newVal);
     }
 
     @Override
@@ -351,9 +361,9 @@ public class StoreWAL extends StoreCached {
         }
         //is in wal?
         {
-            Long walval = currLongs[segment].get(recidToOffset(recid));
+            Long walval = currLongLongs[segment].get(recidToOffset(recid));
             if(walval==null) {
-                walval = prevLongs[segment].get(recidToOffset(recid));
+                walval = prevLongLongs[segment].get(recidToOffset(recid));
             }
 
             if(walval!=null){
@@ -485,21 +495,29 @@ public class StoreWAL extends StoreCached {
         try{
             //move all from current longs to prev
             //each segment requires write lock
-            for(int segment=0;segment<currLongs.length;segment++){
+            for(int segment=0;segment<CC.CONCURRENCY;segment++){
                 Lock lock = locks[segment].writeLock();
                 lock.lock();
                 try{
                     flushWriteCacheSegment(segment);
 
-                    LongMap.LongMapIterator<Long> iter = currLongs[segment].longMapIterator();
+                    LongMap.LongMapIterator<Long> iter = currLongLongs[segment].longMapIterator();
                     while(iter.moveToNext()){
                         long offset = iter.key();
                         long value = iter.value();
-                        prevLongs[segment].put(offset,value);
-                        if((value&MARCHIVE)!=0)
-                            walPutLong(offset,value);
+                        prevLongLongs[segment].put(offset,value);
+                        walPutLong(offset,value);
                         iter.remove();
                     }
+
+                    iter = currDataLongs[segment].longMapIterator();
+                    while(iter.moveToNext()){
+                        long offset = iter.key();
+                        long value = iter.value();
+                        prevDataLongs[segment].put(offset,value);
+                        iter.remove();
+                    }
+
                 }finally {
                     lock.unlock();
                 }

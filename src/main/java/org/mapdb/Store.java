@@ -327,7 +327,9 @@ public abstract class Store implements Engine {
     }
 
     protected void assertReadLocked(long recid) {
-
+//        if(locks[lockPos(recid)].writeLock().getHoldCount()!=0){
+//            throw new AssertionError();
+//        }
     }
 
     protected void assertWriteLocked(long recid) {
