@@ -344,6 +344,7 @@ public class DBMakerTest{
         DBMaker.newFileDB(folderDoesNotExist).make();
     }
 
+    @Test(expected = IOError.class)
     public void nonExistingFolder3(){
         DBMaker.newFileDB(folderDoesNotExist).mmapFileEnable().make();
     }
