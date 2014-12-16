@@ -1,9 +1,8 @@
 package org.mapdb;
 
 
-import junit.framework.TestCase;
+import org.junit.Test;
 
-import javax.security.sasl.RealmCallback;
 import javax.swing.*;
 import java.io.*;
 import java.net.InetAddress;
@@ -12,14 +11,14 @@ import java.nio.ByteBuffer;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.GregorianCalendar;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
-public class SerializerPojoTest extends TestCase {
+public class SerializerPojoTest{
 
-    SerializerPojo p = new SerializerPojo(new CopyOnWriteArrayList<SerializerPojo.ClassInfo>());
+    SerializerPojo p = new SerializerPojo(null,null,null,null, null);
 
     enum Order
     {
@@ -37,7 +36,7 @@ public class SerializerPojoTest extends TestCase {
     }
 
 
-    public void testEnum() throws Exception{
+    @Test public void testEnum() throws Exception{
         Order o = Order.ASCENDING;
         o = (Order) UtilsTest.clone(o, p);
         assertEquals(o,Order.ASCENDING );
@@ -175,37 +174,37 @@ public class SerializerPojoTest extends TestCase {
     Bean1 b = new Bean1("aa", "bb");
     Bean2 b2 = new Bean2("aa", "bb", "cc");
 
-    public void testGetFieldValue1() throws Exception {
+    @Test public void testGetFieldValue1() throws Exception {
         assertEquals("aa", p.getFieldValue(new SerializerPojo.FieldInfo("field1",false,String.class.getName(),b.getClass()), b));
     }
 
-    public void testGetFieldValue2() throws Exception {
+    @Test public void testGetFieldValue2() throws Exception {
         assertEquals("bb", p.getFieldValue(new SerializerPojo.FieldInfo("field2",false,String.class.getName(),b.getClass()), b));
         assertEquals(0, b.getCalled);
     }
 
-    public void testGetFieldValue3() throws Exception {
+    @Test public void testGetFieldValue3() throws Exception {
         assertEquals("aa", p.getFieldValue(new SerializerPojo.FieldInfo("field1",false,String.class.getName(),b2.getClass()), b2));
     }
 
-    public void testGetFieldValue4() throws Exception {
+    @Test public void testGetFieldValue4() throws Exception {
         assertEquals("bb", p.getFieldValue(new SerializerPojo.FieldInfo("field2",false,String.class.getName(),b2.getClass()), b2));
         assertEquals(0, b2.getCalled);
     }
 
-    public void testGetFieldValue5() throws Exception {
+    @Test public void testGetFieldValue5() throws Exception {
         assertEquals("cc", p.getFieldValue(new SerializerPojo.FieldInfo("field3",false,String.class.getName(),b2.getClass()), b2));
     }
 
 
 
-    public void testSerializable() throws Exception {
+    @Test public void testSerializable() throws Exception {
 
         assertEquals(b, UtilsTest.clone(b, p));
     }
 
 
-    public void testRecursion() throws Exception {
+    @Test public void testRecursion() throws Exception {
         AbstractMap.SimpleEntry b = new AbstractMap.SimpleEntry("abcd", null);
         b.setValue(b.getKey());
 
@@ -215,7 +214,7 @@ public class SerializerPojoTest extends TestCase {
 
     }
 
-    public void testRecursion2() throws Exception {
+    @Test public void testRecursion2() throws Exception {
         AbstractMap.SimpleEntry b = new AbstractMap.SimpleEntry("abcd", null);
         b.setValue(b);
 
@@ -226,7 +225,7 @@ public class SerializerPojoTest extends TestCase {
     }
 
 
-    public void testRecursion3() throws Exception {
+    @Test public void testRecursion3() throws Exception {
         ArrayList l = new ArrayList();
         l.add("123");
         l.add(l);
@@ -238,7 +237,7 @@ public class SerializerPojoTest extends TestCase {
         assertTrue(l2.get(1) == l2);
     }
 
-    public void testPersistedSimple() throws Exception {
+    @Test public void testPersistedSimple() throws Exception {
 
         File f = UtilsTest.tempDbFile();
         DB r1 = DBMaker.newFileDB(f).make();
@@ -255,7 +254,7 @@ public class SerializerPojoTest extends TestCase {
     }
 
 
-    public void testPersisted() throws Exception {
+    @Test public void testPersisted() throws Exception {
         Bean1 b1 = new Bean1("abc", "dcd");
         File f = UtilsTest.tempDbFile();
         DB r1 = DBMaker.newFileDB(f).make();
@@ -272,7 +271,7 @@ public class SerializerPojoTest extends TestCase {
     }
 
 
-    public void test_write_object_advanced_serializationm(){
+    @Test public void test_write_object_advanced_serializationm(){
         Object[] o = new Object[]{
                 new GregorianCalendar(1,1,1),
                 new JLabel("aa")
@@ -314,7 +313,8 @@ public class SerializerPojoTest extends TestCase {
     }
 
     /** @author Jan Sileny */
-    public  void test_pojo_reload() throws IOException {
+/* TODO reenable test
+@Test  public  void test_pojo_reload() throws IOException {
 
         File f = UtilsTest.tempDbFile();
         DB db = DBMaker.newFileDB(f).make();
@@ -336,7 +336,7 @@ public class SerializerPojoTest extends TestCase {
 
         assertEquals(prevsize, newsize);
     }
-
+*/
 
     public static class test_transient implements Serializable{
         transient int aa = 11;
@@ -344,7 +344,7 @@ public class SerializerPojoTest extends TestCase {
         int bb = 11;
     }
 
-    public void test_transient(){
+    @Test public void test_transient(){
         test_transient t = new test_transient();
         t.aa = 12;
         t.ss = "bb";
@@ -355,7 +355,7 @@ public class SerializerPojoTest extends TestCase {
         assertEquals(13,t.bb);
     }
 
-    public void test_transient2(){
+    @Test public void test_transient2(){
         test_transient t = new test_transient();
         t.aa = 12;
         t.ss = "bb";
@@ -380,7 +380,7 @@ public class SerializerPojoTest extends TestCase {
     }
 
 
-    public void testIssue177() throws UnknownHostException {
+    @Test public void testIssue177() throws UnknownHostException {
         DB db = DBMaker.newMemoryDB().cacheDisable().make();
         InetAddress value = InetAddress.getByName("127.0.0.1");
         long recid = db.engine.put(value, db.getDefaultSerializer());
@@ -406,35 +406,25 @@ public class SerializerPojoTest extends TestCase {
 
     }
 
-    public void test_interlizeceptors(){
-        final AtomicInteger counter = new AtomicInteger();
-        Fun.Function1 ser = new Fun.Function1() {
-            @Override
-            public Object run(Object o) {
-                if(o instanceof RealClass) {
-                    counter.incrementAndGet();
-                    return new PlaceHolder();
-                }
-                return o;
-            }
-        };
-        Fun.Function1 deser = new Fun.Function1() {
-            @Override
-            public Object run(Object o) {
-                if(o instanceof PlaceHolder) {
-                    counter.incrementAndGet();
-                    return new RealClass();
-                }
-                return o;
-            }
-        };
 
+    @Test
+    public void class_registered_after_commit(){
+        DB db = DBMaker.newMemoryDB().transactionDisable().make();
 
-        p.serializerTransformAdd(ser,deser);
+        SerializerPojo ser = (SerializerPojo) db.getDefaultSerializer();
+        assertEquals(0, ser.getClassInfos.run().length);
+        assertEquals(0, db.unknownClasses.size());
 
-        Object o = UtilsTest.clone(new RealClass(), p);
-        assertTrue(o instanceof RealClass);
-        assertEquals(2,counter.get());
+        //add some unknown class, DB should be notified
+        db.getEngine().put(new Bean1("a","b"),ser);
+        assertEquals(0, ser.getClassInfos.run().length);
+        assertEquals(1, db.unknownClasses.size());
+
+        //commit, class should become known
+        db.commit();
+        assertEquals(1, ser.getClassInfos.run().length);
+        assertEquals(0, db.unknownClasses.size());
+
     }
 
 }

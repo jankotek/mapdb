@@ -21,9 +21,7 @@ import java.io.IOError;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.*;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 /**
  * A database with easy access to named maps and other collections.
@@ -50,6 +48,8 @@ public class DB implements Closeable {
 
     protected final Fun.ThreadFactory threadFactory = Fun.ThreadFactory.BASIC;
     protected SerializerPojo serializerPojo;
+
+    protected final Set<String> unknownClasses = new ConcurrentSkipListSet<String>();
 
     protected static class IdentityWrapper{
 
@@ -87,11 +87,36 @@ public class DB implements Closeable {
         this.engine = engine;
         this.strictDBGet = strictDBGet;
 
-        final CopyOnWriteArrayList<SerializerPojo.ClassInfo> classInfos =
-                engine.get(Engine.RECID_CLASS_CATALOG,
-                SerializerPojo.serializer);
-        serializerPojo = new SerializerPojo(classInfos);
-        serializerPojo.setDb(this);
+        serializerPojo = new SerializerPojo(
+                //get name for given object
+                new Fun.Function1<String, Object>() {
+                    @Override public String run(Object o) {
+                        return getNameForObject(o);
+                    }
+                },
+                //get object with given name
+                new Fun.Function1<Object, String>() {
+                    @Override public Object run(String name) {
+                        return get(name);
+                    }
+                },
+                //load class catalog
+                new Fun.Function0<SerializerPojo.ClassInfo[]>() {
+                    @Override public SerializerPojo.ClassInfo[] run() {
+                        SerializerPojo.ClassInfo[] ret =  getEngine().get(Engine.RECID_CLASS_CATALOG, SerializerPojo.CLASS_CATALOG_SERIALIZER);
+                        if(ret==null)
+                            ret = new SerializerPojo.ClassInfo[0];
+                        return ret;
+                    }
+                },
+                //notify DB than given class is missing in catalog and should be added on next commit.
+                new Fun.Function1<Void, String>() {
+                    @Override public Void run(String className) {
+                        unknownClasses.add(className);
+                        return null;
+                    }
+                },
+                engine);
         reinit();
     }
 
@@ -134,8 +159,7 @@ public class DB implements Closeable {
     }
 
     /** returns name for this object, if it has name and was instanciated by this DB*/
-    public  String getNameForObject(Object obj) {
-        //TODO this method should be synchronized, but it causes deadlock.
+    public synchronized  String getNameForObject(Object obj) {
         return namesLookup.get(new IdentityWrapper(obj));
     }
 
@@ -1681,7 +1705,36 @@ public class DB implements Closeable {
      */
     synchronized public void commit() {
         checkNotClosed();
+        //update Class Catalog with missing classes as part of this transaction
+        String[] toBeAdded = unknownClasses.isEmpty()?null:unknownClasses.toArray(new String[0]);
+
+        if(toBeAdded!=null) {
+
+            SerializerPojo.ClassInfo[] classes =  serializerPojo.getClassInfos.run();
+            SerializerPojo.ClassInfo[] classes2 = classes.length==0?null:classes;
+
+            for(String className:toBeAdded){
+                int pos = serializerPojo.classToId(classes,className);
+                if(pos!=-1) {
+                    continue;
+                }
+                SerializerPojo.ClassInfo classInfo = serializerPojo.makeClassInfo(className);
+                classes = Arrays.copyOf(classes,classes.length+1);
+                classes[classes.length-1]=classInfo;
+            }
+            engine.compareAndSwap(Engine.RECID_CLASS_CATALOG,classes2,classes,SerializerPojo.CLASS_CATALOG_SERIALIZER);
+        }
+
+
+
+
         engine.commit();
+
+        if(toBeAdded!=null) {
+            for (String className : toBeAdded) {
+                unknownClasses.remove(className);
+            }
+        }
     }
 
     /**

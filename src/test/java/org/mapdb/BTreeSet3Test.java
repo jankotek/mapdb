@@ -662,9 +662,9 @@ public class BTreeSet3Test extends JSR166TestCase {
     public void testDescendingAddNonComparable() {
         try {
             NavigableSet q = dset0();
-            q.add(new Object());
-            q.add(new Object());
-            q.add(new Object());
+            q.add(new BTreeMapSubSetTest.SerializableNonComparable());
+            q.add(new BTreeMapSubSetTest.SerializableNonComparable());
+            q.add(new BTreeMapSubSetTest.SerializableNonComparable());
             shouldThrow();
         } catch (ClassCastException success) {}
     }

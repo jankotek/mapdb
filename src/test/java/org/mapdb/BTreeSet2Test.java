@@ -189,9 +189,9 @@ public class BTreeSet2Test extends JSR166TestCase {
     public void testAddNonComparable() {
         try {
             NavigableSet q = DBMaker.newMemoryDB().transactionDisable().make().getTreeSet("test");
-            q.add(new Object());
-            q.add(new Object());
-            q.add(new Object());
+            q.add(new BTreeMapSubSetTest.SerializableNonComparable());
+            q.add(new BTreeMapSubSetTest.SerializableNonComparable());
+            q.add(new BTreeMapSubSetTest.SerializableNonComparable());
             shouldThrow();
         } catch (ClassCastException success) {}
     }

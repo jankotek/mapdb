@@ -191,7 +191,7 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         assertTrue("Returned false for valid value", tm
                 .containsValue(objArray[986]));
         assertTrue("Returned true for invalid value", !tm
-                .containsValue(new Object()));
+                .containsValue(new BTreeMapSubSetTest.SerializableNonComparable()));
     }
 
     /**
@@ -422,19 +422,19 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
 
         // regression for Harmony-780
         tm = newBTreeMap();
-        assertNull(tm.put(new Object(), new Object()));
+        assertNull(tm.put(new BTreeMapSubSetTest.SerializableNonComparable(), new BTreeMapSubSetTest.SerializableNonComparable()));
         try {
-            tm.put(new Integer(1), new Object());
+            tm.put(new Integer(1), new BTreeMapSubSetTest.SerializableNonComparable());
             fail("should throw ClassCastException");
         } catch (ClassCastException e) {
             // expected
         }
 
         tm = newBTreeMap();
-        assertNull(tm.put(new Integer(1), new Object()));
+        assertNull(tm.put(new Integer(1), new BTreeMapSubSetTest.SerializableNonComparable()));
         
         try {
-			tm.put(new Object(), new Object());
+			tm.put(new BTreeMapSubSetTest.SerializableNonComparable(), new BTreeMapSubSetTest.SerializableNonComparable());
 			fail("Should throw a ClassCastException");
 		} catch (ClassCastException e) {
 			// expected
@@ -535,7 +535,7 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         
         BTreeMap t = newBTreeMap();
         try {
-			SortedMap th = t.subMap(null,new Object());
+			SortedMap th = t.subMap(null,new BTreeMapSubSetTest.SerializableNonComparable());
 			fail("Should throw a NullPointerException");
         } catch( NullPointerException npe) {
         	// expected
@@ -1284,7 +1284,7 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         tm.remove(testint9999.toString());
         assertFalse(set.contains(testint9999.toString()));
         try {
-            set.add(new Object());
+            set.add(new BTreeMapSubSetTest.SerializableNonComparable());
             fail("should throw UnsupportedOperationException");
         } catch (UnsupportedOperationException e) {
             // expected
@@ -1304,7 +1304,7 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         Collection collection = new LinkedList();
         set.addAll(collection);
         try {
-            collection.add(new Object());
+            collection.add(new BTreeMapSubSetTest.SerializableNonComparable());
             set.addAll(collection);
             fail("should throw UnsupportedOperationException");
         } catch (UnsupportedOperationException e) {
@@ -1330,7 +1330,7 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
 
     private void assertEntry(Entry entry) {
         try {
-            entry.setValue(new Object());
+            entry.setValue(new BTreeMapSubSetTest.SerializableNonComparable());
             fail("should throw UnsupportedOperationException");
         } catch (UnsupportedOperationException e) {
             // expected
@@ -1438,7 +1438,7 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         // sub map of sub map
         NavigableMap<Integer, Object> mapIntObj = newBTreeMap();
         for (int i = 0; i < 10; ++i) {
-            mapIntObj.put(i, new Object());
+            mapIntObj.put(i, new BTreeMapSubSetTest.SerializableNonComparable());
         }
         mapIntObj = mapIntObj.subMap(5, false, 9, true);
         assertEquals(4, mapIntObj.size());
@@ -1526,13 +1526,13 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
             // expected
         }
 //        try {
-//            tm.headMap(new Object(), true);
+//            tm.headMap(new SerializableNonComparable(), true);
 //            fail("should throw ClassCastException");
 //        } catch (ClassCastException e) {
 //            // expected
 //        }
 //        try {
-//            tm.headMap(new Object(), false);
+//            tm.headMap(new SerializableNonComparable(), false);
 //            fail("should throw ClassCastException");
 //        } catch (ClassCastException e) {
 //            // expected
@@ -1589,7 +1589,7 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         // head map of head map
         NavigableMap<Integer, Object> mapIntObj = newBTreeMap();
         for (int i = 0; i < 10; ++i) {
-            mapIntObj.put(i, new Object());
+            mapIntObj.put(i, new BTreeMapSubSetTest.SerializableNonComparable());
         }
         mapIntObj = mapIntObj.headMap(5, false);
         assertEquals(5, mapIntObj.size());
@@ -1633,13 +1633,13 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
             // expected
         }
 //        try {
-//            tm.tailMap(new Object(), true);
+//            tm.tailMap(new SerializableNonComparable(), true);
 //            fail("should throw ClassCastException");
 //        } catch (ClassCastException e) {
 //            // expected
 //        }
 //        try {
-//            tm.tailMap(new Object(), false);
+//            tm.tailMap(new SerializableNonComparable(), false);
 //            fail("should throw ClassCastException");
 //        } catch (ClassCastException e) {
 //            // expected
@@ -1686,7 +1686,7 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         // tail map of tail map
         NavigableMap<Integer, Object> mapIntObj = newBTreeMap();
         for (int i = 0; i < 10; ++i) {
-            mapIntObj.put(i, new Object());
+            mapIntObj.put(i, new BTreeMapSubSetTest.SerializableNonComparable());
         }
         mapIntObj = mapIntObj.tailMap(5, false);
         assertEquals(4, mapIntObj.size());
@@ -1700,7 +1700,7 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
     public void test_descendingMap_subMap() throws Exception {
         BTreeMap<Integer, Object> tm = newBTreeMap();
         for (int i = 0; i < 10; ++i) {
-            tm.put(i, new Object());
+            tm.put(i, new BTreeMapSubSetTest.SerializableNonComparable());
         }
         NavigableMap<Integer, Object> descMap = tm.descendingMap();
         assertEquals(7, descMap.subMap(8, true, 1, false).size());
@@ -1710,7 +1710,7 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         // sub map of sub map of descendingMap
         NavigableMap<Integer, Object> mapIntObj = newBTreeMap();
         for (int i = 0; i < 10; ++i) {
-            mapIntObj.put(i, new Object());
+            mapIntObj.put(i, new BTreeMapSubSetTest.SerializableNonComparable());
         }
         mapIntObj = mapIntObj.descendingMap();
         NavigableMap<Integer, Object> subMapIntObj = mapIntObj.subMap(9, true,
@@ -1835,15 +1835,15 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         m1 = newBTreeMap();
         m2 = new HashMap();
         m1.put("key", "val");
-        m2.put(new Object(), "val");
+        m2.put(new BTreeMapSubSetTest.SerializableNonComparable(), "val");
         assertFalse("Maps should not be equal 3", m1.equals(m2));
         assertFalse("Maps should not be equal 4", m2.equals(m1));
 
         // comparing TreeMaps with not-comparable objects inside
         m1 = newBTreeMap();
         m2 = newBTreeMap();
-        m1.put(new Object(), "val1");
-        m2.put(new Object(), "val1");
+        m1.put(new BTreeMapSubSetTest.SerializableNonComparable(), "val1");
+        m2.put(new BTreeMapSubSetTest.SerializableNonComparable(), "val1");
         assertFalse("Maps should not be equal 5", m1.equals(m2));
         assertFalse("Maps should not be equal 6", m2.equals(m1));
     }

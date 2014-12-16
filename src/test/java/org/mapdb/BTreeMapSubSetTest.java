@@ -7,6 +7,7 @@ package org.mapdb;/*
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
+import java.io.Serializable;
 import java.util.*;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -620,15 +621,19 @@ public class BTreeMapSubSetTest extends JSR166TestCase {
         assertFalse(q.add(m6));
     }
 
+    public static class SerializableNonComparable implements Serializable {
+
+    }
+
     /**
      * Add of non-Comparable throws CCE
      */
     public void testDescendingAddNonComparable() {
         try {
             NavigableSet q = dset0();
-            q.add(new Object());
-            q.add(new Object());
-            q.add(new Object());
+            q.add(new SerializableNonComparable());
+            q.add(new SerializableNonComparable());
+            q.add(new SerializableNonComparable());
             shouldThrow();
         } catch (ClassCastException success) {}
     }
