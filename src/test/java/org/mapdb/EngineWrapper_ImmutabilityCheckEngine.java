@@ -14,6 +14,7 @@ public class EngineWrapper_ImmutabilityCheckEngine {
     @Test
     public void test(){
         Engine e = new StoreDirect(null);
+        ((StoreDirect)e).init();
         e = new EngineWrapper.ImmutabilityCheckEngine(e);
 
         List rec = new ArrayList();
