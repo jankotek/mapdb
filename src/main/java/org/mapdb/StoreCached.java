@@ -194,7 +194,8 @@ public class StoreCached extends StoreDirect {
 
         long newPageOffset = freeDataTakeSingle((int) CHUNKSIZE);
         byte[] page = new byte[(int) CHUNKSIZE];
-        vol.getData(newPageOffset, page, 0, page.length);
+//TODO this is new page, so data should be clear, no need to read them, but perhaps check data are really zero, handle EOF
+//        vol.getData(newPageOffset, page, 0, page.length);
         dirtyStackPages.put(newPageOffset, page);
         //write size of current chunk with link to prev page
         DataIO.putLong(page, 4, parity4Set((CHUNKSIZE << 48) | prevPageOffset));

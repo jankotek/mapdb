@@ -151,14 +151,20 @@ public class StoreWAL extends StoreCached {
         headVolBackup.putData(0,b,0,b.length);
     }
 
-    protected void walStartNextFile(){
-        if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+    protected void walStartNextFile() {
+        if (CC.PARANOID && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
         fileNum++;
-        if(CC.PARANOID && fileNum!=volumes.size())
+        if (CC.PARANOID && fileNum != volumes.size())
             throw new AssertionError();
-        Volume nextVol = volumeFactory.run(getWalFileName(fileNum));
+        String filewal = getWalFileName(fileNum);
+        Volume nextVol;
+        if (readonly && filewal != null && !new File(filewal).exists()){
+            nextVol = new Volume.ReadOnly(new Volume.ByteArrayVol(8));
+        }else {
+            nextVol = volumeFactory.run(filewal);
+        }
         nextVol.ensureAvailable(16);
         //TODO write headers and stuff
         walOffset.set(16);
@@ -675,6 +681,7 @@ public class StoreWAL extends StoreCached {
                 v.close();
             }
             volumes.clear();
+
             headVol = null;
             headVolBackup = null;
 
