@@ -832,27 +832,29 @@ public final class DataIO {
     public static long parity3Set(long i) {
         if(CC.PARANOID && (i&0x7)!=0)
             throw new InternalError("Parity error"); //TODO stronger parity
-        return i | ((Long.bitCount(i)+1)%2);
+        return i | ((Long.bitCount(i)+1)%8);
     }
 
     public static long parity3Get(long i) {
-        if(Long.bitCount(i)%2!=1){
+        long ret = i&0xFFFFFFFFFFFFFFF8L;
+        if((Long.bitCount(ret)+1)%8!=(i&0x7)){
             throw new InternalError("bit parity error");
         }
-        return i&0xFFFFFFFFFFFFFFFEL;
+        return ret;
     }
 
     public static long parity4Set(long i) {
         if(CC.PARANOID && (i&0xF)!=0)
             throw new InternalError("Parity error"); //TODO stronger parity
-        return i | ((Long.bitCount(i)+1)%2);
+        return i | ((Long.bitCount(i)+1)%16);
     }
 
     public static long parity4Get(long i) {
-        if(Long.bitCount(i)%2!=1){
+        long ret = i&0xFFFFFFFFFFFFFFF0L;
+        if((Long.bitCount(ret)+1)%16!=(i&0xF)){
             throw new InternalError("bit parity error");
         }
-        return i&0xFFFFFFFFFFFFFFF0L;
+        return ret;
     }
 
 
