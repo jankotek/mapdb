@@ -13,7 +13,9 @@ public class TxEngineTest {
 
 
     @Before public void init(){
-        e = new TxEngine(new StoreWAL(null));
+        Store store = new StoreWAL(null);
+        store.init();
+        e = new TxEngine(store,true);
     }
 
     @Test public void update(){

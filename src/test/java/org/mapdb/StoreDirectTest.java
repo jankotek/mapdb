@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.locks.Lock;
 
 import static org.junit.Assert.*;
 import static org.mapdb.StoreDirect.*;
@@ -413,7 +414,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         if(e instanceof StoreWAL){
             //force replay wal
             ((StoreWAL)e).replayWAL();
-            ((StoreWAL)e).clearEverything();
+            clearEverything();
         }
 
         long pageId = e.vol.getLong(FREE_RECID_STACK);
@@ -436,7 +437,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.commit();
         if(e instanceof  StoreWAL){
             ((StoreWAL)e).replayWAL();
-            ((StoreWAL)e).clearEverything();
+            clearEverything();
         }
         long pageId = e.vol.getLong(FREE_RECID_STACK);
         long currPageSize = pageId>>>48;
@@ -459,7 +460,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.commit();
         if(e instanceof  StoreWAL){
             ((StoreWAL)e).replayWAL();
-            ((StoreWAL)e).clearEverything();
+            clearEverything();
             ((StoreWAL)e).walStartNextFile();
         }
 
@@ -467,7 +468,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.commit();
         if(e instanceof  StoreWAL){
             ((StoreWAL)e).replayWAL();
-            ((StoreWAL)e).clearEverything();
+            clearEverything();
             ((StoreWAL)e).walStartNextFile();
         }
 
@@ -483,7 +484,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.commit();
         if(e instanceof  StoreWAL){
             ((StoreWAL)e).replayWAL();
-            ((StoreWAL)e).clearEverything();
+            clearEverything();
         }
 
         assertEquals(0L, DataIO.parity1Get(e.headVol.getLong(FREE_RECID_STACK)));
@@ -507,7 +508,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         if(e instanceof  StoreWAL){
             //TODO method to commit and force WAL replay
             ((StoreWAL)e).replayWAL();
-            ((StoreWAL)e).clearEverything();
+            clearEverything();
             ((StoreWAL)e).walStartNextFile();
         }
 
@@ -531,7 +532,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.commit();
         if(e instanceof  StoreWAL){
             ((StoreWAL)e).replayWAL();
-            ((StoreWAL)e).clearEverything();
+            clearEverything();
             ((StoreWAL)e).walStartNextFile();
         }
 
@@ -639,6 +640,38 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
             }
             assertTrue(e2.getMessage().contains("version"));
         }
+    }
+
+    //TODO hack remove
+    protected void clearEverything(){
+        StoreWAL wal = (StoreWAL)e;
+        //flush modified records
+        for (int segment = 0; segment < wal.locks.length; segment++) {
+            Lock lock = wal.locks[segment].writeLock();
+            lock.lock();
+            try {
+                wal.writeCache[segment].clear();
+            } finally {
+                lock.unlock();
+            }
+        }
+
+        wal.structuralLock.lock();
+        try {
+            wal.dirtyStackPages.clear();
+
+            //restore headVol from backup
+            byte[] b = new byte[(int) HEAD_END];
+            //TODO use direct copy
+            wal.headVolBackup.getData(0,b,0,b.length);
+            wal.headVol.putData(0,b,0,b.length);
+
+            wal.indexPages = wal.indexPagesBackup.clone();
+            wal.pageLongStack.clear();
+        } finally {
+            wal.structuralLock.unlock();
+        }
+
     }
 
 }

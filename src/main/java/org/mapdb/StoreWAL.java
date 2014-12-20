@@ -454,38 +454,33 @@ public class StoreWAL extends StoreCached {
     public void rollback() throws UnsupportedOperationException {
         commitLock.lock();
         try {
-            clearEverything();
+            //flush modified records
+            for (int segment = 0; segment < locks.length; segment++) {
+                Lock lock = locks[segment].writeLock();
+                lock.lock();
+                try {
+                    writeCache[segment].clear();
+                } finally {
+                    lock.unlock();
+                }
+            }
+
+            structuralLock.lock();
+            try {
+                dirtyStackPages.clear();
+
+                //restore headVol from backup
+                byte[] b = new byte[(int) HEAD_END];
+                //TODO use direct copy
+                headVolBackup.getData(0,b,0,b.length);
+                headVol.putData(0,b,0,b.length);
+
+                indexPages = indexPagesBackup.clone();
+            } finally {
+                structuralLock.unlock();
+            }
         }finally {
             commitLock.unlock();
-        }
-    }
-
-    protected void clearEverything() {
-        //flush modified records
-        for (int segment = 0; segment < locks.length; segment++) {
-            Lock lock = locks[segment].writeLock();
-            lock.lock();
-            try {
-                writeCache[segment].clear();
-            } finally {
-                lock.unlock();
-            }
-        }
-
-        structuralLock.lock();
-        try {
-            dirtyStackPages.clear();
-
-            //restore headVol from backup
-            byte[] b = new byte[(int) HEAD_END];
-            //TODO use direct copy
-            headVolBackup.getData(0,b,0,b.length);
-            headVol.putData(0,b,0,b.length);
-
-            indexPages = indexPagesBackup.clone();
-            pageLongStack.clear();
-        } finally {
-            structuralLock.unlock();
         }
     }
 

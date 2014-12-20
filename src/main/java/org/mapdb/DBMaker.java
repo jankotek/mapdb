@@ -749,7 +749,7 @@ public class DBMaker{
         }
 
 
-        //try to read one record from DB, to make sure encryption and compression are correctly set.
+        //try to readrt one record from DB, to make sure encryption and compression are correctly set.
         Fun.Pair<Integer,byte[]> check = null;
         try{
             check = (Fun.Pair<Integer, byte[]>) engine.get(Engine.RECID_RECORD_CHECK, Serializer.BASIC);
@@ -830,8 +830,7 @@ public class DBMaker{
 
 
     protected Engine extendSnapshotEngine(Engine engine) {
-        return null; //TODO tx
-//        return new TxEngine(engine,propsGetBool(Keys.fullTx));
+        return new TxEngine(engine,propsGetBool(Keys.fullTx));
     }
 
     protected Engine extendCacheLRU(Engine engine) {
