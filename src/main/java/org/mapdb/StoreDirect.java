@@ -90,7 +90,7 @@ public class StoreDirect extends Store {
                 structuralLock.unlock();
             }
         }finally {
-            commitLock.lock();
+            commitLock.unlock();
         }
     }
 
