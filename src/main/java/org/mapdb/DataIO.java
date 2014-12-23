@@ -680,16 +680,21 @@ public final class DataIO {
             //$DELAY$
             n+=pos;
             if ((n&sizeMask)!=0) {
-                //$DELAY$
-                int newSize = buf.length;
-                while(newSize<n){
-                    //$DELAY$
-                    newSize<<=2;
-                    sizeMask<<=2;
-                }
-                //$DELAY$
-                buf = Arrays.copyOf(buf, newSize);
+                grow(n);
+
             }
+        }
+
+        private void grow(long n) {
+            //$DELAY$
+            int newSize = buf.length;
+            while(newSize<n){
+                //$DELAY$
+                newSize<<=2;
+                sizeMask<<=2;
+            }
+            //$DELAY$
+            buf = Arrays.copyOf(buf, newSize);
         }
 
 
