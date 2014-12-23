@@ -835,6 +835,9 @@ public class StoreDirect extends Store {
         return currentRecid;
     }
 
+    protected void indexLongPut(long offset, long val){
+        vol.putLong(offset,val);
+    }
     protected void pageIndexExtend() {
         if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
@@ -849,22 +852,22 @@ public class StoreDirect extends Store {
         }else{
             //update link on previous page
             long nextPagePointerOffset = indexPages[indexPages.length-1]+PAGE_SIZE_M16;
-            vol.putLong(nextPagePointerOffset, parity16Set(indexPage));
+            indexLongPut(nextPagePointerOffset, parity16Set(indexPage));
             if(CC.STORE_INDEX_CRC){
                 //update crc by increasing crc value
-                long crc = vol.getLong(nextPagePointerOffset+8);
+                long crc = vol.getLong(nextPagePointerOffset+8); //TODO read both longs from TX
                 crc-=vol.getLong(nextPagePointerOffset);
                 crc+=parity16Set(indexPage);
-                vol.putLong(nextPagePointerOffset+8,crc);
+                indexLongPut(nextPagePointerOffset+8,crc);
             }
         }
 
         //set zero link on next page
-        vol.putLong(indexPage+PAGE_SIZE_M16,parity16Set(0));
+        indexLongPut(indexPage+PAGE_SIZE_M16,parity16Set(0));
 
         //set init crc value on new page
         if(CC.STORE_INDEX_CRC){
-            vol.putLong(indexPage+PAGE_SIZE-8,INITCRC_INDEX_PAGE+parity16Set(0));
+            indexLongPut(indexPage+PAGE_SIZE-8,INITCRC_INDEX_PAGE+parity16Set(0));
         }
 
         //put into index page array
