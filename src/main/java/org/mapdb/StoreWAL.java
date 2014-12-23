@@ -42,6 +42,8 @@ public class StoreWAL extends StoreCached {
     protected static final long WAL_SEAL = 8234892392398238983L;
     protected static final int WAL_CHECKSUM_MASK = 0x1F; //5 bits
 
+    protected static final int FULL_REPLAY_AFTER_N_TX = 16;
+
 
     protected final LongMap<Long>[] prevLongLongs;
     protected final LongMap<Long>[] currLongLongs;
@@ -521,6 +523,12 @@ public class StoreWAL extends StoreCached {
     public void commit() {
         commitLock.lock();
         try{
+            //if big enough, do full WAL replay
+            if(volumes.size()>FULL_REPLAY_AFTER_N_TX) {
+                commitFullWALReplay();
+                return;
+            }
+
             //move all from current longs to prev
             //each segment requires write lock
             for(int segment=0;segment<CC.CONCURRENCY;segment++){
@@ -601,6 +609,95 @@ public class StoreWAL extends StoreCached {
         }
     }
 
+    private void commitFullWALReplay() {
+        if(CC.PARANOID && !commitLock.isHeldByCurrentThread())
+            throw new AssertionError();
+
+        //lock all segment locks
+        //TODO use series of try..finally statements, perhaps recursion with runnable
+
+        for(int i=0;i<locks.length;i++){
+            locks[i].writeLock().lock();
+        }
+        try {
+            //flush entire write cache
+            for(int segment=0;segment<CC.CONCURRENCY;segment++){
+                flushWriteCacheSegment(segment);
+
+                LongMap.LongMapIterator<Long> iter = currLongLongs[segment].longMapIterator();
+                while(iter.moveToNext()){
+                    long offset = iter.key();
+                    long value = iter.value();
+                    walPutLong(offset,value);
+                    iter.remove();
+                }
+                if(CC.PARANOID && !currLongLongs[segment].isEmpty())
+                    throw new AssertionError();
+
+                currDataLongs[segment].clear();
+                prevDataLongs[segment].clear();
+                prevLongLongs[segment].clear();
+            }
+            structuralLock.lock();
+            try {
+                //flush modified Long Stack Pages into WAL
+                LongMap.LongMapIterator<byte[]> iter = dirtyStackPages.longMapIterator();
+                while (iter.moveToNext()) {
+                    long offset = iter.key();
+                    byte[] val = iter.value();
+
+                    if (CC.PARANOID && offset < PAGE_SIZE)
+                        throw new AssertionError();
+                    if (CC.PARANOID && val.length % 16 != 0)
+                        throw new AssertionError();
+                    if (CC.PARANOID && val.length <= 0 || val.length > MAX_REC_SIZE)
+                        throw new AssertionError();
+
+                    putDataSingleWithoutLink(-1, offset, val, 0, val.length);
+
+                    iter.remove();
+                }
+                if(CC.PARANOID && !dirtyStackPages.isEmpty())
+                    throw new AssertionError();
+
+                pageLongStack.clear();
+
+                //update index checksum
+                headVol.putInt(HEAD_CHECKSUM, headChecksum(headVol));
+
+                // flush headVol into WAL
+                byte[] b = new byte[(int) HEAD_END];
+                //TODO use direct copy
+                headVol.getData(0, b, 0, b.length);
+                //put headVol into WAL
+                putDataSingleWithoutLink(-1, 0L, b, 0, b.length);
+
+                //make copy of current headVol
+                headVolBackup.putData(0, b, 0, b.length);
+                indexPagesBackup = indexPages.clone();
+
+                long finalOffset = walOffset.get();
+                curVol.ensureAvailable(finalOffset+1); //TODO overlap here
+                //put EOF instruction
+                curVol.putUnsignedByte(finalOffset, (0<<5) | (Long.bitCount(finalOffset)));
+                curVol.sync();
+                //put wal seal
+                curVol.putLong(8, WAL_SEAL);
+
+                //now replay full WAL
+                replayWAL();
+
+                walStartNextFile();
+            } finally {
+                structuralLock.unlock();
+            }
+        }finally {
+            for(int i=locks.length-1;i>=0;i--){
+                locks[i].writeLock().unlock();
+            }
+        }
+    }
+
 
     protected void replayWAL(){
         if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
@@ -675,7 +772,6 @@ public class StoreWAL extends StoreCached {
         fileNum = -1;
         curVol = null;
         volumes.clear();
-
     }
 
     private int sum(byte[] data) {
@@ -709,6 +805,16 @@ public class StoreWAL extends StoreCached {
                 return;
 
             closed = true;
+
+            //TODO do not replay if not dirty
+            if(!readonly) {
+                structuralLock.lock();
+                try {
+                    replayWAL();
+                } finally {
+                    structuralLock.unlock();
+                }
+            }
 
             for(Volume v:volumes){
                 v.close();
