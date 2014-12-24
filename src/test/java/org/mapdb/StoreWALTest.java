@@ -60,6 +60,7 @@ public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
         e.walPutLong(offset,v);
         e.commit();
         e.structuralLock.lock();
+        e.commitLock.lock();
         e.replayWAL();
         assertEquals(v,e.vol.getLong(offset));
     }
@@ -77,6 +78,7 @@ public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
         }
         e.commit();
         e.structuralLock.lock();
+        e.commitLock.lock();
         e.replayWAL();
 
         for(int i=0;i<3;i++) {

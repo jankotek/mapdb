@@ -413,6 +413,8 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
         if(e instanceof StoreWAL){
             //force replay wal
+            e.commitLock.lock();
+            e.structuralLock.lock();
             ((StoreWAL)e).replayWAL();
             clearEverything();
         }
@@ -436,6 +438,8 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
         e.commit();
         if(e instanceof  StoreWAL){
+            e.commitLock.lock();
+            e.structuralLock.lock();
             ((StoreWAL)e).replayWAL();
             clearEverything();
         }
@@ -459,6 +463,8 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.longStackPut(FREE_RECID_STACK, 111,false);
         e.commit();
         if(e instanceof  StoreWAL){
+            e.commitLock.lock();
+            e.structuralLock.lock();
             ((StoreWAL)e).replayWAL();
             clearEverything();
             ((StoreWAL)e).walStartNextFile();
@@ -483,6 +489,8 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         assertEquals(111L, e.longStackTake(FREE_RECID_STACK,false));
         e.commit();
         if(e instanceof  StoreWAL){
+            e.commitLock.lock();
+            e.structuralLock.lock();
             ((StoreWAL)e).replayWAL();
             clearEverything();
         }
@@ -507,6 +515,8 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.commit();
         if(e instanceof  StoreWAL){
             //TODO method to commit and force WAL replay
+            e.commitLock.lock();
+            e.structuralLock.lock();
             ((StoreWAL)e).replayWAL();
             clearEverything();
             ((StoreWAL)e).walStartNextFile();
