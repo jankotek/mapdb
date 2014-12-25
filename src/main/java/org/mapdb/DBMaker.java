@@ -643,10 +643,11 @@ public class DBMaker{
     /** constructs DB using current settings */
     public DB make(){
         boolean strictGet = propsGetBool(Keys.strictDBGet);
+        boolean deleteFilesAfterClose = propsGetBool(Keys.deleteFilesAfterClose);
         Engine engine = makeEngine();
         boolean dbCreated = false;
         try{
-            DB db =  new  DB(engine, strictGet,false);
+            DB db =  new  DB(engine, strictGet, deleteFilesAfterClose);
             dbCreated = true;
             return db;
         }finally {
@@ -911,7 +912,6 @@ public class DBMaker{
                 compressionEnabled,
                 propsGetXteaEncKey(),
                 propsGetBool(Keys.readOnly),
-                propsGetBool(Keys.deleteFilesAfterClose),
                 propsGetInt(Keys.freeSpaceReclaimQ,CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
                 propsGetBool(Keys.commitFileSyncDisable),
                 0);
@@ -929,7 +929,6 @@ public class DBMaker{
                 compressionEnabled,
                 propsGetXteaEncKey(),
                 propsGetBool(Keys.readOnly),
-                propsGetBool(Keys.deleteFilesAfterClose),
                 propsGetInt(Keys.freeSpaceReclaimQ, CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
                 propsGetBool(Keys.commitFileSyncDisable),
                 0);

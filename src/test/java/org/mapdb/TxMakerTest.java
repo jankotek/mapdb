@@ -98,6 +98,37 @@ public class TxMakerTest{
     }
 
 
+    @Test
+    public void single_tx() throws Throwable {
+        final int items = 1000;
+        final AtomicInteger ii = new AtomicInteger();
+        final Collection s = new ConcurrentSkipListSet();
+        final int t=ii.incrementAndGet()*items*10000;
+        for (int index = t; index < t+items; index++) {
+            final int temp = index;
+            s.add(temp);
+            tx.execute(new TxBlock() {
+
+                @Override
+                public void tx(DB db) throws TxRollbackException {
+                    Map map = db.getHashMap("ha");
+                    if(temp!=t)
+                        assertEquals(temp-1,map.get(temp-1));
+                    map.put(temp, temp );
+                }
+            });
+        }
+
+        Map m = tx.makeTx().getHashMap("ha");
+        assertEquals(s.size(),m.size());
+        for(Object i:s){
+            assertEquals(i, m.get(i));
+        }
+
+    }
+
+
+
     @Test//(timeout = 60000)
     public void increment() throws Throwable {
         final int threads = 10;

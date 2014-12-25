@@ -70,14 +70,14 @@ public class StoreWAL extends StoreCached {
     public StoreWAL(String fileName) {
         this(fileName,
                 fileName == null ? Volume.memoryFactory() : Volume.fileFactory(),
-                false, false, null, false, false, 0,
+                false, false, null, false, 0,
                 false, 0);
     }
 
     public StoreWAL(String fileName, Fun.Function1<Volume, String> volumeFactory, boolean checksum, boolean compress,
-                    byte[] password, boolean readonly, boolean deleteFilesAfterClose, int freeSpaceReclaimQ,
+                    byte[] password, boolean readonly, int freeSpaceReclaimQ,
                     boolean commitFileSyncDisable, int sizeIncrement) {
-        super(fileName, volumeFactory, checksum, compress, password, readonly, deleteFilesAfterClose,
+        super(fileName, volumeFactory, checksum, compress, password, readonly,
                 freeSpaceReclaimQ, commitFileSyncDisable, sizeIncrement);
         prevLongLongs = new LongMap[CC.CONCURRENCY];
         currLongLongs = new LongMap[CC.CONCURRENCY];
@@ -371,6 +371,8 @@ public class StoreWAL extends StoreCached {
             byte[] b = new byte[arraySize];
             Volume vol = volumes.get(fileNum);
             vol.getData(dataOffset, b, 0, arraySize);
+            //page is going to be modified, so put it back into dirtyStackPages)
+            dirtyStackPages.put(pageOffset, page);
             return b;
         }
 

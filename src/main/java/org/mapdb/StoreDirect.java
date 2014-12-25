@@ -66,7 +66,6 @@ public class StoreDirect extends Store {
                        boolean compress,
                        byte[] password,
                        boolean readonly,
-                       boolean deleteFilesAfterClose,
                        int freeSpaceReclaimQ,
                        boolean commitFileSyncDisable,
                        int sizeIncrement
@@ -183,7 +182,7 @@ public class StoreDirect extends Store {
 
     public StoreDirect(String fileName) {
         this(fileName, fileName==null? Volume.memoryFactory() : Volume.fileFactory(),
-                false,false,null,false,false,0,
+                false,false,null,false,0,
                 false,0);
     }
 

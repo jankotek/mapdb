@@ -17,6 +17,7 @@
 package org.mapdb;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
@@ -33,6 +34,7 @@ import java.util.concurrent.*;
 public class DB implements Closeable {
 
     protected final boolean strictDBGet;
+    protected final boolean deleteFilesAfterClose;
 
     /** Engine which provides persistence for this DB*/
     protected Engine engine;
@@ -78,7 +80,7 @@ public class DB implements Closeable {
         this(engine,false,false);
     }
 
-    public DB(Engine engine, boolean strictDBGet, boolean disableLocks) {
+    public DB(Engine engine, boolean strictDBGet, boolean deleteFilesAfterClose) {
         if(!(engine instanceof EngineWrapper)){
             //access to Store should be prevented after `close()` was called.
             //So for this we have to wrap raw Store into EngineWrapper
@@ -86,6 +88,7 @@ public class DB implements Closeable {
         }
         this.engine = engine;
         this.strictDBGet = strictDBGet;
+        this.deleteFilesAfterClose = deleteFilesAfterClose;
 
         serializerPojo = new SerializerPojo(
                 //get name for given object
@@ -1664,11 +1667,21 @@ public class DB implements Closeable {
                     throw new IOError(e);
                 }
         }
+        String fileName = Store.forEngine(engine).fileName;
         engine.close();
         //dereference db to prevent memory leaks
         engine = EngineWrapper.CLOSED;
         namesInstanciated = Collections.unmodifiableMap(new HashMap());
         namesLookup = Collections.unmodifiableMap(new HashMap());
+
+        if(deleteFilesAfterClose&&fileName!=null){
+            File f = new File(fileName);
+            if(f.exists() && !f.delete()){
+                //TODO file was not deleted, log warning
+                //TODO delete WAL files and append-only files
+            }
+
+        }
     }
 
     /**

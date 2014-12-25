@@ -21,9 +21,9 @@ public class StoreCached extends StoreDirect {
     protected final static Fun.Pair<Object, Serializer> TOMBSTONE = new Fun.Pair(null, null);
 
     public StoreCached(String fileName, Fun.Function1<Volume, String> volumeFactory, boolean checksum,
-                       boolean compress, byte[] password, boolean readonly, boolean deleteFilesAfterClose,
+                       boolean compress, byte[] password, boolean readonly,
                        int freeSpaceReclaimQ, boolean commitFileSyncDisable, int sizeIncrement) {
-        super(fileName, volumeFactory, checksum, compress, password, readonly, deleteFilesAfterClose,
+        super(fileName, volumeFactory, checksum, compress, password, readonly,
                 freeSpaceReclaimQ, commitFileSyncDisable, sizeIncrement);
 
         writeCache = new LongMap[CC.CONCURRENCY];
@@ -36,7 +36,7 @@ public class StoreCached extends StoreDirect {
     public StoreCached(String fileName) {
         this(fileName,
                 fileName == null ? Volume.memoryFactory() : Volume.fileFactory(),
-                false, false, null, false, false, 0,
+                false, false, null, false,  0,
                 false, 0);
     }
 
