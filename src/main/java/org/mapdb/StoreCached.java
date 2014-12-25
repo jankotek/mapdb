@@ -264,6 +264,9 @@ public class StoreCached extends StoreDirect {
     }
 
     protected void flushWriteCacheSegment(int segment) {
+        if(CC.PARANOID && !locks[segment].writeLock().isHeldByCurrentThread())
+            throw new AssertionError();
+
         LongMap.LongMapIterator<Fun.Pair<Object, Serializer>> iter = writeCache[segment].longMapIterator();
         while(iter.moveToNext()){
             long recid = iter.key();
