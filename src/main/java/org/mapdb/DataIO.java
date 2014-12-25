@@ -823,41 +823,41 @@ public final class DataIO {
 
     public static long parity1Set(long i) {
         if(CC.PARANOID && (i&1)!=0)
-            throw new InternalError("Parity error");
+            throw new DBException.PointerChecksumBroken();
         return i | ((Long.bitCount(i)+1)%2);
     }
 
     public static long parity1Get(long i) {
         if(Long.bitCount(i)%2!=1){
-            throw new InternalError("bit parity error");
+            throw new DBException.PointerChecksumBroken();
         }
         return i&0xFFFFFFFFFFFFFFFEL;
     }
 
     public static long parity3Set(long i) {
         if(CC.PARANOID && (i&0x7)!=0)
-            throw new InternalError("Parity error"); //TODO stronger parity
+            throw new DBException.PointerChecksumBroken(); //TODO stronger parity
         return i | ((Long.bitCount(i)+1)%8);
     }
 
     public static long parity3Get(long i) {
         long ret = i&0xFFFFFFFFFFFFFFF8L;
         if((Long.bitCount(ret)+1)%8!=(i&0x7)){
-            throw new InternalError("bit parity error");
+            throw new DBException.PointerChecksumBroken();
         }
         return ret;
     }
 
     public static long parity4Set(long i) {
         if(CC.PARANOID && (i&0xF)!=0)
-            throw new InternalError("Parity error"); //TODO stronger parity
+            throw new DBException.PointerChecksumBroken(); //TODO stronger parity
         return i | ((Long.bitCount(i)+1)%16);
     }
 
     public static long parity4Get(long i) {
         long ret = i&0xFFFFFFFFFFFFFFF0L;
         if((Long.bitCount(ret)+1)%16!=(i&0xF)){
-            throw new InternalError("bit parity error");
+            throw new DBException.PointerChecksumBroken();
         }
         return ret;
     }
@@ -865,13 +865,13 @@ public final class DataIO {
 
     public static long parity16Set(long i) {
         if(CC.PARANOID && (i&0xFFFF)!=0)
-            throw new InternalError("Parity error"); //TODO stronger parity
+            throw new DBException.PointerChecksumBroken(); //TODO stronger parity
         return i | ((Long.bitCount(i)+1)%2);
     }
 
     public static long parity16Get(long i) {
         if(Long.bitCount(i)%2!=1){
-            throw new InternalError("bit parity error");
+            throw new DBException.PointerChecksumBroken();
         }
         return i&0xFFFFFFFFFFFF0000L;
     }

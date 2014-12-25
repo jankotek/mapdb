@@ -106,7 +106,7 @@ public class StoreDirect extends Store {
         int expectedChecksum = vol.getInt(HEAD_CHECKSUM);
         int actualChecksum = headChecksum(vol);
         if (actualChecksum != expectedChecksum) {
-            throw new InternalError("Head checksum broken");
+            throw new DBException.HeadChecksumBroken();
         }
 
         //load index pages
@@ -126,8 +126,10 @@ public class StoreDirect extends Store {
                 for(long j=0;j<PAGE_SIZE-8;j+=8){
                     res+=vol.getLong(indexPage+j);
                 }
-                if(res!=vol.getLong(indexPage+PAGE_SIZE-8))
-                    throw new InternalError("Page CRC error at offset: "+indexPage);
+                if(res!=vol.getLong(indexPage+PAGE_SIZE-8)) {
+                    //throw new InternalError("Page CRC error at offset: "+indexPage);
+                    throw new DBException.ChecksumBroken();
+                }
             }
 
             //move to next page
@@ -771,14 +773,10 @@ public class StoreDirect extends Store {
 
     protected long indexValGet(long recid) {
         long indexVal = vol.getLong(recidToOffset(recid));
+        if(indexVal == 0)
+            throw new DBException.EngineGetVoid();
         //check parity and throw recid does not exist if broken
-        try {
-            return DataIO.parity1Get(indexVal);
-        }catch(InternalError e){
-            e.printStackTrace();
-            //TODO do not throw/catch exception
-            throw new DBException(DBException.Code.ENGINE_GET_VOID);
-        }
+        return DataIO.parity1Get(indexVal);
     }
 
     protected final long recidToOffset(long recid){

@@ -56,7 +56,7 @@ public class StoreHeap extends Store{
     protected <A> A get2(long recid, Serializer<A> serializer) {
         Object o = data.get(recid);
         if(o==null)
-            throw new DBException(DBException.Code.ENGINE_GET_VOID);
+            throw new DBException.EngineGetVoid();
         return (A) unswapNull(o);
     }
 

@@ -261,8 +261,8 @@ public abstract class EngineTest<ENGINE extends Engine>{
         try{
             e.get(recid,Serializer.ILLEGAL_ACCESS);
             fail();
-        }catch(DBException e){
-            assertEquals(DBException.Code.ENGINE_GET_VOID, e.getCode());
+        }catch(DBException.EngineGetVoid e){
+
         }
     }
 
@@ -277,8 +277,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
             e.get(recid,Serializer.STRING);
             if(!(e instanceof StoreAppend)) //TODO remove after compact on StoreAppend
                 fail();
-        }catch(DBException e){
-            assertEquals(DBException.Code.ENGINE_GET_VOID, e.getCode());
+        }catch(DBException.EngineGetVoid e){
         }
     }
 
@@ -314,8 +313,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
         try{
             e.get(Engine.RECID_FIRST,Serializer.ILLEGAL_ACCESS);
             fail();
-        }catch(DBException e){
-            assertEquals(DBException.Code.ENGINE_GET_VOID, e.getCode());
+        }catch(DBException.EngineGetVoid e){
         }
 
     }

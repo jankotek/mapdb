@@ -339,18 +339,18 @@ public class DBMakerTest{
 
     File folderDoesNotExist = new File("folder-does-not-exit/db.aaa");
 
-    @Test(expected = IOError.class)
+    @Test(expected = DBException.VolumeIOError.class)
     public void nonExistingFolder(){
         DBMaker.newFileDB(folderDoesNotExist).make();
     }
 
-    @Test(expected = IOError.class)
+    @Test(expected = DBException.VolumeIOError.class)
     public void nonExistingFolder3(){
         DBMaker.newFileDB(folderDoesNotExist).mmapFileEnable().make();
     }
 
 
-    @Test(expected = IOError.class)
+    @Test(expected = DBException.VolumeIOError.class)
     public void nonExistingFolder2(){
         DBMaker
                 .newFileDB(folderDoesNotExist)

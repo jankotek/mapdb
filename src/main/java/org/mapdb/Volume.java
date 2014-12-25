@@ -199,7 +199,7 @@ public abstract class Volume implements Closeable{
         try {
             getDataInput(inputOffset, size).readFully(data);
         }catch(IOException e){
-            handleIOException(e);
+            throw new DBException.VolumeIOError(e);
         }
         target.putData(targetOffset,data,0,size);
     }
@@ -514,8 +514,7 @@ public abstract class Volume implements Closeable{
                     slices = new ByteBuffer[0];
                 }
             } catch (IOException e) {
-                handleIOException(e);
-                throw new IllegalStateException(); //satisfy compiler
+                throw new DBException.VolumeIOError(e);
             }
         }
 
@@ -539,7 +538,7 @@ public abstract class Volume implements Closeable{
                 slices = null;
 
             } catch (IOException e) {
-                handleIOException(e);
+                throw new DBException.VolumeIOError(e);
             }finally{
                 growLock.unlock();
             }
@@ -582,8 +581,7 @@ public abstract class Volume implements Closeable{
                 }
                 return ret;
             } catch (IOException e) {
-                handleIOException(e);
-                throw new IllegalStateException(); //satisfy compiler
+                throw new DBException.VolumeIOError(e);
             }
         }
 
@@ -631,7 +629,7 @@ public abstract class Volume implements Closeable{
                 try {
                     fileChannel.truncate(1L * sliceSize *maxSize);
                 } catch (IOException e) {
-                    handleIOException(e);
+                    throw new DBException.VolumeIOError(e);
                 }
 
                 if (ByteBufferVol.windowsWorkaround) {
@@ -751,8 +749,12 @@ public abstract class Volume implements Closeable{
                     channel = raf.getChannel();
                     size = channel.size();
                 }
+            }catch(ClosedByInterruptException e){
+                throw new DBException.VolumeClosedByInterrupt(e);
+            }catch(ClosedChannelException e){
+                throw new DBException.VolumeClosed(e);
             } catch (IOException e) {
-                handleIOException(e);
+                throw new DBException.VolumeIOError(e);
             }
         }
 
@@ -781,8 +783,12 @@ public abstract class Volume implements Closeable{
                 try {
                     channel.truncate(offset);
                     size = offset;
+                }catch(ClosedByInterruptException e){
+                    throw new DBException.VolumeClosedByInterrupt(e);
+                }catch(ClosedChannelException e){
+                    throw new DBException.VolumeClosed(e);
                 } catch (IOException e) {
-                    handleIOException(e);
+                    throw new DBException.VolumeIOError(e);
                 }
             }
         }
@@ -793,11 +799,14 @@ public abstract class Volume implements Closeable{
                 try {
                     this.size = size;
                     channel.truncate(size);
+                }catch(ClosedByInterruptException e){
+                    throw new DBException.VolumeClosedByInterrupt(e);
+                }catch(ClosedChannelException e){
+                    throw new DBException.VolumeClosed(e);
                 } catch (IOException e) {
-                    handleIOException(e);
+                    throw new DBException.VolumeIOError(e);
                 }
             }
-
         }
 
         protected void writeFully(long offset, ByteBuffer buf) throws IOException {
@@ -823,8 +832,12 @@ public abstract class Volume implements Closeable{
                 ByteBuffer buf = ByteBuffer.allocate(8);
                 buf.putLong(0, value);
                 writeFully(offset, buf);
-            }catch(IOException e){
-                handleIOException(e);
+            }catch(ClosedByInterruptException e){
+                throw new DBException.VolumeClosedByInterrupt(e);
+            }catch(ClosedChannelException e){
+                throw new DBException.VolumeClosed(e);
+            } catch (IOException e) {
+                throw new DBException.VolumeIOError(e);
             }
         }
 
@@ -838,8 +851,12 @@ public abstract class Volume implements Closeable{
                 ByteBuffer buf = ByteBuffer.allocate(4);
                 buf.putInt(0, value);
                 writeFully(offset, buf);
-            }catch(IOException e){
-                handleIOException(e);
+            }catch(ClosedByInterruptException e){
+                throw new DBException.VolumeClosedByInterrupt(e);
+            }catch(ClosedChannelException e){
+                throw new DBException.VolumeClosed(e);
+            } catch (IOException e) {
+                throw new DBException.VolumeIOError(e);
             }
         }
 
@@ -853,8 +870,12 @@ public abstract class Volume implements Closeable{
                 ByteBuffer buf = ByteBuffer.allocate(1);
                 buf.put(0, value);
                 writeFully(offset, buf);
-            }catch(IOException e){
-                handleIOException(e);
+            }catch(ClosedByInterruptException e){
+                throw new DBException.VolumeClosedByInterrupt(e);
+            }catch(ClosedChannelException e){
+                throw new DBException.VolumeClosed(e);
+            } catch (IOException e) {
+                throw new DBException.VolumeIOError(e);
             }
         }
 
@@ -863,8 +884,12 @@ public abstract class Volume implements Closeable{
             try{
                 ByteBuffer buf = ByteBuffer.wrap(src,srcPos, srcSize);
                 writeFully(offset, buf);
-            }catch(IOException e){
-                handleIOException(e);
+            }catch(ClosedByInterruptException e){
+                throw new DBException.VolumeClosedByInterrupt(e);
+            }catch(ClosedChannelException e){
+                throw new DBException.VolumeClosed(e);
+            } catch (IOException e) {
+                throw new DBException.VolumeIOError(e);
             }
         }
 
@@ -872,8 +897,12 @@ public abstract class Volume implements Closeable{
         public void putData(long offset, ByteBuffer buf) {
             try{
                 writeFully(offset,buf);
-            }catch(IOException e){
-                handleIOException(e);
+            }catch(ClosedByInterruptException e){
+                throw new DBException.VolumeClosedByInterrupt(e);
+            }catch(ClosedChannelException e){
+                throw new DBException.VolumeClosed(e);
+            } catch (IOException e) {
+                throw new DBException.VolumeIOError(e);
             }
         }
 
@@ -893,9 +922,12 @@ public abstract class Volume implements Closeable{
                 ByteBuffer buf = ByteBuffer.allocate(8);
                 readFully(offset,buf);
                 return buf.getLong(0);
-            }catch(IOException e){
-                handleIOException(e);
-                throw new IllegalStateException(); //satisfy compiler
+            }catch(ClosedByInterruptException e){
+                throw new DBException.VolumeClosedByInterrupt(e);
+            }catch(ClosedChannelException e){
+                throw new DBException.VolumeClosed(e);
+            } catch (IOException e) {
+                throw new DBException.VolumeIOError(e);
             }
         }
 
@@ -905,11 +937,13 @@ public abstract class Volume implements Closeable{
                 ByteBuffer buf = ByteBuffer.allocate(4);
                 readFully(offset,buf);
                 return buf.getInt(0);
-            }catch(IOException e){
-                handleIOException(e);
-                throw new IllegalStateException(); //satisfy compiler
+            }catch(ClosedByInterruptException e){
+                throw new DBException.VolumeClosedByInterrupt(e);
+            }catch(ClosedChannelException e){
+                throw new DBException.VolumeClosed(e);
+            } catch (IOException e) {
+                throw new DBException.VolumeIOError(e);
             }
-
         }
 
         @Override
@@ -918,9 +952,12 @@ public abstract class Volume implements Closeable{
                 ByteBuffer buf = ByteBuffer.allocate(1);
                 readFully(offset,buf);
                 return buf.get(0);
-            }catch(IOException e){
-                handleIOException(e);
-                throw new IllegalStateException(); //satisfy compiler
+            }catch(ClosedByInterruptException e){
+                throw new DBException.VolumeClosedByInterrupt(e);
+            }catch(ClosedChannelException e){
+                throw new DBException.VolumeClosed(e);
+            } catch (IOException e) {
+                throw new DBException.VolumeIOError(e);
             }
         }
 
@@ -930,9 +967,12 @@ public abstract class Volume implements Closeable{
                 ByteBuffer buf = ByteBuffer.allocate(size);
                 readFully(offset,buf);
                 return new DataIO.DataInputByteBuffer(buf,0);
-            }catch(IOException e){
-                handleIOException(e);
-                throw new IllegalStateException(); //satisfy compiler
+            }catch(ClosedByInterruptException e){
+                throw new DBException.VolumeClosedByInterrupt(e);
+            }catch(ClosedChannelException e){
+                throw new DBException.VolumeClosed(e);
+            } catch (IOException e) {
+                throw new DBException.VolumeIOError(e);
             }
         }
 
@@ -941,9 +981,12 @@ public abstract class Volume implements Closeable{
             try{
                 ByteBuffer buf = ByteBuffer.wrap(bytes,bytesPos,size);
                 readFully(offset,buf);
-            }catch(IOException e){
-                handleIOException(e);
-                throw new IllegalStateException(); //satisfy compiler
+            }catch(ClosedByInterruptException e){
+                throw new DBException.VolumeClosedByInterrupt(e);
+            }catch(ClosedChannelException e){
+                throw new DBException.VolumeClosed(e);
+            } catch (IOException e) {
+                throw new DBException.VolumeIOError(e);
             }
         }
 
@@ -956,8 +999,12 @@ public abstract class Volume implements Closeable{
                 if (raf != null)
                     raf.close();
                 raf = null;
-            }catch(IOException e){
-                handleIOException(e);
+            }catch(ClosedByInterruptException e){
+                throw new DBException.VolumeClosedByInterrupt(e);
+            }catch(ClosedChannelException e){
+                throw new DBException.VolumeClosed(e);
+            } catch (IOException e) {
+                throw new DBException.VolumeIOError(e);
             }
         }
 
@@ -965,8 +1012,12 @@ public abstract class Volume implements Closeable{
         public void sync() {
             try{
                 channel.force(true);
-            }catch(IOException e){
-                handleIOException(e);
+            }catch(ClosedByInterruptException e){
+                throw new DBException.VolumeClosedByInterrupt(e);
+            }catch(ClosedChannelException e){
+                throw new DBException.VolumeClosed(e);
+            } catch (IOException e) {
+                throw new DBException.VolumeIOError(e);
             }
         }
 
@@ -974,9 +1025,12 @@ public abstract class Volume implements Closeable{
         public boolean isEmpty() {
             try {
                 return channel==null || channel.size()==0;
+            }catch(ClosedByInterruptException e){
+                throw new DBException.VolumeClosedByInterrupt(e);
+            }catch(ClosedChannelException e){
+                throw new DBException.VolumeClosed(e);
             } catch (IOException e) {
-                handleIOException(e);
-                throw new IllegalStateException(); //satisfy compiler
+                throw new DBException.VolumeIOError(e);
             }
         }
 
@@ -1015,15 +1069,6 @@ public abstract class Volume implements Closeable{
         }
     }
 
-    protected static void handleIOException(IOException e) {
-        if (e instanceof ClosedByInterruptException) {
-            throw new DBException(DBException.Code.VOLUME_CLOSED_BY_INTERRUPT, e);
-        }
-        if(e instanceof ClosedChannelException){
-            throw new DBException(DBException.Code.VOLUME_CLOSED,e);
-        }
-        throw new IOError(e);
-    }
 
     /** transfer data from one volume to second. Second volume will be expanded if needed*/
     public static void volumeTransfer(long size, Volume from, Volume to){

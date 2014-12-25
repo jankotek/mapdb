@@ -19,13 +19,13 @@ public class DataIOTest {
         try {
             parity1Get(Long.parseLong("0", 2));
             fail();
-        }catch(InternalError e){
+        }catch(DBException.PointerChecksumBroken e){
             //TODO check mapdb specific error;
         }
         try {
             parity1Get(Long.parseLong("110", 2));
             fail();
-        }catch(InternalError e){
+        }catch(DBException.PointerChecksumBroken e){
             //TODO check mapdb specific error;
         }
     }

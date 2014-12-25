@@ -36,14 +36,14 @@ public class VolumeTest {
         Thread.sleep(100);
         t.interrupt();
         Thread.sleep(100);
-        assertEquals(DBException.Code.VOLUME_CLOSED_BY_INTERRUPT, ((DBException)ref.get()).getCode());
+        assertTrue(ref.get() instanceof DBException.VolumeClosedByInterrupt);
         //now channel should be closed
         assertFalse(v.channel.isOpen());
         try {
             v.putLong(0, 1000);
             fail();
         }catch(DBException e){
-            assertEquals(DBException.Code.VOLUME_CLOSED, e.getCode());
+            assertTrue(e instanceof DBException.VolumeClosed);
         }
     }
 
