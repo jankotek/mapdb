@@ -372,7 +372,7 @@ public class StoreWAL extends StoreCached {
             Volume vol = volumes.get(fileNum);
             vol.getData(dataOffset, b, 0, arraySize);
             //page is going to be modified, so put it back into dirtyStackPages)
-            dirtyStackPages.put(pageOffset, page);
+            dirtyStackPages.put(pageOffset, b);
             return b;
         }
 

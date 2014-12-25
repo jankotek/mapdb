@@ -1667,20 +1667,19 @@ public class DB implements Closeable {
                     throw new IOError(e);
                 }
         }
-        String fileName = Store.forEngine(engine).fileName;
+        String fileName = deleteFilesAfterClose?Store.forEngine(engine).fileName:null;
         engine.close();
         //dereference db to prevent memory leaks
         engine = EngineWrapper.CLOSED;
         namesInstanciated = Collections.unmodifiableMap(new HashMap());
         namesLookup = Collections.unmodifiableMap(new HashMap());
 
-        if(deleteFilesAfterClose&&fileName!=null){
+        if(deleteFilesAfterClose && fileName!=null){
             File f = new File(fileName);
-            if(f.exists() && !f.delete()){
+            if (f.exists() && !f.delete()) {
                 //TODO file was not deleted, log warning
-                //TODO delete WAL files and append-only files
             }
-
+            //TODO delete WAL files and append-only files
         }
     }
 
