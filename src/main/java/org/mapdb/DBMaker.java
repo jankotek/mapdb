@@ -892,13 +892,14 @@ public class DBMaker{
 
     protected Engine extendStoreAppend(String fileName, Fun.Function1<Volume,String> volumeFactory) {
         boolean compressionEnabled = Keys.compression_lzf.equals(props.getProperty(Keys.compression));
-        throw new RuntimeException("StoreAppend");
-//        return new StoreAppend(fileName, volumeFactory,
-//                propsGetRafMode()>0, propsGetBool(Keys.readOnly),
-//                propsGetBool(Keys.transactionDisable),
-//                propsGetBool(Keys.deleteFilesAfterClose),
-//                propsGetBool(Keys.commitFileSyncDisable),
-//                propsGetBool(Keys.checksum),compressionEnabled,propsGetXteaEncKey());
+        return new StoreAppend(
+                  fileName,
+                  volumeFactory,
+                  propsGetBool(Keys.checksum),
+                  compressionEnabled,
+                  propsGetXteaEncKey(),
+                  propsGetBool(Keys.readOnly)
+          );
     }
 
     protected Engine extendStoreDirect(

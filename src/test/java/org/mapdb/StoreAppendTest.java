@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 
 import static org.junit.Assert.*;
-/* TODO append tests
 @SuppressWarnings({"rawtypes","unchecked"})
 public class StoreAppendTest<E extends StoreAppend> extends EngineTest<E>{
 
@@ -17,9 +16,12 @@ public class StoreAppendTest<E extends StoreAppend> extends EngineTest<E>{
 
     @Override
     protected E openEngine() {
-        return (E) new StoreAppend(f.getPath());
+        StoreAppend s =  new StoreAppend(f.getPath());
+        s.init();
+        return (E) s;
     }
 
+    /*
     @Test
     public void compact_file_deleted(){
         StoreAppend engine = new StoreAppend(f.getPath());
@@ -109,5 +111,5 @@ public class StoreAppendTest<E extends StoreAppend> extends EngineTest<E>{
     @Override public void large_record_larger(){
         //TODO ignored test
     }
+    */
 }
-*/
