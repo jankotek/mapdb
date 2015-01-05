@@ -677,7 +677,7 @@ public final class Bind {
                     //$DELAY$
                     if(oldCat == newCat || oldCat.equals(newCat)) return;
                     incrementHistogram(oldCat,-1);
-                    incrementHistogram(oldCat,1);
+                    incrementHistogram(newCat,1);
                 }
 
             }
@@ -688,21 +688,18 @@ public final class Bind {
                 for(;;){
                     //$DELAY$
                     Long oldCount = histogram.get(category);
-                    if(oldCount == null){
-                        //$DELAY$
-                        //insert new count
-                        if(histogram.putIfAbsent(category,i) == null) {
-                            //$DELAY$
+                    if(oldCount == null
+                         && histogram.putIfAbsent(category,i) == null   ){  //insert new count
                             return;
-                        }
                     }else{
                         //increase existing count
                         //$DELAY$
-                        Long newCount = oldCount+i;
-                        if(histogram.replace(category,oldCount, newCount)) {
-                            //$DELAY$
-                            return;
-                        }
+                        for(Long newCount = oldCount+i;
+                            ! histogram.replace(category,oldCount, newCount);
+                            newCount = histogram.get(category)+i){
+                                //repeat until CAS does not fail
+                            }
+                        return;
                     }
                 }
             }
