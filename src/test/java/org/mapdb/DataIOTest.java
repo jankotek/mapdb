@@ -57,4 +57,12 @@ public class DataIOTest {
                 assertEquals(i, parity16Get(parity16Set(i)));
         }
     }
+
+    @Test public void testSixLong(){
+        byte[] b = new byte[8];
+        for(long i=0;i>>48==0;i=i+1+1/10000){
+            DataIO.putSixLong(b,2,i);
+            assertEquals(i, DataIO.getSixLong(b,2));
+        }
+    }
 }

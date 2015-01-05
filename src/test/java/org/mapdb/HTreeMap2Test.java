@@ -33,93 +33,32 @@ public class HTreeMap2Test {
         db.close();
     }
 
-    void printMap(HTreeMap m){
-        System.out.println(toString(m.segmentRecids, engine));
-    }
-
-    static String toString(long[] rootRecids, Engine engine){
-        String s = "Arrays.asList(\n";
-        for(long r:rootRecids){
-            s+= (r==0)?null:recursiveToString(r,"", engine);
-        }
-        //s=s.substring(0,s.length()-2);
-        s+=");";
-        return s;
-    }
 
     protected static Serializer serializer = DBMaker.newTempHashMap().LN_SERIALIZER;
 
-    static private String recursiveToString(long r, String prefix, Engine engine) {
-        prefix+="  ";
-        String s="";
-        long[][] nn = engine.get(r, HTreeMap.DIR_SERIALIZER);
-        if(nn==null){
-            s+=prefix+"null,\n";
-        }else{
-            s+= prefix+"Arrays.asList(\n";
-            for(long[] n:nn){
-                if(n==null){
-                    s+=prefix+"  null,\n";
-                }else{
-                    s+=prefix+"  Arrays.asList(\n";
-                    for(long r2:n){
-                        if(r2==0){
-                            s+=prefix+"    "+"null,\n";
-                        }else{
-                            if((r2&1)==0){
-                                s+=recursiveToString(r2>>>1, prefix+"    ", engine);
-                            }else{
-                                s+=prefix+"    "+"Array.asList(";
-                                TreeMap m = new TreeMap();
-                                HTreeMap.LinkedNode node =
-                                        (HTreeMap.LinkedNode) engine.get
-                                                (r2 >>> 1, serializer);
-                                while(node!=null){
-                                    m.put(node.key, node.value);
-                                    node = (HTreeMap.LinkedNode) engine.get(node.next, serializer);
-                                }
-                                for(Object k:m.keySet()){
-                                    s+= k+","+m.get(k)+",";
-                                }
-                                //s=s.substring(0,s.length()-1);
-                                s+="),\n";
-                            }
-                        }
-                    }
-                    s+=prefix+"  ),\n";
-                }
-            }
-//            s=s.substring(0,s.length()-2);
-            s+=prefix+"),\n";
-        }
-        return s;
-    }
 
 
     @Test public void testDirSerializer() throws IOException {
 
-        long[][] l = new long[16][];
-        l[3] = new long[] {0,0,12,13,14,0,Long.MAX_VALUE,0};
-        l[6] = new long[] {1,2,3,4,5,6,7,8};
+
+        byte[] dir = new byte[16];
+
+        for(int slot=1;slot<127;slot+=1 +slot/5){
+            dir = HTreeMap.dirPut(dir,slot,slot*1111);
+        }
 
         DataIO.DataOutputByteArray out = new DataIO.DataOutputByteArray();
-        HTreeMap.DIR_SERIALIZER.serialize(out,l);
+        HTreeMap.DIR_SERIALIZER.serialize(out,dir);
 
         DataIO.DataInputByteBuffer in = swap(out);
 
-        long[][] b = HTreeMap.DIR_SERIALIZER.deserialize(in, -1);
+        byte[] dir2 = HTreeMap.DIR_SERIALIZER.deserialize(in, -1);
+        assertArrayEquals(dir,dir2);
 
-        assertEquals(null, b[0]);
-        assertEquals(null, b[1]);
-        assertEquals(null, b[2]);
-        assertEquals(Arrays.toString(new long[] {0,0,12,13,14,0,Long.MAX_VALUE,0}), Arrays.toString(b[3]));
-        assertEquals(null, b[4]);
-        assertEquals(null, b[5]);
-        assertEquals(Arrays.toString(new long[] {1,2,3,4,5,6,7,8}), Arrays.toString(b[6]));
-        assertEquals(null, b[7]);
-
-
-
+        for(int slot=1;slot<127;slot+=1 +slot/5){
+            int offset = HTreeMap.dirOffsetFromSlot(dir2,slot);
+            assertEquals(slot*1111, DataIO.getSixLong(dir2,offset ));
+        }
     }
 
     DataIO.DataInputByteBuffer swap(DataIO.DataOutputByteArray d){
@@ -195,13 +134,16 @@ public class HTreeMap2Test {
         }
 
         //segment should not be expanded
-        long[][] l = engine.get(m.segmentRecids[0], HTreeMap.DIR_SERIALIZER);
-        assertNotNull(l[0]);
-        assertEquals(1, l[0][0]&1);  //last bite indicates leaf
-        for(int j=1;j<8;j++){ //all others should be null
-            assertEquals(0, l[0][j]);
-        }
-        long recid = l[0][0]>>>1;
+        byte[] l = engine.get(m.segmentRecids[0], HTreeMap.DIR_SERIALIZER);
+        assertEquals(16+6, l.length);
+        long recid = DataIO.getSixLong(l,16);
+        assertEquals(1, recid&1);  //last bite indicates leaf
+        assertEquals(1,l[0]);
+        //all others should be null
+        for(int i=1;i<16;i++)
+            assertEquals(0,l[i]);
+
+        recid = recid>>>1;
 
         for(long i = HTreeMap.BUCKET_OVERFLOW -1; i>=0; i--){
             assertTrue(recid!=0);
@@ -217,31 +159,30 @@ public class HTreeMap2Test {
         recid = m.segmentRecids[0];
 
         l = engine.get(recid, HTreeMap.DIR_SERIALIZER);
-        assertNotNull(l[0]);
-        for(int j=1;j<8;j++){ //all others should be null
-            assertEquals(null, l[j]);
-        }
+        assertEquals(16+6, l.length);
+        recid = DataIO.getSixLong(l,16);
+        assertEquals(0, recid&1);  //last bite indicates leaf
+        assertEquals(1,l[0]);
 
-        assertEquals(0, l[0][0]&1); //last bite indicates leaf
-        for(int j=1;j<8;j++){ //all others should be zero
-            assertEquals(0, l[0][j]);
-        }
+        //all others should be null
+        for(int i=1;i<16;i++)
+            assertEquals(0,l[i]);
 
-        recid = l[0][0]>>>1;
-
+        recid = recid>>>1;
 
         l = engine.get(recid, HTreeMap.DIR_SERIALIZER);
-        assertNotNull(l[0]);
-        for(int j=1;j<8;j++){ //all others should be null
-            assertEquals(null, l[j]);
-        }
 
-        assertEquals(1, l[0][0]&1); //last bite indicates leaf
-        for(int j=1;j<8;j++){ //all others should be zero
-            assertEquals(0, l[0][j]);
-        }
+        assertEquals(16+6, l.length);
+        recid = DataIO.getSixLong(l,16);
+        assertEquals(1, recid&1);  //last bite indicates leaf
+        assertEquals(1,l[0]);
 
-        recid = l[0][0]>>>1;
+        //all others should be null
+        for(int i=1;i<16;i++)
+            assertEquals(0,l[i]);
+
+        recid = recid>>>1;
+
 
         for(long i = 0; i<= HTreeMap.BUCKET_OVERFLOW; i++){
             assertTrue(recid!=0);
@@ -339,12 +280,9 @@ public class HTreeMap2Test {
 
         int countSegments = 0;
         for(long segmentRecid:m.segmentRecids){
-            long[][] segment = engine.get(segmentRecid, HTreeMap.DIR_SERIALIZER);
-            for(long[] s:segment){
-                if(s!=null){
-                    countSegments++;
-                    break;
-                }
+            byte[] segment = engine.get(segmentRecid, HTreeMap.DIR_SERIALIZER);
+            if(segment!=null && segment.length>16){
+                countSegments++;
             }
         }
 

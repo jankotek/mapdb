@@ -252,6 +252,29 @@ public final class DataIO {
     }
 
 
+    public static long getSixLong(byte[] buf, int pos) {
+        return
+                        ((long) (buf[pos++] & 0xff) << 40) |
+                        ((long) (buf[pos++] & 0xff) << 32) |
+                        ((long) (buf[pos++] & 0xff) << 24) |
+                        ((long) (buf[pos++] & 0xff) << 16) |
+                        ((long) (buf[pos++] & 0xff) << 8) |
+                        ((long) (buf[pos] & 0xff));
+    }
+
+    public static void putSixLong(byte[] buf, int pos, long value) {
+        if(CC.PARANOID && (value>>>48!=0))
+            throw new AssertionError();
+
+        buf[pos++] = (byte) (0xff & (value >> 40));
+        buf[pos++] = (byte) (0xff & (value >> 32));
+        buf[pos++] = (byte) (0xff & (value >> 24));
+        buf[pos++] = (byte) (0xff & (value >> 16));
+        buf[pos++] = (byte) (0xff & (value >> 8));
+        buf[pos] = (byte) (0xff & (value));
+    }
+
+
 
 
     public static int nextPowTwo(final int a)
