@@ -1159,14 +1159,7 @@ public abstract class Volume implements Closeable{
         public void putLong(long offset, long v) {
             int pos = (int) (offset & sliceSizeModMask);
             byte[] buf = slices[((int) (offset >>> sliceShift))];
-            buf[pos++] = (byte) (0xff & (v >> 56));
-            buf[pos++] = (byte) (0xff & (v >> 48));
-            buf[pos++] = (byte) (0xff & (v >> 40));
-            buf[pos++] = (byte) (0xff & (v >> 32));
-            buf[pos++] = (byte) (0xff & (v >> 24));
-            buf[pos++] = (byte) (0xff & (v >> 16));
-            buf[pos++] = (byte) (0xff & (v >> 8));
-            buf[pos] = (byte) (0xff & (v));
+            DataIO.putLong(buf,pos,v);
         }
 
 
@@ -1229,13 +1222,7 @@ public abstract class Volume implements Closeable{
         public long getLong(long offset) {
             int pos = (int) (offset & sliceSizeModMask);
             byte[] buf = slices[((int) (offset >>> sliceShift))];
-
-            final int end = pos + 8;
-            long ret = 0;
-            for (; pos < end; pos++) {
-                ret = (ret << 8) | (buf[pos] & 0xFF);
-            }
-            return ret;
+            return DataIO.getLong(buf,pos);
         }
 
 
@@ -1302,6 +1289,153 @@ public abstract class Volume implements Closeable{
         @Override
         public boolean isSliced() {
             return true;
+        }
+
+        @Override
+        public File getFile() {
+            return null;
+        }
+
+    }
+
+    /**
+     * Volume backed by on-heap byte[] with maximal fixed size 2GB.
+     * For thread-safety it can not be grown
+      */
+    public static final class SingleByteArrayVol extends Volume{
+
+        protected final byte[] data;
+
+        public SingleByteArrayVol(int size) {
+            this(new byte[size]);
+        }
+
+        public SingleByteArrayVol(byte[] data){
+            this.data = data;
+        }
+
+
+        @Override
+        public void ensureAvailable(long offset) {
+            if(offset >= data.length){
+                //TODO throw an exception
+            }
+        }
+
+        @Override
+        public void truncate(long size) {
+            //unsupported
+            //TODO throw an exception?
+        }
+
+        @Override
+        public void putLong(long offset, long v) {
+            DataIO.putLong(data, (int) offset,v);
+        }
+
+
+        @Override
+        public void putInt(long offset, int value) {
+            int pos = (int) offset;
+            data[pos++] = (byte) (0xff & (value >> 24));
+            data[pos++] = (byte) (0xff & (value >> 16));
+            data[pos++] = (byte) (0xff & (value >> 8));
+            data[pos++] = (byte) (0xff & (value));
+        }
+
+        @Override
+        public void putByte(long offset, byte value) {
+            data[(int) offset] = value;
+        }
+
+        @Override
+        public void putData(long offset, byte[] src, int srcPos, int srcSize) {
+            System.arraycopy(src,srcPos,data, (int) offset,srcSize);
+        }
+
+        @Override
+        public void putData(long offset, ByteBuffer buf) {
+             buf.get(data, (int) offset, buf.remaining());
+        }
+
+
+        @Override
+        public void transferInto(long inputOffset, Volume target, long targetOffset, int size) {
+            target.putData(targetOffset,data, (int) inputOffset, size);
+        }
+
+        @Override
+        public void clear(long startOffset, long endOffset) {
+            int start = (int) startOffset;
+            int end = (int) endOffset;
+
+            int pos = start;
+            while(pos<end){
+                System.arraycopy(CLEAR,0,data,pos, Math.min(CLEAR.length, end-pos));
+                pos+=CLEAR.length;
+            }
+        }
+
+        @Override
+        public long getLong(long offset) {
+            return DataIO.getLong(data, (int) offset);
+        }
+
+
+
+        @Override
+        public int getInt(long offset) {
+            int pos = (int) offset;
+            final int end = pos + 4;
+            int ret = 0;
+            for (; pos < end; pos++) {
+                ret = (ret << 8) | (data[pos] & 0xFF);
+            }
+            return ret;
+        }
+
+        @Override
+        public byte getByte(long offset) {
+            return data[((int) offset)];
+        }
+
+        @Override
+        public DataInput getDataInput(long offset, int size) {
+             return new DataIO.DataInputByteArray(data, (int) offset);
+        }
+
+        @Override
+        public void getData(long offset, byte[] bytes, int bytesPos, int length) {
+            System.arraycopy(data, (int) offset,bytes,bytesPos,length);
+        }
+
+        @Override
+        public void close() {
+            //TODO perhaps set `data` to null? what are performance implications for non-final fieldd?
+        }
+
+        @Override
+        public void sync() {
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return data.length==0;
+        }
+
+        @Override
+        public void deleteFile() {
+
+        }
+
+        @Override
+        public int sliceSize() {
+            return -1;
+        }
+
+        @Override
+        public boolean isSliced() {
+            return false;
         }
 
         @Override
