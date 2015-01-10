@@ -4,12 +4,10 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.*;
-import static org.mapdb.DataIO.packLongBidi;
-import static org.mapdb.DataIO.unpackLongBidi;
-import static org.mapdb.DataIO.unpackLongBidiReverse;
 
 public class VolumeTest {
 
@@ -47,14 +45,63 @@ public class VolumeTest {
         }
     }
 
+    @Test public void all() throws Exception {
+        Callable<Volume>[] fabs = new Callable[]{
+                new Callable() {
+                    @Override public Object call() throws Exception {
+                        return new Volume.ByteArrayVol(CC.VOLUME_PAGE_SHIFT);
+                    }
+                },
+                new Callable() {
+                    @Override public Object call() throws Exception {
+                        return new Volume.SingleByteArrayVol((int) 1e7);
+                    }
+                },
+                new Callable() {
+                    @Override public Object call() throws Exception {
+                        return new Volume.MemoryVol(true,CC.VOLUME_PAGE_SHIFT);
+                    }
+                },
+                new Callable() {
+                    @Override public Object call() throws Exception {
+                        return new Volume.MemoryVol(false,CC.VOLUME_PAGE_SHIFT);
+                    }
+                },
+                new Callable() {
+                    @Override public Object call() throws Exception {
+                        return new Volume.FileChannelVol(File.createTempFile("mapdb",""),false,CC.VOLUME_PAGE_SHIFT,0);
+                    }
+                },
+                new Callable() {
+                    @Override public Object call() throws Exception {
+                        return new Volume.RandomAccessFileVol(File.createTempFile("mapdb",""),false);
+                    }
+                },
+                new Callable() {
+                    @Override public Object call() throws Exception {
+                        return new Volume.MappedFileVol(File.createTempFile("mapdb",""),false,CC.VOLUME_PAGE_SHIFT,0);
+                    }
+                },
+        };
 
-    @Test
-    public void testPackLongBidi() throws Exception {
-        Volume v = new Volume.ByteArrayVol(CC.VOLUME_PAGE_SHIFT);
+        for(Callable<Volume> fab1:fabs) {
+            testPackLongBidi(fab1.call());
+            for (Callable<Volume> fab2 : fabs) {
+                long_compatible(fab1.call(),fab2.call());
+                long_pack_bidi(fab1.call(),fab2.call());
+                int_compatible(fab1.call(), fab2.call());
+                byte_compatible(fab1.call(), fab2.call());
+            }
+        }
+    }
+
+
+
+    void testPackLongBidi(Volume v) throws Exception {
         v.ensureAvailable(10000);
 
         long max = (long) 1e14;
-        for(long i=0;i<max;i=i+1 +i/100000){
+        for(long i=0;i<max;i=i+1 +i/1000){
             v.clear(0, 20);
             long size = v.putLongPackBidi(10,i);
             assertTrue(i>100000 || size<6);
@@ -62,5 +109,87 @@ public class VolumeTest {
             assertEquals(i | (size<<56), v.getLongPackBidi(10));
             assertEquals(i | (size<<56), v.getLongPackBidiReverse(10+size));
         }
+        v.close();
     }
+
+    void long_compatible(Volume v1, Volume v2) {
+        v1.ensureAvailable(16);
+        v2.ensureAvailable(16);
+        byte[] b = new byte[8];
+
+        for(long i:new long[]{1L, 2L, Integer.MAX_VALUE, Integer.MIN_VALUE, Long.MAX_VALUE, Long.MIN_VALUE,
+                -1, 0x982e923e8989229L, -2338998239922323233L,
+                0xFFF8FFL, -0xFFF8FFL, 0xFFL, -0xFFL,
+                0xFFFFFFFFFF0000L,-0xFFFFFFFFFF0000L}){
+            v1.putLong(7,i);
+            v1.getData(7,b,0,8);
+            v2.putData(7,b,0,8);
+            assertEquals(i,v2.getLong(7));
+        }
+
+        v1.close();
+        v2.close();
+    }
+
+
+    void long_pack_bidi(Volume v1, Volume v2) {
+        v1.ensureAvailable(16);
+        v2.ensureAvailable(16);
+        byte[] b = new byte[9];
+
+        for(long i=0;i>0;i=i+1+i/1000){
+            v1.putLongPackBidi(7,i);
+            v1.getData(7,b,0,8);
+            v2.putData(7,b,0,8);
+            assertEquals(i,v2.getLongPackBidi(7));
+        }
+
+        v1.close();
+        v2.close();
+    }
+    void int_compatible(Volume v1, Volume v2) {
+        v1.ensureAvailable(16);
+        v2.ensureAvailable(16);
+        byte[] b = new byte[8];
+
+        for(int i:new int[]{1, 2, Integer.MAX_VALUE, Integer.MIN_VALUE,
+                -1, 0x982e9229, -233899233,
+                0xFFF8FF, -0xFFF8FF, 0xFF, -0xFF,
+                0xFFFF000,-0xFFFFF00}){
+            v1.putInt(7, i);
+            v1.getData(7,b,0,8);
+            v2.putData(7,b,0,8);
+            assertEquals(i,v2.getInt(7));
+        }
+
+        v1.close();
+        v2.close();
+    }
+
+
+    void byte_compatible(Volume v1, Volume v2) {
+        v1.ensureAvailable(16);
+        v2.ensureAvailable(16);
+        byte[] b = new byte[8];
+
+        for(byte i=Byte.MIN_VALUE;i<Byte.MAX_VALUE-1;i++){
+            v1.putByte(7, i);
+            v1.getData(7,b,0,8);
+            v2.putData(7,b,0,8);
+            assertEquals(i,v2.getByte(7));
+        }
+
+
+        for(int i=0;i<256;i++){
+            v1.putUnsignedByte(7, i);
+            v1.getData(7,b,0,8);
+            v2.putData(7,b,0,8);
+            assertEquals(i,v2.getUnsignedByte(7));
+        }
+
+
+        v1.close();
+        v2.close();
+    }
+
 }

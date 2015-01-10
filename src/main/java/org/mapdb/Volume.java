@@ -1565,7 +1565,7 @@ public abstract class Volume implements Closeable{
         public RandomAccessFileVol(File file, boolean readOnly) {
             this.file = file;
             try {
-                this.raf = new RandomAccessFile(file,readOnly?"r":"w");
+                this.raf = new RandomAccessFile(file,readOnly?"r":"rw");
             } catch (IOException e) {
                 throw new IOError(e);
             }
