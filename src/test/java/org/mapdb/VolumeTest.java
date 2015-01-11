@@ -88,6 +88,7 @@ public class VolumeTest {
             testPackLongBidi(fab1.call());
             for (Callable<Volume> fab2 : fabs) {
                 long_compatible(fab1.call(),fab2.call());
+                long_six_compatible(fab1.call(), fab2.call());
                 long_pack_bidi(fab1.call(),fab2.call());
                 int_compatible(fab1.call(), fab2.call());
                 byte_compatible(fab1.call(), fab2.call());
@@ -147,6 +148,24 @@ public class VolumeTest {
         v1.close();
         v2.close();
     }
+
+
+    void long_six_compatible(Volume v1, Volume v2) {
+        v1.ensureAvailable(16);
+        v2.ensureAvailable(16);
+        byte[] b = new byte[9];
+
+        for(long i=0;i>>48==0;i=i+1+i/1000){
+            v1.putSixLong(7,i);
+            v1.getData(7,b,0,8);
+            v2.putData(7,b,0,8);
+            assertEquals(i,v2.getSixLong(7));
+        }
+
+        v1.close();
+        v2.close();
+    }
+
     void int_compatible(Volume v1, Volume v2) {
         v1.ensureAvailable(16);
         v2.ensureAvailable(16);
