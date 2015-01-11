@@ -649,6 +649,52 @@ public class BTreeMapTest{
         }
     }
 
+
+    @Test public void findSmallerNodeLeaf(){
+        BTreeMap.LeafNode n = new BTreeMap.LeafNode(
+            new Object[]{2,4,6,8,10},
+            true,true,false,
+            new Object[]{"two","four","six","eight","ten"},
+            0
+        );
+
+        assertNull(m.findSmallerNodeRecur(n,1,true));
+        assertNull(m.findSmallerNodeRecur(n,1,false));
+        assertNull(m.findSmallerNodeRecur(n,2,false));
+        assertEquals(
+                new Fun.Pair(1, n),
+                m.findSmallerNodeRecur(n, 2, true));
+
+        assertEquals(
+                new Fun.Pair(1,n),
+                m.findSmallerNodeRecur(n,3,true));
+        assertEquals(
+                new Fun.Pair(1,n),
+                m.findSmallerNodeRecur(n,3,false));
+
+
+        assertEquals(
+                new Fun.Pair(2,n),
+                m.findSmallerNodeRecur(n,4,true));
+        assertEquals(
+                new Fun.Pair(1,n),
+                m.findSmallerNodeRecur(n,3,false));
+
+        assertEquals(
+                new Fun.Pair(5,n),
+                m.findSmallerNodeRecur(n,10,true));
+        assertEquals(
+                new Fun.Pair(4,n),
+                m.findSmallerNodeRecur(n,10,false));
+
+
+        assertEquals(
+                new Fun.Pair(5,n),
+                m.findSmallerNodeRecur(n,12,true));
+        assertEquals(
+                new Fun.Pair(5,n),
+                m.findSmallerNodeRecur(n,12,false));
+    }
 }
 
 

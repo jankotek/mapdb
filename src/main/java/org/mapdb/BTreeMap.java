@@ -1166,6 +1166,142 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         }
     }
 
+
+    protected static class BTreeDescendingIterator{
+        final BTreeMap m;
+
+        LeafNode currentLeaf;
+        Object lastReturnedKey;
+        int currentPos;
+        final Object lo;
+        final boolean loInclusive;
+
+        /** unbounded iterator*/
+        BTreeDescendingIterator(BTreeMap m){
+            this.m = m;
+            lo=null;
+            loInclusive=false;
+            pointToStart();
+        }
+
+        /** bounder iterator, args may be null for partially bounded*/
+        BTreeDescendingIterator(
+                BTreeMap m,
+                Object lo,
+                boolean loInclusive,
+                Object hi,
+                boolean hiInclusive){
+            this.m = m;
+            if(hi==null){
+                //$DELAY$
+                pointToStart();
+            }else{
+                //$DELAY$
+                Fun.Pair<Integer, LeafNode> l = m.findSmallerNode(hi, hiInclusive);
+                currentPos = l!=null? l.a : -1;
+                currentLeaf = l!=null ? l.b : null;
+            }
+            this.lo = lo;
+            this.loInclusive = loInclusive;
+            //$DELAY$
+            if(lo!=null && currentLeaf!=null){
+                //check in bounds
+                int c = -currentLeaf.compare(m.keySerializer,currentPos,lo);
+                if (c > 0 || (c == 0 && !loInclusive)){
+                    //out of high bound
+                    currentLeaf=null;
+                    currentPos=-1;
+                    //$DELAY$
+                }
+            }
+
+        }
+
+
+        private void pointToStart() {
+            //find right-most leaf
+            final long rootRecid = m.engine.get(m.rootRecidRef, Serializer.RECID);
+            BNode node = (BNode) m.engine.get(rootRecid, m.nodeSerializer);
+            //descend and follow link until possible
+            for(;;){
+                long next = node.next();
+                if(next==0){
+                    if(node.isLeaf()){
+                        //end
+                        currentLeaf = (LeafNode) node;
+                        int len = currentLeaf.keysLen(m.keySerializer);
+                        if(len==2){
+                            currentLeaf=null;
+                            currentPos=-1;
+                        }else {
+                            currentPos = len - 2;
+                        }
+                        return;
+                    }
+                    //follow last children in directory
+                    next = node.child()[node.child().length-2];
+                }
+                node = (BNode) m.engine.get(next,m.nodeSerializer);
+            }
+        }
+
+
+        public boolean hasNext(){
+            return currentLeaf!=null;
+        }
+
+        public void remove(){
+            if(lastReturnedKey==null) throw new IllegalStateException();
+            m.remove(lastReturnedKey);
+            //$DELAY$
+            lastReturnedKey = null;
+        }
+
+        protected void advance(){
+            if(currentLeaf==null)
+                return;
+            lastReturnedKey =  currentLeaf.key(m.keySerializer,currentPos);
+            currentPos--;
+            //$DELAY$
+            if(currentPos == 0){
+                //$DELAY$
+                Object nextKey = currentLeaf.key(m.keySerializer,0);
+                Fun.Pair<Integer, BNode> prevPair =
+                        nextKey==null?null:
+                        m.findSmallerNode(nextKey,false);
+                if(prevPair==null){
+                    currentLeaf = null;
+                    currentPos=-1;
+                    return;
+                }
+                currentLeaf = (LeafNode) prevPair.b;
+                currentPos = currentLeaf.keysLen(m.keySerializer)-2;
+
+
+                while(currentLeaf.keysLen(m.keySerializer)==2){
+                    if(currentLeaf.next ==0){
+                        currentLeaf = null;
+                        currentPos=-1;
+                        return;
+                    }
+                    currentLeaf = (LeafNode) m.engine.get(currentLeaf.next, m.nodeSerializer);
+                    //$DELAY$
+                }
+            }
+            if(lo!=null && currentLeaf!=null){
+                //check in bounds
+                int c = -currentLeaf.compare(m.keySerializer,currentPos,lo);
+                if (c > 0 || (c == 0 && !loInclusive)){
+                    //$DELAY$
+                    //out of high bound
+                    currentLeaf=null;
+                    currentPos=-1;
+                }
+            }
+        }
+    }
+
+
     @Override
 	public V remove(Object key) {
         return removeOrReplace(key, null, null);
@@ -1386,6 +1522,74 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
 
 
+    static class BTreeDescendingKeyIterator<K> extends BTreeDescendingIterator implements Iterator<K>{
+
+        BTreeDescendingKeyIterator(BTreeMap m) {
+            super(m);
+        }
+
+        BTreeDescendingKeyIterator(BTreeMap m, Object lo, boolean loInclusive, Object hi, boolean hiInclusive) {
+            super(m, lo, loInclusive, hi, hiInclusive);
+        }
+
+        @Override
+        public K next() {
+            if(currentLeaf == null)
+                throw new NoSuchElementException();
+            K ret = (K) currentLeaf.key(m.keySerializer,currentPos);
+            //$DELAY$
+            advance();
+            //$DELAY$
+            return ret;
+        }
+    }
+
+    static  class BTreeDescendingValueIterator<V> extends BTreeDescendingIterator implements Iterator<V>{
+
+        BTreeDescendingValueIterator(BTreeMap m) {
+            super(m);
+        }
+
+        BTreeDescendingValueIterator(BTreeMap m, Object lo, boolean loInclusive, Object hi, boolean hiInclusive) {
+            super(m, lo, loInclusive, hi, hiInclusive);
+        }
+
+        @Override
+        public V next() {
+            if(currentLeaf == null) throw new NoSuchElementException();
+            Object ret = currentLeaf.vals[currentPos-1];
+            //$DELAY$
+            advance();
+            //$DELAY$
+            return (V) m.valExpand(ret);
+        }
+
+    }
+
+    static  class BTreeDescendingEntryIterator<K,V> extends BTreeDescendingIterator implements  Iterator<Entry<K, V>>{
+
+        BTreeDescendingEntryIterator(BTreeMap m) {
+            super(m);
+        }
+
+        BTreeDescendingEntryIterator(BTreeMap m, Object lo, boolean loInclusive, Object hi, boolean hiInclusive) {
+            super(m, lo, loInclusive, hi, hiInclusive);
+        }
+
+        @Override
+        public Entry<K, V> next() {
+            if(currentLeaf == null)
+                throw new NoSuchElementException();
+            K ret = (K) currentLeaf.key(m.keySerializer,currentPos);
+            Object val = currentLeaf.vals[currentPos-1];
+            //$DELAY$
+            advance();
+            //$DELAY$
+            return m.makeEntry(ret, m.valExpand(val));
+        }
+    }
+
+
 
 
 
@@ -1521,7 +1725,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         final boolean leaf = n.isLeaf();
         final int start = leaf ? n.keysLen(keySerializer)-2 : n.keysLen(keySerializer)-1;
         final int end = leaf?1:0;
-        final int res = inclusive? 1 : 0;
+        final int res = inclusive && leaf? 1 : 0;
         //$DELAY$
         for(int i=start;i>=end; i--){
             //$DELAY$
@@ -1536,9 +1740,68 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     final long recid = n.child()[i];
                     if(recid==0) continue;
                     BNode n2 = engine.get(recid, nodeSerializer);
+                    if(n2.isLeaf()){
+                        //check if first value is acceptable
+                        if(n2.keysLen(keySerializer)>2 &&
+                                keySerializer.comparator().compare(
+                                        n2.key(keySerializer,1), key)>=(inclusive ? 1 : 0)) {
+                            continue;
+                        }
+                    }
                     //$DELAY$
                     Entry<K,V> ret = findSmallerRecur(n2, key, inclusive);
                     if(ret!=null) return ret;
+                }
+            }
+        }
+
+        return null;
+    }
+
+
+    protected Fun.Pair<Integer,BNode> findSmallerNode(K key,boolean inclusive){
+        if(key==null)
+            throw new NullPointerException();
+        final long rootRecid = engine.get(rootRecidRef, Serializer.RECID);
+        //$DELAY$
+        BNode n = engine.get(rootRecid, nodeSerializer);
+        //$DELAY$
+        return findSmallerNodeRecur(n, key, inclusive);
+    }
+
+    protected Fun.Pair<Integer,BNode> findSmallerNodeRecur(
+            BNode n, K key, boolean inclusive) {
+        //TODO optimize comparation in this method
+        final boolean leaf = n.isLeaf();
+        final int start = leaf ? n.keysLen(keySerializer)-2 : n.keysLen(keySerializer)-1;
+        final int end = leaf?1:0;
+        final int res = inclusive && leaf? 1 : 0;
+        //$DELAY$
+        for(int i=start;i>=end; i--){
+            //$DELAY$
+            final Object key2 = n.key(keySerializer,i);
+            int comp = (key2==null)? -1 : keySerializer.comparator().compare(key2, key);
+            if(comp<res){
+                if(leaf){
+                    //$DELAY$
+                    return key2==null ? null :
+                        new Fun.Pair(i,n);
+                }else{
+                    final long recid = n.child()[i];
+                    if(recid==0)
+                        continue;
+                    BNode n2 = engine.get(recid, nodeSerializer);
+                    if(n2.isLeaf()){
+                        //check if first value is acceptable
+                        if(n2.keysLen(keySerializer)>2 &&
+                                keySerializer.comparator().compare(
+                                n2.key(keySerializer,1), key)>=(inclusive ? 1 : 0)) {
+                            continue;
+                        }
+                    }
+
+                    //$DELAY$
+                    return findSmallerNodeRecur(n2, key, inclusive);
                 }
             }
         }
@@ -2908,62 +3171,17 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
          * ITERATORS
          */
 
-        abstract class Iter<E> implements Iterator<E> {
-            Entry<K,V> current = DescendingMap.this.firstEntry();
-            Entry<K,V> last = null;
-
-
-            @Override
-            public boolean hasNext() {
-                return current!=null;
-            }
-
-
-            public void advance() {
-                if(current==null) throw new NoSuchElementException();
-                last = current;
-                current = DescendingMap.this.higherEntry(current.getKey());
-            }
-
-            @Override
-            public void remove() {
-                if(last==null) throw new IllegalStateException();
-                DescendingMap.this.remove(last.getKey());
-                last = null;
-            }
-
-        }
         Iterator<K> keyIterator() {
-            return new Iter<K>() {
-                @Override
-                public K next() {
-                    advance();
-                    return last.getKey();
-                }
-            };
+            return new BTreeDescendingKeyIterator<K>(m,lo,loInclusive,hi,hiInclusive);
         }
 
         Iterator<V> valueIterator() {
-            return new Iter<V>() {
-
-                @Override
-                public V next() {
-                    advance();
-                    return last.getValue();
-                }
-            };
+            return new BTreeDescendingValueIterator<V>(m,lo,loInclusive,hi,hiInclusive);
         }
 
         Iterator<Map.Entry<K,V>> entryIterator() {
-            return new Iter<Entry<K, V>>() {
-                @Override
-                public Entry<K, V> next() {
-                    advance();
-                    return last;
-                }
-            };
+            return new BTreeDescendingEntryIterator<K,V>(m,lo,loInclusive,hi,hiInclusive);
         }
-
 
     }
 
