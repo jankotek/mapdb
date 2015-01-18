@@ -3,14 +3,19 @@ package org.mapdb;
 import java.io.DataInput;
 import java.io.IOError;
 import java.io.IOException;
+import java.lang.ref.ReferenceQueue;
+import java.lang.ref.SoftReference;
+import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.Queue;
-import java.util.concurrent.ArrayBlockingQueue;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.zip.CRC32;
 
 /**
@@ -18,6 +23,7 @@ import java.util.zip.CRC32;
  */
 public abstract class Store implements Engine {
 
+    protected static final Logger LOG = Logger.getLogger(Store.class.getName());
 
     /** protects structural layout of records. Memory allocator is single threaded under this lock */
     protected final ReentrantLock structuralLock = new ReentrantLock(CC.FAIR_LOCKS);
@@ -26,7 +32,7 @@ public abstract class Store implements Engine {
     protected final ReentrantLock commitLock = new ReentrantLock(CC.FAIR_LOCKS);
 
     /** protects data from being overwritten while read */
-    protected final ReentrantReadWriteLock[] locks;
+    protected final ReadWriteLock[] locks;
 
 
     protected volatile boolean closed = false;
@@ -40,20 +46,39 @@ public abstract class Store implements Engine {
     protected final EncryptionXTEA encryptionXTEA;
     protected final ThreadLocal<CompressLZF> LZF;
 
+    protected final Cache[] caches;
 
     protected Store(
             String fileName,
             Fun.Function1<Volume, String> volumeFactory,
+            Cache cache,
+            int lockingStrategy,
             boolean checksum,
             boolean compress,
             byte[] password,
             boolean readonly) {
         this.fileName = fileName;
         this.volumeFactory = volumeFactory;
-        locks = new ReentrantReadWriteLock[CC.CONCURRENCY];
+        locks = new ReadWriteLock[CC.CONCURRENCY];
         for(int i=0;i< locks.length;i++){
-            locks[i] = new ReentrantReadWriteLock(CC.FAIR_LOCKS);
+            if(lockingStrategy==0)
+                locks[i] = new ReentrantReadWriteLock(CC.FAIR_LOCKS);
+            else if(lockingStrategy==1){
+                locks[i] = new ReadWriteSingleLock(new ReentrantLock(CC.FAIR_LOCKS));
+            }else{
+                locks[i] = new ReadWriteSingleLock(new NoLock());
+            }
         }
+
+        caches = new Cache[CC.CONCURRENCY];
+        if(cache==null)
+            cache = Cache.ZERO_CACHE;
+        caches[0] = cache;
+        for(int i=1;i<caches.length;i++){
+            //each segment needs different cache, since StoreCache is not thread safe
+            caches[i] = cache.clone();
+        }
+
 
         this.checksum = checksum;
         this.compress = compress;
@@ -76,10 +101,18 @@ public abstract class Store implements Engine {
         if(serializer==null)
             throw new NullPointerException();
 
-        final Lock lock = locks[lockPos(recid)].readLock();
+        int lockPos = lockPos(recid);
+        final Lock lock = locks[lockPos].readLock();
+        final Cache cache = caches[lockPos];
         lock.lock();
         try{
-            return get2(recid,serializer);
+            A o = (A) cache.get(recid);
+            if(o!=null) {
+                return o== Cache.NULL?null:o;
+            }
+            o =  get2(recid,serializer);
+            cache.put(recid,o);
+            return o;
         }finally {
             lock.unlock();
         }
@@ -94,10 +127,12 @@ public abstract class Store implements Engine {
 
         //serialize outside lock
         DataIO.DataOutputByteArray out = serialize(value, serializer);
-
-        final Lock lock = locks[lockPos(recid)].writeLock();
+        int lockPos = lockPos(recid);
+        final Lock lock = locks[lockPos].writeLock();
+        final Cache cache = caches[lockPos];
         lock.lock();
         try{
+            cache.put(recid,value);
             update2(recid,out);
         }finally {
             lock.unlock();
@@ -290,12 +325,20 @@ public abstract class Store implements Engine {
             throw new NullPointerException();
 
         //TODO binary CAS & serialize outside lock
-        final Lock lock = locks[lockPos(recid)].writeLock();
+        final int lockPos = lockPos(recid);
+        final Lock lock = locks[lockPos].writeLock();
+        final Cache cache = caches[lockPos];
         lock.lock();
         try{
-            A oldVal = get2(recid,serializer);
+            A oldVal = (A) cache.get(recid);
+            if(oldVal == null) {
+                oldVal = get2(recid, serializer);
+            }else if(oldVal == Cache.NULL){
+                oldVal = null;
+            }
             if(oldVal==expectedOldValue || (oldVal!=null && serializer.equals(oldVal,expectedOldValue))){
                 update2(recid,serialize(newValue,serializer));
+                cache.put(recid,newValue);
                 return true;
             }
             return false;
@@ -304,14 +347,18 @@ public abstract class Store implements Engine {
         }
     }
 
+
     @Override
     public <A> void delete(long recid, Serializer<A> serializer) {
         if(serializer==null)
             throw new NullPointerException();
 
-        final Lock lock = locks[lockPos(recid)].writeLock();
+        final int lockPos = lockPos(recid);
+        final Lock lock = locks[lockPos].writeLock();
+        final Cache cache = caches[lockPos];
         lock.lock();
         try{
+            cache.put(recid, null);
             delete2(recid, serializer);
         }finally {
             lock.unlock();
@@ -323,7 +370,8 @@ public abstract class Store implements Engine {
     private static final int LOCK_MASK = CC.CONCURRENCY-1;
 
     protected static final int lockPos(final long recid) {
-        return DataIO.longHash(recid) & LOCK_MASK;
+        int hash =  DataIO.longHash(recid);
+        return (hash + 31*hash)  & LOCK_MASK; //TODO investigate best way to spread bits
     }
 
     protected void assertReadLocked(long recid) {
@@ -332,8 +380,9 @@ public abstract class Store implements Engine {
 //        }
     }
 
-    protected void assertWriteLocked(long recid) {
-        if(!locks[lockPos(recid)].isWriteLockedByCurrentThread()){
+    protected void assertWriteLocked(int segment) {
+        ReadWriteLock l = locks[segment];
+        if(l instanceof ReentrantReadWriteLock && !((ReentrantReadWriteLock) l).isWriteLockedByCurrentThread()){
             throw new AssertionError();
         }
     }
@@ -364,5 +413,1222 @@ public abstract class Store implements Engine {
     public abstract long getCurrSize();
 
     public abstract long getFreeSize();
+
+    @Override
+    public void clearCache() {
+        for(int i=0;i<locks.length;i++){
+            Lock lock = locks[i].readLock();
+            lock.lock();
+            try{
+                caches[i].clear();
+            }finally {
+                lock.unlock();
+            }
+        }
+    }
+
+    /**
+     * Cache implementation, part of {@link Store} class.
+     */
+    public interface Cache {
+
+        Object NULL = new Object();
+
+        Cache ZERO_CACHE = new Cache() {
+            @Override
+            public Object get(long recid) {
+                return null;
+            }
+
+            @Override
+            public void put(long recid, Object item) {
+            }
+
+            @Override
+            public void clear() {
+            }
+
+            @Override
+            public void close() {
+            }
+
+            @Override
+            public Cache clone() {
+                return this;
+            }
+        };
+
+
+        Object get(long recid);
+        void put(long recid, Object item);
+
+        void clear();
+        void close();
+
+        Cache clone();
+
+        /**
+         * Fixed size cache which uses hash table.
+         * Is thread-safe and requires only minimal locking.
+         * Items are randomly removed and replaced by hash collisions.
+         * <p>
+         * This is simple, concurrent, small-overhead, random cache.
+         *
+         * @author Jan Kotek
+         */
+        public static final class HashTable implements Cache {
+
+
+            protected final long[] recids; //TODO 6 byte longs
+            protected final Object[] items;
+
+            protected final Lock lock;
+
+            protected final int cacheMaxSizeMask;
+
+            /**
+             * Salt added to keys before hashing, so it is harder to trigger hash collision attack.
+             */
+            protected final long hashSalt = new Random().nextLong();
+
+
+            public HashTable(int cacheMaxSize, boolean disableLocks) {
+                cacheMaxSize = DataIO.nextPowTwo(cacheMaxSize); //next pow of two
+
+                this.cacheMaxSizeMask = cacheMaxSize-1;
+
+                this.recids = new long[cacheMaxSize];
+                this.items = new Object[cacheMaxSize];
+
+                lock = disableLocks?null:  new ReentrantLock(CC.FAIR_LOCKS);
+            }
+
+            @Override
+            public Object get(long recid) {
+                int pos = pos(recid);
+                if(lock!=null)
+                    lock.lock();
+                try {
+                    return recids[pos] == recid ? items[pos] : null;
+                }finally {
+                    if(lock!=null)
+                        lock.unlock();
+                }
+            }
+
+            @Override
+            public void put(long recid, Object item) {
+                if(item == null)
+                    item = NULL;
+                int pos = pos(recid);
+                if(lock!=null)
+                    lock.lock();
+                try {
+                    recids[pos] = recid;
+                    items[pos] = item;
+                }finally {
+                    if(lock!=null)
+                        lock.unlock();
+                }
+            }
+
+            protected int pos(long recid) {
+                int hash = DataIO.longHash(recid);
+                return (hash + 31*(hash +31*hash)) &cacheMaxSizeMask;
+            }
+
+            @Override
+            public void clear() {
+                if(lock!=null)
+                    lock.lock();
+                try {
+                    Arrays.fill(recids, 0L);
+                    Arrays.fill(items, null);
+                }finally {
+                    if(lock!=null)
+                        lock.unlock();
+                }
+            }
+
+            @Override
+            public void close() {
+                clear();
+            }
+
+            @Override
+            public Cache clone() {
+                return new HashTable(recids.length,lock==null);
+            }
+        }
+
+
+    /**
+     * Instance cache which uses <code>SoftReference</code> or <code>WeakReference</code>
+     * Items can be removed from cache by Garbage Collector if
+     *
+     * @author Jan Kotek
+     */
+    public static class WeakSoftRef implements Store.Cache {
+
+
+        protected interface CacheItem{
+            long getRecid();
+            Object get();
+            void clear();
+        }
+
+        protected static final class CacheWeakItem<A> extends WeakReference<A> implements CacheItem {
+
+            final long recid;
+
+            public CacheWeakItem(A referent, ReferenceQueue<A> q, long recid) {
+                super(referent, q);
+                this.recid = recid;
+            }
+
+            @Override
+            public long getRecid() {
+                return recid;
+            }
+        }
+
+        protected static final class CacheSoftItem<A> extends SoftReference<A> implements CacheItem {
+
+            final long recid;
+
+            public CacheSoftItem(A referent, ReferenceQueue<A> q, long recid) {
+                super(referent, q);
+                this.recid = recid;
+            }
+
+            @Override
+            public long getRecid() {
+                return recid;
+            }
+        }
+
+        protected ReferenceQueue<Object> queue = new ReferenceQueue<Object>();
+
+        protected LongObjectMap<CacheItem> items = new LongObjectMap<CacheItem>();
+
+        protected final Lock lock;
+
+        protected final static int CHECK_EVERY_N = 0xFFFF;
+        protected int counter = 0;
+
+
+        protected final boolean useWeakRef;
+
+        public WeakSoftRef(boolean useWeakRef,boolean disableLocks) {
+            this.useWeakRef = useWeakRef;
+            lock = disableLocks?null:  new ReentrantLock(CC.FAIR_LOCKS);
+        }
+
+
+        @Override
+        public Object get(long recid) {
+            if(lock!=null)
+                lock.lock();
+            try{
+                CacheItem item = items.get(recid);
+                Object ret = item==null? null: item.get();
+
+                if (((counter++) & CHECK_EVERY_N) == 0) {
+                    flushGCed();
+                }
+                return ret;
+            }finally {
+                if(lock!=null)
+                    lock.unlock();
+            }
+        }
+
+        @Override
+        public void put(long recid, Object item) {
+            if(item ==null)
+                item = Cache.NULL;
+
+            if(lock!=null)
+                lock.lock();
+            try{
+                CacheItem cacheItem = useWeakRef?
+                        new CacheWeakItem(item,queue,recid):
+                        new CacheSoftItem(item,queue,recid);
+                CacheItem older = items.put(recid,cacheItem);
+                if(older!=null)
+                    older.clear();
+                if (((counter++) & CHECK_EVERY_N) == 0) {
+                    flushGCed();
+                }
+            }finally {
+                if(lock!=null)
+                    lock.unlock();
+            }
+
+        }
+
+        @Override
+        public void clear() {
+            if(lock!=null)
+                lock.lock();
+            try{
+                //TODO clear weak/soft cache
+            }finally {
+                if(lock!=null)
+                    lock.unlock();
+            }
+
+        }
+
+        @Override
+        public void close() {
+            if(lock!=null)
+                lock.lock();
+            try{
+                //TODO howto correctly shutdown queue? possible memory leak here?
+                items.clear();
+                items = null;
+                flushGCed();
+                queue = null;
+            }finally {
+                if(lock!=null)
+                    lock.unlock();
+            }
+        }
+
+        @Override
+        public Cache clone() {
+            return new Cache.WeakSoftRef(useWeakRef,lock==null);
+        }
+
+        protected void flushGCed() {
+            counter = 1;
+            CacheItem item = (CacheItem) queue.poll();
+            while(item!=null){
+                long recid = item.getRecid();
+
+                CacheItem otherEntry = items.get(recid);
+                if(otherEntry !=null && otherEntry.get()==null)
+                    items.remove(recid);
+
+                item = (CacheItem) queue.poll();
+            }
+        }
+
+    }
+
+    /**
+     * Cache created objects using hard reference.
+     * It checks free memory every N operations (1024*10). If free memory is bellow 75% it clears the cache
+     *
+     * @author Jan Kotek
+     */
+    public static final class HardRef implements  Store.Cache{
+
+        protected final static int CHECK_EVERY_N = 0xFFFF;
+
+        protected int counter;
+
+        protected final Store.LongObjectMap cache;
+
+        protected final int initialCapacity;
+
+
+        protected final Lock lock;
+
+        public HardRef(int initialCapacity, boolean disableLocks) {
+            this.initialCapacity = initialCapacity;
+            cache = new Store.LongObjectMap(initialCapacity);
+            lock = disableLocks?null:  new ReentrantLock(CC.FAIR_LOCKS);
+        }
+
+
+        private void checkFreeMem() {
+            counter=1;
+            Runtime r = Runtime.getRuntime();
+            long max = r.maxMemory();
+            if(max == Long.MAX_VALUE)
+                return;
+
+            double free = r.freeMemory();
+            double total = r.totalMemory();
+            //We believe that free refers to total not max.
+            //Increasing heap size to max would increase to max
+            free = free + (max-total);
+
+            if(CC.LOG_EWRAP && LOG.isLoggable(Level.FINE))
+                LOG.fine("HardRefCache: freemem = " +free + " = "+(free/max)+"%");
+            //$DELAY$
+            if(free<1e7 || free*4 <max){
+                cache.clear();
+                if(CC.LOG_EWRAP && LOG.isLoggable(Level.FINE))
+                    LOG.fine("Clear HardRef cache");
+            }
+        }
+
+        @Override
+        public Object get(long recid) {
+            if(lock!=null)
+                lock.lock();
+            try {
+                if (((counter++) & CHECK_EVERY_N) == 0) {
+                    checkFreeMem();
+                }
+                Object item = cache.get(recid);
+                return item;
+            }finally {
+                if(lock!=null)
+                    lock.unlock();
+            }
+        }
+
+        @Override
+        public void put(long recid, Object item) {
+            if(item == null)
+                item = Cache.NULL;
+            if(lock!=null)
+                lock.lock();
+            try {
+                if (((counter++) & CHECK_EVERY_N) == 0) {
+                    checkFreeMem();
+                }
+                cache.put(recid,item);
+            }finally {
+                if(lock!=null)
+                    lock.unlock();
+            }
+        }
+
+        @Override
+        public void clear() {
+            if(lock!=null)
+                lock.lock();
+            try{
+                cache.clear();
+            }finally {
+                if(lock!=null)
+                    lock.unlock();
+            }
+        }
+
+        @Override
+        public void close() {
+            clear();
+        }
+
+        @Override
+        public Cache clone() {
+            return new HardRef(initialCapacity,lock==null);
+        }
+    }
+
+        public static final class LRU implements Cache {
+
+            protected final int cacheSize;
+            protected final Lock lock;
+
+            //TODO specialized version of LinkedHashMap to use primitive longs
+            protected final LinkedHashMap<Long, Object> items = new LinkedHashMap<Long,Object>();
+
+            public LRU(int cacheSize, boolean disableLocks) {
+                this.cacheSize = cacheSize;
+                lock = disableLocks?null:  new ReentrantLock(CC.FAIR_LOCKS);
+            }
+
+            @Override
+            public Object get(long recid) {
+                if(lock!=null)
+                    lock.lock();
+                try{
+                    return items.get(recid);
+                }finally {
+                    if(lock!=null)
+                        lock.unlock();
+                }
+            }
+
+            @Override
+            public void put(long recid, Object item) {
+                if(item == null)
+                    item = Cache.NULL;
+
+                if(lock!=null)
+                    lock.lock();
+                try{
+                    items.put(recid,item);
+
+                    //remove oldest items from queue if necessary
+                    int itemsSize = items.size();
+                    if(itemsSize>cacheSize) {
+                        Iterator iter = items.entrySet().iterator();
+                        while(itemsSize-- > cacheSize && iter.hasNext()){
+                            iter.next();
+                            iter.remove();
+                        }
+                    }
+
+                }finally {
+                    if(lock!=null)
+                        lock.unlock();
+                }
+
+            }
+
+            @Override
+            public void clear() {
+                if(lock!=null)
+                    lock.lock();
+                try{
+                    items.clear();
+                }finally {
+                    if(lock!=null)
+                        lock.unlock();
+                }
+            }
+
+            @Override
+            public void close() {
+                clear();
+            }
+
+            @Override
+            public Cache clone() {
+                return new LRU(cacheSize,lock==null);
+            }
+        }
+    }
+
+
+
+    /**
+     * Open Hash Map which uses primitive long as values and keys.
+     * <p/>
+     * This is very stripped down version from Koloboke Collection Library.
+     * I removed modCount, free value (defaults to zero) and
+     * most of the methods. Only put/get operations are supported.
+     * <p/>
+     * To iterate over collection one has to traverse {@code table} which contains
+     * key-value pairs and skip zero pairs.
+     *
+     * @author originaly part of Koloboke library, Roman Leventov, Higher Frequency Trading
+     * @author heavily modified for MapDB
+     */
+    public static final class LongLongMap {
+
+        int size;
+
+        int maxSize;
+
+        long[] table;
+
+        public LongLongMap(){
+            this(32);
+        }
+
+        public LongLongMap(int initCapacity) {
+            initCapacity = DataIO.nextPowTwo(initCapacity)*2;
+            table = new long[initCapacity];
+        }
+
+
+        public long get(long key) {
+            if(CC.PARANOID && key==0)
+                throw new IllegalArgumentException("zero key");
+
+            int index = index(key);
+            if (index >= 0) {
+                // key is presentt
+                return table[index + 1];
+            } else {
+                // key is absent
+                return 0;
+            }
+        }
+
+        public long put(long key, long value) {
+            if(CC.PARANOID && key==0)
+                throw new IllegalArgumentException("zero key");
+
+            if(CC.PARANOID && value==0)
+                throw new IllegalArgumentException("zero val");
+
+            int index = insert(key, value);
+            if (index < 0) {
+                // key was absent
+                return 0;
+            } else {
+                // key is present
+                long[] tab = table;
+                long prevValue = tab[index + 1];
+                tab[index + 1] = value;
+                return prevValue;
+            }
+        }
+
+        int insert(long key, long value) {
+            if(CC.PARANOID && key==0)
+                throw new IllegalArgumentException("zero key");
+
+            long[] tab = table;
+            int capacityMask, index;
+            long cur;
+            keyAbsent:
+            if ((cur = tab[index = DataIO.longHash(key) & (capacityMask = tab.length - 2)]) != 0) {
+                if (cur == key) {
+                    // key is present
+                    return index;
+                } else {
+                    while (true) {
+                        if ((cur = tab[(index = (index - 2) & capacityMask)]) == 0) {
+                            break keyAbsent;
+                        } else if (cur == key) {
+                            // key is present
+                            return index;
+                        }
+                    }
+                }
+            }
+            // key is absent
+            tab[index] = key;
+            tab[index + 1] = value;
+
+            //post insert hook
+            if (++size > maxSize) {
+                int capacity = table.length >> 1;
+                if (!isMaxCapacity(capacity)) {
+                    rehash(capacity << 1);
+                }
+            }
+
+
+            return -1;
+        }
+
+        int index(long key) {
+            if (key != 0) {
+                long[] tab = table;
+                int capacityMask, index;
+                long cur;
+                if ((cur = tab[index = DataIO.longHash(key) & (capacityMask = tab.length - 2)]) == key) {
+                    // key is present
+                    return index;
+                } else {
+                    if (cur == 0) {
+                        // key is absent
+                        return -1;
+                    } else {
+                        while (true) {
+                            if ((cur = tab[(index = (index - 2) & capacityMask)]) == key) {
+                                // key is present
+                                return index;
+                            } else if (cur == 0) {
+                                // key is absent
+                                return -1;
+                            }
+                        }
+                    }
+                }
+            } else {
+                // key is absent
+                return -1;
+            }
+        }
+
+        public int size(){
+            return size;
+        }
+
+        public void clear() {
+            size = 0;
+            Arrays.fill(table,0);
+        }
+
+
+        void rehash(int newCapacity) {
+            long[] tab = table;
+            if(CC.PARANOID && !((newCapacity & (newCapacity - 1)) == 0)) //is power of two?
+                throw new AssertionError();
+            maxSize = maxSize(newCapacity);
+            table = new long[newCapacity * 2];
+
+            long[] newTab = table;
+            int capacityMask = newTab.length - 2;
+            for (int i = tab.length - 2; i >= 0; i -= 2) {
+                long key;
+                if ((key = tab[i]) != 0) {
+                    int index;
+                    if (newTab[index = DataIO.longHash(key) & capacityMask] != 0) {
+                        while (true) {
+                            if (newTab[(index = (index - 2) & capacityMask)] == 0) {
+                                break;
+                            }
+                        }
+                    }
+                    newTab[index] = key;
+                    newTab[index + 1] = tab[i + 1];
+                }
+            }
+        }
+
+        static int maxSize(int capacity) {
+            // No sense in trying to rehash after each insertion
+            // if the capacity is already reached the limit.
+            return !isMaxCapacity(capacity) ?
+                    capacity/2 //TODO not sure I fully understand how growth factors works here
+                    : capacity - 1;
+        }
+
+        private static final int MAX_INT_CAPACITY = 1 << 30;
+
+        private static boolean isMaxCapacity(int capacity) {
+            int maxCapacity = MAX_INT_CAPACITY;
+            maxCapacity >>= 1;
+            return capacity == maxCapacity;
+        }
+
+
+    }
+
+
+    /**
+     * Open Hash Map which uses primitive long as keys.
+     * <p/>
+     * This is very stripped down version from Koloboke Collection Library.
+     * I removed modCount, free value (defaults to zero) and
+     * most of the methods. Only put/get/remove operations are supported.
+     * <p/>
+     * To iterate over collection one has to traverse {@code set} which contains
+     * keys, va7lues are in separate field.
+     *
+     * @author originaly part of Koloboke library, Roman Leventov, Higher Frequency Trading
+     * @author heavily modified for MapDB
+     */
+    public static final class LongObjectMap<V> {
+
+        int size;
+
+        int maxSize;
+
+        long[] set;
+        Object[] values;
+
+        public LongObjectMap(){
+            this(32);
+        }
+
+        public LongObjectMap(int initCapacity) {
+            initCapacity = DataIO.nextPowTwo(initCapacity);
+            set = new long[initCapacity];
+            values = (V[]) new Object[initCapacity];
+        }
+
+        public V get(long key) {
+            if(CC.PARANOID && key==0)
+                throw new IllegalArgumentException("zero key");
+
+            int index = index(key);
+            if (index >= 0) {
+                // key is present
+                return (V) values[index];
+            } else {
+                // key is absent
+                return null;
+            }
+        }
+
+        int index(long key) {
+            if (key != 0) {
+                long[] keys = set;
+                int capacityMask, index;
+                long cur;
+                if ((cur = keys[index = DataIO.longHash(key) & (capacityMask = keys.length - 1)]) == key) {
+                    // key is present
+                    return index;
+                } else {
+                    if (cur == 0) {
+                        // key is absent
+                        return -1;
+                    } else {
+                        while (true) {
+                            if ((cur = keys[(index = (index - 1) & capacityMask)]) == key) {
+                                // key is present
+                                return index;
+                            } else if (cur == 0) {
+                                // key is absent
+                                return -1;
+                            }
+                        }
+                    }
+                }
+            } else {
+                // key is absent
+                return -1;
+            }
+        }
+
+        public V put(long key, V value) {
+            if(CC.PARANOID && key==0)
+                throw new IllegalArgumentException("zero key");
+
+            int index = insert(key, value);
+            if (index < 0) {
+                // key was absent
+                return null;
+            } else {
+                // key is present
+                Object[] vals = values;
+                V prevValue = (V) vals[index];
+                vals[index] = value;
+                return prevValue;
+            }
+        }
+
+        int insert(long key, V value) {
+            long[] keys = set;
+            int capacityMask, index;
+            long cur;
+            keyAbsent:
+            if ((cur = keys[index = DataIO.longHash(key) & (capacityMask = keys.length - 1)]) != 0) {
+                if (cur == key) {
+                    // key is present
+                    return index;
+                } else {
+                    while (true) {
+                        if ((cur = keys[(index = (index - 1) & capacityMask)]) == 0) {
+                            break keyAbsent;
+                        } else if (cur == key) {
+                            // key is present
+                            return index;
+                        }
+                    }
+                }
+            }
+            // key is absent
+
+            keys[index] = key;
+            values[index] = value;
+            postInsertHook();
+            return -1;
+        }
+
+        void postInsertHook() {
+            if (++size > maxSize) {
+            /* if LHash hash */
+                int capacity = set.length;
+                if (!LongLongMap.isMaxCapacity(capacity)) {
+                    rehash(capacity << 1);
+                }
+            }
+        }
+
+
+        void rehash(int newCapacity) {
+            long[] keys = set;
+            Object[] vals = values;
+
+            maxSize = LongLongMap.maxSize(newCapacity);
+            set = new long[newCapacity];
+            values = new Object[newCapacity];
+
+            long[] newKeys = set;
+            int capacityMask = newKeys.length - 1;
+            Object[] newVals = values;
+            for (int i = keys.length - 1; i >= 0; i--) {
+                long key;
+                if ((key = keys[i]) != 0) {
+                    int index;
+                    if (newKeys[index = DataIO.longHash(key) & capacityMask] != 0) {
+                        while (true) {
+                            if (newKeys[(index = (index - 1) & capacityMask)] == 0) {
+                                break;
+                            }
+                        }
+                    }
+                    newKeys[index] = key;
+                    newVals[index] = vals[i];
+                }
+            }
+        }
+
+
+        public void clear() {
+            size = 0;
+            Arrays.fill(set,0);
+            Arrays.fill(values,null);
+        }
+
+        public V remove(long key) {
+            if(CC.PARANOID && key==0)
+                throw new IllegalArgumentException("zero key");
+                long[] keys = set;
+                int capacityMask = keys.length - 1;
+                int index;
+                long cur;
+                keyPresent:
+                if ((cur = keys[index = DataIO.longHash(key) & capacityMask]) != key) {
+                    if (cur == 0) {
+                        // key is absent
+                        return null;
+                    } else {
+                        while (true) {
+                            if ((cur = keys[(index = (index - 1) & capacityMask)]) == key) {
+                                break keyPresent;
+                            } else if (cur == 0) {
+                                // key is absent
+                                return null;
+                            }
+                        }
+                    }
+                }
+                // key is present
+                Object[] vals = values;
+                V val = (V) vals[index];
+
+                int indexToRemove = index;
+                int indexToShift = indexToRemove;
+                int shiftDistance = 1;
+                while (true) {
+                    indexToShift = (indexToShift - 1) & capacityMask;
+                    long keyToShift;
+                    if ((keyToShift = keys[indexToShift]) == 0) {
+                        break;
+                    }
+                    if (((DataIO.longHash(keyToShift) - indexToShift) & capacityMask) >= shiftDistance) {
+                        keys[indexToRemove] = keyToShift;
+                        vals[indexToRemove] = vals[indexToShift];
+                        indexToRemove = indexToShift;
+                        shiftDistance = 1;
+                    } else {
+                        shiftDistance++;
+                        if (indexToShift == 1 + index) {
+                            throw new java.util.ConcurrentModificationException();
+                        }
+                    }
+                }
+                keys[indexToRemove] = 0;
+                vals[indexToRemove] = null;
+
+                //post remove hook
+                size--;
+
+                return val;
+        }
+    }
+
+
+    /** fake lock */
+    //TODO perhaps add some basic assertions?
+    public static final class NoLock implements Lock{
+
+        @Override
+        public void lock() {
+        }
+
+        @Override
+        public void lockInterruptibly() throws InterruptedException {
+        }
+
+        @Override
+        public boolean tryLock() {
+            return true;
+        }
+
+        @Override
+        public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
+            return true;
+        }
+
+        @Override
+        public void unlock() {
+        }
+
+        @Override
+        public Condition newCondition() {
+            throw new UnsupportedOperationException();
+        }
+    }
+
+    /** fake read/write lock which in fact locks on single write lock */
+    public static final class ReadWriteSingleLock implements ReadWriteLock{
+
+        protected final Lock lock;
+
+        public ReadWriteSingleLock(Lock lock) {
+            this.lock = lock;
+        }
+
+
+        @Override
+        public Lock readLock() {
+            return lock;
+        }
+
+        @Override
+        public Lock writeLock() {
+            return lock;
+        }
+    }
+
+
+    /**
+     * Open Hash Map which uses primitive long as keys.
+     * It also has two values, instead of single one
+     * <p/>
+     * This is very stripped down version from Koloboke Collection Library.
+     * I removed modCount, free value (defaults to zero) and
+     * most of the methods. Only put/get/remove operations are supported.
+     * <p/>
+     * To iterate over collection one has to traverse {@code set} which contains
+     * keys, values are in separate field.
+     *
+     * @author originaly part of Koloboke library, Roman Leventov, Higher Frequency Trading
+     * @author heavily modified for MapDB
+     */
+    public static final class LongObjectObjectMap<V1,V2> {
+
+        int size;
+
+        int maxSize;
+
+        long[] set;
+        Object[] values;
+
+        public LongObjectObjectMap(){
+            this(32);
+        }
+
+        public LongObjectObjectMap(int initCapacity) {
+            initCapacity = DataIO.nextPowTwo(initCapacity);
+            set = new long[initCapacity];
+            values =  new Object[initCapacity*2];
+        }
+
+        public int get(long key) {
+            if(CC.PARANOID && key==0)
+                throw new IllegalArgumentException("zero key");
+
+            int index = index(key);
+            if (index >= 0) {
+                // key is present
+                return index;
+            } else {
+                // key is absent
+                return -1;
+            }
+        }
+
+
+        public V1 get1(long key) {
+            if(CC.PARANOID && key==0)
+                throw new IllegalArgumentException("zero key");
+
+            int index = index(key);
+            if (index >= 0) {
+                // key is present
+                return (V1) values[index*2];
+            } else {
+                // key is absent
+                return null;
+            }
+        }
+
+        public V2 get2(long key) {
+            if(CC.PARANOID && key==0)
+                throw new IllegalArgumentException("zero key");
+
+            int index = index(key);
+            if (index >= 0) {
+                // key is present
+                return (V2) values[index*2+1];
+            } else {
+                // key is absent
+                return null;
+            }
+        }
+
+
+        int index(long key) {
+            if (key != 0) {
+                long[] keys = set;
+                int capacityMask, index;
+                long cur;
+                if ((cur = keys[index = DataIO.longHash(key) & (capacityMask = keys.length - 1)]) == key) {
+                    // key is present
+                    return index;
+                } else {
+                    if (cur == 0) {
+                        // key is absent
+                        return -1;
+                    } else {
+                        while (true) {
+                            if ((cur = keys[(index = (index - 1) & capacityMask)]) == key) {
+                                // key is present
+                                return index;
+                            } else if (cur == 0) {
+                                // key is absent
+                                return -1;
+                            }
+                        }
+                    }
+                }
+            } else {
+                // key is absent
+                return -1;
+            }
+        }
+
+        public int put(long key, V1 val1, V2 val2) {
+            if(CC.PARANOID && key==0)
+                throw new IllegalArgumentException("zero key");
+
+            int index = insert(key, val1,val2);
+            if (index < 0) {
+                // key was absent
+                return -1;
+            } else {
+                // key is present
+                Object[] vals = values;
+                vals[index*2] = val1;
+                vals[index*2+1] = val2;
+                return index;
+            }
+        }
+
+        int insert(long key, V1 val1, V2 val2) {
+            long[] keys = set;
+            int capacityMask, index;
+            long cur;
+            keyAbsent:
+            if ((cur = keys[index = DataIO.longHash(key) & (capacityMask = keys.length - 1)]) != 0) {
+                if (cur == key) {
+                    // key is present
+                    return index;
+                } else {
+                    while (true) {
+                        if ((cur = keys[(index = (index - 1) & capacityMask)]) == 0) {
+                            break keyAbsent;
+                        } else if (cur == key) {
+                            // key is present
+                            return index;
+                        }
+                    }
+                }
+            }
+            // key is absent
+
+            keys[index] = key;
+            index*=2;
+            values[index] = val1;
+            values[index+1] = val2;
+            postInsertHook();
+            return -1;
+        }
+
+        void postInsertHook() {
+            if (++size > maxSize) {
+            /* if LHash hash */
+                int capacity = set.length;
+                if (!LongLongMap.isMaxCapacity(capacity)) {
+                    rehash(capacity << 1);
+                }
+            }
+        }
+
+
+        void rehash(int newCapacity) {
+            long[] keys = set;
+            Object[] vals = values;
+
+            maxSize = LongLongMap.maxSize(newCapacity);
+            set = new long[newCapacity];
+            values = new Object[newCapacity*2];
+
+            long[] newKeys = set;
+            int capacityMask = newKeys.length - 1;
+            Object[] newVals = values;
+            for (int i = keys.length - 1; i >= 0; i--) {
+                long key;
+                if ((key = keys[i]) != 0) {
+                    int index;
+                    if (newKeys[index = DataIO.longHash(key) & capacityMask] != 0) {
+                        while (true) {
+                            if (newKeys[(index = (index - 1) & capacityMask)] == 0) {
+                                break;
+                            }
+                        }
+                    }
+                    newKeys[index] = key;
+                    newVals[index*2] = vals[i*2];
+                    newVals[index*2+1] = vals[i*2+1];
+                }
+            }
+        }
+
+
+        public void clear() {
+            size = 0;
+            Arrays.fill(set,0);
+            Arrays.fill(values,null);
+        }
+
+        public int  remove(long key) {
+            if(CC.PARANOID && key==0)
+                throw new IllegalArgumentException("zero key");
+            long[] keys = set;
+            int capacityMask = keys.length - 1;
+            int index;
+            long cur;
+            keyPresent:
+            if ((cur = keys[index = DataIO.longHash(key) & capacityMask]) != key) {
+                if (cur == 0) {
+                    // key is absent
+                    return -1;
+                } else {
+                    while (true) {
+                        if ((cur = keys[(index = (index - 1) & capacityMask)]) == key) {
+                            break keyPresent;
+                        } else if (cur == 0) {
+                            // key is absent
+                            return -1;
+                        }
+                    }
+                }
+            }
+            // key is present
+            Object[] vals = values;
+            int val = index;
+
+            int indexToRemove = index;
+            int indexToShift = indexToRemove;
+            int shiftDistance = 1;
+            while (true) {
+                indexToShift = (indexToShift - 1) & capacityMask;
+                long keyToShift;
+                if ((keyToShift = keys[indexToShift]) == 0) {
+                    break;
+                }
+                if (((DataIO.longHash(keyToShift) - indexToShift) & capacityMask) >= shiftDistance) {
+                    keys[indexToRemove] = keyToShift;
+                    vals[indexToRemove] = vals[indexToShift];
+                    indexToRemove = indexToShift;
+                    shiftDistance = 1;
+                } else {
+                    shiftDistance++;
+                    if (indexToShift == 1 + index) {
+                        throw new java.util.ConcurrentModificationException();
+                    }
+                }
+            }
+            keys[indexToRemove] = 0;
+            indexToRemove*=2;
+            vals[indexToRemove] = null;
+            vals[indexToRemove+1] = null;
+
+            //post remove hook
+            size--;
+
+            return val;
+        }
+    }
 
 }

@@ -146,12 +146,22 @@ public final class DataIO {
         int h = (int)(key ^ (key >>> 32));
         h ^= (h >>> 20) ^ (h >>> 12);
         return h ^ (h >>> 7) ^ (h >>> 4);
+
+        //TODO koloboke version, investigate
+//        long h = key * -7046029254386353131L;
+//        h ^= h >> 32;
+//        return (int)(h ^ h >> 16);
+
     }
 
     public static int intHash(int h) {
         //$DELAY$
         h ^= (h >>> 20) ^ (h >>> 12);
         return h ^ (h >>> 7) ^ (h >>> 4);
+
+        //TODO koloboke version, investigate
+//        int h = key * -1640531527;
+//        return h ^ h >> 16;
     }
 
     public static final long PACK_LONG_BIDI_MASK = 0xFFFFFFFFFFFFFFL;
@@ -279,13 +289,7 @@ public final class DataIO {
 
     public static int nextPowTwo(final int a)
     {
-        //$DELAY$
-        int b = 1;
-        while (b < a)
-        {
-            b = b << 1;
-        }
-        return b;
+        return 1 << (32 - Integer.numberOfLeadingZeros(a - 1));
     }
 
 

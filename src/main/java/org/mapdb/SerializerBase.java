@@ -1422,7 +1422,7 @@ public class SerializerBase extends Serializer<Object>{
 
 
         protected final Map<Object,Integer> mapdb_all = new IdentityHashMap<Object, Integer>();
-        protected final LongHashMap<Object> mapdb_reverse = new LongHashMap<Object>();
+        protected final Store.LongObjectMap<Object> mapdb_reverse = new Store.LongObjectMap<Object>();
 
         protected void initMapdb(){
 

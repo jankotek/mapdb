@@ -57,6 +57,11 @@ public abstract class Volume implements Closeable{
     abstract public void putData(final long offset, final byte[] src, int srcPos, int srcSize);
     abstract public void putData(final long offset, final ByteBuffer buf);
 
+    public void putDataOverlap(final long offset, final byte[] src, int srcPos, int srcSize){
+        putData(offset,src,srcPos,srcSize);
+    }
+
+
     abstract public long getLong(final long offset);
     abstract public int getInt(long offset);
     abstract public byte getByte(final long offset);
@@ -64,6 +69,10 @@ public abstract class Volume implements Closeable{
 
 
     abstract public DataInput getDataInput(final long offset, final int size);
+    public DataInput getDataInputOverlap(final long offset, final int size){
+        return getDataInput(offset,size);
+    }
+
     abstract public void getData(long offset, byte[] bytes, int bytesPos, int size);
 
     abstract public void close();
@@ -82,6 +91,7 @@ public abstract class Volume implements Closeable{
 
     public abstract boolean isSliced();
 
+    public abstract long length();
 
     public void putUnsignedShort(final long offset, final int value){
         putByte(offset, (byte) (value>>8));
@@ -102,7 +112,7 @@ public abstract class Volume implements Closeable{
     }
 
 
-    public int putLongPackBidi(long offset, long value){
+    public int putLongPackBidi(long offset, long value) {
         putUnsignedByte(offset++, (((int) value & 0x7F)) | 0x80);
         value >>>= 7;
         int counter = 2;
@@ -180,6 +190,8 @@ public abstract class Volume implements Closeable{
     }
 
 
+
+
     /** returns underlying file if it exists */
     abstract public File getFile();
 
@@ -238,7 +250,7 @@ public abstract class Volume implements Closeable{
     }
 
 
-    public static Fun.Function1<Volume,String> memoryFactory(){
+    public static Fun.Function1<Volume,String> memoryFactory() {
         return memoryFactory(false,CC.VOLUME_PAGE_SHIFT);
     }
 
@@ -406,6 +418,56 @@ public abstract class Volume implements Closeable{
         public final DataIO.DataInputByteBuffer getDataInput(long offset, int size) {
             return new DataIO.DataInputByteBuffer(slices[(int)(offset >>> sliceShift)], (int) (offset& sliceSizeModMask));
         }
+
+
+
+        @Override
+        public void putDataOverlap(long offset, byte[] data, int pos, int len) {
+            boolean overlap = (offset>>>sliceShift != (offset+len)>>>sliceShift);
+
+            if(overlap){
+                while(len>0){
+                    ByteBuffer b = slices[((int) (offset >>> sliceShift))].duplicate();
+                    b.position((int) (offset&sliceSizeModMask));
+
+                    int toPut = Math.min(len,sliceSize - b.position());
+
+                    b.limit(b.position()+toPut);
+                    b.put(data, pos, toPut);
+
+                    pos+=toPut;
+                    len-=toPut;
+                    offset+=toPut;
+                }
+            }else{
+                putData(offset,data,pos,len);
+            }
+        }
+
+        @Override
+        public DataInput getDataInputOverlap(long offset, int size) {
+            boolean overlap = (offset>>>sliceShift != (offset+size)>>>sliceShift);
+            if(overlap){
+                byte[] bb = new byte[size];
+                final int origLen = size;
+                while(size>0){
+                    ByteBuffer b = slices[((int) (offset >>> sliceShift))].duplicate();
+                    b.position((int) (offset&sliceSizeModMask));
+
+                    int toPut = Math.min(size,sliceSize - b.position());
+
+                    b.limit(b.position()+toPut);
+                    b.get(bb,origLen-size,toPut);
+                    size -=toPut;
+                    offset+=toPut;
+                }
+                return new DataIO.DataInputByteArray(bb);
+            }else{
+                //return mapped buffer
+                return getDataInput(offset,size);
+            }
+        }
+
 
         @Override
         public void clear(long startOffset, long endOffset) {
@@ -592,6 +654,11 @@ public abstract class Volume implements Closeable{
         }
 
         @Override
+        public long length() {
+            return file.length();
+        }
+
+        @Override
         public File getFile() {
             return file;
         }
@@ -660,9 +727,13 @@ public abstract class Volume implements Closeable{
 
         @Override
         protected ByteBuffer makeNewBuffer(long offset) {
-            return useDirectBuffer?
-                    ByteBuffer.allocateDirect(sliceSize):
-                    ByteBuffer.allocate(sliceSize);
+            try {
+                return useDirectBuffer ?
+                        ByteBuffer.allocateDirect(sliceSize) :
+                        ByteBuffer.allocate(sliceSize);
+            }catch(OutOfMemoryError e){
+                throw new DBException.OutOfMemory(e);
+            }
         }
 
 
@@ -711,6 +782,11 @@ public abstract class Volume implements Closeable{
         @Override public void sync() {}
 
         @Override public void deleteFile() {}
+
+        @Override
+        public long length() {
+            return ((long)slices.length)*sliceSize;
+        }
 
         @Override
         public File getFile() {
@@ -1050,6 +1126,15 @@ public abstract class Volume implements Closeable{
         }
 
         @Override
+        public long length() {
+            try {
+                return channel.size();
+            } catch (IOException e) {
+                throw new DBException.VolumeIOError(e);
+            }
+        }
+
+        @Override
         public File getFile() {
             return file;
         }
@@ -1064,7 +1149,7 @@ public abstract class Volume implements Closeable{
                     startOffset+=CLEAR.length;
                 }
             } catch (IOException e) {
-                throw new IOError(e);
+                throw new DBException.VolumeIOError(e);
             }
         }
     }
@@ -1114,22 +1199,24 @@ public abstract class Volume implements Closeable{
             }
 
             growLock.lock();
-            try{
+            try {
                 //check second time
-                if(slicePos< slices.length)
+                if (slicePos < slices.length)
                     return;
 
                 int oldSize = slices.length;
                 byte[][] slices2 = slices;
 
-                slices2 = Arrays.copyOf(slices2, Math.max(slicePos+1, slices2.length + slices2.length/1000));
+                slices2 = Arrays.copyOf(slices2, Math.max(slicePos + 1, slices2.length + slices2.length / 1000));
 
-                for(int pos=oldSize;pos<slices2.length;pos++) {
-                    slices2[pos]=new byte[sliceSize];
+                for (int pos = oldSize; pos < slices2.length; pos++) {
+                    slices2[pos] = new byte[sliceSize];
                 }
 
 
                 slices = slices2;
+            }catch(OutOfMemoryError e){
+                throw new DBException.OutOfMemory(e);
             }finally{
                 growLock.unlock();
             }
@@ -1201,6 +1288,54 @@ public abstract class Volume implements Closeable{
             byte[] buf = slices[((int) (inputOffset >>> sliceShift))];
 
             target.putData(targetOffset,buf,pos, size);
+        }
+
+
+
+        @Override
+        public void putDataOverlap(long offset, byte[] data, int pos, int len) {
+            boolean overlap = (offset>>>sliceShift != (offset+len)>>>sliceShift);
+
+            if(overlap){
+                while(len>0){
+                    byte[] b = slices[((int) (offset >>> sliceShift))];
+                    int pos2 = (int) (offset&sliceSizeModMask);
+
+                    int toPut = Math.min(len,sliceSize - pos2);
+
+                    System.arraycopy(data, pos, b, pos2, toPut);
+
+                    pos+=toPut;
+                    len -=toPut;
+                    offset+=toPut;
+                }
+            }else{
+                putData(offset,data,pos,len);
+            }
+        }
+
+        @Override
+        public DataInput getDataInputOverlap(long offset, int size) {
+            boolean overlap = (offset>>>sliceShift != (offset+size)>>>sliceShift);
+            if(overlap){
+                byte[] bb = new byte[size];
+                final int origLen = size;
+                while(size>0){
+                    byte[] b = slices[((int) (offset >>> sliceShift))];
+                    int pos = (int) (offset&sliceSizeModMask);
+
+                    int toPut = Math.min(size,sliceSize - pos);
+
+                    System.arraycopy(b,pos, bb,origLen-size,toPut);
+
+                    size -=toPut;
+                    offset+=toPut;
+                }
+                return new DataIO.DataInputByteArray(bb);
+            }else{
+                //return mapped buffer
+                return getDataInput(offset,size);
+            }
         }
 
         @Override
@@ -1289,6 +1424,11 @@ public abstract class Volume implements Closeable{
         @Override
         public boolean isSliced() {
             return true;
+        }
+
+        @Override
+        public long length() {
+            return ((long)slices.length)*sliceSize;
         }
 
         @Override
@@ -1439,6 +1579,11 @@ public abstract class Volume implements Closeable{
         }
 
         @Override
+        public long length() {
+            return data.length;
+        }
+
+        @Override
         public File getFile() {
             return null;
         }
@@ -1491,6 +1636,11 @@ public abstract class Volume implements Closeable{
         }
 
         @Override
+        public void putDataOverlap(long offset, byte[] src, int srcPos, int srcSize) {
+            throw new IllegalAccessError("read-only");
+        }
+
+        @Override
         public long getLong(long offset) {
             return vol.getLong(offset);
         }
@@ -1508,6 +1658,11 @@ public abstract class Volume implements Closeable{
         @Override
         public DataInput getDataInput(long offset, int size) {
             return vol.getDataInput(offset,size);
+        }
+
+        @Override
+        public DataInput getDataInputOverlap(long offset, int size) {
+            return vol.getDataInputOverlap(offset, size);
         }
 
         @Override
@@ -1546,8 +1701,63 @@ public abstract class Volume implements Closeable{
         }
 
         @Override
+        public long length() {
+            return vol.length();
+        }
+
+        @Override
+        public void putUnsignedShort(long offset, int value) {
+            throw new IllegalAccessError("read-only");
+        }
+
+        @Override
+        public int getUnsignedShort(long offset) {
+            return vol.getUnsignedShort(offset);
+        }
+
+        @Override
+        public int getUnsignedByte(long offset) {
+            return vol.getUnsignedByte(offset);
+        }
+
+        @Override
+        public void putUnsignedByte(long offset, int b) {
+            throw new IllegalAccessError("read-only");
+        }
+
+        @Override
+        public int putLongPackBidi(long offset, long value) {
+            throw new IllegalAccessError("read-only");
+        }
+
+        @Override
+        public long getLongPackBidi(long offset) {
+            return vol.getLongPackBidi(offset);
+        }
+
+        @Override
+        public long getLongPackBidiReverse(long offset) {
+            return vol.getLongPackBidiReverse(offset);
+        }
+
+        @Override
+        public long getSixLong(long pos) {
+            return vol.getSixLong(pos);
+        }
+
+        @Override
+        public void putSixLong(long pos, long value) {
+            throw new IllegalAccessError("read-only");
+        }
+
+        @Override
         public File getFile() {
             return vol.getFile();
+        }
+
+        @Override
+        public void transferInto(long inputOffset, Volume target, long targetOffset, int size) {
+            vol.transferInto(inputOffset, target, targetOffset, size);
         }
 
         @Override
@@ -1567,7 +1777,7 @@ public abstract class Volume implements Closeable{
             try {
                 this.raf = new RandomAccessFile(file,readOnly?"r":"rw");
             } catch (IOException e) {
-                throw new IOError(e);
+                throw new DBException.VolumeIOError(e);
             }
         }
 
@@ -1581,7 +1791,7 @@ public abstract class Volume implements Closeable{
             try {
                 raf.setLength(size);
             } catch (IOException e) {
-                throw new IOError(e);
+                throw new DBException.VolumeIOError(e);
             }
         }
 
@@ -1591,7 +1801,7 @@ public abstract class Volume implements Closeable{
                 raf.seek(offset);
                 raf.writeLong(value);
             } catch (IOException e) {
-                throw new IOError(e);
+                throw new DBException.VolumeIOError(e);
             }
         }
 
@@ -1602,7 +1812,7 @@ public abstract class Volume implements Closeable{
                 raf.seek(offset);
                 raf.writeInt(value);
             } catch (IOException e) {
-                throw new IOError(e);
+                throw new DBException.VolumeIOError(e);
             }
 
         }
@@ -1613,7 +1823,7 @@ public abstract class Volume implements Closeable{
                 raf.seek(offset);
                 raf.writeByte(value);
             } catch (IOException e) {
-                throw new IOError(e);
+                throw new DBException.VolumeIOError(e);
             }
 
         }
@@ -1624,7 +1834,7 @@ public abstract class Volume implements Closeable{
                 raf.seek(offset);
                 raf.write(src,srcPos,srcSize);
             } catch (IOException e) {
-                throw new IOError(e);
+                throw new DBException.VolumeIOError(e);
             }
         }
 
@@ -1647,7 +1857,7 @@ public abstract class Volume implements Closeable{
                 raf.seek(offset);
                 return raf.readLong();
             } catch (IOException e) {
-                throw new IOError(e);
+                throw new DBException.VolumeIOError(e);
             }
         }
 
@@ -1657,7 +1867,7 @@ public abstract class Volume implements Closeable{
                 raf.seek(offset);
                 return raf.readInt();
             } catch (IOException e) {
-                throw new IOError(e);
+                throw new DBException.VolumeIOError(e);
             }
 
         }
@@ -1668,7 +1878,7 @@ public abstract class Volume implements Closeable{
                 raf.seek(offset);
                 return raf.readByte();
             } catch (IOException e) {
-                throw new IOError(e);
+                throw new DBException.VolumeIOError(e);
             }
         }
 
@@ -1680,7 +1890,7 @@ public abstract class Volume implements Closeable{
                 raf.read(b);
                 return new DataIO.DataInputByteArray(b);
             } catch (IOException e) {
-                throw new IOError(e);
+                throw new DBException.VolumeIOError(e);
             }
         }
 
@@ -1690,7 +1900,7 @@ public abstract class Volume implements Closeable{
                 raf.seek(offset);
                 raf.read(bytes,bytesPos,size);
             } catch (IOException e) {
-                throw new IOError(e);
+                throw new DBException.VolumeIOError(e);
             }
         }
 
@@ -1699,7 +1909,7 @@ public abstract class Volume implements Closeable{
             try {
                 raf.close();
             } catch (IOException e) {
-                throw new IOError(e);
+                throw new DBException.VolumeIOError(e);
             }
         }
 
@@ -1708,7 +1918,7 @@ public abstract class Volume implements Closeable{
             try {
                 raf.getFD().sync();
             } catch (IOException e) {
-                throw new IOError(e);
+                throw new DBException.VolumeIOError(e);
             }
         }
 
@@ -1722,7 +1932,7 @@ public abstract class Volume implements Closeable{
             try {
                 return raf.length()==0;
             } catch (IOException e) {
-                throw new IOError(e);
+                throw new DBException.VolumeIOError(e);
             }
         }
 
@@ -1734,6 +1944,15 @@ public abstract class Volume implements Closeable{
         @Override
         public boolean isSliced() {
             return false;
+        }
+
+        @Override
+        public long length() {
+            try {
+                return raf.length();
+            } catch (IOException e) {
+                throw new DBException.VolumeIOError(e);
+            }
         }
 
         @Override
@@ -1752,7 +1971,7 @@ public abstract class Volume implements Closeable{
                 }
 
             } catch (IOException e) {
-                throw new IOError(e);
+                throw new DBException.VolumeIOError(e);
             }
         }
     }

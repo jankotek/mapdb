@@ -44,7 +44,7 @@ import java.io.Closeable;
  * <ol>
  *  <li> <b>DISK</b> - raw file or memory
  *  <li> {@link org.mapdb.StoreWAL} - permanent record store with transactions
- *  <li> {@link org.mapdb.Caches.HashTable} - instance cache
+ *  <li> {@link Cache.HashTable} - instance cache
  *  <li> <b>USER</b> - {@link DB} and collections
  * </ol>
  *

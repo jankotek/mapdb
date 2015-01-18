@@ -686,23 +686,62 @@ public class DBMaker{
 
         extendArgumentCheck();
 
+
         Engine engine;
+        int lockingStrategy = 0;
+        boolean cacheLockDisable = lockingStrategy!=0;
 
         if(Keys.store_heap.equals(store)){
-            engine = extendHeapStore();
+            engine = new StoreHeap(propsGetBool(Keys.transactionDisable),lockingStrategy);
 
         }else  if(Keys.store_append.equals(store)){
             if(Keys.volume_byteBuffer.equals(volume)||Keys.volume_directByteBuffer.equals(volume))
                 throw new UnsupportedOperationException("Append Storage format is not supported with in-memory dbs");
 
             Fun.Function1<Volume, String> volFac = extendStoreVolumeFactory(false);
-            engine = extendStoreAppend(file, volFac);
+            engine = new StoreAppend(
+                    file,
+                    volFac,
+                    createCache(cacheLockDisable),
+                    lockingStrategy,
+                    propsGetBool(Keys.checksum),
+                    Keys.compression_lzf.equals(props.getProperty(Keys.compression)),
+                    propsGetXteaEncKey(),
+                    propsGetBool(Keys.readOnly),
+                    propsGetBool(Keys.transactionDisable)
+            );
 
         }else{
             Fun.Function1<Volume, String> volFac = extendStoreVolumeFactory(false);
+            boolean compressionEnabled = Keys.compression_lzf.equals(props.getProperty(Keys.compression));
+
             engine = propsGetBool(Keys.transactionDisable) ?
-                    extendStoreDirect(file, volFac):
-                    extendStoreWAL(file, volFac);
+
+                    new StoreDirect(
+                            file,
+                            volFac,
+                            createCache(cacheLockDisable),
+                            lockingStrategy,
+                            propsGetBool(Keys.checksum),
+                            compressionEnabled,
+                            propsGetXteaEncKey(),
+                            propsGetBool(Keys.readOnly),
+                            propsGetInt(Keys.freeSpaceReclaimQ,CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
+                            propsGetBool(Keys.commitFileSyncDisable),
+                            0):
+
+                    new StoreWAL(
+                            file,
+                            volFac,
+                            createCache(cacheLockDisable),
+                            lockingStrategy,
+                            propsGetBool(Keys.checksum),
+                            compressionEnabled,
+                            propsGetXteaEncKey(),
+                            propsGetBool(Keys.readOnly),
+                            propsGetInt(Keys.freeSpaceReclaimQ, CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
+                            propsGetBool(Keys.commitFileSyncDisable),
+                            0);
         }
 
         if(engine instanceof Store){
@@ -715,25 +754,6 @@ public class DBMaker{
             engine = extendAsyncWriteEngine(engine);
         }
 
-        final String cache = props.getProperty(Keys.cache, CC.DEFAULT_CACHE);
-
-        if(Keys.cache_disable.equals(cache)){
-            //do not wrap engine in cache
-        }else if(Keys.cache_hashTable.equals(cache)){
-            engine = extendCacheHashTable(engine);
-        }else if (Keys.cache_hardRef.equals(cache)){
-            engine = extendCacheHardRef(engine);
-        }else if (Keys.cache_weakRef.equals(cache)){
-            engine = extendCacheWeakRef(engine);
-        }else if (Keys.cache_softRef.equals(cache)){
-            engine = extendCacheSoftRef(engine);
-        }else if (Keys.cache_lru.equals(cache)){
-            engine = extendCacheLRU(engine);
-        }else{
-            throw new IllegalArgumentException("unknown cache type: "+cache);
-        }
-
-        engine = extendWrapCache(engine);
 
 
         if(propsGetBool(Keys.snapshots))
@@ -774,6 +794,28 @@ public class DBMaker{
         return engine;
     }
 
+    protected Store.Cache createCache(boolean disableLocks) {
+        final String cache = props.getProperty(Keys.cache, CC.DEFAULT_CACHE);
+
+        if(Keys.cache_disable.equals(cache)){
+            return null;
+        }else if(Keys.cache_hashTable.equals(cache)){
+            int cacheSize = propsGetInt(Keys.cacheSize, CC.DEFAULT_CACHE_SIZE) / CC.CONCURRENCY;
+            return new Store.Cache.HashTable(cacheSize,disableLocks);
+        }else if (Keys.cache_hardRef.equals(cache)){
+            int cacheSize = propsGetInt(Keys.cacheSize, CC.DEFAULT_CACHE_SIZE) / CC.CONCURRENCY;
+            return new Store.Cache.HardRef(cacheSize,disableLocks);
+        }else if (Keys.cache_weakRef.equals(cache)){
+            return new Store.Cache.WeakSoftRef(true,disableLocks);
+        }else if (Keys.cache_softRef.equals(cache)){
+            return new Store.Cache.WeakSoftRef(false,disableLocks);
+        }else if (Keys.cache_lru.equals(cache)){
+            int cacheSize = propsGetInt(Keys.cacheSize, CC.DEFAULT_CACHE_SIZE) / CC.CONCURRENCY;
+            return new Store.Cache.LRU(cacheSize,disableLocks);
+        }else{
+            throw new IllegalArgumentException("unknown cache type: "+cache);
+        }
+    }
 
 
     protected int propsGetInt(String key, int defValue){
@@ -834,31 +876,6 @@ public class DBMaker{
         return new TxEngine(engine,propsGetBool(Keys.fullTx));
     }
 
-    protected Engine extendCacheLRU(Engine engine) {
-        int cacheSize = propsGetInt(Keys.cacheSize, CC.DEFAULT_CACHE_SIZE);
-        return new Caches.LRU(engine, cacheSize, cacheCondition);
-    }
-
-    protected Engine extendCacheWeakRef(Engine engine) {
-        return new Caches.WeakSoftRef(engine,true, cacheCondition, threadFactory);
-    }
-
-    protected Engine extendCacheSoftRef(Engine engine) {
-        return new Caches.WeakSoftRef(engine,false,cacheCondition, threadFactory);
-    }
-
-
-
-    protected Engine extendCacheHardRef(Engine engine) {
-        int cacheSize = propsGetInt(Keys.cacheSize, CC.DEFAULT_CACHE_SIZE);
-        return new Caches.HardRef(engine,cacheSize, cacheCondition);
-    }
-
-    protected Engine extendCacheHashTable(Engine engine) {
-        int cacheSize = propsGetInt(Keys.cacheSize, CC.DEFAULT_CACHE_SIZE);
-        return new Caches.HashTable(engine, cacheSize, cacheCondition);
-    }
-
     protected Engine extendAsyncWriteEngine(Engine engine) {
         return engine;
         //TODO async write
@@ -877,62 +894,9 @@ public class DBMaker{
     }
 
 
-    protected Engine extendWrapCache(Engine engine) {
-        return engine;
-    }
 
     protected Engine extendWrapSnapshotEngine(Engine engine) {
         return engine;
-    }
-
-
-    protected Engine extendHeapStore() {
-        return new StoreHeap(propsGetBool(Keys.transactionDisable));
-    }
-
-    protected Engine extendStoreAppend(String fileName, Fun.Function1<Volume,String> volumeFactory) {
-        boolean compressionEnabled = Keys.compression_lzf.equals(props.getProperty(Keys.compression));
-        return new StoreAppend(
-                  fileName,
-                  volumeFactory,
-                  propsGetBool(Keys.checksum),
-                  compressionEnabled,
-                  propsGetXteaEncKey(),
-                  propsGetBool(Keys.readOnly)
-          );
-    }
-
-    protected Engine extendStoreDirect(
-            String fileName,
-            Fun.Function1<Volume,String> volumeFactory) {
-        boolean compressionEnabled = Keys.compression_lzf.equals(props.getProperty(Keys.compression));
-        return new StoreDirect(
-                fileName,
-                volumeFactory,
-                propsGetBool(Keys.checksum),
-                compressionEnabled,
-                propsGetXteaEncKey(),
-                propsGetBool(Keys.readOnly),
-                propsGetInt(Keys.freeSpaceReclaimQ,CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
-                propsGetBool(Keys.commitFileSyncDisable),
-                0);
-    }
-
-    protected Engine extendStoreWAL(
-            String fileName,
-            Fun.Function1<Volume,String> volumeFactory) {
-        boolean compressionEnabled = Keys.compression_lzf.equals(props.getProperty(Keys.compression));
-
-        return new StoreWAL(
-                fileName,
-                volumeFactory,
-                propsGetBool(Keys.checksum),
-                compressionEnabled,
-                propsGetXteaEncKey(),
-                propsGetBool(Keys.readOnly),
-                propsGetInt(Keys.freeSpaceReclaimQ, CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
-                propsGetBool(Keys.commitFileSyncDisable),
-                0);
     }
 
 

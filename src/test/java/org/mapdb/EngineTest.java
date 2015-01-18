@@ -489,4 +489,19 @@ public abstract class EngineTest<ENGINE extends Engine>{
         assertArrayEquals(data, e.get(Engine.RECID_NAME_CATALOG, Serializer.BYTE_ARRAY_NOSIZE));
     }
 
+    @Test public void cas_uses_serializer(){
+        Random r = new Random();
+        byte[] data = new byte[1024];
+        r.nextBytes(data);
+
+        Engine e = openEngine();
+        long recid = e.put(data,Serializer.BYTE_ARRAY);
+
+        byte[] data2 = new byte[100];
+        r.nextBytes(data2);
+        assertTrue(e.compareAndSwap(recid,data.clone(),data2.clone(),Serializer.BYTE_ARRAY));
+
+        assertArrayEquals(data2, e.get(recid,Serializer.BYTE_ARRAY));
+    }
+
 }

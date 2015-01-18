@@ -65,4 +65,30 @@ public class DataIOTest {
             assertEquals(i, DataIO.getSixLong(b,2));
         }
     }
+
+    @Test public void testNextPowTwo(){
+        assertEquals(1, DataIO.nextPowTwo(1));
+        assertEquals(2, DataIO.nextPowTwo(2));
+        assertEquals(4, DataIO.nextPowTwo(3));
+        assertEquals(4, DataIO.nextPowTwo(4));
+
+        assertEquals(64, DataIO.nextPowTwo(33));
+        assertEquals(64, DataIO.nextPowTwo(61));
+
+        assertEquals(1024, DataIO.nextPowTwo(777));
+        assertEquals(1024, DataIO.nextPowTwo(1024));
+
+        assertEquals(1073741824, DataIO.nextPowTwo(1073741824-100));
+        assertEquals(1073741824, DataIO.nextPowTwo((int) (1073741824*0.7)));
+        assertEquals(1073741824, DataIO.nextPowTwo(1073741824));
+    }
+
+    @Test public void testNextPowTwo2(){
+        for(int i=1;i<1073750016;i+= 1 + i/100000){
+            int pow = nextPowTwo(i);
+            assertTrue(pow>=i);
+            assertTrue(Integer.bitCount(pow)==1);
+
+        }
+    }
 }

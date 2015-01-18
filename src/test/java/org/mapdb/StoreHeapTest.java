@@ -6,7 +6,7 @@ public class StoreHeapTest extends EngineTest<StoreHeap>{
 
     @Override
     protected StoreHeap openEngine() {
-        return new StoreHeap(true);
+        return new StoreHeap(true,0);
     }
 
     @Override boolean canReopen(){return false;}

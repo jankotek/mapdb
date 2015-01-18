@@ -4,7 +4,6 @@ import org.junit.Test;
 import org.mapdb.EngineWrapper.ReadOnlyEngine;
 
 import java.io.File;
-import java.io.IOError;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.*;
@@ -59,6 +58,7 @@ public class DBMakerTest{
         assertEquals(s.getClass(), StoreDirect.class);
     }
 
+
     @Test
     public void testAsyncWriteEnable() throws Exception {
         DB db = DBMaker
@@ -66,11 +66,13 @@ public class DBMakerTest{
                 .asyncWriteEnable()
                 .make();
         verifyDB(db);
-        assertEquals(db.engine.getClass(), Caches.HashTable.class);
+        Store store = Store.forDB(db);
+        assertEquals(store.caches[0].getClass(), Store.Cache.HashTable.class);
         EngineWrapper w = (EngineWrapper) db.engine;
         //TODO reenalbe after async is finished
 //        assertEquals(w.getWrappedEngine().getClass(),AsyncWriteEngine.class);
     }
+
 
     @Test
     public void testMake() throws Exception {
@@ -81,8 +83,9 @@ public class DBMakerTest{
         verifyDB(db);
         //check default values are set
         EngineWrapper w = (EngineWrapper) db.engine;
-        assertTrue(w instanceof Caches.HashTable);
-        assertEquals(1024 * 32, ((Caches.HashTable) w).cacheMaxSize);
+        Store store = Store.forDB(db);
+        assertTrue(store.caches[0] instanceof Store.Cache.HashTable);
+        assertEquals(1024 * 32, ((Store.Cache.HashTable) store.caches[0] ).items.length* store.caches.length);
         StoreDirect s = (StoreDirect) w.getWrappedEngine();
         assertTrue(s.vol instanceof Volume.FileChannelVol);
     }
@@ -97,8 +100,9 @@ public class DBMakerTest{
         verifyDB(db);
         //check default values are set
         EngineWrapper w = (EngineWrapper) db.engine;
-        assertTrue(w instanceof Caches.HashTable);
-        assertEquals(1024 * 32, ((Caches.HashTable) w).cacheMaxSize);
+        Store store = Store.forDB(db);
+        assertTrue(store.caches[0] instanceof Store.Cache.HashTable);
+        assertEquals(1024 * 32, ((Store.Cache.HashTable) store.caches[0]).items.length * store.caches.length);
         StoreDirect s = (StoreDirect) w.getWrappedEngine();
         assertTrue(s.vol instanceof Volume.MappedFileVol);
     }
@@ -111,7 +115,8 @@ public class DBMakerTest{
                 .cacheHardRefEnable()
                 .make();
         verifyDB(db);
-        assertTrue(db.engine.getClass() == Caches.HardRef.class);
+        Store store = Store.forDB(db);
+        assertTrue(store.caches[0].getClass() == Store.Cache.HardRef.class);
     }
 
     @Test
@@ -122,8 +127,10 @@ public class DBMakerTest{
                 .cacheWeakRefEnable()
                 .make();
         verifyDB(db);
-        assertTrue(db.engine.getClass() == Caches.WeakSoftRef.class);
-        assertTrue(((Caches.WeakSoftRef)db.engine).useWeakRef);
+        Store store = Store.forDB(db);
+        Store.Cache cache = store.caches[0];
+        assertTrue(cache.getClass() == Store.Cache.WeakSoftRef.class);
+        assertTrue(((Store.Cache.WeakSoftRef)cache).useWeakRef);
     }
 
 
@@ -135,8 +142,9 @@ public class DBMakerTest{
                 .cacheSoftRefEnable()
                 .make();
         verifyDB(db);
-        assertTrue(db.engine.getClass() == Caches.WeakSoftRef.class);
-        assertFalse(((Caches.WeakSoftRef)db.engine).useWeakRef);
+        Store store = Store.forDB(db);
+        assertTrue(store.caches[0].getClass() == Store.Cache.WeakSoftRef.class);
+        assertFalse(((Store.Cache.WeakSoftRef)store.caches[0]).useWeakRef);
     }
 
     @Test
@@ -147,7 +155,8 @@ public class DBMakerTest{
                 .cacheLRUEnable()
                 .make();
         verifyDB(db);
-        assertTrue(db.engine.getClass() == Caches.LRU.class);
+        Store store = Store.forDB(db);
+        assertTrue(store.caches[0].getClass() == Store.Cache.LRU.class);
         db.close();
     }
 
@@ -159,8 +168,10 @@ public class DBMakerTest{
                 .cacheSize(1000)
                 .make();
         verifyDB(db);
-        assertEquals(1024, ((Caches.HashTable) db.engine).cacheMaxSize);
+        Store store = Store.forDB(db);
+        assertEquals(1024, ((Store.Cache.HashTable) store.caches[0]).items.length*store.caches.length);
     }
+
 
     @Test public void read_only() throws IOException {
         File f = UtilsTest.tempDbFile();
@@ -174,6 +185,7 @@ public class DBMakerTest{
         assertTrue(db.engine instanceof ReadOnlyEngine);
         db.close();
     }
+
 
     @Test(expected = IllegalArgumentException.class)
     public void reopen_wrong_checksum() throws IOException {

@@ -105,8 +105,9 @@
                 <version>2.16</version>
                 <configuration>
 
-                    <!-- run tests in parallel -->
-                    <forkCount>3</forkCount>
+                    <!-- TODO control forkCount from CLI, default 0 since it causes OOEM-->
+                    <reuseForks>true</reuseForks>
+                    <forkCount>4</forkCount>
 
                     <includes>
                         <include>**/*</include>

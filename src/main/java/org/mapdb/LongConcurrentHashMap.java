@@ -36,7 +36,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author Doug Lea
  */
 public class LongConcurrentHashMap< V>
-        extends LongMap<V> implements Serializable  {
+         implements Serializable  {
     private static final long serialVersionUID = 7249069246763182397L;
 
     /*
@@ -589,7 +589,6 @@ public class LongConcurrentHashMap< V>
      *
      * @return <tt>true</tt> if this map contains no key-value mappings
      */
-    @Override
     public boolean isEmpty() {
         final Segment<V>[] segments = this.segments;
         /*
@@ -629,7 +628,7 @@ public class LongConcurrentHashMap< V>
      *
      * @return the number of key-value mappings in this map
      */
-    @Override
+    
     public int size() {
         final Segment<V>[] segments = this.segments;
         long sum = 0;
@@ -669,12 +668,12 @@ public class LongConcurrentHashMap< V>
             return (int)sum;
     }
 
-    @Override
+    
     public Iterator<V> valuesIterator() {
         return new ValueIterator();
     }
 
-    @Override
+    
     public LongMapIterator<V> longMapIterator() {
         return new MapIterator();
     }
@@ -690,7 +689,7 @@ public class LongConcurrentHashMap< V>
      *
      * @throws NullPointerException if the specified key is null
      */
-    @Override
+    
     public V get(long key) {
         final int hash = DataIO.longHash(key ^ hashSalt);
         return segmentFor(hash).get(key, hash);
@@ -783,7 +782,7 @@ public class LongConcurrentHashMap< V>
      *         <tt>null</tt> if there was no mapping for <tt>key</tt>
      * @throws NullPointerException if the specified key or value is null
      */
-    @Override
+    
     public V put(long key, V value) {
         if (value == null)
             throw new NullPointerException();
@@ -815,7 +814,7 @@ public class LongConcurrentHashMap< V>
      *         <tt>null</tt> if there was no mapping for <tt>key</tt>
      * @throws NullPointerException if the specified key is null
      */
-    @Override
+    
     public V remove(long key) {
         final int hash = DataIO.longHash(key ^ hashSalt);
         return segmentFor(hash).remove(key, hash, null);
@@ -860,7 +859,7 @@ public class LongConcurrentHashMap< V>
     /**
      * Removes all of the mappings from this map.
      */
-    @Override
+    
     public void clear() {
         for (Segment<V> segment : segments) segment.clear();
     }
@@ -930,7 +929,7 @@ public class LongConcurrentHashMap< V>
             extends HashIterator
             implements Iterator<Long>
     {
-        @Override
+        
         public Long next()        { return super.nextEntry().key; }
     }
 
@@ -938,7 +937,7 @@ public class LongConcurrentHashMap< V>
             extends HashIterator
             implements Iterator<V>
     {
-        @Override
+        
         public V next()        { return super.nextEntry().value; }
     }
 
@@ -948,7 +947,7 @@ public class LongConcurrentHashMap< V>
         private long key;
         private V value;
 
-        @Override
+        
         public boolean moveToNext() {
             if(!hasNext()) return false;
             HashEntry<V> next = nextEntry();
@@ -957,12 +956,12 @@ public class LongConcurrentHashMap< V>
             return true;
         }
 
-        @Override
+        
         public long key() {
             return key;
         }
 
-        @Override
+        
         public V value() {
             return value;
         }
@@ -970,6 +969,35 @@ public class LongConcurrentHashMap< V>
 
 
 
+    /** Iterates over LongMap key and values without boxing long keys */
+    public interface LongMapIterator<V>{
+        boolean moveToNext();
+        long key();
+        V value();
+
+        void remove();
+    }
+
+    
+    public String toString(){
+        final StringBuilder b = new StringBuilder();
+        b.append(getClass().getSimpleName());
+        b.append('[');
+        boolean first = true;
+        LongMapIterator<V> iter = longMapIterator();
+        while(iter.moveToNext()){
+            if(first){
+                first = false;
+            }else{
+                b.append(", ");
+            }
+            b.append(iter.key());
+            b.append(" => ");
+            b.append(iter.value());
+        }
+        b.append(']');
+        return b.toString();
+    }
 
 
 }

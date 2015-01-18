@@ -616,7 +616,8 @@ public class BTreeMapTest{
 
 
 
-    @Test public void large_node_size(){
+    @Test @org.junit.Ignore
+    public void large_node_size(){
         for(int i :new int[]{10,200,6000}){
 
             int max = i*100;

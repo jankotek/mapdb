@@ -15,20 +15,36 @@ public class StoreCached extends StoreDirect {
      * stores modified stack pages.
      */
     //TODO only accessed under structural lock, should be LongConcurrentHashMap?
-    protected final LongMap<byte[]> dirtyStackPages = new LongHashMap<byte[]>();
-    protected final LongMap[] writeCache;
+    protected final LongObjectMap<byte[]> dirtyStackPages = new LongObjectMap<byte[]>();
+    protected final LongObjectObjectMap[] writeCache;
 
-    protected final static Fun.Pair<Object, Serializer> TOMBSTONE = new Fun.Pair(null, null);
+    protected final static Object TOMBSTONE2 = new Object(){
+        @Override
+        public String toString() {
+            return StoreCached.class.getName()+".TOMBSTONE2";
+        }
+    };
 
-    public StoreCached(String fileName, Fun.Function1<Volume, String> volumeFactory, boolean checksum,
-                       boolean compress, byte[] password, boolean readonly,
-                       int freeSpaceReclaimQ, boolean commitFileSyncDisable, int sizeIncrement) {
-        super(fileName, volumeFactory, checksum, compress, password, readonly,
+    public StoreCached(
+            String fileName,
+            Fun.Function1<Volume, String> volumeFactory,
+            Cache cache,
+            int lockingStrategy,
+            boolean checksum,
+            boolean compress,
+            byte[] password,
+            boolean readonly,
+            int freeSpaceReclaimQ,
+            boolean commitFileSyncDisable,
+            int sizeIncrement) {
+        super(fileName, volumeFactory, cache,
+                lockingStrategy,
+                checksum, compress, password, readonly,
                 freeSpaceReclaimQ, commitFileSyncDisable, sizeIncrement);
 
-        writeCache = new LongMap[CC.CONCURRENCY];
+        writeCache = new LongObjectObjectMap[CC.CONCURRENCY];
         for (int i = 0; i < writeCache.length; i++) {
-            writeCache[i] = new LongHashMap();
+            writeCache[i] = new LongObjectObjectMap();
         }
     }
 
@@ -36,7 +52,9 @@ public class StoreCached extends StoreDirect {
     public StoreCached(String fileName) {
         this(fileName,
                 fileName == null ? Volume.memoryFactory() : Volume.fileFactory(),
-                false, false, null, false,  0,
+                null,
+                0,
+                false, false, null, false, 0,
                 false, 0);
     }
 
@@ -45,7 +63,7 @@ public class StoreCached extends StoreDirect {
         if (CC.PARANOID && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
-        this.headVol = new Volume.ByteArrayVol(CC.VOLUME_PAGE_SHIFT);
+        this.headVol = new Volume.SingleByteArrayVol((int) HEAD_END);
         //TODO limit size
         //TODO introduce SingleByteArrayVol which uses only single byte[]
 
@@ -54,7 +72,6 @@ public class StoreCached extends StoreDirect {
         headVol.ensureAvailable(buf.length);
         headVol.putData(0, buf, 0, buf.length);
     }
-
 
 
     @Override
@@ -218,10 +235,12 @@ public class StoreCached extends StoreDirect {
         structuralLock.lock();
         try {
             //flush modified Long Stack pages
-            LongMap.LongMapIterator<byte[]> iter = dirtyStackPages.longMapIterator();
-            while (iter.moveToNext()) {
-                long offset = iter.key();
-                byte[] val = iter.value();
+            long[] set = dirtyStackPages.set;
+            for(int i=0;i<set.length;i++){
+                long offset = set[i];
+                if(offset==0)
+                    continue;
+                byte[] val = (byte[]) dirtyStackPages.values[i];
 
                 if (CC.PARANOID && offset < PAGE_SIZE)
                     throw new AssertionError();
@@ -231,8 +250,8 @@ public class StoreCached extends StoreDirect {
                     throw new AssertionError();
 
                 vol.putData(offset, val, 0, val.length);
-                iter.remove();
             }
+            dirtyStackPages.clear();
 
             //set header checksum
             headVol.putInt(HEAD_CHECKSUM, headChecksum(headVol));
@@ -251,37 +270,42 @@ public class StoreCached extends StoreDirect {
             throw new AssertionError();
 
         //flush modified records
-        for(int i=0;i<locks.length;i++){
+        for (int i = 0; i < locks.length; i++) {
             Lock lock = locks[i].writeLock();
             lock.lock();
             try {
                 flushWriteCacheSegment(i);
 
-            }finally {
+            } finally {
                 lock.unlock();
             }
         }
     }
 
     protected void flushWriteCacheSegment(int segment) {
-        if(CC.PARANOID && !locks[segment].writeLock().isHeldByCurrentThread())
-            throw new AssertionError();
+        if (CC.PARANOID)
+            assertWriteLocked(segment);
 
-        LongMap.LongMapIterator<Fun.Pair<Object, Serializer>> iter = writeCache[segment].longMapIterator();
-        while(iter.moveToNext()){
-            long recid = iter.key();
-            Fun.Pair<Object, Serializer> p = iter.value();
-            if(p==TOMBSTONE){
-                delete2(recid,Serializer.ILLEGAL_ACCESS);
-            }else{
-                DataOutputByteArray buf = serialize(p.a, p.b); //TODO somehow serialize outside lock?
-                update2(recid,buf);
+        LongObjectObjectMap writeCache1 = writeCache[segment];
+        long[] set = writeCache1.set;
+        Object[] values = writeCache1.values;
+        for(int i=0;i<set.length;i++){
+            long recid = set[i];
+            if(recid==0)
+                continue;
+            Object value = values[i*2];
+            if (value == TOMBSTONE2) {
+                delete2(recid, Serializer.ILLEGAL_ACCESS);
+            } else {
+                Serializer s = (Serializer) values[i*2+1];
+                DataOutputByteArray buf = serialize(value, s); //TODO somehow serialize outside lock?
+                update2(recid, buf);
                 recycledDataOut.lazySet(buf);
             }
-            iter.remove();
         }
+        writeCache1.clear();
 
-        if(CC.PARANOID && !writeCache[segment].isEmpty())
+        if (CC.PARANOID && writeCache[segment].size!=0)
             throw new AssertionError();
     }
 
@@ -289,9 +313,13 @@ public class StoreCached extends StoreDirect {
 
     @Override
     protected <A> A get2(long recid, Serializer<A> serializer) {
-        Fun.Pair<A, Serializer<A>> cached = (Fun.Pair<A, Serializer<A>>) writeCache[lockPos(recid)].get(recid);
-        if (cached != null)
-            return cached.a;
+        LongObjectObjectMap m = writeCache[lockPos(recid)];
+        Object cached = m.get1(recid);
+        if (cached !=null) {
+            if(cached==TOMBSTONE2)
+                return null;
+            return (A) cached;
+        }
         return super.get2(recid, serializer);
     }
 
@@ -300,7 +328,7 @@ public class StoreCached extends StoreDirect {
         if (serializer == null)
             throw new NullPointerException();
 
-        writeCache[lockPos(recid)].put(recid, TOMBSTONE);
+        writeCache[lockPos(recid)].put(recid, TOMBSTONE2,null);
     }
 
     @Override
@@ -308,8 +336,9 @@ public class StoreCached extends StoreDirect {
         if (serializer == null)
             throw new NullPointerException();
 
+        //TODO this causes double locking, merge two methods into single method
         long recid = preallocate();
-        update(recid,value,serializer);
+        update(recid, value, serializer);
         return recid;
     }
 
@@ -319,38 +348,46 @@ public class StoreCached extends StoreDirect {
             throw new NullPointerException();
 
         int lockPos = lockPos(recid);
+        Cache cache = caches[lockPos];
         Lock lock = locks[lockPos].writeLock();
         lock.lock();
         try {
-            writeCache[lockPos].put(recid, new Fun.Pair(value, serializer));
-        }finally {
+            cache.put(recid,value);
+            writeCache[lockPos].put(recid, value, serializer);
+        } finally {
             lock.unlock();
         }
     }
+
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
-        if (serializer == null)
+        if(serializer==null)
             throw new NullPointerException();
-        int lockPos = lockPos(recid);
-        Lock lock = locks[lockPos].writeLock();
+
+        //TODO binary CAS & serialize outside lock
+        final int lockPos = lockPos(recid);
+        final Lock lock = locks[lockPos].writeLock();
+        final Cache cache = caches[lockPos];
+        LongObjectObjectMap<A,Serializer<A>> map = writeCache[lockPos];
         lock.lock();
-        try {
-            LongMap<Fun.Pair<A,Serializer<A>>> map = writeCache[lockPos];
-            Fun.Pair<A,Serializer<A>> old = map.get(recid);
-            Object oldVal = old!=null?
-                    old.a:
-                    super.get(recid,serializer);
-
-            boolean ret = Fun.eq(oldVal,expectedOldValue);
-            if(ret){
-                map.put(recid,new Fun.Pair(newValue,serializer));
+        try{
+            A oldVal = (A) cache.get(recid);
+            if(oldVal == null) {
+                oldVal = get2(recid, serializer);
+            }else if(oldVal == Cache.NULL){
+                oldVal = null;
             }
-            return ret;
-
+            if(oldVal==expectedOldValue || (oldVal!=null && serializer.equals(oldVal,expectedOldValue))){
+                cache.put(recid,newValue);
+                map.put(recid,newValue,serializer);
+                return true;
+            }
+            return false;
         }finally {
             lock.unlock();
         }
-
     }
+
+
 }

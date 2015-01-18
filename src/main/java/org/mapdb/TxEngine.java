@@ -465,7 +465,7 @@ public class TxEngine extends EngineWrapper {
                 cleanTxQueue();
 
                 //check no other TX has modified our data
-                LongMap.LongMapIterator oldIter = old.longMapIterator();
+                LongConcurrentHashMap.LongMapIterator oldIter = old.longMapIterator();
                 while(oldIter.moveToNext()){
                     long recid = oldIter.key();
                     for(Reference<Tx> ref2:txs){
@@ -478,7 +478,7 @@ public class TxEngine extends EngineWrapper {
                     }
                 }
 
-                LongMap.LongMapIterator<Fun.Pair> iter = mod.longMapIterator();
+                LongConcurrentHashMap.LongMapIterator<Fun.Pair> iter = mod.longMapIterator();
                 while(iter.moveToNext()){
                     long recid = iter.key();
                     if(old.containsKey(recid)){

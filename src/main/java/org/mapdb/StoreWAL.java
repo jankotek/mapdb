@@ -45,12 +45,12 @@ public class StoreWAL extends StoreCached {
     protected static final int FULL_REPLAY_AFTER_N_TX = 16;
 
 
-    protected final LongMap<Long>[] prevLongLongs;
-    protected final LongMap<Long>[] currLongLongs;
-    protected final LongMap<Long>[] prevDataLongs;
-    protected final LongMap<Long>[] currDataLongs;
+    protected final LongLongMap[] prevLongLongs;
+    protected final LongLongMap[] currLongLongs;
+    protected final LongLongMap[] prevDataLongs;
+    protected final LongLongMap[] currDataLongs;
 
-    protected final LongMap<Long> pageLongStack = new LongHashMap<Long>();
+    protected final LongLongMap pageLongStack = new LongLongMap();
     protected final List<Volume> volumes = new CopyOnWriteArrayList<Volume>();
 
     protected Volume curVol;
@@ -70,26 +70,39 @@ public class StoreWAL extends StoreCached {
     public StoreWAL(String fileName) {
         this(fileName,
                 fileName == null ? Volume.memoryFactory() : Volume.fileFactory(),
+                null,
+                0,
                 false, false, null, false, 0,
                 false, 0);
     }
 
-    public StoreWAL(String fileName, Fun.Function1<Volume, String> volumeFactory, boolean checksum, boolean compress,
-                    byte[] password, boolean readonly, int freeSpaceReclaimQ,
-                    boolean commitFileSyncDisable, int sizeIncrement) {
-        super(fileName, volumeFactory, checksum, compress, password, readonly,
+    public StoreWAL(
+            String fileName,
+            Fun.Function1<Volume, String> volumeFactory,
+            Cache cache,
+            int lockingStrategy,
+            boolean checksum,
+            boolean compress,
+            byte[] password,
+            boolean readonly,
+            int freeSpaceReclaimQ,
+            boolean commitFileSyncDisable,
+            int sizeIncrement) {
+        super(fileName, volumeFactory, cache,
+                lockingStrategy,
+                checksum, compress, password, readonly,
                 freeSpaceReclaimQ, commitFileSyncDisable, sizeIncrement);
-        prevLongLongs = new LongMap[CC.CONCURRENCY];
-        currLongLongs = new LongMap[CC.CONCURRENCY];
+        prevLongLongs = new LongLongMap[CC.CONCURRENCY];
+        currLongLongs = new LongLongMap[CC.CONCURRENCY];
         for (int i = 0; i < CC.CONCURRENCY; i++) {
-            prevLongLongs[i] = new LongHashMap<Long>();
-            currLongLongs[i] = new LongHashMap<Long>();
+            prevLongLongs[i] = new LongLongMap();
+            currLongLongs[i] = new LongLongMap();
         }
-        prevDataLongs = new LongMap[CC.CONCURRENCY];
-        currDataLongs = new LongMap[CC.CONCURRENCY];
+        prevDataLongs = new LongLongMap[CC.CONCURRENCY];
+        currDataLongs = new LongLongMap[CC.CONCURRENCY];
         for (int i = 0; i < CC.CONCURRENCY; i++) {
-            prevDataLongs[i] = new LongHashMap<Long>();
-            currDataLongs[i] = new LongHashMap<Long>();
+            prevDataLongs[i] = new LongLongMap();
+            currDataLongs[i] = new LongLongMap();
         }
 
     }
@@ -229,12 +242,12 @@ public class StoreWAL extends StoreCached {
     protected long walGetLong(long offset, int segment){
         if(CC.PARANOID && offset%8!=0)
             throw new AssertionError();
-        Long ret = currLongLongs[segment].get(offset);
-        if(ret==null) {
+        long ret = currLongLongs[segment].get(offset);
+        if(ret==0) {
             ret = prevLongLongs[segment].get(offset);
         }
 
-        return ret==null?0L:ret;
+        return ret;
     }
 
     @Override
@@ -252,12 +265,12 @@ public class StoreWAL extends StoreCached {
     protected void putDataSingleWithoutLink(int segment, long offset, byte[] buf, int bufPos, int size) {
         if(CC.PARANOID && (size&0xFFFF)!=size)
             throw new AssertionError();
-        if(CC.PARANOID && offset%16!=0)
+        if(CC.PARANOID && (offset%16!=0 && offset!=4))
             throw new AssertionError();
 //        if(CC.PARANOID && size%16!=0)
 //            throw new AssertionError(); //TODO allign record size to 16, and clear remaining bytes
-        if(CC.PARANOID && segment!=-1 && !locks[segment].isWriteLockedByCurrentThread())
-            throw new AssertionError();
+        if(CC.PARANOID && segment!=-1)
+            assertWriteLocked(segment);
         if(CC.PARANOID && segment==-1 && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
@@ -291,11 +304,11 @@ public class StoreWAL extends StoreCached {
         if (CC.PARANOID && offset % 16 != 0)
             throw new AssertionError();
 
-        Long longval = currDataLongs[segment].get(offset);
-        if(longval==null){
+        long longval = currDataLongs[segment].get(offset);
+        if(longval==0){
             longval = prevDataLongs[segment].get(offset);
         }
-        if(longval==null)
+        if(longval==0)
             return null;
 
         int arraySize = (int) (longval >>> 48);
@@ -312,12 +325,12 @@ public class StoreWAL extends StoreCached {
             assertReadLocked(recid);
         int segment = lockPos(recid);
         long offset = recidToOffset(recid);
-        Long ret = currLongLongs[segment].get(offset);
-        if(ret!=null) {
+        long ret = currLongLongs[segment].get(offset);
+        if(ret!=0) {
             return ret;
         }
         ret = prevLongLongs[segment].get(offset);
-        if(ret!=null)
+        if(ret!=0)
             return ret;
         return super.indexValGet(recid);
     }
@@ -325,7 +338,7 @@ public class StoreWAL extends StoreCached {
     @Override
     protected void indexValPut(long recid, int size, long offset, boolean linked, boolean unused) {
         if(CC.PARANOID)
-            assertWriteLocked(recid);
+            assertWriteLocked(lockPos(recid));
         long newVal = composeIndexVal(size, offset, linked, unused, true);
         currLongLongs[lockPos(recid)].put(recidToOffset(recid),newVal);
     }
@@ -361,8 +374,8 @@ public class StoreWAL extends StoreCached {
         }
 
         //try to get it from previous TX stored in WAL, but not yet replayed
-        Long walval = pageLongStack.get(pageOffset);
-        if(walval!=null){
+        long walval = pageLongStack.get(pageOffset);
+        if(walval!=0){
             //get file number, offset and size in WAL
             int arraySize = (int) (walval >>> 48);
             int fileNum = (int) ((walval >>> 32) & 0xFFFFL);
@@ -392,18 +405,21 @@ public class StoreWAL extends StoreCached {
 
         //is in write cache?
         {
-            Fun.Pair<A, Serializer<A>> cached = (Fun.Pair<A, Serializer<A>>) writeCache[segment].get(recid);
-            if (cached != null)
-                return cached.a;
+            Object cached = writeCache[segment].get1(recid);
+            if (cached != null) {
+                if(cached==TOMBSTONE2)
+                    return null;
+                return (A) cached;
+            }
         }
         //is in wal?
         {
-            Long walval = currLongLongs[segment].get(recidToOffset(recid));
-            if(walval==null) {
+            long walval = currLongLongs[segment].get(recidToOffset(recid));
+            if(walval==0) {
                 walval = prevLongLongs[segment].get(recidToOffset(recid));
             }
 
-            if(walval!=null){
+            if(walval!=0){
                 //read record from WAL
                 boolean linked = (walval&MLINKED)!=0;
                 int size = (int) (walval>>>48);
@@ -497,6 +513,7 @@ public class StoreWAL extends StoreCached {
                 lock.lock();
                 try {
                     writeCache[segment].clear();
+                    caches[segment].clear();
                 } finally {
                     lock.unlock();
                 }
@@ -539,22 +556,27 @@ public class StoreWAL extends StoreCached {
                 try{
                     flushWriteCacheSegment(segment);
 
-                    LongMap.LongMapIterator<Long> iter = currLongLongs[segment].longMapIterator();
-                    while(iter.moveToNext()){
-                        long offset = iter.key();
-                        long value = iter.value();
+                    long[] v = currLongLongs[segment].table;
+                    for(int i=0;i<v.length;i+=2){
+                        long offset = v[i];
+                        if(offset==0)
+                            continue;
+                        long value = v[i+1];
                         prevLongLongs[segment].put(offset,value);
                         walPutLong(offset,value);
-                        iter.remove();
                     }
+                    currLongLongs[segment].clear();
 
-                    iter = currDataLongs[segment].longMapIterator();
-                    while(iter.moveToNext()){
-                        long offset = iter.key();
-                        long value = iter.value();
+                    v = currDataLongs[segment].table;
+                    currDataLongs[segment].size=0;
+                    for(int i=0;i<v.length;i+=2){
+                        long offset = v[i];
+                        if(offset==0)
+                            continue;
+                        long value = v[i+1];
                         prevDataLongs[segment].put(offset,value);
-                        iter.remove();
                     }
+                    currDataLongs[segment].clear();
 
                 }finally {
                     lock.unlock();
@@ -563,35 +585,39 @@ public class StoreWAL extends StoreCached {
             structuralLock.lock();
             try {
                 //flush modified Long Stack Pages into WAL
-                LongMap.LongMapIterator<byte[]> iter = dirtyStackPages.longMapIterator();
-                while (iter.moveToNext()) {
-                    long offset = iter.key();
-                    byte[] val = iter.value();
+                {
+                    long[] set = dirtyStackPages.set;
+                    for(int i=0;i<set.length;i++){
+                        long offset = set[i];
+                        if(offset==0)
+                            continue;
+                        byte[] val = (byte[]) dirtyStackPages.values[i];
 
-                    if (CC.PARANOID && offset < PAGE_SIZE)
-                        throw new AssertionError();
-                    if (CC.PARANOID && val.length % 16 != 0)
-                        throw new AssertionError();
-                    if (CC.PARANOID && val.length <= 0 || val.length > MAX_REC_SIZE)
-                        throw new AssertionError();
+                        if (CC.PARANOID && offset < PAGE_SIZE)
+                            throw new AssertionError();
+                        if (CC.PARANOID && val.length % 16 != 0)
+                            throw new AssertionError();
+                        if (CC.PARANOID && val.length <= 0 || val.length > MAX_REC_SIZE)
+                            throw new AssertionError();
 
-                    putDataSingleWithoutLink(-1, offset, val, 0, val.length);
+                        putDataSingleWithoutLink(-1, offset, val, 0, val.length);
 
-                    iter.remove();
+                    }
+                    dirtyStackPages.clear();
                 }
 
                 //update index checksum
                 headVol.putInt(HEAD_CHECKSUM, headChecksum(headVol));
 
                 // flush headVol into WAL
-                byte[] b = new byte[(int) HEAD_END];
+                byte[] b = new byte[(int) HEAD_END-4];
                 //TODO use direct copy
-                headVol.getData(0, b, 0, b.length);
+                headVol.getData(4, b, 0, b.length);
                 //put headVol into WAL
-                putDataSingleWithoutLink(-1, 0L, b, 0, b.length);
+                putDataSingleWithoutLink(-1, 4L, b, 0, b.length);
 
                 //make copy of current headVol
-                headVolBackup.putData(0, b, 0, b.length);
+                headVolBackup.putData(4, b, 0, b.length);
                 indexPagesBackup = indexPages.clone();
 
                 long finalOffset = walOffset.get();
@@ -626,14 +652,21 @@ public class StoreWAL extends StoreCached {
             for(int segment=0;segment<CC.CONCURRENCY;segment++){
                 flushWriteCacheSegment(segment);
 
-                LongMap.LongMapIterator<Long> iter = currLongLongs[segment].longMapIterator();
-                while(iter.moveToNext()){
-                    long offset = iter.key();
-                    long value = iter.value();
+                long[] v = currLongLongs[segment].table;
+                for(int i=0;i<v.length;i+=2){
+                    long offset = v[i];
+                    if(offset==0)
+                        continue;
+                    long value = v[i+1];
                     walPutLong(offset,value);
-                    iter.remove();
+
+                    //remove from this
+                    v[i] = 0;
+                    v[i+1] = 0;
                 }
-                if(CC.PARANOID && !currLongLongs[segment].isEmpty())
+                currLongLongs[segment].clear();
+
+                if(CC.PARANOID && currLongLongs[segment].size()!=0)
                     throw new AssertionError();
 
                 currDataLongs[segment].clear();
@@ -643,23 +676,26 @@ public class StoreWAL extends StoreCached {
             structuralLock.lock();
             try {
                 //flush modified Long Stack Pages into WAL
-                LongMap.LongMapIterator<byte[]> iter = dirtyStackPages.longMapIterator();
-                while (iter.moveToNext()) {
-                    long offset = iter.key();
-                    byte[] val = iter.value();
+                {
+                    long[] set = dirtyStackPages.set;
+                    for(int i=0;i<set.length;i++){
+                        long offset = set[i];
+                        if(offset==0)
+                            continue;;
+                        byte[] val = (byte[]) dirtyStackPages.values[i];
 
-                    if (CC.PARANOID && offset < PAGE_SIZE)
-                        throw new AssertionError();
-                    if (CC.PARANOID && val.length % 16 != 0)
-                        throw new AssertionError();
-                    if (CC.PARANOID && val.length <= 0 || val.length > MAX_REC_SIZE)
-                        throw new AssertionError();
+                        if (CC.PARANOID && offset < PAGE_SIZE)
+                            throw new AssertionError();
+                        if (CC.PARANOID && val.length % 16 != 0)
+                            throw new AssertionError();
+                        if (CC.PARANOID && val.length <= 0 || val.length > MAX_REC_SIZE)
+                            throw new AssertionError();
 
-                    putDataSingleWithoutLink(-1, offset, val, 0, val.length);
-
-                    iter.remove();
+                        putDataSingleWithoutLink(-1, offset, val, 0, val.length);
+                    }
+                    dirtyStackPages.clear();
                 }
-                if(CC.PARANOID && !dirtyStackPages.isEmpty())
+                if(CC.PARANOID && dirtyStackPages.size!=0)
                     throw new AssertionError();
 
                 pageLongStack.clear();
@@ -668,14 +704,14 @@ public class StoreWAL extends StoreCached {
                 headVol.putInt(HEAD_CHECKSUM, headChecksum(headVol));
 
                 // flush headVol into WAL
-                byte[] b = new byte[(int) HEAD_END];
+                byte[] b = new byte[(int) HEAD_END-4];
                 //TODO use direct copy
-                headVol.getData(0, b, 0, b.length);
+                headVol.getData(4, b, 0, b.length);
                 //put headVol into WAL
-                putDataSingleWithoutLink(-1, 0L, b, 0, b.length);
+                putDataSingleWithoutLink(-1, 4L, b, 0, b.length);
 
                 //make copy of current headVol
-                headVolBackup.putData(0, b, 0, b.length);
+                headVolBackup.putData(4, b, 0, b.length);
                 indexPagesBackup = indexPages.clone();
 
                 long finalOffset = walOffset.get();
@@ -828,6 +864,13 @@ public class StoreWAL extends StoreCached {
 
             curVol = null;
             dirtyStackPages.clear();
+
+            if(caches!=null){
+                for(Cache c:caches){
+                    c.close();
+                }
+                Arrays.fill(caches,null);
+            }
         }finally {
             commitLock.unlock();
         }

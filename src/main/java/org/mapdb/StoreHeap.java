@@ -7,57 +7,50 @@ import java.util.concurrent.locks.Lock;
  * Store which keeps all instances on heap. It does not use serialization.
  */
 
-//TODO thread safe
 public class StoreHeap extends Store{
 
-    protected final LongConcurrentHashMap data;
-    protected final LongConcurrentHashMap uncommited;
-    protected final LongConcurrentHashMap deleted;
-
     protected final AtomicLong recids = new AtomicLong(Engine.RECID_FIRST);
+
+    protected final LongObjectMap[] data;
+    protected final LongObjectMap[] rollback;
 
     protected static final Object TOMBSTONE = new Object();
     protected static final Object NULL = new Object();
 
+    public StoreHeap(boolean txDisabled, int lockingStrategy){
+        super(null,null,null,0, false,false,null,false);
+        data = new LongObjectMap[CC.CONCURRENCY];
+        for(int i=0;i<data.length;i++){
+            data[i] = new LongObjectMap();
+        }
 
+        if(txDisabled){
+            rollback = null;
+        }else {
+            rollback = new LongObjectMap[CC.CONCURRENCY];
+            for (int i = 0; i < rollback.length; i++) {
+                rollback[i] = new LongObjectMap();
+            }
+        }
 
-    public StoreHeap(boolean transactionsDisabled) {
-        super(null,null,false,false,null,false);
-        this.data = new LongConcurrentHashMap();
-        this.uncommited = transactionsDisabled? null : new LongConcurrentHashMap();
-        this.deleted = new LongConcurrentHashMap();
-
-        //predefined recids
-        for(long recid=1;recid<RECID_FIRST;recid++){
-            data.put(recid,NULL);
+        for(long recid=1;recid<=RECID_LAST_RESERVED;recid++){
+            data[lockPos(recid)].put(recid,NULL);
         }
     }
 
-    protected StoreHeap(LongConcurrentHashMap m) {
-        super(null,null,false,false,null,false);
-        this.data = m;
-        this.uncommited = null;
-        this.deleted = null;
-    }
-
-    protected Object unswapNull(Object o){
-        if(o==NULL)
-            return null;
-        return o;
-    }
-
-    protected <A> A swapNull(A o){
-        if(o==null)
-            return (A) NULL;
-        return o;
-    }
 
     @Override
     protected <A> A get2(long recid, Serializer<A> serializer) {
-        Object o = data.get(recid);
-        if(o==null)
+        if(CC.PARANOID)
+            assertReadLocked(recid);
+
+        int pos = lockPos(recid);
+        A ret =  (A) data[pos].get(recid);
+        if(ret == null)
             throw new DBException.EngineGetVoid();
-        return (A) unswapNull(o);
+        if(ret == TOMBSTONE||ret==NULL)
+            ret = null;
+        return ret;
     }
 
     @Override
@@ -65,16 +58,44 @@ public class StoreHeap extends Store{
         if(serializer==null)
             throw new NullPointerException();
 
-        value = swapNull(value);
-        final Lock lock = locks[lockPos(recid)].writeLock();
+        Object val2 = value==null?NULL:value;
+
+        int pos = lockPos(recid);
+        LongObjectMap data2 = data[pos];
+        Lock lock = locks[pos].writeLock();
         lock.lock();
         try{
-            Object old = data.put(recid,value);
-            if(old!=null && uncommited!=null)
-                uncommited.putIfAbsent(recid,old);
+            Object old = data2.put(recid,val2);
+            if(rollback!=null){
+                LongObjectMap rol = rollback[pos];
+                if(rol.get(recid)==null)
+                    rol.put(recid,old);
+            }
         }finally {
             lock.unlock();
         }
+    }
+
+    @Override
+    protected void update2(long recid, DataIO.DataOutputByteArray out) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected <A> void delete2(long recid, Serializer<A> serializer) {
+        int pos = lockPos(recid);
+
+        if(CC.PARANOID)
+            assertWriteLocked(pos);
+
+        Object old = data[pos].put(recid,TOMBSTONE);
+
+        if(rollback!=null){
+            LongObjectMap rol = rollback[pos];
+            if(rol.get(recid)==null)
+                rol.put(recid,old);
+        }
+
     }
 
     @Override
@@ -82,56 +103,28 @@ public class StoreHeap extends Store{
         if(serializer==null)
             throw new NullPointerException();
 
-        expectedOldValue = swapNull(expectedOldValue);
-        newValue = swapNull(newValue);
-        final Lock lock = locks[lockPos(recid)].writeLock();
+        final int lockPos = lockPos(recid);
+        final Lock lock = locks[lockPos].writeLock();
         lock.lock();
         try{
-            boolean r = data.replace(recid,expectedOldValue,newValue);
-            if(r && uncommited!=null)
-                uncommited.putIfAbsent(recid,expectedOldValue);
-            return r;
+            A oldVal = get2(recid, serializer);
+            if(oldVal==expectedOldValue || (oldVal!=null && serializer.equals(oldVal,expectedOldValue))){
+                Object newValue2 = newValue==null?NULL:newValue;
+                Object old = data[lockPos].put(recid,newValue2);
+
+                if(rollback!=null){
+                    LongObjectMap rol = rollback[lockPos];
+                    if(rol.get(recid)==null)
+                        rol.put(recid,old);
+                }
+
+                return true;
+            }
+            return false;
         }finally {
             lock.unlock();
         }
-
     }
-
-    @Override
-    protected void update2(long recid, DataIO.DataOutputByteArray out) {
-        throw new IllegalAccessError();
-    }
-
-    @Override
-    protected <A> void delete2(long recid, Serializer<A> serializer) {
-        deleted.put(recid,TOMBSTONE);
-        Object old = data.put(recid,NULL);
-        if(old!=null && uncommited!=null)
-            uncommited.putIfAbsent(recid,old);
-    }
-
-    @Override
-    public <A> long put(A value, Serializer<A> serializer) {
-        if(serializer==null)
-            throw new NullPointerException();
-
-        value = swapNull(value);
-        long recid = recids.getAndIncrement();
-        data.put(recid, value);
-        if(uncommited!=null)
-            uncommited.put(recid,TOMBSTONE);
-        return recid;
-    }
-
-    @Override
-    public long preallocate() {
-        long recid = recids.getAndIncrement();
-        data.put(recid,NULL);
-        if(uncommited!=null)
-            uncommited.put(recid,TOMBSTONE);
-        return recid;
-    }
-
 
     @Override
     public long getCurrSize() {
@@ -143,70 +136,115 @@ public class StoreHeap extends Store{
         return -1;
     }
 
+    @Override
+    public long preallocate() {
+        long recid = recids.getAndIncrement();
+        int lockPos = lockPos(recid);
+        Lock lock = locks[lockPos].writeLock();
+        lock.lock();
+        try{
+            data[lockPos].put(recid,NULL);
 
+            if(rollback!=null){
+                LongObjectMap rol = rollback[lockPos];
+                if(rol.get(recid)==null)
+                    rol.put(recid,TOMBSTONE);
+            }
+
+        }finally {
+            lock.unlock();
+        }
+        return recid;
+    }
+
+    @Override
+    public <A> long put(A value, Serializer<A> serializer) {
+        long recid = recids.getAndIncrement();
+        update(recid, value, serializer);
+        return recid;
+    }
 
     @Override
     public void close() {
-        data.clear();
-        if(uncommited!=null)
-            uncommited.clear();
+
     }
 
     @Override
     public void commit() {
-        if(uncommited!=null)
-            uncommited.clear();
+        if(rollback!=null) {
+            commitLock.lock();
+            try {
+                for (int i = 0; i < data.length; i++) {
+                    Lock lock = locks[i].writeLock();
+                    lock.lock();
+                    try {
+                        rollback[i].clear();
+                    }finally {
+                        lock.unlock();
+                    }
+                }
+            } finally {
+                commitLock.unlock();
+            }
+        }
     }
 
     @Override
     public void rollback() throws UnsupportedOperationException {
-        if(uncommited==null)
+        if(rollback==null)
             throw new UnsupportedOperationException();
-        LongMap.LongMapIterator i = uncommited.longMapIterator();
-        while(i.moveToNext()) {
-            long recid = i.key();
-            Object val = i.value();
-            if (val == TOMBSTONE){
-                data.remove(recid);
-                deleted.remove(recid);
-            }else {
-                data.put(recid, val);
+
+        commitLock.lock();
+        try{
+            for (int i = 0; i < data.length; i++) {
+                Lock lock = locks[i].writeLock();
+                lock.lock();
+                try {
+                    //move content of rollback map into primary map
+                    LongObjectMap r = rollback[i];
+                    LongObjectMap d = data[i];
+
+                    long[] rs = r.set;
+                    Object[] rv = r.values;
+                    for(int j=0;j<rs.length;j++){
+                        long recid = rs[j];
+                        if(recid==0)
+                            continue;
+
+                        Object val = rv[j];
+                        if(val==TOMBSTONE)
+                            d.remove(recid);
+                        else
+                            d.put(recid,val);
+                    }
+
+                    r.clear();
+                }finally {
+                    lock.unlock();
+                }
             }
-            i.remove();
+        }finally {
+            commitLock.unlock();
         }
     }
 
     @Override
     public boolean canRollback() {
-        return uncommited!=null;
+        return rollback!=null;
     }
 
     @Override
     public boolean canSnapshot() {
-        return true;
+        return false;
     }
 
     @Override
     public Engine snapshot() throws UnsupportedOperationException {
-        LongConcurrentHashMap m = new LongConcurrentHashMap();
-        LongMap.LongMapIterator i = m.longMapIterator();
-        while(i.moveToNext()){
-            m.put(i.key(),i.value());
-        }
-
-        return new EngineWrapper.ReadOnlyEngine(new StoreHeap(m));
-    }
-
-    @Override
-    public void clearCache() {
+        return null;
     }
 
     @Override
     public void compact() {
-        LongMap.LongMapIterator i = deleted.longMapIterator();
-        while (i.moveToNext()) {
-            data.remove(i.key(),NULL);
-            i.remove();
-        }
+
     }
 }

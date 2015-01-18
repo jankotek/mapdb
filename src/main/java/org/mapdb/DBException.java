@@ -52,11 +52,35 @@ public class DBException extends RuntimeException{
 
 
     public static class VolumeIOError extends DBException{
-        public VolumeIOError(IOException cause){
+        public VolumeIOError(String msg){
+            super(msg);
+        }
+
+        public VolumeIOError(String msg, Throwable cause){
+            super(msg,cause);
+        }
+
+        public VolumeIOError(Throwable cause){
             super("IO failed", cause);
         }
     }
 
+    public static class VolumeEOF extends VolumeIOError {
+        public VolumeEOF() {
+            super("Beyond End Of File accessed");
+        }
+    }
+
+    public static class OutOfMemory extends VolumeIOError{
+        public OutOfMemory(Throwable e){
+            super(
+                    e.getMessage().equals("Direct buffer memory")?
+                            "Out of Direct buffer memory. Increase it with JVM option '-XX:MaxDirectMemorySize=10G'":
+                            e.getMessage(),
+                    e);
+        }
+
+    }
 
     public static class DataCorruption extends DBException{
         public DataCorruption(String msg){

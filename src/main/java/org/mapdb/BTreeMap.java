@@ -3286,7 +3286,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     }
 
     protected static void assertNoLocks(LongConcurrentHashMap<Thread> locks){
-        LongMap.LongMapIterator<Thread> i = locks.longMapIterator();
+        LongConcurrentHashMap.LongMapIterator<Thread> i = locks.longMapIterator();
         Thread t =null;
         while(i.moveToNext()){
             if(t==null)
@@ -3306,7 +3306,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
     protected static void unlockAll(LongConcurrentHashMap<Thread> locks) {
         final Thread t = Thread.currentThread();
-        LongMap.LongMapIterator<Thread> iter = locks.longMapIterator();
+        LongConcurrentHashMap.LongMapIterator<Thread> iter = locks.longMapIterator();
         while(iter.moveToNext())
             if(iter.value()==t)
                 iter.remove();
@@ -3328,14 +3328,14 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
 
     public void checkStructure(){
-        LongHashMap recids = new LongHashMap();
+        Store.LongObjectMap recids = new Store.LongObjectMap();
         final long recid = engine.get(rootRecidRef, Serializer.RECID);
 
         checkNodeRecur(recid,recids);
 
     }
 
-    private void checkNodeRecur(long rootRecid, LongHashMap recids) {
+    private void checkNodeRecur(long rootRecid, Store.LongObjectMap recids) {
         BNode n = engine.get(rootRecid, nodeSerializer);
         n.checkStructure(keySerializer);
 
@@ -3361,7 +3361,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 if(recid==0 || recid==n.next()){
                     continue;
                 }
-                checkNodeRecur(recid, recids);;
+                checkNodeRecur(recid, recids);
 
             }
         }

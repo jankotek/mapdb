@@ -13,7 +13,7 @@ public class PumpTest {
 
     @Test
     public void copy(){
-        DB db1 = new DB(new StoreHeap(true));
+        DB db1 = new DB(new StoreHeap(true,0));
         Map m = db1.getHashMap("test");
         for(int i=0;i<1000;i++){
             m.put(i, "aa"+i);
@@ -35,7 +35,7 @@ public class PumpTest {
             case 1: return DBMaker.newMemoryDB().snapshotEnable().make();
             case 2: return DBMaker.newMemoryDB().snapshotEnable().transactionDisable().make();
             case 3: return DBMaker.newMemoryDB().snapshotEnable().makeTxMaker().makeTx();
-            case 4: return new DB(new StoreHeap(true));
+            case 4: return new DB(new StoreHeap(true,0));
         }
         throw new IllegalArgumentException(""+i);
     }
@@ -172,7 +172,7 @@ public class PumpTest {
         List<Integer> list = new ArrayList<Integer>(max);
         for(Integer i=max-1;i>=0;i--) list.add(i);
 
-        Engine e = new StoreHeap(true);
+        Engine e = new StoreHeap(true,0);
         DB db = new DB(e);
 
         Set s = db.createTreeSet("test")
@@ -203,7 +203,7 @@ public class PumpTest {
             list.add(i);
         }
 
-        Engine e = new StoreHeap(true);
+        Engine e = new StoreHeap(true,0);
         DB db = new DB(e);
 
         Set s = db.createTreeSet("test")
@@ -232,7 +232,7 @@ public class PumpTest {
         List<Integer> list = new ArrayList<Integer>(max);
         for(Integer i=max-1;i>=0;i--) list.add(i);
 
-        Engine e = new StoreHeap(true);
+        Engine e = new StoreHeap(true,0);
         DB db = new DB(e);
 
         Fun.Function1<Object, Integer> valueExtractor = new Fun.Function1<Object, Integer>() {
@@ -271,7 +271,7 @@ public class PumpTest {
             list.add(i);
         }
 
-        Engine e = new StoreHeap(true);
+        Engine e = new StoreHeap(true,0);
         DB db = new DB(e);
 
         Fun.Function1<Object, Integer> valueExtractor = new Fun.Function1<Object, Integer>() {
@@ -308,14 +308,14 @@ public class PumpTest {
     @Test(expected = IllegalArgumentException.class)
     public void build_treemap_fails_with_unsorted(){
         List a = Arrays.asList(1,2,3,4,4,5);
-        DB db = new DB(new StoreHeap(true));
+        DB db = new DB(new StoreHeap(true,0));
         db.createTreeSet("test").pumpSource(a.iterator()).make();
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void build_treemap_fails_with_unsorted2(){
         List a = Arrays.asList(1,2,3,4,3,5);
-        DB db = new DB(new StoreHeap(true));
+        DB db = new DB(new StoreHeap(true,0));
         db.createTreeSet("test").pumpSource(a.iterator()).make();
     }
 

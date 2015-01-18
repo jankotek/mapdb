@@ -80,7 +80,7 @@ public interface CC {
      * <p>
      * This number must be power of two: `CONCURRENCY = 2^N`
      */
-    int CONCURRENCY = 128;
+    int CONCURRENCY = 16;
 
 
 //    int BTREE_DEFAULT_MAX_NODE_SIZE = 32;

@@ -448,7 +448,7 @@ public class DB implements Closeable {
             //$DELAY$
             checkShouldCreate(name);
             if(engine.isReadOnly()){
-                Engine e = new StoreHeap(true);
+                Engine e = new StoreHeap(true,0);
                 //$DELAY$
                 new DB(e).getHashMap("a");
                 return namedPut(name,
@@ -582,7 +582,7 @@ public class DB implements Closeable {
         if(type==null){
             checkShouldCreate(name);
             if(engine.isReadOnly()){
-                Engine e = new StoreHeap(true);
+                Engine e = new StoreHeap(true,0);
                 //$DELAY$
                 new DB(e).getHashSet("a");
                 return namedPut(name,
@@ -907,7 +907,7 @@ public class DB implements Closeable {
         if(type==null){
             checkShouldCreate(name);
             if(engine.isReadOnly()){
-                Engine e = new StoreHeap(true);
+                Engine e = new StoreHeap(true,0);
                 new DB(e).getTreeMap("a");
                 //$DELAY$
                 return namedPut(name,
@@ -1057,7 +1057,7 @@ public class DB implements Closeable {
         if(type==null){
             checkShouldCreate(name);
             if(engine.isReadOnly()){
-                Engine e = new StoreHeap(true);
+                Engine e = new StoreHeap(true,0);
                 new DB(e).getTreeSet("a");
                 return namedPut(name,
                         new DB(new EngineWrapper.ReadOnlyEngine(e)).getTreeSet("a"));
@@ -1150,7 +1150,7 @@ public class DB implements Closeable {
         if(type==null){
             checkShouldCreate(name);
             if(engine.isReadOnly()){
-                Engine e = new StoreHeap(true);
+                Engine e = new StoreHeap(true,0);
                 new DB(e).getQueue("a");
                 return namedPut(name,
                         new DB(new EngineWrapper.ReadOnlyEngine(e)).getQueue("a"));
@@ -1201,7 +1201,7 @@ public class DB implements Closeable {
         if(type==null){
             checkShouldCreate(name);
             if(engine.isReadOnly()){
-                Engine e = new StoreHeap(true);
+                Engine e = new StoreHeap(true,0);
                 //$DELAY$
                 new DB(e).getStack("a");
                 return namedPut(name,
@@ -1250,7 +1250,7 @@ public class DB implements Closeable {
         if(type==null){
             checkShouldCreate(name);
             if(engine.isReadOnly()){
-                Engine e = new StoreHeap(true);
+                Engine e = new StoreHeap(true,0);
                 new DB(e).getCircularQueue("a");
                 //$DELAY$
                 return namedPut(name,
@@ -1333,7 +1333,7 @@ public class DB implements Closeable {
         if(type==null){
             checkShouldCreate(name);
             if(engine.isReadOnly()){
-                Engine e = new StoreHeap(true);
+                Engine e = new StoreHeap(true,0);
                 new DB(e).getAtomicLong("a");
                 //$DELAY$
                 return namedPut(name,
@@ -1373,7 +1373,7 @@ public class DB implements Closeable {
         if(type==null){
             checkShouldCreate(name);
             if(engine.isReadOnly()){
-                Engine e = new StoreHeap(true);
+                Engine e = new StoreHeap(true,0);
                 new DB(e).getAtomicInteger("a");
                 //$DELAY$
                 return namedPut(name,
@@ -1414,7 +1414,7 @@ public class DB implements Closeable {
         if(type==null){
             checkShouldCreate(name);
             if(engine.isReadOnly()){
-                Engine e = new StoreHeap(true);
+                Engine e = new StoreHeap(true,0);
                 new DB(e).getAtomicBoolean("a");
                 return namedPut(name,
                         new DB(new EngineWrapper.ReadOnlyEngine(e)).getAtomicBoolean("a"));
@@ -1459,7 +1459,7 @@ public class DB implements Closeable {
         if(type==null){
             checkShouldCreate(name);
             if(engine.isReadOnly()){
-                Engine e = new StoreHeap(true);
+                Engine e = new StoreHeap(true,0);
                 new DB(e).getAtomicString("a");
                 //$DELAY$
                 return namedPut(name,
@@ -1500,7 +1500,7 @@ public class DB implements Closeable {
         if(type==null){
             checkShouldCreate(name);
             if(engine.isReadOnly()){
-                Engine e = new StoreHeap(true);
+                Engine e = new StoreHeap(true,0);
                 new DB(e).getAtomicVar("a");
                 return namedPut(name,
                         new DB(new EngineWrapper.ReadOnlyEngine(e)).getAtomicVar("a"));

@@ -440,7 +440,7 @@ public class SerializerBaseTest{
 
     @Test public void test_singleton_reverse() throws IOException {
         SerializerBase b = new SerializerBase();
-        assertEquals(b.mapdb_all.size(), b.mapdb_reverse.size());
+        assertEquals(b.mapdb_all.size(), b.mapdb_reverse.size);
     }
 
 
