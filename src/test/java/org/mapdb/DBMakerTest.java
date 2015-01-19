@@ -1,7 +1,6 @@
 package org.mapdb;
 
 import org.junit.Test;
-import org.mapdb.EngineWrapper.ReadOnlyEngine;
 
 import java.io.File;
 import java.io.IOException;
@@ -68,7 +67,7 @@ public class DBMakerTest{
         verifyDB(db);
         Store store = Store.forDB(db);
         assertEquals(store.caches[0].getClass(), Store.Cache.HashTable.class);
-        EngineWrapper w = (EngineWrapper) db.engine;
+        Engine w =  db.engine;
         //TODO reenalbe after async is finished
 //        assertEquals(w.getWrappedEngine().getClass(),AsyncWriteEngine.class);
     }
@@ -82,11 +81,11 @@ public class DBMakerTest{
                 .make();
         verifyDB(db);
         //check default values are set
-        EngineWrapper w = (EngineWrapper) db.engine;
+        Engine w =  db.engine;
         Store store = Store.forDB(db);
         assertTrue(store.caches[0] instanceof Store.Cache.HashTable);
         assertEquals(1024 * 32, ((Store.Cache.HashTable) store.caches[0] ).items.length* store.caches.length);
-        StoreDirect s = (StoreDirect) w.getWrappedEngine();
+        StoreDirect s = (StoreDirect) store;
         assertTrue(s.vol instanceof Volume.FileChannelVol);
     }
 
@@ -99,11 +98,11 @@ public class DBMakerTest{
                 .make();
         verifyDB(db);
         //check default values are set
-        EngineWrapper w = (EngineWrapper) db.engine;
+        Engine w = db.engine;
         Store store = Store.forDB(db);
         assertTrue(store.caches[0] instanceof Store.Cache.HashTable);
         assertEquals(1024 * 32, ((Store.Cache.HashTable) store.caches[0]).items.length * store.caches.length);
-        StoreDirect s = (StoreDirect) w.getWrappedEngine();
+        StoreDirect s = (StoreDirect) store;
         assertTrue(s.vol instanceof Volume.MappedFileVol);
     }
 
@@ -182,7 +181,7 @@ public class DBMakerTest{
                 .deleteFilesAfterClose()
                 .readOnly()
                 .make();
-        assertTrue(db.engine instanceof ReadOnlyEngine);
+        assertTrue(db.engine instanceof Engine.ReadOnly);
         db.close();
     }
 
@@ -199,7 +198,7 @@ public class DBMakerTest{
 
                 .checksumEnable()
                 .make();
-        EngineWrapper w = (EngineWrapper) db.engine;
+        Engine w = db.engine;
         assertTrue(w instanceof TxEngine);
 
         Store s = Store.forEngine(w);
@@ -291,7 +290,7 @@ public class DBMakerTest{
 
                 .compressionEnable()
                 .make();
-        EngineWrapper w = (EngineWrapper) db.engine;
+        Engine w = db.engine;
         assertTrue(w instanceof TxEngine);
         Store s = Store.forEngine(w);
         assertTrue(!s.checksum);

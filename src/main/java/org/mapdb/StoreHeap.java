@@ -57,6 +57,8 @@ public class StoreHeap extends Store{
     public <A> void update(long recid, A value, Serializer<A> serializer) {
         if(serializer==null)
             throw new NullPointerException();
+        if(closed)
+            throw new IllegalAccessError("closed");
 
         Object val2 = value==null?NULL:value;
 
@@ -102,6 +104,8 @@ public class StoreHeap extends Store{
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
         if(serializer==null)
             throw new NullPointerException();
+        if(closed)
+            throw new IllegalAccessError("closed");
 
         final int lockPos = lockPos(recid);
         final Lock lock = locks[lockPos].writeLock();
@@ -138,6 +142,8 @@ public class StoreHeap extends Store{
 
     @Override
     public long preallocate() {
+        if(closed)
+            throw new IllegalAccessError("closed");
         long recid = recids.getAndIncrement();
         int lockPos = lockPos(recid);
         Lock lock = locks[lockPos].writeLock();
@@ -159,6 +165,9 @@ public class StoreHeap extends Store{
 
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
+        if(closed)
+            throw new IllegalAccessError("closed");
+
         long recid = recids.getAndIncrement();
         update(recid, value, serializer);
         return recid;
@@ -166,11 +175,14 @@ public class StoreHeap extends Store{
 
     @Override
     public void close() {
-
+        closed = true;
     }
 
     @Override
     public void commit() {
+        if(closed)
+            throw new IllegalAccessError("closed");
+
         if(rollback!=null) {
             commitLock.lock();
             try {
@@ -191,6 +203,9 @@ public class StoreHeap extends Store{
 
     @Override
     public void rollback() throws UnsupportedOperationException {
+        if(closed)
+            throw new IllegalAccessError("closed");
+
         if(rollback==null)
             throw new UnsupportedOperationException();
 

@@ -100,6 +100,8 @@ public abstract class Store implements Engine {
     public <A> A get(long recid, Serializer<A> serializer) {
         if(serializer==null)
             throw new NullPointerException();
+        if(closed)
+            throw new IllegalAccessError("closed");
 
         int lockPos = lockPos(recid);
         final Lock lock = locks[lockPos].readLock();
@@ -124,6 +126,9 @@ public abstract class Store implements Engine {
     public <A> void update(long recid, A value, Serializer<A> serializer) {
         if(serializer==null)
             throw new NullPointerException();
+        if(closed)
+            throw new IllegalAccessError("closed");
+
 
         //serialize outside lock
         DataIO.DataOutputByteArray out = serialize(value, serializer);
@@ -242,66 +247,8 @@ public abstract class Store implements Engine {
             //TODO return future and finish deserialization outside lock, does even bring any performance bonus?
 
             DataIO.DataInputInternal di = (DataIO.DataInputInternal) input;
-            if (size > 0) {
-                if (checksum) {
-                    //last two digits is checksum
-                    size -= 4;
-
-                    //read data into tmp buffer
-                    DataIO.DataOutputByteArray tmp = newDataOut2();
-                    tmp.ensureAvail(size);
-                    int oldPos = di.getPos();
-                    di.readFully(tmp.buf, 0, size);
-                    final int checkExpected = di.readInt();
-                    di.setPos(oldPos);
-                    //calculate checksums
-                    CRC32 crc = new CRC32();
-                    crc.update(tmp.buf, 0, size);
-                    recycledDataOut.lazySet(tmp);
-                    int check = (int) crc.getValue();
-                    if (check != checkExpected)
-                        throw new IOException("Checksum does not match, data broken");
-                }
-
-                if (encrypt) {
-                    DataIO.DataOutputByteArray tmp = newDataOut2();
-                    size -= 1;
-                    tmp.ensureAvail(size);
-                    di.readFully(tmp.buf, 0, size);
-                    encryptionXTEA.decrypt(tmp.buf, 0, size);
-                    int cut = di.readUnsignedByte(); //length dif from 16bytes
-                    di = new DataIO.DataInputByteArray(tmp.buf);
-                    size -= cut;
-                }
-
-                if (compress) {
-                    //final int origPos = di.pos;
-                    int decompSize = DataIO.unpackInt(di);
-                    if (decompSize == 0) {
-                        size -= 1;
-                        //rest of `di` is uncompressed data
-                    } else {
-                        DataIO.DataOutputByteArray out = newDataOut2();
-                        out.ensureAvail(decompSize);
-                        CompressLZF lzf = LZF.get();
-                        //TODO copy to heap if Volume is not mapped
-                        //argument is not needed; unpackedSize= size-(di.pos-origPos),
-                        byte[] b = di.internalByteArray();
-                        if (b != null) {
-                            lzf.expand(b, di.getPos(), out.buf, 0, decompSize);
-                        } else {
-                            ByteBuffer bb = di.internalByteBuffer();
-                            if (bb != null) {
-                                lzf.expand(bb, di.getPos(), out.buf, 0, decompSize);
-                            } else {
-                                lzf.expand(di, out.buf, 0, decompSize);
-                            }
-                        }
-                        di = new DataIO.DataInputByteArray(out.buf);
-                        size = decompSize;
-                    }
-                }
-
+            if (size > 0 && (checksum || encrypt || compress))  {
+                return deserializeExtra(serializer,size,di);
             }
 
             int start = di.getPos();
@@ -317,12 +264,87 @@ public abstract class Store implements Engine {
         }
     }
 
+    /** helper method, it is called if compression or other stuff is used. It can not be JITed that well. */
+    private <A> A deserializeExtra(Serializer<A> serializer, int size, DataIO.DataInputInternal di) throws IOException {
+        if (checksum) {
+            //last two digits is checksum
+            size -= 4;
+
+            //read data into tmp buffer
+            DataIO.DataOutputByteArray tmp = newDataOut2();
+            tmp.ensureAvail(size);
+            int oldPos = di.getPos();
+            di.readFully(tmp.buf, 0, size);
+            final int checkExpected = di.readInt();
+            di.setPos(oldPos);
+            //calculate checksums
+            CRC32 crc = new CRC32();
+            crc.update(tmp.buf, 0, size);
+            recycledDataOut.lazySet(tmp);
+            int check = (int) crc.getValue();
+            if (check != checkExpected)
+                throw new IOException("Checksum does not match, data broken");
+        }
+
+        if (encrypt) {
+            DataIO.DataOutputByteArray tmp = newDataOut2();
+            size -= 1;
+            tmp.ensureAvail(size);
+            di.readFully(tmp.buf, 0, size);
+            encryptionXTEA.decrypt(tmp.buf, 0, size);
+            int cut = di.readUnsignedByte(); //length dif from 16bytes
+            di = new DataIO.DataInputByteArray(tmp.buf);
+            size -= cut;
+        }
+
+        if (compress) {
+            //final int origPos = di.pos;
+            int decompSize = DataIO.unpackInt(di);
+            if (decompSize == 0) {
+                size -= 1;
+                //rest of `di` is uncompressed data
+            } else {
+                DataIO.DataOutputByteArray out = newDataOut2();
+                out.ensureAvail(decompSize);
+                CompressLZF lzf = LZF.get();
+                //TODO copy to heap if Volume is not mapped
+                //argument is not needed; unpackedSize= size-(di.pos-origPos),
+                byte[] b = di.internalByteArray();
+                if (b != null) {
+                    lzf.expand(b, di.getPos(), out.buf, 0, decompSize);
+                } else {
+                    ByteBuffer bb = di.internalByteBuffer();
+                    if (bb != null) {
+                        lzf.expand(bb, di.getPos(), out.buf, 0, decompSize);
+                    } else {
+                        lzf.expand(di, out.buf, 0, decompSize);
+                    }
+                }
+                di = new DataIO.DataInputByteArray(out.buf);
+                size = decompSize;
+            }
+        }
+
+
+        int start = di.getPos();
+
+        A ret = serializer.deserialize(di, size);
+        if (size + start > di.getPos())
+            throw new AssertionError("data were not fully read, check your serializer ");
+        if (size + start < di.getPos())
+            throw new AssertionError("data were read beyond record size, check your serializer");
+        return ret;
+    }
+
     protected abstract  void update2(long recid, DataIO.DataOutputByteArray out);
 
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
         if(serializer==null)
             throw new NullPointerException();
+        if(closed)
+            throw new IllegalAccessError("closed");
+
 
         //TODO binary CAS & serialize outside lock
         final int lockPos = lockPos(recid);
@@ -352,6 +374,9 @@ public abstract class Store implements Engine {
     public <A> void delete(long recid, Serializer<A> serializer) {
         if(serializer==null)
             throw new NullPointerException();
+        if(closed)
+            throw new IllegalAccessError("closed");
+
 
         final int lockPos = lockPos(recid);
         final Lock lock = locks[lockPos].writeLock();
@@ -398,15 +423,17 @@ public abstract class Store implements Engine {
         return readonly;
     }
 
-    /** traverses {@link EngineWrapper}s and returns underlying {@link Store}*/
+    /** traverses Engine wrappers and returns underlying {@link Store}*/
     public static Store forDB(DB db){
         return forEngine(db.engine);
     }
 
-    /** traverses {@link EngineWrapper}s and returns underlying {@link Store}*/
+    /** traverses Engine wrappers and returns underlying {@link Store}*/
     public static Store forEngine(Engine e){
-        if(e instanceof EngineWrapper)
-            return forEngine(((EngineWrapper) e).getWrappedEngine());
+        Engine engine2 = e.getWrappedEngine();
+        if(engine2!=null)
+            return forEngine(engine2);
+
         return (Store) e;
     }
 
@@ -416,6 +443,9 @@ public abstract class Store implements Engine {
 
     @Override
     public void clearCache() {
+        if(closed)
+            throw new IllegalAccessError("closed");
+
         for(int i=0;i<locks.length;i++){
             Lock lock = locks[i].readLock();
             lock.lock();
@@ -1631,4 +1661,8 @@ public abstract class Store implements Engine {
         }
     }
 
+    @Override
+    public Engine getWrappedEngine() {
+        return null;
+    }
 }

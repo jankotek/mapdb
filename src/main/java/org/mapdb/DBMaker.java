@@ -16,13 +16,13 @@
 
 package org.mapdb;
 
-import org.mapdb.EngineWrapper.ReadOnlyEngine;
 
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * A builder class for creating and opening a database.
@@ -762,11 +762,11 @@ public class DBMaker{
         engine = extendWrapSnapshotEngine(engine);
 
         if(readOnly)
-            engine = new ReadOnlyEngine(engine);
+            engine = new Engine.ReadOnly(engine);
 
 
         if(propsGetBool(Keys.closeOnJvmShutdown)){
-            engine = new EngineWrapper.CloseOnJVMShutdown(engine);
+            engine = new CloseOnJVMShutdown(engine);
         }
 
 
@@ -932,4 +932,126 @@ public class DBMaker{
         }
         return ret;
     }
+
+    /**
+     * Closes Engine on JVM shutdown using shutdown hook: {@link Runtime#addShutdownHook(Thread)}
+     * If engine was closed by user before JVM shutdown, hook is removed to save memory.
+     */
+    public static class CloseOnJVMShutdown implements Engine{
+
+        final protected AtomicBoolean shutdownHappened = new AtomicBoolean(false);
+
+        final Runnable hookRunnable = new Runnable() {
+            @Override
+            public void run() {
+                shutdownHappened.set(true);
+                CloseOnJVMShutdown.this.hook = null;
+                if(CloseOnJVMShutdown.this.isClosed())
+                    return;
+                CloseOnJVMShutdown.this.close();
+            }
+        };
+
+        protected final Engine engine;
+
+        protected Thread hook;
+
+
+        public CloseOnJVMShutdown(Engine engine) {
+            this.engine = engine;
+            hook = new Thread(hookRunnable,"MapDB shutdown hook");
+            Runtime.getRuntime().addShutdownHook(hook);
+        }
+
+        @Override
+        public long preallocate() {
+            return engine.preallocate();
+        }
+
+        @Override
+        public <A> long put(A value, Serializer<A> serializer) {
+            return engine.put(value,serializer);
+        }
+
+        @Override
+        public <A> A get(long recid, Serializer<A> serializer) {
+            return engine.get(recid,serializer);
+        }
+
+        @Override
+        public <A> void update(long recid, A value, Serializer<A> serializer) {
+            engine.update(recid,value,serializer);
+        }
+
+        @Override
+        public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+            return engine.compareAndSwap(recid,expectedOldValue,newValue,serializer);
+        }
+
+        @Override
+        public <A> void delete(long recid, Serializer<A> serializer) {
+            engine.delete(recid,serializer);
+        }
+
+        @Override
+        public void close() {
+            engine.close();
+            if(!shutdownHappened.get() && hook!=null){
+                Runtime.getRuntime().removeShutdownHook(hook);
+            }
+            hook = null;
+        }
+
+        @Override
+        public boolean isClosed() {
+            return engine.isClosed();
+        }
+
+        @Override
+        public void commit() {
+            engine.commit();
+        }
+
+        @Override
+        public void rollback() throws UnsupportedOperationException {
+            engine.rollback();
+        }
+
+        @Override
+        public boolean isReadOnly() {
+            return engine.isReadOnly();
+        }
+
+        @Override
+        public boolean canRollback() {
+            return engine.canRollback();
+        }
+
+        @Override
+        public boolean canSnapshot() {
+            return engine.canSnapshot();
+        }
+
+        @Override
+        public Engine snapshot() throws UnsupportedOperationException {
+            return engine.snapshot();
+        }
+
+        @Override
+        public Engine getWrappedEngine() {
+            return engine;
+        }
+
+        @Override
+        public void clearCache() {
+            engine.clearCache();
+        }
+
+        @Override
+        public void compact() {
+            engine.compact();
+        }
+    }
+
+
 }

@@ -252,15 +252,124 @@ public interface Engine  extends Closeable {
     /**
      * Returns read-only snapshot of data in Engine.
      *
-     * @see EngineWrapper#canSnapshot()
      * @throws UnsupportedOperationException if snapshots are not supported/enabled
      */
     Engine snapshot() throws UnsupportedOperationException;
+
+    /** if this is wrapper return underlying engine, or null */
+    Engine getWrappedEngine();
 
 
     /** clears any underlying cache */
     void clearCache();
 
     void compact();
+
+
+    /**
+     * Wraps an <code>Engine</code> and throws
+     * <code>UnsupportedOperationException("Read-only")</code>
+     * on any modification attempt.
+     */
+    public static final class ReadOnly implements Engine {
+
+
+        protected final Engine engine;
+
+        public ReadOnly(Engine engine){
+            this.engine = engine;
+        }
+
+
+        @Override
+        public long preallocate() {
+            throw new UnsupportedOperationException("Read-only");
+        }
+
+
+        @Override
+        public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+            throw new UnsupportedOperationException("Read-only");
+        }
+
+        @Override
+        public <A> long put(A value, Serializer<A> serializer) {
+            throw new UnsupportedOperationException("Read-only");
+        }
+
+        @Override
+        public <A> A get(long recid, Serializer<A> serializer) {
+            return engine.get(recid,serializer);
+        }
+
+        @Override
+        public <A> void update(long recid, A value, Serializer<A> serializer) {
+            throw new UnsupportedOperationException("Read-only");
+        }
+
+        @Override
+        public <A> void delete(long recid, Serializer<A> serializer){
+            throw new UnsupportedOperationException("Read-only");
+        }
+
+        @Override
+        public void close() {
+             engine.close();
+        }
+
+        @Override
+        public boolean isClosed() {
+            return engine.isClosed();
+        }
+
+        @Override
+        public void commit() {
+            throw new UnsupportedOperationException("Read-only");
+        }
+
+        @Override
+        public void rollback() {
+            throw new UnsupportedOperationException("Read-only");
+        }
+
+
+        @Override
+        public boolean isReadOnly() {
+            return true;
+        }
+
+        @Override
+        public boolean canRollback() {
+            return engine.canRollback();
+        }
+
+        @Override
+        public boolean canSnapshot() {
+            return true;
+        }
+
+        @Override
+        public Engine snapshot() throws UnsupportedOperationException {
+            return engine.snapshot();
+        }
+
+        @Override
+        public Engine getWrappedEngine() {
+            return engine;
+        }
+
+        @Override
+        public void clearCache() {
+            engine.clearCache();
+        }
+
+        @Override
+        public void compact() {
+            throw new UnsupportedOperationException("Read-only");
+        }
+
+
+    }
+
 
 }

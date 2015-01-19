@@ -664,9 +664,10 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         }
 
         private BNode deserializeDir(final DataInput in, final int size, final int left, final int right) throws IOException {
+            DataIO.DataInputInternal in2 = (DataIO.DataInputInternal) in; //TODO fallback option if cast fails
             final long[] child = new long[size];
             for(int i=0;i<size;i++)
-                child[i] = DataIO.unpackLong(in);
+                child[i] = in2.unpackLong();
             int keysize = size - left- right;
             //$DELAY$
             final Object keys = keysize==0?

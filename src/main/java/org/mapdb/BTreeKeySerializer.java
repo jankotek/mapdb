@@ -263,23 +263,25 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
 
         @Override
         public void serialize(DataOutput out, long[] keys) throws IOException {
+            DataIO.DataOutputByteArray out2 = (DataIO.DataOutputByteArray) out; //TODO fallback option if cast fails
             long prev = keys[0];
-            DataIO.packLong(out, prev);
+            out2.packLong(prev);
             for(int i=1;i<keys.length;i++){
                 long curr = keys[i];
                 //$DELAY$
-                DataIO.packLong(out, curr - prev);
+                out2.packLong(curr-prev);
                 prev = curr;
             }
         }
 
         @Override
         public long[] deserialize(DataInput in, int nodeSize) throws IOException {
+            DataIO.DataInputInternal in2 = (DataIO.DataInputInternal) in; //TODO fallback option if cast fails
             long[] ret = new long[nodeSize];
             long prev = 0 ;
             for(int i = 0; i<nodeSize; i++){
                 //$DELAY$
-                prev += DataIO.unpackLong(in);
+                prev += in2.unpackLong();
                 ret[i] = prev;
             }
             return ret;

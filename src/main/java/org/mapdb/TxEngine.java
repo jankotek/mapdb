@@ -33,7 +33,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *
  * @author Jan Kotek
  */
-public class TxEngine extends EngineWrapper {
+public class TxEngine implements Engine {
 
     protected static final Object TOMBSTONE = new Object();
 
@@ -55,8 +55,10 @@ public class TxEngine extends EngineWrapper {
 
     protected final int PREALLOC_RECID_SIZE = 128;
 
+    protected final Engine engine;
+
     protected TxEngine(Engine engine, boolean fullTx) {
-        super(engine);
+        this.engine = engine;
         this.fullTx = fullTx;
         this.preallocRecids = fullTx ? new ArrayBlockingQueue<Long>(PREALLOC_RECID_SIZE) : null;
     }
@@ -71,10 +73,10 @@ public class TxEngine extends EngineWrapper {
             throw new IllegalAccessError("uncommited data");
 
         for(int i=0;i<PREALLOC_RECID_SIZE;i++){
-            preallocRecids.add(super.preallocate());
+            preallocRecids.add(engine.preallocate());
         }
-        recid = super.preallocate();
-        super.commit();
+        recid = engine.preallocate();
+        engine.commit();
         uncommitedData = false;
         return recid;
     }
@@ -84,8 +86,8 @@ public class TxEngine extends EngineWrapper {
             return engine;
         if(engine instanceof TxEngine)
             return ((TxEngine)engine).snapshot();
-        if(engine instanceof EngineWrapper)
-            createSnapshotFor(((EngineWrapper) engine).getWrappedEngine());
+        if(engine.getWrappedEngine()!=null)
+            createSnapshotFor(engine.getWrappedEngine());
         throw new UnsupportedOperationException("Snapshots are not enabled, use DBMaker.snapshotEnable()");
     }
 
@@ -107,6 +109,21 @@ public class TxEngine extends EngineWrapper {
         }
     }
 
+    @Override
+    public Engine getWrappedEngine() {
+        return engine; //TODO should be exposed?
+    }
+
+    @Override
+    public void clearCache() {
+
+    }
+
+    @Override
+    public void compact() {
+
+    }
+
     protected void cleanTxQueue(){
         if(CC.PARANOID && ! (commitLock.writeLock().isHeldByCurrentThread()))
             throw new AssertionError();
@@ -120,7 +137,7 @@ public class TxEngine extends EngineWrapper {
         commitLock.writeLock().lock();
         try {
             uncommitedData = true;
-            long recid =  super.preallocate();
+            long recid =  engine.preallocate();
             Lock lock = locks[Store.lockPos(recid)].writeLock();
             lock.lock();
             try{
@@ -143,7 +160,7 @@ public class TxEngine extends EngineWrapper {
         commitLock.readLock().lock();
         try {
             uncommitedData = true;
-            long recid = super.put(value, serializer);
+            long recid = engine.put(value, serializer);
             Lock lock = locks[Store.lockPos(recid)].writeLock();
             lock.lock();
             try{
@@ -167,7 +184,7 @@ public class TxEngine extends EngineWrapper {
     public <A> A get(long recid, Serializer<A> serializer) {
         commitLock.readLock().lock();
         try {
-            return super.get(recid, serializer);
+            return engine.get(recid, serializer);
         } finally {
             commitLock.readLock().unlock();
         }
@@ -187,7 +204,7 @@ public class TxEngine extends EngineWrapper {
                     if(tx==null) continue;
                     tx.old.putIfAbsent(recid,old);
                 }
-                super.update(recid, value, serializer);
+                engine.update(recid, value, serializer);
             }finally {
                 lock.unlock();
             }
@@ -205,7 +222,7 @@ public class TxEngine extends EngineWrapper {
             Lock lock = locks[Store.lockPos(recid)].writeLock();
             lock.lock();
             try{
-                boolean ret = super.compareAndSwap(recid, expectedOldValue, newValue, serializer);
+                boolean ret = engine.compareAndSwap(recid, expectedOldValue, newValue, serializer);
                 if(ret){
                     for(Reference<Tx> txr:txs){
                         Tx tx = txr.get();
@@ -237,7 +254,7 @@ public class TxEngine extends EngineWrapper {
                     if(tx==null) continue;
                     tx.old.putIfAbsent(recid,old);
                 }
-                super.delete(recid, serializer);
+                engine.delete(recid, serializer);
             }finally {
                 lock.unlock();
             }
@@ -250,7 +267,7 @@ public class TxEngine extends EngineWrapper {
     public void close() {
         commitLock.writeLock().lock();
         try {
-            super.close();
+            engine.close();
         } finally {
             commitLock.writeLock().unlock();
         }
@@ -258,11 +275,16 @@ public class TxEngine extends EngineWrapper {
     }
 
     @Override
+    public boolean isClosed() {
+        return engine.isClosed();
+    }
+
+    @Override
     public void commit() {
         commitLock.writeLock().lock();
         try {
             cleanTxQueue();
-            super.commit();
+            engine.commit();
             uncommitedData = false;
         } finally {
             commitLock.writeLock().unlock();
@@ -275,7 +297,7 @@ public class TxEngine extends EngineWrapper {
         commitLock.writeLock().lock();
         try {
             cleanTxQueue();
-            super.rollback();
+            engine.rollback();
             uncommitedData = false;
         } finally {
             commitLock.writeLock().unlock();
@@ -283,28 +305,38 @@ public class TxEngine extends EngineWrapper {
 
     }
 
+    @Override
+    public boolean isReadOnly() {
+        return false;
+    }
+
+    @Override
+    public boolean canRollback() {
+        return false;
+    }
+
     protected void superCommit() {
         if(CC.PARANOID && ! (commitLock.isWriteLockedByCurrentThread()))
             throw new AssertionError();
-        super.commit();
+        engine.commit();
     }
 
     protected <A> void superUpdate(long recid, A value, Serializer<A> serializer) {
         if(CC.PARANOID && ! (commitLock.isWriteLockedByCurrentThread()))
             throw new AssertionError();
-        super.update(recid,value,serializer);
+        engine.update(recid, value, serializer);
     }
 
     protected <A> void superDelete(long recid, Serializer<A> serializer) {
         if(CC.PARANOID && ! (commitLock.isWriteLockedByCurrentThread()))
             throw new AssertionError();
-        super.delete(recid,serializer);
+        engine.delete(recid, serializer);
     }
 
     protected <A> A superGet(long recid, Serializer<A> serializer) {
         if(CC.PARANOID && ! (commitLock.isWriteLockedByCurrentThread()))
             throw new AssertionError();
-        return super.get(recid,serializer);
+        return engine.get(recid, serializer);
     }
 
     public class Tx implements Engine{
@@ -561,6 +593,11 @@ public class TxEngine extends EngineWrapper {
         }
 
         @Override
+        public Engine getWrappedEngine() {
+            return engine; //TODO should be exposed?
+        }
+
+        @Override
         public void clearCache() {
         }
 
@@ -568,10 +605,6 @@ public class TxEngine extends EngineWrapper {
         public void compact() {
         }
 
-
-        public Engine getWrappedEngine() {
-            return TxEngine.this.getWrappedEngine();
-        }
 
     }
 

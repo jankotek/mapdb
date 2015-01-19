@@ -310,6 +310,10 @@ public final class DataIO {
 
 
         void close();
+
+        long unpackLong() throws IOException;
+
+        int unpackInt() throws IOException;
     }
 
     /** DataInput on top of `byte[]` */
@@ -459,13 +463,34 @@ public final class DataIO {
         public void close() {
         }
 
-        protected int unpackInt() throws IOException {
+        @Override
+        public long unpackLong() throws IOException {
+            //$DELAY$
+            byte[] buf2 = buf;
+            int offset = 0;
+            long result=0;
+            long b;
+            do {
+                //$DELAY$
+                b = buf2[pos++];
+                result |= (b & 0x7F) << offset;
+                if(CC.PARANOID && offset>64)
+                    throw new AssertionError();
+                offset += 7;
+            }while((b & 0x80) != 0);
+            //$DELAY$
+            return result;
+
+        }
+
+        public int unpackInt() throws IOException {
+            byte[] buf2 = buf;
             int offset = 0;
             int result=0;
             int b;
             do {
                 //$DELAY$
-                b = buf[pos++];
+                b = buf2[pos++];
                 result |= (b & 0x7F) << offset;
                 offset += 7;
             }while((b & 0x80) != 0);
@@ -640,7 +665,7 @@ public final class DataIO {
         @Override
         public String readUTF() throws IOException {
             //TODO verify this method accross multiple serializers
-            final int size = unpackInt(this);
+            final int size = unpackInt();
             //$DELAY$
             return SerializerBase.deserializeString(this, size);
         }
@@ -673,6 +698,40 @@ public final class DataIO {
         @Override
         public void close() {
         }
+
+        @Override
+        public long unpackLong() throws IOException {
+            //$DELAY$
+            int offset = 0;
+            long result=0;
+            long b;
+            do {
+                //$DELAY$
+                b = buf.get(pos++);
+                result |= (b & 0x7F) << offset;
+                if(CC.PARANOID && offset>64)
+                    throw new AssertionError();
+                offset += 7;
+            }while((b & 0x80) != 0);
+            //$DELAY$
+            return result;
+
+        }
+
+        public int unpackInt() throws IOException {
+            int offset = 0;
+            int result=0;
+            int b;
+            do {
+                //$DELAY$
+                b = buf.get(pos++);
+                result |= (b & 0x7F) << offset;
+                offset += 7;
+            }while((b & 0x80) != 0);
+            //$DELAY$
+            return result;
+        }
+
     }
 
     /**
@@ -831,9 +890,6 @@ public final class DataIO {
 
         //TODO remove pack methods  perhaps
         protected void packInt(int value) throws IOException {
-            if(CC.PARANOID && value<0)
-                throw new AssertionError("negative value: "+value);
-
             while ((value & ~0x7F) != 0) {
                 ensureAvail(1);
                 //$DELAY$
@@ -845,6 +901,17 @@ public final class DataIO {
             buf[pos++]= (byte) value;
         }
 
+        public void packLong(long value) {
+            while ((value & ~0x7F) != 0) {
+                ensureAvail(1);
+                //$DELAY$
+                buf[pos++]= (byte) ((value & 0x7F) | 0x80);
+                value >>>= 7;
+            }
+            //$DELAY$
+            ensureAvail(1);
+            buf[pos++]= (byte) value;
+        }
     }
 
 
