@@ -105,10 +105,6 @@
                 <version>2.16</version>
                 <configuration>
 
-                    <!-- TODO control forkCount from CLI, default 0 since it causes OOEM-->
-                    <reuseForks>true</reuseForks>
-                    <forkCount>4</forkCount>
-
                     <includes>
                         <include>**/*</include>
                     </includes>
