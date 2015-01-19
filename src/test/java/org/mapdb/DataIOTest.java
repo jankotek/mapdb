@@ -2,6 +2,9 @@ package org.mapdb;
 
 import org.junit.Test;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+
 import static org.junit.Assert.*;
 import static org.mapdb.DataIO.*;
 
@@ -91,4 +94,39 @@ public class DataIOTest {
 
         }
     }
+
+    @Test public void packLongCompat() throws IOException {
+        DataOutputByteArray b = new DataOutputByteArray();
+        b.packLong(2111L);
+        b.packLong(100);
+        b.packLong(1111L);
+
+        DataInputByteArray b2 = new DataInputByteArray(b.buf);
+        assertEquals(2111L, b2.unpackLong());
+        assertEquals(100L, b2.unpackLong());
+        assertEquals(1111L, b2.unpackLong());
+
+        DataInputByteBuffer b3 = new DataInputByteBuffer(ByteBuffer.wrap(b.buf),0);
+        assertEquals(2111L, b3.unpackLong());
+        assertEquals(100L, b3.unpackLong());
+        assertEquals(1111L, b3.unpackLong());
+    }
+
+    @Test public void packIntCompat() throws IOException {
+        DataOutputByteArray b = new DataOutputByteArray();
+        b.packInt(2111);
+        b.packInt(100);
+        b.packInt(1111);
+
+        DataInputByteArray b2 = new DataInputByteArray(b.buf);
+        assertEquals(2111, b2.unpackInt());
+        assertEquals(100, b2.unpackInt());
+        assertEquals(1111, b2.unpackInt());
+
+        DataInputByteBuffer b3 = new DataInputByteBuffer(ByteBuffer.wrap(b.buf),0);
+        assertEquals(2111, b3.unpackInt());
+        assertEquals(100, b3.unpackInt());
+        assertEquals(1111, b3.unpackInt());
+    }
+
 }
