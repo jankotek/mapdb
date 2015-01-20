@@ -427,10 +427,10 @@ public final class DataIO {
 
         @Override
         public long unpackLong() throws IOException {
-            //$DELAY$
             long ret = 0;
             byte v;
             do{
+                //$DELAY$
                 v = buf[pos++];
                 ret = (ret<<7 ) | (v & 0x7F);
             }while(v<0);
@@ -443,6 +443,7 @@ public final class DataIO {
             int ret = 0;
             byte v;
             do{
+                //$DELAY$
                 v = buf[pos++];
                 ret = (ret<<7 ) | (v & 0x7F);
             }while(v<0);
