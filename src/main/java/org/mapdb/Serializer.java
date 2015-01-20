@@ -198,6 +198,82 @@ public abstract class Serializer<A> {
             return true;
         }
 
+        @Override
+        public void valueArraySerialize(DataOutput out, Object vals) throws IOException {
+            for(long o:(long[]) vals){
+                out.writeLong(o); //TODO pack?
+            }
+        }
+
+        @Override
+        public Object valueArrayDeserialize(DataInput in, int size) throws IOException {
+            long[] ret = new long[size];
+            for(int i=0;i<size;i++){
+                ret[i] = in.readLong();
+            }
+            return ret;
+        }
+
+        @Override
+        public Long valueArrayGet(Object vals, int pos){
+            return ((long[])vals)[pos];
+        }
+
+        @Override
+        public int valueArraySize(Object vals){
+            return ((long[])vals).length;
+        }
+
+        @Override
+        public Object valueArrayEmpty(){
+            return new long[0];
+        }
+
+        @Override
+        public Object valueArrayPut(Object vals, int pos, Long newValue) {
+
+            long[] array = (long[]) vals;
+            final long[] ret = Arrays.copyOf(array, array.length+1);
+            if(pos<array.length){
+                System.arraycopy(array, pos, ret, pos+1, array.length-pos);
+            }
+            ret[pos] = newValue;
+            return ret;
+        }
+
+        @Override
+        public Object valueArrayUpdateVal(Object vals, int pos, Long newValue) {
+            long[] vals2 = ((long[])vals).clone();
+            vals2[pos] = newValue;
+            return vals2;
+        }
+
+        @Override
+        public Object valueArrayFromArray(Object[] objects) {
+            long[] ret = new long[objects.length];
+            int pos=0;
+
+            for(Object o:objects){
+                ret[pos++] = (Long)o;
+            }
+
+            return ret;
+        }
+
+        @Override
+        public Object valueArrayCopyOfRange(Object vals, int from, int to) {
+            return Arrays.copyOfRange((long[])vals, from, to);
+        }
+
+        @Override
+        public Object valueArrayDeleteValue(Object vals, int pos) {
+            long[] valsOrig = (long[]) vals;
+            long[] vals2 = new long[valsOrig.length-1];
+            System.arraycopy(vals,0,vals2, 0, pos-1);
+            System.arraycopy(vals, pos, vals2, pos-1, vals2.length-(pos-1));
+            return vals2;
+        }
+
 
     };
 
@@ -225,6 +301,83 @@ public abstract class Serializer<A> {
         public boolean isTrusted() {
             return true;
         }
+
+        @Override
+        public void valueArraySerialize(DataOutput out, Object vals) throws IOException {
+            for(int o:(int[]) vals){
+                out.writeInt(o); //TODO pack?
+            }
+        }
+
+        @Override
+        public Object valueArrayDeserialize(DataInput in, int size) throws IOException {
+            int[] ret = new int[size];
+            for(int i=0;i<size;i++){
+                ret[i] = in.readInt();
+            }
+            return ret;
+        }
+
+        @Override
+        public Integer valueArrayGet(Object vals, int pos){
+            return ((int[])vals)[pos];
+        }
+
+        @Override
+        public int valueArraySize(Object vals){
+            return ((int[])vals).length;
+        }
+
+        @Override
+        public Object valueArrayEmpty(){
+            return new int[0];
+        }
+
+        @Override
+        public Object valueArrayPut(Object vals, int pos, Integer newValue) {
+
+            int[] array = (int[]) vals;
+            final int[] ret = Arrays.copyOf(array, array.length+1);
+            if(pos<array.length){
+                System.arraycopy(array, pos, ret, pos+1, array.length-pos);
+            }
+            ret[pos] = newValue;
+            return ret;
+        }
+
+        @Override
+        public Object valueArrayUpdateVal(Object vals, int pos, Integer newValue) {
+            int[] vals2 = ((int[])vals).clone();
+            vals2[pos] = newValue;
+            return vals2;
+        }
+
+        @Override
+        public Object valueArrayFromArray(Object[] objects) {
+            int[] ret = new int[objects.length];
+            int pos=0;
+
+            for(Object o:objects){
+                ret[pos++] = (Integer)o;
+            }
+
+            return ret;
+        }
+
+        @Override
+        public Object valueArrayCopyOfRange(Object vals, int from, int to) {
+            return Arrays.copyOfRange((int[])vals, from, to);
+        }
+
+        @Override
+        public Object valueArrayDeleteValue(Object vals, int pos) {
+            int[] valsOrig = (int[]) vals;
+            int[] vals2 = new int[valsOrig.length-1];
+            System.arraycopy(vals,0,vals2, 0, pos-1);
+            System.arraycopy(vals, pos, vals2, pos-1, vals2.length-(pos-1));
+            return vals2;
+        }
+
 
 
     };
@@ -604,6 +757,96 @@ public abstract class Serializer<A> {
             return ((int)(a>>32))^(int) a;
 
         }
+
+
+        @Override
+        public void valueArraySerialize(DataOutput out, Object vals) throws IOException {
+            for(long o:(long[]) vals){
+                out.writeLong(o);
+            }
+        }
+
+        @Override
+        public Object valueArrayDeserialize(DataInput in, int size) throws IOException {
+            size*=2;
+            long[] ret = new long[size];
+            for(int i=0;i<size;i++){
+                ret[i] = in.readLong();
+            }
+            return ret;
+        }
+
+        @Override
+        public UUID valueArrayGet(Object vals, int pos){
+            long[] v = (long[])vals;
+            pos*=2;
+            return new UUID(v[pos++],v[pos]);
+        }
+
+        @Override
+        public int valueArraySize(Object vals){
+            return ((long[])vals).length/2;
+        }
+
+        @Override
+        public Object valueArrayEmpty(){
+            return new long[0];
+        }
+
+        @Override
+        public Object valueArrayPut(Object vals, int pos, UUID newValue) {
+            pos*=2;
+
+            long[] array = (long[]) vals;
+            final long[] ret = Arrays.copyOf(array, array.length+2);
+
+            if(pos<array.length){
+                System.arraycopy(array, pos, ret, pos+2, array.length-pos);
+            }
+            ret[pos++] = newValue.getMostSignificantBits();
+            ret[pos] = newValue.getLeastSignificantBits();
+            return ret;
+        }
+
+        @Override
+        public Object valueArrayUpdateVal(Object vals, int pos, UUID newValue) {
+            pos*=2;
+            long[] vals2 = ((long[])vals).clone();
+            vals2[pos++] = newValue.getMostSignificantBits();
+            vals2[pos] = newValue.getLeastSignificantBits();
+            return vals2;
+        }
+
+
+        @Override
+        public Object valueArrayFromArray(Object[] objects) {
+            long[] ret = new long[objects.length*2];
+            int pos=0;
+
+            for(Object o:objects){
+                UUID uuid = (java.util.UUID) o;
+                ret[pos++] = uuid.getMostSignificantBits();
+                ret[pos++] = uuid.getLeastSignificantBits();
+            }
+
+            return ret;
+        }
+
+        @Override
+        public Object valueArrayCopyOfRange(Object vals, int from, int to) {
+            return Arrays.copyOfRange((long[])vals, from*2, to*2);
+        }
+
+        @Override
+        public Object valueArrayDeleteValue(Object vals, int pos) {
+            pos*=2;
+            long[] valsOrig = (long[]) vals;
+            long[] vals2 = new long[valsOrig.length-2];
+            System.arraycopy(vals,0,vals2, 0, pos-2);
+            System.arraycopy(vals, pos, vals2, pos-2, vals2.length-(pos-2));
+            return vals2;
+        }
+
     };
 
     public static final Serializer<Byte> BYTE = new Serializer<Byte>() {
@@ -889,6 +1132,7 @@ public abstract class Serializer<A> {
     };
 
 
+
     /** wraps another serializer and (de)compresses its output/input*/
     public final static class CompressionWrapper<E> extends Serializer<E> implements Serializable {
 
@@ -1118,5 +1362,60 @@ public abstract class Serializer<A> {
     public int hashCode(A a){
         return a.hashCode();
     }
+
+    public void valueArraySerialize(DataOutput out, Object vals) throws IOException {
+        Object[] vals2 = (Object[]) vals;
+        for(Object o:vals2){
+            serialize(out, (A) o);
+        }
+    }
+
+    public Object valueArrayDeserialize(DataInput in, int size) throws IOException {
+        Object[] ret = new Object[size];
+        for(int i=0;i<size;i++){
+            ret[i] = deserialize(in,-1);
+        }
+        return ret;
+    }
+
+    public A valueArrayGet(Object vals, int pos){
+        return (A) ((Object[])vals)[pos];
+    }
+
+    public int valueArraySize(Object vals){
+        return ((Object[])vals).length;
+    }
+
+    public Object valueArrayEmpty(){
+        return new Object[0];
+    }
+
+    public Object valueArrayPut(Object vals, int pos, A newValue) {
+        return BTreeMap.arrayPut((Object[]) vals, pos, newValue);
+    }
+
+    public Object valueArrayUpdateVal(Object vals, int pos, A newValue) {
+        Object[] vals2 = ((Object[])vals).clone();
+        vals2[pos] = newValue;
+        return vals2;
+    }
+
+    public Object valueArrayFromArray(Object[] objects) {
+        return objects;
+    }
+
+    public Object valueArrayCopyOfRange(Object vals, int from, int to) {
+        return Arrays.copyOfRange((Object[])vals, from, to);
+    }
+
+    public Object valueArrayDeleteValue(Object vals, int pos) {
+        Object[] valsOrig = (Object[]) vals;
+        Object[] vals2 = new Object[valsOrig.length-1];
+        System.arraycopy(vals,0,vals2, 0, pos-1);
+        System.arraycopy(vals, pos, vals2, pos-1, vals2.length-(pos-1));
+        return vals2;
+    }
+
+
 
 }

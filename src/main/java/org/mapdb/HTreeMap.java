@@ -134,7 +134,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                     DataIO.unpackLong(in),
                     expireFlag? DataIO.unpackLong(in):0L,
                     keySerializer.deserialize(in,-1),
-                    hasValues? valueSerializer.deserialize(in,-1) : (V) BTreeMap.EMPTY
+                    hasValues? valueSerializer.deserialize(in,-1) : (V) Boolean.TRUE
             );
         }
 
@@ -865,7 +865,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             if(HTreeMap.this.hasValues)
                 throw new UnsupportedOperationException();
             else
-                return HTreeMap.this.put(k, (V) BTreeMap.EMPTY) == null;
+                return HTreeMap.this.put(k, (V) Boolean.TRUE) == null;
         }
 
         @Override

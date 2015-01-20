@@ -218,7 +218,7 @@ public class BTreeMapTest{
         final long rootRecid = engine.get(m.rootRecidRef, Serializer.RECID);
         BTreeMap.LeafNode n = (BTreeMap.LeafNode) engine.get(rootRecid, m.nodeSerializer);
         assertArrayEquals(new Object[]{null, 11, null}, nodeKeysToArray(n));
-        assertArrayEquals(new Object[]{12}, n.vals);
+        assertArrayEquals(new Object[]{12}, (Object[]) n.vals);
         assertEquals(0, n.next);
     }
 

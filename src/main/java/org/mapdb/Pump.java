@@ -345,7 +345,7 @@ public final class Pump {
                 keys.add(key);
                 counter++;
 
-                Object val = valueExtractor!=null?valueExtractor.run(next):BTreeMap.EMPTY;
+                Object val = valueExtractor!=null?valueExtractor.run(next):Boolean.TRUE;
                 if(val==null) throw new NullPointerException("extractValue returned null value");
                 if(valuesStoredOutsideNodes){
                     long recid = engine.put((V) val,valueSerializer);
@@ -376,7 +376,9 @@ public final class Pump {
             BTreeMap.LeafNode node = new BTreeMap.LeafNode(
                     keySerializer.arrayToKeys(keys.toArray()),
                     leftEdge,rightEdge, false,
-                    values.toArray() , nextNode);
+                    (valueSerializer==null?Serializer.BOOLEAN:valueSerializer)
+                            .valueArrayFromArray(values.toArray()),
+                    nextNode);
             nextNode = engine.put(node,nodeSerializer);
             K nextKey = keys.get(0);
             keys.clear();
@@ -553,7 +555,7 @@ public final class Pump {
         while(pumpSource.hasNext()){
             A o = pumpSource.next();
             K key = pumpKeyExtractor.run(o);
-            V val = pumpValueExtractor==null? (V) BTreeMap.EMPTY : pumpValueExtractor.run(o);
+            V val = pumpValueExtractor==null? (V) Boolean.TRUE : pumpValueExtractor.run(o);
             if(pumpIgnoreDuplicates) {
                 m.put(key,val);
             }else{
