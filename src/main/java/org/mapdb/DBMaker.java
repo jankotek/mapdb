@@ -54,7 +54,7 @@ public class DBMaker{
         String volume_mmapf = "mmapf";
         String volume_byteBuffer = "byteBuffer";
         String volume_directByteBuffer = "directByteBuffer";
-
+        String volume_unsafe = "unsafe";
 
         String store = "store";
         String store_direct = "direct";
@@ -138,6 +138,24 @@ public class DBMaker{
 
     public  DBMaker _newMemoryDirectDB() {
         props.setProperty(Keys.volume,Keys.volume_directByteBuffer);
+        return this;
+    }
+
+
+    /** Creates new in-memory database. Changes are lost after JVM exits.
+     * <p>
+     * This will use {@code sun.misc.Unsafe}. It uses direct-memory access and avoids boundary checking.
+     * It is bit faster compared to {@code DirectByteBuffer}, but can cause JVM crash in case of error.
+     * <p>
+     * If {@code sun.misc.Unsafe} is not available for some reason, MapDB will log an warning and fallback into
+     * {@code DirectByteBuffer} based in-memory store without throwing an exception.
+     */
+    public static DBMaker newMemoryUnsafeDB(){
+        return new DBMaker()._newMemoryUnsafeDB();
+    }
+
+    public  DBMaker _newMemoryUnsafeDB() {
+        props.setProperty(Keys.volume,Keys.volume_unsafe);
         return this;
     }
 
@@ -906,6 +924,8 @@ public class DBMaker{
             return Volume.memoryFactory(false,CC.VOLUME_PAGE_SHIFT);
         else if(Keys.volume_directByteBuffer.equals(volume))
             return Volume.memoryFactory(true,CC.VOLUME_PAGE_SHIFT);
+        else if(Keys.volume_unsafe.equals(volume))
+            return Volume.memoryUnsafeFactory(CC.VOLUME_PAGE_SHIFT);
 
         boolean raf = propsGetRafMode()!=0;
         if(raf && index && propsGetRafMode()==1)
