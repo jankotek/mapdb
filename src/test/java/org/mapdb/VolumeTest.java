@@ -272,6 +272,7 @@ public class VolumeTest {
 
     }
 
+    /* TODO move this to burn tests
     @Test public void direct_bb_overallocate(){
         Volume vol = new Volume.MemoryVol(true, CC.VOLUME_PAGE_SHIFT);
         try {
@@ -291,5 +292,6 @@ public class VolumeTest {
         }
         vol.close();
     }
+    */
 
 }
