@@ -76,6 +76,12 @@ public class VolumeTest {
                 new Callable() {
                     @Override
                     public Object call() throws Exception {
+                        return new Volume.UnsafeVolume(-1, CC.VOLUME_PAGE_SHIFT);
+                    }
+                },
+                new Callable() {
+                    @Override
+                    public Object call() throws Exception {
                         return new Volume.FileChannelVol(File.createTempFile("mapdb", ""), false, CC.VOLUME_PAGE_SHIFT, 0);
                     }
                 },
