@@ -56,6 +56,12 @@ public class DBMaker{
         String volume_directByteBuffer = "directByteBuffer";
         String volume_unsafe = "unsafe";
 
+
+        String lock = "lock";
+        String lock_readWrite = "readWrite";
+        String lock_single = "single";
+        String lock_threadUnsafe = "threadUnsafe";
+
         String store = "store";
         String store_direct = "direct";
         String store_wal = "wal";
@@ -407,6 +413,34 @@ public class DBMaker{
         props.put(Keys.cache,Keys.cache_lru);
         return this;
     }
+
+    /**
+     * Disable locks. This will make MapDB thread unsafe. It will also disable any background thread workers.
+     * <p>
+     * <b>WARNING: </b> this option is dangerous. With locks disabled multi-threaded access could cause data corruption and causes.
+     * MapDB does not have fail-fast iterator or any other means of protection
+     * <p>
+     * @return this builder
+     */
+    public DBMaker lockThreadUnsafeEnable() {
+        props.put(Keys.lock, Keys.lock_threadUnsafe);
+        return this;
+    }
+
+    /**
+     * Disables double read-write locks and enables single read-write locks.
+     * <p>
+     * This type of locking have smaller overhead and can be faster in mostly-write scenario.
+     * <p>
+     * @return this builder
+     */
+    public DBMaker lockSingleEnable() {
+        props.put(Keys.lock, Keys.lock_single);
+        return this;
+    }
+
+
+
     /**
      * Enables Memory Mapped Files, much faster storage option. However on 32bit JVM this mode could corrupt
      * your DB thanks to 4GB memory addressing limit.
@@ -707,6 +741,14 @@ public class DBMaker{
 
         Engine engine;
         int lockingStrategy = 0;
+        String lockingStrategyStr = props.getProperty(Keys.lock,Keys.lock_readWrite);
+        if(Keys.lock_single.equals(lockingStrategyStr)){
+            lockingStrategy = 1;
+        }else if(Keys.lock_threadUnsafe.equals(lockingStrategyStr)) {
+            lockingStrategy = 2;
+        }
+
+
         boolean cacheLockDisable = lockingStrategy!=0;
 
         if(Keys.store_heap.equals(store)){
