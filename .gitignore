@@ -9,3 +9,5 @@ helper
 *.iml
 *.ipr
 *.iws
+.directory
+*.log
