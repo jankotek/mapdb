@@ -259,7 +259,7 @@ public final class DataIO {
      * Give access to internal byte[] or ByteBuffer in DataInput2..
      * Should not be used unless you are writing MapDB extension and needs some performance bonus
      */
-    interface DataInputInternal extends DataInput,Closeable {
+    public interface DataInputInternal extends DataInput,Closeable {
 
         int getPos();
         void setPos(int pos);
