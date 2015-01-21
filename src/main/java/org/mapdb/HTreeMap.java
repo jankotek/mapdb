@@ -176,15 +176,13 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             }
 
             //write bitmap
-            int pos = 0;
-            for(pos=0;pos<16;pos++){
-                out.writeByte(value[pos]);
-            }
+            out.write(value,0,16);
+            DataIO.DataOutputByteArray out2 = (DataIO.DataOutputByteArray) out;
 
             //write recids
-            for(;pos<value.length;pos+=6){
+            for(int pos=16;pos<value.length;pos+=6){
                 long recid = DataIO.getSixLong(value,pos);
-                DataIO.packLong(out,recid);
+                out2.packLong(recid);
             }
         }
 
@@ -204,10 +202,9 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             DataIO.putLong(ret,0,bitmap1);
             DataIO.putLong(ret,8,bitmap2);
 
-            for(int pos=16;pos<arrayLen;pos+=6){
-                long recid = DataIO.unpackLong(in);
-                DataIO.putSixLong(ret,pos,recid);
-            }
+            DataIO.DataInputInternal in2 = (DataIO.DataInputInternal) in;
+
+            in2.unpackLongSixArray(ret);
 
             return ret;
        }

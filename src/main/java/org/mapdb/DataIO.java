@@ -276,6 +276,8 @@ public final class DataIO {
         long unpackLong() throws IOException;
 
         int unpackInt() throws IOException;
+
+        void unpackLongSixArray(byte[] b)  throws IOException;
     }
 
     /** DataInput on top of `byte[]` */
@@ -451,6 +453,24 @@ public final class DataIO {
             return ret;
         }
 
+        @Override
+        public void unpackLongSixArray(byte[] b)  throws IOException {
+            int arrayLen = b.length;
+            int pos2 = pos;
+            byte[] buf2 = buf;
+            long ret;
+            byte v;
+            for(int pos3=16;pos3<arrayLen;pos3+=6) {
+                ret = 0;
+                do {
+                    //$DELAY$
+                    v = buf2[pos2++];
+                    ret = (ret << 7) | (v & 0x7F);
+                } while (v < 0);
+                DataIO.putSixLong(b,pos3,ret);
+            }
+            pos = pos2;
+        }
 
     }
 
@@ -670,6 +690,26 @@ public final class DataIO {
             }while(v<0);
 
             return ret;
+        }
+
+
+        @Override
+        public void unpackLongSixArray(byte[] b)  throws IOException {
+            int arrayLen = b.length;
+            int pos2 = pos;
+            ByteBuffer buf2 = buf;
+            long ret;
+            byte v;
+            for(int pos3=16;pos3<arrayLen;pos3+=6) {
+                ret = 0;
+                do {
+                    //$DELAY$
+                    v = buf2.get(pos2++);
+                    ret = (ret << 7) | (v & 0x7F);
+                } while (v < 0);
+                DataIO.putSixLong(b,pos3,ret);
+            }
+            pos = pos2;
         }
 
     }
