@@ -142,9 +142,9 @@ public class BTreeKeySerializerTest {
 
         for(int i=0;i<1e3;i++){
             Object key = fab.run();
-            long[] child = new long[keys2.size()];
-            for(int ii=0;ii<child.length;ii++){
-                child[ii] = ii+1;
+            byte[] child = new byte[keys2.size()*6];
+            for(int ii=0;ii<keys2.size();ii++){
+                DataIO.putSixLong(child,ii*6,ii+1);
             }
 
 

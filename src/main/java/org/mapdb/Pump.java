@@ -16,7 +16,6 @@
 package org.mapdb;
 
 import java.io.*;
-import java.nio.ByteBuffer;
 import java.util.*;
 
 /**
@@ -410,7 +409,7 @@ public final class Pump {
                 BTreeMap.DirNode dir = new BTreeMap.DirNode(
                         keySerializer.arrayToKeys(dirKeys.get(i).toArray()),
                         leftEdge2,rightEdge2, false,
-                        toLongArray(dirRecids.get(i)));
+                        toSixLongArray(dirRecids.get(i)));
                 long dirRecid = engine.put(dir,nodeSerializer);
                 Object dirStart = dirKeys.get(i).get(0);
                 dirKeys.get(i).clear();
@@ -453,7 +452,7 @@ public final class Pump {
             BTreeMap.DirNode dir = new BTreeMap.DirNode(
                     keySerializer.arrayToKeys(keys2.toArray()),
                     leftEdge3,rightEdge3, false,
-                    toLongArray(dirRecids.get(i)));
+                    toSixLongArray(dirRecids.get(i)));
             long dirRecid = engine.put(dir,nodeSerializer);
             Object dirStart = keys2.get(0);
             dirKeys.get(i+1).add(dirStart);
@@ -482,15 +481,15 @@ public final class Pump {
         BTreeMap.DirNode dir = new BTreeMap.DirNode(
                 keySerializer.arrayToKeys(dirKeys.get(len).toArray()),
                 leftEdge4,rightEdge4, false,
-                toLongArray(dirRecids.get(len)));
+                toSixLongArray(dirRecids.get(len)));
         long rootRecid = engine.put(dir, nodeSerializer);
         return engine.put(rootRecid,Serializer.RECID); //root recid
     }
 
-    private static long[] toLongArray(List<Long> child) {
-        long[] ret= new long[child.size()];
+    private static byte[] toSixLongArray(List<Long> child) {
+        byte[] ret= new byte[child.size()*6];
         for(int i=0;i<child.size();i++){
-            ret[i] = child.get(i);
+            DataIO.putSixLong(ret,i*6,child.get(i));
         }
         return ret;
     }

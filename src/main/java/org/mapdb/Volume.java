@@ -2372,22 +2372,43 @@ public abstract class Volume implements Closeable{
             }
 
             @Override
-            public void unpackLongSixArray(byte[] b)  throws IOException {
-                int arrayLen = b.length;
+            public void unpackLongSixArray(byte[] b, int start, int end)  throws IOException {
                 long pos2_ = pos2;
                 long ret;
                 byte v;
-                for(int pos3=16;pos3<arrayLen;pos3+=6) {
+                for(;start<end;start+=6) {
                     ret = 0;
                     do {
                         //$DELAY$
                         v = Volume.UnsafeVolume.UNSAFE.getByte(pos2_++);
                         ret = (ret << 7) | (v & 0x7F);
                     } while (v < 0);
-                    DataIO.putSixLong(b,pos3,ret);
+                    DataIO.putSixLong(b,start,ret);
                 }
                 pos2 = pos2_;
             }
+
+
+            @Override
+            public long[] unpackLongArrayDeltaCompression(final int size) throws IOException {
+                long[] ret = new long[size];
+                long pos2_ = pos2;
+                long prev=0;
+                byte v;
+                for(int i=0;i<size;i++){
+                    long r = 0;
+                    do {
+                        //$DELAY$
+                        v = Volume.UnsafeVolume.UNSAFE.getByte(pos2_++);
+                        r = (r << 7) | (v & 0x7F);
+                    } while (v < 0);
+                    prev+=r;
+                    ret[i]=prev;
+                }
+                pos2 = pos2_;
+                return ret;
+            }
+
             @Override
             public void readFully(byte[] b) throws IOException {
                 copyToArray(pos2, b, 0, b.length);

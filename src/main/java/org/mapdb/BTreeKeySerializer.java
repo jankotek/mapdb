@@ -277,14 +277,15 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         @Override
         public long[] deserialize(DataInput in, int nodeSize) throws IOException {
             DataIO.DataInputInternal in2 = (DataIO.DataInputInternal) in; //TODO fallback option if cast fails
-            long[] ret = new long[nodeSize];
-            long prev = 0 ;
-            for(int i = 0; i<nodeSize; i++){
-                //$DELAY$
-                prev += in2.unpackLong();
-                ret[i] = prev;
-            }
-            return ret;
+            return in2.unpackLongArrayDeltaCompression(nodeSize);
+//            long[] ret = new long[nodeSize];
+//            long prev = 0 ;
+//            for(int i = 0; i<nodeSize; i++){
+//                //$DELAY$
+//                prev += in2.unpackLong();
+//                ret[i] = prev;
+//            }
+//            return ret;
         }
 
         @Override
@@ -324,7 +325,12 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
 
         @Override
         public long[] putKey(long[] keys, int pos, Long newKey) {
-            return BTreeMap.arrayLongPut(keys, pos, newKey);
+            final long[] ret = Arrays.copyOf(keys,keys.length+1);
+            if(pos<keys.length){
+                System.arraycopy(keys,pos,ret,pos+1,keys.length-pos);
+            }
+            ret[pos] = newKey;
+            return ret;
         }
 
         @Override

@@ -203,8 +203,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             DataIO.putLong(ret,8,bitmap2);
 
             DataIO.DataInputInternal in2 = (DataIO.DataInputInternal) in;
-
-            in2.unpackLongSixArray(ret);
+            in2.unpackLongSixArray(ret,16,arrayLen);
 
             return ret;
        }

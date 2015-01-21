@@ -56,6 +56,14 @@ public class BTreeMapTest{
         assertEquals(n.next, n2.next);
     }
 
+
+    byte[] mkchild(long... args){
+        byte[] ret = new byte[args.length*6];
+        for(int i=0;i<args.length;i++){
+            DataIO.putSixLong(ret,i*6,args[i]);
+        }
+        return ret;
+    }
     
 	@Test public void test_dir_node_serialization() throws IOException {
 
@@ -63,7 +71,7 @@ public class BTreeMapTest{
         BTreeMap.DirNode n = new BTreeMap.DirNode(
                 new Object[]{1,2,3},
                 false,true,false,
-                new long[]{4,5,6,0});
+                mkchild(4,5,6,0));
         BTreeMap.DirNode n2 = (BTreeMap.DirNode) UtilsTest.clone(n, m.nodeSerializer);
 
         assertArrayEquals(nodeKeysToArray(n), nodeKeysToArray(n2));
@@ -76,7 +84,7 @@ public class BTreeMapTest{
             child[i] = new Random().nextInt(1000)+1;
         }
 
-        BTreeMap.BNode n1 = new BTreeMap.DirNode(new Integer[]{1,2,3,4,5,6,7,8},false,false,false,child);
+        BTreeMap.BNode n1 = new BTreeMap.DirNode(new Integer[]{1,2,3,4,5,6,7,8},false,false,false,mkchild(child));
         assertEquals(8, BTreeKeySerializer.BASIC.findChildren(n1, 11));
         assertEquals(0,BTreeKeySerializer.BASIC.findChildren(n1, 1));
         assertEquals(0,BTreeKeySerializer.BASIC.findChildren(n1, 0));
@@ -87,7 +95,7 @@ public class BTreeMapTest{
             child[i] = new Random().nextInt(1000)+1;
         }
 
-        BTreeMap.BNode n2 = new BTreeMap.DirNode(new Integer[]{10,20,30,40,50},false,false,false,child);
+        BTreeMap.BNode n2 = new BTreeMap.DirNode(new Integer[]{10,20,30,40,50},false,false,false,mkchild(child));
         assertEquals(4,BTreeKeySerializer.BASIC.findChildren(n2, 49));
         assertEquals(4,BTreeKeySerializer.BASIC.findChildren(n2, 50));
         assertEquals(3,BTreeKeySerializer.BASIC.findChildren(n2, 40));
@@ -109,7 +117,7 @@ public class BTreeMapTest{
                     child[child.length-1]=0;
 
 
-                BTreeMap.BNode n = new BTreeMap.DirNode(keys.toArray(), left,right,false,child);
+                BTreeMap.BNode n = new BTreeMap.DirNode(keys.toArray(), left,right,false,mkchild(child));
 
                 for(int i=-10;i<110;i++){
                     int pos = BTreeKeySerializer.BASIC.findChildren(n,i);
@@ -127,7 +135,7 @@ public class BTreeMapTest{
 
     @Test public void test_next_dir(){
 
-        BTreeMap.DirNode d = new BTreeMap.DirNode(new Integer[]{44,62,68, 71},false,false,false,new long[]{10,20,30,40});
+        BTreeMap.DirNode d = new BTreeMap.DirNode(new Integer[]{44,62,68, 71},false,false,false,mkchild(10,20,30,40));
 
         assertEquals(10, m.nextDir(d, 62));
         assertEquals(10, m.nextDir(d, 44));
@@ -150,7 +158,7 @@ public class BTreeMapTest{
         BTreeMap.DirNode d = new BTreeMap.DirNode(
                 new Object[]{62,68, 71},
                 true,false,false,
-                new long[]{10,20,30,40});
+                mkchild(10,20,30,40));
         assertEquals(10, m.nextDir(d, 33));
         assertEquals(10, m.nextDir(d, 62));
         assertEquals(20, m.nextDir(d, 63));
@@ -158,7 +166,7 @@ public class BTreeMapTest{
         d = new BTreeMap.DirNode(
                 new Object[]{44,62,68},
                 false,true,false,
-                new long[]{10,20,30,0});
+                mkchild(10,20,30,0));
 
         assertEquals(10, m.nextDir(d, 62));
         assertEquals(10, m.nextDir(d, 44));

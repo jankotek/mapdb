@@ -277,7 +277,9 @@ public final class DataIO {
 
         int unpackInt() throws IOException;
 
-        void unpackLongSixArray(byte[] b)  throws IOException;
+        void unpackLongSixArray(byte[] b, int start, int end)  throws IOException;
+
+        long[] unpackLongArrayDeltaCompression(int size) throws IOException;
     }
 
     /** DataInput on top of `byte[]` */
@@ -454,26 +456,45 @@ public final class DataIO {
         }
 
         @Override
-        public void unpackLongSixArray(byte[] b)  throws IOException {
-            int arrayLen = b.length;
+        public void unpackLongSixArray(byte[] b, int start, int end)  throws IOException {
             int pos2 = pos;
             byte[] buf2 = buf;
             long ret;
             byte v;
-            for(int pos3=16;pos3<arrayLen;pos3+=6) {
+            for(;start<end;start+=6) {
                 ret = 0;
                 do {
                     //$DELAY$
                     v = buf2[pos2++];
                     ret = (ret << 7) | (v & 0x7F);
                 } while (v < 0);
-                DataIO.putSixLong(b,pos3,ret);
+                DataIO.putSixLong(b,start,ret);
             }
             pos = pos2;
         }
 
-    }
+        @Override
+        public long[] unpackLongArrayDeltaCompression(final int size) throws IOException {
+            long[] ret = new long[size];
+            int pos2 = pos;
+            byte[] buf2 = buf;
+            long prev =0;
+            byte v;
+            for(int i=0;i<size;i++){
+                long r = 0;
+                do {
+                    //$DELAY$
+                    v = buf2[pos2++];
+                    r = (r << 7) | (v & 0x7F);
+                } while (v < 0);
+                prev+=r;
+                ret[i]=prev;
+            }
+            pos = pos2;
+            return ret;
+        }
 
+    }
 
     /**
      * Wraps `DataInput` into `InputStream`
@@ -694,22 +715,42 @@ public final class DataIO {
 
 
         @Override
-        public void unpackLongSixArray(byte[] b)  throws IOException {
-            int arrayLen = b.length;
+        public void unpackLongSixArray(byte[] b, int start, int end)  throws IOException {
             int pos2 = pos;
             ByteBuffer buf2 = buf;
             long ret;
             byte v;
-            for(int pos3=16;pos3<arrayLen;pos3+=6) {
+            for(;start<end;start+=6) {
                 ret = 0;
                 do {
                     //$DELAY$
                     v = buf2.get(pos2++);
                     ret = (ret << 7) | (v & 0x7F);
                 } while (v < 0);
-                DataIO.putSixLong(b,pos3,ret);
+                DataIO.putSixLong(b,start,ret);
             }
             pos = pos2;
+        }
+
+        @Override
+        public long[] unpackLongArrayDeltaCompression(final int size) throws IOException {
+            long[] ret = new long[size];
+            int pos2 = pos;
+            ByteBuffer buf2 = buf;
+            long prev=0;
+            byte v;
+            for(int i=0;i<size;i++){
+                long r = 0;
+                do {
+                    //$DELAY$
+                    v = buf2.get(pos2++);
+                    r = (r << 7) | (v & 0x7F);
+                } while (v < 0);
+                prev+=r;
+                ret[i]=prev;
+            }
+            pos = pos2;
+            return ret;
         }
 
     }
