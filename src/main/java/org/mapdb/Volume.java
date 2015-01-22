@@ -2345,11 +2345,12 @@ public abstract class Volume implements Closeable{
 
             @Override
             public long unpackLong() throws IOException {
+                sun.misc.Unsafe UNSAFE = Volume.UnsafeVolume.UNSAFE;
                 long ret = 0;
                 byte v;
                 do{
                     //$DELAY$
-                    v = Volume.UnsafeVolume.UNSAFE.getByte(pos2++);
+                    v = UNSAFE.getByte(pos2++);
                     ret = (ret<<7 ) | (v & 0x7F);
                 }while(v<0);
 
@@ -2359,11 +2360,12 @@ public abstract class Volume implements Closeable{
 
             @Override
             public int unpackInt() throws IOException {
+                sun.misc.Unsafe UNSAFE = Volume.UnsafeVolume.UNSAFE;
                 int ret = 0;
                 byte v;
                 do{
                     //$DELAY$
-                    v = Volume.UnsafeVolume.UNSAFE.getByte(pos2++);
+                    v = UNSAFE.getByte(pos2++);
                     ret = (ret<<7 ) | (v & 0x7F);
                 }while(v<0);
 
@@ -2373,6 +2375,7 @@ public abstract class Volume implements Closeable{
 
             @Override
             public void unpackLongSixArray(byte[] b, int start, int end)  throws IOException {
+                sun.misc.Unsafe UNSAFE = Volume.UnsafeVolume.UNSAFE;
                 long pos2_ = pos2;
                 long ret;
                 byte v;
@@ -2380,7 +2383,7 @@ public abstract class Volume implements Closeable{
                     ret = 0;
                     do {
                         //$DELAY$
-                        v = Volume.UnsafeVolume.UNSAFE.getByte(pos2_++);
+                        v = UNSAFE.getByte(pos2_++);
                         ret = (ret << 7) | (v & 0x7F);
                     } while (v < 0);
                     DataIO.putSixLong(b,start,ret);
@@ -2391,6 +2394,7 @@ public abstract class Volume implements Closeable{
 
             @Override
             public long[] unpackLongArrayDeltaCompression(final int size) throws IOException {
+                sun.misc.Unsafe UNSAFE = Volume.UnsafeVolume.UNSAFE;
                 long[] ret = new long[size];
                 long pos2_ = pos2;
                 long prev=0;
@@ -2399,7 +2403,7 @@ public abstract class Volume implements Closeable{
                     long r = 0;
                     do {
                         //$DELAY$
-                        v = Volume.UnsafeVolume.UNSAFE.getByte(pos2_++);
+                        v = UNSAFE.getByte(pos2_++);
                         r = (r << 7) | (v & 0x7F);
                     } while (v < 0);
                     prev+=r;
