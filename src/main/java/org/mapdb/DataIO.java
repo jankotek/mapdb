@@ -130,7 +130,7 @@ public final class DataIO {
 
 
     public static int packLongBidi(DataOutput out, long value) throws IOException {
-        out.write((((int) value & 0x7F))| 0x80);
+        out.write((((int) value & 0x7F)) | 0x80);
         value >>>= 7;
         int counter = 2;
 
@@ -204,12 +204,16 @@ public final class DataIO {
     }
 
     public static long getLong(byte[] buf, int pos) {
-        final int end = pos + 8;
-        long ret = 0;
-        for (; pos < end; pos++) {
-            ret = (ret << 8) | (buf[pos] & 0xFF);
-        }
-        return ret;
+       return
+               ((((long)buf[pos++]) << 56) |
+                (((long)buf[pos++] & 0xFF) << 48) |
+                (((long)buf[pos++] & 0xFF) << 40) |
+                (((long)buf[pos++] & 0xFF) << 32) |
+                (((long)buf[pos++] & 0xFF) << 24) |
+                (((long)buf[pos++] & 0xFF) << 16) |
+                (((long)buf[pos++] & 0xFF) <<  8) |
+                (((long)buf[pos] & 0xFF)));
+
     }
 
     public static void putLong(byte[] buf, int pos,long v) {
@@ -359,23 +363,31 @@ public final class DataIO {
 
         @Override
         public int readInt() throws IOException {
-            final int end = pos + 4;
-            int ret = 0;
-            for (; pos < end; pos++) {
-                //$DELAY$
-                ret = (ret << 8) | (buf[pos] & 0xFF);
-            }
+            int p = pos;
+            final byte[] b = buf;
+            final int ret =
+                    ((((int)b[p++]) << 24) |
+                     (((int)b[p++] & 0xFF) << 16) |
+                     (((int)b[p++] & 0xFF) <<  8) |
+                     (((int)b[p++] & 0xFF)));
+            pos = p;
             return ret;
         }
 
         @Override
         public long readLong() throws IOException {
-            final int end = pos + 8;
-            long ret = 0;
-            for (; pos < end; pos++) {
-                //$DELAY$
-                ret = (ret << 8) | (buf[pos] & 0xFF);
-            }
+            int p = pos;
+            final byte[] b = buf;
+            final long ret =
+                    ((((long)b[p++]) << 56) |
+                    (((long)b[p++] & 0xFF) << 48) |
+                    (((long)b[p++] & 0xFF) << 40) |
+                    (((long)b[p++] & 0xFF) << 32) |
+                    (((long)b[p++] & 0xFF) << 24) |
+                    (((long)b[p++] & 0xFF) << 16) |
+                    (((long)b[p++] & 0xFF) <<  8) |
+                    (((long)b[p++] & 0xFF)));
+            pos = p;
             return ret;
         }
 
