@@ -35,7 +35,7 @@ public class VolumeTest {
         Thread.sleep(100);
         t.interrupt();
         Thread.sleep(100);
-        assertTrue(ref.get() instanceof DBException.VolumeClosedByInterrupt);
+        assertTrue(ref.get() instanceof DBException.VolumeClosed);
         //now channel should be closed
         assertFalse(v.channel.isOpen());
         try {
