@@ -395,8 +395,7 @@ public abstract class Store implements Engine {
     private static final int LOCK_MASK = CC.CONCURRENCY-1;
 
     protected static final int lockPos(final long recid) {
-        int hash =  DataIO.longHash(recid);
-        return (hash + 31*hash)  & LOCK_MASK; //TODO investigate best way to spread bits
+        return DataIO.longHash(recid) & LOCK_MASK; //TODO investigate best way to spread bits
     }
 
     protected void assertReadLocked(long recid) {
@@ -563,8 +562,7 @@ public abstract class Store implements Engine {
             }
 
             protected int pos(long recid) {
-                int hash = DataIO.longHash(recid);
-                return (hash + 31*(hash +31*hash)) &cacheMaxSizeMask;
+                return DataIO.longHash(recid)&cacheMaxSizeMask;
             }
 
             @Override
