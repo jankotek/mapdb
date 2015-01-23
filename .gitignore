@@ -3,6 +3,7 @@
 .settings
 .idea
 target
+build
 bin
 out
 helper
