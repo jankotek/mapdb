@@ -443,27 +443,31 @@ public final class DataIO {
 
         @Override
         public long unpackLong() throws IOException {
+            byte[] b = buf;
+            int p = pos;
             long ret = 0;
             byte v;
             do{
                 //$DELAY$
-                v = buf[pos++];
+                v = b[p++];
                 ret = (ret<<7 ) | (v & 0x7F);
             }while(v<0);
-
+            pos = p;
             return ret;
         }
 
         @Override
         public int unpackInt() throws IOException {
+            byte[] b = buf;
+            int p = pos;
             int ret = 0;
             byte v;
             do{
                 //$DELAY$
-                v = buf[pos++];
+                v = b[p++];
                 ret = (ret<<7 ) | (v & 0x7F);
             }while(v<0);
-
+            pos = p;
             return ret;
         }
 
@@ -783,7 +787,7 @@ public final class DataIO {
 
         public DataOutputByteArray(){
             pos = 0;
-            buf = new byte[16]; //TODO take hint from serializer for initial size
+            buf = new byte[128]; //TODO take hint from serializer for initial size
             sizeMask = 0xFFFFFFFF-(buf.length-1);
         }
 
@@ -800,19 +804,13 @@ public final class DataIO {
             n+=pos;
             if ((n&sizeMask)!=0) {
                 grow(n);
-
             }
         }
 
-        private void grow(long n) {
+        private void grow(int n) {
             //$DELAY$
-            int newSize = buf.length;
-            while(newSize<n){
-                //$DELAY$
-                newSize<<=2;
-                sizeMask<<=2;
-            }
-            //$DELAY$
+            int newSize = Math.max(nextPowTwo(n),buf.length);
+            sizeMask = 0xFFFFFFFF-(newSize-1);
             buf = Arrays.copyOf(buf, newSize);
         }
 

@@ -2346,14 +2346,15 @@ public abstract class Volume implements Closeable{
             @Override
             public long unpackLong() throws IOException {
                 sun.misc.Unsafe UNSAFE = Volume.UnsafeVolume.UNSAFE;
+                long pos = pos2;
                 long ret = 0;
                 byte v;
                 do{
                     //$DELAY$
-                    v = UNSAFE.getByte(pos2++);
+                    v = UNSAFE.getByte(pos++);
                     ret = (ret<<7 ) | (v & 0x7F);
                 }while(v<0);
-
+                pos2 = pos;
                 return ret;
 
             }
@@ -2361,14 +2362,15 @@ public abstract class Volume implements Closeable{
             @Override
             public int unpackInt() throws IOException {
                 sun.misc.Unsafe UNSAFE = Volume.UnsafeVolume.UNSAFE;
+                long pos = pos2;
                 int ret = 0;
                 byte v;
                 do{
                     //$DELAY$
-                    v = UNSAFE.getByte(pos2++);
+                    v = UNSAFE.getByte(pos++);
                     ret = (ret<<7 ) | (v & 0x7F);
                 }while(v<0);
-
+                pos2 = pos;
                 return ret;
 
             }
