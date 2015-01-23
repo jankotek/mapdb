@@ -48,6 +48,8 @@ public class VolumeTest {
 
     @Test
     public void all() throws Exception {
+        System.out.println("Run volume tests. Free space: "+File.createTempFile("mapdb","mapdb").getFreeSpace());
+
         Callable<Volume>[] fabs = new Callable[]{
                 new Callable() {
                     @Override
@@ -101,7 +103,9 @@ public class VolumeTest {
 
         for (Callable<Volume> fab1 : fabs) {
 
-            testPackLongBidi(fab1.call());
+            Volume v = fab1.call();
+            System.out.println(" "+v);
+            testPackLongBidi(v);
 
             putGetOverlap(fab1.call(), 100, 1000);
             putGetOverlap(fab1.call(), StoreDirect.PAGE_SIZE - 500, 1000);
