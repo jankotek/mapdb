@@ -84,7 +84,7 @@ public class DBMakerTest{
         Engine w =  db.engine;
         Store store = Store.forDB(db);
         assertTrue(store.caches[0] instanceof Store.Cache.HashTable);
-        assertEquals(1024 * 32, ((Store.Cache.HashTable) store.caches[0] ).items.length* store.caches.length);
+        assertEquals(1024 * 2, ((Store.Cache.HashTable) store.caches[0] ).items.length* store.caches.length);
         StoreDirect s = (StoreDirect) store;
         assertTrue(s.vol instanceof Volume.FileChannelVol);
     }
@@ -101,7 +101,7 @@ public class DBMakerTest{
         Engine w = db.engine;
         Store store = Store.forDB(db);
         assertTrue(store.caches[0] instanceof Store.Cache.HashTable);
-        assertEquals(1024 * 32, ((Store.Cache.HashTable) store.caches[0]).items.length * store.caches.length);
+        assertEquals(1024 * 2, ((Store.Cache.HashTable) store.caches[0]).items.length * store.caches.length);
         StoreDirect s = (StoreDirect) store;
         assertTrue(s.vol instanceof Volume.MappedFileVol);
     }

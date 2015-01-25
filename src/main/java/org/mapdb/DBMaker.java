@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Logger;
 
 /**
  * A builder class for creating and opening a database.
@@ -30,6 +31,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @author Jan Kotek
  */
 public class DBMaker{
+
+    protected static final Logger LOG = Logger.getLogger(DBMaker.class.getName());
 
     protected final String TRUE = "true";
 
@@ -490,7 +493,7 @@ public class DBMaker{
      * <p>
      * For unbounded caches (such as HardRef cache) it is initial capacity of underlying table (HashMap).
      * <p>
-     * Default cache size is 32768.
+     * Default cache size is 2048.
      *
      * @param cacheSize new cache size
      * @return this builder
@@ -522,6 +525,7 @@ public class DBMaker{
      * @return this builder
      */
     public DBMaker asyncWriteEnable(){
+        LOG.warning("AsyncWrite is not implemented at this moment");
         props.setProperty(Keys.asyncWrite,TRUE);
         return this;
     }
@@ -549,7 +553,7 @@ public class DBMaker{
     }
 
     /**
-     * Set size of async Write Queue. Default size is 32 000
+     * Set size of async Write Queue. Default size is
      * <p>
      * Using too large queue size can lead to out of memory exception.
      *
