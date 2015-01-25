@@ -395,7 +395,16 @@ public abstract class Store implements Engine {
     private static final int LOCK_MASK = CC.CONCURRENCY-1;
 
     protected static final int lockPos(final long recid) {
-        return DataIO.longHash(recid) & LOCK_MASK; //TODO investigate best way to spread bits
+        int h = (int)(recid ^ (recid >>> 32));
+        //spread bits, so each bit becomes part of segment (lockPos)
+        h ^= (h<<4);
+        h ^= (h<<4);
+        h ^= (h<<4);
+        h ^= (h<<4);
+        h ^= (h<<4);
+        h ^= (h<<4);
+        h ^= (h<<4);
+        return h & LOCK_MASK;
     }
 
     protected void assertReadLocked(long recid) {
