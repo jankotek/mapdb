@@ -87,7 +87,7 @@ public interface CC {
 //    int BTREE_DEFAULT_MAX_NODE_SIZE = 32;
 
 
-    int DEFAULT_CACHE_SIZE = 1024 * 32;
+    int DEFAULT_CACHE_SIZE = 2048;
 
     String DEFAULT_CACHE = DBMaker.Keys.cache_hashTable;
 
