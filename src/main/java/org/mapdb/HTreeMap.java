@@ -388,7 +388,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     public V get(final Object o){
         if(o==null) return null;
         final int h = hash(o);
-        final int segment = segment(h);
+        final int segment = h >>>28;
 
         final Lock lock = expireAccessFlag ? segmentLocks[segment].writeLock() : segmentLocks[segment].readLock();
         lock.lock();
@@ -427,7 +427,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     public V getPeek(final Object key){
         if(key==null) return null;
         final int h = hash(key);
-        final int segment = segment(h);
+        final int segment = h >>>28;
 
         final Lock lock = segmentLocks[segment].readLock();
         lock.lock();
@@ -552,7 +552,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             throw new IllegalArgumentException("null value");
 
         final int h = hash(key);
-        final int segment = segment(h);
+        final int segment = h >>>28;
         segmentLocks[segment].writeLock().lock();
         try{
             return putInner(key, value, h, segment);
@@ -667,7 +667,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     public V remove(Object key){
 
         final int h = hash(key);
-        final int segment = segment(h);
+        final int segment = h >>>28;
         segmentLocks[segment].writeLock().lock();
         try{
             return removeInternal(key, segment, h, true);
@@ -682,7 +682,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         int level = 3;
         dirRecids[level] = segmentRecids[segment];
 
-        if(CC.PARANOID && ! (segment==segment(h)))
+        if(CC.PARANOID && ! (segment==h>>>28))
             throw new AssertionError();
 
         while(true){
@@ -996,15 +996,21 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
 
     protected int hash(final Object key) {
+        //TODO investigate hash distribution and performance impact
         int h = keySerializer.hashCode((K) key) ^ hashSalt;
-        h ^= (h<<8) ^ (h<<16) ^ (h<<24); //spread low bits a bit
-        return h; //TODO investigate hash distribution
+        //spread low bits,
+        //need so many mixes so each bit becomes part of segment
+        //segment is upper 4 bits
+        h ^= (h<<4);
+        h ^= (h<<4);
+        h ^= (h<<4);
+        h ^= (h<<4);
+        h ^= (h<<4);
+        h ^= (h<<4);
+        h ^= (h<<4);
+        return h;
     }
 
-    protected int segment(final int h){
-        //spread bits
-        return ((h>>>28) ^ (h>>>24) ^ (h>>>20) ^ (h>>>16) ^ (h>>>12) ^ (h>>>8) ^ (h>>>4) ^ h) & 15;
-    }
 
     abstract class HashIterator{
 
@@ -1045,7 +1051,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         private LinkedNode[] advance(int lastHash){
 
-            int segment = segment(lastHash);
+            int segment = lastHash>>>28;
 
             //two phases, first find old item and increase hash
             Lock lock = segmentLocks[segment].readLock();
@@ -1086,7 +1092,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         private LinkedNode[] findNextLinkedNode(int hash) {
             //second phase, start search from increased hash to find next items
-            for(int segment = Math.max(segment(hash), lastSegment); segment<16;segment++){
+            for(int segment = Math.max(hash>>>28, lastSegment); segment<16;segment++){
                 final Lock lock = expireAccessFlag ? segmentLocks[segment].writeLock() :segmentLocks[segment].readLock() ;
                 lock.lock();
                 try{
@@ -1094,7 +1100,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                     long dirRecid = segmentRecids[segment];
                     LinkedNode ret[] = findNextLinkedNodeRecur(dirRecid, hash, 3);
                     if(CC.PARANOID && ret!=null) for(LinkedNode ln:ret){
-                        if(( segment(hash(ln.key))!=segment))
+                        if(( hash(ln.key)>>>28!=segment))
                             throw new AssertionError();
                     }
                     //System.out.println(Arrays.asList(ret));
@@ -1236,7 +1242,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         if(key==null||value==null) throw new NullPointerException();
 
         final int h = HTreeMap.this.hash(key);
-        final int segment = segment(h);
+        final int segment = h >>>28;
         try{
             segmentLocks[segment].writeLock().lock();
 
@@ -1255,7 +1261,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     public boolean remove(Object key, Object value) {
         if(key==null||value==null) throw new NullPointerException();
         final int h = HTreeMap.this.hash(key);
-        final int segment = segment(h);
+        final int segment = h >>>28;
         try{
             segmentLocks[segment].writeLock().lock();
 
@@ -1275,7 +1281,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     public boolean replace(K key, V oldValue, V newValue) {
         if(key==null||oldValue==null||newValue==null) throw new NullPointerException();
         final int h = HTreeMap.this.hash(key);
-        final int segment = segment(h);
+        final int segment = h >>>28;
         try{
             segmentLocks[segment].writeLock().lock();
 
@@ -1295,7 +1301,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     public V replace(K key, V value) {
         if(key==null||value==null) throw new NullPointerException();
         final int h = HTreeMap.this.hash(key);
-        final int segment =  segment(h);
+        final int segment =  h >>>28;
         try{
             segmentLocks[segment].writeLock().lock();
 
@@ -1657,7 +1663,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 n = engine.get(recid, ExpireLinkNode.SERIALIZER);
                 if(CC.PARANOID && ! (n!=ExpireLinkNode.EMPTY))
                     throw new AssertionError();
-                if(CC.PARANOID && ! ( segment(n.hash) == seg))
+                if(CC.PARANOID && ! ( n.hash>>>28 == seg))
                     throw new AssertionError();
 
                 final boolean remove = ++counter < removePerSegment ||
@@ -1759,7 +1765,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     }
 
     protected void notify(K key, V oldValue, V newValue) {
-        if(CC.PARANOID && ! (segmentLocks[segment(hash(key))].isWriteLockedByCurrentThread()))
+        if(CC.PARANOID && ! (segmentLocks[hash(key)>>>28].isWriteLockedByCurrentThread()))
             throw new AssertionError();
         Bind.MapListener<K,V>[] modListeners2  = modListeners;
         for(Bind.MapListener<K,V> listener:modListeners2){
