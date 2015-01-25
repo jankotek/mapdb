@@ -15,7 +15,7 @@ public class TxEngineTest {
     @Before public void init(){
         Store store = new StoreWAL(null);
         store.init();
-        e = new TxEngine(store,true);
+        e = new TxEngine(store,true, CC.DEFAULT_LOCK_SCALE);
     }
 
     @Test public void update(){

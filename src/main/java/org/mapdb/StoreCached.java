@@ -29,6 +29,7 @@ public class StoreCached extends StoreDirect {
             String fileName,
             Fun.Function1<Volume, String> volumeFactory,
             Cache cache,
+            int lockScale,
             int lockingStrategy,
             boolean checksum,
             boolean compress,
@@ -38,11 +39,12 @@ public class StoreCached extends StoreDirect {
             boolean commitFileSyncDisable,
             int sizeIncrement) {
         super(fileName, volumeFactory, cache,
+                lockScale,
                 lockingStrategy,
                 checksum, compress, password, readonly,
                 freeSpaceReclaimQ, commitFileSyncDisable, sizeIncrement);
 
-        writeCache = new LongObjectObjectMap[CC.CONCURRENCY];
+        writeCache = new LongObjectObjectMap[this.lockScale];
         for (int i = 0; i < writeCache.length; i++) {
             writeCache[i] = new LongObjectObjectMap();
         }
@@ -53,6 +55,7 @@ public class StoreCached extends StoreDirect {
         this(fileName,
                 fileName == null ? Volume.memoryFactory() : Volume.fileFactory(),
                 null,
+                CC.DEFAULT_LOCK_SCALE,
                 0,
                 false, false, null, false, 0,
                 false, 0);

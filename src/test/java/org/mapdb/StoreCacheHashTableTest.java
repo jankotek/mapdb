@@ -13,6 +13,7 @@ public class StoreCacheHashTableTest<E extends StoreDirect> extends EngineTest<E
                 f.getPath(),
                 Volume.fileFactory(),
                 new Store.Cache.HashTable(1024,false),
+                CC.DEFAULT_LOCK_SCALE,
                 0,
                 false,
                 false,

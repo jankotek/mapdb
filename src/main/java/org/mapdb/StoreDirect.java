@@ -61,6 +61,7 @@ public class StoreDirect extends Store {
     public StoreDirect(String fileName,
                        Fun.Function1<Volume, String> volumeFactory,
                        Cache cache,
+                       int lockScale,
                        int lockingStrategy,
                        boolean checksum,
                        boolean compress,
@@ -70,7 +71,7 @@ public class StoreDirect extends Store {
                        boolean commitFileSyncDisable,
                        int sizeIncrement
                        ) {
-        super(fileName,volumeFactory, cache, lockingStrategy, checksum,compress,password,readonly);
+        super(fileName,volumeFactory, cache, lockScale, lockingStrategy, checksum,compress,password,readonly);
         this.vol = volumeFactory.run(fileName);
     }
 
@@ -186,6 +187,7 @@ public class StoreDirect extends Store {
         this(fileName,
                 fileName==null? Volume.memoryFactory() : Volume.fileFactory(),
                 null,
+                CC.DEFAULT_LOCK_SCALE,
                 0,
                 false,false,null,false,0,
                 false,0);

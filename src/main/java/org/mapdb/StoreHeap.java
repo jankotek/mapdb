@@ -17,9 +17,9 @@ public class StoreHeap extends Store{
     protected static final Object TOMBSTONE = new Object();
     protected static final Object NULL = new Object();
 
-    public StoreHeap(boolean txDisabled, int lockingStrategy){
-        super(null,null,null,0, false,false,null,false);
-        data = new LongObjectMap[CC.CONCURRENCY];
+    public StoreHeap(boolean txDisabled, int lockScale, int lockingStrategy){
+        super(null,null,null,lockScale, 0, false,false,null,false);
+        data = new LongObjectMap[this.lockScale];
         for(int i=0;i<data.length;i++){
             data[i] = new LongObjectMap();
         }
@@ -27,7 +27,7 @@ public class StoreHeap extends Store{
         if(txDisabled){
             rollback = null;
         }else {
-            rollback = new LongObjectMap[CC.CONCURRENCY];
+            rollback = new LongObjectMap[this.lockScale];
             for (int i = 0; i < rollback.length; i++) {
                 rollback[i] = new LongObjectMap();
             }

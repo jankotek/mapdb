@@ -73,7 +73,7 @@ public class StoreDirectTest2 {
                 return vol;
             }
         };
-        StoreDirect st = new StoreDirect(null, fab, null, 0, false, false,null, false, 0,false,0);
+        StoreDirect st = new StoreDirect(null, fab, null, CC.DEFAULT_LOCK_SCALE, 0, false, false,null, false, 0,false,0);
         st.init();
 
         Map<Long,String> recids = new HashMap();
@@ -86,7 +86,7 @@ public class StoreDirectTest2 {
         //close would destroy Volume,so this will do
         st.commit();
 
-        st = new StoreDirect(null, fab, null, 0, false, false,null, false, 0,false,0);
+        st = new StoreDirect(null, fab, null, CC.DEFAULT_LOCK_SCALE, 0, false, false,null, false, 0,false,0);
         st.init();
 
         for(Map.Entry<Long,String> e:recids.entrySet()){

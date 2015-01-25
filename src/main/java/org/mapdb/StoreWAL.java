@@ -71,6 +71,7 @@ public class StoreWAL extends StoreCached {
         this(fileName,
                 fileName == null ? Volume.memoryFactory() : Volume.fileFactory(),
                 null,
+                CC.DEFAULT_LOCK_SCALE,
                 0,
                 false, false, null, false, 0,
                 false, 0);
@@ -80,6 +81,7 @@ public class StoreWAL extends StoreCached {
             String fileName,
             Fun.Function1<Volume, String> volumeFactory,
             Cache cache,
+            int lockScale,
             int lockingStrategy,
             boolean checksum,
             boolean compress,
@@ -89,18 +91,19 @@ public class StoreWAL extends StoreCached {
             boolean commitFileSyncDisable,
             int sizeIncrement) {
         super(fileName, volumeFactory, cache,
+                lockScale,
                 lockingStrategy,
                 checksum, compress, password, readonly,
                 freeSpaceReclaimQ, commitFileSyncDisable, sizeIncrement);
-        prevLongLongs = new LongLongMap[CC.CONCURRENCY];
-        currLongLongs = new LongLongMap[CC.CONCURRENCY];
-        for (int i = 0; i < CC.CONCURRENCY; i++) {
+        prevLongLongs = new LongLongMap[this.lockScale];
+        currLongLongs = new LongLongMap[this.lockScale];
+        for (int i = 0; i < prevLongLongs.length; i++) {
             prevLongLongs[i] = new LongLongMap();
             currLongLongs[i] = new LongLongMap();
         }
-        prevDataLongs = new LongLongMap[CC.CONCURRENCY];
-        currDataLongs = new LongLongMap[CC.CONCURRENCY];
-        for (int i = 0; i < CC.CONCURRENCY; i++) {
+        prevDataLongs = new LongLongMap[this.lockScale];
+        currDataLongs = new LongLongMap[this.lockScale];
+        for (int i = 0; i < prevDataLongs.length; i++) {
             prevDataLongs[i] = new LongLongMap();
             currDataLongs[i] = new LongLongMap();
         }
@@ -550,7 +553,7 @@ public class StoreWAL extends StoreCached {
 
             //move all from current longs to prev
             //each segment requires write lock
-            for(int segment=0;segment<CC.CONCURRENCY;segment++){
+            for(int segment=0;segment<locks.length;segment++){
                 Lock lock = locks[segment].writeLock();
                 lock.lock();
                 try{
@@ -649,7 +652,7 @@ public class StoreWAL extends StoreCached {
         }
         try {
             //flush entire write cache
-            for(int segment=0;segment<CC.CONCURRENCY;segment++){
+            for(int segment=0;segment<locks.length;segment++){
                 flushWriteCacheSegment(segment);
 
                 long[] v = currLongLongs[segment].table;

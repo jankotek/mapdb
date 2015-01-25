@@ -21,7 +21,6 @@ import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -38,10 +37,9 @@ public class TxEngine implements Engine {
     protected static final Object TOMBSTONE = new Object();
 
     protected final ReentrantReadWriteLock commitLock = new ReentrantReadWriteLock(CC.FAIR_LOCKS);
-    protected final ReentrantReadWriteLock[] locks = new ReentrantReadWriteLock[CC.CONCURRENCY];
-    {
-        for(int i=0;i<locks.length;i++) locks[i] = new ReentrantReadWriteLock(CC.FAIR_LOCKS);
-    }
+    protected final ReentrantReadWriteLock[] locks;
+    protected final int lockScale;
+    protected final int lockMask;
 
 
     protected volatile boolean uncommitedData = false;
@@ -57,10 +55,16 @@ public class TxEngine implements Engine {
 
     protected final Engine engine;
 
-    protected TxEngine(Engine engine, boolean fullTx) {
+    protected TxEngine(Engine engine, boolean fullTx, int lockScale) {
         this.engine = engine;
         this.fullTx = fullTx;
         this.preallocRecids = fullTx ? new ArrayBlockingQueue<Long>(PREALLOC_RECID_SIZE) : null;
+        this.lockScale = lockScale;
+        this.lockMask = lockScale-1;
+        locks=new ReentrantReadWriteLock[lockScale];
+        {
+            for(int i=0;i<locks.length;i++) locks[i] = new ReentrantReadWriteLock(CC.FAIR_LOCKS);
+        }
     }
 
     protected Long preallocRecidTake() {
@@ -138,7 +142,7 @@ public class TxEngine implements Engine {
         try {
             uncommitedData = true;
             long recid =  engine.preallocate();
-            Lock lock = locks[Store.lockPos(recid)].writeLock();
+            Lock lock = locks[lockPos(recid)].writeLock();
             lock.lock();
             try{
                 for(Reference<Tx> txr:txs){
@@ -161,7 +165,7 @@ public class TxEngine implements Engine {
         try {
             uncommitedData = true;
             long recid = engine.put(value, serializer);
-            Lock lock = locks[Store.lockPos(recid)].writeLock();
+            Lock lock = locks[lockPos(recid)].writeLock();
             lock.lock();
             try{
                 for(Reference<Tx> txr:txs){
@@ -195,7 +199,7 @@ public class TxEngine implements Engine {
         commitLock.readLock().lock();
         try {
             uncommitedData = true;
-            Lock lock = locks[Store.lockPos(recid)].writeLock();
+            Lock lock = locks[lockPos(recid)].writeLock();
             lock.lock();
             try{
                 Object old = get(recid,serializer);
@@ -219,7 +223,7 @@ public class TxEngine implements Engine {
         commitLock.readLock().lock();
         try {
             uncommitedData = true;
-            Lock lock = locks[Store.lockPos(recid)].writeLock();
+            Lock lock = locks[lockPos(recid)].writeLock();
             lock.lock();
             try{
                 boolean ret = engine.compareAndSwap(recid, expectedOldValue, newValue, serializer);
@@ -245,7 +249,7 @@ public class TxEngine implements Engine {
         commitLock.readLock().lock();
         try {
             uncommitedData = true;
-            Lock lock = locks[Store.lockPos(recid)].writeLock();
+            Lock lock = locks[lockPos(recid)].writeLock();
             lock.lock();
             try{
                 Object old = get(recid,serializer);
@@ -389,7 +393,7 @@ public class TxEngine implements Engine {
             commitLock.readLock().lock();
             try{
                 if(closed) throw new IllegalAccessError("closed");
-                Lock lock = locks[Store.lockPos(recid)].readLock();
+                Lock lock = locks[lockPos(recid)].readLock();
                 lock.lock();
                 try{
                     return getNoLock(recid, serializer);
@@ -440,7 +444,7 @@ public class TxEngine implements Engine {
             commitLock.readLock().lock();
             try{
 
-                Lock lock = locks[Store.lockPos(recid)].writeLock();
+                Lock lock = locks[lockPos(recid)].writeLock();
                 lock.lock();
                 try{
                     A oldVal = getNoLock(recid, serializer);
@@ -606,6 +610,12 @@ public class TxEngine implements Engine {
         }
 
 
+    }
+
+
+    protected final int lockPos(final long recid) {
+        int hash =  DataIO.longHash(recid);
+        return (hash + 31*hash)  & lockMask; //TODO investigate best way to spread bits
     }
 
 }

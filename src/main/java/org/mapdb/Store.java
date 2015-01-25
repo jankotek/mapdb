@@ -33,6 +33,8 @@ public abstract class Store implements Engine {
 
     /** protects data from being overwritten while read */
     protected final ReadWriteLock[] locks;
+    protected final int lockScale;
+    protected final int lockMask;
 
 
     protected volatile boolean closed = false;
@@ -52,6 +54,7 @@ public abstract class Store implements Engine {
             String fileName,
             Fun.Function1<Volume, String> volumeFactory,
             Cache cache,
+            int lockScale,
             int lockingStrategy,
             boolean checksum,
             boolean compress,
@@ -59,7 +62,11 @@ public abstract class Store implements Engine {
             boolean readonly) {
         this.fileName = fileName;
         this.volumeFactory = volumeFactory;
-        locks = new ReadWriteLock[CC.CONCURRENCY];
+        this.lockScale = lockScale;
+        this.lockMask = lockScale-1;
+        if(Integer.bitCount(lockScale)!=1)
+            throw new IllegalArgumentException();
+        locks = new ReadWriteLock[lockScale];
         for(int i=0;i< locks.length;i++){
             if(lockingStrategy==0)
                 locks[i] = new ReentrantReadWriteLock(CC.FAIR_LOCKS);
@@ -70,7 +77,7 @@ public abstract class Store implements Engine {
             }
         }
 
-        caches = new Cache[CC.CONCURRENCY];
+        caches = new Cache[lockScale];
         if(cache==null)
             cache = Cache.ZERO_CACHE;
         caches[0] = cache;
@@ -392,9 +399,7 @@ public abstract class Store implements Engine {
 
     protected abstract <A> void delete2(long recid, Serializer<A> serializer);
 
-    private static final int LOCK_MASK = CC.CONCURRENCY-1;
-
-    protected static final int lockPos(final long recid) {
+    protected final int lockPos(final long recid) {
         int h = (int)(recid ^ (recid >>> 32));
         //spread bits, so each bit becomes part of segment (lockPos)
         h ^= (h<<4);
@@ -404,7 +409,7 @@ public abstract class Store implements Engine {
         h ^= (h<<4);
         h ^= (h<<4);
         h ^= (h<<4);
-        return h & LOCK_MASK;
+        return h & lockMask;
     }
 
     protected void assertReadLocked(long recid) {

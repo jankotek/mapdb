@@ -57,6 +57,8 @@ public class DBMaker{
         String volume_unsafe = "unsafe";
 
 
+        String lockScale = "lockScale";
+
         String lock = "lock";
         String lock_readWrite = "readWrite";
         String lock_single = "single";
@@ -440,6 +442,19 @@ public class DBMaker{
     }
 
 
+    /**
+     * Sets concurrency scale. More locks means better scalability with multiple cores, but also higher memory overhead
+     * <p>
+     * This value has to be power of two, so it is rounded up automatically.
+     * <p>
+     * @return this builder
+     */
+    public DBMaker lockScale(int scale) {
+        props.put(Keys.lockScale, ""+scale);
+        return this;
+    }
+
+
 
     /**
      * Enables Memory Mapped Files, much faster storage option. However on 32bit JVM this mode could corrupt
@@ -748,11 +763,12 @@ public class DBMaker{
             lockingStrategy = 2;
         }
 
+        final int lockScale = DataIO.nextPowTwo(propsGetInt(Keys.lockScale,CC.DEFAULT_LOCK_SCALE));
 
         boolean cacheLockDisable = lockingStrategy!=0;
 
         if(Keys.store_heap.equals(store)){
-            engine = new StoreHeap(propsGetBool(Keys.transactionDisable),lockingStrategy);
+            engine = new StoreHeap(propsGetBool(Keys.transactionDisable),lockScale,lockingStrategy);
 
         }else  if(Keys.store_append.equals(store)){
             if(Keys.volume_byteBuffer.equals(volume)||Keys.volume_directByteBuffer.equals(volume))
@@ -762,7 +778,8 @@ public class DBMaker{
             engine = new StoreAppend(
                     file,
                     volFac,
-                    createCache(cacheLockDisable),
+                    createCache(cacheLockDisable,lockScale),
+                    lockScale,
                     lockingStrategy,
                     propsGetBool(Keys.checksum),
                     Keys.compression_lzf.equals(props.getProperty(Keys.compression)),
@@ -780,7 +797,8 @@ public class DBMaker{
                     new StoreDirect(
                             file,
                             volFac,
-                            createCache(cacheLockDisable),
+                            createCache(cacheLockDisable,lockScale),
+                            lockScale,
                             lockingStrategy,
                             propsGetBool(Keys.checksum),
                             compressionEnabled,
@@ -793,7 +811,8 @@ public class DBMaker{
                     new StoreWAL(
                             file,
                             volFac,
-                            createCache(cacheLockDisable),
+                            createCache(cacheLockDisable,lockScale),
+                            lockScale,
                             lockingStrategy,
                             propsGetBool(Keys.checksum),
                             compressionEnabled,
@@ -817,7 +836,7 @@ public class DBMaker{
 
 
         if(propsGetBool(Keys.snapshots))
-            engine = extendSnapshotEngine(engine);
+            engine = extendSnapshotEngine(engine, lockScale);
 
         engine = extendWrapSnapshotEngine(engine);
 
@@ -854,23 +873,23 @@ public class DBMaker{
         return engine;
     }
 
-    protected Store.Cache createCache(boolean disableLocks) {
+    protected Store.Cache createCache(boolean disableLocks, int lockScale) {
         final String cache = props.getProperty(Keys.cache, CC.DEFAULT_CACHE);
 
         if(Keys.cache_disable.equals(cache)){
             return null;
         }else if(Keys.cache_hashTable.equals(cache)){
-            int cacheSize = propsGetInt(Keys.cacheSize, CC.DEFAULT_CACHE_SIZE) / CC.CONCURRENCY;
+            int cacheSize = propsGetInt(Keys.cacheSize, CC.DEFAULT_CACHE_SIZE) / lockScale;
             return new Store.Cache.HashTable(cacheSize,disableLocks);
         }else if (Keys.cache_hardRef.equals(cache)){
-            int cacheSize = propsGetInt(Keys.cacheSize, CC.DEFAULT_CACHE_SIZE) / CC.CONCURRENCY;
+            int cacheSize = propsGetInt(Keys.cacheSize, CC.DEFAULT_CACHE_SIZE) / lockScale;
             return new Store.Cache.HardRef(cacheSize,disableLocks);
         }else if (Keys.cache_weakRef.equals(cache)){
             return new Store.Cache.WeakSoftRef(true,disableLocks);
         }else if (Keys.cache_softRef.equals(cache)){
             return new Store.Cache.WeakSoftRef(false,disableLocks);
         }else if (Keys.cache_lru.equals(cache)){
-            int cacheSize = propsGetInt(Keys.cacheSize, CC.DEFAULT_CACHE_SIZE) / CC.CONCURRENCY;
+            int cacheSize = propsGetInt(Keys.cacheSize, CC.DEFAULT_CACHE_SIZE) / lockScale;
             return new Store.Cache.LRU(cacheSize,disableLocks);
         }else{
             throw new IllegalArgumentException("unknown cache type: "+cache);
@@ -932,8 +951,8 @@ public class DBMaker{
     }
 
 
-    protected Engine extendSnapshotEngine(Engine engine) {
-        return new TxEngine(engine,propsGetBool(Keys.fullTx));
+    protected Engine extendSnapshotEngine(Engine engine, int lockScale) {
+        return new TxEngine(engine,propsGetBool(Keys.fullTx), lockScale);
     }
 
     protected Engine extendAsyncWriteEngine(Engine engine) {

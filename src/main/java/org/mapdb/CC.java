@@ -37,9 +37,10 @@ public interface CC {
     /**
      * Compile with more assertions and verifications.
      * For example HashMap may check if keys implements hash function correctly.
-     * This may slow down MapDB thousands times
+     * This will slow down MapDB significantly.
      */
     boolean PARANOID = true;
+
 
     /**
      * Compile-in detailed log messages from store.
@@ -75,12 +76,12 @@ public interface CC {
     int ASYNC_RECID_PREALLOC_QUEUE_SIZE = 128;
 
     /**
-     * Concurrency level. Should be greater than number of threads accessing
+     * Default concurrency level. Should be greater than number of threads accessing
      * MapDB concurrently. On other side larger number consumes more memory
      * <p>
      * This number must be power of two: `CONCURRENCY = 2^N`
      */
-    int CONCURRENCY = 16;
+    int DEFAULT_LOCK_SCALE = 16;
 
 
 //    int BTREE_DEFAULT_MAX_NODE_SIZE = 32;

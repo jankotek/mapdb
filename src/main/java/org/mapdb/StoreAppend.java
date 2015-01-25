@@ -36,6 +36,7 @@ public class StoreAppend extends Store {
     protected StoreAppend(String fileName,
                           Fun.Function1<Volume, String> volumeFactory,
                           Cache cache,
+                          int lockScale,
                           int lockingStrategy,
                           boolean checksum,
                           boolean compress,
@@ -43,10 +44,10 @@ public class StoreAppend extends Store {
                           boolean readonly,
                           boolean txDisabled
                     ) {
-        super(fileName, volumeFactory, cache, lockingStrategy, checksum, compress, password, readonly);
+        super(fileName, volumeFactory, cache, lockScale,lockingStrategy, checksum, compress, password, readonly);
         this.tx = !txDisabled;
         if(tx){
-            rollback = new LongLongMap[CC.CONCURRENCY];
+            rollback = new LongLongMap[this.lockScale];
             for(int i=0;i<rollback.length;i++){
                 rollback[i] = new LongLongMap();
             }
@@ -59,6 +60,7 @@ public class StoreAppend extends Store {
         this(fileName,
                 fileName==null? Volume.memoryFactory() : Volume.fileFactory(),
                 null,
+                CC.DEFAULT_LOCK_SCALE,
                 0,
                 false,
                 false,
