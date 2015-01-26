@@ -483,18 +483,19 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     protected static final int dirOffsetFromSlot(byte[] dir, int slot) {
         if(CC.PARANOID && slot>127)
             throw new AssertionError();
-
-        int isSet = ((dir[slot>>3] >>> (slot&7)) & 1); //check if bit at given slot is set
+        int val = slot>>>3;
+        slot &=7;
+        int isSet = ((dir[val] >>> (slot)) & 1); //check if bit at given slot is set
         isSet <<=1; //multiply by two, so it is usable in multiplication
 
         int offset=0;
-        int val = slot>>>3;
+
         int dirPos=0;
         while(dirPos!=val){
             offset+=Integer.bitCount(dir[dirPos++]&0xFF);
         }
 
-        slot = (1<<(slot&7))-1; //turn slot into mask for N right bits
+        slot = (1<<(slot))-1; //turn slot into mask for N right bits
 
         val = dir[dirPos] & slot;
         offset += Integer.bitCount(val);
