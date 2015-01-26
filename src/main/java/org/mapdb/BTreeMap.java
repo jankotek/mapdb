@@ -737,7 +737,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         protected void serializeChildArray(DataOutput out, Object childArray) throws IOException {
             if(childArray instanceof int[]){
                 int[] cc = (int[]) childArray;
-                DataIO.packLong(out, (cc[0] << 1) | 1); //pack first value mixed with int flag
+                DataIO.packLong(out, (((long)cc[0]) << 1) | 1L); //pack first value mixed with int flag
                 for(int i=1;i<cc.length;i++){
                     DataIO.packInt(out,cc[i]);
                 }
