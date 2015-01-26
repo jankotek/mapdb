@@ -409,7 +409,7 @@ public final class Pump {
                 BTreeMap.DirNode dir = new BTreeMap.DirNode(
                         keySerializer.arrayToKeys(dirKeys.get(i).toArray()),
                         leftEdge2,rightEdge2, false,
-                        toSixLongArray(dirRecids.get(i)));
+                        toLongArray(dirRecids.get(i)));
                 long dirRecid = engine.put(dir,nodeSerializer);
                 Object dirStart = dirKeys.get(i).get(0);
                 dirKeys.get(i).clear();
@@ -452,7 +452,7 @@ public final class Pump {
             BTreeMap.DirNode dir = new BTreeMap.DirNode(
                     keySerializer.arrayToKeys(keys2.toArray()),
                     leftEdge3,rightEdge3, false,
-                    toSixLongArray(dirRecids.get(i)));
+                    toLongArray(dirRecids.get(i)));
             long dirRecid = engine.put(dir,nodeSerializer);
             Object dirStart = keys2.get(0);
             dirKeys.get(i+1).add(dirStart);
@@ -481,17 +481,33 @@ public final class Pump {
         BTreeMap.DirNode dir = new BTreeMap.DirNode(
                 keySerializer.arrayToKeys(dirKeys.get(len).toArray()),
                 leftEdge4,rightEdge4, false,
-                toSixLongArray(dirRecids.get(len)));
+                toLongArray(dirRecids.get(len)));
         long rootRecid = engine.put(dir, nodeSerializer);
         return engine.put(rootRecid,Serializer.RECID); //root recid
     }
 
-    private static byte[] toSixLongArray(List<Long> child) {
-        byte[] ret= new byte[child.size()*6];
-        for(int i=0;i<child.size();i++){
-            DataIO.putSixLong(ret,i*6,child.get(i));
+    private static Object toLongArray(List<Long> child) {
+        boolean allInts = true;
+        for(Long l:child){
+            if(l>Integer.MAX_VALUE) {
+                allInts = false;
+                break;
+            }
+
         }
-        return ret;
+        if(allInts){
+            int[] ret = new int[child.size()];
+            for(int i=0;i<ret.length;i++){
+                ret[i] = child.get(i).intValue();
+            }
+            return ret;
+        }else{
+            long[] ret = new long[child.size()];
+            for(int i=0;i<ret.length;i++){
+                ret[i] = child.get(i);
+            }
+            return ret;
+        }
     }
 
     /** create array list with single element*/

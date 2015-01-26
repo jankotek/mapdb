@@ -57,12 +57,8 @@ public class BTreeMapTest{
     }
 
 
-    byte[] mkchild(long... args){
-        byte[] ret = new byte[args.length*6];
-        for(int i=0;i<args.length;i++){
-            DataIO.putSixLong(ret,i*6,args[i]);
-        }
-        return ret;
+    int[] mkchild(int... args){
+        return args;
     }
     
 	@Test public void test_dir_node_serialization() throws IOException {
@@ -75,11 +71,11 @@ public class BTreeMapTest{
         BTreeMap.DirNode n2 = (BTreeMap.DirNode) UtilsTest.clone(n, m.nodeSerializer);
 
         assertArrayEquals(nodeKeysToArray(n), nodeKeysToArray(n2));
-        assertArrayEquals(n.child, n2.child);
+        assertArrayEquals((int[])n.child, (int[])n2.child);
     }
 
     @Test public void test_find_children(){
-        long[] child = new long[8];
+        int[] child = new int[8];
         for(int i=0;i<child.length;i++){
             child[i] = new Random().nextInt(1000)+1;
         }
@@ -90,7 +86,7 @@ public class BTreeMapTest{
         assertEquals(0,BTreeKeySerializer.BASIC.findChildren(n1, 0));
         assertEquals(7,BTreeKeySerializer.BASIC.findChildren(n1, 8));
 
-        child = new long[5];
+        child = new int[5];
         for(int i=0;i<child.length;i++){
             child[i] = new Random().nextInt(1000)+1;
         }
@@ -111,7 +107,7 @@ public class BTreeMapTest{
                     keys.add(i);
                 }
 
-                long[] child = new long[keys.size()+(right?1:0)+(left?1:0)];
+                int[] child = new int[keys.size()+(right?1:0)+(left?1:0)];
                 Arrays.fill(child,11);
                 if(right)
                     child[child.length-1]=0;
@@ -134,7 +130,6 @@ public class BTreeMapTest{
 
 
     @Test public void test_next_dir(){
-
         BTreeMap.DirNode d = new BTreeMap.DirNode(new Integer[]{44,62,68, 71},false,false,false,mkchild(10,20,30,40));
 
         assertEquals(10, m.nextDir(d, 62));

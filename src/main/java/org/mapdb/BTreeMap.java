@@ -294,7 +294,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         }
 
 
-        public abstract byte[] childArray();
+        public abstract Object childArray();
         public abstract long child(int i);
 
         public abstract long next();
@@ -368,12 +368,14 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         public abstract BNode copySplitLeft(BTreeKeySerializer keyser, Serializer valser, int splitPos, long newNext);
 
         public abstract int valSize(Serializer valueSerializer);
+
+        public abstract int childArrayLength();
     }
 
     public final static class DirNode extends BNode{
-        final byte[] child;
+        final Object child;
 
-        DirNode(Object keys, boolean leftEdge, boolean rightEdge, boolean tooLarge, byte[] child) {
+        DirNode(Object keys, boolean leftEdge, boolean rightEdge, boolean tooLarge, Object child) {
             super(keys, leftEdge, rightEdge, tooLarge);
             this.child = child;
 
@@ -389,17 +391,35 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             return null;
         }
 
-        @Override public byte[] childArray() { return child;}
-        @Override public long child(int pos) { return DataIO.getSixLong(child,pos*6);}
+        @Override public Object childArray() { return child;}
+        @Override public long child(int pos) {
+            Object c = child;
+            return c instanceof int[]?
+                    ((int[])c)[pos]:
+                    ((long[])c)[pos];
+        }
 
-        @Override public long next() {return DataIO.getSixLong(child,child.length-6);}
+        @Override
+        public int childArrayLength() {
+            return child instanceof int[]?
+                    ((int[])child).length:
+                    ((long[])child).length;
+        }
+
+
+        @Override public long next() {
+            Object c = child;
+            if(c instanceof int[]){
+                int[] cc = (int[]) c;
+                return cc[cc.length-1];
+            }else{
+                long[] cc = (long[]) c;
+                return cc[cc.length-1];
+            }
+        }
 
         @Override public String toString(){
-            String childStr = "";
-            for(int i=0;i<child.length;i+=6){
-                childStr+= DataIO.getSixLong(child,i)+",";
-            }
-            return "Dir("+leftEdgeInc()+"-"+rightEdgeInc()+"-K"+Fun.toString(keys)+", C"+childStr+")";
+            return "Dir("+leftEdgeInc()+"-"+rightEdgeInc()+"-K"+Fun.toString(keys)+", C"+Fun.toString(child)+")";
         }
 
 
@@ -407,25 +427,55 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         public void checkStructure(BTreeKeySerializer keyser, Serializer valser) {
             super.checkStructure(keyser,valser);
 
-            if(keyser!=null && child.length!=keysLen(keyser)*6)
+            int childLen = child instanceof int[]? ((int[])child).length : ((long[])child).length;
+
+            if(keyser!=null && childLen!=keysLen(keyser))
                 throw new AssertionError();
 
-            if((isRightEdge() != (DataIO.getSixLong(child,child.length-6)==0)))
+            if((isRightEdge() != (next()==0)))
                 throw new AssertionError();
 
         }
 
         @Override
         public DirNode copyAddKey(BTreeKeySerializer keyser, Serializer valser, int pos, Object newKey, long newChild, Object newValue) {
-            Object keys2 = keyser.putKey(keys, pos-leftEdgeInc(), newKey);
+            Object keys2 = keyser.putKey(keys, pos - leftEdgeInc(), newKey);
 
+            Object child2;
             //expand children and put new child
-            pos*=6;
-            final byte[] child2 = Arrays.copyOf(child,child.length+6);
-            if(pos<child.length){
-                System.arraycopy(child,pos,child2,pos+6,child.length-pos);
+            if(child instanceof int[]) {
+                int[] child_ = (int[]) child;
+                if (newChild < Integer.MAX_VALUE) {
+                    //operate on ints
+                    final int[] child2_ = Arrays.copyOf(child_, child_.length + 1);
+                    child2 = child2_;
+                    if (pos < child_.length) {
+                        System.arraycopy(child_, pos, child2_, pos + 1, child_.length - pos);
+                    }
+                    child2_[pos] = (int) newChild;
+
+                } else {
+                    //new child does not fit, must upgrade to long[]
+                    long[] child2_ = new long[child_.length + 1];
+                    child2 = child2_;
+                    for (int i = 0; i < pos; i++) {
+                        child2_[i] = child_[i];
+                    }
+                    child2_[pos] = newChild;
+                    for (int i = pos + 1; i < child2_.length; i++) {
+                        child2_[i] = child_[pos - 1];
+                    }
+                }
+            }else {
+                long[] child_ = (long[]) child;
+                //operate on ints
+                final long[] child2_ = Arrays.copyOf(child_, child_.length + 1);
+                child2 = child2_;
+                if (pos < child_.length) {
+                    System.arraycopy(child_, pos, child2_, pos + 1, child_.length - pos);
+                }
+                child2_[pos] = (int) newChild;
             }
-            DataIO.putSixLong(child2,pos,newChild);
 
             //$DELAY$
             return new DirNode(keys2, isLeftEdge(),isRightEdge(),false,child2);
@@ -436,7 +486,14 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             int keylen = keyser.length(keys);
             Object keys2 = keyser.copyOfRange(keys,splitPos-leftEdgeInc(),keylen);
             //$DELAY$
-            byte[] child2 = Arrays.copyOfRange(child, splitPos*6, child.length);
+            Object child2;
+            if(child instanceof int[]){
+                int[] child_ = (int[]) child;
+                child2 = Arrays.copyOfRange(child_, splitPos, child_.length);
+            }else{
+                long[] child_ = (long[]) child;
+                child2 = Arrays.copyOfRange(child_, splitPos, child_.length);
+            }
             //$DELAY$
             return new DirNode(keys2,false,isRightEdge(),false,child2);
         }
@@ -444,11 +501,31 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         @Override
         public DirNode copySplitLeft(BTreeKeySerializer keyser, Serializer valser, int splitPos, long newNext) {
             Object keys2 = keyser.copyOfRange(keys, 0, splitPos + 1 - leftEdgeInc());
-            //$DELAY$
-            splitPos*=6;
-            byte[] child2 = Arrays.copyOf(child, splitPos+6);
-            DataIO.putSixLong(child2,splitPos,newNext);
-            //$DELAY$
+
+            Object child2;
+            boolean intArrayInstance = child instanceof int[];
+            if(intArrayInstance){
+                int[] child_ = (int[]) child;
+                if(newNext<Integer.MAX_VALUE) {
+                    //all fits operate on int[]
+                    int[] child2_ = Arrays.copyOf(child_, splitPos + 1);
+                    child2_[splitPos] = (int) newNext;
+                    child2 = child2_;
+                }else{
+                    //does not fit, upgrade to long
+                    long[] child2_ = new long[splitPos+1];
+                    for(int i=0;i<=splitPos;i++){
+                        child2_[i] = child_[i];
+                    }
+                    child2_[splitPos] = newNext;
+                    child2 = child2_;
+                }
+            }else{
+                long[] child2_ = Arrays.copyOf((long[])child, splitPos+1);
+                child2_[splitPos] = (int) newNext;
+                child2 = child2_;
+            }
+
             return new DirNode(keys2,isLeftEdge(),false,false,child2);
         }
 
@@ -456,6 +533,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         public int valSize(Serializer valueSerializer) {
             throw new UnsupportedOperationException("dirnode");
         }
+
 
     }
 
@@ -552,6 +630,11 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             return valueSerializer.valueArraySize(vals);
         }
 
+        @Override
+        public int childArrayLength() {
+            return -1;
+        }
+
         public LeafNode copyChangeValue(Serializer valser, int pos, Object value) {
             Object vals2 = valser.valueArrayUpdateVal(vals, pos - 1, value);
             //$DELAY$
@@ -638,10 +721,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             if(isLeaf){
                 DataIO.packLong(out, ((LeafNode) value).next);
             }else{
-                byte[] children = value.childArray();
-                for(int i=0;i<children.length;i+=6) {
-                    DataIO.packLong(out, DataIO.getSixLong(children, i));
-                }
+                serializeChildArray(out, value.childArray());
             }
 
 
@@ -652,6 +732,22 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 valueSerializer.valueArraySerialize(out,((LeafNode)value).vals);
             }
 
+        }
+
+        protected void serializeChildArray(DataOutput out, Object childArray) throws IOException {
+            if(childArray instanceof int[]){
+                int[] cc = (int[]) childArray;
+                DataIO.packLong(out, (cc[0] << 1) | 1); //pack first value mixed with int flag
+                for(int i=1;i<cc.length;i++){
+                    DataIO.packInt(out,cc[i]);
+                }
+            }else{
+                long[] cc = (long[]) childArray;
+                DataIO.packLong(out, (cc[0]<<1) | 0); //pack first value mixed with int flag
+                for(int i=1;i<cc.length;i++) {
+                    DataIO.packLong(out, cc[i]);
+                }
+            }
         }
 
         @Override
@@ -684,8 +780,28 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         }
 
         private BNode deserializeDir(final DataIO.DataInputInternal in, final int size, final int left, final int right) throws IOException {
-            final byte[] child = new byte[size*6];
-            in.unpackLongSixArray(child,0,child.length);
+            Object child;
+            long firstChild = in.unpackLong();
+            if((firstChild&1) == 0){
+                //deserialize as long[]
+                long[] child_ = new long[size];
+                child = child_;
+
+                child_[0] = firstChild>>>1;
+                for(int i=1;i<size;i++){
+                    child_[i] = in.unpackLong();
+                }
+            }else{
+                //deserialize as long[]
+                int[] child_ = new int[size];
+                child = child_;
+
+                child_[0] = (int) (firstChild>>>1);
+                for(int i=1;i<size;i++){
+                    child_[i] = in.unpackInt();
+                }
+            }
+
             int keysize = size - left- right;
             //$DELAY$
             final Object keys = keysize==0?
@@ -1027,9 +1143,11 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     if(CC.PARANOID && ! (current>0))
                         throw new AssertionError();
                 }else{
-                    byte[] rootChild = new byte[6*3];
-                    DataIO.putSixLong(rootChild,0,current);
-                    DataIO.putSixLong(rootChild,6,q);
+                    Object rootChild =
+                        (current<Integer.MAX_VALUE && q<Integer.MAX_VALUE) ?
+                        new int[]{(int)current,(int)q,0}:
+                        new long[]{current,q,0};
+
 
                     BNode R = new DirNode(
                             keySerializer.arrayToKeys(new Object[]{A.highKey(keySerializer)}),
@@ -1261,7 +1379,11 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                         return;
                     }
                     //follow last children in directory
-                    next = DataIO.getSixLong(node.childArray(), node.childArray().length-6*2);
+                    Object children = node.childArray();
+
+                    next = children instanceof int[] ?
+                            ((int[])children)[((int[])children).length-2] :
+                            ((long[])children)[((long[])children).length-2];
                 }
                 node = (BNode) m.engine.get(next,m.nodeSerializer);
             }
@@ -1868,7 +1990,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             }
         }else{
             //dir node, dive deeper
-            for(int i=n.childArray().length/6-1; i>=0;i--){
+            for(int i=n.childArrayLength()-1; i>=0;i--){
                 long childRecid = n.child(i);
                 if(childRecid==0) continue;
                 BNode n2 = engine.get(childRecid, nodeSerializer);
@@ -3279,7 +3401,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         BTreeMap.BNode n = (BTreeMap.BNode) m.engine.get(recid, m.nodeSerializer);
         System.out.println(s+recid+"-"+n);
         if(!n.isLeaf()){
-            for(int i=0;i<n.childArray().length/6-1;i++){
+            int childArrayLen = n.childArrayLength()-1;
+            for(int i=0;i<childArrayLen;i++){
                 long recid2 = n.child(i);
                 if(recid2!=0)
                     printRecur(m, recid2, s+"  ");
@@ -3365,9 +3488,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             throw new AssertionError("Recursive next: "+n);
         }
         if(!n.isLeaf()){
-            byte[] child = n.childArray();
-            for(int i=child.length-6;i>=0;i-=6){
-                long recid = DataIO.getSixLong(child,i);
+            for(int i=n.childArrayLength()-1;i>=0;i--){
+                long recid = n.child(i);
                 if(recid==rootRecid){
                     throw new AssertionError("Recursive recid: "+n);
                 }
