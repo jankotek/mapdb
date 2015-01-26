@@ -206,7 +206,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             in2.unpackLongSixArray(ret,16,arrayLen);
 
             return ret;
-       }
+        }
 
         @Override
         public boolean isTrusted() {
@@ -484,22 +484,25 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         if(CC.PARANOID && slot>127)
             throw new AssertionError();
 
-        //traverse bitmap, increment offset for each non zero bit
-        int offset = 16;
-        for(int i=0;;i++){
-            if(CC.PARANOID && i>=16)
-                throw new AssertionError();
+        int isSet = ((dir[slot>>3] >>> (slot&7)) & 1); //check if bit at given slot is set
+        isSet <<=1; //multiply by two, so it is usable in multiplication
 
-            int val = dir[i];
-            for(int j=0;j<8;j++){
-                //at slot position, return
-                if(slot--==0) {
-                    return ((val & 1)==0?-1:1) * offset;
-                }
-                offset += 6*(val & 1);
-                val = val>>>1;
-            }
+        int offset=0;
+        int val = slot>>>3;
+        int dirPos=0;
+        while(dirPos!=val){
+            offset+=Integer.bitCount(dir[dirPos++]&0xFF);
         }
+
+        slot = (1<<(slot&7))-1; //turn slot into mask for N right bits
+
+        val = dir[dirPos] & slot;
+        offset += Integer.bitCount(val);
+
+        offset = 16 + offset*6; //normalize offset
+
+        //turn into negative value if bit is not set, do not use conditions
+        return -offset + isSet*offset;
     }
 
     protected static final byte[] dirPut(byte[] dir, int slot, long newRecid){
@@ -509,7 +512,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             offset = -offset;
             dir = Arrays.copyOf(dir,dir.length+6);
             //make space for new value
-            System.arraycopy(dir,offset, dir,offset+6, dir.length-6-offset);
+            System.arraycopy(dir, offset, dir, offset + 6, dir.length - 6 - offset);
             //and update bitmap
             //TODO assert slot bit was not set
             int bytePos = slot/8;
