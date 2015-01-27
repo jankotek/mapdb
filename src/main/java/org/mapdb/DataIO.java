@@ -281,9 +281,10 @@ public final class DataIO {
 
         int unpackInt() throws IOException;
 
-        void unpackLongSixArray(byte[] b, int start, int end)  throws IOException;
-
         long[] unpackLongArrayDeltaCompression(int size) throws IOException;
+
+        void unpackLongArray(long[] ret, int i, int len);
+        void unpackIntArray(int[] ret, int i, int len);
     }
 
     /** DataInput on top of `byte[]` */
@@ -472,24 +473,6 @@ public final class DataIO {
         }
 
         @Override
-        public void unpackLongSixArray(byte[] b, int start, int end)  throws IOException {
-            int pos2 = pos;
-            byte[] buf2 = buf;
-            long ret;
-            byte v;
-            for(;start<end;start+=6) {
-                ret = 0;
-                do {
-                    //$DELAY$
-                    v = buf2[pos2++];
-                    ret = (ret << 7) | (v & 0x7F);
-                } while (v < 0);
-                DataIO.putSixLong(b,start,ret);
-            }
-            pos = pos2;
-        }
-
-        @Override
         public long[] unpackLongArrayDeltaCompression(final int size) throws IOException {
             long[] ret = new long[size];
             int pos2 = pos;
@@ -508,6 +491,42 @@ public final class DataIO {
             }
             pos = pos2;
             return ret;
+        }
+
+        @Override
+        public void unpackLongArray(long[] array, int start, int end) {
+            int pos2 = pos;
+            byte[] buf2 = buf;
+            long ret;
+            byte v;
+            for(;start<end;start++) {
+                ret = 0;
+                do {
+                    //$DELAY$
+                    v = buf2[pos2++];
+                    ret = (ret << 7) | (v & 0x7F);
+                } while (v < 0);
+                array[start]=ret;
+            }
+            pos = pos2;
+        }
+
+        @Override
+        public void unpackIntArray(int[] array, int start, int end) {
+            int pos2 = pos;
+            byte[] buf2 = buf;
+            int ret;
+            byte v;
+            for(;start<end;start++) {
+                ret = 0;
+                do {
+                    //$DELAY$
+                    v = buf2[pos2++];
+                    ret = (ret << 7) | (v & 0x7F);
+                } while (v < 0);
+                array[start]=ret;
+            }
+            pos = pos2;
         }
 
     }
@@ -731,24 +750,6 @@ public final class DataIO {
 
 
         @Override
-        public void unpackLongSixArray(byte[] b, int start, int end)  throws IOException {
-            int pos2 = pos;
-            ByteBuffer buf2 = buf;
-            long ret;
-            byte v;
-            for(;start<end;start+=6) {
-                ret = 0;
-                do {
-                    //$DELAY$
-                    v = buf2.get(pos2++);
-                    ret = (ret << 7) | (v & 0x7F);
-                } while (v < 0);
-                DataIO.putSixLong(b,start,ret);
-            }
-            pos = pos2;
-        }
-
-        @Override
         public long[] unpackLongArrayDeltaCompression(final int size) throws IOException {
             long[] ret = new long[size];
             int pos2 = pos;
@@ -767,6 +768,43 @@ public final class DataIO {
             }
             pos = pos2;
             return ret;
+        }
+
+        @Override
+        public void unpackLongArray(long[] array, int start, int end) {
+            int pos2 = pos;
+            ByteBuffer buf2 = buf;
+            long ret;
+            byte v;
+            for(;start<end;start++) {
+                ret = 0;
+                do {
+                    //$DELAY$
+                    v = buf2.get(pos2++);
+                    ret = (ret << 7) | (v & 0x7F);
+                } while (v < 0);
+                array[start] = ret;
+            }
+            pos = pos2;
+
+        }
+
+        @Override
+        public void unpackIntArray(int[] array, int start, int end) {
+            int pos2 = pos;
+            ByteBuffer buf2 = buf;
+            int ret;
+            byte v;
+            for(;start<end;start++) {
+                ret = 0;
+                do {
+                    //$DELAY$
+                    v = buf2.get(pos2++);
+                    ret = (ret << 7) | (v & 0x7F);
+                } while (v < 0);
+                array[start] = ret;
+            }
+            pos = pos2;
         }
 
     }

@@ -2375,24 +2375,6 @@ public abstract class Volume implements Closeable{
 
             }
 
-            @Override
-            public void unpackLongSixArray(byte[] b, int start, int end)  throws IOException {
-                sun.misc.Unsafe UNSAFE = Volume.UnsafeVolume.UNSAFE;
-                long pos2_ = pos2;
-                long ret;
-                byte v;
-                for(;start<end;start+=6) {
-                    ret = 0;
-                    do {
-                        //$DELAY$
-                        v = UNSAFE.getByte(pos2_++);
-                        ret = (ret << 7) | (v & 0x7F);
-                    } while (v < 0);
-                    DataIO.putSixLong(b,start,ret);
-                }
-                pos2 = pos2_;
-            }
-
 
             @Override
             public long[] unpackLongArrayDeltaCompression(final int size) throws IOException {
@@ -2413,6 +2395,42 @@ public abstract class Volume implements Closeable{
                 }
                 pos2 = pos2_;
                 return ret;
+            }
+
+            @Override
+            public void unpackLongArray(long[] array, int start, int end) {
+                sun.misc.Unsafe UNSAFE = Volume.UnsafeVolume.UNSAFE;
+                long pos2_ = pos2;
+                long ret;
+                byte v;
+                for(;start<end;start++) {
+                    ret = 0;
+                    do {
+                        //$DELAY$
+                        v = UNSAFE.getByte(pos2_++);
+                        ret = (ret << 7) | (v & 0x7F);
+                    } while (v < 0);
+                    array[start] = ret;
+                }
+                pos2 = pos2_;
+            }
+
+            @Override
+            public void unpackIntArray(int[] array, int start, int end) {
+                sun.misc.Unsafe UNSAFE = Volume.UnsafeVolume.UNSAFE;
+                long pos2_ = pos2;
+                int ret;
+                byte v;
+                for(;start<end;start++) {
+                    ret = 0;
+                    do {
+                        //$DELAY$
+                        v = UNSAFE.getByte(pos2_++);
+                        ret = (ret << 7) | (v & 0x7F);
+                    } while (v < 0);
+                    array[start]=ret;
+                }
+                pos2 = pos2_;
             }
 
             @Override

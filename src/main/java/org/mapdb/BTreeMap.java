@@ -786,20 +786,14 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                 //deserialize as long[]
                 long[] child_ = new long[size];
                 child = child_;
-
                 child_[0] = firstChild>>>1;
-                for(int i=1;i<size;i++){
-                    child_[i] = in.unpackLong();
-                }
+                in.unpackLongArray(child_,1,size);
             }else{
                 //deserialize as long[]
                 int[] child_ = new int[size];
                 child = child_;
-
                 child_[0] = (int) (firstChild>>>1);
-                for(int i=1;i<size;i++){
-                    child_[i] = in.unpackInt();
-                }
+                in.unpackIntArray(child_,1,size);
             }
 
             int keysize = size - left- right;

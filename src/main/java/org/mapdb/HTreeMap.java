@@ -251,9 +251,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 ret[1] = ((long) bitmap3 << 32) | (bitmap4 & 0xFFFFFFFF);
                 ret[2] = firstVal >>> 1;
                 len += 2;
-                for (int i = 3; i < len; i++) {
-                    ret[i] = in2.unpackLong();
-                }
+                in2.unpackLongArray(ret, 3, len);
                 return ret;
             } else {
                 //return int[]
@@ -264,9 +262,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 ret[3] = bitmap4;
                 ret[4] = (int) (firstVal >>> 1);
                 len += 4;
-                for (int i = 5; i < len; i++) {
-                    ret[i] = in2.unpackInt();
-                }
+                in2.unpackIntArray(ret,5,len);
                 return ret;
             }
         }
