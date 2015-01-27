@@ -163,49 +163,112 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     }
 
 
-    protected static final Serializer<byte[]> DIR_SERIALIZER = new Serializer<byte[]>() {
+    protected static final Serializer<Object> DIR_SERIALIZER = new Serializer<Object>() {
         @Override
-        public void serialize(DataOutput out, byte[] value) throws IOException {
-            if(CC.PARANOID){
-                int len = 16 +
-                        6*Long.bitCount(DataIO.getLong(value,0))+
-                        6*Long.bitCount(DataIO.getLong(value,8));
+        public void serialize(DataOutput out, Object value) throws IOException {
+            DataIO.DataOutputByteArray out2 = (DataIO.DataOutputByteArray) out;
+            if(value instanceof long[]) {
+                serializeLong(out2, value);
+                return;
+            }
 
-                if(len!=value.length)
+            int[] c = (int[]) value;
+
+            if(CC.PARANOID){
+                int len = 4 +
+                        Integer.bitCount(c[0])+
+                        Integer.bitCount(c[1])+
+                        Integer.bitCount(c[2])+
+                        Integer.bitCount(c[3]);
+
+                if(len!=c.length)
                     throw new AssertionError("bitmap!=len");
             }
 
-            //write bitmap
-            out.write(value,0,16);
-            DataIO.DataOutputByteArray out2 = (DataIO.DataOutputByteArray) out;
+            //write bitmaps
+            out2.writeInt(c[0]);
+            out2.writeInt(c[1]);
+            out2.writeInt(c[2]);
+            out2.writeInt(c[3]);
 
-            //write recids
-            for(int pos=16;pos<value.length;pos+=6){
-                long recid = DataIO.getSixLong(value,pos);
-                out2.packLong(recid);
+            if(c.length==4)
+                return;
+
+            out2.packLong((((long)c[4])<<1)|1L);
+            for(int i=5;i<c.length;i++){
+                out2.packLong(c[i]);
+            }
+        }
+
+        private void serializeLong(DataIO.DataOutputByteArray out, Object value) throws IOException {
+            long[] c= (long[]) value;
+
+            if(CC.PARANOID){
+                int len = 2 +
+                        Long.bitCount(c[0])+
+                        Long.bitCount(c[1]);
+
+                if(len!=c.length)
+                    throw new AssertionError("bitmap!=len");
+            }
+
+            out.writeLong(c[0]);
+            out.writeLong(c[1]);
+            if(c.length==2)
+                return;
+
+            out.packLong(c[2]<<1);
+            for(int i=3;i<c.length;i++){
+                out.packLong(c[i]);
             }
         }
 
 
         @Override
-        public byte[] deserialize(DataInput in, int available) throws IOException {
+        public Object deserialize(DataInput in, int available) throws IOException {
+            DataIO.DataInputInternal in2 = (DataIO.DataInputInternal) in;
+
             //length of dir is 128 longs, each long has 6 bytes (not 8)
             //to save memory zero values are skipped,
             //there is bitmap at first 16 bytes, each non-zero long has bit set
             //to determine offset one must traverse bitmap and count number of bits set
-            long bitmap1 = in.readLong();
-            long bitmap2 = in.readLong();
+            int bitmap1 = in.readInt();
+            int bitmap2 = in.readInt();
+            int bitmap3 = in.readInt();
+            int bitmap4 = in.readInt();
+            int len = Integer.bitCount(bitmap1) + Integer.bitCount(bitmap2) + Integer.bitCount(bitmap3) + Integer.bitCount(bitmap4);
 
-            int arrayLen = 16+ 6*Long.bitCount(bitmap1)+ 6*Long.bitCount(bitmap2);
-            byte[] ret = new byte[arrayLen];
+            if (len == 0) {
+                return new int[4];
+            }
 
-            DataIO.putLong(ret,0,bitmap1);
-            DataIO.putLong(ret,8,bitmap2);
+            long firstVal = in2.unpackLong();
 
-            DataIO.DataInputInternal in2 = (DataIO.DataInputInternal) in;
-            in2.unpackLongSixArray(ret,16,arrayLen);
-
-            return ret;
+            if ((firstVal & 1) == 0) {
+                //return longs
+                long[] ret = new long[2 + len];
+                ret[0] = ((long) bitmap1 << 32) | (bitmap2 & 0xFFFFFFFF);
+                ret[1] = ((long) bitmap3 << 32) | (bitmap4 & 0xFFFFFFFF);
+                ret[2] = firstVal >>> 1;
+                len += 2;
+                for (int i = 3; i < len; i++) {
+                    ret[i] = in2.unpackLong();
+                }
+                return ret;
+            } else {
+                //return int[]
+                int[] ret = new int[4 + len];
+                ret[0] = bitmap1;
+                ret[1] = bitmap2;
+                ret[2] = bitmap3;
+                ret[3] = bitmap4;
+                ret[4] = (int) (firstVal >>> 1);
+                len += 4;
+                for (int i = 5; i < len; i++) {
+                    ret[i] = in2.unpackInt();
+                }
+                return ret;
+            }
         }
 
         @Override
@@ -293,7 +356,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         //prealocate segmentRecids, so we dont have to lock on those latter
         long[] ret = new long[16];
         for(int i=0;i<16;i++)
-            ret[i] = engine.put(new byte[16], DIR_SERIALIZER);
+            ret[i] = engine.put(new int[4], DIR_SERIALIZER);
         return ret;
     }
 
@@ -337,10 +400,11 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     }
 
     private long recursiveDirCount(final long dirRecid) {
-        byte[] dir = engine.get(dirRecid, DIR_SERIALIZER);
+        Object dir = engine.get(dirRecid, DIR_SERIALIZER);
         long counter = 0;
-        for(int pos=16;pos<dir.length;pos+=6){
-            long recid = DataIO.getSixLong(dir,pos);
+        int dirLen = dirLen(dir);
+        for(int pos=dirStart(dir);pos<dirLen;pos++){
+            long recid = dirGet(dir,pos);
             if((recid&1)==0){
                 //reference to another subdir
                 recid = recid>>>1;
@@ -370,8 +434,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             lock.lock();
             try{
                 long dirRecid = segmentRecids[i];
-                byte[] dir = engine.get(dirRecid, DIR_SERIALIZER);
-                if(dir!=null && dir.length!=16){
+                Object dir = engine.get(dirRecid, DIR_SERIALIZER);
+                if(!dirIsEmpty(dir)){
                     return false;
                 }
             }finally {
@@ -445,18 +509,15 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     protected LinkedNode<K,V> getInner(Object o, int h, int segment) {
         long recid = segmentRecids[segment];
         for(int level=3;level>=0;level--){
-            byte[] dir = engine.get(recid, DIR_SERIALIZER);
+            Object dir = engine.get(recid, DIR_SERIALIZER);
             if(dir == null)
                 return null;
             final int slot = (h>>>(level*7 )) & 0x7F;
             if(CC.PARANOID && ! (slot<128))
                 throw new AssertionError();
-            int dirOffset = dirOffsetFromSlot(dir, slot);
-            if(dirOffset<=0)
+            recid = dirGetSlot(dir, slot);
+            if(recid == 0)
                 return null;
-            recid = DataIO.getSixLong(dir,dirOffset);
-            if(CC.PARANOID && recid <= 0)
-                throw new AssertionError();
 
             if((recid&1)!=0){ //last bite indicates if referenced record is LinkedNode
                 recid = recid>>>1;
@@ -479,12 +540,62 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         return null;
     }
 
-    /** converts hash slot into actuall offset in dir array, using bitmap */
-    protected static final int dirOffsetFromSlot(byte[] dir, int slot) {
+    protected static boolean dirIsEmpty(Object dir) {
+        if(dir == null)
+            return true;
+        if(dir instanceof long[])
+            return false;
+        return ((int[])dir).length==4;
+    }
+
+    protected static int dirLen(Object dir) {
+        return dir instanceof int[]?
+                ((int[])dir).length:
+                ((long[])dir).length;
+    }
+
+    protected static int dirStart(Object dir) {
+        return dir instanceof int[]?4:2;
+    }
+
+
+    protected static long dirGet(Object dir, int pos) {
+        return dir instanceof int[]?
+                ((int[])dir)[pos]:
+                ((long[])dir)[pos];
+    }
+
+    protected long dirGetSlot(Object dir, int slot) {
+        if(dir instanceof int[]){
+            int[] cc = (int[]) dir;
+            int pos = dirOffsetFromSlot(cc,slot);
+            if(pos<0)
+                return 0;
+            return cc[pos];
+        }else{
+            long[] cc = (long[]) dir;
+            int pos = dirOffsetFromSlot(cc,slot);
+            if(pos<0)
+                return 0;
+            return cc[pos];
+        }
+    }
+
+
+    protected static int dirOffsetFromSlot(Object dir, int slot) {
+        if(dir instanceof int[])
+            return dirOffsetFromSlot((int[])dir,slot);
+        else
+            return dirOffsetFromSlot((long[])dir,slot);
+    }
+
+
+    /** converts hash slot into actual offset in dir array, using bitmap */
+    protected static final int dirOffsetFromSlot(int[] dir, int slot) {
         if(CC.PARANOID && slot>127)
             throw new AssertionError();
-        int val = slot>>>3;
-        slot &=7;
+        int val = slot>>>5;
+        slot &=31;
         int isSet = ((dir[val] >>> (slot)) & 1); //check if bit at given slot is set
         isSet <<=1; //multiply by two, so it is usable in multiplication
 
@@ -492,59 +603,135 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         int dirPos=0;
         while(dirPos!=val){
-            offset+=Integer.bitCount(dir[dirPos++]&0xFF);
+            offset+=Integer.bitCount(dir[dirPos++]);
         }
 
         slot = (1<<(slot))-1; //turn slot into mask for N right bits
 
-        val = dir[dirPos] & slot;
-        offset += Integer.bitCount(val);
-
-        offset = 16 + offset*6; //normalize offset
+        offset += 4+Integer.bitCount(dir[dirPos] & slot);
 
         //turn into negative value if bit is not set, do not use conditions
         return -offset + isSet*offset;
     }
 
-    protected static final byte[] dirPut(byte[] dir, int slot, long newRecid){
-        int offset = dirOffsetFromSlot(dir, slot);
-        //make copy and expand it if necessary
-        if(offset<0){
-            offset = -offset;
-            dir = Arrays.copyOf(dir,dir.length+6);
-            //make space for new value
-            System.arraycopy(dir, offset, dir, offset + 6, dir.length - 6 - offset);
-            //and update bitmap
-            //TODO assert slot bit was not set
-            int bytePos = slot/8;
-            int bitPos = slot%8;
-            dir[bytePos] = (byte) (dir[bytePos] | (1<<bitPos));
-        }else{
-            //TODO assert slot bit was set
-            dir = dir.clone();
+    /** converts hash slot into actual offset in dir array, using bitmap */
+    protected static final int dirOffsetFromSlot(long[] dir, int slot) {
+        if(CC.PARANOID && slot>127)
+            throw new AssertionError();
+
+        int offset = 0;
+        long v = dir[0];
+
+        if(slot>63){
+            offset+=Long.bitCount(v);
+            v = dir[1];
         }
 
-        //and insert value itself
-        DataIO.putSixLong(dir,offset,newRecid);
-        return dir;
+        slot &= 63;
+        long mask = ((1L)<<(slot&63))-1;
+        offset += 2+Long.bitCount(v & mask);
+
+        int v2 = (int) ((v>>>(slot))&1);
+        v2<<=1;
+
+        //turn into negative value if bit is not set, do not use conditions
+        return -offset + v2*offset;
     }
 
-    protected static final byte[] dirRemove(byte[] dir, int slot){
+
+    protected static final Object dirPut(Object dir, int slot, long newRecid){
+        if(dir instanceof int[]) {
+            int[] dir_ = (int[]) dir;
+            int offset = dirOffsetFromSlot(dir_, slot);
+            //does new recid fit into integer?
+            if (newRecid <= Integer.MAX_VALUE) {
+                //make copy and expand it if necessary
+                if (offset < 0) {
+                    offset = -offset;
+                    dir_ = Arrays.copyOf(dir_, dir_.length + 1);
+                    //make space for new value
+                    System.arraycopy(dir_, offset, dir_, offset + 1, dir_.length - 1 - offset);
+                    //and update bitmap
+                    //TODO assert slot bit was not set
+                    int bytePos = slot / 32;
+                    int bitPos = slot % 32;
+                    dir_[bytePos] = (dir_[bytePos] | (1 << bitPos));
+                } else {
+                    //TODO assert slot bit was set
+                    dir_ = dir_.clone();
+                }
+                //and insert value itself
+                dir_[offset] = (int) newRecid;
+                return dir_;
+            } else {
+                //new recid does not fit into long, so upgrade to long[] and continue
+                long[] dir2 = new long[dir_.length-2];
+                //bitmaps
+                dir2[0] = ((long)dir_[0]<<32) | dir_[1] & 0xFFFFFFFFL;
+                dir2[1] = ((long)dir_[2]<<32) | dir_[3] & 0xFFFFFFFFL;
+                for(int i=4;i<dir_.length;i++) {
+                    dir2[i-2] = dir_[i];
+                }
+                dir = dir2;
+            }
+        }
+
+        //do long stuff
+        long[] dir_ = (long[]) dir;
+        int offset = dirOffsetFromSlot(dir_, slot);
+        //make copy and expand it if necessary
+        if (offset < 0) {
+            offset = -offset;
+            dir_ = Arrays.copyOf(dir_, dir_.length + 1);
+            //make space for new value
+            System.arraycopy(dir_, offset, dir_, offset + 1, dir_.length - 1 - offset);
+            //and update bitmap
+            //TODO assert slot bit was not set
+            int bytePos = slot / 64;
+            int bitPos = slot % 64;
+            dir_[bytePos] = (dir_[bytePos] | (1L << bitPos));
+        } else {
+            //TODO assert slot bit was set
+            dir_ = dir_.clone();
+        }
+        //and insert value itself
+        dir_[offset] = newRecid;
+        return dir_;
+    }
+
+    protected static final Object dirRemove(Object dir, final int slot){
         int offset = dirOffsetFromSlot(dir, slot);
         if(CC.PARANOID && offset<=0){
             throw new AssertionError();
         }
-        //shrink and copy data
-        byte[] dir2 = new byte[dir.length-6];
-        System.arraycopy(dir,0, dir2,0,offset);
-        System.arraycopy(dir,offset+6,dir2,offset, dir2.length-offset);
 
-        //unset bitmap bit
-        //TODO assert slot bit was set
-        int bytePos = slot/8;
-        int bitPos = slot%8;
-        dir2[bytePos] = (byte) (dir2[bytePos] & ~(1<<bitPos));
-        return dir2;
+        if(dir instanceof int[]) {
+            int[] dir_ = (int[]) dir;
+            //shrink and copy data
+            int[] dir2 = new int[dir_.length - 1];
+            System.arraycopy(dir_, 0, dir2, 0, offset);
+            System.arraycopy(dir_, offset + 1, dir2, offset, dir2.length - offset);
+
+            //unset bitmap bit
+            //TODO assert slot bit was set
+            int bytePos = slot / 32;
+            int bitPos = slot % 32;
+            dir2[bytePos] =  (dir2[bytePos] & ~(1 << bitPos));
+            return dir2;
+        }else{
+            long[] dir_ = (long[]) dir;
+            //shrink and copy data
+            long[] dir2 = new long[dir_.length - 1];
+            System.arraycopy(dir_, 0, dir2, 0, offset);
+            System.arraycopy(dir_, offset + 1, dir2, offset, dir2.length - offset);
+
+            //unset bitmap bit
+            //TODO assert slot bit was set
+            int bytePos = slot / 64;
+            int bitPos = slot % 64;
+            dir2[bytePos] =  (dir2[bytePos] & ~(1L << bitPos));
+            return dir2;
+        }
     }
 
     @Override
@@ -570,7 +757,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         int level = 3;
         while(true){
-            byte[] dir = engine.get(dirRecid, DIR_SERIALIZER);
+            Object dir = engine.get(dirRecid, DIR_SERIALIZER);
             final int slot =  (h>>>(7*level )) & 0x7F;
 
             if(CC.PARANOID && ! (slot<=127))
@@ -578,12 +765,12 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
             if(dir == null ){
                 //create new dir
-                dir = new byte[16];
+                dir = new int[4];
             }
 
             final int dirOffset = dirOffsetFromSlot(dir,slot);
             int counter = 0;
-            long recid = dirOffset<0 ? 0 : DataIO.getSixLong(dir,dirOffset);
+            long recid = dirOffset<0 ? 0 : dirGet(dir, dirOffset);
 
             if(recid!=0){
                 if((recid&1) == 0){
@@ -601,14 +788,25 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                         //found, replace value at this node
                         V oldVal = ln.value;
                         ln = new LinkedNode<K, V>(ln.next, ln.expireLinkNodeRecid, ln.key, value);
+                        if(CC.PARANOID && ln.next==recid)
+                            throw new AssertionError("cyclic reference in linked list");
+
                         engine.update(recid, ln, LN_SERIALIZER);
-                        if(expireFlag) expireLinkBump(segment,ln.expireLinkNodeRecid,false);
+                        if(expireFlag)
+                            expireLinkBump(segment,ln.expireLinkNodeRecid,false);
                         notify(key,  oldVal, value);
                         return oldVal;
                     }
                     recid = ln.next;
-                    ln = recid==0? null : engine.get(recid, LN_SERIALIZER);
+                    ln = ((recid==0)?
+                            null :
+                            engine.get(recid, LN_SERIALIZER));
+                    if(CC.PARANOID && ln!=null && ln.next==recid)
+                        throw new AssertionError("cyclic reference in linked list");
+
                     counter++;
+                    if(CC.PARANOID && counter>1024*1024)
+                        throw new AssertionError("linked list too large");
                 }
                 //key was not found at linked list, so just append it to beginning
             }
@@ -616,12 +814,14 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
             //check if linked list has overflow and needs to be expanded to new dir level
             if(counter>=BUCKET_OVERFLOW && level>=1){
-                byte[] nextDir = new byte[16];
+                Object nextDir = new int[4];
 
                 {
                     final long expireNodeRecid = expireFlag? engine.preallocate():0L;
                     final LinkedNode<K,V> node = new LinkedNode<K, V>(0, expireNodeRecid, key, value);
                     final long newRecid = engine.put(node, LN_SERIALIZER);
+                    if(CC.PARANOID && newRecid==node.next)
+                        throw new AssertionError("cyclic reference in linked list");
                     //add newly inserted record
                     final int pos =(h >>>(7*(level-1) )) & 0x7F;
                     nextDir = dirPut(nextDir,pos,( newRecid<<1) | 1);
@@ -631,16 +831,17 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
 
                 //redistribute linked bucket into new dir
-                long nodeRecid = dirOffset<0?0: DataIO.getSixLong(dir,dirOffset)>>>1;
+                long nodeRecid = dirOffset<0?0: dirGet(dir, dirOffset)>>>1;
                 while(nodeRecid!=0){
                     LinkedNode<K,V> n = engine.get(nodeRecid, LN_SERIALIZER);
                     final long nextRecid = n.next;
                     final int pos = (hash(n.key) >>>(7*(level -1) )) & 0x7F;
-                    final int offset = dirOffsetFromSlot(nextDir,pos);
-                    final long recid2 = offset<0?0:DataIO.getSixLong(nextDir,offset);
+                    final long recid2 = dirGetSlot(nextDir,pos);
                     n = new LinkedNode<K, V>(recid2>>>1, n.expireLinkNodeRecid, n.key, n.value);
                     nextDir = dirPut(nextDir,pos,(nodeRecid<<1) | 1);
                     engine.update(nodeRecid, n, LN_SERIALIZER);
+                    if(CC.PARANOID && nodeRecid==n.next)
+                        throw new AssertionError("cyclic reference in linked list");
                     nodeRecid = nextRecid;
                 }
 
@@ -653,10 +854,14 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 return null;
             }else{
                 // record does not exist in linked list, so create new one
-                recid = dirOffset<0? 0: DataIO.getSixLong(dir, dirOffset)>>>1;
+                recid = dirOffset<0? 0: dirGet(dir, dirOffset)>>>1;
                 final long expireNodeRecid = expireFlag? engine.put(ExpireLinkNode.EMPTY, ExpireLinkNode.SERIALIZER):0L;
 
-                final long newRecid = engine.put(new LinkedNode<K, V>(recid, expireNodeRecid, key, value), LN_SERIALIZER);
+                final long newRecid = engine.put(
+                        new LinkedNode<K, V>(recid, expireNodeRecid, key, value),
+                        LN_SERIALIZER);
+                if(CC.PARANOID && newRecid==recid)
+                    throw new AssertionError("cyclic reference in linked list");
                 dir = dirPut(dir,slot,(newRecid<<1) | 1);
                 engine.update(dirRecid, dir, DIR_SERIALIZER);
                 if(expireFlag) expireLinkAdd(segment,expireNodeRecid, newRecid,h);
@@ -690,18 +895,17 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             throw new AssertionError();
 
         while(true){
-            byte[] dir = engine.get(dirRecids[level], DIR_SERIALIZER);
+            Object dir = engine.get(dirRecids[level], DIR_SERIALIZER);
             final int slot =  (h>>>(7*level )) & 0x7F;
             if(CC.PARANOID && ! (slot<=127))
                 throw new AssertionError();
 
             if(dir == null ){
                 //create new dir
-                dir = new byte[16];
+                dir = new int[4];
             }
 
-            final int offset = dirOffsetFromSlot(dir,slot);
-            long recid = offset<0?0: DataIO.getSixLong(dir,offset);
+            long recid = dirGetSlot(dir, slot);
 
             if(recid!=0){
                 if((recid&1) == 0){
@@ -733,6 +937,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                             //referenced from LinkedNode
                             prevLn = new LinkedNode<K, V>(ln.next, prevLn.expireLinkNodeRecid,prevLn.key, prevLn.value);
                             engine.update(prevRecid, prevLn, LN_SERIALIZER);
+                            if(CC.PARANOID && prevRecid==prevLn.next)
+                                throw new AssertionError("cyclic reference in linked list");
                         }
                         //found, remove this node
                         if(CC.PARANOID && ! (hash(ln.key)==h))
@@ -758,19 +964,19 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     }
 
 
-    private void recursiveDirDelete(int h, int level, long[] dirRecids, byte[] dir, int slot) {
+    private void recursiveDirDelete(int h, int level, long[] dirRecids, Object dir, int slot) {
         //was only item in linked list, so try to collapse the dir
         dir = dirRemove(dir, slot);
 
-        if(dir.length==16){
+        if(dirIsEmpty(dir)){
             //delete from parent dir
             if(level==3){
                 //parent is segment, recid of this dir can not be modified,  so just update to null
-                engine.update(dirRecids[level], new byte[16], DIR_SERIALIZER);
+                engine.update(dirRecids[level], new int[4], DIR_SERIALIZER);
             }else{
                 engine.delete(dirRecids[level], DIR_SERIALIZER);
 
-                final byte[] parentDir = engine.get(dirRecids[level + 1], DIR_SERIALIZER);
+                final Object parentDir = engine.get(dirRecids[level + 1], DIR_SERIALIZER);
                 final int parentPos = (h >>> (7 * (level + 1))) & 0x7F;
                 recursiveDirDelete(h,level+1,dirRecids, parentDir, parentPos);
                 //parentDir[parentPos>>>DIV8][parentPos&MOD8] = 0;
@@ -791,7 +997,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             recursiveDirClear(dirRecid);
 
             //set dir to null, as segment recid is immutable
-            engine.update(dirRecid, new byte[16], DIR_SERIALIZER);
+            engine.update(dirRecid, new int[4], DIR_SERIALIZER);
 
             if(expireFlag)
                 while(expireLinkRemoveLast(i)!=null){} //TODO speedup remove all
@@ -802,11 +1008,12 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     }
 
     private void recursiveDirClear(final long dirRecid) {
-        final byte[] dir = engine.get(dirRecid, DIR_SERIALIZER);
+        final Object dir = engine.get(dirRecid, DIR_SERIALIZER);
         if(dir == null)
             return;
-        for(int offset=16;offset<dir.length;offset+=6){
-            long recid = DataIO.getSixLong(dir,offset);
+        int dirlen = dirLen(dir);
+        for(int offset=dirStart(dir);offset<dirlen;offset++){
+            long recid = dirGet(dir,offset);
             if((recid&1)==0){
                 //another dir
                 recid = recid>>>1;
@@ -818,6 +1025,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 recid = recid>>>1;
                 while(recid!=0){
                     LinkedNode n = engine.get(recid, LN_SERIALIZER);
+                    if(CC.PARANOID && n.next==recid)
+                        throw new AssertionError("cyclic reference in linked list");
                     engine.delete(recid,LN_SERIALIZER);
                     notify((K)n.key, (V)n.value , null);
                     recid = n.next;
@@ -1065,12 +1274,9 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 int level = 3;
                 //dive into tree, finding last hash position
                 while(true){
-                    byte[] dir = engine.get(dirRecid, DIR_SERIALIZER);
-                    final int offset = dirOffsetFromSlot(dir,
-                            (lastHash >>> (7 * level)) & 0x7F);
-
+                    Object dir = engine.get(dirRecid, DIR_SERIALIZER);
                     //check if we need to expand deeper
-                    long recid = offset<0?0:DataIO.getSixLong(dir,offset);
+                    long recid = dirGetSlot(dir,(lastHash >>> (7 * level)) & 0x7F);
                     if(recid==0 || (recid&1)==1) {
                         //increase hash by 1
                         if(level!=0){
@@ -1124,7 +1330,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         }
 
         private LinkedNode[] findNextLinkedNodeRecur(long dirRecid, int newHash, int level){
-            byte[] dir = engine.get(dirRecid, DIR_SERIALIZER);
+            final Object dir = engine.get(dirRecid, DIR_SERIALIZER);
             if(dir == null)
                 return null;
             int offset = Math.abs(
@@ -1132,8 +1338,9 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                             (newHash >>> (level * 7)) & 0x7F));
 
             boolean first = true;
-            while(offset<dir.length){
-                long recid = offset<0?0:DataIO.getSixLong(dir,offset);
+            int dirlen = dirLen(dir);
+            while(offset<dirlen){
+                long recid = offset<0?0:dirGet(dir,offset);
                 if(recid!=0){
                     if((recid&1) == 1){
                         recid = recid>>1;
@@ -1162,7 +1369,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 }
 
                 first = false;
-                offset+=6;
+                offset+=1;
             }
             return null;
         }

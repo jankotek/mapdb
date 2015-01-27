@@ -2,10 +2,9 @@ package org.mapdb;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
-import java.io.DataInput;
-import java.io.DataOutput;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
@@ -24,7 +23,7 @@ public class HTreeMap2Test {
 
     @Before public void init2(){
         engine = DBMaker.newMemoryDB().transactionDisable().cacheDisable().makeEngine();
-        db = new DB(engine);;
+        db = new DB(engine);
     }
 
 
@@ -34,14 +33,13 @@ public class HTreeMap2Test {
     }
 
 
-    protected static Serializer serializer = DBMaker.newTempHashMap().LN_SERIALIZER;
 
 
 
     @Test public void testDirSerializer() throws IOException {
 
 
-        byte[] dir = new byte[16];
+        Object dir = new int[4];
 
         for(int slot=1;slot<127;slot+=1 +slot/5){
             dir = HTreeMap.dirPut(dir,slot,slot*1111);
@@ -52,12 +50,12 @@ public class HTreeMap2Test {
 
         DataIO.DataInputByteBuffer in = swap(out);
 
-        byte[] dir2 = HTreeMap.DIR_SERIALIZER.deserialize(in, -1);
-        assertArrayEquals(dir,dir2);
+        int[] dir2 = (int[]) HTreeMap.DIR_SERIALIZER.deserialize(in, -1);
+        assertArrayEquals((int[])dir,dir2);
 
         for(int slot=1;slot<127;slot+=1 +slot/5){
             int offset = HTreeMap.dirOffsetFromSlot(dir2,slot);
-            assertEquals(slot*1111, DataIO.getSixLong(dir2,offset ));
+            assertEquals(slot*1111, HTreeMap.dirGet(dir2, offset));
         }
     }
 
@@ -71,12 +69,13 @@ public class HTreeMap2Test {
         HTreeMap.LinkedNode n = new HTreeMap.LinkedNode(123456, 1111L, 123L, 456L);
 
         DataIO.DataOutputByteArray out = new DataIO.DataOutputByteArray();
+        HTreeMap m = db.createHashMap("test").make();
 
-        serializer.serialize(out, n);
+        m.LN_SERIALIZER.serialize(out, n);
 
         DataIO.DataInputByteBuffer in = swap(out);
 
-        HTreeMap.LinkedNode n2  = (HTreeMap.LinkedNode) serializer.deserialize(in, -1);
+        HTreeMap.LinkedNode n2  = (HTreeMap.LinkedNode) m.LN_SERIALIZER.deserialize(in, -1);
 
         assertEquals(123456, n2.next);
         assertEquals(0L, n2.expireLinkNodeRecid);
@@ -134,13 +133,13 @@ public class HTreeMap2Test {
         }
 
         //segment should not be expanded
-        byte[] l = engine.get(m.segmentRecids[0], HTreeMap.DIR_SERIALIZER);
-        assertEquals(16+6, l.length);
-        long recid = DataIO.getSixLong(l,16);
+        int[] l = (int[]) engine.get(m.segmentRecids[0], HTreeMap.DIR_SERIALIZER);
+        assertEquals(4+1, l.length);
+        long recid = l[4];
         assertEquals(1, recid&1);  //last bite indicates leaf
         assertEquals(1,l[0]);
         //all others should be null
-        for(int i=1;i<16;i++)
+        for(int i=1;i<4;i++)
             assertEquals(0,l[i]);
 
         recid = recid>>>1;
@@ -158,27 +157,27 @@ public class HTreeMap2Test {
 
         recid = m.segmentRecids[0];
 
-        l = engine.get(recid, HTreeMap.DIR_SERIALIZER);
-        assertEquals(16+6, l.length);
-        recid = DataIO.getSixLong(l,16);
+        l = (int[]) engine.get(recid, HTreeMap.DIR_SERIALIZER);
+        assertEquals(4+1, l.length);
+        recid = l[4];
         assertEquals(0, recid&1);  //last bite indicates leaf
         assertEquals(1,l[0]);
 
         //all others should be null
-        for(int i=1;i<16;i++)
+        for(int i=1;i<4;i++)
             assertEquals(0,l[i]);
 
         recid = recid>>>1;
 
-        l = engine.get(recid, HTreeMap.DIR_SERIALIZER);
+        l = (int[]) engine.get(recid, HTreeMap.DIR_SERIALIZER);
 
-        assertEquals(16+6, l.length);
-        recid = DataIO.getSixLong(l,16);
+        assertEquals(4+1, l.length);
+        recid = l[4];
         assertEquals(1, recid&1);  //last bite indicates leaf
         assertEquals(1,l[0]);
 
         //all others should be null
-        for(int i=1;i<16;i++)
+        for(int i=1;i<4;i++)
             assertEquals(0,l[i]);
 
         recid = recid>>>1;
@@ -280,8 +279,8 @@ public class HTreeMap2Test {
 
         int countSegments = 0;
         for(long segmentRecid:m.segmentRecids){
-            byte[] segment = engine.get(segmentRecid, HTreeMap.DIR_SERIALIZER);
-            if(segment!=null && segment.length>16){
+            int[] segment = (int[]) engine.get(segmentRecid, HTreeMap.DIR_SERIALIZER);
+            if(segment!=null && segment.length>4){
                 countSegments++;
             }
         }
@@ -415,7 +414,9 @@ public class HTreeMap2Test {
             m.put(""+i,i);
         }
         //first should be removed soon
-        while(m.size()>1050){};
+        while(m.size()>1050){
+            Thread.sleep(1);
+        }
 
         Thread.sleep(500);
         long size = m.size();
@@ -820,6 +821,147 @@ public class HTreeMap2Test {
                 .serializer(Serializer.LONG)
                 .make();
 
+    }
+
+
+    @Test public void slot_to_offset_long(){
+        Random r = new Random();
+        for(int i=0;i<1000;i++){
+            //fill array with random bites
+            long[] l = new long[]{r.nextLong(), r.nextLong()};
+
+            //turn bites into array pos
+            List<Integer> b = new ArrayList();
+            for(int j=0;j<l.length;j++){
+                long v = l[j];
+                for(int k=0;k<64;k++){
+                    b.add((int)v&1);
+                    v>>>=1;
+                }
+            }
+            assertEquals(128,b.size());
+
+            //iterate over an array, check if calculated pos equals
+
+            int offset = 2;
+            for(int slot=0;slot<128;slot++){
+                int current = b.get(slot);
+
+                int coffset = HTreeMap.dirOffsetFromSlot(l,slot);
+
+                if(current==0)
+                    coffset = -coffset;
+
+                assertEquals(offset,coffset);
+                offset+=current;
+            }
+        }
+    }
+
+    @Test public void slot_to_offset_int(){
+        Random r = new Random();
+        for(int i=0;i<1000;i++){
+            //fill array with random bites
+            int[] l = new int[]{r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()};
+
+            //turn bites into array pos
+            List<Integer> b = new ArrayList();
+            for(int j=0;j<l.length;j++){
+                long v = l[j];
+                for(int k=0;k<32;k++){
+                    b.add((int)v&1);
+                    v>>>=1;
+                }
+            }
+            assertEquals(128,b.size());
+
+            //iterate over an array, check if calculated pos equals
+
+            int offset = 4;
+            for(int slot=0;slot<128;slot++){
+                int current = b.get(slot);
+
+                int coffset = HTreeMap.dirOffsetFromSlot(l,slot);
+
+                if(current==0)
+                    coffset = -coffset;
+
+                assertEquals(offset,coffset);
+                offset+=current;
+            }
+        }
+    }
+
+    @Test public void dir_put_long(){
+        for(int a=0;a<100;a++) {
+            long[] reference = new long[127];
+            Object dir = new int[4];
+            Random r = new Random();
+            for (int i = 0; i < 1e3; i++) {
+                int slot = r.nextInt(127);
+                long val = r.nextLong()&0xFFFFFFF;
+
+                if (i % 3==0 && reference[slot]!=0){
+                    //delete every 10th element
+                    reference[slot] = 0;
+                    dir = HTreeMap.dirRemove(dir, slot);
+                }else{
+                    reference[slot] = val;
+                    dir = HTreeMap.dirPut(dir, slot, val);
+                }
+
+                //compare dir and reference
+                long[] dir2 = new long[127];
+                for (int j = 0; j < 127; j++) {
+                    int offset = HTreeMap.dirOffsetFromSlot(dir, j);
+                    if (offset > 0)
+                        dir2[j] = HTreeMap.dirGet(dir, offset);
+                }
+
+                assertArrayEquals(reference, dir2);
+
+                if (dir instanceof int[])
+                    assertArrayEquals((int[]) dir, (int[]) UtilsTest.clone(dir, HTreeMap.DIR_SERIALIZER));
+                else
+                    assertArrayEquals((long[]) dir, (long[]) UtilsTest.clone(dir, HTreeMap.DIR_SERIALIZER));
+            }
+        }
+    }
+
+    @Test public void dir_put_int(){
+        for(int a=0;a<100;a++) {
+            long[] reference = new long[127];
+            Object dir = new int[4];
+            Random r = new Random();
+            for (int i = 0; i < 1e3; i++) {
+                int slot = r.nextInt(127);
+                long val = r.nextInt((int) 1e6);
+
+                if (i % 3==0 && reference[slot]!=0){
+                    //delete every 10th element
+                    reference[slot] = 0;
+                    dir = HTreeMap.dirRemove(dir, slot);
+                }else{
+                    reference[slot] = val;
+                    dir = HTreeMap.dirPut(dir, slot, val);
+                }
+
+                //compare dir and reference
+                long[] dir2 = new long[127];
+                for (int j = 0; j < 127; j++) {
+                    int offset = HTreeMap.dirOffsetFromSlot(dir, j);
+                    if (offset > 0)
+                        dir2[j] = HTreeMap.dirGet(dir, offset);
+                }
+
+                assertArrayEquals(reference, dir2);
+
+                if (dir instanceof int[])
+                    assertArrayEquals((int[]) dir, (int[]) UtilsTest.clone(dir, HTreeMap.DIR_SERIALIZER));
+                else
+                    assertArrayEquals((long[]) dir, (long[]) UtilsTest.clone(dir, HTreeMap.DIR_SERIALIZER));
+            }
+        }
     }
 
 
