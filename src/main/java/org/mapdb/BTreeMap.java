@@ -1745,9 +1745,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
     @Override
     public int size() {
-        long size = sizeLong();
-        if(size>Integer.MAX_VALUE) return Integer.MAX_VALUE;
-        return (int) size;
+        return (int) Math.min(sizeLong(), Integer.MAX_VALUE);
     }
 
     @Override
@@ -2537,13 +2535,18 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
         @Override
         public int size() {
+            //TODO add method which returns long, compatible with new method in Java8 streams, not forget other submaps, reverse maps
+            //TODO use counted btrees once they become available
+            if(hi==null && lo==null)
+                return m.size();
+
             Iterator<K> i = keyIterator();
-            int counter = 0;
+            long counter = 0;
             while(i.hasNext()){
                 counter++;
                 i.next();
             }
-            return counter;
+            return (int) Math.min(counter, Integer.MAX_VALUE);
         }
 
         @Override
@@ -2955,13 +2958,16 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
         @Override
         public int size() {
+            if(hi==null && lo==null)
+                return m.size();
+
             Iterator<K> i = keyIterator();
-            int counter = 0;
+            long counter = 0;
             while(i.hasNext()){
                 counter++;
                 i.next();
             }
-            return counter;
+            return (int) Math.min(counter, Integer.MAX_VALUE);
         }
 
         @Override

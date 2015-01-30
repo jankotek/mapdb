@@ -365,9 +365,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
     @Override
     public int size() {
-        long size = sizeLong();
-        if(size>Integer.MAX_VALUE) return Integer.MAX_VALUE;
-        return (int) size;
+        return (int) Math.min(sizeLong(), Integer.MAX_VALUE);
     }
 
 
