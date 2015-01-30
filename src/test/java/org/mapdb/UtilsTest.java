@@ -120,12 +120,15 @@ public class UtilsTest {
     }
 
 
+    private static final char[] chars = "0123456789abcdefghijklmnopqrstuvwxyz !@#$%^&*()_+=-{}[]:\",./<>?|\\".toCharArray();
+
     public static String randomString(int size) {
-        String chars = "0123456789abcdefghijklmnopqrstuvwxyz !@#$%^&*()_+=-{}[]:\",./<>?|\\";
         StringBuilder b = new StringBuilder(size);
-        Random r = new Random();
+        int seed = (int) (100000*Math.random());
         for(int i=0;i<size;i++){
-            b.append(chars.charAt(r.nextInt(chars.length())));
+            b.append(chars[Math.abs(seed)%chars.length]);
+            seed = DataIO.intHash(seed);
+
         }
         return b.toString();
     }
