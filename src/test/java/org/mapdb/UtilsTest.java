@@ -130,6 +130,16 @@ public class UtilsTest {
         return b.toString();
     }
 
+    /** faster version of Random.nextBytes() */
+    public static byte[] randomByteArray(int size){
+        int seed = (int) (100000*Math.random());
+        byte[] ret = new byte[size];
+        for(int i=0;i<ret.length;i++){
+            ret[i] = (byte) seed;
+            seed = DataIO.intHash(seed);
+        }
+        return ret;
+    }
 
     public static int randomInt() {
         return new Random().nextInt();

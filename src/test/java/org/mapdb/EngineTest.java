@@ -399,13 +399,12 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
     @Test(timeout = 1000*100)
     public void par_update_get() throws InterruptedException {
-        int threadNum = 32;
-        final long end = (long) (System.currentTimeMillis()+20000);
+        int threadNum = 8;
+        final long end = System.currentTimeMillis()+5000;
         final Engine e = openEngine();
         final BlockingQueue<Fun.Pair<Long,byte[]>> q = new ArrayBlockingQueue(threadNum*10);
         for(int i=0;i<threadNum;i++){
-            byte[] b = new  byte[new Random().nextInt(10000)];
-            new Random().nextBytes(b);
+            byte[] b = UtilsTest.randomByteArray(new Random().nextInt(10000));
             long recid = e.put(b,BYTE_ARRAY_NOSIZE);
             q.put(new Fun.Pair(recid,b));
         }
@@ -417,9 +416,11 @@ public abstract class EngineTest<ENGINE extends Engine>{
                 Random r = new Random();
                 while(System.currentTimeMillis()<end){
                     Fun.Pair<Long,byte[]> t = q.take();
-                    assertArrayEquals(t.b,e.get(t.a,Serializer.BYTE_ARRAY_NOSIZE));
-                    byte[] b = new byte[r.nextInt(100000)];
-                    r.nextBytes(b);
+                    assertTrue(Serializer.BYTE_ARRAY.equals(t.b,e.get(t.a,Serializer.BYTE_ARRAY_NOSIZE)));
+                    int size = r.nextInt(1000);
+                    if(r.nextInt(10)==1)
+                        size = size*100;
+                    byte[] b = UtilsTest.randomByteArray(size);
                     e.update(t.a, b, Serializer.BYTE_ARRAY_NOSIZE);
                     q.put(new Fun.Pair<Long,byte[]>(t.a,b));
                 }
@@ -428,7 +429,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
         });
 
         for( Fun.Pair<Long,byte[]> t :q){
-            assertArrayEquals(t.b, e.get(t.a,Serializer.BYTE_ARRAY_NOSIZE));
+            assertTrue(Serializer.BYTE_ARRAY.equals(t.b, e.get(t.a, Serializer.BYTE_ARRAY_NOSIZE)));
         }
 
     }
@@ -436,13 +437,12 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
     @Test(timeout = 1000*100)
     public void par_cas() throws InterruptedException {
-        int threadNum = 32;
-        final long end = (long) (System.currentTimeMillis()+20000);
+        int threadNum = 8;
+        final long end = System.currentTimeMillis()+5000;
         final Engine e = openEngine();
         final BlockingQueue<Fun.Pair<Long,byte[]>> q = new ArrayBlockingQueue(threadNum*10);
         for(int i=0;i<threadNum;i++){
-            byte[] b = new  byte[new Random().nextInt(10000)];
-            new Random().nextBytes(b);
+            byte[] b = UtilsTest.randomByteArray(new Random().nextInt(10000));
             long recid = e.put(b,BYTE_ARRAY_NOSIZE);
             q.put(new Fun.Pair(recid,b));
         }
@@ -454,8 +454,10 @@ public abstract class EngineTest<ENGINE extends Engine>{
                 Random r = new Random();
                 while(System.currentTimeMillis()<end){
                     Fun.Pair<Long,byte[]> t = q.take();
-                    byte[] b = new byte[r.nextInt(100000)];
-                    r.nextBytes(b);
+                    int size = r.nextInt(10000);
+                    if(r.nextInt(10)==1)
+                        size = size*100;
+                    byte[] b = UtilsTest.randomByteArray(size);
                     assertTrue(e.compareAndSwap(t.a, t.b, b, Serializer.BYTE_ARRAY_NOSIZE));
                     q.put(new Fun.Pair<Long,byte[]>(t.a,b));
                 }
@@ -464,7 +466,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
         });
 
         for( Fun.Pair<Long,byte[]> t :q){
-            assertArrayEquals(t.b, e.get(t.a,Serializer.BYTE_ARRAY_NOSIZE));
+            assertTrue(Serializer.BYTE_ARRAY.equals(t.b, e.get(t.a, Serializer.BYTE_ARRAY_NOSIZE)));
         }
 
     }
@@ -481,12 +483,11 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
     @Test public void update_reserved_recid_large(){
         Engine e = openEngine();
-        byte[] data = new byte[(int) 1e7];
-        new Random().nextBytes(data);
+        byte[] data = UtilsTest.randomByteArray((int) 1e7);
         e.update(Engine.RECID_NAME_CATALOG,data,Serializer.BYTE_ARRAY_NOSIZE);
-        assertArrayEquals(data, e.get(Engine.RECID_NAME_CATALOG, Serializer.BYTE_ARRAY_NOSIZE));
+        assertTrue(Serializer.BYTE_ARRAY.equals(data, e.get(Engine.RECID_NAME_CATALOG, Serializer.BYTE_ARRAY_NOSIZE)));
         e.commit();
-        assertArrayEquals(data, e.get(Engine.RECID_NAME_CATALOG, Serializer.BYTE_ARRAY_NOSIZE));
+        assertTrue(Serializer.BYTE_ARRAY.equals(data, e.get(Engine.RECID_NAME_CATALOG, Serializer.BYTE_ARRAY_NOSIZE)));
     }
 
     @Test public void cas_uses_serializer(){
