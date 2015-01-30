@@ -641,11 +641,9 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             objectStack.add(this);
             tsize = DataIO.unpackInt(is);
             comparators = new Comparator[tsize];
-            for(int i=0;i<tsize;i++){
-                comparators[i] = (Comparator) serializerBase.deserialize(is,objectStack);
-            }
             serializers = new Serializer[tsize];
             for(int i=0;i<tsize;i++){
+                comparators[i] = (Comparator) serializerBase.deserialize(is,objectStack);
                 serializers[i] = (Serializer) serializerBase.deserialize(is,objectStack);
             }
 

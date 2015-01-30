@@ -16,7 +16,6 @@
 package org.mapdb;
 
 import java.io.*;
-import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.*;
@@ -361,6 +360,22 @@ public class SerializerBase extends Serializer<Object>{
             }
         });
 
+        ser.put(BTreeKeySerializer.ArrayKeySerializer.class, new Ser<BTreeKeySerializer.ArrayKeySerializer>(){
+
+            @Override
+            public void serialize(DataOutput out, BTreeKeySerializer.ArrayKeySerializer value, FastArrayList objectStack) throws IOException {
+                out.write(Header.MAPDB);
+                DataIO.packInt(out, HeaderMapDB.B_TREE_ARRAY_SERIALIZER);
+                DataIO.packInt(out,value.tsize);
+                for(int i=0;i<value.tsize;i++){
+                    SerializerBase.this.serialize(out, value.comparators[i],objectStack);
+                    SerializerBase.this.serialize(out, value.serializers[i],objectStack);
+                }
+            }
+        });
+
+        //TODO object stack handling is probably all broken. write paranoid tests!!!
+        //TODO write automated test to check if static classes inside BTreeKeySer.. .and other can be serialized
     }
 
     public void serializeObjectArray(DataOutput out, Object[] b, FastArrayList objectStack) throws IOException {
@@ -1322,7 +1337,6 @@ public class SerializerBase extends Serializer<Object>{
 
     };
 
-
     protected void serializeClass(DataOutput out, Class clazz) throws IOException {
         //TODO override in SerializerPojo
         out.writeUTF(clazz.getName());
@@ -1411,7 +1425,7 @@ public class SerializerBase extends Serializer<Object>{
     }
 
     protected interface HeaderMapDB{
-        int SERIALIZER_KEY_TUPLE = 56;
+        int B_TREE_ARRAY_SERIALIZER = 56;
         int THIS_SERIALIZER = 57;
         int B_TREE_BASIC_KEY_SERIALIZER = 58;
         int COMPARATOR_ARRAY = 59;
@@ -1491,7 +1505,7 @@ public class SerializerBase extends Serializer<Object>{
             mapdb_add(55, Serializer.DATE);
 
             //56
-            mapdb_add(HeaderMapDB.SERIALIZER_KEY_TUPLE, new Deser() {
+            mapdb_add(HeaderMapDB.B_TREE_ARRAY_SERIALIZER, new Deser() {
                 @Override
                 public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
                     return new BTreeKeySerializer.ArrayKeySerializer(SerializerBase.this, in, objectStack);
@@ -1569,6 +1583,7 @@ public class SerializerBase extends Serializer<Object>{
             });
 
             mapdb_add(66, Serializer.RECID);
+
         }
 
 
