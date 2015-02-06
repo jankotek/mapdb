@@ -238,8 +238,7 @@ public class VolumeTest {
 
 
     void putGetOverlap(Volume vol, long offset, int size) throws IOException {
-        byte[] b = new byte[size];
-        new Random().nextBytes(b);
+        byte[] b = UtilsTest.randomByteArray(size);
 
         vol.ensureAvailable(offset+size);
         vol.putDataOverlap(offset, b, 0, b.length);
@@ -247,7 +246,8 @@ public class VolumeTest {
         byte[] b2 = new byte[size];
         vol.getDataInputOverlap(offset, size).readFully(b2, 0, size);
 
-        assertArrayEquals(b, b2);
+        assertTrue(Serializer.BYTE_ARRAY.equals(b, b2));
+        vol.close();
     }
 
 
@@ -257,8 +257,7 @@ public class VolumeTest {
         long offset = (long) (2e6 + 2000);
         vol.ensureAvailable(offset+size);
 
-        byte[] b = new byte[size];
-        new Random().nextBytes(b);
+        byte[] b = UtilsTest.randomByteArray(size);
 
         byte[] b2 = new byte[size + 2000];
 
@@ -273,7 +272,7 @@ public class VolumeTest {
         for (int i = 0; i < size; i++) {
             assertEquals(b2[i + 1000], b3[i + 100]);
         }
-
+        vol.close();
     }
 
     /* TODO move this to burn tests

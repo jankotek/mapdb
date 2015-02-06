@@ -2016,7 +2016,7 @@ public abstract class Volume implements Closeable{
                 sun.misc.Unsafe ret =  (sun.misc.Unsafe)singleoneInstanceField.get(null);
                 return ret;
             } catch (Throwable e) {
-                LOG.log(Level.WARNING,"Could not instanciate sun.miscUnsafe. Fall back to DirectByteBuffer.",e);
+                LOG.log(Level.WARNING,"Could not instantiate sun.miscUnsafe. Fall back to DirectByteBuffer.",e);
                 return null;
             }
         }
@@ -2033,8 +2033,6 @@ public abstract class Volume implements Closeable{
         static void copyFromArray(byte[] src, long srcPos,
                                   long dstAddr, long length)
         {
-            //*LOG*/ System.err.printf("copyFromArray srcBaseOffset:%d, srcPos:%d, srcPos:%d, dstAddr:%d, length:%d\n",srcBaseOffset, srcBaseOffset, srcPos, dstAddr, length);
-            //*LOG*/ System.err.flush();
             long offset = ARRAY_BASE_OFFSET + srcPos;
             while (length > 0) {
                 long size = (length > UNSAFE_COPY_THRESHOLD) ? UNSAFE_COPY_THRESHOLD : length;
@@ -2049,9 +2047,6 @@ public abstract class Volume implements Closeable{
         static void copyToArray(long srcAddr, byte[] dst, long dstPos,
                                 long length)
         {
-
-            //*LOG*/ System.err.printf("copyToArray srcAddr:%d, dstBaseOffset:%d, dstPos:%d, lenght:%d\n",srcAddr, dstBaseOffset, dstPos, length);
-            //*LOG*/ System.err.flush();
             long offset = ARRAY_BASE_OFFSET + dstPos;
             while (length > 0) {
                 long size = (length > UNSAFE_COPY_THRESHOLD) ? UNSAFE_COPY_THRESHOLD : length;
@@ -2065,12 +2060,13 @@ public abstract class Volume implements Closeable{
 
 
         protected volatile long[] addresses= new long[0];
+        protected volatile sun.nio.ch.DirectBuffer[] buffers = new sun.nio.ch.DirectBuffer[0];
 
         protected final long sizeLimit;
         protected final boolean hasLimit;
-        protected final int chunkShift;
-        protected final int chunkSizeModMask;
-        protected final int chunkSize;
+        protected final int sliceShift;
+        protected final int sliceSizeModMask;
+        protected final int sliceSize;
 
         protected final ReentrantLock growLock = new ReentrantLock(CC.FAIR_LOCKS);
 
@@ -2079,12 +2075,12 @@ public abstract class Volume implements Closeable{
             this(0, CC.VOLUME_PAGE_SHIFT);
         }
 
-        public UnsafeVolume(long sizeLimit, int chunkShift) {
+        public UnsafeVolume(long sizeLimit, int sliceShift) {
             this.sizeLimit = sizeLimit;
             this.hasLimit = sizeLimit>0;
-            this.chunkShift = chunkShift;
-            this.chunkSize = 1<< chunkShift;
-            this.chunkSizeModMask = chunkSize -1;
+            this.sliceShift = sliceShift;
+            this.sliceSize = 1<< sliceShift;
+            this.sliceSizeModMask = sliceSize -1;
 
         }
 
@@ -2098,36 +2094,44 @@ public abstract class Volume implements Closeable{
                 throw new IllegalAccessError("too big"); //TODO size limit here
             }
 
-            int chunkPos = (int) (offset >>> chunkShift);
+            int slicePos = (int) (offset >>> sliceShift);
 
             //check for most common case, this is already mapped
-            if (chunkPos < addresses.length){
+            if (slicePos < addresses.length){
                 return;
             }
 
             growLock.lock();
             try{
                 //check second time
-                if(chunkPos< addresses.length)
-                    return; //alredy enough space
+                if(slicePos< addresses.length)
+                    return; //already enough space
 
                 int oldSize = addresses.length;
                 long[] addresses2 = addresses;
+                sun.nio.ch.DirectBuffer[] buffers2 = buffers;
 
-                addresses2 = Arrays.copyOf(addresses2, Math.max(chunkPos + 1, addresses2.length * 2));
+                int newSize = Math.max(slicePos + 1, addresses2.length * 2);
+                addresses2 = Arrays.copyOf(addresses2, newSize);
+                buffers2 = Arrays.copyOf(buffers2, newSize);
 
                 for(int pos=oldSize;pos<addresses2.length;pos++) {
-                    long address = UNSAFE.allocateMemory(chunkSize);
-                    //TODO is this necessary?
+                    //take address from DirectByteBuffer so allocated memory can be released by GC
+                    sun.nio.ch.DirectBuffer buf = (sun.nio.ch.DirectBuffer)ByteBuffer.allocateDirect(sliceSize);
+                    long address = buf.address();
+
+                    //TODO is cleanup necessary here?
                     //TODO speedup  by copying an array
-                    for(int i=0;i<chunkSize;i+=8) {
+                    for(long i=0;i<sliceSize;i+=8) {
                         UNSAFE.putLong(address + i, 0L);
                     }
 
+                    buffers2[pos]=buf;
                     addresses2[pos]=address;
                 }
 
                 addresses = addresses2;
+                buffers = buffers2;
             }finally{
                 growLock.unlock();
             }
@@ -2144,8 +2148,8 @@ public abstract class Volume implements Closeable{
             //*LOG*/ System.err.printf("putLong: offset:%d, value:%d\n",offset,value);
             //*LOG*/ System.err.flush();
             value = Long.reverseBytes(value);
-            final long address = addresses[((int) (offset >>> chunkShift))];
-            offset = offset & chunkSizeModMask;
+            final long address = addresses[((int) (offset >>> sliceShift))];
+            offset = offset & sliceSizeModMask;
             UNSAFE.putLong(address + offset, value);
         }
 
@@ -2154,8 +2158,8 @@ public abstract class Volume implements Closeable{
             //*LOG*/ System.err.printf("putInt: offset:%d, value:%d\n",offset,value);
             //*LOG*/ System.err.flush();
             value = Integer.reverseBytes(value);
-            final long address = addresses[((int) (offset >>> chunkShift))];
-            offset = offset & chunkSizeModMask;
+            final long address = addresses[((int) (offset >>> sliceShift))];
+            offset = offset & sliceSizeModMask;
             UNSAFE.putInt(address + offset, value);
         }
 
@@ -2163,8 +2167,8 @@ public abstract class Volume implements Closeable{
         public void putByte(long offset, byte value) {
             //*LOG*/ System.err.printf("putByte: offset:%d, value:%d\n",offset,value);
             //*LOG*/ System.err.flush();
-            final long address = addresses[((int) (offset >>> chunkShift))];
-            offset = offset & chunkSizeModMask;
+            final long address = addresses[((int) (offset >>> sliceShift))];
+            offset = offset & sliceSizeModMask;
             UNSAFE.putByte(address + offset, value);
         }
 
@@ -2175,8 +2179,8 @@ public abstract class Volume implements Closeable{
 //        }
             //*LOG*/ System.err.printf("putData: offset:%d, srcLen:%d, srcPos:%d, srcSize:%d\n",offset, src.length, srcPos, srcSize);
             //*LOG*/ System.err.flush();
-            final long address = addresses[((int) (offset >>> chunkShift))];
-            offset = offset & chunkSizeModMask;
+            final long address = addresses[((int) (offset >>> sliceShift))];
+            offset = offset & sliceSizeModMask;
 
             copyFromArray(src, srcPos, address+offset, srcSize);
         }
@@ -2185,8 +2189,8 @@ public abstract class Volume implements Closeable{
         public void putData(long offset, ByteBuffer buf) {
             //*LOG*/ System.err.printf("putData: offset:%d, bufPos:%d, bufLimit:%d:\n",offset,buf.position(), buf.limit());
             //*LOG*/ System.err.flush();
-            final long address = addresses[((int) (offset >>> chunkShift))];
-            offset = offset & chunkSizeModMask;
+            final long address = addresses[((int) (offset >>> sliceShift))];
+            offset = offset & sliceSizeModMask;
 
             for(int pos=buf.position();pos<buf.limit();pos++){
                 UNSAFE.putByte(address + offset + pos, buf.get(pos));
@@ -2198,8 +2202,8 @@ public abstract class Volume implements Closeable{
         public long getLong(long offset) {
             //*LOG*/ System.err.printf("getLong: offset:%d \n",offset);
             //*LOG*/ System.err.flush();
-            final long address = addresses[((int) (offset >>> chunkShift))];
-            offset = offset & chunkSizeModMask;
+            final long address = addresses[((int) (offset >>> sliceShift))];
+            offset = offset & sliceSizeModMask;
             long l =  UNSAFE.getLong(address +offset);
             return Long.reverseBytes(l);
         }
@@ -2208,8 +2212,8 @@ public abstract class Volume implements Closeable{
         public int getInt(long offset) {
             //*LOG*/ System.err.printf("getInt: offset:%d\n",offset);
             //*LOG*/ System.err.flush();
-            final long address = addresses[((int) (offset >>> chunkShift))];
-            offset = offset & chunkSizeModMask;
+            final long address = addresses[((int) (offset >>> sliceShift))];
+            offset = offset & sliceSizeModMask;
             int i =  UNSAFE.getInt(address +offset);
             return Integer.reverseBytes(i);
         }
@@ -2218,23 +2222,23 @@ public abstract class Volume implements Closeable{
         public byte getByte(long offset) {
             //*LOG*/ System.err.printf("getByte: offset:%d\n",offset);
             //*LOG*/ System.err.flush();
-            final long address = addresses[((int) (offset >>> chunkShift))];
-            offset = offset & chunkSizeModMask;
+            final long address = addresses[((int) (offset >>> sliceShift))];
+            offset = offset & sliceSizeModMask;
 
             return UNSAFE.getByte(address +offset);
         }
 
         @Override
         public DataInput getDataInput(long offset, int size) {
-            final long address = addresses[((int) (offset >>> chunkShift))];
-            offset = offset & chunkSizeModMask;
+            final long address = addresses[((int) (offset >>> sliceShift))];
+            offset = offset & sliceSizeModMask;
             return new DataInputUnsafe(address, (int) offset);
         }
 
         @Override
         public void getData(long offset, byte[] bytes, int bytesPos, int size) {
-            final long address = addresses[((int) (offset >>> chunkShift))];
-            offset = offset & chunkSizeModMask;
+            final long address = addresses[((int) (offset >>> sliceShift))];
+            offset = offset & sliceSizeModMask;
             copyToArray(address+offset,bytes, bytesPos,size);
         }
 
@@ -2247,8 +2251,8 @@ public abstract class Volume implements Closeable{
 ////            dst[pos] = UNSAFE.getByte(address +offset+pos);
 ////        }
 //
-//            final long address = addresses[((int) (offset >>> chunkShift))];
-//            offset = offset & chunkSizeModMask;
+//            final long address = addresses[((int) (offset >>> sliceShift))];
+//            offset = offset & sliceSizeModMask;
 //
 //            copyToArray(address+offset, dst, ARRAY_BASE_OFFSET,
 //                    0,
@@ -2257,13 +2261,63 @@ public abstract class Volume implements Closeable{
 //            return new DataInput2(dst);
 //        }
 
+
+
+        @Override
+        public void putDataOverlap(long offset, byte[] data, int pos, int len) {
+            boolean overlap = (offset>>>sliceShift != (offset+len)>>>sliceShift);
+
+            if(overlap){
+                while(len>0){
+                    long addr = addresses[((int) (offset >>> sliceShift))];
+                    long pos2 = offset&sliceSizeModMask;
+
+                    long toPut = Math.min(len,sliceSize - pos2);
+
+                    //System.arraycopy(data, pos, b, pos2, toPut);
+                    copyFromArray(data,pos,addr+pos2,toPut);
+
+                    pos+=toPut;
+                    len -=toPut;
+                    offset+=toPut;
+                }
+            }else{
+                putData(offset,data,pos,len);
+            }
+        }
+
+        @Override
+        public DataInput getDataInputOverlap(long offset, int size) {
+            boolean overlap = (offset>>>sliceShift != (offset+size)>>>sliceShift);
+            if(overlap){
+                byte[] bb = new byte[size];
+                final int origLen = size;
+                while(size>0){
+                    long addr = addresses[((int) (offset >>> sliceShift))];
+                    long pos = offset&sliceSizeModMask;
+                    long toPut = Math.min(size,sliceSize - pos);
+
+                    //System.arraycopy(b, pos, bb, origLen - size, toPut);
+                    copyToArray(addr+pos,bb,origLen-size,toPut);
+
+                    size -=toPut;
+                    offset+=toPut;
+                }
+                return new DataIO.DataInputByteArray(bb);
+            }else{
+                //return mapped buffer
+                return getDataInput(offset,size);
+            }
+        }
+
+
+
         @Override
         public void close() {
-            //*LOG*/ System.err.printf("close\n");
-            //*LOG*/ System.err.flush();
-            for(long address:addresses){
-                if(address!=0)
-                    UNSAFE.freeMemory(address);
+            sun.nio.ch.DirectBuffer[] buf2 = buffers;
+            buffers=null;
+            for(sun.nio.ch.DirectBuffer buf:buf2){
+                buf.cleaner().clean();
             }
         }
 
@@ -2273,7 +2327,7 @@ public abstract class Volume implements Closeable{
 
         @Override
         public int sliceSize() {
-            return chunkSize;
+            return sliceSize;
         }
 
         @Override
@@ -2292,7 +2346,7 @@ public abstract class Volume implements Closeable{
 
         @Override
         public long length() {
-            return 1L*addresses.length*chunkSize;
+            return 1L*addresses.length*sliceSize;
         }
 
         @Override
