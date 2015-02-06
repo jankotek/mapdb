@@ -470,8 +470,9 @@ public class StoreDirect extends Store {
         boolean firstLinked =
                 (offsets!=null && offsets.length>1) || //too large record
                 (out==null); //null records
-        int firstSize = (int) (offsets==null? 0L : offsets[0]>>>48);
-        long firstOffset =  offsets==null? 0L : offsets[0]&MOFFSET;
+        boolean empty = offsets==null || offsets.length==0;
+        int firstSize = (int) (empty ? 0L : offsets[0]>>>48);
+        long firstOffset =  empty? 0L : offsets[0]&MOFFSET;
         indexValPut(recid,firstSize,firstOffset,firstLinked,false);
     }
 
