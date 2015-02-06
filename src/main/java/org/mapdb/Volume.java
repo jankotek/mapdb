@@ -2316,6 +2316,7 @@ public abstract class Volume implements Closeable{
         public void close() {
             sun.nio.ch.DirectBuffer[] buf2 = buffers;
             buffers=null;
+            addresses = null;
             for(sun.nio.ch.DirectBuffer buf:buf2){
                 buf.cleaner().clean();
             }
