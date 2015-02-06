@@ -505,4 +505,22 @@ public abstract class EngineTest<ENGINE extends Engine>{
         assertArrayEquals(data2, e.get(recid,Serializer.BYTE_ARRAY));
     }
 
+    @Test public void nosize_array(){
+        byte[] b = new byte[0];
+        long recid = e.put(b,Serializer.BYTE_ARRAY_NOSIZE);
+        assertArrayEquals(b, e.get(recid,Serializer.BYTE_ARRAY_NOSIZE));
+
+        b = new byte[]{1,2,3};
+        e.update(recid,b,Serializer.BYTE_ARRAY_NOSIZE);
+        assertArrayEquals(b, e.get(recid, Serializer.BYTE_ARRAY_NOSIZE));
+
+        b = new byte[]{};
+        e.update(recid,b,Serializer.BYTE_ARRAY_NOSIZE);
+        assertArrayEquals(b, e.get(recid, Serializer.BYTE_ARRAY_NOSIZE));
+
+        e.delete(recid,Serializer.BYTE_ARRAY_NOSIZE);
+        assertArrayEquals(null, e.get(recid, Serializer.BYTE_ARRAY_NOSIZE));
+
+    }
+
 }
