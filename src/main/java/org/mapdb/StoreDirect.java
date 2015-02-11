@@ -798,7 +798,8 @@ public class StoreDirect extends Store{
 
         lockAllWrite();
         try{
-            final File compactedFile = new File((indexFile!=null?indexFile:File.createTempFile("mapdb","compact"))+".compact");
+            File f1del = null;
+            final File compactedFile = new File((indexFile!=null?indexFile:(f1del=File.createTempFile("mapdb","compact")))+".compact");
             Volume.Factory fab = Volume.fileFactory(compactedFile,rafMode,false,sizeLimit,  CC.VOLUME_CHUNK_SHIFT,0);
             StoreDirect store2 = new StoreDirect(fab,false,false,5,false,0L, checksum,compress,password,false,0);
 
@@ -877,12 +878,21 @@ public class StoreDirect extends Store{
                 Volume physVol2 = new Volume.MemoryVol(useDirectBuffer,sizeLimit, CC.VOLUME_CHUNK_SHIFT);
                 Volume.volumeTransfer(store2.physSize, store2.phys, physVol2);
 
+                File f1 = store2.index.getFile();
+                File f2 = store2.phys.getFile();
+
                 store2.close();
+
+                f1.delete();
+                f2.delete();
 
                 index = indexVol2;
                 phys = physVol2;
             }
 
+
+            if(f1del!=null)
+                f1del.delete();
 
 
 

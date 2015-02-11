@@ -5,11 +5,13 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.FileFilter;
 import java.io.IOError;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 import static org.junit.Assert.*;
 import static org.mapdb.StoreDirect.*;
@@ -471,4 +473,35 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         }
     }
 
+
+    @Test public void in_memory_compact_leaves_no_temp_files() throws IOException {
+        DB db = DBMaker.newMemoryDB().transactionDisable().make();
+        Random r = new Random();
+        for(int i=0;i<1e3;i++) {
+            db.engine.put(UtilsTest.randomString(r.nextInt(100000)),Serializer.STRING);
+        }
+        db.commit();
+
+        //get list of temp files
+        File temp = File.createTempFile("mapdb","test");
+        File[] array = temp.getParentFile().listFiles(new FileFilter() {
+            @Override
+            public boolean accept(File pathname) {
+                return pathname.isFile() && pathname.getName().startsWith("mapdb");
+            }
+        });
+
+        db.compact();
+
+        File[] array2 = temp.getParentFile().listFiles(new FileFilter() {
+            @Override
+            public boolean accept(File pathname) {
+                return pathname.isFile() && pathname.getName().startsWith("mapdb");
+            }
+        });
+
+        assertEquals(array.length, array2.length);
+
+        temp.delete();
+    }
 }
