@@ -2,6 +2,7 @@ package org.mapdb;
 
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.*;
@@ -285,7 +286,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
     }
 
-    @Test(timeout = 1000*100)
+    @Test(timeout = 1000*100) @Ignore
     public void par_update_get() throws InterruptedException {
         int threadNum = 32;
         final long end = (long) (System.currentTimeMillis()+20000);
@@ -320,7 +321,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
     }
 
 
-    @Test(timeout = 1000*100)
+    @Test(timeout = 1000*100) @Ignore
     public void par_cas() throws InterruptedException {
         int threadNum = 32;
         final long end = (long) (System.currentTimeMillis()+20000);
