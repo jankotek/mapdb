@@ -869,7 +869,10 @@ public class StoreDirect extends Store{
                 if(!physFile2.renameTo(physFile))
                     throw new AssertionError("could not rename file");
 
-                final Volume.Factory fac2 = Volume.fileFactory(indexFile,rafMode, false, sizeLimit, CC.VOLUME_CHUNK_SHIFT,0);
+                final Volume.Factory fac2 = Volume.fileFactory(indexFile,rafMode, false, sizeLimit, CC.VOLUME_CHUNK_SHIFT,0,
+                        new File(indexFile.getPath() + StoreDirect.DATA_FILE_EXT),
+                        new File(indexFile.getPath() + StoreWAL.TRANS_LOG_FILE_EXT),
+                        asyncWriteEnabled);
                 index = fac2.createIndexVolume();
                 phys = fac2.createPhysVolume();
 
