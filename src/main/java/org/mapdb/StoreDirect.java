@@ -800,7 +800,11 @@ public class StoreDirect extends Store{
         try{
             File f1del = null;
             final File compactedFile = new File((indexFile!=null?indexFile:(f1del=File.createTempFile("mapdb","compact")))+".compact");
-            Volume.Factory fab = Volume.fileFactory(compactedFile,rafMode,false,sizeLimit,  CC.VOLUME_CHUNK_SHIFT,0);
+            boolean asyncWriteEnabled = index instanceof Volume.ByteBufferVol && ((Volume.ByteBufferVol)index).asyncWriteEnabled;
+            Volume.Factory fab = Volume.fileFactory(compactedFile,rafMode,false,sizeLimit,  CC.VOLUME_CHUNK_SHIFT,0,
+                    new File(compactedFile.getPath() + StoreDirect.DATA_FILE_EXT),
+                    new File(compactedFile.getPath() + StoreWAL.TRANS_LOG_FILE_EXT),
+                    asyncWriteEnabled);
             StoreDirect store2 = new StoreDirect(fab,false,false,5,false,0L, checksum,compress,password,false,0);
 
             compactPreUnderLock();
