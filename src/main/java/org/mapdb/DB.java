@@ -481,7 +481,15 @@ public class DB {
                 (Integer)catGet(name+".hashSalt"),
                 (long[])catGet(name+".segmentRecids"),
                 catGet(name+".serializer",getDefaultSerializer()),
-                null, 0L,0L,0L,0L,0L,null,null,null,
+                null,
+                catGet(name+".expireTimeStart",0L),
+                catGet(name+".expire",0L),
+                catGet(name+".expireAccess",0L),
+                catGet(name+".expireMaxSize",0L),
+                catGet(name+".expireStoreSize",0L),
+                (long[])catGet(name+".expireHeads",null),
+                (long[])catGet(name+".expireTails",null),
+                null,
                 catGet(name+".hasher",Hasher.BASIC),
                 false).keySet();
 
@@ -790,7 +798,7 @@ public class DB {
                 catGet(name+".maxNodeSize",32),
                 catGet(name+".valuesOutsideNodes",false),
                 catGet(name+".counterRecid",0L),
-                (BTreeKeySerializer)catGet(name+".keySerializer",new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer())),
+                (BTreeKeySerializer) catGet(name+".keySerializer",new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer())),
                 catGet(name+".valueSerializer",getDefaultSerializer()),
                 catGet(name+".comparator",BTreeMap.COMPARABLE_COMPARATOR),
                 catGet(name+".numberOfNodeMetas",0),
@@ -1028,17 +1036,17 @@ public class DB {
         m.comparator = catPut(m.name+".comparator",m.comparator,BTreeMap.COMPARABLE_COMPARATOR);
 
         if(m.pumpPresortBatchSize!=-1){
-            m.pumpSource = Pump.sort(m.pumpSource,m.pumpIgnoreDuplicates, m.pumpPresortBatchSize,Collections.reverseOrder(m.comparator),getDefaultSerializer());
+            m.pumpSource = Pump.sort(m.pumpSource,m.pumpIgnoreDuplicates, m.pumpPresortBatchSize, Collections.reverseOrder(m.comparator), getDefaultSerializer());
         }
 
-        long counterRecid = !m.counter ?0L:engine.put(0L, Serializer.LONG);
+        long counterRecid = !m.counter ? 0L : engine.put(0L, Serializer.LONG);
         long rootRecidRef;
 
-        if(m.pumpSource==null){
-            rootRecidRef = BTreeMap.createRootRef(engine,m.serializer,null,m.comparator,0);
-        }else{
+        if (m.pumpSource == null) {
+            rootRecidRef = BTreeMap.createRootRef(engine, m.serializer, null, m.comparator, 0);
+        } else {
             rootRecidRef = Pump.buildTreeMap(
-                    (Iterator<Object>)m.pumpSource,
+                    (Iterator<Object>) m.pumpSource,
                     engine,
                     Fun.extractNoTransform(),
                     null,
@@ -1108,7 +1116,7 @@ public class DB {
                 catPut(name+".headRecid",headRecid),
                 catPut(name+".tailRecid",tailRecid),
                 catPut(name+".useLocks",useLocks)
-                );
+        );
         catalog.put(name + ".type", "Queue");
         namedPut(name, ret);
         return ret;
@@ -1218,8 +1226,8 @@ public class DB {
 
         Queues.CircularQueue<E> ret = new Queues.CircularQueue<E>(engine,
                 catPut(name+".serializer",serializer),
-                catPut(name+".headRecid",headRecid),
-                catPut(name+".headInsertRecid",headInsertRecid),
+                catPut(name+ ".headRecid",headRecid),
+                catPut(name + ".headInsertRecid",headInsertRecid),
                 catPut(name+".size",size)
         );
         catalog.put(name + ".type", "CircularQueue");
@@ -1253,7 +1261,7 @@ public class DB {
                 return namedPut(name,
                         new DB(new EngineWrapper.ReadOnlyEngine(e)).getAtomicLong("a"));
             }
-            return createAtomicLong(name,0L);
+            return createAtomicLong(name, 0L);
         }
         checkType(type, "AtomicLong");
 
@@ -1321,7 +1329,7 @@ public class DB {
         String type = catGet(name + ".type", null);
         if(type==null){
             checkShouldCreate(name);
-            if(engine.isReadOnly()){
+            if (engine.isReadOnly()){
                 Engine e = new StoreHeap();
                 new DB(e).getAtomicBoolean("a");
                 return namedPut(name,
@@ -1360,7 +1368,7 @@ public class DB {
         Atomic.String ret = (Atomic.String) getFromWeakCollection(name);
         if(ret!=null) return ret;
         String type = catGet(name + ".type", null);
-        if(type==null){
+        if (type == null){
             checkShouldCreate(name);
             if(engine.isReadOnly()){
                 Engine e = new StoreHeap();
