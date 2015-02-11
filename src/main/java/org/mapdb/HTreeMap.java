@@ -1619,8 +1619,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         ExpireLinkNode n = engine.get(nodeRecid,ExpireLinkNode.SERIALIZER);
         long newTime =
                 access?
-                        (expireAccess==0?0 : expireAccess+System.currentTimeMillis()-expireTimeStart):
-                        (expire==0?0 : expire+System.currentTimeMillis()-expireTimeStart);
+                        (expireAccess==0? n.time : expireAccess+System.currentTimeMillis()-expireTimeStart):
+                        (expire==0?n.time : expire+System.currentTimeMillis()-expireTimeStart);
 
         //TODO optimize bellow, but what if there is only size limit?
         //if(n.time>newTime) return; // older time greater than new one, do not update
