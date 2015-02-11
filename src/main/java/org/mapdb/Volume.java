@@ -173,9 +173,13 @@ public abstract class Volume {
     }
 
     public static Volume volumeForFile(File f, boolean useRandomAccessFile, boolean readOnly, long sizeLimit, int chunkShift, int sizeIncrement) {
+        return volumeForFile(f, useRandomAccessFile, readOnly, sizeLimit, chunkShift,sizeIncrement, false);
+    }
+    public static Volume volumeForFile(File f, boolean useRandomAccessFile, boolean readOnly, long sizeLimit, int chunkShift,
+                                       int sizeIncrement, boolean asyncWriteEnabled) {
         return useRandomAccessFile ?
                 new FileChannelVol(f, readOnly,sizeLimit, chunkShift, sizeIncrement):
-                new MappedFileVol(f, readOnly,sizeLimit,chunkShift, sizeIncrement);
+                new MappedFileVol(f, readOnly,sizeLimit,chunkShift, sizeIncrement,asyncWriteEnabled);
     }
 
 
@@ -197,20 +201,43 @@ public abstract class Volume {
 
                                       final File physFile,
                                       final File transLogFile) {
+        return fileFactory(
+            indexFile,
+            rafMode,
+            readOnly,
+            sizeLimit,
+            chunkShift,
+            sizeIncrement,
+            physFile,
+            transLogFile,
+            false
+        );
+    }
+
+        public static Factory fileFactory(final File indexFile,
+                                      final int rafMode,
+                                      final boolean readOnly,
+                                      final long sizeLimit,
+                                      final int chunkShift,
+                                      final int sizeIncrement,
+
+                                      final File physFile,
+                                      final File transLogFile,
+                                      final boolean asyncWriteEnabled) {
         return new Factory() {
             @Override
             public Volume createIndexVolume() {
-                return volumeForFile(indexFile, rafMode>1, readOnly, sizeLimit, chunkShift, sizeIncrement);
+                return volumeForFile(indexFile, rafMode>1, readOnly, sizeLimit, chunkShift, sizeIncrement, asyncWriteEnabled);
             }
 
             @Override
             public Volume createPhysVolume() {
-                return volumeForFile(physFile, rafMode>0, readOnly, sizeLimit, chunkShift, sizeIncrement);
+                return volumeForFile(physFile, rafMode>0, readOnly, sizeLimit, chunkShift, sizeIncrement,asyncWriteEnabled);
             }
 
             @Override
             public Volume createTransLogVolume() {
-                return volumeForFile(transLogFile, rafMode>0, readOnly, sizeLimit,chunkShift, sizeIncrement);
+                return volumeForFile(transLogFile, rafMode>0, readOnly, sizeLimit,chunkShift, sizeIncrement,asyncWriteEnabled);
             }
         };
     }
@@ -253,7 +280,17 @@ public abstract class Volume {
         protected volatile ByteBuffer[] chunks = new ByteBuffer[0];
         protected final boolean readOnly;
 
+        /**
+         * if Async Write is enabled, do not use unmap hack see
+         * https://github.com/jankotek/MapDB/issues/442
+         */
+        protected final  boolean asyncWriteEnabled;
+
         protected ByteBufferVol(boolean readOnly, long sizeLimit, int chunkShift) {
+            this(readOnly, sizeLimit, chunkShift, false);
+        }
+
+        protected ByteBufferVol(boolean readOnly, long sizeLimit, int chunkShift, boolean asyncWriteEnabled) {
             this.readOnly = readOnly;
             this.sizeLimit = sizeLimit;
             this.chunkShift = chunkShift;
@@ -261,8 +298,8 @@ public abstract class Volume {
             this.chunkSizeModMask = chunkSize -1;
 
             this.hasLimit = sizeLimit>0;
+            this.asyncWriteEnabled = asyncWriteEnabled;
         }
-
 
         @Override
         public final boolean tryAvailable(long offset) {
@@ -370,7 +407,7 @@ public abstract class Volume {
          */
         protected void unmap(MappedByteBuffer b){
             try{
-                if(unmapHackSupported){
+                if(unmapHackSupported && !asyncWriteEnabled){
 
                     // need to dispose old direct buffer, see bug
                     // http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4724038
@@ -415,9 +452,13 @@ public abstract class Volume {
         protected final FileChannel.MapMode mapMode;
         protected final java.io.RandomAccessFile raf;
 
-
         public MappedFileVol(File file, boolean readOnly, long sizeLimit, int chunkShift, int sizeIncrement) {
-            super(readOnly, sizeLimit, chunkShift);
+            this(file,readOnly,sizeLimit,chunkShift,sizeIncrement,false);
+        }
+
+        public MappedFileVol(File file, boolean readOnly, long sizeLimit, int chunkShift, int sizeIncrement,
+                             boolean asyncWriteEnabled) {
+            super(readOnly, sizeLimit, chunkShift, asyncWriteEnabled);
             this.file = file;
             this.mapMode = readOnly? FileChannel.MapMode.READ_ONLY: FileChannel.MapMode.READ_WRITE;
             try {

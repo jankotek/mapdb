@@ -941,12 +941,17 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         else if(Keys.volume_directByteBuffer.equals(volume))
             return Volume.memoryFactory(true,sizeLimit,CC.VOLUME_CHUNK_SHIFT);
 
-        File file = new File(props.getProperty(Keys.file));
+        File indexFile = new File(props.getProperty(Keys.file));
+
+        File dataFile = new File(indexFile.getPath() + StoreDirect.DATA_FILE_EXT);
+        File logFile =  new File(indexFile.getPath() + StoreWAL.TRANS_LOG_FILE_EXT);
 
         return Volume.fileFactory(
-                file,
+                indexFile,
                 propsGetRafMode(), propsGetBool(Keys.readOnly),
-                sizeLimit,CC.VOLUME_CHUNK_SHIFT,0);
+                sizeLimit,CC.VOLUME_CHUNK_SHIFT,0,
+                dataFile, logFile,
+                propsGetBool(Keys.asyncWrite));
     }
 
 

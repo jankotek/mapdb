@@ -390,4 +390,13 @@ public class DBMakerTest{
         assertEquals(Integer.valueOf(0),s.firstEntry().getKey());
         assertEquals(Integer.valueOf(12),s.lastEntry().getKey());
     }
+
+    @Test public void async_mmap_unmap_hack_disabled(){
+        File f = UtilsTest.tempDbFile();
+        DB db = DBMaker.newFileDB(f).asyncWriteEnable().mmapFileEnable().make();
+
+        StoreDirect st = (StoreDirect) Store.forDB(db);
+        Volume.MappedFileVol v = (Volume.MappedFileVol) st.index;
+        assertTrue(v.asyncWriteEnabled);
+    }
 }
