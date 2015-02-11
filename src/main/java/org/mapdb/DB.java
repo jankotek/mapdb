@@ -426,7 +426,7 @@ public class DB {
                 expireTails[i] = engine.put(0L,Serializer.LONG);
             }
             catPut(name+".expireHeads",expireHeads);
-            catPut(name+".expireTails",expireHeads);
+            catPut(name+".expireTails",expireTails);
         }
 
         if(m.hasher!=null){
@@ -528,7 +528,7 @@ public class DB {
                 expireTails[i] = engine.put(0L,Serializer.LONG);
             }
             catPut(name+".expireHeads",expireHeads);
-            catPut(name+".expireTails",expireHeads);
+            catPut(name+".expireTails",expireTails);
         }
 
         if(m.hasher!=null){
