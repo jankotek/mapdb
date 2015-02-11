@@ -1188,7 +1188,7 @@ public class StoreDirect extends Store{
 
         for(int size = 16;size<MAX_REC_SIZE+10;size*=2){
             long sum = 0;
-            for(int ss=size/2;ss<size;s+=16){
+            for(int ss=size/2;ss<size;ss+=16){
                 sum+=countLongStackItems(size2ListIoRecid(ss))*ss;
             }
             s+="Size occupied by free records (size="+size+") = "+sum;
