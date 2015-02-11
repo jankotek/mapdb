@@ -112,4 +112,14 @@ public class StoreAppendTest<E extends StoreAppend> extends EngineTest<E>{
     @Override public void large_record_larger(){
         //TODO ignored test
     }
+
+    @Override
+    public void par_update_get() throws InterruptedException {
+        //ignored test
+    }
+
+    @Override
+    public void par_cas() throws InterruptedException {
+        //ignored test
+    }
 }

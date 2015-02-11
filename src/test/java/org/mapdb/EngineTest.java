@@ -11,6 +11,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mapdb.Serializer.BYTE_ARRAY_NOSIZE;
+import static org.mapdb.Serializer.STRING;
 
 /**
  * Tests contract of various implementations of Engine interface
@@ -110,7 +111,6 @@ public abstract class EngineTest<ENGINE extends Engine>{
             Long value = m.getKey();
             assertEquals(value, e.get(recid, Serializer.LONG));
         }
-
 
     }
 
@@ -290,11 +290,10 @@ public abstract class EngineTest<ENGINE extends Engine>{
         int threadNum = 32;
         final long end = (long) (System.currentTimeMillis()+20000);
         final Engine e = openEngine();
-        final BlockingQueue<Fun.Tuple2<Long,byte[]>> q = new ArrayBlockingQueue(threadNum*10);
+        final BlockingQueue<Fun.Tuple2<Long,String>> q = new ArrayBlockingQueue(threadNum*10);
         for(int i=0;i<threadNum;i++){
-            byte[] b = new  byte[new Random().nextInt(10000)];
-            new Random().nextBytes(b);
-            long recid = e.put(b,BYTE_ARRAY_NOSIZE);
+            String b = UtilsTest.randomString(new Random().nextInt(10000));
+            long recid = e.put(b,STRING);
             q.put(new Fun.Tuple2(recid,b));
         }
 
@@ -304,19 +303,18 @@ public abstract class EngineTest<ENGINE extends Engine>{
             public Object call() throws Exception {
                 Random r = new Random();
                 while (System.currentTimeMillis() < end) {
-                    Fun.Tuple2<Long, byte[]> t = q.take();
-                    assertArrayEquals(t.b, e.get(t.a, Serializer.BYTE_ARRAY_NOSIZE));
-                    byte[] b = new byte[r.nextInt(100000)];
-                    r.nextBytes(b);
-                    e.update(t.a, b, Serializer.BYTE_ARRAY_NOSIZE);
-                    q.put(new Fun.Tuple2<Long, byte[]>(t.a, b));
+                    Fun.Tuple2<Long, String> t = q.take();
+                    assertEquals(t.b, e.get(t.a, Serializer.STRING));
+                    String b = UtilsTest.randomString(r.nextInt(100000));
+                    e.update(t.a, b, Serializer.STRING);
+                    q.put(new Fun.Tuple2<Long, String>(t.a, b));
                 }
                 return null;
             }
         });
 
-        for( Fun.Tuple2<Long,byte[]> t :q){
-            assertArrayEquals(t.b, e.get(t.a,Serializer.BYTE_ARRAY_NOSIZE));
+        for( Fun.Tuple2<Long,String> t :q){
+            assertEquals(t.b, e.get(t.a,Serializer.STRING));
         }
 
     }
@@ -327,11 +325,10 @@ public abstract class EngineTest<ENGINE extends Engine>{
         int threadNum = 32;
         final long end = (long) (System.currentTimeMillis()+20000);
         final Engine e = openEngine();
-        final BlockingQueue<Fun.Tuple2<Long,byte[]>> q = new ArrayBlockingQueue(threadNum*10);
+        final BlockingQueue<Fun.Tuple2<Long,String>> q = new ArrayBlockingQueue(threadNum*10);
         for(int i=0;i<threadNum;i++){
-            byte[] b = new  byte[new Random().nextInt(10000)];
-            new Random().nextBytes(b);
-            long recid = e.put(b,BYTE_ARRAY_NOSIZE);
+            String b = UtilsTest.randomString(new Random().nextInt(10000));
+            long recid = e.put(b,STRING);
             q.put(new Fun.Tuple2(recid,b));
         }
 
@@ -341,18 +338,17 @@ public abstract class EngineTest<ENGINE extends Engine>{
             public Object call() throws Exception {
                 Random r = new Random();
                 while (System.currentTimeMillis() < end) {
-                    Fun.Tuple2<Long, byte[]> t = q.take();
-                    byte[] b = new byte[r.nextInt(100000)];
-                    r.nextBytes(b);
-                    assertTrue(e.compareAndSwap(t.a, t.b, b, Serializer.BYTE_ARRAY_NOSIZE));
-                    q.put(new Fun.Tuple2<Long, byte[]>(t.a, b));
+                    Fun.Tuple2<Long, String> t = q.take();
+                    String b = UtilsTest.randomString(r.nextInt(100000));
+                    assertTrue(e.compareAndSwap(t.a, t.b, b, Serializer.STRING));
+                    q.put(new Fun.Tuple2<Long, String>(t.a, b));
                 }
                 return null;
             }
         });
 
-        for( Fun.Tuple2<Long,byte[]> t :q){
-            assertArrayEquals(t.b, e.get(t.a,Serializer.BYTE_ARRAY_NOSIZE));
+        for( Fun.Tuple2<Long,String> t :q){
+            assertEquals(t.b, e.get(t.a,Serializer.STRING));
         }
 
     }
