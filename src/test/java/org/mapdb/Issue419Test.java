@@ -12,67 +12,6 @@ import static org.junit.Assert.assertTrue;
 
 public class Issue419Test {
 
-    @Test
-    public void dbSetFile() {
-
-        File f = UtilsTest.tempDbFile();
-
-
-        {
-// configure and open database using builder pattern.
-// all options are available with code auto-completion.
-            DB db = DBMaker.newFileDB(f)
-                    .closeOnJvmShutdown().transactionDisable()
-/* encryptionEnable("password") */.make();
-
-            String setName = "hashSet2";
-            Set<Integer> set = null;
-
-            if (!db.exists(setName)) {
-                DB.HTreeSetMaker treeSet = db.createHashSet(setName);
-                set = treeSet.expireAfterAccess(30, TimeUnit.DAYS).make();
-                System.out.println("create");
-            } else {
-                set = db.getHashSet(setName);
-                System.out.println("read exists");
-            }
-
-            System.out.println(set.contains(1));
-            for (int i = 0; i < 10000; i++)
-                set.add(i);
-
-            System.out.println(set.size());
-            db.close();
-        }
-
-
-        {
-// configure and open database using builder pattern.
-// all options are available with code auto-completion.
-            DB db = DBMaker.newFileDB(f)
-                    .closeOnJvmShutdown().transactionDisable()
-/* encryptionEnable("password") */.make();
-
-            String setName = "hashSet2";
-            Set<Integer> set = null;
-
-            if (!db.exists(setName)) {
-                DB.HTreeSetMaker treeSet = db.createHashSet(setName);
-                set = treeSet.expireAfterAccess(30, TimeUnit.DAYS).make();
-                System.out.println("create");
-            } else {
-                set = db.getHashSet(setName);
-                System.out.println("read exists");
-            }
-
-            System.out.println(set.contains(1));
-            for (int i = 0; i < 10000; i++)
-                set.add(i);
-
-            System.out.println(set.size());
-            db.close();
-        }
-    }
     @Test public void isolate(){
 
         File f = UtilsTest.tempDbFile();

@@ -603,7 +603,15 @@ public class DB implements Closeable {
                 (Integer)catGet(name+".hashSalt"),
                 (long[])catGet(name+".segmentRecids"),
                 catGet(name+".serializer",getDefaultSerializer()),
-                null, 0L,0L,0L,0L,0L,null,null,null,
+                null,
+                catGet(name+".expireTimeStart",0L),
+                catGet(name+".expire",0L),
+                catGet(name+".expireAccess",0L),
+                catGet(name+".expireMaxSize",0L),
+                catGet(name+".expireStoreSize",0L),
+                (long[])catGet(name+".expireHeads",null),
+                (long[])catGet(name+".expireTails",null),
+                null,
                 threadFactory
          ).keySet();
 
@@ -1164,7 +1172,7 @@ public class DB implements Closeable {
         //$DELAY$
         ret = new Queues.Queue<E>(engine,
                 (Serializer<E>) catGet(name+".serializer",getDefaultSerializer()),
-                (Long)catGet(name+".headRecid"),
+                (Long) catGet(name+".headRecid"),
                 (Long)catGet(name+".tailRecid"),
                 (Boolean)catGet(name+".useLocks")
                 );
@@ -1182,7 +1190,7 @@ public class DB implements Closeable {
         //$DELAY$
         Queues.Queue<E> ret = new Queues.Queue<E>(engine,
                 catPut(name+".serializer",serializer,getDefaultSerializer()),
-                catPut(name+".headRecid",headRecid),
+                catPut(name +".headRecid",headRecid),
                 catPut(name+".tailRecid",tailRecid),
                 catPut(name+".useLocks",useLocks)
                 );
@@ -1251,7 +1259,7 @@ public class DB implements Closeable {
         //$DELAY$
         if(type==null){
             checkShouldCreate(name);
-            if(engine.isReadOnly()){
+            if(engine.isReadOnly()) {
                 Engine e = new StoreHeap(true,1,0);
                 new DB(e).getCircularQueue("a");
                 //$DELAY$
@@ -1334,7 +1342,7 @@ public class DB implements Closeable {
         String type = catGet(name + ".type", null);
         if(type==null){
             checkShouldCreate(name);
-            if(engine.isReadOnly()){
+            if (engine.isReadOnly()){
                 Engine e = new StoreHeap(true,1,0);
                 new DB(e).getAtomicLong("a");
                 //$DELAY$
