@@ -537,7 +537,7 @@ public class DB implements Closeable {
                 expireTails[i] = engine.put(0L,Serializer.LONG);
             }
             catPut(name+".expireHeads",expireHeads);
-            catPut(name+".expireTails",expireHeads);
+            catPut(name+".expireTails",expireTails);
         }
         //$DELAY$
 
@@ -652,7 +652,7 @@ public class DB implements Closeable {
                 expireTails[i] = engine.put(0L,Serializer.LONG);
             }
             catPut(name+".expireHeads",expireHeads);
-            catPut(name+".expireTails",expireHeads);
+            catPut(name+".expireTails",expireTails);
         }
 
         //$DELAY$
