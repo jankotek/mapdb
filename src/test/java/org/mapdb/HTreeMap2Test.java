@@ -645,21 +645,6 @@ public class HTreeMap2Test {
     }
 
 
-    @Test(expected = IllegalArgumentException.class)
-    public void inconsistentHash(){
-        DB db = DBMaker.newMemoryDB()
-                .transactionDisable()
-                .make();
-
-        HTreeMap m = db.createHashMap("test")
-
-                .make();
-
-        for(int i=0;i<1e5;i++){
-            m.put(new AA(i),i);
-        }
-    }
-
     @Test
     public void test()
     {
