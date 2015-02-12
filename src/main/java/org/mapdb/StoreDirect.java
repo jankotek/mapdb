@@ -287,7 +287,7 @@ public class StoreDirect extends Store {
         if(CC.PARANOID)
             offsetsVerify(newOffsets);
 
-        putData(recid, newOffsets,out);
+        putData(recid, newOffsets, out);
     }
 
     protected void offsetsVerify(long[] linkedOffsets) {
@@ -374,7 +374,7 @@ public class StoreDirect extends Store {
 
     @Override
     public long getCurrSize() {
-        return -1; //TODO currsize
+        return vol.length() - lastAllocatedData % CHUNKSIZE;
     }
 
     @Override
