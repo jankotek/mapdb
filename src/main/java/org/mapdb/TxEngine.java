@@ -84,7 +84,7 @@ public class TxEngine extends EngineWrapper {
         if(engine instanceof TxEngine)
             return ((TxEngine)engine).snapshot();
         if(engine instanceof EngineWrapper)
-            createSnapshotFor(((EngineWrapper) engine).getWrappedEngine());
+            return createSnapshotFor(((EngineWrapper) engine).getWrappedEngine());
         throw new UnsupportedOperationException("Snapshots are not enabled, use DBMaker.snapshotEnable()");
     }
 
