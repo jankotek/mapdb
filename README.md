@@ -11,7 +11,7 @@ Find out more at:
 
 15 minutes overview
 ------------
-<a href="http://youtu.be/_KGDwwEP5js"><img src="http://www.mapdb.org/images/mapdb-overview-youtube.png"/></a>
+<a href="http://youtu.be/_KGDwwEP5js"><img src="https://img.youtube.com/vi/_KGDwwEP5js/0.jpg"/></a>
 
 
 
