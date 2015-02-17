@@ -9,6 +9,7 @@ import java.io.*;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.sql.Timestamp;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.GregorianCalendar;
@@ -421,4 +422,13 @@ public class SerializerPojoTest extends TestCase {
         assertEquals(2,counter.get());
     }
 
+
+    public void testSQLTimestamp(){
+        Timestamp t = new Timestamp(111);
+        t.setTime(111);
+        t.setNanos(2222);
+        Timestamp t2 = (Timestamp) UtilsTest.clone(t,p);
+        assertEquals(2222,t2.getNanos());
+        assertEquals(t,t2);
+    }
 }
