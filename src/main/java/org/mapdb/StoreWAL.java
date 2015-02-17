@@ -535,8 +535,9 @@ public class StoreWAL extends StoreDirect {
             }
             structuralLock.lock();
             try{
-                logPos = logSize;
                 checkLogRounding();
+                logPos = logSize;
+
                 logSize+=1+8+8; //space used for index val
                 log.ensureAvailable(logSize);
                 longStackPut(IO_FREE_RECID, ioRecid,false);
