@@ -91,7 +91,7 @@ public class TxEngine implements Engine {
         if(engine instanceof TxEngine)
             return ((TxEngine)engine).snapshot();
         if(engine.getWrappedEngine()!=null)
-            createSnapshotFor(engine.getWrappedEngine());
+            return createSnapshotFor(engine.getWrappedEngine());
         throw new UnsupportedOperationException("Snapshots are not enabled, use DBMaker.snapshotEnable()");
     }
 
