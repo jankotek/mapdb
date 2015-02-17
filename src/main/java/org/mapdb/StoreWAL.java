@@ -808,6 +808,7 @@ public class StoreWAL extends StoreCached {
         //destroy old wal files
         for(Volume wal:volumes){
             wal.truncate(0);
+            wal.close();
             wal.deleteFile();
         }
         fileNum = -1;
