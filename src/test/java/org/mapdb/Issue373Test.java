@@ -76,7 +76,7 @@ public class Issue373Test extends TestCase {
     }
 
     private void serialize(Object i) throws IOException {
-        DataOutput in = new DataIO.DataOutputByteArray();
+        DataOutput in = new DataOutput2();
         p.serialize(in, i);
     }
 }

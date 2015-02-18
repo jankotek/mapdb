@@ -239,9 +239,6 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
 
     public void registerClass(Class<?> clazz) throws IOException {
-        if(clazz != Object.class)
-            assertClassSerializable(clazz);
-
         if (containsClass(clazz))
             return;
 
@@ -388,6 +385,9 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             Class<?> clazz = obj.getClass();
             if( !clazz.isEnum() && clazz.getSuperclass()!=null && clazz.getSuperclass().isEnum())
                 clazz = clazz.getSuperclass();
+
+            if(clazz != Object.class)
+                assertClassSerializable(clazz);
 
             registerClass(clazz);
 
