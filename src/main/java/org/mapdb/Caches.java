@@ -230,17 +230,18 @@ public final class Caches {
         @SuppressWarnings("unchecked")
         public <A> A get(long recid, Serializer<A> serializer) {
             final int pos = position(recid);
-            HashItem[] items2 = checkClosed(items);
-            HashItem item = items2[pos];
-            if(item!=null && recid == item.key)
-                return (A) item.val;
-
-            Engine engine = getWrappedEngine();
-
             final Lock lock  = locks[Store.lockPos(recid)];
             lock.lock();
 
             try{
+
+                HashItem[] items2 = checkClosed(items);
+                HashItem item = items2[pos];
+                if(item!=null && recid == item.key)
+                    return (A) item.val;
+
+                Engine engine = getWrappedEngine();
+
                 //not in cache, fetch and add
                 final A value = engine.get(recid, serializer);
                 if(value!=null)
@@ -311,10 +312,10 @@ public final class Caches {
             final Lock lock  = locks[Store.lockPos(recid)];
             lock.lock();
             try{
-                engine.delete(recid,serializer);
                 HashItem item = items2[pos];
                 if(item!=null && recid == item.key)
                 items[pos] = null;
+                engine.delete(recid,serializer);
             }finally {
                 lock.unlock();
             }
