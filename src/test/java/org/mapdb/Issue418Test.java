@@ -16,7 +16,7 @@ public class Issue418Test {
         long[] expireHeads = null;
         long[] expireTails = null;
         for (int o = 0; o < 2; o++) {
-            final DB db = DBMaker.newFileDB(tmp).make();
+            final DB db = DBMaker.newFileDB(tmp).transactionDisable().make();
             final HTreeMap<Object, Object> map = db.createHashMap("foo").expireMaxSize(100).makeOrGet();
 
             if(expireHeads!=null)
@@ -46,7 +46,7 @@ public class Issue418Test {
         final File tmp = UtilsTest.tempDbFile();
 
         for (int o = 0; o < 2; o++) {
-            final DB db = DBMaker.newFileDB(tmp).make();
+            final DB db = DBMaker.newFileDB(tmp).transactionDisable().make();
             final Set<Object> map = db.createHashSet("foo").expireMaxSize(100).makeOrGet();
 
             for (int i = 0; i < 1000; i++)
