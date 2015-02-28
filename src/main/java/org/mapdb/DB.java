@@ -49,7 +49,7 @@ public class DB implements Closeable {
     /** view over named records */
     protected SortedMap<String, Object> catalog;
 
-    protected final Fun.ThreadFactory threadFactory = Fun.ThreadFactory.BASIC;
+    protected final ScheduledExecutorService executor = null;
     protected SerializerPojo serializerPojo;
 
     protected final Set<String> unknownClasses = new ConcurrentSkipListSet<String>();
@@ -480,7 +480,7 @@ public class DB implements Closeable {
                 (long[])catGet(name+".expireHeads",null),
                 (long[])catGet(name+".expireTails",null),
                 valueCreator,
-                threadFactory);
+                executor);
 
         //$DELAY$
         namedPut(name, ret);
@@ -550,7 +550,7 @@ public class DB implements Closeable {
                 catPut(name+".valueSerializer",m.valueSerializer,getDefaultSerializer()),
                 expireTimeStart,expire,expireAccess,expireMaxSize, expireStoreSize, expireHeads ,expireTails,
                 (Fun.Function1<V, K>) m.valueCreator,
-                threadFactory
+                executor
 
         );
         //$DELAY$
@@ -612,7 +612,7 @@ public class DB implements Closeable {
                 (long[])catGet(name+".expireHeads",null),
                 (long[])catGet(name+".expireTails",null),
                 null,
-                threadFactory
+                executor
          ).keySet();
 
         //$DELAY$
@@ -664,7 +664,7 @@ public class DB implements Closeable {
                 null,
                 expireTimeStart,expire,expireAccess,expireMaxSize, expireStoreSize, expireHeads ,expireTails,
                 null,
-                threadFactory
+                executor
         );
         Set<K> ret2 = ret.keySet();
         //$DELAY$
@@ -1730,6 +1730,8 @@ public class DB implements Closeable {
         //update Class Catalog with missing classes as part of this transaction
         String[] toBeAdded = unknownClasses.isEmpty()?null:unknownClasses.toArray(new String[0]);
 
+        //TODO if toBeAdded is modified as part of serialization, and `executor` is not null (background threads are enabled),
+        // schedule this operation with 1ms delay, so it has higher chances of becoming part of the same transaction
         if(toBeAdded!=null) {
 
             SerializerPojo.ClassInfo[] classes =  serializerPojo.getClassInfos.run();

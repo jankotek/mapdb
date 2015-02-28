@@ -415,10 +415,12 @@ public class HTreeMap2Test {
         }
         //first should be removed soon
         while(m.size()>1050){
+            m.get("aa"); //so internal tasks have change to run
             Thread.sleep(1);
         }
 
         Thread.sleep(500);
+        m.get("aa"); //so internal tasks have change to run
         long size = m.size();
         assertTrue(""+size,size>900 && size<=1050);
     }
@@ -595,7 +597,7 @@ public class HTreeMap2Test {
         if i call expireAfterAccess ,everything seems ok.
 
     */
-    @Test(timeout=100000)
+    @Test (timeout=100000)
     public void expireAfterWrite() throws InterruptedException {
         //NOTE this test has race condition and may fail under heavy load.
         //TODO increase timeout and move into integration tests.
@@ -619,6 +621,7 @@ public class HTreeMap2Test {
         }
         //wait until size is 1000
         while(m.size()!=1000){
+            m.get("aa"); //so internal tasks have change to run
             Thread.sleep(10);
         }
 
@@ -626,6 +629,7 @@ public class HTreeMap2Test {
 
         //wait until size is 1000
         while(m.size()!=500){
+            m.get("aa"); //so internal tasks have change to run
             Thread.sleep(10);
         }
     }

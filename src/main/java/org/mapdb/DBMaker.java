@@ -22,6 +22,7 @@ import java.io.IOError;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.*;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
@@ -37,7 +38,7 @@ public class DBMaker{
     protected final String TRUE = "true";
 
     protected Fun.RecordCondition cacheCondition;
-    protected Fun.ThreadFactory threadFactory = Fun.ThreadFactory.BASIC;
+    protected ScheduledExecutorService executor;
 
     protected interface Keys{
         String cache = "cache";

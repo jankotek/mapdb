@@ -62,8 +62,8 @@ public class CacheOffHeapAdvanced {
 
         }
 
-        // and release memory. Only necessary with `DBMaker.newCacheDirect()`
-        cache.close();
+        // and close to release memory
+        db.close();
 
     }
 }

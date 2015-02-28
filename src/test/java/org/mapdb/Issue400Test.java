@@ -45,6 +45,7 @@ public class Issue400Test {
             assertEquals("bar", map.get("foo"));
 
             while(map.get("foo")!=null){
+                map.get("aa"); //so internal tasks have change to run
                 Thread.sleep(100);
             }
 
@@ -69,6 +70,7 @@ public class Issue400Test {
                 assertEquals("bar", map.get("foo"));
 
             Thread.sleep(6000);
+            map.get("aa"); //so internal tasks have change to run
             assertEquals(null, map.get("foo"));
 
             db.commit();

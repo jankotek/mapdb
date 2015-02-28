@@ -23,6 +23,7 @@ import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
@@ -44,7 +45,7 @@ import java.util.logging.Logger;
  * @author Jan Kotek
  */
 @SuppressWarnings({ "unchecked", "rawtypes" })
-public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K, V>, Bind.MapWithModificationListener<K,V>, Closeable {
+public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K, V>, Bind.MapWithModificationListener<K,V>{
 
     protected static final Logger LOG = Logger.getLogger(HTreeMap.class.getName());
 
@@ -69,6 +70,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     protected final Engine engine;
 
     protected final boolean expireFlag;
+    protected final boolean expireSingleThreadFlag;
     protected final long expireTimeStart;
     protected final long expire;
     protected final boolean expireAccessFlag;
@@ -82,8 +84,6 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
     protected final Fun.Function1<V,K> valueCreator;
 
-    protected boolean shutdown = false;
-    protected final CountDownLatch expirationThreadNum;
 
 
     /** node which holds key-value pair */
@@ -286,7 +286,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     public HTreeMap(Engine engine, long counterRecid, int hashSalt, long[] segmentRecids,
                     Serializer<K> keySerializer, Serializer<V> valueSerializer,
                     long expireTimeStart, long expire, long expireAccess, long expireMaxSize, long expireStoreSize,
-                    long[] expireHeads, long[] expireTails, Fun.Function1<V, K> valueCreator, Fun.ThreadFactory threadFactory) {
+                    long[] expireHeads, long[] expireTails, Fun.Function1<V, K> valueCreator, ScheduledExecutorService executor) {
         if(counterRecid<0) throw new IllegalArgumentException();
         if(engine==null) throw new NullPointerException();
         if(segmentRecids==null) throw new NullPointerException();
@@ -337,14 +337,12 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             this.counter = null;
         }
 
+        expireSingleThreadFlag = (expireFlag && executor==null);
         if(expireFlag){
-            expirationThreadNum = new CountDownLatch(1);
-            if(engine.canRollback()) {
+            if(executor!=null) {
                 LOG.warning("HTreeMap Expiration should not be used with transaction enabled. It can lead to data corruption, commit might happen while background thread works, and only part of expiration data will be commited.");
             }
-            threadFactory.newThread("HTreeMap expirator", new ExpireRunnable(this));
-        }else{
-            expirationThreadNum = null;
+            //TODO schedule cleaners here if executor is not null
         }
 
     }
@@ -462,6 +460,10 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         }finally {
             lock.unlock();
         }
+
+        if(expireSingleThreadFlag)
+            expirePurge();
+
         if(valueCreator==null){
             if(ln==null)
                 return null;
@@ -472,6 +474,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         V value = valueCreator.run((K) o);
         //there is race condition, vc could be called twice. But map will be updated only once
         V prevVal = putIfAbsent((K) o,value);
+
         if(prevVal!=null)
             return prevVal;
         return value;
@@ -490,17 +493,24 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         final int h = hash(key);
         final int segment = h >>>28;
 
+        V ret;
+
         final Lock lock = segmentLocks[segment].readLock();
         lock.lock();
 
         try{
             LinkedNode<K,V> ln = getInner(key, h, segment);
-            if(ln==null) return null;
-            return ln.value;
+            ret = ln==null?
+                    null:
+                    ln.value;
         }finally {
             lock.unlock();
         }
 
+        if(expireSingleThreadFlag)
+            expirePurge();
+
+        return ret;
     }
 
     protected LinkedNode<K,V> getInner(Object o, int h, int segment) {
@@ -739,14 +749,20 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         if (value == null)
             throw new IllegalArgumentException("null value");
 
+        V ret;
         final int h = hash(key);
         final int segment = h >>>28;
         segmentLocks[segment].writeLock().lock();
         try{
-            return putInner(key, value, h, segment);
+            ret = putInner(key, value, h, segment);
         }finally {
             segmentLocks[segment].writeLock().unlock();
         }
+
+        if(expireSingleThreadFlag)
+            expirePurge();
+
+        return ret;
     }
 
     private V putInner(K key, V value, int h, int segment) {
@@ -871,15 +887,20 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
     @Override
     public V remove(Object key){
+        V ret;
 
         final int h = hash(key);
         final int segment = h >>>28;
         segmentLocks[segment].writeLock().lock();
         try{
-            return removeInternal(key, segment, h, true);
+            ret = removeInternal(key, segment, h, true);
         }finally {
             segmentLocks[segment].writeLock().unlock();
         }
+
+        if(expireSingleThreadFlag)
+            expirePurge();
+        return ret;
     }
 
 
@@ -1451,75 +1472,106 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         final int h = HTreeMap.this.hash(key);
         final int segment = h >>>28;
+
+        V ret;
+
+        segmentLocks[segment].writeLock().lock();
         try{
-            segmentLocks[segment].writeLock().lock();
+
 
             LinkedNode<K,V> ln = HTreeMap.this.getInner(key,h,segment);
             if (ln==null)
-                return put(key, value);
+                ret =  put(key, value);
             else
-                return ln.value;
+                ret = ln.value;
 
         }finally {
             segmentLocks[segment].writeLock().unlock();
         }
+
+        if(expireSingleThreadFlag)
+            expirePurge();
+
+        return ret;
     }
 
     @Override
     public boolean remove(Object key, Object value) {
-        if(key==null||value==null) throw new NullPointerException();
+        if(key==null||value==null)
+            throw new NullPointerException();
+
+        boolean ret;
+
         final int h = HTreeMap.this.hash(key);
         final int segment = h >>>28;
+        segmentLocks[segment].writeLock().lock();
         try{
-            segmentLocks[segment].writeLock().lock();
-
             LinkedNode otherVal = getInner(key, h, segment);
-            if (otherVal!=null && valueSerializer.equals((V)otherVal.value,(V)value)) {
+            ret =  (otherVal!=null && valueSerializer.equals((V)otherVal.value,(V)value));
+            if(ret)
                 removeInternal(key, segment, h, true);
-                return true;
-            }else
-                return false;
 
         }finally {
             segmentLocks[segment].writeLock().unlock();
         }
+
+        if(expireSingleThreadFlag)
+            expirePurge();
+
+        return ret;
     }
 
     @Override
     public boolean replace(K key, V oldValue, V newValue) {
-        if(key==null||oldValue==null||newValue==null) throw new NullPointerException();
+        if(key==null||oldValue==null||newValue==null)
+            throw new NullPointerException();
+
+        boolean ret;
+
         final int h = HTreeMap.this.hash(key);
         final int segment = h >>>28;
+        segmentLocks[segment].writeLock().lock();
         try{
-            segmentLocks[segment].writeLock().lock();
+
 
             LinkedNode<K,V> ln = getInner(key, h,segment);
-            if (ln!=null && valueSerializer.equals(ln.value, oldValue)) {
+            ret = (ln!=null && valueSerializer.equals(ln.value, oldValue));
+            if(ret)
                 putInner(key, newValue,h,segment);
-                return true;
-            } else
-                return false;
 
         }finally {
             segmentLocks[segment].writeLock().unlock();
         }
+
+        if(expireSingleThreadFlag)
+            expirePurge();
+
+        return ret;
     }
 
     @Override
     public V replace(K key, V value) {
-        if(key==null||value==null) throw new NullPointerException();
+        if(key==null||value==null)
+            throw new NullPointerException();
+        V ret;
         final int h = HTreeMap.this.hash(key);
         final int segment =  h >>>28;
+        segmentLocks[segment].writeLock().lock();
         try{
-            segmentLocks[segment].writeLock().lock();
+
 
             if (getInner(key,h,segment)!=null)
-                return putInner(key, value,h,segment);
+                ret = putInner(key, value,h,segment);
             else
-                return null;
+                ret = null;
         }finally {
             segmentLocks[segment].writeLock().unlock();
         }
+
+        if(expireSingleThreadFlag)
+            expirePurge();
+
+        return ret;
     }
 
 
@@ -1764,64 +1816,29 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         return ret;
     }
 
-    protected static class ExpireRunnable implements  Runnable{
 
-        //use weak referece to prevent memory leak
-        final WeakReference<HTreeMap> mapRef;
+    protected void expirePurge(){
+        if(!expireFlag)
+            return;
 
-        public ExpireRunnable(HTreeMap map) {
-            this.mapRef = new WeakReference<HTreeMap>(map);
-        }
+        long removePerSegment = expireCalcRemovePerSegment();
 
-        @Override
-        public void run() {
-            if(CC.LOG_HTREEMAP && LOG.isLoggable(Level.FINE)){
-                LOG.log(Level.FINE, "HTreeMap expirator thread started");
-            }
-            boolean pause = false;
+        long counter = 0;
+        for(int seg=0;seg<16;seg++){
+            segmentLocks[seg].writeLock().lock();
             try {
-                while(true) {
-
-                    if (pause) {
-                        Thread.sleep(1000);
-                    }
-
-
-                    HTreeMap map = mapRef.get();
-                    if (map == null || map.engine.isClosed() || map.shutdown)
-                        return;
-
-                    //TODO what if store gets closed while working on this?
-                    map.expirePurge();
-
-                    if (map.engine.isClosed() || map.shutdown)
-                        return;
-
-                    pause = ((!map.expireMaxSizeFlag || map.size() < map.expireMaxSize)
-                            && (map.expireStoreSize == 0L ||
-                            Store.forEngine(map.engine).getCurrSize() - Store.forEngine(map.engine).getFreeSize() < map.expireStoreSize));
-
-                }
-
-            }catch(Throwable e){
-                LOG.log(Level.SEVERE, "HTreeMap expirator thread failed", e);
-            }finally {
-                HTreeMap m = mapRef.get();
-                if (m != null)
-                    m.expirationThreadNum.countDown();
-                mapRef.clear();
-                if(CC.LOG_HTREEMAP && LOG.isLoggable(Level.FINE)){
-                    LOG.log(Level.FINE, "HTreeMap expirator finished");
-                }
+                counter += expirePurgeSegment(seg, removePerSegment);
+            }finally{
+                segmentLocks[seg].writeLock().unlock();
             }
+        }
+        if(LOG.isLoggable(Level.FINE)){
+            LOG.log(Level.FINE, "HTreeMap expirator removed {0,number,integer}", counter);
         }
 
     }
 
-
-    protected void expirePurge(){
-        if(!expireFlag) return;
-
+    private long expireCalcRemovePerSegment() {
         long removePerSegment = 0;
         if(expireMaxSizeFlag){
             long size = counter.get();
@@ -1847,22 +1864,12 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 }
             }
         }
-
-        long counter = 0;
-        for(int seg=0;seg<16;seg++){
-            if(shutdown)
-                return;
-            counter+=expirePurgeSegment(seg, removePerSegment);
-        }
-        if(LOG.isLoggable(Level.FINE)){
-            LOG.log(Level.FINE, "HTreeMap expirator removed {0,number,integer}", counter);
-        }
-
+        return removePerSegment;
     }
 
     protected long expirePurgeSegment(int seg, long removePerSegment) {
-        segmentLocks[seg].writeLock().lock();
-        try{
+            if(CC.PARANOID && !segmentLocks[seg].isWriteLockedByCurrentThread())
+                throw new AssertionError("seg write lock");
 //            expireCheckSegment(seg);
             long recid = engine.get(expireTails[seg],Serializer.LONG);
             long counter=0;
@@ -1904,9 +1911,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             }
             return counter;
 //            expireCheckSegment(seg);
-        }finally{
-            segmentLocks[seg].writeLock().unlock();
-        }
+
     }
 
 
@@ -1979,19 +1984,6 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         for(Bind.MapListener<K,V> listener:modListeners2){
             if(listener!=null)
                 listener.update(key, oldValue, newValue);
-        }
-    }
-
-    /**
-     * Release resources and shutdown background tasks
-     */
-    public void close(){
-        shutdown = true;
-        try {
-            if(expirationThreadNum!=null)
-                expirationThreadNum.await();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
         }
     }
 

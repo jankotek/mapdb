@@ -1456,7 +1456,7 @@ public class SerializerBase extends Serializer<Object>{
 
             mapdb_add(7, Fun.REVERSE_COMPARATOR);
             mapdb_add(8, Fun.EMPTY_ITERATOR);
-            mapdb_add(9, Fun.ThreadFactory.BASIC);
+//TODO unused:            mapdb_add(9, Fun.ThreadFactory.BASIC);
 
             mapdb_add(10, Serializer.STRING_NOSIZE);
             mapdb_add(11, Serializer.STRING_ASCII);

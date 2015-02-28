@@ -132,35 +132,6 @@ public final class Fun {
 
     }
 
-    /**
-     * Used to run background threads.
-     * Unlike {@link java.util.concurrent.ThreadFactory} it does not give access to threads,
-     * so tasks can run inside {@link java.util.concurrent.Executor}.
-     *
-     * There are some expectations from submitted tasks:
-     *
-     *  * Background tasks is started within reasonable delay. You can not block if thread pool is full.
-     *      That could cause memory leak since queues are not flushed etc..
-     *
-     *  * Runnable code might pause and call {@link Thread#sleep(long)}.
-     *
-     *  * Threads must not be interrupted or terminated. Using daemon thread is forbidden.
-     *      Runnable will exit itself, once db is closed.
-     *
-     */
-    public interface ThreadFactory{
-
-        /** Basic thread factory which starts new thread for each runnable */
-        public static final ThreadFactory BASIC = new ThreadFactory() {
-            @Override
-            public void newThread(String threadName, Runnable runnable) {
-                new Thread(runnable,threadName).start();
-            }
-        };
-
-        /** execute new runnable. Optionally you can name thread using `threadName` argument */
-        void newThread(String threadName, Runnable runnable);
-    }
 
     /** function which takes no argument and returns one value*/
     public interface Function0<R>{
