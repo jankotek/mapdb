@@ -339,6 +339,9 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         if(expireFlag){
             expirationThreadNum = new CountDownLatch(1);
+            if(engine.canRollback()) {
+                LOG.warning("HTreeMap Expiration should not be used with transaction enabled. It can lead to data corruption, commit might happen while background thread works, and only part of expiration data will be commited.");
+            }
             threadFactory.newThread("HTreeMap expirator", new ExpireRunnable(this));
         }else{
             expirationThreadNum = null;
