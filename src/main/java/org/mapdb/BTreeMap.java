@@ -79,10 +79,18 @@ import java.util.concurrent.locks.LockSupport;
  * null return values cannot be reliably distinguished from the absence of
  * elements.
  *<p> 
- * Theoretical design of BTreeMap is based on <a href="http://www.cs.cornell.edu/courses/cs4411/2009sp/blink.pdf">paper</a>
- * from Philip L. Lehman and S. Bing Yao. More practical aspects of BTreeMap implementation are based on <a href="http://www.doc.ic.ac.uk/~td202/">notes</a>
- * and <a href="http://www.doc.ic.ac.uk/~td202/btree/">demo application</a> from Thomas Dinsdale-Young.
- * B-Linked-Tree used here does not require locking for read. Updates and inserts locks only one, two or three nodes.
+ * Theoretical design of BTreeMap is based on 1986 paper
+ * <a href="http://www.sciencedirect.com/science/article/pii/0022000086900218">
+ * Concurrent operations on B∗-trees with overtaking</a>
+ * written by Yehoshua Sagiv.
+ * More practical aspects of BTreeMap implementation are based on
+ * <a href="http://cs.au.dk/~tyoung/~td202/">notes</a>
+ * and <a href="http://cs.au.dk/~tyoung/~td202/btree/">demo application</a> from Thomas Dinsdale-Young.
+ * Also more work from Thomas: <a href="http://www.doc.ic.ac.uk/research/technicalreports/2011/#10">A Simple Abstraction for Complex Concurrent Indexes</a>
+ * <p>
+ * B-Linked-Tree used here does not require locking for read.
+ * Updates and inserts locks only one, two or three nodes.
+ * Original BTree design does not use overlapping lock (lock is released before parent node is locked), I added it just to feel safer.
  <p> 
  * This B-Linked-Tree structure does not support removal well, entry deletion does not collapse tree nodes. Massive
  * deletion causes empty nodes and performance lost. There is workaround in form of compaction process, but it is not
