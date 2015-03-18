@@ -58,7 +58,6 @@ public final class DataIO {
 
     /**
      * Pack long into output stream.
-     * Pack long into output stream.
      * It will occupy 1-10 bytes depending on value (lower values occupy smaller space)
      *
      * @param out DataOutput to put value into
@@ -79,7 +78,7 @@ public final class DataIO {
     }
 
     /**
-     * Pack  int into output stream.
+     * Pack int into an output stream.
      * It will occupy 1-5 bytes depending on value (lower values occupy smaller space)
      *
      * This method originally comes from Kryo Framework, author Nathan Sweet.
