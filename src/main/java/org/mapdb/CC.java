@@ -19,7 +19,7 @@ package org.mapdb;
 /**
  * Compiler Configuration. There are some static final boolean fields, which describe features MapDB was compiled with.
  * <p>
- * MapDB can be compiled with/without some features. For example fine logging is useful for debuging,
+ * MapDB can be compiled with/without some features. For example fine logging is useful for debugging,
  * but should not be present in production version. Java does not have preprocessor so
  * we use <a href="http://en.wikipedia.org/wiki/Dead_code_elimination">Dead code elimination</a> to achieve it.
  * <p>
