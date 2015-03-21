@@ -89,10 +89,10 @@ public final class Queues {
         @Override
         public E peek() {
             final long head2 = head.get();
-            Node n = engine.get(head2,nodeSerializer);
+            Node<E> n = engine.get(head2,nodeSerializer);
             if(n==null)
                 return null; //empty queue
-            return (E) n.value;
+            return n.value;
         }
 
 
@@ -100,7 +100,7 @@ public final class Queues {
         public E poll() {
             for(;;){
                 final long head2 = head.get();
-                Node n = engine.get(head2,nodeSerializer);
+                Node<E> n = engine.get(head2,nodeSerializer);
                 if(n==null)
                     return null; //empty queue
 
@@ -108,7 +108,7 @@ public final class Queues {
                 if(head.compareAndSet(head2,n.next)){
                     //updated fine, so we can take a value
                     engine.delete(head2,nodeSerializer);
-                    return (E) n.value;
+                    return n.value;
                 }
             }
         }
@@ -129,7 +129,7 @@ public final class Queues {
                 if (this == o) return true;
                 if (o == null || getClass() != o.getClass()) return false;
 
-                Node node = (Node) o;
+                Node<E> node = (Node<E>) o;
 
                 if (next != node.next) return false;
                 if (value != null ? !value.equals(node.value) : node.value != null) return false;
@@ -359,7 +359,7 @@ public final class Queues {
                 tail2 = tail.get();
             }
             //now we have tail2 just for us
-            Node<E> n = new Node(nextTail,e);
+            Node<E> n = new Node<E>(nextTail,e);
             engine.update(tail2,n,nodeSerializer);
             return true;
         }

@@ -240,7 +240,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
     public static ClassInfo makeClassInfo(String className){
         try {
-            Class clazz = Class.forName(className); //TODO class loader
+            Class<?> clazz = Class.forName(className); //TODO class loader
             final boolean advancedSer = usesAdvancedSerialization(clazz);
             ObjectStreamField[] streamFields = advancedSer ? new ObjectStreamField[0] : makeFieldsForClass(clazz);
             FieldInfo[] fields = new FieldInfo[streamFields.length];
@@ -505,7 +505,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
     static{
         try{
-            Class clazz = classForName("sun.reflect.ReflectionFactory");
+            Class<?> clazz = classForName("sun.reflect.ReflectionFactory");
             if(clazz!=null){
                 Method getReflectionFactory = clazz.getMethod("getReflectionFactory");
                 sunReflFac = getReflectionFactory.invoke(null);
@@ -639,14 +639,14 @@ public class SerializerPojo extends SerializerBase implements Serializable{
                 //gets its name in catalog
                 className = classes[classId].name;
             }
-            Class clazz = Class.forName(className);
+            Class<?> clazz = Class.forName(className);
             return ObjectStreamClass.lookup(clazz);
         }
 
         @Override
         protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
             ClassLoader loader = Thread.currentThread().getContextClassLoader();
-            Class clazz = Class.forName(desc.getName(), false, loader);
+            Class<?> clazz = Class.forName(desc.getName(), false, loader);
             if (clazz != null)
                 return clazz;
             return super.resolveClass(desc);

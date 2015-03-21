@@ -371,11 +371,11 @@ public class PumpTest {
 
 
     @Test public void merge(){
-        Iterator i = Pump.merge(
+        Iterator<String> i = Pump.merge(
                 Arrays.asList("a","b").iterator(),
-                Arrays.asList().iterator(),
+                new ArrayList<String>().iterator(),
                 Arrays.asList("c","d").iterator(),
-                Arrays.asList().iterator()
+                new ArrayList<String>().iterator()
         );
 
         assertTrue(i.hasNext());
