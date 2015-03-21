@@ -37,14 +37,14 @@ public final class Pump {
      * @param serializer used to store data in temporary files
      * @return iterator over sorted data set
      */
-    public static <E> Iterator<E> sort(Iterator<E> source, boolean mergeDuplicates, final int batchSize,
-            Comparator comparator, final Serializer serializer){
+    public static <E extends Comparable<E>> Iterator<E> sort(Iterator<E> source, boolean mergeDuplicates, final int batchSize,
+            Comparator<E> comparator, final Serializer<E> serializer){
         if(batchSize<=0) throw new IllegalArgumentException();
         if(comparator==null)
-            comparator=Fun.COMPARATOR;
+            comparator=Fun.getComparator();
         if(source==null)
-            source = Fun.EMPTY_ITERATOR;
-
+            source = Fun.getEmptyIerator();
+        final Comparator comparator2 = comparator; //TODO: a better solution to avoid the raw Comparator 
         int counter = 0;
         final Object[] presort = new Object[batchSize];
         final List<File> presortFiles = new ArrayList<File>();
@@ -57,7 +57,7 @@ public final class Pump {
 
                 if(counter>=batchSize){
                     //sort all items
-                    Arrays.sort(presort,comparator);
+                    Arrays.sort(presort,comparator2);
 
                     //flush presort into temporary file
                     File f = File.createTempFile("mapdb","sort");
@@ -65,7 +65,7 @@ public final class Pump {
                     presortFiles.add(f);
                     DataOutputStream out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(f)));
                     for(Object e:presort){
-                        serializer.serialize(out,e);
+                        serializer.serialize(out,(E)e);
                     }
                     out.close();
                     presortCount2.add(counter);
@@ -76,7 +76,7 @@ public final class Pump {
             //now all records from source are fetch
             if(presortFiles.isEmpty()){
                 //no presort files were created, so on-heap sorting is enough
-                Arrays.sort(presort,0,counter,comparator);
+                Arrays.sort(presort,0,counter,comparator2);
                 return arrayIterator(presort,0, counter);
             }
 
@@ -115,7 +115,7 @@ public final class Pump {
             }
 
             //and add iterator over data on-heap
-            Arrays.sort(presort,0,counter,comparator);
+            Arrays.sort(presort,0,counter,comparator2);
             iterators[iterators.length-1] = arrayIterator(presort,0,counter);
 
             //and finally sort presorted iterators and return iterators over them
@@ -139,12 +139,12 @@ public final class Pump {
      * @param iterators array of already sorted iterators
      * @return sorted iterator
      */
-    public static <E> Iterator<E> sort(Comparator comparator, final boolean mergeDuplicates, final Iterator... iterators) {
-        final Comparator comparator2 = comparator==null?Fun.COMPARATOR:comparator;
+    public static <E> Iterator<E> sort(Comparator<E> comparator, final boolean mergeDuplicates, final Iterator<E>... iterators) {
+        final Comparator comparator2 = comparator==null?Fun.getComparator():comparator;
         return new Iterator<E>(){
 
             final NavigableSet<Object[]> items = new TreeSet<Object[]>(
-                    new Fun.ArrayComparator(new Comparator[]{comparator2,Fun.COMPARATOR}));
+                    new Fun.ArrayComparator(new Comparator[]{comparator2,Fun.getComparator()}));
 
             Object next = this; //is initialized with this so first `next()` will not throw NoSuchElementException
 
@@ -190,7 +190,7 @@ public final class Pump {
                         Iterator<Object[]> subset = Fun.filter(items,next).iterator();
                         if(!subset.hasNext())
                             break;
-                        List toadd = new ArrayList();
+                        List<Object[]> toadd = new ArrayList<Object[]>();
                         while(subset.hasNext()){
                             Object[] t = subset.next();
                             items.remove(t);
@@ -222,9 +222,9 @@ public final class Pump {
      * @param iters - iterators to be merged
      * @return union of all iterators.
      */
-    public static <E> Iterator<E> merge(final Iterator... iters){
+    public static <E> Iterator<E> merge(final Iterator<E>... iters){
         if(iters.length==0)
-            return Fun.EMPTY_ITERATOR;
+            return Fun.getEmptyIerator();
 
         return new Iterator<E>() {
 
@@ -540,12 +540,13 @@ public final class Pump {
         };
     }
 
-    public static <K, V,A> void fillHTreeMap(final HTreeMap<K, V> m,
+    public static <K, V,A extends Comparable<A>> void fillHTreeMap(final HTreeMap<K, V> m,
                                              Iterator<A> pumpSource,
                                              final Fun.Function1<K,A> pumpKeyExtractor,
                                              Fun.Function1<V,A> pumpValueExtractor,
                                              int pumpPresortBatchSize, boolean pumpIgnoreDuplicates,
                                              Serializer<A> sortSerializer) {
+    	
 
         //first sort by hash code
         Comparator hashComparator = new Comparator() {

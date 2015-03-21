@@ -381,7 +381,7 @@ public class TxEngine implements Engine {
             commitLock.writeLock().lock();
             try{
                 Long recid = preallocRecidTake();
-                mod.put(recid, new Fun.Pair(value,serializer));
+                mod.put(recid, new Fun.Pair<A,Serializer<A>>(value,serializer));
                 return recid;
             }finally {
                 commitLock.writeLock().unlock();

@@ -37,7 +37,7 @@ public class DBMaker{
 
     protected final String TRUE = "true";
 
-    protected Fun.RecordCondition cacheCondition;
+    protected Fun.RecordCondition<?> cacheCondition;
     protected ScheduledExecutorService executor;
 
     protected interface Keys{
@@ -351,7 +351,7 @@ public class DBMaker{
      *
      * @return this builder
      */
-    public DBMaker cacheCondition(Fun.RecordCondition cacheCondition){
+    public DBMaker cacheCondition(Fun.RecordCondition<?> cacheCondition){
         this.cacheCondition = cacheCondition;
         return this;
     }
@@ -869,7 +869,7 @@ public class DBMaker{
             //new db, so insert testing record
             byte[] b = new byte[127];
             new Random().nextBytes(b);
-            check = new Fun.Pair(Arrays.hashCode(b), b);
+            check = new Fun.Pair<Integer, byte[]>(Arrays.hashCode(b), b);
             engine.update(Engine.RECID_RECORD_CHECK, check, Serializer.BASIC);
             engine.commit();
         }
