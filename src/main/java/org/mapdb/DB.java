@@ -933,7 +933,7 @@ public class DB implements Closeable {
                 catGet(name+".maxNodeSize",32),
                 catGet(name+".valuesOutsideNodes",false),
                 catGet(name+".counterRecid",0L),
-                catGet(name+".keySerializer",new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer(),Fun.getComparator())),
+                catGet(name+".keySerializer",new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer(),Fun.COMPARATOR)),
                 catGet(name+".valueSerializer",getDefaultSerializer()),
                 catGet(name+".numberOfNodeMetas",0)
                 );
@@ -959,7 +959,7 @@ public class DB implements Closeable {
         checkNameNotExists(name);
         //$DELAY$
         if(m.comparator==null){
-            m.comparator = Fun.getComparator();
+            m.comparator = Fun.COMPARATOR;
         }
 
         m.keySerializer = fillNulls(m.keySerializer);
@@ -1029,7 +1029,7 @@ public class DB implements Closeable {
             //$DELAY$
             for (int i = 0; i < k.tsize; i++) {
                 serializers[i] = k.serializers[i] != null && k.serializers[i]!=Serializer.BASIC ? k.serializers[i] : getDefaultSerializer();
-                comparators[i] = k.comparators[i] != null ? k.comparators[i] : Fun.getComparator();
+                comparators[i] = k.comparators[i] != null ? k.comparators[i] : Fun.COMPARATOR;
             }
             //$DELAY$
             return new BTreeKeySerializer.ArrayKeySerializer(comparators, serializers);
@@ -1083,7 +1083,7 @@ public class DB implements Closeable {
                 catGet(name+".maxNodeSize",32),
                 false,
                 catGet(name+".counterRecid",0L),
-                catGet(name+".keySerializer",new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer(),Fun.getComparator())),
+                catGet(name+".keySerializer",new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer(),Fun.COMPARATOR)),
                 null,
                 catGet(name+".numberOfNodeMetas",0)
         ).keySet();
@@ -1106,7 +1106,7 @@ public class DB implements Closeable {
     synchronized public <K> NavigableSet<K> createTreeSet(BTreeSetMaker m){
         checkNameNotExists(m.name);
         if(m.comparator==null){
-            m.comparator = Fun.getComparator();
+            m.comparator = Fun.COMPARATOR;
         }
         //$DELAY$
         m.serializer = fillNulls(m.serializer);

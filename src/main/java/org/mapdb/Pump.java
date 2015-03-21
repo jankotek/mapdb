@@ -140,11 +140,11 @@ public final class Pump {
      * @return sorted iterator
      */
     public static <E> Iterator<E> sort(Comparator<E> comparator, final boolean mergeDuplicates, final Iterator<E>... iterators) {
-        final Comparator comparator2 = comparator==null?Fun.getComparator():comparator;
+        final Comparator comparator2 = comparator==null?Fun.COMPARATOR:comparator;
         return new Iterator<E>(){
 
             final NavigableSet<Object[]> items = new TreeSet<Object[]>(
-                    new Fun.ArrayComparator(new Comparator[]{comparator2,Fun.getComparator()}));
+                    new Fun.ArrayComparator(new Comparator[]{comparator2,Fun.COMPARATOR}));
 
             Object next = this; //is initialized with this so first `next()` will not throw NoSuchElementException
 
