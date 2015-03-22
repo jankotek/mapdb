@@ -288,6 +288,7 @@ public final class Pump {
      * @param counterRecid TODO make size counter friendly to use
      * @param keySerializer serializer for keys, use null for default value
      * @param valueSerializer serializer for value, use null for default value
+     * @throws IllegalArgumentException if source iterator is null or empty
      * @throws IllegalArgumentException if source iterator is not reverse sorted
      */
     public static  <E,K,V> long buildTreeMap(Iterator<E> source,
@@ -301,7 +302,9 @@ public final class Pump {
                                              BTreeKeySerializer keySerializer,
                                              Serializer<V> valueSerializer)
         {
-
+    	if(Fun.isNullOrEmptyIterator(source)){
+    		throw new IllegalArgumentException("source iterator cannot be empty");
+    	}
 
         final double NODE_LOAD = 0.75;
 

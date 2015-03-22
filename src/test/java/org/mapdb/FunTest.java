@@ -2,6 +2,7 @@ package org.mapdb;
 
 
 import java.util.Comparator;
+import java.util.Iterator;
 
 import org.junit.Test;
 
@@ -95,5 +96,49 @@ public class FunTest {
     	assertEquals(-1, stringComparator.compare(b, a));
     }
     
+    @Test
+    public void test_isNullOrEmptyIterator(){
+    	Iterator<String> emptyIterator = new Iterator<String>() {
+			
+			@Override
+			public void remove() {
+			}
+			
+			@Override
+			public String next() {
+				return null;
+			}
+			
+			@Override
+			public boolean hasNext() {
+				return false;
+			}
+		};
+		
+		assertTrue(Fun.isNullOrEmptyIterator(emptyIterator));
+		
+		Iterator<String> nullIterator = null;
+		assertTrue(Fun.isNullOrEmptyIterator(nullIterator));
+		
+		Iterator<String> nonEmptyIterator = new Iterator<String>() {
+
+			@Override
+			public boolean hasNext() {
+				return true;
+			}
+
+			@Override
+			public String next() {
+				return null;
+			}
+
+			@Override
+			public void remove() {
+			}
+		};
+		
+		assertFalse(Fun.isNullOrEmptyIterator(nonEmptyIterator));
+    	
+    }
     
 }
