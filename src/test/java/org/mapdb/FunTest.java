@@ -1,6 +1,8 @@
 package org.mapdb;
 
 
+import java.util.Iterator;
+
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -67,5 +69,50 @@ public class FunTest {
         assertEquals(1, Fun.BYTE_ARRAY_COMPARATOR.compare(b2,b1));
         assertEquals(0, Fun.BYTE_ARRAY_COMPARATOR.compare(b1,b1));
         assertEquals(0, Fun.BYTE_ARRAY_COMPARATOR.compare(b1,b1_));
+    }
+
+    @Test
+    public void test_isNullOrEmptyIterator(){
+    	Iterator<String> emptyIterator = new Iterator<String>() {
+ 			
+ 			@Override
+ 			public void remove() {
+ 			}
+ 			
+ 			@Override
+ 			public String next() {
+ 				return null;
+ 			}
+ 			
+ 			@Override
+ 			public boolean hasNext() {
+ 				return false;
+ 			}
+ 		};
+ 		
+ 		assertTrue(Fun.isNullOrEmptyIterator(emptyIterator));
+ 		
+ 		Iterator<String> nullIterator = null;
+ 		assertTrue(Fun.isNullOrEmptyIterator(nullIterator));
+ 		
+ 		Iterator<String> nonEmptyIterator = new Iterator<String>() {
+
+ 			@Override
+ 			public boolean hasNext() {
+ 				return true;
+ 			}
+
+ 			@Override
+ 			public String next() {
+ 				return null;
+ 			}
+
+ 			@Override
+ 			public void remove() {
+ 			}
+ 		};
+ 		
+ 		assertFalse(Fun.isNullOrEmptyIterator(nonEmptyIterator));
+    	
     }
 }

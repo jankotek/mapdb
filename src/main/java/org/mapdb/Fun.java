@@ -46,7 +46,22 @@ public final class Fun {
     /** empty iterator (note: Collections.EMPTY_ITERATOR is Java 7 specific and should not be used)*/
     public static final Iterator EMPTY_ITERATOR = new ArrayList(0).iterator();
 
-
+    /**
+     * checks whether a given iterator is null or empty(contains no elements).
+     * It calls {@link java.util.Iterator#hasNext()} internally
+     * @param iterator
+     * @return
+     */
+    public static boolean isNullOrEmptyIterator(Iterator<?> iterator){
+    	if(iterator==null){
+    		return true;
+    	}
+    	while(iterator.hasNext()){
+			return false;
+		}
+		return true;
+    }
+    
     private Fun(){}
 
     /** returns true if all elements are equal, works with nulls*/
