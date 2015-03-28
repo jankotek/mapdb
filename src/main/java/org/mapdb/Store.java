@@ -25,6 +25,8 @@ public abstract class Store implements Engine {
 
     protected static final Logger LOG = Logger.getLogger(Store.class.getName());
 
+    //TODO if locks are disabled, use NoLock for structuralLock and commitLock
+
     /** protects structural layout of records. Memory allocator is single threaded under this lock */
     protected final ReentrantLock structuralLock = new ReentrantLock(CC.FAIR_LOCKS);
 
@@ -50,6 +52,10 @@ public abstract class Store implements Engine {
 
     protected final Cache[] caches;
 
+    public static final int LOCKING_STRATEGY_READWRITELOCK=0;
+    public static final int LOCKING_STRATEGY_WRITELOCK=1;
+    public static final int LOCKING_STRATEGY_NOLOCK=2;
+
     protected Store(
             String fileName,
             Fun.Function1<Volume, String> volumeFactory,
@@ -68,12 +74,14 @@ public abstract class Store implements Engine {
             throw new IllegalArgumentException();
         locks = new ReadWriteLock[lockScale];
         for(int i=0;i< locks.length;i++){
-            if(lockingStrategy==0)
+            if(lockingStrategy==LOCKING_STRATEGY_READWRITELOCK)
                 locks[i] = new ReentrantReadWriteLock(CC.FAIR_LOCKS);
-            else if(lockingStrategy==1){
+            else if(lockingStrategy==LOCKING_STRATEGY_WRITELOCK){
                 locks[i] = new ReadWriteSingleLock(new ReentrantLock(CC.FAIR_LOCKS));
-            }else{
+            }else if(lockingStrategy==LOCKING_STRATEGY_NOLOCK){
                 locks[i] = new ReadWriteSingleLock(new NoLock());
+            }else{
+                throw new IllegalArgumentException("Illegal locking strategy: "+lockingStrategy);
             }
         }
 
@@ -151,6 +159,7 @@ public abstract class Store implements Engine {
         }
     }
 
+    //TODO DataOutputByteArray is not thread safe, make one recycled per segment lock
     protected final AtomicReference<DataIO.DataOutputByteArray> recycledDataOut =
             new AtomicReference<DataIO.DataOutputByteArray>();
 
@@ -1140,7 +1149,7 @@ public abstract class Store implements Engine {
      * most of the methods. Only put/get/remove operations are supported.
      * <p/>
      * To iterate over collection one has to traverse {@code set} which contains
-     * keys, va7lues are in separate field.
+     * keys, values are in separate field.
      *
      * @author originaly part of Koloboke library, Roman Leventov, Higher Frequency Trading
      * @author heavily modified for MapDB

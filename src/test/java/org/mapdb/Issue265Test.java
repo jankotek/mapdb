@@ -9,11 +9,11 @@ public class Issue265Test {
 
     @Test
     public void compact(){
-        DBMaker dbMaker = DBMaker.newMemoryDB()
+            DBMaker dbMaker = DBMaker.newMemoryDB()
                 .transactionDisable() // breaks functionality even in version 0.9.7
                 .cacheDisable();
-        DB db = dbMaker.make();
-        try {
+            DB db = dbMaker.make();
+
             Map<Integer, String> map = db.getHashMap("HashMap");
             map.put(1, "one");
             map.put(2, "two");
@@ -21,17 +21,17 @@ public class Issue265Test {
             db.commit();
             db.compact();
             Assert.assertEquals(1, map.size());
-        } finally {
+
             db.close();
-        }
+
     }
 
     @Test
     public void compact_no_tx(){
-        DBMaker dbMaker = DBMaker.newMemoryDB()
+            DBMaker dbMaker = DBMaker.newMemoryDB()
                 .cacheDisable();
-        DB db = dbMaker.make();
-        try {
+            DB db = dbMaker.make();
+
             Map<Integer, String> map = db.getHashMap("HashMap");
             map.put(1, "one");
             map.put(2, "two");
@@ -39,9 +39,9 @@ public class Issue265Test {
             db.commit();
             db.compact();
             Assert.assertEquals(1, map.size());
-        } finally {
+
             db.close();
-        }
+
     }
 
 }

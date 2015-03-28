@@ -13,7 +13,7 @@ public class BrokenDBTest {
     @Before
     public void before() throws IOException {
         index = UtilsTest.tempDbFile();
-        log = new File(index.getPath() + StoreWAL.TRANS_LOG_FILE_EXT);
+        log = new File(index.getPath() + "wal.0");
     }
 
     /**

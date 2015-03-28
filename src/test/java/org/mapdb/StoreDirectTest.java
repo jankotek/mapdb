@@ -8,9 +8,8 @@ import org.junit.Test;
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.concurrent.locks.Lock;
 
 import static org.junit.Assert.*;
@@ -227,32 +226,32 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 //        }
 //    }
 //
-//    @Test public void test_index_record_delete_and_reuse_large_COMPACT(){
-//        final long MAX = 10;
-//
-//        List<Long> recids= new ArrayList<Long>();
-//        for(int i = 0;i<MAX;i++){
-//            recids.add(e.put(0L, Serializer.LONG));
-//        }
-//
-//        for(long recid:recids){
-//            e.delete(recid,Serializer.LONG);
-//        }
-//
-//        //compaction will reclai recid
-//        e.commit();
-//        e.compact();
-//
-//        //now allocate again second recid list
-//        List<Long> recids2= new ArrayList<Long>();
-//        for(int i = 0;i<MAX;i++){
-//            recids2.add(e.put(0L, Serializer.LONG));
-//        }
-//
-//        //second list should be reverse of first, as Linked Offset List is LIFO
-//        Collections.reverse(recids);
-//        assertEquals(recids, recids2);
-//    }
+    @Test public void test_index_record_delete_and_reuse_large_COMPACT(){
+        final long MAX = 10;
+
+        List<Long> recids= new ArrayList<Long>();
+        for(int i = 0;i<MAX;i++){
+            recids.add(e.put(0L, Serializer.LONG));
+        }
+
+        for(long recid:recids){
+            e.delete(recid,Serializer.LONG);
+        }
+
+        //compaction will reclai recid
+        e.commit();
+        e.compact();
+
+        //now allocate again second recid list
+        List<Long> recids2= new ArrayList<Long>();
+        for(int i = 0;i<MAX;i++){
+            recids2.add(e.put(0L, Serializer.LONG));
+        }
+
+        //second list should be reverse of first, as Linked Offset List is LIFO
+        Collections.reverse(recids);
+        assertEquals(recids, recids2);
+    }
 //
 //
 //
@@ -267,28 +266,27 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 //        assertEquals(physRecid, e.vol.getLong(recid2*8+ StoreDirect.IO_USER_START));
 //    }
 //
-//    @Test public void test_phys_record_reused_COMPACT(){
-//        final long recid = e.put(1L, Serializer.LONG);
-//        assertEquals((Long)1L, e.get(recid, Serializer.LONG));
-//        final long physRecid = e.vol.getLong(recid*8+ StoreDirect.IO_USER_START);
-//        e.delete(recid, Serializer.LONG);
-//        e.commit();
-//        e.compact();
-//        final long recid2 = e.put(1L, Serializer.LONG);
-//        assertEquals((Long)1L, e.get(recid2, Serializer.LONG));
-//        e.commit();
-//        assertEquals((Long)1L, e.get(recid2, Serializer.LONG));
-//        assertEquals(recid, recid2);
-//
-//        long indexVal = e.vol.getLong(recid*8+ StoreDirect.IO_USER_START);
-//        assertEquals(8L, indexVal>>>48); // size
-//        assertEquals((physRecid&MOFFSET)+StoreDirect.CHUNKSIZE
-//                + (e instanceof StoreWAL?16:0), //TODO investigate why space allocation in WAL works differently
-//                indexVal&MOFFSET); //offset
-//        assertEquals(0, indexVal & StoreDirect.MLINKED);
-//        assertEquals(0, indexVal & StoreDirect.MUNUSED);
-//        assertNotEquals(0, indexVal & StoreDirect.MARCHIVE);
-//    }
+    @Test public void test_phys_record_reused_COMPACT(){
+        final long recid = e.put(1L, Serializer.LONG);
+        assertEquals((Long)1L, e.get(recid, Serializer.LONG));
+
+        e.delete(recid, Serializer.LONG);
+        e.commit();
+        e.compact();
+        final long recid2 = e.put(1L, Serializer.LONG);
+        assertEquals((Long)1L, e.get(recid2, Serializer.LONG));
+        e.commit();
+        assertEquals((Long)1L, e.get(recid2, Serializer.LONG));
+        assertEquals(recid, recid2);
+
+        long indexVal = e.indexValGet(recid);
+        assertEquals(8L, indexVal>>>48); // size
+        assertEquals(e.PAGE_SIZE,
+                indexVal&MOFFSET); //offset
+        assertEquals(0, indexVal & StoreDirect.MLINKED);
+        assertEquals(0, indexVal & StoreDirect.MUNUSED);
+        assertNotEquals(0, indexVal & StoreDirect.MARCHIVE);
+    }
 //
 //
 //
@@ -684,6 +682,44 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
             wal.structuralLock.unlock();
         }
 
+    }
+
+
+    @Test public void compact_keeps_volume_type(){
+        for(Fun.Function1<Volume,String> fab : VolumeTest.VOL_FABS){
+            //init
+            File f = UtilsTest.tempDbFile();
+            StoreDirect s = new StoreDirect(f.getPath(), fab,
+                    null,
+                    CC.DEFAULT_LOCK_SCALE,
+                    0,
+                    false,false,null,false,0,
+                    false,0);
+            s.init();
+
+            //fill with some data
+
+            Map<Long, String> data = new LinkedHashMap();
+            for(int i=0;i<1000;i++){
+                String ss = UtilsTest.randomString(1000);
+                long recid = s.put(ss,Serializer.STRING);
+            }
+
+            //perform compact and check data
+            Volume vol = s.vol;
+            s.commit();
+            s.compact();
+
+            assertEquals(vol.getClass(), s.vol.getClass());
+            if(s.vol.getFile()!=null)
+                assertEquals(f, s.vol.getFile());
+
+            for(Long recid:data.keySet()){
+                assertEquals(data.get(recid), s.get(recid,Serializer.STRING));
+            }
+            s.close();
+            f.delete();
+        }
     }
 
 }

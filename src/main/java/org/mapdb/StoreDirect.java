@@ -1,7 +1,11 @@
 package org.mapdb;
 
 import java.io.DataInput;
+import java.io.File;
 import java.util.Arrays;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 
 import static org.mapdb.DataIO.*;
@@ -34,8 +38,9 @@ public class StoreDirect extends Store {
     protected static final long STORE_SIZE = 8*2;
     /** offset of maximal allocated recid. It is <<3 parity1*/
     protected static final long MAX_RECID_OFFSET = 8*3;
-    protected static final long INDEX_PAGE = 8*4;
-    protected static final long FREE_RECID_STACK = 8*5;
+    protected static final long LAST_PHYS_ALLOCATED_DATA_OFFSET = 8*4; //TODO update doc
+    protected static final long INDEX_PAGE = 8*5;
+    protected static final long FREE_RECID_STACK = 8*6;
 
 
     protected static final int MAX_REC_SIZE = 0xFFFF;
@@ -50,13 +55,16 @@ public class StoreDirect extends Store {
     private static final long[] EMPTY_LONGS = new long[0];
 
 
-    protected Volume vol;
-    protected Volume headVol;
+    //TODO this refs are swapped during compaction. Investigate performance implications
+    protected volatile Volume vol;
+    protected volatile Volume headVol;
 
     //TODO this only grows under structural lock, but reads are outside structural lock, does it have to be volatile?
-    protected long[] indexPages;
+    protected volatile long[] indexPages;
 
     protected volatile long lastAllocatedData=0; //TODO this is under structural lock, does it have to be volatile?
+
+    protected ScheduledExecutorService executor;
 
     public StoreDirect(String fileName,
                        Fun.Function1<Volume, String> volumeFactory,
@@ -137,6 +145,7 @@ public class StoreDirect extends Store {
             indexPage = parity16Get(vol.getLong(indexPage+PAGE_SIZE_M16));
         }
         indexPages = Arrays.copyOf(ip,i);
+        lastAllocatedData = parity3Get(vol.getLong(LAST_PHYS_ALLOCATED_DATA_OFFSET));
     }
 
     protected void initCreate() {
@@ -158,6 +167,9 @@ public class StoreDirect extends Store {
         vol.putLong(MAX_RECID_OFFSET, parity3Set(RECID_LAST_RESERVED * 8));
         vol.putLong(INDEX_PAGE, parity16Set(0));
 
+        lastAllocatedData = 0L;
+        vol.putLong(LAST_PHYS_ALLOCATED_DATA_OFFSET,parity3Set(lastAllocatedData));
+
         //put reserved recids
         for(long recid=1;recid<RECID_FIRST;recid++){
             vol.putLong(recidToOffset(recid),parity1Set(MLINKED | MARCHIVE));
@@ -172,7 +184,6 @@ public class StoreDirect extends Store {
         vol.putInt(HEAD_CHECKSUM, headChecksum(vol));
         vol.sync();
         initHeadVol();
-        lastAllocatedData = 0L;
     }
 
 
@@ -224,26 +235,30 @@ public class StoreDirect extends Store {
         } else {
             //calculate total size
             int totalSize = offsetsTotalSize(offsets);
-
-            //load data
-            byte[] b = new byte[totalSize];
-            int bpos = 0;
-            for (int i = 0; i < offsets.length; i++) {
-                int plus = (i == offsets.length - 1)?0:8;
-                long size = (offsets[i] >>> 48) - plus;
-                if(CC.PARANOID && (size&0xFFFF)!=size)
-                    throw new AssertionError("size mismatch");
-                long offset = offsets[i] & MOFFSET;
-                //System.out.println("GET "+(offset + plus)+ " - "+size+" - "+bpos);
-                vol.getData(offset + plus, b, bpos, (int) size);
-                bpos += size;
-            }
-            if (CC.PARANOID && bpos != totalSize)
-                throw new AssertionError("size does not match");
+            byte[] b = getLoadLinkedRecord(offsets, totalSize);
 
             DataInput in = new DataInputByteArray(b);
             return deserialize(serializer, totalSize, in);
         }
+    }
+
+    private byte[] getLoadLinkedRecord(long[] offsets, int totalSize) {
+        //load data
+        byte[] b = new byte[totalSize];
+        int bpos = 0;
+        for (int i = 0; i < offsets.length; i++) {
+            int plus = (i == offsets.length - 1)?0:8;
+            long size = (offsets[i] >>> 48) - plus;
+            if(CC.PARANOID && (size&0xFFFF)!=size)
+                throw new AssertionError("size mismatch");
+            long offset = offsets[i] & MOFFSET;
+            //System.out.println("GET "+(offset + plus)+ " - "+size+" - "+bpos);
+            vol.getData(offset + plus, b, bpos, (int) size);
+            bpos += size;
+        }
+        if (CC.PARANOID && bpos != totalSize)
+            throw new AssertionError("size does not match");
+        return b;
     }
 
     protected int offsetsTotalSize(long[] offsets) {
@@ -287,7 +302,7 @@ public class StoreDirect extends Store {
         if(CC.PARANOID)
             offsetsVerify(newOffsets);
 
-        putData(recid, newOffsets, out);
+        putData(recid, newOffsets, out==null?null:out.buf, out==null?0:out.pos);
     }
 
     protected void offsetsVerify(long[] linkedOffsets) {
@@ -363,11 +378,13 @@ public class StoreDirect extends Store {
             assertWriteLocked(lockPos(recid));
 
         long[] offsets = offsetsGet(recid);
-        structuralLock.lock();
-        try {
-            freeDataPut(offsets);
-        }finally {
-            structuralLock.unlock();
+        if(offsets!=null) {
+            structuralLock.lock();
+            try {
+                freeDataPut(offsets);
+            } finally {
+                structuralLock.unlock();
+            }
         }
         indexValPut(recid,0,0,true,true);
     }
@@ -423,7 +440,7 @@ public class StoreDirect extends Store {
         lock.lock();
         try {
             caches[lockPos].put(recid,value);
-            putData(recid, offsets, out);
+            putData(recid, offsets, out==null?null:out.buf, out==null?0:out.pos);
         }finally {
             lock.unlock();
         }
@@ -431,10 +448,10 @@ public class StoreDirect extends Store {
         return recid;
     }
 
-    protected void putData(long recid, long[] offsets, DataOutputByteArray out) {
+    protected void putData(long recid, long[] offsets, byte[] src, int srcLen) {
         if(CC.PARANOID)
             assertWriteLocked(lockPos(recid));
-        if(CC.PARANOID && offsetsTotalSize(offsets)!=(out==null?0:out.pos))
+        if(CC.PARANOID && offsetsTotalSize(offsets)!=(src==null?0:srcLen))
             throw new AssertionError("size mismatch");
 
         if(offsets!=null) {
@@ -456,20 +473,20 @@ public class StoreDirect extends Store {
                 int segment = lockPos(recid);
                 //write offset to next page
                 if (!last) {
-                    putDataSingleWithLink(segment, offset,parity3Set(offsets[i + 1]), out.buf,outPos,size);
+                    putDataSingleWithLink(segment, offset,parity3Set(offsets[i + 1]), src,outPos,size);
                 }else{
-                    putDataSingleWithoutLink(segment, offset, out.buf, outPos, size);
+                    putDataSingleWithoutLink(segment, offset, src, outPos, size);
                 }
                 outPos += size;
 
             }
-            if(CC.PARANOID && outPos!=out.pos)
+            if(CC.PARANOID && outPos!=srcLen)
                 throw new AssertionError("size mismatch");
         }
         //update index val
         boolean firstLinked =
                 (offsets!=null && offsets.length>1) || //too large record
-                (out==null); //null records
+                (src==null); //null records
         boolean empty = offsets==null || offsets.length==0;
         int firstSize = (int) (empty ? 0L : offsets[0]>>>48);
         long firstOffset =  empty? 0L : offsets[0]&MOFFSET;
@@ -745,6 +762,7 @@ public class StoreDirect extends Store {
             return;
         structuralLock.lock();
         try{
+            headVol.putLong(LAST_PHYS_ALLOCATED_DATA_OFFSET, parity3Set(lastAllocatedData));
             //and set header checksum
             vol.putInt(HEAD_CHECKSUM, headChecksum(vol));
         }finally {
@@ -781,7 +799,192 @@ public class StoreDirect extends Store {
 
     @Override
     public void compact() {
+        final boolean isStoreCached = this instanceof StoreCached;
+        for(int i=0;i<locks.length;i++){
+            Lock lock = isStoreCached?locks[i].readLock():locks[i].writeLock();
+            lock.lock();
+        }
 
+        try{
+            commitLock.lock();
+            try {
+
+                //clear caches, so freed recids throw an exception, instead of returning null
+                for(Cache c:caches)
+                    c.clear();
+
+
+                long maxRecidOffset = parity3Get(headVol.getLong(MAX_RECID_OFFSET));
+
+                String compactedFile = vol.getFile()==null? null : fileName+".compact";
+                StoreDirect target = new StoreDirect(compactedFile,
+                        volumeFactory,
+                        null,lockScale,
+                        executor==null?LOCKING_STRATEGY_NOLOCK:LOCKING_STRATEGY_WRITELOCK,
+                        checksum,compress,null,false,0,false,0);
+                target.init();
+                final AtomicLong maxRecid = new AtomicLong(RECID_LAST_RESERVED);
+
+                //TODO what about recids which are already in freeRecidLongStack?
+                // I think it gets restored by traversing index table,
+                // so there is no need to traverse and copy freeRecidLongStack
+                // TODO same problem in StoreWAL
+
+                //iterate over index pages
+                indexPage:
+                for(int indexPageI=0;indexPageI<indexPages.length;indexPageI++){
+                    compactIndexPage(maxRecidOffset, target, maxRecid, indexPageI);
+                }
+
+                //update some stuff
+                structuralLock.lock();
+                try {
+
+                    target.vol.putLong(MAX_RECID_OFFSET, parity3Set(maxRecid.get() * 8));
+                    this.indexPages = target.indexPages;
+                    this.lastAllocatedData = target.lastAllocatedData;
+
+
+                    //compaction done, swap target with current
+                    if(compactedFile==null) {
+                        //in memory vol without file, just swap everything
+                        Volume oldVol = this.vol;
+                        this.headVol = this.vol = target.vol;
+                        //TODO update variables
+                        oldVol.close();
+                    }else{
+                        File compactedFileF = new File(compactedFile);
+                        //close everything
+                        target.vol.sync();
+                        target.close();
+                        this.vol.sync();
+                        this.vol.close();
+                        //rename current file
+                        File currFile = new File(this.fileName);
+                        File currFileRenamed = new File(currFile.getPath()+".compact_orig");
+                        if(!currFile.renameTo(currFileRenamed)){
+                            //failed to rename file, perhaps still open
+                            //TODO recovery here. Perhaps copy data from one file to other, instead of renaming it
+                            throw new AssertionError("failed to rename file "+currFile);
+                        }
+
+                        //rename compacted file to current file
+                        if(!compactedFileF.renameTo(currFile)) {
+                            //TODO recovery here.
+                            throw new AssertionError("failed to rename file " + compactedFileF);
+                        }
+
+                        //and reopen volume
+                        this.headVol = this.vol = volumeFactory.run(this.fileName);
+
+                        if(isStoreCached){
+                            ((StoreCached)this).dirtyStackPages.clear();
+                        }
+
+                    }
+                }finally {
+                    structuralLock.unlock();
+                }
+            }finally{
+                commitLock.unlock();
+            }
+        }finally {
+            for(int i=locks.length-1;i>=0;i--) {
+                Lock lock = isStoreCached ? locks[i].readLock() : locks[i].writeLock();
+                lock.unlock();
+            }
+        }
+    }
+
+    protected void compactIndexPage(long maxRecidOffset, StoreDirect target, AtomicLong maxRecid, int indexPageI) {
+        final long indexPage = indexPages[indexPageI];
+        long recid = (indexPageI==0? 0 : indexPageI * PAGE_SIZE/8 - HEAD_END/8);
+        final long indexPageStart = (indexPage==0?HEAD_END+8 : indexPage);
+        final long indexPageEnd = indexPage+PAGE_SIZE_M16;
+
+        //iterate over indexOffset values
+        //TODO check if preloading and caching of all indexVals on this index page would improve performance
+        indexVal:
+        for( long indexOffset=indexPageStart;
+                indexOffset<indexPageEnd;
+                indexOffset+=8){
+            recid++;
+
+            if(recid*8>maxRecidOffset)
+                break indexVal;
+
+            //update maxRecid in thread safe way
+            for(long oldMaxRecid=maxRecid.get();
+                !maxRecid.compareAndSet(oldMaxRecid, Math.max(recid,oldMaxRecid));
+                oldMaxRecid=maxRecid.get()){
+            }
+
+            final long indexVal = vol.getLong(indexOffset);
+
+
+            //check if was discarted
+            if((indexVal&MUNUSED)!=0||indexVal == 0){
+                //mark rec id as free, so it can be reused
+                target.structuralLock.lock();
+                target.longStackPut(FREE_RECID_STACK, recid, false);
+                target.structuralLock.unlock();
+                continue indexVal;
+            }
+
+
+            //deal with linked record non zero record
+            if((indexVal & MLINKED)!=0 && indexVal>>>48!=0){
+                //load entire linked record into byte[]
+                long[] offsets = offsetsGet(recid);
+                int totalSize = offsetsTotalSize(offsets);
+                byte[] b = getLoadLinkedRecord(offsets, totalSize);
+
+                //now put into new store, ecquire locks
+                target.locks[lockPos(recid)].writeLock().lock();
+                target.structuralLock.lock();
+                //allocate space
+                long[] newOffsets = target.freeDataTake(totalSize);
+
+                target.pageIndexEnsurePageForRecidAllocated(recid);
+                target.putData(recid,newOffsets,b, totalSize);
+
+                target.structuralLock.unlock();
+                target.locks[lockPos(recid)].writeLock().unlock();
+
+
+                continue indexVal;
+            }
+
+            target.locks[lockPos(recid)].writeLock().lock();
+            target.structuralLock.lock();
+            target.pageIndexEnsurePageForRecidAllocated(recid);
+            //TODO preserver archive flag
+            target.updateFromCompact(recid, indexVal, vol);
+            target.structuralLock.unlock();
+            target.locks[lockPos(recid)].writeLock().unlock();
+
+        }
+    }
+
+
+    private void updateFromCompact(long recid, long indexVal, Volume oldVol) {
+        //allocate new space
+        int size = (int) (indexVal>>>48);
+        long newOffset[];
+        if(size>0) {
+            newOffset=freeDataTake(size);
+            if (newOffset.length != 1)
+                throw new AssertionError();
+
+            //transfer data
+            oldVol.transferInto(indexVal & MOFFSET, this.vol, newOffset[0]&MOFFSET, size);
+        }else{
+            newOffset = new long[1];
+        }
+
+        //update index val
+        //TODO preserver archive flag
+        indexValPut(recid, size, newOffset[0]&MOFFSET, (indexVal&MLINKED)!=0, false);
     }
 
 
@@ -795,7 +998,7 @@ public class StoreDirect extends Store {
 
     protected final long recidToOffset(long recid){
         if(CC.PARANOID && recid<=0)
-            throw new AssertionError();
+            throw new AssertionError("negative recid: "+recid);
         recid = recid * 8 + HEAD_END;
         //TODO add checksum to beginning of each page
         return indexPages[((int) (recid / PAGE_SIZE_M16))] + //offset of index page
@@ -820,7 +1023,7 @@ public class StoreDirect extends Store {
             throw new AssertionError("size too large");
         if(CC.PARANOID && (offset&MOFFSET)!=offset)
             throw new AssertionError("offset too large");
-        offset = ((((long)size))<<48) |
+        offset = (((long)size)<<48) |
                 offset |
                 (linked?MLINKED:0L)|
                 (unused?MUNUSED:0L)|
@@ -833,7 +1036,13 @@ public class StoreDirect extends Store {
     protected long freeRecidTake() {
         if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
-        long currentRecid = parity3Get(headVol.getLong(MAX_RECID_OFFSET));
+
+        //try to reuse recid from free list
+        long currentRecid = longStackTake(FREE_RECID_STACK,false);
+        if(currentRecid!=0)
+            return currentRecid;
+
+        currentRecid = parity3Get(headVol.getLong(MAX_RECID_OFFSET));
         currentRecid+=8;
         headVol.putLong(MAX_RECID_OFFSET, parity3Set(currentRecid));
 
@@ -849,6 +1058,19 @@ public class StoreDirect extends Store {
     protected void indexLongPut(long offset, long val){
         vol.putLong(offset,val);
     }
+
+    protected void pageIndexEnsurePageForRecidAllocated(long recid) {
+        if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+            throw new AssertionError();
+
+        //convert recid into Index Page number
+        recid = recid * 8 + HEAD_END;
+        recid = recid / PAGE_SIZE_M16;
+
+        while(indexPages.length<=recid)
+            pageIndexExtend();
+    }
+
     protected void pageIndexExtend() {
         if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
@@ -907,7 +1129,4 @@ public class StoreDirect extends Store {
         if(rem!=0) pos +=16-rem;
         return pos;
     }
-
-
-
 }

@@ -1,18 +1,11 @@
 package org.mapdb;
 
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
-import java.io.IOError;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 import static org.junit.Assert.*;
-import static org.mapdb.StoreDirect.*;
 
 @SuppressWarnings({"rawtypes","unchecked"})
 public class StoreCachedTest<E extends StoreCached> extends StoreDirectTest<E>{
@@ -26,7 +19,24 @@ public class StoreCachedTest<E extends StoreCached> extends StoreDirectTest<E>{
         StoreCached e =new StoreCached(f.getPath());
         e.init();
         return (E)e;
+    }
 
+    @Test public void put_delete(){
+        long recid = e.put(1L, Serializer.LONG);
+        int pos = e.lockPos(recid);
+        assertEquals(1, e.writeCache[pos].size);
+        e.delete(recid,Serializer.LONG);
+        assertEquals(1,e.writeCache[pos].size);
+    }
+
+    @Test public void put_update_delete(){
+        long recid = e.put(1L, Serializer.LONG);
+        int pos = e.lockPos(recid);
+        assertEquals(1, e.writeCache[pos].size);
+        e.update(2L, recid,Serializer.LONG);
+        assertEquals(1,e.writeCache[pos].size);
+        e.delete(recid,Serializer.LONG);
+        assertEquals(1,e.writeCache[pos].size);
     }
 
 }

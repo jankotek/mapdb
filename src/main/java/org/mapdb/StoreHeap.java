@@ -1,7 +1,9 @@
 package org.mapdb;
 
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Store which keeps all instances on heap. It does not use serialization.
@@ -9,13 +11,17 @@ import java.util.concurrent.locks.Lock;
 
 public class StoreHeap extends Store{
 
-    protected final AtomicLong recids = new AtomicLong(Engine.RECID_FIRST);
-
     protected final LongObjectMap[] data;
     protected final LongObjectMap[] rollback;
 
     protected static final Object TOMBSTONE = new Object();
     protected static final Object NULL = new Object();
+
+    protected long[] freeRecid;
+    protected int freeRecidTail;
+    protected long maxRecid = RECID_FIRST;
+    protected final Lock newRecidLock;
+
 
     public StoreHeap(boolean txDisabled, int lockScale, int lockingStrategy){
         super(null,null,null,lockScale, 0, false,false,null,false);
@@ -32,6 +38,12 @@ public class StoreHeap extends Store{
                 rollback[i] = new LongObjectMap();
             }
         }
+
+        newRecidLock = lockingStrategy==LOCKING_STRATEGY_NOLOCK?
+                new NoLock() : new ReentrantLock(CC.FAIR_LOCKS);
+        freeRecid = new long[16];
+        freeRecidTail=0;
+
 
         for(long recid=1;recid<=RECID_LAST_RESERVED;recid++){
             data[lockPos(recid)].put(recid,NULL);
@@ -144,7 +156,8 @@ public class StoreHeap extends Store{
     public long preallocate() {
         if(closed)
             throw new IllegalAccessError("closed");
-        long recid = recids.getAndIncrement();
+
+        long recid = allocateRecid();
         int lockPos = lockPos(recid);
         Lock lock = locks[lockPos].writeLock();
         lock.lock();
@@ -163,12 +176,32 @@ public class StoreHeap extends Store{
         return recid;
     }
 
+    protected long allocateRecid() {
+        long recid;
+        newRecidLock.lock();
+        try {
+            if(freeRecidTail>0) {
+                //take from stack of free recids
+                freeRecidTail--;
+                recid = freeRecid[freeRecidTail];
+                freeRecid[freeRecidTail]=0;
+            }else{
+                //allocate new recid
+                recid = maxRecid++;
+            }
+
+        }finally {
+            newRecidLock.unlock();
+        }
+        return recid;
+    }
+
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
         if(closed)
             throw new IllegalAccessError("closed");
 
-        long recid = recids.getAndIncrement();
+        long recid = allocateRecid();
         update(recid, value, serializer);
         return recid;
     }
@@ -260,6 +293,42 @@ public class StoreHeap extends Store{
 
     @Override
     public void compact() {
+        commitLock.lock();
+        try{
+
+            newRecidLock.lock();
+            try{
+
+                for(int i=0;i<locks.length;i++){
+                    locks[i].writeLock().lock();
+                    try{
+                        LongObjectMap m = data[i];
+                        for(int j=0;j<m.set.length;j++){
+                            long recid = m.set[j];
+                            if(recid==0 || m.values[j]!=TOMBSTONE) {
+                                continue;
+                            }
+
+                            //put into list of free recids
+                            m.remove(m.set[i]);
+
+                            if(freeRecid.length==freeRecidTail){
+                                freeRecid = Arrays.copyOf(freeRecid, freeRecid.length*2);
+                            }
+                            freeRecid[freeRecidTail++] = recid;
+
+                        }
+                    }finally {
+                        locks[i].writeLock().unlock();
+                    }
+                }
+
+            }finally {
+                newRecidLock.unlock();
+            }
+        }finally {
+            commitLock.unlock();
+        }
 
     }
 }

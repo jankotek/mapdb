@@ -1,9 +1,12 @@
 package org.mapdb;
 
+import com.sun.management.UnixOperatingSystemMXBean;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.*;
+import java.lang.management.ManagementFactory;
+import java.lang.management.OperatingSystemMXBean;
 import java.nio.ByteBuffer;
 import java.util.Random;
 
@@ -111,7 +114,6 @@ public class UtilsTest {
         try{
             File index = File.createTempFile("mapdb","db");
             index.deleteOnExit();
-            new File(index.getPath()+ StoreWAL.TRANS_LOG_FILE_EXT).deleteOnExit();
 
             return index;
         }catch(IOException e){
@@ -127,7 +129,7 @@ public class UtilsTest {
         int seed = (int) (100000*Math.random());
         for(int i=0;i<size;i++){
             b.append(chars[Math.abs(seed)%chars.length]);
-            seed = DataIO.intHash(seed);
+            seed = 31*seed+DataIO.intHash(seed);
 
         }
         return b.toString();
@@ -139,12 +141,28 @@ public class UtilsTest {
         byte[] ret = new byte[size];
         for(int i=0;i<ret.length;i++){
             ret[i] = (byte) seed;
-            seed = DataIO.intHash(seed);
+            seed = 31*seed+DataIO.intHash(seed);
         }
         return ret;
     }
 
     public static int randomInt() {
         return new Random().nextInt();
+    }
+
+    public static long fileHandles(){
+        OperatingSystemMXBean os = ManagementFactory.getOperatingSystemMXBean();
+        if(os instanceof UnixOperatingSystemMXBean){
+            return ((UnixOperatingSystemMXBean) os)
+                    //TODO log warning if needed
+            .getOpenFileDescriptorCount();
+
+            //TODO max file descriptors in doc
+//                    /etc/security/limits.conf
+//                    * soft nofile 4096
+//                    * hard nofile 65535 <<<
+
+        }
+        return -1;
     }
 }

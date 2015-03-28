@@ -255,7 +255,7 @@ public class StoreCached extends StoreDirect {
                 vol.putData(offset, val, 0, val.length);
             }
             dirtyStackPages.clear();
-
+            headVol.putLong(LAST_PHYS_ALLOCATED_DATA_OFFSET,parity3Set(lastAllocatedData));
             //set header checksum
             headVol.putInt(HEAD_CHECKSUM, headChecksum(headVol));
             //and flush head
@@ -298,11 +298,11 @@ public class StoreCached extends StoreDirect {
                 continue;
             Object value = values[i*2];
             if (value == TOMBSTONE2) {
-                delete2(recid, Serializer.ILLEGAL_ACCESS);
+                super.delete2(recid, Serializer.ILLEGAL_ACCESS);
             } else {
                 Serializer s = (Serializer) values[i*2+1];
                 DataOutputByteArray buf = serialize(value, s); //TODO somehow serialize outside lock?
-                update2(recid, buf);
+                super.update2(recid, buf);
                 recycledDataOut.lazySet(buf);
             }
         }

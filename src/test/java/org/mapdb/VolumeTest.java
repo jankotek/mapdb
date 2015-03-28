@@ -12,6 +12,58 @@ import static org.junit.Assert.*;
 
 public class VolumeTest {
 
+    public static final Fun.Function1<Volume,String>[] VOL_FABS = new Fun.Function1[] {
+
+                    new Fun.Function1<Volume,String>() {
+                        @Override
+                        public Volume run(String file) {
+                            return new Volume.ByteArrayVol(CC.VOLUME_PAGE_SHIFT);
+                        }
+                    },
+                    new Fun.Function1<Volume,String>() {
+                        @Override
+                        public Volume run(String file) {
+                            return new Volume.SingleByteArrayVol((int) 4e7);
+                        }
+                    },
+                    new Fun.Function1<Volume,String>() {
+                        @Override
+                        public Volume run(String file) {
+                            return new Volume.MemoryVol(true, CC.VOLUME_PAGE_SHIFT);
+                        }
+                    },
+                    new Fun.Function1<Volume,String>() {
+                        @Override
+                        public Volume run(String file) {
+                            return new Volume.MemoryVol(false, CC.VOLUME_PAGE_SHIFT);
+                        }
+                    },
+                    new Fun.Function1<Volume,String>() {
+                        @Override
+                        public Volume run(String file) {
+                            return new Volume.UnsafeVolume(-1, CC.VOLUME_PAGE_SHIFT);
+                        }
+                    },
+                    new Fun.Function1<Volume,String>() {
+                        @Override
+                        public Volume run(String file) {
+                            return new Volume.FileChannelVol(new File(file), false, CC.VOLUME_PAGE_SHIFT, 0);
+                        }
+                    },
+                    new Fun.Function1<Volume,String>() {
+                        @Override
+                        public Volume run(String file) {
+                            return new Volume.RandomAccessFileVol(new File(file), false);
+                        }
+                    },
+                    new Fun.Function1<Volume,String>() {
+                        @Override
+                        public Volume run(String file) {
+                            return new Volume.MappedFileVol(new File(file), false, CC.VOLUME_PAGE_SHIFT, 0);
+                        }
+                    }
+    };
+
     @Test
     public void interrupt_raf_file_exception() throws IOException, InterruptedException {
         // when IO thread is interrupted, channel gets closed and it throws  ClosedByInterruptException
@@ -50,74 +102,24 @@ public class VolumeTest {
     public void all() throws Exception {
         System.out.println("Run volume tests. Free space: "+File.createTempFile("mapdb","mapdb").getFreeSpace());
 
-        Callable<Volume>[] fabs = new Callable[]{
-                new Callable() {
-                    @Override
-                    public Object call() throws Exception {
-                        return new Volume.ByteArrayVol(CC.VOLUME_PAGE_SHIFT);
-                    }
-                },
-                new Callable() {
-                    @Override
-                    public Object call() throws Exception {
-                        return new Volume.SingleByteArrayVol((int) 4e7);
-                    }
-                },
-                new Callable() {
-                    @Override
-                    public Object call() throws Exception {
-                        return new Volume.MemoryVol(true, CC.VOLUME_PAGE_SHIFT);
-                    }
-                },
-                new Callable() {
-                    @Override
-                    public Object call() throws Exception {
-                        return new Volume.MemoryVol(false, CC.VOLUME_PAGE_SHIFT);
-                    }
-                },
-                new Callable() {
-                    @Override
-                    public Object call() throws Exception {
-                        return new Volume.UnsafeVolume(-1, CC.VOLUME_PAGE_SHIFT);
-                    }
-                },
-                new Callable() {
-                    @Override
-                    public Object call() throws Exception {
-                        return new Volume.FileChannelVol(File.createTempFile("mapdb", ""), false, CC.VOLUME_PAGE_SHIFT, 0);
-                    }
-                },
-                new Callable() {
-                    @Override
-                    public Object call() throws Exception {
-                        return new Volume.RandomAccessFileVol(File.createTempFile("mapdb", ""), false);
-                    }
-                },
-                new Callable() {
-                    @Override
-                    public Object call() throws Exception {
-                        return new Volume.MappedFileVol(File.createTempFile("mapdb", ""), false, CC.VOLUME_PAGE_SHIFT, 0);
-                    }
-                },
-        };
 
-        for (Callable<Volume> fab1 : fabs) {
+        for (Fun.Function1<Volume,String> fab1 : VOL_FABS) {
 
-            Volume v = fab1.call();
+            Volume v = fab1.run(UtilsTest.tempDbFile().getPath());
             System.out.println(" "+v);
             testPackLongBidi(v);
 
-            putGetOverlap(fab1.call(), 100, 1000);
-            putGetOverlap(fab1.call(), StoreDirect.PAGE_SIZE - 500, 1000);
-            putGetOverlap(fab1.call(), (long) 2e7 + 2000, (int) 1e7);
-            putGetOverlapUnalligned(fab1.call());
+            putGetOverlap(fab1.run(UtilsTest.tempDbFile().getPath()), 100, 1000);
+            putGetOverlap(fab1.run(UtilsTest.tempDbFile().getPath()), StoreDirect.PAGE_SIZE - 500, 1000);
+            putGetOverlap(fab1.run(UtilsTest.tempDbFile().getPath()), (long) 2e7 + 2000, (int) 1e7);
+            putGetOverlapUnalligned(fab1.run(UtilsTest.tempDbFile().getPath()));
 
-            for (Callable<Volume> fab2 : fabs) {
-                long_compatible(fab1.call(), fab2.call());
-                long_six_compatible(fab1.call(), fab2.call());
-                long_pack_bidi(fab1.call(), fab2.call());
-                int_compatible(fab1.call(), fab2.call());
-                byte_compatible(fab1.call(), fab2.call());
+            for (Fun.Function1<Volume,String> fab2 : VOL_FABS) {
+                long_compatible(fab1.run(UtilsTest.tempDbFile().getPath()), fab2.run(UtilsTest.tempDbFile().getPath()));
+                long_six_compatible(fab1.run(UtilsTest.tempDbFile().getPath()), fab2.run(UtilsTest.tempDbFile().getPath()));
+                long_pack_bidi(fab1.run(UtilsTest.tempDbFile().getPath()), fab2.run(UtilsTest.tempDbFile().getPath()));
+                int_compatible(fab1.run(UtilsTest.tempDbFile().getPath()), fab2.run(UtilsTest.tempDbFile().getPath()));
+                byte_compatible(fab1.run(UtilsTest.tempDbFile().getPath()), fab2.run(UtilsTest.tempDbFile().getPath()));
             }
         }
     }

@@ -154,7 +154,7 @@ public class StoreDirectTest2 {
         long recid = RECID_FIRST;
         long[] offsets = {19L << 48 | o};
         st.locks[st.lockPos(recid)].writeLock().lock();
-        st.putData(recid,offsets,newBuf(19));
+        st.putData(recid,offsets,newBuf(19).buf,19);
 
         //verify index val
         assertEquals(19L << 48 | o | MARCHIVE, st.indexValGet(recid));
@@ -178,7 +178,8 @@ public class StoreDirectTest2 {
                 100L <<48 | o+round16Up(19)
         };
         st.locks[st.lockPos(recid)].writeLock().lock();
-        st.putData(recid,offsets,newBuf(19+100-8));
+        int bufSize = 19+100-8;
+        st.putData(recid,offsets,newBuf(bufSize).buf,bufSize);
 
         //verify index val
         assertEquals(19L << 48 | o | MLINKED | MARCHIVE, st.indexValGet(recid));
@@ -212,7 +213,8 @@ public class StoreDirectTest2 {
 
         };
         st.locks[st.lockPos(recid)].writeLock().lock();
-        st.putData(recid,offsets,newBuf(101+102+103-2*8));
+        int bufSize = 101+102+103-2*8;
+        st.putData(recid,offsets,newBuf(bufSize).buf,bufSize);
 
         //verify pointers
         assertEquals(101L << 48 | o | MLINKED | MARCHIVE, st.indexValGet(recid));
