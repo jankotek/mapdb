@@ -85,13 +85,15 @@ public abstract class Store implements Engine {
             }
         }
 
-        caches = new Cache[lockScale];
-        if(cache==null)
-            cache = Cache.ZERO_CACHE;
-        caches[0] = cache;
-        for(int i=1;i<caches.length;i++){
-            //each segment needs different cache, since StoreCache is not thread safe
-            caches[i] = cache.clone();
+        if(cache==null) {
+            caches = null;
+        }else {
+            caches = new Cache[lockScale];
+            caches[0] = cache;
+            for (int i = 1; i < caches.length; i++) {
+                //each segment needs different cache, since StoreCache is not thread safe
+                caches[i] = cache.clone();
+            }
         }
 
 
@@ -120,15 +122,17 @@ public abstract class Store implements Engine {
 
         int lockPos = lockPos(recid);
         final Lock lock = locks[lockPos].readLock();
-        final Cache cache = caches[lockPos];
+        final Cache cache = caches==null ? null : caches[lockPos];
         lock.lock();
         try{
-            A o = (A) cache.get(recid);
+            A o = cache==null ? null : (A) cache.get(recid);
             if(o!=null) {
                 return o== Cache.NULL?null:o;
             }
             o =  get2(recid,serializer);
-            cache.put(recid,o);
+            if(cache!=null) {
+                cache.put(recid, o);
+            }
             return o;
         }finally {
             lock.unlock();
@@ -149,10 +153,12 @@ public abstract class Store implements Engine {
         DataIO.DataOutputByteArray out = serialize(value, serializer);
         int lockPos = lockPos(recid);
         final Lock lock = locks[lockPos].writeLock();
-        final Cache cache = caches[lockPos];
+        final Cache cache = caches==null ? null : caches[lockPos];
         lock.lock();
         try{
-            cache.put(recid,value);
+            if(cache!=null) {
+                cache.put(recid, value);
+            }
             update2(recid,out);
         }finally {
             lock.unlock();
@@ -365,10 +371,10 @@ public abstract class Store implements Engine {
         //TODO binary CAS & serialize outside lock
         final int lockPos = lockPos(recid);
         final Lock lock = locks[lockPos].writeLock();
-        final Cache cache = caches[lockPos];
+        final Cache cache = caches==null ? null : caches[lockPos];
         lock.lock();
         try{
-            A oldVal = (A) cache.get(recid);
+            A oldVal =  cache==null ? null : (A)cache.get(recid);
             if(oldVal == null) {
                 oldVal = get2(recid, serializer);
             }else if(oldVal == Cache.NULL){
@@ -376,7 +382,9 @@ public abstract class Store implements Engine {
             }
             if(oldVal==expectedOldValue || (oldVal!=null && serializer.equals(oldVal,expectedOldValue))){
                 update2(recid,serialize(newValue,serializer));
-                cache.put(recid,newValue);
+                if(cache!=null) {
+                    cache.put(recid, newValue);
+                }
                 return true;
             }
             return false;
@@ -396,10 +404,12 @@ public abstract class Store implements Engine {
 
         final int lockPos = lockPos(recid);
         final Lock lock = locks[lockPos].writeLock();
-        final Cache cache = caches[lockPos];
+        final Cache cache = caches==null ? null : caches[lockPos];
         lock.lock();
         try{
-            cache.put(recid, null);
+            if(cache!=null) {
+                cache.put(recid, null);
+            }
             delete2(recid, serializer);
         }finally {
             lock.unlock();
@@ -468,6 +478,9 @@ public abstract class Store implements Engine {
         if(closed)
             throw new IllegalAccessError("closed");
 
+        if(caches==null)
+            return;
+
         for(int i=0;i<locks.length;i++){
             Lock lock = locks[i].readLock();
             lock.lock();
@@ -485,30 +498,6 @@ public abstract class Store implements Engine {
     public interface Cache {
 
         Object NULL = new Object();
-
-        Cache ZERO_CACHE = new Cache() {
-            @Override
-            public Object get(long recid) {
-                return null;
-            }
-
-            @Override
-            public void put(long recid, Object item) {
-            }
-
-            @Override
-            public void clear() {
-            }
-
-            @Override
-            public void close() {
-            }
-
-            @Override
-            public Cache clone() {
-                return this;
-            }
-        };
 
 
         Object get(long recid);

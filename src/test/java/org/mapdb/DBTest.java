@@ -117,7 +117,7 @@ public class DBTest {
 
     @Test
     public void test_issue_315() {
-        DB db = DBMaker.newMemoryDB().cacheDisable().make();
+        DB db = DBMaker.newMemoryDB().make();
 
         final String item1 = "ITEM_ONE";
         final String item2 = "ITEM_ONE_TWO";

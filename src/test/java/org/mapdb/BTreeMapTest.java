@@ -397,7 +397,7 @@ public class BTreeMapTest{
         DB db = DBMaker.newMemoryDB().transactionDisable().make();
         final BTreeMap m = db.getTreeMap("name");
 
-        final long rootRecid = db.getEngine().get(m.rootRecidRef, Serializer.LONG);
+        final long rootRecid = db.getEngine().get(m.rootRecidRef, Serializer.RECID);
         final AtomicInteger counter = new AtomicInteger();
 
         m.modificationListenerAdd(new Bind.MapListener() {

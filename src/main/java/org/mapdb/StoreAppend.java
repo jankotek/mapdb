@@ -338,12 +338,13 @@ public class StoreAppend extends Store {
         DataIO.DataOutputByteArray out = serialize(value,serializer);
         long recid = highestRecid.incrementAndGet();
         int lockPos = lockPos(recid);
-        Cache cache = caches[lockPos];
+        Cache cache = caches==null ? null : caches[lockPos] ;
         Lock lock = locks[lockPos].writeLock();
         lock.lock();
         try{
-            cache.put(recid,value);
-
+            if(cache!=null) {
+                cache.put(recid, value);
+            }
             long plus = 1+6+4+out.pos;
             long offset = alloc(1+6+4, (int) plus);
             vol.ensureAvailable(offset+plus);
@@ -415,7 +416,8 @@ public class StoreAppend extends Store {
                 Lock lock = locks[i].writeLock();
                 lock.lock();
                 try {
-                    caches[i].clear();
+                    if(caches!=null)
+                        caches[i].clear();
                     indexTableRestore(rollback[i]);
                     rollback[i].clear();
                 }finally {

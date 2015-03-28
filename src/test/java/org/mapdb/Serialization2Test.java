@@ -16,7 +16,7 @@ public class Serialization2Test{
 
     @Test public void test2() throws IOException {
         File index = UtilsTest.tempDbFile();
-        DB db = DBMaker.newFileDB(index).cacheDisable().transactionDisable().make();
+        DB db = DBMaker.newFileDB(index).transactionDisable().make();
 
         Serialization2Bean processView = new Serialization2Bean();
 
@@ -35,7 +35,7 @@ public class Serialization2Test{
 
     @Test public void test2_engine() throws IOException {
         File index = UtilsTest.tempDbFile();
-        DB db = DBMaker.newFileDB(index).cacheDisable().make();
+        DB db = DBMaker.newFileDB(index).make();
 
         Serialization2Bean processView = new Serialization2Bean();
 
@@ -54,14 +54,14 @@ public class Serialization2Test{
         File index = UtilsTest.tempDbFile();
 
         Serialized2DerivedBean att = new Serialized2DerivedBean();
-        DB db = DBMaker.newFileDB(index).cacheDisable().make();
+        DB db = DBMaker.newFileDB(index).make();
 
         Map<Object, Object> map =  db.getHashMap("test");
 
         map.put("att", att);
         db.commit();
         db.close();
-        db = DBMaker.newFileDB(index).cacheDisable().make();
+        db = DBMaker.newFileDB(index).make();
         map =  db.getHashMap("test");
 
 
@@ -85,7 +85,6 @@ public class Serialization2Test{
 
         DB db = DBMaker.newFileDB(f)
                 .transactionDisable()
-                .cacheDisable()
                 .checksumEnable()
                 .make();
 
@@ -98,7 +97,6 @@ public class Serialization2Test{
 
         db = DBMaker.newFileDB(f)
                 .transactionDisable()
-                .cacheDisable()
                 .checksumEnable()
                 .make();
 

@@ -351,11 +351,13 @@ public class StoreCached extends StoreDirect {
             throw new NullPointerException();
 
         int lockPos = lockPos(recid);
-        Cache cache = caches[lockPos];
+        Cache cache = caches==null ? null : caches[lockPos];
         Lock lock = locks[lockPos].writeLock();
         lock.lock();
         try {
-            cache.put(recid,value);
+            if(cache!=null) {
+                cache.put(recid, value);
+            }
             writeCache[lockPos].put(recid, value, serializer);
         } finally {
             lock.unlock();
@@ -371,18 +373,20 @@ public class StoreCached extends StoreDirect {
         //TODO binary CAS & serialize outside lock
         final int lockPos = lockPos(recid);
         final Lock lock = locks[lockPos].writeLock();
-        final Cache cache = caches[lockPos];
+        final Cache cache = caches==null ? null : caches[lockPos];
         LongObjectObjectMap<A,Serializer<A>> map = writeCache[lockPos];
         lock.lock();
         try{
-            A oldVal = (A) cache.get(recid);
+            A oldVal = cache==null ? null : (A) cache.get(recid);
             if(oldVal == null) {
                 oldVal = get2(recid, serializer);
             }else if(oldVal == Cache.NULL){
                 oldVal = null;
             }
             if(oldVal==expectedOldValue || (oldVal!=null && serializer.equals(oldVal,expectedOldValue))){
-                cache.put(recid,newValue);
+                if(cache!=null) {
+                    cache.put(recid, newValue);
+                }
                 map.put(recid,newValue,serializer);
                 return true;
             }

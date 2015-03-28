@@ -29,7 +29,6 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
 
     protected <K,V> BTreeMap<K,V> newBTreeMap(Map map) {
         BTreeMap ret = DBMaker.newMemoryDB()
-                .cacheDisable()
                 .transactionDisable().make()
                 .createTreeMap("test").nodeSize(6).make();
         ret.putAll(map);
@@ -38,14 +37,12 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
 
     protected <K,V> BTreeMap<K,V> newBTreeMap(Comparator comp) {
         return DBMaker.newMemoryDB()
-                .cacheDisable()
                 .transactionDisable().make()
                 .createTreeMap("test").nodeSize(6).comparator(comp).make();
     }
 
     protected  <K,V> BTreeMap<K,V> newBTreeMap() {
         return DBMaker.newMemoryDB()
-                .cacheDisable()
                 .transactionDisable().make()
                 .getTreeMap("test");
     }
@@ -54,7 +51,6 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
 
         @Override protected <K,V> BTreeMap<K,V> newBTreeMap(Map map) {
             BTreeMap ret = DBMaker.newMemoryDB()
-                    .cacheDisable()
                     .transactionDisable().make()
                     .createTreeMap("test").nodeSize(6)
                     .valuesOutsideNodesEnable()
@@ -65,7 +61,6 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
 
         @Override protected <K,V> BTreeMap<K,V> newBTreeMap(Comparator comp) {
             return DBMaker.newMemoryDB()
-                    .cacheDisable()
                     .transactionDisable().make()
                     .createTreeMap("test").nodeSize(6).comparator(comp)
                     .valuesOutsideNodesEnable()
@@ -74,7 +69,6 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
 
         @Override protected  <K,V> BTreeMap<K,V> newBTreeMap() {
             return DBMaker.newMemoryDB()
-                    .cacheDisable()
                     .transactionDisable().make()
                     .createTreeMap("test")
                     .valuesOutsideNodesEnable()

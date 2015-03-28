@@ -18,7 +18,7 @@ public class QueuesTest {
 
     @Test public void stack_persisted(){
         File f = UtilsTest.tempDbFile();
-        DB db = DBMaker.newFileDB(f).transactionDisable().cacheDisable().make();
+        DB db = DBMaker.newFileDB(f).transactionDisable().make();
         Queue<Object> stack = db.getStack("test");
         stack.add("1");
         stack.add("2");
@@ -26,7 +26,7 @@ public class QueuesTest {
         stack.add("4");
 
         db.close();
-        db = DBMaker.newFileDB(f).transactionDisable().cacheDisable().deleteFilesAfterClose().make();
+        db = DBMaker.newFileDB(f).transactionDisable().deleteFilesAfterClose().make();
         stack = db.getStack("test");
 
         assertEquals("4",stack.poll());
@@ -40,7 +40,7 @@ public class QueuesTest {
 
     @Test public void queue_persisted(){
         File f = UtilsTest.tempDbFile();
-        DB db = DBMaker.newFileDB(f).transactionDisable().cacheDisable().make();
+        DB db = DBMaker.newFileDB(f).transactionDisable().make();
         Queue<Object> queue = db.getQueue("test");
         queue.add("1");
         queue.add("2");
@@ -48,7 +48,7 @@ public class QueuesTest {
         queue.add("4");
 
         db.close();
-        db = DBMaker.newFileDB(f).transactionDisable().cacheDisable().deleteFilesAfterClose().make();
+        db = DBMaker.newFileDB(f).transactionDisable().deleteFilesAfterClose().make();
         queue = db.getQueue("test");
 
         assertEquals("1", queue.poll());
@@ -62,7 +62,7 @@ public class QueuesTest {
     @Test public void circular_queue_persisted(){
         //i put disk limit 4 objects ,
         File f = UtilsTest.tempDbFile();
-        DB db = DBMaker.newFileDB(f).transactionDisable().cacheDisable().make();
+        DB db = DBMaker.newFileDB(f).transactionDisable().make();
         Queue queue = db.createCircularQueue("test",null, 4);
         //when i put 6 objects to queue
         queue.add(0);
@@ -75,7 +75,7 @@ public class QueuesTest {
         queue.add(5);
 
         db.close();
-        db = DBMaker.newFileDB(f).transactionDisable().cacheDisable().deleteFilesAfterClose().make();
+        db = DBMaker.newFileDB(f).transactionDisable().deleteFilesAfterClose().make();
         queue = db.getCircularQueue("test");
 
         assertEquals(2, queue.poll());

@@ -439,7 +439,9 @@ public class StoreDirect extends Store {
         Lock lock = locks[lockPos].writeLock();
         lock.lock();
         try {
-            caches[lockPos].put(recid,value);
+            if(caches!=null) {
+                caches[lockPos].put(recid, value);
+            }
             putData(recid, offsets, out==null?null:out.buf, out==null?0:out.pos);
         }finally {
             lock.unlock();
@@ -736,10 +738,12 @@ public class StoreDirect extends Store {
             vol.close();
             vol = null;
 
-            for(Cache c:caches){
-                c.close();
+            if (caches != null) {
+                for (Cache c : caches) {
+                    c.close();
+                }
+                Arrays.fill(caches,null);
             }
-            Arrays.fill(caches,null);
 
         }finally{
             commitLock.unlock();
@@ -810,8 +814,11 @@ public class StoreDirect extends Store {
             try {
 
                 //clear caches, so freed recids throw an exception, instead of returning null
-                for(Cache c:caches)
-                    c.clear();
+                if(caches!=null) {
+                    for (Cache c : caches) {
+                        c.clear();
+                    }
+                }
 
 
                 long maxRecidOffset = parity3Get(headVol.getLong(MAX_RECID_OFFSET));

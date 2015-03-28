@@ -12,7 +12,6 @@ public class StoreTest {
 
     @Test public void compression(){
         Store s = (Store)DBMaker.newMemoryDB()
-                .cacheDisable()
                 .transactionDisable()
                 .compressionEnable()
                 .makeEngine();
@@ -29,7 +28,6 @@ public class StoreTest {
 
         for(int i=100;i<100000;i=i*2){
         Store s = (Store)DBMaker.newMemoryDB()
-                .cacheDisable()
                 .transactionDisable()
                 .compressionEnable()
                 .makeEngine();

@@ -17,7 +17,6 @@ public class BTreeKeySerializerTest {
     @Test public void testLong(){
         DB db = DBMaker.newMemoryDB()
                 .transactionDisable()
-                .cacheDisable()
                 .make();
         Map m = db.createTreeMap("test")
                 .keySerializer(BTreeKeySerializer.LONG)
@@ -75,7 +74,6 @@ public class BTreeKeySerializerTest {
 
 
         DB db = DBMaker.newMemoryDB()
-                .cacheDisable()
                 .transactionDisable()
                 .make();
         Map m =  db.createTreeMap("test")

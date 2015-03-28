@@ -381,7 +381,7 @@ public class SerializerPojoTest{
 
 
     @Test public void testIssue177() throws UnknownHostException {
-        DB db = DBMaker.newMemoryDB().cacheDisable().make();
+        DB db = DBMaker.newMemoryDB().make();
         InetAddress value = InetAddress.getByName("127.0.0.1");
         long recid = db.engine.put(value, db.getDefaultSerializer());
         Object value2 = db.engine.get(recid,db.getDefaultSerializer());

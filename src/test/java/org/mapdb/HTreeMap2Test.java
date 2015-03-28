@@ -22,7 +22,7 @@ public class HTreeMap2Test {
     DB db;
 
     @Before public void init2(){
-        engine = DBMaker.newMemoryDB().transactionDisable().cacheDisable().makeEngine();
+        engine = DBMaker.newMemoryDB().transactionDisable().makeEngine();
         db = new DB(engine);
     }
 
@@ -463,7 +463,6 @@ public class HTreeMap2Test {
         DB db =
                 DBMaker.newMemoryDB()
                         .transactionDisable()
-                        .cacheDisable()
                         .make();
 
         HTreeMap m = db.createHashMap("test")
@@ -557,7 +556,7 @@ public class HTreeMap2Test {
     public void test_iterate_and_remove(){
         final long max= (long) 1e5;
 
-        Set m = DBMaker.newMemoryDB().cacheDisable().transactionDisable().make().getHashSet("test");
+        Set m = DBMaker.newMemoryDB().transactionDisable().make().getHashSet("test");
 
         for(long i=0;i<max;i++){
             m.add(i);

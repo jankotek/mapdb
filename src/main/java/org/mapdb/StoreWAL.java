@@ -616,7 +616,9 @@ public class StoreWAL extends StoreCached {
                 lock.lock();
                 try {
                     writeCache[segment].clear();
-                    caches[segment].clear();
+                    if(caches!=null) {
+                        caches[segment].clear();
+                    }
                 } finally {
                     lock.unlock();
                 }

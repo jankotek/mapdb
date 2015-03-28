@@ -366,7 +366,9 @@ public class DBMaker{
      * This may workaround some problems
      *
      * @return this builder
+     * @deprecated cache is disabled by default
      */
+
     public DBMaker cacheDisable(){
         props.put(Keys.cache,Keys.cache_disable);
         return this;
@@ -387,6 +389,53 @@ public class DBMaker{
         return this;
     }
 
+
+    /**
+     * Set cache size. Interpretations depends on cache type.
+     * For fixed size caches (such as FixedHashTable cache) it is maximal number of items in cache.
+     * <p>
+     * For unbounded caches (such as HardRef cache) it is initial capacity of underlying table (HashMap).
+     * <p>
+     * Default cache size is 2048.
+     *
+     * @param cacheSize new cache size
+     * @return this builder
+     */
+    public DBMaker cacheSize(int cacheSize){
+        props.setProperty(Keys.cacheSize, "" + cacheSize);
+        return this;
+    }
+
+    /**
+     * Fixed size cache which uses hash table.
+     * Is thread-safe and requires only minimal locking.
+     * Items are randomly removed and replaced by hash collisions.
+     * <p>
+     * This is simple, concurrent, small-overhead, random cache.
+     *
+     * @return this builder
+     */
+    public DBMaker cacheHashTableEnable(){
+        props.put(Keys.cache, Keys.cache_hashTable);
+        return this;
+    }
+
+
+    /**
+     * Fixed size cache which uses hash table.
+     * Is thread-safe and requires only minimal locking.
+     * Items are randomly removed and replaced by hash collisions.
+     * <p>
+     * This is simple, concurrent, small-overhead, random cache.
+     *
+     * @param cacheSize new cache size
+     * @return this builder
+     */
+    public DBMaker cacheHashTableEnable(int cacheSize){
+        props.put(Keys.cache, Keys.cache_hashTable);
+        props.setProperty(Keys.cacheSize, "" + cacheSize);
+        return this;
+    }
 
     /**
      * Enables unbounded cache which uses <code>WeakReference</code>.
@@ -485,22 +534,6 @@ public class DBMaker{
     public DBMaker mmapFileEnableIfSupported() {
         assertNotInMemoryVolume();
         props.setProperty(Keys.volume,Keys.volume_mmapfIfSupported);
-        return this;
-    }
-
-    /**
-     * Set cache size. Interpretations depends on cache type.
-     * For fixed size caches (such as FixedHashTable cache) it is maximal number of items in cache.
-     * <p>
-     * For unbounded caches (such as HardRef cache) it is initial capacity of underlying table (HashMap).
-     * <p>
-     * Default cache size is 2048.
-     *
-     * @param cacheSize new cache size
-     * @return this builder
-     */
-    public DBMaker cacheSize(int cacheSize){
-        props.setProperty(Keys.cacheSize,""+cacheSize);
         return this;
     }
 

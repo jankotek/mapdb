@@ -14,8 +14,6 @@ public class Issue90Test {
         final DB mapDb =DBMaker.newAppendFileDB(file)
                 .closeOnJvmShutdown()
                 .compressionEnable()  //This is the cause of the exception. If compression is not used, no exception occurs.
-
-                .cacheDisable()
                 .make();
         final Atomic.Long myCounter = mapDb.getAtomicLong("MyCounter");
 

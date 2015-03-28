@@ -40,7 +40,7 @@ public abstract class ClosedThrowsExceptionTest {
 
     static public class NoCache extends ClosedThrowsExceptionTest{
         @Override DB db() {
-            return DBMaker.newMemoryDB().cacheDisable().make();
+            return DBMaker.newMemoryDB().make();
         }
     }
 

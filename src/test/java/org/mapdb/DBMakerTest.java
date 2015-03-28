@@ -50,8 +50,7 @@ public class DBMakerTest{
         DB db = DBMaker
                 .newMemoryDB()
                 .transactionDisable()
-                .cacheDisable()
-                .make();
+                 .make();
         verifyDB(db);
         Store s = Store.forDB(db);
         assertEquals(s.getClass(), StoreDirect.class);
@@ -66,7 +65,6 @@ public class DBMakerTest{
                 .make();
         verifyDB(db);
         Store store = Store.forDB(db);
-        assertEquals(store.caches[0].getClass(), Store.Cache.HashTable.class);
         Engine w =  db.engine;
         //TODO reenalbe after async is finished
 //        assertEquals(w.getWrappedEngine().getClass(),AsyncWriteEngine.class);
@@ -83,8 +81,24 @@ public class DBMakerTest{
         //check default values are set
         Engine w =  db.engine;
         Store store = Store.forDB(db);
+        assertNull(store.caches);
+        StoreDirect s = (StoreDirect) store;
+        assertTrue(s.vol instanceof Volume.FileChannelVol);
+    }
+
+    @Test
+    public void testCacheHashTableEnable() throws Exception {
+        DB db = DBMaker
+                .newFileDB(UtilsTest.tempDbFile())
+                .cacheHashTableEnable()
+                .transactionDisable()
+                .make();
+        verifyDB(db);
+        //check default values are set
+        Engine w =  db.engine;
+        Store store = Store.forDB(db);
         assertTrue(store.caches[0] instanceof Store.Cache.HashTable);
-        assertEquals(1024 * 2, ((Store.Cache.HashTable) store.caches[0] ).items.length* store.caches.length);
+        assertEquals(1024 * 2, ((Store.Cache.HashTable) store.caches[0]).items.length * store.caches.length);
         StoreDirect s = (StoreDirect) store;
         assertTrue(s.vol instanceof Volume.FileChannelVol);
     }
@@ -100,8 +114,6 @@ public class DBMakerTest{
         //check default values are set
         Engine w = db.engine;
         Store store = Store.forDB(db);
-        assertTrue(store.caches[0] instanceof Store.Cache.HashTable);
-        assertEquals(1024 * 2, ((Store.Cache.HashTable) store.caches[0]).items.length * store.caches.length);
         StoreDirect s = (StoreDirect) store;
         assertTrue(s.vol instanceof Volume.MappedFileVol);
     }
@@ -164,6 +176,7 @@ public class DBMakerTest{
         DB db = DBMaker
                 .newMemoryDB()
                 .transactionDisable()
+                .cacheHashTableEnable()
                 .cacheSize(1000)
                 .make();
         verifyDB(db);
@@ -214,8 +227,6 @@ public class DBMakerTest{
         DB db = DBMaker
                 .newFileDB(f)
                 .deleteFilesAfterClose()
-                .cacheDisable()
-
                 .checksumEnable()
                 .make();
 
@@ -231,8 +242,6 @@ public class DBMakerTest{
         DB db = DBMaker
                 .newFileDB(f)
                 .deleteFilesAfterClose()
-                .cacheDisable()
-
                 .encryptionEnable("adqdqwd")
                 .make();
         Store s = Store.forDB(db);
@@ -251,8 +260,6 @@ public class DBMakerTest{
         db = DBMaker
                 .newFileDB(f)
                 .deleteFilesAfterClose()
-                .cacheDisable()
-
                 .encryptionEnable("adqdqwd")
                 .make();
         Store s = Store.forDB(db);
@@ -268,7 +275,6 @@ public class DBMakerTest{
         DB db = DBMaker
                 .newFileDB(f)
                 .deleteFilesAfterClose()
-                .cacheDisable()
                 .compressionEnable()
                 .make();
         Store s = Store.forDB(db);
@@ -286,8 +292,6 @@ public class DBMakerTest{
         db = DBMaker
                 .newFileDB(f)
                 .deleteFilesAfterClose()
-                .cacheDisable()
-
                 .compressionEnable()
                 .make();
         Engine w = db.engine;
@@ -373,7 +377,7 @@ public class DBMakerTest{
     @Test public void treeset_pump_presert(){
         List unsorted = Arrays.asList(4,7,5,12,9,10,11,0);
 
-        NavigableSet<Integer> s = DBMaker.newMemoryDB().cacheDisable().transactionDisable().make()
+        NavigableSet<Integer> s = DBMaker.newMemoryDB().transactionDisable().make()
                 .createTreeSet("t")
                 .pumpPresort(10)
                 .pumpSource(unsorted.iterator())
@@ -386,7 +390,7 @@ public class DBMakerTest{
     @Test public void treemap_pump_presert(){
         List unsorted = Arrays.asList(4,7,5,12,9,10,11,0);
 
-        NavigableMap<Integer,Integer> s = DBMaker.newMemoryDB().cacheDisable().transactionDisable().make()
+        NavigableMap<Integer,Integer> s = DBMaker.newMemoryDB().transactionDisable().make()
                 .createTreeMap("t")
                 .pumpPresort(10)
                 .pumpSource(unsorted.iterator(), Fun.extractNoTransform())

@@ -10,8 +10,8 @@ public class Issue265Test {
     @Test
     public void compact(){
             DBMaker dbMaker = DBMaker.newMemoryDB()
-                .transactionDisable() // breaks functionality even in version 0.9.7
-                .cacheDisable();
+                .transactionDisable(); // breaks functionality even in version 0.9.7
+
             DB db = dbMaker.make();
 
             Map<Integer, String> map = db.getHashMap("HashMap");
@@ -28,8 +28,7 @@ public class Issue265Test {
 
     @Test
     public void compact_no_tx(){
-            DBMaker dbMaker = DBMaker.newMemoryDB()
-                .cacheDisable();
+            DBMaker dbMaker = DBMaker.newMemoryDB();
             DB db = dbMaker.make();
 
             Map<Integer, String> map = db.getHashMap("HashMap");

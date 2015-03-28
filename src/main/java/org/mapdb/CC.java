@@ -89,7 +89,7 @@ public interface CC {
 
     int DEFAULT_CACHE_SIZE = 2048;
 
-    String DEFAULT_CACHE = DBMaker.Keys.cache_hashTable;
+    String DEFAULT_CACHE = DBMaker.Keys.cache_disable;
 
     int DEFAULT_FREE_SPACE_RECLAIM_Q = 5;
 
