@@ -8,6 +8,8 @@ import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.LockSupport;
 
 import static org.junit.Assert.*;
 
@@ -384,7 +386,7 @@ public class DBMakerTest{
                 .make();
 
         assertEquals(Integer.valueOf(0),s.first());
-        assertEquals(Integer.valueOf(12),s.last());
+        assertEquals(Integer.valueOf(12), s.last());
     }
 
     @Test public void treemap_pump_presert(){
@@ -404,6 +406,43 @@ public class DBMakerTest{
         DB db = DBMaker.newHeapDB().make();
         Engine  s = Store.forDB(db);
 
-        assertTrue(s instanceof  StoreHeap);
+        assertTrue(s instanceof StoreHeap);
+    }
+
+    @Test public void executor() throws InterruptedException {
+        final DB db = DBMaker.newHeapDB().executorEnable().make();
+        assertNotNull(db.executor);
+        assertFalse(db.executor.isTerminated());
+
+        final AtomicBoolean b = new AtomicBoolean(true);
+
+        Runnable r = new Runnable() {
+            @Override
+            public void run() {
+                while(b.get()) {
+                    LockSupport.parkNanos(10);
+                }
+            }
+        };
+
+        db.executor.execute(r);
+
+        final AtomicBoolean closed = new AtomicBoolean();
+        new Thread(){
+            @Override
+            public void run() {
+                db.close();
+                closed.set(true);
+            }
+        }.start();
+
+        Thread.sleep(1000);
+        assertTrue(db.executor.isShutdown());
+
+        //shutdown the task
+        b.set(false);
+        Thread.sleep(2000);
+        assertTrue(closed.get());
+        assertNull(db.executor);
     }
 }

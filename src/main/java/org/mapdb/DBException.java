@@ -106,4 +106,9 @@ public class DBException extends RuntimeException{
         }
     }
 
+    public static class Interrupted extends DBException {
+        public Interrupted(InterruptedException e) {
+            super("Thread interrupted",e);
+        }
+    }
 }

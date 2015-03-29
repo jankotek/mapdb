@@ -49,7 +49,7 @@ public class DB implements Closeable {
     /** view over named records */
     protected SortedMap<String, Object> catalog;
 
-    protected final ScheduledExecutorService executor = null;
+    protected ScheduledExecutorService executor = null;
     protected SerializerPojo serializerPojo;
 
     protected final Set<String> unknownClasses = new ConcurrentSkipListSet<String>();
@@ -78,10 +78,10 @@ public class DB implements Closeable {
      * @param engine
      */
     public DB(final Engine engine){
-        this(engine,false,false);
+        this(engine,false,false, null);
     }
 
-    public DB(Engine engine, boolean strictDBGet, boolean deleteFilesAfterClose) {
+    public DB(Engine engine, boolean strictDBGet, boolean deleteFilesAfterClose, ScheduledExecutorService executor) {
         //TODO investigate dereference and how non-final field affect performance. Perhaps abandon dereference completely
 //        if(!(engine instanceof EngineWrapper)){
 //            //access to Store should be prevented after `close()` was called.
@@ -91,6 +91,7 @@ public class DB implements Closeable {
         this.engine = engine;
         this.strictDBGet = strictDBGet;
         this.deleteFilesAfterClose = deleteFilesAfterClose;
+        this.executor = executor;
 
         serializerPojo = new SerializerPojo(
                 //get name for given object
@@ -1667,7 +1668,19 @@ public class DB implements Closeable {
      * !! it is necessary to call this method before JVM exits!!
      */
     synchronized public void close(){
-        if(engine == null) return;
+        if(engine == null)
+            return;
+
+        if(executor!=null) {
+            executor.shutdown();
+            try {
+                executor.awaitTermination(Long.MAX_VALUE,TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                throw new DBException.Interrupted(e);
+            }
+            executor = null;
+        }
+
         for(WeakReference r:namesInstanciated.values()){
             Object rr = r.get();
             if(rr !=null && rr instanceof Closeable)
@@ -1677,6 +1690,7 @@ public class DB implements Closeable {
                     throw new IOError(e);
                 }
         }
+
         String fileName = deleteFilesAfterClose?Store.forEngine(engine).fileName:null;
         engine.close();
         //dereference db to prevent memory leaks

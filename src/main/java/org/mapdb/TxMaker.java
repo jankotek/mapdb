@@ -18,6 +18,7 @@ package org.mapdb;
 
 
 import java.io.Closeable;
+import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * Transaction factory
@@ -30,15 +31,16 @@ public class TxMaker implements Closeable {
     protected static final Object DELETED = new Object();
     private final boolean txSnapshotsEnabled;
     private final boolean strictDBGet;
+    protected ScheduledExecutorService executor;
 
     /** parent engine under which modifications are stored */
     protected Engine engine;
 
     public TxMaker(Engine engine) {
-        this(engine,false,false);
+        this(engine,false,false, null);
     }
 
-    public TxMaker(Engine engine, boolean strictDBGet, boolean txSnapshotsEnabled) {
+    public TxMaker(Engine engine, boolean strictDBGet, boolean txSnapshotsEnabled, ScheduledExecutorService executor) {
         if(engine==null) throw new IllegalArgumentException();
         if(!engine.canSnapshot())
             throw new IllegalArgumentException("Snapshot must be enabled for TxMaker");
@@ -47,6 +49,7 @@ public class TxMaker implements Closeable {
         this.engine = engine;
         this.strictDBGet = strictDBGet;
         this.txSnapshotsEnabled = txSnapshotsEnabled;
+        this.executor = executor;
     }
 
     
@@ -54,7 +57,7 @@ public class TxMaker implements Closeable {
         Engine snapshot = engine.snapshot();
 //        if(txSnapshotsEnabled)
 //            snapshot = new TxEngine(snapshot,false); //TODO
-        return new DB(snapshot,strictDBGet,false);
+        return new DB(snapshot,strictDBGet,false,executor);
     }
 
     public void close() {

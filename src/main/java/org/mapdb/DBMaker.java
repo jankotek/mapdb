@@ -22,6 +22,7 @@ import java.io.IOError;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.*;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
@@ -313,6 +314,18 @@ public class DBMaker{
 
     public DBMaker _newFileDB(File file){
         props.setProperty(Keys.file, file.getPath());
+        return this;
+    }
+
+
+
+    /**
+     * Enables background executor
+     *
+     * @return this builder
+     */
+    public DBMaker executorEnable(){
+        executor = Executors.newScheduledThreadPool(4);
         return this;
     }
 
@@ -752,7 +765,7 @@ public class DBMaker{
         Engine engine = makeEngine();
         boolean dbCreated = false;
         try{
-            DB db =  new  DB(engine, strictGet, deleteFilesAfterClose);
+            DB db =  new  DB(engine, strictGet, deleteFilesAfterClose, executor);
             dbCreated = true;
             return db;
         }finally {
@@ -770,7 +783,7 @@ public class DBMaker{
         //init catalog if needed
         DB db = new DB(e);
         db.commit();
-        return new TxMaker(e, propsGetBool(Keys.strictDBGet), propsGetBool(Keys.snapshots));
+        return new TxMaker(e, propsGetBool(Keys.strictDBGet), propsGetBool(Keys.snapshots), executor);
     }
 
     /** constructs Engine using current settings */
