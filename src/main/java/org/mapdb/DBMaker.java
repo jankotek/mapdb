@@ -936,9 +936,9 @@ public class DBMaker{
             int cacheSize = propsGetInt(Keys.cacheSize, CC.DEFAULT_CACHE_SIZE) / lockScale;
             return new Store.Cache.HardRef(cacheSize,disableLocks);
         }else if (Keys.cache_weakRef.equals(cache)){
-            return new Store.Cache.WeakSoftRef(true,disableLocks);
+            return new Store.Cache.WeakSoftRef(true, disableLocks, executor, CC.DEFAULT_CACHE_WEAKSOFT_EXECUTOR_SCHED_RATE);
         }else if (Keys.cache_softRef.equals(cache)){
-            return new Store.Cache.WeakSoftRef(false,disableLocks);
+            return new Store.Cache.WeakSoftRef(false, disableLocks, executor, CC.DEFAULT_CACHE_WEAKSOFT_EXECUTOR_SCHED_RATE);
         }else if (Keys.cache_lru.equals(cache)){
             int cacheSize = propsGetInt(Keys.cacheSize, CC.DEFAULT_CACHE_SIZE) / lockScale;
             return new Store.Cache.LRU(cacheSize,disableLocks);

@@ -91,6 +91,9 @@ public interface CC {
 
     String DEFAULT_CACHE = DBMaker.Keys.cache_disable;
 
+    /** default executor scheduled rate for {@link org.mapdb.Store.Cache.WeakSoftRef} */
+    long DEFAULT_CACHE_WEAKSOFT_EXECUTOR_SCHED_RATE = 1000;
+
     int DEFAULT_FREE_SPACE_RECLAIM_Q = 5;
 
     /** controls if locks used in MapDB are fair */
@@ -106,6 +109,7 @@ public interface CC {
      * Used for debugging.
      */
     long VOLUME_PRINT_STACK_AT_OFFSET = 0;
+
 
 }
 

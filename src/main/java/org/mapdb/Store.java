@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Random;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.*;
@@ -655,13 +656,29 @@ public abstract class Store implements Engine {
 
         protected final static int CHECK_EVERY_N = 0xFFFF;
         protected int counter = 0;
-
+        protected final ScheduledExecutorService executor;
 
         protected final boolean useWeakRef;
+        protected final long executorScheduledRate;
 
-        public WeakSoftRef(boolean useWeakRef,boolean disableLocks) {
+        public WeakSoftRef(boolean useWeakRef, boolean disableLocks,
+                           ScheduledExecutorService executor,
+                           long executorScheduledRate) {
+            if(CC.PARANOID && disableLocks && executor!=null) {
+                throw new IllegalArgumentException("Lock can not be disabled with executor enabled");
+            }
             this.useWeakRef = useWeakRef;
             lock = disableLocks?null:  new ReentrantLock(CC.FAIR_LOCKS);
+            this.executor = executor;
+            this.executorScheduledRate = executorScheduledRate;
+            if(executor!=null){
+                executor.scheduleAtFixedRate(new Runnable() {
+                    @Override
+                    public void run() {
+                        WeakSoftRef.this.flushGCedLocked();
+                    }
+                }, executorScheduledRate, executorScheduledRate, TimeUnit.MILLISECONDS);
+            }
         }
 
 
@@ -673,7 +690,7 @@ public abstract class Store implements Engine {
                 CacheItem item = items.get(recid);
                 Object ret = item==null? null: item.get();
 
-                if (((counter++) & CHECK_EVERY_N) == 0) {
+                if (executor==null && (((counter++) & CHECK_EVERY_N) == 0)) {
                     flushGCed();
                 }
                 return ret;
@@ -687,17 +704,17 @@ public abstract class Store implements Engine {
         public void put(long recid, Object item) {
             if(item ==null)
                 item = Cache.NULL;
+            CacheItem cacheItem = useWeakRef?
+                    new CacheWeakItem(item,queue,recid):
+                    new CacheSoftItem(item,queue,recid);
 
             if(lock!=null)
                 lock.lock();
             try{
-                CacheItem cacheItem = useWeakRef?
-                        new CacheWeakItem(item,queue,recid):
-                        new CacheSoftItem(item,queue,recid);
                 CacheItem older = items.put(recid,cacheItem);
                 if(older!=null)
                     older.clear();
-                if (((counter++) & CHECK_EVERY_N) == 0) {
+                if (executor==null && (((counter++) & CHECK_EVERY_N) == 0)) {
                     flushGCed();
                 }
             }finally {
@@ -712,7 +729,7 @@ public abstract class Store implements Engine {
             if(lock!=null)
                 lock.lock();
             try{
-                //TODO clear weak/soft cache
+                items.clear(); //TODO more efficient method, which would bypass queue
             }finally {
                 if(lock!=null)
                     lock.unlock();
@@ -738,10 +755,19 @@ public abstract class Store implements Engine {
 
         @Override
         public Cache clone() {
-            return new Cache.WeakSoftRef(useWeakRef,lock==null);
+            return new Cache.WeakSoftRef(
+                    useWeakRef,
+                    lock==null,
+                    executor,
+                    executorScheduledRate);
         }
 
         protected void flushGCed() {
+            if(CC.PARANOID && lock!=null &&
+                    (lock instanceof ReentrantLock) &&
+                    !((ReentrantLock)lock).isHeldByCurrentThread()) {
+                throw new AssertionError("Not locked by current thread");
+            }
             counter = 1;
             CacheItem item = (CacheItem) queue.poll();
             while(item!=null){
@@ -752,6 +778,18 @@ public abstract class Store implements Engine {
                     items.remove(recid);
 
                 item = (CacheItem) queue.poll();
+            }
+        }
+
+
+        protected void flushGCedLocked() {
+            if(lock!=null)
+                lock.lock();
+            try{
+                flushGCed();
+            }finally {
+                if(lock!=null)
+                    lock.unlock();
             }
         }
 
