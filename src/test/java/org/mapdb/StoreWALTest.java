@@ -101,7 +101,7 @@ public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
     Map<Long,String> fill(StoreWAL e){
         Map<Long,String> ret = new LinkedHashMap<Long, String>();
 
-        for(int i=0;i<1e4;i++){
+        for(int i=0;i<1000;i++){
             String s = UtilsTest.randomString((int) (Math.random()*10000));
             long recid = e.put(s,Serializer.STRING);
             ret.put(recid,s);
