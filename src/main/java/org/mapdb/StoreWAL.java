@@ -1205,6 +1205,18 @@ public class StoreWAL extends StoreCached {
                     }
                 }
 
+                if(walC!=null)
+                    walC.close();
+                if(walCCompact!=null)
+                    walCCompact.close();
+
+
+                for(Volume v:walRec){
+                    v.close();
+                }
+                walRec.clear();
+
+
                 for(Volume v:volumes){
                     v.close();
                 }
