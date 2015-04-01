@@ -336,7 +336,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         }
 
         expireSingleThreadFlag = (expireFlag && executor==null);
-        if(!expireSingleThreadFlag){
+
+        if(expireFlag && executor!=null){
             if(executor!=null) {
                 LOG.warning("HTreeMap Expiration should not be used with transaction enabled. It can lead to data corruption, commit might happen while background thread works, and only part of expiration data will be commited.");
             }
