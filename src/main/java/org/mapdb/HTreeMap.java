@@ -15,15 +15,13 @@
  */
 package org.mapdb;
 
-import java.io.Closeable;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
@@ -338,13 +336,34 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         }
 
         expireSingleThreadFlag = (expireFlag && executor==null);
-        if(expireFlag){
+        if(!expireSingleThreadFlag){
             if(executor!=null) {
                 LOG.warning("HTreeMap Expiration should not be used with transaction enabled. It can lead to data corruption, commit might happen while background thread works, and only part of expiration data will be commited.");
             }
-            //TODO schedule cleaners here if executor is not null
-        }
 
+            //schedule expirators for all segments
+            for(int i=0;i<segmentLocks.length;i++) {
+                final int seg = i;
+                final Lock lock = segmentLocks[seg].writeLock();
+                executor.scheduleAtFixedRate(new Runnable() {
+                    @Override
+                    public void run() {
+                        long removePerSegment = HTreeMap.this.expireCalcRemovePerSegment();
+                        if(removePerSegment<=0)
+                            return;
+                        lock.lock();
+                        try {
+                            HTreeMap.this.expirePurgeSegment(seg, removePerSegment);
+                        }finally{
+                            lock.unlock();
+                        }
+                    }
+                },
+                CC.DEFAULT_HTREEMAP_EXECUTOR_SCHED_RATE,
+                CC.DEFAULT_HTREEMAP_EXECUTOR_SCHED_RATE,
+                TimeUnit.MILLISECONDS);
+            }
+        }
     }
 
 

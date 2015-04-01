@@ -111,5 +111,6 @@ public interface CC {
     long VOLUME_PRINT_STACK_AT_OFFSET = 0;
 
 
+    long DEFAULT_HTREEMAP_EXECUTOR_SCHED_RATE = 1000;
 }
 
