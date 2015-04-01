@@ -6,6 +6,7 @@ import java.io.File;
 import java.util.Set;
 
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertTrue;
 
 public class Issue418Test {
 
@@ -20,12 +21,12 @@ public class Issue418Test {
             final HTreeMap<Object, Object> map = db.createHashMap("foo").expireMaxSize(100).makeOrGet();
 
             if(expireHeads!=null)
-                assertArrayEquals(expireHeads, map.expireHeads);
+                assertTrue(Serializer.LONG_ARRAY.equals(expireHeads, map.expireHeads));
             else
                 expireHeads = map.expireHeads;
 
             if(expireTails!=null)
-                assertArrayEquals(expireTails, map.expireTails);
+                assertTrue(Serializer.LONG_ARRAY.equals(expireTails, map.expireTails));
             else
                 expireTails = map.expireTails;
 

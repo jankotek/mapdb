@@ -30,10 +30,10 @@ public class SerializerTest {
         byte[] b = new byte[100];
         new Random().nextBytes(b);
         Serializer<byte[]> ser = new Serializer.CompressionWrapper(Serializer.BYTE_ARRAY);
-        assertArrayEquals(b, SerializerBaseTest.clone2(b,ser));
+        assertTrue(Serializer.BYTE_ARRAY.equals(b, SerializerBaseTest.clone2(b, ser)));
 
         b = Arrays.copyOf(b, 10000);
-        assertArrayEquals(b, SerializerBaseTest.clone2(b,ser));
+        assertTrue(Serializer.BYTE_ARRAY.equals(b, SerializerBaseTest.clone2(b, ser)));
 
         DataIO.DataOutputByteArray out = new DataIO.DataOutputByteArray();
         ser.serialize(out,b);

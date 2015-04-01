@@ -13,6 +13,7 @@ import java.util.Random;
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class UtilsTest {
 
@@ -104,7 +105,7 @@ public class UtilsTest {
 
     @Test public void testHexaConversion(){
         byte[] b = new byte[]{11,112,11,0,39,90};
-        assertArrayEquals(b, DBMaker.fromHexa(DBMaker.toHexa(b)));
+        assertTrue(Serializer.BYTE_ARRAY.equals(b, DBMaker.fromHexa(DBMaker.toHexa(b))));
     }
 
     /**

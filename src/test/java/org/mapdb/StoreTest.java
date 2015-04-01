@@ -19,7 +19,7 @@ public class StoreTest {
         long size = s.getCurrSize();
         long recid = s.put(new byte[10000],Serializer.BYTE_ARRAY);
         assertTrue(s.getCurrSize() - size < 200);
-        assertArrayEquals(new byte[10000],s.get(recid,Serializer.BYTE_ARRAY));
+        assertTrue(Serializer.BYTE_ARRAY.equals(new byte[10000], s.get(recid, Serializer.BYTE_ARRAY)));
     }
 
 
@@ -40,7 +40,7 @@ public class StoreTest {
             b = Arrays.copyOf(b,i*5);
             long recid = s.put(b,Serializer.BYTE_ARRAY);
             assertTrue(s.getCurrSize() - size < i*2+100);
-            assertArrayEquals(b,s.get(recid,Serializer.BYTE_ARRAY));
+            assertTrue(Serializer.BYTE_ARRAY.equals(b, s.get(recid, Serializer.BYTE_ARRAY)));
         }
     }
 

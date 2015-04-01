@@ -93,7 +93,7 @@ public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
             byte[] d2  = new byte[9];
 
             e.vol.getData(e.round16Up(100000)+64+i*16,d2,0,d2.length);
-            assertArrayEquals(d,d2);
+            assertTrue(Serializer.BYTE_ARRAY.equals(d, d2));
         }
 
     }
@@ -207,7 +207,7 @@ public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
         //we should be able to commit while compaction is running
         for(Long recid: m.keySet()){
             boolean revert = rollbacks && Math.random()<0.5;
-            w.update(recid,"ZZZ",Serializer.STRING);
+            w.update(recid, "ZZZ", Serializer.STRING);
             if(revert){
                 w.rollback();
             }else {

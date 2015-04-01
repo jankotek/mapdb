@@ -49,7 +49,7 @@ public class CompressTest{
     public void short_compression() throws Exception {
         byte[] b = new byte[]{1,2,3,4,5,33,3};
         byte[] b2 = UtilsTest.clone(b, new Serializer.CompressionWrapper<byte[]>(Serializer.BYTE_ARRAY));
-        assertArrayEquals(b,b2);
+        assertTrue(Serializer.BYTE_ARRAY.equals(b, b2));
     }
 
     @Test public void large_compression() throws IOException {
@@ -59,7 +59,7 @@ public class CompressTest{
         b[1000] = 1;
 
         Serializer<byte[]> ser = new Serializer.CompressionWrapper<byte[]>(Serializer.BYTE_ARRAY);
-        assertArrayEquals(b, UtilsTest.clone(b, ser));
+        assertTrue(Serializer.BYTE_ARRAY.equals(b, UtilsTest.clone(b, ser)));
 
         //check compressed size is actually smaller
         DataIO.DataOutputByteArray out = new DataIO.DataOutputByteArray();

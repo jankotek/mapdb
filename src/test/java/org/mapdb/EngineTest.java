@@ -55,7 +55,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
         byte[] b = new byte[(int) 1e6];
         new Random().nextBytes(b);
         long recid = e.put(b, Serializer.BYTE_ARRAY_NOSIZE);
-        assertArrayEquals(b, e.get(recid, Serializer.BYTE_ARRAY_NOSIZE));
+        assertTrue(Serializer.BYTE_ARRAY.equals(b, e.get(recid, Serializer.BYTE_ARRAY_NOSIZE)));
     }
 
     @Test public void put_reopen_get_large(){
@@ -65,7 +65,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
         long recid = e.put(b, Serializer.BYTE_ARRAY_NOSIZE);
         e.commit();
         reopen();
-        assertArrayEquals(b, e.get(recid, Serializer.BYTE_ARRAY_NOSIZE));
+        assertTrue(Serializer.BYTE_ARRAY.equals(b, e.get(recid, Serializer.BYTE_ARRAY_NOSIZE)));
     }
 
 
@@ -144,7 +144,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
         long recid = e.put(b, Serializer.BYTE_ARRAY_NOSIZE);
         e.commit();
         e.compact();
-        assertArrayEquals(b, e.get(recid, Serializer.BYTE_ARRAY_NOSIZE));
+        assertTrue(Serializer.BYTE_ARRAY.equals(b, e.get(recid, Serializer.BYTE_ARRAY_NOSIZE)));
     }
 
 
@@ -162,7 +162,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
         new Random().nextBytes(b);
         long recid = e.put(b, BYTE_ARRAY_NOSIZE);
         byte[] b2 = e.get(recid, BYTE_ARRAY_NOSIZE);
-        assertArrayEquals(b, b2);
+        assertTrue(Serializer.BYTE_ARRAY.equals(b, b2));
     }
 
     @Test public void large_record_update(){
@@ -172,11 +172,11 @@ public abstract class EngineTest<ENGINE extends Engine>{
         new Random().nextBytes(b);
         e.update(recid, b, BYTE_ARRAY_NOSIZE);
         byte[] b2 = e.get(recid, BYTE_ARRAY_NOSIZE);
-        assertArrayEquals(b,b2);
+        assertTrue(Serializer.BYTE_ARRAY.equals(b,b2));
         e.commit();
         reopen();
         b2 = e.get(recid, BYTE_ARRAY_NOSIZE);
-        assertArrayEquals(b,b2);
+        assertTrue(Serializer.BYTE_ARRAY.equals(b,b2));
     }
 
     @Test public void large_record_delete(){
@@ -192,11 +192,11 @@ public abstract class EngineTest<ENGINE extends Engine>{
         new Random().nextBytes(b);
         long recid = e.put(b, BYTE_ARRAY_NOSIZE);
         byte[] b2 = e.get(recid, BYTE_ARRAY_NOSIZE);
-        assertArrayEquals(b,b2);
+        assertTrue(Serializer.BYTE_ARRAY.equals(b,b2));
         e.commit();
         reopen();
         b2 = e.get(recid, BYTE_ARRAY_NOSIZE);
-        assertArrayEquals(b, b2);
+        assertTrue(Serializer.BYTE_ARRAY.equals(b, b2));
     }
 
 
@@ -500,24 +500,24 @@ public abstract class EngineTest<ENGINE extends Engine>{
         r.nextBytes(data2);
         assertTrue(e.compareAndSwap(recid, data.clone(), data2.clone(), Serializer.BYTE_ARRAY));
 
-        assertArrayEquals(data2, e.get(recid, Serializer.BYTE_ARRAY));
+        assertTrue(Serializer.BYTE_ARRAY.equals(data2, e.get(recid, Serializer.BYTE_ARRAY)));
     }
 
     @Test public void nosize_array(){
         byte[] b = new byte[0];
         long recid = e.put(b,Serializer.BYTE_ARRAY_NOSIZE);
-        assertArrayEquals(b, e.get(recid, Serializer.BYTE_ARRAY_NOSIZE));
+        assertTrue(Serializer.BYTE_ARRAY.equals(b, e.get(recid, Serializer.BYTE_ARRAY_NOSIZE)));
 
         b = new byte[]{1,2,3};
         e.update(recid,b,Serializer.BYTE_ARRAY_NOSIZE);
-        assertArrayEquals(b, e.get(recid, Serializer.BYTE_ARRAY_NOSIZE));
+        assertTrue(Serializer.BYTE_ARRAY.equals(b, e.get(recid, Serializer.BYTE_ARRAY_NOSIZE)));
 
         b = new byte[]{};
         e.update(recid,b,Serializer.BYTE_ARRAY_NOSIZE);
-        assertArrayEquals(b, e.get(recid, Serializer.BYTE_ARRAY_NOSIZE));
+        assertTrue(Serializer.BYTE_ARRAY.equals(b, e.get(recid, Serializer.BYTE_ARRAY_NOSIZE)));
 
         e.delete(recid, Serializer.BYTE_ARRAY_NOSIZE);
-        assertArrayEquals(null, e.get(recid, Serializer.BYTE_ARRAY_NOSIZE));
+        assertTrue(Serializer.BYTE_ARRAY.equals(null, e.get(recid, Serializer.BYTE_ARRAY_NOSIZE)));
 
     }
 
