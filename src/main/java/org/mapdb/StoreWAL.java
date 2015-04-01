@@ -1270,7 +1270,7 @@ public class StoreWAL extends StoreCached {
                 commitLock.unlock();
             }
 
-            long maxRecidOffset = parity3Get(headVol.getLong(MAX_RECID_OFFSET));
+            final long maxRecidOffset = parity3Get(headVol.getLong(MAX_RECID_OFFSET));
 
             //open target file
             final String targetFile = getWalFileName("c.compact");
@@ -1285,11 +1285,7 @@ public class StoreWAL extends StoreCached {
 
             final AtomicLong maxRecid = new AtomicLong(RECID_LAST_RESERVED);
 
-            //iterate over index pages
-            indexPage:
-            for(int indexPageI=0;indexPageI<indexPages.length;indexPageI++){
-                compactIndexPage(maxRecidOffset, target, maxRecid, indexPageI);
-            }
+            compactIndexPages(maxRecidOffset, target, maxRecid);
 
             while($_TEST_HACK_COMPACT_PRE_COMMIT_WAIT){
                 LockSupport.parkNanos(10000);

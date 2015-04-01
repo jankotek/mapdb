@@ -2,8 +2,9 @@ package org.mapdb;
 
 import java.io.DataInput;
 import java.io.File;
-import java.util.Arrays;
-import java.util.concurrent.Callable;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
@@ -821,10 +822,10 @@ public class StoreDirect extends Store {
                 }
 
 
-                long maxRecidOffset = parity3Get(headVol.getLong(MAX_RECID_OFFSET));
+                final long maxRecidOffset = parity3Get(headVol.getLong(MAX_RECID_OFFSET));
 
                 String compactedFile = vol.getFile()==null? null : fileName+".compact";
-                StoreDirect target = new StoreDirect(compactedFile,
+                final StoreDirect target = new StoreDirect(compactedFile,
                         volumeFactory,
                         null,lockScale,
                         executor==null?LOCKING_STRATEGY_NOLOCK:LOCKING_STRATEGY_WRITELOCK,
@@ -836,12 +837,8 @@ public class StoreDirect extends Store {
                 // I think it gets restored by traversing index table,
                 // so there is no need to traverse and copy freeRecidLongStack
                 // TODO same problem in StoreWAL
+                compactIndexPages(maxRecidOffset, target, maxRecid);
 
-                //iterate over index pages
-                indexPage:
-                for(int indexPageI=0;indexPageI<indexPages.length;indexPageI++){
-                    compactIndexPage(maxRecidOffset, target, maxRecid, indexPageI);
-                }
 
                 //update some stuff
                 structuralLock.lock();
@@ -900,6 +897,46 @@ public class StoreDirect extends Store {
                 Lock lock = isStoreCached ? locks[i].readLock() : locks[i].writeLock();
                 lock.unlock();
             }
+        }
+    }
+
+    protected void compactIndexPages(final long maxRecidOffset, final StoreDirect target, final AtomicLong maxRecid) {
+        //iterate over index pages
+        if(executor == null) {
+            for (int indexPageI = 0; indexPageI < indexPages.length; indexPageI++) {
+                compactIndexPage(maxRecidOffset, target, maxRecid, indexPageI);
+            }
+        }else {
+            //compact pages in multiple threads.
+            //there are N tasks (index pages) running in parallel.
+            //main thread checks number of tasks in interval, if one is finished it will
+            //schedule next one
+            final List<Future> tasks = new ArrayList();
+            for (int indexPageI = 0; indexPageI < indexPages.length; indexPageI++) {
+                final int indexPageI2 = indexPageI;
+                //now submit tasks to executor, it will compact single page
+                //TODO handle RejectedExecutionException?
+                Future f = executor.submit(new Runnable() {
+                    @Override
+                    public void run() {
+                      compactIndexPage(maxRecidOffset, target, maxRecid, indexPageI2);
+                    }
+                });
+                tasks.add(f);
+            }
+            //all index pages are running or were scheduled
+            //wait for all index pages to finish
+            for(Future f:tasks){
+                try {
+                    f.get();
+                } catch (InterruptedException e) {
+                    throw new DBException.Interrupted(e);
+                } catch (ExecutionException e) {
+                    //TODO check cause and rewrap it
+                    throw new RuntimeException(e);
+                }
+            }
+
         }
     }
 
