@@ -93,7 +93,7 @@ public abstract class Store implements Engine {
             caches[0] = cache;
             for (int i = 1; i < caches.length; i++) {
                 //each segment needs different cache, since StoreCache is not thread safe
-                caches[i] = cache.clone();
+                caches[i] = cache.newCacheForOtherSegment();
             }
         }
 
@@ -507,7 +507,7 @@ public abstract class Store implements Engine {
         void clear();
         void close();
 
-        Cache clone();
+        Cache newCacheForOtherSegment();
 
         /**
          * Fixed size cache which uses hash table.
@@ -597,7 +597,7 @@ public abstract class Store implements Engine {
             }
 
             @Override
-            public Cache clone() {
+            public Cache newCacheForOtherSegment() {
                 return new HashTable(recids.length,lock==null);
             }
         }
@@ -754,7 +754,7 @@ public abstract class Store implements Engine {
         }
 
         @Override
-        public Cache clone() {
+        public Cache newCacheForOtherSegment() {
             return new Cache.WeakSoftRef(
                     useWeakRef,
                     lock==null,
@@ -895,7 +895,7 @@ public abstract class Store implements Engine {
         }
 
         @Override
-        public Cache clone() {
+        public Cache newCacheForOtherSegment() {
             return new HardRef(initialCapacity,lock==null);
         }
     }
@@ -970,7 +970,7 @@ public abstract class Store implements Engine {
             }
 
             @Override
-            public Cache clone() {
+            public Cache newCacheForOtherSegment() {
                 return new LRU(cacheSize,lock==null);
             }
         }
