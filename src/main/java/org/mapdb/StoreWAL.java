@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.LockSupport;
@@ -102,7 +103,8 @@ public class StoreWAL extends StoreCached {
                 CC.DEFAULT_LOCK_SCALE,
                 0,
                 false, false, null, false, 0,
-                false, 0);
+                false, 0,
+                null, 0L);
     }
 
     public StoreWAL(
@@ -117,12 +119,18 @@ public class StoreWAL extends StoreCached {
             boolean readonly,
             int freeSpaceReclaimQ,
             boolean commitFileSyncDisable,
-            int sizeIncrement) {
+            int sizeIncrement,
+            ScheduledExecutorService executor,
+            long executorScheduledRate
+        ) {
         super(fileName, volumeFactory, cache,
                 lockScale,
                 lockingStrategy,
                 checksum, compress, password, readonly,
-                freeSpaceReclaimQ, commitFileSyncDisable, sizeIncrement);
+                freeSpaceReclaimQ, commitFileSyncDisable, sizeIncrement,
+                executor,
+                executorScheduledRate
+                );
         prevLongLongs = new LongLongMap[this.lockScale];
         currLongLongs = new LongLongMap[this.lockScale];
         for (int i = 0; i < prevLongLongs.length; i++) {
@@ -1291,7 +1299,8 @@ public class StoreWAL extends StoreCached {
                     volumeFactory,
                     null,lockScale,
                     executor==null?LOCKING_STRATEGY_NOLOCK:LOCKING_STRATEGY_WRITELOCK,
-                    checksum,compress,null,false,0,false,0);
+                    checksum,compress,null,false,0,false,0,
+                    null);
             target.init();
             walCCompact = target.vol;
 

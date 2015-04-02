@@ -65,7 +65,7 @@ public class StoreDirect extends Store {
 
     protected volatile long lastAllocatedData=0; //TODO this is under structural lock, does it have to be volatile?
 
-    protected ScheduledExecutorService executor;
+    protected final ScheduledExecutorService executor;
 
     public StoreDirect(String fileName,
                        Fun.Function1<Volume, String> volumeFactory,
@@ -78,10 +78,12 @@ public class StoreDirect extends Store {
                        boolean readonly,
                        int freeSpaceReclaimQ,
                        boolean commitFileSyncDisable,
-                       int sizeIncrement
+                       int sizeIncrement,
+                       ScheduledExecutorService executor
                        ) {
         super(fileName,volumeFactory, cache, lockScale, lockingStrategy, checksum,compress,password,readonly);
         this.vol = volumeFactory.run(fileName);
+        this.executor = executor;
     }
 
     @Override
@@ -202,7 +204,8 @@ public class StoreDirect extends Store {
                 CC.DEFAULT_LOCK_SCALE,
                 0,
                 false,false,null,false,0,
-                false,0);
+                false,0,
+                null);
     }
 
     protected int headChecksum(Volume vol2) {
@@ -829,7 +832,8 @@ public class StoreDirect extends Store {
                         volumeFactory,
                         null,lockScale,
                         executor==null?LOCKING_STRATEGY_NOLOCK:LOCKING_STRATEGY_WRITELOCK,
-                        checksum,compress,null,false,0,false,0);
+                        checksum,compress,null,false,0,false,0,
+                        null);
                 target.init();
                 final AtomicLong maxRecid = new AtomicLong(RECID_LAST_RESERVED);
 

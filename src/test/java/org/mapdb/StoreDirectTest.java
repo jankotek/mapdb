@@ -694,7 +694,8 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
                     CC.DEFAULT_LOCK_SCALE,
                     0,
                     false,false,null,false,0,
-                    false,0);
+                    false,0,
+                    null);
             s.init();
 
             //fill with some data

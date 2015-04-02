@@ -1,6 +1,8 @@
 package org.mapdb;
 
 import java.util.Arrays;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 
 import static org.mapdb.DataIO.*;
@@ -37,16 +39,38 @@ public class StoreCached extends StoreDirect {
             boolean readonly,
             int freeSpaceReclaimQ,
             boolean commitFileSyncDisable,
-            int sizeIncrement) {
+            int sizeIncrement,
+            ScheduledExecutorService executor,
+            long executorScheduledRate
+            ) {
         super(fileName, volumeFactory, cache,
                 lockScale,
                 lockingStrategy,
                 checksum, compress, password, readonly,
-                freeSpaceReclaimQ, commitFileSyncDisable, sizeIncrement);
+                freeSpaceReclaimQ, commitFileSyncDisable, sizeIncrement,executor);
 
         writeCache = new LongObjectObjectMap[this.lockScale];
         for (int i = 0; i < writeCache.length; i++) {
             writeCache[i] = new LongObjectObjectMap();
+        }
+        if(this.executor!=null &&
+                !(this instanceof StoreWAL) //TODO async write should work for StoreWAL as well
+                ){
+            for(int i=0;i<this.lockScale;i++){
+                final int seg = i;
+                final Lock lock = locks[i].writeLock();
+                this.executor.scheduleAtFixedRate(new Runnable() {
+                    @Override
+                    public void run() {
+                        lock.lock();
+                        try {
+                            flushWriteCacheSegment(seg);
+                        }finally {
+                            lock.unlock();
+                        }
+                    }
+                },executorScheduledRate,executorScheduledRate, TimeUnit.MILLISECONDS);
+            }
         }
     }
 
@@ -58,7 +82,8 @@ public class StoreCached extends StoreDirect {
                 CC.DEFAULT_LOCK_SCALE,
                 0,
                 false, false, null, false, 0,
-                false, 0);
+                false, 0,
+                null, 0L);
     }
 
     @Override

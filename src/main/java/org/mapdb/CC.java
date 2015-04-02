@@ -70,11 +70,6 @@ public interface CC {
     boolean LOG_HTREEMAP = false;
 
 
-    int ASYNC_WRITE_FLUSH_DELAY = 100;
-    int ASYNC_WRITE_QUEUE_SIZE = 32000;
-
-    int ASYNC_RECID_PREALLOC_QUEUE_SIZE = 128;
-
     /**
      * Default concurrency level. Should be greater than number of threads accessing
      * MapDB concurrently. On other side larger number consumes more memory
@@ -112,5 +107,6 @@ public interface CC {
 
 
     long DEFAULT_HTREEMAP_EXECUTOR_SCHED_RATE = 1000;
+    long DEFAULT_STORE_EXECUTOR_SCHED_RATE = 1000;
 }
 

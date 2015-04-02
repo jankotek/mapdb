@@ -372,11 +372,7 @@ public class DBMaker{
     /**
 
     /**
-     * Instance cache is enabled by default.
-     * This greatly decreases serialization overhead and improves performance.
-     * Call this method to disable instance cache, so an object will always be deserialized.
-     * <p>
-     * This may workaround some problems
+     * Disable cache if enabled. Cache is disabled by default, so this method has no longer purpose.
      *
      * @return this builder
      * @deprecated cache is disabled by default
@@ -857,7 +853,8 @@ public class DBMaker{
                             propsGetBool(Keys.readOnly),
                             propsGetInt(Keys.freeSpaceReclaimQ,CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
                             propsGetBool(Keys.commitFileSyncDisable),
-                            0):
+                            0,
+                            executor):
 
                     new StoreWAL(
                             file,
@@ -871,7 +868,10 @@ public class DBMaker{
                             propsGetBool(Keys.readOnly),
                             propsGetInt(Keys.freeSpaceReclaimQ, CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
                             propsGetBool(Keys.commitFileSyncDisable),
-                            0);
+                            0,
+                            executor,
+                            CC.DEFAULT_STORE_EXECUTOR_SCHED_RATE
+                            );
         }
 
         if(engine instanceof Store){
