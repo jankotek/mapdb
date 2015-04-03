@@ -209,7 +209,6 @@ public class DBMakerTest{
         db = DBMaker
                 .newFileDB(f)
                 .deleteFilesAfterClose()
-                .cacheDisable()
 
                 .checksumEnable()
                 .make();

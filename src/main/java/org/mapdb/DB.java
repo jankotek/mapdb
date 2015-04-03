@@ -804,7 +804,7 @@ public class DB implements Closeable {
 
         /** creates map optimized for using zero or positive `Long` keys */
         public <V> BTreeMap<Long, V> makeLongMap() {
-            keySerializer = BTreeKeySerializer.ZERO_OR_POSITIVE_LONG;
+            keySerializer = BTreeKeySerializer.LONG;
             return make();
         }
 
@@ -894,7 +894,7 @@ public class DB implements Closeable {
 
         /** creates set optimized for using zero or positive `Long` */
         public NavigableSet<Long> makeLongSet() {
-            serializer = BTreeKeySerializer.ZERO_OR_POSITIVE_LONG;
+            serializer = BTreeKeySerializer.LONG;
             return make();
         }
 

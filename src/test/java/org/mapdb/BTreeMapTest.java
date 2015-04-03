@@ -604,7 +604,7 @@ public class BTreeMapTest{
     @Test public void randomStructuralCheck(){
         Random r = new Random();
         BTreeMap map = DBMaker.newMemoryDB().transactionDisable().make().createTreeMap("aa")
-                .keySerializer(BTreeKeySerializer.ZERO_OR_POSITIVE_INT)
+                .keySerializer(BTreeKeySerializer.INTEGER)
                 .valueSerializer(Serializer.INTEGER)
                 .make();
 
@@ -631,7 +631,7 @@ public class BTreeMapTest{
             Map m = db
                     .createTreeMap("map")
                     .nodeSize(i)
-                    .keySerializer(BTreeKeySerializer.ZERO_OR_POSITIVE_INT)
+                    .keySerializer(BTreeKeySerializer.INTEGER)
                     .valueSerializer(Serializer.INTEGER)
                     .make();
 
