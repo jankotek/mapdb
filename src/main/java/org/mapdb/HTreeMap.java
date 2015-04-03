@@ -391,7 +391,7 @@ public class HTreeMap<K,V>
                         }
                     }
                 },
-                CC.DEFAULT_HTREEMAP_EXECUTOR_SCHED_RATE,
+                (long) (CC.DEFAULT_HTREEMAP_EXECUTOR_SCHED_RATE*Math.random()),
                 CC.DEFAULT_HTREEMAP_EXECUTOR_SCHED_RATE,
                 TimeUnit.MILLISECONDS);
             }

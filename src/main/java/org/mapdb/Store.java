@@ -677,7 +677,10 @@ public abstract class Store implements Engine {
                     public void run() {
                         WeakSoftRef.this.flushGCedLocked();
                     }
-                }, executorScheduledRate, executorScheduledRate, TimeUnit.MILLISECONDS);
+                    },
+                    (long) (executorScheduledRate*Math.random()),
+                    executorScheduledRate,
+                    TimeUnit.MILLISECONDS);
             }
         }
 

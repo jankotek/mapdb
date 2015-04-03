@@ -69,7 +69,10 @@ public class StoreCached extends StoreDirect {
                             lock.unlock();
                         }
                     }
-                },executorScheduledRate,executorScheduledRate, TimeUnit.MILLISECONDS);
+                    },
+                        (long) (executorScheduledRate*Math.random()),
+                        executorScheduledRate,
+                        TimeUnit.MILLISECONDS);
             }
         }
     }
