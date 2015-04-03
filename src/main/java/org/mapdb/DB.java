@@ -193,7 +193,7 @@ public class DB implements Closeable {
         protected Fun.Function1 pumpValueExtractor;
         protected int pumpPresortBatchSize = (int) 1e7;
         protected boolean pumpIgnoreDuplicates = false;
-
+        protected boolean standalone = false;
 
 
         /** by default collection does not have counter, without counter updates are faster, but entire collection needs to be traversed to count items.*/
@@ -291,6 +291,11 @@ public class DB implements Closeable {
         }
 
 
+        protected HTreeMapMaker standalone() {
+            standalone = true;
+            return this;
+        }
+
 
         public <K,V> HTreeMap<K,V> make(){
             if(expireMaxSize!=0) counter =true;
@@ -327,6 +332,7 @@ public class DB implements Closeable {
         protected Iterator<?> pumpSource;
         protected int pumpPresortBatchSize = (int) 1e7;
         protected boolean pumpIgnoreDuplicates = false;
+        protected boolean standalone = false;
 
 
         /** by default collection does not have counter, without counter updates are faster, but entire collection needs to be traversed to count items.*/
@@ -397,6 +403,11 @@ public class DB implements Closeable {
 
         public HTreeSetMaker pumpPresort(int batchSize){
             this.pumpPresortBatchSize = batchSize;
+            return this;
+        }
+
+        protected HTreeSetMaker standalone() {
+            this.standalone = true;
             return this;
         }
 
@@ -553,7 +564,7 @@ public class DB implements Closeable {
                 expireTimeStart,expire,expireAccess,expireMaxSize, expireStoreSize, expireHeads ,expireTails,
                 (Fun.Function1<V, K>) m.valueCreator,
                 executor,
-                false);
+                m.standalone);
         //$DELAY$
         catalog.put(name + ".type", "HashMap");
         namedPut(name, ret);
@@ -667,7 +678,7 @@ public class DB implements Closeable {
                 expireTimeStart,expire,expireAccess,expireMaxSize, expireStoreSize, expireHeads ,expireTails,
                 null,
                 executor,
-                false);
+                m.standalone);
         Set<K> ret2 = ret.keySet();
         //$DELAY$
         catalog.put(name + ".type", "HashSet");
@@ -707,6 +718,7 @@ public class DB implements Closeable {
         protected Fun.Function1 pumpValueExtractor;
         protected int pumpPresortBatchSize = -1;
         protected boolean pumpIgnoreDuplicates = false;
+        protected boolean standalone = false;
 
 
         /** nodeSize maximal size of node, larger node causes overflow and creation of new BTree node. Use large number for small keys, use small number for large keys.*/
@@ -808,6 +820,10 @@ public class DB implements Closeable {
             return make();
         }
 
+        protected BTreeMapMaker standalone() {
+            standalone = true;
+            return this;
+        }
     }
 
     public class BTreeSetMaker{
@@ -825,6 +841,7 @@ public class DB implements Closeable {
         protected Iterator<?> pumpSource;
         protected int pumpPresortBatchSize = -1;
         protected boolean pumpIgnoreDuplicates = false;
+        protected boolean standalone = false;
 
         /** nodeSize maximal size of node, larger node causes overflow and creation of new BTree node. Use large number for small keys, use small number for large keys.*/
         public BTreeSetMaker nodeSize(int nodeSize){
@@ -867,6 +884,11 @@ public class DB implements Closeable {
 
         public BTreeSetMaker pumpPresort(int batchSize){
             this.pumpPresortBatchSize = batchSize;
+            return this;
+        }
+
+        protected BTreeSetMaker standalone() {
+            this.standalone = true;
             return this;
         }
 
@@ -1007,7 +1029,7 @@ public class DB implements Closeable {
                 m.keySerializer,
                 (Serializer<V>)m.valueSerializer,
                 catPut(m.name+".numberOfNodeMetas",0),
-                false);
+                m.standalone);
         //$DELAY$
         catalog.put(name + ".type", "TreeMap");
         namedPut(name, ret);
@@ -1147,7 +1169,7 @@ public class DB implements Closeable {
                 m.serializer,
                 null,
                 catPut(m.name+".numberOfNodeMetas",0),
-                false
+                m.standalone
         ).keySet();
         //$DELAY$
         catalog.put(m.name + ".type", "TreeSet");

@@ -398,7 +398,7 @@ public class DBMakerTest{
                 .make();
 
         assertEquals(Integer.valueOf(0),s.firstEntry().getKey());
-        assertEquals(Integer.valueOf(12),s.lastEntry().getKey());
+        assertEquals(Integer.valueOf(12), s.lastEntry().getKey());
     }
 
     @Test public void heap_store(){
@@ -444,4 +444,29 @@ public class DBMakerTest{
         assertTrue(closed.get());
         assertNull(db.executor);
     }
+
+    @Test public void temp_HashMap_standalone(){
+        HTreeMap m = DBMaker.newTempHashMap();
+        assertTrue(m.standalone);
+        m.close();
+    }
+
+    @Test public void temp_TreeMap_standalone(){
+        BTreeMap m = DBMaker.newTempTreeMap();
+        assertTrue(m.standalone);
+        m.close();
+    }
+
+    @Test public void temp_HashSet_standalone() throws IOException {
+        HTreeMap.KeySet m = (HTreeMap.KeySet) DBMaker.newTempHashSet();
+        assertTrue(m.getHTreeMap().standalone);
+        m.close();
+    }
+
+    @Test public void temp_TreeSet_standalone() throws IOException {
+        BTreeMap.KeySet m = (BTreeMap.KeySet) DBMaker.newTempTreeSet();
+        assertTrue(((BTreeMap)m.m).standalone);
+        m.close();
+    }
+
 }

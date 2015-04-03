@@ -204,7 +204,9 @@ public class DBMaker{
                 .closeOnJvmShutdown()
                 .transactionDisable()
                 .make()
-                .getTreeMap("temp");
+                .createTreeMap("temp")
+                .standalone()
+                .make();
     }
 
     /**
@@ -219,7 +221,9 @@ public class DBMaker{
                 .closeOnJvmShutdown()
                 .transactionDisable()
                 .make()
-                .getHashMap("temp");
+                .createHashMap("temp")
+                .standalone()
+                .make();
     }
 
     /**
@@ -234,7 +238,9 @@ public class DBMaker{
                 .closeOnJvmShutdown()
                 .transactionDisable()
                 .make()
-                .getTreeSet("temp");
+                .createTreeSet("temp")
+                .standalone()
+                .make();
     }
 
     /**
@@ -249,7 +255,9 @@ public class DBMaker{
                 .closeOnJvmShutdown()
                 .transactionDisable()
                 .make()
-                .getHashSet("temp");
+                .createHashSet("temp")
+                .standalone()
+                .make();
     }
 
     /**

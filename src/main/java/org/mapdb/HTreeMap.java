@@ -1115,7 +1115,9 @@ public class HTreeMap<K,V>
 
 
 
-    protected class KeySet extends AbstractSet<K> {
+    protected class KeySet
+            extends AbstractSet<K>
+            implements Closeable{
 
         @Override
         public int size() {
@@ -1173,6 +1175,15 @@ public class HTreeMap<K,V>
             }
             return result;
 
+        }
+
+        @Override
+        public void close() {
+            HTreeMap.this.close();
+        }
+
+        public HTreeMap getHTreeMap() {
+            return HTreeMap.this;
         }
     }
 
@@ -2044,7 +2055,7 @@ public class HTreeMap<K,V>
 
 
     @Override
-    public void close() throws IOException {
+    public void close(){
         if(!standalone) {
             return;
         }

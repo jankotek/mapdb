@@ -2277,7 +2277,10 @@ public class BTreeMap<K,V>
 
 
 
-    static final class KeySet<E> extends AbstractSet<E> implements NavigableSet<E> {
+    static final class KeySet<E>
+            extends AbstractSet<E>
+            implements NavigableSet<E>,
+            Closeable{
 
         protected final ConcurrentNavigableMap<E,Object> m;
         private final boolean hasValues;
@@ -2390,6 +2393,12 @@ public class BTreeMap<K,V>
                 throw new UnsupportedOperationException();
             else
                 return m.put(k, Boolean.TRUE ) == null;
+        }
+
+        @Override
+        public void close() {
+            if(m instanceof BTreeMap)
+                ((BTreeMap)m).close();
         }
     }
 
@@ -3527,7 +3536,7 @@ public class BTreeMap<K,V>
     }
 
     @Override
-    public void close() throws IOException {
+    public void close(){
         if(!standalone) {
             return;
         }
