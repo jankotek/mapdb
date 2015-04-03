@@ -15,6 +15,7 @@
  */
 package org.mapdb;
 
+import java.io.Closeable;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -43,7 +44,11 @@ import java.util.logging.Logger;
  * @author Jan Kotek
  */
 @SuppressWarnings({ "unchecked", "rawtypes" })
-public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K, V>, Bind.MapWithModificationListener<K,V>{
+public class HTreeMap<K,V>
+        extends AbstractMap<K,V>
+        implements ConcurrentMap<K, V>,
+        Bind.MapWithModificationListener<K,V>,
+        Closeable {
 
     protected static final Logger LOG = Logger.getLogger(HTreeMap.class.getName());
 
@@ -81,7 +86,12 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     protected final long[] expireTails;
 
     protected final Fun.Function1<V,K> valueCreator;
-
+    /**
+     * Indicates if this collection collection was not made by DB by user.
+     * If user can not access DB object, we must shutdown Executor and close Engine ourself in close() method.
+     */
+    protected final boolean standalone;
+    protected final ScheduledExecutorService executor;
 
 
     /** node which holds key-value pair */
@@ -281,14 +291,32 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     /**
      * Opens HTreeMap
      */
-    public HTreeMap(Engine engine, long counterRecid, int hashSalt, long[] segmentRecids,
-                    Serializer<K> keySerializer, Serializer<V> valueSerializer,
-                    long expireTimeStart, long expire, long expireAccess, long expireMaxSize, long expireStoreSize,
-                    long[] expireHeads, long[] expireTails, Fun.Function1<V, K> valueCreator, ScheduledExecutorService executor) {
-        if(counterRecid<0) throw new IllegalArgumentException();
-        if(engine==null) throw new NullPointerException();
-        if(segmentRecids==null) throw new NullPointerException();
-        if(keySerializer==null) throw new NullPointerException();
+    public HTreeMap(
+            Engine engine,
+            long counterRecid,
+            int hashSalt,
+            long[] segmentRecids,
+            Serializer<K> keySerializer,
+            Serializer<V> valueSerializer,
+            long expireTimeStart,
+            long expire,
+            long expireAccess,
+            long expireMaxSize,
+            long expireStoreSize,
+            long[] expireHeads,
+            long[] expireTails,
+            Fun.Function1<V, K> valueCreator,
+            ScheduledExecutorService executor,
+            boolean standalone) {
+
+        if(counterRecid<0)
+            throw new IllegalArgumentException();
+        if(engine==null)
+            throw new NullPointerException();
+        if(segmentRecids==null)
+            throw new NullPointerException();
+        if(keySerializer==null)
+            throw new NullPointerException();
 
 //        SerializerBase.assertSerializable(keySerializer); //TODO serializer serialization
         this.hasValues = valueSerializer!=null;
@@ -301,6 +329,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             segmentLocks[i]=new ReentrantReadWriteLock(CC.FAIR_LOCKS);
         }
 
+        this.standalone = standalone;
 
         this.engine = engine;
         this.hashSalt = hashSalt;
@@ -336,6 +365,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         }
 
         expireSingleThreadFlag = (expireFlag && executor==null);
+
+        this.executor = executor;
 
         if(expireFlag && executor!=null){
             if(executor!=null) {
@@ -1970,7 +2001,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         return new HTreeMap<K, V>(snapshot, counter==null?0:counter.recid,
                 hashSalt, segmentRecids, keySerializer, valueSerializer,
                 0L,0L,0L,0L,0L,
-                null,null, null, null);
+                null,null, null, null, standalone);
     }
 
 
@@ -2009,6 +2040,25 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
     public Engine getEngine(){
         return engine;
+    }
+
+
+    @Override
+    public void close() throws IOException {
+        if(!standalone) {
+            return;
+        }
+
+        //shutdown all associated objects
+        if(executor!=null){
+            executor.shutdown();
+            try {
+                executor.awaitTermination(Long.MAX_VALUE,TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                throw new DBException.Interrupted(e);
+            }
+        }
+        engine.close();
     }
 
 }

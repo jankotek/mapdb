@@ -1,4 +1,3 @@
-
 /*******************************************************************************
  * Copyright 2010 Cees De Groot, Alex Boisvert, Jan Kotek
  *
@@ -64,7 +63,7 @@ public class BTreeMapLargeValsTest extends ConcurrentMapInterfaceTest<Integer, S
     protected ConcurrentMap<Integer, String> makeEmptyMap() throws UnsupportedOperationException {
         return new BTreeMap(r,BTreeMap.createRootRef(r,BTreeKeySerializer.INTEGER, Serializer.STRING,0),
                 6,valsOutside,0, BTreeKeySerializer.INTEGER,Serializer.STRING,
-                0);
+                0, false);
 
     }
 

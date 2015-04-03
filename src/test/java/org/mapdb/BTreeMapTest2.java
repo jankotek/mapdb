@@ -1,4 +1,3 @@
-
 /*******************************************************************************
  * Copyright 2010 Cees De Groot, Alex Boisvert, Jan Kotek
  *
@@ -67,7 +66,7 @@ public class BTreeMapTest2 extends ConcurrentMapInterfaceTest<Integer, String> {
 
         return new BTreeMap(r,BTreeMap.createRootRef(r,BTreeKeySerializer.INTEGER, Serializer.STRING, 0),
                 6,valsOutside,0, BTreeKeySerializer.INTEGER,Serializer.STRING,
-                0);
+                0, false);
     }
 
     @Override

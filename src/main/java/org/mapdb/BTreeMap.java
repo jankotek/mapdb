@@ -26,6 +26,7 @@
 package org.mapdb;
 
 
+import java.io.Closeable;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -102,8 +103,11 @@ import java.util.concurrent.locks.LockSupport;
  * TODO links to BTree papers are not working anymore.
  */
 @SuppressWarnings({ "unchecked", "rawtypes" })
-public class BTreeMap<K,V> extends AbstractMap<K,V>
-        implements ConcurrentNavigableMap<K,V>, Bind.MapWithModificationListener<K,V>{
+public class BTreeMap<K,V>
+        extends AbstractMap<K,V>
+        implements ConcurrentNavigableMap<K,V>,
+        Bind.MapWithModificationListener<K,V>,
+        Closeable {
 
     /** recid under which reference to rootRecid is stored */
     protected final long rootRecidRef;
@@ -143,6 +147,12 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
     protected final Atomic.Long counter;
 
     protected final int numberOfNodeMetas;
+    /**
+     * Indicates if this collection collection was not made by DB by user.
+     * If user can not access DB object, we must shutdown Executor and close Engine ourself in close() method.
+     */
+    protected final boolean standalone;
+
 
     /** hack used for DB Catalog*/
     protected static SortedMap<String, Object> preinitCatalog(DB db) {
@@ -169,7 +179,8 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
         return new BTreeMap<String, Object>(db.engine,Engine.RECID_NAME_CATALOG,32,false,0,
                 keyser,
                 valser,
-                0);
+                0,
+                false);
     }
 
 
@@ -844,6 +855,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
      * @param keySerializer Serializer used for keys. May be null for default value.
      * @param valueSerializer Serializer used for values. May be null for default value
      * @param numberOfNodeMetas number of meta records associated with each BTree node
+     * @param standalone if this object was created without DB. If true shutdown everything on close method, otherwise DB takes care of shutdown
      */
     public BTreeMap(
             Engine engine,
@@ -853,7 +865,9 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             long counterRecid,
             BTreeKeySerializer keySerializer,
             final Serializer<V> valueSerializer,
-            int numberOfNodeMetas) {
+            int numberOfNodeMetas,
+            boolean standalone) {
+        this.standalone = standalone;
 
         if(maxNodeSize%2!=0)
             throw new IllegalArgumentException("maxNodeSize must be dividable by 2");
@@ -3352,7 +3366,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
         return new BTreeMap<K, V>(snapshot, rootRecidRef, maxNodeSize, valsOutsideNodes,
                 counter==null?0L:counter.recid,
-                keySerializer, valueSerializer, numberOfNodeMetas);
+                keySerializer, valueSerializer, numberOfNodeMetas, standalone);
     }
 
 
@@ -3510,6 +3524,14 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             }
         }
 
+    }
+
+    @Override
+    public void close() throws IOException {
+        if(!standalone) {
+            return;
+        }
+        engine.close();
     }
 
 

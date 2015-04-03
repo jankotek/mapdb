@@ -29,7 +29,7 @@ public class BTreeMapContainsKeyTest extends JSR166TestCase {
     protected void setUp() throws Exception {
         r = DBMaker.newMemoryDB().transactionDisable().makeEngine();
         map = new BTreeMap(r, createRootRef(r,BASIC, Serializer.BASIC,0),
-                6, valsOutsideNodes, 0, BASIC, valueSerializer, 0);
+                6, valsOutsideNodes, 0, BASIC, valueSerializer, 0, false);
     }
 
 
