@@ -92,6 +92,7 @@ public class HTreeMap<K,V>
      */
     protected final boolean standalone;
     protected final ScheduledExecutorService executor;
+    protected final Lock sequentialLock;
 
 
     /** node which holds key-value pair */
@@ -307,7 +308,8 @@ public class HTreeMap<K,V>
             long[] expireTails,
             Fun.Function1<V, K> valueCreator,
             ScheduledExecutorService executor,
-            boolean standalone) {
+            boolean standalone,
+            Lock sequentialLock) {
 
         if(counterRecid<0)
             throw new IllegalArgumentException();
@@ -336,6 +338,7 @@ public class HTreeMap<K,V>
         this.segmentRecids = Arrays.copyOf(segmentRecids,16);
         this.keySerializer = keySerializer;
         this.valueSerializer = valueSerializer;
+        this.sequentialLock = sequentialLock;
 
         if(expire==0 && expireAccess!=0){
             expire = expireAccess;
@@ -507,7 +510,7 @@ public class HTreeMap<K,V>
             ln = getInner(o, h, segment);
 
             if(ln!=null && expireAccessFlag)
-                expireLinkBump(segment,ln.expireLinkNodeRecid,true);
+                expireLinkBump(segment,ln.expireLinkNodeRecid,true); //TODO sequential lock here?
         }finally {
             lock.unlock();
         }
@@ -803,11 +806,16 @@ public class HTreeMap<K,V>
         V ret;
         final int h = hash(key);
         final int segment = h >>>28;
-        segmentLocks[segment].writeLock().lock();
-        try{
-            ret = putInner(key, value, h, segment);
+        sequentialLock.lock();
+        try {
+            segmentLocks[segment].writeLock().lock();
+            try {
+                ret = putInner(key, value, h, segment);
+            } finally {
+                segmentLocks[segment].writeLock().unlock();
+            }
         }finally {
-            segmentLocks[segment].writeLock().unlock();
+            sequentialLock.unlock();
         }
 
         if(expireSingleThreadFlag)
@@ -942,11 +950,16 @@ public class HTreeMap<K,V>
 
         final int h = hash(key);
         final int segment = h >>>28;
-        segmentLocks[segment].writeLock().lock();
-        try{
-            ret = removeInternal(key, segment, h, true);
+        sequentialLock.lock();
+        try {
+            segmentLocks[segment].writeLock().lock();
+            try {
+                ret = removeInternal(key, segment, h, true);
+            } finally {
+                segmentLocks[segment].writeLock().unlock();
+            }
         }finally {
-            segmentLocks[segment].writeLock().unlock();
+            sequentialLock.unlock();
         }
 
         if(expireSingleThreadFlag)
@@ -1059,20 +1072,27 @@ public class HTreeMap<K,V>
 
     @Override
     public void clear() {
-        for(int i = 0; i<16;i++) try{
-            segmentLocks[i].writeLock().lock();
+        sequentialLock.lock();
+        try {
+            for (int i = 0; i < 16; i++)
+                try {
+                    segmentLocks[i].writeLock().lock();
 
-            final long dirRecid = segmentRecids[i];
-            recursiveDirClear(dirRecid);
+                    final long dirRecid = segmentRecids[i];
+                    recursiveDirClear(dirRecid);
 
-            //set dir to null, as segment recid is immutable
-            engine.update(dirRecid, new int[4], DIR_SERIALIZER);
+                    //set dir to null, as segment recid is immutable
+                    engine.update(dirRecid, new int[4], DIR_SERIALIZER);
 
-            if(expireFlag)
-                while(expireLinkRemoveLast(i)!=null){} //TODO speedup remove all
+                    if (expireFlag)
+                        while (expireLinkRemoveLast(i) != null) {
+                        } //TODO speedup remove all
 
+                } finally {
+                    segmentLocks[i].writeLock().unlock();
+                }
         }finally {
-            segmentLocks[i].writeLock().unlock();
+            sequentialLock.unlock();
         }
     }
 
@@ -1537,18 +1557,21 @@ public class HTreeMap<K,V>
 
         V ret;
 
-        segmentLocks[segment].writeLock().lock();
-        try{
+        sequentialLock.lock();
+        try {
+            segmentLocks[segment].writeLock().lock();
+            try {
+                LinkedNode<K, V> ln = HTreeMap.this.getInner(key, h, segment);
+                if (ln == null)
+                    ret = put(key, value);
+                else
+                    ret = ln.value;
 
-
-            LinkedNode<K,V> ln = HTreeMap.this.getInner(key,h,segment);
-            if (ln==null)
-                ret =  put(key, value);
-            else
-                ret = ln.value;
-
+            } finally {
+                segmentLocks[segment].writeLock().unlock();
+            }
         }finally {
-            segmentLocks[segment].writeLock().unlock();
+            sequentialLock.unlock();
         }
 
         if(expireSingleThreadFlag)
@@ -1566,15 +1589,21 @@ public class HTreeMap<K,V>
 
         final int h = HTreeMap.this.hash(key);
         final int segment = h >>>28;
-        segmentLocks[segment].writeLock().lock();
-        try{
-            LinkedNode otherVal = getInner(key, h, segment);
-            ret =  (otherVal!=null && valueSerializer.equals((V)otherVal.value,(V)value));
-            if(ret)
-                removeInternal(key, segment, h, true);
 
+        sequentialLock.lock();
+        try {
+            segmentLocks[segment].writeLock().lock();
+            try {
+                LinkedNode otherVal = getInner(key, h, segment);
+                ret = (otherVal != null && valueSerializer.equals((V) otherVal.value, (V) value));
+                if (ret)
+                    removeInternal(key, segment, h, true);
+
+            } finally {
+                segmentLocks[segment].writeLock().unlock();
+            }
         }finally {
-            segmentLocks[segment].writeLock().unlock();
+            sequentialLock.unlock();
         }
 
         if(expireSingleThreadFlag)
@@ -1592,17 +1621,21 @@ public class HTreeMap<K,V>
 
         final int h = HTreeMap.this.hash(key);
         final int segment = h >>>28;
-        segmentLocks[segment].writeLock().lock();
-        try{
 
+        sequentialLock.lock();
+        try {
+            segmentLocks[segment].writeLock().lock();
+            try {
+                LinkedNode<K, V> ln = getInner(key, h, segment);
+                ret = (ln != null && valueSerializer.equals(ln.value, oldValue));
+                if (ret)
+                    putInner(key, newValue, h, segment);
 
-            LinkedNode<K,V> ln = getInner(key, h,segment);
-            ret = (ln!=null && valueSerializer.equals(ln.value, oldValue));
-            if(ret)
-                putInner(key, newValue,h,segment);
-
+            } finally {
+                segmentLocks[segment].writeLock().unlock();
+            }
         }finally {
-            segmentLocks[segment].writeLock().unlock();
+            sequentialLock.unlock();
         }
 
         if(expireSingleThreadFlag)
@@ -1618,16 +1651,20 @@ public class HTreeMap<K,V>
         V ret;
         final int h = HTreeMap.this.hash(key);
         final int segment =  h >>>28;
-        segmentLocks[segment].writeLock().lock();
-        try{
 
-
-            if (getInner(key,h,segment)!=null)
-                ret = putInner(key, value,h,segment);
-            else
-                ret = null;
+        sequentialLock.lock();
+        try {
+            segmentLocks[segment].writeLock().lock();
+            try {
+                if (getInner(key, h, segment) != null)
+                    ret = putInner(key, value, h, segment);
+                else
+                    ret = null;
+            } finally {
+                segmentLocks[segment].writeLock().unlock();
+            }
         }finally {
-            segmentLocks[segment].writeLock().unlock();
+            sequentialLock.unlock();
         }
 
         if(expireSingleThreadFlag)
@@ -1695,7 +1732,6 @@ public class HTreeMap<K,V>
         }
 
     }
-
 
 
     protected void expireLinkAdd(int segment, long expireNodeRecid, long keyRecid, int hash){
@@ -1883,6 +1919,7 @@ public class HTreeMap<K,V>
         if(!expireFlag)
             return;
 
+        //TODO sequential lock here?
         long removePerSegment = expireCalcRemovePerSegment();
 
         long counter = 0;
@@ -2012,7 +2049,7 @@ public class HTreeMap<K,V>
         return new HTreeMap<K, V>(snapshot, counter==null?0:counter.recid,
                 hashSalt, segmentRecids, keySerializer, valueSerializer,
                 0L,0L,0L,0L,0L,
-                null,null, null, null, standalone);
+                null,null, null, null, standalone, new Store.NoLock());
     }
 
 

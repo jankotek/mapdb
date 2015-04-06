@@ -23,7 +23,8 @@ import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * A database with easy access to named maps and other collections.
@@ -54,6 +55,9 @@ public class DB implements Closeable {
 
     protected final Set<String> unknownClasses = new ConcurrentSkipListSet<String>();
 
+    //TODO collection get/create should be under sequentialLock.readLock()
+    protected final ReadWriteLock sequentialLock;
+
     protected static class IdentityWrapper{
 
         final Object o;
@@ -78,10 +82,15 @@ public class DB implements Closeable {
      * @param engine
      */
     public DB(final Engine engine){
-        this(engine,false,false, null);
+        this(engine,false,false, null, false);
     }
 
-    public DB(Engine engine, boolean strictDBGet, boolean deleteFilesAfterClose, ScheduledExecutorService executor) {
+    public DB(
+            Engine engine,
+            boolean strictDBGet,
+            boolean deleteFilesAfterClose,
+            ScheduledExecutorService executor,
+            boolean lockDisable) {
         //TODO investigate dereference and how non-final field affect performance. Perhaps abandon dereference completely
 //        if(!(engine instanceof EngineWrapper)){
 //            //access to Store should be prevented after `close()` was called.
@@ -92,6 +101,9 @@ public class DB implements Closeable {
         this.strictDBGet = strictDBGet;
         this.deleteFilesAfterClose = deleteFilesAfterClose;
         this.executor = executor;
+        this.sequentialLock = lockDisable ?
+                new Store.ReadWriteSingleLock(new Store.NoLock()) :
+                new ReentrantReadWriteLock();
 
         serializerPojo = new SerializerPojo(
                 //get name for given object
@@ -493,7 +505,9 @@ public class DB implements Closeable {
                 (long[])catGet(name+".expireTails",null),
                 valueCreator,
                 executor,
-                false);
+                false,
+                sequentialLock.readLock()
+        );
 
         //$DELAY$
         namedPut(name, ret);
@@ -564,7 +578,8 @@ public class DB implements Closeable {
                 expireTimeStart,expire,expireAccess,expireMaxSize, expireStoreSize, expireHeads ,expireTails,
                 (Fun.Function1<V, K>) m.valueCreator,
                 executor,
-                m.standalone);
+                m.standalone,
+                sequentialLock.readLock());
         //$DELAY$
         catalog.put(name + ".type", "HashMap");
         namedPut(name, ret);
@@ -625,7 +640,8 @@ public class DB implements Closeable {
                 (long[])catGet(name+".expireTails",null),
                 null,
                 executor,
-                false
+                false,
+                sequentialLock.readLock()
         ).keySet();
 
         //$DELAY$
@@ -678,7 +694,9 @@ public class DB implements Closeable {
                 expireTimeStart,expire,expireAccess,expireMaxSize, expireStoreSize, expireHeads ,expireTails,
                 null,
                 executor,
-                m.standalone);
+                m.standalone,
+                sequentialLock.readLock()
+                );
         Set<K> ret2 = ret.keySet();
         //$DELAY$
         catalog.put(name + ".type", "HashSet");
@@ -1696,39 +1714,45 @@ public class DB implements Closeable {
         if(engine == null)
             return;
 
-        if(executor!=null) {
-            executor.shutdown();
-            try {
-                executor.awaitTermination(Long.MAX_VALUE,TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
-                throw new DBException.Interrupted(e);
-            }
-            executor = null;
-        }
+        sequentialLock.writeLock().lock();
+        try {
 
-        for(WeakReference r:namesInstanciated.values()){
-            Object rr = r.get();
-            if(rr !=null && rr instanceof Closeable)
+            if (executor != null) {
+                executor.shutdown();
                 try {
-                    ((Closeable)rr).close();
-                } catch (IOException e) {
-                    throw new IOError(e);
+                    executor.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    throw new DBException.Interrupted(e);
                 }
-        }
-
-        String fileName = deleteFilesAfterClose?Store.forEngine(engine).fileName:null;
-        engine.close();
-        //dereference db to prevent memory leaks
-        engine = CLOSED_ENGINE;
-        namesInstanciated = Collections.unmodifiableMap(new HashMap());
-        namesLookup = Collections.unmodifiableMap(new HashMap());
-
-        if(deleteFilesAfterClose && fileName!=null){
-            File f = new File(fileName);
-            if (f.exists() && !f.delete()) {
-                //TODO file was not deleted, log warning
+                executor = null;
             }
-            //TODO delete WAL files and append-only files
+
+            for (WeakReference r : namesInstanciated.values()) {
+                Object rr = r.get();
+                if (rr != null && rr instanceof Closeable)
+                    try {
+                        ((Closeable) rr).close();
+                    } catch (IOException e) {
+                        throw new IOError(e);
+                    }
+            }
+
+            String fileName = deleteFilesAfterClose ? Store.forEngine(engine).fileName : null;
+            engine.close();
+            //dereference db to prevent memory leaks
+            engine = CLOSED_ENGINE;
+            namesInstanciated = Collections.unmodifiableMap(new HashMap());
+            namesLookup = Collections.unmodifiableMap(new HashMap());
+
+            if (deleteFilesAfterClose && fileName != null) {
+                File f = new File(fileName);
+                if (f.exists() && !f.delete()) {
+                    //TODO file was not deleted, log warning
+                }
+                //TODO delete WAL files and append-only files
+            }
+        }finally {
+            sequentialLock.writeLock().unlock();
         }
     }
 
@@ -1766,37 +1790,41 @@ public class DB implements Closeable {
      */
     synchronized public void commit() {
         checkNotClosed();
-        //update Class Catalog with missing classes as part of this transaction
-        String[] toBeAdded = unknownClasses.isEmpty()?null:unknownClasses.toArray(new String[0]);
 
-        //TODO if toBeAdded is modified as part of serialization, and `executor` is not null (background threads are enabled),
-        // schedule this operation with 1ms delay, so it has higher chances of becoming part of the same transaction
-        if(toBeAdded!=null) {
+        sequentialLock.writeLock().lock();
+        try {
+            //update Class Catalog with missing classes as part of this transaction
+            String[] toBeAdded = unknownClasses.isEmpty() ? null : unknownClasses.toArray(new String[0]);
 
-            SerializerPojo.ClassInfo[] classes =  serializerPojo.getClassInfos.run();
-            SerializerPojo.ClassInfo[] classes2 = classes.length==0?null:classes;
+            //TODO if toBeAdded is modified as part of serialization, and `executor` is not null (background threads are enabled),
+            // schedule this operation with 1ms delay, so it has higher chances of becoming part of the same transaction
+            if (toBeAdded != null) {
 
-            for(String className:toBeAdded){
-                int pos = serializerPojo.classToId(classes,className);
-                if(pos!=-1) {
-                    continue;
+                SerializerPojo.ClassInfo[] classes = serializerPojo.getClassInfos.run();
+                SerializerPojo.ClassInfo[] classes2 = classes.length == 0 ? null : classes;
+
+                for (String className : toBeAdded) {
+                    int pos = serializerPojo.classToId(classes, className);
+                    if (pos != -1) {
+                        continue;
+                    }
+                    SerializerPojo.ClassInfo classInfo = serializerPojo.makeClassInfo(className);
+                    classes = Arrays.copyOf(classes, classes.length + 1);
+                    classes[classes.length - 1] = classInfo;
                 }
-                SerializerPojo.ClassInfo classInfo = serializerPojo.makeClassInfo(className);
-                classes = Arrays.copyOf(classes,classes.length+1);
-                classes[classes.length-1]=classInfo;
+                engine.compareAndSwap(Engine.RECID_CLASS_CATALOG, classes2, classes, SerializerPojo.CLASS_CATALOG_SERIALIZER);
             }
-            engine.compareAndSwap(Engine.RECID_CLASS_CATALOG,classes2,classes,SerializerPojo.CLASS_CATALOG_SERIALIZER);
-        }
 
 
+            engine.commit();
 
-
-        engine.commit();
-
-        if(toBeAdded!=null) {
-            for (String className : toBeAdded) {
-                unknownClasses.remove(className);
+            if (toBeAdded != null) {
+                for (String className : toBeAdded) {
+                    unknownClasses.remove(className);
+                }
             }
+        }finally {
+            sequentialLock.writeLock().unlock();
         }
     }
 
@@ -1807,7 +1835,12 @@ public class DB implements Closeable {
      */
     synchronized public void rollback() {
         checkNotClosed();
-        engine.rollback();
+        sequentialLock.writeLock().lock();
+        try {
+            engine.rollback();
+        }finally {
+            sequentialLock.writeLock().unlock();
+        }
     }
 
     /**
@@ -1830,8 +1863,13 @@ public class DB implements Closeable {
      * @return readonly snapshot view
      */
     synchronized public DB snapshot(){
-        Engine snapshot = TxEngine.createSnapshotFor(engine);
-        return new DB (snapshot);
+        sequentialLock.writeLock().lock();
+        try {
+            Engine snapshot = TxEngine.createSnapshotFor(engine);
+            return new DB(snapshot);
+        }finally {
+            sequentialLock.writeLock().unlock();
+        }
     }
 
     /**
@@ -1851,6 +1889,17 @@ public class DB implements Closeable {
     public void checkType(String type, String expected) {
         //$DELAY$
         if(!expected.equals(type)) throw new IllegalArgumentException("Wrong type: "+type);
+    }
+
+    /**
+     * Returns sequential lock which groups operation together and ensures consistency.
+     * Operations which depends on each other are performed under read lock.
+     * Snapshots, close etc are performend under write-lock.
+     *
+     * @return
+     */
+    public ReadWriteLock sequentialLock(){
+        return sequentialLock;
     }
 
 
