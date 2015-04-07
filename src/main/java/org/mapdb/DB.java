@@ -25,6 +25,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.logging.Logger;
 
 /**
  * A database with easy access to named maps and other collections.
@@ -34,6 +35,15 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 //TODO DB uses global lock, replace it with ReadWrite lock or fine grained locking.
 @SuppressWarnings("unchecked")
 public class DB implements Closeable {
+
+    protected static final Logger LOG = Logger.getLogger(DB.class.getName());
+    public static final String METRICS_DATA_WRITE = "data.write";
+    public static final String METRICS_RECORD_WRITE = "record.write";
+    public static final String METRICS_DATA_READ = "data.read";
+    public static final String METRICS_RECORD_READ = "record.read";
+    public static final String METRICS_CACHE_HIT = "cache.hit";
+    public static final String METRICS_CACHE_MISS = "cache.miss";
+
 
     protected final boolean strictDBGet;
     protected final boolean deleteFilesAfterClose;
@@ -52,6 +62,9 @@ public class DB implements Closeable {
 
     protected ScheduledExecutorService executor = null;
     protected SerializerPojo serializerPojo;
+
+    protected ScheduledExecutorService metricsExecutor;
+    protected final long metricsLogInterval;
 
     protected final Set<String> unknownClasses = new ConcurrentSkipListSet<String>();
 
@@ -82,7 +95,7 @@ public class DB implements Closeable {
      * @param engine
      */
     public DB(final Engine engine){
-        this(engine,false,false, null, false);
+        this(engine,false,false, null, false, null, 0);
     }
 
     public DB(
@@ -90,7 +103,10 @@ public class DB implements Closeable {
             boolean strictDBGet,
             boolean deleteFilesAfterClose,
             ScheduledExecutorService executor,
-            boolean lockDisable) {
+            boolean lockDisable,
+            ScheduledExecutorService metricsExecutor,
+            long metricsLogInterval
+            ) {
         //TODO investigate dereference and how non-final field affect performance. Perhaps abandon dereference completely
 //        if(!(engine instanceof EngineWrapper)){
 //            //access to Store should be prevented after `close()` was called.
@@ -104,6 +120,9 @@ public class DB implements Closeable {
         this.sequentialLock = lockDisable ?
                 new Store.ReadWriteSingleLock(new Store.NoLock()) :
                 new ReentrantReadWriteLock();
+
+        this.metricsExecutor = metricsExecutor==null ? executor : metricsExecutor;
+        this.metricsLogInterval = metricsLogInterval;
 
         serializerPojo = new SerializerPojo(
                 //get name for given object
@@ -136,6 +155,33 @@ public class DB implements Closeable {
                 },
                 engine);
         reinit();
+
+        if(metricsExecutor!=null && metricsLogInterval!=0){
+
+            if(!CC.METRICS_CACHE){
+                LOG.warning("MapDB was compiled without cache metrics. No cache hit/miss will be reported");
+            }
+
+            metricsExecutor.scheduleAtFixedRate(new Runnable() {
+                @Override
+                public void run() {
+                    metricsLog();
+                }
+            }, metricsLogInterval, metricsLogInterval, TimeUnit.MILLISECONDS);
+        }
+    }
+
+    public void metricsLog() {
+        Map metrics = DB.this.metricsGet();
+        String s = metrics.toString();
+        LOG.info("Metrics: "+s);
+    }
+
+    public Map<String,Long> metricsGet() {
+        Map ret = new TreeMap();
+        Store s = Store.forEngine(engine);
+        s.metricsCollect(ret);
+        return Collections.unmodifiableMap(ret);
     }
 
     protected void reinit() {
@@ -1717,24 +1763,21 @@ public class DB implements Closeable {
         sequentialLock.writeLock().lock();
         try {
 
+            if(metricsExecutor!=null && metricsExecutor!=executor){
+                metricsExecutor.shutdown();
+                metricsExecutor.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
+            }
+
             if (executor != null) {
                 executor.shutdown();
-                try {
-                    executor.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
-                } catch (InterruptedException e) {
-                    throw new DBException.Interrupted(e);
-                }
+                executor.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
                 executor = null;
             }
 
             for (WeakReference r : namesInstanciated.values()) {
                 Object rr = r.get();
                 if (rr != null && rr instanceof Closeable)
-                    try {
-                        ((Closeable) rr).close();
-                    } catch (IOException e) {
-                        throw new IOError(e);
-                    }
+                    ((Closeable) rr).close();
             }
 
             String fileName = deleteFilesAfterClose ? Store.forEngine(engine).fileName : null;
@@ -1751,6 +1794,10 @@ public class DB implements Closeable {
                 }
                 //TODO delete WAL files and append-only files
             }
+        } catch (IOException e) {
+            throw new IOError(e);
+        } catch (InterruptedException e) {
+            throw new DBException.Interrupted(e);
         }finally {
             sequentialLock.writeLock().unlock();
         }

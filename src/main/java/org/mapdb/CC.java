@@ -108,5 +108,10 @@ public interface CC {
 
     long DEFAULT_HTREEMAP_EXECUTOR_SCHED_RATE = 1000;
     long DEFAULT_STORE_EXECUTOR_SCHED_RATE = 1000;
+
+    long DEFAULT_METRICS_LOG_PERIOD = 10000;
+
+    boolean METRICS_CACHE = true;
+    boolean METRICS_STORE = true;
 }
 

@@ -57,7 +57,7 @@ public class TxMaker implements Closeable {
         Engine snapshot = engine.snapshot();
 //        if(txSnapshotsEnabled)
 //            snapshot = new TxEngine(snapshot,false); //TODO
-        return new DB(snapshot,strictDBGet,false,executor);
+        return new DB(snapshot,strictDBGet,false,executor, true, null, 0);
     }
 
     public void close() {

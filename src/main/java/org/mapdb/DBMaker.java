@@ -40,6 +40,7 @@ public class DBMaker{
 
     protected Fun.RecordCondition cacheCondition;
     protected ScheduledExecutorService executor;
+    protected ScheduledExecutorService metricsExecutor;
 
     protected interface Keys{
         String cache = "cache";
@@ -52,6 +53,9 @@ public class DBMaker{
         String cache_lru = "lru";
 
         String file = "file";
+
+        String metrics = "metrics";
+        String metricsLogInterval = "metricsLogInterval";
 
         String volume = "volume";
         String volume_raf = "raf";
@@ -353,6 +357,41 @@ public class DBMaker{
      */
     public DBMaker transactionDisable(){
         props.put(Keys.transactionDisable,TRUE);
+        return this;
+    }
+
+    /**
+     * Enable metrics, log at info level every 10 SECONDS
+     *
+     * @return this builder
+     */
+    public DBMaker metricsEnable(){
+        return metricsEnable(CC.DEFAULT_METRICS_LOG_PERIOD);
+    }
+
+    public DBMaker metricsEnable(long metricsLogPeriodl) {
+        props.put(Keys.metrics, TRUE);
+        props.put(Keys.metricsLogInterval, ""+metricsLogPeriodl);
+        return this;
+    }
+
+    /**
+     * Enable separate executor for metrics.
+     *
+     * @return this builder
+     */
+    public DBMaker metricsExecutorEnable(){
+        return metricsExecutorEnable(
+                Executors.newSingleThreadScheduledExecutor());
+    }
+
+    /**
+     * Enable separate executor for metrics.
+     *
+     * @return this builder
+     */
+    public DBMaker metricsExecutorEnable(ScheduledExecutorService metricsExecutor){
+        this.metricsExecutor = metricsExecutor;
         return this;
     }
 
@@ -768,8 +807,12 @@ public class DBMaker{
         boolean deleteFilesAfterClose = propsGetBool(Keys.deleteFilesAfterClose);
         Engine engine = makeEngine();
         boolean dbCreated = false;
+        boolean metricsLog = propsGetBool(Keys.metrics);
+        long metricsLogInterval = propsGetLong(Keys.metricsLogInterval, metricsLog ? CC.DEFAULT_METRICS_LOG_PERIOD : 0);
+        ScheduledExecutorService metricsExec2 = metricsLog? (metricsExecutor==null? executor:metricsExecutor) : null;
+
         try{
-            DB db =  new  DB(engine, strictGet, deleteFilesAfterClose, executor);
+            DB db =  new  DB(engine, strictGet, deleteFilesAfterClose, executor,false, metricsExec2, metricsLogInterval);
             dbCreated = true;
             return db;
         }finally {

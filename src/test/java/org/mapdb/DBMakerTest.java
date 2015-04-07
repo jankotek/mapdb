@@ -8,6 +8,8 @@ import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.LockSupport;
 
@@ -469,4 +471,17 @@ public class DBMakerTest{
         m.close();
     }
 
+
+    @Test public void metricsLog(){
+        ScheduledExecutorService s = Executors.newSingleThreadScheduledExecutor();
+        DB db = DBMaker.newMemoryDB()
+                .metricsEnable(11111)
+                .metricsExecutorEnable(s)
+                .make();
+
+        assertEquals(11111L, db.metricsLogInterval);
+        assertTrue(s==db.metricsExecutor);
+        assertNull(db.executor);
+        db.close();
+    }
 }
