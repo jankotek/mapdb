@@ -24,6 +24,7 @@ import java.io.IOError;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledExecutorService;
@@ -63,7 +64,7 @@ public class StoreWAL extends StoreCached {
     protected final LongLongMap[] currDataLongs;
 
     protected final LongLongMap pageLongStack = new LongLongMap();
-    protected final List<Volume> volumes = new CopyOnWriteArrayList<Volume>();
+    protected final List<Volume> volumes = Collections.synchronizedList(new ArrayList<Volume>());
 
     /** WAL file sealed after compaction is completed, if no valid seal, compaction file should be destroyed */
     protected volatile Volume walC;
@@ -72,7 +73,7 @@ public class StoreWAL extends StoreCached {
     protected volatile Volume walCCompact;
 
     /** record WALs, store recid-record pairs. Created during compaction when memory allocator is not available */
-    protected final List<Volume> walRec = new CopyOnWriteArrayList<Volume>();
+    protected final List<Volume> walRec = Collections.synchronizedList(new ArrayList<Volume>());
 
     protected final ReentrantLock compactLock = new ReentrantLock(CC.FAIR_LOCKS);
     /** protected by commitLock */

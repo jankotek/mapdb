@@ -915,12 +915,13 @@ public class BTreeMap<K,V>
             //$DELAY$
             BNode n= engine.get(r,nodeSerializer);
             leftEdges2.add(r);
-            if(n.isLeaf()) break;
+            if(n.isLeaf())
+                break;
             r = n.child(0);
         }
         //$DELAY$
         Collections.reverse(leftEdges2);
-        leftEdges = new CopyOnWriteArrayList<Long>(leftEdges2);
+        leftEdges = Collections.synchronizedList(leftEdges2);
     }
 
     /** creates empty root node and returns recid of its reference*/

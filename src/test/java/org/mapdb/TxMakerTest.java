@@ -136,7 +136,7 @@ public class TxMakerTest{
         DB db = tx.makeTx();
         final long recid = db.getEngine().put(1L,Serializer.LONG);
         db.commit();
-        final List<Throwable> ex = new CopyOnWriteArrayList<Throwable>();
+        final List<Throwable> ex = Collections.synchronizedList(new ArrayList<Throwable>());
         final CountDownLatch l = new CountDownLatch(threads);
         for(int i=0;i<threads;i++){
             new Thread(){
@@ -179,7 +179,7 @@ public class TxMakerTest{
         DB db = tx.makeTx();
         final long recid = db.getEngine().put(1L,Serializer.LONG);
         db.commit();
-        final List<Throwable> ex = new CopyOnWriteArrayList<Throwable>();
+        final List<Throwable> ex = Collections.synchronizedList(new ArrayList<Throwable>());
         final CountDownLatch l = new CountDownLatch(threads);
         for(int i=0;i<threads;i++){
             new Thread(){
