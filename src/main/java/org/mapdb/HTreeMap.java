@@ -338,7 +338,7 @@ public class HTreeMap<K,V>
         this.segmentRecids = Arrays.copyOf(segmentRecids,16);
         this.keySerializer = keySerializer;
         this.valueSerializer = valueSerializer;
-        this.sequentialLock = sequentialLock;
+        this.sequentialLock = sequentialLock==null? new Store.NoLock() : sequentialLock;
 
         if(expire==0 && expireAccess!=0){
             expire = expireAccess;
