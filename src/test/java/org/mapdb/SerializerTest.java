@@ -3,6 +3,7 @@ package org.mapdb;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Random;
 import java.util.UUID;
@@ -40,13 +41,10 @@ public class SerializerTest {
         assertTrue(out.pos<1000);
     }
 
-    @Test public void array(){
-        Serializer.Array s = new Serializer.Array(Serializer.INTEGER);
-
-        Object[] a = new Object[]{1,2,3,4};
-
+    @Test public void array() throws IOException{
+        Serializer.Array<Integer> s = new Serializer.Array<Integer>(Serializer.INTEGER);
+        Integer[] a = new Integer[]{1,2,3,4};
         assertArrayEquals(a, UtilsTest.clone(a,s));
         assertEquals(s,UtilsTest.clone(s,Serializer.BASIC));
-
     }
 }

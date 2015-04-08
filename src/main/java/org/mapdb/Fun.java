@@ -28,25 +28,79 @@ import java.util.*;
  */
 public final class Fun {
 
-    public static final Comparator COMPARATOR = new Comparator<Comparable>() {
+	/**
+	 * A utility method for getting a type-safe Comparator, it provides type-inference help.
+	 * Use this method instead of {@link org.mapdb.Fun.COMPARATOR} in order to insure type-safety 
+	 * ex: Comparator<Integer> comparator = getComparator();
+	 * @return comparator
+	 */
+	public static <T extends Comparable<T>> Comparator<T> getComparator(){
+		
+		Comparator<T> comparator = new Comparator<T>() {
+			@Override
+			public int compare(T o1, T o2) {
+				return o1.compareTo(o2);
+			}
+			
+		};
+		return comparator;
+	}
+	
+	/**
+	 * A utility method for getting a type-safe reversed Comparator (the negation of {@link org.mapdb.Fun.getComparator()}). 
+	 * Use this method instead of {@link org.mapdb.Fun.REVERSE_COMPARATOR} in order to insure type-safety 
+	 * ex: Comparator<Integer> comparator = getReversedComparator();
+	 * @return comparator
+	 */
+	public static <T extends Comparable<T>> Comparator<T> getReversedComparator(){
+		
+		Comparator<T> comparator = new Comparator<T>() {
+			@Override
+			public int compare(T o1, T o2) {
+				Comparator<T> comparator = getComparator();
+				return - comparator.compare(o1, o2);
+			}
+			
+		};
+		return comparator;
+	}
+	
+    @SuppressWarnings("rawtypes")
+	public static final Comparator COMPARATOR = new Comparator<Comparable>() {
         @Override
         public int compare(Comparable o1, Comparable o2) {
             return o1.compareTo(o2);
         }
     };
 
-    public static final Comparator<Comparable> REVERSE_COMPARATOR = new Comparator<Comparable>() {
+    @SuppressWarnings("rawtypes")
+	public static final Comparator<Comparable> REVERSE_COMPARATOR = new Comparator<Comparable>() {
         @Override
         public int compare(Comparable o1, Comparable o2) {
             return -COMPARATOR.compare(o1,o2);
         }
     };
 
-
-    /** empty iterator (note: Collections.EMPTY_ITERATOR is Java 7 specific and should not be used)*/
     public static final Iterator EMPTY_ITERATOR = new ArrayList(0).iterator();
 
-
+    public static <T> Iterator<T> getEmptyIerator(){
+    	return new ArrayList<T>().iterator();
+    }
+    /**
+     * checks whether a given iterator is null or empty(contains no elements).
+     * It calls {@link java.util.Iterator#hasNext()} internally
+     * @param iterator
+     * @return
+     */
+    public static boolean isNullOrEmptyIterator(Iterator<?> iterator){
+    	if(iterator==null){
+    		return true;
+    	}
+    	while(iterator.hasNext()){
+			return false;
+		}
+		return true;
+    }
     private Fun(){}
 
     /** returns true if all elements are equal, works with nulls*/
@@ -107,16 +161,16 @@ public final class Fun {
 
 
         @Override public int compareTo(Pair<A,B> o) {
-            int i = ((Comparable)a).compareTo(o.a);
+            int i = ((Comparable<A>)a).compareTo(o.a);
             if(i!=0)
                 return i;
-            return ((Comparable)b).compareTo(o.b);
+            return ((Comparable<B>)b).compareTo(o.b);
         }
 
         @Override public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-            final Pair t = (Pair) o;
+            final Pair<?, ?> t = (Pair<?,?>) o;
             return eq(a,t.a) && eq(b,t.b);
         }
 
@@ -349,9 +403,10 @@ public final class Fun {
             public Iterator<Object[]> iterator() {
                 final Iterator<Object[]> iter = set.tailSet(keys).iterator();
 
-                if(!iter.hasNext())
-                    return Fun.EMPTY_ITERATOR;
-
+                if(!iter.hasNext()){
+                    return Fun.getEmptyIerator();
+                }
+                
                 return new Iterator<Object[]>() {
 
                     Object[] next = moveToNext();
@@ -404,9 +459,9 @@ public final class Fun {
     }
 
     /**  record condition which always returns true*/
-    public static final RecordCondition RECORD_ALWAYS_TRUE = new RecordCondition() {
+    public static final RecordCondition<Object> RECORD_ALWAYS_TRUE = new RecordCondition<Object>() {
         @Override
-        public boolean run(long recid, Object value, Serializer serializer) {
+        public boolean run(long recid, Object value, Serializer<Object> serializer) {
             return true;
         }
     };
