@@ -678,10 +678,15 @@ public class DB implements Closeable {
 
         //pump data if specified2
         if(m.pumpSource!=null) {
-            Pump.fillHTreeMap(ret, m.pumpSource,
-                    m.pumpKeyExtractor,m.pumpValueExtractor,
-                    m.pumpPresortBatchSize, m.pumpIgnoreDuplicates,
-                    getDefaultSerializer());
+            Pump.fillHTreeMap(
+                    ret,
+                    m.pumpSource,
+                    m.pumpKeyExtractor,
+                    m.pumpValueExtractor,
+                    m.pumpPresortBatchSize,
+                    m.pumpIgnoreDuplicates,
+                    getDefaultSerializer(),
+                    m.executor);
         }
 
         return ret;
@@ -803,10 +808,15 @@ public class DB implements Closeable {
 
         //pump data if specified2
         if(m.pumpSource!=null) {
-            Pump.fillHTreeMap(ret, m.pumpSource,
-                    (Fun.Function1)Fun.extractNoTransform(),null,
-                    m.pumpPresortBatchSize, m.pumpIgnoreDuplicates,
-                    getDefaultSerializer());
+            Pump.fillHTreeMap(
+                    ret,
+                    m.pumpSource,
+                    (Fun.Function1)Fun.extractNoTransform(),
+                    null,
+                    m.pumpPresortBatchSize,
+                    m.pumpIgnoreDuplicates,
+                    getDefaultSerializer(),
+                    m.executor);
         }
 
         return ret2;
@@ -834,6 +844,8 @@ public class DB implements Closeable {
         protected int pumpPresortBatchSize = -1;
         protected boolean pumpIgnoreDuplicates = false;
         protected boolean closeEngine = false;
+
+        protected Executor executor = DB.this.executor;
 
 
         /** nodeSize maximal size of node, larger node causes overflow and creation of new BTree node. Use large number for small keys, use small number for large keys.*/
@@ -944,6 +956,7 @@ public class DB implements Closeable {
     public class BTreeSetMaker{
         protected final String name;
 
+
         public BTreeSetMaker(String name) {
             this.name = name;
         }
@@ -957,6 +970,9 @@ public class DB implements Closeable {
         protected int pumpPresortBatchSize = -1;
         protected boolean pumpIgnoreDuplicates = false;
         protected boolean standalone = false;
+
+        protected Executor executor = DB.this.executor;
+
 
         /** nodeSize maximal size of node, larger node causes overflow and creation of new BTree node. Use large number for small keys, use small number for large keys.*/
         public BTreeSetMaker nodeSize(int nodeSize){
@@ -1115,8 +1131,13 @@ public class DB implements Closeable {
                 }
             };
 
-            m.pumpSource = Pump.sort(m.pumpSource,m.pumpIgnoreDuplicates, m.pumpPresortBatchSize,
-                    presortComp,getDefaultSerializer());
+            m.pumpSource = Pump.sort(
+                    m.pumpSource,
+                    m.pumpIgnoreDuplicates,
+                    m.pumpPresortBatchSize,
+                    presortComp,
+                    getDefaultSerializer(),
+                    m.executor);
         }
         //$DELAY$
         long counterRecid = !m.counter ?0L:engine.put(0L, Serializer.LONG);
@@ -1134,7 +1155,10 @@ public class DB implements Closeable {
                     m.valuesOutsideNodes,
                     counterRecid,
                     m.keySerializer,
-                    (Serializer<V>)m.valueSerializer);
+                    (Serializer<V>)m.valueSerializer,
+                    m.executor
+            );
+
         }
         //$DELAY$
         BTreeMap<K,V> ret = new BTreeMap<K,V>(
@@ -1257,7 +1281,13 @@ public class DB implements Closeable {
         m.serializer = catPut(m.name+".keySerializer",m.serializer,new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer(),m.comparator));
 
         if(m.pumpPresortBatchSize!=-1){
-            m.pumpSource = Pump.sort(m.pumpSource,m.pumpIgnoreDuplicates, m.pumpPresortBatchSize,Collections.reverseOrder(m.comparator),getDefaultSerializer());
+            m.pumpSource = Pump.sort(
+                    m.pumpSource,
+                    m.pumpIgnoreDuplicates,
+                    m.pumpPresortBatchSize,
+                    Collections.reverseOrder(m.comparator),
+                    getDefaultSerializer(),
+                    m.executor);
         }
 
         long counterRecid = !m.counter ?0L:engine.put(0L, Serializer.LONG);
@@ -1276,7 +1306,8 @@ public class DB implements Closeable {
                     false,
                     counterRecid,
                     m.serializer,
-                    null);
+                    null,
+                    m.executor);
         }
         //$DELAY$
         NavigableSet<K> ret = new BTreeMap<K,Object>(

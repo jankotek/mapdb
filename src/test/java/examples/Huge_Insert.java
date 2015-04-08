@@ -64,7 +64,8 @@ public class Huge_Insert {
         source = Pump.sort(source,
                 true, 100000,
                 Collections.reverseOrder(Fun.COMPARATOR), //reverse  order comparator
-                db.getDefaultSerializer()
+                db.getDefaultSerializer(),
+                null //sort in single threaded mode
                 );
 
 

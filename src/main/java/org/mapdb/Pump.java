@@ -16,7 +16,14 @@
 package org.mapdb;
 
 import java.io.*;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Executor;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Data Pump moves data from one source to other.
@@ -25,7 +32,7 @@ import java.util.*;
 public final class Pump {
 
 
-
+    private static final Logger LOG = Logger.getLogger(Pump.class.getName());
 
     /**
      * Sorts large data set by given `Comparator`. Data are sorted with in-memory cache and temporary files.
@@ -38,7 +45,7 @@ public final class Pump {
      * @return iterator over sorted data set
      */
     public static <E> Iterator<E> sort(Iterator<E> source, boolean mergeDuplicates, final int batchSize,
-            Comparator comparator, final Serializer serializer){
+            Comparator comparator, final Serializer serializer, Executor executor){
         if(batchSize<=0) throw new IllegalArgumentException();
         if(comparator==null)
             comparator=Fun.COMPARATOR;
@@ -57,7 +64,7 @@ public final class Pump {
 
                 if(counter>=batchSize){
                     //sort all items
-                    Arrays.sort(presort,comparator);
+                    arraySort(presort, presort.length, comparator ,executor);
 
                     //flush presort into temporary file
                     File f = File.createTempFile("mapdb","sort");
@@ -76,7 +83,7 @@ public final class Pump {
             //now all records from source are fetch
             if(presortFiles.isEmpty()){
                 //no presort files were created, so on-heap sorting is enough
-                Arrays.sort(presort,0,counter,comparator);
+                arraySort(presort, counter, comparator, executor);
                 return arrayIterator(presort,0, counter);
             }
 
@@ -115,7 +122,7 @@ public final class Pump {
             }
 
             //and add iterator over data on-heap
-            Arrays.sort(presort,0,counter,comparator);
+            arraySort(presort, counter, comparator, executor);
             iterators[iterators.length-1] = arrayIterator(presort,0,counter);
 
             //and finally sort presorted iterators and return iterators over them
@@ -128,7 +135,34 @@ public final class Pump {
         }
     }
 
+    /**
+     * Reflection method {@link Arrays#parallelSort(Object[], int, int, Comparator)}.
+     * Is not invoked directly to keep compatibility with java8
+     */
+    static private Method parallelSortMethod;
+    static{
+        try {
+            parallelSortMethod = Arrays.class.getMethod("parallelSort", Object[].class, int.class, int.class, Comparator.class);
+        } catch (NoSuchMethodException e) {
+            //java 6 & 7
+            parallelSortMethod = null;
+        }
+    }
 
+    protected static void arraySort(Object[] array, int arrayLen, Comparator comparator,  Executor executor) {
+        //if executor is specified, try to use parallel method in java 8
+        if(executor!=null && parallelSortMethod!=null){
+            //TODO this uses common pool, but perhaps we should use Executor instead
+            try {
+                parallelSortMethod.invoke(null, array, 0, arrayLen, comparator);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            } catch (InvocationTargetException e) {
+                throw new RuntimeException(e); //TODO exception hierarchy here?
+            }
+        }
+        Arrays.sort(array, 0, arrayLen, comparator);
+    }
 
 
     /**
@@ -222,48 +256,113 @@ public final class Pump {
      * @param iters - iterators to be merged
      * @return union of all iterators.
      */
-    public static <E> Iterator<E> merge(final Iterator... iters){
+    public static <E> Iterator<E> merge(Executor executor, final Iterator... iters){
         if(iters.length==0)
             return Fun.EMPTY_ITERATOR;
 
+        final Iterator<E> ret = new Iterator<E>() {
+                int i = 0;
+                Object next = this;
+
+                {
+                    next();
+                }
+
+                @Override
+                public boolean hasNext() {
+                    return next != null;
+                }
+
+                @Override
+                public E next() {
+                    if (next == null)
+                        throw new NoSuchElementException();
+
+                    //move to next iterator if necessary
+                    while (!iters[i].hasNext()) {
+                        i++;
+                        if (i == iters.length) {
+                            //reached end of iterators
+                            Object ret = next;
+                            next = null;
+                            return (E) ret;
+                        }
+                    }
+
+                    //take next item from iterator
+                    Object ret = next;
+                    next = iters[i].next();
+                    return (E) ret;
+                }
+
+                @Override
+                public void remove() {
+                    throw new UnsupportedOperationException();
+                }
+            };
+
+
+        if(executor == null){
+            //single threaded
+            return ret;
+        }
+
+        final Object poisonPill = new Object();
+
+        //else perform merge in separate thread and use blocking queue
+        final BlockingQueue q = new ArrayBlockingQueue(128);
+        //feed blocking queue in separate thread
+        executor.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    try {
+                        while (ret.hasNext())
+                            q.put(ret.next());
+                    } finally {
+                        q.put(poisonPill); //TODO poison pill should be send in non blocking way, perhaps remove elements?
+                    }
+                }catch(InterruptedException e) {
+                    LOG.log(Level.SEVERE,"feeder failed",e);
+                }
+            }
+        });
+
+        return poisonPillIterator(q,poisonPill);
+    }
+
+    public static <E> Iterator<E> poisonPillIterator(final BlockingQueue<E> q, final Object poisonPill) {
+
         return new Iterator<E>() {
 
-            int i = 0;
-            Object next = this;
-            {
-                next();
+            E next = getNext();
+
+            private E getNext() {
+                try {
+                    E ret = q.take();
+                    if(ret==poisonPill)
+                        return null;
+                    return ret;
+                } catch (InterruptedException e) {
+                    throw new DBException.Interrupted(e);
+                }
+
             }
 
-            @Override public boolean hasNext() {
+            @Override
+            public boolean hasNext() {
                 return next!=null;
             }
 
-            @Override public E next() {
-                if(next==null)
+            @Override
+            public E next() {
+                E ret = next;
+                if(ret == null)
                     throw new NoSuchElementException();
-
-                //move to next iterator if necessary
-                while(!iters[i].hasNext()){
-                    i++;
-                    if(i==iters.length){
-                        //reached end of iterators
-                        Object ret = next;
-                        next = null;
-                        return (E) ret;
-                    }
-                }
-
-                //take next item from iterator
-                Object ret = next;
-                next = iters[i].next();
-                return (E) ret;
-            }
-
-            @Override public void remove() {
-                throw new UnsupportedOperationException();
+                next = getNext();
+                return ret;
             }
         };
-
     }
 
     /**
@@ -274,7 +373,7 @@ public final class Pump {
      *
      * This method expect data to be presorted in **reverse order** (highest to lowest).
      * There are technical reason for this requirement.
-     * To sort unordered data use {@link Pump#sort(java.util.Iterator, boolean, int, java.util.Comparator, Serializer)}
+     * To sort unordered data use {@link Pump#sort(java.util.Iterator, boolean, int, java.util.Comparator, Serializer, Executor)}
      *
      * This method does not call commit. You should disable Write Ahead Log when this method is used {@link org.mapdb.DBMaker#transactionDisable()}
      *
@@ -299,9 +398,11 @@ public final class Pump {
                                              boolean valuesStoredOutsideNodes,
                                              long counterRecid,
                                              BTreeKeySerializer keySerializer,
-                                             Serializer<V> valueSerializer)
+                                             Serializer<V> valueSerializer,
+                                             Executor executor)
         {
 
+            //TODO upper levels of tree  could be created in separate thread
 
         final double NODE_LOAD = 0.75;
 
@@ -545,7 +646,9 @@ public final class Pump {
                                              final Fun.Function1<K,A> pumpKeyExtractor,
                                              Fun.Function1<V,A> pumpValueExtractor,
                                              int pumpPresortBatchSize, boolean pumpIgnoreDuplicates,
-                                             Serializer<A> sortSerializer) {
+                                             Serializer<A> sortSerializer,
+                                             Executor executor
+                                            ) {
 
         //first sort by hash code
         Comparator hashComparator = new Comparator() {
@@ -563,7 +666,7 @@ public final class Pump {
             }
         };
 
-        pumpSource = sort(pumpSource,false,pumpPresortBatchSize,hashComparator,sortSerializer);
+        pumpSource = sort(pumpSource,false,pumpPresortBatchSize,hashComparator,sortSerializer,executor);
 
 
         //got sorted, now fill the map

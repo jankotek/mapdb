@@ -1062,7 +1062,8 @@ public class DBMaker{
         if(cacheExecutor==null) {
             cacheExecutor = executor;
         }
-
+        
+        long executorPeriod = propsGetLong(Keys.cacheExecutorPeriod, CC.DEFAULT_CACHE_EXECUTOR_PERIOD);
 
         if(Keys.cache_disable.equals(cache)){
             return null;
@@ -1071,11 +1072,11 @@ public class DBMaker{
             return new Store.Cache.HashTable(cacheSize,disableLocks);
         }else if (Keys.cache_hardRef.equals(cache)){
             int cacheSize = propsGetInt(Keys.cacheSize, CC.DEFAULT_CACHE_SIZE) / lockScale;
-            return new Store.Cache.HardRef(cacheSize,disableLocks);
+            return new Store.Cache.HardRef(cacheSize,disableLocks,cacheExecutor, executorPeriod);
         }else if (Keys.cache_weakRef.equals(cache)){
-            return new Store.Cache.WeakSoftRef(true, disableLocks, cacheExecutor, CC.DEFAULT_CACHE_WEAKSOFT_EXECUTOR_SCHED_RATE);
+            return new Store.Cache.WeakSoftRef(true, disableLocks, cacheExecutor, executorPeriod);
         }else if (Keys.cache_softRef.equals(cache)){
-            return new Store.Cache.WeakSoftRef(false, disableLocks, cacheExecutor, CC.DEFAULT_CACHE_WEAKSOFT_EXECUTOR_SCHED_RATE);
+            return new Store.Cache.WeakSoftRef(false, disableLocks, cacheExecutor,executorPeriod);
         }else if (Keys.cache_lru.equals(cache)){
             int cacheSize = propsGetInt(Keys.cacheSize, CC.DEFAULT_CACHE_SIZE) / lockScale;
             return new Store.Cache.LRU(cacheSize,disableLocks);

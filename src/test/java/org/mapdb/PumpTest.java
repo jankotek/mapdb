@@ -5,6 +5,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.*;
+import java.util.concurrent.Executors;
 
 import static org.junit.Assert.*;
 
@@ -82,7 +83,7 @@ public class PumpTest {
                 for(int i=0;i<1000;i++) m.put(i,"99090adas d"+i);
                 src.commit();
 
-                Pump.copy(src,target);
+                Pump.copy(src, target);
 
                 assertEquals(src.getCatalog(), target.getCatalog());
                 Map m2 = target.getTreeMap("test");
@@ -133,15 +134,31 @@ public class PumpTest {
         Collections.shuffle(list);
 
         Iterator<Integer> sorted = Pump.sort(list.iterator(),false, max/20,
-                Fun.COMPARATOR, Serializer.INTEGER);
+                Fun.COMPARATOR, Serializer.INTEGER, null);
 
         Integer counter=0;
         while(sorted.hasNext()){
             assertEquals(counter++, sorted.next());
         }
         assertEquals(max,counter);
+    }
 
 
+    @Test public void presort_parallel(){
+        final Integer max = 10000;
+        List<Integer> list = new ArrayList<Integer>(max);
+        for(Integer i=0;i<max;i++) list.add(i);
+        Collections.shuffle(list);
+
+        Iterator<Integer> sorted = Pump.sort(list.iterator(),false, max/20,
+                Fun.COMPARATOR, Serializer.INTEGER,
+                Executors.newCachedThreadPool());
+
+        Integer counter=0;
+        while(sorted.hasNext()){
+            assertEquals(counter++, sorted.next());
+        }
+        assertEquals(max,counter);
     }
 
 
@@ -155,7 +172,7 @@ public class PumpTest {
         Collections.shuffle(list);
 
         Iterator<Integer> sorted = Pump.sort(list.iterator(),true, max/20,
-                Fun.COMPARATOR, Serializer.INTEGER);
+                Fun.COMPARATOR, Serializer.INTEGER,null);
 
         Integer counter=0;
         while(sorted.hasNext()){
@@ -163,9 +180,28 @@ public class PumpTest {
             assertEquals(counter++, v);
         }
         assertEquals(max,counter);
-
-
     }
+
+    @Test public void presort_duplicates_parallel(){
+        final Integer max = 10000;
+        List<Integer> list = new ArrayList<Integer>(max);
+        for(Integer i=0;i<max;i++){
+            list.add(i);
+            list.add(i);
+        }
+        Collections.shuffle(list);
+
+        Iterator<Integer> sorted = Pump.sort(list.iterator(),true, max/20,
+                Fun.COMPARATOR, Serializer.INTEGER,Executors.newCachedThreadPool());
+
+        Integer counter=0;
+        while(sorted.hasNext()){
+            Object v = sorted.next();
+            assertEquals(counter++, v);
+        }
+        assertEquals(max,counter);
+    }
+
 
     @Test public void build_treeset(){
         final int max = 10000;
@@ -245,7 +281,7 @@ public class PumpTest {
 
         Map s = db.createTreeMap("test")
             .nodeSize(6)
-            .pumpSource(list.iterator(),valueExtractor)
+            .pumpSource(list.iterator(), valueExtractor)
             .make();
 
 
@@ -284,7 +320,7 @@ public class PumpTest {
 
         Map s = db.createTreeMap("test")
                 .nodeSize(6)
-                .pumpSource(list.iterator(),valueExtractor)
+                .pumpSource(list.iterator(), valueExtractor)
                 .pumpIgnoreDuplicates()
                 .make();
 
@@ -328,7 +364,7 @@ public class PumpTest {
         sorted.addAll(u);
 
         Iterator<UUID> iter = u.iterator();
-        iter = Pump.sort(iter,false, 10000,Collections.reverseOrder(Fun.COMPARATOR),Serializer.UUID);
+        iter = Pump.sort(iter,false, 10000,Collections.reverseOrder(Fun.COMPARATOR),Serializer.UUID,null);
         Iterator<UUID> iter2 = sorted.iterator();
 
         while(iter.hasNext()){
@@ -344,7 +380,7 @@ public class PumpTest {
             u.add(i);
         }
 
-        Iterator res = Pump.sort(Fun.COMPARATOR,false,u.iterator(),u.iterator());
+        Iterator res = Pump.sort(Fun.COMPARATOR, false, u.iterator(), u.iterator());
 
         for(long i=0;i<100;i++){
             assertTrue(res.hasNext());
@@ -372,6 +408,7 @@ public class PumpTest {
 
     @Test public void merge(){
         Iterator i = Pump.merge(
+                null,
                 Arrays.asList("a","b").iterator(),
                 Arrays.asList().iterator(),
                 Arrays.asList("c","d").iterator(),
@@ -388,5 +425,26 @@ public class PumpTest {
         assertEquals("d",i.next());
         assertTrue(!i.hasNext());
     }
+
+    @Test public void merge_parallel(){
+        Iterator i = Pump.merge(
+                Executors.newCachedThreadPool(),
+                Arrays.asList("a","b").iterator(),
+                Arrays.asList().iterator(),
+                Arrays.asList("c","d").iterator(),
+                Arrays.asList().iterator()
+        );
+
+        assertTrue(i.hasNext());
+        assertEquals("a",i.next());
+        assertTrue(i.hasNext());
+        assertEquals("b",i.next());
+        assertTrue(i.hasNext());
+        assertEquals("c",i.next());
+        assertTrue(i.hasNext());
+        assertEquals("d",i.next());
+        assertTrue(!i.hasNext());
+    }
+
 
 }

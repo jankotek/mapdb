@@ -912,11 +912,33 @@ public abstract class Store implements Engine {
 
         protected final int initialCapacity;
 
+        protected final ScheduledExecutorService executor;
+        protected final long executorPeriod;
 
-        public HardRef(int initialCapacity, boolean disableLocks) {
+
+        public HardRef(int initialCapacity, boolean disableLocks, ScheduledExecutorService executor, long executorPeriod) {
             super(disableLocks);
+            if(disableLocks && executor!=null)
+                throw new IllegalArgumentException("Executor can not be enabled with lock disabled");
+            
             this.initialCapacity = initialCapacity;
             cache = new Store.LongObjectMap(initialCapacity);
+            this.executor = executor;
+            this.executorPeriod = executorPeriod;
+            if(executor!=null){
+                executor.scheduleAtFixedRate(new Runnable() {
+                    @Override
+                    public void run() {
+                        Lock lock = HardRef.this.lock;
+                        lock.lock();
+                        try {
+                            checkFreeMem();
+                        }finally {
+                            lock.unlock();
+                        }
+                    }
+                },executorPeriod,executorPeriod,TimeUnit.MILLISECONDS);
+            }
         }
 
 
@@ -949,7 +971,7 @@ public abstract class Store implements Engine {
             if(lock!=null)
                 lock.lock();
             try {
-                if (((counter++) & CHECK_EVERY_N) == 0) {
+                if (executor==null && ((counter++) & CHECK_EVERY_N) == 0) {
                     checkFreeMem();
                 }
                 Object item = cache.get(recid);
@@ -977,7 +999,7 @@ public abstract class Store implements Engine {
             if(lock!=null)
                 lock.lock();
             try {
-                if (((counter++) & CHECK_EVERY_N) == 0) {
+                if (executor==null && ((counter++) & CHECK_EVERY_N) == 0) {
                     checkFreeMem();
                 }
                 cache.put(recid,item);
@@ -1007,7 +1029,7 @@ public abstract class Store implements Engine {
 
         @Override
         public Cache newCacheForOtherSegment() {
-            return new HardRef(initialCapacity,lock==null);
+            return new HardRef(initialCapacity,lock==null,executor,executorPeriod);
         }
     }
 
