@@ -55,7 +55,7 @@ public class LongConcurrentHashMap< V>
     /**
      * Salt added to keys before hashing, so it is harder to trigger hash collision attack.
      */
-    protected final long hashSalt = new Random().nextLong();
+    protected final long hashSalt = Double.doubleToLongBits(Math.random());
 
 
     /**

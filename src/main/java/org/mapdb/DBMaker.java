@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.security.SecureRandom;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -946,6 +947,7 @@ public class DBMaker{
         final int lockScale = DataIO.nextPowTwo(propsGetInt(Keys.lockScale,CC.DEFAULT_LOCK_SCALE));
 
         boolean cacheLockDisable = lockingStrategy!=0;
+        byte[] encKey = propsGetXteaEncKey();
 
         if(Keys.store_heap.equals(store)){
             engine = new StoreHeap(propsGetBool(Keys.transactionDisable),lockScale,lockingStrategy);
@@ -963,7 +965,7 @@ public class DBMaker{
                     lockingStrategy,
                     propsGetBool(Keys.checksum),
                     Keys.compression_lzf.equals(props.getProperty(Keys.compression)),
-                    propsGetXteaEncKey(),
+                    encKey,
                     propsGetBool(Keys.readOnly),
                     propsGetBool(Keys.transactionDisable)
             );
@@ -982,7 +984,7 @@ public class DBMaker{
                             lockingStrategy,
                             propsGetBool(Keys.checksum),
                             compressionEnabled,
-                            propsGetXteaEncKey(),
+                            encKey,
                             propsGetBool(Keys.readOnly),
                             propsGetInt(Keys.freeSpaceReclaimQ,CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
                             propsGetBool(Keys.commitFileSyncDisable),
@@ -997,7 +999,7 @@ public class DBMaker{
                             lockingStrategy,
                             propsGetBool(Keys.checksum),
                             compressionEnabled,
-                            propsGetXteaEncKey(),
+                            encKey,
                             propsGetBool(Keys.readOnly),
                             propsGetInt(Keys.freeSpaceReclaimQ, CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
                             propsGetBool(Keys.commitFileSyncDisable),
@@ -1047,7 +1049,11 @@ public class DBMaker{
         if(check == null && !engine.isReadOnly()){
             //new db, so insert testing record
             byte[] b = new byte[127];
-            new Random().nextBytes(b);
+            if(encKey!=null) {
+                new SecureRandom().nextBytes(b);
+            } else {
+                new Random().nextBytes(b);
+            }
             check = new Fun.Pair(Arrays.hashCode(b), b);
             engine.update(Engine.RECID_RECORD_CHECK, check, Serializer.BASIC);
             engine.commit();

@@ -603,11 +603,6 @@ public abstract class Store implements Engine {
 
             protected final int cacheMaxSizeMask;
 
-            /**
-             * Salt added to keys before hashing, so it is harder to trigger hash collision attack.
-             */
-            protected final long hashSalt = new Random().nextLong();
-
 
             public HashTable(int cacheMaxSize, boolean disableLocks) {
                 super(disableLocks);
@@ -660,7 +655,7 @@ public abstract class Store implements Engine {
             }
 
             protected int pos(long recid) {
-                return DataIO.longHash(recid+hashSalt)&cacheMaxSizeMask;
+                return DataIO.longHash(recid)&cacheMaxSizeMask;
             }
 
             @Override
