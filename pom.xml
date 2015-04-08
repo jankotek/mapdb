@@ -34,6 +34,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <forkCount>1</forkCount>
     </properties>
 
     <dependencies>
@@ -107,7 +108,7 @@
 
                     <!-- TODO control forkCount from CLI, default 1 since it causes OOEM-->
                     <reuseForks>true</reuseForks>
-                    <forkCount>1</forkCount>
+                    <forkCount>${forkCount}</forkCount>
 
                     <includes>
                         <include>**/*</include>
