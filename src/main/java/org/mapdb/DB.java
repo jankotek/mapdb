@@ -64,7 +64,8 @@ public class DB implements Closeable {
     protected SerializerPojo serializerPojo;
 
     protected ScheduledExecutorService metricsExecutor;
-    protected final long metricsLogInterval;
+    protected ScheduledExecutorService storeExecutor;
+    protected ScheduledExecutorService cacheExecutor;
 
     protected final Set<String> unknownClasses = new ConcurrentSkipListSet<String>();
 
@@ -95,7 +96,7 @@ public class DB implements Closeable {
      * @param engine
      */
     public DB(final Engine engine){
-        this(engine,false,false, null, false, null, 0);
+        this(engine,false,false, null, false, null, 0, null, null);
     }
 
     public DB(
@@ -105,7 +106,9 @@ public class DB implements Closeable {
             ScheduledExecutorService executor,
             boolean lockDisable,
             ScheduledExecutorService metricsExecutor,
-            long metricsLogInterval
+            long metricsLogInterval,
+            ScheduledExecutorService storeExecutor,
+            ScheduledExecutorService cacheExecutor
             ) {
         //TODO investigate dereference and how non-final field affect performance. Perhaps abandon dereference completely
 //        if(!(engine instanceof EngineWrapper)){
@@ -122,7 +125,8 @@ public class DB implements Closeable {
                 new ReentrantReadWriteLock();
 
         this.metricsExecutor = metricsExecutor==null ? executor : metricsExecutor;
-        this.metricsLogInterval = metricsLogInterval;
+        this.storeExecutor = storeExecutor;
+        this.cacheExecutor = cacheExecutor;
 
         serializerPojo = new SerializerPojo(
                 //get name for given object
@@ -251,7 +255,10 @@ public class DB implements Closeable {
         protected Fun.Function1 pumpValueExtractor;
         protected int pumpPresortBatchSize = (int) 1e7;
         protected boolean pumpIgnoreDuplicates = false;
-        protected boolean standalone = false;
+        protected boolean closeEngine = false;
+
+        protected ScheduledExecutorService executor = DB.this.executor;
+        protected long executorPeriod = CC.DEFAULT_HTREEMAP_EXECUTOR_PERIOD;
 
 
         /** by default collection does not have counter, without counter updates are faster, but entire collection needs to be traversed to count items.*/
@@ -338,6 +345,20 @@ public class DB implements Closeable {
         }
 
 
+        public HTreeMapMaker executorEnable(){
+            return executorEnable(Executors.newSingleThreadScheduledExecutor());
+        }
+
+        public HTreeMapMaker executorEnable(ScheduledExecutorService executor) {
+            this.executor = executor;
+            return this;
+        }
+
+        public HTreeMapMaker executorPeriod(long period){
+            this.executorPeriod = period;
+            return this;
+        }
+
 
         /**
          * If source iteretor contains an duplicate key, exception is thrown.
@@ -349,8 +370,8 @@ public class DB implements Closeable {
         }
 
 
-        protected HTreeMapMaker standalone() {
-            standalone = true;
+        protected HTreeMapMaker closeEngine() {
+            closeEngine = true;
             return this;
         }
 
@@ -390,8 +411,10 @@ public class DB implements Closeable {
         protected Iterator<?> pumpSource;
         protected int pumpPresortBatchSize = (int) 1e7;
         protected boolean pumpIgnoreDuplicates = false;
-        protected boolean standalone = false;
+        protected boolean closeEngine = false;
 
+        protected ScheduledExecutorService executor = DB.this.executor;
+        protected long executorPeriod = CC.DEFAULT_HTREEMAP_EXECUTOR_PERIOD;
 
         /** by default collection does not have counter, without counter updates are faster, but entire collection needs to be traversed to count items.*/
         public HTreeSetMaker counterEnable(){
@@ -464,8 +487,24 @@ public class DB implements Closeable {
             return this;
         }
 
-        protected HTreeSetMaker standalone() {
-            this.standalone = true;
+
+        public HTreeSetMaker executorEnable(){
+            return executorEnable(Executors.newSingleThreadScheduledExecutor());
+        }
+
+        public HTreeSetMaker executorEnable(ScheduledExecutorService executor) {
+            this.executor = executor;
+            return this;
+        }
+
+        public HTreeSetMaker executorPeriod(long period){
+            this.executorPeriod = period;
+            return this;
+        }
+
+
+        protected HTreeSetMaker closeEngine() {
+            this.closeEngine = true;
             return this;
         }
 
@@ -536,7 +575,9 @@ public class DB implements Closeable {
         checkType(type, "HashMap");
         //open existing map
         //$DELAY$
-        ret = new HTreeMap<K,V>(engine,
+        ret = new HTreeMap<K,V>(
+                engine,
+                false,
                 (Long)catGet(name+".counterRecid"),
                 (Integer)catGet(name+".hashSalt"),
                 (long[])catGet(name+".segmentRecids"),
@@ -551,6 +592,7 @@ public class DB implements Closeable {
                 (long[])catGet(name+".expireTails",null),
                 valueCreator,
                 executor,
+                CC.DEFAULT_HTREEMAP_EXECUTOR_PERIOD,
                 false,
                 sequentialLock.readLock()
         );
@@ -615,16 +657,19 @@ public class DB implements Closeable {
         //$DELAY$
 
 
-        HTreeMap<K,V> ret = new HTreeMap<K,V>(engine,
-                catPut(name+".counterRecid",!m.counter ?0L:engine.put(0L, Serializer.LONG)),
+        HTreeMap<K,V> ret = new HTreeMap<K,V>(
+                engine,
+                m.closeEngine,
+                catPut(name + ".counterRecid", !m.counter ? 0L : engine.put(0L, Serializer.LONG)),
                 catPut(name+".hashSalt",new Random().nextInt()),
                 catPut(name+".segmentRecids",HTreeMap.preallocateSegments(engine)),
                 catPut(name+".keySerializer",m.keySerializer,getDefaultSerializer()),
                 catPut(name+".valueSerializer",m.valueSerializer,getDefaultSerializer()),
                 expireTimeStart,expire,expireAccess,expireMaxSize, expireStoreSize, expireHeads ,expireTails,
                 (Fun.Function1<V, K>) m.valueCreator,
-                executor,
-                m.standalone,
+                m.executor,
+                m.executorPeriod,
+                m.executor!=executor,
                 sequentialLock.readLock());
         //$DELAY$
         catalog.put(name + ".type", "HashMap");
@@ -671,7 +716,9 @@ public class DB implements Closeable {
         //check type
         checkType(type, "HashSet");
         //open existing map
-        ret = new HTreeMap<K, Object>(engine,
+        ret = new HTreeMap<K, Object>(
+                engine,
+                false,
                 (Long)catGet(name+".counterRecid"),
                 (Integer)catGet(name+".hashSalt"),
                 (long[])catGet(name+".segmentRecids"),
@@ -686,6 +733,7 @@ public class DB implements Closeable {
                 (long[])catGet(name+".expireTails",null),
                 null,
                 executor,
+                CC.DEFAULT_HTREEMAP_EXECUTOR_PERIOD,
                 false,
                 sequentialLock.readLock()
         ).keySet();
@@ -731,16 +779,19 @@ public class DB implements Closeable {
         }
 
         //$DELAY$
-        HTreeMap<K,Object> ret = new HTreeMap<K,Object>(engine,
-                catPut(name+".counterRecid",!m.counter ?0L:engine.put(0L, Serializer.LONG)),
+        HTreeMap<K,Object> ret = new HTreeMap<K,Object>(
+                engine,
+                m.closeEngine,
+                catPut(name + ".counterRecid", !m.counter ? 0L : engine.put(0L, Serializer.LONG)),
                 catPut(name+".hashSalt",new Random().nextInt()),
                 catPut(name+".segmentRecids",HTreeMap.preallocateSegments(engine)),
                 catPut(name+".serializer",m.serializer,getDefaultSerializer()),
                 null,
                 expireTimeStart,expire,expireAccess,expireMaxSize, expireStoreSize, expireHeads ,expireTails,
                 null,
-                executor,
-                m.standalone,
+                m.executor,
+                m.executorPeriod,
+                m.executor!=executor,
                 sequentialLock.readLock()
                 );
         Set<K> ret2 = ret.keySet();
@@ -782,7 +833,7 @@ public class DB implements Closeable {
         protected Fun.Function1 pumpValueExtractor;
         protected int pumpPresortBatchSize = -1;
         protected boolean pumpIgnoreDuplicates = false;
-        protected boolean standalone = false;
+        protected boolean closeEngine = false;
 
 
         /** nodeSize maximal size of node, larger node causes overflow and creation of new BTree node. Use large number for small keys, use small number for large keys.*/
@@ -884,8 +935,8 @@ public class DB implements Closeable {
             return make();
         }
 
-        protected BTreeMapMaker standalone() {
-            standalone = true;
+        protected BTreeMapMaker closeEngine() {
+            closeEngine = true;
             return this;
         }
     }
@@ -1017,14 +1068,15 @@ public class DB implements Closeable {
         checkType(type, "TreeMap");
 
         ret = new BTreeMap<K, V>(engine,
+                false,
                 (Long) catGet(name + ".rootRecidRef"),
                 catGet(name+".maxNodeSize",32),
                 catGet(name+".valuesOutsideNodes",false),
                 catGet(name+".counterRecid",0L),
                 catGet(name+".keySerializer",new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer(),Fun.COMPARATOR)),
                 catGet(name+".valueSerializer",getDefaultSerializer()),
-                catGet(name+".numberOfNodeMetas",0),
-                false);
+                catGet(name+".numberOfNodeMetas",0)
+                );
         //$DELAY$
         namedPut(name, ret);
         return ret;
@@ -1085,15 +1137,17 @@ public class DB implements Closeable {
                     (Serializer<V>)m.valueSerializer);
         }
         //$DELAY$
-        BTreeMap<K,V> ret = new BTreeMap<K,V>(engine,
+        BTreeMap<K,V> ret = new BTreeMap<K,V>(
+                engine,
+                m.closeEngine,
                 catPut(name+".rootRecidRef", rootRecidRef),
                 catPut(name+".maxNodeSize",m.nodeSize),
                 catPut(name+".valuesOutsideNodes",m.valuesOutsideNodes),
                 catPut(name+".counterRecid",counterRecid),
                 m.keySerializer,
                 (Serializer<V>)m.valueSerializer,
-                catPut(m.name+".numberOfNodeMetas",0),
-                m.standalone);
+                catPut(m.name+".numberOfNodeMetas",0)
+                );
         //$DELAY$
         catalog.put(name + ".type", "TreeMap");
         namedPut(name, ret);
@@ -1166,15 +1220,16 @@ public class DB implements Closeable {
         }
         checkType(type, "TreeSet");
         //$DELAY$
-        ret = new BTreeMap<K, Object>(engine,
+        ret = new BTreeMap<K, Object>(
+                engine,
+                false,
                 (Long) catGet(name+".rootRecidRef"),
                 catGet(name+".maxNodeSize",32),
                 false,
                 catGet(name+".counterRecid",0L),
                 catGet(name+".keySerializer",new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer(),Fun.COMPARATOR)),
                 null,
-                catGet(name+".numberOfNodeMetas",0),
-                false
+                catGet(name+".numberOfNodeMetas",0)
         ).keySet();
         //$DELAY$
         namedPut(name, ret);
@@ -1226,14 +1281,14 @@ public class DB implements Closeable {
         //$DELAY$
         NavigableSet<K> ret = new BTreeMap<K,Object>(
                 engine,
+                m.standalone,
                 catPut(m.name+".rootRecidRef", rootRecidRef),
                 catPut(m.name+".maxNodeSize",m.nodeSize),
                 false,
                 catPut(m.name+".counterRecid",counterRecid),
                 m.serializer,
                 null,
-                catPut(m.name+".numberOfNodeMetas",0),
-                m.standalone
+                catPut(m.name+".numberOfNodeMetas",0)
         ).keySet();
         //$DELAY$
         catalog.put(m.name + ".type", "TreeSet");
@@ -1763,12 +1818,26 @@ public class DB implements Closeable {
         sequentialLock.writeLock().lock();
         try {
 
-            if(metricsExecutor!=null && metricsExecutor!=executor){
+            if(metricsExecutor!=null && metricsExecutor!=executor && !metricsExecutor.isShutdown()){
                 metricsExecutor.shutdown();
                 metricsExecutor.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
+                metricsExecutor = null;
             }
 
-            if (executor != null) {
+            if(cacheExecutor!=null && cacheExecutor!=executor && !cacheExecutor.isShutdown()){
+                cacheExecutor.shutdown();
+                cacheExecutor.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
+                cacheExecutor = null;
+            }
+
+            if(storeExecutor!=null && storeExecutor!=executor && !storeExecutor.isShutdown()){
+                storeExecutor.shutdown();
+                storeExecutor.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
+                storeExecutor = null;
+            }
+
+
+            if (executor != null && !executor.isTerminated()) {
                 executor.shutdown();
                 executor.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
                 executor = null;

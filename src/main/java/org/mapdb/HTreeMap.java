@@ -71,6 +71,7 @@ public class HTreeMap<K,V>
     protected final Serializer<V> valueSerializer;
 
     protected final Engine engine;
+    protected final boolean closeEngine;
 
     protected final boolean expireFlag;
     protected final boolean expireSingleThreadFlag;
@@ -90,7 +91,8 @@ public class HTreeMap<K,V>
      * Indicates if this collection collection was not made by DB by user.
      * If user can not access DB object, we must shutdown Executor and close Engine ourself in close() method.
      */
-    protected final boolean standalone;
+
+    protected final boolean closeExecutor;
     protected final ScheduledExecutorService executor;
     protected final Lock sequentialLock;
 
@@ -294,6 +296,7 @@ public class HTreeMap<K,V>
      */
     public HTreeMap(
             Engine engine,
+            boolean closeEngine,
             long counterRecid,
             int hashSalt,
             long[] segmentRecids,
@@ -308,7 +311,8 @@ public class HTreeMap<K,V>
             long[] expireTails,
             Fun.Function1<V, K> valueCreator,
             ScheduledExecutorService executor,
-            boolean standalone,
+            long executorPeriod,
+            boolean closeExecutor,
             Lock sequentialLock) {
 
         if(counterRecid<0)
@@ -331,7 +335,8 @@ public class HTreeMap<K,V>
             segmentLocks[i]=new ReentrantReadWriteLock(CC.FAIR_LOCKS);
         }
 
-        this.standalone = standalone;
+        this.closeEngine = closeEngine;
+        this.closeExecutor = closeExecutor;
 
         this.engine = engine;
         this.hashSalt = hashSalt;
@@ -394,8 +399,8 @@ public class HTreeMap<K,V>
                         }
                     }
                 },
-                (long) (CC.DEFAULT_HTREEMAP_EXECUTOR_SCHED_RATE*Math.random()),
-                CC.DEFAULT_HTREEMAP_EXECUTOR_SCHED_RATE,
+                (long) (executorPeriod * Math.random()),
+                executorPeriod,
                 TimeUnit.MILLISECONDS);
             }
         }
@@ -2046,10 +2051,19 @@ public class HTreeMap<K,V>
      */
     public Map<K,V> snapshot(){
         Engine snapshot = TxEngine.createSnapshotFor(engine);
-        return new HTreeMap<K, V>(snapshot, counter==null?0:counter.recid,
-                hashSalt, segmentRecids, keySerializer, valueSerializer,
+        return new HTreeMap<K, V>(
+                snapshot,
+                closeEngine,
+                counter==null?0:counter.recid,
+                hashSalt,
+                segmentRecids,
+                keySerializer,
+                valueSerializer,
                 0L,0L,0L,0L,0L,
-                null,null, null, null, standalone, new Store.NoLock());
+                null,null, null,
+                null, 0L,
+                false,
+                null);
     }
 
 
@@ -2093,12 +2107,8 @@ public class HTreeMap<K,V>
 
     @Override
     public void close(){
-        if(!standalone) {
-            return;
-        }
-
         //shutdown all associated objects
-        if(executor!=null){
+        if(executor!=null && closeExecutor && !executor.isTerminated()){
             executor.shutdown();
             try {
                 executor.awaitTermination(Long.MAX_VALUE,TimeUnit.MILLISECONDS);
@@ -2106,7 +2116,10 @@ public class HTreeMap<K,V>
                 throw new DBException.Interrupted(e);
             }
         }
-        engine.close();
+
+        if(closeEngine) {
+            engine.close();
+        }
     }
 
 }

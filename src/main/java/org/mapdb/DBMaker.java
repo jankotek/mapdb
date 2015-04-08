@@ -41,6 +41,8 @@ public class DBMaker{
     protected Fun.RecordCondition cacheCondition;
     protected ScheduledExecutorService executor;
     protected ScheduledExecutorService metricsExecutor;
+    protected ScheduledExecutorService cacheExecutor;
+    protected ScheduledExecutorService storeExecutor;
 
     protected interface Keys{
         String cache = "cache";
@@ -51,6 +53,7 @@ public class DBMaker{
         String cache_softRef = "softRef";
         String cache_weakRef = "weakRef";
         String cache_lru = "lru";
+        String cacheExecutorPeriod = "cacheExecutorPeriod";
 
         String file = "file";
 
@@ -78,6 +81,7 @@ public class DBMaker{
         String store_wal = "wal";
         String store_append = "append";
         String store_heap = "heap";
+        String storeExecutorPeriod = "storeExecutorPeriod";
 
         String transactionDisable = "transactionDisable";
 
@@ -209,7 +213,7 @@ public class DBMaker{
                 .transactionDisable()
                 .make()
                 .createTreeMap("temp")
-                .standalone()
+                .closeEngine()
                 .make();
     }
 
@@ -226,7 +230,7 @@ public class DBMaker{
                 .transactionDisable()
                 .make()
                 .createHashMap("temp")
-                .standalone()
+                .closeEngine()
                 .make();
     }
 
@@ -260,7 +264,7 @@ public class DBMaker{
                 .transactionDisable()
                 .make()
                 .createHashSet("temp")
-                .standalone()
+                .closeEngine()
                 .make();
     }
 
@@ -356,7 +360,7 @@ public class DBMaker{
      * @return this builder
      */
     public DBMaker transactionDisable(){
-        props.put(Keys.transactionDisable,TRUE);
+        props.put(Keys.transactionDisable, TRUE);
         return this;
     }
 
@@ -369,9 +373,9 @@ public class DBMaker{
         return metricsEnable(CC.DEFAULT_METRICS_LOG_PERIOD);
     }
 
-    public DBMaker metricsEnable(long metricsLogPeriodl) {
+    public DBMaker metricsEnable(long metricsLogPeriod) {
         props.put(Keys.metrics, TRUE);
-        props.put(Keys.metricsLogInterval, ""+metricsLogPeriodl);
+        props.put(Keys.metricsLogInterval, ""+metricsLogPeriod);
         return this;
     }
 
@@ -394,6 +398,70 @@ public class DBMaker{
         this.metricsExecutor = metricsExecutor;
         return this;
     }
+
+    /**
+     * Enable separate executor for cache.
+     *
+     * @return this builder
+     */
+    public DBMaker cacheExecutorEnable(){
+        return cacheExecutorEnable(
+                Executors.newSingleThreadScheduledExecutor());
+    }
+
+    /**
+     * Enable separate executor for cache.
+     *
+     * @return this builder
+     */
+    public DBMaker cacheExecutorEnable(ScheduledExecutorService metricsExecutor){
+        this.cacheExecutor = metricsExecutor;
+        return this;
+    }
+
+    /**
+     * Sets interval in which executor should check cache
+     *
+     * @param period in ms
+     * @return this builder
+     */
+    public DBMaker cacheExecutorPeriod(long period){
+        props.put(Keys.cacheExecutorPeriod, ""+period);
+        return this;
+    }
+
+
+    /**
+     * Enable separate executor for store (async write, compaction)
+     *
+     * @return this builder
+     */
+    public DBMaker storeExecutorEnable(){
+        return storeExecutorEnable(
+                Executors.newScheduledThreadPool(4));
+    }
+
+    /**
+     * Enable separate executor for cache.
+     *
+     * @return this builder
+     */
+    public DBMaker storeExecutorEnable(ScheduledExecutorService metricsExecutor){
+        this.storeExecutor = metricsExecutor;
+        return this;
+    }
+
+    /**
+     * Sets interval in which executor should check cache
+     *
+     * @param period in ms
+     * @return this builder
+     */
+    public DBMaker storeExecutorPeriod(long period){
+        props.put(Keys.storeExecutorPeriod, ""+period);
+        return this;
+    }
+
 
     /**
      * Install callback condition, which decides if some record is to be included in cache.
@@ -441,7 +509,7 @@ public class DBMaker{
      * @return this builder
      */
     public DBMaker cacheHardRefEnable(){
-        props.put(Keys.cache,Keys.cache_hardRef);
+        props.put(Keys.cache, Keys.cache_hardRef);
         return this;
     }
 
@@ -559,7 +627,7 @@ public class DBMaker{
      * @return this builder
      */
     public DBMaker lockScale(int scale) {
-        props.put(Keys.lockScale, ""+scale);
+        props.put(Keys.lockScale, "" + scale);
         return this;
     }
 
@@ -812,7 +880,16 @@ public class DBMaker{
         ScheduledExecutorService metricsExec2 = metricsLog? (metricsExecutor==null? executor:metricsExecutor) : null;
 
         try{
-            DB db =  new  DB(engine, strictGet, deleteFilesAfterClose, executor,false, metricsExec2, metricsLogInterval);
+            DB db =  new  DB(
+                    engine,
+                    strictGet,
+                    deleteFilesAfterClose,
+                    executor,
+                    false,
+                    metricsExec2,
+                    metricsLogInterval,
+                    storeExecutor,
+                    cacheExecutor);
             dbCreated = true;
             return db;
         }finally {
@@ -835,6 +912,11 @@ public class DBMaker{
 
     /** constructs Engine using current settings */
     public Engine makeEngine(){
+
+        if(storeExecutor==null) {
+            storeExecutor = executor;
+        }
+
 
         final boolean readOnly = propsGetBool(Keys.readOnly);
         final String file = props.containsKey(Keys.file)? props.getProperty(Keys.file):"";
@@ -905,7 +987,7 @@ public class DBMaker{
                             propsGetInt(Keys.freeSpaceReclaimQ,CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
                             propsGetBool(Keys.commitFileSyncDisable),
                             0,
-                            executor):
+                            storeExecutor):
 
                     new StoreWAL(
                             file,
@@ -920,7 +1002,7 @@ public class DBMaker{
                             propsGetInt(Keys.freeSpaceReclaimQ, CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
                             propsGetBool(Keys.commitFileSyncDisable),
                             0,
-                            executor,
+                            storeExecutor,
                             CC.DEFAULT_STORE_EXECUTOR_SCHED_RATE
                             );
         }
@@ -977,6 +1059,10 @@ public class DBMaker{
 
     protected Store.Cache createCache(boolean disableLocks, int lockScale) {
         final String cache = props.getProperty(Keys.cache, CC.DEFAULT_CACHE);
+        if(cacheExecutor==null) {
+            cacheExecutor = executor;
+        }
+
 
         if(Keys.cache_disable.equals(cache)){
             return null;
@@ -987,9 +1073,9 @@ public class DBMaker{
             int cacheSize = propsGetInt(Keys.cacheSize, CC.DEFAULT_CACHE_SIZE) / lockScale;
             return new Store.Cache.HardRef(cacheSize,disableLocks);
         }else if (Keys.cache_weakRef.equals(cache)){
-            return new Store.Cache.WeakSoftRef(true, disableLocks, executor, CC.DEFAULT_CACHE_WEAKSOFT_EXECUTOR_SCHED_RATE);
+            return new Store.Cache.WeakSoftRef(true, disableLocks, cacheExecutor, CC.DEFAULT_CACHE_WEAKSOFT_EXECUTOR_SCHED_RATE);
         }else if (Keys.cache_softRef.equals(cache)){
-            return new Store.Cache.WeakSoftRef(false, disableLocks, executor, CC.DEFAULT_CACHE_WEAKSOFT_EXECUTOR_SCHED_RATE);
+            return new Store.Cache.WeakSoftRef(false, disableLocks, cacheExecutor, CC.DEFAULT_CACHE_WEAKSOFT_EXECUTOR_SCHED_RATE);
         }else if (Keys.cache_lru.equals(cache)){
             int cacheSize = propsGetInt(Keys.cacheSize, CC.DEFAULT_CACHE_SIZE) / lockScale;
             return new Store.Cache.LRU(cacheSize,disableLocks);

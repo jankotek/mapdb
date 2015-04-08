@@ -61,9 +61,10 @@ public class BTreeMapLargeValsTest extends ConcurrentMapInterfaceTest<Integer, S
     boolean valsOutside = false;
     @Override
     protected ConcurrentMap<Integer, String> makeEmptyMap() throws UnsupportedOperationException {
-        return new BTreeMap(r,BTreeMap.createRootRef(r,BTreeKeySerializer.INTEGER, Serializer.STRING,0),
+        return new BTreeMap(r,false,
+                BTreeMap.createRootRef(r,BTreeKeySerializer.INTEGER, Serializer.STRING,0),
                 6,valsOutside,0, BTreeKeySerializer.INTEGER,Serializer.STRING,
-                0, false);
+                0);
 
     }
 

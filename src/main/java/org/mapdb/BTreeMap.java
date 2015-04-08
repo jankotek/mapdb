@@ -32,7 +32,6 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentNavigableMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.LockSupport;
 
 
@@ -151,7 +150,7 @@ public class BTreeMap<K,V>
      * Indicates if this collection collection was not made by DB by user.
      * If user can not access DB object, we must shutdown Executor and close Engine ourself in close() method.
      */
-    protected final boolean standalone;
+    protected final boolean closeEngine;
 
 
     /** hack used for DB Catalog*/
@@ -176,11 +175,17 @@ public class BTreeMap<K,V>
         Serializer valser = db.getDefaultSerializer();
         if(CC.PARANOID && valser == null)
             throw new AssertionError();
-        return new BTreeMap<String, Object>(db.engine,Engine.RECID_NAME_CATALOG,32,false,0,
+        return new BTreeMap<String, Object>(
+                db.engine,
+                false,
+                Engine.RECID_NAME_CATALOG,
+                32,
+                false,
+                0,
                 keyser,
                 valser,
-                0,
-                false);
+                0
+                );
     }
 
 
@@ -848,6 +853,7 @@ public class BTreeMap<K,V>
     /** Constructor used to create new BTreeMap.
      *
      * @param engine used for persistence
+     * @param closeEngine if this object was created without DB. If true shutdown everything on close method, otherwise DB takes care of shutdown
      * @param rootRecidRef reference to root recid
      * @param maxNodeSize maximal BTree Node size. Node will split if number of entries is higher
      * @param valsOutsideNodes Store Values outside of BTree Nodes in separate record?
@@ -855,19 +861,19 @@ public class BTreeMap<K,V>
      * @param keySerializer Serializer used for keys. May be null for default value.
      * @param valueSerializer Serializer used for values. May be null for default value
      * @param numberOfNodeMetas number of meta records associated with each BTree node
-     * @param standalone if this object was created without DB. If true shutdown everything on close method, otherwise DB takes care of shutdown
      */
     public BTreeMap(
             Engine engine,
+            boolean closeEngine,
             long rootRecidRef,
             int maxNodeSize,
             boolean valsOutsideNodes,
             long counterRecid,
             BTreeKeySerializer keySerializer,
             final Serializer<V> valueSerializer,
-            int numberOfNodeMetas,
-            boolean standalone) {
-        this.standalone = standalone;
+            int numberOfNodeMetas
+            ) {
+        this.closeEngine = closeEngine;
 
         if(maxNodeSize%2!=0)
             throw new IllegalArgumentException("maxNodeSize must be dividable by 2");
@@ -3374,9 +3380,17 @@ public class BTreeMap<K,V>
     public NavigableMap<K,V> snapshot(){
         Engine snapshot = TxEngine.createSnapshotFor(engine);
 
-        return new BTreeMap<K, V>(snapshot, rootRecidRef, maxNodeSize, valsOutsideNodes,
+        return new BTreeMap<K, V>(
+                snapshot,
+                closeEngine,
+                rootRecidRef,
+                maxNodeSize,
+                valsOutsideNodes,
                 counter==null?0L:counter.recid,
-                keySerializer, valueSerializer, numberOfNodeMetas, standalone);
+                keySerializer,
+                valueSerializer,
+                numberOfNodeMetas
+                );
     }
 
 
@@ -3538,10 +3552,9 @@ public class BTreeMap<K,V>
 
     @Override
     public void close(){
-        if(!standalone) {
-            return;
+        if(closeEngine) {
+            engine.close();
         }
-        engine.close();
     }
 
 

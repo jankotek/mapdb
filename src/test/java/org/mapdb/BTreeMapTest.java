@@ -25,9 +25,10 @@ public class BTreeMapTest{
     @Before public void init(){
         engine = new StoreDirect(null);
         engine.init();
-        m = new BTreeMap(engine,BTreeMap.createRootRef(engine,BTreeKeySerializer.BASIC,Serializer.BASIC,0),
+        m = new BTreeMap(engine,false,
+                BTreeMap.createRootRef(engine,BTreeKeySerializer.BASIC,Serializer.BASIC,0),
                 6,valsOutside,0, BTreeKeySerializer.BASIC,Serializer.BASIC,
-                0, false);
+                0);
     }
 
     @After

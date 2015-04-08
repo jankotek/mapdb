@@ -8,6 +8,8 @@ import java.io.File;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -57,8 +59,8 @@ public class DBTest {
     @Test
     public void testGetTreeMap() throws Exception {
         Map m1 = db.getTreeMap("test");
-        m1.put(1,2);
-        m1.put(3,4);
+        m1.put(1, 2);
+        m1.put(3, 4);
         assertTrue(m1 == db.getTreeMap("test"));
         assertEquals(m1, new DB(engine).getTreeMap("test"));
     }
@@ -85,15 +87,15 @@ public class DBTest {
         Map all = db.getAll();
 
         assertEquals(2,all.size());
-        assertEquals("100",((Atomic.String)all.get("aa")).get());
-        assertEquals("12",((HTreeMap)all.get("zz")).get(11));
+        assertEquals("100", ((Atomic.String) all.get("aa")).get());
+        assertEquals("12", ((HTreeMap) all.get("zz")).get(11));
 
     }
 
     @Test public void rename(){
-        db.getHashMap("zz").put(11,"12");
-        db.rename("zz","aa");
-        assertEquals("12",db.getHashMap("aa").get(11));
+        db.getHashMap("zz").put(11, "12");
+        db.rename("zz", "aa");
+        assertEquals("12", db.getHashMap("aa").get(11));
     }
 
 
@@ -151,15 +153,15 @@ public class DBTest {
         File f = UtilsTest.tempDbFile();
         DB db = DBMaker.newFileDB(f).make();
         Map map = db.getTreeMap("map");
-        map.put("aa","bb");
+        map.put("aa", "bb");
 
         db.commit();
         db.close();
 
         db = DBMaker.newFileDB(f).deleteFilesAfterClose().make();
         map = db.getTreeMap("map");
-        assertEquals(1,map.size());
-        assertEquals("bb",map.get("aa"));
+        assertEquals(1, map.size());
+        assertEquals("bb", map.get("aa"));
         db.close();
     }
 
@@ -167,17 +169,38 @@ public class DBTest {
         File f = UtilsTest.tempDbFile();
         DB db = DBMaker.newFileDB(f).transactionDisable().make();
         Map map = db.getTreeMap("map");
-        map.put("aa","bb");
+        map.put("aa", "bb");
 
         db.commit();
         db.close();
 
         db = DBMaker.newFileDB(f).deleteFilesAfterClose().transactionDisable().make();
         map = db.getTreeMap("map");
-        assertEquals(1,map.size());
-        assertEquals("bb",map.get("aa"));
+        assertEquals(1, map.size());
+        assertEquals("bb", map.get("aa"));
         db.close();
     }
 
+    @Test public void hashmap_executor(){
+        ScheduledExecutorService s = Executors.newSingleThreadScheduledExecutor();
+        DB db = DBMaker.newMemoryDB().make();
+
+        HTreeMap m = db.createHashMap("aa").executorPeriod(1111).executorEnable(s).make();
+        assertTrue(s == m.executor);
+        db.close();
+
+        assertTrue(s.isTerminated());
+    }
+
+    @Test public void hashset_executor(){
+        ScheduledExecutorService s = Executors.newSingleThreadScheduledExecutor();
+        DB db = DBMaker.newMemoryDB().make();
+
+        HTreeMap.KeySet m = (HTreeMap.KeySet) db.createHashSet("aa").executorPeriod(1111).executorEnable(s).make();
+        assertTrue(s == m.getHTreeMap().executor);
+        db.close();
+
+        assertTrue(s.isTerminated());
+    }
 
 }

@@ -449,25 +449,25 @@ public class DBMakerTest{
 
     @Test public void temp_HashMap_standalone(){
         HTreeMap m = DBMaker.newTempHashMap();
-        assertTrue(m.standalone);
+        assertTrue(m.closeEngine);
         m.close();
     }
 
     @Test public void temp_TreeMap_standalone(){
         BTreeMap m = DBMaker.newTempTreeMap();
-        assertTrue(m.standalone);
+        assertTrue(m.closeEngine);
         m.close();
     }
 
     @Test public void temp_HashSet_standalone() throws IOException {
         HTreeMap.KeySet m = (HTreeMap.KeySet) DBMaker.newTempHashSet();
-        assertTrue(m.getHTreeMap().standalone);
+        assertTrue(m.getHTreeMap().closeEngine);
         m.close();
     }
 
     @Test public void temp_TreeSet_standalone() throws IOException {
         BTreeMap.KeySet m = (BTreeMap.KeySet) DBMaker.newTempTreeSet();
-        assertTrue(((BTreeMap)m.m).standalone);
+        assertTrue(((BTreeMap)m.m).closeEngine);
         m.close();
     }
 
@@ -479,9 +479,37 @@ public class DBMakerTest{
                 .metricsExecutorEnable(s)
                 .make();
 
-        assertEquals(11111L, db.metricsLogInterval);
+        //TODO test task was scheduled with correct interval
         assertTrue(s==db.metricsExecutor);
         assertNull(db.executor);
         db.close();
     }
+
+    @Test public void storeExecutor(){
+        ScheduledExecutorService s = Executors.newSingleThreadScheduledExecutor();
+        DB db = DBMaker.newMemoryDB()
+                .storeExecutorPeriod(11111)
+                .storeExecutorEnable(s)
+                .make();
+
+        //TODO test task was scheduled with correct interval
+        assertTrue(s==db.storeExecutor);
+        assertNull(db.executor);
+        db.close();
+    }
+
+
+    @Test public void cacheExecutor(){
+        ScheduledExecutorService s = Executors.newSingleThreadScheduledExecutor();
+        DB db = DBMaker.newMemoryDB()
+                .cacheExecutorPeriod(11111)
+                .cacheExecutorEnable(s)
+                .make();
+
+        //TODO test task was scheduled with correct interval
+        assertTrue(s==db.cacheExecutor);
+        assertNull(db.executor);
+        db.close();
+    }
+
 }
