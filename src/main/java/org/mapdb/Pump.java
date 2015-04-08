@@ -362,6 +362,11 @@ public final class Pump {
                 next = getNext();
                 return ret;
             }
+
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
         };
     }
 
