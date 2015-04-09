@@ -306,7 +306,7 @@ public class DBMaker{
      * Entries are removed from cache in most-recently-used fashion
      * if store becomes too big.
      *
-     * This cache uses on-heap `byte[]`, but does not affect GC since objects are serialized into binary form.
+     * This cache uses on-heap {@code byte[]}, but does not affect GC since objects are serialized into binary form.
      * This method uses  ByteBuffers backed by on-heap byte[]. See {@link java.nio.ByteBuffer#allocate(int)}
      *
      * @param size maximal size of off-heap store in gigabytes.
@@ -466,7 +466,7 @@ public class DBMaker{
 
     /**
      * Install callback condition, which decides if some record is to be included in cache.
-     * Condition should return `true` for every record which should be included
+     * Condition should return {@code true} for every record which should be included
      *
      * This could be for example useful to include only BTree Directory Nodes and leave values and Leaf nodes outside of cache.
      *
@@ -476,7 +476,7 @@ public class DBMaker{
 
      * Condition is also executed several times, so it must be very fast
      *
-     * You should only use very simple logic such as `value instanceof SomeClass`.
+     * You should only use very simple logic such as {@code value instanceof SomeClass}.
      *
      * @return this builder
      */
@@ -638,7 +638,7 @@ public class DBMaker{
      * Enables Memory Mapped Files, much faster storage option. However on 32bit JVM this mode could corrupt
      * your DB thanks to 4GB memory addressing limit.
      *
-     * You may experience `java.lang.OutOfMemoryError: Map failed` exception on 32bit JVM, if you enable this
+     * You may experience {@code java.lang.OutOfMemoryError: Map failed} exception on 32bit JVM, if you enable this
      * mode.
      */
     public DBMaker mmapFileEnable() {
@@ -663,7 +663,7 @@ public class DBMaker{
     }
 
     /**
-     * MapDB supports snapshots. `TxEngine` requires additional locking which has small overhead when not used.
+     * MapDB supports snapshots. {@code TxEngine} requires additional locking which has small overhead when not used.
      * Snapshots are disabled by default. This option switches the snapshots on.
      *
      * @return this builder
@@ -813,7 +813,7 @@ public class DBMaker{
      * new record with default values, if record with given name does not exist. This could be problem if you would like to enforce
      * stricter database schema. So this parameter disables record auto creation.
      *
-     * If this set, `DB.getXX()` will throw an exception if given name does not exist, instead of creating new record (or collection)
+     * If this set, {@code DB.getXX()} will throw an exception if given name does not exist, instead of creating new record (or collection)
      *
      * @return this builder
      */

@@ -267,10 +267,10 @@ public final class DataIO {
         int getPos();
         void setPos(int pos);
 
-        /** return underlying `byte[]` or null if it does not exist*/
+        /** return underlying {@code byte[]} or null if it does not exist*/
         byte[] internalByteArray();
 
-        /** return underlying `ByteBuffer` or null if it does not exist*/
+        /** return underlying {@code ByteBuffer} or null if it does not exist*/
         ByteBuffer internalByteBuffer();
 
 
@@ -286,7 +286,7 @@ public final class DataIO {
         void unpackIntArray(int[] ret, int i, int len);
     }
 
-    /** DataInput on top of `byte[]` */
+    /** DataInput on top of {@code byte[]} */
     static public final class DataInputByteArray implements DataInput, DataInputInternal {
         protected final byte[] buf;
         protected int pos;
@@ -531,7 +531,7 @@ public final class DataIO {
     }
 
     /**
-     * Wraps `DataInput` into `InputStream`
+     * Wraps {@code DataInput} into {@code InputStream}
      */
     public static final class DataInputToStream extends InputStream {
 

@@ -74,7 +74,7 @@ public interface CC {
      * Default concurrency level. Should be greater than number of threads accessing
      * MapDB concurrently. On other side larger number consumes more memory
      * <p>
-     * This number must be power of two: `CONCURRENCY = 2^N`
+     * This number must be power of two: {@code CONCURRENCY = 2^N}
      */
     int DEFAULT_LOCK_SCALE = 16;
 

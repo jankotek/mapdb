@@ -541,8 +541,8 @@ public class HTreeMap<K,V>
 
 
     /**
-     * Return given value, without updating cache statistics if `expireAccess()` is true
-     * It also does not use `valueCreator` if value is not found (always returns null if not found)
+     * Return given value, without updating cache statistics if {@code expireAccess()} is true
+     * It also does not use {@code valueCreator} if value is not found (always returns null if not found)
      *
      * @param key key to lookup
      * @return value associated with key or null

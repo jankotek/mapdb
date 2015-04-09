@@ -498,7 +498,7 @@ public abstract class Serializer<A> {
 
 
     /**
-     * Serializes `byte[]` it adds header which contains size information
+     * Serializes {@code byte[]} it adds header which contains size information
      */
     public static final Serializer<byte[] > BYTE_ARRAY = new Serializer<byte[]>() {
 
@@ -541,7 +541,7 @@ public abstract class Serializer<A> {
     } ;
 
     /**
-     * Serializes `byte[]` directly into underlying store
+     * Serializes {@code byte[]} directly into underlying store
      * It does not store size, so it can not be used in Maps and other collections.
      */
     public static final Serializer<byte[] > BYTE_ARRAY_NOSIZE = new Serializer<byte[]>() {
@@ -584,7 +584,7 @@ public abstract class Serializer<A> {
     } ;
 
     /**
-     * Serializes `char[]` it adds header which contains size information
+     * Serializes {@code char[]} it adds header which contains size information
      */
     public static final Serializer<char[] > CHAR_ARRAY = new Serializer<char[]>() {
 
@@ -626,7 +626,7 @@ public abstract class Serializer<A> {
 
 
     /**
-     * Serializes `int[]` it adds header which contains size information
+     * Serializes {@code int[]} it adds header which contains size information
      */
     public static final Serializer<int[] > INT_ARRAY = new Serializer<int[]>() {
 
@@ -667,7 +667,7 @@ public abstract class Serializer<A> {
     };
 
     /**
-     * Serializes `long[]` it adds header which contains size information
+     * Serializes {@code long[]} it adds header which contains size information
      */
     public static final Serializer<long[] > LONG_ARRAY = new Serializer<long[]>() {
 
@@ -709,7 +709,7 @@ public abstract class Serializer<A> {
     };
 
     /**
-     * Serializes `double[]` it adds header which contains size information
+     * Serializes {@code double[]} it adds header which contains size information
      */
     public static final Serializer<double[] > DOUBLE_ARRAY = new Serializer<double[]>() {
 

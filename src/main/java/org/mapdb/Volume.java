@@ -87,7 +87,7 @@ public abstract class Volume implements Closeable{
 
     /**
      *
-     * @return slice size or `-1` if not sliced
+     * @return slice size or {@code -1} if not sliced
      */
     abstract public int sliceSize();
 

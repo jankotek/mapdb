@@ -35,7 +35,7 @@ public final class Pump {
     private static final Logger LOG = Logger.getLogger(Pump.class.getName());
 
     /**
-     * Sorts large data set by given `Comparator`. Data are sorted with in-memory cache and temporary files.
+     * Sorts large data set by given {@code Comparator}. Data are sorted with in-memory cache and temporary files.
      *
      * @param source iterator over unsorted data
      * @param mergeDuplicates should be duplicate keys merged into single one?
@@ -372,7 +372,7 @@ public final class Pump {
 
     /**
      * Build BTreeMap (or TreeSet) from presorted data.
-     * This method is much faster than usual import using `Map.put(key,value)` method.
+     * This method is much faster than usual import using {@code Map.put(key,value)} method.
      * It is because tree integrity does not have to be maintained and
      * tree can be created in linear way with.
      *

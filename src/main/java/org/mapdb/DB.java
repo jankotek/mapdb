@@ -317,8 +317,8 @@ public class DB implements Closeable {
             return this;
         }
 
-        /** If value is not found, HTreeMap can fetch and insert default value. `valueCreator` is used to return new value.
-         * This way `HTreeMap.get()` never returns null */
+        /** If value is not found, HTreeMap can fetch and insert default value. {@code valueCreator} is used to return new value.
+         * This way {@code HTreeMap.get()} never returns null */
         public HTreeMapMaker valueCreator(Fun.Function1<?,?> valueCreator){
             this.valueCreator = valueCreator;
             return this;
@@ -617,7 +617,7 @@ public class DB implements Closeable {
      *
      * @param name of map to create
      * @throws IllegalArgumentException if name is already used
-     * @return maker, call `.make()` to create map
+     * @return maker, call {@code .make()} to create map
      */
     public HTreeMapMaker createHashMap(String name){
         return new HTreeMapMaker(name);
@@ -940,13 +940,13 @@ public class DB implements Closeable {
         }
 
 
-        /** creates map optimized for using `String` keys */
+        /** creates map optimized for using {@code String} keys */
         public <V> BTreeMap<String, V> makeStringMap() {
             keySerializer = BTreeKeySerializer.STRING;
             return make();
         }
 
-        /** creates map optimized for using zero or positive `Long` keys */
+        /** creates map optimized for using zero or positive {@code Long} keys */
         public <V> BTreeMap<Long, V> makeLongMap() {
             keySerializer = BTreeKeySerializer.LONG;
             return make();
@@ -1051,13 +1051,13 @@ public class DB implements Closeable {
 
 
 
-        /** creates set optimized for using `String` */
+        /** creates set optimized for using {@code String} */
         public NavigableSet<String> makeStringSet() {
             serializer = BTreeKeySerializer.STRING;
             return make();
         }
 
-        /** creates set optimized for using zero or positive `Long` */
+        /** creates set optimized for using zero or positive {@code Long} */
         public NavigableSet<Long> makeLongSet() {
             serializer = BTreeKeySerializer.LONG;
             return make();
@@ -1115,7 +1115,7 @@ public class DB implements Closeable {
      *
      * @param name of map to create
      * @throws IllegalArgumentException if name is already used
-     * @return maker, call `.make()` to create map
+     * @return maker, call {@code .make()} to create map
      */
     public BTreeMapMaker createTreeMap(String name){
         return new BTreeMapMaker(name);
@@ -2089,7 +2089,7 @@ public class DB implements Closeable {
     }
 
 
-    /** throws `IllegalArgumentError("already closed)` on all access */
+    /** throws {@code IllegalArgumentError("already closed")} on all access */
     protected static final Engine CLOSED_ENGINE = new Engine(){
 
 

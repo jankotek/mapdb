@@ -341,7 +341,7 @@ public final class Fun {
      *
      * @param set Set or 'MultiMap' to find values in
      * @param keys key to look from
-     * @return all keys where primary value equals to `secondaryKey`
+     * @return all keys where primary value equals to {@code secondaryKey}
      */
     public static  Iterable<Object[]> filter(final NavigableSet<Object[]> set,  final Object... keys) {
         return new Iterable<Object[]>() {
