@@ -70,7 +70,7 @@ public class UtilsTest {
 
 
 
-    /** clone value using serialization */
+    /* clone value using serialization */
     public static <E> E clone(E value, Serializer<E> serializer){
         try{
             DataIO.DataOutputByteArray out = new DataIO.DataOutputByteArray();
@@ -108,7 +108,7 @@ public class UtilsTest {
         assertTrue(Serializer.BYTE_ARRAY.equals(b, DBMaker.fromHexa(DBMaker.toHexa(b))));
     }
 
-    /**
+    /*
      * Create temporary file in temp folder. All associated db files will be deleted on JVM exit.
      */
     public static File tempDbFile() {
@@ -136,7 +136,7 @@ public class UtilsTest {
         return b.toString();
     }
 
-    /** faster version of Random.nextBytes() */
+    /* faster version of Random.nextBytes() */
     public static byte[] randomByteArray(int size){
         int seed = (int) (100000*Math.random());
         byte[] ret = new byte[size];

@@ -109,7 +109,7 @@ public class Issue148Test {
         System.out.println("");
     }
 
-    /** Custom Value and Serializer **/
+    /* Custom Value and Serializer **/
 
     public static class CustomValue implements Serializable {
 

@@ -17,18 +17,23 @@
 package org.mapdb;
 
 /**
- * Compiler Configuration. There are some static final boolean fields, which describe features MapDB was compiled with.
  * <p>
+ * Compiler Configuration. There are some static final boolean fields, which describe features MapDB was compiled with.
+ * </p><p>
+ *
  * MapDB can be compiled with/without some features. For example fine logging is useful for debugging,
  * but should not be present in production version. Java does not have preprocessor so
  * we use <a href="http://en.wikipedia.org/wiki/Dead_code_elimination">Dead code elimination</a> to achieve it.
- * <p>
+ * </p><p>
+ *
  * Typical usage:
+ * </p>
  * <pre>{@code
  *     if(CC.PARANOID && arg.calculateSize()!=33){  //calculateSize may take long time
  *         throw new IllegalArgumentException("wrong size");
  *     }
  * }</pre>
+ *
  *
  * @author  Jan Kotek
  */
@@ -71,10 +76,13 @@ public interface CC {
 
 
     /**
+     * <p>
      * Default concurrency level. Should be greater than number of threads accessing
      * MapDB concurrently. On other side larger number consumes more memory
-     * <p>
+     * </p><p>
+     *
      * This number must be power of two: {@code CONCURRENCY = 2^N}
+     * </p>
      */
     int DEFAULT_LOCK_SCALE = 16;
 

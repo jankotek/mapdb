@@ -16,7 +16,7 @@ public class BrokenDBTest {
         log = new File(index.getPath() + "wal.0");
     }
 
-    /**
+    /*
      * Verify that DB files are properly closed when opening the database fails, allowing an
      * application to recover by purging the database and starting over.
      *
@@ -48,7 +48,7 @@ public class BrokenDBTest {
         Assert.assertFalse("Can't delete log", log.exists());
     }
 
-    /**
+    /*
      * Verify that DB files are properly closed when opening the database fails, allowing an
      * application to recover by purging the database and starting over.
      *
@@ -101,7 +101,7 @@ public class BrokenDBTest {
         public int someField = 42;
     }
 
-    /**
+    /*
      * Verify that DB files are properly closed when opening the database fails, allowing an
      * application to recover by purging the database and starting over.
      *

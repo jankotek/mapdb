@@ -4,7 +4,7 @@ import java.io.File;
 import java.util.Map;
 import java.util.Random;
 
-/**
+/*
  * This demonstrates using Data Pump to first create store in-memory at maximal speed,
  * and than copy the store into memory
  */

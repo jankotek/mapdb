@@ -18,7 +18,7 @@ package org.mapdb;
 
 import java.util.concurrent.ConcurrentMap;
 
-/**
+/*
  * Tests representing the contract of {@link ConcurrentMap}. Concrete
  * subclasses of this base class test conformance of concrete
  * {@link ConcurrentMap} subclasses to that contract.
@@ -39,7 +39,7 @@ public abstract class ConcurrentMapInterfaceTest<K, V>
         supportsClear,supportsIteratorRemove, supportsEntrySetValue);
   }
 
-  /**
+  /*
    * Creates a new value that is not expected to be found in
    * {@link #makePopulatedMap()} and differs from the value returned by
    * {@link #getValueNotInPopulatedMap()}.

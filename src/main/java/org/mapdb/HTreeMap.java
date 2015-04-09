@@ -29,17 +29,22 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Thread safe concurrent HashMap
  * <p>
+ * Thread safe concurrent HashMap
+ * </p><p>
+ *
  * This map uses full 32bit hash from beginning, There is no initial load factor and rehash.
  * Technically it is not hash table, but hash tree with nodes expanding when they become full.
- * <p>
+ * </p><p>
+ *
  * This map is suitable for number of records  1e9 and over.
  * Larger number of records will increase hash collisions and performance
  * will degrade linearly with number of records (separate chaining).
- * <p>
+ * </p><p>
+ *
  * Concurrent scalability is achieved by splitting HashMap into 16 segments, each with separate lock.
  * Very similar to {@link java.util.concurrent.ConcurrentHashMap}
+ * </p>
  *
  * @author Jan Kotek
  */
@@ -2041,11 +2046,13 @@ public class HTreeMap<K,V>
     }
 
     /**
+     * <p>
      * Make readonly snapshot view of current Map. Snapshot is immutable and not affected by modifications made by other threads.
      * Useful if you need consistent view on Map.
-     * <p>
+     * </p><p>
      * Maintaining snapshot have some overhead, underlying Engine is closed after Map view is GCed.
      * Please make sure to release reference to this Map view, so snapshot view can be garbage collected.
+     * </p>
      *
      * @return snapshot
      */

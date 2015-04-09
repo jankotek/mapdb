@@ -678,18 +678,6 @@ public class LongConcurrentHashMap< V>
         return new MapIterator();
     }
 
-    /**
-     * Returns the value to which the specified key is mapped,
-     * or {@code null} if this map contains no mapping for the key.
-     *
-     * <p>More formally, if this map contains a mapping from a key
-     * {@code k} to a value {@code keys} such that {@code key.equals(k)},
-     * then this method returns {@code keys}; otherwise it returns
-     * {@code null}.  (There can be at most one such mapping.)
-     *
-     * @throws NullPointerException if the specified key is null
-     */
-    
     public V get(long key) {
         final int hash = DataIO.longHash(key ^ hashSalt);
         return segmentFor(hash).get(key, hash);
@@ -773,7 +761,7 @@ public class LongConcurrentHashMap< V>
      * Maps the specified key to the specified value in this table.
      * Neither the key nor the value can be null.
      *
-     * <p> The value can be retrieved by calling the <tt>get</tt> method
+     * The value can be retrieved by calling the <tt>get</tt> method
      * with a key that is equal to the original key.
      *
      * @param key key with which the specified value is to be associated

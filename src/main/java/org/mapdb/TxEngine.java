@@ -25,9 +25,10 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
+ * <p>
  * Naive implementation of Snapshots on top of StorageEngine.
  * On update it takes old value and stores it aside.
- * <p>
+ * </p>
  * TODO merge snapshots down with Storage for best performance
  *
  * @author Jan Kotek

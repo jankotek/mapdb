@@ -15,7 +15,7 @@ import java.util.Iterator;
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class LongConcurrentHashMapTest extends TestCase{
 
-    /**
+    /*
      * Create a map from Integers 1-5 to Strings "A"-"E".
      */
     private static LongConcurrentHashMap map5() {
@@ -31,7 +31,7 @@ public class LongConcurrentHashMapTest extends TestCase{
         return map;
     }
 
-    /**
+    /*
      *  clear removes all pairs
      */
     public void testClear() {
@@ -42,7 +42,7 @@ public class LongConcurrentHashMapTest extends TestCase{
 
 
 
-    /**
+    /*
      *  containsKey returns true for contained key
      */
     public void testContainsKey() {
@@ -51,7 +51,7 @@ public class LongConcurrentHashMapTest extends TestCase{
         assertFalse(map.containsKey(0));
     }
 
-    /**
+    /*
      *  containsValue returns true for held values
      */
     public void testContainsValue() {
@@ -60,7 +60,7 @@ public class LongConcurrentHashMapTest extends TestCase{
         assertFalse(map.containsValue("Z"));
     }
 
-    /**
+    /*
      *   enumeration returns an enumeration containing the correct
      *   elements
      */
@@ -75,7 +75,7 @@ public class LongConcurrentHashMapTest extends TestCase{
         assertEquals(5, count);
     }
 
-    /**
+    /*
      *  get returns the correct element at the given key,
      *  or null if not present
      */
@@ -85,7 +85,7 @@ public class LongConcurrentHashMapTest extends TestCase{
         assertNull(map.get(-1));
     }
 
-    /**
+    /*
      *  isEmpty is true of empty map and false for non-empty
      */
     public void testIsEmpty() {
@@ -98,7 +98,7 @@ public class LongConcurrentHashMapTest extends TestCase{
 
 
 
-    /**
+    /*
      *   putIfAbsent works when the given key is not present
      */
     public void testPutIfAbsent() {
@@ -107,7 +107,7 @@ public class LongConcurrentHashMapTest extends TestCase{
         assertTrue(map.containsKey(6));
     }
 
-    /**
+    /*
      *   putIfAbsent does not add the pair if the key is already present
      */
     public void testPutIfAbsent2() {
@@ -115,7 +115,7 @@ public class LongConcurrentHashMapTest extends TestCase{
         assertEquals("A", map.putIfAbsent(1, "Z"));
     }
 
-    /**
+    /*
      *   replace fails when the given key is not present
      */
     public void testReplace() {
@@ -124,7 +124,7 @@ public class LongConcurrentHashMapTest extends TestCase{
         assertFalse(map.containsKey(6));
     }
 
-    /**
+    /*
      *   replace succeeds if the key is already present
      */
     public void testReplace2() {
@@ -134,7 +134,7 @@ public class LongConcurrentHashMapTest extends TestCase{
     }
 
 
-    /**
+    /*
      * replace value fails when the given key not mapped to expected value
      */
     public void testReplaceValue() {
@@ -144,7 +144,7 @@ public class LongConcurrentHashMapTest extends TestCase{
         assertEquals("A", map.get(1));
     }
 
-    /**
+    /*
      * replace value succeeds when the given key mapped to expected value
      */
     public void testReplaceValue2() {
@@ -155,7 +155,7 @@ public class LongConcurrentHashMapTest extends TestCase{
     }
 
 
-    /**
+    /*
      *   remove removes the correct key-value pair from the map
      */
     public void testRemove() {
@@ -165,7 +165,7 @@ public class LongConcurrentHashMapTest extends TestCase{
         assertFalse(map.containsKey(5));
     }
 
-    /**
+    /*
      * remove(key,value) removes only if pair present
      */
     public void testRemove2() {
@@ -179,7 +179,7 @@ public class LongConcurrentHashMapTest extends TestCase{
 
     }
 
-    /**
+    /*
      *   size returns the correct values
      */
     public void testSize() {
@@ -192,7 +192,7 @@ public class LongConcurrentHashMapTest extends TestCase{
 
     // Exception tests
 
-    /**
+    /*
      * Cannot create with negative capacity
      */
     public void testConstructor1() {
@@ -202,7 +202,7 @@ public class LongConcurrentHashMapTest extends TestCase{
         } catch(IllegalArgumentException e){}
     }
 
-    /**
+    /*
      * Cannot create with negative concurrency level
      */
     public void testConstructor2() {
@@ -212,7 +212,7 @@ public class LongConcurrentHashMapTest extends TestCase{
         } catch(IllegalArgumentException e){}
     }
 
-    /**
+    /*
      * Cannot create with only negative capacity
      */
     public void testConstructor3() {
@@ -224,7 +224,7 @@ public class LongConcurrentHashMapTest extends TestCase{
 
 
 
-    /**
+    /*
      * containsValue(null) throws NPE
      */
     public void testContainsValue_NullPointerException() {
@@ -237,7 +237,7 @@ public class LongConcurrentHashMapTest extends TestCase{
 
 
 
-    /**
+    /*
      * fail with message "should throw exception"
      */
     public void shouldThrow() {

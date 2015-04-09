@@ -23,7 +23,7 @@ import java.util.Map.Entry;
 
 import static java.util.Collections.singleton;
 
-/**
+/*
  * Tests representing the contract of {@link Map}. Concrete subclasses of this
  * base class test conformance of concrete {@link Map} subclasses to that
  * contract.
@@ -43,7 +43,7 @@ public abstract class MapInterfaceTest<K, V> extends TestCase {
     protected final boolean supportsEntrySetValue;
 
 
-    /**
+    /*
      * Creates a new, empty instance of the class under test.
      *
      * @return a new, empty map instance.
@@ -53,7 +53,7 @@ public abstract class MapInterfaceTest<K, V> extends TestCase {
     protected abstract Map<K, V> makeEmptyMap()
             throws UnsupportedOperationException;
 
-    /**
+    /*
      * Creates a new, non-empty instance of the class under test.
      *
      * @return a new, non-empty map instance.
@@ -63,7 +63,7 @@ public abstract class MapInterfaceTest<K, V> extends TestCase {
     protected abstract Map<K, V> makePopulatedMap()
             throws UnsupportedOperationException;
 
-    /**
+    /*
      * Creates a new key that is not expected to be found
      * in {@link #makePopulatedMap()}.
      *
@@ -74,7 +74,7 @@ public abstract class MapInterfaceTest<K, V> extends TestCase {
     protected abstract K getKeyNotInPopulatedMap()
             throws UnsupportedOperationException;
 
-    /**
+    /*
      * Creates a new value that is not expected to be found
      * in {@link #makePopulatedMap()}.
      *
@@ -86,7 +86,7 @@ public abstract class MapInterfaceTest<K, V> extends TestCase {
             throws UnsupportedOperationException;
 
 
-    /**
+    /*
      * Constructor with an explicit {@code supportsIteratorRemove} parameter.
      */
     protected MapInterfaceTest(
@@ -107,7 +107,7 @@ public abstract class MapInterfaceTest<K, V> extends TestCase {
 
     }
 
-    /**
+    /*
      * Used by tests that require a map, but don't care whether it's
      * populated or not.
      *
@@ -137,7 +137,7 @@ public abstract class MapInterfaceTest<K, V> extends TestCase {
         return true;
     }
 
-    /**
+    /*
      * Checks all the properties that should always hold of a map. Also calls
      * {@link #assertMoreInvariants} to check invariants that are peculiar to
      * specific implementations.
@@ -230,7 +230,7 @@ public abstract class MapInterfaceTest<K, V> extends TestCase {
         assertMoreInvariants(map);
     }
 
-    /**
+    /*
      * Override this to check invariants which should hold true for a particular
      * implementation, but which are not generally applicable to every instance
      * of Map.

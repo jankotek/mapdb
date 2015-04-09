@@ -37,7 +37,7 @@ public class StoreDirect extends Store {
     protected static final long HEAD_CHECKSUM = 4;
     protected static final long FORMAT_FEATURES = 8*1;
     protected static final long STORE_SIZE = 8*2;
-    /** offset of maximal allocated recid. It is <<3 parity1*/
+    /** offset of maximal allocated recid. It is {@code <<3 parity1}*/
     protected static final long MAX_RECID_OFFSET = 8*3;
     protected static final long LAST_PHYS_ALLOCATED_DATA_OFFSET = 8*4; //TODO update doc
     protected static final long INDEX_PAGE = 8*5;

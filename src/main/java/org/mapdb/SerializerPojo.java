@@ -548,17 +548,19 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     protected static Map<Class<?>, Constructor<?>> class2constuctor = new ConcurrentHashMap<Class<?>, Constructor<?>>();
 
     /**
+     * <p>
      * For pojo serialization we need to instantiate class without invoking its constructor.
      * There are two ways to do it:
-     * <p>
+     * </p><p>
      *   Using proprietary API on Oracle JDK and OpenJDK
      *   sun.reflect.ReflectionFactory.getReflectionFactory().newConstructorForSerialization()
      *   more at http://www.javaspecialists.eu/archive/Issue175.html
-     * <p>
-     *   Using 'ObjectInputStream.newInstance' on Android
+     * </p><p>
+     *   Using {@code ObjectInputStream.newInstance} on Android
      *   http://stackoverflow.com/a/3448384
-     * <p>
+     * </p><p>
      *   If non of these works we fallback into usual reflection which requires an no-arg constructor
+     * </p>
      */
     @SuppressWarnings("restriction")
 	protected <T> T createInstanceSkippinkConstructor(Class<T> clazz)

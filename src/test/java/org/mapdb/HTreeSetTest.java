@@ -31,7 +31,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 
-/**
+/*
  * Tests for HashSet which comes with JDBM. Original code comes from Apache Harmony,
  * Modified by Jan Kotek for use in JDBM
  */

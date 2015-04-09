@@ -1876,10 +1876,12 @@ public class DB implements Closeable {
 
 
     /**
+     * <p>
      * Closes database.
      * All other methods will throw 'IllegalAccessError' after this method was called.
-     * <p>
+     * </p><p>
      * !! it is necessary to call this method before JVM exits!!
+     * </p>
      */
     synchronized public void close(){
         if(engine == null)

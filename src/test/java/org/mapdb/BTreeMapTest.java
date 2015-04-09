@@ -477,14 +477,14 @@ public class BTreeMapTest{
     @Test public void WriteDBInt_lastKey() {
         int numberOfRecords = 1000;
 
-        /** Creates connections to MapDB */
+        /* Creates connections to MapDB */
         DB db1 = DBMaker.newMemoryDB().transactionDisable().make();
 
 
-        /** Creates maps */
+        /* Creates maps */
         ConcurrentNavigableMap<Integer, Integer> map1 = db1.getTreeMap("column1");
 
-        /** Inserts initial values in maps */
+        /* Inserts initial values in maps */
         for (int i = 0; i < numberOfRecords; i++) {
             map1.put(i, i);
         }
@@ -494,7 +494,7 @@ public class BTreeMapTest{
 
         map1.clear();
 
-        /** Inserts some values in maps */
+        /* Inserts some values in maps */
         for (int i = 0; i < 10; i++) {
             map1.put(i, i);
         }
@@ -510,14 +510,14 @@ public class BTreeMapTest{
     @Test public void WriteDBInt_lastKey_set() {
         int numberOfRecords = 1000;
 
-        /** Creates connections to MapDB */
+        /* Creates connections to MapDB */
         DB db1 = DBMaker.newMemoryDB().transactionDisable().make();
 
 
-        /** Creates maps */
+        /* Creates maps */
         NavigableSet<Integer> map1 = db1.getTreeSet("column1");
 
-        /** Inserts initial values in maps */
+        /* Inserts initial values in maps */
         for (int i = 0; i < numberOfRecords; i++) {
             map1.add(i);
         }
@@ -527,7 +527,7 @@ public class BTreeMapTest{
 
         map1.clear();
 
-        /** Inserts some values in maps */
+        /* Inserts some values in maps */
         for (int i = 0; i < 10; i++) {
             map1.add(i);
         }
@@ -541,14 +541,14 @@ public class BTreeMapTest{
     @Test public void WriteDBInt_lastKey_middle() {
         int numberOfRecords = 1000;
 
-        /** Creates connections to MapDB */
+        /* Creates connections to MapDB */
         DB db1 = DBMaker.newMemoryDB().transactionDisable().make();
 
 
-        /** Creates maps */
+        /* Creates maps */
         ConcurrentNavigableMap<Integer, Integer> map1 = db1.getTreeMap("column1");
 
-        /** Inserts initial values in maps */
+        /* Inserts initial values in maps */
         for (int i = 0; i < numberOfRecords; i++) {
             map1.put(i, i);
         }
@@ -558,7 +558,7 @@ public class BTreeMapTest{
 
         map1.clear();
 
-        /** Inserts some values in maps */
+        /* Inserts some values in maps */
         for (int i = 100; i < 110; i++) {
             map1.put(i, i);
         }
@@ -574,14 +574,14 @@ public class BTreeMapTest{
     @Test public void WriteDBInt_lastKey_set_middle() {
         int numberOfRecords = 1000;
 
-        /** Creates connections to MapDB */
+        /* Creates connections to MapDB */
         DB db1 = DBMaker.newMemoryDB().transactionDisable().make();
 
 
-        /** Creates maps */
+        /* Creates maps */
         NavigableSet<Integer> map1 = db1.getTreeSet("column1");
 
-        /** Inserts initial values in maps */
+        /* Inserts initial values in maps */
         for (int i = 0; i < numberOfRecords; i++) {
             map1.add(i);
         }
@@ -591,7 +591,7 @@ public class BTreeMapTest{
 
         map1.clear();
 
-        /** Inserts some values in maps */
+        /* Inserts some values in maps */
         for (int i = 100; i < 110; i++) {
             map1.add(i);
         }

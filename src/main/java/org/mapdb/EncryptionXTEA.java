@@ -23,12 +23,14 @@ package org.mapdb;
 import java.util.Arrays;
 
 /**
- * An implementation of the EncryptionXTEA block cipher algorithm.
  * <p>
+ * An implementation of the EncryptionXTEA block cipher algorithm.
+ *</p><p>
  * This implementation uses 32 rounds.
  * The best attack reported as of 2009 is 36 rounds (Wikipedia).
- * <p>
+ * </p><p>
  * It requires 32 byte long encryption key, so SHA256 password hash is used.
+ * </p>
  */
 public final class EncryptionXTEA{
 

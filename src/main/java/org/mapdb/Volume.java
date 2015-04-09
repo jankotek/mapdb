@@ -29,12 +29,15 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * MapDB abstraction over raw storage (file, disk partition, memory etc...).
  * <p>
+ * MapDB abstraction over raw storage (file, disk partition, memory etc...).
+ * </p><p>
+ *
  * Implementations needs to be thread safe (especially
- 'ensureAvailable') operation.
+ * 'ensureAvailable') operation.
  * However updates do not have to be atomic, it is clients responsibility
  * to ensure two threads are not writing/reading into the same location.
+ * </p>
  *
  * @author Jan Kotek
  */

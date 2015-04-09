@@ -312,7 +312,7 @@ public class SerializerPojoTest{
         }
     }
 
-    /** @author Jan Sileny */
+    /* @author Jan Sileny */
 /* TODO reenable test
 @Test  public  void test_pojo_reload() throws IOException {
 
@@ -367,7 +367,7 @@ public class SerializerPojoTest{
         assertEquals(13,t.bb);
     }
 
-    /** clone value using serialization */
+    /* clone value using serialization */
     public static <E> E outputStreamClone(E value){
         try{
             ByteArrayOutputStream out = new ByteArrayOutputStream();

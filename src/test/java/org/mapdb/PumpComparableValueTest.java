@@ -12,7 +12,7 @@ import static org.junit.Assert.assertEquals;
 public class PumpComparableValueTest {
 
 
-        /**
+        /*
          * Test mapDB data pump mechanize 
          * 
          */

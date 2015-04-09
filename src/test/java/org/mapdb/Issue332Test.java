@@ -7,7 +7,7 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 
-/**
+/*
  * Created by paspi on 26.05.2014.
  */
 public class Issue332Test {

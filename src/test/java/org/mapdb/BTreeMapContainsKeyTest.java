@@ -40,7 +40,7 @@ public class BTreeMapContainsKeyTest extends JSR166TestCase {
         r.close();
     }
 
-    /**
+    /*
      * When valsOutsideNodes is true should not deserialize value during .containsKey
      */
     public void testContainsKeySkipsValueDeserialisation() {

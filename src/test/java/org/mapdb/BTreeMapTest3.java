@@ -3,7 +3,7 @@ package org.mapdb;
 import java.util.*;
 import java.util.concurrent.ConcurrentNavigableMap;
 
-/**
+/*
  * This code comes from GoogleCollections, was modified for JDBM by Jan Kotek
  *
  * Tests representing the contract of {@link java.util.SortedMap}. Concrete subclasses of

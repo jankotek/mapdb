@@ -13,7 +13,7 @@
 //
 //    final Map<Long,Deque<Long>> longStacks = new TreeMap <Long,Deque<Long>>();
 //
-//    /** mock longStacks so their page allocations wont mess up tests */
+//    /* mock longStacks so their page allocations wont mess up tests */
 //    StoreDirect stub = new  StoreDirect(null){
 //        {
 //            structuralLock.lock();

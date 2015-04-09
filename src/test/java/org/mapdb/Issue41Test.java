@@ -9,7 +9,7 @@ import java.util.Iterator;
 import java.util.UUID;
 import java.util.concurrent.*;
 
-/**
+/*
  * https://github.com/jankotek/MapDB/issues/41
  * @author Laurent Pellegrino
  *

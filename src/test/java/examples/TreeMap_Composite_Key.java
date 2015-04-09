@@ -9,9 +9,9 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentNavigableMap;
 
-/**
+/*
  * Demonstrates how-to use multi value keys in BTree.
- * <p>
+ *
  * MapDB has `sortable tuples`. They allow multi value keys in ordinary TreeMap.
  * Values are sorted hierarchically,
  * fully indexed query must start on first value and continue on second, third and so on.
@@ -19,14 +19,14 @@ import java.util.concurrent.ConcurrentNavigableMap;
 public class TreeMap_Composite_Key {
 
 
-    /**
+    /*
      * In this example we demonstrate spatial queries on a Map
      * filled with Address > Income pairs.
-     * <p>
+     *
      * Address is represented as three-value-tuple.
      * First value is Town, second is Street and
      * third value is House number
-     * <p>
+     *
      * Java Generics are buggy, so we left out some type annotations for simplicity.
      * I would recommend more civilized language with type inference such as Kotlin or Scala.
      */

@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.Assert.*;
 
-/**
+/*
 * @author Jan Kotek
 */
 /*

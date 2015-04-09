@@ -1,4 +1,4 @@
-/*******************************************************************************
+/******************************************************************************
  * Copyright 2010 Cees De Groot, Alex Boisvert, Jan Kotek
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -478,12 +478,12 @@ public class SerializerBaseTest{
         }
     }
 
-    /** clone value using serialization */
+    /* clone value using serialization */
     <E> E clone(E value) throws IOException {
         return clone2(value,(Serializer<E>)Serializer.BASIC);
     }
 
-    /** clone value using serialization */
+    /* clone value using serialization */
     public static <E> E clone2(E value, Serializer<E> serializer) {
         try{
             DataIO.DataOutputByteArray out = new DataIO.DataOutputByteArray();

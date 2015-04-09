@@ -15,7 +15,7 @@ import java.util.concurrent.*;
 import static org.junit.Assert.*;
 import static org.mapdb.Serializer.BYTE_ARRAY_NOSIZE;
 
-/**
+/*
  * Tests contract of various implementations of Engine interface
  */
 public abstract class EngineTest<ENGINE extends Engine>{
@@ -245,7 +245,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
         assertEquals("aaa",e.get(recid, Serializer.STRING_NOSIZE));
     }
 
-    /** after deletion it enters preallocated state */
+    /* after deletion it enters preallocated state */
     @Test public void delete_and_get(){
         long recid = e.put("aaa", Serializer.STRING);
         e.delete(recid, Serializer.STRING);

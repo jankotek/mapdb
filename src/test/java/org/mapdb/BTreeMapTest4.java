@@ -117,8 +117,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         tm.engine.close();
     }
 
-    /**
-     * @tests java.util.TreeMap#TreeMap(java.util.Comparator)
+    /*
+     * tests java.util.TreeMap#TreeMap(java.util.Comparator)
      */
     public void test_ConstructorLjava_util_Comparator() {
         // Test for method java.util.TreeMap(java.util.Comparator)
@@ -139,8 +139,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
 
 
 
-    /**
-     * @tests java.util.TreeMap#clear()
+    /*
+     * tests java.util.TreeMap#clear()
      */
     public void test_clear() {
         // Test for method void java.util.TreeMap.clear()
@@ -149,8 +149,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
     }
 
 
-    /**
-     * @tests java.util.TreeMap#comparator()
+    /*
+     * tests java.util.TreeMap#comparator()
      */
     public void test_comparator() {
         // Test for method java.util.Comparator java.util.TreeMap.comparator()\
@@ -166,8 +166,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
                 reversedTreeMap.lastKey().equals(new Integer(1).toString()));
     }
 
-    /**
-     * @tests java.util.TreeMap#containsKey(java.lang.Object)
+    /*
+     * tests java.util.TreeMap#containsKey(java.lang.Object)
      */
     public void test_containsKeyLjava_lang_Object() {
         // Test for method boolean
@@ -176,8 +176,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         assertTrue("Returned true for invalid key", !tm.containsKey("XXXXX"));
     }
 
-    /**
-     * @tests java.util.TreeMap#containsValue(java.lang.Object)
+    /*
+     * tests java.util.TreeMap#containsValue(java.lang.Object)
      */
     public void test_containsValueLjava_lang_Object() {
         // Test for method boolean
@@ -188,8 +188,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
                 .containsValue(new BTreeMapSubSetTest.SerializableNonComparable()));
     }
 
-    /**
-     * @tests java.util.TreeMap#entrySet()
+    /*
+     * tests java.util.TreeMap#entrySet()
      */
     public void test_entrySet() {
         // Test for method java.util.Set java.util.TreeMap.entrySet()
@@ -205,16 +205,16 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         }
     }
 
-    /**
-     * @tests java.util.TreeMap#firstKey()
+    /*
+     * tests java.util.TreeMap#firstKey()
      */
     public void test_firstKey() {
         // Test for method java.lang.Object java.util.TreeMap.firstKey()
         assertEquals("Returned incorrect first key", "0", tm.firstKey());
     }
 
-    /**
-     * @tests java.util.TreeMap#get(java.lang.Object)
+    /*
+     * tests java.util.TreeMap#get(java.lang.Object)
      */
     public void test_getLjava_lang_Object() {
         // Test for method java.lang.Object
@@ -261,8 +261,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         }
     }
 
-    /**
-	 * @tests java.util.TreeMap#headMap(java.lang.Object)
+    /*
+	 * tests java.util.TreeMap#headMap(java.lang.Object)
 	 */
     public void test_headMapLjava_lang_Object() {
         // Test for method java.util.SortedMap
@@ -355,8 +355,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
 
     }
 
-    /**
-     * @tests java.util.TreeMap#keySet()
+    /*
+     * tests java.util.TreeMap#keySet()
      */
     public void test_keySet() {
         // Test for method java.util.Set java.util.TreeMap.keySet()
@@ -369,8 +369,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         }
     }
 
-    /**
-     * @tests java.util.TreeMap#lastKey()
+    /*
+     * tests java.util.TreeMap#lastKey()
      */
     public void test_lastKey() {
         // Test for method java.lang.Object java.util.TreeMap.lastKey()
@@ -404,8 +404,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
 		}
 	}
 
-    /**
-     * @tests java.util.TreeMap#put(java.lang.Object, java.lang.Object)
+    /*
+     * tests java.util.TreeMap#put(java.lang.Object, java.lang.Object)
      */
     public void test_putLjava_lang_ObjectLjava_lang_Object() {
         // Test for method java.lang.Object
@@ -446,8 +446,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
 //        }
     }
 
-    /**
-     * @tests java.util.TreeMap#putAll(java.util.Map)
+    /*
+     * tests java.util.TreeMap#putAll(java.util.Map)
      */
     public void test_putAllLjava_util_Map() {
         // Test for method void java.util.TreeMap.putAll(java.util.Map)
@@ -460,8 +460,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         }
     }
 
-    /**
-     * @tests java.util.TreeMap#remove(java.lang.Object)
+    /*
+     * tests java.util.TreeMap#remove(java.lang.Object)
      */
     public void test_removeLjava_lang_Object() {
         // Test for method java.lang.Object
@@ -471,8 +471,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
 
     }
 
-    /**
-     * @tests java.util.TreeMap#size()
+    /*
+     * tests java.util.TreeMap#size()
      */
     public void test_size() {
         // Test for method int java.util.TreeMap.size()
@@ -497,8 +497,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
 				.size()); 
     }
 
-    /**
-	 * @tests java.util.TreeMap#subMap(java.lang.Object, java.lang.Object)
+    /*
+	 * tests java.util.TreeMap#subMap(java.lang.Object, java.lang.Object)
 	 */
     public void test_subMapLjava_lang_ObjectLjava_lang_Object() {
         // Test for method java.util.SortedMap
@@ -537,8 +537,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
     }
     
     
-    /**
-     * @tests java.util.TreeMap#subMap(java.lang.Object, java.lang.Object)
+    /*
+     * tests java.util.TreeMap#subMap(java.lang.Object, java.lang.Object)
      */
     public void test_subMap_Iterator() {
         BTreeMap<String, String> map = newBTreeMap();
@@ -578,8 +578,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
     }
 
 
-    /**
-     * @tests java.util.TreeMap#tailMap(java.lang.Object)
+    /*
+     * tests java.util.TreeMap#tailMap(java.lang.Object)
      */
     public void test_tailMapLjava_lang_Object() {
         // Test for method java.util.SortedMap
@@ -648,8 +648,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
 
     }
 
-    /**
-     * @tests java.util.TreeMap#values()
+    /*
+     * tests java.util.TreeMap#values()
      */
     public void test_values() {
         // Test for method java.util.Collection java.util.TreeMap.values()
@@ -767,8 +767,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         
     }
     
-    /**
-     * @tests java.util.TreeMap the values() method in sub maps
+    /*
+     * tests java.util.TreeMap the values() method in sub maps
      */
     public void test_subMap_values_size() {
         BTreeMap myTreeMap = newBTreeMap();
@@ -857,8 +857,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         
     }
     
-    /**
-     * @tests java.util.TreeMap#subMap()
+    /*
+     * tests java.util.TreeMap#subMap()
      */
     public void test_subMap_Iterator2() {
         BTreeMap<String, String> map = newBTreeMap();
@@ -898,8 +898,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
     }
 
 
-    /**
-     * @tests {@link java.util.TreeMap#firstEntry()}
+    /*
+     * tests {@link java.util.TreeMap#firstEntry()}
      */
     public void test_firstEntry() throws Exception {
         Integer testint = new Integer(-1);
@@ -922,8 +922,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         assertNull(tm.firstEntry());
     }
 
-    /**
-     * @tests {@link java.util.TreeMap#lastEntry()
+    /*
+     * tests {@link java.util.TreeMap#lastEntry()
      */
     public void test_lastEntry() throws Exception {
         Integer testint10000 = new Integer(10000);
@@ -942,8 +942,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         assertNull(tm.lastEntry());
     }
 
-    /**
-     * @tests {@link java.util.TreeMap#pollFirstEntry()
+    /*
+     * tests {@link java.util.TreeMap#pollFirstEntry()
      */
     public void test_pollFirstEntry() throws Exception {
         Integer testint = new Integer(-1);
@@ -965,8 +965,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         assertNull(tm.pollFirstEntry());
     }
 
-    /**
-     * @tests {@link java.util.TreeMap#pollLastEntry()
+    /*
+     * tests {@link java.util.TreeMap#pollLastEntry()
      */
     public void test_pollLastEntry() throws Exception {
         Integer testint10000 = new Integer(10000);
@@ -991,8 +991,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         assertNull(tm.lastEntry());
     }
 
-    /**
-     * @tests {@link java.util.TreeMap#lowerEntry(Object)
+    /*
+     * tests {@link java.util.TreeMap#lowerEntry(Object)
      */
     public void test_lowerEntry() throws Exception {
         Integer testint10000 = new Integer(10000);
@@ -1025,8 +1025,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
 //        assertNull(tm.lowerEntry(null));
     }
 
-    /**
-     * @tests {@link java.util.TreeMap#lowerKey(Object)
+    /*
+     * tests {@link java.util.TreeMap#lowerKey(Object)
      */
     public void test_lowerKey() throws Exception {
         Integer testint10000 = new Integer(10000);
@@ -1058,8 +1058,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
 //        assertNull(tm.lowerKey(null));
     }
 
-    /**
-     * @tests {@link java.util.TreeMap#floorEntry(Object)
+    /*
+     * tests {@link java.util.TreeMap#floorEntry(Object)
      */
     public void test_floorEntry() throws Exception {
         Integer testint10000 = new Integer(10000);
@@ -1091,8 +1091,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         assertNull(tm.floorEntry(testint9999.toString()));
     }
 
-    /**
-     * @tests {@link java.util.TreeMap#floorKey(Object)
+    /*
+     * tests {@link java.util.TreeMap#floorKey(Object)
      */
     public void test_floorKey() throws Exception {
         Integer testint10000 = new Integer(10000);
@@ -1124,8 +1124,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
 //        assertNull(tm.floorKey(null));
     }
 
-    /**
-     * @tests {@link java.util.TreeMap#ceilingEntry(Object)
+    /*
+     * tests {@link java.util.TreeMap#ceilingEntry(Object)
      */
     public void test_ceilingEntry() throws Exception {
         Integer testint100 = new Integer(100);
@@ -1157,8 +1157,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
 //        assertNull(tm.ceilingEntry(null));
     }
 
-    /**
-     * @tests {@link java.util.TreeMap#ceilingKey(Object)
+    /*
+     * tests {@link java.util.TreeMap#ceilingKey(Object)
      */
     public void test_ceilingKey() throws Exception {
         Integer testint100 = new Integer(100);
@@ -1188,8 +1188,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
 //        assertNull(tm.ceilingKey(null));
     }
 
-    /**
-     * @tests {@link java.util.TreeMap#higherEntry(Object)
+    /*
+     * tests {@link java.util.TreeMap#higherEntry(Object)
      */
     public void test_higherEntry() throws Exception {
         Integer testint9999 = new Integer(9999);
@@ -1227,8 +1227,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
 //        assertNull(tm.higherEntry(null));
     }
 
-    /**
-     * @tests {@link java.util.TreeMap#higherKey(Object)
+    /*
+     * tests {@link java.util.TreeMap#higherKey(Object)
      */
     public void test_higherKey() throws Exception {
         Integer testint9999 = new Integer(9999);
@@ -1335,8 +1335,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         assertEquals(entry.toString(), entry.getKey() + "=" + entry.getValue());
     }
 
-    /**
-     * @tests java.util.TreeMap#subMap(java.lang.Object,boolean,
+    /*
+     * tests java.util.TreeMap#subMap(java.lang.Object,boolean,
      *        java.lang.Object,boolean)
      */
     public void test_subMapLjava_lang_ObjectZLjava_lang_ObjectZ() {
@@ -1486,8 +1486,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
 
     
 
-    /**
-     * @tests java.util.TreeMap#headMap(java.lang.Object,boolea)
+    /*
+     * tests java.util.TreeMap#headMap(java.lang.Object,boolea)
      */
     public void test_headMapLjava_lang_ObjectZL() {
         // normal case
@@ -1593,8 +1593,8 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         assertEquals(0, mapIntObj.size());
     }
 
-    /**
-     * @tests java.util.TreeMap#tailMap(java.lang.Object,boolea)
+    /*
+     * tests java.util.TreeMap#tailMap(java.lang.Object,boolea)
      */
     public void test_tailMapLjava_lang_ObjectZL() {
         // normal case
@@ -1809,7 +1809,7 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         }
     }
 
-    /**
+    /*
      * Tests equals() method.
      * Tests that no ClassCastException will be thrown in all cases.
      * Regression test for HARMONY-1639.
@@ -1887,7 +1887,7 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
             Iterator iter = subMap.values().iterator();
         }    
     
-    /**
+    /*
      * Sets up the fixture, for example, open a network connection. This method
      * is called before a test is executed.
      */

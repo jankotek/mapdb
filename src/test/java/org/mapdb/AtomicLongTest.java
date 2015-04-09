@@ -24,14 +24,14 @@ public class AtomicLongTest extends TestCase {
         db.close();
     }
 
-    /**
+    /*
      * constructor initializes to given value
      */
     public void testConstructor(){
         assertEquals(1,ai.get());
     }
 
-    /**
+    /*
      * default constructed initializes to zero
      */
     public void testConstructor2(){
@@ -39,7 +39,7 @@ public class AtomicLongTest extends TestCase {
         assertEquals(0,ai.get());
     }
 
-    /**
+    /*
      * get returns the last value set
      */
     public void testGetSet(){
@@ -51,7 +51,7 @@ public class AtomicLongTest extends TestCase {
 
     }
 
-    /**
+    /*
      * compareAndSet succeeds in changing value if equal to expected else fails
      */
     public void testCompareAndSet(){
@@ -64,7 +64,7 @@ public class AtomicLongTest extends TestCase {
         assertEquals(7,ai.get());
     }
 
-    /**
+    /*
      * compareAndSet in one thread enables another waiting for value
      * to succeed
      */
@@ -83,7 +83,7 @@ public class AtomicLongTest extends TestCase {
     }
 
 
-    /**
+    /*
      * getAndSet returns previous value and sets to given value
      */
     public void testGetAndSet(){
@@ -92,7 +92,7 @@ public class AtomicLongTest extends TestCase {
         assertEquals(-10,ai.getAndSet(1));
     }
 
-    /**
+    /*
      * getAndAdd returns previous value and adds given value
      */
     public void testGetAndAdd(){
@@ -102,7 +102,7 @@ public class AtomicLongTest extends TestCase {
         assertEquals(-1,ai.get());
     }
 
-    /**
+    /*
      * getAndDecrement returns previous value and decrements
      */
     public void testGetAndDecrement(){
@@ -111,7 +111,7 @@ public class AtomicLongTest extends TestCase {
         assertEquals(-1,ai.getAndDecrement());
     }
 
-    /**
+    /*
      * getAndIncrement returns previous value and increments
      */
     public void testGetAndIncrement(){
@@ -125,7 +125,7 @@ public class AtomicLongTest extends TestCase {
         assertEquals(1,ai.get());
     }
 
-    /**
+    /*
      * addAndGet adds given value to current, and returns current value
      */
     public void testAddAndGet(){
@@ -136,7 +136,7 @@ public class AtomicLongTest extends TestCase {
         assertEquals(-1,ai.get());
     }
 
-    /**
+    /*
      * decrementAndGet decrements and returns current value
      */
     public void testDecrementAndGet(){
@@ -147,7 +147,7 @@ public class AtomicLongTest extends TestCase {
         assertEquals(-2,ai.get());
     }
 
-    /**
+    /*
      * incrementAndGet increments and returns current value
      */
     public void testIncrementAndGet(){
@@ -162,7 +162,7 @@ public class AtomicLongTest extends TestCase {
     }
 
 
-    /**
+    /*
      * toString returns current value.
      */
     public void testToString() {
@@ -172,7 +172,7 @@ public class AtomicLongTest extends TestCase {
         }
     }
 
-    /**
+    /*
      * longValue returns current value.
      */
     public void testLongValue() {
@@ -182,7 +182,7 @@ public class AtomicLongTest extends TestCase {
         }
     }
 
-    /**
+    /*
      * floatValue returns current value.
      */
     public void testFloatValue() {
@@ -192,7 +192,7 @@ public class AtomicLongTest extends TestCase {
         }
     }
 
-    /**
+    /*
      * doubleValue returns current value.
      */
     public void testDoubleValue() {

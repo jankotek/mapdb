@@ -7,7 +7,7 @@ import java.io.File;
 import java.util.Map;
 import java.util.Random;
 
-/**
+/*
  * Demonstrates how BTree parameters affects performance. BTreeMap has two key parameters
  * which affects its performance:
  * <h4>Maximal node size</h4>
@@ -22,7 +22,6 @@ import java.util.Random;
  *
  *
  *
- * <p>
  * Sample output
  * <pre>
  *  Node size |  small vals  |  large vals  |  large vals outside node

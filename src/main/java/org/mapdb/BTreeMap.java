@@ -36,11 +36,13 @@ import java.util.concurrent.locks.LockSupport;
 
 
 /**
+ * <p>
  * A scalable concurrent {@link ConcurrentNavigableMap} implementation.
  * The map is sorted according to the {@linkplain Comparable natural
  * ordering} of its keys, or by a {@link Comparator} provided at map
  * creation time.
- * <p> 
+ * </p><p>
+ *
  * Insertion, removal,
  * update, and access operations safely execute concurrently by
  * multiple threads.  Iterators are <i>weakly consistent</i>, returning
@@ -49,36 +51,42 @@ import java.util.concurrent.locks.LockSupport;
  * ConcurrentModificationException}, and may proceed concurrently with
  * other operations. Ascending key ordered views and their iterators
  * are faster than descending ones.
- * <p> 
+ * </p><p>
+ *
  * It is possible to obtain <i>consistent</i> iterator by using <code>snapshot()</code>
  * method.
- *<p> 
+ * </p><p>
+ *
  * All <tt>Map.Entry</tt> pairs returned by methods in this class
  * and its views represent snapshots of mappings at the time they were
  * produced. They do <em>not</em> support the <tt>Entry.setValue</tt>
  * method. (Note however that it is possible to change mappings in the
  * associated map using <tt>put</tt>, <tt>putIfAbsent</tt>, or
  * <tt>replace</tt>, depending on exactly which effect you need.)
- *<p> 
+ * </p><p>
+ *
  * This collection has optional size counter. If this is enabled Map size is
  * kept in {@link Atomic.Long} variable. Keeping counter brings considerable
  * overhead on inserts and removals.
  * If the size counter is not enabled the <tt>size</tt> method is <em>not</em> a constant-time operation.
  * Determining the current number of elements requires a traversal of the elements.
- *<p> 
+ * </p><p>
+ *
  * Additionally, the bulk operations <tt>putAll</tt>, <tt>equals</tt>, and
  * <tt>clear</tt> are <em>not</em> guaranteed to be performed
  * atomically. For example, an iterator operating concurrently with a
  * <tt>putAll</tt> operation might view only some of the added
  * elements. NOTE: there is an optional 
- *<p> 
+ * </p><p>
+ *
  * This class and its views and iterators implement all of the
  * <em>optional</em> methods of the {@link Map} and {@link Iterator}
  * interfaces. Like most other concurrent collections, this class does
  * <em>not</em> permit the use of <tt>null</tt> keys or values because some
  * null return values cannot be reliably distinguished from the absence of
  * elements.
- *<p> 
+ * </p><p>
+ *
  * Theoretical design of BTreeMap is based on 1986 paper
  * <a href="http://www.sciencedirect.com/science/article/pii/0022000086900218">
  * Concurrent operations on B∗-trees with overtaking</a>
@@ -87,19 +95,21 @@ import java.util.concurrent.locks.LockSupport;
  * <a href="http://cs.au.dk/~tyoung/~td202/">notes</a>
  * and <a href="http://cs.au.dk/~tyoung/~td202/btree/">demo application</a> from Thomas Dinsdale-Young.
  * Also more work from Thomas: <a href="http://www.doc.ic.ac.uk/research/technicalreports/2011/#10">A Simple Abstraction for Complex Concurrent Indexes</a>
- * <p>
+ * </p><p>
+ *
  * B-Linked-Tree used here does not require locking for read.
  * Updates and inserts locks only one, two or three nodes.
  * Original BTree design does not use overlapping lock (lock is released before parent node is locked), I added it just to feel safer.
- <p> 
+ * </p><p>
+ *
  * This B-Linked-Tree structure does not support removal well, entry deletion does not collapse tree nodes. Massive
  * deletion causes empty nodes and performance lost. There is workaround in form of compaction process, but it is not
  * implemented yet.
+ * </p>
  *
  * @author Jan Kotek
  * @author some parts by Doug Lea and JSR-166 group
  *
- * TODO links to BTree papers are not working anymore.
  */
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class BTreeMap<K,V>

@@ -20,7 +20,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         }
     }
 
-    /**
+    /*
      * Returns a new set of given size containing consecutive
      * Integers 0 ... n.
      */
@@ -41,7 +41,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         return s;
     }
 
-    /**
+    /*
      * Returns a new set of first 5 ints.
      */
     private NavigableSet set5() {
@@ -59,7 +59,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         return s;
     }
 
-    /**
+    /*
      * Returns a new set of first 5 negative ints.
      */
     private NavigableSet dset5() {
@@ -87,14 +87,14 @@ public class BTreeSet3Test extends JSR166TestCase {
         return set;
     }
 
-    /**
+    /*
      * A new set has unbounded capacity
      */
     public void testConstructor1() {
         assertEquals(0, set0().size());
     }
 
-    /**
+    /*
      * isEmpty is true before add, false after
      */
     public void testEmpty() {
@@ -108,7 +108,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         assertTrue(q.isEmpty());
     }
 
-    /**
+    /*
      * size changes when elements added and removed
      */
     public void testSize() {
@@ -123,7 +123,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         }
     }
 
-    /**
+    /*
      * add(null) throws NPE
      */
     public void testAddNull() {
@@ -134,7 +134,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         } catch (NullPointerException success) {}
     }
 
-    /**
+    /*
      * Add of comparable element succeeds
      */
     public void testAdd() {
@@ -142,7 +142,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         assertTrue(q.add(six));
     }
 
-    /**
+    /*
      * Add of duplicate element fails
      */
     public void testAddDup() {
@@ -151,7 +151,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         assertFalse(q.add(six));
     }
 
-    /**
+    /*
      * Add of non-Comparable throws CCE
      */
     public void testAddNonComparable() {
@@ -164,7 +164,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         } catch (ClassCastException success) {}
     }
 
-    /**
+    /*
      * addAll(null) throws NPE
      */
     public void testAddAll1() {
@@ -175,7 +175,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         } catch (NullPointerException success) {}
     }
 
-    /**
+    /*
      * addAll of a collection with null elements throws NPE
      */
     public void testAddAll2() {
@@ -187,7 +187,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         } catch (NullPointerException success) {}
     }
 
-    /**
+    /*
      * addAll of a collection with any null elements throws NPE after
      * possibly adding some elements
      */
@@ -202,7 +202,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         } catch (NullPointerException success) {}
     }
 
-    /**
+    /*
      * Set contains all elements of successful addAll
      */
     public void testAddAll5() {
@@ -217,7 +217,7 @@ public class BTreeSet3Test extends JSR166TestCase {
             assertEquals(new Integer(i), q.pollFirst());
     }
 
-    /**
+    /*
      * poll succeeds unless empty
      */
     public void testPoll() {
@@ -228,7 +228,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         assertNull(q.pollFirst());
     }
 
-    /**
+    /*
      * remove(x) removes x and returns true if present
      */
     public void testRemoveElement() {
@@ -249,7 +249,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         assertTrue(q.isEmpty());
     }
 
-    /**
+    /*
      * contains(x) reports true when elements added but not yet removed
      */
     public void testContains() {
@@ -261,7 +261,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         }
     }
 
-    /**
+    /*
      * clear removes all elements
      */
     public void testClear() {
@@ -275,7 +275,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         assertTrue(q.isEmpty());
     }
 
-    /**
+    /*
      * containsAll(c) is true when c contains a subset of elements
      */
     public void testContainsAll() {
@@ -289,7 +289,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         assertTrue(p.containsAll(q));
     }
 
-    /**
+    /*
      * retainAll(c) retains only those elements of c and reports true if changed
      */
     public void testRetainAll() {
@@ -308,7 +308,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         }
     }
 
-    /**
+    /*
      * removeAll(c) removes only those elements of c and reports true if changed
      */
     public void testRemoveAll() {
@@ -324,7 +324,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         }
     }
 
-    /**
+    /*
      * lower returns preceding element
      */
     public void testLower() {
@@ -342,7 +342,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         assertNull(e4);
     }
 
-    /**
+    /*
      * higher returns next element
      */
     public void testHigher() {
@@ -360,7 +360,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         assertNull(e4);
     }
 
-    /**
+    /*
      * floor returns preceding element
      */
     public void testFloor() {
@@ -378,7 +378,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         assertNull(e4);
     }
 
-    /**
+    /*
      * ceiling returns next element
      */
     public void testCeiling() {
@@ -396,7 +396,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         assertNull(e4);
     }
 
-    /**
+    /*
      * toArray contains all elements in sorted order
      */
     public void testToArray() {
@@ -406,7 +406,7 @@ public class BTreeSet3Test extends JSR166TestCase {
             assertSame(o[i], q.pollFirst());
     }
 
-    /**
+    /*
      * toArray(a) contains all elements in sorted order
      */
     public void testToArray2() {
@@ -418,7 +418,7 @@ public class BTreeSet3Test extends JSR166TestCase {
             assertSame(ints[i], q.pollFirst());
     }
 
-    /**
+    /*
      * iterator iterates through all elements
      */
     public void testIterator() {
@@ -432,7 +432,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         assertEquals(i, SIZE);
     }
 
-    /**
+    /*
      * iterator of empty set has no elements
      */
     public void testEmptyIterator() {
@@ -446,7 +446,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         assertEquals(0, i);
     }
 
-    /**
+    /*
      * iterator.remove removes current element
      */
     public void testIteratorRemove() {
@@ -465,7 +465,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         assertFalse(it.hasNext());
     }
 
-    /**
+    /*
      * toString contains toStrings of elements
      */
     public void testToString() {
@@ -476,7 +476,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         }
     }
 
-//    /**
+//    /*
 //     * A deserialized serialized set has same elements
 //     */
 //    public void testSerialization() throws Exception {
@@ -494,7 +494,7 @@ public class BTreeSet3Test extends JSR166TestCase {
 //        assertTrue(y.isEmpty());
 //    }
 //
-    /**
+    /*
      * subSet returns set with keys in requested range
      */
     public void testSubSetContents() {
@@ -555,7 +555,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         assertEquals(4, set.size());
     }
 
-    /**
+    /*
      * headSet returns set with keys in requested range
      */
     public void testHeadSetContents() {
@@ -581,7 +581,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         assertEquals(four, set.first());
     }
 
-    /**
+    /*
      * tailSet returns set with keys in requested range
      */
     public void testTailSetContents() {
@@ -613,7 +613,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         assertEquals(4, set.size());
     }
 
-    /**
+    /*
      * size changes when elements added and removed
      */
     public void testDescendingSize() {
@@ -628,7 +628,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         }
     }
 
-    /**
+    /*
      * add(null) throws NPE
      */
     public void testDescendingAddNull() {
@@ -639,7 +639,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         } catch (NullPointerException success) {}
     }
 
-    /**
+    /*
      * Add of comparable element succeeds
      */
     public void testDescendingAdd() {
@@ -647,7 +647,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         assertTrue(q.add(m6));
     }
 
-    /**
+    /*
      * Add of duplicate element fails
      */
     public void testDescendingAddDup() {
@@ -656,7 +656,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         assertFalse(q.add(m6));
     }
 
-    /**
+    /*
      * Add of non-Comparable throws CCE
      */
     public void testDescendingAddNonComparable() {
@@ -669,7 +669,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         } catch (ClassCastException success) {}
     }
 
-    /**
+    /*
      * addAll(null) throws NPE
      */
     public void testDescendingAddAll1() {
@@ -680,7 +680,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         } catch (NullPointerException success) {}
     }
 
-    /**
+    /*
      * addAll of a collection with null elements throws NPE
      */
     public void testDescendingAddAll2() {
@@ -692,7 +692,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         } catch (NullPointerException success) {}
     }
 
-    /**
+    /*
      * addAll of a collection with any null elements throws NPE after
      * possibly adding some elements
      */
@@ -707,7 +707,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         } catch (NullPointerException success) {}
     }
 
-    /**
+    /*
      * Set contains all elements of successful addAll
      */
     public void testDescendingAddAll5() {
@@ -722,7 +722,7 @@ public class BTreeSet3Test extends JSR166TestCase {
             assertEquals(new Integer(i), q.pollFirst());
     }
 
-    /**
+    /*
      * poll succeeds unless empty
      */
     public void testDescendingPoll() {
@@ -733,7 +733,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         assertNull(q.pollFirst());
     }
 
-    /**
+    /*
      * remove(x) removes x and returns true if present
      */
     public void testDescendingRemoveElement() {
@@ -748,7 +748,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         assertTrue(q.isEmpty());
     }
 
-    /**
+    /*
      * contains(x) reports true when elements added but not yet removed
      */
     public void testDescendingContains() {
@@ -760,7 +760,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         }
     }
 
-    /**
+    /*
      * clear removes all elements
      */
     public void testDescendingClear() {
@@ -774,7 +774,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         assertTrue(q.isEmpty());
     }
 
-    /**
+    /*
      * containsAll(c) is true when c contains a subset of elements
      */
     public void testDescendingContainsAll() {
@@ -788,7 +788,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         assertTrue(p.containsAll(q));
     }
 
-    /**
+    /*
      * retainAll(c) retains only those elements of c and reports true if changed
      */
     public void testDescendingRetainAll() {
@@ -807,7 +807,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         }
     }
 
-    /**
+    /*
      * removeAll(c) removes only those elements of c and reports true if changed
      */
     public void testDescendingRemoveAll() {
@@ -823,7 +823,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         }
     }
 
-    /**
+    /*
      * lower returns preceding element
      */
     public void testDescendingLower() {
@@ -841,7 +841,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         assertNull(e4);
     }
 
-    /**
+    /*
      * higher returns next element
      */
     public void testDescendingHigher() {
@@ -859,7 +859,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         assertNull(e4);
     }
 
-    /**
+    /*
      * floor returns preceding element
      */
     public void testDescendingFloor() {
@@ -877,7 +877,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         assertNull(e4);
     }
 
-    /**
+    /*
      * ceiling returns next element
      */
     public void testDescendingCeiling() {
@@ -895,7 +895,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         assertNull(e4);
     }
 
-    /**
+    /*
      * toArray contains all elements
      */
     public void testDescendingToArray() {
@@ -906,7 +906,7 @@ public class BTreeSet3Test extends JSR166TestCase {
             assertEquals(o[i], q.pollFirst());
     }
 
-    /**
+    /*
      * toArray(a) contains all elements
      */
     public void testDescendingToArray2() {
@@ -918,7 +918,7 @@ public class BTreeSet3Test extends JSR166TestCase {
             assertEquals(ints[i], q.pollFirst());
     }
 
-    /**
+    /*
      * iterator iterates through all elements
      */
     public void testDescendingIterator() {
@@ -932,7 +932,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         assertEquals(i, SIZE);
     }
 
-    /**
+    /*
      * iterator of empty set has no elements
      */
     public void testDescendingEmptyIterator() {
@@ -946,7 +946,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         assertEquals(0, i);
     }
 
-    /**
+    /*
      * iterator.remove removes current element
      */
     public void testDescendingIteratorRemove() {
@@ -965,7 +965,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         assertFalse(it.hasNext());
     }
 
-    /**
+    /*
      * toString contains toStrings of elements
      */
     public void testDescendingToString() {
@@ -976,7 +976,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         }
     }
 //
-//    /**
+//    /*
 //     * A deserialized serialized set has same elements
 //     */
 //    public void testDescendingSerialization() throws Exception {
@@ -994,7 +994,7 @@ public class BTreeSet3Test extends JSR166TestCase {
 //        assertTrue(y.isEmpty());
 //    }
 
-    /**
+    /*
      * subSet returns set with keys in requested range
      */
     public void testDescendingSubSetContents() {
@@ -1055,7 +1055,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         assertEquals(4, set.size());
     }
 
-    /**
+    /*
      * headSet returns set with keys in requested range
      */
     public void testDescendingHeadSetContents() {
@@ -1081,7 +1081,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         assertEquals(m4, set.first());
     }
 
-    /**
+    /*
      * tailSet returns set with keys in requested range
      */
     public void testDescendingTailSetContents() {

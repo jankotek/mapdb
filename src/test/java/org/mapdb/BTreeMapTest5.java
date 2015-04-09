@@ -23,7 +23,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
     }
 
 
-    /**
+    /*
      * Returns a new map from Integers 1-5 to Strings "A"-"E".
      */
 	private  ConcurrentNavigableMap map5() {
@@ -42,7 +42,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
     }
 
 
-    /**
+    /*
      * Returns a new map from Integers -5 to -1 to Strings "A"-"E".
      */
     private  ConcurrentNavigableMap dmap5() {
@@ -70,7 +70,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         return map;
     }
 
-    /**
+    /*
      * clear removes all pairs
      */
     public void testClear() {
@@ -79,7 +79,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertEquals(0, map.size());
     }
 
-    /**
+    /*
      * Maps with same contents are equal
      */
     public void testEquals() {
@@ -92,7 +92,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertFalse(map2.equals(map1));
     }
 
-    /**
+    /*
      * containsKey returns true for contained key
      */
     public void testContainsKey() {
@@ -101,7 +101,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertFalse(map.containsKey(zero));
     }
 
-    /**
+    /*
      * containsValue returns true for held values
      */
     public void testContainsValue() {
@@ -110,7 +110,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertFalse(map.containsValue("Z"));
     }
 
-    /**
+    /*
      * get returns the correct element at the given key,
      * or null if not present
      */
@@ -121,7 +121,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertNull(empty.get(one));
     }
 
-    /**
+    /*
      * isEmpty is true of empty map and false for non-empty
      */
     public void testIsEmpty() {
@@ -131,7 +131,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertFalse(map.isEmpty());
     }
 
-    /**
+    /*
      * firstKey returns first key
      */
     public void testFirstKey() {
@@ -139,7 +139,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertEquals(one, map.firstKey());
     }
 
-    /**
+    /*
      * lastKey returns last key
      */
     public void testLastKey() {
@@ -147,7 +147,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertEquals(five, map.lastKey());
     }
 
-    /**
+    /*
      * keySet returns a Set containing all the keys
      */
     public void testKeySet() {
@@ -161,7 +161,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertTrue(s.contains(five));
     }
 
-    /**
+    /*
      * keySet is ordered
      */
     public void testKeySetOrder() {
@@ -177,7 +177,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         }
     }
 
-    /**
+    /*
      * values collection contains all values
      */
     public void testValues() {
@@ -191,7 +191,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertTrue(s.contains("E"));
     }
 
-    /**
+    /*
      * keySet.toArray returns contains all keys
      */
     public void testKeySetToArray() {
@@ -204,7 +204,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertFalse(s.containsAll(Arrays.asList(ar)));
     }
 
-    /**
+    /*
      * descendingkeySet.toArray returns contains all keys
      */
     public void testDescendingKeySetToArray() {
@@ -217,7 +217,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertFalse(s.containsAll(Arrays.asList(ar)));
     }
 
-    /**
+    /*
      * Values.toArray contains all values
      */
     
@@ -234,7 +234,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertTrue(s.contains("E"));
     }
 
-    /**
+    /*
      * entrySet contains all pairs
      */
     public void testEntrySet() {
@@ -253,7 +253,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         }
     }
 
-    /**
+    /*
      * putAll adds all key-value pairs from the given map
      */
     public void testPutAll() {
@@ -268,7 +268,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertTrue(empty.containsKey(five));
     }
 
-    /**
+    /*
      * putIfAbsent works when the given key is not present
      */
     public void testPutIfAbsent() {
@@ -277,7 +277,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertTrue(map.containsKey(six));
     }
 
-    /**
+    /*
      * putIfAbsent does not add the pair if the key is already present
      */
     public void testPutIfAbsent2() {
@@ -285,7 +285,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertEquals("A", map.putIfAbsent(one, "Z"));
     }
 
-    /**
+    /*
      * replace fails when the given key is not present
      */
     public void testReplace() {
@@ -294,7 +294,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertFalse(map.containsKey(six));
     }
 
-    /**
+    /*
      * replace succeeds if the key is already present
      */
     public void testReplace2() {
@@ -303,7 +303,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertEquals("Z", map.get(one));
     }
 
-    /**
+    /*
      * replace value fails when the given key not mapped to expected value
      */
     public void testReplaceValue() {
@@ -313,7 +313,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertEquals("A", map.get(one));
     }
 
-    /**
+    /*
      * replace value succeeds when the given key mapped to expected value
      */
     public void testReplaceValue2() {
@@ -323,7 +323,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertEquals("Z", map.get(one));
     }
 
-    /**
+    /*
      * remove removes the correct key-value pair from the map
      */
     public void testRemove() {
@@ -333,7 +333,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertFalse(map.containsKey(five));
     }
 
-    /**
+    /*
      * remove(key,value) removes only if pair present
      */
     public void testRemove2() {
@@ -348,7 +348,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertTrue(map.containsKey(four));
     }
 
-    /**
+    /*
      * lowerEntry returns preceding entry.
      */
     public void testLowerEntry() {
@@ -366,7 +366,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertNull(e4);
     }
 
-    /**
+    /*
      * higherEntry returns next entry.
      */
     public void testHigherEntry() {
@@ -384,7 +384,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertNull(e4);
     }
 
-    /**
+    /*
      * floorEntry returns preceding entry.
      */
     public void testFloorEntry() {
@@ -402,7 +402,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertNull(e4);
     }
 
-    /**
+    /*
      * ceilingEntry returns next entry.
      */
     public void testCeilingEntry() {
@@ -420,7 +420,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertNull(e4);
     }
 
-    /**
+    /*
      * pollFirstEntry returns entries in order
      */
     public void testPollFirstEntry() {
@@ -447,7 +447,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertNull(e);
     }
 
-    /**
+    /*
      * pollLastEntry returns entries in order
      */
     public void testPollLastEntry() {
@@ -474,7 +474,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertNull(e);
     }
 
-    /**
+    /*
      * size returns the correct values
      */
     public void testSize() {
@@ -484,7 +484,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertEquals(5, map.size());
     }
 
-    /**
+    /*
      * toString contains toString of elements
      */
     public void testToString() {
@@ -497,7 +497,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
 
     // Exception tests
 
-    /**
+    /*
      * get(null) of nonempty map throws NPE
      */
     public void testGet_NullPointerException() {
@@ -508,7 +508,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         } catch (NullPointerException success) {}
     }
 
-    /**
+    /*
      * containsKey(null) of nonempty map throws NPE
      */
     public void testContainsKey_NullPointerException() {
@@ -519,7 +519,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         } catch (NullPointerException success) {}
     }
 
-    /**
+    /*
      * containsValue(null) throws NPE
      */
     public void testContainsValue_NullPointerException() {
@@ -530,7 +530,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         } catch (NullPointerException success) {}
     }
 
-    /**
+    /*
      * put(null,x) throws NPE
      */
     public void testPut1_NullPointerException() {
@@ -541,7 +541,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         } catch (NullPointerException success) {}
     }
 
-    /**
+    /*
      * putIfAbsent(null, x) throws NPE
      */
     public void testPutIfAbsent1_NullPointerException() {
@@ -552,7 +552,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         } catch (NullPointerException success) {}
     }
 
-    /**
+    /*
      * replace(null, x) throws NPE
      */
     public void testReplace_NullPointerException() {
@@ -563,7 +563,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         } catch (NullPointerException success) {}
     }
 
-    /**
+    /*
      * replace(null, x, y) throws NPE
      */
     public void testReplaceValue_NullPointerException() {
@@ -574,7 +574,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         } catch (NullPointerException success) {}
     }
 
-    /**
+    /*
      * remove(null) throws NPE
      */
     public void testRemove1_NullPointerException() {
@@ -585,7 +585,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         } catch (NullPointerException success) {}
     }
 
-    /**
+    /*
      * remove(null, x) throws NPE
      */
     public void testRemove2_NullPointerException() {
@@ -596,7 +596,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         } catch (NullPointerException success) {}
     }
 
-//    /**
+//    /*
 //     * A deserialized map equals original
 //     */
 //    public void testSerialization() throws Exception {
@@ -610,7 +610,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
 //        assertEquals(y, x);
 //    }
 
-    /**
+    /*
      * subMap returns map with keys in requested range
      */
     public void testSubMapContents() {
@@ -671,7 +671,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertEquals(4, map.size());
     }
 
-    /**
+    /*
      * headMap returns map with keys in requested range
      */
     public void testHeadMapContents() {
@@ -697,7 +697,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertEquals(four, map.firstKey());
     }
 
-    /**
+    /*
      * headMap returns map with keys in requested range
      */
     public void testTailMapContents() {
@@ -745,7 +745,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertEquals(4, map.size());
     }
 
-    /**
+    /*
      * clear removes all pairs
      */
     public void testDescendingClear() {
@@ -754,7 +754,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertEquals(0, map.size());
     }
 
-    /**
+    /*
      * Maps with same contents are equal
      */
     public void testDescendingEquals() {
@@ -767,7 +767,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertFalse(map2.equals(map1));
     }
 
-    /**
+    /*
      * containsKey returns true for contained key
      */
     public void testDescendingContainsKey() {
@@ -776,7 +776,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertFalse(map.containsKey(zero));
     }
 
-    /**
+    /*
      * containsValue returns true for held values
      */
     public void testDescendingContainsValue() {
@@ -785,7 +785,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertFalse(map.containsValue("Z"));
     }
 
-    /**
+    /*
      * get returns the correct element at the given key,
      * or null if not present
      */
@@ -796,7 +796,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertNull(empty.get(m1));
     }
 
-    /**
+    /*
      * isEmpty is true of empty map and false for non-empty
      */
     public void testDescendingIsEmpty() {
@@ -806,7 +806,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertFalse(map.isEmpty());
     }
 
-    /**
+    /*
      * firstKey returns first key
      */
     public void testDescendingFirstKey() {
@@ -814,7 +814,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertEquals(m1, map.firstKey());
     }
 
-    /**
+    /*
      * lastKey returns last key
      */
     public void testDescendingLastKey() {
@@ -822,7 +822,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertEquals(m5, map.lastKey());
     }
 
-    /**
+    /*
      * keySet returns a Set containing all the keys
      */
     public void testDescendingKeySet() {
@@ -836,7 +836,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertTrue(s.contains(m5));
     }
 
-    /**
+    /*
      * keySet is ordered
      */
     public void testDescendingKeySetOrder() {
@@ -852,7 +852,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         }
     }
 
-    /**
+    /*
      * values collection contains all values
      */
     public void testDescendingValues() {
@@ -866,7 +866,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertTrue(s.contains("E"));
     }
 
-    /**
+    /*
      * keySet.toArray returns contains all keys
      */
     public void testDescendingAscendingKeySetToArray() {
@@ -879,7 +879,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertFalse(s.containsAll(Arrays.asList(ar)));
     }
 
-    /**
+    /*
      * descendingkeySet.toArray returns contains all keys
      */
     public void testDescendingDescendingKeySetToArray() {
@@ -892,7 +892,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertFalse(s.containsAll(Arrays.asList(ar)));
     }
 
-    /**
+    /*
      * Values.toArray contains all values
      */
     public void testDescendingValuesToArray() {
@@ -908,7 +908,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertTrue(s.contains("E"));
     }
 
-    /**
+    /*
      * entrySet contains all pairs
      */
     public void testDescendingEntrySet() {
@@ -927,7 +927,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         }
     }
 
-    /**
+    /*
      * putAll adds all key-value pairs from the given map
      */
     public void testDescendingPutAll() {
@@ -942,7 +942,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertTrue(empty.containsKey(m5));
     }
 
-    /**
+    /*
      * putIfAbsent works when the given key is not present
      */
     public void testDescendingPutIfAbsent() {
@@ -951,7 +951,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertTrue(map.containsKey(six));
     }
 
-    /**
+    /*
      * putIfAbsent does not add the pair if the key is already present
      */
     public void testDescendingPutIfAbsent2() {
@@ -959,7 +959,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertEquals("A", map.putIfAbsent(m1, "Z"));
     }
 
-    /**
+    /*
      * replace fails when the given key is not present
      */
     public void testDescendingReplace() {
@@ -968,7 +968,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertFalse(map.containsKey(six));
     }
 
-    /**
+    /*
      * replace succeeds if the key is already present
      */
     public void testDescendingReplace2() {
@@ -977,7 +977,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertEquals("Z", map.get(m1));
     }
 
-    /**
+    /*
      * replace value fails when the given key not mapped to expected value
      */
     public void testDescendingReplaceValue() {
@@ -987,7 +987,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertEquals("A", map.get(m1));
     }
 
-    /**
+    /*
      * replace value succeeds when the given key mapped to expected value
      */
     public void testDescendingReplaceValue2() {
@@ -997,7 +997,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertEquals("Z", map.get(m1));
     }
 
-    /**
+    /*
      * remove removes the correct key-value pair from the map
      */
     public void testDescendingRemove() {
@@ -1007,7 +1007,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertFalse(map.containsKey(m5));
     }
 
-    /**
+    /*
      * remove(key,value) removes only if pair present
      */
     public void testDescendingRemove2() {
@@ -1022,7 +1022,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertTrue(map.containsKey(m4));
     }
 
-    /**
+    /*
      * lowerEntry returns preceding entry.
      */
     public void testDescendingLowerEntry() {
@@ -1040,7 +1040,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertNull(e4);
     }
 
-    /**
+    /*
      * higherEntry returns next entry.
      */
     public void testDescendingHigherEntry() {
@@ -1058,7 +1058,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertNull(e4);
     }
 
-    /**
+    /*
      * floorEntry returns preceding entry.
      */
     public void testDescendingFloorEntry() {
@@ -1076,7 +1076,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertNull(e4);
     }
 
-    /**
+    /*
      * ceilingEntry returns next entry.
      */
     public void testDescendingCeilingEntry() {
@@ -1094,7 +1094,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertNull(e4);
     }
 
-    /**
+    /*
      * pollFirstEntry returns entries in order
      */
     public void testDescendingPollFirstEntry() {
@@ -1121,7 +1121,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertNull(e);
     }
 
-    /**
+    /*
      * pollLastEntry returns entries in order
      */
     public void testDescendingPollLastEntry() {
@@ -1148,7 +1148,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertNull(e);
     }
 
-    /**
+    /*
      * size returns the correct values
      */
     public void testDescendingSize() {
@@ -1158,7 +1158,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertEquals(5, map.size());
     }
 
-    /**
+    /*
      * toString contains toString of elements
      */
     public void testDescendingToString() {
@@ -1171,7 +1171,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
 
     // Exception testDescendings
 
-    /**
+    /*
      * get(null) of empty map throws NPE
      */
     public void testDescendingGet_NullPointerException() {
@@ -1182,7 +1182,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         } catch (NullPointerException success) {}
     }
 
-    /**
+    /*
      * containsKey(null) of empty map throws NPE
      */
     public void testDescendingContainsKey_NullPointerException() {
@@ -1193,7 +1193,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         } catch (NullPointerException success) {}
     }
 
-    /**
+    /*
      * containsValue(null) throws NPE
      */
     public void testDescendingContainsValue_NullPointerException() {
@@ -1204,7 +1204,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         } catch (NullPointerException success) {}
     }
 
-    /**
+    /*
      * put(null,x) throws NPE
      */
     public void testDescendingPut1_NullPointerException() {
@@ -1215,7 +1215,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         } catch (NullPointerException success) {}
     }
 
-    /**
+    /*
      * putIfAbsent(null, x) throws NPE
      */
     public void testDescendingPutIfAbsent1_NullPointerException() {
@@ -1226,7 +1226,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         } catch (NullPointerException success) {}
     }
 
-    /**
+    /*
      * replace(null, x) throws NPE
      */
     public void testDescendingReplace_NullPointerException() {
@@ -1237,7 +1237,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         } catch (NullPointerException success) {}
     }
 
-    /**
+    /*
      * replace(null, x, y) throws NPE
      */
     public void testDescendingReplaceValue_NullPointerException() {
@@ -1248,7 +1248,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         } catch (NullPointerException success) {}
     }
 
-    /**
+    /*
      * remove(null) throws NPE
      */
     public void testDescendingRemove1_NullPointerException() {
@@ -1259,7 +1259,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         } catch (NullPointerException success) {}
     }
 
-    /**
+    /*
      * remove(null, x) throws NPE
      */
     public void testDescendingRemove2_NullPointerException() {
@@ -1270,7 +1270,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         } catch (NullPointerException success) {}
     }
 
-//    /**
+//    /*
 //     * A deserialized map equals original
 //     */
 //    public void testDescendingSerialization() throws Exception {
@@ -1284,7 +1284,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
 //        assertEquals(y, x);
 //    }
 
-    /**
+    /*
      * subMap returns map with keys in requested range
      */
     public void testDescendingSubMapContents() {
@@ -1345,7 +1345,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertEquals(4, map.size());
     }
 
-    /**
+    /*
      * headMap returns map with keys in requested range
      */
     public void testDescendingHeadMapContents() {
@@ -1371,7 +1371,7 @@ public class BTreeMapTest5 extends JSR166TestCase {
         assertEquals(m4, map.firstKey());
     }
 
-    /**
+    /*
      * headMap returns map with keys in requested range
      */
     public void testDescendingTailMapContents() {

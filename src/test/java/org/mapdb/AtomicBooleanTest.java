@@ -26,14 +26,14 @@ public class AtomicBooleanTest extends TestCase{
     }
 
 
-    /**
+    /*
      * constructor initializes to given value
      */
     public void testConstructor() {
         assertEquals(true,ai.get());
     }
 
-    /**
+    /*
      * default constructed initializes to false
      */
     public void testConstructor2() {
@@ -41,7 +41,7 @@ public class AtomicBooleanTest extends TestCase{
         assertEquals(false,ai.get());
     }
 
-    /**
+    /*
      * get returns the last value set
      */
     public void testGetSet() {
@@ -54,7 +54,7 @@ public class AtomicBooleanTest extends TestCase{
 
     }
 
-    /**
+    /*
      * compareAndSet succeeds in changing value if equal to expected else fails
      */
     public void testCompareAndSet() {
@@ -69,7 +69,7 @@ public class AtomicBooleanTest extends TestCase{
         assertEquals(true,ai.get());
     }
 
-    /**
+    /*
      * compareAndSet in one thread enables another waiting for value
      * to succeed
      */
@@ -86,7 +86,7 @@ public class AtomicBooleanTest extends TestCase{
 
     }
 
-    /**
+    /*
      * getAndSet returns previous value and sets to given value
      */
     public void testGetAndSet() {
@@ -95,7 +95,7 @@ public class AtomicBooleanTest extends TestCase{
         assertEquals(false,ai.getAndSet(true));
         assertEquals(true,ai.get());
     }
-    /**
+    /*
      * toString returns current value.
      */
     public void testToString() {

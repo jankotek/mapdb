@@ -587,11 +587,13 @@ public abstract class Store implements Engine {
         }
 
         /**
+         * <p>
          * Fixed size cache which uses hash table.
          * Is thread-safe and requires only minimal locking.
          * Items are randomly removed and replaced by hash collisions.
-         * <p>
+         * </p><p>
          * This is simple, concurrent, small-overhead, random cache.
+         * </p>
          *
          * @author Jan Kotek
          */
@@ -1118,14 +1120,18 @@ public abstract class Store implements Engine {
 
 
     /**
+     * <p>
      * Open Hash Map which uses primitive long as values and keys.
-     * <p/>
+     * </p><p>
+     *
      * This is very stripped down version from Koloboke Collection Library.
      * I removed modCount, free value (defaults to zero) and
      * most of the methods. Only put/get operations are supported.
-     * <p/>
+     * </p><p>
+     *
      * To iterate over collection one has to traverse {@code table} which contains
      * key-value pairs and skip zero pairs.
+     * </p>
      *
      * @author originaly part of Koloboke library, Roman Leventov, Higher Frequency Trading
      * @author heavily modified for MapDB
@@ -1308,14 +1314,18 @@ public abstract class Store implements Engine {
 
 
     /**
+     * <p>
      * Open Hash Map which uses primitive long as keys.
-     * <p/>
+     * </p><p>
+     *
      * This is very stripped down version from Koloboke Collection Library.
      * I removed modCount, free value (defaults to zero) and
      * most of the methods. Only put/get/remove operations are supported.
-     * <p/>
+     * </p><p>
+     *
      * To iterate over collection one has to traverse {@code set} which contains
      * keys, values are in separate field.
+     * </p>
      *
      * @author originaly part of Koloboke library, Roman Leventov, Higher Frequency Trading
      * @author heavily modified for MapDB
@@ -1588,15 +1598,19 @@ public abstract class Store implements Engine {
 
 
     /**
+     * <p>
      * Open Hash Map which uses primitive long as keys.
      * It also has two values, instead of single one
-     * <p/>
+     * </p><p>
+     *
      * This is very stripped down version from Koloboke Collection Library.
      * I removed modCount, free value (defaults to zero) and
      * most of the methods. Only put/get/remove operations are supported.
-     * <p/>
+     * </p><p>
+     *
      * To iterate over collection one has to traverse {@code set} which contains
      * keys, values are in separate field.
+     * </p>
      *
      * @author originaly part of Koloboke library, Roman Leventov, Higher Frequency Trading
      * @author heavily modified for MapDB

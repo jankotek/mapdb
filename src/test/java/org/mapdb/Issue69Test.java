@@ -8,7 +8,7 @@ import java.util.Map;
 
 import static org.junit.Assert.fail;
 
-/**
+/*
  * https://github.com/jankotek/MapDB/issues/69
  *
  * @author Konstantin Zadorozhny

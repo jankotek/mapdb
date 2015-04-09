@@ -27,27 +27,31 @@ import java.io.DataInput;
 import java.io.IOException;
 
 /**
+ * <p>
  * A small toolkit of classes that support lock-free thread-safe
  * programming on single records.  In essence, the classes here
  * provide provide an atomic conditional update operation of the form:
- * <p>
+ * </p>
  *
  * <pre>
  *   boolean compareAndSet(expectedValue, updateValue);
  * </pre>
  *
- * <p>This method (which varies in argument types across different
+ * <p>
+ * This method (which varies in argument types across different
  * classes) atomically sets a record to the {@code updateValue} if it
  * currently holds the {@code expectedValue}, reporting {@code true} on
  * success. Classes jere also contain methods to get and
  * unconditionally set values.
+ * </p><p>
  *
- * <p>The specifications of these methods enable to
+ * The specifications of these methods enable to
  * employ more efficient internal DB locking. CompareAndSwap
  * operation is typically faster than using transactions, global lock or other
  * concurrent protection.
  *
- * <p>Instances of classes
+ * </p><p>
+ * Instances of classes
  * {@link Atomic.Boolean},
  * {@link Atomic.Integer},
  * {@link Atomic.Long},
@@ -58,31 +62,35 @@ import java.io.IOException;
  * methods for that type.  For example, classes {@code Atomic.Long} and
  * {@code Atomic.Integer} provide atomic increment methods.  One
  * application is to generate unique keys for Maps:
- *
+ * </p>
  * <pre>
  *    Atomic.Long id = Atomic.getLong("mapId");
  *    map.put(id.getAndIncrement(), "something");
  * </pre>
  *
- * <p>Atomic classes are designed primarily as building blocks for
+ * <p>
+ * Atomic classes are designed primarily as building blocks for
  * implementing non-blocking data structures and related infrastructure
  * classes.  The {@code compareAndSet} method is not a general
  * replacement for locking.  It applies only when critical updates for an
  * object are confined to a <em>single</em> record.
+ *</p><p>
  *
- * <p>Atomic classes are not general purpose replacements for
+ * Atomic classes are not general purpose replacements for
  * {@code java.lang.Integer} and related classes.  They do <em>not</em>
  * define methods such as {@code hashCode} and
  * {@code compareTo}.  (Because atomic records are expected to be
  * mutated, they are poor choices for hash table keys.)  Additionally,
  * classes are provided only for those types that are commonly useful in
  * intended applications. Other types has to be wrapped into general {@link Atomic.Var}
- * <p>
+ * </p><p>
+ *
  * You can also hold floats using
  * {@link java.lang.Float#floatToIntBits} and
  * {@link java.lang.Float#intBitsToFloat} conversions, and doubles using
  * {@link java.lang.Double#doubleToLongBits} and
  * {@link java.lang.Double#longBitsToDouble} conversions.
+ * </p>
  *
  */
 final public class Atomic {

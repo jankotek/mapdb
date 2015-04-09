@@ -49,7 +49,7 @@ import junit.framework.TestCase;
 import java.util.*;
 import java.util.Map.Entry;
 
-/**
+/*
  * to test {@link java.util.NavigableMap} implementation
  * 
  * @author luc peuvrier

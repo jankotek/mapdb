@@ -4,7 +4,7 @@ import junit.framework.TestCase;
 
 abstract public class JSR166TestCase extends TestCase {
 
-    /**
+    /*
      * The number of elements to place in collections, arrays, etc.
      */
     public static final int SIZE = 20;
@@ -29,7 +29,7 @@ abstract public class JSR166TestCase extends TestCase {
     public static final Integer m6  = new Integer(-6);
     public static final Integer m10 = new Integer(-10);
 
-    /**
+    /*
      * Fails with message "should throw exception".
      */
     public void shouldThrow() {

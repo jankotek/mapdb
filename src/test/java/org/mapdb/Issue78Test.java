@@ -6,7 +6,7 @@ import org.junit.Test;
 
 import java.io.IOError;
 
-/**
+/*
  * https://github.com/jankotek/MapDB/issues/78
  *
  * @author Nandor Kracser

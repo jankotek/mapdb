@@ -19,96 +19,107 @@ package org.mapdb;
 import java.io.Closeable;
 
 /**
+ * <p>
  * Centerpiece for record management, {@code Engine} is simple key value store.
  * Engine is low-level interface and is not meant to be used directly
  * by user. For most operations user should use {@link org.mapdb.DB} class.
- * <p>
+ * </p><p>
+ *
  * In this store key is primitive {@code long} number, typically pointer to index table.
  * Value is class instance. To turn value into/from binary form serializer is
  * required as extra argument for most operations.
- * <p>
+ * </p><p>
+ *
  * Unlike other DBs MapDB does not expect user to (de)serialize data before
  * they are passed as arguments. Instead MapDB controls (de)serialization itself.
  * This gives DB a lot of flexibility: for example instances may be held in
  * cache to minimise number of deserializations, or modified instance can
  * be placed into queue and asynchronously written on background thread.
- * <p>
+ * </p><p>
+ *
  * There is {@link Store} subinterface for raw persistence
- * Most of MapDB features comes from {@link EngineWrapper}s, which are stacked on
- * top of each other to provide asynchronous writes, instance cache, encryption etc..
- * {@code Engine} stack is very elegant and uniform way to handle additional functionality.
- * Other DBs need an ORM framework to achieve similar features.
- * <p>
+ * </p><p>
+ *
  * In default configuration MapDB runs with this {@code Engine} stack:
+ * </p>
  *
  * <ol>
  *  <li> <b>DISK</b> - raw file or memory
  *  <li> {@link org.mapdb.StoreWAL} - permanent record store with transactions
- *  <li> {@link Cache.HashTable} - instance cache
  *  <li> <b>USER</b> - {@link DB} and collections
  * </ol>
  *
+ * <p>
  * TODO document more examples of Engine  wrappers
+ * </p><p>
  *
  * Engine uses {@code recid} to identify records. There is zero error handling in case recid is invalid
  * (random number or already deleted record). Passing illegal recid may result into anything
  * (return null, throw EOF or even corrupt store). Engine is considered low-level component
  * and it is responsibility of upper layers (collections) to ensure recid is consistent.
  * Lack of error handling is trade of for speed (similar way as manual memory management in C++)
- * <p>
+ * </p><p>
+ *
  * Engine must support {@code null} record values. You may insert, update and fetch null records.
  * Nulls play important role in recid preallocation and asynchronous writes.
- * <p>
+ * </p><p>
  * Recid can be reused after it was deleted. If your application relies on unique being unique,
  * you should update record with null value, instead of delete.
  * Null record consumes only 8 bytes in store and is preserved during defragmentation.
- *
+ * </p>
  * @author Jan Kotek
  */
 public interface Engine  extends Closeable {
 
     /**
-     long CLASS_INFO_RECID = 2;
-     * Content of this map is manipulated by {@link org.mapdb.DB} classs.
      * <p>
+     * Content of this map is manipulated by {@link org.mapdb.DB} class.
+     * </p>
      * There are 8 reserved record ids. They store information relevant to
      * {@link org.mapdb.DB} and higher level functions. Those are preallocated when store is created.
      */
     long RECID_NAME_CATALOG = 1;
 
     /**
+     * <p>
      * Points to class catalog. A list of classes used in {@link org.mapdb.SerializerPojo}
      * to serialize java objects.
-     * <p>
+     * </p>
      * There are 8 reserved record ids. They store information relevant to
      * {@link org.mapdb.DB} and higher level functions. Those are preallocated when store is created.
      */
     long RECID_CLASS_CATALOG = 2;
 
     /**
+     * <p>
      * Recid used for 'record check'. This record is loaded when store is open,
      * to ensure configuration such as encryption and compression is correctly set and \
      * data are read-able.
-     * <p>
+     * </p><p>
      * There are 8 reserved record ids. They store information relevant to
      * {@link org.mapdb.DB} and higher level functions. Those are preallocated when store is created.
+     * </p>
      */
     long RECID_RECORD_CHECK = 3;
 
     /**
+     * <p>
      * There are 8 reserved record ids. They store information relevant to
      * {@link org.mapdb.DB} and higher level functions. Those are preallocated when store is created.
-     * <p>
+     * </p><p>
      * This value is last reserved record id. User ids (recids returned by {@link Engine#put(Object, Serializer)})
      * starts from {@code RECID_LAST_RESERVED+1}
+     * </p>
      */
     long RECID_LAST_RESERVED = 7;
 
     /**
+     * <p>
      * There are 8 reserved record ids. They store information relevant to
      * {@link org.mapdb.DB} and higher level functions. Those are preallocated when store is created.
-     * <p>
+     * </p><p>
      * This constant is first recid available to user. It is first value returned by {@link #put(Object, Serializer)} if store is empty.
+     * </p>
      */
     long RECID_FIRST = RECID_LAST_RESERVED+1;
 
@@ -133,11 +144,14 @@ public interface Engine  extends Closeable {
     <A> long put(A value, Serializer<A> serializer);
 
     /**
-     * Get existing record.
      * <p>
+     * Get existing record.
+     * </p><p>
+     *
      * Recid must be a number returned by 'put' method.
      * Behaviour for invalid recid (random number or already deleted record)
      * is not defined, typically it returns null or throws 'EndOfFileException'
+     * </p>
      *
      * @param recid (record identifier) under which record was persisted
      * @param serializer used to deserialize record from binary form
@@ -147,12 +161,14 @@ public interface Engine  extends Closeable {
     <A> A get(long recid, Serializer<A> serializer);
 
     /**
-     * Update existing record with new value.
      * <p>
+     * Update existing record with new value.
+     * </p><p>
      * Recid must be a number returned by 'put' method.
      * Behaviour for invalid recid (random number or already deleted record)
      * is not defined, typically it throws 'EndOfFileException',
      * but it may also corrupt store.
+     * </p>
      *
      * @param recid (record identifier) under which record was persisted.
      * @param value new record value to be stored
@@ -163,8 +179,10 @@ public interface Engine  extends Closeable {
 
 
     /**
+     * <p>
      * Updates existing record in atomic <a href="http://en.wikipedia.org/wiki/Compare-and-swap">(Compare And Swap)</a> manner.
      * Value is modified only if old value matches expected value. There are three ways to match values, MapDB may use any of them:
+     * </p>
      * <ol>
      *    <li>Equality check <code>oldValue==expectedOldValue</code> when old value is found in instance cache</li>
      *    <li>Deserializing <code>oldValue</code> using <code>serializer</code> and checking <code>oldValue.equals(expectedOldValue)</code></li>
@@ -175,6 +193,7 @@ public interface Engine  extends Closeable {
      * Behaviour for invalid recid (random number or already deleted record)
      * is not defined, typically it throws 'EndOfFileException',
      * but it may also corrupt store.
+     * </p>
      *
      * @param recid (record identifier) under which record was persisted.
      * @param expectedOldValue old value to be compared with existing record
@@ -186,13 +205,15 @@ public interface Engine  extends Closeable {
     <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer);
 
     /**
-     * Remove existing record from store/cache
-     *
      * <p>
+     * Remove existing record from store/cache
+     * </p><p>
+     *
      * Recid must be a number returned by 'put' method.
      * Behaviour for invalid recid (random number or already deleted record)
      * is not defined, typically it throws 'EndOfFileException',
      * but it may also corrupt store.
+     * </p>
      *
      * @param recid (record identifier) under which was record persisted
      * @param serializer which may be used in some circumstances to deserialize and store old object
@@ -202,14 +223,18 @@ public interface Engine  extends Closeable {
 
 
     /**
+     * <p>
      * Close store/cache. This method must be called before JVM exits to flush all caches and prevent store corruption.
      * Also it releases resources used by MapDB (disk, memory..).
-     * <p>
+     * </p><p>
+     *
      * Engine can no longer be used after this method was called. If Engine is used after closing, it may
      * throw any exception including <code>NullPointerException</code>
-     * <p>
+     * </p><p>
+     *
      * There is an configuration option {@link DBMaker#closeOnJvmShutdown()} which uses shutdown hook to automatically
      * close Engine when JVM shutdowns.
+     * </p>
      */
     void close();
 

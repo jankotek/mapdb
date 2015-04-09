@@ -8,7 +8,7 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 
-/**
+/*
  * check that `IllegalAccessError` is thrown after DB was closed
  */
 public abstract class ClosedThrowsExceptionTest {

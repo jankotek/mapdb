@@ -25,7 +25,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         }
     }
 
-    /**
+    /*
      * Returns a new set of given size containing consecutive
      * Integers 0 ... n.
      */
@@ -41,7 +41,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         return q;
     }
 
-    /**
+    /*
      * Returns a new set of first 5 ints.
      */
     private NavigableSet set5() {
@@ -56,14 +56,14 @@ public class BTreeSet2Test extends JSR166TestCase {
         return q;
     }
 
-    /**
+    /*
      * A new set has unbounded capacity
      */
     public void testConstructor1() {
         assertEquals(0, DBMaker.newMemoryDB().transactionDisable().make().getTreeSet("test").size());
     }
 
-//    /**
+//    /*
 //     * Initializing from null Collection throws NPE
 //     */
 //    public void testConstructor3() {
@@ -73,7 +73,7 @@ public class BTreeSet2Test extends JSR166TestCase {
 //        } catch (NullPointerException success) {}
 //    }
 //
-//    /**
+//    /*
 //     * Initializing from Collection of null elements throws NPE
 //     */
 //    public void testConstructor4() {
@@ -84,7 +84,7 @@ public class BTreeSet2Test extends JSR166TestCase {
 //        } catch (NullPointerException success) {}
 //    }
 //
-//    /**
+//    /*
 //     * Initializing from Collection with some null elements throws NPE
 //     */
 //    public void testConstructor5() {
@@ -97,7 +97,7 @@ public class BTreeSet2Test extends JSR166TestCase {
 //        } catch (NullPointerException success) {}
 //    }
 //
-//    /**
+//    /*
 //     * Set contains all elements of collection used to initialize
 //     */
 //    public void testConstructor6() {
@@ -109,7 +109,7 @@ public class BTreeSet2Test extends JSR166TestCase {
 //            assertEquals(ints[i], q.pollFirst());
 //    }
 
-    /**
+    /*
      * The comparator used in constructor is used
      */
     public void testConstructor7() {
@@ -125,7 +125,7 @@ public class BTreeSet2Test extends JSR166TestCase {
             assertEquals(ints[i], q.pollFirst());
     }
 
-    /**
+    /*
      * isEmpty is true before add, false after
      */
     public void testEmpty() {
@@ -139,7 +139,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         assertTrue(q.isEmpty());
     }
 
-    /**
+    /*
      * size changes when elements added and removed
      */
     public void testSize() {
@@ -154,7 +154,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         }
     }
 
-    /**
+    /*
      * add(null) throws NPE
      */
     public void testAddNull() {
@@ -165,7 +165,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         } catch (NullPointerException success) {}
     }
 
-    /**
+    /*
      * Add of comparable element succeeds
      */
     public void testAdd() {
@@ -174,7 +174,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         assertTrue(q.add(one));
     }
 
-    /**
+    /*
      * Add of duplicate element fails
      */
     public void testAddDup() {
@@ -183,7 +183,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         assertFalse(q.add(zero));
     }
 
-    /**
+    /*
      * Add of non-Comparable throws CCE
      */
     public void testAddNonComparable() {
@@ -196,7 +196,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         } catch (ClassCastException success) {}
     }
 
-    /**
+    /*
      * addAll(null) throws NPE
      */
     public void testAddAll1() {
@@ -207,7 +207,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         } catch (NullPointerException success) {}
     }
 
-    /**
+    /*
      * addAll of a collection with null elements throws NPE
      */
     public void testAddAll2() {
@@ -219,7 +219,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         } catch (NullPointerException success) {}
     }
 
-    /**
+    /*
      * addAll of a collection with any null elements throws NPE after
      * possibly adding some elements
      */
@@ -234,7 +234,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         } catch (NullPointerException success) {}
     }
 
-    /**
+    /*
      * Set contains all elements of successful addAll
      */
     public void testAddAll5() {
@@ -249,7 +249,7 @@ public class BTreeSet2Test extends JSR166TestCase {
             assertEquals(i, q.pollFirst());
     }
 
-    /**
+    /*
      * pollFirst succeeds unless empty
      */
     public void testPollFirst() {
@@ -260,7 +260,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         assertNull(q.pollFirst());
     }
 
-    /**
+    /*
      * pollLast succeeds unless empty
      */
     public void testPollLast() {
@@ -271,7 +271,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         assertNull(q.pollFirst());
     }
 
-    /**
+    /*
      * remove(x) removes x and returns true if present
      */
     public void testRemoveElement() {
@@ -292,7 +292,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         assertTrue(q.isEmpty());
     }
 
-    /**
+    /*
      * contains(x) reports true when elements added but not yet removed
      */
     public void testContains() {
@@ -304,7 +304,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         }
     }
 
-    /**
+    /*
      * clear removes all elements
      */
     public void testClear() {
@@ -318,7 +318,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         assertTrue(q.isEmpty());
     }
 
-    /**
+    /*
      * containsAll(c) is true when c contains a subset of elements
      */
     public void testContainsAll() {
@@ -332,7 +332,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         assertTrue(p.containsAll(q));
     }
 
-    /**
+    /*
      * retainAll(c) retains only those elements of c and reports true if changed
      */
     public void testRetainAll() {
@@ -351,7 +351,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         }
     }
 
-    /**
+    /*
      * removeAll(c) removes only those elements of c and reports true if changed
      */
     public void testRemoveAll() {
@@ -367,7 +367,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         }
     }
 
-    /**
+    /*
      * lower returns preceding element
      */
     public void testLower() {
@@ -385,7 +385,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         assertNull(e4);
     }
 
-    /**
+    /*
      * higher returns next element
      */
     public void testHigher() {
@@ -403,7 +403,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         assertNull(e4);
     }
 
-    /**
+    /*
      * floor returns preceding element
      */
     public void testFloor() {
@@ -421,7 +421,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         assertNull(e4);
     }
 
-    /**
+    /*
      * ceiling returns next element
      */
     public void testCeiling() {
@@ -439,7 +439,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         assertNull(e4);
     }
 
-    /**
+    /*
      * toArray contains all elements in sorted order
      */
     public void testToArray() {
@@ -449,7 +449,7 @@ public class BTreeSet2Test extends JSR166TestCase {
             assertSame(o[i], q.pollFirst());
     }
 
-    /**
+    /*
      * toArray(a) contains all elements in sorted order
      */
     public void testToArray2() {
@@ -460,7 +460,7 @@ public class BTreeSet2Test extends JSR166TestCase {
             assertSame(ints[i], q.pollFirst());
     }
 
-    /**
+    /*
      * iterator iterates through all elements
      */
     public void testIterator() {
@@ -474,7 +474,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         assertEquals(i, SIZE);
     }
 
-    /**
+    /*
      * iterator of empty set has no elements
      */
     public void testEmptyIterator() {
@@ -488,7 +488,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         assertEquals(0, i);
     }
 
-    /**
+    /*
      * iterator.remove removes current element
      */
     public void testIteratorRemove() {
@@ -507,7 +507,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         assertFalse(it.hasNext());
     }
 
-    /**
+    /*
      * toString contains toStrings of elements
      */
     public void testToString() {
@@ -518,7 +518,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         }
     }
 
-//    /**
+//    /*
 //     * A deserialized serialized set has same elements
 //     */
 //    public void testSerialization() throws Exception {
@@ -536,7 +536,7 @@ public class BTreeSet2Test extends JSR166TestCase {
 //        assertTrue(y.isEmpty());
 //    }
 
-    /**
+    /*
      * subSet returns set with keys in requested range
      */
     public void testSubSetContents() {
@@ -597,7 +597,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         assertEquals(4, set.size());
     }
 
-    /**
+    /*
      * headSet returns set with keys in requested range
      */
     public void testHeadSetContents() {
@@ -623,7 +623,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         assertEquals(four, set.first());
     }
 
-    /**
+    /*
      * tailSet returns set with keys in requested range
      */
     public void testTailSetContents() {
@@ -659,7 +659,7 @@ public class BTreeSet2Test extends JSR166TestCase {
 
     final boolean expensiveTests = true;
 
-    /**
+    /*
      * Subsets of subsets subdivide correctly
      */
     public void testRecursiveSubSets() throws Exception {
@@ -681,7 +681,7 @@ public class BTreeSet2Test extends JSR166TestCase {
                 0, setSize - 1, true, bs);
     }
 
-    /**
+    /*
      * addAll is idempotent
      */
     public void testAddAll_idempotent() throws Exception {
@@ -853,7 +853,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         }
     }
 
-    /**
+    /*
      * min and max are both inclusive.  If max < min, interval is empty.
      */
     void check(NavigableSet<Integer> set,
