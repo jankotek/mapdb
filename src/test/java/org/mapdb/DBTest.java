@@ -203,4 +203,34 @@ public class DBTest {
         assertTrue(s.isTerminated());
     }
 
+    @Test public void treemap_infer_key_serializer(){
+        DB db = DBMaker.newMemoryDB().make();
+        BTreeMap m = db.createTreeMap("test")
+                .keySerializer(Serializer.LONG)
+                .make();
+        assertEquals(BTreeKeySerializer.LONG, m.keySerializer);
+
+        BTreeMap m2 = db.createTreeMap("test2")
+                .keySerializer(Serializer.LONG)
+                .comparator(Fun.REVERSE_COMPARATOR)
+                .make();
+        assertTrue(m2.keySerializer instanceof BTreeKeySerializer.BasicKeySerializer);
+        assertEquals(m2.comparator(), Fun.REVERSE_COMPARATOR);
+    }
+
+
+    @Test public void treeset_infer_key_serializer(){
+        DB db = DBMaker.newMemoryDB().make();
+        BTreeMap.KeySet m = (BTreeMap.KeySet) db.createTreeSet("test")
+                .serializer(Serializer.LONG)
+                .make();
+        assertEquals(BTreeKeySerializer.LONG, ((BTreeMap)m.m).keySerializer);
+
+        BTreeMap.KeySet m2 = (BTreeMap.KeySet) db.createTreeSet("test2")
+                .serializer(Serializer.LONG)
+                .comparator(Fun.REVERSE_COMPARATOR)
+                .make();
+        assertTrue(((BTreeMap)m2.m).keySerializer instanceof BTreeKeySerializer.BasicKeySerializer);
+        assertEquals(m2.comparator(), Fun.REVERSE_COMPARATOR);
+    }
 }

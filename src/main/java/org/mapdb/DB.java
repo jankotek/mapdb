@@ -835,6 +835,8 @@ public class DB implements Closeable {
         protected boolean valuesOutsideNodes = false;
         protected boolean counter = false;
         protected BTreeKeySerializer keySerializer;
+        protected Serializer keySerializer2;
+
         protected Serializer valueSerializer;
         protected Comparator comparator;
 
@@ -873,12 +875,15 @@ public class DB implements Closeable {
             this.keySerializer = keySerializer;
             return this;
         }
-        /** keySerializer used to convert keys into/from binary form.
-         * This wraps ordinary serializer, with no delta packing used*/
+        /**
+         * keySerializer used to convert keys into/from binary form.
+         */
         public BTreeMapMaker keySerializer(Serializer serializer){
-            this.keySerializer = new BTreeKeySerializer.BasicKeySerializer(serializer, comparator);
+            this.keySerializer2 = serializer;
             return this;
         }
+
+
 
         /** valueSerializer used to convert values into/from binary form. */
         public BTreeMapMaker valueSerializer(Serializer<?> valueSerializer){
@@ -964,6 +969,7 @@ public class DB implements Closeable {
         protected int nodeSize = 32;
         protected boolean counter = false;
         protected BTreeKeySerializer serializer;
+        protected Serializer serializer2;
         protected Comparator<?> comparator;
 
         protected Iterator<?> pumpSource;
@@ -987,12 +993,18 @@ public class DB implements Closeable {
             return this;
         }
 
-        /** keySerializer used to convert keys into/from binary form. */
+        /** serializer used to convert keys into/from binary form. */
         public BTreeSetMaker serializer(BTreeKeySerializer serializer){
             this.serializer = serializer;
             return this;
         }
 
+
+        /** serializer used to convert keys into/from binary form. */
+        public BTreeSetMaker serializer(Serializer serializer){
+            this.serializer2 = serializer;
+            return this;
+        }
         /** comparator used to sort keys.  */
         public BTreeSetMaker comparator(Comparator<?> comparator){
             this.comparator = comparator;
@@ -1118,8 +1130,21 @@ public class DB implements Closeable {
             m.comparator = Fun.COMPARATOR;
         }
 
+        if(m.keySerializer==null && m.keySerializer2!=null) {
+            // infer BTreeKeyComparator
+            if (m.comparator == null || m.comparator == Fun.COMPARATOR) {
+                m.keySerializer= m.keySerializer2.getBTreeKeySerializer(false);
+            } else if (m.comparator == Fun.REVERSE_COMPARATOR) {
+                m.keySerializer = m.keySerializer2.getBTreeKeySerializer(true);
+            } else {
+                LOG.warning("Custom comparator is set for '"+m.name+
+                        "'. Falling back to generic BTreeKeySerializer with no compression");
+                m.keySerializer = new BTreeKeySerializer.BasicKeySerializer(m.keySerializer2, m.comparator);
+            }
+        }
         m.keySerializer = fillNulls(m.keySerializer);
-        m.keySerializer = catPut(name+".keySerializer",m.keySerializer,new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer(),m.comparator));
+        m.keySerializer = catPut(name+".keySerializer",m.keySerializer,
+                new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer(),m.comparator));
         m.valueSerializer = catPut(name+".valueSerializer",m.valueSerializer,getDefaultSerializer());
 
         if(m.pumpPresortBatchSize!=-1 && m.pumpSource!=null){
@@ -1277,8 +1302,22 @@ public class DB implements Closeable {
             m.comparator = Fun.COMPARATOR;
         }
         //$DELAY$
+
+        if(m.serializer==null && m.serializer2!=null) {
+            // infer BTreeKeyComparator
+            if (m.comparator == null || m.comparator == Fun.COMPARATOR) {
+                m.serializer= m.serializer2.getBTreeKeySerializer(false);
+            } else if (m.comparator == Fun.REVERSE_COMPARATOR) {
+                m.serializer = m.serializer2.getBTreeKeySerializer(true);
+            } else {
+                LOG.warning("Custom comparator is set for '"+m.name+
+                        "'. Falling back to generic BTreeKeySerializer with no compression");
+                m.serializer = new BTreeKeySerializer.BasicKeySerializer(m.serializer2, m.comparator);
+            }
+        }
         m.serializer = fillNulls(m.serializer);
-        m.serializer = catPut(m.name+".keySerializer",m.serializer,new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer(),m.comparator));
+        m.serializer = catPut(m.name+".keySerializer",m.serializer,
+                new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer(),m.comparator));
 
         if(m.pumpPresortBatchSize!=-1){
             m.pumpSource = Pump.sort(

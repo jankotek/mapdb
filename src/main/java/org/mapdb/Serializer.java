@@ -76,6 +76,13 @@ public abstract class Serializer<A> {
             return true;
         }
 
+        @Override
+        public BTreeKeySerializer getBTreeKeySerializer(boolean descending) {
+            if(descending) {
+                return super.getBTreeKeySerializer(descending);
+            }
+            return BTreeKeySerializer.STRING;
+        }
     };
 
     /**
@@ -137,6 +144,14 @@ public abstract class Serializer<A> {
             return true;
         }
 
+        @Override
+        public BTreeKeySerializer getBTreeKeySerializer(boolean descending) {
+            if(descending) {
+                return super.getBTreeKeySerializer(descending);
+            }
+            return BTreeKeySerializer.STRING; //TODO ascii specific serializer?
+        }
+
     };
 
     /**
@@ -166,6 +181,14 @@ public abstract class Serializer<A> {
         @Override
         public boolean isTrusted() {
             return true;
+        }
+
+        @Override
+        public BTreeKeySerializer getBTreeKeySerializer(boolean descending) {
+            if(descending) {
+                return super.getBTreeKeySerializer(descending);
+            }
+            return BTreeKeySerializer.STRING;
         }
 
     };
@@ -274,6 +297,13 @@ public abstract class Serializer<A> {
             return vals2;
         }
 
+        @Override
+        public BTreeKeySerializer getBTreeKeySerializer(boolean descending) {
+            if(descending) {
+                return super.getBTreeKeySerializer(descending);
+            }
+            return BTreeKeySerializer.LONG;
+        }
 
     };
 
@@ -378,7 +408,13 @@ public abstract class Serializer<A> {
             return vals2;
         }
 
-
+        @Override
+        public BTreeKeySerializer getBTreeKeySerializer(boolean descending) {
+            if(descending) {
+                return super.getBTreeKeySerializer(descending);
+            }
+            return BTreeKeySerializer.INTEGER;
+        }
 
     };
 
@@ -434,6 +470,8 @@ public abstract class Serializer<A> {
         public boolean isTrusted() {
             return true;
         }
+
+        //TODO RECID btree key serializer (long with added parity checks)
     };
 
 
@@ -492,6 +530,14 @@ public abstract class Serializer<A> {
         public int hashCode(byte[] bytes) {
             return Arrays.hashCode(bytes);
         }
+
+        @Override
+        public BTreeKeySerializer getBTreeKeySerializer(boolean descending) {
+            if(descending) {
+                return super.getBTreeKeySerializer(descending);
+            }
+            return BTreeKeySerializer.BYTE_ARRAY;
+        }
     } ;
 
     /**
@@ -527,6 +573,13 @@ public abstract class Serializer<A> {
             return Arrays.hashCode(bytes);
         }
 
+        @Override
+        public BTreeKeySerializer getBTreeKeySerializer(boolean descending) {
+            if(descending) {
+                return super.getBTreeKeySerializer(descending);
+            }
+            return BTreeKeySerializer.BYTE_ARRAY;
+        }
 
     } ;
 
@@ -847,6 +900,13 @@ public abstract class Serializer<A> {
             return vals2;
         }
 
+        @Override
+        public BTreeKeySerializer getBTreeKeySerializer(boolean descending) {
+            if(descending) {
+                return super.getBTreeKeySerializer(descending);
+            }
+            return BTreeKeySerializer.UUID;
+        }
     };
 
     public static final Serializer<Byte> BYTE = new Serializer<Byte>() {
@@ -1296,9 +1356,9 @@ public abstract class Serializer<A> {
 
 
     /**
-     * Basic serializer for most classes in 'java.lang' and 'java.util' packages.
+     * Basic serializer for most classes in {@code java.lang} and {@code java.util} packages.
      * It does not handle custom POJO classes. It also does not handle classes which
-     * require access to `DB` itself.
+     * require access to {@code DB} itself.
      */
     @SuppressWarnings("unchecked")
     public static final Serializer<Object> BASIC = new Serializer(){
@@ -1414,6 +1474,11 @@ public abstract class Serializer<A> {
         System.arraycopy(vals,0,vals2, 0, pos-1);
         System.arraycopy(vals, pos, vals2, pos-1, vals2.length-(pos-1));
         return vals2;
+    }
+
+    public BTreeKeySerializer getBTreeKeySerializer(boolean descending){
+        return new BTreeKeySerializer.BasicKeySerializer(Serializer.this,
+                descending? Fun.REVERSE_COMPARATOR : Fun.COMPARATOR);
     }
 
 
