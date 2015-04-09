@@ -105,8 +105,6 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.16</version>
                 <configuration>
-
-                    <!-- TODO control forkCount from CLI, default 1 since it causes OOEM-->
                     <reuseForks>true</reuseForks>
                     <forkCount>${forkCount}</forkCount>
 
