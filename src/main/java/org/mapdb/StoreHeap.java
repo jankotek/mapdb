@@ -40,7 +40,7 @@ public class StoreHeap extends Store{
         }
 
         newRecidLock = lockingStrategy==LOCKING_STRATEGY_NOLOCK?
-                new NoLock() : new ReentrantLock(CC.FAIR_LOCKS);
+               NOLOCK : new ReentrantLock(CC.FAIR_LOCKS);
         freeRecid = new long[16];
         freeRecidTail=0;
 

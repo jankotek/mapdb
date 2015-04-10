@@ -121,7 +121,7 @@ public class DB implements Closeable {
         this.deleteFilesAfterClose = deleteFilesAfterClose;
         this.executor = executor;
         this.sequentialLock = lockDisable ?
-                new Store.ReadWriteSingleLock(new Store.NoLock()) :
+                new Store.ReadWriteSingleLock(Store.NOLOCK) :
                 new ReentrantReadWriteLock();
 
         this.metricsExecutor = metricsExecutor==null ? executor : metricsExecutor;
