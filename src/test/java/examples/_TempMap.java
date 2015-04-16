@@ -15,7 +15,7 @@ public class _TempMap {
 
         // open new empty map
         // DBMaker will create files in temporary folder and opens it
-        Map<String, String> map = DBMaker.newTempTreeMap();
+        Map<String, String> map = DBMaker.tempTreeMap();
 
         //put some stuff into map
         //all data are stored in file in temp folder

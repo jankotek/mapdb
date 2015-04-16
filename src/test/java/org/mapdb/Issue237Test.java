@@ -15,10 +15,10 @@ public class Issue237Test {
 
     @Test
     public void testReopenAsync() throws InterruptedException {
-        DB database = DBMaker.newFileDB( file ).asyncWriteEnable().make();
+        DB database = DBMaker.fileDB( file ).asyncWriteEnable().make();
         testQueue( database );
 
-        database = DBMaker.newFileDB( file ).asyncWriteEnable().make();
+        database = DBMaker.fileDB( file ).asyncWriteEnable().make();
         testQueue( database );
     }
 
@@ -26,10 +26,10 @@ public class Issue237Test {
     public void testReopenSync() throws InterruptedException {
         file.delete();
 
-        DB database = DBMaker.newFileDB( file ).make();
+        DB database = DBMaker.fileDB( file ).make();
         testQueue( database );
 
-        database = DBMaker.newFileDB( file ).make();
+        database = DBMaker.fileDB( file ).make();
         testQueue( database );
     }
 

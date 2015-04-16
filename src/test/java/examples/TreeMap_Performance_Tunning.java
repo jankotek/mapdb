@@ -55,7 +55,7 @@ public class TreeMap_Performance_Tunning {
                 boolean valueOutsideOfNodes = (j==2);
 
                 DB db = DBMaker
-                        .newFileDB(new File("/mnt/big/adsasd"))
+                        .fileDB(new File("/mnt/big/adsasd"))
                         .deleteFilesAfterClose()
                         .closeOnJvmShutdown()
                         .transactionDisable()

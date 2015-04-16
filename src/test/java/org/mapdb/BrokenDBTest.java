@@ -32,7 +32,7 @@ public class BrokenDBTest {
         }
 
         try {
-            DBMaker.newFileDB(index).make();
+            DBMaker.fileDB(index).make();
             Assert.fail("Expected exception not thrown");
         } catch (final DBException.VolumeIOError e) {
             //TODO there should be broken header Exception or something like that
@@ -58,7 +58,7 @@ public class BrokenDBTest {
     @Test
     public void canDeleteDBOnBrokenLog() throws IOException {
         // init empty, but valid DB
-        DBMaker.newFileDB(index).make().close();
+        DBMaker.fileDB(index).make().close();
 
         // corrupt file
         MappedFileVol physVol = new Volume.MappedFileVol(index, false, CC.VOLUME_PAGE_SHIFT,0);
@@ -72,7 +72,7 @@ public class BrokenDBTest {
         physVol.close();
 
         try {
-            DBMaker.newFileDB(index).make();
+            DBMaker.fileDB(index).make();
             Assert.fail("Expected exception not thrown");
         } catch (final DBException.HeadChecksumBroken e) {
             // expected
@@ -113,7 +113,7 @@ public class BrokenDBTest {
     @Test @Ignore //TODO reenable this
     public void canDeleteDBOnBrokenContent() throws IOException {
         // init empty, but valid DB
-        DB db = DBMaker.newFileDB(index).make();
+        DB db = DBMaker.fileDB(index).make();
         db.getHashMap("foo").put("foo", new SomeDataObject());
         db.commit();
         db.close();
@@ -134,7 +134,7 @@ public class BrokenDBTest {
         dataFile.close();
 
         try {
-            DBMaker.newFileDB(index).make();
+            DBMaker.fileDB(index).make();
             Assert.fail("Expected exception not thrown");
         } catch (final RuntimeException e) {
             // will fail!

@@ -15,7 +15,7 @@ public class Issue419Test {
     @Test public void isolate(){
 
         File f = UtilsTest.tempDbFile();
-        DB db = DBMaker.newFileDB(f)
+        DB db = DBMaker.fileDB(f)
                 .closeOnJvmShutdown().transactionDisable().make();
 
         Set set = db.createHashSet("set").expireAfterAccess(30, TimeUnit.DAYS).make();
@@ -27,7 +27,7 @@ public class Issue419Test {
 
         db.close();
 
-        db = DBMaker.newFileDB(f)
+        db = DBMaker.fileDB(f)
                 .closeOnJvmShutdown().transactionDisable().make();
 
         set = db.getHashSet("set");
@@ -43,7 +43,7 @@ public class Issue419Test {
     @Test public void isolate_map(){
 
         File f = UtilsTest.tempDbFile();
-        DB db = DBMaker.newFileDB(f)
+        DB db = DBMaker.fileDB(f)
                 .closeOnJvmShutdown().transactionDisable().make();
 
         Map set = db.createHashMap("set").expireAfterAccess(30, TimeUnit.DAYS).make();
@@ -55,7 +55,7 @@ public class Issue419Test {
 
         db.close();
 
-        db = DBMaker.newFileDB(f)
+        db = DBMaker.fileDB(f)
                 .closeOnJvmShutdown().transactionDisable().make();
 
         set = db.getHashMap("set");

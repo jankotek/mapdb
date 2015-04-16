@@ -14,14 +14,14 @@ public class Issue254Test {
     @Test
     public void test(){
         File f = UtilsTest.tempDbFile();
-        DB db = DBMaker.newFileDB(f)
+        DB db = DBMaker.fileDB(f)
                 .transactionDisable()
                 .make();
 
         db.getAtomicLong("long").set(1L);
         db.close();
 
-        db = DBMaker.newFileDB(f)
+        db = DBMaker.fileDB(f)
                 .transactionDisable()
                 .readOnly()
                 .closeOnJvmShutdown()
@@ -37,8 +37,8 @@ public class Issue254Test {
 
     {
         File f = UtilsTest.tempDbFile();
-        ro = DBMaker.newFileDB(f).transactionDisable().transactionDisable().make();
-        ro = DBMaker.newFileDB(f).transactionDisable().transactionDisable().readOnly().make();
+        ro = DBMaker.fileDB(f).transactionDisable().transactionDisable().make();
+        ro = DBMaker.fileDB(f).transactionDisable().transactionDisable().readOnly().make();
     }
 
     @Test

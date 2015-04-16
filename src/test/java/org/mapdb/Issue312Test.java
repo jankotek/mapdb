@@ -11,7 +11,7 @@ public class Issue312Test {
     @Test
     public void test() throws IOException{
         File f = File.createTempFile("mapdb","test");
-        DB db = DBMaker.newFileDB(f)
+        DB db = DBMaker.fileDB(f)
                 .mmapFileEnableIfSupported()
                 .transactionDisable()
                 .make();
@@ -23,7 +23,7 @@ public class Issue312Test {
         db.commit();
         db.close();
 
-        db = DBMaker.newFileDB(f)
+        db = DBMaker.fileDB(f)
                 .mmapFileEnableIfSupported()
                 .transactionDisable()
                 .readOnly()

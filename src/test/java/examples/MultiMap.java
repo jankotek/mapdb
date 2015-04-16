@@ -15,7 +15,7 @@ import java.util.NavigableSet;
 public class MultiMap {
 
     public static void main(String[] args) {
-        DB db = DBMaker.newMemoryDB().make();
+        DB db = DBMaker.memoryDB().make();
 
         // this is wrong, do not do it !!!
         //  Map<String,List<Long>> map

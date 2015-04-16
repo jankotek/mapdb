@@ -28,7 +28,7 @@ public class Issue241
     private static DB getDb()
     {
         final File dbFile = UtilsTest.tempDbFile();
-        return DBMaker.newAppendFileDB(dbFile).make();
+        return DBMaker.appendFileDB(dbFile).make();
     }
 
     private static final class CustomClass implements Serializable

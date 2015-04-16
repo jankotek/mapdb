@@ -15,7 +15,7 @@ import static org.mapdb.BTreeKeySerializer.*;
 public class BTreeKeySerializerTest {
 
     @Test public void testLong(){
-        DB db = DBMaker.newMemoryDB()
+        DB db = DBMaker.memoryDB()
                 .transactionDisable()
                 .make();
         Map m = db.createTreeMap("test")
@@ -73,7 +73,7 @@ public class BTreeKeySerializerTest {
     @Test public void testString(){
 
 
-        DB db = DBMaker.newMemoryDB()
+        DB db = DBMaker.memoryDB()
                 .transactionDisable()
                 .make();
         Map m =  db.createTreeMap("test")

@@ -29,7 +29,7 @@ public class DBMakerTest{
     @Test
     public void testNewMemoryDB() throws Exception {
         DB db = DBMaker
-                .newMemoryDB()
+                .memoryDB()
                 .transactionDisable()
                 .make();
         verifyDB(db);
@@ -39,20 +39,20 @@ public class DBMakerTest{
     @Test
     public void testNewFileDB() throws Exception {
         File f = UtilsTest.tempDbFile();
-        DB db = DBMaker.newFileDB(f)
+        DB db = DBMaker.fileDB(f)
                 .transactionDisable().make();
         verifyDB(db);
     }
 
     @Test
     public void testDisableTransactions() throws Exception {
-        DBMaker.newMemoryDB().make();
+        DBMaker.memoryDB().make();
     }
 
     @Test
     public void testDisableCache() throws Exception {
         DB db = DBMaker
-                .newMemoryDB()
+                .memoryDB()
                 .transactionDisable()
                  .make();
         verifyDB(db);
@@ -64,7 +64,7 @@ public class DBMakerTest{
     @Test
     public void testAsyncWriteEnable() throws Exception {
         DB db = DBMaker
-                .newMemoryDB()
+                .memoryDB()
                 .asyncWriteEnable()
                 .make();
         verifyDB(db);
@@ -78,7 +78,7 @@ public class DBMakerTest{
     @Test
     public void testMake() throws Exception {
         DB db = DBMaker
-                .newFileDB(UtilsTest.tempDbFile())
+                .fileDB(UtilsTest.tempDbFile())
                 .transactionDisable()
                 .make();
         verifyDB(db);
@@ -93,7 +93,7 @@ public class DBMakerTest{
     @Test
     public void testCacheHashTableEnable() throws Exception {
         DB db = DBMaker
-                .newFileDB(UtilsTest.tempDbFile())
+                .fileDB(UtilsTest.tempDbFile())
                 .cacheHashTableEnable()
                 .transactionDisable()
                 .make();
@@ -110,7 +110,7 @@ public class DBMakerTest{
     @Test
     public void testMakeMapped() throws Exception {
         DB db = DBMaker
-                .newFileDB(UtilsTest.tempDbFile())
+                .fileDB(UtilsTest.tempDbFile())
                 .transactionDisable()
                 .mmapFileEnable()
                 .make();
@@ -125,7 +125,7 @@ public class DBMakerTest{
     @Test
     public void testCacheHardRefEnable() throws Exception {
         DB db = DBMaker
-                .newMemoryDB()
+                .memoryDB()
                 .transactionDisable()
                 .cacheHardRefEnable()
                 .make();
@@ -137,7 +137,7 @@ public class DBMakerTest{
     @Test
     public void testCacheWeakRefEnable() throws Exception {
         DB db = DBMaker
-                .newMemoryDB()
+                .memoryDB()
                 .transactionDisable()
                 .cacheWeakRefEnable()
                 .make();
@@ -152,7 +152,7 @@ public class DBMakerTest{
     @Test
     public void testCacheSoftRefEnable() throws Exception {
         DB db = DBMaker
-                .newMemoryDB()
+                .memoryDB()
                 .transactionDisable()
                 .cacheSoftRefEnable()
                 .make();
@@ -165,7 +165,7 @@ public class DBMakerTest{
     @Test
     public void testCacheLRUEnable() throws Exception {
         DB db = DBMaker
-                .newMemoryDB()
+                .memoryDB()
                 .transactionDisable()
                 .cacheLRUEnable()
                 .make();
@@ -178,7 +178,7 @@ public class DBMakerTest{
     @Test
     public void testCacheSize() throws Exception {
         DB db = DBMaker
-                .newMemoryDB()
+                .memoryDB()
                 .transactionDisable()
                 .cacheHashTableEnable()
                 .cacheSize(1000)
@@ -191,10 +191,10 @@ public class DBMakerTest{
 
     @Test public void read_only() throws IOException {
         File f = UtilsTest.tempDbFile();
-        DB db = DBMaker.newFileDB(f).make();
+        DB db = DBMaker.fileDB(f).make();
         db.close();
         db = DBMaker
-                .newFileDB(f)
+                .fileDB(f)
                 .deleteFilesAfterClose()
                 .readOnly()
                 .make();
@@ -206,10 +206,10 @@ public class DBMakerTest{
     @Test(expected = IllegalArgumentException.class)
     public void reopen_wrong_checksum() throws IOException {
         File f = UtilsTest.tempDbFile();
-        DB db = DBMaker.newFileDB(f).make();
+        DB db = DBMaker.fileDB(f).make();
         db.close();
         db = DBMaker
-                .newFileDB(f)
+                .fileDB(f)
                 .deleteFilesAfterClose()
 
                 .checksumEnable()
@@ -228,7 +228,7 @@ public class DBMakerTest{
     @Test public void checksum() throws IOException {
         File f = UtilsTest.tempDbFile();
         DB db = DBMaker
-                .newFileDB(f)
+                .fileDB(f)
                 .deleteFilesAfterClose()
                 .checksumEnable()
                 .make();
@@ -243,7 +243,7 @@ public class DBMakerTest{
     @Test public void encrypt() throws IOException {
         File f = UtilsTest.tempDbFile();
         DB db = DBMaker
-                .newFileDB(f)
+                .fileDB(f)
                 .deleteFilesAfterClose()
                 .encryptionEnable("adqdqwd")
                 .make();
@@ -258,10 +258,10 @@ public class DBMakerTest{
     @Test(expected = IllegalArgumentException.class)
     public void reopen_wrong_encrypt() throws IOException {
         File f = UtilsTest.tempDbFile();
-        DB db = DBMaker.newFileDB(f).make();
+        DB db = DBMaker.fileDB(f).make();
         db.close();
         db = DBMaker
-                .newFileDB(f)
+                .fileDB(f)
                 .deleteFilesAfterClose()
                 .encryptionEnable("adqdqwd")
                 .make();
@@ -276,7 +276,7 @@ public class DBMakerTest{
     @Test public void compress() throws IOException {
         File f = UtilsTest.tempDbFile();
         DB db = DBMaker
-                .newFileDB(f)
+                .fileDB(f)
                 .deleteFilesAfterClose()
                 .compressionEnable()
                 .make();
@@ -290,10 +290,10 @@ public class DBMakerTest{
     @Test(expected = IllegalArgumentException.class)
     public void reopen_wrong_compress() throws IOException {
         File f = UtilsTest.tempDbFile();
-        DB db = DBMaker.newFileDB(f).make();
+        DB db = DBMaker.fileDB(f).make();
         db.close();
         db = DBMaker
-                .newFileDB(f)
+                .fileDB(f)
                 .deleteFilesAfterClose()
                 .compressionEnable()
                 .make();
@@ -311,32 +311,32 @@ public class DBMakerTest{
 
     @Test public void close_on_jvm_shutdown(){
         DBMaker
-                .newTempFileDB()
+                .tempFileDB()
                 .closeOnJvmShutdown()
                 .deleteFilesAfterClose()
                 .make();
     }
 
     @Test public void tempTreeMap(){
-        ConcurrentNavigableMap<Long,String> m = DBMaker.newTempTreeMap();
+        ConcurrentNavigableMap<Long,String> m = DBMaker.tempTreeMap();
         m.put(111L,"wfjie");
         assertTrue(m.getClass().getName().contains("BTreeMap"));
     }
 
     @Test public void tempHashMap(){
-        ConcurrentMap<Long,String> m = DBMaker.newTempHashMap();
+        ConcurrentMap<Long,String> m = DBMaker.tempHashMap();
         m.put(111L,"wfjie");
         assertTrue(m.getClass().getName().contains("HTreeMap"));
     }
 
     @Test public void tempHashSet(){
-        Set<Long> m = DBMaker.newTempHashSet();
+        Set<Long> m = DBMaker.tempHashSet();
         m.add(111L);
         assertTrue(m.getClass().getName().contains("HTreeMap"));
     }
 
     @Test public void tempTreeSet(){
-        NavigableSet<Long> m = DBMaker.newTempTreeSet();
+        NavigableSet<Long> m = DBMaker.tempTreeSet();
         m.add(111L);
         assertTrue(m.getClass().getName().contains("BTreeMap"));
     }
@@ -359,19 +359,19 @@ public class DBMakerTest{
 
     @Test(expected = DBException.VolumeIOError.class)
     public void nonExistingFolder(){
-        DBMaker.newFileDB(folderDoesNotExist).make();
+        DBMaker.fileDB(folderDoesNotExist).make();
     }
 
     @Test(expected = DBException.VolumeIOError.class)
     public void nonExistingFolder3(){
-        DBMaker.newFileDB(folderDoesNotExist).mmapFileEnable().make();
+        DBMaker.fileDB(folderDoesNotExist).mmapFileEnable().make();
     }
 
 
     @Test(expected = DBException.VolumeIOError.class)
     public void nonExistingFolder2(){
         DBMaker
-                .newFileDB(folderDoesNotExist)
+                .fileDB(folderDoesNotExist)
                 .snapshotEnable()
                 .commitFileSyncDisable()
                 .makeTxMaker();
@@ -380,7 +380,7 @@ public class DBMakerTest{
     @Test public void treeset_pump_presert(){
         List unsorted = Arrays.asList(4,7,5,12,9,10,11,0);
 
-        NavigableSet<Integer> s = DBMaker.newMemoryDB().transactionDisable().make()
+        NavigableSet<Integer> s = DBMaker.memoryDB().transactionDisable().make()
                 .createTreeSet("t")
                 .pumpPresort(10)
                 .pumpSource(unsorted.iterator())
@@ -393,7 +393,7 @@ public class DBMakerTest{
     @Test public void treemap_pump_presert(){
         List unsorted = Arrays.asList(4,7,5,12,9,10,11,0);
 
-        NavigableMap<Integer,Integer> s = DBMaker.newMemoryDB().transactionDisable().make()
+        NavigableMap<Integer,Integer> s = DBMaker.memoryDB().transactionDisable().make()
                 .createTreeMap("t")
                 .pumpPresort(10)
                 .pumpSource(unsorted.iterator(), Fun.extractNoTransform())
@@ -404,14 +404,14 @@ public class DBMakerTest{
     }
 
     @Test public void heap_store(){
-        DB db = DBMaker.newHeapDB().make();
+        DB db = DBMaker.heapDB().make();
         Engine  s = Store.forDB(db);
 
         assertTrue(s instanceof StoreHeap);
     }
 
     @Test public void executor() throws InterruptedException {
-        final DB db = DBMaker.newHeapDB().executorEnable().make();
+        final DB db = DBMaker.heapDB().executorEnable().make();
         assertNotNull(db.executor);
         assertFalse(db.executor.isTerminated());
 
@@ -448,25 +448,25 @@ public class DBMakerTest{
     }
 
     @Test public void temp_HashMap_standalone(){
-        HTreeMap m = DBMaker.newTempHashMap();
+        HTreeMap m = DBMaker.tempHashMap();
         assertTrue(m.closeEngine);
         m.close();
     }
 
     @Test public void temp_TreeMap_standalone(){
-        BTreeMap m = DBMaker.newTempTreeMap();
+        BTreeMap m = DBMaker.tempTreeMap();
         assertTrue(m.closeEngine);
         m.close();
     }
 
     @Test public void temp_HashSet_standalone() throws IOException {
-        HTreeMap.KeySet m = (HTreeMap.KeySet) DBMaker.newTempHashSet();
+        HTreeMap.KeySet m = (HTreeMap.KeySet) DBMaker.tempHashSet();
         assertTrue(m.getHTreeMap().closeEngine);
         m.close();
     }
 
     @Test public void temp_TreeSet_standalone() throws IOException {
-        BTreeMap.KeySet m = (BTreeMap.KeySet) DBMaker.newTempTreeSet();
+        BTreeMap.KeySet m = (BTreeMap.KeySet) DBMaker.tempTreeSet();
         assertTrue(((BTreeMap)m.m).closeEngine);
         m.close();
     }
@@ -474,7 +474,7 @@ public class DBMakerTest{
 
     @Test public void metricsLog(){
         ScheduledExecutorService s = Executors.newSingleThreadScheduledExecutor();
-        DB db = DBMaker.newMemoryDB()
+        DB db = DBMaker.memoryDB()
                 .metricsEnable(11111)
                 .metricsExecutorEnable(s)
                 .make();
@@ -487,7 +487,7 @@ public class DBMakerTest{
 
     @Test public void storeExecutor(){
         ScheduledExecutorService s = Executors.newSingleThreadScheduledExecutor();
-        DB db = DBMaker.newMemoryDB()
+        DB db = DBMaker.memoryDB()
                 .storeExecutorPeriod(11111)
                 .storeExecutorEnable(s)
                 .make();
@@ -501,7 +501,7 @@ public class DBMakerTest{
 
     @Test public void cacheExecutor(){
         ScheduledExecutorService s = Executors.newSingleThreadScheduledExecutor();
-        DB db = DBMaker.newMemoryDB()
+        DB db = DBMaker.memoryDB()
                 .cacheExecutorPeriod(11111)
                 .cacheExecutorEnable(s)
                 .make();

@@ -18,7 +18,7 @@ public class QueuesTest {
 
     @Test public void stack_persisted(){
         File f = UtilsTest.tempDbFile();
-        DB db = DBMaker.newFileDB(f).transactionDisable().make();
+        DB db = DBMaker.fileDB(f).transactionDisable().make();
         Queue<Object> stack = db.getStack("test");
         stack.add("1");
         stack.add("2");
@@ -26,7 +26,7 @@ public class QueuesTest {
         stack.add("4");
 
         db.close();
-        db = DBMaker.newFileDB(f).transactionDisable().deleteFilesAfterClose().make();
+        db = DBMaker.fileDB(f).transactionDisable().deleteFilesAfterClose().make();
         stack = db.getStack("test");
 
         assertEquals("4",stack.poll());
@@ -40,7 +40,7 @@ public class QueuesTest {
 
     @Test public void queue_persisted(){
         File f = UtilsTest.tempDbFile();
-        DB db = DBMaker.newFileDB(f).transactionDisable().make();
+        DB db = DBMaker.fileDB(f).transactionDisable().make();
         Queue<Object> queue = db.getQueue("test");
         queue.add("1");
         queue.add("2");
@@ -48,7 +48,7 @@ public class QueuesTest {
         queue.add("4");
 
         db.close();
-        db = DBMaker.newFileDB(f).transactionDisable().deleteFilesAfterClose().make();
+        db = DBMaker.fileDB(f).transactionDisable().deleteFilesAfterClose().make();
         queue = db.getQueue("test");
 
         assertEquals("1", queue.poll());
@@ -62,7 +62,7 @@ public class QueuesTest {
     @Test public void circular_queue_persisted(){
         //i put disk limit 4 objects ,
         File f = UtilsTest.tempDbFile();
-        DB db = DBMaker.newFileDB(f).transactionDisable().make();
+        DB db = DBMaker.fileDB(f).transactionDisable().make();
         Queue queue = db.createCircularQueue("test",null, 4);
         //when i put 6 objects to queue
         queue.add(0);
@@ -75,7 +75,7 @@ public class QueuesTest {
         queue.add(5);
 
         db.close();
-        db = DBMaker.newFileDB(f).transactionDisable().deleteFilesAfterClose().make();
+        db = DBMaker.fileDB(f).transactionDisable().deleteFilesAfterClose().make();
         queue = db.getCircularQueue("test");
 
         assertEquals(2, queue.poll());
@@ -89,7 +89,7 @@ public class QueuesTest {
 
     @Test
     public void testMapDb() throws InterruptedException {
-        DB database = DBMaker.newMemoryDB().make();
+        DB database = DBMaker.memoryDB().make();
         BlockingQueue<String> queue = database.getQueue( "test-queue" );
         queue.put( "test-value" );
         database.commit();
@@ -102,7 +102,7 @@ public class QueuesTest {
     public void queueTakeRollback() throws IOException, InterruptedException {
         File f = File.createTempFile("mapdb","aa");
         {
-            DB db = DBMaker.newFileDB(f).make();
+            DB db = DBMaker.fileDB(f).make();
             boolean newQueue = !db.exists("test");
             BlockingQueue queue = db.getQueue("test");
             if (newQueue) {
@@ -118,7 +118,7 @@ public class QueuesTest {
         }
 
         {
-            DB db = DBMaker.newFileDB(f).make();
+            DB db = DBMaker.fileDB(f).make();
             boolean newQueue = !db.exists("test");
             BlockingQueue queue = db.getQueue("test");
             if (newQueue) {

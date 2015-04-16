@@ -14,7 +14,7 @@ public class CacheWeakSoftRefTest {
     @Test
     public void weak_htree_inserts_delete() throws InterruptedException {
         DB db = DBMaker
-                .newMemoryDB()
+                .memoryDB()
                 .cacheWeakRefEnable()
                 .make();
         testMap(db);
@@ -23,7 +23,7 @@ public class CacheWeakSoftRefTest {
     @Test
     public void soft_htree_inserts_delete() throws InterruptedException {
         DB db = DBMaker
-                .newMemoryDB()
+                .memoryDB()
                 .cacheSoftRefEnable()
                 .make();
         testMap(db);

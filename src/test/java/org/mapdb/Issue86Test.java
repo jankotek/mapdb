@@ -12,7 +12,7 @@ import java.util.Map;
 public class Issue86Test {
     public static DB createFileStore() {
         return DBMaker
-                .newTempFileDB()
+                .tempFileDB()
                 .transactionDisable()
                 .make();
     }

@@ -39,7 +39,7 @@ public class TreeMap_Composite_Key {
 //        String[] streets = {"Main Street", "Shop Street", "Second Street", "Silver Strands"};
 //        int[] houseNums = {1,2,3,4,5,6,7,8,9,10};
 //
-//        DB db = DBMaker.newMemoryDB().make();
+//        DB db = DBMaker.memoryDB().make();
 //        //initialize map
 //        // note that it uses BTreeKeySerializer.TUPLE3 to minimise disk space used by Map
 //        ConcurrentNavigableMap<Fun.Tuple3, Integer> map =

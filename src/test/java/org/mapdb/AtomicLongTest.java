@@ -15,7 +15,7 @@ public class AtomicLongTest extends TestCase {
 
     @Override
     protected void setUp() throws Exception {
-        db = DBMaker.newMemoryDB().transactionDisable().make();
+        db = DBMaker.memoryDB().transactionDisable().make();
         ai = db.createAtomicLong("test", 1);
     }
 
@@ -204,7 +204,7 @@ public class AtomicLongTest extends TestCase {
 
 
     public void testTX(){
-        TxMaker txMaker = DBMaker.newMemoryDB().makeTxMaker();
+        TxMaker txMaker = DBMaker.memoryDB().makeTxMaker();
 
         DB db = txMaker.makeTx();
         System.out.println(db.getAtomicLong("counter").incrementAndGet());

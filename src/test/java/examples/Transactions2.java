@@ -10,7 +10,7 @@ import java.util.Map;
 public class Transactions2 {
 
     public static void main(String[] args) {
-        TxMaker txMaker = DBMaker.newMemoryDB().makeTxMaker();
+        TxMaker txMaker = DBMaker.memoryDB().makeTxMaker();
 
         // Execute transaction within single block.
         txMaker.execute(new TxBlock(){

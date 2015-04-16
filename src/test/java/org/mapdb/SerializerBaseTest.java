@@ -572,7 +572,7 @@ public class SerializerBaseTest{
     }
     @Test public void test_Named(){
         File f = UtilsTest.tempDbFile();
-        DB db = DBMaker.newFileDB(f).make();
+        DB db = DBMaker.fileDB(f).make();
         Map map = db.getTreeMap("map");
 
         Map map2 = db.getTreeMap("map2");
@@ -590,7 +590,7 @@ public class SerializerBaseTest{
         db.commit();
         db.close();
 
-        db = DBMaker.newFileDB(f).deleteFilesAfterClose().make();
+        db = DBMaker.fileDB(f).deleteFilesAfterClose().make();
         map = db.getTreeMap("map");
 
         map2 = (Map) map.get("map2_");
@@ -606,7 +606,7 @@ public class SerializerBaseTest{
 
     @Test public void test_atomic_ref_serializable(){
         File f = UtilsTest.tempDbFile();
-        DB db = DBMaker.newFileDB(f).make();
+        DB db = DBMaker.fileDB(f).make();
         Map map = db.getTreeMap("map");
 
         long recid = db.getEngine().put(11L, Serializer.LONG);
@@ -631,7 +631,7 @@ public class SerializerBaseTest{
 
         db.commit();
         db.close();
-        db = DBMaker.newFileDB(f).deleteFilesAfterClose().make();
+        db = DBMaker.fileDB(f).deleteFilesAfterClose().make();
         map = db.getTreeMap("map");
 
         l = (Atomic.Long) map.get("long");

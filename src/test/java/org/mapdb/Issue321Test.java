@@ -11,7 +11,7 @@ public class Issue321Test {
     @Test
     public void npe(){
 
-        DB db = DBMaker.newMemoryDB().make();
+        DB db = DBMaker.memoryDB().make();
 
         List l = Arrays.asList(19,10,9,8,2);
 

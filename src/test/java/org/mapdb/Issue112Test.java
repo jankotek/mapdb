@@ -10,7 +10,7 @@ public class Issue112Test {
 
         @Test(timeout=10000)
         public void testDoubleCommit() throws Exception {
-            final DB myTestDataFile = DBMaker.newFileDB(UtilsTest.tempDbFile())
+            final DB myTestDataFile = DBMaker.fileDB(UtilsTest.tempDbFile())
                     .checksumEnable()
                     .make();
             myTestDataFile.commit();

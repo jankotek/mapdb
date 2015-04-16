@@ -28,7 +28,7 @@ public class Issue132Test {
         for(int count = 0; count < 50; count++) {
 
 
-            DB db = DBMaker.newMemoryDB()
+            DB db = DBMaker.memoryDB()
                     .checksumEnable().make();
 
 
@@ -66,7 +66,7 @@ public class Issue132Test {
         int count = 18;
 
 
-        DB db = DBMaker.newMemoryDB()
+        DB db = DBMaker.memoryDB()
                 .checksumEnable().make();
 
 

@@ -19,7 +19,7 @@ public class Issue247Test {
     @Test
     public void test(){
         File f = UtilsTest.tempDbFile();
-        DB db = DBMaker.newFileDB(f)
+        DB db = DBMaker.fileDB(f)
                 .transactionDisable()
                 .make();
 
@@ -28,7 +28,7 @@ public class Issue247Test {
 
         db.close();
 
-        db = DBMaker.newFileDB(f)
+        db = DBMaker.fileDB(f)
                 .readOnly()
                 .make();
         getMap(db).size();

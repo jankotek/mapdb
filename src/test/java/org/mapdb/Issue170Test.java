@@ -10,7 +10,7 @@ public class Issue170Test {
 
     @Test
     public void test(){
-        Map m = DBMaker.newMemoryDB()
+        Map m = DBMaker.memoryDB()
                 .compressionEnable()
                 .transactionDisable()
                 .make().createTreeMap("test").make();

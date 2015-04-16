@@ -27,7 +27,7 @@ public class Huge_Insert {
          */
         File dbFile = File.createTempFile("mapdb","temp");
         DB db = DBMaker
-                .newFileDB(dbFile)
+                .fileDB(dbFile)
                 /** disabling Write Ahead Log makes import much faster */
                 .transactionDisable()
                 .make();

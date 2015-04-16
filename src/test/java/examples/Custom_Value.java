@@ -65,7 +65,7 @@ public class Custom_Value {
 
         // Open db in temp directory
         File f = File.createTempFile("mapdb","temp");
-		DB db = DBMaker.newFileDB(f)
+		DB db = DBMaker.fileDB(f)
 				.make();
 		
 		// Open or create table
@@ -113,7 +113,7 @@ public class Custom_Value {
 
         Serializer<Person> serializer = new CustomSerializer();
 
-        DB db2 = DBMaker.newTempFileDB().make();
+        DB db2 = DBMaker.tempFileDB().make();
 
         Map<String,Person> map2 = db2.createHashMap("map").valueSerializer(serializer).make();
 

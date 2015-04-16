@@ -10,7 +10,7 @@ public class Issue249Test {
 
     @Test
     public void main() {
-        TxMaker txMaker = DBMaker.newMemoryDB().closeOnJvmShutdown()
+        TxMaker txMaker = DBMaker.memoryDB().closeOnJvmShutdown()
                 .makeTxMaker();
         DB db = txMaker.makeTx();
 

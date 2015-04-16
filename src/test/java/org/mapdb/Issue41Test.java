@@ -34,7 +34,7 @@ public class Issue41Test {
     @Before
     public void setUp() {
         db =
-                DBMaker.newFileDB(DB_PATH)
+                DBMaker.fileDB(DB_PATH)
                         .cacheSoftRefEnable()
                         .closeOnJvmShutdown()
                         .deleteFilesAfterClose()

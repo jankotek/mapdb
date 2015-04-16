@@ -41,7 +41,7 @@ public class BTreeMapSubSetTest extends JSR166TestCase {
     }
 
     protected <E> NavigableSet<E> newNavigableSet() {
-        return DBMaker.newMemoryDB().transactionDisable()
+        return DBMaker.memoryDB().transactionDisable()
                 .make().getTreeSet("test");
     }
 

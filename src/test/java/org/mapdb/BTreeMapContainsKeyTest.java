@@ -27,7 +27,7 @@ public class BTreeMapContainsKeyTest extends JSR166TestCase {
 
     @Override
     protected void setUp() throws Exception {
-        r = DBMaker.newMemoryDB().transactionDisable().makeEngine();
+        r = DBMaker.memoryDB().transactionDisable().makeEngine();
         map = new BTreeMap(
                 r,false,
                 createRootRef(r,BASIC, Serializer.BASIC,0),

@@ -29,7 +29,7 @@ public class AsyncWriteEngineTest{
         if(engine !=null)
            engine.close();
         engine =  new AsyncWriteEngine(
-                DBMaker.newFileDB(index).transactionDisable().cacheDisable().makeEngine()
+                DBMaker.fileDB(index).transactionDisable().cacheDisable().makeEngine()
         );
     }
 
@@ -128,7 +128,7 @@ public class AsyncWriteEngineTest{
         a.close();
 
         //now reopen db and check ths
-        t = (StoreWAL) DBMaker.newFileDB(index).cacheDisable().makeEngine();
+        t = (StoreWAL) DBMaker.fileDB(index).cacheDisable().makeEngine();
         a = new AsyncWriteEngine(t);
         for(Long recid : l){
             assertArrayEquals(b, (byte[]) a.get(recid, Serializer.BASIC));

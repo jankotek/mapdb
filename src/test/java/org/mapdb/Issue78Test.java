@@ -23,7 +23,7 @@ public class Issue78Test {
 
     @Test(expected = IOError.class, timeout = 10000)
     public void testIssue() {
-        DB db = DBMaker.newTempFileDB().make();
+        DB db = DBMaker.tempFileDB().make();
         HTreeMap<String, NotSerializable> usersMap = db.getHashMap("values");
         usersMap.put("thisKillsTheAsyncWriteThread", new NotSerializable());
         db.commit();

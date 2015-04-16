@@ -28,7 +28,7 @@ public class Secondary_Values {
     }
 
     public static void main(String[] args) {
-        DB db = DBMaker.newMemoryDB().make();
+        DB db = DBMaker.memoryDB().make();
         //list if friends
         BTreeMap<Integer,Person> friends = db.getTreeMap("friends");
 

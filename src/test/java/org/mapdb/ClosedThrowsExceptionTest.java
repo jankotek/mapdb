@@ -28,31 +28,31 @@ public abstract class ClosedThrowsExceptionTest {
 
     static public class Def extends ClosedThrowsExceptionTest{
         @Override DB db() {
-            return DBMaker.newMemoryDB().make();
+            return DBMaker.memoryDB().make();
         }
     }
 
     static public class Async extends ClosedThrowsExceptionTest{
         @Override DB db() {
-            return DBMaker.newMemoryDB().asyncWriteEnable().make();
+            return DBMaker.memoryDB().asyncWriteEnable().make();
         }
     }
 
     static public class NoCache extends ClosedThrowsExceptionTest{
         @Override DB db() {
-            return DBMaker.newMemoryDB().make();
+            return DBMaker.memoryDB().make();
         }
     }
 
     static public class HardRefCache extends ClosedThrowsExceptionTest{
         @Override DB db() {
-            return DBMaker.newMemoryDB().cacheHardRefEnable().make();
+            return DBMaker.memoryDB().cacheHardRefEnable().make();
         }
     }
 
     static public class TX extends ClosedThrowsExceptionTest{
         @Override DB db() {
-            return DBMaker.newMemoryDB().makeTxMaker().makeTx();
+            return DBMaker.memoryDB().makeTxMaker().makeTx();
         }
     }
 

@@ -9,7 +9,7 @@ public class Issue308Test {
 
     @Test
     public void test() {
-        DB db = DBMaker.newTempFileDB()
+        DB db = DBMaker.tempFileDB()
                 .mmapFileEnableIfSupported()
                 .compressionEnable()
                 .transactionDisable()

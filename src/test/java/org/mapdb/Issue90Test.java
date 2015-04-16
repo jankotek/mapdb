@@ -11,7 +11,7 @@ public class Issue90Test {
         File file = UtilsTest.tempDbFile();
 
 
-        final DB mapDb =DBMaker.newAppendFileDB(file)
+        final DB mapDb =DBMaker.appendFileDB(file)
                 .closeOnJvmShutdown()
                 .compressionEnable()  //This is the cause of the exception. If compression is not used, no exception occurs.
                 .make();

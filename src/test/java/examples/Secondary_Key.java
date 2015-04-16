@@ -16,7 +16,7 @@ public class Secondary_Key {
     public static void main(String[] args) {
 
         // stores string under id
-        BTreeMap<Long, String> primary = DBMaker.newTempTreeMap();
+        BTreeMap<Long, String> primary = DBMaker.tempTreeMap();
 
 
         // stores value hash from primary map

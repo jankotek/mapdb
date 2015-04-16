@@ -11,7 +11,7 @@ public class Issue154Test {
 
     @Test
     public void HTreeMap(){
-        TxMaker txMaker = DBMaker.newMemoryDB().makeTxMaker();
+        TxMaker txMaker = DBMaker.memoryDB().makeTxMaker();
 
         /* Add the item */
 
@@ -47,7 +47,7 @@ public class Issue154Test {
     }
 
     @Test public void simple(){
-        TxMaker txMaker = DBMaker.newMemoryDB().makeTxMaker();
+        TxMaker txMaker = DBMaker.memoryDB().makeTxMaker();
         Engine engine = txMaker.makeTx().getEngine();
         long recid = engine.put("aa",Serializer.STRING_NOSIZE);
         engine.commit();
@@ -63,7 +63,7 @@ public class Issue154Test {
 
     @Test
     public void BTreeMap(){
-        TxMaker txMaker = DBMaker.newMemoryDB().makeTxMaker();
+        TxMaker txMaker = DBMaker.memoryDB().makeTxMaker();
 
         /* Add the item */
 

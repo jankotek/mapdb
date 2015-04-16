@@ -15,7 +15,7 @@ public class TestTransactions {
     public void testSameCollectionInsertDifferentValuesInDifferentTransactions() throws Exception {
 
         TxMaker txMaker = DBMaker
-                .newMemoryDB()
+                .memoryDB()
                 .makeTxMaker();
 
         DB txInit = txMaker.makeTx();
@@ -50,7 +50,7 @@ public class TestTransactions {
     public void testDifferentCollectionsInDifferentTransactions() throws Exception {
 
         TxMaker txMaker = DBMaker
-                .newMemoryDB()
+                .memoryDB()
                 .makeTxMaker();
 
         DB txInit = txMaker.makeTx();
@@ -87,7 +87,7 @@ public class TestTransactions {
     public void testSameCollectionModifyDifferentValuesInDifferentTransactions() throws Exception {
 
         TxMaker txMaker = DBMaker
-                .newMemoryDB()
+                .memoryDB()
                 .makeTxMaker();
 
         DB txInit = txMaker.makeTx();
@@ -123,7 +123,7 @@ public class TestTransactions {
     public void testTransactionsDoingNothing() throws Exception {
 
         TxMaker txMaker = DBMaker
-                .newMemoryDB()
+                .memoryDB()
                 .makeTxMaker();
 
         DB txInit = txMaker.makeTx();

@@ -18,7 +18,7 @@ public class TxMakerTest{
     @Before public void init(){
         tx  =
                 //new TxMaker(new TxEngine(new DB(new StoreHeap()).getEngine(),true));
-                DBMaker.newMemoryDB().makeTxMaker();
+                DBMaker.memoryDB().makeTxMaker();
     }
 
     @Test public void simple_commit(){
@@ -219,7 +219,7 @@ public class TxMakerTest{
     public void txSnapshot(){
 
         TxMaker txMaker = DBMaker
-                .newMemoryDB()
+                .memoryDB()
                 .snapshotEnable()
                 .makeTxMaker();
 
@@ -236,7 +236,7 @@ public class TxMakerTest{
     public void txSnapshot2(){
 
         TxMaker txMaker = DBMaker
-                .newMemoryDB()
+                .memoryDB()
                 .snapshotEnable()
                 .makeTxMaker();
 

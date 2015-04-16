@@ -16,13 +16,13 @@ public class Issue148Test {
         File mapdbFile = UtilsTest.tempDbFile();
 
         String str = UtilsTest.randomString(1000);
-        Engine engine = DBMaker.newAppendFileDB(mapdbFile).closeOnJvmShutdown().makeEngine();
+        Engine engine = DBMaker.appendFileDB(mapdbFile).closeOnJvmShutdown().makeEngine();
         long recid = engine.put(str,Serializer.STRING_NOSIZE);
         engine.commit();
         engine.close();
 
         for(int i=10;i<100;i++){
-            engine = DBMaker.newAppendFileDB(mapdbFile).closeOnJvmShutdown().makeEngine();
+            engine = DBMaker.appendFileDB(mapdbFile).closeOnJvmShutdown().makeEngine();
             assertEquals(str, engine.get(recid, Serializer.STRING_NOSIZE));
             str = UtilsTest.randomString(i);
             engine.update(recid,str,Serializer.STRING_NOSIZE);
@@ -39,7 +39,7 @@ public class Issue148Test {
 
         // 1 : Create HTreeMap, put some values , Commit and Close;
         File mapdbFile = UtilsTest.tempDbFile();
-        DB mapdb = DBMaker.newAppendFileDB(mapdbFile).closeOnJvmShutdown().make();
+        DB mapdb = DBMaker.appendFileDB(mapdbFile).closeOnJvmShutdown().make();
 
         Serializer<CustomValue> valueSerializer = new CustomValueSerializer();
         HTreeMap<String, CustomValue> users = mapdb.createHashMap("users").counterEnable().make();
@@ -60,7 +60,7 @@ public class Issue148Test {
 
 
         // 2 : Open HTreeMap, replace some values , Commit and Close;
-        mapdb = DBMaker.newAppendFileDB(mapdbFile).closeOnJvmShutdown().make();
+        mapdb = DBMaker.appendFileDB(mapdbFile).closeOnJvmShutdown().make();
         users = mapdb.getHashMap("users");
 
         System.out.println("Just Reopen : all values ar good");
@@ -83,7 +83,7 @@ public class Issue148Test {
 
 
         // 3 : Open HTreeMap, Dump
-        mapdb = DBMaker.newAppendFileDB(mapdbFile).closeOnJvmShutdown().make();
+        mapdb = DBMaker.appendFileDB(mapdbFile).closeOnJvmShutdown().make();
         users = mapdb.getHashMap("users");
 
         System.out.println("But final value is not changed");

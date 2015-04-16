@@ -20,7 +20,7 @@ public class BindTest {
 
     @Before
     public void init(){
-        m = DBMaker.newMemoryDB().transactionDisable().make().getTreeMap("test");
+        m = DBMaker.memoryDB().transactionDisable().make().getTreeMap("test");
     }
 
 
@@ -133,11 +133,11 @@ public class BindTest {
     }
 
     @Test public void htreemap_listeners(){
-        mapListeners(DBMaker.newMemoryDB().transactionDisable().make().getHashMap("test"));
+        mapListeners(DBMaker.memoryDB().transactionDisable().make().getHashMap("test"));
     }
 
     @Test public void btreemap_listeners(){
-        mapListeners(DBMaker.newMemoryDB().transactionDisable().make().getTreeMap("test"));
+        mapListeners(DBMaker.memoryDB().transactionDisable().make().getTreeMap("test"));
     }
 
 

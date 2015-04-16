@@ -18,7 +18,7 @@ public class _HelloWorld {
         //Configure and open database using builder pattern.
         //All options are available with code auto-completion.
         File dbFile = File.createTempFile("mapdb","db");
-        DB db = DBMaker.newFileDB(dbFile)
+        DB db = DBMaker.fileDB(dbFile)
                 .closeOnJvmShutdown()
                 .encryptionEnable("password")
                 .make();

@@ -22,7 +22,7 @@ public class HTreeMap2Test {
     DB db;
 
     @Before public void init2(){
-        engine = DBMaker.newMemoryDB().transactionDisable().makeEngine();
+        engine = DBMaker.memoryDB().transactionDisable().makeEngine();
         db = new DB(engine);
     }
 
@@ -427,7 +427,7 @@ public class HTreeMap2Test {
 
 
     @Test public void testSingleIter(){
-        Map m = DBMaker.newTempHashMap();
+        Map m = DBMaker.tempHashMap();
         m.put("aa","bb");
 
         Iterator iter = m.keySet().iterator();
@@ -461,7 +461,7 @@ public class HTreeMap2Test {
     @Test (timeout = 20000)
     public void cache_load_time_expire(){
         DB db =
-                DBMaker.newMemoryDB()
+                DBMaker.memoryDB()
                         .transactionDisable()
                         .make();
 
@@ -479,7 +479,7 @@ public class HTreeMap2Test {
 
     @Test(timeout = 20000)
     public void cache_load_size_expire(){
-        DB db = DBMaker.newMemoryDB()
+        DB db = DBMaker.memoryDB()
                 .transactionDisable()
                 .make();
 
@@ -506,7 +506,7 @@ public class HTreeMap2Test {
 
     @Test public void hasher(){
         HTreeMap m =
-                DBMaker.newMemoryDB().transactionDisable().make()
+                DBMaker.memoryDB().transactionDisable().make()
                         .createHashMap("test")
                         .keySerializer(Serializer.INT_ARRAY)
                         .make();
@@ -521,7 +521,7 @@ public class HTreeMap2Test {
     }
 
     @Test public void mod_listener_lock(){
-        DB db = DBMaker.newMemoryDB().transactionDisable().make();
+        DB db = DBMaker.memoryDB().transactionDisable().make();
         final HTreeMap m = db.getHashMap("name");
 
         final int seg =  m.hash("aa")>>>28;
@@ -556,7 +556,7 @@ public class HTreeMap2Test {
     public void test_iterate_and_remove(){
         final long max= (long) 1e5;
 
-        Set m = DBMaker.newMemoryDB().transactionDisable().make().getHashSet("test");
+        Set m = DBMaker.memoryDB().transactionDisable().make().getHashSet("test");
 
         for(long i=0;i<max;i++){
             m.add(i);
@@ -601,7 +601,7 @@ public class HTreeMap2Test {
         //NOTE this test has race condition and may fail under heavy load.
         //TODO increase timeout and move into integration tests.
 
-        DB db = DBMaker.newMemoryDB().transactionDisable().make();
+        DB db = DBMaker.memoryDB().transactionDisable().make();
 
         int MAX_ITEM_SIZE = (int) 1e7;
         int EXPIRE_TIME = 3;
@@ -650,7 +650,7 @@ public class HTreeMap2Test {
 
     @Test(expected = IllegalArgumentException.class)
     public void inconsistentHash(){
-        DB db = DBMaker.newMemoryDB()
+        DB db = DBMaker.memoryDB()
                 .transactionDisable()
                 .make();
 
@@ -666,7 +666,7 @@ public class HTreeMap2Test {
     @Test
     public void test()
     {
-        DB db = DBMaker.newMemoryDB().transactionDisable().make();
+        DB db = DBMaker.memoryDB().transactionDisable().make();
         Map<String, Integer> map = db.getHashMap("map", new Fun.Function1<Integer, String>() {
             @Override
             public Integer run(String s) {
@@ -678,7 +678,7 @@ public class HTreeMap2Test {
     }
 
     @Test public void pump(){
-        DB db = DBMaker.newMemoryDB().transactionDisable().make();
+        DB db = DBMaker.memoryDB().transactionDisable().make();
         Set<Long> s = new HashSet();
 
         for(long i=0;i<1e6;i++){
@@ -706,7 +706,7 @@ public class HTreeMap2Test {
     }
 
     @Test public void pump_duplicates(){
-        DB db = DBMaker.newMemoryDB().transactionDisable().make();
+        DB db = DBMaker.memoryDB().transactionDisable().make();
         List<Long> s = new ArrayList();
 
         for(long i=0;i<1e6;i++){
@@ -741,7 +741,7 @@ public class HTreeMap2Test {
 
     @Test(expected = IllegalArgumentException.class) //TODO better exception here
     public void pump_duplicates_fail(){
-        DB db = DBMaker.newMemoryDB().transactionDisable().make();
+        DB db = DBMaker.memoryDB().transactionDisable().make();
         List<Long> s = new ArrayList();
 
         for(long i=0;i<1e6;i++){
@@ -767,7 +767,7 @@ public class HTreeMap2Test {
     }
 
     @Test public void pumpset(){
-        DB db = DBMaker.newMemoryDB().transactionDisable().make();
+        DB db = DBMaker.memoryDB().transactionDisable().make();
         Set<Long> s = new HashSet();
 
         for(long i=0;i<1e6;i++){
@@ -785,7 +785,7 @@ public class HTreeMap2Test {
     }
 
     @Test public void pumpset_duplicates() {
-        DB db = DBMaker.newMemoryDB().transactionDisable().make();
+        DB db = DBMaker.memoryDB().transactionDisable().make();
         List<Long> s = new ArrayList();
 
         for (long i = 0; i < 1e6; i++) {
@@ -808,7 +808,7 @@ public class HTreeMap2Test {
 
     @Test(expected = IllegalArgumentException.class) //TODO better exception here
     public void pumpset_duplicates_fail(){
-        DB db = DBMaker.newMemoryDB().transactionDisable().make();
+        DB db = DBMaker.memoryDB().transactionDisable().make();
         List<Long> s = new ArrayList();
 
         for(long i=0;i<1e6;i++){

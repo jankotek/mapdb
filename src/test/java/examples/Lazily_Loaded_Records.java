@@ -19,7 +19,7 @@ public class Lazily_Loaded_Records {
 
     public static void main(String[] args) {
 
-        DB db = DBMaker.newMemoryDB().make();
+        DB db = DBMaker.memoryDB().make();
         //
         // TreeMap has build in support for lazily loaded values.
         // In that case each value are not stored inside node,

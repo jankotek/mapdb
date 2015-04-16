@@ -15,7 +15,7 @@ public class Bidi_Map {
 
     public static void main(String[] args) {
         //primary map
-        HTreeMap<Long,String> map = DBMaker.newTempHashMap();
+        HTreeMap<Long,String> map = DBMaker.tempHashMap();
 
         // inverse mapping for primary map
         NavigableSet<Object[]> inverseMapping = new TreeSet<Object[]>(Fun.COMPARABLE_ARRAY_COMPARATOR);

@@ -17,7 +17,7 @@ public class BTreeMapParTest {
     public void parInsert() throws InterruptedException {
 
 
-        final ConcurrentMap m = DBMaker.newMemoryDB().transactionDisable().make()
+        final ConcurrentMap m = DBMaker.memoryDB().transactionDisable().make()
                 .createTreeMap("test")
                 .valueSerializer(Serializer.LONG)
                 .keySerializer(BTreeKeySerializer.LONG)

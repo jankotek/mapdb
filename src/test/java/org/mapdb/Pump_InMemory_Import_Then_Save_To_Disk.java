@@ -27,7 +27,7 @@ public class Pump_InMemory_Import_Then_Save_To_Disk {
 //
 //        //now create on-disk store, it needs to be completely empty
 //        File targetFile = UtilsTest.tempDbFile();
-//        DB target = DBMaker.newFileDB(targetFile).make();
+//        DB target = DBMaker.fileDB(targetFile).make();
 //
 //        Pump.copy(inMemory, target);
 //

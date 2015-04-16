@@ -25,7 +25,7 @@ public class Issue353Test {
 
     @Before
     public void setupDb() {
-        db = DBMaker.newFileDB(UtilsTest.tempDbFile()).closeOnJvmShutdown().mmapFileEnableIfSupported()
+        db = DBMaker.fileDB(UtilsTest.tempDbFile()).closeOnJvmShutdown().mmapFileEnableIfSupported()
                 .commitFileSyncDisable().transactionDisable().compressionEnable().freeSpaceReclaimQ(0).make();
         HTreeMapMaker maker = db.createHashMap("products")
                 .valueSerializer(Serializer.BYTE_ARRAY)

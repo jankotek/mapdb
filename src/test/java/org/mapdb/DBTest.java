@@ -119,7 +119,7 @@ public class DBTest {
 
     @Test
     public void test_issue_315() {
-        DB db = DBMaker.newMemoryDB().make();
+        DB db = DBMaker.memoryDB().make();
 
         final String item1 = "ITEM_ONE";
         final String item2 = "ITEM_ONE_TWO";
@@ -151,14 +151,14 @@ public class DBTest {
 
     @Test public void basic_reopen(){
         File f = UtilsTest.tempDbFile();
-        DB db = DBMaker.newFileDB(f).make();
+        DB db = DBMaker.fileDB(f).make();
         Map map = db.getTreeMap("map");
         map.put("aa", "bb");
 
         db.commit();
         db.close();
 
-        db = DBMaker.newFileDB(f).deleteFilesAfterClose().make();
+        db = DBMaker.fileDB(f).deleteFilesAfterClose().make();
         map = db.getTreeMap("map");
         assertEquals(1, map.size());
         assertEquals("bb", map.get("aa"));
@@ -167,14 +167,14 @@ public class DBTest {
 
     @Test public void basic_reopen_notx(){
         File f = UtilsTest.tempDbFile();
-        DB db = DBMaker.newFileDB(f).transactionDisable().make();
+        DB db = DBMaker.fileDB(f).transactionDisable().make();
         Map map = db.getTreeMap("map");
         map.put("aa", "bb");
 
         db.commit();
         db.close();
 
-        db = DBMaker.newFileDB(f).deleteFilesAfterClose().transactionDisable().make();
+        db = DBMaker.fileDB(f).deleteFilesAfterClose().transactionDisable().make();
         map = db.getTreeMap("map");
         assertEquals(1, map.size());
         assertEquals("bb", map.get("aa"));
@@ -183,7 +183,7 @@ public class DBTest {
 
     @Test public void hashmap_executor(){
         ScheduledExecutorService s = Executors.newSingleThreadScheduledExecutor();
-        DB db = DBMaker.newMemoryDB().make();
+        DB db = DBMaker.memoryDB().make();
 
         HTreeMap m = db.createHashMap("aa").executorPeriod(1111).executorEnable(s).make();
         assertTrue(s == m.executor);
@@ -194,7 +194,7 @@ public class DBTest {
 
     @Test public void hashset_executor(){
         ScheduledExecutorService s = Executors.newSingleThreadScheduledExecutor();
-        DB db = DBMaker.newMemoryDB().make();
+        DB db = DBMaker.memoryDB().make();
 
         HTreeMap.KeySet m = (HTreeMap.KeySet) db.createHashSet("aa").executorPeriod(1111).executorEnable(s).make();
         assertTrue(s == m.getHTreeMap().executor);
@@ -204,7 +204,7 @@ public class DBTest {
     }
 
     @Test public void treemap_infer_key_serializer(){
-        DB db = DBMaker.newMemoryDB().make();
+        DB db = DBMaker.memoryDB().make();
         BTreeMap m = db.createTreeMap("test")
                 .keySerializer(Serializer.LONG)
                 .make();
@@ -220,7 +220,7 @@ public class DBTest {
 
 
     @Test public void treeset_infer_key_serializer(){
-        DB db = DBMaker.newMemoryDB().make();
+        DB db = DBMaker.memoryDB().make();
         BTreeMap.KeySet m = (BTreeMap.KeySet) db.createTreeSet("test")
                 .serializer(Serializer.LONG)
                 .make();

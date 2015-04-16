@@ -18,7 +18,7 @@ public class PumpComparableValueTest {
          */
         @Test
         public void run(){
-                DB mapDBStore = DBMaker.newMemoryDB()
+                DB mapDBStore = DBMaker.memoryDB()
                                 .transactionDisable()
                                 .make();
 
@@ -64,7 +64,7 @@ public class PumpComparableValueTest {
 
     @Test
     public void run2(){
-        DB db = DBMaker.newMemoryDB()
+        DB db = DBMaker.memoryDB()
                 .transactionDisable().make();
 
 

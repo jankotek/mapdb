@@ -38,13 +38,13 @@ public class BTreeMapTest3
 
     @Override
     protected ConcurrentNavigableMap<Integer, String> makeEmptyMap() throws UnsupportedOperationException {
-        return DBMaker.newMemoryDB().transactionDisable().make().getTreeMap("test");
+        return DBMaker.memoryDB().transactionDisable().make().getTreeMap("test");
     }
 
     public static class Outside extends BTreeMapTest3{
         @Override
         protected ConcurrentNavigableMap<Integer, String> makeEmptyMap() throws UnsupportedOperationException {
-            return DBMaker.newMemoryDB().transactionDisable().make().createTreeMap("test").valuesOutsideNodesEnable().make();
+            return DBMaker.memoryDB().transactionDisable().make().createTreeMap("test").valuesOutsideNodesEnable().make();
         }
 
     }

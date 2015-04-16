@@ -67,7 +67,7 @@ public class Issue332Test {
     @Test
     public void run() throws IOException {
         File f = File.createTempFile("mapdb","mapdb");
-        DB db = DBMaker.newFileDB(f)
+        DB db = DBMaker.fileDB(f)
                 .closeOnJvmShutdown()
                 .make();
 
@@ -84,7 +84,7 @@ public class Issue332Test {
         testMap = null;
 
         //-------------------------
-        db = DBMaker.newFileDB(f)
+        db = DBMaker.fileDB(f)
                 .closeOnJvmShutdown()
                 .make();
         testMap = db.createHashMap("testmap")

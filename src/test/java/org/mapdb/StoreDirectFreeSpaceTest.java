@@ -116,8 +116,8 @@
 //    }
 //
 //    @Test public void in_memory_compact(){
-//        for(DB d: Arrays.asList(DBMaker.newMemoryDB().cacheDisable().make(),
-//                DBMaker.newMemoryDB().transactionDisable().cacheDisable().make())){
+//        for(DB d: Arrays.asList(DBMaker.memoryDB().cacheDisable().make(),
+//                DBMaker.memoryDB().transactionDisable().cacheDisable().make())){
 //            Map m = d.getTreeMap("aa");
 //            for(Integer i=0;i<10000;i++){
 //                m.put(i,i*10);

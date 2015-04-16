@@ -16,7 +16,7 @@ public class AtomicBooleanTest extends TestCase{
 
     @Override
     protected void setUp() throws Exception {
-        db = DBMaker.newMemoryDB().transactionDisable().make();
+        db = DBMaker.memoryDB().transactionDisable().make();
         ai= db.createAtomicBoolean("test", true);;
     }
 

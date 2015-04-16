@@ -288,7 +288,7 @@ public class BTreeMapTest{
 
     @Test public void issue_38(){
         Map<Integer, String[]> map = DBMaker
-                .newMemoryDB().transactionDisable()
+                .memoryDB().transactionDisable()
                 .make().getTreeMap("test");
 
         for (int i = 0; i < 50000; i++) {
@@ -372,7 +372,7 @@ public class BTreeMapTest{
 //        every next call of getLastKey() leads to the exception "NoSuchElement". Not
 //        only the first one...
 
-        DB db = DBMaker.newTempFileDB().transactionDisable().make();
+        DB db = DBMaker.memoryDB().transactionDisable().make();
         NavigableMap m = db.getTreeMap("name");
         try{
             m.lastKey();
@@ -395,7 +395,7 @@ public class BTreeMapTest{
     }
 
     @Test public void mod_listener_lock(){
-        DB db = DBMaker.newMemoryDB().transactionDisable().make();
+        DB db = DBMaker.memoryDB().transactionDisable().make();
         final BTreeMap m = db.getTreeMap("name");
 
         final long rootRecid = db.getEngine().get(m.rootRecidRef, Serializer.RECID);
@@ -427,7 +427,7 @@ public class BTreeMapTest{
 
 
     @Test public void concurrent_last_key(){
-        DB db = DBMaker.newMemoryDB().transactionDisable().make();
+        DB db = DBMaker.memoryDB().transactionDisable().make();
         final BTreeMap m = db.getTreeMap("name");
 
         //fill
@@ -451,7 +451,7 @@ public class BTreeMapTest{
     }
 
     @Test public void concurrent_first_key(){
-        DB db = DBMaker.newMemoryDB().transactionDisable().make();
+        DB db = DBMaker.memoryDB().transactionDisable().make();
         final BTreeMap m = db.getTreeMap("name");
 
         //fill
@@ -478,7 +478,7 @@ public class BTreeMapTest{
         int numberOfRecords = 1000;
 
         /* Creates connections to MapDB */
-        DB db1 = DBMaker.newMemoryDB().transactionDisable().make();
+        DB db1 = DBMaker.memoryDB().transactionDisable().make();
 
 
         /* Creates maps */
@@ -511,7 +511,7 @@ public class BTreeMapTest{
         int numberOfRecords = 1000;
 
         /* Creates connections to MapDB */
-        DB db1 = DBMaker.newMemoryDB().transactionDisable().make();
+        DB db1 = DBMaker.memoryDB().transactionDisable().make();
 
 
         /* Creates maps */
@@ -542,7 +542,7 @@ public class BTreeMapTest{
         int numberOfRecords = 1000;
 
         /* Creates connections to MapDB */
-        DB db1 = DBMaker.newMemoryDB().transactionDisable().make();
+        DB db1 = DBMaker.memoryDB().transactionDisable().make();
 
 
         /* Creates maps */
@@ -575,7 +575,7 @@ public class BTreeMapTest{
         int numberOfRecords = 1000;
 
         /* Creates connections to MapDB */
-        DB db1 = DBMaker.newMemoryDB().transactionDisable().make();
+        DB db1 = DBMaker.memoryDB().transactionDisable().make();
 
 
         /* Creates maps */
@@ -604,7 +604,7 @@ public class BTreeMapTest{
 
     @Test public void randomStructuralCheck(){
         Random r = new Random();
-        BTreeMap map = DBMaker.newMemoryDB().transactionDisable().make().createTreeMap("aa")
+        BTreeMap map = DBMaker.memoryDB().transactionDisable().make().createTreeMap("aa")
                 .keySerializer(BTreeKeySerializer.INTEGER)
                 .valueSerializer(Serializer.INTEGER)
                 .make();
@@ -626,7 +626,7 @@ public class BTreeMapTest{
 
             int max = i*100;
             File f = UtilsTest.tempDbFile();
-            DB db = DBMaker.newFileDB(f)
+            DB db = DBMaker.fileDB(f)
                     .transactionDisable()
                     .make();
             Map m = db
@@ -641,7 +641,7 @@ public class BTreeMapTest{
             }
 
             db.close();
-            db = DBMaker.newFileDB(f)
+            db = DBMaker.fileDB(f)
                     .deleteFilesAfterClose()
                     .transactionDisable()
                     .make();

@@ -41,7 +41,7 @@ public class Issue266Test {
     public void testEnum() throws IOException {
 
         File f = File.createTempFile("mapdb","asdas");
-        DB db = DBMaker.newFileDB(f).make();
+        DB db = DBMaker.fileDB(f).make();
 
         AdvancedEnum testEnumValue = AdvancedEnum.C;
 
@@ -53,7 +53,7 @@ public class Issue266Test {
 
         db.close();
 
-        db = DBMaker.newFileDB(f).make();
+        db = DBMaker.fileDB(f).make();
 
         set = db.createTreeSet("set").makeOrGet();
         AdvancedEnum enumValue = (AdvancedEnum)set.iterator().next();
@@ -68,7 +68,7 @@ public class Issue266Test {
         assertEquals(AdvancedEnum.A, AdvancedEnum.class.getEnumConstants()[0]);
 
 
-        DB db = DBMaker.newMemoryDB().make();
+        DB db = DBMaker.memoryDB().make();
         AdvancedEnum a = (AdvancedEnum) UtilsTest.clone(AdvancedEnum.A, db.getDefaultSerializer());
         assertEquals(a.toString(),AdvancedEnum.A.toString());
         assertEquals(a.ordinal(),AdvancedEnum.A.ordinal());

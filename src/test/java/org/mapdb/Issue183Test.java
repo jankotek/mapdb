@@ -17,7 +17,7 @@ public class Issue183Test {
         Map<String, String> map1;
 
         TxMaker txMaker = DBMaker
-                .newFileDB(f)
+                .fileDB(f)
                 .closeOnJvmShutdown()
                 .makeTxMaker();
 
@@ -34,7 +34,7 @@ public class Issue183Test {
 
 
         txMaker = DBMaker
-                .newFileDB(f)
+                .fileDB(f)
                 .closeOnJvmShutdown()
                 .makeTxMaker();
 

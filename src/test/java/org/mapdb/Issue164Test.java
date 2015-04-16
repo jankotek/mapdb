@@ -80,7 +80,7 @@ public class Issue164Test {
         int rc = 0;
         BTreeMap map=null;
         try {
-            DB db = DBMaker.newMemoryDB()
+            DB db = DBMaker.memoryDB()
                     .closeOnJvmShutdown()
                     .make();
 // the following test shows that the db is opened if it always exists

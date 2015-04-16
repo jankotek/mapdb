@@ -17,7 +17,7 @@ public class Issue258Test {
 
 
         for(int i=0;i<10;i++){
-        DB db = DBMaker.newFileDB(tmp)
+        DB db = DBMaker.fileDB(tmp)
                 .mmapFileEnable()
 //                .closeOnJvmShutdown()
 //                .compressionEnable()

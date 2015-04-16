@@ -36,7 +36,7 @@ import java.util.logging.Logger;
  * </p>
  * <pre>
  *  DB db = DBMaker
- *      .newMemoryDB()          //static method
+ *      .memoryDB()          //static method
  *      .transactinsDisable()   //configuration option
  *      .make()                 //opens db
  * </pre>
@@ -123,21 +123,33 @@ public final class DBMaker{
     }
 
 
+
     /**
      * Creates new in-memory database which stores all data on heap without serialization.
      * This mode should be very fast, but data will affect Garbage Collector the same way as traditional Java Collections.
      */
-    public static Maker newHeapDB(){
+    public static Maker heapDB(){
         return new Maker()._newHeapDB();
     }
+
+    /** @deprecated method renamed, prefix removed, use {@link DBMaker#heapDB()} */
+    public static Maker newHeapDB(){
+        return heapDB();
+    }
+
 
 
     /**
      * Creates new in-memory database. Changes are lost after JVM exits.
      * This will use HEAP memory so Garbage Collector is affected.
      */
-    public static Maker newMemoryDB(){
+    public static Maker memoryDB(){
         return new Maker()._newMemoryDB();
+    }
+
+    /** @deprecated method renamed, prefix removed, use {@link DBMaker#memoryDB()} */
+    public static Maker newMemoryDB(){
+        return memoryDB();
     }
 
     /**
@@ -148,8 +160,13 @@ public final class DBMaker{
      * This will use DirectByteBuffer outside of HEAP, so Garbage Collector is not affected
      * </p>
      */
-    public static Maker newMemoryDirectDB(){
+    public static Maker memoryDirectDB(){
         return new Maker()._newMemoryDirectDB();
+    }
+
+    /** @deprecated method renamed, prefix removed, use {@link DBMaker#memoryDirectDB()} */
+    public static Maker newMemoryDirectDB(){
+        return memoryDirectDB();
     }
 
 
@@ -164,8 +181,13 @@ public final class DBMaker{
      * {@code DirectByteBuffer} based in-memory store without throwing an exception.
      * </p>
      */
-    public static Maker newMemoryUnsafeDB(){
+    public static Maker memoryUnsafeDB(){
         return new Maker()._newMemoryUnsafeDB();
+    }
+
+    /** @deprecated method renamed, prefix removed, use {@link DBMaker#memoryUnsafeDB()} */
+    public static Maker newMemoryUnsafeDB(){
+        return memoryUnsafeDB();
     }
 
     /**
@@ -175,8 +197,13 @@ public final class DBMaker{
      * @param file
      * @return maker
      */
-    public static Maker newAppendFileDB(File file) {
+    public static Maker appendFileDB(File file) {
         return new Maker()._newAppendFileDB(file);
+    }
+
+    /** @deprecated method renamed, prefix removed, use {@link DBMaker#appendFileDB(File)} */
+    public static Maker newAppendFileDB(File file) {
+        return appendFileDB(file);
     }
 
 
@@ -189,7 +216,7 @@ public final class DBMaker{
      * Storage is created in temp folder and deleted on JVM shutdown
      * </p>
      */
-    public static <K,V> BTreeMap<K,V> newTempTreeMap(){
+    public static <K,V> BTreeMap<K,V> tempTreeMap(){
         return newTempFileDB()
                 .deleteFilesAfterClose()
                 .closeOnJvmShutdown()
@@ -198,6 +225,12 @@ public final class DBMaker{
                 .createTreeMap("temp")
                 .closeEngine()
                 .make();
+    }
+
+
+    /** @deprecated method renamed, prefix removed, use {@link DBMaker#tempTreeMap()} */
+    public static <K,V> BTreeMap<K,V> newTempTreeMap(){
+        return tempTreeMap();
     }
 
     /**
@@ -209,7 +242,7 @@ public final class DBMaker{
      * Storage is created in temp folder and deleted on JVM shutdown
      * </p>
      */
-    public static <K,V> HTreeMap<K,V> newTempHashMap(){
+    public static <K,V> HTreeMap<K,V> tempHashMap(){
         return newTempFileDB()
                 .deleteFilesAfterClose()
                 .closeOnJvmShutdown()
@@ -218,6 +251,10 @@ public final class DBMaker{
                 .createHashMap("temp")
                 .closeEngine()
                 .make();
+    }
+    /** @deprecated method renamed, prefix removed, use {@link DBMaker#tempHashMap()} */
+    public static <K,V> HTreeMap<K,V> newTempHashMap() {
+        return tempHashMap();
     }
 
     /**
@@ -229,7 +266,7 @@ public final class DBMaker{
      * Storage is created in temp folder and deleted on JVM shutdown
      * </p>
      */
-    public static <K> NavigableSet<K> newTempTreeSet(){
+    public static <K> NavigableSet<K> tempTreeSet(){
         return newTempFileDB()
                 .deleteFilesAfterClose()
                 .closeOnJvmShutdown()
@@ -240,6 +277,12 @@ public final class DBMaker{
                 .make();
     }
 
+    /** @deprecated method renamed, prefix removed, use {@link DBMaker#tempTreeSet()} */
+    public static <K> NavigableSet<K> newTempTreeSet(){
+        return tempTreeSet();
+    }
+
+
     /**
      * <p>
      * Create new HashSet backed by temporary file storage.
@@ -249,7 +292,7 @@ public final class DBMaker{
      * Storage is created in temp folder and deleted on JVM shutdown
      * </p>
      */
-    public static <K> Set<K> newTempHashSet(){
+    public static <K> Set<K> tempHashSet(){
         return newTempFileDB()
                 .deleteFilesAfterClose()
                 .closeOnJvmShutdown()
@@ -260,15 +303,25 @@ public final class DBMaker{
                 .make();
     }
 
+    /** @deprecated method renamed, prefix removed, use {@link DBMaker#tempHashSet()} */
+    public static <K> Set<K> newTempHashSet(){
+        return tempHashSet();
+    }
+
     /**
      * Creates new database in temporary folder.
      */
-    public static Maker newTempFileDB() {
+    public static Maker tempFileDB() {
         try {
             return newFileDB(File.createTempFile("mapdb-temp","db"));
         } catch (IOException e) {
             throw new IOError(e);
         }
+    }
+
+    /** @deprecated method renamed, prefix removed, use {@link DBMaker#tempFileDB()} */
+    public static Maker newTempFileDB(){
+        return tempFileDB();
     }
 
     /**
@@ -280,10 +333,12 @@ public final class DBMaker{
      *
      * @param size maximal size of off-heap store in gigabytes.
      * @return map
+     *
+     * @deprecated TODO this method is going to be replaced by something
      */
     public static <K,V> HTreeMap<K,V> newCacheDirect(double size){
         return DBMaker
-                .newMemoryDirectDB()
+                .memoryDirectDB()
                 .transactionDisable()
                 .make()
                 .createHashMap("cache")
@@ -302,10 +357,11 @@ public final class DBMaker{
      *
      * @param size maximal size of off-heap store in gigabytes.
      * @return map
+     * @deprecated TODO this method is going to be replaced by something
      */
     public static <K,V> HTreeMap<K,V> newCache(double size){
         return DBMaker
-                .newMemoryDB()
+                .memoryDB()
                 .transactionDisable()
                 .make()
                 .createHashMap("cache")
@@ -316,8 +372,13 @@ public final class DBMaker{
 
 
     /** Creates or open database stored in file. */
-    public static Maker newFileDB(File file){
+    public static Maker fileDB(File file){
         return new Maker(file);
+    }
+
+    /** @deprecated method renamed, prefix removed, use {@link DBMaker#fileDB(File)} */
+    public static Maker newFileDB(File file){
+        return fileDB(file);
     }
 
 

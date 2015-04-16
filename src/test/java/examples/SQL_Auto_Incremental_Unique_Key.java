@@ -14,7 +14,7 @@ import java.util.Map;
  */
 public class SQL_Auto_Incremental_Unique_Key {
     public static void main(String[] args) {
-        DB db = DBMaker.newTempFileDB().make();
+        DB db = DBMaker.tempFileDB().make();
 
         //open or create new map
         Map<Long, String> map = db.getTreeMap("map");

@@ -16,7 +16,7 @@ public class Serialization2Test{
 
     @Test public void test2() throws IOException {
         File index = UtilsTest.tempDbFile();
-        DB db = DBMaker.newFileDB(index).transactionDisable().make();
+        DB db = DBMaker.fileDB(index).transactionDisable().make();
 
         Serialization2Bean processView = new Serialization2Bean();
 
@@ -35,7 +35,7 @@ public class Serialization2Test{
 
     @Test public void test2_engine() throws IOException {
         File index = UtilsTest.tempDbFile();
-        DB db = DBMaker.newFileDB(index).make();
+        DB db = DBMaker.fileDB(index).make();
 
         Serialization2Bean processView = new Serialization2Bean();
 
@@ -54,14 +54,14 @@ public class Serialization2Test{
         File index = UtilsTest.tempDbFile();
 
         Serialized2DerivedBean att = new Serialized2DerivedBean();
-        DB db = DBMaker.newFileDB(index).make();
+        DB db = DBMaker.fileDB(index).make();
 
         Map<Object, Object> map =  db.getHashMap("test");
 
         map.put("att", att);
         db.commit();
         db.close();
-        db = DBMaker.newFileDB(index).make();
+        db = DBMaker.fileDB(index).make();
         map =  db.getHashMap("test");
 
 
@@ -83,7 +83,7 @@ public class Serialization2Test{
 
         File f = UtilsTest.tempDbFile();
 
-        DB db = DBMaker.newFileDB(f)
+        DB db = DBMaker.fileDB(f)
                 .transactionDisable()
                 .checksumEnable()
                 .make();
@@ -95,7 +95,7 @@ public class Serialization2Test{
         System.out.println(db.getEngine().get(Engine.RECID_CLASS_CATALOG, SerializerPojo.CLASS_CATALOG_SERIALIZER));
         db.close();
 
-        db = DBMaker.newFileDB(f)
+        db = DBMaker.fileDB(f)
                 .transactionDisable()
                 .checksumEnable()
                 .make();

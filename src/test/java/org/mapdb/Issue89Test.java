@@ -58,7 +58,7 @@ public class Issue89Test {
 
 
         private DB createMapDB(File file) {
-            return DBMaker.newAppendFileDB(file)
+            return DBMaker.appendFileDB(file)
                     .closeOnJvmShutdown()
                     .make();
         }

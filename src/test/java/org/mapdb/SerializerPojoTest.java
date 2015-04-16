@@ -240,12 +240,12 @@ public class SerializerPojoTest{
     @Test public void testPersistedSimple() throws Exception {
 
         File f = UtilsTest.tempDbFile();
-        DB r1 = DBMaker.newFileDB(f).make();
+        DB r1 = DBMaker.fileDB(f).make();
         long recid = r1.engine.put("AA",r1.getDefaultSerializer());
         r1.commit();
         r1.close();
 
-         r1 = DBMaker.newFileDB(f).make();
+         r1 = DBMaker.fileDB(f).make();
 
         String a2 = (String) r1.engine.get(recid, r1.getDefaultSerializer());
         r1.close();
@@ -257,12 +257,12 @@ public class SerializerPojoTest{
     @Test public void testPersisted() throws Exception {
         Bean1 b1 = new Bean1("abc", "dcd");
         File f = UtilsTest.tempDbFile();
-        DB r1 = DBMaker.newFileDB(f).make();
+        DB r1 = DBMaker.fileDB(f).make();
         long recid = r1.engine.put(b1, r1.getDefaultSerializer());
         r1.commit();
         r1.close();
 
-        r1 = DBMaker.newFileDB(f).make();
+        r1 = DBMaker.fileDB(f).make();
 
         Bean1 b2 = (Bean1) r1.engine.get(recid,r1.getDefaultSerializer());
         r1.close();
@@ -278,7 +278,7 @@ public class SerializerPojoTest{
         };
 
         for(Object oo:o){
-            DB db = DBMaker.newMemoryDB().make();
+            DB db = DBMaker.memoryDB().make();
             long recid = db.engine.put(oo, db.getDefaultSerializer());
             assertEquals(oo, db.engine.get(recid, db.getDefaultSerializer()));
         }
@@ -317,7 +317,7 @@ public class SerializerPojoTest{
 @Test  public  void test_pojo_reload() throws IOException {
 
         File f = UtilsTest.tempDbFile();
-        DB db = DBMaker.newFileDB(f).make();
+        DB db = DBMaker.fileDB(f).make();
         Set set = db.getHashSet("testSerializerPojo");
         set.add(new test_pojo_reload_TestClass("test"));
         db.commit();
@@ -326,7 +326,7 @@ public class SerializerPojoTest{
 
         db.close();
 
-        db = DBMaker.newFileDB(f).deleteFilesAfterClose().make();
+        db = DBMaker.fileDB(f).deleteFilesAfterClose().make();
         set = db.getHashSet("testSerializerPojo");
         set.add(new test_pojo_reload_TestClass("test2"));
         db.commit();
@@ -381,7 +381,7 @@ public class SerializerPojoTest{
 
 
     @Test public void testIssue177() throws UnknownHostException {
-        DB db = DBMaker.newMemoryDB().make();
+        DB db = DBMaker.memoryDB().make();
         InetAddress value = InetAddress.getByName("127.0.0.1");
         long recid = db.engine.put(value, db.getDefaultSerializer());
         Object value2 = db.engine.get(recid,db.getDefaultSerializer());
@@ -409,7 +409,7 @@ public class SerializerPojoTest{
 
     @Test
     public void class_registered_after_commit(){
-        DB db = DBMaker.newMemoryDB().transactionDisable().make();
+        DB db = DBMaker.memoryDB().transactionDisable().make();
 
         SerializerPojo ser = (SerializerPojo) db.getDefaultSerializer();
         assertEquals(0, ser.getClassInfos.run().length);

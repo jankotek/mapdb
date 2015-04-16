@@ -20,7 +20,7 @@ public class Issue69Test {
 
 	@Before
 	public void setUp() {
-		db = DBMaker.newTempFileDB()
+		db = DBMaker.tempFileDB()
 				.transactionDisable()
 				.checksumEnable()
 				.deleteFilesAfterClose()

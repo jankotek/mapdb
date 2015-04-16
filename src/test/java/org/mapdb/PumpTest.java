@@ -20,7 +20,7 @@ public class PumpTest {
             m.put(i, "aa"+i);
         }
 
-        DB db2 = DBMaker.newMemoryDB().make();
+        DB db2 = DBMaker.memoryDB().make();
         Pump.copy(db1,db2);
 
         Map m2 = db2.getHashMap("test");
@@ -32,10 +32,10 @@ public class PumpTest {
 
     DB makeDB(int i){
         switch(i){
-            case 0: return DBMaker.newAppendFileDB(UtilsTest.tempDbFile()).deleteFilesAfterClose().snapshotEnable().make();
-            case 1: return DBMaker.newMemoryDB().snapshotEnable().make();
-            case 2: return DBMaker.newMemoryDB().snapshotEnable().transactionDisable().make();
-            case 3: return DBMaker.newMemoryDB().snapshotEnable().makeTxMaker().makeTx();
+            case 0: return DBMaker.appendFileDB(UtilsTest.tempDbFile()).deleteFilesAfterClose().snapshotEnable().make();
+            case 1: return DBMaker.memoryDB().snapshotEnable().make();
+            case 2: return DBMaker.memoryDB().snapshotEnable().transactionDisable().make();
+            case 3: return DBMaker.memoryDB().snapshotEnable().makeTxMaker().makeTx();
             case 4: return new DB(new StoreHeap(true,CC.DEFAULT_LOCK_SCALE,0));
         }
         throw new IllegalArgumentException(""+i);

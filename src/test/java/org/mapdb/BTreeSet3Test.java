@@ -26,7 +26,7 @@ public class BTreeSet3Test extends JSR166TestCase {
      */
     private NavigableSet<Integer> populatedSet(int n) {
         NavigableSet<Integer> q =
-                DBMaker.newMemoryDB().transactionDisable().make().getTreeSet("test");
+                DBMaker.memoryDB().transactionDisable().make().getTreeSet("test");
         assertTrue(q.isEmpty());
 
         for (int i = n-1; i >= 0; i-=2)
@@ -45,7 +45,7 @@ public class BTreeSet3Test extends JSR166TestCase {
      * Returns a new set of first 5 ints.
      */
     private NavigableSet set5() {
-        NavigableSet q = DBMaker.newMemoryDB().transactionDisable().make().getTreeSet("test");
+        NavigableSet q = DBMaker.memoryDB().transactionDisable().make().getTreeSet("test");
         assertTrue(q.isEmpty());
         q.add(one);
         q.add(two);
@@ -63,7 +63,7 @@ public class BTreeSet3Test extends JSR166TestCase {
      * Returns a new set of first 5 negative ints.
      */
     private NavigableSet dset5() {
-        NavigableSet q = DBMaker.newMemoryDB().transactionDisable().make().getTreeSet("test");
+        NavigableSet q = DBMaker.memoryDB().transactionDisable().make().getTreeSet("test");
         assertTrue(q.isEmpty());
         q.add(m1);
         q.add(m2);
@@ -76,13 +76,13 @@ public class BTreeSet3Test extends JSR166TestCase {
     }
 
     private static NavigableSet set0() {
-        NavigableSet set = DBMaker.newMemoryDB().transactionDisable().make().getTreeSet("test");
+        NavigableSet set = DBMaker.memoryDB().transactionDisable().make().getTreeSet("test");
         assertTrue(set.isEmpty());
         return set.tailSet(m1, true);
     }
 
     private static NavigableSet dset0() {
-        NavigableSet set = DBMaker.newMemoryDB().transactionDisable().make().getTreeSet("test");
+        NavigableSet set = DBMaker.memoryDB().transactionDisable().make().getTreeSet("test");
         assertTrue(set.isEmpty());
         return set;
     }

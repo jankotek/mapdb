@@ -18,7 +18,7 @@ public class Transactions {
 
         //Open Transaction Factory. DBMaker shares most options with single-transaction mode.
         TxMaker txMaker = DBMaker
-                .newMemoryDB()
+                .memoryDB()
                 .makeTxMaker();
 
         // Now open first transaction and get map from first transaction
