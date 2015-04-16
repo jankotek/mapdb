@@ -34,7 +34,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <threadCount>1</threadCount>
+        <forkCount>1</forkCount>
     </properties>
 
     <dependencies>
@@ -105,9 +105,8 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.16</version>
                 <configuration>
-                    <parallel>all</parallel>
-                    <threadCount>${threadCount}</threadCount>
-                    <forkCount>1</forkCount>
+                    <reuseForks>true</reuseForks>
+                    <forkCount>${forkCount}</forkCount>
 
                     <includes>
                         <include>**/*</include>
