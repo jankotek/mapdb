@@ -22,7 +22,7 @@ public class DBMakerTest{
     private void verifyDB(DB db) {
         Map m = db.getHashMap("test");
         m.put(1,2);
-        assertEquals(2,m.get(1));
+        assertEquals(2, m.get(1));
     }
 
 
@@ -60,19 +60,6 @@ public class DBMakerTest{
         assertEquals(s.getClass(), StoreDirect.class);
     }
 
-
-    @Test
-    public void testAsyncWriteEnable() throws Exception {
-        DB db = DBMaker
-                .memoryDB()
-                .asyncWriteEnable()
-                .make();
-        verifyDB(db);
-        Store store = Store.forDB(db);
-        Engine w =  db.engine;
-        //TODO reenalbe after async is finished
-//        assertEquals(w.getWrappedEngine().getClass(),AsyncWriteEngine.class);
-    }
 
 
     @Test
@@ -145,7 +132,7 @@ public class DBMakerTest{
         Store store = Store.forDB(db);
         Store.Cache cache = store.caches[0];
         assertTrue(cache.getClass() == Store.Cache.WeakSoftRef.class);
-        assertTrue(((Store.Cache.WeakSoftRef)cache).useWeakRef);
+        assertTrue(((Store.Cache.WeakSoftRef) cache).useWeakRef);
     }
 
 
@@ -159,7 +146,7 @@ public class DBMakerTest{
         verifyDB(db);
         Store store = Store.forDB(db);
         assertTrue(store.caches[0].getClass() == Store.Cache.WeakSoftRef.class);
-        assertFalse(((Store.Cache.WeakSoftRef)store.caches[0]).useWeakRef);
+        assertFalse(((Store.Cache.WeakSoftRef) store.caches[0]).useWeakRef);
     }
 
     @Test
@@ -185,7 +172,7 @@ public class DBMakerTest{
                 .make();
         verifyDB(db);
         Store store = Store.forDB(db);
-        assertEquals(1024, ((Store.Cache.HashTable) store.caches[0]).items.length*store.caches.length);
+        assertEquals(1024, ((Store.Cache.HashTable) store.caches[0]).items.length * store.caches.length);
     }
 
 
@@ -325,7 +312,7 @@ public class DBMakerTest{
 
     @Test public void tempHashMap(){
         ConcurrentMap<Long,String> m = DBMaker.tempHashMap();
-        m.put(111L,"wfjie");
+        m.put(111L, "wfjie");
         assertTrue(m.getClass().getName().contains("HTreeMap"));
     }
 
@@ -511,5 +498,25 @@ public class DBMakerTest{
         assertNull(db.executor);
         db.close();
     }
+
+
+    @Test public void asyncWriteCache(){
+        DB db = DBMaker.memoryDB()
+                .asyncWriteEnable()
+                .transactionDisable()
+                .make();
+        assertEquals(StoreCached.class, Store.forDB(db).getClass());
+    }
+
+    @Test public void asyncWriteQueueSize(){
+        DB db = DBMaker.memoryDB()
+                .asyncWriteEnable()
+                .asyncWriteQueueSize(12345)
+                .transactionDisable()
+                .make();
+        StoreCached c = (StoreCached) Store.forDB(db);
+        assertEquals(12345,c.writeQueueSize);
+    }
+
 
 }

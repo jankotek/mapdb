@@ -26,7 +26,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
@@ -105,7 +104,8 @@ public class StoreWAL extends StoreCached {
                 0,
                 false, false, null, false, 0,
                 false, 0,
-                null, 0L);
+                null, 0L,
+                0);
     }
 
     public StoreWAL(
@@ -122,7 +122,8 @@ public class StoreWAL extends StoreCached {
             boolean commitFileSyncDisable,
             int sizeIncrement,
             ScheduledExecutorService executor,
-            long executorScheduledRate
+            long executorScheduledRate,
+            int writeQueueSize
         ) {
         super(fileName, volumeFactory, cache,
                 lockScale,
@@ -130,8 +131,8 @@ public class StoreWAL extends StoreCached {
                 checksum, compress, password, readonly,
                 freeSpaceReclaimQ, commitFileSyncDisable, sizeIncrement,
                 executor,
-                executorScheduledRate
-                );
+                executorScheduledRate,
+                writeQueueSize);
         prevLongLongs = new LongLongMap[this.lockScale];
         currLongLongs = new LongLongMap[this.lockScale];
         for (int i = 0; i < prevLongLongs.length; i++) {

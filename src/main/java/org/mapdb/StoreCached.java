@@ -27,6 +27,9 @@ public class StoreCached extends StoreDirect {
         }
     };
 
+    protected final int writeQueueSize;
+    protected final boolean flushInThread;
+
     public StoreCached(
             String fileName,
             Fun.Function1<Volume, String> volumeFactory,
@@ -41,18 +44,25 @@ public class StoreCached extends StoreDirect {
             boolean commitFileSyncDisable,
             int sizeIncrement,
             ScheduledExecutorService executor,
-            long executorScheduledRate
-            ) {
+            long executorScheduledRate,
+            final int writeQueueSize) {
         super(fileName, volumeFactory, cache,
                 lockScale,
                 lockingStrategy,
                 checksum, compress, password, readonly,
                 freeSpaceReclaimQ, commitFileSyncDisable, sizeIncrement,executor);
 
+        this.writeQueueSize = writeQueueSize;
+
         writeCache = new LongObjectObjectMap[this.lockScale];
         for (int i = 0; i < writeCache.length; i++) {
             writeCache[i] = new LongObjectObjectMap();
         }
+
+        flushInThread = this.executor==null &&
+                writeQueueSize!=0 &&
+                !(this instanceof StoreWAL); //TODO StoreWAL should dump data into WAL
+
         if(this.executor!=null &&
                 !(this instanceof StoreWAL) //TODO async write should work for StoreWAL as well
                 ){
@@ -64,7 +74,9 @@ public class StoreCached extends StoreDirect {
                     public void run() {
                         lock.lock();
                         try {
-                            flushWriteCacheSegment(seg);
+                            if(writeCache[seg].size>writeQueueSize) {
+                                flushWriteCacheSegment(seg);
+                            }
                         }finally {
                             lock.unlock();
                         }
@@ -86,8 +98,10 @@ public class StoreCached extends StoreDirect {
                 0,
                 false, false, null, false, 0,
                 false, 0,
-                null, 0L);
+                null, 0L, 0);
     }
+
+
 
     @Override
     protected void initHeadVol() {
@@ -359,8 +373,14 @@ public class StoreCached extends StoreDirect {
     protected <A> void delete2(long recid, Serializer<A> serializer) {
         if (serializer == null)
             throw new NullPointerException();
+        int lockPos = lockPos(recid);
 
-        writeCache[lockPos(recid)].put(recid, TOMBSTONE2,null);
+        LongObjectObjectMap map = writeCache[lockPos];
+        map.put(recid, TOMBSTONE2, null);
+
+        if(flushInThread && map.size>writeQueueSize){
+            flushWriteCacheSegment(lockPos);
+        }
     }
 
     @Override
@@ -387,7 +407,12 @@ public class StoreCached extends StoreDirect {
             if(cache!=null) {
                 cache.put(recid, value);
             }
-            writeCache[lockPos].put(recid, value, serializer);
+            LongObjectObjectMap map = writeCache[lockPos];
+            map.put(recid, value, serializer);
+            if(flushInThread && map.size>writeQueueSize){
+                flushWriteCacheSegment(lockPos);
+            }
+
         } finally {
             lock.unlock();
         }
@@ -417,6 +442,10 @@ public class StoreCached extends StoreDirect {
                     cache.put(recid, newValue);
                 }
                 map.put(recid,newValue,serializer);
+                if(flushInThread && map.size>writeQueueSize){
+                    flushWriteCacheSegment(lockPos);
+                }
+
                 return true;
             }
             return false;

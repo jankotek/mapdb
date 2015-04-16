@@ -1117,40 +1117,61 @@ public final class DBMaker{
         }else{
             Fun.Function1<Volume, String> volFac = extendStoreVolumeFactory(false);
             boolean compressionEnabled = Keys.compression_lzf.equals(props.getProperty(Keys.compression));
+            boolean asyncWrite = propsGetBool(Keys.asyncWrite) && !readOnly;
+            boolean txDisable = propsGetBool(Keys.transactionDisable);
 
-            engine = propsGetBool(Keys.transactionDisable) ?
-
-                    new StoreDirect(
-                            file,
-                            volFac,
-                            createCache(cacheLockDisable,lockScale),
-                            lockScale,
-                            lockingStrategy,
-                            propsGetBool(Keys.checksum),
-                            compressionEnabled,
-                            encKey,
-                            propsGetBool(Keys.readOnly),
-                            propsGetInt(Keys.freeSpaceReclaimQ,CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
-                            propsGetBool(Keys.commitFileSyncDisable),
-                            0,
-                            storeExecutor):
-
-                    new StoreWAL(
-                            file,
-                            volFac,
-                            createCache(cacheLockDisable,lockScale),
-                            lockScale,
-                            lockingStrategy,
-                            propsGetBool(Keys.checksum),
-                            compressionEnabled,
-                            encKey,
-                            propsGetBool(Keys.readOnly),
-                            propsGetInt(Keys.freeSpaceReclaimQ, CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
-                            propsGetBool(Keys.commitFileSyncDisable),
-                            0,
-                            storeExecutor,
-                            CC.DEFAULT_STORE_EXECUTOR_SCHED_RATE
-                            );
+            if(!txDisable){
+                engine = new StoreWAL(
+                        file,
+                        volFac,
+                        createCache(cacheLockDisable,lockScale),
+                        lockScale,
+                        lockingStrategy,
+                        propsGetBool(Keys.checksum),
+                        compressionEnabled,
+                        encKey,
+                        propsGetBool(Keys.readOnly),
+                        propsGetInt(Keys.freeSpaceReclaimQ, CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
+                        propsGetBool(Keys.commitFileSyncDisable),
+                        0,
+                        storeExecutor,
+                        CC.DEFAULT_STORE_EXECUTOR_SCHED_RATE,
+                        propsGetInt(Keys.asyncWriteQueueSize,CC.DEFAULT_ASYNC_WRITE_QUEUE_SIZE)
+                );
+            }else if(asyncWrite) {
+                engine = new StoreCached(
+                        file,
+                        volFac,
+                        createCache(cacheLockDisable, lockScale),
+                        lockScale,
+                        lockingStrategy,
+                        propsGetBool(Keys.checksum),
+                        compressionEnabled,
+                        encKey,
+                        propsGetBool(Keys.readOnly),
+                        propsGetInt(Keys.freeSpaceReclaimQ, CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
+                        propsGetBool(Keys.commitFileSyncDisable),
+                        0,
+                        storeExecutor,
+                        CC.DEFAULT_STORE_EXECUTOR_SCHED_RATE,
+                        propsGetInt(Keys.asyncWriteQueueSize,CC.DEFAULT_ASYNC_WRITE_QUEUE_SIZE)
+                        );
+            }else{
+                engine = new StoreDirect(
+                        file,
+                        volFac,
+                        createCache(cacheLockDisable, lockScale),
+                        lockScale,
+                        lockingStrategy,
+                        propsGetBool(Keys.checksum),
+                        compressionEnabled,
+                        encKey,
+                        propsGetBool(Keys.readOnly),
+                        propsGetInt(Keys.freeSpaceReclaimQ, CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
+                        propsGetBool(Keys.commitFileSyncDisable),
+                        0,
+                        storeExecutor);
+            }
         }
 
         if(engine instanceof Store){
@@ -1158,11 +1179,6 @@ public final class DBMaker{
         }
 
         engine = extendWrapStore(engine);
-
-        if(propsGetBool(Keys.asyncWrite) && !readOnly){
-            engine = extendAsyncWriteEngine(engine);
-        }
-
 
 
         if(propsGetBool(Keys.snapshots))
@@ -1212,7 +1228,7 @@ public final class DBMaker{
         if(cacheExecutor==null) {
             cacheExecutor = executor;
         }
-        
+
         long executorPeriod = propsGetLong(Keys.cacheExecutorPeriod, CC.DEFAULT_CACHE_EXECUTOR_PERIOD);
 
         if(Keys.cache_disable.equals(cache)){
@@ -1292,15 +1308,6 @@ public final class DBMaker{
 
     protected Engine extendSnapshotEngine(Engine engine, int lockScale) {
         return new TxEngine(engine,propsGetBool(Keys.fullTx), lockScale);
-    }
-
-    protected Engine extendAsyncWriteEngine(Engine engine) {
-        return engine;
-        //TODO async write
-//        return new AsyncWriteEngine(engine,
-//                propsGetInt(Keys.asyncWriteFlushDelay,CC.ASYNC_WRITE_FLUSH_DELAY),
-//                propsGetInt(Keys.asyncWriteQueueSize,CC.ASYNC_WRITE_QUEUE_SIZE),
-//                null);
     }
 
 

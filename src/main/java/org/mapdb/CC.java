@@ -121,5 +121,7 @@ public interface CC {
 
     boolean METRICS_CACHE = true;
     boolean METRICS_STORE = true;
+
+    int DEFAULT_ASYNC_WRITE_QUEUE_SIZE = 1024;
 }
 
