@@ -1366,6 +1366,7 @@ public class DB implements Closeable {
         return ret;
     }
 
+    /** @deprecated queues API is going to be reworked */
     synchronized public <E> BlockingQueue<E> getQueue(String name) {
         checkNotClosed();
         Queues.Queue<E> ret = (Queues.Queue<E>) getFromWeakCollection(name);
@@ -1396,6 +1397,8 @@ public class DB implements Closeable {
         return ret;
     }
 
+
+    /** @deprecated queues API is going to be reworked */
     synchronized public <E> BlockingQueue<E> createQueue(String name, Serializer<E> serializer, boolean useLocks) {
         checkNameNotExists(name);
 
@@ -1417,6 +1420,7 @@ public class DB implements Closeable {
     }
 
 
+    /** @deprecated queues API is going to be reworked */
     synchronized public <E> BlockingQueue<E> getStack(String name) {
         checkNotClosed();
         Queues.Stack<E> ret = (Queues.Stack<E>) getFromWeakCollection(name);
@@ -1449,6 +1453,7 @@ public class DB implements Closeable {
 
 
 
+    /** @deprecated queues API is going to be reworked */
     synchronized public <E> BlockingQueue<E> createStack(String name, Serializer<E> serializer, boolean useLocks) {
         checkNameNotExists(name);
 
@@ -1466,6 +1471,7 @@ public class DB implements Closeable {
     }
 
 
+    /** @deprecated queues API is going to be reworked */
     synchronized public <E> BlockingQueue<E> getCircularQueue(String name) {
         checkNotClosed();
         BlockingQueue<E> ret = (BlockingQueue<E>) getFromWeakCollection(name);
@@ -1500,6 +1506,7 @@ public class DB implements Closeable {
 
 
 
+    /** @deprecated queues API is going to be reworked */
     synchronized public <E> BlockingQueue<E> createCircularQueue(String name, Serializer<E> serializer, long size) {
         checkNameNotExists(name);
         if(serializer==null) serializer = getDefaultSerializer();
