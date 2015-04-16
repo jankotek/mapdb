@@ -99,6 +99,7 @@ public class StoreCached extends StoreDirect {
         //TODO introduce SingleByteArrayVol which uses only single byte[]
 
         byte[] buf = new byte[(int) HEAD_END]; //TODO copy directly
+		//TODO method without repeating zeroes
         vol.getData(0, buf, 0, buf.length);
         headVol.ensureAvailable(buf.length);
         headVol.putData(0, buf, 0, buf.length);

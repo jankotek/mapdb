@@ -90,7 +90,7 @@ public abstract class Store implements Engine {
             else if(lockingStrategy==LOCKING_STRATEGY_WRITELOCK){
                 locks[i] = new ReadWriteSingleLock(new ReentrantLock(CC.FAIR_LOCKS));
             }else if(lockingStrategy==LOCKING_STRATEGY_NOLOCK){
-                locks[i] = new ReadWriteSingleLock(new NoLock());
+                locks[i] = new ReadWriteSingleLock(NOLOCK);
             }else{
                 throw new IllegalArgumentException("Illegal locking strategy: "+lockingStrategy);
             }
@@ -1544,8 +1544,8 @@ public abstract class Store implements Engine {
 
 
     /** fake lock */
-    //TODO perhaps add some basic assertions?
-    public static final class NoLock implements Lock{
+
+    public static final Lock NOLOCK = new Lock(){
 
         @Override
         public void lock() {
@@ -1573,7 +1573,7 @@ public abstract class Store implements Engine {
         public Condition newCondition() {
             throw new UnsupportedOperationException();
         }
-    }
+    };
 
     /** fake read/write lock which in fact locks on single write lock */
     public static final class ReadWriteSingleLock implements ReadWriteLock{

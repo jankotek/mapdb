@@ -941,6 +941,8 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
 
         int length();
 
+        int[] getOffset();
+
         BTreeKeySerializer.StringArrayKeys deleteKey(int pos);
 
         BTreeKeySerializer.StringArrayKeys copyOfRange(int from, int to);
@@ -1024,6 +1026,11 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         @Override
         public int length() {
             return offset.length;
+        }
+
+        @Override
+        public int[] getOffset() {
+            return offset;
         }
 
         @Override
@@ -1141,8 +1148,8 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             int len = Math.min(len1,strLen);
              //$DELAY$
             while(len-- != 0){
-                byte b1 = array[start1++];
-                byte b2 = (byte) string.charAt(start2++);
+                char b1 = (char) (array[start1++] & 0xff);
+                char b2 = string.charAt(start2++);
                 if(b1!=b2){
                     return b1-b2;
                 }
@@ -1266,6 +1273,11 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         @Override
         public int length() {
             return offset.length;
+        }
+
+        @Override
+        public int[] getOffset() {
+            return offset;
         }
 
         @Override
@@ -1622,21 +1634,20 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
 
     public static final BTreeKeySerializer<String,StringArrayKeys> STRING = new BTreeKeySerializer<String,StringArrayKeys>() {
         @Override
-        public void serialize(DataOutput out, StringArrayKeys keys2) throws IOException {
-            ByteArrayKeys keys = (ByteArrayKeys) keys2;
+        public void serialize(DataOutput out, StringArrayKeys keys) throws IOException {
             int offset = 0;
             //write sizes
-            for(int o:keys.offset){
+            for(int o: keys.getOffset()){
                 DataIO.packInt(out,(o-offset));
                 offset = o;
             }
             //$DELAY$
-            int unicode = keys2.hasUnicodeChars()?1:0;
+            int unicode = keys.hasUnicodeChars()?1:0;
             
             //find and write common prefix
             int prefixLen = keys.commonPrefixLen();
             DataIO.packInt(out,(prefixLen<<1) | unicode);
-            keys2.serialize(out, prefixLen);
+            keys.serialize(out, prefixLen);
         }
 
         @Override
