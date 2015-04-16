@@ -107,6 +107,7 @@
                 <configuration>
                     <parallel>all</parallel>
                     <threadCount>${threadCount}</threadCount>
+                    <forkCount>1</forkCount>
 
                     <includes>
                         <include>**/*</include>
