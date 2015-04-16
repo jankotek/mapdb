@@ -103,11 +103,6 @@ public class UtilsTest {
     };
 
 
-    @Test public void testHexaConversion(){
-        byte[] b = new byte[]{11,112,11,0,39,90};
-        assertTrue(Serializer.BYTE_ARRAY.equals(b, DBMaker.fromHexa(DBMaker.toHexa(b))));
-    }
-
     /*
      * Create temporary file in temp folder. All associated db files will be deleted on JVM exit.
      */

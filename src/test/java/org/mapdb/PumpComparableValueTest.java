@@ -18,12 +18,9 @@ public class PumpComparableValueTest {
          */
         @Test
         public void run(){
-                DBMaker dbMaker = DBMaker.newMemoryDB()
-                                .transactionDisable();
-
-                DB mapDBStore = dbMaker.make();
-
-                
+                DB mapDBStore = DBMaker.newMemoryDB()
+                                .transactionDisable()
+                                .make();
 
                 final int max = 70000;
                 
@@ -67,11 +64,8 @@ public class PumpComparableValueTest {
 
     @Test
     public void run2(){
-        DBMaker dbMaker = DBMaker.newMemoryDB()
-                .transactionDisable();
-
-        DB mapDBStore = dbMaker.make();
-
+        DB db = DBMaker.newMemoryDB()
+                .transactionDisable().make();
 
 
         final int max = 70000;
@@ -103,7 +97,7 @@ public class PumpComparableValueTest {
 
 
 
-        BTreeMap<String,String> map2 = mapDBStore.createTreeMap("non comparable values")
+        BTreeMap<String,String> map2 = db.createTreeMap("non comparable values")
                 .pumpSource(entriesSourceNonComp)
                 .pumpPresort(pumpSize)
                 .pumpIgnoreDuplicates()

@@ -129,4 +129,9 @@ public class DataIOTest {
         assertEquals(1111, b3.unpackInt());
     }
 
+
+    @Test public void testHexaConversion(){
+        byte[] b = new byte[]{11,112,11,0,39,90};
+        assertTrue(Serializer.BYTE_ARRAY.equals(b, DataIO.fromHexa(DataIO.toHexa(b))));
+    }
 }

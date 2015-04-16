@@ -29,24 +29,32 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
 /**
- * A builder class for creating and opening a database.
+ * <p>
+ * A builder class to creare and open new database and individual collections.
+ * It has several static factory methods.
+ * Method names depends on type of storage it opens.
+ * {@code DBMaker}is typically used this way
+ * </p>
+ * <pre>
+ *  DB db = DBMaker
+ *      .newMemoryDB()          //static method
+ *      .transactinsDisable()   //configuration option
+ *      .make()                 //opens db
+ * </pre>
+ *
+ *
  *
  * @author Jan Kotek
  */
-public class DBMaker{
+public final class DBMaker{
 
     protected static final Logger LOG = Logger.getLogger(DBMaker.class.getName());
 
-    protected final String TRUE = "true";
-
-    protected Fun.RecordCondition cacheCondition;
-    protected ScheduledExecutorService executor;
-    protected ScheduledExecutorService metricsExecutor;
-    protected ScheduledExecutorService cacheExecutor;
-    protected ScheduledExecutorService storeExecutor;
+    protected static final String TRUE = "true";
 
     protected interface Keys{
         String cache = "cache";
+
         String cacheSize = "cacheSize";
         String cache_disable = "disable";
         String cache_hashTable = "hashTable";
@@ -112,28 +120,16 @@ public class DBMaker{
         String strictDBGet = "strictDBGet";
 
         String fullTx = "fullTx";
+
     }
 
-    protected Properties props = new Properties();
-
-    /** use static factory methods, or make subclass */
-    protected DBMaker(){}
-
-    protected DBMaker(File file) {
-        props.setProperty(Keys.file, file.getPath());
-    }
 
     /**
      * Creates new in-memory database which stores all data on heap without serialization.
      * This mode should be very fast, but data will affect Garbage Collector the same way as traditional Java Collections.
      */
-    public static DBMaker newHeapDB(){
-        return new DBMaker()._newHeapDB();
-    }
-
-    public DBMaker _newHeapDB(){
-        props.setProperty(Keys.store,Keys.store_heap);
-        return this;
+    public static Maker newHeapDB(){
+        return new Maker()._newHeapDB();
     }
 
 
@@ -141,13 +137,8 @@ public class DBMaker{
      * Creates new in-memory database. Changes are lost after JVM exits.
      * This will use HEAP memory so Garbage Collector is affected.
      */
-    public static DBMaker newMemoryDB(){
-        return new DBMaker()._newMemoryDB();
-    }
-
-    public DBMaker _newMemoryDB(){
-        props.setProperty(Keys.volume,Keys.volume_byteBuffer);
-        return this;
+    public static Maker newMemoryDB(){
+        return new Maker()._newMemoryDB();
     }
 
     /**
@@ -158,13 +149,8 @@ public class DBMaker{
      * This will use DirectByteBuffer outside of HEAP, so Garbage Collector is not affected
      * </p>
      */
-    public static DBMaker newMemoryDirectDB(){
-        return new DBMaker()._newMemoryDirectDB();
-    }
-
-    public  DBMaker _newMemoryDirectDB() {
-        props.setProperty(Keys.volume,Keys.volume_directByteBuffer);
-        return this;
+    public static Maker newMemoryDirectDB(){
+        return new Maker()._newMemoryDirectDB();
     }
 
 
@@ -179,16 +165,9 @@ public class DBMaker{
      * {@code DirectByteBuffer} based in-memory store without throwing an exception.
      * </p>
      */
-    public static DBMaker newMemoryUnsafeDB(){
-        return new DBMaker()._newMemoryUnsafeDB();
+    public static Maker newMemoryUnsafeDB(){
+        return new Maker()._newMemoryUnsafeDB();
     }
-
-    public  DBMaker _newMemoryUnsafeDB() {
-        props.setProperty(Keys.volume,Keys.volume_unsafe);
-        return this;
-    }
-
-
 
     /**
      * Creates or open append-only database stored in file.
@@ -197,14 +176,8 @@ public class DBMaker{
      * @param file
      * @return maker
      */
-    public static DBMaker newAppendFileDB(File file) {
-        return new DBMaker()._newAppendFileDB(file);
-    }
-
-    public DBMaker _newAppendFileDB(File file) {
-        props.setProperty(Keys.file, file.getPath());
-        props.setProperty(Keys.store, Keys.store_append);
-        return this;
+    public static Maker newAppendFileDB(File file) {
+        return new Maker()._newAppendFileDB(file);
     }
 
 
@@ -291,7 +264,7 @@ public class DBMaker{
     /**
      * Creates new database in temporary folder.
      */
-    public static DBMaker newTempFileDB() {
+    public static Maker newTempFileDB() {
         try {
             return newFileDB(File.createTempFile("mapdb-temp","db"));
         } catch (IOException e) {
@@ -344,11 +317,61 @@ public class DBMaker{
 
 
     /** Creates or open database stored in file. */
-    public static DBMaker newFileDB(File file){
-        return new DBMaker(file);
+    public static Maker newFileDB(File file){
+        return new Maker(file);
     }
 
-    public DBMaker _newFileDB(File file){
+
+    public static final class Maker {
+        protected Fun.RecordCondition cacheCondition;
+        protected ScheduledExecutorService executor;
+        protected ScheduledExecutorService metricsExecutor;
+        protected ScheduledExecutorService cacheExecutor;
+
+    protected ScheduledExecutorService storeExecutor;
+
+    protected Properties props = new Properties();
+
+    /** use static factory methods, or make subclass */
+    protected Maker(){}
+
+    protected Maker(File file) {
+        props.setProperty(Keys.file, file.getPath());
+    }
+
+
+
+    public Maker _newHeapDB(){
+        props.setProperty(Keys.store,Keys.store_heap);
+        return this;
+    }
+
+    public Maker _newMemoryDB(){
+        props.setProperty(Keys.volume,Keys.volume_byteBuffer);
+        return this;
+    }
+
+    public  Maker _newMemoryDirectDB() {
+        props.setProperty(Keys.volume,Keys.volume_directByteBuffer);
+        return this;
+    }
+
+
+    public  Maker _newMemoryUnsafeDB() {
+        props.setProperty(Keys.volume,Keys.volume_unsafe);
+        return this;
+    }
+
+
+    public Maker _newAppendFileDB(File file) {
+        props.setProperty(Keys.file, file.getPath());
+        props.setProperty(Keys.store, Keys.store_append);
+        return this;
+    }
+
+
+
+    public Maker _newFileDB(File file){
         props.setProperty(Keys.file, file.getPath());
         return this;
     }
@@ -360,7 +383,7 @@ public class DBMaker{
      *
      * @return this builder
      */
-    public DBMaker executorEnable(){
+    public Maker executorEnable(){
         executor = Executors.newScheduledThreadPool(4);
         return this;
     }
@@ -380,7 +403,7 @@ public class DBMaker{
      *
      * @return this builder
      */
-    public DBMaker transactionDisable(){
+    public Maker transactionDisable(){
         props.put(Keys.transactionDisable, TRUE);
         return this;
     }
@@ -390,11 +413,11 @@ public class DBMaker{
      *
      * @return this builder
      */
-    public DBMaker metricsEnable(){
+    public Maker metricsEnable(){
         return metricsEnable(CC.DEFAULT_METRICS_LOG_PERIOD);
     }
 
-    public DBMaker metricsEnable(long metricsLogPeriod) {
+    public Maker metricsEnable(long metricsLogPeriod) {
         props.put(Keys.metrics, TRUE);
         props.put(Keys.metricsLogInterval, ""+metricsLogPeriod);
         return this;
@@ -405,7 +428,7 @@ public class DBMaker{
      *
      * @return this builder
      */
-    public DBMaker metricsExecutorEnable(){
+    public Maker metricsExecutorEnable(){
         return metricsExecutorEnable(
                 Executors.newSingleThreadScheduledExecutor());
     }
@@ -415,7 +438,7 @@ public class DBMaker{
      *
      * @return this builder
      */
-    public DBMaker metricsExecutorEnable(ScheduledExecutorService metricsExecutor){
+    public Maker metricsExecutorEnable(ScheduledExecutorService metricsExecutor){
         this.metricsExecutor = metricsExecutor;
         return this;
     }
@@ -425,7 +448,7 @@ public class DBMaker{
      *
      * @return this builder
      */
-    public DBMaker cacheExecutorEnable(){
+    public Maker cacheExecutorEnable(){
         return cacheExecutorEnable(
                 Executors.newSingleThreadScheduledExecutor());
     }
@@ -435,7 +458,7 @@ public class DBMaker{
      *
      * @return this builder
      */
-    public DBMaker cacheExecutorEnable(ScheduledExecutorService metricsExecutor){
+    public Maker cacheExecutorEnable(ScheduledExecutorService metricsExecutor){
         this.cacheExecutor = metricsExecutor;
         return this;
     }
@@ -446,7 +469,7 @@ public class DBMaker{
      * @param period in ms
      * @return this builder
      */
-    public DBMaker cacheExecutorPeriod(long period){
+    public Maker cacheExecutorPeriod(long period){
         props.put(Keys.cacheExecutorPeriod, ""+period);
         return this;
     }
@@ -457,7 +480,7 @@ public class DBMaker{
      *
      * @return this builder
      */
-    public DBMaker storeExecutorEnable(){
+    public Maker storeExecutorEnable(){
         return storeExecutorEnable(
                 Executors.newScheduledThreadPool(4));
     }
@@ -467,7 +490,7 @@ public class DBMaker{
      *
      * @return this builder
      */
-    public DBMaker storeExecutorEnable(ScheduledExecutorService metricsExecutor){
+    public Maker storeExecutorEnable(ScheduledExecutorService metricsExecutor){
         this.storeExecutor = metricsExecutor;
         return this;
     }
@@ -478,7 +501,7 @@ public class DBMaker{
      * @param period in ms
      * @return this builder
      */
-    public DBMaker storeExecutorPeriod(long period){
+    public Maker storeExecutorPeriod(long period){
         props.put(Keys.storeExecutorPeriod, ""+period);
         return this;
     }
@@ -500,7 +523,7 @@ public class DBMaker{
      *
      * @return this builder
      */
-    public DBMaker cacheCondition(Fun.RecordCondition cacheCondition){
+    public Maker cacheCondition(Fun.RecordCondition cacheCondition){
         this.cacheCondition = cacheCondition;
         return this;
     }
@@ -514,7 +537,7 @@ public class DBMaker{
      * @deprecated cache is disabled by default
      */
 
-    public DBMaker cacheDisable(){
+    public Maker cacheDisable(){
         props.put(Keys.cache,Keys.cache_disable);
         return this;
     }
@@ -532,7 +555,7 @@ public class DBMaker{
      *
      * @return this builder
      */
-    public DBMaker cacheHardRefEnable(){
+    public Maker cacheHardRefEnable(){
         props.put(Keys.cache, Keys.cache_hardRef);
         return this;
     }
@@ -553,7 +576,7 @@ public class DBMaker{
      * @param cacheSize new cache size
      * @return this builder
      */
-    public DBMaker cacheSize(int cacheSize){
+    public Maker cacheSize(int cacheSize){
         props.setProperty(Keys.cacheSize, "" + cacheSize);
         return this;
     }
@@ -570,7 +593,7 @@ public class DBMaker{
      *
      * @return this builder
      */
-    public DBMaker cacheHashTableEnable(){
+    public Maker cacheHashTableEnable(){
         props.put(Keys.cache, Keys.cache_hashTable);
         return this;
     }
@@ -589,7 +612,7 @@ public class DBMaker{
      * @param cacheSize new cache size
      * @return this builder
      */
-    public DBMaker cacheHashTableEnable(int cacheSize){
+    public Maker cacheHashTableEnable(int cacheSize){
         props.put(Keys.cache, Keys.cache_hashTable);
         props.setProperty(Keys.cacheSize, "" + cacheSize);
         return this;
@@ -601,7 +624,7 @@ public class DBMaker{
      *
      * @return this builder
      */
-    public DBMaker cacheWeakRefEnable(){
+    public Maker cacheWeakRefEnable(){
         props.put(Keys.cache,Keys.cache_weakRef);
         return this;
     }
@@ -612,7 +635,7 @@ public class DBMaker{
      *
      * @return this builder
      */
-    public DBMaker cacheSoftRefEnable(){
+    public Maker cacheSoftRefEnable(){
         props.put(Keys.cache,Keys.cache_softRef);
         return this;
     }
@@ -622,7 +645,7 @@ public class DBMaker{
      *
      * @return this builder
      */
-    public DBMaker cacheLRUEnable(){
+    public Maker cacheLRUEnable(){
         props.put(Keys.cache,Keys.cache_lru);
         return this;
     }
@@ -638,7 +661,7 @@ public class DBMaker{
      *
      * @return this builder
      */
-    public DBMaker lockThreadUnsafeEnable() {
+    public Maker lockThreadUnsafeEnable() {
         props.put(Keys.lock, Keys.lock_threadUnsafe);
         return this;
     }
@@ -652,7 +675,7 @@ public class DBMaker{
      * </p>
      * @return this builder
      */
-    public DBMaker lockSingleEnable() {
+    public Maker lockSingleEnable() {
         props.put(Keys.lock, Keys.lock_single);
         return this;
     }
@@ -668,7 +691,7 @@ public class DBMaker{
      *
      * @return this builder
      */
-    public DBMaker lockScale(int scale) {
+    public Maker lockScale(int scale) {
         props.put(Keys.lockScale, "" + scale);
         return this;
     }
@@ -685,7 +708,7 @@ public class DBMaker{
      * mode.
      * </p>
      */
-    public DBMaker mmapFileEnable() {
+    public Maker mmapFileEnable() {
         assertNotInMemoryVolume();
         props.setProperty(Keys.volume,Keys.volume_mmapf);
         return this;
@@ -700,7 +723,7 @@ public class DBMaker{
     /**
      * Enable Memory Mapped Files only if current JVM supports it (is 64bit).
      */
-    public DBMaker mmapFileEnableIfSupported() {
+    public Maker mmapFileEnableIfSupported() {
         assertNotInMemoryVolume();
         props.setProperty(Keys.volume,Keys.volume_mmapfIfSupported);
         return this;
@@ -712,7 +735,7 @@ public class DBMaker{
      *
      * @return this builder
      */
-    public DBMaker snapshotEnable(){
+    public Maker snapshotEnable(){
         props.setProperty(Keys.snapshots,TRUE);
         return this;
     }
@@ -729,7 +752,7 @@ public class DBMaker{
      *
      * @return this builder
      */
-    public DBMaker asyncWriteEnable(){
+    public Maker asyncWriteEnable(){
         LOG.warning("AsyncWrite is not implemented at this moment");
         props.setProperty(Keys.asyncWrite,TRUE);
         return this;
@@ -754,7 +777,7 @@ public class DBMaker{
      * @param delay flush write cache every N miliseconds
      * @return this builder
      */
-    public DBMaker asyncWriteFlushDelay(int delay){
+    public Maker asyncWriteFlushDelay(int delay){
         props.setProperty(Keys.asyncWriteFlushDelay,""+delay);
         return this;
     }
@@ -769,7 +792,7 @@ public class DBMaker{
      * @param queueSize of queue
      * @return this builder
      */
-    public DBMaker asyncWriteQueueSize(int queueSize){
+    public Maker asyncWriteQueueSize(int queueSize){
         props.setProperty(Keys.asyncWriteQueueSize,""+queueSize);
         return this;
     }
@@ -781,7 +804,7 @@ public class DBMaker{
      *
      * @return this builder
      */
-    public DBMaker deleteFilesAfterClose(){
+    public Maker deleteFilesAfterClose(){
         props.setProperty(Keys.deleteFilesAfterClose,TRUE);
         return this;
     }
@@ -791,7 +814,7 @@ public class DBMaker{
      *
      * @return this builder
      */
-    public DBMaker closeOnJvmShutdown(){
+    public Maker closeOnJvmShutdown(){
         props.setProperty(Keys.closeOnJvmShutdown,TRUE);
         return this;
     }
@@ -805,7 +828,7 @@ public class DBMaker{
      *
      * @return this builder
      */
-    public DBMaker compressionEnable(){
+    public Maker compressionEnable(){
         props.setProperty(Keys.compression,Keys.compression_lzf);
         return this;
     }
@@ -824,7 +847,7 @@ public class DBMaker{
      * @param password for encryption
      * @return this builder
      */
-    public DBMaker encryptionEnable(String password){
+    public Maker encryptionEnable(String password){
         return encryptionEnable(password.getBytes(Charset.forName("UTF8")));
     }
 
@@ -843,9 +866,9 @@ public class DBMaker{
      * @param password for encryption
      * @return this builder
      */
-    public DBMaker encryptionEnable(byte[] password){
+    public Maker encryptionEnable(byte[] password){
         props.setProperty(Keys.encryption, Keys.encryption_xtea);
-        props.setProperty(Keys.encryptionKey, toHexa(password));
+        props.setProperty(Keys.encryptionKey, DataIO.toHexa(password));
         return this;
     }
 
@@ -860,7 +883,7 @@ public class DBMaker{
      *
      * @return this builder
      */
-    public DBMaker checksumEnable(){
+    public Maker checksumEnable(){
         props.setProperty(Keys.checksum,TRUE);
         return this;
     }
@@ -878,7 +901,7 @@ public class DBMaker{
      *
      * @return this builder
      */
-    public DBMaker strictDBGet(){
+    public Maker strictDBGet(){
         props.setProperty(Keys.strictDBGet,TRUE);
         return this;
     }
@@ -892,7 +915,7 @@ public class DBMaker{
      *
      * @return this builder
      */
-    public DBMaker readOnly(){
+    public Maker readOnly(){
         props.setProperty(Keys.readOnly,TRUE);
         return this;
     }
@@ -909,7 +932,7 @@ public class DBMaker{
      *
      * @return this builder
      */
-    public DBMaker freeSpaceReclaimQ(int q){
+    public Maker freeSpaceReclaimQ(int q){
         if(q<0||q>10) throw new IllegalArgumentException("wrong Q");
         props.setProperty(Keys.freeSpaceReclaimQ,""+q);
         return this;
@@ -924,7 +947,7 @@ public class DBMaker{
      *
      * @return this builder
      */
-    public DBMaker commitFileSyncDisable(){
+    public Maker commitFileSyncDisable(){
         props.setProperty(Keys.commitFileSyncDisable,TRUE);
         return this;
     }
@@ -961,7 +984,7 @@ public class DBMaker{
         }
     }
 
-    
+
     public TxMaker makeTxMaker(){
         props.setProperty(Keys.fullTx,TRUE);
         snapshotEnable();
@@ -1174,7 +1197,7 @@ public class DBMaker{
     protected byte[] propsGetXteaEncKey(){
         if(!Keys.encryption_xtea.equals(props.getProperty(Keys.encryption)))
             return null;
-        return fromHexa(props.getProperty(Keys.encryptionKey));
+        return DataIO.fromHexa(props.getProperty(Keys.encryptionKey));
     }
 
     /**
@@ -1252,24 +1275,7 @@ public class DBMaker{
                 CC.VOLUME_PAGE_SHIFT,0);
     }
 
-    protected static String toHexa( byte [] bb ) {
-        char[] HEXA_CHARS = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
-        char[] ret = new char[bb.length*2];
-        for(int i=0;i<bb.length;i++){
-            ret[i*2] =HEXA_CHARS[((bb[i]& 0xF0) >> 4)];
-            ret[i*2+1] = HEXA_CHARS[((bb[i] & 0x0F))];
-        }
-        return new String(ret);
     }
-
-    protected static byte[] fromHexa(String s ) {
-        byte[] ret = new byte[s.length()/2];
-        for(int i=0;i<ret.length;i++){
-            ret[i] = (byte) Integer.parseInt(s.substring(i*2,i*2+2),16);
-        }
-        return ret;
-    }
-
     /**
      * Closes Engine on JVM shutdown using shutdown hook: {@link Runtime#addShutdownHook(Thread)}
      * If engine was closed by user before JVM shutdown, hook is removed to save memory.

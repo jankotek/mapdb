@@ -17,8 +17,8 @@ public class Issue381Test {
 
         for(int j=0;j<10;j++) {
             final int INSTANCES = 1000;
-            DBMaker maker = DBMaker.newFileDB(f);
-            TxMaker txMaker = maker.makeTxMaker();
+            TxMaker txMaker  = DBMaker.newFileDB(f).makeTxMaker();
+          
             DB tx = txMaker.makeTx();
             byte[] data = new byte[128];
 
