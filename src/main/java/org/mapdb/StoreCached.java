@@ -28,6 +28,7 @@ public class StoreCached extends StoreDirect {
     };
 
     protected final int writeQueueSize;
+    protected final int writeQueueSizePerSegment;
     protected final boolean flushInThread;
 
     public StoreCached(
@@ -53,6 +54,7 @@ public class StoreCached extends StoreDirect {
                 freeSpaceReclaimQ, commitFileSyncDisable, sizeIncrement,executor);
 
         this.writeQueueSize = writeQueueSize;
+        this.writeQueueSizePerSegment = writeQueueSize/lockScale;
 
         writeCache = new LongObjectObjectMap[this.lockScale];
         for (int i = 0; i < writeCache.length; i++) {
@@ -74,7 +76,7 @@ public class StoreCached extends StoreDirect {
                     public void run() {
                         lock.lock();
                         try {
-                            if(writeCache[seg].size>writeQueueSize) {
+                            if(writeCache[seg].size>writeQueueSizePerSegment) {
                                 flushWriteCacheSegment(seg);
                             }
                         }finally {
@@ -409,7 +411,7 @@ public class StoreCached extends StoreDirect {
             }
             LongObjectObjectMap map = writeCache[lockPos];
             map.put(recid, value, serializer);
-            if(flushInThread && map.size>writeQueueSize){
+            if(flushInThread && map.size>writeQueueSizePerSegment){
                 flushWriteCacheSegment(lockPos);
             }
 
@@ -442,7 +444,7 @@ public class StoreCached extends StoreDirect {
                     cache.put(recid, newValue);
                 }
                 map.put(recid,newValue,serializer);
-                if(flushInThread && map.size>writeQueueSize){
+                if(flushInThread && map.size>writeQueueSizePerSegment){
                     flushWriteCacheSegment(lockPos);
                 }
 
