@@ -64,14 +64,14 @@ public abstract class ClosedThrowsExceptionTest {
 
     @Test(expected = IllegalAccessError.class)
     public void closed_getHashMap(){
-        db.getHashMap("test");
+        db.hashMap("test");
         db.close();
-        db.getHashMap("test");
+        db.hashMap("test");
     }
 
     @Test()
     public void closed_getNamed(){
-        db.getHashMap("test");
+        db.hashMap("test");
         db.close();
         assertEquals(null, db.getNameForObject("test"));
     }
@@ -79,7 +79,7 @@ public abstract class ClosedThrowsExceptionTest {
 
     @Test(expected = IllegalAccessError.class)
     public void closed_put(){
-        Map m = db.getHashMap("test");
+        Map m = db.hashMap("test");
         db.close();
         m.put("aa","bb");
     }
@@ -87,7 +87,7 @@ public abstract class ClosedThrowsExceptionTest {
 
     @Test(expected = IllegalAccessError.class)
     public void closed_remove(){
-        Map m = db.getHashMap("test");
+        Map m = db.hashMap("test");
         m.put("aa","bb");
         db.close();
         m.remove("aa");
@@ -95,7 +95,7 @@ public abstract class ClosedThrowsExceptionTest {
 
     @Test(expected = IllegalAccessError.class)
     public void closed_close(){
-        Map m = db.getHashMap("test");
+        Map m = db.hashMap("test");
         m.put("aa","bb");
         db.close();
         db.close();
@@ -103,7 +103,7 @@ public abstract class ClosedThrowsExceptionTest {
 
     @Test(expected = IllegalAccessError.class)
     public void closed_rollback(){
-        Map m = db.getHashMap("test");
+        Map m = db.hashMap("test");
         m.put("aa","bb");
         db.close();
         db.rollback();
@@ -111,7 +111,7 @@ public abstract class ClosedThrowsExceptionTest {
 
     @Test(expected = IllegalAccessError.class)
     public void closed_commit(){
-        Map m = db.getHashMap("test");
+        Map m = db.hashMap("test");
         m.put("aa","bb");
         db.close();
         db.commit();
@@ -119,7 +119,7 @@ public abstract class ClosedThrowsExceptionTest {
 
     @Test
     public void closed_is_closed(){
-        Map m = db.getHashMap("test");
+        Map m = db.hashMap("test");
         m.put("aa","bb");
         db.close();
         assertEquals(true,db.isClosed());

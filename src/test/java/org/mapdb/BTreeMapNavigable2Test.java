@@ -1,7 +1,6 @@
 package org.mapdb;
 
 import junit.framework.TestCase;
-import org.junit.After;
 
 import java.util.*;
 
@@ -32,13 +31,13 @@ public  class BTreeMapNavigable2Test extends TestCase
     }
 
     protected NavigableMap<Integer, String> newMap() {
-        return DBMaker.memoryDB().transactionDisable().make().createTreeMap("map").make();
+        return DBMaker.memoryDB().transactionDisable().make().treeMapCreate("map").make();
     }
 
 
     public static class Outside extends BTreeMapNavigable2Test{
         @Override protected NavigableMap<Integer, String> newMap() {
-            return DBMaker.memoryDB().transactionDisable().make().createTreeMap("map").valuesOutsideNodesEnable().make();
+            return DBMaker.memoryDB().transactionDisable().make().treeMapCreate("map").valuesOutsideNodesEnable().make();
         }
     }
 

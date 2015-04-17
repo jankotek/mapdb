@@ -378,7 +378,7 @@ public class DB implements Closeable {
 
         public <K,V> HTreeMap<K,V> make(){
             if(expireMaxSize!=0) counter =true;
-            return DB.this.createHashMap(HTreeMapMaker.this);
+            return DB.this.hashMapCreate(HTreeMapMaker.this);
         }
 
         public <K,V> HTreeMap<K,V> makeOrGet(){
@@ -387,7 +387,7 @@ public class DB implements Closeable {
                 //TODO add parameter check
                 //$DELAY$
                 return (HTreeMap<K, V>) (catGet(name+".type")==null?
-                                    make():getHashMap(name));
+                                    make(): hashMap(name));
             }
         }
 
@@ -512,7 +512,7 @@ public class DB implements Closeable {
 
         public <K> Set<K> make(){
             if(expireMaxSize!=0) counter =true;
-            return DB.this.createHashSet(HTreeSetMaker.this);
+            return DB.this.hashSetCreate(HTreeSetMaker.this);
         }
 
         public <K> Set<K> makeOrGet(){
@@ -520,14 +520,19 @@ public class DB implements Closeable {
                 //$DELAY$
                 //TODO add parameter check
                 return (Set<K>) (catGet(name+".type")==null?
-                        make():getHashSet(name));
+                        make(): hashSet(name));
             }
         }
 
     }
 
 
-
+    /**
+     * @deprecated method renamed, use {@link DB#hashMap(String)}
+     */
+    synchronized public <K,V> HTreeMap<K,V> getHashMap(String name){
+        return hashMap(name);
+    }
     /**
      * Opens existing or creates new Hash Tree Map.
      * This collection perform well under concurrent access.
@@ -536,8 +541,15 @@ public class DB implements Closeable {
      * @param name of the map
      * @return map
      */
-    synchronized public <K,V> HTreeMap<K,V> getHashMap(String name){
-        return getHashMap(name, null);
+    synchronized public <K,V> HTreeMap<K,V> hashMap(String name){
+        return hashMap(name, null);
+    }
+
+    /**
+     * @deprecated method renamed, use {@link DB#hashMap(String,org.mapdb.Fun.Function1)}
+     */
+    synchronized public <K,V> HTreeMap<K,V> getHashMap(String name, Fun.Function1<V,K> valueCreator){
+        return hashMap(name,valueCreator);
     }
 
     /**
@@ -549,7 +561,7 @@ public class DB implements Closeable {
      * @param valueCreator if value is not found, new is created and placed into map.
      * @return map
      */
-    synchronized public <K,V> HTreeMap<K,V> getHashMap(String name, Fun.Function1<V,K> valueCreator){
+    synchronized public <K,V> HTreeMap<K,V> hashMap(String name, Fun.Function1<V, K> valueCreator){
         checkNotClosed();
         HTreeMap<K,V> ret = (HTreeMap<K, V>) getFromWeakCollection(name);
         if(ret!=null) return ret;
@@ -561,13 +573,13 @@ public class DB implements Closeable {
             if(engine.isReadOnly()){
                 Engine e = new StoreHeap(true,1,0);
                 //$DELAY$
-                new DB(e).getHashMap("a");
+                new DB(e).hashMap("a");
                 return namedPut(name,
-                        new DB(new Engine.ReadOnly(e)).getHashMap("a"));
+                        new DB(new Engine.ReadOnly(e)).hashMap("a"));
             }
             if(valueCreator!=null)
-                return createHashMap(name).valueCreator(valueCreator).make();
-            return createHashMap(name).make();
+                return hashMapCreate(name).valueCreator(valueCreator).make();
+            return hashMapCreate(name).make();
         }
 
 
@@ -612,6 +624,14 @@ public class DB implements Closeable {
     }
 
 
+
+    /**
+     * @deprecated method renamed, use {@link DB#hashMapCreate(String)}
+     */
+    public HTreeMapMaker createHashMap(String name){
+        return hashMapCreate(name);
+    }
+
     /**
      * Returns new builder for HashMap with given name
      *
@@ -619,7 +639,7 @@ public class DB implements Closeable {
      * @throws IllegalArgumentException if name is already used
      * @return maker, call {@code .make()} to create map
      */
-    public HTreeMapMaker createHashMap(String name){
+    public HTreeMapMaker hashMapCreate(String name){
         return new HTreeMapMaker(name);
     }
 
@@ -631,7 +651,7 @@ public class DB implements Closeable {
      * @throws IllegalArgumentException if name is already used
      * @return newly created map
      */
-    synchronized protected <K,V> HTreeMap<K,V> createHashMap(HTreeMapMaker m){
+    synchronized protected <K,V> HTreeMap<K,V> hashMapCreate(HTreeMapMaker m){
         String name = m.name;
         checkNameNotExists(name);
         //$DELAY$
@@ -693,12 +713,19 @@ public class DB implements Closeable {
     }
 
     /**
+     * @deprecated method renamed, use {@link DB#hashSet(String)}
+     */
+    synchronized public <K> Set<K> getHashSet(String name){
+        return hashSet(name);
+    }
+
+    /**
      *  Opens existing or creates new Hash Tree Set.
      *
      * @param name of the Set
      * @return set
      */
-    synchronized public <K> Set<K> getHashSet(String name){
+    synchronized public <K> Set<K> hashSet(String name){
         checkNotClosed();
         Set<K> ret = (Set<K>) getFromWeakCollection(name);
         if(ret!=null) return ret;
@@ -709,11 +736,11 @@ public class DB implements Closeable {
             if(engine.isReadOnly()){
                 Engine e = new StoreHeap(true,1,0);
                 //$DELAY$
-                new DB(e).getHashSet("a");
+                new DB(e).hashSet("a");
                 return namedPut(name,
-                        new DB(new Engine.ReadOnly(e)).getHashSet("a"));
+                        new DB(new Engine.ReadOnly(e)).hashSet("a"));
             }
-            return createHashSet(name).makeOrGet();
+            return hashSetCreate(name).makeOrGet();
             //$DELAY$
         }
 
@@ -750,16 +777,22 @@ public class DB implements Closeable {
     }
 
     /**
+     * @deprecated method renamed, use {@link DB#hashSetCreate(String)}
+     */
+    synchronized public HTreeSetMaker createHashSet(String name){
+        return hashSetCreate(name);
+    }
+    /**
      * Creates new HashSet
      *
      * @param name of set to create
      */
-    synchronized public HTreeSetMaker createHashSet(String name){
+    synchronized public HTreeSetMaker hashSetCreate(String name){
         return new HTreeSetMaker(name);
     }
 
 
-    synchronized protected <K> Set<K> createHashSet(HTreeSetMaker m){
+    synchronized protected <K> Set<K> hashSetCreate(HTreeSetMaker m){
         String name = m.name;
         checkNameNotExists(name);
 
@@ -928,14 +961,14 @@ public class DB implements Closeable {
         }
 
         public <K,V> BTreeMap<K,V> make(){
-            return DB.this.createTreeMap(BTreeMapMaker.this);
+            return DB.this.treeMapCreate(BTreeMapMaker.this);
         }
 
         public <K,V> BTreeMap<K,V> makeOrGet(){
             synchronized(DB.this){
                 //TODO add parameter check
                 return (BTreeMap<K, V>) (catGet(name+".type")==null?
-                        make():getTreeMap(name));
+                        make(): treeMap(name));
             }
         }
 
@@ -1037,14 +1070,14 @@ public class DB implements Closeable {
 
 
         public <K> NavigableSet<K> make(){
-            return DB.this.createTreeSet(BTreeSetMaker.this);
+            return DB.this.treeSetCreate(BTreeSetMaker.this);
         }
 
         public <K> NavigableSet<K> makeOrGet(){
             synchronized (DB.this){
                 //TODO add parameter check
                 return (NavigableSet<K>) (catGet(name+".type")==null?
-                    make():getTreeSet(name));
+                    make(): treeSet(name));
             }
         }
 
@@ -1067,6 +1100,13 @@ public class DB implements Closeable {
 
 
     /**
+     * @deprecated method renamed, use {@link DB#treeMap(String)}
+     */
+    synchronized public <K,V> BTreeMap<K,V> getTreeMap(String name){
+        return treeMap(name);
+    }
+
+    /**
      * Opens existing or creates new B-linked-tree Map.
      * This collection performs well under concurrent access.
      * Only trade-off are deletes, which causes tree fragmentation.
@@ -1075,7 +1115,7 @@ public class DB implements Closeable {
      * @param name of map
      * @return map
      */
-    synchronized public <K,V> BTreeMap<K,V> getTreeMap(String name){
+    synchronized public <K,V> BTreeMap<K,V> treeMap(String name){
         checkNotClosed();
         BTreeMap<K,V> ret = (BTreeMap<K,V>) getFromWeakCollection(name);
         if(ret!=null) return ret;
@@ -1085,12 +1125,12 @@ public class DB implements Closeable {
             checkShouldCreate(name);
             if(engine.isReadOnly()){
                 Engine e = new StoreHeap(true,1,0);
-                new DB(e).getTreeMap("a");
+                new DB(e).treeMap("a");
                 //$DELAY$
                 return namedPut(name,
-                        new DB(new Engine.ReadOnly(e)).getTreeMap("a"));
+                        new DB(new Engine.ReadOnly(e)).treeMap("a"));
             }
-            return createTreeMap(name).make();
+            return treeMapCreate(name).make();
 
         }
         checkType(type, "TreeMap");
@@ -1111,18 +1151,24 @@ public class DB implements Closeable {
     }
 
     /**
+     * @deprecated method renamed, use {@link DB#treeMapCreate(String)}
+     */
+    public BTreeMapMaker createTreeMap(String name){
+        return treeMapCreate(name);
+    }
+
+    /**
      * Returns new builder for TreeMap with given name
      *
      * @param name of map to create
      * @throws IllegalArgumentException if name is already used
      * @return maker, call {@code .make()} to create map
      */
-    public BTreeMapMaker createTreeMap(String name){
+    public BTreeMapMaker treeMapCreate(String name){
         return new BTreeMapMaker(name);
     }
 
-
-    synchronized protected <K,V> BTreeMap<K,V> createTreeMap(final BTreeMapMaker m){
+    synchronized protected <K,V> BTreeMap<K,V> treeMapCreate(final BTreeMapMaker m){
         String name = m.name;
         checkNameNotExists(name);
         //$DELAY$
@@ -1245,12 +1291,18 @@ public class DB implements Closeable {
 
 
     /**
+     * @deprecated method renamed, use {@link DB#treeSet(String)}
+     */
+    synchronized public <K> NavigableSet<K> getTreeSet(String name){
+        return treeSet(name);
+    }
+    /**
      * Opens existing or creates new B-linked-tree Set.
      *
      * @param name of set
      * @return set
      */
-    synchronized public <K> NavigableSet<K> getTreeSet(String name){
+    synchronized public <K> NavigableSet<K> treeSet(String name){
         checkNotClosed();
         NavigableSet<K> ret = (NavigableSet<K>) getFromWeakCollection(name);
         if(ret!=null) return ret;
@@ -1259,12 +1311,12 @@ public class DB implements Closeable {
             checkShouldCreate(name);
             if(engine.isReadOnly()){
                 Engine e = new StoreHeap(true,1,0);
-                new DB(e).getTreeSet("a");
+                new DB(e).treeSet("a");
                 return namedPut(name,
-                        new DB(new Engine.ReadOnly(e)).getTreeSet("a"));
+                        new DB(new Engine.ReadOnly(e)).treeSet("a"));
             }
             //$DELAY$
-            return createTreeSet(name).make();
+            return treeSetCreate(name).make();
 
         }
         checkType(type, "TreeSet");
@@ -1287,16 +1339,23 @@ public class DB implements Closeable {
     }
 
     /**
+     * @deprecated method renamed, use {@link DB#treeSetCreate(String)}
+     */
+    synchronized public BTreeSetMaker createTreeSet(String name){
+        return treeSetCreate(name);
+    }
+
+    /**
      * Creates new TreeSet.
      * @param name of set to create
      * @throws IllegalArgumentException if name is already used
      * @return maker used to construct set
      */
-    synchronized public BTreeSetMaker createTreeSet(String name){
+    synchronized public BTreeSetMaker treeSetCreate(String name){
          return new BTreeSetMaker(name);
     }
 
-    synchronized public <K> NavigableSet<K> createTreeSet(BTreeSetMaker m){
+    synchronized public <K> NavigableSet<K> treeSetCreate(BTreeSetMaker m){
         checkNameNotExists(m.name);
         if(m.comparator==null){
             m.comparator = Fun.COMPARATOR;
@@ -1542,7 +1601,14 @@ public class DB implements Closeable {
         return ret;
     }
 
+    /**
+     * @deprecated method renamed, use {@link DB#atomicLongCreate(String, long)}
+     */
     synchronized public Atomic.Long createAtomicLong(String name, long initValue){
+        return atomicLongCreate(name, initValue);
+    }
+
+    synchronized public Atomic.Long atomicLongCreate(String name, long initValue){
         checkNameNotExists(name);
         long recid = engine.put(initValue,Serializer.LONG);
         Atomic.Long ret = new Atomic.Long(engine,
@@ -1555,8 +1621,14 @@ public class DB implements Closeable {
 
     }
 
-
+    /**
+     * @deprecated method renamed, use {@link DB#atomicLong(String)}
+     */
     synchronized public Atomic.Long getAtomicLong(String name){
+        return atomicLong(name);
+    }
+
+    synchronized public Atomic.Long atomicLong(String name){
         checkNotClosed();
         Atomic.Long ret = (Atomic.Long) getFromWeakCollection(name);
         if(ret!=null) return ret;
@@ -1566,12 +1638,12 @@ public class DB implements Closeable {
             checkShouldCreate(name);
             if (engine.isReadOnly()){
                 Engine e = new StoreHeap(true,1,0);
-                new DB(e).getAtomicLong("a");
+                new DB(e).atomicLong("a");
                 //$DELAY$
                 return namedPut(name,
-                        new DB(new Engine.ReadOnly(e)).getAtomicLong("a"));
+                        new DB(new Engine.ReadOnly(e)).atomicLong("a"));
             }
-            return createAtomicLong(name,0L);
+            return atomicLongCreate(name, 0L);
         }
         checkType(type, "AtomicLong");
         //$DELAY$
@@ -1582,7 +1654,15 @@ public class DB implements Closeable {
 
 
 
+
+    /**
+     * @deprecated method renamed, use {@link DB#atomicIntegerCreate(String, int)}
+     */
     synchronized public Atomic.Integer createAtomicInteger(String name, int initValue){
+        return atomicIntegerCreate(name,initValue);
+    }
+
+    synchronized public Atomic.Integer atomicIntegerCreate(String name, int initValue){
         checkNameNotExists(name);
         long recid = engine.put(initValue,Serializer.INTEGER);
         Atomic.Integer ret = new Atomic.Integer(engine,
@@ -1595,8 +1675,14 @@ public class DB implements Closeable {
 
     }
 
-
+    /**
+     * @deprecated method renamed, use {@link DB#atomicInteger(String)}
+     */
     synchronized public Atomic.Integer getAtomicInteger(String name){
+        return atomicInteger(name);
+    }
+
+    synchronized public Atomic.Integer atomicInteger(String name){
         checkNotClosed();
         Atomic.Integer ret = (Atomic.Integer) getFromWeakCollection(name);
         if(ret!=null) return ret;
@@ -1606,12 +1692,12 @@ public class DB implements Closeable {
             checkShouldCreate(name);
             if(engine.isReadOnly()){
                 Engine e = new StoreHeap(true,1,0);
-                new DB(e).getAtomicInteger("a");
+                new DB(e).atomicInteger("a");
                 //$DELAY$
                 return namedPut(name,
-                        new DB(new Engine.ReadOnly(e)).getAtomicInteger("a"));
+                        new DB(new Engine.ReadOnly(e)).atomicInteger("a"));
             }
-            return createAtomicInteger(name, 0);
+            return atomicIntegerCreate(name, 0);
         }
         checkType(type, "AtomicInteger");
 
@@ -1621,8 +1707,14 @@ public class DB implements Closeable {
     }
 
 
-
+    /**
+     * @deprecated method renamed, use {@link DB#atomicBooleanCreate(String, boolean)}
+     */
     synchronized public Atomic.Boolean createAtomicBoolean(String name, boolean initValue){
+        return atomicBooleanCreate(name, initValue);
+    }
+
+    synchronized public Atomic.Boolean atomicBooleanCreate(String name, boolean initValue){
         checkNameNotExists(name);
         long recid = engine.put(initValue,Serializer.BOOLEAN);
         //$DELAY$
@@ -1636,8 +1728,14 @@ public class DB implements Closeable {
 
     }
 
-
+    /**
+     * @deprecated method renamed, use {@link DB#atomicBoolean(String)}
+     */
     synchronized public Atomic.Boolean getAtomicBoolean(String name){
+        return atomicBoolean(name);
+    }
+
+    synchronized public Atomic.Boolean atomicBoolean(String name){
         checkNotClosed();
         Atomic.Boolean ret = (Atomic.Boolean) getFromWeakCollection(name);
         if(ret!=null) return ret;
@@ -1647,12 +1745,12 @@ public class DB implements Closeable {
             checkShouldCreate(name);
             if(engine.isReadOnly()){
                 Engine e = new StoreHeap(true,1,0);
-                new DB(e).getAtomicBoolean("a");
+                new DB(e).atomicBoolean("a");
                 return namedPut(name,
-                        new DB(new Engine.ReadOnly(e)).getAtomicBoolean("a"));
+                        new DB(new Engine.ReadOnly(e)).atomicBoolean("a"));
             }
             //$DELAY$
-            return createAtomicBoolean(name, false);
+            return atomicBooleanCreate(name, false);
         }
         checkType(type, "AtomicBoolean");
         //$DELAY$
@@ -1665,11 +1763,17 @@ public class DB implements Closeable {
         if(strictDBGet) throw new NoSuchElementException("No record with this name was found: "+name);
     }
 
-
+    /**
+     * @deprecated method renamed, use {@link DB#atomicStringCreate(String, String)}
+     */
     synchronized public Atomic.String createAtomicString(String name, String initValue){
+        return atomicStringCreate(name,initValue);
+    }
+
+    synchronized public Atomic.String atomicStringCreate(String name, String initValue){
         checkNameNotExists(name);
         if(initValue==null) throw new IllegalArgumentException("initValue may not be null");
-        long recid = engine.put(initValue,Serializer.STRING_NOSIZE);
+        long recid = engine.put(initValue, Serializer.STRING_NOSIZE);
         //$DELAY$
         Atomic.String ret = new Atomic.String(engine,
                 catPut(name+".recid",recid)
@@ -1681,8 +1785,14 @@ public class DB implements Closeable {
 
     }
 
+    /**
+     * @deprecated method renamed, use {@link DB#atomicString(String)}
+     */
+    synchronized public Atomic.String getAtomicString(String name) {
+        return atomicString(name);
+    }
 
-    synchronized public Atomic.String getAtomicString(String name){
+    synchronized public Atomic.String atomicString(String name){
         checkNotClosed();
         Atomic.String ret = (Atomic.String) getFromWeakCollection(name);
         if(ret!=null) return ret;
@@ -1692,12 +1802,12 @@ public class DB implements Closeable {
             checkShouldCreate(name);
             if(engine.isReadOnly()){
                 Engine e = new StoreHeap(true,1,0);
-                new DB(e).getAtomicString("a");
+                new DB(e).atomicString("a");
                 //$DELAY$
                 return namedPut(name,
-                        new DB(new Engine.ReadOnly(e)).getAtomicString("a"));
+                        new DB(new Engine.ReadOnly(e)).atomicString("a"));
             }
-            return createAtomicString(name, "");
+            return atomicStringCreate(name, "");
         }
         checkType(type, "AtomicString");
 
@@ -1706,10 +1816,17 @@ public class DB implements Closeable {
         return ret;
     }
 
+    /**
+     * @deprecated method renamed, use {@link DB#atomicVarCreate(String, Object, Serializer)}
+     */
     synchronized public <E> Atomic.Var<E> createAtomicVar(String name, E initValue, Serializer<E> serializer){
+        return atomicVarCreate(name,initValue,serializer);
+    }
+
+    synchronized public <E> Atomic.Var<E> atomicVarCreate(String name, E initValue, Serializer<E> serializer){
         checkNameNotExists(name);
         if(serializer==null) serializer=getDefaultSerializer();
-        long recid = engine.put(initValue,serializer);
+        long recid = engine.put(initValue, serializer);
         //$DELAY$
         Atomic.Var ret = new Atomic.Var(engine,
                 catPut(name+".recid",recid),
@@ -1722,8 +1839,14 @@ public class DB implements Closeable {
 
     }
 
-
+    /**
+     * @deprecated method renamed, use {@link DB#atomicVar(String)}
+     */
     synchronized public <E> Atomic.Var<E> getAtomicVar(String name){
+        return atomicVar(name);
+    }
+
+    synchronized public <E> Atomic.Var<E> atomicVar(String name){
         checkNotClosed();
 
         Atomic.Var ret = (Atomic.Var) getFromWeakCollection(name);
@@ -1733,12 +1856,12 @@ public class DB implements Closeable {
             checkShouldCreate(name);
             if(engine.isReadOnly()){
                 Engine e = new StoreHeap(true,1,0);
-                new DB(e).getAtomicVar("a");
+                new DB(e).atomicVar("a");
                 return namedPut(name,
-                        new DB(new Engine.ReadOnly(e)).getAtomicVar("a"));
+                        new DB(new Engine.ReadOnly(e)).atomicVar("a"));
             }
             //$DELAY$
-            return createAtomicVar(name, null, getDefaultSerializer());
+            return atomicVarCreate(name, null, getDefaultSerializer());
         }
         checkType(type, "AtomicVar");
 
@@ -1752,15 +1875,15 @@ public class DB implements Closeable {
         //$DELAY$
         String type = catGet(name+".type");
         if(type==null) return null;
-        if("HashMap".equals(type)) return (E) getHashMap(name);
-        if("HashSet".equals(type)) return (E) getHashSet(name);
-        if("TreeMap".equals(type)) return (E) getTreeMap(name);
-        if("TreeSet".equals(type)) return (E) getTreeSet(name);
-        if("AtomicBoolean".equals(type)) return (E) getAtomicBoolean(name);
-        if("AtomicInteger".equals(type)) return (E) getAtomicInteger(name);
-        if("AtomicLong".equals(type)) return (E) getAtomicLong(name);
-        if("AtomicString".equals(type)) return (E) getAtomicString(name);
-        if("AtomicVar".equals(type)) return (E) getAtomicVar(name);
+        if("HashMap".equals(type)) return (E) hashMap(name);
+        if("HashSet".equals(type)) return (E) hashSet(name);
+        if("TreeMap".equals(type)) return (E) treeMap(name);
+        if("TreeSet".equals(type)) return (E) treeSet(name);
+        if("AtomicBoolean".equals(type)) return (E) atomicBoolean(name);
+        if("AtomicInteger".equals(type)) return (E) atomicInteger(name);
+        if("AtomicLong".equals(type)) return (E) atomicLong(name);
+        if("AtomicString".equals(type)) return (E) atomicString(name);
+        if("AtomicVar".equals(type)) return (E) atomicVar(name);
         if("Queue".equals(type)) return (E) getQueue(name);
         if("Stack".equals(type)) return (E) getStack(name);
         if("CircularQueue".equals(type)) return (E) getCircularQueue(name);

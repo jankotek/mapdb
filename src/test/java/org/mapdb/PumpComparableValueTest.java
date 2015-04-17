@@ -51,7 +51,7 @@ public class PumpComparableValueTest {
 
 
 
-                BTreeMap<String,String> map2 = mapDBStore.createTreeMap("non comparable values")
+                BTreeMap<String,String> map2 = mapDBStore.treeMapCreate("non comparable values")
                                 .pumpSource(entriesSourceNonComp)
                                 .pumpPresort(pumpSize)
                                 .pumpIgnoreDuplicates()
@@ -97,7 +97,7 @@ public class PumpComparableValueTest {
 
 
 
-        BTreeMap<String,String> map2 = db.createTreeMap("non comparable values")
+        BTreeMap<String,String> map2 = db.treeMapCreate("non comparable values")
                 .pumpSource(entriesSourceNonComp)
                 .pumpPresort(pumpSize)
                 .pumpIgnoreDuplicates()

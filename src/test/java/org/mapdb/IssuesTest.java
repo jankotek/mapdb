@@ -11,7 +11,7 @@ public class IssuesTest {
                 .closeOnJvmShutdown()
                 .make();
 
-        Map store = db.getTreeMap("collectionName");
+        Map store = db.treeMap("collectionName");
 
 
     }

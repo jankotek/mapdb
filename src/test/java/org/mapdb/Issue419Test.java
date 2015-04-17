@@ -18,7 +18,7 @@ public class Issue419Test {
         DB db = DBMaker.fileDB(f)
                 .closeOnJvmShutdown().transactionDisable().make();
 
-        Set set = db.createHashSet("set").expireAfterAccess(30, TimeUnit.DAYS).make();
+        Set set = db.hashSetCreate("set").expireAfterAccess(30, TimeUnit.DAYS).make();
         for (int i = 0; i < 10000; i++)
             set.add(i);
 
@@ -30,7 +30,7 @@ public class Issue419Test {
         db = DBMaker.fileDB(f)
                 .closeOnJvmShutdown().transactionDisable().make();
 
-        set = db.getHashSet("set");
+        set = db.hashSet("set");
         for (int i = 0; i < 10000; i++)
             set.add(i);
 
@@ -46,7 +46,7 @@ public class Issue419Test {
         DB db = DBMaker.fileDB(f)
                 .closeOnJvmShutdown().transactionDisable().make();
 
-        Map set = db.createHashMap("set").expireAfterAccess(30, TimeUnit.DAYS).make();
+        Map set = db.hashMapCreate("set").expireAfterAccess(30, TimeUnit.DAYS).make();
         for (int i = 0; i < 10000; i++)
             set.put(i, "");
 
@@ -58,7 +58,7 @@ public class Issue419Test {
         db = DBMaker.fileDB(f)
                 .closeOnJvmShutdown().transactionDisable().make();
 
-        set = db.getHashMap("set");
+        set = db.hashMap("set");
         for (int i = 0; i < 10000; i++)
             set.put(i,"");
 

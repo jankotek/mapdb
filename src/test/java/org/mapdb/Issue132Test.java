@@ -33,7 +33,7 @@ public class Issue132Test {
 
 
 
-            Set<Long> set = db.getHashSet("test");
+            Set<Long> set = db.hashSet("test");
             db.commit();
 
             for (int i = 0; i < count; i++) {
@@ -70,7 +70,7 @@ public class Issue132Test {
                 .checksumEnable().make();
 
 
-        Set<Long> set = db.getHashSet("test");
+        Set<Long> set = db.hashSet("test");
         db.commit();
 
         for (int i = 0; i < count; i++) {

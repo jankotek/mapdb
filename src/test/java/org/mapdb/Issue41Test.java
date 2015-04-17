@@ -42,7 +42,7 @@ public class Issue41Test {
                         .make();
 
         map =
-                db.createHashMap(MAP_NAME)
+                db.hashMapCreate(MAP_NAME)
                         .keySerializer(new Key.Serializer())
                         .valueSerializer(new Value.Serializer())
                         .make();

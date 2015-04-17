@@ -70,7 +70,7 @@ public class Issue162Test {
         System.out.println("--- Testing HashMap with custom serializer");
 
         DB db = DBMaker.fileDB(path).make();
-        Map<Long, MyValue> map = db.createHashMap("map")
+        Map<Long, MyValue> map = db.hashMapCreate("map")
                 .valueSerializer(new MyValueSerializer())
                 .make();
         db.commit();
@@ -85,7 +85,7 @@ public class Issue162Test {
         map = null;
 
         db = DBMaker.fileDB(path).make();
-        map = db.getHashMap("map");
+        map = db.hashMap("map");
 
         printEntries(map);
     }
@@ -94,7 +94,7 @@ public class Issue162Test {
         System.out.println("--- Testing BTreeMap with custom serializer");
 
         DB db = DBMaker.fileDB(path).make();
-        Map<Long, MyValue> map = db.createTreeMap("map")
+        Map<Long, MyValue> map = db.treeMapCreate("map")
                 .valueSerializer(new MyValueSerializer())
                 .make();
         db.commit();
@@ -109,7 +109,7 @@ public class Issue162Test {
         map = null;
 
         db = DBMaker.fileDB(path).make();
-        map = db.getTreeMap("map");
+        map = db.treeMap("map");
 
         printEntries(map);
     }

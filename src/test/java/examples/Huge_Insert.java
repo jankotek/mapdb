@@ -90,7 +90,7 @@ public class Huge_Insert {
         /**
          * Create BTreeMap and fill it with data
          */
-        Map<String,Integer> map = db.createTreeMap("map")
+        Map<String,Integer> map = db.treeMapCreate("map")
                 .pumpSource(source,valueExtractor)
                 //.pumpPresort(100000) // for presorting data we could also use this method
                 .keySerializer(keySerializer)

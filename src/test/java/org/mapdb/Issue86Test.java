@@ -20,7 +20,7 @@ public class Issue86Test {
     @Test
     public void Array() {
         DB createFileStore = createFileStore();
-        Map map = createFileStore.getTreeMap("testMap");
+        Map map = createFileStore.treeMap("testMap");
         int maxSize = 1000;
         for (int i = 1; i < maxSize; i++) {
             String[] array = new String[i];
@@ -34,7 +34,7 @@ public class Issue86Test {
     @Test
     public void FieldArray() {
         DB createFileStore = createFileStore();
-        Map map = createFileStore.getTreeMap("testMap");
+        Map map = createFileStore.treeMap("testMap");
         int maxSize = 1000;
         for (int i = 1; i < maxSize; i++) {
             map.put(i, new StringContainer(i));

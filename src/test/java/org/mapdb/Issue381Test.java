@@ -22,7 +22,7 @@ public class Issue381Test {
             DB tx = txMaker.makeTx();
             byte[] data = new byte[128];
 
-            ConcurrentMap<Long, byte[]> map = tx.getHashMap("persons");
+            ConcurrentMap<Long, byte[]> map = tx.hashMap("persons");
             map.clear();
             for (int i = 0; i < INSTANCES; i++) {
                 map.put((long) i, data);

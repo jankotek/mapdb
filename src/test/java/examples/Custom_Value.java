@@ -69,7 +69,7 @@ public class Custom_Value {
 				.make();
 		
 		// Open or create table
-		Map<String,Person> dbMap = db.getTreeMap("personAndCity");
+		Map<String,Person> dbMap = db.treeMap("personAndCity");
 		
 		// Add data
 		Person bilbo = new Person("Bilbo","The Shire");
@@ -115,7 +115,7 @@ public class Custom_Value {
 
         DB db2 = DBMaker.tempFileDB().make();
 
-        Map<String,Person> map2 = db2.createHashMap("map").valueSerializer(serializer).make();
+        Map<String,Person> map2 = db2.hashMapCreate("map").valueSerializer(serializer).make();
 
         map2.put("North", new Person("Yet another dwarf","Somewhere"));
 

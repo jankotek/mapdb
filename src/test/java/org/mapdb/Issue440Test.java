@@ -10,13 +10,13 @@ public class Issue440Test {
     public void first(){
         DB db = DBMaker.memoryDB().make();
 
-        NavigableSet<Object[]> set1 = db.createTreeSet("set1")
+        NavigableSet<Object[]> set1 = db.treeSetCreate("set1")
                 .serializer(BTreeKeySerializer.ARRAY2)
                 .makeOrGet();
 
         db = DBMaker.memoryDB().transactionDisable().make();
 
-        NavigableSet<Object[]> set2 = db.createTreeSet("set2")
+        NavigableSet<Object[]> set2 = db.treeSetCreate("set2")
                 .serializer(BTreeKeySerializer.ARRAY2)
                 .makeOrGet();
     }
@@ -24,7 +24,7 @@ public class Issue440Test {
     @Test public void second(){
         DB db = DBMaker.tempFileDB().make();
 
-        NavigableSet<Object[]> set1 = db.createTreeSet("set1")
+        NavigableSet<Object[]> set1 = db.treeSetCreate("set1")
                 .serializer(BTreeKeySerializer.ARRAY2)
                 .makeOrGet();
 

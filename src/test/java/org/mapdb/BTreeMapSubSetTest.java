@@ -4,9 +4,6 @@ package org.mapdb;/*
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-import junit.framework.Test;
-import junit.framework.TestSuite;
-
 import java.io.Serializable;
 import java.util.*;
 
@@ -42,7 +39,7 @@ public class BTreeMapSubSetTest extends JSR166TestCase {
 
     protected <E> NavigableSet<E> newNavigableSet() {
         return DBMaker.memoryDB().transactionDisable()
-                .make().getTreeSet("test");
+                .make().treeSet("test");
     }
 
     /*

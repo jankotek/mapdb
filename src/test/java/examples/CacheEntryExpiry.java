@@ -28,7 +28,7 @@ public class CacheEntryExpiry {
         //create map, entries are expired if not accessed (get,iterate) for 10 seconds or 30 seconds after 'put'
         //There is also maximal size limit to prevent OutOfMemoryException
         HTreeMap map = db
-                .createHashMap("cache")
+                .hashMapCreate("cache")
                 .expireMaxSize(1000000)
                 .expireAfterWrite(30, TimeUnit.SECONDS)
                 .expireAfterAccess(10, TimeUnit.SECONDS)

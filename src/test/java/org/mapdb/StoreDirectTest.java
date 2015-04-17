@@ -1,7 +1,6 @@
 package org.mapdb;
 
 
-import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -9,7 +8,6 @@ import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.Callable;
 import java.util.concurrent.locks.Lock;
 
 import static org.junit.Assert.*;
@@ -573,7 +571,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
         DB db = DBMaker.fileDB(f).transactionDisable().deleteFilesAfterClose().make();
 
-        db.getHashMap("test").put("aa","bb");
+        db.hashMap("test").put("aa","bb");
         db.commit();
         assertTrue(f.exists());
         assertTrue(phys.exists());

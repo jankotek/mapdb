@@ -25,13 +25,13 @@ public class Issue150Test {
         x.setName("nameXXX");
 
         Serializer<EntityA> valueSerializer = new CustomSerializer();
-        Map<Long, EntityA> map = db.createHashMap("entitya").valueSerializer(valueSerializer).make();
+        Map<Long, EntityA> map = db.hashMapCreate("entitya").valueSerializer(valueSerializer).make();
 
         map.put(x.getId(), x);
 
         db.commit();
 
-        EntityA y = (EntityA) txMaker.makeTx().getHashMap("entitya")
+        EntityA y = (EntityA) txMaker.makeTx().hashMap("entitya")
                 .get(x.getId());
         System.out.println(x.equals(y));
 

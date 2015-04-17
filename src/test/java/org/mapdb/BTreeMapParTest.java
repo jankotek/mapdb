@@ -18,7 +18,7 @@ public class BTreeMapParTest {
 
 
         final ConcurrentMap m = DBMaker.memoryDB().transactionDisable().make()
-                .createTreeMap("test")
+                .treeMapCreate("test")
                 .valueSerializer(Serializer.LONG)
                 .keySerializer(BTreeKeySerializer.LONG)
                 .makeLongMap();

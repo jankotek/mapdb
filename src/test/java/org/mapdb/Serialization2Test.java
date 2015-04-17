@@ -20,7 +20,7 @@ public class Serialization2Test{
 
         Serialization2Bean processView = new Serialization2Bean();
 
-        Map<Object, Object> map =  db.getHashMap("test2");
+        Map<Object, Object> map =  db.hashMap("test2");
 
         map.put("abc", processView);
 
@@ -56,13 +56,13 @@ public class Serialization2Test{
         Serialized2DerivedBean att = new Serialized2DerivedBean();
         DB db = DBMaker.fileDB(index).make();
 
-        Map<Object, Object> map =  db.getHashMap("test");
+        Map<Object, Object> map =  db.hashMap("test");
 
         map.put("att", att);
         db.commit();
         db.close();
         db = DBMaker.fileDB(index).make();
-        map =  db.getHashMap("test");
+        map =  db.hashMap("test");
 
 
         Serialized2DerivedBean retAtt = (Serialized2DerivedBean) map.get("att");
@@ -88,7 +88,7 @@ public class Serialization2Test{
                 .checksumEnable()
                 .make();
 
-        Map<Integer,AAA> map = db.getTreeMap("test");
+        Map<Integer,AAA> map = db.treeMap("test");
         map.put(1,new AAA());
 
         db.compact();
@@ -100,7 +100,7 @@ public class Serialization2Test{
                 .checksumEnable()
                 .make();
 
-        map = db.getTreeMap("test");
+        map = db.treeMap("test");
         assertNotNull(map.get(1));
         assertEquals(map.get(1).test, "aa");
 

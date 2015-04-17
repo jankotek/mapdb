@@ -14,7 +14,7 @@ public class Issue400Test {
         File f = UtilsTest.tempDbFile();
         for (int o = 0; o < 2; o++) {
             final DB db = DBMaker.fileDB(f).transactionDisable().make();
-            final HTreeMap<Object, Object> map = db.createHashMap("foo")
+            final HTreeMap<Object, Object> map = db.hashMapCreate("foo")
                     .expireMaxSize(1000).expireAfterWrite(1, TimeUnit.DAYS)
                     .makeOrGet();
 
@@ -36,7 +36,7 @@ public class Issue400Test {
         File f = UtilsTest.tempDbFile();
         for (int o = 0; o < 2; o++) {
             final DB db = DBMaker.fileDB(f).transactionDisable().make();
-            final HTreeMap<Object, Object> map = db.createHashMap("foo")
+            final HTreeMap<Object, Object> map = db.hashMapCreate("foo")
                     .expireMaxSize(1000).expireAfterWrite(3, TimeUnit.SECONDS)
                     .makeOrGet();
 
@@ -60,7 +60,7 @@ public class Issue400Test {
         File f = UtilsTest.tempDbFile();
         for (int o = 0; o < 2; o++) {
             final DB db = DBMaker.fileDB(f).transactionDisable().make();
-            final HTreeMap<Object, Object> map = db.createHashMap("foo")
+            final HTreeMap<Object, Object> map = db.hashMapCreate("foo")
                     .expireMaxSize(1000).expireAfterAccess(3, TimeUnit.SECONDS)
                     .makeOrGet();
 

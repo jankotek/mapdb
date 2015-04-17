@@ -18,7 +18,7 @@ public class Issue254Test {
                 .transactionDisable()
                 .make();
 
-        db.getAtomicLong("long").set(1L);
+        db.atomicLong("long").set(1L);
         db.close();
 
         db = DBMaker.fileDB(f)
@@ -27,7 +27,7 @@ public class Issue254Test {
                 .closeOnJvmShutdown()
                 .make();
 
-        assertEquals(0L, db.getAtomicLong("non-existing long").get());
+        assertEquals(0L, db.atomicLong("non-existing long").get());
 
         db.close();
     }
@@ -43,7 +43,7 @@ public class Issue254Test {
 
     @Test
     public void atomic_long(){
-        Atomic.Long l = ro.getAtomicLong("non-existing");
+        Atomic.Long l = ro.atomicLong("non-existing");
         assertEquals(0L, l.get());
         try{
             l.set(1);
@@ -55,7 +55,7 @@ public class Issue254Test {
 
     @Test
     public void atomic_int(){
-        Atomic.Integer l = ro.getAtomicInteger("non-existing");
+        Atomic.Integer l = ro.atomicInteger("non-existing");
         assertEquals(0, l.get());
         try{
             l.set(1);
@@ -67,7 +67,7 @@ public class Issue254Test {
 
     @Test
     public void atomic_boolean(){
-        Atomic.Boolean l = ro.getAtomicBoolean("non-existing");
+        Atomic.Boolean l = ro.atomicBoolean("non-existing");
         assertEquals(false, l.get());
         try{
             l.set(true);
@@ -79,7 +79,7 @@ public class Issue254Test {
 
     @Test
     public void atomic_string(){
-        Atomic.String l = ro.getAtomicString("non-existing");
+        Atomic.String l = ro.atomicString("non-existing");
         assertEquals("", l.get());
         try{
             l.set("a");
@@ -91,7 +91,7 @@ public class Issue254Test {
 
     @Test
     public void atomic_var(){
-        Atomic.Var l = ro.getAtomicVar("non-existing");
+        Atomic.Var l = ro.atomicVar("non-existing");
         assertEquals(null, l.get());
         try{
             l.set("a");
@@ -140,7 +140,7 @@ public class Issue254Test {
 
     @Test
     public void atomic_tree_set(){
-        Collection l = ro.getTreeSet("non-existing");
+        Collection l = ro.treeSet("non-existing");
         assertTrue(l.isEmpty());
         try{
             l.add("a");
@@ -152,7 +152,7 @@ public class Issue254Test {
 
     @Test
     public void atomic_hash_set(){
-        Collection l = ro.getHashSet("non-existing");
+        Collection l = ro.hashSet("non-existing");
         assertTrue(l.isEmpty());
         try{
             l.add("a");
@@ -165,7 +165,7 @@ public class Issue254Test {
 
     @Test
     public void atomic_tree_map(){
-        Map l = ro.getTreeMap("non-existing");
+        Map l = ro.treeMap("non-existing");
         assertTrue(l.isEmpty());
         try{
             l.put("a", "a");
@@ -177,7 +177,7 @@ public class Issue254Test {
 
     @Test
     public void atomic_hash_map(){
-        Map l = ro.getHashMap("non-existing");
+        Map l = ro.hashMap("non-existing");
         assertTrue(l.isEmpty());
         try{
             l.put("a","a");

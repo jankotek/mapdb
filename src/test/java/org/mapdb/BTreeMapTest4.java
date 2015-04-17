@@ -30,7 +30,7 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
     protected <K,V> BTreeMap<K,V> newBTreeMap(Map map) {
         BTreeMap ret = DBMaker.memoryDB()
                 .transactionDisable().make()
-                .createTreeMap("test").nodeSize(6).make();
+                .treeMapCreate("test").nodeSize(6).make();
         ret.putAll(map);
         return ret;
     }
@@ -38,13 +38,13 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
     protected <K,V> BTreeMap<K,V> newBTreeMap(Comparator comp) {
         return DBMaker.memoryDB()
                 .transactionDisable().make()
-                .createTreeMap("test").nodeSize(6).comparator(comp).make();
+                .treeMapCreate("test").nodeSize(6).comparator(comp).make();
     }
 
     protected  <K,V> BTreeMap<K,V> newBTreeMap() {
         return DBMaker.memoryDB()
                 .transactionDisable().make()
-                .getTreeMap("test");
+                .treeMap("test");
     }
 
     public static class Outside extends  BTreeMapTest4{
@@ -52,7 +52,7 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         @Override protected <K,V> BTreeMap<K,V> newBTreeMap(Map map) {
             BTreeMap ret = DBMaker.memoryDB()
                     .transactionDisable().make()
-                    .createTreeMap("test").nodeSize(6)
+                    .treeMapCreate("test").nodeSize(6)
                     .valuesOutsideNodesEnable()
                     .make();
             ret.putAll(map);
@@ -62,7 +62,7 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         @Override protected <K,V> BTreeMap<K,V> newBTreeMap(Comparator comp) {
             return DBMaker.memoryDB()
                     .transactionDisable().make()
-                    .createTreeMap("test").nodeSize(6).comparator(comp)
+                    .treeMapCreate("test").nodeSize(6).comparator(comp)
                     .valuesOutsideNodesEnable()
                     .make();
         }
@@ -70,7 +70,7 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
         @Override protected  <K,V> BTreeMap<K,V> newBTreeMap() {
             return DBMaker.memoryDB()
                     .transactionDisable().make()
-                    .createTreeMap("test")
+                    .treeMapCreate("test")
                     .valuesOutsideNodesEnable()
                     .make();
         }

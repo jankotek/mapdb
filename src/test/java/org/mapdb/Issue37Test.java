@@ -18,7 +18,7 @@ public class Issue37Test {
     @Test public void test3(){
 
         DB db = DBMaker.memoryDirectDB().transactionDisable().asyncWriteFlushDelay(100).make();
-        ConcurrentMap<Long, Long> orders = db.createHashMap("order").make();
+        ConcurrentMap<Long, Long> orders = db.hashMapCreate("order").make();
         for(int i = 0; i < 10000; i++) {
             orders.put((long)i, (long)i);
         }

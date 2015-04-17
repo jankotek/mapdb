@@ -23,7 +23,7 @@ public class Issue183Test {
 
         DB db = txMaker.makeTx();
 
-        map1 = db.createTreeMap("map1")
+        map1 = db.treeMapCreate("map1")
                 .valueSerializer(new StringSerializer())
                 .makeOrGet();
 
@@ -40,7 +40,7 @@ public class Issue183Test {
 
         db = txMaker.makeTx();
 
-        map1 = db.createTreeMap("map1")
+        map1 = db.treeMapCreate("map1")
                 .valueSerializer(new StringSerializer())
                 .makeOrGet();
 

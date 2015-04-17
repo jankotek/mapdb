@@ -6,7 +6,7 @@ public class BTreeMapNavigableSubMapInclusiveTest extends BTreeMapNavigable2Test
 
     public static class Outside extends BTreeMapNavigableSubMapInclusiveTest{
         @Override protected NavigableMap<Integer, String> newMap() {
-            return DBMaker.memoryDB().transactionDisable().make().createTreeMap("map").valuesOutsideNodesEnable().make();
+            return DBMaker.memoryDB().transactionDisable().make().treeMapCreate("map").valuesOutsideNodesEnable().make();
         }
     }
 

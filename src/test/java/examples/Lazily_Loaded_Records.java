@@ -28,7 +28,7 @@ public class Lazily_Loaded_Records {
         // use DB.createTreeMap to create TreeMap with non-default parameters
 
 
-        Map map = db.createTreeMap("name").valuesOutsideNodesEnable().make();
+        Map map = db.treeMapCreate("name").valuesOutsideNodesEnable().make();
         map.put("key","this string is loaded lazily with 'map.get(key)' ");
 
 
@@ -38,7 +38,7 @@ public class Lazily_Loaded_Records {
         // As bonus you can update reference in thread-safe atomic manner.
         //
         Atomic.Var<String> record =
-                db.createAtomicVar("lazyRecord", "aaa", db.getDefaultSerializer());
+                db.atomicVarCreate("lazyRecord", "aaa", db.getDefaultSerializer());
 
         record.set("some value");
         System.out.println(record.get());

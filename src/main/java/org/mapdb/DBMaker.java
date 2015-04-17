@@ -222,7 +222,7 @@ public final class DBMaker{
                 .closeOnJvmShutdown()
                 .transactionDisable()
                 .make()
-                .createTreeMap("temp")
+                .treeMapCreate("temp")
                 .closeEngine()
                 .make();
     }
@@ -248,7 +248,7 @@ public final class DBMaker{
                 .closeOnJvmShutdown()
                 .transactionDisable()
                 .make()
-                .createHashMap("temp")
+                .hashMapCreate("temp")
                 .closeEngine()
                 .make();
     }
@@ -272,7 +272,7 @@ public final class DBMaker{
                 .closeOnJvmShutdown()
                 .transactionDisable()
                 .make()
-                .createTreeSet("temp")
+                .treeSetCreate("temp")
                 .standalone()
                 .make();
     }
@@ -298,7 +298,7 @@ public final class DBMaker{
                 .closeOnJvmShutdown()
                 .transactionDisable()
                 .make()
-                .createHashSet("temp")
+                .hashSetCreate("temp")
                 .closeEngine()
                 .make();
     }
@@ -341,7 +341,7 @@ public final class DBMaker{
                 .memoryDirectDB()
                 .transactionDisable()
                 .make()
-                .createHashMap("cache")
+                .hashMapCreate("cache")
                 .expireStoreSize(size)
                 .counterEnable()
                 .make();
@@ -364,7 +364,7 @@ public final class DBMaker{
                 .memoryDB()
                 .transactionDisable()
                 .make()
-                .createHashMap("cache")
+                .hashMapCreate("cache")
                 .expireStoreSize(size)
                 .counterEnable()
                 .make();
@@ -951,7 +951,7 @@ public final class DBMaker{
 
     /**
      * <p>
-     * DB Get methods such as {@link DB#getTreeMap(String)} or {@link DB#getAtomicLong(String)} auto create
+     * DB Get methods such as {@link DB#treeMap(String)} or {@link DB#atomicLong(String)} auto create
      * new record with default values, if record with given name does not exist. This could be problem if you would like to enforce
      * stricter database schema. So this parameter disables record auto creation.
      * </p><p>

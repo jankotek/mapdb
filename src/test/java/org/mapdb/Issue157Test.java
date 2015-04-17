@@ -11,7 +11,7 @@ public class Issue157Test {
     @Test
     public void concurrent_BTreeMap() throws InterruptedException {
         DB db = DBMaker.memoryDB().make();
-        final BTreeMap<Integer, String> map = db.getTreeMap("COL_2");
+        final BTreeMap<Integer, String> map = db.treeMap("COL_2");
         map.clear();
 
         Thread t1 = new Thread() {

@@ -14,12 +14,12 @@ public class BTreeMapTest5 extends JSR166TestCase {
     public static class Outside extends BTreeMapTest5{
         @Override
         protected BTreeMap newMap() {
-            return DBMaker.memoryDB().transactionDisable().make().createTreeMap("test").valuesOutsideNodesEnable().make();
+            return DBMaker.memoryDB().transactionDisable().make().treeMapCreate("test").valuesOutsideNodesEnable().make();
         }
     }
 
     protected  BTreeMap newMap() {
-        return DBMaker.memoryDB().transactionDisable().make().createTreeMap("test").make();
+        return DBMaker.memoryDB().transactionDisable().make().treeMapCreate("test").make();
     }
 
 

@@ -65,8 +65,8 @@ public class TreeMap_Performance_Tunning {
 
                 Map<Long,String> map =
                         (valueOutsideOfNodes?
-                                (db.createTreeMap("test").valuesOutsideNodesEnable()):
-                                db.createTreeMap("test"))
+                                (db.treeMapCreate("test").valuesOutsideNodesEnable()):
+                                db.treeMapCreate("test"))
                     .nodeSize(nodeSize)
                     .make();
 

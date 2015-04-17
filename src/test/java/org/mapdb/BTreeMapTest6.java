@@ -5,9 +5,6 @@ package org.mapdb;/*
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-import junit.framework.Test;
-import junit.framework.TestSuite;
-
 import java.util.*;
 import java.util.concurrent.ConcurrentNavigableMap;
 
@@ -31,12 +28,12 @@ public class BTreeMapTest6 extends JSR166TestCase {
     }
 
     protected BTreeMap newEmptyMap() {
-        return DBMaker.memoryDB().transactionDisable().make().createTreeMap("test").make();
+        return DBMaker.memoryDB().transactionDisable().make().treeMapCreate("test").make();
     }
 
     public static class Outside extends BTreeMapTest6{
         @Override protected BTreeMap newEmptyMap() {
-            return DBMaker.memoryDB().transactionDisable().make().createTreeMap("test").valuesOutsideNodesEnable().make();
+            return DBMaker.memoryDB().transactionDisable().make().treeMapCreate("test").valuesOutsideNodesEnable().make();
         }
 
     }

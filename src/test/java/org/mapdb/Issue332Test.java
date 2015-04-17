@@ -71,7 +71,7 @@ public class Issue332Test {
                 .closeOnJvmShutdown()
                 .make();
 
-        Map<Integer, String> testMap = db.createHashMap("testmap")
+        Map<Integer, String> testMap = db.hashMapCreate("testmap")
                 .valueSerializer(VALUE_SERIALIZER)
                         //.valueSerializer(new TestSerializer())
                 .makeOrGet();
@@ -87,7 +87,7 @@ public class Issue332Test {
         db = DBMaker.fileDB(f)
                 .closeOnJvmShutdown()
                 .make();
-        testMap = db.createHashMap("testmap")
+        testMap = db.hashMapCreate("testmap")
                 .valueSerializer(VALUE_SERIALIZER)
                 .makeOrGet();
         String deserialized = testMap.get(1);

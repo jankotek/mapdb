@@ -16,14 +16,14 @@ public class Issue154Test {
         /* Add the item */
 
         DB db1 = txMaker.makeTx();
-        Map<Object, Object> map1 = db1.getHashMap("simple");
+        Map<Object, Object> map1 = db1.hashMap("simple");
         map1.put("a", "b");
         db1.commit();
 
         /* Remove the item */
 
         DB db2 = txMaker.makeTx();
-        Map<Object, Object> map2 = db2.getHashMap("simple");
+        Map<Object, Object> map2 = db2.hashMap("simple");
 
         // Make sure the item is still there
         assertEquals("b",map2.get("a"));
@@ -35,7 +35,7 @@ public class Issue154Test {
         /* Check for the rolled back item */
 
         DB db3 = txMaker.makeTx();
-        Map<Object, Object> map3 = db3.getHashMap("simple");
+        Map<Object, Object> map3 = db3.hashMap("simple");
 
         // ***************
         // THIS IS WHERE IT FAILS, but the object should be the same, since it the remove was rolled back
@@ -68,14 +68,14 @@ public class Issue154Test {
         /* Add the item */
 
         DB db1 = txMaker.makeTx();
-        Map<Object, Object> map1 = db1.getTreeMap("simple");
+        Map<Object, Object> map1 = db1.treeMap("simple");
         map1.put("a", "b");
         db1.commit();
 
         /* Remove the item */
 
         DB db2 = txMaker.makeTx();
-        Map<Object, Object> map2 = db2.getTreeMap("simple");
+        Map<Object, Object> map2 = db2.treeMap("simple");
 
         // Make sure the item is still there
         assertEquals("b",map2.get("a"));
@@ -87,7 +87,7 @@ public class Issue154Test {
         /* Check for the rolled back item */
 
         DB db3 = txMaker.makeTx();
-        Map<Object, Object> map3 = db3.getTreeMap("simple");
+        Map<Object, Object> map3 = db3.treeMap("simple");
 
         // ***************
         // THIS IS WHERE IT FAILS, but the object should be the same, since it the remove was rolled back

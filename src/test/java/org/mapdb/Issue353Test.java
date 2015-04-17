@@ -4,17 +4,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
-import java.io.File;
 import java.util.Random;
 import java.util.concurrent.ConcurrentMap;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mapdb.DB;
 import org.mapdb.DB.HTreeMapMaker;
-import org.mapdb.DBMaker;
-import org.mapdb.Serializer;
 
 public class Issue353Test {
 
@@ -27,7 +23,7 @@ public class Issue353Test {
     public void setupDb() {
         db = DBMaker.fileDB(UtilsTest.tempDbFile()).closeOnJvmShutdown().mmapFileEnableIfSupported()
                 .commitFileSyncDisable().transactionDisable().compressionEnable().freeSpaceReclaimQ(0).make();
-        HTreeMapMaker maker = db.createHashMap("products")
+        HTreeMapMaker maker = db.hashMapCreate("products")
                 .valueSerializer(Serializer.BYTE_ARRAY)
                 .keySerializer(Serializer.BYTE_ARRAY)
                 .counterEnable();

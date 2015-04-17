@@ -35,6 +35,6 @@ public class Issue308Test {
 
             }
         };
-        BTreeMap<Long, String> cubeData = db.createTreeMap("data").pumpSource(newIterator).make();
+        BTreeMap<Long, String> cubeData = db.treeMapCreate("data").pumpSource(newIterator).make();
     }
 }

@@ -18,7 +18,7 @@ public class Issue418Test {
         long[] expireTails = null;
         for (int o = 0; o < 2; o++) {
             final DB db = DBMaker.fileDB(tmp).transactionDisable().make();
-            final HTreeMap<Object, Object> map = db.createHashMap("foo").expireMaxSize(100).makeOrGet();
+            final HTreeMap<Object, Object> map = db.hashMapCreate("foo").expireMaxSize(100).makeOrGet();
 
             if(expireHeads!=null)
                 assertTrue(Serializer.LONG_ARRAY.equals(expireHeads, map.expireHeads));
@@ -48,7 +48,7 @@ public class Issue418Test {
 
         for (int o = 0; o < 2; o++) {
             final DB db = DBMaker.fileDB(tmp).transactionDisable().make();
-            final Set<Object> map = db.createHashSet("foo").expireMaxSize(100).makeOrGet();
+            final Set<Object> map = db.hashSetCreate("foo").expireMaxSize(100).makeOrGet();
 
             for (int i = 0; i < 1000; i++)
                 map.add("foo" + i);

@@ -30,10 +30,10 @@ public class Secondary_Values {
     public static void main(String[] args) {
         DB db = DBMaker.memoryDB().make();
         //list if friends
-        BTreeMap<Integer,Person> friends = db.getTreeMap("friends");
+        BTreeMap<Integer,Person> friends = db.treeMap("friends");
 
         //secondary collections which lists all friends for given id
-        NavigableSet<Object[]> id2friends = db.createTreeSet("id2friends")
+        NavigableSet<Object[]> id2friends = db.treeSetCreate("id2friends")
                 .serializer(BTreeKeySerializer.ARRAY2)
                 .makeOrGet();
 

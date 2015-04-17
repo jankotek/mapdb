@@ -22,7 +22,7 @@ public class Compression {
                 .compressionEnable() //this settings enables compression
                 .make();
         //and now create and use map as usual
-        Map map = db.getTreeMap("test");
+        Map map = db.treeMap("test");
         map.put("some","stuff");
 
 
@@ -40,7 +40,7 @@ public class Compression {
         valueSerializer = new Serializer.CompressionWrapper(valueSerializer);
 
         //now construct map, with additional options
-        Map map2 = db2.createTreeMap("test")
+        Map map2 = db2.treeMapCreate("test")
                 .valuesOutsideNodesEnable() // store values outside of BTree Nodes. Faster reads if values are large.
                 .valueSerializer(valueSerializer) //set our value serializer.
                 .make();

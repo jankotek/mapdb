@@ -45,7 +45,7 @@ public class Issue266Test {
 
         AdvancedEnum testEnumValue = AdvancedEnum.C;
 
-        Set<Object> set = db.createTreeSet("set").makeOrGet();
+        Set<Object> set = db.treeSetCreate("set").makeOrGet();
         set.clear();
 
         set.add(testEnumValue);
@@ -55,7 +55,7 @@ public class Issue266Test {
 
         db = DBMaker.fileDB(f).make();
 
-        set = db.createTreeSet("set").makeOrGet();
+        set = db.treeSetCreate("set").makeOrGet();
         AdvancedEnum enumValue = (AdvancedEnum)set.iterator().next();
 
         Assert.assertNotNull(enumValue);

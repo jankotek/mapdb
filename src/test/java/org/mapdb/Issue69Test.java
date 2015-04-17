@@ -36,7 +36,7 @@ public class Issue69Test {
 	public void testStackOverflowError() throws Exception {
 
         try{
-		Map<String, String> map = db.getHashMap("test");
+		Map<String, String> map = db.hashMap("test");
 
 		StringBuilder buff = new StringBuilder();
 

@@ -9,7 +9,7 @@ import java.util.Map;
 public class Issue247Test {
 
         private Map getMap(DB db){
-                return db.createTreeMap("test")
+                return db.treeMapCreate("test")
                              .counterEnable()
                              .valuesOutsideNodesEnable()
                              .makeOrGet();

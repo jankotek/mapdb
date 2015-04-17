@@ -65,14 +65,14 @@ public class BTreeMapExtendTest extends TestCase {
     Object objArray[] = new Object[1000];
 
     protected BTreeMap newBTreeMap() {
-        return DBMaker.memoryDB().transactionDisable().make().getTreeMap("Test");
+        return DBMaker.memoryDB().transactionDisable().make().treeMap("Test");
     }
 
 
     public static class Outside extends BTreeMapExtendTest{
         @Override protected BTreeMap newBTreeMap() {
             return DBMaker.memoryDB().transactionDisable().make()
-                    .createTreeMap("Test").valuesOutsideNodesEnable().make();
+                    .treeMapCreate("Test").valuesOutsideNodesEnable().make();
         }
 
     }

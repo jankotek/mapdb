@@ -15,9 +15,9 @@ public class Issue90Test {
                 .closeOnJvmShutdown()
                 .compressionEnable()  //This is the cause of the exception. If compression is not used, no exception occurs.
                 .make();
-        final Atomic.Long myCounter = mapDb.getAtomicLong("MyCounter");
+        final Atomic.Long myCounter = mapDb.atomicLong("MyCounter");
 
-        final BTreeMap<String, Fun.Pair<String, Integer>> treeMap = mapDb.getTreeMap("map");
+        final BTreeMap<String, Fun.Pair<String, Integer>> treeMap = mapDb.treeMap("map");
         Bind.size(treeMap, myCounter);
 
         for (int i = 0; i < 3; i++) {

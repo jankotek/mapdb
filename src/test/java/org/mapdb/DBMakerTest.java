@@ -20,7 +20,7 @@ public class DBMakerTest{
 
     
     private void verifyDB(DB db) {
-        Map m = db.getHashMap("test");
+        Map m = db.hashMap("test");
         m.put(1,2);
         assertEquals(2, m.get(1));
     }
@@ -368,7 +368,7 @@ public class DBMakerTest{
         List unsorted = Arrays.asList(4,7,5,12,9,10,11,0);
 
         NavigableSet<Integer> s = DBMaker.memoryDB().transactionDisable().make()
-                .createTreeSet("t")
+                .treeSetCreate("t")
                 .pumpPresort(10)
                 .pumpSource(unsorted.iterator())
                 .make();
@@ -381,7 +381,7 @@ public class DBMakerTest{
         List unsorted = Arrays.asList(4,7,5,12,9,10,11,0);
 
         NavigableMap<Integer,Integer> s = DBMaker.memoryDB().transactionDisable().make()
-                .createTreeMap("t")
+                .treeMapCreate("t")
                 .pumpPresort(10)
                 .pumpSource(unsorted.iterator(), Fun.extractNoTransform())
                 .make();

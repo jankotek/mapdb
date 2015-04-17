@@ -12,7 +12,7 @@ public class Issue198Test {
                 .closeOnJvmShutdown()
                 //.randomAccessFileEnable()
                 .make();
-        BTreeMap<Integer, Integer> map = db.createTreeMap("testmap").makeOrGet();
+        BTreeMap<Integer, Integer> map = db.treeMapCreate("testmap").makeOrGet();
         for(int i = 1; i <= 3000; ++i)
             map.put(i, i);
         db.commit();

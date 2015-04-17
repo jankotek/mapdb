@@ -17,11 +17,11 @@ public class SQL_Auto_Incremental_Unique_Key {
         DB db = DBMaker.tempFileDB().make();
 
         //open or create new map
-        Map<Long, String> map = db.getTreeMap("map");
+        Map<Long, String> map = db.treeMap("map");
 
         // open existing or create new Atomic record with given name
         // if no record with given name exist, new recid is created with value `0`
-        Atomic.Long keyinc = db.getAtomicLong("map_keyinc");
+        Atomic.Long keyinc = db.atomicLong("map_keyinc");
 
 
         // Allocate new unique key to use in map

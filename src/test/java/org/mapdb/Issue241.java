@@ -13,7 +13,7 @@ public class Issue241
     {
         DB db = getDb();
         final String mapName = "map"; //$NON-NLS-1$
-        Map<Long, CustomClass> map = db.createTreeMap(mapName).make();
+        Map<Long, CustomClass> map = db.treeMapCreate(mapName).make();
 //                db.createTreeMap(mapName)
 //                .valueSerializer(new CustomSerializer()).make();
         map.put(1L, new CustomClass("aString", 1001L)); //$NON-NLS-1$
@@ -21,7 +21,7 @@ public class Issue241
         db.close();
 
         db = getDb();
-        map = db.getTreeMap(mapName);
+        map = db.treeMap(mapName);
         map.get(1L);
     }
 

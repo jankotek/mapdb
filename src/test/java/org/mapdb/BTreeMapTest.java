@@ -289,7 +289,7 @@ public class BTreeMapTest{
     @Test public void issue_38(){
         Map<Integer, String[]> map = DBMaker
                 .memoryDB().transactionDisable()
-                .make().getTreeMap("test");
+                .make().treeMap("test");
 
         for (int i = 0; i < 50000; i++) {
             map.put(i, new String[5]);
@@ -373,7 +373,7 @@ public class BTreeMapTest{
 //        only the first one...
 
         DB db = DBMaker.memoryDB().transactionDisable().make();
-        NavigableMap m = db.getTreeMap("name");
+        NavigableMap m = db.treeMap("name");
         try{
             m.lastKey();
             fail();
@@ -382,7 +382,7 @@ public class BTreeMapTest{
         assertEquals("aa",m.lastKey());
         m.put("bb","bb");
         assertEquals("bb",m.lastKey());
-        db.getTreeMap("name").clear();
+        db.treeMap("name").clear();
         db.compact();
         try{
             Object key=m.lastKey();
@@ -396,7 +396,7 @@ public class BTreeMapTest{
 
     @Test public void mod_listener_lock(){
         DB db = DBMaker.memoryDB().transactionDisable().make();
-        final BTreeMap m = db.getTreeMap("name");
+        final BTreeMap m = db.treeMap("name");
 
         final long rootRecid = db.getEngine().get(m.rootRecidRef, Serializer.RECID);
         final AtomicInteger counter = new AtomicInteger();
@@ -428,7 +428,7 @@ public class BTreeMapTest{
 
     @Test public void concurrent_last_key(){
         DB db = DBMaker.memoryDB().transactionDisable().make();
-        final BTreeMap m = db.getTreeMap("name");
+        final BTreeMap m = db.treeMap("name");
 
         //fill
         final int c = 1000000;
@@ -452,7 +452,7 @@ public class BTreeMapTest{
 
     @Test public void concurrent_first_key(){
         DB db = DBMaker.memoryDB().transactionDisable().make();
-        final BTreeMap m = db.getTreeMap("name");
+        final BTreeMap m = db.treeMap("name");
 
         //fill
         final int c = 1000000;
@@ -482,7 +482,7 @@ public class BTreeMapTest{
 
 
         /* Creates maps */
-        ConcurrentNavigableMap<Integer, Integer> map1 = db1.getTreeMap("column1");
+        ConcurrentNavigableMap<Integer, Integer> map1 = db1.treeMap("column1");
 
         /* Inserts initial values in maps */
         for (int i = 0; i < numberOfRecords; i++) {
@@ -515,7 +515,7 @@ public class BTreeMapTest{
 
 
         /* Creates maps */
-        NavigableSet<Integer> map1 = db1.getTreeSet("column1");
+        NavigableSet<Integer> map1 = db1.treeSet("column1");
 
         /* Inserts initial values in maps */
         for (int i = 0; i < numberOfRecords; i++) {
@@ -546,7 +546,7 @@ public class BTreeMapTest{
 
 
         /* Creates maps */
-        ConcurrentNavigableMap<Integer, Integer> map1 = db1.getTreeMap("column1");
+        ConcurrentNavigableMap<Integer, Integer> map1 = db1.treeMap("column1");
 
         /* Inserts initial values in maps */
         for (int i = 0; i < numberOfRecords; i++) {
@@ -579,7 +579,7 @@ public class BTreeMapTest{
 
 
         /* Creates maps */
-        NavigableSet<Integer> map1 = db1.getTreeSet("column1");
+        NavigableSet<Integer> map1 = db1.treeSet("column1");
 
         /* Inserts initial values in maps */
         for (int i = 0; i < numberOfRecords; i++) {
@@ -604,7 +604,7 @@ public class BTreeMapTest{
 
     @Test public void randomStructuralCheck(){
         Random r = new Random();
-        BTreeMap map = DBMaker.memoryDB().transactionDisable().make().createTreeMap("aa")
+        BTreeMap map = DBMaker.memoryDB().transactionDisable().make().treeMapCreate("aa")
                 .keySerializer(BTreeKeySerializer.INTEGER)
                 .valueSerializer(Serializer.INTEGER)
                 .make();
@@ -630,7 +630,7 @@ public class BTreeMapTest{
                     .transactionDisable()
                     .make();
             Map m = db
-                    .createTreeMap("map")
+                    .treeMapCreate("map")
                     .nodeSize(i)
                     .keySerializer(BTreeKeySerializer.INTEGER)
                     .valueSerializer(Serializer.INTEGER)
@@ -645,7 +645,7 @@ public class BTreeMapTest{
                     .deleteFilesAfterClose()
                     .transactionDisable()
                     .make();
-            m = db.getTreeMap("map");
+            m = db.treeMap("map");
 
             for(Integer j=0;j<max;j++){
                 assertEquals(j, m.get(j));

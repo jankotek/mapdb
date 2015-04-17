@@ -15,7 +15,7 @@ public class PumpTest {
     @Test
     public void copy(){
         DB db1 = new DB(new StoreHeap(true,CC.DEFAULT_LOCK_SCALE,0));
-        Map m = db1.getHashMap("test");
+        Map m = db1.hashMap("test");
         for(int i=0;i<1000;i++){
             m.put(i, "aa"+i);
         }
@@ -23,7 +23,7 @@ public class PumpTest {
         DB db2 = DBMaker.memoryDB().make();
         Pump.copy(db1,db2);
 
-        Map m2 = db2.getHashMap("test");
+        Map m2 = db2.hashMap("test");
         for(int i=0;i<1000;i++){
             assertEquals("aa"+i, m.get(i));
         }
@@ -79,14 +79,14 @@ public class PumpTest {
                 DB src = makeDB(srcc);
                 DB target = makeDB(targetc);
 
-                Map m = src.getTreeMap("test");
+                Map m = src.treeMap("test");
                 for(int i=0;i<1000;i++) m.put(i,"99090adas d"+i);
                 src.commit();
 
                 Pump.copy(src, target);
 
                 assertEquals(src.getCatalog(), target.getCatalog());
-                Map m2 = target.getTreeMap("test");
+                Map m2 = target.treeMap("test");
                 assertFalse(m2.isEmpty());
                 assertEquals(m,m2);
                 src.close();
@@ -105,7 +105,7 @@ public class PumpTest {
                 DB src = makeDB(srcc);
                 DB target = makeDB(targetc);
 
-                Map m = src.getTreeMap("test");
+                Map m = src.treeMap("test");
                 for(int i=0;i<1000;i++) m.put(i,"99090adas d"+i);
                 src.commit();
 
@@ -116,7 +116,7 @@ public class PumpTest {
                 Pump.copy(srcSnapshot,target);
 
                 assertEquals(src.getCatalog(), target.getCatalog());
-                Map m2 = target.getTreeMap("test");
+                Map m2 = target.treeMap("test");
                 assertFalse(m2.isEmpty());
                 assertEquals(m,m2);
                 src.close();
@@ -211,7 +211,7 @@ public class PumpTest {
         Engine e = new StoreHeap(true,CC.DEFAULT_LOCK_SCALE,0);
         DB db = new DB(e);
 
-        Set s = db.createTreeSet("test")
+        Set s = db.treeSetCreate("test")
                 .nodeSize(8)
                 .pumpSource(list.iterator())
                 .make();
@@ -242,7 +242,7 @@ public class PumpTest {
         Engine e = new StoreHeap(true,CC.DEFAULT_LOCK_SCALE,0);
         DB db = new DB(e);
 
-        Set s = db.createTreeSet("test")
+        Set s = db.treeSetCreate("test")
                 .nodeSize(8)
                 .pumpSource(list.iterator())
                 .pumpIgnoreDuplicates()
@@ -279,7 +279,7 @@ public class PumpTest {
         };
 
 
-        Map s = db.createTreeMap("test")
+        Map s = db.treeMapCreate("test")
             .nodeSize(6)
             .pumpSource(list.iterator(), valueExtractor)
             .make();
@@ -318,7 +318,7 @@ public class PumpTest {
         };
 
 
-        Map s = db.createTreeMap("test")
+        Map s = db.treeMapCreate("test")
                 .nodeSize(6)
                 .pumpSource(list.iterator(), valueExtractor)
                 .pumpIgnoreDuplicates()
@@ -345,14 +345,14 @@ public class PumpTest {
     public void build_treemap_fails_with_unsorted(){
         List a = Arrays.asList(1,2,3,4,4,5);
         DB db = new DB(new StoreHeap(true,CC.DEFAULT_LOCK_SCALE,0));
-        db.createTreeSet("test").pumpSource(a.iterator()).make();
+        db.treeSetCreate("test").pumpSource(a.iterator()).make();
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void build_treemap_fails_with_unsorted2(){
         List a = Arrays.asList(1,2,3,4,3,5);
         DB db = new DB(new StoreHeap(true,CC.DEFAULT_LOCK_SCALE,0));
-        db.createTreeSet("test").pumpSource(a.iterator()).make();
+        db.treeSetCreate("test").pumpSource(a.iterator()).make();
     }
 
 

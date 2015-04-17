@@ -32,7 +32,7 @@ public class CacheOffHeapAdvanced {
 
 
         HTreeMap cache = db
-                .createHashMap("cache")
+                .hashMapCreate("cache")
                 .expireStoreSize(cacheSizeInGB)
                 .counterEnable() //disable this if cache.size() is not used
                 //use proper serializers to and improve performance

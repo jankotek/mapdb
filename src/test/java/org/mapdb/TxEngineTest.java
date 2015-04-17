@@ -77,7 +77,7 @@ public class TxEngineTest {
     @Test public void BTreeMap_snapshot(){
         BTreeMap map =
                 DBMaker.memoryDB().transactionDisable().snapshotEnable()
-                .make().getTreeMap("aaa");
+                .make().treeMap("aaa");
         map.put("aa","aa");
         Map map2 = map.snapshot();
         map.put("aa","bb");
@@ -87,7 +87,7 @@ public class TxEngineTest {
     @Test public void HTreeMap_snapshot(){
         HTreeMap map =
                 DBMaker.memoryDB().transactionDisable().snapshotEnable()
-                .make().getHashMap("aaa");
+                .make().hashMap("aaa");
         map.put("aa","aa");
         Map map2 = map.snapshot();
         map.put("aa", "bb");

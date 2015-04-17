@@ -6,7 +6,6 @@ import org.junit.Test;
 
 import java.io.File;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -38,52 +37,52 @@ public class DBTest {
 
     @Test
     public void testGetHashMap() throws Exception {
-        Map m1 = db.getHashMap("test");
+        Map m1 = db.hashMap("test");
         m1.put(1,2);
         m1.put(3,4);
-        assertTrue(m1 == db.getHashMap("test"));
-        assertEquals(m1, new DB(engine).getHashMap("test"));
+        assertTrue(m1 == db.hashMap("test"));
+        assertEquals(m1, new DB(engine).hashMap("test"));
     }
 
 
 
     @Test
     public void testGetHashSet() throws Exception {
-        Set m1 = db.getHashSet("test");
+        Set m1 = db.hashSet("test");
         m1.add(1);
         m1.add(2);
-        assertTrue(m1 == db.getHashSet("test"));
-        assertEquals(m1, new DB(engine).getHashSet("test"));
+        assertTrue(m1 == db.hashSet("test"));
+        assertEquals(m1, new DB(engine).hashSet("test"));
     }
 
     @Test
     public void testGetTreeMap() throws Exception {
-        Map m1 = db.getTreeMap("test");
+        Map m1 = db.treeMap("test");
         m1.put(1, 2);
         m1.put(3, 4);
-        assertTrue(m1 == db.getTreeMap("test"));
-        assertEquals(m1, new DB(engine).getTreeMap("test"));
+        assertTrue(m1 == db.treeMap("test"));
+        assertEquals(m1, new DB(engine).treeMap("test"));
     }
 
     @Test
     public void testGetTreeSet() throws Exception {
-        Set m1 = db.getTreeSet("test");
+        Set m1 = db.treeSet("test");
         m1.add(1);
         m1.add(2);
-        assertTrue(m1 == db.getTreeSet("test"));
-        assertEquals(m1, new DB(engine).getTreeSet("test"));
+        assertTrue(m1 == db.treeSet("test"));
+        assertEquals(m1, new DB(engine).treeSet("test"));
     }
 
     @Test(expected = IllegalAccessError.class)
     public void testClose() throws Exception {
         db.close();
-        db.getHashMap("test");
+        db.hashMap("test");
     }
 
 
     @Test public void getAll(){
-        db.createAtomicString("aa","100");
-        db.getHashMap("zz").put(11,"12");
+        db.atomicStringCreate("aa", "100");
+        db.hashMap("zz").put(11,"12");
         Map all = db.getAll();
 
         assertEquals(2,all.size());
@@ -93,15 +92,15 @@ public class DBTest {
     }
 
     @Test public void rename(){
-        db.getHashMap("zz").put(11, "12");
+        db.hashMap("zz").put(11, "12");
         db.rename("zz", "aa");
-        assertEquals("12", db.getHashMap("aa").get(11));
+        assertEquals("12", db.hashMap("aa").get(11));
     }
 
 
     @Test(expected = IllegalArgumentException.class)
     public void testCollectionExists(){
-        db.getHashMap("test");
+        db.hashMap("test");
         db.checkNameNotExists("test");
     }
 
@@ -113,7 +112,7 @@ public class DBTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testAtomicExists(){
-        db.getAtomicInteger("test");
+        db.atomicInteger("test");
         db.checkNameNotExists("test");
     }
 
@@ -129,12 +128,12 @@ public class DBTest {
         final String item6 = "ITEM_ONE.__.TWO";
 
 
-        db.createTreeMap(item1).make();
-        db.createTreeSet(item2).make();
-        db.createTreeSet(item3).make();
-        db.createTreeSet(item4).make();
-        db.createTreeSet(item5).make();
-        db.createTreeSet(item6).make();
+        db.treeMapCreate(item1).make();
+        db.treeSetCreate(item2).make();
+        db.treeSetCreate(item3).make();
+        db.treeSetCreate(item4).make();
+        db.treeSetCreate(item5).make();
+        db.treeSetCreate(item6).make();
 
 
         db.delete(item1);
@@ -152,14 +151,14 @@ public class DBTest {
     @Test public void basic_reopen(){
         File f = UtilsTest.tempDbFile();
         DB db = DBMaker.fileDB(f).make();
-        Map map = db.getTreeMap("map");
+        Map map = db.treeMap("map");
         map.put("aa", "bb");
 
         db.commit();
         db.close();
 
         db = DBMaker.fileDB(f).deleteFilesAfterClose().make();
-        map = db.getTreeMap("map");
+        map = db.treeMap("map");
         assertEquals(1, map.size());
         assertEquals("bb", map.get("aa"));
         db.close();
@@ -168,14 +167,14 @@ public class DBTest {
     @Test public void basic_reopen_notx(){
         File f = UtilsTest.tempDbFile();
         DB db = DBMaker.fileDB(f).transactionDisable().make();
-        Map map = db.getTreeMap("map");
+        Map map = db.treeMap("map");
         map.put("aa", "bb");
 
         db.commit();
         db.close();
 
         db = DBMaker.fileDB(f).deleteFilesAfterClose().transactionDisable().make();
-        map = db.getTreeMap("map");
+        map = db.treeMap("map");
         assertEquals(1, map.size());
         assertEquals("bb", map.get("aa"));
         db.close();
@@ -185,7 +184,7 @@ public class DBTest {
         ScheduledExecutorService s = Executors.newSingleThreadScheduledExecutor();
         DB db = DBMaker.memoryDB().make();
 
-        HTreeMap m = db.createHashMap("aa").executorPeriod(1111).executorEnable(s).make();
+        HTreeMap m = db.hashMapCreate("aa").executorPeriod(1111).executorEnable(s).make();
         assertTrue(s == m.executor);
         db.close();
 
@@ -196,7 +195,7 @@ public class DBTest {
         ScheduledExecutorService s = Executors.newSingleThreadScheduledExecutor();
         DB db = DBMaker.memoryDB().make();
 
-        HTreeMap.KeySet m = (HTreeMap.KeySet) db.createHashSet("aa").executorPeriod(1111).executorEnable(s).make();
+        HTreeMap.KeySet m = (HTreeMap.KeySet) db.hashSetCreate("aa").executorPeriod(1111).executorEnable(s).make();
         assertTrue(s == m.getHTreeMap().executor);
         db.close();
 
@@ -205,12 +204,12 @@ public class DBTest {
 
     @Test public void treemap_infer_key_serializer(){
         DB db = DBMaker.memoryDB().make();
-        BTreeMap m = db.createTreeMap("test")
+        BTreeMap m = db.treeMapCreate("test")
                 .keySerializer(Serializer.LONG)
                 .make();
         assertEquals(BTreeKeySerializer.LONG, m.keySerializer);
 
-        BTreeMap m2 = db.createTreeMap("test2")
+        BTreeMap m2 = db.treeMapCreate("test2")
                 .keySerializer(Serializer.LONG)
                 .comparator(Fun.REVERSE_COMPARATOR)
                 .make();
@@ -221,12 +220,12 @@ public class DBTest {
 
     @Test public void treeset_infer_key_serializer(){
         DB db = DBMaker.memoryDB().make();
-        BTreeMap.KeySet m = (BTreeMap.KeySet) db.createTreeSet("test")
+        BTreeMap.KeySet m = (BTreeMap.KeySet) db.treeSetCreate("test")
                 .serializer(Serializer.LONG)
                 .make();
         assertEquals(BTreeKeySerializer.LONG, ((BTreeMap)m.m).keySerializer);
 
-        BTreeMap.KeySet m2 = (BTreeMap.KeySet) db.createTreeSet("test2")
+        BTreeMap.KeySet m2 = (BTreeMap.KeySet) db.treeSetCreate("test2")
                 .serializer(Serializer.LONG)
                 .comparator(Fun.REVERSE_COMPARATOR)
                 .make();

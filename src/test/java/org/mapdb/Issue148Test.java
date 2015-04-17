@@ -42,7 +42,7 @@ public class Issue148Test {
         DB mapdb = DBMaker.appendFileDB(mapdbFile).closeOnJvmShutdown().make();
 
         Serializer<CustomValue> valueSerializer = new CustomValueSerializer();
-        HTreeMap<String, CustomValue> users = mapdb.createHashMap("users").counterEnable().make();
+        HTreeMap<String, CustomValue> users = mapdb.hashMapCreate("users").counterEnable().make();
         users.put("jhon", new CustomValue("jhon",  32));
         users.put("mike", new CustomValue("mike",  30));
         mapdb.commit();
@@ -61,7 +61,7 @@ public class Issue148Test {
 
         // 2 : Open HTreeMap, replace some values , Commit and Close;
         mapdb = DBMaker.appendFileDB(mapdbFile).closeOnJvmShutdown().make();
-        users = mapdb.getHashMap("users");
+        users = mapdb.hashMap("users");
 
         System.out.println("Just Reopen : all values ar good");
         dumpUserDB(users);
@@ -84,7 +84,7 @@ public class Issue148Test {
 
         // 3 : Open HTreeMap, Dump
         mapdb = DBMaker.appendFileDB(mapdbFile).closeOnJvmShutdown().make();
-        users = mapdb.getHashMap("users");
+        users = mapdb.hashMap("users");
 
         System.out.println("But final value is not changed");
         dumpUserDB(users);

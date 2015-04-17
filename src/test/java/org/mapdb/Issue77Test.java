@@ -36,7 +36,7 @@ public class Issue77Test {
      void create() {
          dir.mkdirs();
         DB db = open(false);
-        ConcurrentNavigableMap<Integer, byte[]> map = db.getTreeMap("bytes");
+        ConcurrentNavigableMap<Integer, byte[]> map = db.treeMap("bytes");
         int n = 10;
         int m = 10;
         for (int i = 0; i < n; i++) {

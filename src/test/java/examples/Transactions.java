@@ -25,7 +25,7 @@ public class Transactions {
         DB tx1 = txMaker.makeTx();
 
         //create map from first transactions and fill it with data
-        Map map1 = tx1.getTreeMap("testMap");
+        Map map1 = tx1.treeMap("testMap");
         for(int i=0;i<1e4;i++){
             map1.put(i,"aaa"+i);
         }
@@ -41,11 +41,11 @@ public class Transactions {
 
         //open second transaction
         DB tx2 = txMaker.makeTx();
-        Map map2 = tx2.getTreeMap("testMap");
+        Map map2 = tx2.treeMap("testMap");
 
         //open third transaction
         DB tx3 = txMaker.makeTx();
-        Map map3 = tx3.getTreeMap("testMap");
+        Map map3 = tx3.treeMap("testMap");
 
         //put some stuff into second transactions, observer third map size
         System.out.println("map3 size before insert: "+map3.size());
@@ -74,7 +74,7 @@ public class Transactions {
 
         //create yet another transaction and observe result
         DB tx4 = txMaker.makeTx();
-        Map map4 = tx4.getTreeMap("testMap");
+        Map map4 = tx4.treeMap("testMap");
         System.out.println("Map size after commits: "+map4.size());
         System.out.println("Value inserted into tx2 and successfully commited: "+map4.get(-10));
         System.out.println("Value inserted into tx3 before rollback: "+map4.get(100000));

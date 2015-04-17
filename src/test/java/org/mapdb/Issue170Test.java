@@ -13,7 +13,7 @@ public class Issue170Test {
         Map m = DBMaker.memoryDB()
                 .compressionEnable()
                 .transactionDisable()
-                .make().createTreeMap("test").make();
+                .make().treeMapCreate("test").make();
         for(int i=0;i<1e5;i++){
             m.put(UUID.randomUUID().toString(),UUID.randomUUID().toString());
         }

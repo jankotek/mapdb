@@ -13,7 +13,7 @@ public class Issue265Test {
                 .transactionDisable()
                 .make(); // breaks functionality even in version 0.9.7
 
-            Map<Integer, String> map = db.getHashMap("HashMap");
+            Map<Integer, String> map = db.hashMap("HashMap");
             map.put(1, "one");
             map.put(2, "two");
             map.remove(1);
@@ -29,7 +29,7 @@ public class Issue265Test {
     public void compact_no_tx(){
             DB db = DBMaker.memoryDB().make();
 
-            Map<Integer, String> map = db.getHashMap("HashMap");
+            Map<Integer, String> map = db.hashMap("HashMap");
             map.put(1, "one");
             map.put(2, "two");
             map.remove(1);

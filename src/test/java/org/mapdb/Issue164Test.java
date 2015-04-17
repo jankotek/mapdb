@@ -84,7 +84,7 @@ public class Issue164Test {
                     .closeOnJvmShutdown()
                     .make();
 // the following test shows that the db is opened if it always exists
-            map = db.getTreeMap("test");
+            map = db.treeMap("test");
             if (!map.containsKey("t1")) {
                 map.put("t1", new Scenario());
                 db.commit();

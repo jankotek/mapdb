@@ -124,8 +124,8 @@ public final class Bind {
      *
      * NOTE: {@link BTreeMap} and {@link HTreeMap} already supports this directly as optional parameter named {@code counter}.
      * In that case all calls to {@code Map.size()} are forwarded to underlying counter. Check parameters at
-     * {@link DB#createHashMap(String)} and
-     * {@link DB#createTreeMap(String)}
+     * {@link DB#hashMapCreate(String)} and
+     * {@link DB#treeMapCreate(String)}
      *
      *
      * @param map primary map whose size needs to be tracked

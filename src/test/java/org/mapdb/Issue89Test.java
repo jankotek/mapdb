@@ -44,7 +44,7 @@ public class Issue89Test {
 
 
         private void addData(DB myTestDataFile) {
-            final NavigableSet<Object> testTreeSet = myTestDataFile.getTreeSet(TEST_TREE_SET);
+            final NavigableSet<Object> testTreeSet = myTestDataFile.treeSet(TEST_TREE_SET);
             testTreeSet.add(DUMMY_CONTENT);
             myTestDataFile.commit();
 

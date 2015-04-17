@@ -21,10 +21,10 @@ public class MultiMap {
         //  Map<String,List<Long>> map
 
         //correct way is to use composite set, where 'map key' is primary key and 'map value' is secondary value
-        NavigableSet<Object[]> multiMap = db.getTreeSet("test");
+        NavigableSet<Object[]> multiMap = db.treeSet("test");
 
         //optionally you can use set with Delta Encoding. This may save lot of space
-        multiMap = db.createTreeSet("test2")
+        multiMap = db.treeSetCreate("test2")
                 .serializer(BTreeKeySerializer.ARRAY2)
                 .make();
 

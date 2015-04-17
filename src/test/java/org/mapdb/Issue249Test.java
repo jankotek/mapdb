@@ -18,14 +18,14 @@ public class Issue249Test {
         x.setId(1L);
         x.setTitle("nameXXX");
 
-        Map<Long, UploadInfo> map = db.getTreeMap(UploadInfo.class.getName());
+        Map<Long, UploadInfo> map = db.treeMap(UploadInfo.class.getName());
         map.put(x.getId(), x);
 
         db = commit(db);
         db = rollback(db);
 
         DB db2 = txMaker.makeTx();
-        Map<Long, UploadInfo> map2 = db2.getTreeMap(UploadInfo.class.getName());
+        Map<Long, UploadInfo> map2 = db2.treeMap(UploadInfo.class.getName());
         map2.get(x.getId());
 
         txMaker.close();

@@ -15,7 +15,7 @@ public class Issue321Test {
 
         List l = Arrays.asList(19,10,9,8,2);
 
-        Map m = db.createTreeMap("aa")
+        Map m = db.treeMapCreate("aa")
                 .pumpPresort(100)
                 .make();
 

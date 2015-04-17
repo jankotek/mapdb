@@ -140,7 +140,7 @@ public class HTreeSetTest{
         Set s = DBMaker.fileDB(UtilsTest.tempDbFile())
                 .transactionDisable()
                 .make()
-                .getHashSet("name");
+                .hashSet("name");
         assertTrue(s.isEmpty());
         assertEquals(0,s.size());
         s.add("aa");

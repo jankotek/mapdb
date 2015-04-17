@@ -16,7 +16,7 @@ public class Issue312Test {
                 .transactionDisable()
                 .make();
 
-        Map<Long, String> map = db.createTreeMap("data").make();
+        Map<Long, String> map = db.treeMapCreate("data").make();
         for(long i = 0; i<100000;i++){
             map.put(i,i + "hi my friend " + i);
         }

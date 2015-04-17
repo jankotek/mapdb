@@ -23,16 +23,16 @@ public class TxMakerTest{
 
     @Test public void simple_commit(){
         DB db =tx.makeTx();
-        db.getHashMap("test").put("aa", "bb");
+        db.hashMap("test").put("aa", "bb");
         db.commit();
-        assertEquals("bb", tx.makeTx().getHashMap("test").get("aa"));
+        assertEquals("bb", tx.makeTx().hashMap("test").get("aa"));
     }
 
     @Test public void simple_rollback(){
         DB db =tx.makeTx();
-        db.getHashMap("test").put("aa", "bb");
+        db.hashMap("test").put("aa", "bb");
         db.rollback();
-        assertEquals(null, tx.makeTx().getHashMap("test").get("aa"));
+        assertEquals(null, tx.makeTx().hashMap("test").get("aa"));
     }
 
     @Test public void commit_conflict(){
@@ -78,7 +78,7 @@ public class TxMakerTest{
                         public void tx(DB db) throws TxRollbackException {
 //							Queue<String> queue = db.getQueue(index + "");
 //							queue.offer(temp + "");
-                            Map map = db.getHashMap("ha");
+                            Map map = db.hashMap("ha");
                             if(temp!=t)
                                 assertEquals(temp-1,map.get(temp-1));
                             map.put(temp, temp );
@@ -89,7 +89,7 @@ public class TxMakerTest{
             }
         });
 
-        Map m = tx.makeTx().getHashMap("ha");
+        Map m = tx.makeTx().hashMap("ha");
         assertEquals(s.size(),m.size());
         for(Object i:s){
             assertEquals(i, m.get(i));
@@ -111,7 +111,7 @@ public class TxMakerTest{
 
                 @Override
                 public void tx(DB db) throws TxRollbackException {
-                    Map map = db.getHashMap("ha");
+                    Map map = db.hashMap("ha");
                     if(temp!=t)
                         assertEquals(temp-1,map.get(temp-1));
                     map.put(temp, temp );
@@ -119,7 +119,7 @@ public class TxMakerTest{
             });
         }
 
-        Map m = tx.makeTx().getHashMap("ha");
+        Map m = tx.makeTx().hashMap("ha");
         assertEquals(s.size(),m.size());
         for(Object i:s){
             assertEquals(i, m.get(i));

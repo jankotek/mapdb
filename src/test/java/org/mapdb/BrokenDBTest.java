@@ -114,7 +114,7 @@ public class BrokenDBTest {
     public void canDeleteDBOnBrokenContent() throws IOException {
         // init empty, but valid DB
         DB db = DBMaker.fileDB(index).make();
-        db.getHashMap("foo").put("foo", new SomeDataObject());
+        db.hashMap("foo").put("foo", new SomeDataObject());
         db.commit();
         db.close();
 

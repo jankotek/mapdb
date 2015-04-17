@@ -2,7 +2,6 @@ package org.mapdb;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -69,7 +68,7 @@ public class HTreeMap2Test {
         HTreeMap.LinkedNode n = new HTreeMap.LinkedNode(123456, 1111L, 123L, 456L);
 
         DataIO.DataOutputByteArray out = new DataIO.DataOutputByteArray();
-        HTreeMap m = db.createHashMap("test").make();
+        HTreeMap m = db.hashMapCreate("test").make();
 
         m.LN_SERIALIZER.serialize(out, n);
 
@@ -301,7 +300,7 @@ public class HTreeMap2Test {
     static final Long ZERO  = 0L;
 
     @Test public void expire_link_simple_add_remove(){
-        HTreeMap m = db.createHashMap("test").expireMaxSize(100).make();
+        HTreeMap m = db.hashMapCreate("test").expireMaxSize(100).make();
         m.segmentLocks[0].writeLock().lock();
         assertEquals(ZERO, engine.get(m.expireHeads[0], Serializer.LONG));
         assertEquals(ZERO, engine.get(m.expireTails[0], Serializer.LONG));
@@ -333,7 +332,7 @@ public class HTreeMap2Test {
     }
 
     @Test public void expire_link_test(){
-        HTreeMap m = db.createHashMap("test").expireMaxSize(100).make();
+        HTreeMap m = db.hashMapCreate("test").expireMaxSize(100).make();
         m.segmentLocks[2].writeLock().lock();
 
         long[] recids = new long[10];
@@ -396,7 +395,7 @@ public class HTreeMap2Test {
 
     @Test (timeout = 20000)
     public void expire_put() {
-        HTreeMap m = db.createHashMap("test")
+        HTreeMap m = db.hashMapCreate("test")
                 .expireAfterWrite(100)
                 .make();
         m.put("aa","bb");
@@ -407,7 +406,7 @@ public class HTreeMap2Test {
 
     @Test(timeout = 20000)
     public void expire_max_size() throws InterruptedException {
-        HTreeMap m = db.createHashMap("test")
+        HTreeMap m = db.hashMapCreate("test")
                 .expireMaxSize(1000)
                 .make();
         for(int i=0;i<1100;i++){
@@ -437,7 +436,7 @@ public class HTreeMap2Test {
     }
 
     @Test public void testMinMaxExpiryTime(){
-        HTreeMap m = db.createHashMap("test")
+        HTreeMap m = db.hashMapCreate("test")
                 .expireAfterWrite(10000)
                 .expireAfterAccess(100000)
                 .make();
@@ -465,7 +464,7 @@ public class HTreeMap2Test {
                         .transactionDisable()
                         .make();
 
-        HTreeMap m = db.createHashMap("test")
+        HTreeMap m = db.hashMapCreate("test")
                 //.expireMaxSize(11000000)
                 .expireAfterWrite(100)
                 .make();
@@ -483,7 +482,7 @@ public class HTreeMap2Test {
                 .transactionDisable()
                 .make();
 
-        HTreeMap m = db.createHashMap("test")
+        HTreeMap m = db.hashMapCreate("test")
                 //.expireMaxSize(11000000)
                 .expireMaxSize(10000)
                 .make();
@@ -507,7 +506,7 @@ public class HTreeMap2Test {
     @Test public void hasher(){
         HTreeMap m =
                 DBMaker.memoryDB().transactionDisable().make()
-                        .createHashMap("test")
+                        .hashMapCreate("test")
                         .keySerializer(Serializer.INT_ARRAY)
                         .make();
 
@@ -522,7 +521,7 @@ public class HTreeMap2Test {
 
     @Test public void mod_listener_lock(){
         DB db = DBMaker.memoryDB().transactionDisable().make();
-        final HTreeMap m = db.getHashMap("name");
+        final HTreeMap m = db.hashMap("name");
 
         final int seg =  m.hash("aa")>>>28;
         final AtomicInteger counter = new AtomicInteger();
@@ -556,7 +555,7 @@ public class HTreeMap2Test {
     public void test_iterate_and_remove(){
         final long max= (long) 1e5;
 
-        Set m = DBMaker.memoryDB().transactionDisable().make().getHashSet("test");
+        Set m = DBMaker.memoryDB().transactionDisable().make().hashSet("test");
 
         for(long i=0;i<max;i++){
             m.add(i);
@@ -607,7 +606,7 @@ public class HTreeMap2Test {
         int EXPIRE_TIME = 3;
         double MAX_GB_SIZE = 1e7;
 
-        Map m = db.createHashMap("cache").expireMaxSize(MAX_ITEM_SIZE).counterEnable()
+        Map m = db.hashMapCreate("cache").expireMaxSize(MAX_ITEM_SIZE).counterEnable()
                 .expireAfterWrite(EXPIRE_TIME, TimeUnit.SECONDS).expireStoreSize(MAX_GB_SIZE).make();
 
         for(int i=0;i<1000;i++){
@@ -654,7 +653,7 @@ public class HTreeMap2Test {
                 .transactionDisable()
                 .make();
 
-        HTreeMap m = db.createHashMap("test")
+        HTreeMap m = db.hashMapCreate("test")
 
                 .make();
 
@@ -667,7 +666,7 @@ public class HTreeMap2Test {
     public void test()
     {
         DB db = DBMaker.memoryDB().transactionDisable().make();
-        Map<String, Integer> map = db.getHashMap("map", new Fun.Function1<Integer, String>() {
+        Map<String, Integer> map = db.hashMap("map", new Fun.Function1<Integer, String>() {
             @Override
             public Integer run(String s) {
                 return Integer.MIN_VALUE;
@@ -685,7 +684,7 @@ public class HTreeMap2Test {
             s.add(i);
         }
 
-        HTreeMap<Long,Long> m = db.createHashMap("a")
+        HTreeMap<Long,Long> m = db.hashMapCreate("a")
                 .pumpSource(s.iterator(), new Fun.Function1<Long,Long>() {
                     @Override
                     public Long run(Long l) {
@@ -717,7 +716,7 @@ public class HTreeMap2Test {
         s.add(-1L);
 
 
-        HTreeMap<Long,Long> m = db.createHashMap("a")
+        HTreeMap<Long,Long> m = db.hashMapCreate("a")
                 .pumpSource(s.iterator(), new Fun.Function1<Long,Long>() {
                     @Override
                     public Long run(Long l) {
@@ -752,7 +751,7 @@ public class HTreeMap2Test {
         s.add(-1L);
 
 
-        HTreeMap<Long,Long> m = db.createHashMap("a")
+        HTreeMap<Long,Long> m = db.hashMapCreate("a")
                 .pumpSource(s.iterator(), new Fun.Function1<Long,Long>() {
                     @Override
                     public Long run(Long l) {
@@ -774,7 +773,7 @@ public class HTreeMap2Test {
             s.add(i);
         }
 
-        Set<Long> m = db.createHashSet("a")
+        Set<Long> m = db.hashSetCreate("a")
                 .pumpSource(s.iterator())
                 .serializer(Serializer.LONG)
                 .make();
@@ -796,7 +795,7 @@ public class HTreeMap2Test {
         s.add(-1L);
 
 
-        Set<Long> m = db.createHashSet("a")
+        Set<Long> m = db.hashSetCreate("a")
                 .pumpSource(s.iterator())
                 .pumpIgnoreDuplicates()
                 .serializer(Serializer.LONG)
@@ -819,7 +818,7 @@ public class HTreeMap2Test {
         s.add(-1L);
 
 
-        db.createHashSet("a")
+        db.hashSetCreate("a")
                 .pumpSource(s.iterator())
                 .serializer(Serializer.LONG)
                 .make();
