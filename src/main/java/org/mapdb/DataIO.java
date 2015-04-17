@@ -166,7 +166,7 @@ public final class DataIO {
     public static long unpackLongBidi(byte[] bb, int pos){
         //$DELAY$
         long b = bb[pos++];
-        if(CC.PARANOID && (b&0x80)==0)
+        if(CC.ASSERT && (b&0x80)==0)
             throw new AssertionError();
         long result = (b & 0x7F) ;
         int offset = 7;
@@ -174,7 +174,7 @@ public final class DataIO {
             //$DELAY$
             b = bb[pos++];
             result |= (b & 0x7F) << offset;
-            if(CC.PARANOID && offset>64)
+            if(CC.ASSERT && offset>64)
                 throw new AssertionError();
             offset += 7;
         }while((b & 0x80) == 0);
@@ -186,7 +186,7 @@ public final class DataIO {
     public static long unpackLongBidiReverse(byte[] bb, int pos){
         //$DELAY$
         long b = bb[--pos];
-        if(CC.PARANOID && (b&0x80)==0)
+        if(CC.ASSERT && (b&0x80)==0)
             throw new AssertionError();
         long result = (b & 0x7F) ;
         int counter = 1;
@@ -194,7 +194,7 @@ public final class DataIO {
             //$DELAY$
             b = bb[--pos];
             result = (b & 0x7F) | (result<<7);
-            if(CC.PARANOID && counter>8)
+            if(CC.ASSERT && counter>8)
                 throw new AssertionError();
             counter++;
         }while((b & 0x80) == 0);
@@ -238,7 +238,7 @@ public final class DataIO {
     }
 
     public static void putSixLong(byte[] buf, int pos, long value) {
-        if(CC.PARANOID && (value>>>48!=0))
+        if(CC.ASSERT && (value>>>48!=0))
             throw new AssertionError();
 
         buf[pos++] = (byte) (0xff & (value >> 40));
@@ -980,7 +980,7 @@ public final class DataIO {
 
 
     public static long parity1Set(long i) {
-        if(CC.PARANOID && (i&1)!=0)
+        if(CC.ASSERT && (i&1)!=0)
             throw new DBException.PointerChecksumBroken();
         return i | ((Long.bitCount(i)+1)%2);
     }
@@ -993,7 +993,7 @@ public final class DataIO {
     }
 
     public static long parity3Set(long i) {
-        if(CC.PARANOID && (i&0x7)!=0)
+        if(CC.ASSERT && (i&0x7)!=0)
             throw new DBException.PointerChecksumBroken(); //TODO stronger parity
         return i | ((Long.bitCount(i)+1)%8);
     }
@@ -1007,7 +1007,7 @@ public final class DataIO {
     }
 
     public static long parity4Set(long i) {
-        if(CC.PARANOID && (i&0xF)!=0)
+        if(CC.ASSERT && (i&0xF)!=0)
             throw new DBException.PointerChecksumBroken(); //TODO stronger parity
         return i | ((Long.bitCount(i)+1)%16);
     }
@@ -1022,7 +1022,7 @@ public final class DataIO {
 
 
     public static long parity16Set(long i) {
-        if(CC.PARANOID && (i&0xFFFF)!=0)
+        if(CC.ASSERT && (i&0xFFFF)!=0)
             throw new DBException.PointerChecksumBroken(); //TODO stronger parity
         return i | ((Long.bitCount(i)+1)%2);
     }

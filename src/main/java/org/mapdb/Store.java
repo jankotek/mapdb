@@ -251,7 +251,7 @@ public abstract class Store implements Engine {
 
                     byte[] expected2 = Arrays.copyOf(expected.buf, expected.pos);
                     //check arrays equals
-                    if(CC.PARANOID && ! (Arrays.equals(expected2,decompress)))
+                    if(CC.ASSERT && ! (Arrays.equals(expected2,decompress)))
                         throw new AssertionError();
 
 
@@ -747,7 +747,7 @@ public abstract class Store implements Engine {
                            ScheduledExecutorService executor,
                            long executorScheduledRate) {
             super(disableLocks);
-            if(CC.PARANOID && disableLocks && executor!=null) {
+            if(CC.ASSERT && disableLocks && executor!=null) {
                 throw new IllegalArgumentException("Lock can not be disabled with executor enabled");
             }
             this.useWeakRef = useWeakRef;
@@ -860,7 +860,7 @@ public abstract class Store implements Engine {
         }
 
         protected void flushGCed() {
-            if(CC.PARANOID && lock!=null &&
+            if(CC.ASSERT && lock!=null &&
                     (lock instanceof ReentrantLock) &&
                     !((ReentrantLock)lock).isHeldByCurrentThread()) {
                 throw new AssertionError("Not locked by current thread");
@@ -1155,7 +1155,7 @@ public abstract class Store implements Engine {
 
 
         public long get(long key) {
-            if(CC.PARANOID && key==0)
+            if(CC.ASSERT && key==0)
                 throw new IllegalArgumentException("zero key");
 
             int index = index(key);
@@ -1169,10 +1169,10 @@ public abstract class Store implements Engine {
         }
 
         public long put(long key, long value) {
-            if(CC.PARANOID && key==0)
+            if(CC.ASSERT && key==0)
                 throw new IllegalArgumentException("zero key");
 
-            if(CC.PARANOID && value==0)
+            if(CC.ASSERT && value==0)
                 throw new IllegalArgumentException("zero val");
 
             int index = insert(key, value);
@@ -1189,7 +1189,7 @@ public abstract class Store implements Engine {
         }
 
         int insert(long key, long value) {
-            if(CC.PARANOID && key==0)
+            if(CC.ASSERT && key==0)
                 throw new IllegalArgumentException("zero key");
 
             long[] tab = table;
@@ -1269,7 +1269,7 @@ public abstract class Store implements Engine {
 
         void rehash(int newCapacity) {
             long[] tab = table;
-            if(CC.PARANOID && !((newCapacity & (newCapacity - 1)) == 0)) //is power of two?
+            if(CC.ASSERT && !((newCapacity & (newCapacity - 1)) == 0)) //is power of two?
                 throw new AssertionError();
             maxSize = maxSize(newCapacity);
             table = new long[newCapacity * 2];
@@ -1350,7 +1350,7 @@ public abstract class Store implements Engine {
         }
 
         public V get(long key) {
-            if(CC.PARANOID && key==0)
+            if(CC.ASSERT && key==0)
                 throw new IllegalArgumentException("zero key");
 
             int index = index(key);
@@ -1394,7 +1394,7 @@ public abstract class Store implements Engine {
         }
 
         public V put(long key, V value) {
-            if(CC.PARANOID && key==0)
+            if(CC.ASSERT && key==0)
                 throw new IllegalArgumentException("zero key");
 
             int index = insert(key, value);
@@ -1485,7 +1485,7 @@ public abstract class Store implements Engine {
         }
 
         public V remove(long key) {
-            if(CC.PARANOID && key==0)
+            if(CC.ASSERT && key==0)
                 throw new IllegalArgumentException("zero key");
                 long[] keys = set;
                 int capacityMask = keys.length - 1;
@@ -1635,7 +1635,7 @@ public abstract class Store implements Engine {
         }
 
         public int get(long key) {
-            if(CC.PARANOID && key==0)
+            if(CC.ASSERT && key==0)
                 throw new IllegalArgumentException("zero key");
 
             int index = index(key);
@@ -1650,7 +1650,7 @@ public abstract class Store implements Engine {
 
 
         public V1 get1(long key) {
-            if(CC.PARANOID && key==0)
+            if(CC.ASSERT && key==0)
                 throw new IllegalArgumentException("zero key");
 
             int index = index(key);
@@ -1664,7 +1664,7 @@ public abstract class Store implements Engine {
         }
 
         public V2 get2(long key) {
-            if(CC.PARANOID && key==0)
+            if(CC.ASSERT && key==0)
                 throw new IllegalArgumentException("zero key");
 
             int index = index(key);
@@ -1709,7 +1709,7 @@ public abstract class Store implements Engine {
         }
 
         public int put(long key, V1 val1, V2 val2) {
-            if(CC.PARANOID && key==0)
+            if(CC.ASSERT && key==0)
                 throw new IllegalArgumentException("zero key");
 
             int index = insert(key, val1,val2);
@@ -1803,7 +1803,7 @@ public abstract class Store implements Engine {
         }
 
         public int  remove(long key) {
-            if(CC.PARANOID && key==0)
+            if(CC.ASSERT && key==0)
                 throw new IllegalArgumentException("zero key");
             long[] keys = set;
             int capacityMask = keys.length - 1;

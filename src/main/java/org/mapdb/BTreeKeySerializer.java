@@ -701,7 +701,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
                 }
             }
 
-            if(CC.PARANOID){
+            if(CC.ASSERT){
                 for(int j:counts){
                     if(j!=0)
                         throw new AssertionError();
@@ -765,7 +765,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
 
         @Override
         public Object[] putKey(Object[] keys, int pos, Object[] newKey) {
-            if(CC.PARANOID && newKey.length!=tsize)
+            if(CC.ASSERT && newKey.length!=tsize)
                 throw new AssertionError();
             pos*=tsize;
             Object[] ret = new Object[keys.length+tsize];
@@ -783,7 +783,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             int pos=0;
             //$DELAY$
             for(Object o:keys){
-                if(CC.PARANOID && ((Object[])o).length!=tsize)
+                if(CC.ASSERT && ((Object[])o).length!=tsize)
                     throw new AssertionError();
                 System.arraycopy(o,0,ret,pos,tsize);
                 //$DELAY$
@@ -969,7 +969,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             this.offset = offset;
             this.array = array;
 
-            if(CC.PARANOID && ! (array.length==0 || array.length == offset[offset.length-1]))
+            if(CC.ASSERT && ! (array.length==0 || array.length == offset[offset.length-1]))
                 throw new AssertionError();
         }
 
@@ -1212,7 +1212,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             this.offset = offset;
             this.array = array;
 
-            if(CC.PARANOID && ! (array.length==0 || array.length == offset[offset.length-1]))
+            if(CC.ASSERT && ! (array.length==0 || array.length == offset[offset.length-1]))
                 throw new AssertionError();
         }
 

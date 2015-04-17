@@ -240,11 +240,11 @@ public class StoreWAL extends StoreCached {
     }
 
     protected void walStartNextFile() {
-        if (CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+        if (CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
         fileNum++;
-        if (CC.PARANOID && fileNum != volumes.size())
+        if (CC.ASSERT && fileNum != volumes.size())
             throw new AssertionError();
         String filewal = getWalFileName(""+fileNum);
         Volume nextVol;
@@ -300,7 +300,7 @@ public class StoreWAL extends StoreCached {
             int singleByteSkip = (4<<5)|(Long.bitCount(walOffset2)&31);
             curVol.putUnsignedByte(walOffset2++, singleByteSkip);
             plusSize--;
-            if(CC.PARANOID && plusSize<0)
+            if(CC.ASSERT && plusSize<0)
                 throw new AssertionError();
         }
 
@@ -313,7 +313,7 @@ public class StoreWAL extends StoreCached {
     }
 
     protected long walGetLong(long offset, int segment){
-        if(CC.PARANOID && offset%8!=0)
+        if(CC.ASSERT && offset%8!=0)
             throw new AssertionError();
         long ret = currLongLongs[segment].get(offset);
         if(ret==0) {
@@ -325,7 +325,7 @@ public class StoreWAL extends StoreCached {
 
     @Override
     protected void putDataSingleWithLink(int segment, long offset, long link, byte[] buf, int bufPos, int size) {
-        if(CC.PARANOID && (size&0xFFFF)!=size)
+        if(CC.ASSERT && (size&0xFFFF)!=size)
             throw new AssertionError();
         //TODO optimize so array copy is not necessary, that means to clone and modify putDataSingleWithoutLink method
         byte[] buf2 = new  byte[size+8];
@@ -336,15 +336,15 @@ public class StoreWAL extends StoreCached {
 
     @Override
     protected void putDataSingleWithoutLink(int segment, long offset, byte[] buf, int bufPos, int size) {
-        if(CC.PARANOID && (size&0xFFFF)!=size)
+        if(CC.ASSERT && (size&0xFFFF)!=size)
             throw new AssertionError();
-        if(CC.PARANOID && (offset%16!=0 && offset!=4))
+        if(CC.ASSERT && (offset%16!=0 && offset!=4))
             throw new AssertionError();
-//        if(CC.PARANOID && size%16!=0)
+//        if(CC.ASSERT && size%16!=0)
 //            throw new AssertionError(); //TODO allign record size to 16, and clear remaining bytes
-        if(CC.PARANOID && segment!=-1)
+        if(CC.ASSERT && segment!=-1)
             assertWriteLocked(segment);
-        if(CC.PARANOID && segment==-1 && !structuralLock.isHeldByCurrentThread())
+        if(CC.ASSERT && segment==-1 && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
         final int plusSize = +1+2+6+size;
@@ -374,7 +374,7 @@ public class StoreWAL extends StoreCached {
 
 
     protected DataInput walGetData(long offset, int segment) {
-        if (CC.PARANOID && offset % 16 != 0)
+        if (CC.ASSERT && offset % 16 != 0)
             throw new AssertionError();
 
         long longval = currDataLongs[segment].get(offset);
@@ -394,7 +394,7 @@ public class StoreWAL extends StoreCached {
 
     @Override
     protected long indexValGet(long recid) {
-        if(CC.PARANOID)
+        if(CC.ASSERT)
             assertReadLocked(recid);
         int segment = lockPos(recid);
         long offset = recidToOffset(recid);
@@ -410,9 +410,9 @@ public class StoreWAL extends StoreCached {
 
     @Override
     protected void indexValPut(long recid, int size, long offset, boolean linked, boolean unused) {
-        if(CC.PARANOID)
+        if(CC.ASSERT)
             assertWriteLocked(lockPos(recid));
-//        if(CC.PARANOID && compactionInProgress)
+//        if(CC.ASSERT && compactionInProgress)
 //            throw new AssertionError();
 
         long newVal = composeIndexVal(size, offset, linked, unused, true);
@@ -421,9 +421,9 @@ public class StoreWAL extends StoreCached {
 
     @Override
     protected void indexLongPut(long offset, long val) {
-        if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+        if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw  new AssertionError();
-        if(CC.PARANOID && compactionInProgress)
+        if(CC.ASSERT && compactionInProgress)
             throw new AssertionError();
         walPutLong(offset,val);
     }
@@ -431,14 +431,14 @@ public class StoreWAL extends StoreCached {
     @Override
     protected long pageAllocate() {
 // TODO compaction assertion
-//        if(CC.PARANOID && compactionInProgress)
+//        if(CC.ASSERT && compactionInProgress)
 //            throw new AssertionError();
 
         long storeSize = parity16Get(headVol.getLong(STORE_SIZE));
         headVol.putLong(STORE_SIZE, parity16Set(storeSize + PAGE_SIZE));
         //TODO clear data on page? perhaps special instruction?
 
-        if(CC.PARANOID && storeSize%PAGE_SIZE!=0)
+        if(CC.ASSERT && storeSize%PAGE_SIZE!=0)
             throw new AssertionError();
 
 
@@ -447,10 +447,10 @@ public class StoreWAL extends StoreCached {
 
     @Override
     protected byte[] loadLongStackPage(long pageOffset) {
-        if (CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+        if (CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
-//        if(CC.PARANOID && compactionInProgress)
+//        if(CC.ASSERT && compactionInProgress)
 //            throw new AssertionError();
 
 
@@ -486,7 +486,7 @@ public class StoreWAL extends StoreCached {
 
     @Override
     protected <A> A get2(long recid, Serializer<A> serializer) {
-        if (CC.PARANOID)
+        if (CC.ASSERT)
             assertReadLocked(recid);
         int segment = lockPos(recid);
 
@@ -514,7 +514,7 @@ public class StoreWAL extends StoreCached {
                     final int fileNum = (int) (walval>>>(5*8));
                     Volume recVol = walRec.get(fileNum);
                     long offset = walval&0xFFFFFFFFFFL; //last 5 bytes
-                    if(CC.PARANOID){
+                    if(CC.ASSERT){
                         int instruction = recVol.getUnsignedByte(offset);
                         if(instruction!=(5<<5))
                             throw new AssertionError("wrong instruction");
@@ -601,13 +601,13 @@ public class StoreWAL extends StoreCached {
             for (int i = 0; i < offsets.length; i++) {
                 int plus = (i == offsets.length - 1)?0:8;
                 long size = (offsets[i] >>> 48) - plus;
-                if(CC.PARANOID && (size&0xFFFF)!=size)
+                if(CC.ASSERT && (size&0xFFFF)!=size)
                     throw new AssertionError("size mismatch");
                 long offset = offsets[i] & MOFFSET;
                 vol.getData(offset + plus, b, bpos, (int) size);
                 bpos += size;
             }
-            if (CC.PARANOID && bpos != totalSize)
+            if (CC.ASSERT && bpos != totalSize)
                 throw new AssertionError("size does not match");
 
             DataInput in = new DataIO.DataInputByteArray(b);
@@ -789,11 +789,11 @@ public class StoreWAL extends StoreCached {
                             continue;
                         byte[] val = (byte[]) dirtyStackPages.values[i];
 
-                        if (CC.PARANOID && offset < PAGE_SIZE)
+                        if (CC.ASSERT && offset < PAGE_SIZE)
                             throw new AssertionError();
-                        if (CC.PARANOID && val.length % 16 != 0)
+                        if (CC.ASSERT && val.length % 16 != 0)
                             throw new AssertionError();
-                        if (CC.PARANOID && val.length <= 0 || val.length > MAX_REC_SIZE)
+                        if (CC.ASSERT && val.length <= 0 || val.length > MAX_REC_SIZE)
                             throw new AssertionError();
 
                         putDataSingleWithoutLink(-1, offset, val, 0, val.length);
@@ -837,7 +837,7 @@ public class StoreWAL extends StoreCached {
     }
 
     protected void commitFullWALReplay() {
-        if(CC.PARANOID && !commitLock.isHeldByCurrentThread())
+        if(CC.ASSERT && !commitLock.isHeldByCurrentThread())
             throw new AssertionError();
 
         //lock all segment locks
@@ -865,7 +865,7 @@ public class StoreWAL extends StoreCached {
                 }
                 currLongLongs[segment].clear();
 
-                if(CC.PARANOID && currLongLongs[segment].size()!=0)
+                if(CC.ASSERT && currLongLongs[segment].size()!=0)
                     throw new AssertionError();
 
                 currDataLongs[segment].clear();
@@ -883,18 +883,18 @@ public class StoreWAL extends StoreCached {
                             continue;
                         byte[] val = (byte[]) dirtyStackPages.values[i];
 
-                        if (CC.PARANOID && offset < PAGE_SIZE)
+                        if (CC.ASSERT && offset < PAGE_SIZE)
                             throw new AssertionError();
-                        if (CC.PARANOID && val.length % 16 != 0)
+                        if (CC.ASSERT && val.length % 16 != 0)
                             throw new AssertionError();
-                        if (CC.PARANOID && val.length <= 0 || val.length > MAX_REC_SIZE)
+                        if (CC.ASSERT && val.length <= 0 || val.length > MAX_REC_SIZE)
                             throw new AssertionError();
 
                         putDataSingleWithoutLink(-1, offset, val, 0, val.length);
                     }
                     dirtyStackPages.clear();
                 }
-                if(CC.PARANOID && dirtyStackPages.size!=0)
+                if(CC.ASSERT && dirtyStackPages.size!=0)
                     throw new AssertionError();
 
                 pageLongStack.clear();
@@ -1029,10 +1029,10 @@ public class StoreWAL extends StoreCached {
             //convert walRec into WAL log files.
             //memory allocator was not available at the time of compaction
 //  TODO no wal open during compaction
-//            if(CC.PARANOID && !volumes.isEmpty())
+//            if(CC.ASSERT && !volumes.isEmpty())
 //                throw new AssertionError();
 //
-//            if(CC.PARANOID && curVol!=null)
+//            if(CC.ASSERT && curVol!=null)
 //                throw new AssertionError();
             structuralLock.lock();
             try {
@@ -1089,9 +1089,9 @@ public class StoreWAL extends StoreCached {
     }
 
     private void replayWALInstructionFiles() {
-        if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+        if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
-        if(CC.PARANOID && !commitLock.isHeldByCurrentThread())
+        if(CC.ASSERT && !commitLock.isHeldByCurrentThread())
             throw new AssertionError();
 
         file:for(Volume wal:volumes){
@@ -1273,9 +1273,9 @@ public class StoreWAL extends StoreCached {
                 //start zero WAL file with compaction flag
                 structuralLock.lock();
                 try {
-                    if(CC.PARANOID && fileNum!=0)
+                    if(CC.ASSERT && fileNum!=0)
                         throw new AssertionError();
-                    if(CC.PARANOID && walC!=null)
+                    if(CC.ASSERT && walC!=null)
                         throw new AssertionError();
 
                     //start walC file, which indicates if compaction finished fine

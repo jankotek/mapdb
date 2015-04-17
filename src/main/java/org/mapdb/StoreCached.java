@@ -107,7 +107,7 @@ public class StoreCached extends StoreDirect {
 
     @Override
     protected void initHeadVol() {
-        if (CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+        if (CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
         this.headVol = new Volume.SingleByteArrayVol((int) HEAD_END);
@@ -124,9 +124,9 @@ public class StoreCached extends StoreDirect {
 
     @Override
     protected void longStackPut(long masterLinkOffset, long value, boolean recursive) {
-        if (CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+        if (CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
-        if (CC.PARANOID && (masterLinkOffset <= 0 || masterLinkOffset > PAGE_SIZE || masterLinkOffset % 8 != 0))
+        if (CC.ASSERT && (masterLinkOffset <= 0 || masterLinkOffset > PAGE_SIZE || masterLinkOffset % 8 != 0))
             throw new AssertionError();
 
         long masterLinkVal = parity4Get(headVol.getLong(masterLinkOffset));
@@ -162,9 +162,9 @@ public class StoreCached extends StoreDirect {
 
     @Override
     protected long longStackTake(long masterLinkOffset, boolean recursive) {
-        if (CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+        if (CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
-        if (CC.PARANOID && (masterLinkOffset < FREE_RECID_STACK ||
+        if (CC.ASSERT && (masterLinkOffset < FREE_RECID_STACK ||
                 masterLinkOffset > FREE_RECID_STACK + round16Up(MAX_REC_SIZE) / 2 ||
                 masterLinkOffset % 8 != 0))
             throw new AssertionError();
@@ -188,7 +188,7 @@ public class StoreCached extends StoreDirect {
         //and finally set return value
         ret = parity1Get(ret & DataIO.PACK_LONG_BIDI_MASK) >>> 1;
 
-        if (CC.PARANOID && currSize < 12)
+        if (CC.ASSERT && currSize < 12)
             throw new AssertionError();
 
         //is there space left on current page?
@@ -220,7 +220,7 @@ public class StoreCached extends StoreDirect {
                 currSize--;
             }
 
-            if (CC.PARANOID && currSize < 14)
+            if (CC.ASSERT && currSize < 14)
                 throw new AssertionError();
         } else {
             //no prev page does not exist
@@ -239,7 +239,7 @@ public class StoreCached extends StoreDirect {
     }
 
     protected byte[] loadLongStackPage(long pageOffset) {
-        if (CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+        if (CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
         byte[] page = dirtyStackPages.get(pageOffset);
@@ -254,7 +254,7 @@ public class StoreCached extends StoreDirect {
 
     @Override
     protected void longStackNewPage(long masterLinkOffset, long prevPageOffset, long value) {
-        if (CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+        if (CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
         long newPageOffset = freeDataTakeSingle((int) CHUNKSIZE);
@@ -272,7 +272,7 @@ public class StoreCached extends StoreDirect {
 
     @Override
     protected void flush() {
-        if (CC.PARANOID && !commitLock.isHeldByCurrentThread())
+        if (CC.ASSERT && !commitLock.isHeldByCurrentThread())
             throw new AssertionError();
 
         if (isReadOnly())
@@ -290,11 +290,11 @@ public class StoreCached extends StoreDirect {
                     continue;
                 byte[] val = (byte[]) dirtyStackPages.values[i];
 
-                if (CC.PARANOID && offset < PAGE_SIZE)
+                if (CC.ASSERT && offset < PAGE_SIZE)
                     throw new AssertionError();
-                if (CC.PARANOID && val.length % 16 != 0)
+                if (CC.ASSERT && val.length % 16 != 0)
                     throw new AssertionError();
-                if (CC.PARANOID && val.length <= 0 || val.length > MAX_REC_SIZE)
+                if (CC.ASSERT && val.length <= 0 || val.length > MAX_REC_SIZE)
                     throw new AssertionError();
 
                 vol.putData(offset, val, 0, val.length);
@@ -314,7 +314,7 @@ public class StoreCached extends StoreDirect {
     }
 
     protected void flushWriteCache() {
-        if (CC.PARANOID && !commitLock.isHeldByCurrentThread())
+        if (CC.ASSERT && !commitLock.isHeldByCurrentThread())
             throw new AssertionError();
 
         //flush modified records
@@ -331,7 +331,7 @@ public class StoreCached extends StoreDirect {
     }
 
     protected void flushWriteCacheSegment(int segment) {
-        if (CC.PARANOID)
+        if (CC.ASSERT)
             assertWriteLocked(segment);
 
         LongObjectObjectMap writeCache1 = writeCache[segment];
@@ -353,7 +353,7 @@ public class StoreCached extends StoreDirect {
         }
         writeCache1.clear();
 
-        if (CC.PARANOID && writeCache[segment].size!=0)
+        if (CC.ASSERT && writeCache[segment].size!=0)
             throw new AssertionError();
     }
 

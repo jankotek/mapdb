@@ -106,9 +106,9 @@ public class StoreDirect extends Store {
     }
 
     protected void initOpen() {
-        if(CC.PARANOID && !commitLock.isHeldByCurrentThread())
+        if(CC.ASSERT && !commitLock.isHeldByCurrentThread())
             throw new AssertionError();
-        if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+        if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
         //TODO header
@@ -126,7 +126,7 @@ public class StoreDirect extends Store {
         long indexPage = parity16Get(vol.getLong(INDEX_PAGE));
         int i=1;
         for(;indexPage!=0;i++){
-            if(CC.PARANOID && indexPage%PAGE_SIZE!=0)
+            if(CC.ASSERT && indexPage%PAGE_SIZE!=0)
                 throw new AssertionError();
             if(ip.length==i){
                 ip = Arrays.copyOf(ip, ip.length * 4);
@@ -152,9 +152,9 @@ public class StoreDirect extends Store {
     }
 
     protected void initCreate() {
-        if(CC.PARANOID && !commitLock.isHeldByCurrentThread())
+        if(CC.ASSERT && !commitLock.isHeldByCurrentThread())
             throw new AssertionError();
-        if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+        if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
         //create initial structure
@@ -191,7 +191,7 @@ public class StoreDirect extends Store {
 
 
     protected void initHeadVol() {
-        if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+        if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
         this.headVol = vol;
@@ -209,7 +209,7 @@ public class StoreDirect extends Store {
     }
 
     protected int headChecksum(Volume vol2) {
-        if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+        if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
         int ret = 0;
         for(int offset = 8;offset<HEAD_END;offset+=8){
@@ -222,7 +222,7 @@ public class StoreDirect extends Store {
 
     @Override
     protected <A> A get2(long recid, Serializer<A> serializer) {
-        if (CC.PARANOID)
+        if (CC.ASSERT)
             assertReadLocked(recid);
 
         long[] offsets = offsetsGet(recid);
@@ -253,14 +253,14 @@ public class StoreDirect extends Store {
         for (int i = 0; i < offsets.length; i++) {
             int plus = (i == offsets.length - 1)?0:8;
             long size = (offsets[i] >>> 48) - plus;
-            if(CC.PARANOID && (size&0xFFFF)!=size)
+            if(CC.ASSERT && (size&0xFFFF)!=size)
                 throw new AssertionError("size mismatch");
             long offset = offsets[i] & MOFFSET;
             //System.out.println("GET "+(offset + plus)+ " - "+size+" - "+bpos);
             vol.getData(offset + plus, b, bpos, (int) size);
             bpos += size;
         }
-        if (CC.PARANOID && bpos != totalSize)
+        if (CC.ASSERT && bpos != totalSize)
             throw new AssertionError("size does not match");
         return b;
     }
@@ -278,7 +278,7 @@ public class StoreDirect extends Store {
 
     @Override
     protected void update2(long recid, DataOutputByteArray out) {
-        if(CC.PARANOID)
+        if(CC.ASSERT)
             assertWriteLocked(lockPos(recid));
 
         long[] oldOffsets = offsetsGet(recid);
@@ -303,7 +303,7 @@ public class StoreDirect extends Store {
             }
         }
 
-        if(CC.PARANOID)
+        if(CC.ASSERT)
             offsetsVerify(newOffsets);
 
         putData(recid, newOffsets, out==null?null:out.buf, out==null?0:out.pos);
@@ -329,7 +329,7 @@ public class StoreDirect extends Store {
             ret[ret.length-1] = parity3Get(vol.getLong(ret[ret.length-2]&MOFFSET));
         }
 
-        if(CC.PARANOID){
+        if(CC.ASSERT){
             for(int i=0;i<ret.length;i++) {
                 boolean last = (i==ret.length-1);
                 boolean linked = (ret[i]&MLINKED)!=0;
@@ -355,7 +355,7 @@ public class StoreDirect extends Store {
     }
 
     protected void indexValPut(long recid, int size, long offset, boolean linked, boolean unused) {
-        if(CC.PARANOID)
+        if(CC.ASSERT)
             assertWriteLocked(lockPos(recid));
 
         long indexOffset = recidToOffset(recid);
@@ -365,7 +365,7 @@ public class StoreDirect extends Store {
             long oldval = vol.getLong(indexOffset);
             long crcOffset = (indexOffset&PAGE_MASK_INVERSE)+PAGE_SIZE-8;
             //TODO crc at end of zero page?
-            if(CC.PARANOID && crcOffset<HEAD_END)
+            if(CC.ASSERT && crcOffset<HEAD_END)
                 throw new AssertionError();
             long crc = vol.getLong(crcOffset);
             crc-=oldval;
@@ -378,7 +378,7 @@ public class StoreDirect extends Store {
 
     @Override
     protected <A> void delete2(long recid, Serializer<A> serializer) {
-        if(CC.PARANOID)
+        if(CC.ASSERT)
             assertWriteLocked(lockPos(recid));
 
         long[] offsets = offsetsGet(recid);
@@ -436,7 +436,7 @@ public class StoreDirect extends Store {
         }finally {
             structuralLock.unlock();
         }
-        if(CC.PARANOID && offsets!=null && (offsets[0]&MOFFSET)<PAGE_SIZE)
+        if(CC.ASSERT && offsets!=null && (offsets[0]&MOFFSET)<PAGE_SIZE)
             throw new AssertionError();
 
         int lockPos = lockPos(recid);
@@ -455,25 +455,25 @@ public class StoreDirect extends Store {
     }
 
     protected void putData(long recid, long[] offsets, byte[] src, int srcLen) {
-        if(CC.PARANOID)
+        if(CC.ASSERT)
             assertWriteLocked(lockPos(recid));
-        if(CC.PARANOID && offsetsTotalSize(offsets)!=(src==null?0:srcLen))
+        if(CC.ASSERT && offsetsTotalSize(offsets)!=(src==null?0:srcLen))
             throw new AssertionError("size mismatch");
 
         if(offsets!=null) {
             int outPos = 0;
             for (int i = 0; i < offsets.length; i++) {
                 final boolean last = (i == offsets.length - 1);
-                if (CC.PARANOID && ((offsets[i] & MLINKED) == 0) != last)
+                if (CC.ASSERT && ((offsets[i] & MLINKED) == 0) != last)
                     throw new AssertionError("linked bit set wrong way");
 
                 long offset = (offsets[i] & MOFFSET);
-                if(CC.PARANOID && offset%16!=0)
+                if(CC.ASSERT && offset%16!=0)
                     throw new AssertionError("not alligned to 16");
 
                 int plus = (last?0:8);
                 int size = (int) ((offsets[i]>>>48) - plus);
-                if(CC.PARANOID && ((size&0xFFFF)!=size || size==0))
+                if(CC.ASSERT && ((size&0xFFFF)!=size || size==0))
                     throw new AssertionError("size mismatch");
 
                 int segment = lockPos(recid);
@@ -486,7 +486,7 @@ public class StoreDirect extends Store {
                 outPos += size;
 
             }
-            if(CC.PARANOID && outPos!=srcLen)
+            if(CC.ASSERT && outPos!=srcLen)
                 throw new AssertionError("size mismatch");
         }
         //update index val
@@ -509,7 +509,7 @@ public class StoreDirect extends Store {
     }
 
     protected void freeDataPut(long[] linkedOffsets) {
-        if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+        if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
         for(long v:linkedOffsets){
             int size = round16Up((int) (v >>> 48));
@@ -520,11 +520,11 @@ public class StoreDirect extends Store {
 
 
     protected void freeDataPut(long offset, int size) {
-        if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+        if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
-        if(CC.PARANOID && size%16!=0 )
+        if(CC.ASSERT && size%16!=0 )
             throw new AssertionError();
-        if(CC.PARANOID && (offset%16!=0 || offset<PAGE_SIZE))
+        if(CC.ASSERT && (offset%16!=0 || offset<PAGE_SIZE))
             throw new AssertionError();
 
         if(!(this instanceof  StoreWAL)) //TODO WAL needs to handle record clear, perhaps WAL instruction?
@@ -542,9 +542,9 @@ public class StoreDirect extends Store {
 
 
     protected long[] freeDataTake(int size) {
-        if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+        if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
-        if(CC.PARANOID && size<=0)
+        if(CC.ASSERT && size<=0)
             throw new AssertionError();
 
         //compose of multiple single records
@@ -561,19 +561,19 @@ public class StoreDirect extends Store {
     }
 
     protected long freeDataTakeSingle(int size) {
-        if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+        if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
-        if(CC.PARANOID && size%16!=0)
+        if(CC.ASSERT && size%16!=0)
             throw new AssertionError();
-        if(CC.PARANOID && size>round16Up(MAX_REC_SIZE))
+        if(CC.ASSERT && size>round16Up(MAX_REC_SIZE))
             throw new AssertionError();
 
         long masterPointerOffset = size/2 + FREE_RECID_STACK; // really is size*8/16
         long ret = longStackTake(masterPointerOffset,false);
         if(ret!=0) {
-            if(CC.PARANOID && ret<PAGE_SIZE)
+            if(CC.ASSERT && ret<PAGE_SIZE)
                 throw new AssertionError();
-            if(CC.PARANOID && ret%16!=0)
+            if(CC.ASSERT && ret%16!=0)
                 throw new AssertionError();
 
             return ret;
@@ -583,9 +583,9 @@ public class StoreDirect extends Store {
             //allocate new data page
             long page = pageAllocate();
             lastAllocatedData = page+size;
-            if(CC.PARANOID && page<PAGE_SIZE)
+            if(CC.ASSERT && page<PAGE_SIZE)
                 throw new AssertionError();
-            if(CC.PARANOID && page%16!=0)
+            if(CC.ASSERT && page%16!=0)
                 throw new AssertionError();
             return page;
         }
@@ -600,11 +600,11 @@ public class StoreDirect extends Store {
         ret = lastAllocatedData;
         lastAllocatedData+=size;
 
-        if(CC.PARANOID && ret%16!=0)
+        if(CC.ASSERT && ret%16!=0)
             throw new AssertionError();
-        if(CC.PARANOID && lastAllocatedData%16!=0)
+        if(CC.ASSERT && lastAllocatedData%16!=0)
             throw new AssertionError();
-        if(CC.PARANOID && ret<PAGE_SIZE)
+        if(CC.ASSERT && ret<PAGE_SIZE)
             throw new AssertionError();
 
         return ret;
@@ -615,9 +615,9 @@ public class StoreDirect extends Store {
     protected final static long CHUNKSIZE = 100*16;
 
     protected void longStackPut(final long masterLinkOffset, final long value, boolean recursive){
-        if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+        if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
-        if(CC.PARANOID && (masterLinkOffset<=0 || masterLinkOffset>PAGE_SIZE || masterLinkOffset % 8!=0))
+        if(CC.ASSERT && (masterLinkOffset<=0 || masterLinkOffset>PAGE_SIZE || masterLinkOffset % 8!=0))
             throw new AssertionError();
 
         long masterLinkVal = parity4Get(headVol.getLong(masterLinkOffset));
@@ -649,7 +649,7 @@ public class StoreDirect extends Store {
     }
 
     protected void longStackNewPage(long masterLinkOffset, long prevPageOffset, long value) {
-        if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+        if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
         long newPageOffset = freeDataTakeSingle((int) CHUNKSIZE);
@@ -663,9 +663,9 @@ public class StoreDirect extends Store {
 
 
     protected long longStackTake(long masterLinkOffset, boolean recursive){
-        if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+        if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
-        if(CC.PARANOID && (masterLinkOffset<FREE_RECID_STACK ||
+        if(CC.ASSERT && (masterLinkOffset<FREE_RECID_STACK ||
                 masterLinkOffset>FREE_RECID_STACK+round16Up(MAX_REC_SIZE)/2 ||
                 masterLinkOffset % 8!=0))
             throw new AssertionError();
@@ -687,7 +687,7 @@ public class StoreDirect extends Store {
         //and finally set return value
         ret = parity1Get(ret &DataIO.PACK_LONG_BIDI_MASK)>>>1;
 
-        if(CC.PARANOID && currSize<12)
+        if(CC.ASSERT && currSize<12)
             throw new AssertionError();
 
         //is there space left on current page?
@@ -717,7 +717,7 @@ public class StoreDirect extends Store {
                 currSize--;
             }
 
-            if (CC.PARANOID && currSize < 14)
+            if (CC.ASSERT && currSize < 14)
                 throw new AssertionError();
         }else{
             //no prev page does not exist
@@ -1045,7 +1045,7 @@ public class StoreDirect extends Store {
     }
 
     protected final long recidToOffset(long recid){
-        if(CC.PARANOID && recid<=0)
+        if(CC.ASSERT && recid<=0)
             throw new AssertionError("negative recid: "+recid);
         recid = recid * 8 + HEAD_END;
         //TODO add checksum to beginning of each page
@@ -1067,9 +1067,9 @@ public class StoreDirect extends Store {
 
     protected static long composeIndexVal(int size, long offset,
         boolean linked, boolean unused, boolean archive){
-        if(CC.PARANOID && (size&0xFFFF)!=size)
+        if(CC.ASSERT && (size&0xFFFF)!=size)
             throw new AssertionError("size too large");
-        if(CC.PARANOID && (offset&MOFFSET)!=offset)
+        if(CC.ASSERT && (offset&MOFFSET)!=offset)
             throw new AssertionError("offset too large");
         offset = (((long)size)<<48) |
                 offset |
@@ -1082,7 +1082,7 @@ public class StoreDirect extends Store {
 
     /** returns new recid, recid slot is allocated and ready to use */
     protected long freeRecidTake() {
-        if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+        if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
         //try to reuse recid from free list
@@ -1108,7 +1108,7 @@ public class StoreDirect extends Store {
     }
 
     protected void pageIndexEnsurePageForRecidAllocated(long recid) {
-        if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+        if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
         //convert recid into Index Page number
@@ -1120,7 +1120,7 @@ public class StoreDirect extends Store {
     }
 
     protected void pageIndexExtend() {
-        if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+        if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
         //allocate new index page
@@ -1158,7 +1158,7 @@ public class StoreDirect extends Store {
     }
 
     protected long pageAllocate() {
-        if(CC.PARANOID && !structuralLock.isHeldByCurrentThread())
+        if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
         long storeSize = parity16Get(headVol.getLong(STORE_SIZE));
@@ -1166,7 +1166,7 @@ public class StoreDirect extends Store {
         vol.clear(storeSize,storeSize+PAGE_SIZE);
         headVol.putLong(STORE_SIZE, parity16Set(storeSize + PAGE_SIZE));
 
-        if(CC.PARANOID && storeSize%PAGE_SIZE!=0)
+        if(CC.ASSERT && storeSize%PAGE_SIZE!=0)
             throw new AssertionError();
 
         return storeSize;

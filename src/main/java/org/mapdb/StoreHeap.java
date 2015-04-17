@@ -1,7 +1,6 @@
 package org.mapdb;
 
 import java.util.Arrays;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -53,7 +52,7 @@ public class StoreHeap extends Store{
 
     @Override
     protected <A> A get2(long recid, Serializer<A> serializer) {
-        if(CC.PARANOID)
+        if(CC.ASSERT)
             assertReadLocked(recid);
 
         int pos = lockPos(recid);
@@ -99,7 +98,7 @@ public class StoreHeap extends Store{
     protected <A> void delete2(long recid, Serializer<A> serializer) {
         int pos = lockPos(recid);
 
-        if(CC.PARANOID)
+        if(CC.ASSERT)
             assertWriteLocked(pos);
 
         Object old = data[pos].put(recid,TOMBSTONE);

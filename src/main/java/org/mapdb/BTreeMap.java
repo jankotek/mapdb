@@ -183,7 +183,7 @@ public class BTreeMap<K,V>
             db.getEngine().commit();
         }
         Serializer valser = db.getDefaultSerializer();
-        if(CC.PARANOID && valser == null)
+        if(CC.ASSERT && valser == null)
             throw new AssertionError();
         return new BTreeMap<String, Object>(
                 db.engine,
@@ -413,7 +413,7 @@ public class BTreeMap<K,V>
             super(keys, leftEdge, rightEdge, tooLarge);
             this.child = child;
 
-            if(CC.PARANOID)
+            if(CC.ASSERT)
                 checkStructure(null,null);
         }
 
@@ -581,7 +581,7 @@ public class BTreeMap<K,V>
             this.vals = vals;
             this.next = next;
 
-            if(CC.PARANOID)
+            if(CC.ASSERT)
                 checkStructure(null,null);
         }
 
@@ -716,7 +716,7 @@ public class BTreeMap<K,V>
         protected final int numberOfNodeMetas;
 
         public NodeSerializer(boolean valsOutsideNodes, BTreeKeySerializer keySerializer, Serializer valueSerializer,  int numberOfNodeMetas) {
-            if(CC.PARANOID && ! (keySerializer!=null))
+            if(CC.ASSERT && ! (keySerializer!=null))
                 throw new AssertionError();
             this.hasValues = valueSerializer!=null;
             this.valsOutsideNodes = valsOutsideNodes;
@@ -732,7 +732,7 @@ public class BTreeMap<K,V>
             final boolean isLeaf = value.isLeaf();
 
             //check node integrity in paranoid mode
-            if(CC.PARANOID){
+            if(CC.ASSERT){
                 value.checkStructure(keySerializer,valueSerializer);
             }
             //$DELAY$
@@ -807,7 +807,7 @@ public class BTreeMap<K,V>
                 node = deserializeDir(in2, size, left, right);
             }
             //$DELAY$
-            if(CC.PARANOID){
+            if(CC.ASSERT){
                 node.checkStructure(keySerializer,valueSerializer);
             }
             return node;
@@ -925,7 +925,7 @@ public class BTreeMap<K,V>
         ArrayList leftEdges2 = new ArrayList<Long>();
         long r = engine.get(rootRecidRef,Serializer.RECID);
         for(;;){
-            if(CC.PARANOID && r<=0)
+            if(CC.ASSERT && r<=0)
                 throw new AssertionError();
 
             //$DELAY$
@@ -1048,7 +1048,7 @@ public class BTreeMap<K,V>
             long t = current;
             current = nextDir((DirNode) A, v);
             //$DELAY$
-            if(CC.PARANOID && ! (current>0) )
+            if(CC.ASSERT && ! (current>0) )
                 throw new AssertionError(A);
             //if is not link
             if (current != A.next()) {
@@ -1087,13 +1087,13 @@ public class BTreeMap<K,V>
                     if(putOnlyIfAbsent){
                         //is not absent, so quit
                         unlock(nodeLocks, current);
-                        if(CC.PARANOID) assertNoLocks(nodeLocks);
+                        if(CC.ASSERT) assertNoLocks(nodeLocks);
                         return valExpand(oldVal);
                     }
                     //insert new
                     //$DELAY$
                     A = ((LeafNode)A).copyChangeValue(valueSerializer, pos,value);
-                    if(CC.PARANOID && ! (nodeLocks.get(current)==Thread.currentThread()))
+                    if(CC.ASSERT && ! (nodeLocks.get(current)==Thread.currentThread()))
                         throw new AssertionError();
                     engine.update(current, A, nodeSerializer);
                     //$DELAY$
@@ -1102,7 +1102,7 @@ public class BTreeMap<K,V>
                     notify(key,ret, value2);
                     unlock(nodeLocks, current);
                     //$DELAY$
-                    if(CC.PARANOID) assertNoLocks(nodeLocks);
+                    if(CC.ASSERT) assertNoLocks(nodeLocks);
                     return ret;
                 }
 
@@ -1137,14 +1137,14 @@ public class BTreeMap<K,V>
             // can be new item inserted into A without splitting it?
             if(A.keysLen(keySerializer) - (A.isLeaf()?1:0)<maxNodeSize){
                 //$DELAY$
-                if(CC.PARANOID && ! (nodeLocks.get(current)==Thread.currentThread()))
+                if(CC.ASSERT && ! (nodeLocks.get(current)==Thread.currentThread()))
                     throw new AssertionError();
                 engine.update(current, A, nodeSerializer);
 
                 notify(key,  null, value2);
                 //$DELAY$
                 unlock(nodeLocks, current);
-                if(CC.PARANOID) assertNoLocks(nodeLocks);
+                if(CC.ASSERT) assertNoLocks(nodeLocks);
                 return null;
             }else{
                 //node is not safe, it requires splitting
@@ -1156,7 +1156,7 @@ public class BTreeMap<K,V>
                 long q = engine.put(B, nodeSerializer);
                 A = A.copySplitLeft(keySerializer,valueSerializer, splitPos, q);
                 //$DELAY$
-                if(CC.PARANOID && ! (nodeLocks.get(current)==Thread.currentThread()))
+                if(CC.ASSERT && ! (nodeLocks.get(current)==Thread.currentThread()))
                     throw new AssertionError();
                 engine.update(current, A, nodeSerializer);
 
@@ -1173,7 +1173,7 @@ public class BTreeMap<K,V>
                         current = leftEdges.get(level-1);
                     }
                     //$DELAY$
-                    if(CC.PARANOID && ! (current>0))
+                    if(CC.ASSERT && ! (current>0))
                         throw new AssertionError();
                 }else{
                     Object rootChild =
@@ -1193,7 +1193,7 @@ public class BTreeMap<K,V>
                     //$DELAY$
                     long newRootRecid = engine.put(R, nodeSerializer);
                     //$DELAY$
-                    if(CC.PARANOID && ! (nodeLocks.get(rootRecidRef)==Thread.currentThread()))
+                    if(CC.ASSERT && ! (nodeLocks.get(rootRecidRef)==Thread.currentThread()))
                         throw new AssertionError();
                     engine.update(rootRecidRef, newRootRecid, Serializer.RECID);
                     //add newRootRecid into leftEdges
@@ -1203,7 +1203,7 @@ public class BTreeMap<K,V>
                     //$DELAY$
                     unlock(nodeLocks, rootRecidRef);
                     //$DELAY$
-                    if(CC.PARANOID) assertNoLocks(nodeLocks);
+                    if(CC.ASSERT) assertNoLocks(nodeLocks);
                     //$DELAY$
                     return null;
                 }
@@ -1532,7 +1532,7 @@ public class BTreeMap<K,V>
                 A = putNewValue!=null?
                         ((LeafNode)A).copyChangeValue(valueSerializer,pos,putNewValueOutside):
                         ((LeafNode)A).copyRemoveKey(keySerializer,valueSerializer,pos);
-                if(CC.PARANOID && ! (nodeLocks.get(current)==Thread.currentThread()))
+                if(CC.ASSERT && ! (nodeLocks.get(current)==Thread.currentThread()))
                     throw new AssertionError();
                 //$DELAY$
                 engine.update(current, A, nodeSerializer);
@@ -1771,7 +1771,7 @@ public class BTreeMap<K,V>
 
 
     protected Entry<K, V> makeEntry(Object key, Object value) {
-        if(CC.PARANOID && ! (!(value instanceof ValRef)))
+        if(CC.ASSERT && ! (!(value instanceof ValRef)))
             throw new AssertionError();
         return new SimpleImmutableEntry<K, V>((K)key,  (V)value);
     }
@@ -3430,9 +3430,9 @@ public class BTreeMap<K,V>
 
     //TODO check  references to notify
     protected void notify(K key, V oldValue, V newValue) {
-        if(CC.PARANOID && ! (!(oldValue instanceof ValRef)))
+        if(CC.ASSERT && ! (!(oldValue instanceof ValRef)))
             throw new AssertionError();
-        if(CC.PARANOID && ! (!(newValue instanceof ValRef)))
+        if(CC.ASSERT && ! (!(newValue instanceof ValRef)))
             throw new AssertionError();
 
         Bind.MapListener<K,V>[] modListeners2  = modListeners;
@@ -3493,7 +3493,7 @@ public class BTreeMap<K,V>
 
     protected static void unlock(LongConcurrentHashMap<Thread> locks,final long recid) {
         final Thread t = locks.remove(recid);
-        if(CC.PARANOID && ! (t==Thread.currentThread()))
+        if(CC.ASSERT && ! (t==Thread.currentThread()))
             throw new AssertionError("unlocked wrong thread");
     }
 
@@ -3511,7 +3511,7 @@ public class BTreeMap<K,V>
 
         final Thread currentThread = Thread.currentThread();
         //check node is not already locked by this thread
-        if(CC.PARANOID && ! (locks.get(recid)!= currentThread))
+        if(CC.ASSERT && ! (locks.get(recid)!= currentThread))
             throw new AssertionError("node already locked by current thread: "+recid);
 
         while(locks.putIfAbsent(recid, currentThread) != null){

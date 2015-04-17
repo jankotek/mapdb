@@ -146,7 +146,7 @@ public abstract class Volume implements Closeable{
     public long getLongPackBidi(long offset){
         //$DELAY$
         long b = getUnsignedByte(offset++);
-        if(CC.PARANOID && (b&0x80)==0)
+        if(CC.ASSERT && (b&0x80)==0)
             throw new AssertionError();
         long result = (b & 0x7F) ;
         int shift = 7;
@@ -154,7 +154,7 @@ public abstract class Volume implements Closeable{
             //$DELAY$
             b = getUnsignedByte(offset++);
             result |= (b & 0x7F) << shift;
-            if(CC.PARANOID && shift>64)
+            if(CC.ASSERT && shift>64)
                 throw new AssertionError();
             shift += 7;
         }while((b & 0x80) == 0);
@@ -165,7 +165,7 @@ public abstract class Volume implements Closeable{
     public long getLongPackBidiReverse(long offset){
         //$DELAY$
         long b = getUnsignedByte(--offset);
-        if(CC.PARANOID && (b&0x80)==0)
+        if(CC.ASSERT && (b&0x80)==0)
             throw new AssertionError();
         long result = (b & 0x7F) ;
         int counter = 1;
@@ -173,7 +173,7 @@ public abstract class Volume implements Closeable{
             //$DELAY$
             b = getUnsignedByte(--offset);
             result = (b & 0x7F) | (result<<7);
-            if(CC.PARANOID && counter>8)
+            if(CC.ASSERT && counter>8)
                 throw new AssertionError();
             counter++;
         }while((b & 0x80) == 0);
@@ -192,7 +192,7 @@ public abstract class Volume implements Closeable{
     }
 
     public void putSixLong(long pos, long value) {
-        if(CC.PARANOID && (value>>>48!=0))
+        if(CC.ASSERT && (value>>>48!=0))
             throw new AssertionError();
 
         putByte(pos++, (byte) (0xff & (value >> 40)));
@@ -308,7 +308,7 @@ public abstract class Volume implements Closeable{
 
         for(long offset=0;offset<volSize;offset+=bufSize){
             long size = Math.min(volSize,offset+bufSize)-offset;
-            if(CC.PARANOID && (size<0))
+            if(CC.ASSERT && (size<0))
                 throw new AssertionError();
             from.transferInto(offset,to,offset, size);
         }
@@ -516,7 +516,7 @@ public abstract class Volume implements Closeable{
 
         @Override
         public void clear(long startOffset, long endOffset) {
-            if(CC.PARANOID && (startOffset >>> sliceShift) != ((endOffset-1) >>> sliceShift))
+            if(CC.ASSERT && (startOffset >>> sliceShift) != ((endOffset-1) >>> sliceShift))
                 throw new AssertionError();
             ByteBuffer buf = slices[(int)(startOffset >>> sliceShift)];
             int start = (int) (startOffset&sliceSizeModMask);
@@ -678,9 +678,9 @@ public abstract class Volume implements Closeable{
         @Override
         protected ByteBuffer makeNewBuffer(long offset) {
             try {
-                if(CC.PARANOID && ! ((offset& sliceSizeModMask)==0))
+                if(CC.ASSERT && ! ((offset& sliceSizeModMask)==0))
                     throw new AssertionError();
-                if(CC.PARANOID && ! (offset>=0))
+                if(CC.ASSERT && ! (offset>=0))
                     throw new AssertionError();
                 ByteBuffer ret = fileChannel.map(mapMode,offset, sliceSize);
                 if(mapMode == FileChannel.MapMode.READ_ONLY) {
@@ -1383,7 +1383,7 @@ public abstract class Volume implements Closeable{
 
         @Override
         public void clear(long startOffset, long endOffset) {
-            if(CC.PARANOID && (startOffset >>> sliceShift) != ((endOffset-1) >>> sliceShift))
+            if(CC.ASSERT && (startOffset >>> sliceShift) != ((endOffset-1) >>> sliceShift))
                 throw new AssertionError();
             byte[] buf = slices[(int)(startOffset >>> sliceShift)];
             int start = (int) (startOffset&sliceSizeModMask);

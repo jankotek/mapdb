@@ -195,7 +195,7 @@ public class DB implements Closeable {
     }
 
     public <A> A catGet(String name, A init){
-        if(CC.PARANOID && ! (Thread.holdsLock(DB.this)))
+        if(CC.ASSERT && ! (Thread.holdsLock(DB.this)))
             throw new AssertionError();
         A ret = (A) catalog.get(name);
         return ret!=null? ret : init;
@@ -203,14 +203,14 @@ public class DB implements Closeable {
 
 
     public <A> A catGet(String name){
-        if(CC.PARANOID && ! (Thread.holdsLock(DB.this)))
+        if(CC.ASSERT && ! (Thread.holdsLock(DB.this)))
             throw new AssertionError();
         //$DELAY$
         return (A) catalog.get(name);
     }
 
     public <A> A catPut(String name, A value){
-        if(CC.PARANOID && ! (Thread.holdsLock(DB.this)))
+        if(CC.ASSERT && ! (Thread.holdsLock(DB.this)))
             throw new AssertionError();
         //$DELAY$
         catalog.put(name, value);
@@ -218,7 +218,7 @@ public class DB implements Closeable {
     }
 
     public <A> A catPut(String name, A value, A retValueIfNull){
-        if(CC.PARANOID && ! (Thread.holdsLock(DB.this)))
+        if(CC.ASSERT && ! (Thread.holdsLock(DB.this)))
             throw new AssertionError();
         if(value==null) return retValueIfNull;
         //$DELAY$

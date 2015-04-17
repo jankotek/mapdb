@@ -29,7 +29,7 @@ package org.mapdb;
  * Typical usage:
  * </p>
  * <pre>{@code
- *     if(CC.PARANOID && arg.calculateSize()!=33){  //calculateSize may take long time
+ *     if(CC.ASSERT && arg.calculateSize()!=33){  //calculateSize may take long time
  *         throw new IllegalArgumentException("wrong size");
  *     }
  * }</pre>
@@ -44,7 +44,9 @@ public interface CC {
      * For example HashMap may check if keys implements hash function correctly.
      * This will slow down MapDB significantly.
      */
-    boolean PARANOID = true;
+    boolean ASSERT = true;
+
+    boolean PARANOID = false;
 
 
     /**

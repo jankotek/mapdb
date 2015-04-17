@@ -814,7 +814,6 @@ public final class DBMaker{
      * @return this builder
      */
     public Maker asyncWriteEnable(){
-        LOG.warning("AsyncWrite is not implemented at this moment");
         props.setProperty(Keys.asyncWrite,TRUE);
         return this;
     }

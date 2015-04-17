@@ -112,7 +112,7 @@ public class HTreeMap<K,V>
         public final V value;
 
         public LinkedNode(final long next, long expireLinkNodeRecid, final K key, final V value ){
-            if(CC.PARANOID && next>>>48!=0)
+            if(CC.ASSERT && next>>>48!=0)
                 throw new AssertionError("next recid too big");
             this.key = key;
             this.expireLinkNodeRecid = expireLinkNodeRecid;
@@ -144,7 +144,7 @@ public class HTreeMap<K,V>
 
         @Override
         public LinkedNode<K,V> deserialize(DataInput in, int available) throws IOException {
-            if(CC.PARANOID && ! (available!=0))
+            if(CC.ASSERT && ! (available!=0))
                 throw new AssertionError();
             return new LinkedNode<K, V>(
                     DataIO.unpackLong(in),
@@ -190,7 +190,7 @@ public class HTreeMap<K,V>
 
             int[] c = (int[]) value;
 
-            if(CC.PARANOID){
+            if(CC.ASSERT){
                 int len = 4 +
                         Integer.bitCount(c[0])+
                         Integer.bitCount(c[1])+
@@ -219,7 +219,7 @@ public class HTreeMap<K,V>
         private void serializeLong(DataIO.DataOutputByteArray out, Object value) throws IOException {
             long[] c= (long[]) value;
 
-            if(CC.PARANOID){
+            if(CC.ASSERT){
                 int len = 2 +
                         Long.bitCount(c[0])+
                         Long.bitCount(c[1]);
@@ -590,7 +590,7 @@ public class HTreeMap<K,V>
             if(dir == null)
                 return null;
             final int slot = (h>>>(level*7 )) & 0x7F;
-            if(CC.PARANOID && ! (slot<128))
+            if(CC.ASSERT && ! (slot<128))
                 throw new AssertionError();
             recid = dirGetSlot(dir, slot);
             if(recid == 0)
@@ -602,7 +602,7 @@ public class HTreeMap<K,V>
                     LinkedNode<K,V> ln = engine.get(recid, LN_SERIALIZER);
                     if(ln == null) return null;
                     if(keySerializer.equals(ln.key, (K) o)){
-                        if(CC.PARANOID && ! (hash(ln.key)==h))
+                        if(CC.ASSERT && ! (hash(ln.key)==h))
                             throw new AssertionError();
                         return ln;
                     }
@@ -669,7 +669,7 @@ public class HTreeMap<K,V>
 
     /** converts hash slot into actual offset in dir array, using bitmap */
     protected static final int dirOffsetFromSlot(int[] dir, int slot) {
-        if(CC.PARANOID && slot>127)
+        if(CC.ASSERT && slot>127)
             throw new AssertionError();
         int val = slot>>>5;
         slot &=31;
@@ -693,7 +693,7 @@ public class HTreeMap<K,V>
 
     /** converts hash slot into actual offset in dir array, using bitmap */
     protected static final int dirOffsetFromSlot(long[] dir, int slot) {
-        if(CC.PARANOID && slot>127)
+        if(CC.ASSERT && slot>127)
             throw new AssertionError();
 
         int offset = 0;
@@ -778,7 +778,7 @@ public class HTreeMap<K,V>
 
     protected static final Object dirRemove(Object dir, final int slot){
         int offset = dirOffsetFromSlot(dir, slot);
-        if(CC.PARANOID && offset<=0){
+        if(CC.ASSERT && offset<=0){
             throw new AssertionError();
         }
 
@@ -849,7 +849,7 @@ public class HTreeMap<K,V>
             Object dir = engine.get(dirRecid, DIR_SERIALIZER);
             final int slot =  (h>>>(7*level )) & 0x7F;
 
-            if(CC.PARANOID && ! (slot<=127))
+            if(CC.ASSERT && ! (slot<=127))
                 throw new AssertionError();
 
             if(dir == null ){
@@ -877,7 +877,7 @@ public class HTreeMap<K,V>
                         //found, replace value at this node
                         V oldVal = ln.value;
                         ln = new LinkedNode<K, V>(ln.next, ln.expireLinkNodeRecid, ln.key, value);
-                        if(CC.PARANOID && ln.next==recid)
+                        if(CC.ASSERT && ln.next==recid)
                             throw new AssertionError("cyclic reference in linked list");
 
                         engine.update(recid, ln, LN_SERIALIZER);
@@ -890,11 +890,11 @@ public class HTreeMap<K,V>
                     ln = ((recid==0)?
                             null :
                             engine.get(recid, LN_SERIALIZER));
-                    if(CC.PARANOID && ln!=null && ln.next==recid)
+                    if(CC.ASSERT && ln!=null && ln.next==recid)
                         throw new AssertionError("cyclic reference in linked list");
 
                     counter++;
-                    if(CC.PARANOID && counter>1024*1024)
+                    if(CC.ASSERT && counter>1024*1024)
                         throw new AssertionError("linked list too large");
                 }
                 //key was not found at linked list, so just append it to beginning
@@ -909,7 +909,7 @@ public class HTreeMap<K,V>
                     final long expireNodeRecid = expireFlag? engine.preallocate():0L;
                     final LinkedNode<K,V> node = new LinkedNode<K, V>(0, expireNodeRecid, key, value);
                     final long newRecid = engine.put(node, LN_SERIALIZER);
-                    if(CC.PARANOID && newRecid==node.next)
+                    if(CC.ASSERT && newRecid==node.next)
                         throw new AssertionError("cyclic reference in linked list");
                     //add newly inserted record
                     final int pos =(h >>>(7*(level-1) )) & 0x7F;
@@ -929,7 +929,7 @@ public class HTreeMap<K,V>
                     n = new LinkedNode<K, V>(recid2>>>1, n.expireLinkNodeRecid, n.key, n.value);
                     nextDir = dirPut(nextDir,pos,(nodeRecid<<1) | 1);
                     engine.update(nodeRecid, n, LN_SERIALIZER);
-                    if(CC.PARANOID && nodeRecid==n.next)
+                    if(CC.ASSERT && nodeRecid==n.next)
                         throw new AssertionError("cyclic reference in linked list");
                     nodeRecid = nextRecid;
                 }
@@ -949,7 +949,7 @@ public class HTreeMap<K,V>
                 final long newRecid = engine.put(
                         new LinkedNode<K, V>(recid, expireNodeRecid, key, value),
                         LN_SERIALIZER);
-                if(CC.PARANOID && newRecid==recid)
+                if(CC.ASSERT && newRecid==recid)
                     throw new AssertionError("cyclic reference in linked list");
                 dir = dirPut(dir,slot,(newRecid<<1) | 1);
                 engine.update(dirRecid, dir, DIR_SERIALIZER);
@@ -991,13 +991,13 @@ public class HTreeMap<K,V>
         int level = 3;
         dirRecids[level] = segmentRecids[segment];
 
-        if(CC.PARANOID && ! (segment==h>>>28))
+        if(CC.ASSERT && ! (segment==h>>>28))
             throw new AssertionError();
 
         while(true){
             Object dir = engine.get(dirRecids[level], DIR_SERIALIZER);
             final int slot =  (h>>>(7*level )) & 0x7F;
-            if(CC.PARANOID && ! (slot<=127))
+            if(CC.ASSERT && ! (slot<=127))
                 throw new AssertionError();
 
             if(dir == null ){
@@ -1037,11 +1037,11 @@ public class HTreeMap<K,V>
                             //referenced from LinkedNode
                             prevLn = new LinkedNode<K, V>(ln.next, prevLn.expireLinkNodeRecid,prevLn.key, prevLn.value);
                             engine.update(prevRecid, prevLn, LN_SERIALIZER);
-                            if(CC.PARANOID && prevRecid==prevLn.next)
+                            if(CC.ASSERT && prevRecid==prevLn.next)
                                 throw new AssertionError("cyclic reference in linked list");
                         }
                         //found, remove this node
-                        if(CC.PARANOID && ! (hash(ln.key)==h))
+                        if(CC.ASSERT && ! (hash(ln.key)==h))
                             throw new AssertionError();
                         engine.delete(recid, LN_SERIALIZER);
                         if(removeExpire && expireFlag) expireLinkRemove(segment, ln.expireLinkNodeRecid);
@@ -1134,7 +1134,7 @@ public class HTreeMap<K,V>
                 recid = recid>>>1;
                 while(recid!=0){
                     LinkedNode n = engine.get(recid, LN_SERIALIZER);
-                    if(CC.PARANOID && n.next==recid)
+                    if(CC.ASSERT && n.next==recid)
                         throw new AssertionError("cyclic reference in linked list");
                     engine.delete(recid,LN_SERIALIZER);
                     notify((K)n.key, (V)n.value , null);
@@ -1431,7 +1431,7 @@ public class HTreeMap<K,V>
                     lastSegment = Math.max(segment,lastSegment);
                     long dirRecid = segmentRecids[segment];
                     LinkedNode ret[] = findNextLinkedNodeRecur(engine, dirRecid, hash, 3);
-                    if(CC.PARANOID && ret!=null) for(LinkedNode ln:ret){
+                    if(CC.ASSERT && ret!=null) for(LinkedNode ln:ret){
                         if(( hash(ln.key)>>>28!=segment))
                             throw new AssertionError();
                     }
@@ -1757,11 +1757,11 @@ public class HTreeMap<K,V>
 
 
     protected void expireLinkAdd(int segment, long expireNodeRecid, long keyRecid, int hash){
-        if(CC.PARANOID && ! (segmentLocks[segment].writeLock().isHeldByCurrentThread()))
+        if(CC.ASSERT && ! (segmentLocks[segment].writeLock().isHeldByCurrentThread()))
             throw new AssertionError();
-        if(CC.PARANOID && ! (expireNodeRecid>0))
+        if(CC.ASSERT && ! (expireNodeRecid>0))
             throw new AssertionError();
-        if(CC.PARANOID && ! (keyRecid>0))
+        if(CC.ASSERT && ! (keyRecid>0))
             throw new AssertionError();
 
         Engine engine = engines[segment];
@@ -1790,7 +1790,7 @@ public class HTreeMap<K,V>
     }
 
     protected void expireLinkBump(int segment, long nodeRecid, boolean access){
-        if(CC.PARANOID && ! (segmentLocks[segment].writeLock().isHeldByCurrentThread()))
+        if(CC.ASSERT && ! (segmentLocks[segment].writeLock().isHeldByCurrentThread()))
             throw new AssertionError();
 
         Engine engine = engines[segment];
@@ -1840,7 +1840,7 @@ public class HTreeMap<K,V>
     }
 
     protected ExpireLinkNode expireLinkRemoveLast(int segment){
-        if(CC.PARANOID && ! (segmentLocks[segment].writeLock().isHeldByCurrentThread()))
+        if(CC.ASSERT && ! (segmentLocks[segment].writeLock().isHeldByCurrentThread()))
             throw new AssertionError();
 
         Engine engine = engines[segment];
@@ -1868,7 +1868,7 @@ public class HTreeMap<K,V>
 
 
     protected ExpireLinkNode expireLinkRemove(int segment, long nodeRecid){
-        if(CC.PARANOID && ! (segmentLocks[segment].writeLock().isHeldByCurrentThread()))
+        if(CC.ASSERT && ! (segmentLocks[segment].writeLock().isHeldByCurrentThread()))
             throw new AssertionError();
 
         Engine engine = engines[segment];
@@ -2003,7 +2003,7 @@ public class HTreeMap<K,V>
     }
 
     protected long expirePurgeSegment(int seg, long removePerSegment) {
-            if(CC.PARANOID && !segmentLocks[seg].isWriteLockedByCurrentThread())
+            if(CC.ASSERT && !segmentLocks[seg].isWriteLockedByCurrentThread())
                 throw new AssertionError("seg write lock");
 //            expireCheckSegment(seg);
             Engine engine = engines[seg];
@@ -2012,9 +2012,9 @@ public class HTreeMap<K,V>
             ExpireLinkNode last =null,n=null;
             while(recid!=0){
                 n = engine.get(recid, ExpireLinkNode.SERIALIZER);
-                if(CC.PARANOID && ! (n!=ExpireLinkNode.EMPTY))
+                if(CC.ASSERT && ! (n!=ExpireLinkNode.EMPTY))
                     throw new AssertionError();
-                if(CC.PARANOID && ! ( n.hash>>>28 == seg))
+                if(CC.ASSERT && ! ( n.hash>>>28 == seg))
                     throw new AssertionError();
 
                 final boolean remove = ++counter < removePerSegment ||
@@ -2063,7 +2063,7 @@ public class HTreeMap<K,V>
         long prev = 0;
         while(current!=0){
             ExpireLinkNode curr = engine.get(current,ExpireLinkNode.SERIALIZER);
-            if(CC.PARANOID && ! (curr.prev==prev))
+            if(CC.ASSERT && ! (curr.prev==prev))
                 throw new AssertionError("wrong prev "+curr.prev +" - "+prev);
             prev= current;
             current = curr.next;
@@ -2136,7 +2136,7 @@ public class HTreeMap<K,V>
     }
 
     protected void notify(K key, V oldValue, V newValue) {
-        if(CC.PARANOID && ! (segmentLocks[hash(key)>>>28].isWriteLockedByCurrentThread()))
+        if(CC.ASSERT && ! (segmentLocks[hash(key)>>>28].isWriteLockedByCurrentThread()))
             throw new AssertionError();
         Bind.MapListener<K,V>[] modListeners2  = modListeners;
         for(Bind.MapListener<K,V> listener:modListeners2){

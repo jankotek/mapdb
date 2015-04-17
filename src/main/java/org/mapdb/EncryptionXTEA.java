@@ -64,7 +64,7 @@ public final class EncryptionXTEA{
 
 
     public void encrypt(byte[] bytes, int off, int len) {
-        if(CC.PARANOID && ! (len % ALIGN == 0))
+        if(CC.ASSERT && ! (len % ALIGN == 0))
             throw new AssertionError("unaligned len " + len);
 
         for (int i = off; i < off + len; i += 8) {
@@ -73,7 +73,7 @@ public final class EncryptionXTEA{
     }
 
     public void decrypt(byte[] bytes, int off, int len) {
-        if(CC.PARANOID && ! (len % ALIGN == 0))
+        if(CC.ASSERT && ! (len % ALIGN == 0))
             throw new AssertionError("unaligned len " + len);
 
         for (int i = off; i < off + len; i += 8) {

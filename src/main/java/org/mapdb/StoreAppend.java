@@ -196,7 +196,7 @@ public class StoreAppend extends Store {
 
     @Override
     protected <A> A get2(long recid, Serializer<A> serializer) {
-        if(CC.PARANOID)
+        if(CC.ASSERT)
             assertReadLocked(recid);
 
         long offset;
@@ -212,7 +212,7 @@ public class StoreAppend extends Store {
             throw new DBException.EngineGetVoid();
         }
 
-        if(CC.PARANOID){
+        if(CC.ASSERT){
             int instruction = vol.getUnsignedByte(offset);
 
             if(instruction!= IUPDATE && instruction!= IINSERT)
@@ -230,7 +230,7 @@ public class StoreAppend extends Store {
 
     @Override
     protected void update2(long recid, DataIO.DataOutputByteArray out) {
-        if(CC.PARANOID)
+        if(CC.ASSERT)
             assertWriteLocked(lockPos(recid));
         int len = out==null? -1:out.pos;
         long plus = 1+6+4+len;
@@ -247,7 +247,7 @@ public class StoreAppend extends Store {
 
     @Override
     protected <A> void delete2(long recid, Serializer<A> serializer) {
-        if(CC.PARANOID)
+        if(CC.ASSERT)
             assertWriteLocked(lockPos(recid));
 
         int plus = 1+6;
