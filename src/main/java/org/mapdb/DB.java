@@ -588,7 +588,7 @@ public class DB implements Closeable {
         //open existing map
         //$DELAY$
         ret = new HTreeMap<K,V>(
-                engine,
+                HTreeMap.fillEngineArray(engine),
                 false,
                 (Long)catGet(name+".counterRecid"),
                 (Integer)catGet(name+".hashSalt"),
@@ -678,7 +678,7 @@ public class DB implements Closeable {
 
 
         HTreeMap<K,V> ret = new HTreeMap<K,V>(
-                engine,
+                HTreeMap.fillEngineArray(engine),
                 m.closeEngine,
                 catPut(name + ".counterRecid", !m.counter ? 0L : engine.put(0L, Serializer.LONG)),
                 catPut(name+".hashSalt",Float.floatToIntBits((float) Math.random())),
@@ -749,7 +749,7 @@ public class DB implements Closeable {
         checkType(type, "HashSet");
         //open existing map
         ret = new HTreeMap<K, Object>(
-                engine,
+                HTreeMap.fillEngineArray(engine),
                 false,
                 (Long)catGet(name+".counterRecid"),
                 (Integer)catGet(name+".hashSalt"),
@@ -818,7 +818,7 @@ public class DB implements Closeable {
 
         //$DELAY$
         HTreeMap<K,Object> ret = new HTreeMap<K,Object>(
-                engine,
+                HTreeMap.fillEngineArray(engine),
                 m.closeEngine,
                 catPut(name + ".counterRecid", !m.counter ? 0L : engine.put(0L, Serializer.LONG)),
                 catPut(name+".hashSalt",Float.floatToIntBits((float) Math.random())),

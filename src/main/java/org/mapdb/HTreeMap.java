@@ -75,7 +75,7 @@ public class HTreeMap<K,V>
     protected final Serializer<K> keySerializer;
     protected final Serializer<V> valueSerializer;
 
-    protected final Engine engine;
+    protected final Engine[] engines;
     protected final boolean closeEngine;
 
     protected final boolean expireFlag;
@@ -300,7 +300,7 @@ public class HTreeMap<K,V>
      * Opens HTreeMap
      */
     public HTreeMap(
-            Engine engine,
+            Engine[] engines,
             boolean closeEngine,
             long counterRecid,
             int hashSalt,
@@ -322,8 +322,10 @@ public class HTreeMap<K,V>
 
         if(counterRecid<0)
             throw new IllegalArgumentException();
-        if(engine==null)
+        if(engines==null)
             throw new NullPointerException();
+        if(engines.length!=16)
+            throw new IllegalArgumentException("engines wrong length");
         if(segmentRecids==null)
             throw new NullPointerException();
         if(keySerializer==null)
@@ -343,7 +345,7 @@ public class HTreeMap<K,V>
         this.closeEngine = closeEngine;
         this.closeExecutor = closeExecutor;
 
-        this.engine = engine;
+        this.engines = engines.clone();
         this.hashSalt = hashSalt;
         this.segmentRecids = Arrays.copyOf(segmentRecids,16);
         this.keySerializer = keySerializer;
@@ -371,7 +373,9 @@ public class HTreeMap<K,V>
         this.valueCreator = valueCreator;
 
         if(counterRecid!=0){
-            this.counter = new Atomic.Long(engine,counterRecid);
+            //TODO counter might be thread unsafe if multiple thread-unsafe engines are used.
+            // use per-segment counter and sum all segments in map.size()
+            this.counter = new Atomic.Long(engines[0],counterRecid);
             Bind.size(this,counter);
         }else{
             this.counter = null;
@@ -448,7 +452,7 @@ public class HTreeMap<K,V>
             lock.lock();
             try{
                 final long dirRecid = segmentRecids[i];
-                counter+=recursiveDirCount(dirRecid);
+                counter+=recursiveDirCount(engines[i],dirRecid);
             }finally {
                 lock.unlock();
             }
@@ -458,7 +462,7 @@ public class HTreeMap<K,V>
         return counter;
     }
 
-    private long recursiveDirCount(final long dirRecid) {
+    private long recursiveDirCount(Engine engine,final long dirRecid) {
         Object dir = engine.get(dirRecid, DIR_SERIALIZER);
         long counter = 0;
         int dirLen = dirLen(dir);
@@ -467,7 +471,7 @@ public class HTreeMap<K,V>
             if((recid&1)==0){
                 //reference to another subdir
                 recid = recid>>>1;
-                counter += recursiveDirCount(recid);
+                counter += recursiveDirCount(engine, recid);
             }else{
                 //reference to linked list, count it
                 recid = recid>>>1;
@@ -493,7 +497,7 @@ public class HTreeMap<K,V>
             lock.lock();
             try{
                 long dirRecid = segmentRecids[i];
-                Object dir = engine.get(dirRecid, DIR_SERIALIZER);
+                Object dir = engines[i].get(dirRecid, DIR_SERIALIZER);
                 if(!dirIsEmpty(dir)){
                     return false;
                 }
@@ -579,6 +583,7 @@ public class HTreeMap<K,V>
 
     protected LinkedNode<K,V> getInner(Object o, int h, int segment) {
         long recid = segmentRecids[segment];
+        Engine engine = engines[segment];
         for(int level=3;level>=0;level--){
             Object dir = engine.get(recid, DIR_SERIALIZER);
             if(dir == null)
@@ -836,6 +841,7 @@ public class HTreeMap<K,V>
 
     private V putInner(K key, V value, int h, int segment) {
         long dirRecid = segmentRecids[segment];
+        Engine engine = engines[segment];
 
         int level = 3;
         while(true){
@@ -979,6 +985,7 @@ public class HTreeMap<K,V>
 
 
     protected V removeInternal(Object key, int segment, int h, boolean removeExpire){
+        Engine engine = engines[segment];
         final  long[] dirRecids = new long[4];
         int level = 3;
         dirRecids[level] = segmentRecids[segment];
@@ -1017,7 +1024,7 @@ public class HTreeMap<K,V>
                         if(prevLn == null ){
                             //referenced directly from dir
                             if(ln.next==0){
-                                recursiveDirDelete(h, level, dirRecids, dir, slot);
+                                recursiveDirDelete(engine, h, level, dirRecids, dir, slot);
 
 
                             }else{
@@ -1056,7 +1063,7 @@ public class HTreeMap<K,V>
     }
 
 
-    private void recursiveDirDelete(int h, int level, long[] dirRecids, Object dir, int slot) {
+    private void recursiveDirDelete(Engine engine, int h, int level, long[] dirRecids, Object dir, int slot) {
         //was only item in linked list, so try to collapse the dir
         dir = dirRemove(dir, slot);
 
@@ -1070,7 +1077,7 @@ public class HTreeMap<K,V>
 
                 final Object parentDir = engine.get(dirRecids[level + 1], DIR_SERIALIZER);
                 final int parentPos = (h >>> (7 * (level + 1))) & 0x7F;
-                recursiveDirDelete(h,level+1,dirRecids, parentDir, parentPos);
+                recursiveDirDelete(engine, h,level+1,dirRecids, parentDir, parentPos);
                 //parentDir[parentPos>>>DIV8][parentPos&MOD8] = 0;
                 //engine.update(dirRecids[level + 1],parentDir,DIR_SERIALIZER);
 
@@ -1086,10 +1093,12 @@ public class HTreeMap<K,V>
         try {
             for (int i = 0; i < 16; i++)
                 try {
+                    Engine engine = engines[i];
                     segmentLocks[i].writeLock().lock();
 
+
                     final long dirRecid = segmentRecids[i];
-                    recursiveDirClear(dirRecid);
+                    recursiveDirClear(engine, dirRecid);
 
                     //set dir to null, as segment recid is immutable
                     engine.update(dirRecid, new int[4], DIR_SERIALIZER);
@@ -1106,7 +1115,7 @@ public class HTreeMap<K,V>
         }
     }
 
-    private void recursiveDirClear(final long dirRecid) {
+    private void recursiveDirClear(Engine engine, final long dirRecid) {
         final Object dir = engine.get(dirRecid, DIR_SERIALIZER);
         if(dir == null)
             return;
@@ -1117,7 +1126,7 @@ public class HTreeMap<K,V>
                 //another dir
                 recid = recid>>>1;
                 //recursively remove dir
-                recursiveDirClear(recid);
+                recursiveDirClear(engine, recid);
                 engine.delete(recid, DIR_SERIALIZER);
             }else{
                 //linked list to delete
@@ -1375,6 +1384,7 @@ public class HTreeMap<K,V>
         private LinkedNode[] advance(int lastHash){
 
             int segment = lastHash>>>28;
+            Engine engine = engines[segment];
 
             //two phases, first find old item and increase hash
             Lock lock = segmentLocks[segment].readLock();
@@ -1413,12 +1423,13 @@ public class HTreeMap<K,V>
         private LinkedNode[] findNextLinkedNode(int hash) {
             //second phase, start search from increased hash to find next items
             for(int segment = Math.max(hash>>>28, lastSegment); segment<16;segment++){
+                Engine engine = engines[segment];
                 final Lock lock = expireAccessFlag ? segmentLocks[segment].writeLock() :segmentLocks[segment].readLock() ;
                 lock.lock();
                 try{
                     lastSegment = Math.max(segment,lastSegment);
                     long dirRecid = segmentRecids[segment];
-                    LinkedNode ret[] = findNextLinkedNodeRecur(dirRecid, hash, 3);
+                    LinkedNode ret[] = findNextLinkedNodeRecur(engine, dirRecid, hash, 3);
                     if(CC.PARANOID && ret!=null) for(LinkedNode ln:ret){
                         if(( hash(ln.key)>>>28!=segment))
                             throw new AssertionError();
@@ -1439,7 +1450,7 @@ public class HTreeMap<K,V>
             return null;
         }
 
-        private LinkedNode[] findNextLinkedNodeRecur(long dirRecid, int newHash, int level){
+        private LinkedNode[] findNextLinkedNodeRecur(Engine engine,long dirRecid, int newHash, int level){
             final Object dir = engine.get(dirRecid, DIR_SERIALIZER);
             if(dir == null)
                 return null;
@@ -1473,7 +1484,7 @@ public class HTreeMap<K,V>
                     }else{
                         //found another dir, continue dive
                         recid = recid>>1;
-                        LinkedNode[] ret = findNextLinkedNodeRecur(recid, first ? newHash : 0, level - 1);
+                        LinkedNode[] ret = findNextLinkedNodeRecur(engine, recid, first ? newHash : 0, level - 1);
                         if(ret != null) return ret;
                     }
                 }
@@ -1752,6 +1763,8 @@ public class HTreeMap<K,V>
         if(CC.PARANOID && ! (keyRecid>0))
             throw new AssertionError();
 
+        Engine engine = engines[segment];
+
         long time = expire==0 ? 0: expire+System.currentTimeMillis()-expireTimeStart;
         long head = engine.get(expireHeads[segment],Serializer.LONG);
         if(head == 0){
@@ -1778,6 +1791,8 @@ public class HTreeMap<K,V>
     protected void expireLinkBump(int segment, long nodeRecid, boolean access){
         if(CC.PARANOID && ! (segmentLocks[segment].writeLock().isHeldByCurrentThread()))
             throw new AssertionError();
+
+        Engine engine = engines[segment];
 
         ExpireLinkNode n = engine.get(nodeRecid,ExpireLinkNode.SERIALIZER);
         long newTime =
@@ -1827,6 +1842,8 @@ public class HTreeMap<K,V>
         if(CC.PARANOID && ! (segmentLocks[segment].writeLock().isHeldByCurrentThread()))
             throw new AssertionError();
 
+        Engine engine = engines[segment];
+
         long tail = engine.get(expireTails[segment],Serializer.LONG);
         if(tail==0) return null;
 
@@ -1852,6 +1869,8 @@ public class HTreeMap<K,V>
     protected ExpireLinkNode expireLinkRemove(int segment, long nodeRecid){
         if(CC.PARANOID && ! (segmentLocks[segment].writeLock().isHeldByCurrentThread()))
             throw new AssertionError();
+
+        Engine engine = engines[segment];
 
         ExpireLinkNode n = engine.get(nodeRecid,ExpireLinkNode.SERIALIZER);
         engine.delete(nodeRecid,ExpireLinkNode.SERIALIZER);
@@ -1888,7 +1907,9 @@ public class HTreeMap<K,V>
         if(!expireFlag) return 0;
         long ret = 0;
         for(int segment = 0;segment<16;segment++){
-            segmentLocks[segment].readLock().lock();
+            Engine engine = engines[segment];
+            final Lock lock = segmentLocks[segment].readLock();
+            lock.lock();
             try{
                 long head = engine.get(expireHeads[segment],Serializer.LONG);
                 if(head == 0) continue;
@@ -1896,7 +1917,7 @@ public class HTreeMap<K,V>
                 if(ln==null || ln.time==0) continue;
                 ret = Math.max(ret, ln.time+expireTimeStart);
             }finally{
-                segmentLocks[segment].readLock().unlock();
+                lock.unlock();
             }
         }
         return ret;
@@ -1909,7 +1930,9 @@ public class HTreeMap<K,V>
         if(!expireFlag) return 0;
         long ret = Long.MAX_VALUE;
         for(int segment = 0;segment<16;segment++){
-            segmentLocks[segment].readLock().lock();
+            Engine engine = engines[segment];
+            final Lock lock = segmentLocks[segment].readLock();
+            lock.lock();
             try{
                 long tail = engine.get(expireTails[segment],Serializer.LONG);
                 if(tail == 0) continue;
@@ -1917,7 +1940,7 @@ public class HTreeMap<K,V>
                 if(ln==null || ln.time==0) continue;
                 ret = Math.min(ret, ln.time+expireTimeStart);
             }finally{
-                segmentLocks[segment].readLock().unlock();
+                lock.unlock();
             }
         }
         if(ret == Long.MAX_VALUE) ret =0;
@@ -1962,7 +1985,9 @@ public class HTreeMap<K,V>
 
 
         if(expireStoreSize!=0 && removePerSegment==0){
-            Store store = Store.forEngine(engine);
+            //TODO calculate for all segments
+            //TODO thread unsafe access if underlying engine is thread-unsafe
+            Store store = Store.forEngine(engines[0]);
             long storeSize = store.getCurrSize()-store.getFreeSize();
             if(expireStoreSize<storeSize){
                 removePerSegment=640;
@@ -1980,6 +2005,7 @@ public class HTreeMap<K,V>
             if(CC.PARANOID && !segmentLocks[seg].isWriteLockedByCurrentThread())
                 throw new AssertionError("seg write lock");
 //            expireCheckSegment(seg);
+            Engine engine = engines[seg];
             long recid = engine.get(expireTails[seg],Serializer.LONG);
             long counter=0;
             ExpireLinkNode last =null,n=null;
@@ -2025,6 +2051,7 @@ public class HTreeMap<K,V>
 
 
     protected void expireCheckSegment(int segment){
+        Engine engine = engines[segment];
         long current = engine.get(expireTails[segment],Serializer.LONG);
         if(current==0){
             if(engine.get(expireHeads[segment],Serializer.LONG)!=0)
@@ -2057,9 +2084,19 @@ public class HTreeMap<K,V>
      * @return snapshot
      */
     public Map<K,V> snapshot(){
-        Engine snapshot = TxEngine.createSnapshotFor(engine);
+        Engine[] snapshots = new Engine[16];
+        snapshots[0] = TxEngine.createSnapshotFor(engines[0]);
+
+        //TODO thread unsafe if underlying engines are not thread safe
+        for(int i=1;i<16;i++){
+            if(engines[i]!=engines[0])
+                snapshots[i] = TxEngine.createSnapshotFor(engines[1]);
+            else
+                snapshots[i] = snapshots[0];
+        }
+
         return new HTreeMap<K, V>(
-                snapshot,
+                snapshots,
                 closeEngine,
                 counter==null?0:counter.recid,
                 hashSalt,
@@ -2108,7 +2145,8 @@ public class HTreeMap<K,V>
     }
 
     public Engine getEngine(){
-        return engine;
+        return engines[0];
+        //TODO what about other engines?
     }
 
 
@@ -2125,8 +2163,18 @@ public class HTreeMap<K,V>
         }
 
         if(closeEngine) {
-            engine.close();
+            engines[0].close();
+            for(int i=1;i<16;i++){
+                if(engines[i]!=engines[0])
+                    engines[i].close();
+            }
         }
+    }
+
+    static Engine[] fillEngineArray(Engine engine){
+        Engine[] ret = new Engine[16];
+        Arrays.fill(ret,engine);
+        return ret;
     }
 
 }
