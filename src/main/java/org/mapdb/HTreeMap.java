@@ -386,7 +386,8 @@ public class HTreeMap<K,V>
         this.executor = executor;
 
         if(expireFlag && executor!=null){
-            if(executor!=null) {
+            if(executor!=null && engines[0].canRollback()) {
+                //TODO this should be covered by SequentialLock, check it, and remove warning
                 LOG.warning("HTreeMap Expiration should not be used with transaction enabled. It can lead to data corruption, commit might happen while background thread works, and only part of expiration data will be commited.");
             }
 
@@ -417,11 +418,11 @@ public class HTreeMap<K,V>
 
 
 
-    protected static long[] preallocateSegments(Engine engine){
+    protected static long[] preallocateSegments(Engine[] engines){
         //prealocate segmentRecids, so we dont have to lock on those latter
         long[] ret = new long[16];
         for(int i=0;i<16;i++)
-            ret[i] = engine.put(new int[4], DIR_SERIALIZER);
+            ret[i] = engines[i].put(new int[4], DIR_SERIALIZER);
         return ret;
     }
 

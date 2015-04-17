@@ -21,6 +21,17 @@ import java.util.concurrent.ConcurrentMap;
 
 public class HTreeMap3Test extends ConcurrentMapInterfaceTest<Integer, String> {
 
+    public static class Segmented extends HTreeMap3Test{
+        @Override
+        protected ConcurrentMap<Integer, String> makeEmptyMap() throws UnsupportedOperationException {
+            return DBMaker
+                    .hashMapSegmentedMemory()
+                    .keySerializer(Serializer.INTEGER)
+                    .valueSerializer(Serializer.STRING)
+                    .make();
+        }
+    }
+
     public HTreeMap3Test() {
         super(false, false, true, true, true, true,true);
     }
@@ -56,8 +67,9 @@ public class HTreeMap3Test extends ConcurrentMapInterfaceTest<Integer, String> {
 
     @Override
     protected ConcurrentMap<Integer, String> makeEmptyMap() throws UnsupportedOperationException {
-        return new HTreeMap(HTreeMap.fillEngineArray(r),
-                false, 0,0, HTreeMap.preallocateSegments(r), Serializer.BASIC, Serializer.BASIC,0,0,0,0,0,null,null,null,null, 0L,false,null);
+        Engine[] engines = HTreeMap.fillEngineArray(r);
+        return new HTreeMap(engines,
+                false, 0,0, HTreeMap.preallocateSegments(engines), Serializer.BASIC, Serializer.BASIC,0,0,0,0,0,null,null,null,null, 0L,false,null);
     }
 
     @Override

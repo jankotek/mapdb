@@ -232,11 +232,17 @@ public class DB implements Closeable {
     }
 
 
-    public class HTreeMapMaker{
-        protected final String name;
+    static public class HTreeMapMaker{
 
-        public HTreeMapMaker(String name) {
+        protected final DB db;
+        protected final String name;
+        protected final Engine[] engines;
+
+        public HTreeMapMaker(DB db, String name, Engine[] engines) {
+            this.db = db;
             this.name = name;
+            this.engines = engines;
+            this.executor = db.executor;
         }
 
 
@@ -257,7 +263,7 @@ public class DB implements Closeable {
         protected boolean pumpIgnoreDuplicates = false;
         protected boolean closeEngine = false;
 
-        protected ScheduledExecutorService executor = DB.this.executor;
+        protected ScheduledExecutorService executor;
         protected long executorPeriod = CC.DEFAULT_HTREEMAP_EXECUTOR_PERIOD;
 
 
@@ -378,16 +384,16 @@ public class DB implements Closeable {
 
         public <K,V> HTreeMap<K,V> make(){
             if(expireMaxSize!=0) counter =true;
-            return DB.this.hashMapCreate(HTreeMapMaker.this);
+            return db.hashMapCreate(HTreeMapMaker.this);
         }
 
         public <K,V> HTreeMap<K,V> makeOrGet(){
             //$DELAY$
-            synchronized (DB.this){
+            synchronized (db){
                 //TODO add parameter check
                 //$DELAY$
-                return (HTreeMap<K, V>) (catGet(name+".type")==null?
-                                    make(): hashMap(name));
+                return (HTreeMap<K, V>) (db.catGet(name+".type")==null?
+                                    make(): db.hashMap(name));
             }
         }
 
@@ -640,7 +646,7 @@ public class DB implements Closeable {
      * @return maker, call {@code .make()} to create map
      */
     public HTreeMapMaker hashMapCreate(String name){
-        return new HTreeMapMaker(name);
+        return new HTreeMapMaker(DB.this, name, HTreeMap.fillEngineArray(engine));
     }
 
 
@@ -668,8 +674,8 @@ public class DB implements Closeable {
             expireHeads = new long[16];
             expireTails = new long[16];
             for(int i=0;i<16;i++){
-                expireHeads[i] = engine.put(0L,Serializer.LONG);
-                expireTails[i] = engine.put(0L,Serializer.LONG);
+                expireHeads[i] = m.engines[i].put(0L,Serializer.LONG);
+                expireTails[i] = m.engines[i].put(0L, Serializer.LONG);
             }
             catPut(name+".expireHeads",expireHeads);
             catPut(name+".expireTails",expireTails);
@@ -678,11 +684,11 @@ public class DB implements Closeable {
 
 
         HTreeMap<K,V> ret = new HTreeMap<K,V>(
-                HTreeMap.fillEngineArray(engine),
+                m.engines,
                 m.closeEngine,
                 catPut(name + ".counterRecid", !m.counter ? 0L : engine.put(0L, Serializer.LONG)),
                 catPut(name+".hashSalt",Float.floatToIntBits((float) Math.random())),
-                catPut(name+".segmentRecids",HTreeMap.preallocateSegments(engine)),
+                catPut(name+".segmentRecids",HTreeMap.preallocateSegments(m.engines)),
                 catPut(name+".keySerializer",m.keySerializer,getDefaultSerializer()),
                 catPut(name+".valueSerializer",m.valueSerializer,getDefaultSerializer()),
                 expireTimeStart,expire,expireAccess,expireMaxSize, expireStoreSize, expireHeads ,expireTails,
@@ -817,12 +823,13 @@ public class DB implements Closeable {
         }
 
         //$DELAY$
+        Engine[] engines = HTreeMap.fillEngineArray(engine);
         HTreeMap<K,Object> ret = new HTreeMap<K,Object>(
-                HTreeMap.fillEngineArray(engine),
+                engines,
                 m.closeEngine,
                 catPut(name + ".counterRecid", !m.counter ? 0L : engine.put(0L, Serializer.LONG)),
                 catPut(name+".hashSalt",Float.floatToIntBits((float) Math.random())),
-                catPut(name+".segmentRecids",HTreeMap.preallocateSegments(engine)),
+                catPut(name+".segmentRecids",HTreeMap.preallocateSegments(engines)),
                 catPut(name+".serializer",m.serializer,getDefaultSerializer()),
                 null,
                 expireTimeStart,expire,expireAccess,expireMaxSize, expireStoreSize, expireHeads ,expireTails,
@@ -2054,7 +2061,7 @@ public class DB implements Closeable {
             String fileName = deleteFilesAfterClose ? Store.forEngine(engine).fileName : null;
             engine.close();
             //dereference db to prevent memory leaks
-            engine = CLOSED_ENGINE;
+            engine = Engine.CLOSED_ENGINE;
             namesInstanciated = Collections.unmodifiableMap(new HashMap());
             namesLookup = Collections.unmodifiableMap(new HashMap());
 
@@ -2219,100 +2226,6 @@ public class DB implements Closeable {
     public ReadWriteLock sequentialLock(){
         return sequentialLock;
     }
-
-
-    /** throws {@code IllegalArgumentError("already closed")} on all access */
-    protected static final Engine CLOSED_ENGINE = new Engine(){
-
-
-        @Override
-        public long preallocate() {
-            throw new IllegalAccessError("already closed");
-        }
-
-
-        @Override
-        public <A> long put(A value, Serializer<A> serializer) {
-            throw new IllegalAccessError("already closed");
-        }
-
-        @Override
-        public <A> A get(long recid, Serializer<A> serializer) {
-            throw new IllegalAccessError("already closed");
-        }
-
-        @Override
-        public <A> void update(long recid, A value, Serializer<A> serializer) {
-            throw new IllegalAccessError("already closed");
-        }
-
-        @Override
-        public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
-            throw new IllegalAccessError("already closed");
-        }
-
-        @Override
-        public <A> void delete(long recid, Serializer<A> serializer) {
-            throw new IllegalAccessError("already closed");
-        }
-
-        @Override
-        public void close() {
-            throw new IllegalAccessError("already closed");
-        }
-
-        @Override
-        public boolean isClosed() {
-            return true;
-        }
-
-        @Override
-        public void commit() {
-            throw new IllegalAccessError("already closed");
-        }
-
-        @Override
-        public void rollback() throws UnsupportedOperationException {
-            throw new IllegalAccessError("already closed");
-        }
-
-        @Override
-        public boolean isReadOnly() {
-            throw new IllegalAccessError("already closed");
-        }
-
-        @Override
-        public boolean canRollback() {
-            throw new IllegalAccessError("already closed");
-        }
-
-        @Override
-        public boolean canSnapshot() {
-            throw new IllegalAccessError("already closed");
-        }
-
-        @Override
-        public Engine snapshot() throws UnsupportedOperationException {
-            throw new IllegalAccessError("already closed");
-        }
-
-        @Override
-        public Engine getWrappedEngine() {
-            throw new IllegalAccessError("already closed");
-        }
-
-        @Override
-        public void clearCache() {
-            throw new IllegalAccessError("already closed");
-        }
-
-        @Override
-        public void compact() {
-            throw new IllegalAccessError("already closed");
-        }
-
-
-    };
 
 
 }

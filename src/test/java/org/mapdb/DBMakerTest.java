@@ -519,4 +519,47 @@ public class DBMakerTest{
     }
 
 
+    @Test public void hashmap_segmented(){
+        HTreeMap m = DBMaker
+                .hashMapSegmentedMemory()
+                .make();
+
+        assertNotSame(m.engines[0], m.engines[1]);
+
+        StoreDirect s = (StoreDirect) m.engines[0];
+        assertSame(Store.NOLOCK, s.locks[0].readLock());
+        assertSame(Store.NOLOCK, s.locks[0].writeLock());
+        assertEquals(1, s.locks.length);
+        assertFalse(s.isClosed());
+
+        m.close();
+
+        for(Engine e:m.engines){
+            assertTrue(e.isClosed());
+        }
+    }
+
+    @Test public void hashmap_segmented_expiration(){
+        HTreeMap m = DBMaker
+                .hashMapSegmentedMemory()
+                .expireAfterWrite(100)
+                .executorEnable()
+                .make();
+
+        assertNotSame(m.engines[0], m.engines[1]);
+
+        StoreDirect s = (StoreDirect) m.engines[0];
+        assertSame(Store.NOLOCK, s.locks[0].readLock());
+        assertSame(Store.NOLOCK, s.locks[0].writeLock());
+        assertEquals(1, s.locks.length);
+        assertFalse(s.isClosed());
+
+        m.close();
+        assertTrue(m.executor.isTerminated());
+
+        for(Engine e:m.engines){
+            assertTrue(e.isClosed());
+        }
+    }
+
 }

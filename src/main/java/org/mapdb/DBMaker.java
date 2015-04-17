@@ -164,6 +164,7 @@ public final class DBMaker{
         return new Maker()._newMemoryDirectDB();
     }
 
+
     /** @deprecated method renamed, prefix removed, use {@link DBMaker#memoryDirectDB()} */
     public static Maker newMemoryDirectDB(){
         return memoryDirectDB();
@@ -1344,5 +1345,35 @@ public final class DBMaker{
 
     }
 
+
+    public static DB.HTreeMapMaker hashMapSegmented(DBMaker.Maker maker){
+        maker = maker
+                .lockScale(1)
+                //TODO with some caches enabled, this will become thread unsafe
+                .lockThreadUnsafeEnable()
+                .transactionDisable();
+
+
+        DB db = maker.make();
+        Engine[] engines = new Engine[16];
+        engines[0] = db.engine;
+        for(int i=1;i<16;i++){
+            engines[i] = maker.makeEngine();
+        }
+        return new DB.HTreeMapMaker(db,"hashMapSegmented", engines)
+                .closeEngine();
+    }
+
+    public static DB.HTreeMapMaker hashMapSegmentedMemory(){
+        return hashMapSegmented(
+                DBMaker.memoryDB()
+        );
+    }
+
+    public static DB.HTreeMapMaker hashMapSegmentedMemoryDirect(){
+        return hashMapSegmented(
+                DBMaker.memoryDirectDB()
+        );
+    }
 
 }
