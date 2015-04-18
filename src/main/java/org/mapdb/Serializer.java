@@ -196,45 +196,11 @@ public abstract class Serializer<A> {
 
 
 
-
-    /** Serializes Long into 8 bytes, used mainly for testing.
-     * Does not handle null values.*/
-
-    public static final Serializer<Long> LONG = new Serializer<Long>() {
-        @Override
-        public void serialize(DataOutput out, Long value) throws IOException {
-            out.writeLong(value);
-        }
-
-        @Override
-        public Long deserialize(DataInput in, int available) throws IOException {
-            return in.readLong();
-        }
-
-        @Override
-        public int fixedSize() {
-            return 8;
-        }
+    abstract protected static class LongSerializer extends Serializer<Long> {
 
         @Override
         public boolean isTrusted() {
             return true;
-        }
-
-        @Override
-        public void valueArraySerialize(DataOutput out, Object vals) throws IOException {
-            for(long o:(long[]) vals){
-                out.writeLong(o); //TODO pack?
-            }
-        }
-
-        @Override
-        public Object valueArrayDeserialize(DataInput in, int size) throws IOException {
-            long[] ret = new long[size];
-            for(int i=0;i<size;i++){
-                ret[i] = in.readLong();
-            }
-            return ret;
         }
 
         @Override
@@ -304,48 +270,131 @@ public abstract class Serializer<A> {
             }
             return BTreeKeySerializer.LONG;
         }
-
     };
 
-    /** Serializes Integer into 4 bytes.
+    /** Serializes Long into 8 bytes, used mainly for testing.
      * Does not handle null values.*/
 
-    public static final Serializer<Integer> INTEGER = new Serializer<Integer>(){
+    public static final Serializer<Long> LONG = new LongSerializer() {
 
         @Override
-        public void serialize(DataOutput out, Integer value) throws IOException {
-            out.writeInt(value);
+        public void serialize(DataOutput out, Long value) throws IOException {
+            out.writeLong(value);
         }
 
         @Override
-        public Integer deserialize(DataInput in, int available) throws IOException {
-            return in.readInt();
+        public Long deserialize(DataInput in, int available) throws IOException {
+            return in.readLong();
         }
 
         @Override
         public int fixedSize() {
-            return 4;
-        }
-
-        @Override
-        public boolean isTrusted() {
-            return true;
+            return 8;
         }
 
         @Override
         public void valueArraySerialize(DataOutput out, Object vals) throws IOException {
-            for(int o:(int[]) vals){
-                out.writeInt(o); //TODO pack?
+            for(long o:(long[]) vals){
+                out.writeLong(o);
             }
         }
 
         @Override
         public Object valueArrayDeserialize(DataInput in, int size) throws IOException {
-            int[] ret = new int[size];
+            long[] ret = new long[size];
             for(int i=0;i<size;i++){
-                ret[i] = in.readInt();
+                ret[i] = in.readLong();
             }
             return ret;
+        }
+    };
+
+    /**
+     *  Packs positive LONG, so smaller positive values occupy less than 8 bytes.
+     *  Large and negative values could occupy 8 or 9 bytes.
+     */
+    public static final Serializer<Long> LONG_PACKED = new LongSerializer(){
+        @Override
+        public void serialize(DataOutput out, Long value) throws IOException {
+            ((DataIO.DataOutputByteArray) out).packLong(value);
+        }
+
+        @Override
+        public Long deserialize(DataInput in, int available) throws IOException {
+            return ((DataIO.DataInputInternal)in).unpackLong();
+        }
+
+        @Override
+        public void valueArraySerialize(DataOutput out, Object vals) throws IOException {
+            DataIO.DataOutputByteArray out2 = (DataIO.DataOutputByteArray) out;
+            for(long o:(long[]) vals){
+                out2.packLong(o);
+            }
+        }
+
+        @Override
+        public Object valueArrayDeserialize(DataInput in, int size) throws IOException {
+            DataIO.DataInputInternal i = (DataIO.DataInputInternal) in;
+            long[] ret = new long[size];
+            i.unpackLongArray(ret,0,size);
+            return ret;
+        }
+    };
+
+
+    /** packs Long so small values occupy less than 8 bytes. Large (positive and negative)
+     * values could occupy more 8 to 9 bytes. It uses zigzag conversion before packing,
+     * number is multiplied by two, with last bite indicating negativity.
+     */
+    public static final Serializer<Long> LONG_PACKED_ZIGZAG = new LongSerializer(){
+
+        long wrap(long i){
+            long plus = i<0?1:0; //this could be improved by eliminating condition
+            return Math.abs(i*2)+plus;
+        }
+
+        long unwrap(long i){
+            long m = 1 - 2 * (i&1); // +1 if even, -1 if odd
+            return (i>>>1) * m;
+        }
+
+        @Override
+        public void serialize(DataOutput out, Long value) throws IOException {
+            ((DataIO.DataOutputByteArray) out).packLong(wrap(value));
+        }
+
+        @Override
+        public Long deserialize(DataInput in, int available) throws IOException {
+            return unwrap(((DataIO.DataInputInternal) in).unpackLong());
+        }
+
+        @Override
+        public void valueArraySerialize(DataOutput out, Object vals) throws IOException {
+            DataIO.DataOutputByteArray out2 = (DataIO.DataOutputByteArray) out;
+            for(long o:(long[]) vals){
+                out2.packLong(wrap(o));
+            }
+        }
+
+        @Override
+        public Object valueArrayDeserialize(DataInput in, int size) throws IOException {
+            DataIO.DataInputInternal i = (DataIO.DataInputInternal) in;
+            long[] ret = new long[size];
+            i.unpackLongArray(ret,0,size);
+            for(int a=0;a<size;a++){
+                ret[a] = unwrap(ret[a]);
+            }
+            return ret;
+        }
+    };
+
+
+
+    abstract protected static class IntegerSerializer extends Serializer<Integer> {
+
+        @Override
+        public boolean isTrusted() {
+            return true;
         }
 
         @Override
@@ -415,7 +464,120 @@ public abstract class Serializer<A> {
             }
             return BTreeKeySerializer.INTEGER;
         }
+    };
 
+    /** Serializes Integer into 4 bytes, used mainly for testing.
+     * Does not handle null values.*/
+
+    public static final Serializer<Integer> INTEGER = new IntegerSerializer() {
+
+        @Override
+        public void serialize(DataOutput out, Integer value) throws IOException {
+            out.writeInt(value);
+        }
+
+        @Override
+        public Integer deserialize(DataInput in, int available) throws IOException {
+            return in.readInt();
+        }
+
+        @Override
+        public int fixedSize() {
+            return 4;
+        }
+
+        @Override
+        public void valueArraySerialize(DataOutput out, Object vals) throws IOException {
+            for(int o:(int[]) vals){
+                out.writeInt(o);
+            }
+        }
+
+        @Override
+        public Object valueArrayDeserialize(DataInput in, int size) throws IOException {
+            int[] ret = new int[size];
+            for(int i=0;i<size;i++){
+                ret[i] = in.readInt();
+            }
+            return ret;
+        }
+    };
+
+    /**
+     *  Packs positive Integer, so smaller positive values occupy less than 4 bytes.
+     *  Large and negative values could occupy 4 or 5 bytes.
+     */
+    public static final Serializer<Integer> INTEGER_PACKED = new IntegerSerializer(){
+        @Override
+        public void serialize(DataOutput out, Integer value) throws IOException {
+            ((DataIO.DataOutputByteArray) out).packInt(value);
+        }
+
+        @Override
+        public Integer deserialize(DataInput in, int available) throws IOException {
+            return ((DataIO.DataInputInternal)in).unpackInt();
+        }
+
+        @Override
+        public void valueArraySerialize(DataOutput out, Object vals) throws IOException {
+            DataIO.DataOutputByteArray out2 = (DataIO.DataOutputByteArray) out;
+            for(int o:(int[]) vals){
+                out2.packInt(o);
+            }
+        }
+
+        @Override
+        public Object valueArrayDeserialize(DataInput in, int size) throws IOException {
+            DataIO.DataInputInternal i = (DataIO.DataInputInternal) in;
+            int[] ret = new int[size];
+            i.unpackIntArray(ret, 0, size);
+            return ret;
+        }
+    };
+
+    /** packs Integer so small values occupy less than 4 bytes. Large (positive and negative)
+     * values could occupy more 4 to 5 bytes. It uses zigzag conversion before packing,
+     * number is multiplied by two, with last bite indicating negativity.
+     */
+    public static final Serializer<Integer> INTEGER_PACKED_ZIGZAG = new IntegerSerializer(){
+
+        long wrap(int i){
+            long plus = i<0?1:0; //this could be improved by eliminating condition
+            return Math.abs(i*2)+plus;
+        }
+
+        int unwrap(long i){
+            long m = 1 - 2 * (i&1); // +1 if even, -1 if odd
+            return (int) ((i>>>1) * m);
+        }
+
+        @Override
+        public void serialize(DataOutput out, Integer value) throws IOException {
+            ((DataIO.DataOutputByteArray) out).packLong(wrap(value));
+        }
+
+        @Override
+        public Integer deserialize(DataInput in, int available) throws IOException {
+            return unwrap(((DataIO.DataInputInternal)in).unpackLong());
+        }
+
+        @Override
+        public void valueArraySerialize(DataOutput out, Object vals) throws IOException {
+            DataIO.DataOutputByteArray out2 = (DataIO.DataOutputByteArray) out;
+            for(int o:(int[]) vals){
+                out2.packLong(wrap(o));
+            }
+        }
+
+        @Override
+        public Object valueArrayDeserialize(DataInput in, int size) throws IOException {
+            DataIO.DataInputInternal i = (DataIO.DataInputInternal) in;
+            int[] ret = new int[size];
+            for(int a=0;a<size;a++){
+                ret[a] = unwrap(i.unpackLong());
+            }
+            return ret;
+        }
     };
 
 

@@ -37,7 +37,7 @@ public class SerializerTest {
 
         DataIO.DataOutputByteArray out = new DataIO.DataOutputByteArray();
         ser.serialize(out,b);
-        assertTrue(out.pos<1000);
+        assertTrue(out.pos < 1000);
     }
 
     @Test public void array(){
@@ -45,8 +45,56 @@ public class SerializerTest {
 
         Object[] a = new Object[]{1,2,3,4};
 
-        assertArrayEquals(a, UtilsTest.clone(a,s));
-        assertEquals(s,UtilsTest.clone(s,Serializer.BASIC));
+        assertArrayEquals(a, UtilsTest.clone(a, s));
+        assertEquals(s, UtilsTest.clone(s, Serializer.BASIC));
+    }
 
+    void testLong(Serializer<Long> ser){
+        for(Long i= (long) -1e5;i<1e5;i++){
+            assertEquals(i, UtilsTest.clone(i,ser));
+        }
+
+        for(Long i=0L;i>0;i+=1+i/10000){
+            assertEquals(i, UtilsTest.clone(i, ser));
+            assertEquals(new Long(-i), UtilsTest.clone(-i, ser));
+        }
+    }
+
+    @Test public void Long(){
+        testLong(Serializer.LONG);
+    }
+
+
+    @Test public void Long_packed(){
+        testLong(Serializer.LONG_PACKED);
+    }
+
+    @Test public void Long_packed_zigzag(){
+        testLong(Serializer.LONG_PACKED_ZIGZAG);
+    }
+
+
+    void testInt(Serializer<Integer> ser){
+        for(Integer i= (int) -1e5;i<1e5;i++){
+            assertEquals(i, UtilsTest.clone(i,ser));
+        }
+
+        for(Integer i=0;i>0;i+=1+i/10000){
+            assertEquals(i, UtilsTest.clone(i, ser));
+            assertEquals(new Long(-i), UtilsTest.clone(-i, ser));
+        }
+    }
+
+    @Test public void Int(){
+        testInt(Serializer.INTEGER);
+    }
+
+
+    @Test public void Int_packed(){
+        testInt(Serializer.INTEGER_PACKED);
+    }
+
+    @Test public void Int_packed_zigzag(){
+        testInt(Serializer.INTEGER_PACKED_ZIGZAG);
     }
 }

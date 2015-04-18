@@ -236,7 +236,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
             e.delete(recid,Serializer.LONG);
         }
 
-        //compaction will reclai recid
+        //compaction will reclaim recid
         e.commit();
         e.compact();
 
