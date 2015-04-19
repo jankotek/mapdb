@@ -2,6 +2,9 @@ package org.mapdb;
 
 import java.io.DataInput;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
@@ -12,16 +15,18 @@ import java.util.logging.Level;
  */
 public class StoreAppend extends Store {
 
-    protected static final int IUPDATE = 1;
-    protected static final int IINSERT = 3;
-    protected static final int IDELETE = 2;
-    protected static final int IPREALLOC = 4;
+    protected static final int I_UPDATE = 1;
+    protected static final int I_INSERT = 3;
+    protected static final int I_DELETE = 2;
+    protected static final int I_PREALLOC = 4;
     protected static final int I_SKIP_SINGLE_BYTE = 6;
 
     protected static final int I_TX_VALID = 8;
     protected static final int I_TX_ROLLBACK = 9;
 
     protected static final long headerSize = 16;
+
+    protected static final StoreAppend[] STORE_APPENDS_ZERO_ARRAY = new StoreAppend[0];
 
 
     protected Volume vol;
@@ -32,9 +37,13 @@ public class StoreAppend extends Store {
     protected final AtomicLong highestRecid = new AtomicLong(0);
     protected final boolean tx;
 
-    protected final LongLongMap[] rollback;
+    protected final LongLongMap[] modified;
 
     protected final ScheduledExecutorService compactionExecutor;
+
+    protected final Set<StoreAppend> snapshots;
+
+    protected final boolean isSnapshot;
 
     protected StoreAppend(String fileName,
                           Fun.Function1<Volume, String> volumeFactory,
@@ -51,14 +60,16 @@ public class StoreAppend extends Store {
         super(fileName, volumeFactory, cache, lockScale,lockingStrategy, checksum, compress, password, readonly);
         this.tx = !txDisabled;
         if(tx){
-            rollback = new LongLongMap[this.lockScale];
-            for(int i=0;i<rollback.length;i++){
-                rollback[i] = new LongLongMap();
+            modified = new LongLongMap[this.lockScale];
+            for(int i=0;i<modified.length;i++){
+                modified[i] = new LongLongMap();
             }
         }else{
-            rollback = null;
+            modified = null;
         }
         this.compactionExecutor = compactionExecutor;
+        this.snapshots = Collections.synchronizedSet(new HashSet<StoreAppend>());
+        this.isSnapshot = false;
     }
 
     public StoreAppend(String fileName) {
@@ -74,6 +85,49 @@ public class StoreAppend extends Store {
                 false,
                 null
         );
+    }
+
+    /** protected constructor used to take snapshots*/
+    protected StoreAppend(StoreAppend host, LongLongMap[] uncommitedData){
+        super(null, null,null,
+                host.lockScale,
+                Store.LOCKING_STRATEGY_NOLOCK,
+                host.checksum,
+                host.compress,
+                null, //TODO password on snapshot
+                true //snapshot is readonly
+        );
+
+        indexTable = host.indexTable;
+        vol = host.vol;
+
+        //replace locks, so reads on snapshots are not performed while host is updated
+        for(int i=0;i<locks.length;i++){
+            locks[i] = host.locks[i];
+        }
+
+        tx = true;
+        modified = new LongLongMap[this.lockScale];
+        if(uncommitedData==null){
+            for(int i=0;i<modified.length;i++) {
+                modified[i] = new LongLongMap();
+            }
+        }else{
+            for(int i=0;i<modified.length;i++) {
+                Lock lock = locks[i].writeLock();
+                lock.lock();
+                try {
+                    modified[i] = uncommitedData[i].clone();
+                }finally {
+                    lock.unlock();
+                }
+            }
+        }
+
+        this.compactionExecutor = null;
+        this.snapshots = host.snapshots;
+        this.isSnapshot = true;
+        host.snapshots.add(StoreAppend.this);
     }
 
     @Override
@@ -111,7 +165,7 @@ public class StoreAppend extends Store {
         final long volumeSize = vol.length();
         long lastValidPos= pos;
         long highestRecid2 = RECID_LAST_RESERVED;
-        LongLongMap rollbackData = tx?new LongLongMap():null;
+        LongLongMap commitData = tx?new LongLongMap():null;
 
         try{
 
@@ -120,46 +174,55 @@ public class StoreAppend extends Store {
                 if(pos>=volumeSize)
                     break;
                 final int inst = vol.getUnsignedByte(pos++);
-                if (inst == IINSERT || inst == IUPDATE) {
+                if (inst == I_INSERT || inst == I_UPDATE) {
 
                     final long recid = vol.getSixLong(pos);
                     pos += 6;
 
                     highestRecid2 = Math.max(highestRecid2, recid);
 
-                    indexTablePut2(recid, pos - 6 - 1, rollbackData);
+                    commitData.put(recid, pos - 6 - 1);
 
                     //skip rest of the record
                     int size = vol.getInt(pos);
                     pos = pos + 4 + size;
-                } else if (inst == IDELETE) {
+                } else if (inst == I_DELETE) {
                     final long recid = vol.getSixLong(pos);
                     pos += 6;
 
                     highestRecid2 = Math.max(highestRecid2, recid);
 
-                    indexTablePut2(recid, -1, rollbackData);
-                } else if (inst == IDELETE) {
+                    commitData.put(recid, -1);
+                } else if (inst == I_DELETE) {
                     final long recid = vol.getSixLong(pos);
                     pos += 6;
 
                     highestRecid2 = Math.max(highestRecid2, recid);
 
-                    indexTablePut2(recid,-2, rollbackData);
+                    commitData.put(recid,-2);
                 } else if (inst == I_SKIP_SINGLE_BYTE) {
                     //do nothing, just skip single byte
                 } else if (inst == I_TX_VALID) {
-                    if (tx)
-                        rollbackData.clear();
+                    if (tx){
+                        //apply changes from commitData to indexTable
+                        for(int i=0;i<commitData.table.length;i+=2){
+                            long recidOffset = commitData.table[i]*8;
+                            if(recidOffset==0)
+                                continue;
+                            indexTable.ensureAvailable(recidOffset + 8);
+                            indexTable.putLong(recidOffset, commitData.table[i+1]);
+                        }
+                        commitData.clear();
+                    }
                 } else if (inst == I_TX_ROLLBACK) {
                     if (tx) {
-                        indexTableRestore(rollbackData);
+                        commitData.clear();
                     }
                 } else if (inst == 0) {
                     //rollback last changes if thats necessary
                     if (tx) {
                         //rollback changes in index table since last valid tx
-                        indexTableRestore(rollbackData);
+                        commitData.clear();
                     }
 
                     break;
@@ -175,7 +238,7 @@ public class StoreAppend extends Store {
             LOG.log(Level.WARNING, "Log replay finished",e);
             if(tx) {
                 //rollback changes in index table since last valid tx
-                indexTableRestore(rollbackData);
+                commitData.clear();
             }
 
         }
@@ -206,12 +269,14 @@ public class StoreAppend extends Store {
         if(CC.ASSERT)
             assertReadLocked(recid);
 
-        long offset;
-        try{
-            offset = indexTable.getLong(recid*8);
-        }catch(ArrayIndexOutOfBoundsException e){
-            //TODO this code should be aware if indexTable internals?
-            throw new DBException.EngineGetVoid();
+        long offset = modified[lockPos(recid)].get(recid);
+        if(offset==0) {
+            try {
+                offset = indexTable.getLong(recid * 8);
+            } catch (ArrayIndexOutOfBoundsException e) {
+                //TODO this code should be aware if indexTable internals?
+                throw new DBException.EngineGetVoid();
+            }
         }
         if(offset<0)
             return null; //preallocated or deleted
@@ -222,7 +287,7 @@ public class StoreAppend extends Store {
         if(CC.ASSERT){
             int instruction = vol.getUnsignedByte(offset);
 
-            if(instruction!= IUPDATE && instruction!= IINSERT)
+            if(instruction!= I_UPDATE && instruction!= I_INSERT)
                 throw new RuntimeException("wrong instruction "+instruction); //TODO proper error
 
             long recid2 = vol.getSixLong(offset+1);
@@ -243,13 +308,13 @@ public class StoreAppend extends Store {
         long plus = 1+6+4+len;
         long offset = alloc(1+6+4, (int) plus);
         vol.ensureAvailable(offset+plus);
-        vol.putUnsignedByte(offset, IUPDATE);
-        vol.putSixLong(offset+1,recid);
-        vol.putInt(offset+1+6, len);
+        vol.putUnsignedByte(offset, I_UPDATE);
+        vol.putSixLong(offset + 1, recid);
+        vol.putInt(offset + 1 + 6, len);
         if(len!=-1)
             vol.putDataOverlap(offset+1+6+4, out.buf,0,out.pos);
 
-        indexTablePut(recid,len!=-1?offset:-3);
+        indexTablePut(recid, len != -1 ? offset : -3);
     }
 
     @Override
@@ -260,11 +325,11 @@ public class StoreAppend extends Store {
         int plus = 1+6;
         long offset = alloc(plus,plus);
 
-        vol.ensureAvailable(offset+plus);
-        vol.putUnsignedByte(offset, IDELETE); //delete instruction
+        vol.ensureAvailable(offset + plus);
+        vol.putUnsignedByte(offset, I_DELETE); //delete instruction
         vol.putSixLong(offset+1, recid);
 
-        indexTablePut(recid,-1);
+        indexTablePut(recid, -1);
     }
 
     @Override
@@ -285,9 +350,9 @@ public class StoreAppend extends Store {
         try{
             int plus = 1+6;
             long offset = alloc(plus,plus);
-            vol.ensureAvailable(offset+plus);
+            vol.ensureAvailable(offset + plus);
 
-            vol.putUnsignedByte(offset, IPREALLOC);
+            vol.putUnsignedByte(offset, I_PREALLOC);
             vol.putSixLong(offset + 1, recid);
 
             indexTablePut(recid,-2);
@@ -299,46 +364,13 @@ public class StoreAppend extends Store {
     }
 
     protected void indexTablePut(long recid, long offset) {
-        indexTable.ensureAvailable(recid*8+8);
         if(tx){
-            LongLongMap map = rollback[lockPos(recid)];
-            if(map.get(recid)==0) {
-                long oldval = indexTable.getLong(recid*8);
-                if(oldval==0)
-                    oldval = Long.MIN_VALUE;
-                map.put(recid, oldval);
-            }
-        }
-        indexTable.putLong(recid*8, offset);
-    }
-
-    protected void indexTablePut2(long recid, long offset, LongLongMap rollbackData) {
-        indexTable.ensureAvailable(recid*8+8);
-        if(tx){
-            if(rollbackData.get(recid)==0) {
-                long oldval = indexTable.getLong(recid*8);
-                if(oldval==0)
-                    oldval = Long.MIN_VALUE;
-                rollbackData.put(recid, oldval);
-            }
-        }
-        indexTable.putLong(recid*8, offset);
-    }
-
-    protected void indexTableRestore(LongLongMap rollbackData) {
-        //rollback changes in index table since last valid tx
-        long[] v = rollbackData.table;
-        for(int i=0;i<v.length;i+=2){
-            long recid = v[i];
-            if(recid==0)
-                continue;
-            long val = v[i+1];
-            if(val==Long.MIN_VALUE)
-                val = 0;
-            indexTable.putLong(recid*8, val);
+            modified[lockPos(recid)].put(recid,offset);
+        }else {
+            indexTable.ensureAvailable(recid*8+8);
+            indexTable.putLong(recid * 8, offset);
         }
     }
-
 
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
@@ -355,7 +387,7 @@ public class StoreAppend extends Store {
             long plus = 1+6+4+out.pos;
             long offset = alloc(1+6+4, (int) plus);
             vol.ensureAvailable(offset+plus);
-            vol.putUnsignedByte(offset, IINSERT);
+            vol.putUnsignedByte(offset, I_INSERT);
             vol.putSixLong(offset+1,recid);
             vol.putInt(offset+1+6, out.pos);
             vol.putDataOverlap(offset+1+6+4, out.buf,0,out.pos);
@@ -372,6 +404,11 @@ public class StoreAppend extends Store {
     public void close() {
         commitLock.lock();
         try {
+            if(isSnapshot){
+                snapshots.remove(this);
+                return;
+            }
+
             vol.sync();
             vol.close();
             indexTable.close();
@@ -389,6 +426,9 @@ public class StoreAppend extends Store {
 
     @Override
     public void commit() {
+        if(isSnapshot)
+            return;
+
         if(!tx){
             vol.sync();
             return;
@@ -396,11 +436,32 @@ public class StoreAppend extends Store {
 
         commitLock.lock();
         try{
+            StoreAppend[] snaps = snapshots==null ?
+                    STORE_APPENDS_ZERO_ARRAY :
+                    snapshots.toArray(STORE_APPENDS_ZERO_ARRAY);
+
             for(int i=0;i<locks.length;i++) {
                 Lock lock = locks[i].writeLock();
                 lock.lock();
                 try {
-                    rollback[i].clear();
+                    long[] m = modified[i].table;
+                    for(int j=0;j<m.length;j+=2){
+                        long recid = m[j];
+                        long recidOffset = recid*8;
+                        if(recidOffset==0)
+                            continue;
+                        indexTable.ensureAvailable(recidOffset + 8);
+                        long oldVal = indexTable.getLong(recidOffset);
+                        indexTable.putLong(recidOffset,m[j+1]);
+
+                        for(StoreAppend snap:snaps){
+                            LongLongMap m2 = snap.modified[i];
+                            if(m2.get(recid)==0) {
+                                m2.put(recid, oldVal);
+                            }
+                        }
+                    }
+                    modified[i].clear();
                 }finally {
                     lock.unlock();
                 }
@@ -415,7 +476,7 @@ public class StoreAppend extends Store {
 
     @Override
     public void rollback() throws UnsupportedOperationException {
-        if(!tx)
+        if(!tx || readonly || isSnapshot)
             throw new UnsupportedOperationException();
         commitLock.lock();
         try{
@@ -423,10 +484,7 @@ public class StoreAppend extends Store {
                 Lock lock = locks[i].writeLock();
                 lock.lock();
                 try {
-                    if(caches!=null)
-                        caches[i].clear();
-                    indexTableRestore(rollback[i]);
-                    rollback[i].clear();
+                    modified[i].clear();
                 }finally {
                     lock.unlock();
                 }
@@ -448,17 +506,24 @@ public class StoreAppend extends Store {
 
     @Override
     public boolean canSnapshot() {
-        return false;
+        return true;
     }
 
     @Override
     public Engine snapshot() throws UnsupportedOperationException {
-        return null;
+        commitLock.lock();
+        try {
+            return new StoreAppend(this, modified);
+        }finally {
+            commitLock.unlock();
+        }
     }
 
 
     @Override
     public void compact() {
+        if(isSnapshot)
+            return;
 
     }
 }

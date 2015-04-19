@@ -254,14 +254,10 @@ public abstract class EngineTest<ENGINE extends Engine>{
         assertNotEquals(recid, recid2);
     }
 
-    @Test public void get_non_existent(){
+    @Test(expected=DBException.EngineGetVoid.class)
+    public void get_non_existent(){
         long recid = Engine.RECID_FIRST;
-        try{
-            e.get(recid,Serializer.ILLEGAL_ACCESS);
-            fail();
-        }catch(DBException.EngineGetVoid e){
-
-        }
+        e.get(recid, Serializer.ILLEGAL_ACCESS);
     }
 
     @Test
@@ -538,5 +534,51 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
     }
 
+    @Test public void snapshot(){
+        if(!e.canSnapshot())
+            return;
+
+        long recid = e.put("a",Serializer.STRING);
+        Engine snapshot = e.snapshot();
+        e.update(recid, "b", Serializer.STRING);
+        assertEquals("a",snapshot.get(recid, Serializer.STRING));
+    }
+
+    @Test public void snapshot_after_rollback(){
+        if(!e.canSnapshot() || !e.canRollback())
+            return;
+
+        long recid = e.put("a",Serializer.STRING);
+        Engine snapshot = e.snapshot();
+        e.update(recid,"b",Serializer.STRING);
+        assertEquals("a", snapshot.get(recid, Serializer.STRING));
+        e.rollback();
+        assertEquals("a", snapshot.get(recid, Serializer.STRING));
+    }
+
+    @Test public void snapshot_after_commit(){
+        if(!e.canSnapshot())
+            return;
+
+        long recid = e.put("a",Serializer.STRING);
+        Engine snapshot = e.snapshot();
+        e.update(recid,"b",Serializer.STRING);
+        assertEquals("a", snapshot.get(recid, Serializer.STRING));
+        e.commit();
+        assertEquals("a", snapshot.get(recid, Serializer.STRING));
+    }
+
+    @Test public void snapshot_after_commit2(){
+        if(!e.canSnapshot())
+            return;
+
+        long recid = e.put("a",Serializer.STRING);
+        e.commit();
+        Engine snapshot = e.snapshot();
+        e.update(recid,"b",Serializer.STRING);
+        assertEquals("a", snapshot.get(recid, Serializer.STRING));
+        e.commit();
+        assertEquals("a", snapshot.get(recid, Serializer.STRING));
+    }
 
 }

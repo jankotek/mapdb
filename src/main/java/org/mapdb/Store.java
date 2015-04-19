@@ -1310,6 +1310,13 @@ public abstract class Store implements Engine {
         }
 
 
+        public LongLongMap clone(){
+            LongLongMap ret = new LongLongMap();
+            ret.maxSize = maxSize;
+            ret.size = size;
+            ret.table = table.clone();
+            return ret;
+        }
     }
 
 
@@ -1860,6 +1867,7 @@ public abstract class Store implements Engine {
 
             return val;
         }
+
     }
 
     @Override
