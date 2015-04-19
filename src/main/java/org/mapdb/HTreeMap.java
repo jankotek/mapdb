@@ -99,7 +99,7 @@ public class HTreeMap<K,V>
 
     protected final boolean closeExecutor;
     protected final ScheduledExecutorService executor;
-    protected final Lock sequentialLock;
+    protected final Lock consistencyLock;
 
 
     /** node which holds key-value pair */
@@ -318,7 +318,7 @@ public class HTreeMap<K,V>
             ScheduledExecutorService executor,
             long executorPeriod,
             boolean closeExecutor,
-            Lock sequentialLock) {
+            Lock consistencyLock) {
 
         if(counterRecid<0)
             throw new IllegalArgumentException();
@@ -350,7 +350,7 @@ public class HTreeMap<K,V>
         this.segmentRecids = Arrays.copyOf(segmentRecids,16);
         this.keySerializer = keySerializer;
         this.valueSerializer = valueSerializer;
-        this.sequentialLock = sequentialLock==null? Store.NOLOCK : sequentialLock;
+        this.consistencyLock = consistencyLock ==null? Store.NOLOCK : consistencyLock;
 
         if(expire==0 && expireAccess!=0){
             expire = expireAccess;
@@ -822,7 +822,7 @@ public class HTreeMap<K,V>
         V ret;
         final int h = hash(key);
         final int segment = h >>>28;
-        sequentialLock.lock();
+        consistencyLock.lock();
         try {
             segmentLocks[segment].writeLock().lock();
             try {
@@ -831,7 +831,7 @@ public class HTreeMap<K,V>
                 segmentLocks[segment].writeLock().unlock();
             }
         }finally {
-            sequentialLock.unlock();
+            consistencyLock.unlock();
         }
 
         if(expireSingleThreadFlag)
@@ -967,7 +967,7 @@ public class HTreeMap<K,V>
 
         final int h = hash(key);
         final int segment = h >>>28;
-        sequentialLock.lock();
+        consistencyLock.lock();
         try {
             segmentLocks[segment].writeLock().lock();
             try {
@@ -976,7 +976,7 @@ public class HTreeMap<K,V>
                 segmentLocks[segment].writeLock().unlock();
             }
         }finally {
-            sequentialLock.unlock();
+            consistencyLock.unlock();
         }
 
         if(expireSingleThreadFlag)
@@ -1090,7 +1090,7 @@ public class HTreeMap<K,V>
 
     @Override
     public void clear() {
-        sequentialLock.lock();
+        consistencyLock.lock();
         try {
             for (int i = 0; i < 16; i++)
                 try {
@@ -1112,7 +1112,7 @@ public class HTreeMap<K,V>
                     segmentLocks[i].writeLock().unlock();
                 }
         }finally {
-            sequentialLock.unlock();
+            consistencyLock.unlock();
         }
     }
 
@@ -1579,7 +1579,7 @@ public class HTreeMap<K,V>
 
         V ret;
 
-        sequentialLock.lock();
+        consistencyLock.lock();
         try {
             segmentLocks[segment].writeLock().lock();
             try {
@@ -1593,7 +1593,7 @@ public class HTreeMap<K,V>
                 segmentLocks[segment].writeLock().unlock();
             }
         }finally {
-            sequentialLock.unlock();
+            consistencyLock.unlock();
         }
 
         if(expireSingleThreadFlag)
@@ -1612,7 +1612,7 @@ public class HTreeMap<K,V>
         final int h = HTreeMap.this.hash(key);
         final int segment = h >>>28;
 
-        sequentialLock.lock();
+        consistencyLock.lock();
         try {
             segmentLocks[segment].writeLock().lock();
             try {
@@ -1625,7 +1625,7 @@ public class HTreeMap<K,V>
                 segmentLocks[segment].writeLock().unlock();
             }
         }finally {
-            sequentialLock.unlock();
+            consistencyLock.unlock();
         }
 
         if(expireSingleThreadFlag)
@@ -1644,7 +1644,7 @@ public class HTreeMap<K,V>
         final int h = HTreeMap.this.hash(key);
         final int segment = h >>>28;
 
-        sequentialLock.lock();
+        consistencyLock.lock();
         try {
             segmentLocks[segment].writeLock().lock();
             try {
@@ -1657,7 +1657,7 @@ public class HTreeMap<K,V>
                 segmentLocks[segment].writeLock().unlock();
             }
         }finally {
-            sequentialLock.unlock();
+            consistencyLock.unlock();
         }
 
         if(expireSingleThreadFlag)
@@ -1674,7 +1674,7 @@ public class HTreeMap<K,V>
         final int h = HTreeMap.this.hash(key);
         final int segment =  h >>>28;
 
-        sequentialLock.lock();
+        consistencyLock.lock();
         try {
             segmentLocks[segment].writeLock().lock();
             try {
@@ -1686,7 +1686,7 @@ public class HTreeMap<K,V>
                 segmentLocks[segment].writeLock().unlock();
             }
         }finally {
-            sequentialLock.unlock();
+            consistencyLock.unlock();
         }
 
         if(expireSingleThreadFlag)

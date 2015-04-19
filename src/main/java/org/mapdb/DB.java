@@ -69,8 +69,8 @@ public class DB implements Closeable {
 
     protected final Set<String> unknownClasses = new ConcurrentSkipListSet<String>();
 
-    //TODO collection get/create should be under sequentialLock.readLock()
-    protected final ReadWriteLock sequentialLock;
+    //TODO collection get/create should be under consistencyLock.readLock()
+    protected final ReadWriteLock consistencyLock;
 
     protected static class IdentityWrapper{
 
@@ -120,7 +120,7 @@ public class DB implements Closeable {
         this.strictDBGet = strictDBGet;
         this.deleteFilesAfterClose = deleteFilesAfterClose;
         this.executor = executor;
-        this.sequentialLock = lockDisable ?
+        this.consistencyLock = lockDisable ?
                 new Store.ReadWriteSingleLock(Store.NOLOCK) :
                 new ReentrantReadWriteLock();
 
@@ -612,7 +612,7 @@ public class DB implements Closeable {
                 executor,
                 CC.DEFAULT_HTREEMAP_EXECUTOR_PERIOD,
                 false,
-                sequentialLock.readLock()
+                consistencyLock.readLock()
         );
 
         //$DELAY$
@@ -696,7 +696,7 @@ public class DB implements Closeable {
                 m.executor,
                 m.executorPeriod,
                 m.executor!=executor,
-                sequentialLock.readLock());
+                consistencyLock.readLock());
         //$DELAY$
         catalog.put(name + ".type", "HashMap");
         namedPut(name, ret);
@@ -773,7 +773,7 @@ public class DB implements Closeable {
                 executor,
                 CC.DEFAULT_HTREEMAP_EXECUTOR_PERIOD,
                 false,
-                sequentialLock.readLock()
+                consistencyLock.readLock()
         ).keySet();
 
         //$DELAY$
@@ -837,7 +837,7 @@ public class DB implements Closeable {
                 m.executor,
                 m.executorPeriod,
                 m.executor!=executor,
-                sequentialLock.readLock()
+                consistencyLock.readLock()
                 );
         Set<K> ret2 = ret.keySet();
         //$DELAY$
@@ -2024,7 +2024,7 @@ public class DB implements Closeable {
         if(engine == null)
             return;
 
-        sequentialLock.writeLock().lock();
+        consistencyLock.writeLock().lock();
         try {
 
             if(metricsExecutor!=null && metricsExecutor!=executor && !metricsExecutor.isShutdown()){
@@ -2077,7 +2077,7 @@ public class DB implements Closeable {
         } catch (InterruptedException e) {
             throw new DBException.Interrupted(e);
         }finally {
-            sequentialLock.writeLock().unlock();
+            consistencyLock.writeLock().unlock();
         }
     }
 
@@ -2116,7 +2116,7 @@ public class DB implements Closeable {
     synchronized public void commit() {
         checkNotClosed();
 
-        sequentialLock.writeLock().lock();
+        consistencyLock.writeLock().lock();
         try {
             //update Class Catalog with missing classes as part of this transaction
             String[] toBeAdded = unknownClasses.isEmpty() ? null : unknownClasses.toArray(new String[0]);
@@ -2149,7 +2149,7 @@ public class DB implements Closeable {
                 }
             }
         }finally {
-            sequentialLock.writeLock().unlock();
+            consistencyLock.writeLock().unlock();
         }
     }
 
@@ -2160,11 +2160,11 @@ public class DB implements Closeable {
      */
     synchronized public void rollback() {
         checkNotClosed();
-        sequentialLock.writeLock().lock();
+        consistencyLock.writeLock().lock();
         try {
             engine.rollback();
         }finally {
-            sequentialLock.writeLock().unlock();
+            consistencyLock.writeLock().unlock();
         }
     }
 
@@ -2188,12 +2188,12 @@ public class DB implements Closeable {
      * @return readonly snapshot view
      */
     synchronized public DB snapshot(){
-        sequentialLock.writeLock().lock();
+        consistencyLock.writeLock().lock();
         try {
             Engine snapshot = TxEngine.createSnapshotFor(engine);
             return new DB(snapshot);
         }finally {
-            sequentialLock.writeLock().unlock();
+            consistencyLock.writeLock().unlock();
         }
     }
 
@@ -2217,14 +2217,14 @@ public class DB implements Closeable {
     }
 
     /**
-     * Returns sequential lock which groups operation together and ensures consistency.
+     * Returns consistency lock which groups operation together and ensures consistency.
      * Operations which depends on each other are performed under read lock.
-     * Snapshots, close etc are performend under write-lock.
+     * Snapshots, close etc are performed under write-lock.
      *
      * @return
      */
-    public ReadWriteLock sequentialLock(){
-        return sequentialLock;
+    public ReadWriteLock consistencyLock(){
+        return consistencyLock;
     }
 
 

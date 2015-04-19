@@ -2,6 +2,7 @@ package org.mapdb;
 
 import java.io.DataInput;
 import java.util.Arrays;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.logging.Level;
@@ -33,6 +34,8 @@ public class StoreAppend extends Store {
 
     protected final LongLongMap[] rollback;
 
+    protected final ScheduledExecutorService compactionExecutor;
+
     protected StoreAppend(String fileName,
                           Fun.Function1<Volume, String> volumeFactory,
                           Cache cache,
@@ -42,7 +45,8 @@ public class StoreAppend extends Store {
                           boolean compress,
                           byte[] password,
                           boolean readonly,
-                          boolean txDisabled
+                          boolean txDisabled,
+                          ScheduledExecutorService compactionExecutor
                     ) {
         super(fileName, volumeFactory, cache, lockScale,lockingStrategy, checksum, compress, password, readonly);
         this.tx = !txDisabled;
@@ -54,6 +58,7 @@ public class StoreAppend extends Store {
         }else{
             rollback = null;
         }
+        this.compactionExecutor = compactionExecutor;
     }
 
     public StoreAppend(String fileName) {
@@ -66,7 +71,9 @@ public class StoreAppend extends Store {
                 false,
                 null,
                 false,
-                false);
+                false,
+                null
+        );
     }
 
     @Override

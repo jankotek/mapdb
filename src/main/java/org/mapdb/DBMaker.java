@@ -1111,7 +1111,8 @@ public final class DBMaker{
                     Keys.compression_lzf.equals(props.getProperty(Keys.compression)),
                     encKey,
                     propsGetBool(Keys.readOnly),
-                    propsGetBool(Keys.transactionDisable)
+                    propsGetBool(Keys.transactionDisable),
+                    storeExecutor
             );
 
         }else{
