@@ -116,6 +116,10 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     protected final Fun.Function0<ClassInfo[]> getClassInfos;
     protected final Fun.Function1<Void,String> notifyMissingClassInfo;
 
+    // Cache the result of classForName in the common case that the context class loader and ClassInfo[] remains unchanged
+    private Class[] classInfoClassCache;
+    private ClassInfo[] classInfoClassCacheLastClassInfos;
+    private ClassLoader classInfoClassCacheLastClassLoader;
 
     public SerializerPojo(
             Fun.Function1<String, Object> getNameForObject,
@@ -128,6 +132,24 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         this.engine = engine;
         this.getClassInfos = getClassInfos!=null?getClassInfos : Fun.funReturnObject(new ClassInfo[0]);
         this.notifyMissingClassInfo = notifyMissingClassInfo;
+    }
+
+    private Class classForId(ClassInfo[] classInfos, int id) {
+        final ClassLoader classLoader = classForNameClassLoader();
+        if (classInfos != classInfoClassCacheLastClassInfos || classLoader != classInfoClassCacheLastClassLoader) {
+            classInfoClassCache = null;
+        }
+
+        if (classInfoClassCache == null) {
+            classInfoClassCache = new Class[classInfos.length];
+            classInfoClassCacheLastClassInfos = classInfos;
+            classInfoClassCacheLastClassLoader = classLoader;
+        }
+
+        final Class clazz = classInfoClassCache[id];
+        if (clazz != null) return clazz;
+
+        return classInfoClassCache[id] = classForName(classLoader, classInfos[id].name);
     }
 
 
@@ -203,16 +225,24 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         protected final Class<?> clazz;
         protected Field field;
 
-        public FieldInfo(String name, boolean primitive, String type, Class<?> clazz) {
+        FieldInfo(String name, boolean primitive, String type, Class<?> clazz) {
             this(name, primitive, SerializerPojo.classForNameClassLoader(), type, clazz);
         }
 
         public FieldInfo(String name, boolean primitive, ClassLoader classLoader, String type, Class<?> clazz) {
+            this(name, type, primitive ? null : classForName(classLoader, type), clazz);
+        }
+
+        public FieldInfo(ObjectStreamField sf, ClassLoader loader, Class<?> clazz) {
+            this(sf.getName(), sf.isPrimitive(), loader, sf.getType().getName(), clazz);
+        }
+
+        public FieldInfo(String name, String type, Class<?> typeClass, Class<?> clazz) {
             this.name = name;
-            this.primitive = primitive;
+            this.primitive = typeClass == null;
             this.type = type;
             this.clazz = clazz;
-            this.typeClass = primitive?null:classForName(classLoader, type);
+            this.typeClass = typeClass;
 
             //init field
 
@@ -230,18 +260,13 @@ public class SerializerPojo extends SerializerBase implements Serializable{
                     field = f;
                     break;
                 } catch (NoSuchFieldException e) {
-					//field does not exists
+                    //field does not exists
                 }
                 // move to superclass
                 aClazz = aClazz.getSuperclass();
 
 
             }
-        }
-
-
-        public FieldInfo(ObjectStreamField sf, ClassLoader loader, Class<?> clazz) {
-            this(sf.getName(), sf.isPrimitive(), loader, sf.getType().getName(), clazz);
         }
 
     }
@@ -473,7 +498,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             }
 
             ClassInfo classInfo = classes[classId];
-            Class<?> clazz = classForName(classInfo.name);
+            Class<?> clazz = classForId(classes, classId);
             assertClassSerializable(classes,clazz);
 
             Object o;
@@ -631,6 +656,11 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
         private final ClassInfo[] classes;
 
+        // One-element cache to handle the common case where we immediately resolve a descriptor to its class.
+        // Unlike most ObjecTInputStream subclasses we actually have to look up the class to find the descriptor!
+        private ObjectStreamClass lastDescriptor;
+        private Class lastDescriptorClass;
+
         protected ObjectInputStream2(DataInput in, ClassInfo[] classes) throws IOException, SecurityException {
             super(new DataIO.DataInputToStream(in));
             this.classes = classes;
@@ -640,19 +670,26 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         protected ObjectStreamClass readClassDescriptor() throws IOException, ClassNotFoundException {
             int classId = DataIO.unpackInt(this);
             String className;
+            final Class clazz;
             if(classId == -1){
                 //unknown class, so read its name
                 className = this.readUTF();
+                clazz = Class.forName(className, false, SerializerPojo.classForNameClassLoader());
             }else{
-                //gets its name in catalog
-                className = classes[classId].name;
+                clazz = classForId(classes, classId);
             }
-            Class clazz = Class.forName(className);
-            return ObjectStreamClass.lookup(clazz);
+            final ObjectStreamClass descriptor = ObjectStreamClass.lookup(clazz);
+
+            lastDescriptor = descriptor;
+            lastDescriptorClass = clazz;
+
+            return descriptor;
         }
 
         @Override
         protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
+            if (desc == lastDescriptor) return lastDescriptorClass;
+
             ClassLoader loader = SerializerPojo.classForNameClassLoader();
             Class clazz = Class.forName(desc.getName(), false, loader);
             if (clazz != null)
