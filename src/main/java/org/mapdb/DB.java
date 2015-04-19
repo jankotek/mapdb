@@ -2128,12 +2128,13 @@ public class DB implements Closeable {
                 SerializerPojo.ClassInfo[] classes = serializerPojo.getClassInfos.run();
                 SerializerPojo.ClassInfo[] classes2 = classes.length == 0 ? null : classes;
 
+                final ClassLoader classLoader = SerializerPojo.classForNameClassLoader();
                 for (String className : toBeAdded) {
-                    int pos = serializerPojo.classToId(classes, className);
+                    int pos = SerializerPojo.classToId(classes, className);
                     if (pos != -1) {
                         continue;
                     }
-                    SerializerPojo.ClassInfo classInfo = serializerPojo.makeClassInfo(className);
+                    SerializerPojo.ClassInfo classInfo = SerializerPojo.makeClassInfo(classLoader, className);
                     classes = Arrays.copyOf(classes, classes.length + 1);
                     classes[classes.length - 1] = classInfo;
                 }

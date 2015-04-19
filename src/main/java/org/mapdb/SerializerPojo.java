@@ -59,6 +59,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             int size = DataIO.unpackInt(in);
             ClassInfo[] ret = new ClassInfo[size];
 
+            final ClassLoader classLoader = SerializerPojo.classForNameClassLoader();
             for (int i = 0; i < size; i++) {
                 String className = in.readUTF();
                 boolean isEnum = in.readBoolean();
@@ -67,7 +68,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
                 int fieldsNum = isExternalizable? 0 : DataIO.unpackInt(in);
                 FieldInfo[] fields = new FieldInfo[fieldsNum];
                 for (int j = 0; j < fieldsNum; j++) {
-                    fields[j] = new FieldInfo(in.readUTF(), in.readBoolean(), in.readUTF(), classForName(className));
+                    fields[j] = new FieldInfo(in.readUTF(), in.readBoolean(), classLoader, in.readUTF(), classForName(classLoader, className));
                 }
                 ret[i] = new ClassInfo(className, fields,isEnum,isExternalizable);
             }
@@ -91,10 +92,16 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     };
     private static final long serialVersionUID = 3181417366609199703L;
 
+    protected static ClassLoader classForNameClassLoader() {
+        return Thread.currentThread().getContextClassLoader();
+    }
 
     protected static Class<?> classForName(String className) {
+        return classForName(classForNameClassLoader(), className);
+    }
+
+    protected static Class<?> classForName(ClassLoader loader, String className) {
         try {
-            final ClassLoader loader = Thread.currentThread().getContextClassLoader();
             return Class.forName(className, true,loader);
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
@@ -197,11 +204,15 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         protected Field field;
 
         public FieldInfo(String name, boolean primitive, String type, Class<?> clazz) {
+            this(name, primitive, SerializerPojo.classForNameClassLoader(), type, clazz);
+        }
+
+        public FieldInfo(String name, boolean primitive, ClassLoader classLoader, String type, Class<?> clazz) {
             this.name = name;
             this.primitive = primitive;
             this.type = type;
             this.clazz = clazz;
-            this.typeClass = primitive?null:classForName(type);
+            this.typeClass = primitive?null:classForName(classLoader, type);
 
             //init field
 
@@ -229,8 +240,8 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         }
 
 
-        public FieldInfo(ObjectStreamField sf, Class<?> clazz) {
-            this(sf.getName(), sf.isPrimitive(), sf.getType().getName(), clazz);
+        public FieldInfo(ObjectStreamField sf, ClassLoader loader, Class<?> clazz) {
+            this(sf.getName(), sf.isPrimitive(), loader, sf.getType().getName(), clazz);
         }
 
     }
@@ -238,22 +249,17 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
 
 
-    public static ClassInfo makeClassInfo(String className){
-        try {
-            Class clazz = Class.forName(className); //TODO class loader
-            final boolean advancedSer = usesAdvancedSerialization(clazz);
-            ObjectStreamField[] streamFields = advancedSer ? new ObjectStreamField[0] : makeFieldsForClass(clazz);
-            FieldInfo[] fields = new FieldInfo[streamFields.length];
-            for (int i = 0; i < fields.length; i++) {
-                ObjectStreamField sf = streamFields[i];
-                fields[i] = new FieldInfo(sf, clazz);
-            }
-
-            return new ClassInfo(clazz.getName(), fields, clazz.isEnum(), advancedSer);
-        }catch(ClassNotFoundException e){
-            throw new RuntimeException(e);
-            //TODO error handling here, there are several ways this could fail
+    public static ClassInfo makeClassInfo(ClassLoader classLoader, String className){
+        Class clazz = classForName(classLoader, className);
+        final boolean advancedSer = usesAdvancedSerialization(clazz);
+        ObjectStreamField[] streamFields = advancedSer ? new ObjectStreamField[0] : makeFieldsForClass(clazz);
+        FieldInfo[] fields = new FieldInfo[streamFields.length];
+        for (int i = 0; i < fields.length; i++) {
+            ObjectStreamField sf = streamFields[i];
+            fields[i] = new FieldInfo(sf, classLoader, clazz);
         }
+
+        return new ClassInfo(clazz.getName(), fields, clazz.isEnum(), advancedSer);
     }
 
     protected static boolean usesAdvancedSerialization(Class<?> clazz) {
@@ -647,7 +653,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
         @Override
         protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
-            ClassLoader loader = Thread.currentThread().getContextClassLoader();
+            ClassLoader loader = SerializerPojo.classForNameClassLoader();
             Class clazz = Class.forName(desc.getName(), false, loader);
             if (clazz != null)
                 return clazz;
