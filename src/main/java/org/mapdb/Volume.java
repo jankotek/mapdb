@@ -1809,6 +1809,13 @@ public abstract class Volume implements Closeable{
 
     public static final class RandomAccessFileVol extends Volume{
 
+        public static final Fun.Function1<Volume,String> FAC = new Fun.Function1<Volume,String>(){
+            @Override
+            public Volume run(String s) {
+                return new RandomAccessFileVol(new File(s),false); //TODO refactor volfac so readonly is its parameter.
+            }
+        };
+
         protected final File file;
         protected final RandomAccessFile raf;
 

@@ -562,4 +562,12 @@ public class DBMakerTest{
         }
     }
 
+    @Test public void raf(){
+        DB db = DBMaker.fileDB(UtilsTest.tempDbFile())
+                .randomAccessFileEnable()
+                .transactionDisable().make();
+        StoreDirect d = (StoreDirect) Store.forDB(db);
+        assertEquals(Volume.RandomAccessFileVol.class, d.vol.getClass());
+    }
+
 }

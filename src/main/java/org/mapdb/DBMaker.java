@@ -69,6 +69,7 @@ public final class DBMaker{
         String metricsLogInterval = "metricsLogInterval";
 
         String volume = "volume";
+        String volume_fileChannel = "fileChannel";
         String volume_raf = "raf";
         String volume_mmapfIfSupported = "mmapfIfSupported";
         String volume_mmapf = "mmapf";
@@ -790,6 +791,19 @@ public final class DBMaker{
         return this;
     }
 
+        /**
+         * Enable Memory RandomAccessFile access. By defualt MapDB uses {@link java.nio.channels.FileChannel}.
+         * However FileChannel gets closed if thread is interrupted while doing IO. RAF is more robust,
+         * but does not allow concurrent access (parallel read and writes). RAF is still thread-safe
+         * but has global lock.
+         */
+        public Maker randomAccessFileEnable() {
+            assertNotInMemoryVolume();
+            props.setProperty(Keys.volume,Keys.volume_raf);
+            return this;
+        }
+
+
     /**
      * MapDB supports snapshots. {@code TxEngine} requires additional locking which has small overhead when not used.
      * Snapshots are disabled by default. This option switches the snapshots on.
@@ -1293,13 +1307,15 @@ public final class DBMaker{
 
     protected int propsGetRafMode(){
         String volume = props.getProperty(Keys.volume);
-        if(volume==null||Keys.volume_raf.equals(volume)){
+        if(volume==null||Keys.volume_fileChannel.equals(volume)){
             return 2;
         }else if(Keys.volume_mmapfIfSupported.equals(volume)){
             return JVMSupportsLargeMappedFiles()?0:2;
             //TODO clear mmap values
 //        }else if(Keys.volume_mmapfPartial.equals(volume)){
 //            return 1;
+        }else if(Keys.volume_raf.equals(volume)){
+            return 3;
         }else if(Keys.volume_mmapf.equals(volume)){
             return 0;
         }
@@ -1335,11 +1351,14 @@ public final class DBMaker{
         else if(Keys.volume_unsafe.equals(volume))
             return Volume.memoryUnsafeFactory(CC.VOLUME_PAGE_SHIFT);
 
-        boolean raf = propsGetRafMode()!=0;
-        if(raf && index && propsGetRafMode()==1)
-            raf = false;
+        int rafMode = propsGetRafMode();
+        if(rafMode == 3)
+            return Volume.RandomAccessFileVol.FAC;
+        boolean fileChannel = rafMode!=0;
+        if(fileChannel && index && rafMode==1)
+            fileChannel = false;
 
-        return Volume.fileFactory(raf, propsGetBool(Keys.readOnly),
+        return Volume.fileFactory(fileChannel, propsGetBool(Keys.readOnly),
                 CC.VOLUME_PAGE_SHIFT,0);
     }
 
