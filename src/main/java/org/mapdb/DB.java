@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.security.SecureRandom;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -687,7 +688,7 @@ public class DB implements Closeable {
                 m.engines,
                 m.closeEngine,
                 catPut(name + ".counterRecid", !m.counter ? 0L : engine.put(0L, Serializer.LONG)),
-                catPut(name+".hashSalt",Float.floatToIntBits((float) Math.random())),
+                catPut(name+".hashSalt",new SecureRandom().nextInt()),
                 catPut(name+".segmentRecids",HTreeMap.preallocateSegments(m.engines)),
                 catPut(name+".keySerializer",m.keySerializer,getDefaultSerializer()),
                 catPut(name+".valueSerializer",m.valueSerializer,getDefaultSerializer()),
@@ -828,7 +829,7 @@ public class DB implements Closeable {
                 engines,
                 m.closeEngine,
                 catPut(name + ".counterRecid", !m.counter ? 0L : engine.put(0L, Serializer.LONG)),
-                catPut(name+".hashSalt",Float.floatToIntBits((float) Math.random())),
+                catPut(name+".hashSalt", new SecureRandom().nextInt()), //TODO investigate if hashSalt actually prevents collision attack
                 catPut(name+".segmentRecids",HTreeMap.preallocateSegments(engines)),
                 catPut(name+".serializer",m.serializer,getDefaultSerializer()),
                 null,
