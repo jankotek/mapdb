@@ -1016,6 +1016,7 @@ public class StoreWAL extends StoreCached {
                     //TODO this should be closed earlier
                     walCCompact.sync();
                     walCCompact.close();
+                    walCCompact = null;
                 }
                 walC.close();
                 walC.deleteFile();

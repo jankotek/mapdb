@@ -49,6 +49,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
         e.commit();
         reopen();
         assertEquals(l, e.get(recid, Serializer.LONG));
+        e.close();
     }
 
     @Test public void put_get_large(){
@@ -56,6 +57,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
         new Random().nextBytes(b);
         long recid = e.put(b, Serializer.BYTE_ARRAY_NOSIZE);
         assertTrue(Serializer.BYTE_ARRAY.equals(b, e.get(recid, Serializer.BYTE_ARRAY_NOSIZE)));
+        e.close();
     }
 
     @Test public void put_reopen_get_large(){
@@ -66,6 +68,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
         e.commit();
         reopen();
         assertTrue(Serializer.BYTE_ARRAY.equals(b, e.get(recid, Serializer.BYTE_ARRAY_NOSIZE)));
+        e.close();
     }
 
 
@@ -91,10 +94,10 @@ public abstract class EngineTest<ENGINE extends Engine>{
         assertEquals(v2, e.get(recid2,Serializer.LONG));
         assertEquals(v3, e.get(recid3,Serializer.LONG));
         e.commit();
-        assertEquals(v1, e.get(recid1,Serializer.LONG));
+        assertEquals(v1, e.get(recid1, Serializer.LONG));
         assertEquals(v2, e.get(recid2,Serializer.LONG));
         assertEquals(v3, e.get(recid3,Serializer.LONG));
-
+        e.close();
     }
 
 
@@ -113,8 +116,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
             Long value = m.getKey();
             assertEquals(value, e.get(recid, Serializer.LONG));
         }
-
-
+        e.close();
     }
 
 
@@ -136,6 +138,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
             Long value = m.getKey();
             assertEquals(value, e.get(recid, Serializer.LONG));
         }
+        e.close();
     }
 
 
@@ -145,6 +148,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
         e.commit();
         e.compact();
         assertTrue(Serializer.BYTE_ARRAY.equals(b, e.get(recid, Serializer.BYTE_ARRAY_NOSIZE)));
+        e.close();
     }
 
 
@@ -152,6 +156,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
         long recid  = e.put((long) 10000, Serializer.LONG);
         Long  s2 = e.get(recid, Serializer.LONG);
         assertEquals(s2, Long.valueOf(10000));
+        e.close();
     }
 
 
@@ -163,6 +168,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
         long recid = e.put(b, BYTE_ARRAY_NOSIZE);
         byte[] b2 = e.get(recid, BYTE_ARRAY_NOSIZE);
         assertTrue(Serializer.BYTE_ARRAY.equals(b, b2));
+        e.close();
     }
 
     @Test public void large_record_update(){
@@ -177,6 +183,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
         reopen();
         b2 = e.get(recid, BYTE_ARRAY_NOSIZE);
         assertTrue(Serializer.BYTE_ARRAY.equals(b,b2));
+        e.close();
     }
 
     @Test public void large_record_delete(){
@@ -184,6 +191,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
         new Random().nextBytes(b);
         long recid = e.put(b, BYTE_ARRAY_NOSIZE);
         e.delete(recid, BYTE_ARRAY_NOSIZE);
+        e.close();
     }
 
 
@@ -197,6 +205,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
         reopen();
         b2 = e.get(recid, BYTE_ARRAY_NOSIZE);
         assertTrue(Serializer.BYTE_ARRAY.equals(b, b2));
+        e.close();
     }
 
 
@@ -207,6 +216,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
         String aaa = e.get(recid, Serializer.STRING_NOSIZE);
         assertEquals("aaa", aaa);
+        e.close();
     }
 
     @Test public void test_store_reopen_nocommit(){
@@ -217,6 +227,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
         String expected = canRollback()&&canReopen()?"aaa":"bbb";
         assertEquals(expected, e.get(recid, Serializer.STRING_NOSIZE));
+        e.close();
     }
 
 
@@ -228,8 +239,8 @@ public abstract class EngineTest<ENGINE extends Engine>{
         if(!canRollback())return;
         e.rollback();
 
-        assertEquals("aaa",e.get(recid, Serializer.STRING_NOSIZE));
-
+        assertEquals("aaa", e.get(recid, Serializer.STRING_NOSIZE));
+        e.close();
     }
 
     @Test public void rollback_reopen(){
@@ -242,7 +253,8 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
         assertEquals("aaa", e.get(recid, Serializer.STRING_NOSIZE));
         reopen();
-        assertEquals("aaa",e.get(recid, Serializer.STRING_NOSIZE));
+        assertEquals("aaa", e.get(recid, Serializer.STRING_NOSIZE));
+        e.close();
     }
 
     /* after deletion it enters preallocated state */
@@ -252,12 +264,14 @@ public abstract class EngineTest<ENGINE extends Engine>{
         assertNull(e.get(recid, Serializer.ILLEGAL_ACCESS));
         long recid2 = e.put("bbb", Serializer.STRING);
         assertNotEquals(recid, recid2);
+        e.close();
     }
 
     @Test(expected=DBException.EngineGetVoid.class)
     public void get_non_existent(){
         long recid = Engine.RECID_FIRST;
         e.get(recid, Serializer.ILLEGAL_ACCESS);
+        e.close();
     }
 
     @Test
@@ -273,6 +287,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
                 fail();
         }catch(DBException.EngineGetVoid e){
         }
+        e.close();
     }
 
     @Test public void preallocate_cas(){
@@ -286,18 +301,20 @@ public abstract class EngineTest<ENGINE extends Engine>{
     @Test public void preallocate_get_update_delete_update_get(){
         long recid = e.preallocate();
         assertNull(e.get(recid,Serializer.ILLEGAL_ACCESS));
-        e.update(recid,1L, Serializer.LONG);
-        assertEquals((Long)1L, e.get(recid,Serializer.LONG));
-        e.delete(recid,Serializer.LONG);
+        e.update(recid, 1L, Serializer.LONG);
+        assertEquals((Long) 1L, e.get(recid, Serializer.LONG));
+        e.delete(recid, Serializer.LONG);
         assertNull(e.get(recid, Serializer.ILLEGAL_ACCESS));
         e.update(recid, 1L, Serializer.LONG);
-        assertEquals((Long)1L, e.get(recid,Serializer.LONG));
+        assertEquals((Long) 1L, e.get(recid, Serializer.LONG));
+        e.close();
     }
 
     @Test public void cas_delete(){
         long recid = e.put(1L, Serializer.LONG);
         assertTrue(e.compareAndSwap(recid, 1L, null, Serializer.LONG));
         assertNull(e.get(recid, Serializer.ILLEGAL_ACCESS));
+        e.close();
     }
 
     @Test public void reserved_recid_exists(){
@@ -309,7 +326,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
             fail();
         }catch(DBException.EngineGetVoid e){
         }
-
+        e.close();
     }
 
 
@@ -348,10 +365,11 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
         s = "da8898fe89w98fw98f9";
         st.update(recid,s,Serializer.STRING);
-        assertEquals(s,st.get(recid,Serializer.STRING));
+        assertEquals(s, st.get(recid, Serializer.STRING));
 
-        st.delete(recid,Serializer.STRING);
+        st.delete(recid, Serializer.STRING);
         assertNull(st.get(recid, Serializer.STRING));
+        st.close();
     }
 
 
@@ -378,17 +396,18 @@ public abstract class EngineTest<ENGINE extends Engine>{
         assertEquals("",e.get(recid,s));
 
         e.update(recid, "a", s);
-        assertEquals("a",e.get(recid,s));
+        assertEquals("a", e.get(recid, s));
 
         e.compareAndSwap(recid, "a", "", s);
-        assertEquals("",e.get(recid,s));
+        assertEquals("", e.get(recid, s));
 
 
         e.update(recid, "a", s);
-        assertEquals("a",e.get(recid,s));
+        assertEquals("a", e.get(recid, s));
 
         e.update(recid, "", s);
         assertEquals("", e.get(recid, s));
+        e.close();
     }
 
     @Test(timeout = 1000*100)
@@ -425,7 +444,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
         for( Fun.Pair<Long,byte[]> t :q){
             assertTrue(Serializer.BYTE_ARRAY.equals(t.b, e.get(t.a, Serializer.BYTE_ARRAY_NOSIZE)));
         }
-
+        e.close();
     }
 
 
@@ -462,15 +481,16 @@ public abstract class EngineTest<ENGINE extends Engine>{
         for( Fun.Pair<Long,byte[]> t :q){
             assertTrue(Serializer.BYTE_ARRAY.equals(t.b, e.get(t.a, Serializer.BYTE_ARRAY_NOSIZE)));
         }
-
+        e.close();
     }
 
     @Test public void update_reserved_recid(){
         Engine e = openEngine();
         e.update(Engine.RECID_NAME_CATALOG,111L,Serializer.LONG);
-        assertEquals(new Long(111L),e.get(Engine.RECID_NAME_CATALOG,Serializer.LONG));
+        assertEquals(new Long(111L), e.get(Engine.RECID_NAME_CATALOG, Serializer.LONG));
         e.commit();
         assertEquals(new Long(111L), e.get(Engine.RECID_NAME_CATALOG, Serializer.LONG));
+        e.close();
     }
 
 
@@ -482,6 +502,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
         assertTrue(Serializer.BYTE_ARRAY.equals(data, e.get(Engine.RECID_NAME_CATALOG, Serializer.BYTE_ARRAY_NOSIZE)));
         e.commit();
         assertTrue(Serializer.BYTE_ARRAY.equals(data, e.get(Engine.RECID_NAME_CATALOG, Serializer.BYTE_ARRAY_NOSIZE)));
+        e.close();
     }
 
     @Test public void cas_uses_serializer(){
@@ -497,6 +518,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
         assertTrue(e.compareAndSwap(recid, data.clone(), data2.clone(), Serializer.BYTE_ARRAY));
 
         assertTrue(Serializer.BYTE_ARRAY.equals(data2, e.get(recid, Serializer.BYTE_ARRAY)));
+        e.close();
     }
 
     @Test public void nosize_array(){
@@ -514,7 +536,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
         e.delete(recid, Serializer.BYTE_ARRAY_NOSIZE);
         assertTrue(Serializer.BYTE_ARRAY.equals(null, e.get(recid, Serializer.BYTE_ARRAY_NOSIZE)));
-
+        e.close();
     }
 
     @Test public void compact_double_recid_reuse(){
@@ -530,8 +552,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
         assertEquals(recid2, e.preallocate());
         assertEquals(recid1, e.preallocate());
-
-
+        e.close();
     }
 
     @Test public void snapshot(){
@@ -541,7 +562,8 @@ public abstract class EngineTest<ENGINE extends Engine>{
         long recid = e.put("a",Serializer.STRING);
         Engine snapshot = e.snapshot();
         e.update(recid, "b", Serializer.STRING);
-        assertEquals("a",snapshot.get(recid, Serializer.STRING));
+        assertEquals("a", snapshot.get(recid, Serializer.STRING));
+        e.close();
     }
 
     @Test public void snapshot_after_rollback(){
@@ -554,6 +576,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
         assertEquals("a", snapshot.get(recid, Serializer.STRING));
         e.rollback();
         assertEquals("a", snapshot.get(recid, Serializer.STRING));
+        e.close();
     }
 
     @Test public void snapshot_after_commit(){
@@ -566,6 +589,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
         assertEquals("a", snapshot.get(recid, Serializer.STRING));
         e.commit();
         assertEquals("a", snapshot.get(recid, Serializer.STRING));
+        e.close();
     }
 
     @Test public void snapshot_after_commit2(){
@@ -579,6 +603,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
         assertEquals("a", snapshot.get(recid, Serializer.STRING));
         e.commit();
         assertEquals("a", snapshot.get(recid, Serializer.STRING));
+        e.close();
     }
 
 }
