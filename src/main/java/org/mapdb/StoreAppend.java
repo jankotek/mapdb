@@ -46,7 +46,7 @@ public class StoreAppend extends Store {
     protected final boolean isSnapshot;
 
     protected StoreAppend(String fileName,
-                          Fun.Function1<Volume, String> volumeFactory,
+                          Volume.VolumeFactory volumeFactory,
                           Cache cache,
                           int lockScale,
                           int lockingStrategy,
@@ -74,7 +74,7 @@ public class StoreAppend extends Store {
 
     public StoreAppend(String fileName) {
         this(fileName,
-                fileName==null? Volume.memoryFactory() : Volume.fileFactory(),
+                fileName==null? CC.DEFAULT_MEMORY_VOLUME_FACTORY : CC.DEFAULT_FILE_VOLUME_FACTORY,
                 null,
                 CC.DEFAULT_LOCK_SCALE,
                 0,
@@ -135,7 +135,7 @@ public class StoreAppend extends Store {
         super.init();
         structuralLock.lock();
         try {
-            vol = volumeFactory.run(fileName);
+            vol = volumeFactory.makeVolume(fileName, readonly);
             indexTable = new Volume.ByteArrayVol(CC.VOLUME_PAGE_SHIFT);
             if (!readonly)
                 vol.ensureAvailable(headerSize);

@@ -24,6 +24,7 @@ import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.FileChannel;
 import java.util.Arrays;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -42,6 +43,15 @@ import java.util.logging.Logger;
  * @author Jan Kotek
  */
 public abstract class Volume implements Closeable{
+
+    public static abstract class VolumeFactory{
+        public abstract Volume makeVolume(String file, boolean readOnly,
+                                          int sliceShift, long initSize, boolean fixedSize);
+
+        public Volume makeVolume(String file, boolean readOnly){
+            return makeVolume(file,readOnly,CC.VOLUME_PAGE_SHIFT, 0, false);
+        }
+    }
 
     private static final byte[] CLEAR = new byte[1024];
 
@@ -233,12 +243,6 @@ public abstract class Volume implements Closeable{
     }
 
 
-    public static Volume volumeForFile(File f, boolean useRandomAccessFile, boolean readOnly,  int sliceShift, int sizeIncrement) {
-        return useRandomAccessFile ?
-                new FileChannelVol(f, readOnly, sliceShift, sizeIncrement):
-                new MappedFileVol(f, readOnly,sliceShift, sizeIncrement);
-    }
-
     /**
      * Set all bytes between {@code startOffset} and {@code endOffset} to zero.
      * Area between offsets must be ready for write once clear finishes.
@@ -246,54 +250,6 @@ public abstract class Volume implements Closeable{
     public abstract void clear(long startOffset, long endOffset);
 
 
-
-    public static Fun.Function1<Volume,String> fileFactory(){
-        return fileFactory(false,false,CC.VOLUME_PAGE_SHIFT,0);
-    }
-
-    public static Fun.Function1<Volume,String> fileFactory(
-            final boolean useRandomAccessFile,
-            final boolean readOnly,
-            final int sliceShift,
-            final int sizeIncrement) {
-        return new Fun.Function1<Volume, String>() {
-            @Override
-            public Volume run(String file) {
-                return volumeForFile(new File(file), useRandomAccessFile,
-                        readOnly,  sliceShift, sizeIncrement);
-            }
-        };
-    }
-
-
-    public static Fun.Function1<Volume,String> memoryFactory() {
-        return memoryFactory(false,CC.VOLUME_PAGE_SHIFT);
-    }
-
-    public static Fun.Function1<Volume,String> memoryFactory(
-            final boolean useDirectBuffer, final int sliceShift) {
-        return new Fun.Function1<Volume,String>() {
-
-            @Override
-            public Volume run(String s) {
-                return useDirectBuffer?
-                        new MemoryVol(true,  sliceShift):
-                        new ByteArrayVol(sliceShift);
-            }
-        };
-    }
-
-    public static Fun.Function1<Volume,String> memoryUnsafeFactory(final int sliceShift) {
-        return new Fun.Function1<Volume,String>() {
-
-            @Override
-            public Volume run(String s) {
-                return UnsafeVolume.unsafeAvailable()?
-                        new UnsafeVolume(-1,sliceShift):
-                        new MemoryVol(true,sliceShift);
-            }
-        };
-    }
 
     /**
      * Copy content of one volume to another.
@@ -595,13 +551,22 @@ public abstract class Volume implements Closeable{
 
     public static final class MappedFileVol extends ByteBufferVol {
 
+        public static final VolumeFactory FACTORY = new VolumeFactory() {
+            @Override
+            public Volume makeVolume(String file, boolean readOnly, int sliceShift, long initSize, boolean fixedSize) {
+                //TODO optimize if fixedSize is bellow 2GB
+                //TODO prealocate initsize
+                return new MappedFileVol(new File(file),readOnly,sliceShift);
+            }
+        };
+
         protected final File file;
         protected final FileChannel fileChannel;
         protected final FileChannel.MapMode mapMode;
         protected final java.io.RandomAccessFile raf;
 
 
-        public MappedFileVol(File file, boolean readOnly, int sliceShift, int sizeIncrement) {
+        public MappedFileVol(File file, boolean readOnly, int sliceShift) {
             super(readOnly,sliceShift);
             this.file = file;
             this.mapMode = readOnly? FileChannel.MapMode.READ_ONLY: FileChannel.MapMode.READ_WRITE;
@@ -758,6 +723,17 @@ public abstract class Volume implements Closeable{
     }
 
     public static final class MemoryVol extends ByteBufferVol {
+
+        /** factory for DirectByteBuffer storage*/
+        public static final VolumeFactory FACTORY = new VolumeFactory() {
+            @Override
+            public Volume makeVolume(String file, boolean readOnly, int sliceShift, long initSize, boolean fixedSize) {
+                //TODO prealocate initSize
+                //TODO optimize for fixedSize smaller than 2GB
+                return new MemoryVol(true,sliceShift);
+            }
+        }
+                ;
         protected final boolean useDirectBuffer;
 
         @Override
@@ -844,6 +820,14 @@ public abstract class Volume implements Closeable{
      */
     public static final class FileChannelVol extends Volume {
 
+        public static final VolumeFactory FACTORY = new VolumeFactory() {
+
+            @Override
+            public Volume makeVolume(String file, boolean readOnly, int sliceShift, long initSize, boolean fixedSize) {
+                return new FileChannelVol(new File(file),readOnly, sliceShift);
+            }
+        };
+
         protected final File file;
         protected final int sliceSize;
         protected RandomAccessFile raf;
@@ -851,9 +835,9 @@ public abstract class Volume implements Closeable{
         protected final boolean readOnly;
 
         protected volatile long size;
-        protected final Object growLock = new Object();
+        protected final Lock growLock = new ReentrantLock(CC.FAIR_LOCKS);
 
-        public FileChannelVol(File file, boolean readOnly, int sliceShift, int sizeIncrement){
+        public FileChannelVol(File file, boolean readOnly, int sliceShift){
             this.file = file;
             this.readOnly = readOnly;
             this.sliceSize = 1<<sliceShift;
@@ -878,7 +862,7 @@ public abstract class Volume implements Closeable{
         }
 
         public FileChannelVol(File file) {
-            this(file, false,CC.VOLUME_PAGE_SHIFT, 0);
+            this(file, false,CC.VOLUME_PAGE_SHIFT);
         }
 
         protected static void checkFolder(File file, boolean readOnly) throws IOException {
@@ -902,7 +886,8 @@ public abstract class Volume implements Closeable{
             if(offset% sliceSize !=0)
                 offset += sliceSize - offset% sliceSize; //round up to multiply of slice size
 
-            if(offset>size)synchronized (growLock){
+            if(offset>size){
+                growLock.lock();
                 try {
                     channel.truncate(offset);
                     size = offset;
@@ -912,35 +897,46 @@ public abstract class Volume implements Closeable{
                     throw new DBException.VolumeClosed(e);
                 } catch (IOException e) {
                     throw new DBException.VolumeIOError(e);
+                }finally {
+                    growLock.unlock();
                 }
             }
         }
 
         @Override
         public void truncate(long size) {
-            synchronized (growLock){
-                try {
-                    this.size = size;
-                    channel.truncate(size);
-                }catch(ClosedByInterruptException e){
-                    throw new DBException.VolumeClosedByInterrupt(e);
-                }catch(ClosedChannelException e){
-                    throw new DBException.VolumeClosed(e);
-                } catch (IOException e) {
-                    throw new DBException.VolumeIOError(e);
-                }
+            growLock.lock();
+            try {
+                this.size = size;
+                channel.truncate(size);
+            }catch(ClosedByInterruptException e){
+                throw new DBException.VolumeClosedByInterrupt(e);
+            }catch(ClosedChannelException e){
+                throw new DBException.VolumeClosed(e);
+            } catch (IOException e) {
+                throw new DBException.VolumeIOError(e);
+            }finally{
+                growLock.unlock();
             }
         }
 
-        protected void writeFully(long offset, ByteBuffer buf) throws IOException {
+        protected void writeFully(long offset, ByteBuffer buf){
             int remaining = buf.limit()-buf.position();
             if(CC.VOLUME_PRINT_STACK_AT_OFFSET!=0 && CC.VOLUME_PRINT_STACK_AT_OFFSET>=offset && CC.VOLUME_PRINT_STACK_AT_OFFSET <= offset+remaining){
                 new IOException("VOL STACK:").printStackTrace();
             }
-            while(remaining>0){
-                int write = channel.write(buf, offset);
-                if(write<0) throw new EOFException();
-                remaining-=write;
+            try {
+                while(remaining>0){
+                    int write = channel.write(buf, offset);
+                    if(write<0) throw new EOFException();
+                    remaining-=write;
+                }
+            }catch(ClosedByInterruptException e){
+                throw new DBException.VolumeClosedByInterrupt(e);
+            }catch(ClosedChannelException e){
+                throw new DBException.VolumeClosed(e);
+            } catch (IOException e) {
+                throw new DBException.VolumeIOError(e);
             }
         }
 
@@ -951,17 +947,10 @@ public abstract class Volume implements Closeable{
                 new IOException("VOL STACK:").printStackTrace();
             }
 
-            try{
-                ByteBuffer buf = ByteBuffer.allocate(8);
-                buf.putLong(0, value);
-                writeFully(offset, buf);
-            }catch(ClosedByInterruptException e){
-                throw new DBException.VolumeClosedByInterrupt(e);
-            }catch(ClosedChannelException e){
-                throw new DBException.VolumeClosed(e);
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
+
+            ByteBuffer buf = ByteBuffer.allocate(8);
+            buf.putLong(0, value);
+            writeFully(offset, buf);
         }
 
         @Override
@@ -970,17 +959,9 @@ public abstract class Volume implements Closeable{
                 new IOException("VOL STACK:").printStackTrace();
             }
 
-            try{
-                ByteBuffer buf = ByteBuffer.allocate(4);
-                buf.putInt(0, value);
-                writeFully(offset, buf);
-            }catch(ClosedByInterruptException e){
-                throw new DBException.VolumeClosedByInterrupt(e);
-            }catch(ClosedChannelException e){
-                throw new DBException.VolumeClosed(e);
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
+            ByteBuffer buf = ByteBuffer.allocate(4);
+            buf.putInt(0, value);
+            writeFully(offset, buf);
         }
 
         @Override
@@ -989,128 +970,73 @@ public abstract class Volume implements Closeable{
                 new IOException("VOL STACK:").printStackTrace();
             }
 
-            try{
-                ByteBuffer buf = ByteBuffer.allocate(1);
-                buf.put(0, value);
-                writeFully(offset, buf);
-            }catch(ClosedByInterruptException e){
-                throw new DBException.VolumeClosedByInterrupt(e);
-            }catch(ClosedChannelException e){
-                throw new DBException.VolumeClosed(e);
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
+
+            ByteBuffer buf = ByteBuffer.allocate(1);
+            buf.put(0, value);
+            writeFully(offset, buf);
         }
 
         @Override
         public void putData(long offset, byte[] src, int srcPos, int srcSize) {
-            try{
-                ByteBuffer buf = ByteBuffer.wrap(src,srcPos, srcSize);
-                writeFully(offset, buf);
-            }catch(ClosedByInterruptException e){
-                throw new DBException.VolumeClosedByInterrupt(e);
-            }catch(ClosedChannelException e){
-                throw new DBException.VolumeClosed(e);
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
+            ByteBuffer buf = ByteBuffer.wrap(src,srcPos, srcSize);
+            writeFully(offset, buf);
         }
 
         @Override
         public void putData(long offset, ByteBuffer buf) {
+            writeFully(offset,buf);
+        }
+
+        protected void readFully(long offset, ByteBuffer buf){
+            int remaining = buf.limit()-buf.position();
             try{
-                writeFully(offset,buf);
+                while(remaining>0){
+                    int read = channel.read(buf, offset);
+                    if(read<0)
+                        throw new EOFException();
+                    remaining-=read;
+                }
             }catch(ClosedByInterruptException e){
                 throw new DBException.VolumeClosedByInterrupt(e);
             }catch(ClosedChannelException e){
                 throw new DBException.VolumeClosed(e);
             } catch (IOException e) {
                 throw new DBException.VolumeIOError(e);
-            }
-        }
-
-        protected void readFully(long offset, ByteBuffer buf) throws IOException {
-            int remaining = buf.limit()-buf.position();
-            while(remaining>0){
-                int read = channel.read(buf, offset);
-                if(read<0)
-                    throw new EOFException();
-                remaining-=read;
             }
         }
 
         @Override
         public long getLong(long offset) {
-            try{
-                ByteBuffer buf = ByteBuffer.allocate(8);
-                readFully(offset,buf);
-                return buf.getLong(0);
-            }catch(ClosedByInterruptException e){
-                throw new DBException.VolumeClosedByInterrupt(e);
-            }catch(ClosedChannelException e){
-                throw new DBException.VolumeClosed(e);
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
+            ByteBuffer buf = ByteBuffer.allocate(8);
+            readFully(offset, buf);
+            return buf.getLong(0);
         }
 
         @Override
         public int getInt(long offset) {
-            try{
-                ByteBuffer buf = ByteBuffer.allocate(4);
-                readFully(offset,buf);
-                return buf.getInt(0);
-            }catch(ClosedByInterruptException e){
-                throw new DBException.VolumeClosedByInterrupt(e);
-            }catch(ClosedChannelException e){
-                throw new DBException.VolumeClosed(e);
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
+            ByteBuffer buf = ByteBuffer.allocate(4);
+            readFully(offset,buf);
+            return buf.getInt(0);
         }
 
         @Override
         public byte getByte(long offset) {
-            try{
-                ByteBuffer buf = ByteBuffer.allocate(1);
-                readFully(offset,buf);
-                return buf.get(0);
-            }catch(ClosedByInterruptException e){
-                throw new DBException.VolumeClosedByInterrupt(e);
-            }catch(ClosedChannelException e){
-                throw new DBException.VolumeClosed(e);
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
+            ByteBuffer buf = ByteBuffer.allocate(1);
+            readFully(offset,buf);
+            return buf.get(0);
         }
 
         @Override
         public DataIO.DataInputByteBuffer getDataInput(long offset, int size) {
-            try{
-                ByteBuffer buf = ByteBuffer.allocate(size);
-                readFully(offset,buf);
-                return new DataIO.DataInputByteBuffer(buf,0);
-            }catch(ClosedByInterruptException e){
-                throw new DBException.VolumeClosedByInterrupt(e);
-            }catch(ClosedChannelException e){
-                throw new DBException.VolumeClosed(e);
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
+            ByteBuffer buf = ByteBuffer.allocate(size);
+            readFully(offset,buf);
+            return new DataIO.DataInputByteBuffer(buf,0);
         }
 
         @Override
         public void getData(long offset, byte[] bytes, int bytesPos, int size) {
-            try{
-                ByteBuffer buf = ByteBuffer.wrap(bytes,bytesPos,size);
-                readFully(offset,buf);
-            }catch(ClosedByInterruptException e){
-                throw new DBException.VolumeClosedByInterrupt(e);
-            }catch(ClosedChannelException e){
-                throw new DBException.VolumeClosed(e);
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
+            ByteBuffer buf = ByteBuffer.wrap(bytes,bytesPos,size);
+            readFully(offset,buf);
         }
 
         @Override
@@ -1214,6 +1140,16 @@ public abstract class Volume implements Closeable{
 
 
     public static final class ByteArrayVol extends Volume{
+
+        public static final VolumeFactory FACTORY = new VolumeFactory() {
+
+            @Override
+            public Volume makeVolume(String file, boolean readOnly, int sliceShift, long initSize, boolean fixedSize) {
+                //TODO optimize for fixedSize if bellow 2GB
+                //TODO preallocate minimal size
+                return new ByteArrayVol(sliceShift);
+            }
+        };
 
         protected final ReentrantLock growLock = new ReentrantLock(CC.FAIR_LOCKS);
 
@@ -1809,13 +1745,14 @@ public abstract class Volume implements Closeable{
 
     public static final class RandomAccessFileVol extends Volume{
 
-        public static final Fun.Function1<Volume,String> FAC = new Fun.Function1<Volume,String>(){
+
+        public static final VolumeFactory FACTORY = new VolumeFactory() {
             @Override
-            public Volume run(String s) {
-                return new RandomAccessFileVol(new File(s),false); //TODO refactor volfac so readonly is its parameter.
+            public Volume makeVolume(String file, boolean readOnly, int sliceShift, long initSize, boolean fixedSize) {
+                //TODO allocate initSize
+                return new RandomAccessFileVol(new File(file), readOnly);
             }
         };
-
         protected final File file;
         protected final RandomAccessFile raf;
 
@@ -2030,6 +1967,13 @@ public abstract class Volume implements Closeable{
 
         // Cached array base offset
         private static final long ARRAY_BASE_OFFSET = UNSAFE ==null?-1 : UNSAFE.arrayBaseOffset(byte[].class);;
+
+        public static final VolumeFactory FACTORY = new VolumeFactory() {
+            @Override
+            public Volume makeVolume(String file, boolean readOnly, int sliceShift, long initSize, boolean fixedSize) {
+                return new UnsafeVolume(0,sliceShift);
+            }
+        };
 
         public static boolean unsafeAvailable(){
             return UNSAFE !=null;

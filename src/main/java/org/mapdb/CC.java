@@ -125,5 +125,8 @@ public interface CC {
     boolean METRICS_STORE = true;
 
     int DEFAULT_ASYNC_WRITE_QUEUE_SIZE = 1024;
+
+    Volume.VolumeFactory DEFAULT_MEMORY_VOLUME_FACTORY = Volume.ByteArrayVol.FACTORY;
+    Volume.VolumeFactory DEFAULT_FILE_VOLUME_FACTORY = Volume.FileChannelVol.FACTORY;
 }
 

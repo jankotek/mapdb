@@ -33,7 +33,7 @@ public class StoreCached extends StoreDirect {
 
     public StoreCached(
             String fileName,
-            Fun.Function1<Volume, String> volumeFactory,
+            Volume.VolumeFactory volumeFactory,
             Cache cache,
             int lockScale,
             int lockingStrategy,
@@ -94,7 +94,7 @@ public class StoreCached extends StoreDirect {
 
     public StoreCached(String fileName) {
         this(fileName,
-                fileName == null ? Volume.memoryFactory() : Volume.fileFactory(),
+                fileName==null? CC.DEFAULT_MEMORY_VOLUME_FACTORY : CC.DEFAULT_FILE_VOLUME_FACTORY,
                 null,
                 CC.DEFAULT_LOCK_SCALE,
                 0,

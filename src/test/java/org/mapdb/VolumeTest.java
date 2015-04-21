@@ -47,7 +47,7 @@ public class VolumeTest {
                     new Fun.Function1<Volume,String>() {
                         @Override
                         public Volume run(String file) {
-                            return new Volume.FileChannelVol(new File(file), false, CC.VOLUME_PAGE_SHIFT, 0);
+                            return new Volume.FileChannelVol(new File(file), false, CC.VOLUME_PAGE_SHIFT);
                         }
                     },
                     new Fun.Function1<Volume,String>() {
@@ -59,7 +59,7 @@ public class VolumeTest {
                     new Fun.Function1<Volume,String>() {
                         @Override
                         public Volume run(String file) {
-                            return new Volume.MappedFileVol(new File(file), false, CC.VOLUME_PAGE_SHIFT, 0);
+                            return new Volume.MappedFileVol(new File(file), false, CC.VOLUME_PAGE_SHIFT);
                         }
                     }
     };
@@ -67,7 +67,7 @@ public class VolumeTest {
     @Test
     public void interrupt_raf_file_exception() throws IOException, InterruptedException {
         // when IO thread is interrupted, channel gets closed and it throws  ClosedByInterruptException
-        final Volume.FileChannelVol v = new Volume.FileChannelVol(File.createTempFile("mapdb", "mapdb"), false, 0, 0);
+        final Volume.FileChannelVol v = new Volume.FileChannelVol(File.createTempFile("mapdb", "mapdb"), false, 0);
         final AtomicReference ref = new AtomicReference();
         Thread t = new Thread() {
             @Override

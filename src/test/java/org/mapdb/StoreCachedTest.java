@@ -53,7 +53,7 @@ public class StoreCachedTest<E extends StoreCached> extends StoreDirectTest<E>{
             final int M = 1234;
             StoreCached s = new StoreCached(
                     null,
-                    Volume.memoryFactory(),
+                    Volume.ByteArrayVol.FACTORY,
                     null,
                     1,
                     0,

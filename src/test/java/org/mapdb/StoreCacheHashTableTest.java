@@ -11,7 +11,7 @@ public class StoreCacheHashTableTest<E extends StoreDirect> extends EngineTest<E
     @Override protected E openEngine() {
         StoreDirect e =new StoreDirect(
                 f.getPath(),
-                Volume.fileFactory(),
+                Volume.FileChannelVol.FACTORY,
                 new Store.Cache.HashTable(1024,false),
                 CC.DEFAULT_LOCK_SCALE,
                 0,

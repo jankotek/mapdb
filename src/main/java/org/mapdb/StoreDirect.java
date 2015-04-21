@@ -68,7 +68,7 @@ public class StoreDirect extends Store {
     protected final ScheduledExecutorService executor;
 
     public StoreDirect(String fileName,
-                       Fun.Function1<Volume, String> volumeFactory,
+                       Volume.VolumeFactory volumeFactory,
                        Cache cache,
                        int lockScale,
                        int lockingStrategy,
@@ -82,7 +82,7 @@ public class StoreDirect extends Store {
                        ScheduledExecutorService executor
                        ) {
         super(fileName,volumeFactory, cache, lockScale, lockingStrategy, checksum,compress,password,readonly);
-        this.vol = volumeFactory.run(fileName);
+        this.vol = volumeFactory.makeVolume(fileName, readonly);
         this.executor = executor;
     }
 
@@ -199,7 +199,7 @@ public class StoreDirect extends Store {
 
     public StoreDirect(String fileName) {
         this(fileName,
-                fileName==null? Volume.memoryFactory() : Volume.fileFactory(),
+                fileName==null? CC.DEFAULT_MEMORY_VOLUME_FACTORY : CC.DEFAULT_FILE_VOLUME_FACTORY,
                 null,
                 CC.DEFAULT_LOCK_SCALE,
                 0,
@@ -883,7 +883,7 @@ public class StoreDirect extends Store {
                         }
 
                         //and reopen volume
-                        this.headVol = this.vol = volumeFactory.run(this.fileName);
+                        this.headVol = this.vol = volumeFactory.makeVolume(this.fileName, readonly);
 
                         if(isStoreCached){
                             ((StoreCached)this).dirtyStackPages.clear();

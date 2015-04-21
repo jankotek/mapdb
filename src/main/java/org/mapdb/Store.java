@@ -42,7 +42,7 @@ public abstract class Store implements Engine {
     protected final boolean readonly;
 
     protected final String fileName;
-    protected Fun.Function1<Volume, String> volumeFactory;
+    protected Volume.VolumeFactory volumeFactory;
     protected boolean checksum;
     protected boolean compress;
     protected boolean encrypt;
@@ -63,7 +63,7 @@ public abstract class Store implements Engine {
 
     protected Store(
             String fileName,
-            Fun.Function1<Volume, String> volumeFactory,
+            Volume.VolumeFactory volumeFactory,
             Cache cache,
             int lockScale,
             int lockingStrategy,

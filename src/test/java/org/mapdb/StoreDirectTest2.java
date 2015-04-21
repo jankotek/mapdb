@@ -68,8 +68,9 @@ public class StoreDirectTest2 {
     @Test public void reopen_after_insert(){
         final Volume vol = new Volume.ByteArrayVol(CC.VOLUME_PAGE_SHIFT);
 
-        Fun.Function1<Volume, String> fab = new Fun.Function1<Volume, String>() {
-            @Override public Volume run(String s) {
+        Volume.VolumeFactory fab = new Volume.VolumeFactory() {
+            @Override
+            public Volume makeVolume(String file, boolean readOnly, int sliceShift, long initSize, boolean fixedSize) {
                 return vol;
             }
         };

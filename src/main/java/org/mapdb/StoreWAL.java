@@ -98,7 +98,7 @@ public class StoreWAL extends StoreCached {
 
     public StoreWAL(String fileName) {
         this(fileName,
-                fileName == null ? Volume.memoryFactory() : Volume.fileFactory(),
+                fileName == null ? CC.DEFAULT_MEMORY_VOLUME_FACTORY : CC.DEFAULT_FILE_VOLUME_FACTORY,
                 null,
                 CC.DEFAULT_LOCK_SCALE,
                 0,
@@ -110,7 +110,7 @@ public class StoreWAL extends StoreCached {
 
     public StoreWAL(
             String fileName,
-            Fun.Function1<Volume, String> volumeFactory,
+            Volume.VolumeFactory volumeFactory,
             Cache cache,
             int lockScale,
             int lockingStrategy,
@@ -179,14 +179,14 @@ public class StoreWAL extends StoreCached {
                      new File(wal0Name).exists())){
             //fill compaction stuff
 
-            walC =  walCompSealExists?volumeFactory.run(walCompSeal) : null;
-            walCCompact = walCompSealExists? volumeFactory.run(walCompSeal+".compact") : null;
+            walC =  walCompSealExists?volumeFactory.makeVolume(walCompSeal, readonly) : null;
+            walCCompact = walCompSealExists? volumeFactory.makeVolume(walCompSeal + ".compact", readonly) : null;
 
             for(int i=0;;i++){
                 String rname = getWalFileName("r"+i);
                 if(!new File(rname).exists())
                     break;
-                walRec.add(volumeFactory.run(rname));
+                walRec.add(volumeFactory.makeVolume(rname, readonly));
             }
 
 
@@ -195,7 +195,7 @@ public class StoreWAL extends StoreCached {
                 String wname = getWalFileName(""+i);
                 if(!new File(wname).exists())
                     break;
-                volumes.add(volumeFactory.run(wname));
+                volumes.add(volumeFactory.makeVolume(wname, readonly));
             }
 
             initOpenPost();
@@ -251,7 +251,7 @@ public class StoreWAL extends StoreCached {
         if (readonly && filewal != null && !new File(filewal).exists()){
             nextVol = new Volume.ReadOnly(new Volume.ByteArrayVol(8));
         }else {
-            nextVol = volumeFactory.run(filewal);
+            nextVol = volumeFactory.makeVolume(filewal, readonly);
         }
         nextVol.ensureAvailable(16);
         //TODO write headers and stuff
@@ -663,7 +663,7 @@ public class StoreWAL extends StoreCached {
             if(compactionInProgress){
                 //use record format rather than instruction format.
                 String recvalName = getWalFileName("r"+walRec.size());
-                Volume v = volumeFactory.run(recvalName);
+                Volume v = volumeFactory.makeVolume(recvalName, readonly);
                 walRec.add(v);
                 v.ensureAvailable(16);
                 long offset = 16;
@@ -1004,7 +1004,7 @@ public class StoreWAL extends StoreCached {
                     }
 
                     //and reopen volume
-                    this.realVol = volumeFactory.run(this.fileName);
+                    this.realVol = volumeFactory.makeVolume(this.fileName, readonly);
                     this.vol = new Volume.ReadOnly(this.realVol);
                     this.initHeadVol();
 
@@ -1281,7 +1281,7 @@ public class StoreWAL extends StoreCached {
 
                     //start walC file, which indicates if compaction finished fine
                     String walCFileName = getWalFileName("c");
-                    walC = volumeFactory.run(walCFileName);
+                    walC = volumeFactory.makeVolume(walCFileName, readonly);
                     walC.ensureAvailable(16);
                     walC.putLong(0,0); //TODO wal header
                     walC.putLong(8,0);

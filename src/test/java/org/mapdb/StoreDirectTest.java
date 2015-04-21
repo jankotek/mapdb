@@ -608,7 +608,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.close();
 
         //increment store version
-        Volume v = Volume.volumeForFile(f,true,false,CC.VOLUME_PAGE_SHIFT, 0);
+        Volume v = Volume.FileChannelVol.FACTORY.makeVolume(f.getPath(), true);
         v.putUnsignedShort(4,StoreDirect.STORE_VERSION+1);
         v.sync();
         v.close();
@@ -633,7 +633,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
         //increment store version
         File phys = new File(f.getPath());
-        Volume v = Volume.volumeForFile(phys,true,false,CC.VOLUME_PAGE_SHIFT, 0);
+        Volume v = Volume.FileChannelVol.FACTORY.makeVolume(phys.getPath(), true);
         v.putUnsignedShort(4,StoreDirect.STORE_VERSION+1);
         v.sync();
         v.close();
@@ -684,10 +684,16 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
 
     @Test public void compact_keeps_volume_type(){
-        for(Fun.Function1<Volume,String> fab : VolumeTest.VOL_FABS){
+        for(final Fun.Function1<Volume,String> fab : VolumeTest.VOL_FABS){
+            Volume.VolumeFactory fac = new Volume.VolumeFactory() {
+                @Override
+                public Volume makeVolume(String file, boolean readOnly, int sliceShift, long initSize, boolean fixedSize) {
+                    return fab.run(file);
+                }
+            };
             //init
             File f = UtilsTest.tempDbFile();
-            StoreDirect s = new StoreDirect(f.getPath(), fab,
+            StoreDirect s = new StoreDirect(f.getPath(), fac,
                     null,
                     CC.DEFAULT_LOCK_SCALE,
                     0,

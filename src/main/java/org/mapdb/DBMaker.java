@@ -1111,7 +1111,7 @@ public final class DBMaker{
             if(Keys.volume_byteBuffer.equals(volume)||Keys.volume_directByteBuffer.equals(volume))
                 throw new UnsupportedOperationException("Append Storage format is not supported with in-memory dbs");
 
-            Fun.Function1<Volume, String> volFac = extendStoreVolumeFactory(false);
+            Volume.VolumeFactory volFac = extendStoreVolumeFactory(false);
             engine = new StoreAppend(
                     file,
                     volFac,
@@ -1127,7 +1127,7 @@ public final class DBMaker{
             );
 
         }else{
-            Fun.Function1<Volume, String> volFac = extendStoreVolumeFactory(false);
+            Volume.VolumeFactory volFac = extendStoreVolumeFactory(false);
             boolean compressionEnabled = Keys.compression_lzf.equals(props.getProperty(Keys.compression));
             boolean asyncWrite = propsGetBool(Keys.asyncWrite) && !readOnly;
             boolean txDisable = propsGetBool(Keys.transactionDisable);
@@ -1329,24 +1329,25 @@ public final class DBMaker{
     }
 
 
-    protected Fun.Function1<Volume,String>  extendStoreVolumeFactory(boolean index) {
+    protected Volume.VolumeFactory  extendStoreVolumeFactory(boolean index) {
         String volume = props.getProperty(Keys.volume);
         if(Keys.volume_byteBuffer.equals(volume))
-            return Volume.memoryFactory(false,CC.VOLUME_PAGE_SHIFT);
+            return Volume.ByteArrayVol.FACTORY;
         else if(Keys.volume_directByteBuffer.equals(volume))
-            return Volume.memoryFactory(true,CC.VOLUME_PAGE_SHIFT);
+            return Volume.MemoryVol.FACTORY;
         else if(Keys.volume_unsafe.equals(volume))
-            return Volume.memoryUnsafeFactory(CC.VOLUME_PAGE_SHIFT);
+            return Volume.UnsafeVolume.FACTORY;
 
         int rafMode = propsGetRafMode();
         if(rafMode == 3)
-            return Volume.RandomAccessFileVol.FAC;
+            return Volume.RandomAccessFileVol.FACTORY;
         boolean fileChannel = rafMode!=0;
         if(fileChannel && index && rafMode==1)
             fileChannel = false;
 
-        return Volume.fileFactory(fileChannel, propsGetBool(Keys.readOnly),
-                CC.VOLUME_PAGE_SHIFT,0);
+        return fileChannel?
+                Volume.FileChannelVol.FACTORY:
+                Volume.MappedFileVol.FACTORY;
     }
 
     }
