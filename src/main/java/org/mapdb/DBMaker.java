@@ -792,14 +792,15 @@ public final class DBMaker{
     }
 
         /**
-         * Enable Memory RandomAccessFile access. By defualt MapDB uses {@link java.nio.channels.FileChannel}.
-         * However FileChannel gets closed if thread is interrupted while doing IO. RAF is more robust,
-         * but does not allow concurrent access (parallel read and writes). RAF is still thread-safe
+         * Enable FileChannel access. By default MapDB uses {@link java.io.RandomAccessFile}.
+         * whic is slower and more robust. but does not allow concurrent access (parallel read and writes). RAF is still thread-safe
          * but has global lock.
+         * FileChannel does not have global lock, and is faster compared to RAF. However memory-mapped files are
+         * probably best choice.
          */
-        public Maker randomAccessFileEnable() {
+        public Maker fileChannelEnable() {
             assertNotInMemoryVolume();
-            props.setProperty(Keys.volume,Keys.volume_raf);
+            props.setProperty(Keys.volume,Keys.volume_fileChannel);
             return this;
         }
 
@@ -1302,14 +1303,14 @@ public final class DBMaker{
 
     protected int propsGetRafMode(){
         String volume = props.getProperty(Keys.volume);
-        if(volume==null||Keys.volume_fileChannel.equals(volume)){
+        if(volume==null||Keys.volume_raf.equals(volume)){
             return 2;
         }else if(Keys.volume_mmapfIfSupported.equals(volume)){
             return JVMSupportsLargeMappedFiles()?0:2;
             //TODO clear mmap values
 //        }else if(Keys.volume_mmapfPartial.equals(volume)){
 //            return 1;
-        }else if(Keys.volume_raf.equals(volume)){
+        }else if(Keys.volume_fileChannel.equals(volume)){
             return 3;
         }else if(Keys.volume_mmapf.equals(volume)){
             return 0;
@@ -1340,13 +1341,13 @@ public final class DBMaker{
 
         int rafMode = propsGetRafMode();
         if(rafMode == 3)
-            return Volume.RandomAccessFileVol.FACTORY;
-        boolean fileChannel = rafMode!=0;
-        if(fileChannel && index && rafMode==1)
-            fileChannel = false;
+            return Volume.FileChannelVol.FACTORY;
+        boolean raf = rafMode!=0;
+        if(raf && index && rafMode==1)
+            raf = false;
 
-        return fileChannel?
-                Volume.FileChannelVol.FACTORY:
+        return raf?
+                Volume.RandomAccessFileVol.FACTORY:
                 Volume.MappedFileVol.FACTORY;
     }
 

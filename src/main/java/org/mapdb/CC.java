@@ -127,6 +127,8 @@ public interface CC {
     int DEFAULT_ASYNC_WRITE_QUEUE_SIZE = 1024;
 
     Volume.VolumeFactory DEFAULT_MEMORY_VOLUME_FACTORY = Volume.ByteArrayVol.FACTORY;
-    Volume.VolumeFactory DEFAULT_FILE_VOLUME_FACTORY = Volume.FileChannelVol.FACTORY;
+
+    //TODO AppendStoreTest par* test fails if this changes  to FileChannelVol
+    Volume.VolumeFactory DEFAULT_FILE_VOLUME_FACTORY = Volume.RandomAccessFileVol.FACTORY;
 }
 

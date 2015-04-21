@@ -36,23 +36,18 @@ public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
         StoreWAL w = openEngine();
 
         assertTrue(wal0.exists());
-        assertTrue(w.volumes.get(0).length()>16);
         assertFalse(wal1.exists());
 
         w.put("aa",Serializer.STRING);
         w.commit();
         assertTrue(wal0.exists());
-        assertTrue(w.volumes.get(0).length()>16);
         assertTrue(wal1.exists());
-        assertTrue(w.volumes.get(1).length()>16);
         assertFalse(wal2.exists());
 
         w.put("aa",Serializer.STRING);
         w.commit();
         assertTrue(wal0.exists());
-        assertTrue(w.volumes.get(0).length() > 16);
         assertTrue(wal1.exists());
-        assertTrue(w.volumes.get(1).length() > 16);
         assertTrue(wal2.exists());
     }
 
