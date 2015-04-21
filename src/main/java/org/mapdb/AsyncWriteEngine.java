@@ -490,27 +490,30 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
         commitLock.writeLock().lock();
         try {
             if(closeInProgress) return;
-            checkState();
-            closeInProgress = true;
-            //notify background threads
-            if(!action.compareAndSet(null,new CountDownLatch(0)))
-                throw new AssertionError();
-
-            //wait for background threads to shutdown
-
-            activeThreadsCount.await(1000,TimeUnit.MILLISECONDS);
-
-            //put preallocated recids back to store
-            newRecidsLock.lock();
-            try{
-                while(newRecidsPos>0){
-                    super.delete(newRecids[--newRecidsPos],Serializer.ILLEGAL_ACCESS);
+            try {
+                checkState();
+                closeInProgress = true;
+                //notify background threads
+                if(!action.compareAndSet(null,new CountDownLatch(0)))
+                    throw new AssertionError();
+    
+                //wait for background threads to shutdown
+    
+                activeThreadsCount.await(1000,TimeUnit.MILLISECONDS);
+    
+                //put preallocated recids back to store
+                newRecidsLock.lock();
+                try{
+                    while(newRecidsPos>0){
+                        super.delete(newRecids[--newRecidsPos],Serializer.ILLEGAL_ACCESS);
+                    }
+                }finally{
+                    newRecidsLock.unlock();
                 }
-            }finally{
-                newRecidsLock.unlock();
+            } finally {
+                //no matter what fails we must make an attempt to close everything.
+                AsyncWriteEngine.super.close();
             }
-
-            AsyncWriteEngine.super.close();
 
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
