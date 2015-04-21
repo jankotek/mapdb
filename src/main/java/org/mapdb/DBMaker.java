@@ -1090,9 +1090,6 @@ public final class DBMaker{
         }
 
 
-        extendArgumentCheck();
-
-
         Engine engine;
         int lockingStrategy = 0;
         String lockingStrategyStr = props.getProperty(Keys.lock,Keys.lock_readWrite);
@@ -1192,8 +1189,6 @@ public final class DBMaker{
         if(engine instanceof Store){
             ((Store)engine).init();
         }
-
-        engine = extendWrapStore(engine);
 
 
         if(propsGetBool(Keys.snapshots))
@@ -1325,14 +1320,6 @@ public final class DBMaker{
 
     protected Engine extendSnapshotEngine(Engine engine, int lockScale) {
         return new TxEngine(engine,propsGetBool(Keys.fullTx), lockScale);
-    }
-
-
-    protected void extendArgumentCheck() {
-    }
-
-    protected Engine extendWrapStore(Engine engine) {
-        return engine;
     }
 
 
