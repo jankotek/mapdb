@@ -5,11 +5,14 @@
     <groupId>org.mapdb</groupId>
     <artifactId>mapdb</artifactId>
     <version>2.0.0-SNAPSHOT</version>
+    <modules>
+        <module>../mapdb-exporter</module>
+    </modules>
     <name>mapdb</name>
     <description>MapDB provides concurrent Maps, Sets and Queues backed by disk storage or off-heap memory. It is a fast, scalable and easy to use embedded Java database.</description>
     <url>http://www.mapdb.org</url>
 
-    <packaging>bundle</packaging>
+    <packaging>pom</packaging>
 
     <licenses>
         <license>
@@ -123,31 +126,6 @@
         </plugins>
     </build>
 
-
-    <profiles>
-
-        <profile>
-            <!-- profile activated to generate additional reports -->
-            <id>reports</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.jacoco</groupId>
-                        <artifactId>jacoco-maven-plugin</artifactId>
-                        <version>0.6.3.201306030806</version>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>prepare-agent</goal>
-                                    <goal>report</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
 
     <reporting>
         <plugins>
