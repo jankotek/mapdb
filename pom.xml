@@ -5,14 +5,11 @@
     <groupId>org.mapdb</groupId>
     <artifactId>mapdb</artifactId>
     <version>2.0.0-SNAPSHOT</version>
-    <modules>
-        <module>../mapdb-exporter</module>
-    </modules>
     <name>mapdb</name>
     <description>MapDB provides concurrent Maps, Sets and Queues backed by disk storage or off-heap memory. It is a fast, scalable and easy to use embedded Java database.</description>
     <url>http://www.mapdb.org</url>
 
-    <packaging>pom</packaging>
+    <packaging>bundle</packaging>
 
     <licenses>
         <license>
