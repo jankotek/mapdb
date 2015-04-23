@@ -69,7 +69,7 @@ public class HTreeMap3Test extends ConcurrentMapInterfaceTest<Integer, String> {
     protected ConcurrentMap<Integer, String> makeEmptyMap() throws UnsupportedOperationException {
         Engine[] engines = HTreeMap.fillEngineArray(r);
         return new HTreeMap(engines,
-                false, 0,0, HTreeMap.preallocateSegments(engines), Serializer.BASIC, Serializer.BASIC,0,0,0,0,0,null,null,null,null, 0L,false,null);
+                false, null,0, HTreeMap.preallocateSegments(engines), Serializer.BASIC, Serializer.BASIC,0,0,0,0,0,null,null,null,null, 0L,false,null);
     }
 
     @Override

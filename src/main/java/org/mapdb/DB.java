@@ -597,7 +597,7 @@ public class DB implements Closeable {
         ret = new HTreeMap<K,V>(
                 HTreeMap.fillEngineArray(engine),
                 false,
-                (Long)catGet(name+".counterRecid"),
+                (long[])catGet(name+".counterRecids"),
                 (Integer)catGet(name+".hashSalt"),
                 (long[])catGet(name+".segmentRecids"),
                 catGet(name+".keySerializer",getDefaultSerializer()),
@@ -683,11 +683,18 @@ public class DB implements Closeable {
         }
         //$DELAY$
 
+        long[] counterRecids = null;
+        if(m.counter){
+            counterRecids = new long[16];
+            for(int i=0;i<16;i++){
+                counterRecids[i] = m.engines[i].put(0L,Serializer.LONG);
+            }
+        }
 
         HTreeMap<K,V> ret = new HTreeMap<K,V>(
                 m.engines,
                 m.closeEngine,
-                catPut(name + ".counterRecid", !m.counter ? 0L : engine.put(0L, Serializer.LONG)),
+                counterRecids==null? null : catPut(name + ".counterRecids", counterRecids),
                 catPut(name+".hashSalt",new SecureRandom().nextInt()),
                 catPut(name+".segmentRecids",HTreeMap.preallocateSegments(m.engines)),
                 catPut(name+".keySerializer",m.keySerializer,getDefaultSerializer()),
@@ -758,7 +765,7 @@ public class DB implements Closeable {
         ret = new HTreeMap<K, Object>(
                 HTreeMap.fillEngineArray(engine),
                 false,
-                (Long)catGet(name+".counterRecid"),
+                (long[])catGet(name+".counterRecids"),
                 (Integer)catGet(name+".hashSalt"),
                 (long[])catGet(name+".segmentRecids"),
                 catGet(name+".serializer",getDefaultSerializer()),
@@ -822,13 +829,21 @@ public class DB implements Closeable {
             catPut(name+".expireHeads",expireHeads);
             catPut(name+".expireTails",expireTails);
         }
-
         //$DELAY$
         Engine[] engines = HTreeMap.fillEngineArray(engine);
+
+        long[] counterRecids = null;
+        if(m.counter){
+            counterRecids = new long[16];
+            for(int i=0;i<16;i++){
+                counterRecids[i] = engines[i].put(0L,Serializer.LONG);
+            }
+        }
+
         HTreeMap<K,Object> ret = new HTreeMap<K,Object>(
                 engines,
                 m.closeEngine,
-                catPut(name + ".counterRecid", !m.counter ? 0L : engine.put(0L, Serializer.LONG)),
+                counterRecids == null ? null : catPut(name + ".counterRecids", counterRecids),
                 catPut(name+".hashSalt", new SecureRandom().nextInt()), //TODO investigate if hashSalt actually prevents collision attack
                 catPut(name+".segmentRecids",HTreeMap.preallocateSegments(engines)),
                 catPut(name+".serializer",m.serializer,getDefaultSerializer()),
@@ -1148,7 +1163,7 @@ public class DB implements Closeable {
                 (Long) catGet(name + ".rootRecidRef"),
                 catGet(name+".maxNodeSize",32),
                 catGet(name+".valuesOutsideNodes",false),
-                catGet(name+".counterRecid",0L),
+                catGet(name+".counterRecids",0L),
                 catGet(name+".keySerializer",new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer(),Fun.COMPARATOR)),
                 catGet(name+".valueSerializer",getDefaultSerializer()),
                 catGet(name+".numberOfNodeMetas",0)
@@ -1246,7 +1261,7 @@ public class DB implements Closeable {
                 catPut(name+".rootRecidRef", rootRecidRef),
                 catPut(name+".maxNodeSize",m.nodeSize),
                 catPut(name+".valuesOutsideNodes",m.valuesOutsideNodes),
-                catPut(name+".counterRecid",counterRecid),
+                catPut(name+".counterRecids",counterRecid),
                 m.keySerializer,
                 (Serializer<V>)m.valueSerializer,
                 catPut(m.name+".numberOfNodeMetas",0)
@@ -1335,7 +1350,7 @@ public class DB implements Closeable {
                 (Long) catGet(name+".rootRecidRef"),
                 catGet(name+".maxNodeSize",32),
                 false,
-                catGet(name+".counterRecid",0L),
+                catGet(name+".counterRecids",0L),
                 catGet(name+".keySerializer",new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer(),Fun.COMPARATOR)),
                 null,
                 catGet(name+".numberOfNodeMetas",0)
@@ -1422,7 +1437,7 @@ public class DB implements Closeable {
                 catPut(m.name+".rootRecidRef", rootRecidRef),
                 catPut(m.name+".maxNodeSize",m.nodeSize),
                 false,
-                catPut(m.name+".counterRecid",counterRecid),
+                catPut(m.name+".counterRecids",counterRecid),
                 m.serializer,
                 null,
                 catPut(m.name+".numberOfNodeMetas",0)
