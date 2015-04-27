@@ -469,7 +469,7 @@ public class StoreDirect extends Store {
 
                 long offset = (offsets[i] & MOFFSET);
                 if(CC.ASSERT && offset%16!=0)
-                    throw new AssertionError("not alligned to 16");
+                    throw new AssertionError("not aligned to 16");
 
                 int plus = (last?0:8);
                 int size = (int) ((offsets[i]>>>48) - plus);

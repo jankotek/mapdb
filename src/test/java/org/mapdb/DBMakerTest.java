@@ -524,6 +524,9 @@ public class DBMakerTest{
                 .hashMapSegmentedMemory()
                 .make();
 
+        if(HTreeMap.SEG==1)
+            return;
+
         assertNotSame(m.engines[0], m.engines[1]);
 
         StoreDirect s = (StoreDirect) m.engines[0];
@@ -545,6 +548,9 @@ public class DBMakerTest{
                 .expireAfterWrite(100)
                 .executorEnable()
                 .make();
+
+        if(HTreeMap.SEG==1)
+            return;
 
         assertNotSame(m.engines[0], m.engines[1]);
 

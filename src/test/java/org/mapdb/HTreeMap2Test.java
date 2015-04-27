@@ -10,6 +10,7 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.*;
 
@@ -245,6 +246,9 @@ public class HTreeMap2Test {
 
     @Test //(timeout = 10000)
     public void testIteration(){
+        if(HTreeMap.SEG==1)
+            return;
+
         Engine[] engines = HTreeMap.fillEngineArray(engine);
         HTreeMap m = new HTreeMap(engines,
                 false, null,0,HTreeMap.preallocateSegments(engines),Serializer.BASIC,Serializer.BASIC,0,0,0,0,0,null,null,null,null,0L, false,null){
@@ -344,41 +348,43 @@ public class HTreeMap2Test {
     }
 
     @Test public void expire_link_test(){
+        final int s = HTreeMap.SEG==1?0:2;
+
         HTreeMap m = db.hashMapCreate("test").expireMaxSize(100).make();
-        m.segmentLocks[2].writeLock().lock();
+        m.segmentLocks[s].writeLock().lock();
 
         long[] recids = new long[10];
         for(int i=1;i<10;i++){
             recids[i] = m.engines[0].put(HTreeMap.ExpireLinkNode.EMPTY, HTreeMap.ExpireLinkNode.SERIALIZER);
-            m.expireLinkAdd(2, recids[i],i*10,i*100);
+            m.expireLinkAdd(s, recids[i],i*10,i*100);
         }
 
-        assertArrayEquals(new int[]{100,200,300,400,500,600,700,800,900},getExpireList(m,2));
+        assertArrayEquals(new int[]{100, 200, 300, 400, 500, 600, 700, 800, 900}, getExpireList(m, s));
 
-        m.expireLinkBump(2,recids[8],true);
-        assertArrayEquals(new int[]{100,200,300,400,500,600,700,900,800},getExpireList(m,2));
+        m.expireLinkBump(s, recids[8], true);
+        assertArrayEquals(new int[]{100, 200, 300, 400, 500, 600, 700, 900, 800}, getExpireList(m, s));
 
-        m.expireLinkBump(2,recids[5],true);
-        assertArrayEquals(new int[]{100,200,300,400,600,700,900,800,500},getExpireList(m,2));
+        m.expireLinkBump(s, recids[5], true);
+        assertArrayEquals(new int[]{100, 200, 300, 400, 600, 700, 900, 800, 500}, getExpireList(m, s));
 
-        m.expireLinkBump(2,recids[1],true);
-        assertArrayEquals(new int[]{200,300,400,600,700,900,800,500,100},getExpireList(m,2));
+        m.expireLinkBump(s, recids[1], true);
+        assertArrayEquals(new int[]{200, 300, 400, 600, 700, 900, 800, 500, 100}, getExpireList(m, s));
 
-        assertEquals(200, m.expireLinkRemoveLast(2).hash);
-        assertArrayEquals(new int[]{300,400,600,700,900,800,500,100},getExpireList(m,2));
+        assertEquals(200, m.expireLinkRemoveLast(s).hash);
+        assertArrayEquals(new int[]{300,400,600,700,900,800,500,100},getExpireList(m,s));
 
-        assertEquals(300, m.expireLinkRemoveLast(2).hash);
-        assertArrayEquals(new int[]{400,600,700,900,800,500,100},getExpireList(m,2));
+        assertEquals(300, m.expireLinkRemoveLast(s).hash);
+        assertArrayEquals(new int[]{400,600,700,900,800,500,100},getExpireList(m,s));
 
-        assertEquals(600, m.expireLinkRemove(2,recids[6]).hash);
-        assertArrayEquals(new int[]{400,700,900,800,500,100},getExpireList(m,2));
+        assertEquals(600, m.expireLinkRemove(s,recids[6]).hash);
+        assertArrayEquals(new int[]{400,700,900,800,500,100},getExpireList(m,s));
 
-        assertEquals(400, m.expireLinkRemove(2,recids[4]).hash);
-        assertArrayEquals(new int[]{700,900,800,500,100},getExpireList(m,2));
+        assertEquals(400, m.expireLinkRemove(s,recids[4]).hash);
+        assertArrayEquals(new int[]{700,900,800,500,100},getExpireList(m,s));
 
-        assertEquals(100, m.expireLinkRemove(2,recids[1]).hash);
-        assertArrayEquals(new int[]{700,900,800,500},getExpireList(m,2));
-        m.segmentLocks[2].writeLock().unlock();
+        assertEquals(100, m.expireLinkRemove(s,recids[1]).hash);
+        assertArrayEquals(new int[]{700,900,800,500},getExpireList(m,s));
+        m.segmentLocks[s].writeLock().unlock();
 
     }
 
@@ -979,5 +985,42 @@ public class HTreeMap2Test {
     }
 
 
+    @Test (timeout=20000L)
+    public void expiration_notification() throws InterruptedException {
+        DB db = DBMaker.memoryDB()
+                .transactionDisable()
+                .make();
+        HTreeMap m = db
+                .hashMapCreate("map")
+                .expireAfterWrite(1000)
+                .executorEnable()
+                .make();
+
+        final AtomicReference k = new AtomicReference();
+        final AtomicReference oldval = new AtomicReference();
+        final AtomicReference newval = new AtomicReference();
+
+        m.put("one", "one2");
+
+        //small chance of race condition, dont care
+        m.modificationListenerAdd(new Bind.MapListener() {
+            @Override
+            public void update(Object key, Object oldVal, Object newVal) {
+                k.set(key);
+                oldval.set(oldVal);
+                newval.set(newVal);
+            }
+        });
+
+        while(k.get()==null){
+            Thread.sleep(1);
+        }
+
+        assertEquals(0,m.size());
+
+        assertEquals("one", k.get());
+        assertEquals("one2",oldval.get());
+        assertEquals(null, newval.get());
+    }
 }
 

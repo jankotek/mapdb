@@ -672,9 +672,9 @@ public class DB implements Closeable {
             expireMaxSize = catPut(name+".expireMaxSize",m.expireMaxSize);
             expireStoreSize = catPut(name+".expireStoreSize",m.expireStoreSize);
             //$DELAY$
-            expireHeads = new long[16];
-            expireTails = new long[16];
-            for(int i=0;i<16;i++){
+            expireHeads = new long[HTreeMap.SEG];
+            expireTails = new long[HTreeMap.SEG];
+            for(int i=0;i<HTreeMap.SEG;i++){
                 expireHeads[i] = m.engines[i].put(0L,Serializer.LONG);
                 expireTails[i] = m.engines[i].put(0L, Serializer.LONG);
             }
@@ -685,8 +685,8 @@ public class DB implements Closeable {
 
         long[] counterRecids = null;
         if(m.counter){
-            counterRecids = new long[16];
-            for(int i=0;i<16;i++){
+            counterRecids = new long[HTreeMap.SEG];
+            for(int i=0;i<HTreeMap.SEG;i++){
                 counterRecids[i] = m.engines[i].put(0L,Serializer.LONG);
             }
         }
@@ -819,10 +819,10 @@ public class DB implements Closeable {
             expireAccess = catPut(name+".expireAccess",m.expireAccess);
             expireMaxSize = catPut(name+".expireMaxSize",m.expireMaxSize);
             expireStoreSize = catPut(name+".expireStoreSize",m.expireStoreSize);
-            expireHeads = new long[16];
+            expireHeads = new long[HTreeMap.SEG];
             //$DELAY$
-            expireTails = new long[16];
-            for(int i=0;i<16;i++){
+            expireTails = new long[HTreeMap.SEG];
+            for(int i=0;i<HTreeMap.SEG;i++){
                 expireHeads[i] = engine.put(0L,Serializer.LONG);
                 expireTails[i] = engine.put(0L,Serializer.LONG);
             }
@@ -834,8 +834,8 @@ public class DB implements Closeable {
 
         long[] counterRecids = null;
         if(m.counter){
-            counterRecids = new long[16];
-            for(int i=0;i<16;i++){
+            counterRecids = new long[HTreeMap.SEG];
+            for(int i=0;i<HTreeMap.SEG;i++){
                 counterRecids[i] = engines[i].put(0L,Serializer.LONG);
             }
         }

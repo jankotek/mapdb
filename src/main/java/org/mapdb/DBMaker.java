@@ -1363,9 +1363,9 @@ public final class DBMaker{
 
 
         DB db = maker.make();
-        Engine[] engines = new Engine[16];
+        Engine[] engines = new Engine[HTreeMap.SEG];
         engines[0] = db.engine;
-        for(int i=1;i<16;i++){
+        for(int i=1;i<HTreeMap.SEG;i++){
             engines[i] = maker.makeEngine();
         }
         return new DB.HTreeMapMaker(db,"hashMapSegmented", engines)
