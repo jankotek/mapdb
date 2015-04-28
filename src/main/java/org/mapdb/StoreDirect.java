@@ -217,15 +217,26 @@ public class StoreDirect extends Store{
         }finally{
             if(!allGood){
                 //exception was thrown, try to unlock files
-                if(index!=null){
-                    index.sync();
-                    index.close();
-                    index = null;
-                }
-                if(phys!=null){
-                    phys.sync();
-                    phys.close();
-                    phys = null;
+                //We have to wrap everything in try finally blocks as we must try to unlock as many files
+                //as possible. If we fail to close index we should still try to close the phys file.
+                try {
+                    if(index!=null){
+                        try {
+                            index.sync();
+                        } finally {
+                            index.close();
+                        }
+                        index = null;
+                    }
+                } finally {
+                    if(phys!=null){
+                        try {
+                            phys.sync();
+                        } finally {
+                            phys.close();
+                        }
+                        phys = null;
+                    }
                 }
             }
         }
