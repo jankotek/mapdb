@@ -421,21 +421,24 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
     public void close() {
         commitLock.writeLock().lock();
         try {
+
             if(closeInProgress) return;
             checkState();
             closeInProgress = true;
-            //notify background threads
-            if(!action.compareAndSet(null,new CountDownLatch(0)))
-                throw new AssertionError();
+            try {
+                //notify background threads
+                if (!action.compareAndSet(null, new CountDownLatch(0)))
+                    throw new AssertionError();
 
-            //wait for background threads to shutdown
+                //wait for background threads to shutdown
 
-            while(!activeThreadsCount.await(1000,TimeUnit.MILLISECONDS)) {
-                //nothing here
+                while (!activeThreadsCount.await(1000, TimeUnit.MILLISECONDS)) {
+                    //nothing here
+                }
+
+            }finally {
+                AsyncWriteEngine.super.close();
             }
-
-            AsyncWriteEngine.super.close();
-
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }finally {
