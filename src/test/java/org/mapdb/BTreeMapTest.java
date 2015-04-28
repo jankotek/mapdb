@@ -6,6 +6,7 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -263,7 +264,7 @@ public class BTreeMapTest{
     @Test public void test_size(){
 
         assertTrue(m.isEmpty());
-        assertEquals(0,m.size());
+        assertEquals(0, m.size());
         for(int i = 1;i<30;i++){
             m.put(i,i);
             assertEquals(i,m.size());
@@ -354,7 +355,7 @@ public class BTreeMapTest{
             Integer s = i - i%3;
             if(s==i) s-=3;
             Map.Entry e = m.findSmaller(i,false);
-            assertEquals(s,e!=null?e.getKey():null);
+            assertEquals(s, e != null ? e.getKey() : null);
         }
         assertEquals(9999, m.findSmaller(100000,false).getKey());
 
@@ -411,16 +412,16 @@ public class BTreeMapTest{
         });
 
 
-        m.put("aa","aa");
+        m.put("aa", "aa");
         m.put("aa", "bb");
         m.remove("aa");
 
 
-        m.put("aa","aa");
-        m.remove("aa","aa");
-        m.putIfAbsent("aa","bb");
-        m.replace("aa","bb","cc");
-        m.replace("aa","cc");
+        m.put("aa", "aa");
+        m.remove("aa", "aa");
+        m.putIfAbsent("aa", "bb");
+        m.replace("aa", "bb", "cc");
+        m.replace("aa", "cc");
 
         assertEquals(8, counter.get());
     }
@@ -694,12 +695,13 @@ public class BTreeMapTest{
 
 
         assertEquals(
-                new Fun.Pair(5,n),
+                new Fun.Pair(5, n),
                 m.findSmallerNodeRecur(n,12,true));
         assertEquals(
-                new Fun.Pair(5,n),
+                new Fun.Pair(5, n),
                 m.findSmallerNodeRecur(n,12,false));
     }
+
 }
 
 

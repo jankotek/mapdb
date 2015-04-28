@@ -111,4 +111,17 @@ public class DBException extends RuntimeException{
             super("Thread interrupted",e);
         }
     }
+
+    public static class PumpSourceDuplicate extends DBException {
+        public PumpSourceDuplicate(Object key) {
+            super("Duplicate found, use .pumpIgnoreDuplicates() to ignore. Duplicate key:"+key);
+        }
+    }
+
+    public static class PumpSourceNotSorted extends DBException {
+        public PumpSourceNotSorted() {
+            super("Source iterator not sorted, use .pumpPresort(10000000) to sort keys.");
+        }
+    }
+
 }

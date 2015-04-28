@@ -299,6 +299,45 @@ public class PumpTest {
         assertEquals(max, s.size());
     }
 
+
+    @Test public void build_treemap_external(){
+        final int max = 10000;
+        List<Integer> list = new ArrayList<Integer>(max);
+        for(Integer i=max-1;i>=0;i--) list.add(i);
+
+        Engine e = new StoreHeap(true,CC.DEFAULT_LOCK_SCALE,0);
+        DB db = new DB(e);
+
+        Fun.Function1<Object, Integer> valueExtractor = new Fun.Function1<Object, Integer>() {
+            @Override
+            public Object run(Integer integer) {
+                return integer*100;
+            }
+        };
+
+
+        Map s = db.treeMapCreate("test")
+                .nodeSize(6)
+                .pumpSource(list.iterator(), valueExtractor)
+                .valuesOutsideNodesEnable()
+                .make();
+
+
+        Iterator iter =s.keySet().iterator();
+
+        Integer count = 0;
+        while(iter.hasNext()){
+            assertEquals(count++, iter.next());
+        }
+
+        for(Integer i:list){
+            assertEquals(i * 100, s.get(i));
+        }
+
+        assertEquals(max, s.size());
+    }
+
+
     @Test public void build_treemap_ignore_dupliates(){
         final int max = 10000;
         List<Integer> list = new ArrayList<Integer>(max);
@@ -318,7 +357,7 @@ public class PumpTest {
         };
 
 
-        Map s = db.treeMapCreate("test")
+        BTreeMap s = db.treeMapCreate("test")
                 .nodeSize(6)
                 .pumpSource(list.iterator(), valueExtractor)
                 .pumpIgnoreDuplicates()
@@ -341,17 +380,19 @@ public class PumpTest {
 
 
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = DBException.PumpSourceDuplicate.class)
     public void build_treemap_fails_with_unsorted(){
-        List a = Arrays.asList(1,2,3,4,4,5);
-        DB db = new DB(new StoreHeap(true,CC.DEFAULT_LOCK_SCALE,0));
+        List a = Arrays.asList(1, 2, 3, 4, 4, 5);
+        Collections.reverse(a);
+        DB db = DBMaker.memoryDB().transactionDisable().make();
         db.treeSetCreate("test").pumpSource(a.iterator()).make();
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = DBException.PumpSourceNotSorted.class)
     public void build_treemap_fails_with_unsorted2(){
         List a = Arrays.asList(1,2,3,4,3,5);
-        DB db = new DB(new StoreHeap(true,CC.DEFAULT_LOCK_SCALE,0));
+        Collections.reverse(a);
+        DB db = DBMaker.memoryDB().transactionDisable().make();
         db.treeSetCreate("test").pumpSource(a.iterator()).make();
     }
 
@@ -445,6 +486,64 @@ public class PumpTest {
         assertEquals("d",i.next());
         assertTrue(!i.hasNext());
     }
+
+
+
+    @Test public void sorted(){
+
+        DB db = DBMaker.memoryDB()
+                .transactionDisable()
+                .cacheHashTableEnable()
+                .make();
+
+        class Source implements Iterator<Fun.Pair<Integer, String>> {
+            int counter = 0;
+            int mapIndex = Integer.MAX_VALUE;
+
+            @Override public boolean hasNext()
+            {
+                mapIndex--;
+                return counter <= 16737175;
+            }
+
+            @Override
+            public Fun.Pair<Integer, String> next()
+            {
+                counter++;
+
+                return new Fun.Pair(mapIndex, "foobar"+mapIndex);
+            }
+
+            @Override public void remove()
+            {
+            }
+        }
+
+        BTreeMap<Integer, String> csvContentMap = db.treeMapCreate("csvContentMap")
+                .keySerializer(BTreeKeySerializer.INTEGER)
+                .valueSerializer(Serializer.STRING)
+                .pumpSource(new Source())
+                .counterEnable()
+                .make();
+
+        Source s = new Source();
+        while(s.hasNext()){
+            Fun.Pair<Integer, String> next = s.next();
+            assertEquals(next.b, csvContentMap.get(next.a));
+        }
+
+        int i = Integer.MAX_VALUE-16737175-1;
+        for(Map.Entry e:csvContentMap.entrySet()){
+            assertEquals(i++, e.getKey());
+        }
+
+
+//        csvContentMap.printTreeStructure();
+
+        db.commit();
+        db.close();
+    }
+
 
 
 }

@@ -322,8 +322,8 @@ public final class Pump {
                     } finally {
                         q.put(poisonPill); //TODO poison pill should be send in non blocking way, perhaps remove elements?
                     }
-                }catch(InterruptedException e) {
-                    LOG.log(Level.SEVERE,"feeder failed",e);
+                } catch (InterruptedException e) {
+                    LOG.log(Level.SEVERE, "feeder failed", e);
                 }
             }
         });
@@ -380,7 +380,7 @@ public final class Pump {
      * There are technical reason for this requirement.
      * To sort unordered data use {@link Pump#sort(java.util.Iterator, boolean, int, java.util.Comparator, Serializer, Executor)}
      *
-     * This method does not call commit. You should disable Write Ahead Log when this method is used {@link org.mapdb.DBMaker#transactionDisable()}
+     * This method does not call commit. You should disable Write Ahead Log when this method is used {@link DBMaker.Maker#transactionDisable()}
      *
      *
      * @param source iterator over source data, must be reverse sorted
@@ -392,7 +392,8 @@ public final class Pump {
      * @param counterRecid TODO make size counter friendly to use
      * @param keySerializer serializer for keys, use null for default value
      * @param valueSerializer serializer for value, use null for default value
-     * @throws IllegalArgumentException if source iterator is not reverse sorted
+     * @throws org.mapdb.DBException.PumpSourceNotSorted if source iterator is not reverse sorted
+     * @throws org.mapdb.DBException.PumpSourceDuplicate if source iterator has duplicates
      */
     public static  <E,K,V> long buildTreeMap(Iterator<E> source,
                                              Engine engine,
@@ -404,192 +405,287 @@ public final class Pump {
                                              long counterRecid,
                                              BTreeKeySerializer keySerializer,
                                              Serializer<V> valueSerializer,
-                                             Executor executor)
-        {
+                                             Executor executor){
 
-            //TODO upper levels of tree  could be created in separate thread
+        //TODO upper levels of tree  could be created in separate thread
+
+        if(keyExtractor==null)
+            keyExtractor= (Fun.Function1<K, E>) Fun.extractNoTransform();
+        if(valueSerializer==null){
+            //this is set
+            valueSerializer = (Serializer<V>) Serializer.BOOLEAN;
+            if(valueExtractor!=null)
+                throw new IllegalArgumentException();
+            valueExtractor = new Fun.Function1() {
+                @Override
+                public Object run(Object e) {
+                    return Boolean.TRUE;
+                }
+            };
+        }
+
+        // update source iterator with new one, which just ignores duplicates
+        if(ignoreDuplicates){
+            source = ignoreDuplicatesIterator(source,keySerializer.comparator(), keyExtractor);
+        }
+
+        source = checkSortedIterator(source,keySerializer.comparator(), keyExtractor);
 
         final double NODE_LOAD = 0.75;
+        // split if node is bigger than this
+        final int maxNodeSize = (int) (nodeSize * NODE_LOAD);
 
+        // temporary serializer for nodes
         Serializer<BTreeMap.BNode> nodeSerializer = new BTreeMap.NodeSerializer(valuesStoredOutsideNodes,keySerializer,valueSerializer,0);
 
+        //hold tree structure
+        ArrayList<ArrayList<K>> dirKeys = new ArrayList();
+        dirKeys.add(new ArrayList());
+        ArrayList<ArrayList<Long>> dirRecids = new ArrayList();
+        dirRecids.add(arrayList(0L));
 
-        final int nload = (int) (nodeSize * NODE_LOAD);
-        ArrayList<ArrayList<Object>> dirKeys = arrayList(arrayList(null));
-        ArrayList<ArrayList<Long>> dirRecids = arrayList(arrayList(0L));
+        ArrayList<K> leafKeys = new ArrayList<K>();
+        ArrayList<Object> leafValues = new ArrayList<Object>();
 
         long counter = 0;
+        long rootRecid = 0;
+        long lastLeafRecid = 0;
 
-        long nextNode = 0;
-
-        //fill node with data
-        List<K> keys = arrayList(null);
-        ArrayList<Object> values = new ArrayList<Object>();
-        //traverse iterator
-        K oldKey = null;
+        SOURCE_LOOP:
         while(source.hasNext()){
+            E iterNext = source.next();
+            final boolean isLeftMost = !source.hasNext();
+            counter++;
 
-            nodeLoop:for(int i=0;i<nload && source.hasNext();i++){
+            final K key = keyExtractor.run(iterNext);
 
-                E next = source.next();
-                if(next==null) throw new NullPointerException("source returned null element");
-                K key = keyExtractor==null? (K) next : keyExtractor.run(next);
-                int compared=oldKey==null?-1:keySerializer.comparator().compare(key, oldKey);
-                while(ignoreDuplicates && compared==0){
-                    //move to next
-                    if(!source.hasNext())break nodeLoop;
-                    next = source.next();
-                    if(next==null) throw new NullPointerException("source returned null element");
-                    key = keyExtractor==null? (K) next : keyExtractor.run(next);
-                    compared=keySerializer.comparator().compare(key, oldKey);
-                }
-
-                if(oldKey!=null && compared>=0)
-                    throw new IllegalArgumentException("Keys in 'source' iterator are not reverse sorted");
-                oldKey = key;
-                keys.add(key);
-                counter++;
-
-                Object val = valueExtractor!=null?valueExtractor.run(next):Boolean.TRUE;
-                if(val==null) throw new NullPointerException("extractValue returned null value");
-                if(valuesStoredOutsideNodes){
-                    long recid = engine.put((V) val,valueSerializer);
-                    val = new BTreeMap.ValRef(recid);
-                }
-                values.add(val);
-
-            }
-            //insert node
-            if(!source.hasNext()){
-                keys.add(null);
-                values.add(null);
+            Object value = valueExtractor.run(iterNext);
+            if(valuesStoredOutsideNodes) {
+                long recid = engine.put((V) value, valueSerializer);
+                value = new BTreeMap.ValRef(recid);
             }
 
-            Collections.reverse(keys);
-
-            Object nextVal = values.remove(values.size()-1);
-            Collections.reverse(values);
+            leafKeys.add(key);
 
 
+            // if is not last and is small enough, do not split
+            if(!isLeftMost && leafKeys.size()<=maxNodeSize) {
+                leafValues.add(value);
+                continue SOURCE_LOOP;
+            }
 
-            boolean rightEdge = keys.get(keys.size()-1)==null;
-            if(rightEdge)
-                keys.remove(keys.size()-1);
-            boolean leftEdge = keys.get(0)==null;
-            if(leftEdge)
-                keys.remove(0);
-            BTreeMap.LeafNode node = new BTreeMap.LeafNode(
-                    keySerializer.arrayToKeys(keys.toArray()),
-                    leftEdge,rightEdge, false,
-                    (valueSerializer==null?Serializer.BOOLEAN:valueSerializer)
-                            .valueArrayFromArray(values.toArray()),
-                    nextNode);
-            nextNode = engine.put(node,nodeSerializer);
-            K nextKey = keys.get(0);
-            keys.clear();
+            if(isLeftMost) {
+                leafValues.add(value);
+            }
 
-            keys.add(nextKey);
-            keys.add(nextKey);
+            Collections.reverse(leafKeys);
+            Collections.reverse(leafValues);
 
-            values.clear();
-            values.add(nextVal);
+            BTreeMap.LeafNode leaf = new BTreeMap.LeafNode(
+                    keySerializer.arrayToKeys(leafKeys.toArray()),
+                    isLeftMost,             //left most
+                    lastLeafRecid==0,   //right most
+                    false,
+                    valueSerializer.valueArrayFromArray(leafValues.toArray()),
+                    lastLeafRecid
+            );
 
-            dirKeys.get(0).add(node.key(keySerializer,0));
-            dirRecids.get(0).add(nextNode);
+            lastLeafRecid = engine.put(leaf,nodeSerializer);
 
-            //check node sizes and split them if needed
-            for(int i=0;i<dirKeys.size();i++){
-                if(dirKeys.get(i).size()<nload) break;
-                //tree node too big so write it down and start new one
-                Collections.reverse(dirKeys.get(i));
-                Collections.reverse(dirRecids.get(i));
-                //put node into store
-                boolean rightEdge2 = dirKeys.get(i).get(dirKeys.get(i).size()-1) == null;
-                if(rightEdge2){
-                    dirKeys.get(i).remove(dirKeys.get(i).size()-1);
+            //handle case when there is only single leaf and no dirs, in that case it will become root
+            if(isLeftMost && dirKeys.get(0).size()==0){
+                rootRecid = lastLeafRecid;
+                break SOURCE_LOOP;
+            }
+
+            //update parent directory
+            K leafLink = leafKeys.get(0);
+
+            dirKeys.get(0).add(leafLink);
+            dirRecids.get(0).add(lastLeafRecid);
+
+            leafKeys.clear();
+            leafValues.clear();
+
+            if(!isLeftMost){
+                leafKeys.add(key);
+                leafKeys.add(key);
+                leafValues.add(value);
+            }
+
+
+            // iterate over keys and save them if too large or is last
+            for(int level=0;
+                level<dirKeys.size();
+                level++){
+
+                ArrayList<K> keys = dirKeys.get(level);
+
+                //break loop if current level does not need saving
+                //that means this is not last entry and size is small enough
+                if(!isLeftMost && keys.size()<=maxNodeSize){
+                    continue SOURCE_LOOP;
                 }
-                boolean leftEdge2 = dirKeys.get(i).get(0)==null;
-                if(leftEdge2){
-                    dirKeys.get(i).remove(0);
+                if(isLeftMost){
+                    //remove redundant first key
+                    keys.remove(keys.size()-1);
                 }
+
+
+                //node needs saving
+
+                Collections.reverse(keys);
+                List<Long> recids = dirRecids.get(level);
+                Collections.reverse(recids);
+
+                boolean isRightMost = (level+1 == dirKeys.size());
+
+                //construct node
                 BTreeMap.DirNode dir = new BTreeMap.DirNode(
-                        keySerializer.arrayToKeys(dirKeys.get(i).toArray()),
-                        leftEdge2,rightEdge2, false,
-                        toLongArray(dirRecids.get(i)));
+                    keySerializer.arrayToKeys(keys.toArray()),
+                    isLeftMost,
+                    isRightMost,
+                    false,
+                    toLongArray(recids)
+                );
+
+                //finally save
                 long dirRecid = engine.put(dir,nodeSerializer);
-                Object dirStart = dirKeys.get(i).get(0);
-                dirKeys.get(i).clear();
-                dirKeys.get(i).add(dirStart);
-                dirRecids.get(i).clear();
-                dirRecids.get(i).add(dirRecid); //put pointer to next node
 
-                //update parent dir
-                if(dirKeys.size()==i+1){
-                    dirKeys.add(arrayList(dirStart));
-                    dirRecids.add(arrayList(dirRecid));
-                }else{
-                    dirKeys.get(i+1).add(dirStart);
-                    dirRecids.get(i+1).add(dirRecid);
+                //if its both most left and most right, save it as new root
+                if(isLeftMost && isRightMost) {
+                    rootRecid = dirRecid;
+                    break SOURCE_LOOP;
                 }
+
+                //prepare next directory at the same level, clear and add link to just saved node
+                K linkKey = keys.get(0);
+                keys.clear();
+                recids.clear();
+                keys.add(linkKey);
+                recids.add(dirRecid);
+
+                //now update directory at parent level
+                if(dirKeys.size()==level+1){
+                    //dir is empty, so it needs updating
+                    dirKeys.add(new ArrayList<K>());
+                    dirRecids.add(arrayList(0L));
+                }
+                dirKeys.get(level+1).add(linkKey);
+                dirRecids.get(level+1).add(dirRecid);
             }
         }
 
-        //flush directory
-        for(int i=0;i<dirKeys.size()-1;i++){
-            //tree node too big so write it down and start new one
-            ArrayList<Object> keys2 = dirKeys.get(i);
-            Collections.reverse(keys2);
-            Collections.reverse(dirRecids.get(i));
+        //handle empty iterator, insert empty node
+        if(rootRecid == 0) {
+            BTreeMap.LeafNode emptyRoot = new BTreeMap.LeafNode(
+                    keySerializer.emptyKeys(),
+                    true,
+                    true,
+                    false,
+                    valueSerializer.valueArrayEmpty(),
+                    0L);
 
-            if(keys2.size()>2 && keys2.get(0)==null && keys2.get(1)==null){
-                keys2.remove(0);
-                dirRecids.get(i).remove(0);
-            }
-
-            //put node into store
-            boolean rightEdge3 = keys2.get(keys2.size()-1)==null;
-            if(rightEdge3){
-                keys2.remove(keys2.size()-1);
-            }
-            boolean leftEdge3 = keys2.get(0)==null;
-            if(leftEdge3){
-                keys2.remove(0);
-            }
-            BTreeMap.DirNode dir = new BTreeMap.DirNode(
-                    keySerializer.arrayToKeys(keys2.toArray()),
-                    leftEdge3,rightEdge3, false,
-                    toLongArray(dirRecids.get(i)));
-            long dirRecid = engine.put(dir,nodeSerializer);
-            Object dirStart = keys2.get(0);
-            dirKeys.get(i+1).add(dirStart);
-            dirRecids.get(i+1).add(dirRecid);
-
+            rootRecid = engine.put(emptyRoot, nodeSerializer);
         }
 
-        //and finally write root
-        final int len = dirKeys.size()-1;
-        Collections.reverse(dirKeys.get(len));
-        Collections.reverse(dirRecids.get(len));
-
-        //and do counter
         if(counterRecid!=0)
-            engine.update(counterRecid, counter, Serializer.LONG);
+            engine.update(counterRecid,counter,Serializer.LONG);
 
 
-        boolean rightEdge4 = dirKeys.get(len).get(dirKeys.get(len).size()-1)==null;
-        if(rightEdge4){
-            dirKeys.get(len).remove(dirKeys.get(len).size()-1);
-        }
-        boolean leftEdge4 = dirKeys.get(len).get(0)==null;
-        if(leftEdge4){
-            dirKeys.get(len).remove(0);
-        }
-        BTreeMap.DirNode dir = new BTreeMap.DirNode(
-                keySerializer.arrayToKeys(dirKeys.get(len).toArray()),
-                leftEdge4,rightEdge4, false,
-                toLongArray(dirRecids.get(len)));
-        long rootRecid = engine.put(dir, nodeSerializer);
-        return engine.put(rootRecid,Serializer.RECID); //root recid
+        return engine.put(rootRecid,Serializer.RECID);
+    }
+
+    private static <E,K> Iterator<E> checkSortedIterator(final Iterator<E> source, final Comparator comparator, final Fun.Function1<K, E> keyExtractor) {
+        return new Iterator<E>() {
+
+            E next = source.hasNext()?
+                    source.next():null;
+
+
+            E advance(){
+                if(!source.hasNext())
+                    return null;
+                E ret = source.next();
+                //check order
+
+                int compare = comparator.compare(
+                        keyExtractor.run(ret),
+                        keyExtractor.run(next));
+                if(compare==0){
+                    throw new DBException.PumpSourceDuplicate(next);
+                }
+                if(compare>0) {
+                    throw new DBException.PumpSourceNotSorted();
+                }
+
+                return ret;
+            }
+
+            @Override
+            public boolean hasNext() {
+                return next!=null;
+            }
+
+            @Override
+            public E next() {
+                if(next==null)
+                    throw new NoSuchElementException();
+
+                E ret = next;
+                next = advance();
+                return ret;
+            }
+
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
+        };
+
+    }
+
+    private static <E,K> Iterator<E> ignoreDuplicatesIterator(final Iterator<E> source, final Comparator<K> comparator, final Fun.Function1<K, E> keyExtractor) {
+        return new Iterator<E>() {
+
+            E next = source.hasNext()?
+                    source.next():null;
+
+
+            E advance(){
+                while(source.hasNext()){
+                    E n = source.next();
+                    if(comparator.compare(
+                            keyExtractor.run(n),
+                            keyExtractor.run(next))
+                            ==0){
+                        continue; //ignore duplicate
+                    }
+                    return n; // new element
+                }
+                return null; //no more entries in iterator
+            }
+
+            @Override
+            public boolean hasNext() {
+                return next!=null;
+            }
+
+            @Override
+            public E next() {
+                if(next==null)
+                    throw new NoSuchElementException();
+
+                E ret = next;
+                next = advance();
+                return ret;
+            }
+
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
+        };
     }
 
     private static Object toLongArray(List<Long> child) {
