@@ -41,7 +41,7 @@ public class VolumeTest {
                     new Fun.Function1<Volume,String>() {
                         @Override
                         public Volume run(String file) {
-                            return new Volume.UnsafeVolume(-1, CC.VOLUME_PAGE_SHIFT);
+                            return Volume.UNSAFE_VOL_FACTORY.makeVolume(null, false, CC.VOLUME_PAGE_SHIFT, 0, false);
                         }
                     },
                     new Fun.Function1<Volume,String>() {

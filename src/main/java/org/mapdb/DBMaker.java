@@ -1337,7 +1337,7 @@ public final class DBMaker{
         else if(Keys.volume_directByteBuffer.equals(volume))
             return Volume.MemoryVol.FACTORY;
         else if(Keys.volume_unsafe.equals(volume))
-            return Volume.UnsafeVolume.FACTORY;
+            return Volume.UNSAFE_VOL_FACTORY;
 
         int rafMode = propsGetRafMode();
         if(rafMode == 3)
