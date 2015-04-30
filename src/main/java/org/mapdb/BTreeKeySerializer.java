@@ -1606,6 +1606,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
     };
 
     protected static int commonPrefixLen(byte[][] bytes) {
+        //TODO refactor to calculate minimal length first, to save comparations.
         for(int ret=0;;ret++){
             if(bytes[0].length==ret) {
                 return ret;
