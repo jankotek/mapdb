@@ -35,8 +35,7 @@ public class dbmaker_txmaker_basic {
         tx1.commit();
         tx2.commit();
         // second commit fails  with write conflict, both maps share single BTree node,
-        // this does not happend on large maps with sufficent number of BTree nodes.
-
+        // this does not happen on large maps with sufficient number of BTree nodes.
         //z
     }
 }
