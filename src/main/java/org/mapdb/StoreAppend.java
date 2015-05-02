@@ -402,8 +402,13 @@ public class StoreAppend extends Store {
 
     @Override
     public void close() {
+        if(closed)
+            return;
         commitLock.lock();
         try {
+            if(closed)
+                return;
+            closed = true;
             if(isSnapshot){
                 snapshots.remove(this);
                 return;

@@ -333,7 +333,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
     @Test(expected = NullPointerException.class)
     public void NPE_get(){
-        e.get(1,null);
+        e.get(1, null);
     }
 
     @Test(expected = NullPointerException.class)
@@ -603,6 +603,13 @@ public abstract class EngineTest<ENGINE extends Engine>{
         assertEquals("a", snapshot.get(recid, Serializer.STRING));
         e.commit();
         assertEquals("a", snapshot.get(recid, Serializer.STRING));
+        e.close();
+    }
+
+
+    // double close should not fail, but other operation are allowed to throw exceptions
+    @Test public void double_close(){
+        e.close();
         e.close();
     }
 

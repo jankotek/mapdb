@@ -739,8 +739,13 @@ public class StoreDirect extends Store {
 
     @Override
     public void close() {
+        if(closed==true)
+            return;
+        
         commitLock.lock();
         try {
+            if(closed==true)
+                return;
             closed = true;
             flush();
             vol.close();
