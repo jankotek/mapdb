@@ -920,12 +920,8 @@ public abstract class Volume implements Closeable{
             if(offset>size){
                 growLock.lock();
                 try {
-                    channel.truncate(offset);
+                    raf.setLength(offset);
                     size = offset;
-                }catch(ClosedByInterruptException e){
-                    throw new DBException.VolumeClosedByInterrupt(e);
-                }catch(ClosedChannelException e){
-                    throw new DBException.VolumeClosed(e);
                 } catch (IOException e) {
                     throw new DBException.VolumeIOError(e);
                 }finally {
