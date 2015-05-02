@@ -90,13 +90,17 @@ public final class DataIO {
      */
 
     static public void packInt(DataOutput out, int value) throws IOException {
-        //$DELAY$
-        int shift = 31-Integer.numberOfLeadingZeros(value);
-        shift -= shift%7; // round down to nearest multiple of 7
-        while(shift!=0){
-            out.writeByte((byte) (((value>>>shift) & 0x7F) | 0x80));
+        // Optimize for the common case where value is small. This is particular important where our caller
+        // is SerializerBase.SER_STRING.serialize because most chars will be ASCII characters and hence in this range.
+        if ((value & ~0x7F) != 0) {
             //$DELAY$
-            shift-=7;
+            int shift = 31-Integer.numberOfLeadingZeros(value);
+            shift -= shift%7; // round down to nearest multiple of 7
+            while(shift!=0){
+                out.writeByte((byte) (((value>>>shift) & 0x7F) | 0x80));
+                //$DELAY$
+                shift-=7;
+            }
         }
         //$DELAY$
         out.writeByte((byte) (value & 0x7F));
