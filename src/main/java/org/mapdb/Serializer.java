@@ -522,7 +522,7 @@ public abstract class Serializer<A> {
         public void valueArraySerialize(DataOutput out, Object vals) throws IOException {
             DataIO.DataOutputByteArray out2 = (DataIO.DataOutputByteArray) out;
             for(int o:(int[]) vals){
-                out2.packInt(o);
+                out2.packIntBigger(o);
             }
         }
 

@@ -32,10 +32,27 @@ public class UtilsTest {
             int i2 = DataIO.unpackInt(in);
 
             Assert.assertEquals(i, i2);
-
         }
-
     }
+
+
+    @Test public void testPackIntBigger() throws Exception {
+
+        DataIO.DataOutputByteArray out = new DataIO.DataOutputByteArray();
+        DataIO.DataInputByteBuffer in = new DataIO.DataInputByteBuffer(ByteBuffer.wrap(out.buf,0, out.pos),0);
+        for(int i = 0;i>-1; i = i + 1 + i/1111){  //overflow is expected
+            out.pos = 0;
+
+            DataIO.packIntBigger(out, i);
+            in.pos = 0;
+            in.buf.clear();
+
+            int i2 = DataIO.unpackInt(in);
+
+            Assert.assertEquals(i, i2);
+        }
+    }
+
 
     @Test public void testPackLong() throws Exception {
 

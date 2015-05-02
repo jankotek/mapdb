@@ -437,7 +437,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         @Override
         public void serialize(DataOutput out, int[] keys) throws IOException {
             int prev = keys[0];
-            DataIO.packInt(out, prev);
+            DataIO.packIntBigger(out, prev);
             //$DELAY$
             for(int i=1;i<keys.length;i++){
                 int curr = keys[i];
