@@ -595,6 +595,10 @@ public class StoreDirect extends Store {
             //throw away rest of the page and allocate new
             lastAllocatedData=0;
             freeDataTakeSingle(size);
+            //TODO i thing return! should be here, but not sure.
+
+            //TODO it could be possible to recycle data here.
+            // save pointers and put them into free list after new page was allocated.
         }
         //yes it fits here, increase pointer
         ret = lastAllocatedData;
