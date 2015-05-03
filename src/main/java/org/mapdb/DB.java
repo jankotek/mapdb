@@ -61,6 +61,9 @@ public class DB implements Closeable {
     protected SortedMap<String, Object> catalog;
 
     protected ScheduledExecutorService executor = null;
+    // Building the ClassInfo[] array is super expensive because of all the reflection & security checks it involves.
+    // We don't want to do this afresh *every time* SerializerPojo wants to get it!
+    protected SerializerPojo.ClassInfo[] classInfoCache;
     protected SerializerPojo serializerPojo;
 
     protected ScheduledExecutorService metricsExecutor;
@@ -145,9 +148,12 @@ public class DB implements Closeable {
                 //load class catalog
                 new Fun.Function0<SerializerPojo.ClassInfo[]>() {
                     @Override public SerializerPojo.ClassInfo[] run() {
+                        if (classInfoCache != null) return classInfoCache;
+
                         SerializerPojo.ClassInfo[] ret =  getEngine().get(Engine.RECID_CLASS_CATALOG, SerializerPojo.CLASS_CATALOG_SERIALIZER);
                         if(ret==null)
                             ret = new SerializerPojo.ClassInfo[0];
+                        classInfoCache = ret;
                         return ret;
                     }
                 },
@@ -2144,15 +2150,17 @@ public class DB implements Closeable {
                 SerializerPojo.ClassInfo[] classes = serializerPojo.getClassInfos.run();
                 SerializerPojo.ClassInfo[] classes2 = classes.length == 0 ? null : classes;
 
+                final ClassLoader classLoader = SerializerPojo.classForNameClassLoader();
                 for (String className : toBeAdded) {
-                    int pos = serializerPojo.classToId(classes, className);
+                    int pos = SerializerPojo.classToId(classes, className);
                     if (pos != -1) {
                         continue;
                     }
-                    SerializerPojo.ClassInfo classInfo = serializerPojo.makeClassInfo(className);
+                    SerializerPojo.ClassInfo classInfo = SerializerPojo.makeClassInfo(classLoader, className);
                     classes = Arrays.copyOf(classes, classes.length + 1);
                     classes[classes.length - 1] = classInfo;
                 }
+                classInfoCache = null;
                 engine.compareAndSwap(Engine.RECID_CLASS_CATALOG, classes2, classes, SerializerPojo.CLASS_CATALOG_SERIALIZER);
             }
 
