@@ -1029,13 +1029,6 @@ public class BTreeMap<K,V>
     protected V put2(final K key, final V value2, final boolean putOnlyIfAbsent){
         K v = key;
 
-        V value = value2;
-        if(valsOutsideNodes){
-            long recid = engine.put(value2, valueSerializer);
-            //$DELAY$
-            value = (V) new ValRef(recid);
-        }
-
         int stackPos = -1;
         long[] stackVals = new long[4];
 
@@ -1090,7 +1083,15 @@ public class BTreeMap<K,V>
                         if(CC.ASSERT) assertNoLocks(nodeLocks);
                         return valExpand(oldVal);
                     }
+
                     //insert new
+                    V value = value2;
+                    if(valsOutsideNodes){
+                        long recid = engine.put(value2, valueSerializer);
+                        //$DELAY$
+                        value = (V) new ValRef(recid);
+                    }
+
                     //$DELAY$
                     A = ((LeafNode)A).copyChangeValue(valueSerializer, pos,value);
                     if(CC.ASSERT && ! (nodeLocks.get(current)==Thread.currentThread()))
@@ -1129,6 +1130,13 @@ public class BTreeMap<K,V>
 
 
             }while(!found);
+
+            V value = value2;
+            if(valsOutsideNodes){
+                long recid = engine.put(value2, valueSerializer);
+                //$DELAY$
+                value = (V) new ValRef(recid);
+            }
 
             int pos = keySerializer.findChildren(A, v);
             //$DELAY$
