@@ -1,6 +1,8 @@
 package org.mapdb;
 
 
+import java.util.Comparator;
+
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -66,6 +68,31 @@ public class FunTest {
         assertEquals(-1, Fun.BYTE_ARRAY_COMPARATOR.compare(b2,blong));
         assertEquals(1, Fun.BYTE_ARRAY_COMPARATOR.compare(b2,b1));
         assertEquals(0, Fun.BYTE_ARRAY_COMPARATOR.compare(b1,b1));
-        assertEquals(0, Fun.BYTE_ARRAY_COMPARATOR.compare(b1,b1_));
+        assertEquals(0, Fun.BYTE_ARRAY_COMPARATOR.compare(b1, b1_));
     }
+    
+    @Test
+    public void getComparator(){
+    	Comparator<String> stringComparator = Fun.comparator();
+    	String a = "A";
+    	String a1 = "A";
+    	String b= "B";
+    	
+    	assertEquals(0, stringComparator.compare(a, a1));
+    	assertEquals(-1, stringComparator.compare(a, b));
+    	assertEquals(1, stringComparator.compare(b, a));
+    }
+    
+    @Test
+    public void getReveresedComparator(){
+    	Comparator<String> stringComparator = Fun.reverseComparator();
+    	String a = "A";
+    	String a1 = "A";
+    	String b= "B";
+    	
+    	assertEquals(0, stringComparator.compare(a, a1));
+    	assertEquals(1, stringComparator.compare(a, b));
+    	assertEquals(-1, stringComparator.compare(b, a));
+    }
+
 }

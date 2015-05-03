@@ -52,9 +52,9 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
     public abstract KEY getKey(KEYS keys, int pos);
 
 
-    public static final BTreeKeySerializer BASIC = new BTreeKeySerializer.BasicKeySerializer(Serializer.BASIC, Fun.COMPARATOR);
+    public static final BTreeKeySerializer<Object, Object[]> BASIC = new BTreeKeySerializer.BasicKeySerializer(Serializer.BASIC, Fun.COMPARATOR);
 
-    public abstract Comparator comparator();
+    public abstract Comparator<?> comparator();
 
     public abstract KEYS emptyKeys();
 
@@ -213,7 +213,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         }
 
         @Override
-        public Comparator comparator() {
+        public Comparator<?> comparator() {
             return comparator;
         }
 
@@ -259,7 +259,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
      * Difference between consequential numbers is also packed itself, so for small diffs it takes only single byte per
      * number.
      */
-    public static final  BTreeKeySerializer LONG = new BTreeKeySerializer<Long,long[]>() {
+    public static final  BTreeKeySerializer<Long,long[]> LONG = new BTreeKeySerializer<Long,long[]>() {
 
         @Override
         public void serialize(DataOutput out, long[] keys) throws IOException {
@@ -309,7 +309,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         }
 
         @Override
-        public Comparator comparator() {
+        public Comparator<?> comparator() {
             return Fun.COMPARATOR;
         }
 
@@ -433,7 +433,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
      * Difference between consequential numbers is also packed itself, so for small diffs it takes only single byte per
      * number.
      */
-    public static final  BTreeKeySerializer INTEGER = new BTreeKeySerializer<Integer,int[]>() {
+    public static final  BTreeKeySerializer<Integer,int[]> INTEGER = new BTreeKeySerializer<Integer,int[]>() {
         @Override
         public void serialize(DataOutput out, int[] keys) throws IOException {
             int prev = keys[0];
@@ -481,7 +481,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         }
 
         @Override
-        public Comparator comparator() {
+        public Comparator<?> comparator() {
             return Fun.COMPARATOR;
         }
 
@@ -749,7 +749,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         }
 
         @Override
-        public Comparator comparator() {
+        public Comparator<?> comparator() {
             return comparator;
         }
 
@@ -879,7 +879,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         }
 
         @Override
-        public Comparator comparator() {
+        public Comparator<?> comparator() {
             return Fun.COMPARATOR;
         }
 
@@ -1561,7 +1561,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         }
 
         @Override
-        public Comparator comparator() {
+        public Comparator<?> comparator() {
             return Fun.COMPARATOR;
         }
 
@@ -1689,7 +1689,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         }
 
         @Override
-        public Comparator comparator() {
+        public Comparator<?> comparator() {
             return Fun.COMPARATOR;
         }
 
@@ -1821,7 +1821,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         }
 
         @Override
-        public Comparator comparator() {
+        public Comparator<?> comparator() {
             return Fun.BYTE_ARRAY_COMPARATOR;
         }
 
@@ -1931,7 +1931,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         }
 
         @Override
-        public Comparator comparator() {
+        public Comparator<?> comparator() {
             return Fun.BYTE_ARRAY_COMPARATOR;
         }
 
@@ -2045,7 +2045,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         }
 
         @Override
-        public Comparator comparator() {
+        public Comparator<?> comparator() {
             return wrapped.comparator();
         }
 

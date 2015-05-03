@@ -448,7 +448,7 @@ public class PumpTest {
 
 
     @Test public void merge(){
-        Iterator i = Pump.merge(
+        Iterator<String> i = Pump.merge(
                 null,
                 Arrays.asList("a","b").iterator(),
                 Arrays.asList().iterator(),
@@ -545,5 +545,12 @@ public class PumpTest {
     }
 
 
+    @Test public void empty_treemap(){
+        BTreeMap m = DBMaker.memoryDB().transactionDisable()
+                .make().treeMapCreate("map")
+                .pumpSource(Fun.EMPTY_ITERATOR)
+                .make();
+        assertTrue(m.isEmpty());
+    }
 
 }

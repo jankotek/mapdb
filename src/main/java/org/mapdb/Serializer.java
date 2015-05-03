@@ -1301,15 +1301,15 @@ public abstract class Serializer<A> {
     } ;
 
 
-    public static final Serializer<Class> CLASS = new Serializer<Class>() {
+    public static final Serializer<Class<?>> CLASS = new Serializer<Class<?>>() {
 
         @Override
-        public void serialize(DataOutput out, Class value) throws IOException {
+        public void serialize(DataOutput out, Class<?> value) throws IOException {
             out.writeUTF(value.getName());
         }
 
         @Override
-        public Class deserialize(DataInput in, int available) throws IOException {
+        public Class<?> deserialize(DataInput in, int available) throws IOException {
             return SerializerPojo.classForName(in.readUTF());
         }
 
@@ -1319,12 +1319,12 @@ public abstract class Serializer<A> {
         }
 
         @Override
-        public boolean equals(Class a1, Class a2) {
+        public boolean equals(Class<?> a1, Class<?> a2) {
             return a1==a2 || (a1.toString().equals(a2.toString()));
         }
 
         @Override
-        public int hashCode(Class aClass) {
+        public int hashCode(Class<?> aClass) {
             //class does not override identity hash code
             return aClass.toString().hashCode();
         }
@@ -1371,7 +1371,8 @@ public abstract class Serializer<A> {
         }
 
         /** used for deserialization */
-        protected CompressionWrapper(SerializerBase serializerBase, DataInput is, SerializerBase.FastArrayList<Object> objectStack) throws IOException {
+        @SuppressWarnings("unchecked")
+		protected CompressionWrapper(SerializerBase serializerBase, DataInput is, SerializerBase.FastArrayList<Object> objectStack) throws IOException {
             objectStack.add(this);
             this.serializer = (Serializer<E>) serializerBase.deserialize(is,objectStack);
         }
@@ -1422,7 +1423,7 @@ public abstract class Serializer<A> {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
 
-            CompressionWrapper that = (CompressionWrapper) o;
+            CompressionWrapper<?> that = (CompressionWrapper<?>) o;
             return serializer.equals(that.serializer);
         }
 
@@ -1437,36 +1438,39 @@ public abstract class Serializer<A> {
         }
     }
 
-    public static final class Array extends Serializer<Object[]> implements  Serializable{
+    public static final class Array<T> extends Serializer<T[]> implements  Serializable{
 
-        protected final Serializer serializer;
+		private static final long serialVersionUID = -7443421486382532062L;
+		protected final Serializer<T> serializer;
 
-        public Array(Serializer serializer) {
+        public Array(Serializer<T> serializer) {
             this.serializer = serializer;
         }
 
         /** used for deserialization */
-        protected Array(SerializerBase serializerBase, DataInput is, SerializerBase.FastArrayList<Object> objectStack) throws IOException {
+        @SuppressWarnings("unchecked")
+		protected Array(SerializerBase serializerBase, DataInput is, SerializerBase.FastArrayList<Object> objectStack) throws IOException {
             objectStack.add(this);
-            this.serializer = (Serializer) serializerBase.deserialize(is,objectStack);
+            this.serializer = (Serializer<T>) serializerBase.deserialize(is,objectStack);
         }
 
 
         @Override
-        public void serialize(DataOutput out, Object[] value) throws IOException {
+        public void serialize(DataOutput out, T[] value) throws IOException {
             DataIO.packInt(out,value.length);
-            for(Object a:value){
+            for(T a:value){
                 serializer.serialize(out,a);
             }
         }
 
         @Override
-        public Object[] deserialize(DataInput in, int available) throws IOException {
-            Object[] ret = new Object[DataIO.unpackInt(in)];
+        public T[] deserialize(DataInput in, int available) throws IOException {
+        	T[] ret =(T[]) new Object[DataIO.unpackInt(in)];
             for(int i=0;i<ret.length;i++){
                 ret[i] = serializer.deserialize(in,-1);
             }
             return ret;
+            
         }
 
         @Override
@@ -1475,7 +1479,7 @@ public abstract class Serializer<A> {
         }
 
         @Override
-        public boolean equals(Object[] a1, Object[] a2) {
+        public boolean equals(T[] a1, T[] a2) {
             if(a1==a2)
                 return true;
             if(a1==null || a1.length!=a2.length)
@@ -1489,9 +1493,9 @@ public abstract class Serializer<A> {
         }
 
         @Override
-        public int hashCode(Object[] objects) {
+        public int hashCode(T[] objects) {
             int ret = objects.length;
-            for(Object a:objects){
+            for(T a:objects){
                 ret=31*ret+serializer.hashCode(a);
             }
             return ret;
@@ -1501,7 +1505,7 @@ public abstract class Serializer<A> {
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-            return serializer.equals(((Array) o).serializer);
+            return serializer.equals(((Array<?>) o).serializer);
 
         }
 
@@ -1513,7 +1517,7 @@ public abstract class Serializer<A> {
 
     //this has to be lazily initialized due to circular dependencies
     static final  class __BasicInstance {
-        final static Serializer s = new SerializerBase();
+        final static Serializer<Object> s = new SerializerBase();
     }
 
 
@@ -1522,8 +1526,7 @@ public abstract class Serializer<A> {
      * It does not handle custom POJO classes. It also does not handle classes which
      * require access to {@code DB} itself.
      */
-    @SuppressWarnings("unchecked")
-    public static final Serializer<Object> BASIC = new Serializer(){
+    public static final Serializer<Object> BASIC = new Serializer<Object>(){
 
         @Override
         public void serialize(DataOutput out, Object value) throws IOException {
@@ -1548,7 +1551,7 @@ public abstract class Serializer<A> {
      * @param out ObjectOutput to save object into
      * @param value Object to serialize
      */
-    abstract public void serialize( DataOutput out, A value)
+    abstract public void serialize(DataOutput out, A value)
             throws IOException;
 
 
@@ -1585,7 +1588,8 @@ public abstract class Serializer<A> {
         return a.hashCode();
     }
 
-    public void valueArraySerialize(DataOutput out, Object vals) throws IOException {
+    @SuppressWarnings("unchecked")
+	public void valueArraySerialize(DataOutput out, Object vals) throws IOException {
         Object[] vals2 = (Object[]) vals;
         for(Object o:vals2){
             serialize(out, (A) o);
@@ -1600,7 +1604,8 @@ public abstract class Serializer<A> {
         return ret;
     }
 
-    public A valueArrayGet(Object vals, int pos){
+    @SuppressWarnings("unchecked")
+	public A valueArrayGet(Object vals, int pos){
         return (A) ((Object[])vals)[pos];
     }
 

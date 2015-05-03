@@ -1482,7 +1482,6 @@ public class SerializerBase extends Serializer<Object>{
             mapdb_add(37, Fun.LONG_ARRAY_COMPARATOR);
             mapdb_add(38, Fun.DOUBLE_ARRAY_COMPARATOR);
             mapdb_add(39, Fun.COMPARABLE_ARRAY_COMPARATOR);
-
             mapdb_add(40, Fun.RECORD_ALWAYS_TRUE);
 
             mapdb_add(41, BTreeKeySerializer.ARRAY2);

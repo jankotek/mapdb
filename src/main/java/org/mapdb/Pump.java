@@ -45,12 +45,12 @@ public final class Pump {
      * @return iterator over sorted data set
      */
     public static <E> Iterator<E> sort(Iterator<E> source, boolean mergeDuplicates, final int batchSize,
-            Comparator comparator, final Serializer serializer, Executor executor){
+            Comparator comparator, final Serializer<E> serializer, Executor executor){
         if(batchSize<=0) throw new IllegalArgumentException();
         if(comparator==null)
-            comparator=Fun.COMPARATOR;
+            comparator=Fun.comparator();
         if(source==null)
-            source = Fun.EMPTY_ITERATOR;
+            source = Fun.emptyIterator();
 
         int counter = 0;
         final Object[] presort = new Object[batchSize];
@@ -72,7 +72,7 @@ public final class Pump {
                     presortFiles.add(f);
                     DataOutputStream out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(f)));
                     for(Object e:presort){
-                        serializer.serialize(out,e);
+                        serializer.serialize(out,(E)e);
                     }
                     out.close();
                     presortCount2.add(counter);
@@ -173,7 +173,7 @@ public final class Pump {
      * @param iterators array of already sorted iterators
      * @return sorted iterator
      */
-    public static <E> Iterator<E> sort(Comparator comparator, final boolean mergeDuplicates, final Iterator... iterators) {
+    public static <E> Iterator<E> sort(Comparator<E> comparator, final boolean mergeDuplicates, final Iterator<E>... iterators) {
         final Comparator comparator2 = comparator==null?Fun.COMPARATOR:comparator;
         return new Iterator<E>(){
 
@@ -224,7 +224,7 @@ public final class Pump {
                         Iterator<Object[]> subset = Fun.filter(items,next).iterator();
                         if(!subset.hasNext())
                             break;
-                        List toadd = new ArrayList();
+                        List<Object[]> toadd = new ArrayList<Object[]>();
                         while(subset.hasNext()){
                             Object[] t = subset.next();
                             items.remove(t);
@@ -258,7 +258,7 @@ public final class Pump {
      */
     public static <E> Iterator<E> merge(Executor executor, final Iterator... iters){
         if(iters.length==0)
-            return Fun.EMPTY_ITERATOR;
+            return Fun.emptyIterator();
 
         final Iterator<E> ret = new Iterator<E>() {
                 int i = 0;

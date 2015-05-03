@@ -536,7 +536,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
     static{
         try{
-            Class clazz = classForName("sun.reflect.ReflectionFactory");
+            Class<?> clazz = classForName("sun.reflect.ReflectionFactory");
             if(clazz!=null){
                 Method getReflectionFactory = clazz.getMethod("getReflectionFactory");
                 sunReflFac = getReflectionFactory.invoke(null);
@@ -691,7 +691,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             if (desc == lastDescriptor) return lastDescriptorClass;
 
             ClassLoader loader = SerializerPojo.classForNameClassLoader();
-            Class clazz = Class.forName(desc.getName(), false, loader);
+            Class<?> clazz = Class.forName(desc.getName(), false, loader);
             if (clazz != null)
                 return clazz;
             return super.resolveClass(desc);
