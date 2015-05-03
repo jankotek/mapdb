@@ -63,7 +63,8 @@ public class DB implements Closeable {
     protected ScheduledExecutorService executor = null;
     // Building the ClassInfo[] array is super expensive because of all the reflection & security checks it involves.
     // We don't want to do this afresh *every time* SerializerPojo wants to get it!
-    protected SerializerPojo.ClassInfo[] classInfoCache;
+    //TODO check concurrency and TX implications
+    protected volatile SerializerPojo.ClassInfo[] classInfoCache;
     protected SerializerPojo serializerPojo;
 
     protected ScheduledExecutorService metricsExecutor;
