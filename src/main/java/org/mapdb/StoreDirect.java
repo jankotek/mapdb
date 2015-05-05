@@ -750,6 +750,8 @@ public class StoreDirect extends Store {
             flush();
             vol.close();
             vol = null;
+            if(this instanceof StoreCached)
+                headVol.close();
 
             if (caches != null) {
                 for (Cache c : caches) {
@@ -866,6 +868,8 @@ public class StoreDirect extends Store {
                     if(compactedFile==null) {
                         //in memory vol without file, just swap everything
                         Volume oldVol = this.vol;
+                        if(this instanceof StoreCached)
+                            headVol.close();
                         this.headVol = this.vol = target.vol;
                         //TODO update variables
                         oldVol.close();
@@ -892,6 +896,8 @@ public class StoreDirect extends Store {
                         }
 
                         //and reopen volume
+                        if(this instanceof StoreCached)
+                            this.headVol.close();
                         this.headVol = this.vol = volumeFactory.makeVolume(this.fileName, readonly);
 
                         if(isStoreCached){

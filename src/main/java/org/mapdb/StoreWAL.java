@@ -202,7 +202,11 @@ public class StoreWAL extends StoreCached {
 
             replayWAL();
 
+            if(walC!=null)
+                walC.close();
             walC = null;
+            if(walCCompact!=null)
+                walCCompact.close();
             walCCompact = null;
             for(Volume v:walRec){
                 v.close();
@@ -231,6 +235,8 @@ public class StoreWAL extends StoreCached {
     protected void initHeadVol() {
         super.initHeadVol();
         //backup headVol
+        if(headVolBackup!=null && !headVolBackup.isClosed())
+            headVolBackup.close();
         headVolBackup = new Volume.ByteArrayVol(CC.VOLUME_PAGE_SHIFT);
         headVolBackup.ensureAvailable(HEAD_END);
         byte[] b = new byte[(int) HEAD_END];
@@ -982,6 +988,8 @@ public class StoreWAL extends StoreCached {
                     Volume oldVol = this.vol;
                     this.realVol = walCCompact;
                     this.vol = new Volume.ReadOnly(realVol);
+                    this.headVol.close();
+                    this.headVolBackup.close();
                     initHeadVol();
                     //TODO update variables
                     oldVol.close();
@@ -1233,7 +1241,12 @@ public class StoreWAL extends StoreCached {
                 }
                 volumes.clear();
 
+                vol.close();
+                vol = null;
+
+                headVol.close();
                 headVol = null;
+                headVolBackup.close();
                 headVolBackup = null;
 
                 curVol = null;
@@ -1281,6 +1294,8 @@ public class StoreWAL extends StoreCached {
 
                     //start walC file, which indicates if compaction finished fine
                     String walCFileName = getWalFileName("c");
+                    if(walC!=null)
+                        walC.close();
                     walC = volumeFactory.makeVolume(walCFileName, readonly);
                     walC.ensureAvailable(16);
                     walC.putLong(0,0); //TODO wal header

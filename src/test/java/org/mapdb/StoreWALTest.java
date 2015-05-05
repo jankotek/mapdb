@@ -33,26 +33,26 @@ public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
         File wal1 = new File(f.getPath()+".wal.1");
         File wal2 = new File(f.getPath()+".wal.2");
 
-        StoreWAL w = openEngine();
+        e = openEngine();
 
         assertTrue(wal0.exists());
         assertFalse(wal1.exists());
 
-        w.put("aa",Serializer.STRING);
-        w.commit();
+        e.put("aa", Serializer.STRING);
+        e.commit();
         assertTrue(wal0.exists());
         assertTrue(wal1.exists());
         assertFalse(wal2.exists());
 
-        w.put("aa",Serializer.STRING);
-        w.commit();
+        e.put("aa", Serializer.STRING);
+        e.commit();
         assertTrue(wal0.exists());
         assertTrue(wal1.exists());
         assertTrue(wal2.exists());
     }
 
     @Test public void WAL_replay_long(){
-        StoreWAL e = openEngine();
+        e = openEngine();
         long v = e.composeIndexVal(1000, e.round16Up(10000), true, true, true);
         long offset = 0xF0000;
         e.walPutLong(offset,v);
@@ -64,7 +64,7 @@ public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
     }
 
     @Test public void WAL_replay_mixed(){
-        StoreWAL e = openEngine();
+        e = openEngine();
         e.structuralLock.lock();
 
         for(int i=0;i<3;i++) {
@@ -114,15 +114,17 @@ public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
     }
 
     protected void walCompactSwap(boolean seal) {
-        StoreWAL e = openEngine();
+        e = openEngine();
         Map<Long,String> m = fill(e);
         e.commit();
         e.close();
 
         //copy file into new location
         String compactTarget = e.getWalFileName("c.compactXXX");
+        Volume f0 = new Volume.FileChannelVol(f);
         Volume f = new Volume.FileChannelVol(new File(compactTarget));
-        Volume.copy(e.vol, f);
+        Volume.copy(f0, f);
+        f0.close();
         f.sync();
         f.close();
 
@@ -180,19 +182,19 @@ public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
     }
 
     void compact_tx_works(final boolean rollbacks, final boolean pre) throws InterruptedException {
-        final StoreWAL w = openEngine();
-        Map<Long,String> m = fill(w);
-        w.commit();
+        e = openEngine();
+        Map<Long,String> m = fill(e);
+        e.commit();
 
         if(pre)
-            w.$_TEST_HACK_COMPACT_PRE_COMMIT_WAIT = true;
+            e.$_TEST_HACK_COMPACT_PRE_COMMIT_WAIT = true;
         else
-            w.$_TEST_HACK_COMPACT_POST_COMMIT_WAIT = true;
+            e.$_TEST_HACK_COMPACT_POST_COMMIT_WAIT = true;
 
         Thread t = new Thread(){
             @Override
             public void run() {
-                w.compact();
+                e.compact();
             }
         };
         t.start();
@@ -202,11 +204,11 @@ public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
         //we should be able to commit while compaction is running
         for(Long recid: m.keySet()){
             boolean revert = rollbacks && Math.random()<0.5;
-            w.update(recid, "ZZZ", Serializer.STRING);
+            e.update(recid, "ZZZ", Serializer.STRING);
             if(revert){
-                w.rollback();
+                e.rollback();
             }else {
-                w.commit();
+                e.commit();
                 m.put(recid, "ZZZ");
             }
         }
@@ -216,31 +218,33 @@ public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
 
         Thread.sleep(1000);
 
-        w.$_TEST_HACK_COMPACT_PRE_COMMIT_WAIT = false;
-        w.$_TEST_HACK_COMPACT_POST_COMMIT_WAIT = false;
+        e.$_TEST_HACK_COMPACT_PRE_COMMIT_WAIT = false;
+        e.$_TEST_HACK_COMPACT_POST_COMMIT_WAIT = false;
 
         t.join();
 
         for(Long recid:m.keySet()){
-            assertEquals(m.get(recid),w.get(recid,Serializer.STRING));
+            assertEquals(m.get(recid), e.get(recid, Serializer.STRING));
         }
 
+        e.close();
     }
 
     @Test public void compact_record_file_used() throws IOException {
-        StoreWAL w = openEngine();
-        Map<Long,String> m = fill(w);
-        w.commit();
-        w.close();
+        e = openEngine();
+        Map<Long,String> m = fill(e);
+        e.commit();
+        e.close();
 
         //now create fake compaction file, that should be ignored since seal is broken
-        String csealFile = w.getWalFileName("c");
+        String csealFile = e.getWalFileName("c");
         Volume cseal = new Volume.FileChannelVol(new File(csealFile));
         cseal.ensureAvailable(16);
         cseal.putLong(8,234238492376748923L);
+        cseal.close();
 
         //create record wal file
-        String r0 = w.getWalFileName("r0");
+        String r0 = e.getWalFileName("r0");
         Volume r = new Volume.FileChannelVol(new File(r0));
         r.ensureAvailable(100000);
         r.putLong(8,StoreWAL.WAL_SEAL);
@@ -268,12 +272,13 @@ public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
         r.close();
 
         //reopen engine, record WAL should be replayed
-        w = openEngine();
+        e = openEngine();
 
         //check content of log file replayed into main store
         for(long recid:m.keySet()){
-            assertEquals(m.get(recid), w.get(recid,Serializer.STRING));
+            assertEquals(m.get(recid), e.get(recid, Serializer.STRING));
         }
+        e.close();
     }
 
 }

@@ -25,6 +25,7 @@ public class StoreCachedTest<E extends StoreCached> extends StoreDirectTest<E>{
     }
 
     @Test public void put_delete(){
+        e = openEngine();
         long recid = e.put(1L, Serializer.LONG);
         int pos = e.lockPos(recid);
         assertEquals(1, e.writeCache[pos].size);
@@ -33,6 +34,7 @@ public class StoreCachedTest<E extends StoreCached> extends StoreDirectTest<E>{
     }
 
     @Test public void put_update_delete(){
+        e = openEngine();
         long recid = e.put(1L, Serializer.LONG);
         int pos = e.lockPos(recid);
         assertEquals(1, e.writeCache[pos].size);
@@ -44,14 +46,13 @@ public class StoreCachedTest<E extends StoreCached> extends StoreDirectTest<E>{
 
     @Test(timeout = 100000)
     public void flush_write_cache(){
-
         for(ScheduledExecutorService E:
                 new ScheduledExecutorService[]{
                         null,
                         Executors.newSingleThreadScheduledExecutor()
                 }) {
             final int M = 1234;
-            StoreCached s = new StoreCached(
+            StoreCached e = new StoreCached(
                     null,
                     Volume.ByteArrayVol.FACTORY,
                     null,
@@ -68,30 +69,32 @@ public class StoreCachedTest<E extends StoreCached> extends StoreDirectTest<E>{
                     1024,
                     M
             );
-            s.init();
+            e.init();
 
-            assertEquals(M, s.writeQueueSize);
-            assertEquals(0, s.writeCache[0].size);
+            assertEquals(M, e.writeQueueSize);
+            assertEquals(0, e.writeCache[0].size);
 
             //write some stuff so cache is almost full
             for (int i = 0; i < M ; i++) {
-                s.put("aa", Serializer.STRING);
+                e.put("aa", Serializer.STRING);
             }
 
-            assertEquals(M, s.writeCache[0].size);
+            assertEquals(M, e.writeCache[0].size);
 
             //one extra item causes overflow
-            s.put("bb",Serializer.STRING);
+            e.put("bb", Serializer.STRING);
 
 
-            while(E!=null && s.writeCache[0].size>0){
+            while(E!=null && e.writeCache[0].size>0){
                 LockSupport.parkNanos(1000);
             }
 
-            assertEquals(0, s.writeCache[0].size);
+            assertEquals(0, e.writeCache[0].size);
 
             if(E!=null)
                 E.shutdown();
+
+            e.close();
         }
     }
 

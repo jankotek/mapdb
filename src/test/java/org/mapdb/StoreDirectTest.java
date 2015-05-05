@@ -225,6 +225,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 //    }
 //
     @Test public void test_index_record_delete_and_reuse_large_COMPACT(){
+        e = openEngine();
         final long MAX = 10;
 
         List<Long> recids= new ArrayList<Long>();
@@ -265,6 +266,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 //    }
 //
     @Test public void test_phys_record_reused_COMPACT(){
+        e = openEngine();
         final long recid = e.put(1L, Serializer.LONG);
         assertEquals((Long)1L, e.get(recid, Serializer.LONG));
 
@@ -284,6 +286,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         assertEquals(0, indexVal & StoreDirect.MLINKED);
         assertEquals(0, indexVal & StoreDirect.MUNUSED);
         assertNotEquals(0, indexVal & StoreDirect.MARCHIVE);
+        e.close();
     }
 //
 //
@@ -302,6 +305,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 //    }
 //
     @Test public void test_long_stack_puts_record_offset_into_index() throws IOException {
+        e = openEngine();
         e.structuralLock.lock();
         e.longStackPut(FREE_RECID_STACK, 1,false);
         e.commit();
@@ -311,6 +315,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     }
 
     @Test public void test_long_stack_put_take() throws IOException {
+        e = openEngine();
         e.structuralLock.lock();
 
         final long max = 150;
@@ -335,6 +340,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     }
 
     @Test public void test_long_stack_put_take_simple() throws IOException {
+        e = openEngine();
         e.structuralLock.lock();
         e.longStackPut(FREE_RECID_STACK, 111,false);
         assertEquals(111L, e.longStackTake(FREE_RECID_STACK,false));
@@ -342,6 +348,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
 
     @Test public void test_basic_long_stack() throws IOException {
+        e = openEngine();
         //dirty hack to make sure we have lock
         e.structuralLock.lock();
         final long max = 150;
@@ -358,6 +365,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     }
 
     @Test public void test_large_long_stack() throws IOException {
+        e = openEngine();
         //dirty hack to make sure we have lock
         e.structuralLock.lock();
         final long max = 15000;
@@ -374,6 +382,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     }
 
     @Test public void test_basic_long_stack_no_commit() throws IOException {
+        e = openEngine();
         //dirty hack to make sure we have lock
         e.structuralLock.lock();
         final long max = 150;
@@ -387,6 +396,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     }
 
     @Test public void test_large_long_stack_no_commit() throws IOException {
+        e = openEngine();
         //dirty hack to make sure we have lock
         e.structuralLock.lock();
         final long max = 15000;
@@ -403,6 +413,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
 
     @Test public void long_stack_page_created_after_put() throws IOException {
+        e = openEngine();
         e.structuralLock.lock();
         e.longStackPut(FREE_RECID_STACK, 111,false);
         e.commit();
@@ -425,6 +436,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     }
 
     @Test public void long_stack_put_five() throws IOException {
+        e = openEngine();
         e.structuralLock.lock();
         e.longStackPut(FREE_RECID_STACK, 111,false);
         e.longStackPut(FREE_RECID_STACK, 112,false);
@@ -455,6 +467,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     }
 
     @Test public void long_stack_page_deleted_after_take() throws IOException {
+        e = openEngine();
         e.structuralLock.lock();
         e.longStackPut(FREE_RECID_STACK, 111,false);
         e.commit();
@@ -478,6 +491,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     }
 
     @Test public void long_stack_page_deleted_after_take2() throws IOException {
+        e = openEngine();
         e.structuralLock.lock();
         e.longStackPut(FREE_RECID_STACK, 111,false);
         e.commit();
@@ -497,6 +511,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
 
     @Test public void long_stack_page_overflow() throws IOException {
+        e = openEngine();
         e.structuralLock.lock();
         //fill page until near overflow
 
@@ -595,6 +610,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
 
     @Test public void prealloc(){
+        e = openEngine();
         long recid = e.preallocate();
         assertNull(e.get(recid,UtilsTest.FAIL));
         e.commit();
@@ -693,36 +709,36 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
             };
             //init
             File f = UtilsTest.tempDbFile();
-            StoreDirect s = new StoreDirect(f.getPath(), fac,
+            e = (E) new StoreDirect(f.getPath(), fac,
                     null,
                     CC.DEFAULT_LOCK_SCALE,
                     0,
                     false,false,null,false,0,
                     false,0,
                     null);
-            s.init();
+            e.init();
 
             //fill with some data
 
             Map<Long, String> data = new LinkedHashMap();
             for(int i=0;i<1000;i++){
                 String ss = UtilsTest.randomString(1000);
-                long recid = s.put(ss,Serializer.STRING);
+                long recid = e.put(ss,Serializer.STRING);
             }
 
             //perform compact and check data
-            Volume vol = s.vol;
-            s.commit();
-            s.compact();
+            Volume vol = e.vol;
+            e.commit();
+            e.compact();
 
-            assertEquals(vol.getClass(), s.vol.getClass());
-            if(s.vol.getFile()!=null)
-                assertEquals(f, s.vol.getFile());
+            assertEquals(vol.getClass(), e.vol.getClass());
+            if(e.vol.getFile()!=null)
+                assertEquals(f, e.vol.getFile());
 
             for(Long recid:data.keySet()){
-                assertEquals(data.get(recid), s.get(recid,Serializer.STRING));
+                assertEquals(data.get(recid), e.get(recid, Serializer.STRING));
             }
-            s.close();
+            e.close();
             f.delete();
         }
     }

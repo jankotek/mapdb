@@ -1,6 +1,7 @@
 package org.mapdb;
 
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -23,7 +24,8 @@ public abstract class EngineTest<ENGINE extends Engine>{
     protected abstract ENGINE openEngine();
 
     void reopen(){
-        if(!canReopen()) return;
+        if(!canReopen())
+            return;
         e.close();
         e=openEngine();
     }
@@ -32,18 +34,26 @@ public abstract class EngineTest<ENGINE extends Engine>{
     boolean canRollback(){return true;}
 
     ENGINE e;
-    @Before public void init(){
-        e = openEngine();
+
+    @After
+    public void close(){
+        if(e!=null && !e.isClosed()){
+            e.close();
+            e = null;
+        }
     }
 
     @Test public void put_get(){
+        e = openEngine();
         Long l = 11231203099090L;
         long recid = e.put(l, Serializer.LONG);
         assertEquals(l, e.get(recid, Serializer.LONG));
     }
 
     @Test public void put_reopen_get(){
-        if(!canReopen()) return;
+        e = openEngine();
+        if(!canReopen())
+            return;
         Long l = 11231203099090L;
         long recid = e.put(l, Serializer.LONG);
         e.commit();
@@ -53,6 +63,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
     }
 
     @Test public void put_get_large(){
+        e = openEngine();
         byte[] b = new byte[(int) 1e6];
         new Random().nextBytes(b);
         long recid = e.put(b, Serializer.BYTE_ARRAY_NOSIZE);
@@ -61,6 +72,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
     }
 
     @Test public void put_reopen_get_large(){
+        e = openEngine();
         if(!canReopen()) return;
         byte[] b = new byte[(int) 1e6];
         new Random().nextBytes(b);
@@ -73,11 +85,13 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
 
     @Test public void first_recid(){
+        e = openEngine();
         assertEquals(Store.RECID_LAST_RESERVED + 1, e.put(1, Serializer.INTEGER));
     }
 
 
     @Test public void compact0(){
+        e = openEngine();
         Long v1 = 129031920390121423L;
         Long v2 = 909090901290129990L;
         Long v3 = 998898989L;
@@ -102,6 +116,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
 
     @Test public void compact(){
+        e = openEngine();
         Map<Long,Long> recids = new HashMap<Long, Long>();
         for(Long l=0L;l<1000;l++){
             recids.put(l,
@@ -121,6 +136,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
 
     @Test public void compact2(){
+        e = openEngine();
         Map<Long,Long> recids = new HashMap<Long, Long>();
         for(Long l=0L;l<1000;l++){
             recids.put(l,
@@ -143,6 +159,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
 
     @Test public void compact_large_record(){
+        e = openEngine();
         byte[] b = UtilsTest.randomByteArray(100000);
         long recid = e.put(b, Serializer.BYTE_ARRAY_NOSIZE);
         e.commit();
@@ -153,6 +170,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
 
     @Test public void testSetGet(){
+        e = openEngine();
         long recid  = e.put((long) 10000, Serializer.LONG);
         Long  s2 = e.get(recid, Serializer.LONG);
         assertEquals(s2, Long.valueOf(10000));
@@ -163,6 +181,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
     @Test
     public void large_record(){
+        e = openEngine();
         byte[] b = new byte[100000];
         new Random().nextBytes(b);
         long recid = e.put(b, BYTE_ARRAY_NOSIZE);
@@ -172,6 +191,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
     }
 
     @Test public void large_record_update(){
+        e = openEngine();
         byte[] b = new byte[100000];
         new Random().nextBytes(b);
         long recid = e.put(b, BYTE_ARRAY_NOSIZE);
@@ -187,6 +207,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
     }
 
     @Test public void large_record_delete(){
+        e = openEngine();
         byte[] b = new byte[100000];
         new Random().nextBytes(b);
         long recid = e.put(b, BYTE_ARRAY_NOSIZE);
@@ -196,6 +217,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
 
     @Test public void large_record_larger(){
+        e = openEngine();
         byte[] b = new byte[10000000];
         new Random().nextBytes(b);
         long recid = e.put(b, BYTE_ARRAY_NOSIZE);
@@ -210,6 +232,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
 
     @Test public void test_store_reopen(){
+        e = openEngine();
         long recid = e.put("aaa", Serializer.STRING_NOSIZE);
         e.commit();
         reopen();
@@ -220,6 +243,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
     }
 
     @Test public void test_store_reopen_nocommit(){
+        e = openEngine();
         long recid = e.put("aaa", Serializer.STRING_NOSIZE);
         e.commit();
         e.update(recid, "bbb", Serializer.STRING_NOSIZE);
@@ -232,6 +256,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
 
     @Test public void rollback(){
+        e = openEngine();
         long recid = e.put("aaa", Serializer.STRING_NOSIZE);
         e.commit();
         e.update(recid, "bbb", Serializer.STRING_NOSIZE);
@@ -244,6 +269,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
     }
 
     @Test public void rollback_reopen(){
+        e = openEngine();
         long recid = e.put("aaa", Serializer.STRING_NOSIZE);
         e.commit();
         e.update(recid, "bbb", Serializer.STRING_NOSIZE);
@@ -259,6 +285,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
     /* after deletion it enters preallocated state */
     @Test public void delete_and_get(){
+        e = openEngine();
         long recid = e.put("aaa", Serializer.STRING);
         e.delete(recid, Serializer.STRING);
         assertNull(e.get(recid, Serializer.ILLEGAL_ACCESS));
@@ -269,6 +296,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
     @Test(expected=DBException.EngineGetVoid.class)
     public void get_non_existent(){
+        e = openEngine();
         long recid = Engine.RECID_FIRST;
         e.get(recid, Serializer.ILLEGAL_ACCESS);
         e.close();
@@ -276,6 +304,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
     @Test
     public void get_non_existent_after_delete_and_compact(){
+        e = openEngine();
         long recid = e.put(1L,Serializer.LONG);
         e.delete(recid,Serializer.LONG);
         assertNull(e.get(recid,Serializer.ILLEGAL_ACCESS));
@@ -291,6 +320,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
     }
 
     @Test public void preallocate_cas(){
+        e = openEngine();
         long recid = e.preallocate();
         assertFalse(e.compareAndSwap(recid, 1L, 2L, Serializer.ILLEGAL_ACCESS));
         assertTrue(e.compareAndSwap(recid, null, 2L, Serializer.LONG));
@@ -299,6 +329,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
 
     @Test public void preallocate_get_update_delete_update_get(){
+        e = openEngine();
         long recid = e.preallocate();
         assertNull(e.get(recid,Serializer.ILLEGAL_ACCESS));
         e.update(recid, 1L, Serializer.LONG);
@@ -311,6 +342,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
     }
 
     @Test public void cas_delete(){
+        e = openEngine();
         long recid = e.put(1L, Serializer.LONG);
         assertTrue(e.compareAndSwap(recid, 1L, null, Serializer.LONG));
         assertNull(e.get(recid, Serializer.ILLEGAL_ACCESS));
@@ -318,6 +350,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
     }
 
     @Test public void reserved_recid_exists(){
+        e = openEngine();
         for(long recid=1;recid<Engine.RECID_FIRST;recid++){
             assertNull(e.get(recid,Serializer.ILLEGAL_ACCESS));
         }
@@ -333,43 +366,48 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
     @Test(expected = NullPointerException.class)
     public void NPE_get(){
+        e = openEngine();
         e.get(1, null);
     }
 
     @Test(expected = NullPointerException.class)
     public void NPE_put(){
+        e = openEngine();
         e.put(1L, null);
     }
 
     @Test(expected = NullPointerException.class)
     public void NPE_update(){
+        e = openEngine();
         e.update(1, 1L, null);
     }
 
     @Test(expected = NullPointerException.class)
     public void NPE_cas(){
+        e = openEngine();
         e.compareAndSwap(1, 1L, 1L, null);
     }
 
     @Test(expected = NullPointerException.class)
     public void NPE_delete(){
+        e = openEngine();
         e.delete(1L, null);
     }
 
     @Test public void putGetUpdateDelete(){
-        Engine st = openEngine();
+        e = openEngine();
         String s = "aaaad9009";
-        long recid = st.put(s,Serializer.STRING);
+        long recid = e.put(s,Serializer.STRING);
 
-        assertEquals(s,st.get(recid,Serializer.STRING));
+        assertEquals(s, e.get(recid, Serializer.STRING));
 
         s = "da8898fe89w98fw98f9";
-        st.update(recid,s,Serializer.STRING);
-        assertEquals(s, st.get(recid, Serializer.STRING));
+        e.update(recid, s, Serializer.STRING);
+        assertEquals(s, e.get(recid, Serializer.STRING));
 
-        st.delete(recid, Serializer.STRING);
-        assertNull(st.get(recid, Serializer.STRING));
-        st.close();
+        e.delete(recid, Serializer.STRING);
+        assertNull(e.get(recid, Serializer.STRING));
+        e.close();
     }
 
 
@@ -391,7 +429,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
             }
         };
 
-        Engine e = openEngine();
+        e = openEngine();
         long recid = e.put("", s);
         assertEquals("",e.get(recid,s));
 
@@ -414,7 +452,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
     public void par_update_get() throws InterruptedException {
         int threadNum = 8;
         final long end = System.currentTimeMillis()+5000;
-        final Engine e = openEngine();
+        e = openEngine();
         final BlockingQueue<Fun.Pair<Long,byte[]>> q = new ArrayBlockingQueue(threadNum*10);
         for(int i=0;i<threadNum;i++){
             byte[] b = UtilsTest.randomByteArray(new Random().nextInt(10000));
@@ -452,7 +490,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
     public void par_cas() throws InterruptedException {
         int threadNum = 8;
         final long end = System.currentTimeMillis()+5000;
-        final Engine e = openEngine();
+        e = openEngine();
         final BlockingQueue<Fun.Pair<Long,byte[]>> q = new ArrayBlockingQueue(threadNum*10);
         for(int i=0;i<threadNum;i++){
             byte[] b = UtilsTest.randomByteArray(new Random().nextInt(10000));
@@ -485,7 +523,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
     }
 
     @Test public void update_reserved_recid(){
-        Engine e = openEngine();
+        e = openEngine();
         e.update(Engine.RECID_NAME_CATALOG,111L,Serializer.LONG);
         assertEquals(new Long(111L), e.get(Engine.RECID_NAME_CATALOG, Serializer.LONG));
         e.commit();
@@ -496,7 +534,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
 
     @Test public void update_reserved_recid_large(){
-        Engine e = openEngine();
+        e = openEngine();
         byte[] data = UtilsTest.randomByteArray((int) 1e7);
         e.update(Engine.RECID_NAME_CATALOG,data,Serializer.BYTE_ARRAY_NOSIZE);
         assertTrue(Serializer.BYTE_ARRAY.equals(data, e.get(Engine.RECID_NAME_CATALOG, Serializer.BYTE_ARRAY_NOSIZE)));
@@ -510,7 +548,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
         byte[] data = new byte[1024];
         r.nextBytes(data);
 
-        Engine e = openEngine();
+        e = openEngine();
         long recid = e.put(data, Serializer.BYTE_ARRAY);
 
         byte[] data2 = new byte[100];
@@ -522,6 +560,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
     }
 
     @Test public void nosize_array(){
+        e = openEngine();
         byte[] b = new byte[0];
         long recid = e.put(b,Serializer.BYTE_ARRAY_NOSIZE);
         assertTrue(Serializer.BYTE_ARRAY.equals(b, e.get(recid, Serializer.BYTE_ARRAY_NOSIZE)));
@@ -540,6 +579,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
     }
 
     @Test public void compact_double_recid_reuse(){
+        e = openEngine();
         if(e instanceof StoreAppend)
             return; //TODO reenable once StoreAppend has compaction
         long recid1 = e.put("aa",Serializer.STRING);
@@ -556,6 +596,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
     }
 
     @Test public void snapshot(){
+        e = openEngine();
         if(!e.canSnapshot())
             return;
 
@@ -567,6 +608,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
     }
 
     @Test public void snapshot_after_rollback(){
+        e = openEngine();
         if(!e.canSnapshot() || !e.canRollback())
             return;
 
@@ -580,6 +622,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
     }
 
     @Test public void snapshot_after_commit(){
+        e = openEngine();
         if(!e.canSnapshot())
             return;
 
@@ -593,6 +636,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
     }
 
     @Test public void snapshot_after_commit2(){
+        e = openEngine();
         if(!e.canSnapshot())
             return;
 
@@ -609,6 +653,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
     // double close should not fail, but other operation are allowed to throw exceptions
     @Test public void double_close(){
+        e = openEngine();
         e.close();
         e.close();
     }

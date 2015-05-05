@@ -110,6 +110,8 @@ public class StoreCached extends StoreDirect {
         if (CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
+        if(this.headVol!=null && !this.headVol.isClosed())
+            headVol.close();
         this.headVol = new Volume.SingleByteArrayVol((int) HEAD_END);
         //TODO limit size
         //TODO introduce SingleByteArrayVol which uses only single byte[]

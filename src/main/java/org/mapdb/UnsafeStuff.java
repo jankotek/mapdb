@@ -343,6 +343,7 @@ class UnsafeStuff {
 
         @Override
         public void close() {
+            closed = true;
             sun.nio.ch.DirectBuffer[] buf2 = buffers;
             buffers=null;
             addresses = null;

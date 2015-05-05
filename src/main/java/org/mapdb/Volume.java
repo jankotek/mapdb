@@ -87,6 +87,26 @@ public abstract class Volume implements Closeable{
         }
     };
 
+    protected volatile boolean closed;
+
+    public boolean isClosed(){
+        return closed;
+    }
+
+    //uncomment to get stack trace on Volume leak warning
+//    final private Throwable constructorStackTrace = new AssertionError();
+
+    @Override protected void finalize(){
+        if(CC.ASSERT){
+            if(!closed
+                    && !(this instanceof ByteArrayVol)
+                    && !(this instanceof SingleByteArrayVol)){
+                LOG.log(Level.WARNING, "Open Volume was GCed, possible file handle leak."
+//                        ,constructorStackTrace
+                );
+            }
+        }
+    }
 
     /**
      * Check space allocated by Volume is bigger or equal to given offset.
@@ -163,7 +183,7 @@ public abstract class Volume implements Closeable{
     }
 
     public void putUnsignedByte(long offset, int b) {
-        putByte(offset, (byte)(b & 0xff));
+        putByte(offset, (byte) (b & 0xff));
     }
 
 
@@ -625,6 +645,7 @@ public abstract class Volume implements Closeable{
         public void close() {
             growLock.lock();
             try{
+                closed = true;
                 fileChannel.close();
                 raf.close();
                 //TODO not sure if no sync causes problems while unlocking files
@@ -820,6 +841,7 @@ public abstract class Volume implements Closeable{
         @Override public void close() {
             growLock.lock();
             try{
+                closed = true;
                 for(ByteBuffer b: slices){
                     if(b!=null && (b instanceof MappedByteBuffer)){
                         unmap((MappedByteBuffer)b);
@@ -1069,6 +1091,7 @@ public abstract class Volume implements Closeable{
         @Override
         public void close() {
             try{
+                closed = true;
                 if(channel!=null)
                     channel.close();
                 channel = null;
@@ -1191,7 +1214,6 @@ public abstract class Volume implements Closeable{
             this.sliceSize = 1<< sliceShift;
             this.sliceSizeModMask = sliceSize -1;
         }
-
 
         @Override
         public final void ensureAvailable(long offset) {
@@ -1403,6 +1425,7 @@ public abstract class Volume implements Closeable{
 
         @Override
         public void close() {
+            closed = true;
             slices =null;
         }
 
@@ -1553,6 +1576,7 @@ public abstract class Volume implements Closeable{
 
         @Override
         public void close() {
+            closed = true;
             //TODO perhaps set `data` to null? what are performance implications for non-final fieldd?
         }
 
@@ -1675,6 +1699,7 @@ public abstract class Volume implements Closeable{
 
         @Override
         public void close() {
+            closed = true;
             vol.close();
         }
 
@@ -1917,6 +1942,7 @@ public abstract class Volume implements Closeable{
 
         @Override
         public void close() {
+            closed = true;
             try {
                 raf.close();
             } catch (IOException e) {
