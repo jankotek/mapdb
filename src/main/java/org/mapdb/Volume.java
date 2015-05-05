@@ -23,6 +23,8 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Arrays;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * MapDB abstraction over raw storage (file, disk partition, memory etc...).
@@ -37,6 +39,22 @@ import java.util.concurrent.locks.ReentrantLock;
 public abstract class Volume {
 
 
+//    protected static final Logger LOG = Logger.getLogger(Volume.class.getName());
+//
+//    //uncomment to get stack trace on Volume leak warning
+//    final private Throwable constructorStackTrace = new AssertionError();
+//
+//    @Override
+//    protected void finalize(){
+//            if(!closed){
+//                LOG.log(Level.WARNING, "Open Volume was GCed, possible file handle leak."
+//                        ,constructorStackTrace
+//                );
+//            }
+//
+//    }
+
+    protected boolean closed = false;
 
     /**
      * Check space allocated by Volume is bigger or equal to given offset.
@@ -485,6 +503,7 @@ public abstract class Volume {
         public void close() {
             growLock.lock();
             try{
+                closed = true;
                 fileChannel.close();
                 raf.close();
                 //TODO not sure if no sync causes problems while unlocking files
@@ -653,6 +672,7 @@ public abstract class Volume {
         @Override public void close() {
             growLock.lock();
             try{
+                closed = true;
                 for(ByteBuffer b: chunks){
                     if(b!=null && (b instanceof MappedByteBuffer)){
                         unmap((MappedByteBuffer)b);
@@ -916,6 +936,7 @@ public abstract class Volume {
         @Override
         public void close() {
             try{
+                closed = true;
                 if(channel!=null)
                     channel.close();
                 channel = null;

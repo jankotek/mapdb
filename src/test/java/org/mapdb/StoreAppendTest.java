@@ -68,6 +68,7 @@ public class StoreAppendTest<E extends StoreAppend> extends EngineTest<E>{
     }
 
     @Test public void header_created() throws IOException {
+        e = openEngine();
         //check offset
         assertEquals(StoreAppend.LAST_RESERVED_RECID, e.maxRecid);
         assertEquals(1+8+2*StoreAppend.LAST_RESERVED_RECID, e.currPos);
@@ -88,6 +89,7 @@ public class StoreAppendTest<E extends StoreAppend> extends EngineTest<E>{
     }
 
     @Test public void put(){
+        e = openEngine();
         long oldPos = e.currPos;
         Volume vol = e.currVolume;
         assertEquals(0, vol.getUnsignedByte(oldPos));

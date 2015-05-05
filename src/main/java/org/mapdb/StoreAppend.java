@@ -499,6 +499,8 @@ class StoreAppend extends Store{
             if(deleteFilesAfterClose) v.deleteFile();
         }
         volumes.clear();
+        index.close();
+        index = null;
         closed = true;
     }
 

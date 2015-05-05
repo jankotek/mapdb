@@ -58,6 +58,7 @@ public class StoreWALTest extends StoreDirectTest<StoreWAL>{
 
 
     @Test public void header_index_ver() throws IOException {
+        e = openEngine();
         e.put(new byte[10000],Serializer.BYTE_ARRAY_NOSIZE);
         e.commit();
         e.close();
@@ -90,7 +91,7 @@ public class StoreWALTest extends StoreDirectTest<StoreWAL>{
 
         final AtomicBoolean replay = new AtomicBoolean(true);
 
-        StoreWAL wal = new StoreWAL(fac){
+        e = new StoreWAL(fac){
             @Override
             protected void replayLogFile() {
                 if(replay.get())
@@ -100,7 +101,7 @@ public class StoreWALTest extends StoreDirectTest<StoreWAL>{
             }
         };
 
-        DB db = new DB(wal);
+        DB db = new DB(e);
 
         Map m = db.getHashMap("map");
 
@@ -109,7 +110,7 @@ public class StoreWALTest extends StoreDirectTest<StoreWAL>{
         for(int i=0;i<max;i++){
             m.put(i,i);
         }
-        wal.commit();
+        e.commit();
 
         //fill log, commit but do not replay
         replay.set(false);
@@ -117,19 +118,19 @@ public class StoreWALTest extends StoreDirectTest<StoreWAL>{
             for (int i = max; i < max*2; i++) {
                 m.put(i, i);
             }
-            wal.commit();
+            e.commit();
             fail("Should throw an error");
         }catch(IllegalAccessError e){
         }
 
-        wal.log.close();
-        wal.phys.close();
-        wal.index.close();
+        e.log.close();
+        e.phys.close();
+        e.index.close();
 
         //now reopen and check content
-        wal = new StoreWAL(fac);
+        e = new StoreWAL(fac);
 
-        db = new DB(wal);
+        db = new DB(e);
 
         m = db.getHashMap("map");
 

@@ -25,9 +25,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     Volume.Factory fac;
 
     @Before public void init(){
-
         fac = Volume.fileFactory(f, 0,false,0L,CC.VOLUME_CHUNK_SHIFT, 0);
-        super.init();
     }
 
     static final long IO_RECID = StoreDirect.IO_FREE_RECID+32;
@@ -73,6 +71,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
     @Test
     public void phys_append_alloc(){
+        e = openEngine();
         e.structuralLock.lock();
         long[] ret = e.physAllocate(100,true,false);
         long expected = 100L<<48 | 16L;
@@ -81,6 +80,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
     @Test
     public void phys_append_alloc_link2(){
+        e = openEngine();
         e.structuralLock.lock();
         long[] ret = e.physAllocate(100 + MAX_REC_SIZE,true,false);
         long exp1 = MASK_LINKED |((long)MAX_REC_SIZE)<<48 | 16L;
@@ -90,6 +90,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
     @Test
     public void phys_append_alloc_link3(){
+        e = openEngine();
         e.structuralLock.lock();
         long[] ret = e.physAllocate(100 + MAX_REC_SIZE*2,true,false);
         long exp1 = MASK_LINKED | ((long)MAX_REC_SIZE)<<48 | 16L;
@@ -100,6 +101,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     }
 
     @Test public void second_rec_pos_round_to_16(){
+        e = openEngine();
         e.structuralLock.lock();
         long[] ret= e.physAllocate(1,true,false);
         assertArrayEquals(new long[]{1L<<48|16L},ret);
@@ -110,6 +112,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
 
     @Test public void test_index_record_delete(){
+        e = openEngine();
         long recid = e.put(1000L, Serializer.LONG);
         e.commit();
         assertEquals(1, countIndexRecords());
@@ -121,6 +124,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     }
 
     @Test public void test_size2IoList(){
+        e = openEngine();
         long old= StoreDirect.IO_FREE_RECID;
         for(int size=1;size<= StoreDirect.MAX_REC_SIZE;size++){
 
@@ -137,6 +141,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
 
     @Test public void test_index_record_delete_and_reusef(){
+        e = openEngine();
         long recid = e.put(1000L, Serializer.LONG);
         e.commit();
         assertEquals(1, countIndexRecords());
@@ -154,6 +159,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
 
     @Test public void test_index_record_delete_and_reuse_large(){
+        e = openEngine();
         final long MAX = 10;
 
         List<Long> recids= new ArrayList<Long>();
@@ -179,6 +185,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
 
     @Test public void test_phys_record_reused(){
+        e = openEngine();
         final long recid = e.put(1L, Serializer.LONG);
         assertEquals((Long)1L, e.get(recid, Serializer.LONG));
         final long physRecid = e.index.getLong(recid*8+ StoreDirect.IO_USER_START);
@@ -194,6 +201,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
 
     @Test public void test_index_stores_record_size() throws IOException {
+        e = openEngine();
         final long recid = e.put(1, Serializer.INTEGER);
         e.commit();
         assertEquals(4, e.index.getUnsignedShort(recid * 8+ StoreDirect.IO_USER_START));
@@ -207,6 +215,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     }
 
     @Test public void test_long_stack_puts_record_offset_into_index() throws IOException {
+        e = openEngine();
         e.structuralLock.lock();
         e.longStackPut(IO_RECID, 1,false);
         e.commit();
@@ -216,6 +225,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     }
 
     @Test public void test_long_stack_put_take() throws IOException {
+        e = openEngine();
         e.structuralLock.lock();
 
         final long max = 150;
@@ -232,6 +242,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     }
 
     @Test public void test_long_stack_put_take_simple() throws IOException {
+        e = openEngine();
         e.structuralLock.lock();
         e.longStackPut(IO_RECID, 111,false);
         assertEquals(111L, e.longStackTake(IO_RECID,false));
@@ -239,6 +250,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
 
     @Test public void test_basic_long_stack() throws IOException {
+        e = openEngine();
         //dirty hack to make sure we have lock
         e.structuralLock.lock();
         final long max = 150;
@@ -259,6 +271,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     }
 
     @Test public void test_large_long_stack() throws IOException {
+        e = openEngine();
         //dirty hack to make sure we have lock
         e.structuralLock.lock();
         final long max = 15000;
@@ -279,6 +292,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     }
 
     @Test public void test_basic_long_stack_no_commit() throws IOException {
+        e = openEngine();
         //dirty hack to make sure we have lock
         e.structuralLock.lock();
         final long max = 150;
@@ -292,6 +306,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     }
 
     @Test public void test_large_long_stack_no_commit() throws IOException {
+        e = openEngine();
         //dirty hack to make sure we have lock
         e.structuralLock.lock();
         final long max = 15000;
@@ -308,6 +323,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
 
     @Test public void long_stack_page_created_after_put() throws IOException {
+        e = openEngine();
         e.structuralLock.lock();
         e.longStackPut(IO_RECID, 111,false);
         e.commit();
@@ -321,6 +337,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     }
 
     @Test public void long_stack_put_five() throws IOException {
+        e = openEngine();
         e.structuralLock.lock();
         e.longStackPut(IO_RECID, 111,false);
         e.longStackPut(IO_RECID, 112,false);
@@ -343,6 +360,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     }
 
     @Test public void long_stack_page_deleted_after_take() throws IOException {
+        e = openEngine();
         e.structuralLock.lock();
         e.longStackPut(IO_RECID, 111,false);
         e.commit();
@@ -352,6 +370,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     }
 
     @Test public void long_stack_page_overflow() throws IOException {
+        e = openEngine();
         e.structuralLock.lock();
         //fill page until near overflow
         for(int i=0;i< StoreDirect.LONG_STACK_PREF_COUNT;i++){
@@ -405,6 +424,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     }
 
     @Test public void freeSpaceWorks(){
+        e = openEngine();
         long oldFree = e.getFreeSize();
         long recid = e.put(new byte[10000],Serializer.BYTE_ARRAY_NOSIZE);
         e.commit();
@@ -417,6 +437,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
 
     @Test public void prealloc(){
+        e = openEngine();
         long recid = e.preallocate();
         assertNull(e.get(recid,UtilsTest.FAIL));
         e.commit();
@@ -424,6 +445,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     }
 
     @Test public void header_index_inc() throws IOException {
+        e = openEngine();
         e.put(new byte[10000],Serializer.BYTE_ARRAY_NOSIZE);
         e.commit();
         e.close();
@@ -450,6 +472,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     }
 
     @Test public void header_phys_inc() throws IOException {
+        e = openEngine();
         e.put(new byte[10000],Serializer.BYTE_ARRAY_NOSIZE);
         e.commit();
         e.close();
@@ -503,5 +526,6 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         assertEquals(array.length, array2.length);
 
         temp.delete();
+        db.close();
     }
 }

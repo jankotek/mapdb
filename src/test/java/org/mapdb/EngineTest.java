@@ -1,6 +1,7 @@
 package org.mapdb;
 
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -31,17 +32,21 @@ public abstract class EngineTest<ENGINE extends Engine>{
     boolean canRollback(){return true;}
 
     ENGINE e;
-    @Before public void init(){
-        e = openEngine();
-    }
 
+    @After
+    public void close(){
+        if(e!=null && !e.isClosed())
+            e.close();
+    }
     @Test public void put_get(){
+        e = openEngine();
         Long l = 11231203099090L;
         long recid = e.put(l, Serializer.LONG);
         assertEquals(l, e.get(recid, Serializer.LONG));
     }
 
     @Test public void put_reopen_get(){
+        e = openEngine();
         if(!canReopen()) return;
         Long l = 11231203099090L;
         long recid = e.put(l, Serializer.LONG);
@@ -51,6 +56,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
     }
 
     @Test public void put_get_large(){
+        e = openEngine();
         byte[] b = new byte[(int) 1e6];
         new Random().nextBytes(b);
         long recid = e.put(b, Serializer.BYTE_ARRAY_NOSIZE);
@@ -58,6 +64,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
     }
 
     @Test public void put_reopen_get_large(){
+        e = openEngine();
         if(!canReopen()) return;
         byte[] b = new byte[(int) 1e6];
         new Random().nextBytes(b);
@@ -69,11 +76,13 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
 
     @Test public void first_recid(){
+        e = openEngine();
         assertEquals(Store.LAST_RESERVED_RECID+1, e.put(1,Serializer.INTEGER));
     }
 
 
     @Test public void compact0(){
+        e = openEngine();
         Long v1 = 129031920390121423L;
         Long v2 = 909090901290129990L;
         Long v3 = 998898989L;
@@ -98,6 +107,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
 
     @Test public void compact(){
+        e = openEngine();
         Map<Long,Long> recids = new HashMap<Long, Long>();
         for(Long l=0L;l<1000;l++){
             recids.put(l,
@@ -117,6 +127,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
 
     @Test public void compact2(){
+        e = openEngine();
         Map<Long,Long> recids = new HashMap<Long, Long>();
         for(Long l=0L;l<1000;l++){
             recids.put(l,
@@ -138,6 +149,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
 
     @Test public void compact_large_record(){
+        e = openEngine();
         byte[] b = new byte[100000];
         long recid = e.put(b, Serializer.BYTE_ARRAY_NOSIZE);
         e.commit();
@@ -147,6 +159,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
 
     @Test public void testSetGet(){
+        e = openEngine();
         long recid  = e.put((long) 10000, Serializer.LONG);
         Long  s2 = e.get(recid, Serializer.LONG);
         assertEquals(s2, Long.valueOf(10000));
@@ -156,6 +169,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
     @Test
     public void large_record(){
+        e = openEngine();
         byte[] b = new byte[100000];
         Arrays.fill(b, (byte) 111);
         long recid = e.put(b, BYTE_ARRAY_NOSIZE);
@@ -164,6 +178,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
     }
 
     @Test public void large_record_update(){
+        e = openEngine();
         byte[] b = new byte[100000];
         Arrays.fill(b, (byte) 111);
         long recid = e.put(b, BYTE_ARRAY_NOSIZE);
@@ -178,6 +193,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
     }
 
     @Test public void large_record_delete(){
+        e = openEngine();
         byte[] b = new byte[100000];
         Arrays.fill(b, (byte) 111);
         long recid = e.put(b, BYTE_ARRAY_NOSIZE);
@@ -186,6 +202,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
 
     @Test public void large_record_larger(){
+        e = openEngine();
         byte[] b = new byte[10000000];
         Arrays.fill(b, (byte) 111);
         long recid = e.put(b, BYTE_ARRAY_NOSIZE);
@@ -200,6 +217,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
 
     @Test public void test_store_reopen(){
+        e = openEngine();
         long recid = e.put("aaa", Serializer.STRING_NOSIZE);
         e.commit();
         reopen();
@@ -209,6 +227,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
     }
 
     @Test public void test_store_reopen_nocommit(){
+        e = openEngine();
         long recid = e.put("aaa", Serializer.STRING_NOSIZE);
         e.commit();
         e.update(recid,"bbb",Serializer.STRING_NOSIZE);
@@ -220,6 +239,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
 
     @Test public void rollback(){
+        e = openEngine();
         long recid = e.put("aaa", Serializer.STRING_NOSIZE);
         e.commit();
         e.update(recid, "bbb", Serializer.STRING_NOSIZE);
@@ -232,6 +252,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
     }
 
     @Test public void rollback_reopen(){
+        e = openEngine();
         long recid = e.put("aaa", Serializer.STRING_NOSIZE);
         e.commit();
         e.update(recid, "bbb", Serializer.STRING_NOSIZE);
@@ -247,6 +268,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
 
     public static void execNTimes(int n, final Callable r){
+
         ExecutorService s = Executors.newFixedThreadPool(n);
         final CountDownLatch wait = new CountDownLatch(n);
 
@@ -288,9 +310,10 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
     @Test(timeout = 1000*100) @Ignore
     public void par_update_get() throws InterruptedException {
+        e = openEngine();
         int threadNum = 32;
         final long end = (long) (System.currentTimeMillis()+20000);
-        final Engine e = openEngine();
+        e = openEngine();
         final BlockingQueue<Fun.Tuple2<Long,String>> q = new ArrayBlockingQueue(threadNum*10);
         for(int i=0;i<threadNum;i++){
             String b = UtilsTest.randomString(new Random().nextInt(10000));
@@ -325,7 +348,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
     public void par_cas() throws InterruptedException {
         int threadNum = 32;
         final long end = (long) (System.currentTimeMillis()+20000);
-        final Engine e = openEngine();
+        e = openEngine();
         final BlockingQueue<Fun.Tuple2<Long,String>> q = new ArrayBlockingQueue(threadNum*10);
         for(int i=0;i<threadNum;i++){
             String b = UtilsTest.randomString(new Random().nextInt(10000));
