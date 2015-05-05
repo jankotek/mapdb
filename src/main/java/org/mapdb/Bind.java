@@ -88,7 +88,7 @@ public final class Bind {
      * @param <K> key type  in map
      * @param <V> value type in map
      */
-    public interface MapWithModificationListener<K,V> extends Map<K,V> {
+    public interface MapWithModificationListener<K,V> extends ConcurrentMap<K,V> {
         /**
          * Add new modification listener notified when Map has been updated
          * @param listener callback interface notified when map changes
