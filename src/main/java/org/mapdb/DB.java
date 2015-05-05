@@ -261,6 +261,8 @@ public class DB implements Closeable {
         protected long expire = 0L;
         protected long expireAccess = 0L;
         protected long expireStoreSize;
+        protected Bind.MapWithModificationListener ondisk;
+
 
         protected Fun.Function1<?,?> valueCreator = null;
 
@@ -314,6 +316,7 @@ public class DB implements Closeable {
             return this;
         }
 
+
         /** Specifies that each entry should be automatically removed from the map once a fixed duration has elapsed after the entry's creation, the most recent replacement of its value, or its last access. Access time is reset by all map read and write operations  */
         public HTreeMapMaker expireAfterAccess(long interval, TimeUnit timeUnit){
             this.expireAccess = timeUnit.toMillis(interval);
@@ -328,6 +331,13 @@ public class DB implements Closeable {
 
         public HTreeMapMaker expireStoreSize(double maxStoreSize) {
             this.expireStoreSize = (long) (maxStoreSize*1024L*1024L*1024L);
+            return this;
+        }
+
+
+        /** After expiration (or deletion), put entries into given map */
+        public HTreeMapMaker expireOverflow(Bind.MapWithModificationListener ondisk){
+            this.ondisk = ondisk;
             return this;
         }
 
@@ -402,6 +412,8 @@ public class DB implements Closeable {
                 //$DELAY$
                 return (HTreeMap<K, V>) (db.catGet(name+".type")==null?
                                     make(): db.hashMap(name));
+
+                //TODO db.hashMap(name) will not restore some listeners (valueCreator, overflow). Perhaps log warning
             }
         }
 
@@ -672,6 +684,20 @@ public class DB implements Closeable {
         long expireTimeStart=0, expire=0, expireAccess=0, expireMaxSize = 0, expireStoreSize=0;
         long[] expireHeads=null, expireTails=null;
 
+
+        if(m.ondisk!=null) {
+            if (m.valueCreator != null) {
+                throw new IllegalArgumentException("ValueCreator can not be used together with ExpireOverflow.");
+            }
+            final Map ondisk = m.ondisk;
+            m.valueCreator = new Fun.Function1<Object, Object>() {
+                @Override
+                public Object run(Object key) {
+                    return ondisk.get(key);
+                }
+            };
+        }
+
         if(m.expire!=0 || m.expireAccess!=0 || m.expireMaxSize !=0 || m.expireStoreSize!=0){
             expireTimeStart = catPut(name+".expireTimeStart",System.currentTimeMillis());
             expire = catPut(name+".expire",m.expire);
@@ -728,6 +754,10 @@ public class DB implements Closeable {
                     m.pumpIgnoreDuplicates,
                     getDefaultSerializer(),
                     m.executor);
+        }
+
+        if(m.ondisk!=null){
+            Bind.mapPutAfterDelete(ret,m.ondisk);
         }
 
         return ret;

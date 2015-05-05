@@ -22,6 +22,10 @@ public class ExamplesTest {
         CacheEntryExpiry.main(args);
     }
 
+    @Test public void CacheOverflow() throws InterruptedException {
+        CacheOverflow.main(args);
+    }
+
     @Test public void Compression(){
         Compression.main(args);
     }

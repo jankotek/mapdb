@@ -1022,5 +1022,58 @@ public class HTreeMap2Test {
         assertEquals("one2",oldval.get());
         assertEquals(null, newval.get());
     }
+
+    @Test (timeout=20000L)
+    public void expiration_overflow() throws InterruptedException {
+        DB db = DBMaker.memoryDB()
+                .transactionDisable()
+                .make();
+
+        HTreeMap ondisk = db.hashMapCreate("onDisk")
+                .keySerializer(Serializer.INTEGER)
+                .valueSerializer(Serializer.STRING)
+                .make();
+
+        HTreeMap inmemory = db
+                .hashMapCreate("inmemory")
+                .keySerializer(Serializer.INTEGER)
+                .valueSerializer(Serializer.STRING)
+                .expireAfterWrite(1000)
+                .expireOverflow(ondisk)
+                .executorEnable()
+                .executorPeriod(3000)
+                .make();
+
+        //fill on disk, inmemory should stay empty
+
+        for(int i=0;i<1000;i++){
+            ondisk.put(i,"aa"+i);
+        }
+
+        assertEquals(1000,ondisk.size());
+        assertEquals(0, inmemory.size());
+
+        //add stuff inmemory, ondisk should stay unchanged, until executor kicks in
+        for(int i=1000;i<1100;i++){
+            inmemory.put(i,"aa"+i);
+        }
+        assertEquals(1000,ondisk.size());
+        assertEquals(100, inmemory.size());
+
+        //wait until executor kicks in
+        while(!inmemory.isEmpty()){
+            Thread.sleep(100);
+        }
+
+        //stuff should be moved to indisk
+        assertEquals(1100,ondisk.size());
+        assertEquals(0, inmemory.size());
+
+        //if value is not found in-memory it should get value from on-disk
+        assertEquals("aa111",inmemory.get(111));
+        assertEquals(1, inmemory.size());
+
+
+    }
 }
 
