@@ -1039,7 +1039,7 @@ public class HTreeMap2Test {
                 .keySerializer(Serializer.INTEGER)
                 .valueSerializer(Serializer.STRING)
                 .expireAfterWrite(1000)
-                .expireOverflow(ondisk)
+                .expireOverflow(ondisk, true)
                 .executorEnable()
                 .executorPeriod(3000)
                 .make();

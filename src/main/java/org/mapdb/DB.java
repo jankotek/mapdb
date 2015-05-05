@@ -262,6 +262,7 @@ public class DB implements Closeable {
         protected long expireAccess = 0L;
         protected long expireStoreSize;
         protected Bind.MapWithModificationListener ondisk;
+        protected boolean ondiskOverwrite;
 
 
         protected Fun.Function1<?,?> valueCreator = null;
@@ -335,9 +336,19 @@ public class DB implements Closeable {
         }
 
 
-        /** After expiration (or deletion), put entries into given map */
-        public HTreeMapMaker expireOverflow(Bind.MapWithModificationListener ondisk){
+        /**
+         * After expiration (or deletion), put entries into given map
+         *
+         * @param ondisk Map populated with data after expiration
+         * @param overwrite if true any data in onDisk will be overwritten.
+         *                           If false only non-existing keys will be inserted
+         *                             ({@code put() versus putIfAbsent()};
+         *
+         * @return this builder
+         */
+        public HTreeMapMaker expireOverflow(Bind.MapWithModificationListener ondisk, boolean overwrite){
             this.ondisk = ondisk;
+            this.ondiskOverwrite = overwrite;
             return this;
         }
 
@@ -757,7 +768,7 @@ public class DB implements Closeable {
         }
 
         if(m.ondisk!=null){
-            Bind.mapPutAfterDelete(ret,m.ondisk);
+            Bind.mapPutAfterDelete(ret,m.ondisk, m.ondiskOverwrite);
         }
 
         return ret;

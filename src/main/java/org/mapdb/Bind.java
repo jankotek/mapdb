@@ -717,20 +717,28 @@ public final class Bind {
      *
      * @param primary map from which data are removed by user
      * @param secondary map which gets automatically updated with data removed from primary
+     * @param overwriteSecondary if true any data in secondary will be overwritten.
+     *                           If false only non-existing keys will be inserted
+     *                             ({@code put() versus putIfAbsent()};
      * @param <K> key
      * @param <V> value
      */
     public static <K,V> void mapPutAfterDelete(
             MapWithModificationListener<K,V> primary,
-            final MapWithModificationListener<K,V> secondary
+            final MapWithModificationListener<K,V> secondary,
+            final boolean overwriteSecondary
             ) {
 
         primary.modificationListenerAdd(new MapListener<K, V>() {
             @Override
             public void update(K key, V oldVal, V newVal) {
-                //in case of removal, put data ondisk
+                //in case of removal, put data to secondary
                 if(newVal==null){
-                    secondary.put(key,oldVal);
+                    if(overwriteSecondary) {
+                        secondary.put(key, oldVal);
+                    }else {
+                        secondary.putIfAbsent(key, oldVal);
+                    }
                 }
             }
         });

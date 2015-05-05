@@ -26,7 +26,10 @@ public class CacheOverflow {
         // its content is moved to disk, if not accessed for some time
         HTreeMap inMemory = db.hashMapCreate("inMemory")
                 .expireAfterAccess(1, TimeUnit.SECONDS)
-                .expireOverflow(onDisk)
+
+                // register overflow
+                .expireOverflow(onDisk, true)
+
                 .executorEnable()
                 .make();
 
@@ -76,7 +79,10 @@ public class CacheOverflow {
          * this might take long time (or never) if data are hot and frequently accessed.
          * Also it might not be durable, since some data only exist in memory.
          * But it is very fast for frequently updated values, since no data are written to disk
-         * when value changes, until necessary
+         * when value changes, until necessary.
+         *
+         * Depending on which collection is authoritative you should set 'overwrite' parameter
+         * in 'expireOverflow()' method. in first case sets it to 'false', in second set it to 'true's
          *
          */
 
@@ -85,14 +91,9 @@ public class CacheOverflow {
         inMemory.get(4); //>  four
 
         //however if onDisk value gets updated (not just inserted), inMemory might have oldValue
+        // in that case you should update collections
         onDisk.put(4, "four!!!!");
         inMemory.get(4); //>  four
-
-        //even worse, after inMemory expires, onDisk gets over written
-        //TODO address this with extra settings
-        Thread.sleep(10000);
-        onDisk.get(4); //>  four
-
 
         //second option, just update inMemory, change will eventually overflow to onDisk
         inMemory.put(5, "five");
