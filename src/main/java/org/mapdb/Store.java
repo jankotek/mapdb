@@ -42,12 +42,13 @@ public abstract class Store implements Engine {
     protected final boolean readonly;
 
     protected final String fileName;
-    protected Volume.VolumeFactory volumeFactory;
-    protected boolean checksum;
-    protected boolean compress;
-    protected boolean encrypt;
+    protected final Volume.VolumeFactory volumeFactory;
+    protected final boolean checksum;
+    protected final boolean compress;
+    protected final boolean encrypt;
     protected final EncryptionXTEA encryptionXTEA;
     protected final ThreadLocal<CompressLZF> LZF;
+    protected final boolean snapshotEnable;
 
     protected final AtomicLong metricsDataWrite;
     protected final AtomicLong metricsRecordWrite;
@@ -70,10 +71,12 @@ public abstract class Store implements Engine {
             boolean checksum,
             boolean compress,
             byte[] password,
-            boolean readonly) {
+            boolean readonly,
+            boolean snapshotEnable) {
         this.fileName = fileName;
         this.volumeFactory = volumeFactory;
         this.lockScale = lockScale;
+        this.snapshotEnable = snapshotEnable;
         this.lockMask = lockScale-1;
         if(Integer.bitCount(lockScale)!=1)
             throw new IllegalArgumentException();
@@ -1317,6 +1320,15 @@ public abstract class Store implements Engine {
             ret.table = table.clone();
             return ret;
         }
+
+        public boolean putIfAbsent(long key, long value) {
+            if(get(key)==0){
+                put(key,value);
+                return true;
+            }else{
+                return false;
+            }
+        }
     }
 
 
@@ -1883,4 +1895,11 @@ public abstract class Store implements Engine {
     public Engine getWrappedEngine() {
         return null;
     }
+
+
+    @Override
+    public boolean canSnapshot() {
+        return snapshotEnable;
+    }
+
 }

@@ -62,6 +62,7 @@ public class StoreCachedTest<E extends StoreCached> extends StoreDirectTest<E>{
                     false,
                     null,
                     false,
+                    false,
                     0,
                     false,
                     0,

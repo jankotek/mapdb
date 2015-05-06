@@ -19,6 +19,7 @@ public class StoreCacheHashTableTest<E extends StoreDirect> extends EngineTest<E
                 false,
                 null,
                 false,
+                false,
                 0,
                 false,
                 0,

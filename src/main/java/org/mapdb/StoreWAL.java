@@ -102,7 +102,7 @@ public class StoreWAL extends StoreCached {
                 null,
                 CC.DEFAULT_LOCK_SCALE,
                 0,
-                false, false, null, false, 0,
+                false, false, null, false,false, 0,
                 false, 0,
                 null, 0L,
                 0);
@@ -118,6 +118,7 @@ public class StoreWAL extends StoreCached {
             boolean compress,
             byte[] password,
             boolean readonly,
+            boolean snapshotEnable,
             int freeSpaceReclaimQ,
             boolean commitFileSyncDisable,
             int sizeIncrement,
@@ -128,7 +129,7 @@ public class StoreWAL extends StoreCached {
         super(fileName, volumeFactory, cache,
                 lockScale,
                 lockingStrategy,
-                checksum, compress, password, readonly,
+                checksum, compress, password, readonly, snapshotEnable,
                 freeSpaceReclaimQ, commitFileSyncDisable, sizeIncrement,
                 executor,
                 executorScheduledRate,
@@ -313,7 +314,7 @@ public class StoreWAL extends StoreCached {
         //now new page starts, so add skip instruction for remaining bits
         int val = (3<<(5+3*8)) | (plusSize-4) | ((Integer.bitCount(plusSize-4)&31)<<(3*8));
         curVol.ensureAvailable(walOffset2+4);
-        curVol.putInt(walOffset2,val);
+        curVol.putInt(walOffset2, val);
 
         return true;
     }
@@ -586,7 +587,7 @@ public class StoreWAL extends StoreCached {
             }
         }
 
-        long[] offsets = offsetsGet(recid);
+        long[] offsets = offsetsGet(indexValGet(recid));
         if (offsets == null) {
             return null; //zero size
         }else if (offsets.length==0){
@@ -1279,6 +1280,8 @@ public class StoreWAL extends StoreCached {
                     LOG.warning("Compaction started with uncommited data. Calling commit automatically.");
                 }
 
+                snapshotCloseAllOnCompact();
+
                 //cleanup everything
                 commitFullWALReplay();
                 //start compaction
@@ -1317,7 +1320,7 @@ public class StoreWAL extends StoreCached {
                     volumeFactory,
                     null,lockScale,
                     executor==null?LOCKING_STRATEGY_NOLOCK:LOCKING_STRATEGY_WRITELOCK,
-                    checksum,compress,null,false,0,false,0,
+                    checksum,compress,null,false,false,0,false,0,
                     null);
             target.init();
             walCCompact = target.vol;

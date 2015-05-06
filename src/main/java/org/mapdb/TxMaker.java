@@ -27,9 +27,6 @@ import java.util.concurrent.ScheduledExecutorService;
  */
 public class TxMaker implements Closeable {
 
-    /** marker for deleted records*/
-    protected static final Object DELETED = new Object();
-    private final boolean txSnapshotsEnabled;
     private final boolean strictDBGet;
     protected ScheduledExecutorService executor;
 
@@ -48,13 +45,14 @@ public class TxMaker implements Closeable {
             throw new IllegalArgumentException("TxMaker can not be used with read-only Engine");
         this.engine = engine;
         this.strictDBGet = strictDBGet;
-        this.txSnapshotsEnabled = txSnapshotsEnabled;
         this.executor = executor;
     }
 
     
     public DB makeTx(){
         Engine snapshot = engine.snapshot();
+        if(snapshot.isReadOnly())
+            throw new AssertionError();
 //        if(txSnapshotsEnabled)
 //            snapshot = new TxEngine(snapshot,false); //TODO
         return new DB(snapshot,strictDBGet,false,executor, true, null, 0, null, null);

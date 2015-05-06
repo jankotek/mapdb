@@ -8,6 +8,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
+import java.util.logging.Level;
 
 import static org.mapdb.DataIO.*;
 
@@ -67,6 +68,8 @@ public class StoreDirect extends Store {
 
     protected final ScheduledExecutorService executor;
 
+    protected final List<Snapshot> snapshots;
+
     public StoreDirect(String fileName,
                        Volume.VolumeFactory volumeFactory,
                        Cache cache,
@@ -76,14 +79,18 @@ public class StoreDirect extends Store {
                        boolean compress,
                        byte[] password,
                        boolean readonly,
+                       boolean snapshotEnable,
                        int freeSpaceReclaimQ,
                        boolean commitFileSyncDisable,
                        int sizeIncrement,
                        ScheduledExecutorService executor
                        ) {
-        super(fileName,volumeFactory, cache, lockScale, lockingStrategy, checksum,compress,password,readonly);
+        super(fileName,volumeFactory, cache, lockScale, lockingStrategy, checksum,compress,password,readonly, snapshotEnable);
         this.vol = volumeFactory.makeVolume(fileName, readonly);
         this.executor = executor;
+        this.snapshots = snapshotEnable?
+                new ArrayList<Snapshot>():
+                null;
     }
 
     @Override
@@ -203,7 +210,7 @@ public class StoreDirect extends Store {
                 null,
                 CC.DEFAULT_LOCK_SCALE,
                 0,
-                false,false,null,false,0,
+                false,false,null,false,false,0,
                 false,0,
                 null);
     }
@@ -225,7 +232,11 @@ public class StoreDirect extends Store {
         if (CC.ASSERT)
             assertReadLocked(recid);
 
-        long[] offsets = offsetsGet(recid);
+        long[] offsets = offsetsGet(indexValGet(recid));
+        return getFromOffset(serializer, offsets);
+    }
+
+    protected <A> A getFromOffset(Serializer<A> serializer, long[] offsets) {
         if (offsets == null) {
             return null; //zero size
         }else if (offsets.length==0){
@@ -278,23 +289,34 @@ public class StoreDirect extends Store {
 
     @Override
     protected void update2(long recid, DataOutputByteArray out) {
-        if(CC.ASSERT)
-            assertWriteLocked(lockPos(recid));
+        int pos = lockPos(recid);
 
-        long[] oldOffsets = offsetsGet(recid);
+        if(CC.ASSERT)
+            assertWriteLocked(pos);
+        long oldIndexVal = indexValGet(recid);
+
+        boolean releaseOld = true;
+        if(snapshotEnable){
+            for(Snapshot snap:snapshots){
+                snap.oldRecids[pos].putIfAbsent(recid,oldIndexVal);
+                releaseOld = false;
+            }
+        }
+
+        long[] oldOffsets = offsetsGet(oldIndexVal);
         int oldSize = offsetsTotalSize(oldOffsets);
         int newSize = out==null?0:out.pos;
         long[] newOffsets;
 
         //if new version fits into old one, reuse space
-        if(oldSize==newSize){
+        if(releaseOld && oldSize==newSize){
             //TODO more precise check of linked records
             //TODO check rounUp 16 for non-linked records
             newOffsets = oldOffsets;
         }else {
             structuralLock.lock();
             try {
-                if(oldOffsets!=null)
+                if(releaseOld && oldOffsets!=null)
                     freeDataPut(oldOffsets);
                 newOffsets = newSize==0?null:freeDataTake(out.pos);
 
@@ -316,8 +338,7 @@ public class StoreDirect extends Store {
 
 
     /** return positions of (possibly) linked record */
-    protected long[] offsetsGet(long recid) {
-        long indexVal = indexValGet(recid);
+    protected long[] offsetsGet(long indexVal) {;
         if(indexVal>>>48==0){
 
             return ((indexVal&MLINKED)!=0) ? null : EMPTY_LONGS;
@@ -359,7 +380,7 @@ public class StoreDirect extends Store {
             assertWriteLocked(lockPos(recid));
 
         long indexOffset = recidToOffset(recid);
-        long newval = composeIndexVal(size,offset,linked,unused,true);
+        long newval = composeIndexVal(size, offset, linked, unused, true);
         if(CC.STORE_INDEX_CRC){
             //update crc by substracting old value and adding new value
             long oldval = vol.getLong(indexOffset);
@@ -370,7 +391,7 @@ public class StoreDirect extends Store {
             long crc = vol.getLong(crcOffset);
             crc-=oldval;
             crc+=newval;
-            vol.putLong(crcOffset,crc);
+            vol.putLong(crcOffset, crc);
         }
         vol.putLong(indexOffset, newval);
     }
@@ -381,8 +402,18 @@ public class StoreDirect extends Store {
         if(CC.ASSERT)
             assertWriteLocked(lockPos(recid));
 
-        long[] offsets = offsetsGet(recid);
-        if(offsets!=null) {
+        long oldIndexVal = indexValGet(recid);
+        long[] offsets = offsetsGet(oldIndexVal);
+        boolean releaseOld = true;
+        if(snapshotEnable){
+            int pos = lockPos(recid);
+            for(Snapshot snap:snapshots){
+                snap.oldRecids[pos].putIfAbsent(recid,oldIndexVal);
+                releaseOld = false;
+            }
+        }
+
+        if(offsets!=null && releaseOld) {
             structuralLock.lock();
             try {
                 freeDataPut(offsets);
@@ -439,13 +470,19 @@ public class StoreDirect extends Store {
         if(CC.ASSERT && offsets!=null && (offsets[0]&MOFFSET)<PAGE_SIZE)
             throw new AssertionError();
 
-        int lockPos = lockPos(recid);
-        Lock lock = locks[lockPos].writeLock();
+        int pos = lockPos(recid);
+        Lock lock = locks[pos].writeLock();
         lock.lock();
         try {
             if(caches!=null) {
-                caches[lockPos].put(recid, value);
+                caches[pos].put(recid, value);
             }
+            if(snapshotEnable){
+                for(Snapshot snap:snapshots){
+                    snap.oldRecids[pos].putIfAbsent(recid,0);
+                }
+            }
+
             putData(recid, offsets, out==null?null:out.buf, out==null?0:out.pos);
         }finally {
             lock.unlock();
@@ -496,7 +533,7 @@ public class StoreDirect extends Store {
         boolean empty = offsets==null || offsets.length==0;
         int firstSize = (int) (empty ? 0L : offsets[0]>>>48);
         long firstOffset =  empty? 0L : offsets[0]&MOFFSET;
-        indexValPut(recid,firstSize,firstOffset,firstLinked,false);
+        indexValPut(recid, firstSize, firstOffset, firstLinked, false);
     }
 
     protected void putDataSingleWithoutLink(int segment, long offset, byte[] buf, int bufPos, int size) {
@@ -802,13 +839,10 @@ public class StoreDirect extends Store {
     }
 
     @Override
-    public boolean canSnapshot() {
-        return false;
-    }
-
-    @Override
     public Engine snapshot() throws UnsupportedOperationException {
-        return null;
+        if(!snapshotEnable)
+            throw new UnsupportedOperationException();
+        return new Snapshot(StoreDirect.this);
     }
 
     @Override
@@ -834,6 +868,7 @@ public class StoreDirect extends Store {
                         c.clear();
                     }
                 }
+                snapshotCloseAllOnCompact();
 
 
                 final long maxRecidOffset = parity3Get(headVol.getLong(MAX_RECID_OFFSET));
@@ -843,7 +878,7 @@ public class StoreDirect extends Store {
                         volumeFactory,
                         null,lockScale,
                         executor==null?LOCKING_STRATEGY_NOLOCK:LOCKING_STRATEGY_WRITELOCK,
-                        checksum,compress,null,false,0,false,0,
+                        checksum,compress,null,false,false,0,false,0,
                         null);
                 target.init();
                 final AtomicLong maxRecid = new AtomicLong(RECID_LAST_RESERVED);
@@ -916,6 +951,19 @@ public class StoreDirect extends Store {
                 Lock lock = isStoreCached ? locks[i].readLock() : locks[i].writeLock();
                 lock.unlock();
             }
+        }
+    }
+
+    protected void snapshotCloseAllOnCompact() {
+        //close all snapshots
+        if(snapshotEnable){
+            boolean someClosed = false;
+            for(Snapshot snap:snapshots){
+                someClosed = true;
+                snap.close();
+            }
+            if(someClosed)
+                LOG.log(Level.WARNING, "Compaction closed existing snapshots.");
         }
     }
 
@@ -998,7 +1046,7 @@ public class StoreDirect extends Store {
             //deal with linked record non zero record
             if((indexVal & MLINKED)!=0 && indexVal>>>48!=0){
                 //load entire linked record into byte[]
-                long[] offsets = offsetsGet(recid);
+                long[] offsets = offsetsGet(indexValGet(recid));
                 int totalSize = offsetsTotalSize(offsets);
                 byte[] b = getLoadLinkedRecord(offsets, totalSize);
 
@@ -1191,5 +1239,83 @@ public class StoreDirect extends Store {
         int rem = pos&15;  // modulo 16
         if(rem!=0) pos +=16-rem;
         return pos;
+    }
+
+    public static final class Snapshot extends ReadOnly{
+
+        protected StoreDirect engine;
+        protected LongLongMap[] oldRecids;
+
+        public Snapshot(StoreDirect engine){
+            this.engine = engine;
+            oldRecids = new LongLongMap[engine.lockScale];
+            for(int i=0;i<oldRecids.length;i++){
+                oldRecids[i] = new LongLongMap();
+            }
+            engine.snapshots.add(Snapshot.this);
+        }
+
+        @Override
+        public <A> A get(long recid, Serializer<A> serializer) {
+            StoreDirect engine = this.engine;
+            int pos = engine.lockPos(recid);
+            Lock lock = engine.locks[pos].readLock();
+            lock.lock();
+            try{
+                long indexVal = oldRecids[pos].get(recid);
+                if(indexVal==-1)
+                    return null; //null or deleted object
+                if(indexVal==-2)
+                    return null; //TODO deserialize empty object
+
+                if(indexVal!=0){
+                    long[] offsets = engine.offsetsGet(indexVal);
+                    return engine.getFromOffset(serializer,offsets);
+                }
+
+                return engine.get2(recid,serializer);
+            }finally {
+                lock.unlock();
+            }
+        }
+
+        @Override
+        public void close() {
+            //TODO lock here?
+            engine.snapshots.remove(Snapshot.this);
+            engine = null;
+            oldRecids = null;
+            //TODO put oldRecids into free space
+        }
+
+        @Override
+        public boolean isClosed() {
+            return engine!=null;
+        }
+
+        @Override
+        public boolean canRollback() {
+            return false;
+        }
+
+        @Override
+        public boolean canSnapshot() {
+            return true;
+        }
+
+        @Override
+        public Engine snapshot() throws UnsupportedOperationException {
+            return this;
+        }
+
+        @Override
+        public Engine getWrappedEngine() {
+            return engine;
+        }
+
+        @Override
+        public void clearCache() {
+
+        }
     }
 }

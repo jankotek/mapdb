@@ -1105,10 +1105,8 @@ public final class DBMaker{
         boolean cacheLockDisable = lockingStrategy!=0;
         byte[] encKey = propsGetXteaEncKey();
         final boolean snapshotEnabled =  propsGetBool(Keys.snapshots);
-        boolean needsSnapshot = snapshotEnabled;
         if(Keys.store_heap.equals(store)){
             engine = new StoreHeap(propsGetBool(Keys.transactionDisable),lockScale,lockingStrategy,snapshotEnabled);
-            needsSnapshot = false;
         }else  if(Keys.store_append.equals(store)){
             if(Keys.volume_byteBuffer.equals(volume)||Keys.volume_directByteBuffer.equals(volume))
                 throw new UnsupportedOperationException("Append Storage format is not supported with in-memory dbs");
@@ -1124,11 +1122,10 @@ public final class DBMaker{
                     Keys.compression_lzf.equals(props.getProperty(Keys.compression)),
                     encKey,
                     propsGetBool(Keys.readOnly),
+                    snapshotEnabled,
                     propsGetBool(Keys.transactionDisable),
                     storeExecutor
             );
-            needsSnapshot = false;
-
         }else{
             Volume.VolumeFactory volFac = extendStoreVolumeFactory(false);
             boolean compressionEnabled = Keys.compression_lzf.equals(props.getProperty(Keys.compression));
@@ -1146,6 +1143,7 @@ public final class DBMaker{
                         compressionEnabled,
                         encKey,
                         propsGetBool(Keys.readOnly),
+                        snapshotEnabled,
                         propsGetInt(Keys.freeSpaceReclaimQ, CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
                         propsGetBool(Keys.commitFileSyncDisable),
                         0,
@@ -1164,6 +1162,7 @@ public final class DBMaker{
                         compressionEnabled,
                         encKey,
                         propsGetBool(Keys.readOnly),
+                        snapshotEnabled,
                         propsGetInt(Keys.freeSpaceReclaimQ, CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
                         propsGetBool(Keys.commitFileSyncDisable),
                         0,
@@ -1182,6 +1181,7 @@ public final class DBMaker{
                         compressionEnabled,
                         encKey,
                         propsGetBool(Keys.readOnly),
+                        snapshotEnabled,
                         propsGetInt(Keys.freeSpaceReclaimQ, CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
                         propsGetBool(Keys.commitFileSyncDisable),
                         0,
@@ -1194,7 +1194,7 @@ public final class DBMaker{
         }
 
 
-        if(needsSnapshot)
+        if(propsGetBool(Keys.fullTx))
             engine = extendSnapshotEngine(engine, lockScale);
 
         engine = extendWrapSnapshotEngine(engine);

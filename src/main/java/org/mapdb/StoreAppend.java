@@ -54,10 +54,11 @@ public class StoreAppend extends Store {
                           boolean compress,
                           byte[] password,
                           boolean readonly,
+                          boolean snapshotEnable,
                           boolean txDisabled,
                           ScheduledExecutorService compactionExecutor
                     ) {
-        super(fileName, volumeFactory, cache, lockScale,lockingStrategy, checksum, compress, password, readonly);
+        super(fileName, volumeFactory, cache, lockScale,lockingStrategy, checksum, compress, password, readonly, snapshotEnable);
         this.tx = !txDisabled;
         if(tx){
             modified = new LongLongMap[this.lockScale];
@@ -83,6 +84,7 @@ public class StoreAppend extends Store {
                 null,
                 false,
                 false,
+                false,
                 null
         );
     }
@@ -95,8 +97,8 @@ public class StoreAppend extends Store {
                 host.checksum,
                 host.compress,
                 null, //TODO password on snapshot
-                true //snapshot is readonly
-        );
+                true, //snapshot is readonly
+                false);
 
         indexTable = host.indexTable;
         vol = host.vol;
