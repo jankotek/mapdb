@@ -77,6 +77,37 @@ public final class DataIO {
         out.writeByte((byte) (value & 0x7F));
     }
 
+
+
+    /**
+     * Unpack RECID value from the input stream with 3 bit checksum.
+     *
+     * @param in The input stream.
+     * @return The long value.
+     * @throws java.io.IOException
+     */
+    static public long unpackRecid(DataInput in) throws IOException {
+        long val = unpackLong(in);
+        val = DataIO.parity3Get(val);
+        return val >>> 3;
+    }
+
+
+    /**
+     * Pack RECID into output stream with 3 bit checksum.
+     * It will occupy 1-10 bytes depending on value (lower values occupy smaller space)
+     *
+     * @param out DataOutput to put value into
+     * @param value to be serialized, must be non-negative
+     * @throws java.io.IOException
+     *
+     */
+    static public void packRecid(DataOutput out, long value) throws IOException {
+        value = DataIO.parity3Set(value<<3);
+        packLong(out,value);
+    }
+
+
     /**
      * Pack int into an output stream.
      * It will occupy 1-5 bytes depending on value (lower values occupy smaller space)

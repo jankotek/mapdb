@@ -611,29 +611,23 @@ public abstract class Serializer<A> {
     public static final Serializer<Long> RECID = new Serializer<Long>() {
         @Override
         public void serialize(DataOutput out, Long value) throws IOException {
-            long val = value<<3;
-            val = DataIO.parity3Set(val);
-            DataIO.packLong(out,val);
+            DataIO.packRecid(out,value);
         }
 
         @Override
         public Long deserialize(DataInput in, int available) throws IOException {
-            long val =  DataIO.unpackLong(in);
-            val = DataIO.parity3Get(val);
-            return val >>> 3;
+            return DataIO.unpackRecid(in);
         }
 
         @Override
         public int fixedSize() {
-            return 8;
+            return -1;
         }
 
         @Override
         public boolean isTrusted() {
             return true;
         }
-
-        //TODO RECID btree key serializer (long with added parity checks)
     };
 
 
