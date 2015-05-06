@@ -608,11 +608,11 @@ public class DB implements Closeable {
             //$DELAY$
             checkShouldCreate(name);
             if(engine.isReadOnly()){
-                Engine e = new StoreHeap(true,1,0);
+                Engine e = new StoreHeap(true,1,0,false);
                 //$DELAY$
                 new DB(e).hashMap("a");
                 return namedPut(name,
-                        new DB(new Engine.ReadOnly(e)).hashMap("a"));
+                        new DB(new Engine.ReadOnlyWrapper(e)).hashMap("a"));
             }
             if(valueCreator!=null)
                 return hashMapCreate(name).valueCreator(valueCreator).make();
@@ -796,11 +796,11 @@ public class DB implements Closeable {
         if(type==null){
             checkShouldCreate(name);
             if(engine.isReadOnly()){
-                Engine e = new StoreHeap(true,1,0);
+                Engine e = new StoreHeap(true,1,0,false);
                 //$DELAY$
                 new DB(e).hashSet("a");
                 return namedPut(name,
-                        new DB(new Engine.ReadOnly(e)).hashSet("a"));
+                        new DB(new Engine.ReadOnlyWrapper(e)).hashSet("a"));
             }
             return hashSetCreate(name).makeOrGet();
             //$DELAY$
@@ -1195,11 +1195,11 @@ public class DB implements Closeable {
         if(type==null){
             checkShouldCreate(name);
             if(engine.isReadOnly()){
-                Engine e = new StoreHeap(true,1,0);
+                Engine e = new StoreHeap(true,1,0,false);
                 new DB(e).treeMap("a");
                 //$DELAY$
                 return namedPut(name,
-                        new DB(new Engine.ReadOnly(e)).treeMap("a"));
+                        new DB(new Engine.ReadOnlyWrapper(e)).treeMap("a"));
             }
             return treeMapCreate(name).make();
 
@@ -1381,10 +1381,10 @@ public class DB implements Closeable {
         if(type==null){
             checkShouldCreate(name);
             if(engine.isReadOnly()){
-                Engine e = new StoreHeap(true,1,0);
+                Engine e = new StoreHeap(true,1,0,false);
                 new DB(e).treeSet("a");
                 return namedPut(name,
-                        new DB(new Engine.ReadOnly(e)).treeSet("a"));
+                        new DB(new Engine.ReadOnlyWrapper(e)).treeSet("a"));
             }
             //$DELAY$
             return treeSetCreate(name).make();
@@ -1506,10 +1506,10 @@ public class DB implements Closeable {
         if(type==null){
             checkShouldCreate(name);
             if(engine.isReadOnly()){
-                Engine e = new StoreHeap(true,1,0);
+                Engine e = new StoreHeap(true,1,0,false);
                 new DB(e).getQueue("a");
                 return namedPut(name,
-                        new DB(new Engine.ReadOnly(e)).getQueue("a"));
+                        new DB(new Engine.ReadOnlyWrapper(e)).getQueue("a"));
             }
             //$DELAY$
             return createQueue(name,null,true);
@@ -1560,11 +1560,11 @@ public class DB implements Closeable {
         if(type==null){
             checkShouldCreate(name);
             if(engine.isReadOnly()){
-                Engine e = new StoreHeap(true,1,0);
+                Engine e = new StoreHeap(true,1,0,false);
                 //$DELAY$
                 new DB(e).getStack("a");
                 return namedPut(name,
-                        new DB(new Engine.ReadOnly(e)).getStack("a"));
+                        new DB(new Engine.ReadOnlyWrapper(e)).getStack("a"));
             }
             return createStack(name,null,true);
         }
@@ -1611,11 +1611,11 @@ public class DB implements Closeable {
         if(type==null){
             checkShouldCreate(name);
             if(engine.isReadOnly()) {
-                Engine e = new StoreHeap(true,1,0);
+                Engine e = new StoreHeap(true,1,0,false);
                 new DB(e).getCircularQueue("a");
                 //$DELAY$
                 return namedPut(name,
-                        new DB(new Engine.ReadOnly(e)).getCircularQueue("a"));
+                        new DB(new Engine.ReadOnlyWrapper(e)).getCircularQueue("a"));
             }
             return createCircularQueue(name,null, 1024);
         }
@@ -1708,11 +1708,11 @@ public class DB implements Closeable {
         if(type==null){
             checkShouldCreate(name);
             if (engine.isReadOnly()){
-                Engine e = new StoreHeap(true,1,0);
+                Engine e = new StoreHeap(true,1,0,false);
                 new DB(e).atomicLong("a");
                 //$DELAY$
                 return namedPut(name,
-                        new DB(new Engine.ReadOnly(e)).atomicLong("a"));
+                        new DB(new Engine.ReadOnlyWrapper(e)).atomicLong("a"));
             }
             return atomicLongCreate(name, 0L);
         }
@@ -1762,11 +1762,11 @@ public class DB implements Closeable {
         if(type==null){
             checkShouldCreate(name);
             if(engine.isReadOnly()){
-                Engine e = new StoreHeap(true,1,0);
+                Engine e = new StoreHeap(true,1,0,false);
                 new DB(e).atomicInteger("a");
                 //$DELAY$
                 return namedPut(name,
-                        new DB(new Engine.ReadOnly(e)).atomicInteger("a"));
+                        new DB(new Engine.ReadOnlyWrapper(e)).atomicInteger("a"));
             }
             return atomicIntegerCreate(name, 0);
         }
@@ -1815,10 +1815,10 @@ public class DB implements Closeable {
         if(type==null){
             checkShouldCreate(name);
             if(engine.isReadOnly()){
-                Engine e = new StoreHeap(true,1,0);
+                Engine e = new StoreHeap(true,1,0,false);
                 new DB(e).atomicBoolean("a");
                 return namedPut(name,
-                        new DB(new Engine.ReadOnly(e)).atomicBoolean("a"));
+                        new DB(new Engine.ReadOnlyWrapper(e)).atomicBoolean("a"));
             }
             //$DELAY$
             return atomicBooleanCreate(name, false);
@@ -1872,11 +1872,11 @@ public class DB implements Closeable {
         if(type==null){
             checkShouldCreate(name);
             if(engine.isReadOnly()){
-                Engine e = new StoreHeap(true,1,0);
+                Engine e = new StoreHeap(true,1,0,false);
                 new DB(e).atomicString("a");
                 //$DELAY$
                 return namedPut(name,
-                        new DB(new Engine.ReadOnly(e)).atomicString("a"));
+                        new DB(new Engine.ReadOnlyWrapper(e)).atomicString("a"));
             }
             return atomicStringCreate(name, "");
         }
@@ -1926,10 +1926,10 @@ public class DB implements Closeable {
         if(type==null){
             checkShouldCreate(name);
             if(engine.isReadOnly()){
-                Engine e = new StoreHeap(true,1,0);
+                Engine e = new StoreHeap(true,1,0,false);
                 new DB(e).atomicVar("a");
                 return namedPut(name,
-                        new DB(new Engine.ReadOnly(e)).atomicVar("a"));
+                        new DB(new Engine.ReadOnlyWrapper(e)).atomicVar("a"));
             }
             //$DELAY$
             return atomicVarCreate(name, null, getDefaultSerializer());

@@ -1547,6 +1547,15 @@ public abstract class Store implements Engine {
 
                 return val;
         }
+
+        public boolean putIfAbsent(long key, V value) {
+            if(get(key)==null){
+                put(key,value);
+                return true;
+            }else{
+                return false;
+            }
+        }
     }
 
 

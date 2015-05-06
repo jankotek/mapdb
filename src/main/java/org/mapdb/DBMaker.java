@@ -1104,10 +1104,11 @@ public final class DBMaker{
 
         boolean cacheLockDisable = lockingStrategy!=0;
         byte[] encKey = propsGetXteaEncKey();
-
+        final boolean snapshotEnabled =  propsGetBool(Keys.snapshots);
+        boolean needsSnapshot = snapshotEnabled;
         if(Keys.store_heap.equals(store)){
-            engine = new StoreHeap(propsGetBool(Keys.transactionDisable),lockScale,lockingStrategy);
-
+            engine = new StoreHeap(propsGetBool(Keys.transactionDisable),lockScale,lockingStrategy,snapshotEnabled);
+            needsSnapshot = false;
         }else  if(Keys.store_append.equals(store)){
             if(Keys.volume_byteBuffer.equals(volume)||Keys.volume_directByteBuffer.equals(volume))
                 throw new UnsupportedOperationException("Append Storage format is not supported with in-memory dbs");
@@ -1126,6 +1127,7 @@ public final class DBMaker{
                     propsGetBool(Keys.transactionDisable),
                     storeExecutor
             );
+            needsSnapshot = false;
 
         }else{
             Volume.VolumeFactory volFac = extendStoreVolumeFactory(false);
@@ -1192,13 +1194,13 @@ public final class DBMaker{
         }
 
 
-        if(propsGetBool(Keys.snapshots))
+        if(needsSnapshot)
             engine = extendSnapshotEngine(engine, lockScale);
 
         engine = extendWrapSnapshotEngine(engine);
 
         if(readOnly)
-            engine = new Engine.ReadOnly(engine);
+            engine = new Engine.ReadOnlyWrapper(engine);
 
 
         if(propsGetBool(Keys.closeOnJvmShutdown)){

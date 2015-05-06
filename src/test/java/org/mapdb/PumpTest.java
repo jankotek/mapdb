@@ -14,7 +14,7 @@ public class PumpTest {
 
     @Test
     public void copy(){
-        DB db1 = new DB(new StoreHeap(true,CC.DEFAULT_LOCK_SCALE,0));
+        DB db1 = new DB(new StoreHeap(true,CC.DEFAULT_LOCK_SCALE,0,false));
         Map m = db1.hashMap("test");
         for(int i=0;i<1000;i++){
             m.put(i, "aa"+i);
@@ -36,7 +36,7 @@ public class PumpTest {
             case 1: return DBMaker.memoryDB().snapshotEnable().make();
             case 2: return DBMaker.memoryDB().snapshotEnable().transactionDisable().make();
             case 3: return DBMaker.memoryDB().snapshotEnable().makeTxMaker().makeTx();
-            case 4: return new DB(new StoreHeap(true,CC.DEFAULT_LOCK_SCALE,0));
+            case 4: return new DB(new StoreHeap(true,CC.DEFAULT_LOCK_SCALE,0,false));
         }
         throw new IllegalArgumentException(""+i);
     }
@@ -208,7 +208,7 @@ public class PumpTest {
         List<Integer> list = new ArrayList<Integer>(max);
         for(Integer i=max-1;i>=0;i--) list.add(i);
 
-        Engine e = new StoreHeap(true,CC.DEFAULT_LOCK_SCALE,0);
+        Engine e = new StoreHeap(true,CC.DEFAULT_LOCK_SCALE,0,false);
         DB db = new DB(e);
 
         Set s = db.treeSetCreate("test")
@@ -239,7 +239,7 @@ public class PumpTest {
             list.add(i);
         }
 
-        Engine e = new StoreHeap(true,CC.DEFAULT_LOCK_SCALE,0);
+        Engine e = new StoreHeap(true,CC.DEFAULT_LOCK_SCALE,0,false);
         DB db = new DB(e);
 
         Set s = db.treeSetCreate("test")
@@ -268,7 +268,7 @@ public class PumpTest {
         List<Integer> list = new ArrayList<Integer>(max);
         for(Integer i=max-1;i>=0;i--) list.add(i);
 
-        Engine e = new StoreHeap(true,CC.DEFAULT_LOCK_SCALE,0);
+        Engine e = new StoreHeap(true,CC.DEFAULT_LOCK_SCALE,0,false);
         DB db = new DB(e);
 
         Fun.Function1<Object, Integer> valueExtractor = new Fun.Function1<Object, Integer>() {
@@ -305,7 +305,7 @@ public class PumpTest {
         List<Integer> list = new ArrayList<Integer>(max);
         for(Integer i=max-1;i>=0;i--) list.add(i);
 
-        Engine e = new StoreHeap(true,CC.DEFAULT_LOCK_SCALE,0);
+        Engine e = new StoreHeap(true,CC.DEFAULT_LOCK_SCALE,0,false);
         DB db = new DB(e);
 
         Fun.Function1<Object, Integer> valueExtractor = new Fun.Function1<Object, Integer>() {
@@ -346,7 +346,7 @@ public class PumpTest {
             list.add(i);
         }
 
-        Engine e = new StoreHeap(true,CC.DEFAULT_LOCK_SCALE,0);
+        Engine e = new StoreHeap(true,CC.DEFAULT_LOCK_SCALE,0,false);
         DB db = new DB(e);
 
         Fun.Function1<Object, Integer> valueExtractor = new Fun.Function1<Object, Integer>() {

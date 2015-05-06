@@ -291,20 +291,8 @@ public interface Engine  extends Closeable {
 
     void compact();
 
-    /**
-     * Wraps an <code>Engine</code> and throws
-     * <code>UnsupportedOperationException("Read-only")</code>
-     * on any modification attempt.
-     */
-    public static final class ReadOnly implements Engine {
 
-
-        protected final Engine engine;
-
-
-        public ReadOnly(Engine engine){
-            this.engine = engine;
-        }
+    abstract class ReadOnly implements Engine{
 
         @Override
         public long preallocate() {
@@ -317,36 +305,11 @@ public interface Engine  extends Closeable {
             throw new UnsupportedOperationException("Read-only");
         }
 
-
         @Override
         public <A> long put(A value, Serializer<A> serializer) {
             throw new UnsupportedOperationException("Read-only");
         }
 
-        @Override
-        public <A> A get(long recid, Serializer<A> serializer) {
-            return engine.get(recid,serializer);
-        }
-
-        @Override
-        public <A> void update(long recid, A value, Serializer<A> serializer) {
-            throw new UnsupportedOperationException("Read-only");
-        }
-
-        @Override
-        public <A> void delete(long recid, Serializer<A> serializer){
-            throw new UnsupportedOperationException("Read-only");
-        }
-
-        @Override
-        public void close() {
-             engine.close();
-        }
-
-        @Override
-        public boolean isClosed() {
-            return engine.isClosed();
-        }
 
         @Override
         public void commit() {
@@ -365,19 +328,60 @@ public interface Engine  extends Closeable {
 
 
         @Override
+        public <A> void update(long recid, A value, Serializer<A> serializer) {
+            throw new UnsupportedOperationException("Read-only");
+        }
+
+        @Override
+        public <A> void delete(long recid, Serializer<A> serializer){
+            throw new UnsupportedOperationException("Read-only");
+        }
+
+
+
+        @Override
+        public void compact() {
+            throw new UnsupportedOperationException("Read-only");
+        }
+
+
+    }
+
+    /**
+     * Wraps an <code>Engine</code> and throws
+     * <code>UnsupportedOperationException("Read-only")</code>
+     * on any modification attempt.
+     */
+    final class ReadOnlyWrapper extends ReadOnly{
+
+
+        protected final Engine engine;
+
+
+        public ReadOnlyWrapper(Engine engine){
+            this.engine = engine;
+        }
+
+        @Override
+        public <A> A get(long recid, Serializer<A> serializer) {
+            return engine.get(recid, serializer);
+        }
+
+        @Override
+        public void close() {
+             engine.close();
+        }
+
+        @Override
+        public boolean isClosed() {
+            return engine.isClosed();
+        }
+
+        @Override
         public boolean canRollback() {
             return engine.canRollback();
         }
 
-        @Override
-        public boolean canSnapshot() {
-            return true;
-        }
-
-        @Override
-        public Engine snapshot() throws UnsupportedOperationException {
-            return engine.snapshot();
-        }
 
         @Override
         public Engine getWrappedEngine() {
@@ -389,9 +393,15 @@ public interface Engine  extends Closeable {
             engine.clearCache();
         }
 
+
         @Override
-        public void compact() {
-            throw new UnsupportedOperationException("Read-only");
+        public boolean canSnapshot() {
+            return engine.canSnapshot();
+        }
+
+        @Override
+        public Engine snapshot() throws UnsupportedOperationException {
+            return engine.snapshot();
         }
 
     }

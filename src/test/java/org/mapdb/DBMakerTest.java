@@ -185,7 +185,7 @@ public class DBMakerTest{
                 .deleteFilesAfterClose()
                 .readOnly()
                 .make();
-        assertTrue(db.engine instanceof Engine.ReadOnly);
+        assertTrue(db.engine instanceof Engine.ReadOnlyWrapper);
         db.close();
     }
 
