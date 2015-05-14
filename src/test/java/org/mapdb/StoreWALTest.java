@@ -123,7 +123,7 @@ public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
         String compactTarget = e.getWalFileName("c.compactXXX");
         Volume f0 = new Volume.FileChannelVol(f);
         Volume f = new Volume.FileChannelVol(new File(compactTarget));
-        Volume.copy(f0, f);
+        f0.copyEntireVolumeTo(f);
         f0.close();
         f.sync();
         f.close();

@@ -206,7 +206,7 @@ public abstract class Volume implements Closeable{
 
     public long getLongPackBidi(long offset){
         //$DELAY$
-        long b = getUnsignedByte(offset++);
+        long b = getUnsignedByte(offset++); //TODO this could be inside loop, change all implementations
         if(CC.ASSERT && (b&0x80)==0)
             throw new AssertionError();
         long result = (b & 0x7F) ;
@@ -303,12 +303,12 @@ public abstract class Volume implements Closeable{
 
 
     /**
-     * Copy content of one volume to another.
+     * Copy content of this volume to another.
      * Target volume might grow, but is never shrank.
      * Target is also not synced
      */
-    public static void copy(Volume from, Volume to) {
-        final long volSize = from.length();
+    public void copyEntireVolumeTo(Volume to) {
+        final long volSize = length();
         final long bufSize = 1L<<CC.VOLUME_PAGE_SHIFT;
 
         to.ensureAvailable(volSize);
@@ -317,7 +317,7 @@ public abstract class Volume implements Closeable{
             long size = Math.min(volSize,offset+bufSize)-offset;
             if(CC.ASSERT && (size<0))
                 throw new AssertionError();
-            from.transferInto(offset,to,offset, size);
+            transferInto(offset,to,offset, size);
         }
 
     }
