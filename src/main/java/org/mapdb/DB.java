@@ -987,6 +987,13 @@ public class DB implements Closeable {
             return this;
         }
 
+        /**
+         * @deprecated compatibility with 1.0
+         */
+        public BTreeMapMaker keySerializerWrap(Serializer<?> serializer){
+            this.keySerializer2 = serializer;
+            return this;
+        }
 
 
         /** valueSerializer used to convert values into/from binary form. */
@@ -1023,7 +1030,7 @@ public class DB implements Closeable {
 
 
         /**
-         * If source iteretor contains an duplicate key, exception is thrown.
+         * If source iterator contains an duplicate key, exception is thrown.
          * This options will only use firts key and ignore any consequentive duplicates.
          */
         public <K> BTreeMapMaker pumpIgnoreDuplicates(){
