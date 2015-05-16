@@ -4,19 +4,15 @@ import org.mapdb.DB;
 import org.mapdb.DBMaker;
 
 
-public class caches_lru {
+public class cache_hardref {
 
     public static void main(String[] args) {
         //a
         DB db = DBMaker
                 .memoryDB()
-
-                .cacheLRUEnable()
-                .cacheSize(1000000)     //optionally change cache size
-
+                .cacheHardRefEnable()
                 //optionally enable executor, so cache is cleared in background thread
                 .cacheExecutorEnable()
-
                 .make();
         //z
     }

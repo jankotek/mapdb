@@ -4,7 +4,7 @@ import org.mapdb.DB;
 import org.mapdb.DBMaker;
 
 
-public class caches_weak_soft {
+public class cache_weak_soft {
 
     public static void main(String[] args) {
         //a

@@ -7,7 +7,7 @@ import org.mapdb.DBMaker;
 import java.util.Map;
 
 
-public class caches_right_and_wrong {
+public class cache_right_and_wrong {
 
     static class Person implements Cloneable{
         private String name;
