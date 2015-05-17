@@ -64,42 +64,6 @@ public class VolumeTest {
                     }
     };
 
-    @Test(timeout = 100000)
-    public void interrupt_raf_file_exception() throws IOException, InterruptedException {
-        // when IO thread is interrupted, channel gets closed and it throws  ClosedByInterruptException
-        final Volume.FileChannelVol v = new Volume.FileChannelVol(File.createTempFile("mapdb", "mapdb"), false, 0);
-        final AtomicReference ref = new AtomicReference();
-        Thread t = new Thread() {
-            @Override
-            public void run() {
-                try {
-                    long pos = 0;
-                    while (true) {
-                        v.ensureAvailable(pos++);
-                        v.putByte(pos - 1, (byte) 1);
-                    }
-                } catch (Throwable e) {
-                    ref.set(e);
-                }
-            }
-        };
-        t.start();
-        Thread.sleep(1000);
-        t.interrupt();
-        while(ref.get()==null){
-            Thread.sleep(10);
-        }
-        assertTrue(ref.get().toString(), ref.get() instanceof DBException.VolumeClosed);
-        //now channel should be closed
-        assertFalse(v.channel.isOpen());
-        try {
-            v.putLong(0, 1000);
-            fail();
-        } catch (DBException e) {
-            assertTrue(e instanceof DBException.VolumeClosed);
-        }
-    }
-
     @Test
     public void all() throws Exception {
         System.out.println("Run volume tests. Free space: "+File.createTempFile("mapdb","mapdb").getFreeSpace());
