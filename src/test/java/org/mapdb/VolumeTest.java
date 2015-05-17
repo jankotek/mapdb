@@ -64,7 +64,7 @@ public class VolumeTest {
                     }
     };
 
-    @Test
+    @Test(timeout = 100)
     public void interrupt_raf_file_exception() throws IOException, InterruptedException {
         // when IO thread is interrupted, channel gets closed and it throws  ClosedByInterruptException
         final Volume.FileChannelVol v = new Volume.FileChannelVol(File.createTempFile("mapdb", "mapdb"), false, 0);
@@ -86,7 +86,9 @@ public class VolumeTest {
         t.start();
         Thread.sleep(1000);
         t.interrupt();
-        Thread.sleep(1000);
+        while(ref.get()!=null){
+            Thread.sleep(10);
+        }
         assertTrue(ref.get() instanceof DBException.VolumeClosed);
         //now channel should be closed
         assertFalse(v.channel.isOpen());
