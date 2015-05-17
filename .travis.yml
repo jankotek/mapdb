@@ -11,4 +11,4 @@ jdk:
 
 install: true
 
-script: mvn test -DforkCount=4
+script: mvn test -DforkCount=2
