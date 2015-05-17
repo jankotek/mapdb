@@ -37,7 +37,7 @@ import java.util.logging.Logger;
  * <pre>
  *  DB db = DBMaker
  *      .memoryDB()          //static method
- *      .transactinsDisable()   //configuration option
+ *      .transactionDisable()   //configuration option
  *      .make()                 //opens db
  * </pre>
  *
