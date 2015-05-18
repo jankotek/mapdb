@@ -1629,37 +1629,38 @@ public abstract class Store implements Engine {
 
         final static int WAIT_NANOS = 100;
 
-        final protected AtomicReference<Thread> lockedThread = new AtomicReference<Thread>(null);
+        final protected AtomicLong lockedThread = new AtomicLong(Long.MAX_VALUE); //MAX_VALUE indicates null,
 
         @Override
         public void lock() {
-            Thread cur = Thread.currentThread();
-            while(!lockedThread.compareAndSet(null,cur)){
+            long hash = Thread.currentThread().hashCode();
+            while(!lockedThread.compareAndSet(Long.MAX_VALUE,hash)){
                 LockSupport.parkNanos(WAIT_NANOS);
             }
         }
 
         @Override
         public void lockInterruptibly() throws InterruptedException {
-            Thread cur = Thread.currentThread();
-            while(!lockedThread.compareAndSet(null,cur)){
+            Thread currThread = Thread.currentThread();
+            long hash = currThread.hashCode();
+            while(!lockedThread.compareAndSet(Long.MAX_VALUE,hash)){
                 LockSupport.parkNanos(WAIT_NANOS);
-                if(cur.isInterrupted())
+                if(currThread.isInterrupted())
                     throw new InterruptedException();
             }
         }
 
         @Override
         public boolean tryLock() {
-            Thread cur = Thread.currentThread();
-            return lockedThread.compareAndSet(null, cur);
+            long hash = Thread.currentThread().hashCode();
+            return lockedThread.compareAndSet(Long.MAX_VALUE, hash);
         }
 
         @Override
         public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
-            Thread cur = Thread.currentThread();
+            long hash = Thread.currentThread().hashCode();
             long time2 = unit.toNanos(time);
-            while(!lockedThread.compareAndSet(null,cur) && time2>0){
+            while(!lockedThread.compareAndSet(Long.MAX_VALUE,hash) && time2>0){
                 LockSupport.parkNanos(WAIT_NANOS);
                 time2-=WAIT_NANOS;
             }
@@ -1668,8 +1669,8 @@ public abstract class Store implements Engine {
 
         @Override
         public void unlock() {
-            Thread currThread = Thread.currentThread();
-            if(!lockedThread.compareAndSet(currThread,null)){
+            long hash = Thread.currentThread().hashCode();
+            if(!lockedThread.compareAndSet(hash,Long.MAX_VALUE)){
                 throw new IllegalMonitorStateException("Can not unlock, current thread does not hold this lock");
             }
         }
