@@ -1195,9 +1195,10 @@ public class BTreeMap<K,V>
                             true,true,false,
                             rootChild);
                     //$DELAY$
-                    lock(nodeLocks, rootRecidRef);
-                    //$DELAY$
                     unlock(nodeLocks, current);
+                    //$DELAY$
+                    lock(nodeLocks, rootRecidRef);
+
                     //$DELAY$
                     long newRootRecid = engine.put(R, nodeSerializer);
                     //$DELAY$
@@ -1508,12 +1509,13 @@ public class BTreeMap<K,V>
         long old =0;
         try{for(;;){
             //$DELAY$
-            lock(nodeLocks, current);
-            //$DELAY$
             if(old!=0) {
                 //$DELAY$
                 unlock(nodeLocks, old);
             }
+            //$DELAY$
+            lock(nodeLocks, current);
+
             A = engine.get(current, nodeSerializer);
             //$DELAY$
             int pos = keySerializer.findChildren2(A, key);
@@ -1663,10 +1665,6 @@ public class BTreeMap<K,V>
 
     static  class BTreeValueIterator<V> extends BTreeIterator implements Iterator<V>{
 
-        BTreeValueIterator(BTreeMap m) {
-            super(m);
-        }
-
         BTreeValueIterator(BTreeMap m, Object lo, boolean loInclusive, Object hi, boolean hiInclusive) {
             super(m, lo, loInclusive, hi, hiInclusive);
         }
@@ -1709,10 +1707,6 @@ public class BTreeMap<K,V>
 
     static class BTreeDescendingKeyIterator<K> extends BTreeDescendingIterator implements Iterator<K>{
 
-        BTreeDescendingKeyIterator(BTreeMap m) {
-            super(m);
-        }
-
         BTreeDescendingKeyIterator(BTreeMap m, Object lo, boolean loInclusive, Object hi, boolean hiInclusive) {
             super(m, lo, loInclusive, hi, hiInclusive);
         }
@@ -1731,10 +1725,6 @@ public class BTreeMap<K,V>
 
     static  class BTreeDescendingValueIterator<V> extends BTreeDescendingIterator implements Iterator<V>{
 
-        BTreeDescendingValueIterator(BTreeMap m) {
-            super(m);
-        }
-
         BTreeDescendingValueIterator(BTreeMap m, Object lo, boolean loInclusive, Object hi, boolean hiInclusive) {
             super(m, lo, loInclusive, hi, hiInclusive);
         }
@@ -1752,10 +1742,6 @@ public class BTreeMap<K,V>
     }
 
     static  class BTreeDescendingEntryIterator<K,V> extends BTreeDescendingIterator implements  Iterator<Entry<K, V>>{
-
-        BTreeDescendingEntryIterator(BTreeMap m) {
-            super(m);
-        }
 
         BTreeDescendingEntryIterator(BTreeMap m, Object lo, boolean loInclusive, Object hi, boolean hiInclusive) {
             super(m, lo, loInclusive, hi, hiInclusive);
@@ -2251,7 +2237,7 @@ public class BTreeMap<K,V>
     }
 
     Iterator<V> valueIterator() {
-        return new BTreeValueIterator(this);
+        return new BTreeValueIterator(this,null,false,null,false);
     }
 
     Iterator<Map.Entry<K,V>> entryIterator() {
