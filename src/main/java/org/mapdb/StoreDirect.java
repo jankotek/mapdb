@@ -783,7 +783,6 @@ public class StoreDirect extends Store {
         try {
             if(closed==true)
                 return;
-            closed = true;
             flush();
             vol.close();
             vol = null;
@@ -796,7 +795,7 @@ public class StoreDirect extends Store {
                 }
                 Arrays.fill(caches,null);
             }
-
+            closed = true;
         }finally{
             commitLock.unlock();
         }

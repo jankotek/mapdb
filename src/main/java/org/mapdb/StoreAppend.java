@@ -410,7 +410,7 @@ public class StoreAppend extends Store {
         try {
             if(closed)
                 return;
-            closed = true;
+
             if(isSnapshot){
                 snapshots.remove(this);
                 return;
@@ -426,6 +426,7 @@ public class StoreAppend extends Store {
                 }
                 Arrays.fill(caches,null);
             }
+            closed = true;
         }finally{
             commitLock.unlock();
         }

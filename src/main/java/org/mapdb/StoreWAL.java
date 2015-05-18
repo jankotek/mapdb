@@ -1213,7 +1213,6 @@ public class StoreWAL extends StoreCached {
                     LOG.warning("Closing storage with uncommited data, those data will be discarted.");
                 }
 
-                closed = true;
 
                 //TODO do not replay if not dirty
                 if(!readonly) {
@@ -1259,6 +1258,7 @@ public class StoreWAL extends StoreCached {
                     }
                     Arrays.fill(caches,null);
                 }
+                closed = true;
             }finally {
                 commitLock.unlock();
             }
