@@ -92,7 +92,7 @@ public class Serialization2Test{
         map.put(1,new AAA());
 
         db.compact();
-        System.out.println(db.getEngine().get(Engine.RECID_CLASS_CATALOG, SerializerPojo.CLASS_CATALOG_SERIALIZER));
+        System.out.println(db.getEngine().get(Engine.RECID_CLASS_CATALOG, Serializer.RECID_ARRAY));
         db.close();
 
         db = DBMaker.fileDB(f)

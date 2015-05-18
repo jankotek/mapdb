@@ -5,6 +5,7 @@ import org.junit.Test;
 import java.io.*;
 import java.util.Map;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 
@@ -62,6 +63,9 @@ public class Issue162Test {
         for (Map.Entry<Long, MyValue> entry : map.entrySet()) {
             System.out.println("Entry id = " + entry.getKey() + ", contents = " + entry.getValue().toString());
         }
+
+        assertEquals("one",map.get(1L).string);
+        assertEquals("two",map.get(2L).string);
     }
 
     File path = UtilsTest.tempDbFile();

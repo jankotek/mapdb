@@ -99,16 +99,6 @@ public final class Fun {
             return keys.toString();
     }
 
-    /** function which always returns given object */
-    public static <R> Function0<R> funReturnObject(final R obj) {
-        return new Function0<R>() {
-            @Override
-            public R run() {
-                return obj;
-            }
-        };
-    }
-
     static public final class Pair<A,B> implements Comparable<Pair<A,B>>, Serializable {
 
     	private static final long serialVersionUID = -8816277286657643283L;
@@ -164,6 +154,11 @@ public final class Fun {
     /** function which takes one argument and returns one value*/
     public interface Function1<R,A>{
         R run(A a);
+    }
+
+    /** function which takes one int argument and returns one value*/
+    public interface Function1Int<R>{
+        R run(int a);
     }
 
     /** function which takes two argument and returns one value*/

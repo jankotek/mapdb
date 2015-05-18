@@ -18,7 +18,7 @@ import static org.junit.Assert.assertTrue;
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class SerializerPojoTest{
 
-    SerializerPojo p = new SerializerPojo(null,null,null,null, null);
+    SerializerPojo p = new SerializerPojo(null,null,null,null, null, null);
 
     enum Order
     {

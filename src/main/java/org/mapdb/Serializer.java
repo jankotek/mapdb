@@ -716,6 +716,42 @@ public abstract class Serializer<A> {
         }
     };
 
+    public static final Serializer<long[]> RECID_ARRAY = new Serializer<long[]>() {
+        @Override
+        public void serialize(DataOutput out, long[] value) throws IOException {
+            DataIO.packInt(out,value.length);
+            for(long recid:value){
+                DataIO.packRecid(out,recid);
+            }
+        }
+
+        @Override
+        public long[] deserialize(DataInput in, int available) throws IOException {
+            int size = DataIO.unpackInt(in);
+            long[] ret = new long[size];
+            for(int i=0;i<size;i++){
+                ret[i] = DataIO.unpackRecid(in);
+            }
+            return ret;
+        };
+
+
+        @Override
+        public boolean isTrusted() {
+            return true;
+        }
+
+        @Override
+        public boolean equals(long[] a1, long[] a2) {
+            return Arrays.equals(a1,a2);
+        }
+
+        @Override
+        public int hashCode(long[] bytes) {
+            return Arrays.hashCode(bytes);
+        }
+
+    };
 
     /**
      * Always throws {@link IllegalAccessError} when invoked. Useful for testing and assertions.

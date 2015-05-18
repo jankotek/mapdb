@@ -26,6 +26,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -61,10 +62,7 @@ public class DB implements Closeable {
     protected SortedMap<String, Object> catalog;
 
     protected ScheduledExecutorService executor = null;
-    // Building the ClassInfo[] array is super expensive because of all the reflection & security checks it involves.
-    // We don't want to do this afresh *every time* SerializerPojo wants to get it!
-    //TODO check concurrency and TX implications
-    protected volatile SerializerPojo.ClassInfo[] classInfoCache;
+
     protected SerializerPojo serializerPojo;
 
     protected ScheduledExecutorService metricsExecutor;
@@ -105,7 +103,7 @@ public class DB implements Closeable {
     }
 
     public DB(
-            Engine engine,
+            final Engine engine,
             boolean strictDBGet,
             boolean deleteFilesAfterClose,
             ScheduledExecutorService executor,
@@ -136,30 +134,41 @@ public class DB implements Closeable {
         serializerPojo = new SerializerPojo(
                 //get name for given object
                 new Fun.Function1<String, Object>() {
-                    @Override public String run(Object o) {
+                    @Override
+                    public String run(Object o) {
                         return getNameForObject(o);
                     }
                 },
                 //get object with given name
                 new Fun.Function1<Object, String>() {
-                    @Override public Object run(String name) {
+                    @Override
+                    public Object run(String name) {
                         return get(name);
                     }
                 },
                 //load class catalog
+                new Fun.Function1Int<SerializerPojo.ClassInfo>() {
+                    @Override
+                    public SerializerPojo.ClassInfo run(int index) {
+                        long[] classInfoRecids = DB.this.engine.get(Engine.RECID_CLASS_CATALOG, Serializer.RECID_ARRAY);
+                        if(classInfoRecids==null || index<0 || index>=classInfoRecids.length)
+                            return null;
+                        return getEngine().get(classInfoRecids[index], SerializerPojo.CLASS_INFO_SERIALIZER);
+                    }
+                },
                 new Fun.Function0<SerializerPojo.ClassInfo[]>() {
-                    @Override public SerializerPojo.ClassInfo[] run() {
-                        if (classInfoCache != null) return classInfoCache;
-
-                        SerializerPojo.ClassInfo[] ret =  getEngine().get(Engine.RECID_CLASS_CATALOG, SerializerPojo.CLASS_CATALOG_SERIALIZER);
-                        if(ret==null)
-                            ret = new SerializerPojo.ClassInfo[0];
-                        classInfoCache = ret;
+                    @Override
+                    public SerializerPojo.ClassInfo[] run() {
+                        long[] classInfoRecids = engine.get(Engine.RECID_CLASS_CATALOG, Serializer.RECID_ARRAY);
+                        SerializerPojo.ClassInfo[] ret = new SerializerPojo.ClassInfo[classInfoRecids==null?0:classInfoRecids.length];
+                        for(int i=0;i<ret.length;i++){
+                            ret[i] = engine.get(classInfoRecids[i],SerializerPojo.CLASS_INFO_SERIALIZER);
+                        }
                         return ret;
                     }
                 },
                 //notify DB than given class is missing in catalog and should be added on next commit.
-                new Fun.Function1<Void, String>() {
+        new Fun.Function1<Void, String>() {
                     @Override public Void run(String className) {
                         unknownClasses.add(className);
                         return null;
@@ -2195,22 +2204,23 @@ public class DB implements Closeable {
             //TODO if toBeAdded is modified as part of serialization, and `executor` is not null (background threads are enabled),
             // schedule this operation with 1ms delay, so it has higher chances of becoming part of the same transaction
             if (toBeAdded != null) {
+                long[] classInfoRecids = engine.get(Engine.RECID_CLASS_CATALOG, Serializer.RECID_ARRAY);
+                long[] classInfoRecidsOrig = classInfoRecids;
+                if(classInfoRecids==null)
+                    classInfoRecids = new long[0];
 
-                SerializerPojo.ClassInfo[] classes = serializerPojo.getClassInfos.run();
-                SerializerPojo.ClassInfo[] classes2 = classes.length == 0 ? null : classes;
+                int pos = classInfoRecids.length;
+                classInfoRecids = Arrays.copyOf(classInfoRecids,classInfoRecids.length+toBeAdded.length);
 
                 final ClassLoader classLoader = SerializerPojo.classForNameClassLoader();
                 for (String className : toBeAdded) {
-                    int pos = SerializerPojo.classToId(classes, className);
-                    if (pos != -1) {
-                        continue;
-                    }
                     SerializerPojo.ClassInfo classInfo = SerializerPojo.makeClassInfo(classLoader, className);
-                    classes = Arrays.copyOf(classes, classes.length + 1);
-                    classes[classes.length - 1] = classInfo;
+                    //persist and add new recids
+                    classInfoRecids[pos++] = engine.put(classInfo,SerializerPojo.CLASS_INFO_SERIALIZER);
                 }
-                classInfoCache = null;
-                engine.compareAndSwap(Engine.RECID_CLASS_CATALOG, classes2, classes, SerializerPojo.CLASS_CATALOG_SERIALIZER);
+                if(!engine.compareAndSwap(Engine.RECID_CLASS_CATALOG, classInfoRecidsOrig, classInfoRecids, Serializer.RECID_ARRAY)){
+                    LOG.log(Level.WARNING, "Could not update class catalog with new classes, CAS failed");
+                }
             }
 
 
