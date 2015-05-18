@@ -1624,6 +1624,61 @@ public abstract class Store implements Engine {
         }
     }
 
+    /** Lock which blocks parallel execution, but does not use MemoryBarrier (and does not flush CPU cache)*/
+    public static final class MemoryBarrierLessLock implements Lock{
+
+        final static int WAIT_NANOS = 100;
+
+        final protected AtomicReference<Thread> lockedThread = new AtomicReference<Thread>(null);
+
+        @Override
+        public void lock() {
+            Thread cur = Thread.currentThread();
+            while(!lockedThread.compareAndSet(null,cur)){
+                LockSupport.parkNanos(WAIT_NANOS);
+            }
+        }
+
+        @Override
+        public void lockInterruptibly() throws InterruptedException {
+            Thread cur = Thread.currentThread();
+            while(!lockedThread.compareAndSet(null,cur)){
+                LockSupport.parkNanos(WAIT_NANOS);
+                if(cur.isInterrupted())
+                    throw new InterruptedException();
+            }
+        }
+
+        @Override
+        public boolean tryLock() {
+            Thread cur = Thread.currentThread();
+            return lockedThread.compareAndSet(null, cur);
+        }
+
+        @Override
+        public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
+            Thread cur = Thread.currentThread();
+            long time2 = unit.toNanos(time);
+            while(!lockedThread.compareAndSet(null,cur) && time2>0){
+                LockSupport.parkNanos(WAIT_NANOS);
+                time2-=WAIT_NANOS;
+            }
+            return time2>0;
+        }
+
+        @Override
+        public void unlock() {
+            Thread currThread = Thread.currentThread();
+            if(!lockedThread.compareAndSet(currThread,null)){
+                throw new IllegalMonitorStateException("Can not unlock, current thread does not hold this lock");
+            }
+        }
+
+        @Override
+        public Condition newCondition() {
+            throw new UnsupportedOperationException();
+        }
+    }
 
     /**
      * <p>
