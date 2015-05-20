@@ -162,4 +162,27 @@ public abstract class DBHeaderTest {
         }
     }
 
+    @Test public void fail_on_unknown_bit(){
+        DB db = maker()
+                .make();
+
+        db.hashMap("aa").put("aa", "bb");
+        db.commit();
+        assertEquals(0L, getBitField());
+        db.close();
+
+        //fake bitfield
+        Volume r = new Volume.RandomAccessFileVol(file,false);
+        r.putLong(8, 2L << 32);
+        r.sync();
+        r.close();
+
+
+        try {
+            maker().make();
+            fail();
+        }catch(DBException.WrongConfig e){
+            assertEquals("Unknown feature #33. Store was created with never MapDB version, this version does not support this feature.",e.getMessage());
+        }
+    }
 }

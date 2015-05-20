@@ -116,8 +116,10 @@ public class StoreDirect extends Store {
         if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
+        //check header config
+        checkFeaturesBitmap(vol.getLong(HEAD_FEATURES));
+
         //TODO header
-        //TODO feature bit field
         initHeadVol();
         //check head checksum
         int expectedChecksum = vol.getInt(HEAD_CHECKSUM);
@@ -126,8 +128,6 @@ public class StoreDirect extends Store {
             throw new DBException.HeadChecksumBroken();
         }
 
-        //check header config
-        checkFeaturesBitmap(vol.getLong(HEAD_FEATURES));
 
         //load index pages
         long[] ip = new long[]{0};

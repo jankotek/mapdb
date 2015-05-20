@@ -160,6 +160,10 @@ public abstract class Store implements Engine {
             throw new DBException.WrongConfig("Checksum us enabled, but store was created without it.");
         }
 
+        int endZeroes = Long.numberOfTrailingZeros(feat);
+        if(endZeroes<FEAT_CRC){
+            throw new DBException.WrongConfig("Unknown feature #"+endZeroes+". Store was created with never MapDB version, this version does not support this feature.");
+        }
     }
 
     protected long makeFeaturesBitmap(){
