@@ -1217,7 +1217,7 @@ public final class DBMaker{
                     throw new RuntimeException("invalid checksum");
             }
         }catch(Throwable e){
-            throw new IllegalArgumentException("Error while opening store. Make sure you have right password, compression or encryption is well configured.",e);
+            throw new DBException.WrongConfig("Error while opening store. Make sure you have right password, compression or encryption is well configured.",e);
         }
         if(check == null && !engine.isReadOnly()){
             //new db, so insert testing record

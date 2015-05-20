@@ -35,8 +35,6 @@ public class StoreDirect extends Store {
     protected static final long MPARITY = 0x1L;
 
 
-    protected static final long HEAD_CHECKSUM = 4;
-    protected static final long FORMAT_FEATURES = 8*1;
     protected static final long STORE_SIZE = 8*2;
     /** offset of maximal allocated recid. It is {@code <<3 parity1}*/
     protected static final long MAX_RECID_OFFSET = 8*3;
@@ -128,6 +126,9 @@ public class StoreDirect extends Store {
             throw new DBException.HeadChecksumBroken();
         }
 
+        //check header config
+        checkFeaturesBitmap(vol.getLong(HEAD_FEATURES));
+
         //load index pages
         long[] ip = new long[]{0};
         long indexPage = parity16Get(vol.getLong(INDEX_PAGE));
@@ -189,6 +190,12 @@ public class StoreDirect extends Store {
         for(long masterLinkOffset = FREE_RECID_STACK;masterLinkOffset<HEAD_END;masterLinkOffset+=8){
             vol.putLong(masterLinkOffset,parity4Set(0));
         }
+
+        //set features bitmap
+        long features = makeFeaturesBitmap();
+
+        vol.putLong(HEAD_FEATURES, features);
+
 
         //and set header checksum
         vol.putInt(HEAD_CHECKSUM, headChecksum(vol));

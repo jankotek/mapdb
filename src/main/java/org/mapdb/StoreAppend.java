@@ -159,9 +159,15 @@ public class StoreAppend extends Store {
 
     protected void initCreate() {
         highestRecid.set(RECID_LAST_RESERVED);
+        //TODO header  here
+        long feat = makeFeaturesBitmap();
+        vol.putLong(HEAD_FEATURES,feat);
+        vol.sync();
     }
 
     protected void initOpen() {
+        checkFeaturesBitmap(vol.getLong(HEAD_FEATURES));
+
         //replay log
         long pos = headerSize;
         final long volumeSize = vol.length();

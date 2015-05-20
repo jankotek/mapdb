@@ -24,6 +24,14 @@ public abstract class Store implements Engine {
 
     protected static final Logger LOG = Logger.getLogger(Store.class.getName());
 
+    protected static final long FEAT_COMP_LZW = 64L-1L;
+    protected static final long FEAT_ENC_XTEA = 64L-2L;
+    protected static final long FEAT_CRC = 64L-3L;
+
+    protected static final long HEAD_CHECKSUM = 4;
+    protected static final long HEAD_FEATURES = 8;
+
+
     //TODO if locks are disabled, use NoLock for structuralLock and commitLock
 
     /** protects structural layout of records. Memory allocator is single threaded under this lock */
@@ -126,6 +134,41 @@ public abstract class Store implements Engine {
     }
 
     public void init(){}
+
+    protected void checkFeaturesBitmap(final long feat){
+        boolean xteaEnc = (feat>>>FEAT_ENC_XTEA&1)!=0;
+        if(xteaEnc&& !encrypt){
+            throw new DBException.WrongConfig("Store was created with encryption, but no password is set in config.");
+        }
+        if(!xteaEnc&& encrypt){
+            throw new DBException.WrongConfig("Password is set, but store is not encrypted.");
+        }
+
+        boolean lzwComp = (feat>>>FEAT_COMP_LZW&1)!=0;
+        if(lzwComp&& !compress){
+            throw new DBException.WrongConfig("Store was created with compression, but no compression is enabled in config.");
+        }
+        if(!lzwComp&& compress){
+            throw new DBException.WrongConfig("Compression is set in config, but store was created with compression.");
+        }
+
+        boolean crc = (feat>>>FEAT_CRC&1)!=0;
+        if(crc&& !checksum){
+            throw new DBException.WrongConfig("Store was created with CRC32 checksum, but it is not enabled in config.");
+        }
+        if(!crc&& checksum){
+            throw new DBException.WrongConfig("Checksum us enabled, but store was created without it.");
+        }
+
+    }
+
+    protected long makeFeaturesBitmap(){
+        return
+            (compress ? 1L<<FEAT_COMP_LZW : 0) |
+            (encrypt  ? 1L<<FEAT_ENC_XTEA : 0) |
+            (checksum  ? 1L<<FEAT_CRC : 0)
+        ;
+    }
 
     @Override
     public <A> A get(long recid, Serializer<A> serializer) {

@@ -124,4 +124,13 @@ public class DBException extends RuntimeException{
         }
     }
 
+    public static class WrongConfig extends DBException{
+        public WrongConfig(String message) {
+            super(message);
+        }
+
+        public WrongConfig(String message, Throwable cause) {
+            super(message,cause);
+        }
+    }
 }

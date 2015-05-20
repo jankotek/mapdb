@@ -190,7 +190,7 @@ public class DBMakerTest{
     }
 
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = DBException.WrongConfig.class)
     public void reopen_wrong_checksum() throws IOException {
         File f = UtilsTest.tempDbFile();
         DB db = DBMaker.fileDB(f).make();
@@ -242,7 +242,7 @@ public class DBMakerTest{
     }
 
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = DBException.WrongConfig.class)
     public void reopen_wrong_encrypt() throws IOException {
         File f = UtilsTest.tempDbFile();
         DB db = DBMaker.fileDB(f).make();
@@ -274,7 +274,7 @@ public class DBMakerTest{
         db.close();
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = DBException.WrongConfig.class)
     public void reopen_wrong_compress() throws IOException {
         File f = UtilsTest.tempDbFile();
         DB db = DBMaker.fileDB(f).make();
