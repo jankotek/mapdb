@@ -45,8 +45,7 @@ public class StoreDirect extends Store {
 
     protected static final int MAX_REC_SIZE = 0xFFFF;
     /** number of free physical slots */
-    protected static final int SLOTS_COUNT = 5+(MAX_REC_SIZE)/16;
-        //TODO check exact number of slots +5 is just to be sure
+    protected static final int SLOTS_COUNT = 5+(MAX_REC_SIZE)/16; //+3 is minimum, +5 is just for future reserve
 
     protected static final long HEAD_END = INDEX_PAGE + SLOTS_COUNT * 8;
 
