@@ -431,9 +431,8 @@ public class DB implements Closeable {
                 //TODO add parameter check
                 //$DELAY$
                 return (HTreeMap<K, V>) (db.catGet(name+".type")==null?
-                                    make(): db.hashMap(name));
-
-                //TODO db.hashMap(name) will not restore some listeners (valueCreator, overflow). Perhaps log warning
+                        make():
+                        db.hashMap(name,keySerializer,valueSerializer,(Fun.Function1)valueCreator));
             }
         }
 
@@ -566,7 +565,7 @@ public class DB implements Closeable {
                 //$DELAY$
                 //TODO add parameter check
                 return (Set<K>) (catGet(name+".type")==null?
-                        make(): hashSet(name));
+                        make(): hashSet(name,serializer));
             }
         }
 
@@ -588,14 +587,14 @@ public class DB implements Closeable {
      * @return map
      */
     synchronized public <K,V> HTreeMap<K,V> hashMap(String name){
-        return hashMap(name, null);
+        return hashMap(name, null, null, null);
     }
 
     /**
-     * @deprecated method renamed, use {@link DB#hashMap(String,org.mapdb.Fun.Function1)}
+     * @deprecated method renamed, use {@link DB#hashMap(String,Serializer, Serializer, org.mapdb.Fun.Function1)}
      */
     synchronized public <K,V> HTreeMap<K,V> getHashMap(String name, Fun.Function1<V,K> valueCreator){
-        return hashMap(name,valueCreator);
+        return hashMap(name, null, null, valueCreator);
     }
 
     /**
@@ -607,7 +606,11 @@ public class DB implements Closeable {
      * @param valueCreator if value is not found, new is created and placed into map.
      * @return map
      */
-    synchronized public <K,V> HTreeMap<K,V> hashMap(String name, Fun.Function1<V, K> valueCreator){
+    synchronized public <K,V> HTreeMap<K,V> hashMap(
+            String name,
+            Serializer<K> keySerializer,
+            Serializer<V> valueSerializer,
+            Fun.Function1<V, K> valueCreator){
         checkNotClosed();
         HTreeMap<K,V> ret = (HTreeMap<K, V>) getFromWeakCollection(name);
         if(ret!=null) return ret;
@@ -631,6 +634,29 @@ public class DB implements Closeable {
 
         //check type
         checkType(type, "HashMap");
+
+        Object keySer2 = catGet(name+".keySerializer");
+        if(keySerializer!=null){
+            if(keySer2!=Fun.PLACEHOLDER && keySer2!=keySerializer){
+                LOG.warning("Map '"+name+"' has keySerializer defined in Name Catalog, but other serializer was passed as constructor argument. Using one from constructor argument.");
+            }
+            keySer2 = keySerializer;
+        }
+        if(keySer2==Fun.PLACEHOLDER){
+            throw new DBException.UnknownSerializer("Map '"+name+"' has no keySerializer defined in Name Catalog nor constructor argument.");
+        }
+
+        Object valSer2 = catGet(name+".valueSerializer");
+        if(valueSerializer!=null){
+            if(valSer2!=Fun.PLACEHOLDER && valSer2!=valueSerializer){
+                LOG.warning("Map '"+name+"' has valueSerializer defined in name catalog, but other serializer was passed as constructor argument. Using one from constructor argument.");
+            }
+            valSer2 = valueSerializer;
+        }
+        if(valSer2==Fun.PLACEHOLDER) {
+            throw new DBException.UnknownSerializer("Map '" + name + "' has no valueSerializer defined in Name Catalog nor constructor argument.");
+        }
+
         //open existing map
         //$DELAY$
         ret = new HTreeMap<K,V>(
@@ -639,8 +665,8 @@ public class DB implements Closeable {
                 (long[])catGet(name+".counterRecids"),
                 (Integer)catGet(name+".hashSalt"),
                 (long[])catGet(name+".segmentRecids"),
-                catGet(name+".keySerializer",getDefaultSerializer()),
-                catGet(name+".valueSerializer",getDefaultSerializer()),
+                (Serializer<K>)keySer2,
+                (Serializer<V>)valSer2,
                 catGet(name+".expireTimeStart",0L),
                 catGet(name+".expire",0L),
                 catGet(name+".expireAccess",0L),
@@ -744,14 +770,25 @@ public class DB implements Closeable {
             }
         }
 
+        if(m.keySerializer==null) {
+            m.keySerializer = getDefaultSerializer();
+        }
+        catPut(name+".keySerializer",serializableOrPlaceHolder(m.keySerializer));
+        if(m.valueSerializer==null) {
+            m.valueSerializer = getDefaultSerializer();
+        }
+        catPut(name+".valueSerializer",serializableOrPlaceHolder(m.valueSerializer));
+
+
+
         HTreeMap<K,V> ret = new HTreeMap<K,V>(
                 m.engines,
                 m.closeEngine,
                 counterRecids==null? null : catPut(name + ".counterRecids", counterRecids),
                 catPut(name+".hashSalt",new SecureRandom().nextInt()),
                 catPut(name+".segmentRecids",HTreeMap.preallocateSegments(m.engines)),
-                catPut(name+".keySerializer",m.keySerializer,getDefaultSerializer()),
-                catPut(name+".valueSerializer",m.valueSerializer,getDefaultSerializer()),
+                (Serializer<K>)m.keySerializer,
+                (Serializer<V>)m.valueSerializer,
                 expireTimeStart,expire,expireAccess,expireMaxSize, expireStoreSize, expireHeads ,expireTails,
                 (Fun.Function1<V, K>) m.valueCreator,
                 m.executor,
@@ -783,6 +820,20 @@ public class DB implements Closeable {
         return ret;
     }
 
+    protected Object serializableOrPlaceHolder(Object o) {
+        SerializerBase b = (SerializerBase)getDefaultSerializer();
+        if(o == null || b.isSerializable(o)){
+            if(!(o instanceof BTreeKeySerializer.BasicKeySerializer))
+                return o;
+
+            BTreeKeySerializer.BasicKeySerializer oo = (BTreeKeySerializer.BasicKeySerializer) o;
+            if(b.isSerializable(oo.serializer) && b.isSerializable(oo.comparator))
+                return o;
+        }
+
+        return Fun.PLACEHOLDER;
+    }
+
     /**
      * @deprecated method renamed, use {@link DB#hashSet(String)}
      */
@@ -797,6 +848,10 @@ public class DB implements Closeable {
      * @return set
      */
     synchronized public <K> Set<K> hashSet(String name){
+        return hashSet(name,null);
+    }
+
+    synchronized public <K> Set<K> hashSet(String name, Serializer<K> serializer){
         checkNotClosed();
         Set<K> ret = (Set<K>) getFromWeakCollection(name);
         if(ret!=null) return ret;
@@ -818,6 +873,19 @@ public class DB implements Closeable {
 
         //check type
         checkType(type, "HashSet");
+
+        Object keySer2 = catGet(name+".serializer");
+        if(serializer!=null){
+            if(keySer2!=Fun.PLACEHOLDER && keySer2!=serializer){
+                LOG.warning("Set '"+name+"' has serializer defined in Name Catalog, but other serializer was passed as constructor argument. Using one from constructor argument.");
+            }
+            keySer2 = serializer;
+        }
+        if(keySer2==Fun.PLACEHOLDER){
+            throw new DBException.UnknownSerializer("Set '"+name+"' has no serializer defined in Name Catalog nor constructor argument.");
+        }
+
+
         //open existing map
         ret = new HTreeMap<K, Object>(
                 HTreeMap.fillEngineArray(engine),
@@ -825,7 +893,7 @@ public class DB implements Closeable {
                 (long[])catGet(name+".counterRecids"),
                 (Integer)catGet(name+".hashSalt"),
                 (long[])catGet(name+".segmentRecids"),
-                catGet(name+".serializer",getDefaultSerializer()),
+                (Serializer)keySer2,
                 null,
                 catGet(name+".expireTimeStart",0L),
                 catGet(name+".expire",0L),
@@ -896,6 +964,11 @@ public class DB implements Closeable {
                 counterRecids[i] = engines[i].put(0L,Serializer.LONG);
             }
         }
+        if(m.serializer==null) {
+            m.serializer = getDefaultSerializer();
+        }
+        catPut(name+".serializer",serializableOrPlaceHolder(m.serializer));
+
 
         HTreeMap<K,Object> ret = new HTreeMap<K,Object>(
                 engines,
@@ -903,7 +976,7 @@ public class DB implements Closeable {
                 counterRecids == null ? null : catPut(name + ".counterRecids", counterRecids),
                 catPut(name+".hashSalt", new SecureRandom().nextInt()), //TODO investigate if hashSalt actually prevents collision attack
                 catPut(name+".segmentRecids",HTreeMap.preallocateSegments(engines)),
-                catPut(name+".serializer",m.serializer,getDefaultSerializer()),
+                (Serializer)m.serializer,
                 null,
                 expireTimeStart,expire,expireAccess,expireMaxSize, expireStoreSize, expireHeads ,expireTails,
                 null,
@@ -947,11 +1020,11 @@ public class DB implements Closeable {
         protected int nodeSize = 32;
         protected boolean valuesOutsideNodes = false;
         protected boolean counter = false;
-        protected BTreeKeySerializer<?,?> keySerializer;
-        protected Serializer keySerializer2;
+        private BTreeKeySerializer _keySerializer;
+        private Serializer _keySerializer2;
+        private Comparator _comparator;
 
         protected Serializer<?> valueSerializer;
-        protected Comparator comparator;
 
         protected Iterator pumpSource;
         protected Fun.Function1 pumpKeyExtractor;
@@ -985,14 +1058,23 @@ public class DB implements Closeable {
 
         /** keySerializer used to convert keys into/from binary form. */
         public BTreeMapMaker keySerializer(BTreeKeySerializer<?,?> keySerializer){
-            this.keySerializer = keySerializer;
+            this._keySerializer = keySerializer;
             return this;
         }
         /**
          * keySerializer used to convert keys into/from binary form.
          */
         public BTreeMapMaker keySerializer(Serializer<?> serializer){
-            this.keySerializer2 = serializer;
+            this._keySerializer2 = serializer;
+            return this;
+        }
+
+        /**
+         * keySerializer used to convert keys into/from binary form.
+         */
+        public BTreeMapMaker keySerializer(Serializer<?> serializer, Comparator<?> comparator){
+            this._keySerializer2 = serializer;
+            this._comparator = comparator;
             return this;
         }
 
@@ -1000,8 +1082,7 @@ public class DB implements Closeable {
          * @deprecated compatibility with 1.0
          */
         public BTreeMapMaker keySerializerWrap(Serializer<?> serializer){
-            this.keySerializer2 = serializer;
-            return this;
+            return keySerializer(serializer);
         }
 
 
@@ -1013,7 +1094,7 @@ public class DB implements Closeable {
 
         /** comparator used to sort keys.  */
         public BTreeMapMaker comparator(Comparator<?> comparator){
-            this.comparator = comparator;
+            this._comparator = comparator;
             return this;
         }
 
@@ -1055,20 +1136,36 @@ public class DB implements Closeable {
             synchronized(DB.this){
                 //TODO add parameter check
                 return (BTreeMap<K, V>) (catGet(name+".type")==null?
-                        make(): treeMap(name));
+                        make() :
+                        treeMap(name,getKeySerializer(),valueSerializer));
             }
         }
 
+        protected BTreeKeySerializer getKeySerializer() {
+            if(_keySerializer==null) {
+                if (_keySerializer2 == null && _comparator!=null)
+                    _keySerializer2 = getDefaultSerializer();
+                if(_keySerializer2!=null)
+                    _keySerializer = _keySerializer2.getBTreeKeySerializer(_comparator);
+            }
+            return _keySerializer;
+        }
 
-        /** creates map optimized for using {@code String} keys */
+        /**
+         * creates map optimized for using {@code String} keys
+         * @deprecated MapDB 1.0 compat, will be removed in 2.1
+         */
         public <V> BTreeMap<String, V> makeStringMap() {
-            keySerializer = BTreeKeySerializer.STRING;
+            keySerializer(Serializer.STRING);
             return make();
         }
 
-        /** creates map optimized for using zero or positive {@code Long} keys */
+        /**
+         * creates map optimized for using zero or positive {@code Long} keys
+         * @deprecated MapDB 1.0 compat, will be removed in 2.1
+         */
         public <V> BTreeMap<Long, V> makeLongMap() {
-            keySerializer = BTreeKeySerializer.LONG;
+            keySerializer(Serializer.LONG);
             return make();
         }
 
@@ -1088,9 +1185,10 @@ public class DB implements Closeable {
 
         protected int nodeSize = 32;
         protected boolean counter = false;
-        protected BTreeKeySerializer serializer;
-        protected Serializer serializer2;
-        protected Comparator<?> comparator;
+
+        private BTreeKeySerializer _serializer;
+        private Serializer _serializer2;
+        private Comparator _comparator;
 
         protected Iterator<?> pumpSource;
         protected int pumpPresortBatchSize = -1;
@@ -1115,20 +1213,37 @@ public class DB implements Closeable {
 
         /** serializer used to convert keys into/from binary form. */
         public BTreeSetMaker serializer(BTreeKeySerializer serializer){
-            this.serializer = serializer;
+            this._serializer = serializer;
             return this;
         }
 
 
         /** serializer used to convert keys into/from binary form. */
         public BTreeSetMaker serializer(Serializer serializer){
-            this.serializer2 = serializer;
+            this._serializer2 = serializer;
+            return this;
+        }
+
+        /** serializer used to convert keys into/from binary form. */
+        public BTreeSetMaker serializer(Serializer serializer, Comparator comparator){
+            this._serializer2 = serializer;
+            this._comparator = comparator;
             return this;
         }
         /** comparator used to sort keys.  */
         public BTreeSetMaker comparator(Comparator<?> comparator){
-            this.comparator = comparator;
+            this._comparator = comparator;
             return this;
+        }
+
+        protected BTreeKeySerializer getSerializer() {
+            if(_serializer==null) {
+                if (_serializer2 == null && _comparator!=null)
+                    _serializer2 = getDefaultSerializer();
+                if(_serializer2!=null)
+                    _serializer = _serializer2.getBTreeKeySerializer(_comparator);
+            }
+            return _serializer;
         }
 
         public BTreeSetMaker pumpSource(Iterator<?> source){
@@ -1164,22 +1279,27 @@ public class DB implements Closeable {
             synchronized (DB.this){
                 //TODO add parameter check
                 return (NavigableSet<K>) (catGet(name+".type")==null?
-                    make(): treeSet(name));
+                        make():
+                        treeSet(name,getSerializer()));
             }
         }
 
 
 
 
-        /** creates set optimized for using {@code String} */
+        /** creates set optimized for using {@code String}
+         * @deprecated MapDB 1.0 compat, will be removed in 2.1
+         */
         public NavigableSet<String> makeStringSet() {
-            serializer = BTreeKeySerializer.STRING;
+            serializer(BTreeKeySerializer.STRING);
             return make();
         }
 
-        /** creates set optimized for using zero or positive {@code Long} */
+        /** creates set optimized for using zero or positive {@code Long}
+         * @deprecated MapDB 1.0 compat, will be removed in 2.1
+         */
         public NavigableSet<Long> makeLongSet() {
-            serializer = BTreeKeySerializer.LONG;
+            serializer(BTreeKeySerializer.LONG);
             return make();
         }
 
@@ -1202,7 +1322,17 @@ public class DB implements Closeable {
      * @param name of map
      * @return map
      */
-    synchronized public <K,V> BTreeMap<K,V> treeMap(String name){
+    synchronized public <K,V> BTreeMap<K,V> treeMap(String name) {
+        return treeMap(name,(BTreeKeySerializer)null,null);
+    }
+
+    synchronized public <K,V> BTreeMap<K,V> treeMap(String name, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
+        if(keySerializer==null)
+            keySerializer = getDefaultSerializer();
+        return treeMap(name,keySerializer.getBTreeKeySerializer(null),valueSerializer);
+    }
+
+    synchronized public <K,V> BTreeMap<K,V> treeMap(String name, BTreeKeySerializer keySerializer, Serializer<V> valueSerializer){
         checkNotClosed();
         BTreeMap<K,V> ret = (BTreeMap<K,V>) getFromWeakCollection(name);
         if(ret!=null) return ret;
@@ -1222,14 +1352,37 @@ public class DB implements Closeable {
         }
         checkType(type, "TreeMap");
 
+
+        Object keySer2 = catGet(name+".keySerializer");
+        if(keySerializer!=null){
+            if(keySer2!=Fun.PLACEHOLDER && keySer2!=keySerializer){
+                LOG.warning("Map '"+name+"' has keySerializer defined in Name Catalog, but other serializer was passed as constructor argument. Using one from constructor argument.");
+            }
+            keySer2 = keySerializer;
+        }
+        if(keySer2==Fun.PLACEHOLDER){
+            throw new DBException.UnknownSerializer("Map '"+name+"' has no keySerializer defined in Name Catalog nor constructor argument.");
+        }
+
+        Object valSer2 = catGet(name+".valueSerializer");
+        if(valueSerializer!=null){
+            if(valSer2!=Fun.PLACEHOLDER && valSer2!=valueSerializer){
+                LOG.warning("Map '"+name+"' has valueSerializer defined in name catalog, but other serializer was passed as constructor argument. Using one from constructor argument.");
+            }
+            valSer2 = valueSerializer;
+        }
+        if(valSer2==Fun.PLACEHOLDER) {
+            throw new DBException.UnknownSerializer("Map '" + name + "' has no valueSerializer defined in Name Catalog nor constructor argument.");
+        }
+
         ret = new BTreeMap<K, V>(engine,
                 false,
                 (Long) catGet(name + ".rootRecidRef"),
                 catGet(name+".maxNodeSize",32),
                 catGet(name+".valuesOutsideNodes",false),
                 catGet(name+".counterRecids",0L),
-                catGet(name+".keySerializer",new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer(),Fun.COMPARATOR)),
-                catGet(name+".valueSerializer",getDefaultSerializer()),
+                (BTreeKeySerializer)keySer2,
+                (Serializer<V>)valSer2,
                 catGet(name+".numberOfNodeMetas",0)
                 );
         //$DELAY$
@@ -1259,33 +1412,21 @@ public class DB implements Closeable {
         String name = m.name;
         checkNameNotExists(name);
         //$DELAY$
-        if(m.comparator==null){
-            m.comparator = Fun.COMPARATOR;
-        }
 
-        if(m.keySerializer==null && m.keySerializer2!=null) {
-            // infer BTreeKeyComparator
-            if (m.comparator == null || m.comparator == Fun.COMPARATOR) {
-                m.keySerializer= m.keySerializer2.getBTreeKeySerializer(false);
-            } else if (m.comparator == Fun.REVERSE_COMPARATOR) {
-                m.keySerializer = m.keySerializer2.getBTreeKeySerializer(true);
-            } else {
-                LOG.warning("Custom comparator is set for '"+m.name+
-                        "'. Falling back to generic BTreeKeySerializer with no compression");
-                m.keySerializer = new BTreeKeySerializer.BasicKeySerializer(m.keySerializer2, m.comparator);
-            }
-        }
-        m.keySerializer = fillNulls(m.keySerializer);
-        m.keySerializer = catPut(name+".keySerializer",m.keySerializer,
-                new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer(),m.comparator));
-        m.valueSerializer = catPut(name+".valueSerializer",m.valueSerializer,getDefaultSerializer());
+        BTreeKeySerializer keySerializer = fillNulls(m.getKeySerializer());
+        catPut(name+".keySerializer",serializableOrPlaceHolder(keySerializer));
+        if(m.valueSerializer==null)
+            m.valueSerializer = getDefaultSerializer();
+        catPut(name+".valueSerializer",serializableOrPlaceHolder(m.valueSerializer));
 
         if(m.pumpPresortBatchSize!=-1 && m.pumpSource!=null){
-            Comparator presortComp =  new Comparator() {
+            final Comparator comp = keySerializer.comparator();
+            final Fun.Function1 extr = m.pumpKeyExtractor;
 
+            Comparator presortComp =  new Comparator() {
                 @Override
                 public int compare(Object o1, Object o2) {
-                    return - m.comparator.compare(m.pumpKeyExtractor.run(o1), m.pumpKeyExtractor.run(o2));
+                    return - comp.compare(extr.run(o1), extr.run(o2));
                 }
             };
 
@@ -1302,7 +1443,7 @@ public class DB implements Closeable {
 
         long rootRecidRef;
         if(m.pumpSource==null){
-            rootRecidRef = BTreeMap.createRootRef(engine,m.keySerializer,m.valueSerializer,0);
+            rootRecidRef = BTreeMap.createRootRef(engine,keySerializer,m.valueSerializer,0);
         }else{
             rootRecidRef = Pump.buildTreeMap(
                     (Iterator<K>)m.pumpSource,
@@ -1312,7 +1453,7 @@ public class DB implements Closeable {
                     m.pumpIgnoreDuplicates,m.nodeSize,
                     m.valuesOutsideNodes,
                     counterRecid,
-                    m.keySerializer,
+                    keySerializer,
                     (Serializer<V>)m.valueSerializer,
                     m.executor
             );
@@ -1326,7 +1467,7 @@ public class DB implements Closeable {
                 catPut(name+".maxNodeSize",m.nodeSize),
                 catPut(name+".valuesOutsideNodes",m.valuesOutsideNodes),
                 catPut(name+".counterRecids",counterRecid),
-                m.keySerializer,
+                keySerializer,
                 (Serializer<V>)m.valueSerializer,
                 catPut(m.name+".numberOfNodeMetas",0)
                 );
@@ -1344,7 +1485,7 @@ public class DB implements Closeable {
      */
     protected BTreeKeySerializer<?,?> fillNulls(BTreeKeySerializer<?,?> keySerializer) {
         if(keySerializer==null)
-            return null;
+            return new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer(),Fun.COMPARATOR);
         if(keySerializer instanceof BTreeKeySerializer.ArrayKeySerializer) {
             BTreeKeySerializer.ArrayKeySerializer k = (BTreeKeySerializer.ArrayKeySerializer) keySerializer;
 
@@ -1389,7 +1530,10 @@ public class DB implements Closeable {
      * @param name of set
      * @return set
      */
-    synchronized public <K> NavigableSet<K> treeSet(String name){
+    synchronized public <K> NavigableSet<K> treeSet(String name) {
+        return treeSet(name, null);
+    }
+    synchronized public <K> NavigableSet<K> treeSet(String name,BTreeKeySerializer serializer){
         checkNotClosed();
         NavigableSet<K> ret = (NavigableSet<K>) getFromWeakCollection(name);
         if(ret!=null) return ret;
@@ -1407,6 +1551,19 @@ public class DB implements Closeable {
 
         }
         checkType(type, "TreeSet");
+
+        Object keySer2 = catGet(name+".serializer");
+        if(serializer!=null){
+            if(keySer2!=Fun.PLACEHOLDER && keySer2!=serializer){
+                LOG.warning("Set '"+name+"' has serializer defined in Name Catalog, but other serializer was passed as constructor argument. Using one from constructor argument.");
+            }
+            keySer2 = serializer;
+        }
+        if(keySer2==Fun.PLACEHOLDER){
+            throw new DBException.UnknownSerializer("Set '"+name+"' has no serializer defined in Name Catalog nor constructor argument.");
+        }
+
+
         //$DELAY$
         ret = new BTreeMap<K, Object>(
                 engine,
@@ -1415,7 +1572,7 @@ public class DB implements Closeable {
                 catGet(name+".maxNodeSize",32),
                 false,
                 catGet(name+".counterRecids",0L),
-                catGet(name+".keySerializer",new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer(),Fun.COMPARATOR)),
+                (BTreeKeySerializer)keySer2,
                 null,
                 catGet(name+".numberOfNodeMetas",0)
         ).keySet();
@@ -1444,33 +1601,17 @@ public class DB implements Closeable {
 
     synchronized public <K> NavigableSet<K> treeSetCreate(BTreeSetMaker m){
         checkNameNotExists(m.name);
-        if(m.comparator==null){
-            m.comparator = Fun.COMPARATOR;
-        }
         //$DELAY$
 
-        if(m.serializer==null && m.serializer2!=null) {
-            // infer BTreeKeyComparator
-            if (m.comparator == null || m.comparator == Fun.COMPARATOR) {
-                m.serializer= m.serializer2.getBTreeKeySerializer(false);
-            } else if (m.comparator == Fun.REVERSE_COMPARATOR) {
-                m.serializer = m.serializer2.getBTreeKeySerializer(true);
-            } else {
-                LOG.warning("Custom comparator is set for '"+m.name+
-                        "'. Falling back to generic BTreeKeySerializer with no compression");
-                m.serializer = new BTreeKeySerializer.BasicKeySerializer(m.serializer2, m.comparator);
-            }
-        }
-        m.serializer = fillNulls(m.serializer);
-        m.serializer = catPut(m.name+".keySerializer",m.serializer,
-                new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer(),m.comparator));
+        BTreeKeySerializer serializer = fillNulls(m.getSerializer());
+        catPut(m.name+".serializer",serializableOrPlaceHolder(serializer));
 
         if(m.pumpPresortBatchSize!=-1){
             m.pumpSource = Pump.sort(
                     m.pumpSource,
                     m.pumpIgnoreDuplicates,
                     m.pumpPresortBatchSize,
-                    Collections.reverseOrder(m.comparator),
+                    Collections.reverseOrder(serializer.comparator()),
                     getDefaultSerializer(),
                     m.executor);
         }
@@ -1479,7 +1620,7 @@ public class DB implements Closeable {
         long rootRecidRef;
         //$DELAY$
         if(m.pumpSource==null){
-            rootRecidRef = BTreeMap.createRootRef(engine,m.serializer,null,0);
+            rootRecidRef = BTreeMap.createRootRef(engine,serializer,null,0);
         }else{
             rootRecidRef = Pump.buildTreeMap(
                     (Iterator<Object>)m.pumpSource,
@@ -1490,7 +1631,7 @@ public class DB implements Closeable {
                     m.nodeSize,
                     false,
                     counterRecid,
-                    m.serializer,
+                    serializer,
                     null,
                     m.executor);
         }
@@ -1502,7 +1643,7 @@ public class DB implements Closeable {
                 catPut(m.name+".maxNodeSize",m.nodeSize),
                 false,
                 catPut(m.name+".counterRecids",counterRecid),
-                m.serializer,
+                serializer,
                 null,
                 catPut(m.name+".numberOfNodeMetas",0)
         ).keySet();
@@ -1911,13 +2052,20 @@ public class DB implements Closeable {
     }
 
     synchronized public <E> Atomic.Var<E> atomicVarCreate(String name, E initValue, Serializer<E> serializer){
-        checkNameNotExists(name);
-        if(serializer==null) serializer=getDefaultSerializer();
+        if(catGet(name+".type")!=null){
+            return atomicVar(name,serializer);
+        }
+
+        if(serializer==null)
+            serializer=getDefaultSerializer();
+
+        catPut(name+".serializer",serializableOrPlaceHolder(serializer));
+
         long recid = engine.put(initValue, serializer);
         //$DELAY$
         Atomic.Var ret = new Atomic.Var(engine,
                 catPut(name+".recid",recid),
-                catPut(name+".serializer",serializer)
+                serializer
         );
         //$DELAY$
         catalog.put(name + ".type", "AtomicVar");
@@ -1934,6 +2082,10 @@ public class DB implements Closeable {
     }
 
     synchronized public <E> Atomic.Var<E> atomicVar(String name){
+        return atomicVar(name,null);
+    }
+
+    synchronized public <E> Atomic.Var<E> atomicVar(String name,Serializer<E> serializer){
         checkNotClosed();
 
         Atomic.Var ret = (Atomic.Var) getFromWeakCollection(name);
@@ -1951,8 +2103,20 @@ public class DB implements Closeable {
             return atomicVarCreate(name, null, getDefaultSerializer());
         }
         checkType(type, "AtomicVar");
+        Object serializer2;
+        if(serializer==null)
+            serializer2 = catGet(name+".serializer");
+        else
+            serializer2 = serializer;
 
-        ret = new Atomic.Var(engine, (Long) catGet(name+".recid"), (Serializer) catGet(name+".serializer"));
+        if(serializer2==null)
+            serializer2 = getDefaultSerializer();
+
+        if(serializer2==Fun.PLACEHOLDER){
+            throw new DBException.UnknownSerializer("Atomic.Var '"+name+"' has no serializer defined in Name Catalog nor constructor argument.");
+        }
+
+        ret = new Atomic.Var(engine, (Long) catGet(name+".recid"), (Serializer) serializer2);
         namedPut(name, ret);
         return ret;
     }

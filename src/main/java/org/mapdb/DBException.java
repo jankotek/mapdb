@@ -133,4 +133,10 @@ public class DBException extends RuntimeException{
             super(message,cause);
         }
     }
+
+    public static class UnknownSerializer extends DBException{
+        public UnknownSerializer(String message) {
+            super(message);
+        }
+    }
 }

@@ -684,7 +684,7 @@ public class HTreeMap2Test {
     public void test()
     {
         DB db = DBMaker.memoryDB().transactionDisable().make();
-        Map<String, Integer> map = db.hashMap("map", new Fun.Function1<Integer, String>() {
+        Map<String, Integer> map = db.hashMap("map",null,null, new Fun.Function1<Integer, String>() {
             @Override
             public Integer run(String s) {
                 return Integer.MIN_VALUE;

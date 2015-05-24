@@ -21,7 +21,7 @@ public class BTreeMapParTest {
                 .treeMapCreate("test")
                 .valueSerializer(Serializer.LONG)
                 .keySerializer(BTreeKeySerializer.LONG)
-                .makeLongMap();
+                .make();
 
         long t = System.currentTimeMillis();
         final AtomicLong counter = new AtomicLong();

@@ -52,11 +52,12 @@ public class PumpComparableValueTest {
 
 
                 BTreeMap<String,String> map2 = mapDBStore.treeMapCreate("non comparable values")
+                                .keySerializer(Serializer.STRING)
                                 .pumpSource(entriesSourceNonComp)
                                 .pumpPresort(pumpSize)
                                 .pumpIgnoreDuplicates()
                                 .counterEnable()
-                                .makeStringMap();
+                                .make();
 
                 assertEquals(1,map2.size());
 
@@ -98,11 +99,12 @@ public class PumpComparableValueTest {
 
 
         BTreeMap<String,String> map2 = db.treeMapCreate("non comparable values")
+                .keySerializer(Serializer.STRING)
                 .pumpSource(entriesSourceNonComp)
                 .pumpPresort(pumpSize)
                 .pumpIgnoreDuplicates()
                 .counterEnable()
-                .makeStringMap();
+                .make();
 
         assertEquals(max,map2.size());
 

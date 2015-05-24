@@ -1456,7 +1456,7 @@ public class SerializerBase extends Serializer<Object>{
 
             mapdb_add(7, Fun.REVERSE_COMPARATOR);
             mapdb_add(8, Fun.EMPTY_ITERATOR);
-//TODO unused:            mapdb_add(9, Fun.ThreadFactory.BASIC);
+            mapdb_add(9, Fun.PLACEHOLDER);
 
             mapdb_add(10, Serializer.STRING_NOSIZE);
             mapdb_add(11, Serializer.STRING_ASCII);
@@ -2156,4 +2156,20 @@ public class SerializerBase extends Serializer<Object>{
     public boolean isTrusted() {
         return true;
     }
+
+    /** return true if mapdb knows howto serialize given object*/
+    public boolean isSerializable(Object o) {
+        //check if is known singleton
+        if(mapdb_all.containsKey(o)) {
+            return true;
+        }
+
+        //check list of classes
+        if(ser.containsKey(o.getClass())) {
+            return true;
+        }
+
+        return false;
+    }
+
 }

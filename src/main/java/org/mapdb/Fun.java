@@ -28,7 +28,14 @@ import java.util.*;
  */
 public final class Fun {
 
-	/**
+    /** place holder for some stuff in future */
+    public static final Object PLACEHOLDER = new Object(){
+        @Override public String toString() {
+            return "Fun.PLACEHOLDER";
+        }
+    };
+
+    /**
 	 * A utility method for getting a type-safe Comparator, it provides type-inference help.
 	 * Use this method instead of {@link Fun#COMPARATOR} in order to insure type-safety
 	 * ex: {@code Comparator<Integer> comparator = getComparator();}

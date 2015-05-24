@@ -21,6 +21,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.UUID;
 
@@ -77,9 +78,9 @@ public abstract class Serializer<A> {
         }
 
         @Override
-        public BTreeKeySerializer getBTreeKeySerializer(boolean descending) {
-            if(descending) {
-                return super.getBTreeKeySerializer(descending);
+        public BTreeKeySerializer getBTreeKeySerializer(Comparator comparator) {
+            if(comparator!=null && comparator!=Fun.COMPARATOR) {
+                return super.getBTreeKeySerializer(comparator);
             }
             return BTreeKeySerializer.STRING;
         }
@@ -145,9 +146,9 @@ public abstract class Serializer<A> {
         }
 
         @Override
-        public BTreeKeySerializer getBTreeKeySerializer(boolean descending) {
-            if(descending) {
-                return super.getBTreeKeySerializer(descending);
+        public BTreeKeySerializer getBTreeKeySerializer(Comparator comparator) {
+            if(comparator!=null && comparator!=Fun.COMPARATOR) {
+                return super.getBTreeKeySerializer(comparator);
             }
             return BTreeKeySerializer.STRING; //TODO ascii specific serializer?
         }
@@ -184,9 +185,9 @@ public abstract class Serializer<A> {
         }
 
         @Override
-        public BTreeKeySerializer getBTreeKeySerializer(boolean descending) {
-            if(descending) {
-                return super.getBTreeKeySerializer(descending);
+        public BTreeKeySerializer getBTreeKeySerializer(Comparator comparator) {
+            if(comparator!=null && comparator!=Fun.COMPARATOR) {
+                return super.getBTreeKeySerializer(comparator);
             }
             return BTreeKeySerializer.STRING;
         }
@@ -304,9 +305,9 @@ public abstract class Serializer<A> {
         }
 
         @Override
-        public BTreeKeySerializer getBTreeKeySerializer(boolean descending) {
-            if(descending) {
-                return super.getBTreeKeySerializer(descending);
+        public BTreeKeySerializer getBTreeKeySerializer(Comparator comparator) {
+            if(comparator!=null && comparator!=Fun.COMPARATOR) {
+                return super.getBTreeKeySerializer(comparator);
             }
             return BTreeKeySerializer.LONG;
         }
@@ -525,9 +526,9 @@ public abstract class Serializer<A> {
         }
 
         @Override
-        public BTreeKeySerializer getBTreeKeySerializer(boolean descending) {
-            if(descending) {
-                return super.getBTreeKeySerializer(descending);
+        public BTreeKeySerializer getBTreeKeySerializer(Comparator comparator) {
+            if(comparator!=null && comparator!=Fun.COMPARATOR) {
+                return super.getBTreeKeySerializer(comparator);
             }
             return BTreeKeySerializer.INTEGER;
         }
@@ -810,9 +811,9 @@ public abstract class Serializer<A> {
         }
 
         @Override
-        public BTreeKeySerializer getBTreeKeySerializer(boolean descending) {
-            if(descending) {
-                return super.getBTreeKeySerializer(descending);
+        public BTreeKeySerializer getBTreeKeySerializer(Comparator comparator) {
+            if(comparator!=null && comparator!=Fun.COMPARATOR) {
+                return super.getBTreeKeySerializer(comparator);
             }
             return BTreeKeySerializer.BYTE_ARRAY;
         }
@@ -852,9 +853,9 @@ public abstract class Serializer<A> {
         }
 
         @Override
-        public BTreeKeySerializer getBTreeKeySerializer(boolean descending) {
-            if(descending) {
-                return super.getBTreeKeySerializer(descending);
+        public BTreeKeySerializer getBTreeKeySerializer(Comparator comparator) {
+            if(comparator!=null && comparator!=Fun.COMPARATOR) {
+                return super.getBTreeKeySerializer(comparator);
             }
             return BTreeKeySerializer.BYTE_ARRAY;
         }
@@ -1179,9 +1180,9 @@ public abstract class Serializer<A> {
         }
 
         @Override
-        public BTreeKeySerializer getBTreeKeySerializer(boolean descending) {
-            if(descending) {
-                return super.getBTreeKeySerializer(descending);
+        public BTreeKeySerializer getBTreeKeySerializer(Comparator comparator) {
+            if(comparator!=null && comparator!=Fun.COMPARATOR) {
+                return super.getBTreeKeySerializer(comparator);
             }
             return BTreeKeySerializer.UUID;
         }
@@ -1761,9 +1762,10 @@ public abstract class Serializer<A> {
         return vals2;
     }
 
-    public BTreeKeySerializer getBTreeKeySerializer(boolean descending){
-        return new BTreeKeySerializer.BasicKeySerializer(Serializer.this,
-                descending? Fun.REVERSE_COMPARATOR : Fun.COMPARATOR);
+    public BTreeKeySerializer getBTreeKeySerializer(Comparator comparator){
+        if(comparator==null)
+            comparator = Fun.COMPARATOR;
+        return new BTreeKeySerializer.BasicKeySerializer(Serializer.this,comparator);
     }
 
 

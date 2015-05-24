@@ -353,6 +353,13 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         return fields;
     }
 
+    public boolean isSerializable(Object o){
+        if(super.isSerializable(o))
+            return true;
+
+        return Serializable.class.isAssignableFrom(o.getClass());
+    }
+
     protected void assertClassSerializable(ClassInfo[] classes, Class<?> clazz) throws NotSerializableException, InvalidClassException {
         if(classToId(classes,clazz.getName())!=-1)
             return;

@@ -4,16 +4,16 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.DataInput;
+import java.io.DataOutput;
 import java.io.File;
+import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
+import static org.junit.Assert.*;
 
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -231,5 +231,285 @@ public class DBTest {
                 .make();
         assertTrue(((BTreeMap)m2.m).keySerializer instanceof BTreeKeySerializer.BasicKeySerializer);
         assertEquals(m2.comparator(), Fun.REVERSE_COMPARATOR);
+    }
+
+    public static final Serializer<Long> SER1 = new Serializer<Long>() {
+        @Override
+        public void serialize(DataOutput out, Long value) throws IOException {
+            out.writeLong(value);
+        }
+
+        @Override
+        public Long deserialize(DataInput in, int available) throws IOException {
+            return in.readLong();
+        }
+    };
+
+    public static final Serializer<String> SER2 = new Serializer<String>() {
+        @Override
+        public void serialize(DataOutput out, String value) throws IOException {
+            out.writeUTF(value);
+        }
+
+        @Override
+        public String deserialize(DataInput in, int available) throws IOException {
+            return in.readUTF();
+        }
+    };
+
+    @Test public void hashMap_serializers_non_serializable() throws IOException {
+        File f = File.createTempFile("mapdb","mapdb");
+        DB db = DBMaker
+                .fileDB(f)
+                .transactionDisable()
+                .make();
+        HTreeMap m = db
+                .hashMapCreate("map")
+                .keySerializer(SER1)
+                .valueSerializer(SER2)
+                .makeOrGet();
+        assertEquals(SER1,m.keySerializer);
+        assertEquals(SER2, m.valueSerializer);
+        m.put(1L, "aaaaa");
+        db.close();
+
+        //reopen and supply serializers
+        db = DBMaker
+                .fileDB(f)
+                .transactionDisable()
+                .make();
+        m = db
+                .hashMapCreate("map")
+                .keySerializer(SER1)
+                .valueSerializer(SER2)
+                .makeOrGet();
+        assertEquals(SER1,m.keySerializer);
+        assertEquals(SER2,m.valueSerializer);
+        assertEquals("aaaaa", m.get(1L));
+        db.close();
+
+        //try to reopen with one unknown serializer, it should throw an exception
+        //reopen and supply serializers
+        db = DBMaker
+                .fileDB(f)
+                .transactionDisable()
+                .make();
+        try {
+            db
+                    .hashMapCreate("map")
+                    //.keySerializer(SER1)
+                    .valueSerializer(SER2)
+                    .makeOrGet();
+            fail();
+        }catch(DBException.UnknownSerializer e){
+            assertEquals(e.getMessage(),"Map 'map' has no keySerializer defined in Name Catalog nor constructor argument.");
+        }
+
+        try {
+            db
+                    .hashMapCreate("map")
+                    .keySerializer(SER1)
+                    //.valueSerializer(SER2)
+                    .makeOrGet();
+            fail();
+        }catch(DBException.UnknownSerializer e){
+            assertEquals(e.getMessage(),"Map 'map' has no valueSerializer defined in Name Catalog nor constructor argument.");
+        }
+
+        db.close();
+    }
+
+    @Test public void treeMap_serializers_non_serializable() throws IOException {
+        File f = File.createTempFile("mapdb","mapdb");
+        DB db = DBMaker
+                .fileDB(f)
+                .transactionDisable()
+                .make();
+        BTreeMap m = db
+                .treeMapCreate("map")
+                .keySerializer(SER1)
+                .valueSerializer(SER2)
+                .makeOrGet();
+        assertEquals(SER1,((BTreeKeySerializer.BasicKeySerializer)m.keySerializer).serializer);
+        assertEquals(SER2, m.valueSerializer);
+        m.put(1L, "aaaaa");
+        db.close();
+
+        //reopen and supply serializers
+        db = DBMaker
+                .fileDB(f)
+                .transactionDisable()
+                .make();
+        m = db
+                .treeMapCreate("map")
+                .keySerializer(SER1)
+                .valueSerializer(SER2)
+                .makeOrGet();
+        assertEquals(SER1,((BTreeKeySerializer.BasicKeySerializer)m.keySerializer).serializer);
+        assertEquals(SER2,m.valueSerializer);
+        assertEquals("aaaaa", m.get(1L));
+        db.close();
+
+        //try to reopen with one unknown serializer, it should throw an exception
+        //reopen and supply serializers
+        db = DBMaker
+                .fileDB(f)
+                .transactionDisable()
+                .make();
+        try {
+            db
+                    .treeMapCreate("map")
+                            //.keySerializer(SER1)
+                    .valueSerializer(SER2)
+                    .makeOrGet();
+            fail();
+        }catch(DBException.UnknownSerializer e){
+            assertEquals(e.getMessage(),"Map 'map' has no keySerializer defined in Name Catalog nor constructor argument.");
+        }
+
+        try {
+            db
+                    .treeMapCreate("map")
+                    .keySerializer(SER1)
+                            //.valueSerializer(SER2)
+                    .makeOrGet();
+            fail();
+        }catch(DBException.UnknownSerializer e){
+            assertEquals(e.getMessage(),"Map 'map' has no valueSerializer defined in Name Catalog nor constructor argument.");
+        }
+
+        db.close();
+    }
+
+    @Test public void treeSet_serializers_non_serializable() throws IOException {
+        File f = File.createTempFile("mapdb","mapdb");
+        DB db = DBMaker
+                .fileDB(f)
+                .transactionDisable()
+                .make();
+        BTreeMap.KeySet m = (BTreeMap.KeySet) db
+                .treeSetCreate("map")
+                .serializer(SER1)
+                .makeOrGet();
+        assertEquals(SER1, ((BTreeKeySerializer.BasicKeySerializer) ((BTreeMap) m.m).keySerializer).serializer);
+        m.add(1L);
+        db.close();
+
+        //reopen and supply serializers
+        db = DBMaker
+                .fileDB(f)
+                .transactionDisable()
+                .make();
+        m = (BTreeMap.KeySet) db
+                .treeSetCreate("map")
+                .serializer(SER1)
+                .makeOrGet();
+        assertEquals(SER1,((BTreeKeySerializer.BasicKeySerializer)((BTreeMap)m.m).keySerializer).serializer);
+        assertTrue(m.contains(1L));
+        db.close();
+
+        //try to reopen with one unknown serializer, it should throw an exception
+        //reopen and supply serializers
+        db = DBMaker
+                .fileDB(f)
+                .transactionDisable()
+                .make();
+        try {
+            db
+                    .treeSetCreate("map")
+                    //.serializer(SER1)
+                    .makeOrGet();
+            fail();
+        }catch(DBException.UnknownSerializer e){
+            assertEquals(e.getMessage(),"Set 'map' has no serializer defined in Name Catalog nor constructor argument.");
+        }
+
+        db.close();
+    }
+
+
+    @Test public void hashSet_serializers_non_serializable() throws IOException {
+        File f = File.createTempFile("mapdb","mapdb");
+        DB db = DBMaker
+                .fileDB(f)
+                .transactionDisable()
+                .make();
+        HTreeMap.KeySet m = (HTreeMap.KeySet) db
+                .hashSetCreate("map")
+                .serializer(SER1)
+                .makeOrGet();
+        assertEquals(SER1, m.getHTreeMap().keySerializer);
+        m.add(1L);
+        db.close();
+
+        //reopen and supply serializers
+        db = DBMaker
+                .fileDB(f)
+                .transactionDisable()
+                .make();
+        m = (HTreeMap.KeySet) db
+                .hashSetCreate("map")
+                .serializer(SER1)
+                .makeOrGet();
+        assertEquals(SER1, m.getHTreeMap().keySerializer);
+        assertTrue(m.contains(1L));
+        db.close();
+
+        //try to reopen with one unknown serializer, it should throw an exception
+        //reopen and supply serializers
+        db = DBMaker
+                .fileDB(f)
+                .transactionDisable()
+                .make();
+        try {
+            db
+                    .hashSetCreate("map")
+                            //.serializer(SER1)
+                    .makeOrGet();
+            fail();
+        }catch(DBException.UnknownSerializer e){
+            assertEquals(e.getMessage(),"Set 'map' has no serializer defined in Name Catalog nor constructor argument.");
+        }
+
+        db.close();
+    }
+
+    @Test public void atomicvar_serializers_non_serializable() throws IOException {
+        File f = File.createTempFile("mapdb","mapdb");
+        DB db = DBMaker
+                .fileDB(f)
+                .transactionDisable()
+                .make();
+        Atomic.Var m = db
+                .atomicVarCreate("map",1L,SER1);
+        assertEquals(SER1, m.serializer);
+        m.set(2L);
+        db.close();
+
+        //reopen and supply serializers
+        db = DBMaker
+                .fileDB(f)
+                .transactionDisable()
+                .make();
+        m = db.atomicVarCreate("map",1L,SER1);
+
+        assertEquals(SER1, m.serializer);
+        assertEquals(2L, m.get());
+        db.close();
+
+        //try to reopen with one unknown serializer, it should throw an exception
+        //reopen and supply serializers
+        db = DBMaker
+                .fileDB(f)
+                .transactionDisable()
+                .make();
+        try {
+            db.get("map");
+            fail();
+        }catch(DBException.UnknownSerializer e){
+            assertEquals(e.getMessage(),"Atomic.Var 'map' has no serializer defined in Name Catalog nor constructor argument.");
+        }
+
+        db.close();
     }
 }
