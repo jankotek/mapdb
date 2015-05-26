@@ -11,14 +11,6 @@ public final class DataIO {
 
     private DataIO(){}
 
-
-    /*
-     * unpack/pack methods originally come from Kryo framework by Nathan Sweet
-     * But they were replaced, and no original code remains.
-     *
-     * This code packs bytes in oposite direction, so unpack is faster.
-     */
-
     /**
      * Unpack int value from the input stream.
      *
@@ -112,9 +104,6 @@ public final class DataIO {
      * Pack int into an output stream.
      * It will occupy 1-5 bytes depending on value (lower values occupy smaller space)
      *
-     * This method originally comes from Kryo Framework, author Nathan Sweet.
-     * It was modified to fit MapDB needs.
-     *
      * @param out DataOutput to put value into
      * @param value to be serialized, must be non-negative
      * @throws java.io.IOException
@@ -144,9 +133,6 @@ public final class DataIO {
      * Pack int into an output stream.
      * It will occupy 1-5 bytes depending on value (lower values occupy smaller space)
      *
-     * This method originally comes from Kryo Framework, author Nathan Sweet.
-     * It was modified to fit MapDB needs.
-     *
      * This method is same as {@link #packInt(DataOutput, int)},
      * but is optimized for values larger than 127. Usually it is recids.
      *
@@ -173,22 +159,12 @@ public final class DataIO {
         int h = (int)(key ^ (key >>> 32));
         h ^= (h >>> 20) ^ (h >>> 12);
         return h ^ (h >>> 7) ^ (h >>> 4);
-
-        //TODO koloboke version, investigate
-//        long h = key * -7046029254386353131L;
-//        h ^= h >> 32;
-//        return (int)(h ^ h >> 16);
-
     }
 
     public static int intHash(int h) {
         //$DELAY$
         h ^= (h >>> 20) ^ (h >>> 12);
         return h ^ (h >>> 7) ^ (h >>> 4);
-
-        //TODO koloboke version, investigate
-//        int h = key * -1640531527;
-//        return h ^ h >> 16;
     }
 
     public static final long PACK_LONG_BIDI_MASK = 0xFFFFFFFFFFFFFFL;
@@ -414,17 +390,15 @@ public final class DataIO {
         @Override
         public int readUnsignedShort() throws IOException {
             //$DELAY$
-            return (((buf[pos++] & 0xff) << 8) |
-                    ((buf[pos++] & 0xff)));
+            return readChar();
         }
 
         @Override
         public char readChar() throws IOException {
             //$DELAY$
-            // I know: 4 bytes, but char only consumes 2,
-            // has to stay here for backward compatibility
-            //TODO char 4 byte
-            return (char) readInt();
+            return (char) (
+                    ((buf[pos++] & 0xff) << 8) |
+                    (buf[pos++] & 0xff));
         }
 
         @Override
@@ -705,18 +679,15 @@ public final class DataIO {
 
         @Override
         public int readUnsignedShort() throws IOException {
-            //$DELAY$
-            return (( (buf.get(pos++) & 0xff) << 8) |
-                    ( (buf.get(pos++) & 0xff)));
+            return readChar();
         }
 
         @Override
         public char readChar() throws IOException {
             //$DELAY$
-            // I know: 4 bytes, but char only consumes 2,
-            // has to stay here for backward compatibility
-            //TODO 4 byte char
-            return (char) readInt();
+            return (char) (
+                    ((buf.get(pos++) & 0xff) << 8) |
+                     (buf.get(pos++) & 0xff));
         }
 
         @Override
@@ -957,10 +928,9 @@ public final class DataIO {
 
         @Override
         public void writeChar(final int v) throws IOException {
-            // I know: 4 bytes, but char only consumes 2,
-            // has to stay here for backward compatibility
-            //TODO 4 byte char
-            writeInt(v);
+            ensureAvail(2);
+            buf[pos++] = (byte) (v>>>8);
+            buf[pos++] = (byte) (v);
         }
 
         @Override

@@ -557,17 +557,15 @@ class UnsafeStuff {
             @Override
             public int readUnsignedShort() throws IOException {
                 //$DELAY$
-                return (((readByte() & 0xff) << 8) |
-                        ((readByte() & 0xff)));
+                return readChar();
             }
 
             @Override
             public char readChar() throws IOException {
                 //$DELAY$
-                // I know: 4 bytes, but char only consumes 2,
-                // has to stay here for backward compatibility
-                //TODO char 4 byte
-                return (char) readInt();
+                return (char)(
+                        ((readByte() & 0xff) << 8) |
+                        ((readByte() & 0xff)));
             }
 
             @Override
