@@ -10,10 +10,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.sql.Timestamp;
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.GregorianCalendar;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -428,7 +425,77 @@ public class SerializerPojoTest extends TestCase {
         t.setTime(111);
         t.setNanos(2222);
         Timestamp t2 = (Timestamp) UtilsTest.clone(t,p);
-        assertEquals(2222,t2.getNanos());
+        assertEquals(2222, t2.getNanos());
         assertEquals(t,t2);
     }
+
+
+    public static class SS implements Serializable{
+        protected final Map mm;
+
+        public SS(Map mm) {
+            this.mm = mm;
+        }
+    }
+
+    public static class MM extends AbstractMap implements Serializable{
+
+        Map m = new HashMap();
+
+        private Object writeReplace() throws ObjectStreamException {
+            return new LinkedHashMap(this);
+        }
+
+        @Override
+        public Set<Entry> entrySet() {
+            return m.entrySet();
+        }
+
+        @Override
+        public Object put(Object key, Object value) {
+            return m.put(key,value);
+        }
+    }
+
+    public void testWriteReplace() throws ObjectStreamException {
+        Map m = new MM();
+        m.put("11","111");
+        assertEquals(new LinkedHashMap(m),UtilsTest.clone(m,p));
+    }
+
+    public void testWriteReplace2() throws IOException {
+        File f = File.createTempFile("mapdb","mapdb");
+        Map m = new MM();
+        m.put("11", "111");
+        DB db = DBMaker.newFileDB(f).transactionDisable().cacheDisable().make();
+        db.getTreeMap("map").put("key",m);
+        db.commit();
+        db.close();
+
+        db = DBMaker.newFileDB(f).transactionDisable().cacheDisable().make();
+
+        assertEquals(new LinkedHashMap(m), db.getTreeMap("map").get("key"));
+    }
+
+    public void testWriteReplaceWrap() throws ObjectStreamException {
+        Map m = new MM();
+        m.put("11","111");
+        assertEquals(new LinkedHashMap(m),UtilsTest.clone(m,p));
+    }
+
+    public void testWriteReplace2Wrap() throws IOException {
+        File f = File.createTempFile("mapdb","mapdb");
+        SS m = new SS(new MM());
+        m.mm.put("11", "111");
+        DB db = DBMaker.newFileDB(f).transactionDisable().cacheDisable().make();
+        db.getTreeMap("map").put("key",m);
+        db.commit();
+        db.close();
+
+        db = DBMaker.newFileDB(f).transactionDisable().cacheDisable().make();
+
+        assertEquals(new LinkedHashMap(m.mm), ((SS)db.getTreeMap("map").get("key")).mm);
+    }
+
+
 }
