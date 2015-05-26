@@ -1078,7 +1078,7 @@ public final class DataIO {
 
     public static long parity3Set(long i) {
         if(CC.ASSERT && (i&0x7)!=0)
-            throw new DBException.PointerChecksumBroken(); //TODO stronger parity
+            throw new DBException.PointerChecksumBroken();
         return i | ((Long.bitCount(i)+1)%8);
     }
 
@@ -1092,7 +1092,7 @@ public final class DataIO {
 
     public static long parity4Set(long i) {
         if(CC.ASSERT && (i&0xF)!=0)
-            throw new DBException.PointerChecksumBroken(); //TODO stronger parity
+            throw new DBException.PointerChecksumBroken();
         return i | ((Long.bitCount(i)+1)%16);
     }
 
@@ -1107,15 +1107,16 @@ public final class DataIO {
 
     public static long parity16Set(long i) {
         if(CC.ASSERT && (i&0xFFFF)!=0)
-            throw new DBException.PointerChecksumBroken(); //TODO stronger parity
-        return i | ((Long.bitCount(i)+1)%2);
+            throw new DBException.PointerChecksumBroken();
+        return i | (Long.hashCode(i)&0xFFFFL);
     }
 
     public static long parity16Get(long i) {
-        if(Long.bitCount(i)%2!=1){
+        long ret = i&0xFFFFFFFFFFFF0000L;
+        if((Long.hashCode(ret)&0xFFFFL) != (i&0xFFFFL)){
             throw new DBException.PointerChecksumBroken();
         }
-        return i&0xFFFFFFFFFFFF0000L;
+        return ret;
     }
 
 
