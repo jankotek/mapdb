@@ -2,10 +2,13 @@ package org.mapdb;
 
 import org.junit.Test;
 
+import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.Assert.*;
 import static org.mapdb.DataIO.*;
@@ -20,7 +23,7 @@ public class StoreDirectTest2 {
         st.structuralLock.lock();
         assertEquals(st.headChecksum(st.vol), st.vol.getInt(StoreDirect.HEAD_CHECKSUM));
         assertEquals(parity16Set(st.PAGE_SIZE), st.vol.getLong(StoreDirect.STORE_SIZE));
-        assertEquals(parity1Set(0), st.vol.getLong(StoreDirect.INDEX_PAGE));
+        assertEquals(parity16Set(0), st.vol.getLong(StoreDirect.HEAD_END)); //pointer to next page
         assertEquals(parity3Set(st.RECID_LAST_RESERVED * 8), st.vol.getLong(StoreDirect.MAX_RECID_OFFSET));
     }
 
@@ -240,5 +243,138 @@ public class StoreDirectTest2 {
 
     }
 
+    @Test public void zero_index_page_checksum() throws IOException {
+        File f = File.createTempFile("mapdb", "mapdb");
+        StoreDirect st = (StoreDirect) DBMaker.fileDB(f)
+                .transactionDisable()
+                .checksumEnable()
+                .mmapFileEnableIfSupported()
+                .makeEngine();
+
+        //verify checksum of zero index page
+        verifyIndexPageChecksum(st);
+
+        st.commit();
+        st.close();
+        st = (StoreDirect) DBMaker.fileDB(f)
+                .transactionDisable()
+                .checksumEnable()
+                .mmapFileEnableIfSupported()
+                .makeEngine();
+
+        for(int i=0;i<2e6;i++){
+            st.put(i,Serializer.INTEGER);
+        }
+
+        verifyIndexPageChecksum(st);
+
+        st.commit();
+        st.close();
+
+        st = (StoreDirect) DBMaker.fileDB(f)
+                .transactionDisable()
+                .checksumEnable()
+                .mmapFileEnableIfSupported()
+                .makeEngine();
+
+        verifyIndexPageChecksum(st);
+
+        st.close();
+    }
+
+    protected void verifyIndexPageChecksum(StoreDirect st) {
+        assertTrue(st.indexPageCRC);
+        //zero page
+        for(long offset=HEAD_END+8;offset+10<=PAGE_SIZE;offset+=10){
+            long indexVal = st.vol.getLong(offset);
+            int check = st.vol.getUnsignedShort(offset+8);
+            if(indexVal==0){
+                assertEquals(0,check);
+                continue; // not set
+            }
+            assertEquals(check, DataIO.longHash(indexVal)&0xFFFF);
+        }
+
+
+        for(long page:st.indexPages){
+            if(page==0)
+                continue;
+
+            for(long offset=page+8;offset+10<=page+PAGE_SIZE;offset+=10){
+                long indexVal = st.vol.getLong(offset);
+                int check = st.vol.getUnsignedShort(offset+8);
+                if(indexVal==0){
+                    assertEquals(0,check);
+                    continue; // not set
+                }
+                assertEquals(check, DataIO.longHash(indexVal)&0xFFFF);
+            }
+        }
+    }
+
+    @Test public void recidToOffset(){
+        StoreDirect st = (StoreDirect) DBMaker.memoryDB()
+                .transactionDisable()
+                .makeEngine();
+
+        //fake index pages
+        st.indexPages = new long[]{0, PAGE_SIZE*10, PAGE_SIZE*20, PAGE_SIZE*30, PAGE_SIZE*40};
+        //put expected content
+        Set<Long> m = new HashSet<Long>();
+        for(long offset=HEAD_END+8;offset<PAGE_SIZE;offset+=8){
+            m.add(offset);
+        }
+
+        for(long page=PAGE_SIZE*10;page<=PAGE_SIZE*40; page+=PAGE_SIZE*10){
+            for(long offset=page+8;offset<page+PAGE_SIZE;offset+=8){
+                m.add(offset);
+            }
+        }
+
+        long maxRecid = PAGE_SIZE-8-HEAD_END + 4*PAGE_SIZE-4*8;
+        //maxRecid is multiple of 8, reduce
+        assertEquals(0,maxRecid%8);
+        maxRecid/=8;
+
+        //now run recids
+        for(long recid=1;recid<=maxRecid;recid++){
+            long offset = st.recidToOffset(recid);
+            assertTrue(""+recid + " - "+offset+" - "+(offset%PAGE_SIZE),
+                    m.remove(offset));
+        }
+        assertTrue(m.isEmpty());
+    }
+
+    @Test public void recidToOffset_with_checksum(){
+        StoreDirect st = (StoreDirect) DBMaker.memoryDB()
+                .transactionDisable()
+                .checksumEnable()
+                .makeEngine();
+
+        //fake index pages
+        st.indexPages = new long[]{0, PAGE_SIZE*10, PAGE_SIZE*20, PAGE_SIZE*30, PAGE_SIZE*40};
+        //put expected content
+        Set<Long> m = new HashSet<Long>();
+        for(long offset=HEAD_END+8;offset<=PAGE_SIZE-10;offset+=10){
+            m.add(offset);
+        }
+
+        for(long page=PAGE_SIZE*10;page<=PAGE_SIZE*40; page+=PAGE_SIZE*10){
+            for(long offset=page+8;offset<=page+PAGE_SIZE-10;offset+=10){
+                m.add(offset);
+            }
+        }
+
+        long maxRecid = (PAGE_SIZE-8-HEAD_END)/10 + 4*((PAGE_SIZE-8)/10);
+
+
+        //now run recids
+        for(long recid=1;recid<=maxRecid;recid++){
+            long offset = st.recidToOffset(recid);
+            assertTrue("" + recid + " - " + offset + " - " + (offset % PAGE_SIZE)+ " - " + (offset - PAGE_SIZE),
+                    m.remove(offset));
+        }
+        assertTrue(m.isEmpty());
+    }
 
 }

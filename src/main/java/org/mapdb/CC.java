@@ -107,8 +107,6 @@ public interface CC {
 
     int VOLUME_PAGE_SHIFT = 20; // 1 MB
 
-    boolean STORE_INDEX_CRC = false; //TODO move to feature bit field
-
     /**
      * Will print stack trace of all operations which are write any data at given offset
      * Used for debugging.

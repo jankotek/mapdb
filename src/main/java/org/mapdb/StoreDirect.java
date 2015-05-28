@@ -3,6 +3,7 @@ package org.mapdb;
 import java.io.DataInput;
 import java.io.File;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
@@ -25,7 +26,6 @@ public class StoreDirect extends Store {
     protected static final long PAGE_MASK = PAGE_SIZE-1;
     protected static final long PAGE_MASK_INVERSE = 0xFFFFFFFFFFFFFFFFL<<CC.VOLUME_PAGE_SHIFT;
 
-    protected static final long PAGE_SIZE_M16 = PAGE_SIZE-16;
 
     protected static final long MOFFSET = 0x0000FFFFFFFFFFF0L;
 
@@ -39,15 +39,22 @@ public class StoreDirect extends Store {
     /** offset of maximal allocated recid. It is {@code <<3 parity1}*/
     protected static final long MAX_RECID_OFFSET = 8*3;
     protected static final long LAST_PHYS_ALLOCATED_DATA_OFFSET = 8*4; //TODO update doc
-    protected static final long INDEX_PAGE = 8*5;
-    protected static final long FREE_RECID_STACK = 8*6;
+    protected static final long FREE_RECID_STACK = 8*5;
+
+    /*following slots might be used in future */
+    protected static final long UNUSED1 = 8*6;
+    protected static final long UNUSED2 = 8*7;
+    protected static final long UNUSED3 = 8*8;
+    protected static final long UNUSED4 = 8*9;
+    protected static final long UNUSED5 = 8*10;
 
 
     protected static final int MAX_REC_SIZE = 0xFFFF;
     /** number of free physical slots */
-    protected static final int SLOTS_COUNT = 5+(MAX_REC_SIZE)/16; //+3 is minimum, +5 is just for future reserve
+    protected static final int SLOTS_COUNT = 2+(MAX_REC_SIZE)/16; //it rounds down, plus extra slot for zeros (not really used)
 
-    protected static final long HEAD_END = INDEX_PAGE + SLOTS_COUNT * 8;
+    protected static final long HEAD_END = UNUSED5 + SLOTS_COUNT * 8;
+//            8*RECID_LAST_RESERVED;// also include reserved recids into mix;
 
     protected static final long INITCRC_INDEX_PAGE = 4329042389490239043L;
 
@@ -66,6 +73,9 @@ public class StoreDirect extends Store {
     protected final ScheduledExecutorService executor;
 
     protected final List<Snapshot> snapshots;
+
+    protected final boolean indexPageCRC;
+    protected final long INDEX_VAL_SIZE;
 
     public StoreDirect(String fileName,
                        Volume.VolumeFactory volumeFactory,
@@ -86,8 +96,10 @@ public class StoreDirect extends Store {
         this.vol = volumeFactory.makeVolume(fileName, readonly);
         this.executor = executor;
         this.snapshots = snapshotEnable?
-                new ArrayList<Snapshot>():
+                new CopyOnWriteArrayList<Snapshot>():
                 null;
+        this.indexPageCRC = checksum;
+        this.INDEX_VAL_SIZE = indexPageCRC ? 10 : 8;
     }
 
     @Override
@@ -130,7 +142,7 @@ public class StoreDirect extends Store {
 
         //load index pages
         long[] ip = new long[]{0};
-        long indexPage = parity16Get(vol.getLong(INDEX_PAGE));
+        long indexPage = parity16Get(vol.getLong(HEAD_END));
         int i=1;
         for(;indexPage!=0;i++){
             if(CC.ASSERT && indexPage%PAGE_SIZE!=0)
@@ -139,20 +151,9 @@ public class StoreDirect extends Store {
                 ip = Arrays.copyOf(ip, ip.length * 4);
             }
             ip[i] = indexPage;
-            //checksum
-            if(CC.STORE_INDEX_CRC){
-                long res = INITCRC_INDEX_PAGE;
-                for(long j=0;j<PAGE_SIZE-8;j+=8){
-                    res+=vol.getLong(indexPage+j);
-                }
-                if(res!=vol.getLong(indexPage+PAGE_SIZE-8)) {
-                    //throw new InternalError("Page CRC error at offset: "+indexPage);
-                    throw new DBException.ChecksumBroken();
-                }
-            }
 
             //move to next page
-            indexPage = parity16Get(vol.getLong(indexPage+PAGE_SIZE_M16));
+            indexPage = parity16Get(vol.getLong(indexPage));
         }
         indexPages = Arrays.copyOf(ip,i);
         lastAllocatedData = parity3Get(vol.getLong(LAST_PHYS_ALLOCATED_DATA_OFFSET));
@@ -175,14 +176,20 @@ public class StoreDirect extends Store {
         //set sizes
         vol.putLong(STORE_SIZE, parity16Set(PAGE_SIZE));
         vol.putLong(MAX_RECID_OFFSET, parity3Set(RECID_LAST_RESERVED * 8));
-        vol.putLong(INDEX_PAGE, parity16Set(0));
+        //pointer to next index page (zero)
+        vol.putLong(HEAD_END, parity16Set(0));
 
         lastAllocatedData = 0L;
         vol.putLong(LAST_PHYS_ALLOCATED_DATA_OFFSET,parity3Set(lastAllocatedData));
 
         //put reserved recids
         for(long recid=1;recid<RECID_FIRST;recid++){
-            vol.putLong(recidToOffset(recid),parity1Set(MLINKED | MARCHIVE));
+            long indexVal = parity1Set(MLINKED | MARCHIVE);
+            long indexOffset = recidToOffset(recid);
+            vol.putLong(indexOffset, indexVal);
+            if(indexPageCRC) {
+                vol.putUnsignedShort(indexOffset + 8, DataIO.longHash(indexVal)&0xFFFF);
+            }
         }
 
         //put long stack master links
@@ -225,10 +232,10 @@ public class StoreDirect extends Store {
         if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
         int ret = 0;
-        for(int offset = 8;offset<HEAD_END;offset+=8){
-            //TODO include some recids in checksum
-            ret = ret*31 + DataIO.longHash(vol2.getLong(offset));
-            ret = ret*31 + DataIO.intHash(offset);
+        for(int offset = 8;
+            offset< HEAD_END;
+            offset+=8){
+            ret = ret*31 + DataIO.longHash(vol2.getLong(offset)) + offset;
         }
         return ret;
     }
@@ -387,19 +394,10 @@ public class StoreDirect extends Store {
 
         long indexOffset = recidToOffset(recid);
         long newval = composeIndexVal(size, offset, linked, unused, true);
-        if(CC.STORE_INDEX_CRC){
-            //update crc by substracting old value and adding new value
-            long oldval = vol.getLong(indexOffset);
-            long crcOffset = (indexOffset&PAGE_MASK_INVERSE)+PAGE_SIZE-8;
-            //TODO crc at end of zero page?
-            if(CC.ASSERT && crcOffset<HEAD_END)
-                throw new AssertionError();
-            long crc = vol.getLong(crcOffset);
-            crc-=oldval;
-            crc+=newval;
-            vol.putLong(crcOffset, crc);
-        }
         vol.putLong(indexOffset, newval);
+        if(indexPageCRC){
+            vol.putUnsignedShort(indexOffset+8, DataIO.longHash(newval)&0xFFFF);
+        }
     }
 
 
@@ -1014,17 +1012,21 @@ public class StoreDirect extends Store {
 
     protected void compactIndexPage(long maxRecidOffset, StoreDirect target, AtomicLong maxRecid, int indexPageI) {
         final long indexPage = indexPages[indexPageI];
+
         long recid = (indexPageI==0? 0 : indexPageI * PAGE_SIZE/8 - HEAD_END/8);
         final long indexPageStart = (indexPage==0?HEAD_END+8 : indexPage);
-        final long indexPageEnd = indexPage+PAGE_SIZE_M16;
+        final long indexPageEnd = indexPage+PAGE_SIZE;
 
         //iterate over indexOffset values
         //TODO check if preloading and caching of all indexVals on this index page would improve performance
         indexVal:
         for( long indexOffset=indexPageStart;
                 indexOffset<indexPageEnd;
-                indexOffset+=8){
+                indexOffset+=INDEX_VAL_SIZE){
             recid++;
+
+            if(CC.ASSERT && indexOffset!=recidToOffset(recid))
+                throw new AssertionError();
 
             if(recid*8>maxRecidOffset)
                 break indexVal;
@@ -1036,7 +1038,11 @@ public class StoreDirect extends Store {
             }
 
             final long indexVal = vol.getLong(indexOffset);
-
+            if(indexPageCRC &&
+                    vol.getUnsignedShort(indexOffset+8)!=
+                            (DataIO.longHash(indexVal)&0xFFFF)){
+                throw new DBException.ChecksumBroken();
+            }
 
             //check if was discarted
             if((indexVal&MUNUSED)!=0||indexVal == 0){
@@ -1105,9 +1111,16 @@ public class StoreDirect extends Store {
 
 
     protected long indexValGet(long recid) {
-        long indexVal = vol.getLong(recidToOffset(recid));
+        long offset = recidToOffset(recid);
+        long indexVal = vol.getLong(offset);
         if(indexVal == 0)
             throw new DBException.EngineGetVoid();
+        if(indexPageCRC){
+            int checksum = vol.getUnsignedShort(offset+8);
+            if(checksum!=(DataIO.longHash(indexVal)&0xFFFF)){
+                throw new DBException.ChecksumBroken();
+            }
+        }
         //check parity and throw recid does not exist if broken
         return DataIO.parity1Get(indexVal);
     }
@@ -1115,10 +1128,40 @@ public class StoreDirect extends Store {
     protected final long recidToOffset(long recid){
         if(CC.ASSERT && recid<=0)
             throw new AssertionError("negative recid: "+recid);
-        recid = recid * 8 + HEAD_END;
-        //TODO add checksum to beginning of each page
-        return indexPages[((int) (recid / PAGE_SIZE_M16))] + //offset of index page
-                (recid % PAGE_SIZE_M16); // offset on page
+        if(indexPageCRC){
+            return recidToOffsetChecksum(recid);
+        }
+
+        //convert recid to offset
+        recid = (recid-1) * INDEX_VAL_SIZE + HEAD_END + 8;
+
+        recid+= Math.min(1, recid/PAGE_SIZE)*    //if(recid>=PAGE_SIZE)
+                (8 + ((recid-PAGE_SIZE)/(PAGE_SIZE-8))*8);
+
+        //look up real offset
+        recid = indexPages[((int) (recid / PAGE_SIZE))] + recid%PAGE_SIZE;
+        return recid;
+    }
+
+    private long recidToOffsetChecksum(long recid) {
+        //convert recid to offset
+        recid = (recid-1) * INDEX_VAL_SIZE + HEAD_END + 8;
+
+        if(recid+INDEX_VAL_SIZE>PAGE_SIZE){
+            //align from zero page
+            recid+=2+8;
+        }
+
+        //align for every other page
+        //TODO optimize away loop
+        for(long page=PAGE_SIZE*2;recid+INDEX_VAL_SIZE>page;page+=PAGE_SIZE){
+            recid+=8+(PAGE_SIZE-8)%INDEX_VAL_SIZE;
+        }
+
+        //look up real offset
+        recid = indexPages[((int) (recid / PAGE_SIZE))] + recid%PAGE_SIZE;
+        return recid;
+
     }
 
     /** check if recid offset fits into current allocated structure */
@@ -1180,8 +1223,8 @@ public class StoreDirect extends Store {
             throw new AssertionError();
 
         //convert recid into Index Page number
-        recid = recid * 8 + HEAD_END;
-        recid = recid / PAGE_SIZE_M16;
+        recid = recid * INDEX_VAL_SIZE + HEAD_END;
+        recid = recid / (PAGE_SIZE-8);
 
         while(indexPages.length<=recid)
             pageIndexExtend();
@@ -1195,29 +1238,13 @@ public class StoreDirect extends Store {
         long indexPage = pageAllocate();
 
         //add link to previous page
-        if(indexPages.length==1){
-            //first index page
-            headVol.putLong(INDEX_PAGE, parity16Set(indexPage));
-        }else{
-            //update link on previous page
-            long nextPagePointerOffset = indexPages[indexPages.length-1]+PAGE_SIZE_M16;
-            indexLongPut(nextPagePointerOffset, parity16Set(indexPage));
-            if(CC.STORE_INDEX_CRC){
-                //update crc by increasing crc value
-                long crc = vol.getLong(nextPagePointerOffset+8); //TODO read both longs from TX
-                crc-=vol.getLong(nextPagePointerOffset);
-                crc+=parity16Set(indexPage);
-                indexLongPut(nextPagePointerOffset+8,crc);
-            }
-        }
+        long nextPagePointerOffset = indexPages[indexPages.length-1];
+        //if zero page, put offset to end of page
+        nextPagePointerOffset = Math.max(nextPagePointerOffset, HEAD_END);
+        indexLongPut(nextPagePointerOffset, parity16Set(indexPage));
 
         //set zero link on next page
-        indexLongPut(indexPage+PAGE_SIZE_M16,parity16Set(0));
-
-        //set init crc value on new page
-        if(CC.STORE_INDEX_CRC){
-            indexLongPut(indexPage+PAGE_SIZE-8,INITCRC_INDEX_PAGE+parity16Set(0));
-        }
+        indexLongPut(indexPage,parity16Set(0));
 
         //put into index page array
         long[] indexPages2 = Arrays.copyOf(indexPages,indexPages.length+1);
@@ -1241,6 +1268,7 @@ public class StoreDirect extends Store {
     }
 
     protected static int round16Up(int pos) {
+        //TODO optimize this, no conditions
         int rem = pos&15;  // modulo 16
         if(rem!=0) pos +=16-rem;
         return pos;

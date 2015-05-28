@@ -114,14 +114,7 @@ public class StoreCached extends StoreDirect {
         if(this.headVol!=null && !this.headVol.isClosed())
             headVol.close();
         this.headVol = new Volume.SingleByteArrayVol((int) HEAD_END);
-        //TODO limit size
-        //TODO introduce SingleByteArrayVol which uses only single byte[]
-
-        byte[] buf = new byte[(int) HEAD_END]; //TODO copy directly
-		//TODO method without repeating zeroes
-        vol.getData(0, buf, 0, buf.length);
-        headVol.ensureAvailable(buf.length);
-        headVol.putData(0, buf, 0, buf.length);
+        vol.transferInto(0,headVol,0,HEAD_END);
     }
 
 

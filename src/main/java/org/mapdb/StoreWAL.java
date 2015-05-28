@@ -41,7 +41,6 @@ public class StoreWAL extends StoreCached {
 
 
     protected static final long WAL_SEAL = 8234892392398238983L;
-    protected static final int WAL_CHECKSUM_MASK = 0x1F; //5 bits
 
     protected static final int FULL_REPLAY_AFTER_N_TX = 16;
 
@@ -285,14 +284,40 @@ public class StoreWAL extends StoreCached {
             return;
         }
 
+        if(CC.ASSERT && offset>>>48!=0)
+            throw new AssertionError();
         curVol2.ensureAvailable(walOffset2+plusSize);
         int parity = 1+Long.bitCount(value)+Long.bitCount(offset);
-        parity &=31;
-        curVol2.putUnsignedByte(walOffset2, (1 << 5)|parity);
+        parity &=15;
+        curVol2.putUnsignedByte(walOffset2, (1 << 4)|parity);
         walOffset2+=1;
         curVol2.putLong(walOffset2, value);
         walOffset2+=8;
         curVol2.putSixLong(walOffset2, offset);
+    }
+
+
+    protected void walPutUnsignedShort(long offset, int value) {
+        final int plusSize = +1+8;
+        long walOffset2 = walOffset.getAndAdd(plusSize);
+
+        Volume curVol2 = curVol;
+
+        //in case of overlap, put Skip Bytes instruction and try again
+        if(hadToSkip(walOffset2, plusSize)){
+            walPutUnsignedShort(offset, value);
+            return;
+        }
+
+        curVol2.ensureAvailable(walOffset2+plusSize);
+        if(CC.ASSERT && offset>>>48!=0)
+            throw new AssertionError();
+        offset = (((long)value)<<48) | offset;
+        int parity = 1+Long.bitCount(offset);
+        parity &=15;
+        curVol2.putUnsignedByte(walOffset2, (6 << 4)|parity);
+        walOffset2+=1;
+        curVol2.putLong(walOffset2, offset);
     }
 
     protected boolean hadToSkip(long walOffset2, int plusSize) {
@@ -304,7 +329,7 @@ public class StoreWAL extends StoreCached {
         //is there enough space for 4 byte skip N bytes instruction?
         while((walOffset2&PAGE_MASK) >= PAGE_SIZE-4 || plusSize<5){
             //pad with single byte skip instructions, until end of page is reached
-            int singleByteSkip = (4<<5)|(Long.bitCount(walOffset2)&31);
+            int singleByteSkip = (4<<4)|(Long.bitCount(walOffset2)&15);
             curVol.putUnsignedByte(walOffset2++, singleByteSkip);
             plusSize--;
             if(CC.ASSERT && plusSize<0)
@@ -312,22 +337,11 @@ public class StoreWAL extends StoreCached {
         }
 
         //now new page starts, so add skip instruction for remaining bits
-        int val = (3<<(5+3*8)) | (plusSize-4) | ((Integer.bitCount(plusSize-4)&31)<<(3*8));
-        curVol.ensureAvailable(walOffset2+4);
+        int val = (3<<(4+3*8)) | (plusSize-4) | ((Integer.bitCount(plusSize-4)&15)<<(3*8));
+        curVol.ensureAvailable(walOffset2 + 4);
         curVol.putInt(walOffset2, val);
 
         return true;
-    }
-
-    protected long walGetLong(long offset, int segment){
-        if(CC.ASSERT && offset%8!=0)
-            throw new AssertionError();
-        long ret = currLongLongs[segment].get(offset);
-        if(ret==0) {
-            ret = prevLongLongs[segment].get(offset);
-        }
-
-        return ret;
     }
 
     @Override
@@ -364,8 +378,8 @@ public class StoreWAL extends StoreCached {
 
         curVol.ensureAvailable(walOffset2+plusSize);
         int checksum = 1+Integer.bitCount(size)+Long.bitCount(offset)+sum(buf,bufPos,size);
-        checksum &= 31;
-        curVol.putUnsignedByte(walOffset2, (2 << 5)|checksum);
+        checksum &= 15;
+        curVol.putUnsignedByte(walOffset2, (2 << 4)|checksum);
         walOffset2+=1;
         curVol.putLong(walOffset2, ((long) size) << 48 | offset);
         walOffset2+=8;
@@ -523,7 +537,7 @@ public class StoreWAL extends StoreCached {
                     long offset = walval&0xFFFFFFFFFFL; //last 5 bytes
                     if(CC.ASSERT){
                         int instruction = recVol.getUnsignedByte(offset);
-                        if(instruction!=(5<<5))
+                        if(instruction!=(5<<4))
                             throw new AssertionError("wrong instruction");
                         if(recid!=recVol.getSixLong(offset+1))
                             throw new AssertionError("wrong recid");
@@ -708,7 +722,7 @@ public class StoreWAL extends StoreCached {
                                     offset                  //wal offset
                                     );
 
-                            v.putUnsignedByte(offset, (5<<5));
+                            v.putUnsignedByte(offset, (5<<4));
                             offset++;
 
                             v.putSixLong(offset, recid);
@@ -767,6 +781,9 @@ public class StoreWAL extends StoreCached {
                         long value = v[i+1];
                         prevLongLongs[segment].put(offset,value);
                         walPutLong(offset,value);
+                        if(indexPageCRC && offset>HEAD_END && offset%PAGE_SIZE!=0) {
+                            walPutUnsignedShort(offset + 8, DataIO.longHash(value) & 0xFFFF);
+                        }
                     }
                     currLongLongs[segment].clear();
 
@@ -827,7 +844,7 @@ public class StoreWAL extends StoreCached {
                 long finalOffset = walOffset.get();
                 curVol.ensureAvailable(finalOffset + 1); //TODO overlap here
                 //put EOF instruction
-                curVol.putUnsignedByte(finalOffset, (0<<5) | (Long.bitCount(finalOffset)));
+                curVol.putUnsignedByte(finalOffset, (0 << 4) | (Long.bitCount(finalOffset)));
                 curVol.sync();
                 //put wal seal
                 curVol.putLong(8, WAL_SEAL);
@@ -865,6 +882,9 @@ public class StoreWAL extends StoreCached {
                         continue;
                     long value = v[i+1];
                     walPutLong(offset,value);
+                    if(indexPageCRC && offset>HEAD_END && offset%PAGE_SIZE!=0) {
+                        walPutUnsignedShort(offset + 8, DataIO.longHash(value) & 0xFFFF);
+                    }
 
                     //remove from this
                     v[i] = 0;
@@ -925,7 +945,7 @@ public class StoreWAL extends StoreCached {
                 long finalOffset = walOffset.get();
                 curVol.ensureAvailable(finalOffset+1); //TODO overlap here
                 //put EOF instruction
-                curVol.putUnsignedByte(finalOffset, (0<<5) | (Long.bitCount(finalOffset)));
+                curVol.putUnsignedByte(finalOffset, (0<<4) | (Long.bitCount(finalOffset)));
                 curVol.sync();
                 //put wal seal
                 curVol.putLong(8, WAL_SEAL);
@@ -1060,12 +1080,12 @@ public class StoreWAL extends StoreCached {
                 long pos = 16;
                 for(;;) {
                     int instr = wr.getUnsignedByte(pos++);
-                    if (instr >>> 5 == 0) {
+                    if (instr >>> 4 == 0) {
                         //EOF
                         break;
-                    } else if (instr >>> 5 != 5) {
+                    } else if (instr >>> 4 != 5) {
                         //TODO failsafe with corrupted wal
-                        throw new AssertionError("Invalid instruction in WAL REC" + (instr >>> 5));
+                        throw new AssertionError("Invalid instruction in WAL REC" + (instr >>> 4));
                     }
 
                     long recid = wr.getSixLong(pos);
@@ -1116,11 +1136,11 @@ public class StoreWAL extends StoreCached {
             long pos = 16;
             for(;;) {
                 int checksum = wal.getUnsignedByte(pos++);
-                int instruction = checksum>>>5;
-                checksum = (checksum&WAL_CHECKSUM_MASK);
+                int instruction = checksum>>>4;
+                checksum = (checksum&15);
                 if (instruction == 0) {
                     //EOF
-                    if((Long.bitCount(pos-1)&31) != checksum)
+                    if((Long.bitCount(pos-1)&15) != checksum)
                         throw new InternalError("WAL corrupted");
                     continue file;
                 } else if (instruction == 1) {
@@ -1129,7 +1149,7 @@ public class StoreWAL extends StoreCached {
                     pos += 8;
                     long offset = wal.getSixLong(pos);
                     pos += 6;
-                    if(((1+Long.bitCount(val)+Long.bitCount(offset))&31)!=checksum)
+                    if(((1+Long.bitCount(val)+Long.bitCount(offset))&15)!=checksum)
                         throw new InternalError("WAL corrupted");
                     realVol.ensureAvailable(offset+8);
                     realVol.putLong(offset, val);
@@ -1142,7 +1162,7 @@ public class StoreWAL extends StoreCached {
                     byte[] data = new byte[dataSize];
                     wal.getData(pos, data, 0, data.length);
                     pos += data.length;
-                    if(((1+Integer.bitCount(dataSize)+Long.bitCount(offset)+sum(data))&31)!=checksum)
+                    if(((1+Integer.bitCount(dataSize)+Long.bitCount(offset)+sum(data))&15)!=checksum)
                         throw new InternalError("WAL corrupted");
                     //TODO direct transfer
                     realVol.ensureAvailable(offset+data.length);
@@ -1150,14 +1170,26 @@ public class StoreWAL extends StoreCached {
                 } else if (instruction == 3) {
                     //skip N bytes
                     int skipN = wal.getInt(pos - 1) & 0xFFFFFF; //read 3 bytes
-                    if((Integer.bitCount(skipN)&31) != checksum)
+                    if((Integer.bitCount(skipN)&15) != checksum)
                         throw new InternalError("WAL corrupted");
                     pos += 3 + skipN;
                 } else if (instruction == 4) {
                     //skip single byte
-                    if((Long.bitCount(pos-1)&31) != checksum)
+                    if((Long.bitCount(pos-1)&15) != checksum)
                         throw new InternalError("WAL corrupted");
+                } else if (instruction == 6) {
+                    //write two bytes
+                    long s = wal.getLong(pos);
+                    pos+=8;
+                    if(((1+Long.bitCount(s))&15) != checksum)
+                        throw new InternalError("WAL corrupted");
+                    long offset = s&0xFFFFFFFFFFFFL;
+                    realVol.ensureAvailable(offset + 2);
+                    realVol.putUnsignedShort(offset, (int) (s>>>48));
+                }else{
+                    throw new InternalError("WAL corrupted, unknown instruction");
                 }
+
             }
         }
 

@@ -60,7 +60,7 @@ public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
         e.structuralLock.lock();
         e.commitLock.lock();
         e.replayWAL();
-        assertEquals(v,e.vol.getLong(offset));
+        assertEquals(v, e.vol.getLong(offset));
     }
 
     @Test public void WAL_replay_mixed(){
@@ -252,7 +252,7 @@ public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
         long offset = 16;
         //modify all records in map via record wal
         for(long recid:m.keySet()){
-            r.putUnsignedByte(offset++, 5 << 5);
+            r.putUnsignedByte(offset++, 5 << 4);
             r.putSixLong(offset, recid);
             offset+=6;
             String val = "aa"+recid;
