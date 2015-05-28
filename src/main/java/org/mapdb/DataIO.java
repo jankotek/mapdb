@@ -1078,12 +1078,12 @@ public final class DataIO {
     public static long parity16Set(long i) {
         if(CC.ASSERT && (i&0xFFFF)!=0)
             throw new DBException.PointerChecksumBroken();
-        return i | (Long.hashCode(i)&0xFFFFL);
+        return i | (DataIO.longHash(i)&0xFFFFL);
     }
 
     public static long parity16Get(long i) {
         long ret = i&0xFFFFFFFFFFFF0000L;
-        if((Long.hashCode(ret)&0xFFFFL) != (i&0xFFFFL)){
+        if((DataIO.longHash(ret)&0xFFFFL) != (i&0xFFFFL)){
             throw new DBException.PointerChecksumBroken();
         }
         return ret;
