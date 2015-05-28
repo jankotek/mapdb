@@ -1343,7 +1343,7 @@ public class StoreWAL extends StoreCached {
                 commitLock.unlock();
             }
 
-            final long maxRecidOffset = parity3Get(headVol.getLong(MAX_RECID_OFFSET));
+            final long maxRecidOffset = parity1Get(headVol.getLong(MAX_RECID_OFFSET));
 
             //open target file
             final String targetFile = getWalFileName("c.compact");
@@ -1366,7 +1366,7 @@ public class StoreWAL extends StoreCached {
             }
 
 
-            target.vol.putLong(MAX_RECID_OFFSET, parity3Set(maxRecid.get() * 8));
+            target.vol.putLong(MAX_RECID_OFFSET, parity1Set(maxRecid.get() * indexValSize));
 
             //compaction finished fine, so now flush target file, and seal log file. This makes compaction durable
             target.commit(); //sync all files, that is durable since there are no background tasks

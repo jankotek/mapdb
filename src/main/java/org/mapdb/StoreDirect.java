@@ -16,6 +16,7 @@ import static org.mapdb.DataIO.*;
 public class StoreDirect extends Store {
 
     /** 4 byte file header */
+    //TODO use this
     protected static final int HEADER = 234243482;
 
     /** 2 byte store version*/
@@ -75,7 +76,7 @@ public class StoreDirect extends Store {
     protected final List<Snapshot> snapshots;
 
     protected final boolean indexPageCRC;
-    protected final long INDEX_VAL_SIZE;
+    protected final long indexValSize;
 
     public StoreDirect(String fileName,
                        Volume.VolumeFactory volumeFactory,
@@ -99,7 +100,7 @@ public class StoreDirect extends Store {
                 new CopyOnWriteArrayList<Snapshot>():
                 null;
         this.indexPageCRC = checksum;
-        this.INDEX_VAL_SIZE = indexPageCRC ? 10 : 8;
+        this.indexValSize = indexPageCRC ? 10 : 8;
     }
 
     @Override
@@ -175,7 +176,7 @@ public class StoreDirect extends Store {
 
         //set sizes
         vol.putLong(STORE_SIZE, parity16Set(PAGE_SIZE));
-        vol.putLong(MAX_RECID_OFFSET, parity3Set(RECID_LAST_RESERVED * 8));
+        vol.putLong(MAX_RECID_OFFSET, parity1Set(RECID_LAST_RESERVED * indexValSize));
         //pointer to next index page (zero)
         vol.putLong(HEAD_END, parity16Set(0));
 
@@ -662,7 +663,7 @@ public class StoreDirect extends Store {
     protected void longStackPut(final long masterLinkOffset, final long value, boolean recursive){
         if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
-        if(CC.ASSERT && (masterLinkOffset<=0 || masterLinkOffset>PAGE_SIZE || masterLinkOffset % 8!=0))
+        if(CC.ASSERT && (masterLinkOffset<=0 || masterLinkOffset>PAGE_SIZE || masterLinkOffset % 8!=0)) //TODO perhaps remove the last check
             throw new AssertionError();
 
         long masterLinkVal = parity4Get(headVol.getLong(masterLinkOffset));
@@ -874,7 +875,7 @@ public class StoreDirect extends Store {
                 snapshotCloseAllOnCompact();
 
 
-                final long maxRecidOffset = parity3Get(headVol.getLong(MAX_RECID_OFFSET));
+                final long maxRecidOffset = parity1Get(headVol.getLong(MAX_RECID_OFFSET));
 
                 String compactedFile = vol.getFile()==null? null : fileName+".compact";
                 final StoreDirect target = new StoreDirect(compactedFile,
@@ -897,7 +898,7 @@ public class StoreDirect extends Store {
                 structuralLock.lock();
                 try {
 
-                    target.vol.putLong(MAX_RECID_OFFSET, parity3Set(maxRecid.get() * 8));
+                    target.vol.putLong(MAX_RECID_OFFSET, parity1Set(maxRecid.get() * indexValSize));
                     this.indexPages = target.indexPages;
                     this.lastAllocatedData = target.lastAllocatedData;
 
@@ -1013,7 +1014,7 @@ public class StoreDirect extends Store {
     protected void compactIndexPage(long maxRecidOffset, StoreDirect target, AtomicLong maxRecid, int indexPageI) {
         final long indexPage = indexPages[indexPageI];
 
-        long recid = (indexPageI==0? 0 : indexPageI * PAGE_SIZE/8 - HEAD_END/8);
+        long recid = (indexPageI==0? 0 : indexPageI * PAGE_SIZE/indexValSize - HEAD_END/indexValSize);
         final long indexPageStart = (indexPage==0?HEAD_END+8 : indexPage);
         final long indexPageEnd = indexPage+PAGE_SIZE;
 
@@ -1022,13 +1023,13 @@ public class StoreDirect extends Store {
         indexVal:
         for( long indexOffset=indexPageStart;
                 indexOffset<indexPageEnd;
-                indexOffset+=INDEX_VAL_SIZE){
+                indexOffset+= indexValSize){
             recid++;
 
             if(CC.ASSERT && indexOffset!=recidToOffset(recid))
                 throw new AssertionError();
 
-            if(recid*8>maxRecidOffset)
+            if(recid*indexValSize>maxRecidOffset)
                 break indexVal;
 
             //update maxRecid in thread safe way
@@ -1133,7 +1134,7 @@ public class StoreDirect extends Store {
         }
 
         //convert recid to offset
-        recid = (recid-1) * INDEX_VAL_SIZE + HEAD_END + 8;
+        recid = (recid-1) * indexValSize + HEAD_END + 8;
 
         recid+= Math.min(1, recid/PAGE_SIZE)*    //if(recid>=PAGE_SIZE)
                 (8 + ((recid-PAGE_SIZE)/(PAGE_SIZE-8))*8);
@@ -1145,17 +1146,17 @@ public class StoreDirect extends Store {
 
     private long recidToOffsetChecksum(long recid) {
         //convert recid to offset
-        recid = (recid-1) * INDEX_VAL_SIZE + HEAD_END + 8;
+        recid = (recid-1) * indexValSize + HEAD_END + 8;
 
-        if(recid+INDEX_VAL_SIZE>PAGE_SIZE){
+        if(recid+ indexValSize >PAGE_SIZE){
             //align from zero page
             recid+=2+8;
         }
 
         //align for every other page
         //TODO optimize away loop
-        for(long page=PAGE_SIZE*2;recid+INDEX_VAL_SIZE>page;page+=PAGE_SIZE){
-            recid+=8+(PAGE_SIZE-8)%INDEX_VAL_SIZE;
+        for(long page=PAGE_SIZE*2;recid+ indexValSize >page;page+=PAGE_SIZE){
+            recid+=8+(PAGE_SIZE-8)% indexValSize;
         }
 
         //look up real offset
@@ -1201,11 +1202,11 @@ public class StoreDirect extends Store {
         if(currentRecid!=0)
             return currentRecid;
 
-        currentRecid = parity3Get(headVol.getLong(MAX_RECID_OFFSET));
-        currentRecid+=8;
-        headVol.putLong(MAX_RECID_OFFSET, parity3Set(currentRecid));
+        currentRecid = parity1Get(headVol.getLong(MAX_RECID_OFFSET));
+        currentRecid+=indexValSize;
+        headVol.putLong(MAX_RECID_OFFSET, parity1Set(currentRecid));
 
-        currentRecid/=8;
+        currentRecid/=indexValSize;
         //check if new index page has to be allocated
         if(recidTooLarge(currentRecid)){
             pageIndexExtend();
@@ -1223,7 +1224,8 @@ public class StoreDirect extends Store {
             throw new AssertionError();
 
         //convert recid into Index Page number
-        recid = recid * INDEX_VAL_SIZE + HEAD_END;
+        //TODO is this correct?
+        recid = recid * indexValSize + HEAD_END;
         recid = recid / (PAGE_SIZE-8);
 
         while(indexPages.length<=recid)
