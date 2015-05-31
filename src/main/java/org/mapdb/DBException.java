@@ -57,7 +57,7 @@ public class DBException extends RuntimeException{
         }
 
         public VolumeIOError(String msg, Throwable cause){
-            super(msg,cause);
+            super(msg, cause);
         }
 
         public VolumeIOError(Throwable cause){
@@ -137,6 +137,16 @@ public class DBException extends RuntimeException{
     public static class UnknownSerializer extends DBException{
         public UnknownSerializer(String message) {
             super(message);
+        }
+    }
+
+    public static class LZ4Exception extends DBException{
+        public LZ4Exception(String message) {
+            super(message);
+        }
+
+        public LZ4Exception() {
+            super("Unknown compression error");
         }
     }
 }
