@@ -65,7 +65,7 @@ public class VolumeTest {
     };
 
     @Test
-    public void all() throws Exception {
+    public void all() throws Throwable {
         System.out.println("Run volume tests. Free space: "+File.createTempFile("mapdb","mapdb").getFreeSpace());
 
 
@@ -80,14 +80,54 @@ public class VolumeTest {
             putGetOverlap(fab1.run(UtilsTest.tempDbFile().getPath()), (long) 2e7 + 2000, (int) 1e7);
             putGetOverlapUnalligned(fab1.run(UtilsTest.tempDbFile().getPath()));
 
-            for (Fun.Function1<Volume,String> fab2 : VOL_FABS) {
+            for (Fun.Function1<Volume,String> fab2 : VOL_FABS) try{
                 long_compatible(fab1.run(UtilsTest.tempDbFile().getPath()), fab2.run(UtilsTest.tempDbFile().getPath()));
                 long_six_compatible(fab1.run(UtilsTest.tempDbFile().getPath()), fab2.run(UtilsTest.tempDbFile().getPath()));
                 long_pack_bidi(fab1.run(UtilsTest.tempDbFile().getPath()), fab2.run(UtilsTest.tempDbFile().getPath()));
                 int_compatible(fab1.run(UtilsTest.tempDbFile().getPath()), fab2.run(UtilsTest.tempDbFile().getPath()));
                 byte_compatible(fab1.run(UtilsTest.tempDbFile().getPath()), fab2.run(UtilsTest.tempDbFile().getPath()));
+                unsignedShort_compatible(fab1.run(UtilsTest.tempDbFile().getPath()), fab2.run(UtilsTest.tempDbFile().getPath()));
+                unsignedByte_compatible(fab1.run(UtilsTest.tempDbFile().getPath()), fab2.run(UtilsTest.tempDbFile().getPath()));
+            }catch(Throwable e){
+                System.err.println("test failed: \n"+
+                        fab1.run(UtilsTest.tempDbFile().getPath()).getClass().getName()+"\n"+
+                        fab2.run(UtilsTest.tempDbFile().getPath()).getClass().getName());
+                throw e;
             }
         }
+    }
+
+    void unsignedShort_compatible(Volume v1, Volume v2) {
+        v1.ensureAvailable(16);
+        v2.ensureAvailable(16);
+        byte[] b = new byte[8];
+
+        for (int i =Character.MIN_VALUE;i<=Character.MAX_VALUE; i++) {
+            v1.putUnsignedShort(7,i);
+            v1.getData(7, b, 0, 8);
+            v2.putData(7, b, 0, 8);
+            assertEquals(i, v2.getUnsignedShort(7));
+        }
+
+        v1.close();
+        v2.close();
+    }
+
+
+    void unsignedByte_compatible(Volume v1, Volume v2) {
+        v1.ensureAvailable(16);
+        v2.ensureAvailable(16);
+        byte[] b = new byte[8];
+
+        for (int i =0;i<=255; i++) {
+            v1.putUnsignedByte(7, i);
+            v1.getData(7, b, 0, 8);
+            v2.putData(7, b, 0, 8);
+            assertEquals(i, v2.getUnsignedByte(7));
+        }
+
+        v1.close();
+        v2.close();
     }
 
 

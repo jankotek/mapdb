@@ -15,6 +15,7 @@ import java.util.logging.Level;
  * and MapDB will use other option.
  *
  */
+//TODO UnsafeVolume has hardcoded Little Endian, add some check or fail
 class UnsafeStuff {
 
 
@@ -579,7 +580,7 @@ class UnsafeStuff {
             public long readLong() throws IOException {
                 long ret = UnsafeVolume.UNSAFE.getLong(pos2);
                 pos2+=8;
-                return Long.reverseBytes(ret); //TODO endianes might change on some platforms?
+                return Long.reverseBytes(ret);
             }
 
             @Override

@@ -19,6 +19,7 @@ package org.mapdb;
 import java.io.*;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.ClosedChannelException;
@@ -700,6 +701,8 @@ public abstract class Volume implements Closeable{
                 if(CC.ASSERT && ! (offset>=0))
                     throw new AssertionError();
                 ByteBuffer ret = fileChannel.map(mapMode,offset, sliceSize);
+                if(CC.ASSERT && ret.order() != ByteOrder.BIG_ENDIAN)
+                    throw new AssertionError("Little-endian");
                 if(mapMode == FileChannel.MapMode.READ_ONLY) {
                     ret = ret.asReadOnlyBuffer();
                 }
@@ -801,9 +804,12 @@ public abstract class Volume implements Closeable{
         @Override
         protected ByteBuffer makeNewBuffer(long offset) {
             try {
-                return useDirectBuffer ?
+                ByteBuffer b =  useDirectBuffer ?
                         ByteBuffer.allocateDirect(sliceSize) :
                         ByteBuffer.allocate(sliceSize);
+                if(CC.ASSERT && b.order()!= ByteOrder.BIG_ENDIAN)
+                    throw new AssertionError("little-endian");
+                return b;
             }catch(OutOfMemoryError e){
                 throw new DBException.OutOfMemory(e);
             }
@@ -1395,6 +1401,7 @@ public abstract class Volume implements Closeable{
             int pos = (int) (offset & sliceSizeModMask);
             byte[] buf = slices[((int) (offset >>> sliceShift))];
 
+            //TODO verify loop
             final int end = pos + 4;
             int ret = 0;
             for (; pos < end; pos++) {
@@ -1551,6 +1558,7 @@ public abstract class Volume implements Closeable{
         @Override
         public int getInt(long offset) {
             int pos = (int) offset;
+            //TODO verify loop
             final int end = pos + 4;
             int ret = 0;
             for (; pos < end; pos++) {
