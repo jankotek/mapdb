@@ -1797,6 +1797,12 @@ public class BTreeMap<K,V>
         return size;
     }
 
+    public long mappingCount(){
+        //method added in java 8
+        return sizeLong();
+    }
+
+
     @Override
     public V putIfAbsent(K key, V value) {
         if(key == null || value == null) throw new NullPointerException();

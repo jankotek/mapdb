@@ -471,9 +471,14 @@ public class HTreeMap<K,V>
             }
         }
 
-
         return counter;
     }
+
+    public long mappingCount(){
+        //method added in java 8
+        return sizeLong();
+    }
+
 
     private long recursiveDirCount(Engine engine,final long dirRecid) {
         Object dir = engine.get(dirRecid, DIR_SERIALIZER);
