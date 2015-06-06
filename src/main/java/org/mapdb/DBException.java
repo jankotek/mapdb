@@ -140,13 +140,4 @@ public class DBException extends RuntimeException{
         }
     }
 
-    public static class LZ4Exception extends DBException{
-        public LZ4Exception(String message) {
-            super(message);
-        }
-
-        public LZ4Exception() {
-            super("Unknown compression error");
-        }
-    }
 }
