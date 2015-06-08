@@ -154,17 +154,19 @@ public final class DataIO {
         out.writeByte((byte) (value & 0x7F));
     }
 
-    public static int longHash(final long key) {
+    public static int longHash(long h) {
         //$DELAY$
-        int h = (int)(key ^ (key >>> 32));
-        h ^= (h >>> 20) ^ (h >>> 12);
-        return h ^ (h >>> 7) ^ (h >>> 4);
+        h = h * -7046029254386353131L;
+        h ^= h >> 32;
+        return (int)(h ^ h >> 16);
+        //TODO koloboke credit
     }
 
     public static int intHash(int h) {
         //$DELAY$
-        h ^= (h >>> 20) ^ (h >>> 12);
-        return h ^ (h >>> 7) ^ (h >>> 4);
+        h = h * -1640531527;
+        return h ^ h >> 16;
+        //TODO koloboke credit
     }
 
     public static final long PACK_LONG_BIDI_MASK = 0xFFFFFFFFFFFFFFL;

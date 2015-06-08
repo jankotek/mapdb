@@ -1375,18 +1375,12 @@ public class HTreeMap<K,V>
 
 
     protected int hash(final Object key) {
-        //TODO investigate hash distribution and performance impact
+        //TODO investigate if hashSalt has any efect
         int h = keySerializer.hashCode((K) key) ^ hashSalt;
-        //spread low bits,
-        //need so many mixes so each bit becomes part of segment
-        //segment is upper 4 bits
-        h ^= (h<<4);
-        h ^= (h<<4);
-        h ^= (h<<4);
-        h ^= (h<<4);
-        h ^= (h<<4);
-        h ^= (h<<4);
-        h ^= (h<<4);
+        //stear hashcode a bit, to make sure bits are spread
+        h = h * -1640531527;
+        h =  h ^ h >> 16;
+        //TODO koloboke credit
 
         //this section is eliminated by compiler, if no debugging is used
         if(SEG==1){
