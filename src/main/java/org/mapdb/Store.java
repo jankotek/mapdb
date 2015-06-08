@@ -1553,58 +1553,58 @@ public abstract class Store implements Engine {
         public V remove(long key) {
             if(CC.ASSERT && key==0)
                 throw new IllegalArgumentException("zero key");
-                long[] keys = set;
-                int capacityMask = keys.length - 1;
-                int index;
-                long cur;
-                keyPresent:
-                if ((cur = keys[index = DataIO.longHash(key) & capacityMask]) != key) {
-                    if (cur == 0) {
-                        // key is absent
-                        return null;
-                    } else {
-                        while (true) {
-                            if ((cur = keys[(index = (index - 1) & capacityMask)]) == key) {
-                                break keyPresent;
-                            } else if (cur == 0) {
-                                // key is absent
-                                return null;
-                            }
+            long[] keys = set;
+            int capacityMask = keys.length - 1;
+            int index;
+            long cur;
+            keyPresent:
+            if ((cur = keys[index = DataIO.longHash(key) & capacityMask]) != key) {
+                if (cur == 0) {
+                    // key is absent
+                    return null;
+                } else {
+                    while (true) {
+                        if ((cur = keys[(index = (index - 1) & capacityMask)]) == key) {
+                            break keyPresent;
+                        } else if (cur == 0) {
+                            // key is absent
+                            return null;
                         }
                     }
                 }
-                // key is present
-                Object[] vals = values;
-                V val = (V) vals[index];
+            }
+            // key is present
+            Object[] vals = values;
+            V val = (V) vals[index];
 
-                int indexToRemove = index;
-                int indexToShift = indexToRemove;
-                int shiftDistance = 1;
-                while (true) {
-                    indexToShift = (indexToShift - 1) & capacityMask;
-                    long keyToShift;
-                    if ((keyToShift = keys[indexToShift]) == 0) {
-                        break;
-                    }
-                    if (((DataIO.longHash(keyToShift) - indexToShift) & capacityMask) >= shiftDistance) {
-                        keys[indexToRemove] = keyToShift;
-                        vals[indexToRemove] = vals[indexToShift];
-                        indexToRemove = indexToShift;
-                        shiftDistance = 1;
-                    } else {
-                        shiftDistance++;
-                        if (indexToShift == 1 + index) {
-                            throw new java.util.ConcurrentModificationException();
-                        }
+            int indexToRemove = index;
+            int indexToShift = indexToRemove;
+            int shiftDistance = 1;
+            while (true) {
+                indexToShift = (indexToShift - 1) & capacityMask;
+                long keyToShift;
+                if ((keyToShift = keys[indexToShift]) == 0) {
+                    break;
+                }
+                if (((DataIO.longHash(keyToShift) - indexToShift) & capacityMask) >= shiftDistance) {
+                    keys[indexToRemove] = keyToShift;
+                    vals[indexToRemove] = vals[indexToShift];
+                    indexToRemove = indexToShift;
+                    shiftDistance = 1;
+                } else {
+                    shiftDistance++;
+                    if (indexToShift == 1 + index) {
+                        throw new java.util.ConcurrentModificationException();
                     }
                 }
-                keys[indexToRemove] = 0;
-                vals[indexToRemove] = null;
+            }
+            keys[indexToRemove] = 0;
+            vals[indexToRemove] = null;
 
-                //post remove hook
-                size--;
+            //post remove hook
+            size--;
 
-                return val;
+            return val;
         }
 
         public boolean putIfAbsent(long key, V value) {
