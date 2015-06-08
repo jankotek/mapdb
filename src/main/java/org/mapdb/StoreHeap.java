@@ -312,7 +312,7 @@ public class StoreHeap extends Store{
                             }
 
                             //put into list of free recids
-                            m.remove(m.set[i]);
+                            m.remove(m.set[j]);
 
                             if(freeRecid.length==freeRecidTail){
                                 freeRecid = Arrays.copyOf(freeRecid, freeRecid.length*2);
