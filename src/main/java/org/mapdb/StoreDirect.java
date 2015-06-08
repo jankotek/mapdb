@@ -236,7 +236,8 @@ public class StoreDirect extends Store {
         for(int offset = 8;
             offset< HEAD_END;
             offset+=8){
-            ret = ret*31 + DataIO.longHash(vol2.getLong(offset)) + offset;
+            long val = vol2.getLong(offset);
+            ret += DataIO.longHash(offset+val);
         }
         return ret;
     }
