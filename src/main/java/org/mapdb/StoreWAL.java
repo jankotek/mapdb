@@ -844,7 +844,7 @@ public class StoreWAL extends StoreCached {
                 long finalOffset = walOffset.get();
                 curVol.ensureAvailable(finalOffset + 1); //TODO overlap here
                 //put EOF instruction
-                curVol.putUnsignedByte(finalOffset, (0 << 4) | (Long.bitCount(finalOffset)));
+                curVol.putUnsignedByte(finalOffset, (0 << 4) | (Long.bitCount(finalOffset)&15));
                 curVol.sync();
                 //put wal seal
                 curVol.putLong(8, WAL_SEAL);
@@ -945,7 +945,7 @@ public class StoreWAL extends StoreCached {
                 long finalOffset = walOffset.get();
                 curVol.ensureAvailable(finalOffset+1); //TODO overlap here
                 //put EOF instruction
-                curVol.putUnsignedByte(finalOffset, (0<<4) | (Long.bitCount(finalOffset)));
+                curVol.putUnsignedByte(finalOffset, (0<<4) | (Long.bitCount(finalOffset)&15));
                 curVol.sync();
                 //put wal seal
                 curVol.putLong(8, WAL_SEAL);
