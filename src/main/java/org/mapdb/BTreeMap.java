@@ -895,8 +895,6 @@ public class BTreeMap<K,V>
             throw new IllegalArgumentException();
         if(keySerializer==null)
             throw new NullPointerException();
-//        SerializerBase.assertSerializable(keySerializer); //TODO serializer serialization
-//        SerializerBase.assertSerializable(valueSerializer);
 
         this.rootRecidRef = rootRecidRef;
         this.hasValues = valueSerializer!=null;
