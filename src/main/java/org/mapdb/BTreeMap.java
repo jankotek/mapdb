@@ -1053,7 +1053,7 @@ public class BTreeMap<K,V>
             //$DELAY$
             A = engine.get(current, nodeSerializer);
         }
-        int level = 1;
+        int level = 0;
 
         long p=0;
         try{
@@ -1202,9 +1202,12 @@ public class BTreeMap<K,V>
                     //$DELAY$
                     if(CC.ASSERT && ! (nodeLocks.get(rootRecidRef)==Thread.currentThread()))
                         throw new AssertionError();
-                    engine.update(rootRecidRef, newRootRecid, Serializer.RECID);
-                    //add newRootRecid into leftEdges
+
                     leftEdges.add(newRootRecid);
+                    //TODO there could be a race condition between leftEdges  update and rootRecidRef update. Investigate!
+                    //$DELAY$
+
+                    engine.update(rootRecidRef, newRootRecid, Serializer.RECID);
 
                     notify(key, null, value2);
                     //$DELAY$
