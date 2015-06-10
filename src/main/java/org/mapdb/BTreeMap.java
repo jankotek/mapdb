@@ -676,7 +676,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             }
             A = engine.get(current, nodeSerializer);
         }
-        int level = 1;
+        int level = 0;
 
         long p=0;
         try{
@@ -813,9 +813,10 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
                     long newRootRecid = engine.put(R, nodeSerializer);
 
                     assert(nodeLocks.get(rootRecidRef)==Thread.currentThread());
-                    engine.update(rootRecidRef, newRootRecid, Serializer.LONG);
                     //add newRootRecid into leftEdges
                     leftEdges.add(newRootRecid);
+
+                    engine.update(rootRecidRef, newRootRecid, Serializer.LONG);
 
                     notify(key, null, value2);
                     unlock(nodeLocks, rootRecidRef);
