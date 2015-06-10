@@ -617,8 +617,7 @@ public class TxEngine implements Engine {
 
 
     protected final int lockPos(final long recid) {
-        int hash =  DataIO.longHash(recid);
-        return (hash + 31*hash)  & lockMask; //TODO investigate best way to spread bits
+        return  DataIO.longHash(recid)&lockMask;
     }
 
 }

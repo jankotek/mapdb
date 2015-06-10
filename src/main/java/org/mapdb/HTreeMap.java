@@ -334,11 +334,7 @@ public class HTreeMap<K,V>
         if(keySerializer==null)
             throw new NullPointerException();
 
-//        SerializerBase.assertSerializable(keySerializer); //TODO serializer serialization
         this.hasValues = valueSerializer!=null;
-        if(hasValues) {
-//            SerializerBase.assertSerializable(valueSerializer);
-        }
 
         segmentLocks=new ReentrantReadWriteLock[SEG];
         for(int i=0;i< SEG;i++)  {

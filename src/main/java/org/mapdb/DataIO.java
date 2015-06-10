@@ -454,7 +454,6 @@ public final class DataIO {
             char[] b = new char[len];
             for (int i = 0; i < len; i++)
                 //$DELAY$
-                //TODO char 4 bytes
                 b[i] = (char) unpackInt();
             return new String(b);
         }

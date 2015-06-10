@@ -51,7 +51,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * </ol>
  *
  * <p>
- * TODO document more examples of Engine  wrappers
+ * TODO Engine Wrappers are sort of obsole, update this whole section
  * </p><p>
  *
  * Engine uses {@code recid} to identify records. There is zero error handling in case recid is invalid
@@ -128,7 +128,7 @@ public interface Engine  extends Closeable {
      * Preallocates recid for not yet created record. It does not insert any data into it.
      * @return new recid
      */
-    //TODO in some cases recid is persisted and used between compaction. perhaps use put(null)
+    //TODO in some cases recid is persisted and used between compaction. perhaps use put(null). Much latter: in what cases? I do not recall any.
     //TODO clarify difference between put/update(null) and delete/preallocate
     long preallocate();
 
