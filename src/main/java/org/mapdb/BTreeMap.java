@@ -2581,7 +2581,6 @@ public class BTreeMap<K,V>
 
         @Override
         public int size() {
-            //TODO add method which returns long, compatible with new method in Java8 streams, not forget other submaps, reverse maps
             //TODO use counted btrees once they become available
             if(hi==null && lo==null)
                 return m.size();
