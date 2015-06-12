@@ -35,7 +35,8 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author Jan Kotek
  * @author Doug Lea
  */
-public class LongConcurrentHashMap< V>
+@Deprecated
+class LongConcurrentHashMap< V>
          implements Serializable  {
     private static final long serialVersionUID = 7249069246763182397L;
 
