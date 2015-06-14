@@ -137,7 +137,7 @@ public class StoreCached extends StoreDirect {
 
         long currSize = masterLinkVal >>> 48;
 
-        long prevLinkVal = parity4Get(DataIO.getLong(page, 4));
+        long prevLinkVal = parity4Get(DataIO.getLong(page, 0));
         long pageSize = prevLinkVal >>> 48;
         //is there enough space in current page?
         if (currSize + 8 >= pageSize) {
@@ -184,18 +184,18 @@ public class StoreCached extends StoreDirect {
         //and finally set return value
         ret = parity1Get(ret & DataIO.PACK_LONG_BIDI_MASK) >>> 1;
 
-        if (CC.ASSERT && currSize < 12)
+        if (CC.ASSERT && currSize < 8)
             throw new AssertionError();
 
         //is there space left on current page?
-        if (currSize > 12) {
+        if (currSize > 8) {
             //yes, just update master link
             headVol.putLong(masterLinkOffset, parity4Set(currSize << 48 | pageOffset));
             return ret;
         }
 
         //there is no space at current page, so delete current page and update master pointer
-        long prevPageOffset = parity4Get(DataIO.getLong(page, 4));
+        long prevPageOffset = parity4Get(DataIO.getLong(page, 0));
         final int currPageSize = (int) (prevPageOffset >>> 48);
         prevPageOffset &= MOFFSET;
 
@@ -209,14 +209,14 @@ public class StoreCached extends StoreDirect {
             // (data are packed with var size, traverse from end of page, until zeros
 
             //first read size of current page
-            currSize = parity4Get(DataIO.getLong(page2, 4)) >>> 48;
+            currSize = parity4Get(DataIO.getLong(page2, 0)) >>> 48;
 
             //now read bytes from end of page, until they are zeros
             while (page2[((int) (currSize - 1))] == 0) {
                 currSize--;
             }
 
-            if (CC.ASSERT && currSize < 14)
+            if (CC.ASSERT && currSize < 10)
                 throw new AssertionError();
         } else {
             //no prev page does not exist
@@ -240,7 +240,7 @@ public class StoreCached extends StoreDirect {
 
         byte[] page = dirtyStackPages.get(pageOffset);
         if (page == null) {
-            int pageSize = (int) (parity4Get(vol.getLong(pageOffset + 4)) >>> 48);
+            int pageSize = (int) (parity4Get(vol.getLong(pageOffset)) >>> 48);
             page = new byte[pageSize];
             vol.getData(pageOffset, page, 0, pageSize);
             dirtyStackPages.put(pageOffset, page);
@@ -259,9 +259,9 @@ public class StoreCached extends StoreDirect {
 //        vol.getData(newPageOffset, page, 0, page.length);
         dirtyStackPages.put(newPageOffset, page);
         //write size of current chunk with link to prev page
-        DataIO.putLong(page, 4, parity4Set((CHUNKSIZE << 48) | prevPageOffset));
+        DataIO.putLong(page, 0, parity4Set((CHUNKSIZE << 48) | prevPageOffset));
         //put value
-        long currSize = 12 + DataIO.packLongBidi(page, 12, parity1Set(value << 1));
+        long currSize = 8 + DataIO.packLongBidi(page, 8, parity1Set(value << 1));
         //update master pointer
         headVol.putLong(masterLinkOffset, parity4Set((currSize << 48) | newPageOffset));
     }

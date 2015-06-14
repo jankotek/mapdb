@@ -498,7 +498,7 @@ public class StoreWAL extends StoreCached {
         }
 
         //and finally read it from main store
-        int pageSize = (int) (parity4Get(vol.getLong(pageOffset + 4)) >>> 48);
+        int pageSize = (int) (parity4Get(vol.getLong(pageOffset)) >>> 48);
         page = new byte[pageSize];
         vol.getData(pageOffset, page, 0, pageSize);
         dirtyStackPages.put(pageOffset, page);

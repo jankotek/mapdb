@@ -677,10 +677,10 @@ public class StoreDirect extends Store {
 
         long currSize = masterLinkVal>>>48;
 
-        long prevLinkVal = parity4Get(vol.getLong(pageOffset + 4));
+        long prevLinkVal = parity4Get(vol.getLong(pageOffset));
         long pageSize = prevLinkVal>>>48;
         //is there enough space in current page?
-        if(currSize+8>=pageSize){
+        if(currSize+8>=pageSize){ // +8 is just to make sure and is worse case scenario, perhaps make better check based on actual packed size
             //no there is not enough space
             //first zero out rest of the page
             vol.clear(pageOffset+currSize, pageOffset+pageSize);
@@ -701,9 +701,9 @@ public class StoreDirect extends Store {
 
         long newPageOffset = freeDataTakeSingle((int) CHUNKSIZE);
         //write size of current chunk with link to prev page
-        vol.putLong(newPageOffset+4, parity4Set((CHUNKSIZE<<48) | prevPageOffset));
+        vol.putLong(newPageOffset, parity4Set((CHUNKSIZE<<48) | prevPageOffset));
         //put value
-        long currSize = 12 + vol.putLongPackBidi(newPageOffset+12, parity1Set(value<<1));
+        long currSize = 8 + vol.putLongPackBidi(newPageOffset+8, parity1Set(value<<1));
         //update master pointer
         headVol.putLong(masterLinkOffset, parity4Set((currSize<<48)|newPageOffset));
     }
@@ -734,18 +734,18 @@ public class StoreDirect extends Store {
         //and finally set return value
         ret = parity1Get(ret &DataIO.PACK_LONG_BIDI_MASK)>>>1;
 
-        if(CC.ASSERT && currSize<12)
+        if(CC.ASSERT && currSize<8)
             throw new AssertionError();
 
         //is there space left on current page?
-        if(currSize>12){
+        if(currSize>8){
             //yes, just update master link
             headVol.putLong(masterLinkOffset, parity4Set(currSize << 48 | pageOffset));
             return ret;
         }
 
         //there is no space at current page, so delete current page and update master pointer
-        long prevPageOffset = parity4Get(vol.getLong(pageOffset + 4));
+        long prevPageOffset = parity4Get(vol.getLong(pageOffset));
         final int currPageSize = (int) (prevPageOffset>>>48);
         prevPageOffset &= MOFFSET;
 
@@ -757,14 +757,14 @@ public class StoreDirect extends Store {
             // (data are packed with var size, traverse from end of page, until zeros
 
             //first read size of current page
-            currSize = parity4Get(vol.getLong(prevPageOffset + 4)) >>> 48;
+            currSize = parity4Get(vol.getLong(prevPageOffset)) >>> 48;
 
             //now read bytes from end of page, until they are zeros
             while (vol.getUnsignedByte(prevPageOffset + currSize-1) == 0) {
                 currSize--;
             }
 
-            if (CC.ASSERT && currSize < 14)
+            if (CC.ASSERT && currSize < 10)
                 throw new AssertionError();
         }else{
             //no prev page does not exist
