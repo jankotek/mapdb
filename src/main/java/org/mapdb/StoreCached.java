@@ -150,7 +150,7 @@ public class StoreCached extends StoreDirect {
         }
 
         //there is enough space, so just write new value
-        currSize += DataIO.packLongBidi(page, (int) currSize, parity1Set(value << 1));
+        currSize += DataIO.packLongBidi(page, (int) currSize, longStackValParitySet(value));
 
         //and update master pointer
         headVol.putLong(masterLinkOffset, parity4Set(currSize << 48 | pageOffset));
@@ -182,7 +182,7 @@ public class StoreCached extends StoreDirect {
         //clear bytes occupied by prev value
         Arrays.fill(page, (int) currSize, (int) oldCurrSize, (byte) 0);
         //and finally set return value
-        ret = parity1Get(ret & DataIO.PACK_LONG_BIDI_MASK) >>> 1;
+        ret = longStackValParityGet(ret & DataIO.PACK_LONG_BIDI_MASK);
 
         if (CC.ASSERT && currSize < 8)
             throw new AssertionError();
@@ -261,7 +261,7 @@ public class StoreCached extends StoreDirect {
         //write size of current chunk with link to prev page
         DataIO.putLong(page, 0, parity4Set((CHUNKSIZE << 48) | prevPageOffset));
         //put value
-        long currSize = 8 + DataIO.packLongBidi(page, 8, parity1Set(value << 1));
+        long currSize = 8 + DataIO.packLongBidi(page, 8, longStackValParitySet(value));
         //update master pointer
         headVol.putLong(masterLinkOffset, parity4Set((currSize << 48) | newPageOffset));
     }

@@ -580,7 +580,10 @@ public class StoreDirect extends Store {
         }
 
         long masterPointerOffset = size/2 + FREE_RECID_STACK; // really is size*8/16
-        longStackPut(masterPointerOffset, offset, false);
+        longStackPut(
+                masterPointerOffset,
+                offset>>>4, //offset is multiple of 16, save some space
+                false);
     }
 
 
@@ -612,7 +615,7 @@ public class StoreDirect extends Store {
             throw new AssertionError();
 
         long masterPointerOffset = size/2 + FREE_RECID_STACK; // really is size*8/16
-        long ret = longStackTake(masterPointerOffset,false);
+        long ret = longStackTake(masterPointerOffset,false) <<4; //offset is multiple of 16, save some space
         if(ret!=0) {
             if(CC.ASSERT && ret<PAGE_SIZE)
                 throw new AssertionError();
@@ -690,10 +693,23 @@ public class StoreDirect extends Store {
         }
 
         //there is enough space, so just write new value
-        currSize += vol.putLongPackBidi(pageOffset+currSize,parity1Set(value<<1));
+        currSize += vol.putLongPackBidi(pageOffset+currSize,longStackValParitySet(value));
         //and update master pointer
         headVol.putLong(masterLinkOffset, parity4Set(currSize<<48 | pageOffset));
     }
+
+    protected final long longStackValParitySet(long value) {
+        return indexPageCRC?
+                DataIO.parity16Set(value << 16):
+                DataIO.parity1Set(value<<1);
+    }
+
+    protected final long longStackValParityGet(long value) {
+        return indexPageCRC?
+                DataIO.parity16Get(value)>>>16:
+                DataIO.parity1Get(value)>>>1;
+    }
+
 
     protected void longStackNewPage(long masterLinkOffset, long prevPageOffset, long value) {
         if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
@@ -703,7 +719,7 @@ public class StoreDirect extends Store {
         //write size of current chunk with link to prev page
         vol.putLong(newPageOffset, parity4Set((CHUNKSIZE<<48) | prevPageOffset));
         //put value
-        long currSize = 8 + vol.putLongPackBidi(newPageOffset+8, parity1Set(value<<1));
+        long currSize = 8 + vol.putLongPackBidi(newPageOffset+8, longStackValParitySet(value));
         //update master pointer
         headVol.putLong(masterLinkOffset, parity4Set((currSize<<48)|newPageOffset));
     }
@@ -732,7 +748,7 @@ public class StoreDirect extends Store {
         //clear bytes occupied by prev value
         vol.clear(pageOffset+currSize, pageOffset+oldCurrSize);
         //and finally set return value
-        ret = parity1Get(ret &DataIO.PACK_LONG_BIDI_MASK)>>>1;
+        ret = longStackValParityGet(ret & DataIO.PACK_LONG_BIDI_MASK);
 
         if(CC.ASSERT && currSize<8)
             throw new AssertionError();
