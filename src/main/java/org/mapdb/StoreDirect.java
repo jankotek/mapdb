@@ -15,12 +15,11 @@ import static org.mapdb.DataIO.*;
 
 public class StoreDirect extends Store {
 
-    /** 4 byte file header */
-    //TODO use this
-    protected static final int HEADER = 234243482;
-
     /** 2 byte store version*/
-    protected static final short STORE_VERSION = 10000;
+    protected static final int STORE_VERSION = 100;
+
+    /** 4 byte file header */
+    protected static final int HEADER = (0xA9DB<<16) | STORE_VERSION;
 
 
     protected static final long PAGE_SIZE = 1<< CC.VOLUME_PAGE_SHIFT;
@@ -128,10 +127,14 @@ public class StoreDirect extends Store {
         if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
+        int header = vol.getInt(0);
+        if(header!=header)
+            throw new DBException.WrongConfig("This is not MapDB file");
+
         //check header config
         checkFeaturesBitmap(vol.getLong(HEAD_FEATURES));
 
-        //TODO header
+
         initHeadVol();
         //check head checksum
         int expectedChecksum = vol.getInt(HEAD_CHECKSUM);
@@ -197,6 +200,9 @@ public class StoreDirect extends Store {
         for(long masterLinkOffset = FREE_RECID_STACK;masterLinkOffset<HEAD_END;masterLinkOffset+=8){
             vol.putLong(masterLinkOffset,parity4Set(0));
         }
+
+        //write header
+        vol.putInt(0,HEADER);
 
         //set features bitmap
         long features = makeFeaturesBitmap();
