@@ -48,7 +48,7 @@ public final class Fun {
 	/**
 	 * A utility method for getting a type-safe reversed Comparator (the negation of {@link Fun#comparator()}).
 	 * Use this method instead of {@link Fun#REVERSE_COMPARATOR} in order to insure type-safety
-	 * ex: Comparator<Integer> comparator = getReversedComparator();
+	 * ex: {@code Comparator<Integer> comparator = getReversedComparator();}
 	 * @return comparator
 	 */
 	public static <T> Comparator<T> reverseComparator(){
