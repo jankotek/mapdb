@@ -560,28 +560,37 @@ public abstract class Volume implements Closeable{
          * There is no public JVM API to unmap buffer, so this tries to use SUN proprietary API for unmap.
          * Any error is silently ignored (for example SUN API does not exist on Android).
          */
-        protected void unmap(MappedByteBuffer b){
+        protected boolean unmap(MappedByteBuffer b){
             try{
                 if(unmapHackSupported){
 
                     // need to dispose old direct buffer, see bug
                     // http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4724038
                     Method cleanerMethod = b.getClass().getMethod("cleaner", new Class[0]);
+                    cleanerMethod.setAccessible(true);
                     if(cleanerMethod!=null){
-                        cleanerMethod.setAccessible(true);
                         Object cleaner = cleanerMethod.invoke(b);
                         if(cleaner!=null){
                             Method clearMethod = cleaner.getClass().getMethod("clean", new Class[0]);
-                            if(clearMethod!=null)
+                            if(clearMethod!=null) {
                                 clearMethod.invoke(cleaner);
+                                return true;
+                            }
+                        }else{
+                            //cleaner is null, try fallback method for readonly buffers
+                            Method attMethod = b.getClass().getMethod("attachment", new Class[0]);
+                            attMethod.setAccessible(true);
+                            Object att = attMethod.invoke(b);
+                            return att instanceof MappedByteBuffer &&
+                                    unmap((MappedByteBuffer) att);
                         }
                     }
                 }
             }catch(Exception e){
                 unmapHackSupported = false;
-                //TODO exception handling
-                //Utils.LOG.log(Level.WARNING, "ByteBufferVol Unmap failed", e);
+                LOG.log(Level.WARNING, "Unmap failed", e);
             }
+            return false;
         }
 
         private static boolean unmapHackSupported = true;
