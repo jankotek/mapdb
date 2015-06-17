@@ -551,9 +551,6 @@ public abstract class Volume {
                 assert((offset&chunkSizeModMask)==0);
                 assert(offset>=0);
                 ByteBuffer ret = fileChannel.map(mapMode,offset,chunkSize);
-                if(mapMode == FileChannel.MapMode.READ_ONLY) {
-                    ret = ret.asReadOnlyBuffer();
-                }
                 return ret;
             } catch (IOException e) {
                 throw new IOError(e);
