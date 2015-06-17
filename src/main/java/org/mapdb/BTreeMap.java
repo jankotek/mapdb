@@ -1859,6 +1859,27 @@ public class BTreeMap<K,V>
 
 
     @Override
+    public K firstKey() {
+        final long rootRecid = engine.get(rootRecidRef, Serializer.RECID);
+        BNode n = engine.get(rootRecid, nodeSerializer);
+        //$DELAY$
+        while(!n.isLeaf()){
+            //$DELAY$
+            n = engine.get(n.child(0), nodeSerializer);
+        }
+        LeafNode l = (LeafNode) n;
+        //follow link until necessary
+        while(l.keysLen(keySerializer)==2){
+            if(l.next==0) return null;
+            //$DELAY$
+            l = (LeafNode) engine.get(l.next, nodeSerializer);
+        }
+        //$DELAY$
+        return (K) l.key(keySerializer, 1);
+    }
+
+
+    @Override
     public Entry<K, V> pollFirstEntry() {
         //$DELAY$
         while(true){
@@ -2179,12 +2200,6 @@ public class BTreeMap<K,V>
     }
 
 
-    @Override
-    public K firstKey() {
-        Entry<K,V> e = firstEntry();
-        if(e==null) throw new NoSuchElementException();
-        return e.getKey();
-    }
 
     @Override
     public K lastKey() {
