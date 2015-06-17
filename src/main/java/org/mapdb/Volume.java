@@ -430,13 +430,21 @@ public abstract class Volume {
                     // need to dispose old direct buffer, see bug
                     // http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4724038
                     Method cleanerMethod = b.getClass().getMethod("cleaner", new Class[0]);
+                    cleanerMethod.setAccessible(true);
                     if(cleanerMethod!=null){
-                        cleanerMethod.setAccessible(true);
                         Object cleaner = cleanerMethod.invoke(b);
                         if(cleaner!=null){
                             Method clearMethod = cleaner.getClass().getMethod("clean", new Class[0]);
-                            if(clearMethod!=null)
+                            if(clearMethod!=null) {
                                 clearMethod.invoke(cleaner);
+                            }
+                        }else{
+                            //cleaner is null, try fallback method for readonly buffers
+                            Method attMethod = b.getClass().getMethod("attachment", new Class[0]);
+                            attMethod.setAccessible(true);
+                            Object att = attMethod.invoke(b);
+                            if(att instanceof MappedByteBuffer)
+                                unmap((MappedByteBuffer) att);
                         }
                     }
                 }
