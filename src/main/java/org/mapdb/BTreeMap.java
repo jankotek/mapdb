@@ -1870,7 +1870,8 @@ public class BTreeMap<K,V>
         LeafNode l = (LeafNode) n;
         //follow link until necessary
         while(l.keysLen(keySerializer)==2){
-            if(l.next==0) return null;
+            if(l.next==0)
+                throw new NoSuchElementException();
             //$DELAY$
             l = (LeafNode) engine.get(l.next, nodeSerializer);
         }
