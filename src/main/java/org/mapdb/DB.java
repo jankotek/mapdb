@@ -412,6 +412,10 @@ public class DB {
         String name = m.name;
         checkNameNotExists(name);
 
+        SerializerPojo.assertSerializable(m.valueSerializer);
+        SerializerPojo.assertSerializable(m.keySerializer);
+        SerializerPojo.assertSerializable(m.hasher);
+
         long expireTimeStart=0, expire=0, expireAccess=0, expireMaxSize = 0, expireStoreSize=0;
         long[] expireHeads=null, expireTails=null;
 
@@ -513,6 +517,9 @@ public class DB {
     synchronized protected <K> Set<K> createHashSet(HTreeSetMaker m){
         String name = m.name;
         checkNameNotExists(name);
+
+        SerializerPojo.assertSerializable(m.serializer);
+        SerializerPojo.assertSerializable(m.hasher);
 
         long expireTimeStart=0, expire=0, expireAccess=0, expireMaxSize = 0, expireStoreSize = 0;
         long[] expireHeads=null, expireTails=null;
@@ -826,8 +833,17 @@ public class DB {
         String name = m.name;
         checkNameNotExists(name);
         m.keySerializer = fillNulls(m.keySerializer);
-        m.keySerializer = catPut(name+".keySerializer",m.keySerializer,new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer()));
-        m.valueSerializer = catPut(name+".valueSerializer",m.valueSerializer,getDefaultSerializer());
+        if(m.keySerializer==null)
+            m.keySerializer=new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer());
+        if(m.valueSerializer == null)
+            m.valueSerializer = getDefaultSerializer();
+
+        SerializerPojo.assertSerializable(m.valueSerializer);
+        SerializerPojo.assertSerializable(m.keySerializer);
+        SerializerPojo.assertSerializable(m.comparator);
+
+        m.keySerializer = catPut(name+".keySerializer",m.keySerializer);
+        m.valueSerializer = catPut(name+".valueSerializer",m.valueSerializer);
         if(m.comparator==null){
             m.comparator = m.keySerializer.getComparator();
             if(m.comparator==null){
@@ -1033,8 +1049,14 @@ public class DB {
 
     synchronized public <K> NavigableSet<K> createTreeSet(BTreeSetMaker m){
         checkNameNotExists(m.name);
+
+        if(m.serializer==null)
+            m.serializer = new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer());
+        SerializerPojo.assertSerializable(m.serializer);
+        SerializerPojo.assertSerializable(m.comparator);
+
         m.serializer = fillNulls(m.serializer);
-        m.serializer = catPut(m.name+".keySerializer",m.serializer,new BTreeKeySerializer.BasicKeySerializer(getDefaultSerializer()));
+        m.serializer = catPut(m.name+".keySerializer",m.serializer);
         m.comparator = catPut(m.name+".comparator",m.comparator,BTreeMap.COMPARABLE_COMPARATOR);
 
         if(m.pumpPresortBatchSize!=-1){
@@ -1109,6 +1131,8 @@ public class DB {
     synchronized public <E> BlockingQueue<E> createQueue(String name, Serializer<E> serializer, boolean useLocks) {
         checkNameNotExists(name);
 
+        SerializerPojo.assertSerializable(serializer);
+
         long node = engine.put(Queues.SimpleQueue.Node.EMPTY, new Queues.SimpleQueue.NodeSerializer(serializer));
         long headRecid = engine.put(node, Serializer.LONG);
         long tailRecid = engine.put(node, Serializer.LONG);
@@ -1159,6 +1183,8 @@ public class DB {
     synchronized public <E> BlockingQueue<E> createStack(String name, Serializer<E> serializer, boolean useLocks) {
         checkNameNotExists(name);
 
+        SerializerPojo.assertSerializable(serializer);
+
         long node = engine.put(Queues.SimpleQueue.Node.EMPTY, new Queues.SimpleQueue.NodeSerializer(serializer));
         long headRecid = engine.put(node, Serializer.LONG);
 
@@ -1207,6 +1233,8 @@ public class DB {
     synchronized public <E> BlockingQueue<E> createCircularQueue(String name, Serializer<E> serializer, long size) {
         checkNameNotExists(name);
         if(serializer==null) serializer = getDefaultSerializer();
+
+        SerializerPojo.assertSerializable(serializer);
 
 //        long headerRecid = engine.put(0L, Serializer.LONG);
         //insert N Nodes empty nodes into a circle
@@ -1390,6 +1418,7 @@ public class DB {
     synchronized public <E> Atomic.Var<E> createAtomicVar(String name, E initValue, Serializer<E> serializer){
         checkNameNotExists(name);
         if(serializer==null) serializer=getDefaultSerializer();
+        SerializerPojo.assertSerializable(serializer);
         long recid = engine.put(initValue,serializer);
         Atomic.Var ret = new Atomic.Var(engine,
                 catPut(name+".recid",recid),
