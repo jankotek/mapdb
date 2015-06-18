@@ -621,6 +621,7 @@ final public class Atomic {
 
     /**
      * Atomically updated variable which may contain any type of record.
+     * Atomic.Var does not allow nulls. Initial value of newly created vars is empty string {@code ""}
      */
     public static final class Var<E> {
 

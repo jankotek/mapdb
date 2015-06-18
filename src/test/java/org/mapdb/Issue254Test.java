@@ -92,7 +92,7 @@ public class Issue254Test {
     @Test
     public void atomic_var(){
         Atomic.Var l = ro.getAtomicVar("non-existing");
-        assertEquals(null, l.get());
+        assertEquals("", l.get());
         try{
             l.set("a");
             fail();

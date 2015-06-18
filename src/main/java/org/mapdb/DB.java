@@ -1402,6 +1402,15 @@ public class DB {
     }
 
 
+    /**
+     * Gets existing Atomic.Var. If no var with given name is found, create new one with initial value of empty string
+     * {@code ""}
+     *
+     *
+     * @param name of atomic var
+     * @param <E>  type used in atomi var
+     * @return atomic var
+     */
     synchronized public <E> Atomic.Var<E> getAtomicVar(String name){
         checkNotClosed();
         Atomic.Var ret = (Atomic.Var) getFromWeakCollection(name);
@@ -1415,7 +1424,7 @@ public class DB {
                 return namedPut(name,
                         new DB(new EngineWrapper.ReadOnlyEngine(e)).getAtomicVar("a"));
             }
-            return createAtomicVar(name, null, getDefaultSerializer());
+            return createAtomicVar(name, "", getDefaultSerializer());
         }
         checkType(type, "AtomicVar");
 
