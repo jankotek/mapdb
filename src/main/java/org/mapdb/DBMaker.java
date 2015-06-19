@@ -675,7 +675,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         }
     }
 
-    
+
     public TxMaker makeTxMaker(){
         props.setProperty(Keys.fullTx,TRUE);
         snapshotEnable();
@@ -773,8 +773,25 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
                 if(check.a != Arrays.hashCode(check.b))
                     throw new RuntimeException("invalid checksum");
             }
-        }catch(Throwable e){
-            throw new IllegalArgumentException("Error while opening store. Make sure you have right password, compression or encryption is well configured.",e);
+        } catch (Throwable e) {
+            Store store2 = Store.forEngine(engine);
+            if (store2 instanceof StoreDirect) {
+                Volume vol = ((StoreDirect) store2).index;
+                if (vol != null && !vol.closed) {
+                    vol.close();
+                }
+                vol = ((StoreDirect) store2).phys;
+                if (vol != null && !vol.closed) {
+                    vol.close();
+                }
+                if (store2 instanceof StoreWAL) {
+                    vol = ((StoreWAL) store2).log;
+                    if (vol != null && !vol.closed) {
+                        vol.close();
+                    }
+                }
+            }
+            throw new IllegalArgumentException("Error while opening store. Make sure you have right password, compression or encryption is well configured.", e);
         }
         if(check == null && !engine.isReadOnly()){
             //new db, so insert testing record
