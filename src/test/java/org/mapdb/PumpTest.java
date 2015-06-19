@@ -502,7 +502,7 @@ public class PumpTest {
 
             @Override public boolean hasNext()
             {
-                mapIndex--;
+
                 return counter <= 16737175;
             }
 
@@ -510,7 +510,7 @@ public class PumpTest {
             public Fun.Pair<Integer, String> next()
             {
                 counter++;
-
+                mapIndex--;
                 return new Fun.Pair(mapIndex, "foobar"+mapIndex);
             }
 
