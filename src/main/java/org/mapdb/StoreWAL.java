@@ -221,6 +221,34 @@ public class StoreWAL extends StoreCached {
         initOpenPost();
     }
 
+    @Override
+    protected void initFailedCloseFiles() {
+        if(walC!=null && !walC.isClosed()) {
+            walC.close();
+        }
+        walC = null;
+
+        if(walCCompact!=null && !walCCompact.isClosed()) {
+            walCCompact.close();
+        }
+        walCCompact = null;
+
+        if(walRec!=null){
+            for(Volume v:walRec){
+                if(v!=null && !v.isClosed())
+                    v.close();
+            }
+            walRec.clear();
+        }
+        if(volumes!=null){
+            for(Volume v:volumes){
+                if(v!=null && !v.isClosed())
+                    v.close();
+            }
+            volumes.clear();
+        }
+    }
+
     protected void initOpenPost() {
         super.initOpen();
         indexPagesBackup = indexPages.clone();
@@ -1017,6 +1045,10 @@ public class StoreWAL extends StoreCached {
                 }else{
                     //file is not null, we are working on file system, so swap files
                     File walCCompactFile = walCCompact.getFile();
+                    walCCompact.sync();
+                    walCCompact.close();
+                    walCCompact = null;
+
                     File thisFile = new File(fileName);
                     File thisFileBackup = new File(fileName+".wal.c.orig");
 
@@ -1041,11 +1073,6 @@ public class StoreWAL extends StoreCached {
                     if(!thisFileBackup.delete()){
                         LOG.warning("Could not delete original compacted file: "+thisFileBackup);
                     }
-
-                    //TODO this should be closed earlier
-                    walCCompact.sync();
-                    walCCompact.close();
-                    walCCompact = null;
                 }
                 walC.close();
                 walC.deleteFile();
@@ -1304,6 +1331,10 @@ public class StoreWAL extends StoreCached {
         compactLock.lock();
 
         try{
+
+            if(compactOldFilesExists())
+                return;
+
             commitLock.lock();
             try{
                 //check if there are uncommited data, and log warning if yes

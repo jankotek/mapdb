@@ -116,9 +116,20 @@ public class StoreDirect extends Store {
             } finally {
                 structuralLock.unlock();
             }
+        }catch(RuntimeException e){
+            initFailedCloseFiles();
+            if(vol!=null && !vol.isClosed()) {
+                vol.close();
+            }
+            vol = null;
+            throw e;
         }finally {
             commitLock.unlock();
         }
+    }
+
+    protected void initFailedCloseFiles() {
+
     }
 
     protected void initOpen() {
@@ -126,10 +137,11 @@ public class StoreDirect extends Store {
             throw new AssertionError();
         if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
-
         int header = vol.getInt(0);
-        if(header!=header)
+        if(header!=header){
             throw new DBException.WrongConfig("This is not MapDB file");
+        }
+
 
         //check header config
         checkFeaturesBitmap(vol.getLong(HEAD_FEATURES));
@@ -879,6 +891,11 @@ public class StoreDirect extends Store {
 
     @Override
     public void compact() {
+        //check for some file used during compaction, if those exists, refuse to compact
+        if(compactOldFilesExists()){
+            return;
+        }
+
         final boolean isStoreCached = this instanceof StoreCached;
         for(int i=0;i<locks.length;i++){
             Lock lock = isStoreCached?locks[i].readLock():locks[i].writeLock();
@@ -948,7 +965,7 @@ public class StoreDirect extends Store {
                         if(!currFile.renameTo(currFileRenamed)){
                             //failed to rename file, perhaps still open
                             //TODO recovery here. Perhaps copy data from one file to other, instead of renaming it
-                            throw new AssertionError("failed to rename file "+currFile);
+                            throw new AssertionError("failed to rename file "+currFile+" - "+currFile.exists()+" - "+currFileRenamed.exists());
                         }
 
                         //rename compacted file to current file
@@ -966,6 +983,11 @@ public class StoreDirect extends Store {
                             ((StoreCached)this).dirtyStackPages.clear();
                         }
 
+                        //delete old file
+                        if(!currFileRenamed.delete()){
+                            LOG.warning("Could not delete old compaction file: "+currFileRenamed);
+                        }
+
                     }
                 }finally {
                     structuralLock.unlock();
@@ -979,6 +1001,20 @@ public class StoreDirect extends Store {
                 lock.unlock();
             }
         }
+    }
+
+    protected boolean compactOldFilesExists() {
+        if(fileName!=null){
+            for(String s:new String[]{".compact_orig",".compact",".wal.c" ,".wal.c.compact" }) {
+                File oldData = new File(fileName + s);
+                if (oldData.exists()) {
+                    LOG.warning("Old compaction data exists, compaction not started: " + oldData);
+                    return true;
+                }
+            }
+
+        }
+        return false;
     }
 
     protected void snapshotCloseAllOnCompact() {
