@@ -1442,7 +1442,7 @@ public class DB implements Closeable {
         long counterRecid = !m.counter ?0L:engine.put(0L, Serializer.LONG);
 
         long rootRecidRef;
-        if(m.pumpSource==null){
+        if(m.pumpSource==null || !m.pumpSource.hasNext()){
             rootRecidRef = BTreeMap.createRootRef(engine,keySerializer,m.valueSerializer,0);
         }else{
             rootRecidRef = Pump.buildTreeMap(
@@ -1619,7 +1619,7 @@ public class DB implements Closeable {
         long counterRecid = !m.counter ?0L:engine.put(0L, Serializer.LONG);
         long rootRecidRef;
         //$DELAY$
-        if(m.pumpSource==null){
+        if(m.pumpSource==null || !m.pumpSource.hasNext()){
             rootRecidRef = BTreeMap.createRootRef(engine,serializer,null,0);
         }else{
             rootRecidRef = Pump.buildTreeMap(
