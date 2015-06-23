@@ -30,7 +30,9 @@ public class BTreeSet2Test extends JSR166TestCase {
      * Integers 0 ... n.
      */
     private NavigableSet<Integer> populatedSet(int n) {
-        NavigableSet<Integer> q = DBMaker.memoryDB().transactionDisable().make().treeSet("test");
+        NavigableSet q = DBMaker.memoryDB().transactionDisable().make().
+                treeSetCreate("test").serializer(BTreeKeySerializer.INTEGER).make();
+
         assertTrue(q.isEmpty());
         for (int i = n-1; i >= 0; i-=2)
             assertTrue(q.add(new Integer(i)));
@@ -45,7 +47,8 @@ public class BTreeSet2Test extends JSR166TestCase {
      * Returns a new set of first 5 ints.
      */
     private NavigableSet set5() {
-        NavigableSet q = DBMaker.memoryDB().transactionDisable().make().treeSet("test");
+        NavigableSet q = DBMaker.memoryDB().transactionDisable().make().
+                treeSetCreate("test").serializer(BTreeKeySerializer.INTEGER).make();
         assertTrue(q.isEmpty());
         q.add(one);
         q.add(two);
@@ -446,7 +449,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         NavigableSet q = populatedSet(SIZE);
         Object[] o = q.toArray();
         for (int i = 0; i < o.length; i++)
-            assertSame(o[i], q.pollFirst());
+            assertEquals(o[i], q.pollFirst());
     }
 
     /*
@@ -457,7 +460,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         Integer[] ints = new Integer[SIZE];
         assertSame(ints, q.toArray(ints));
         for (int i = 0; i < ints.length; i++)
-            assertSame(ints[i], q.pollFirst());
+            assertEquals(ints[i], q.pollFirst());
     }
 
     /*
@@ -693,7 +696,9 @@ public class BTreeSet2Test extends JSR166TestCase {
     }
 
     static NavigableSet<Integer> newSet(Class cl) throws Exception {
-        NavigableSet<Integer> result = DBMaker.memoryDB().transactionDisable().make().treeSet("test");
+        NavigableSet result = DBMaker.memoryDB().transactionDisable().make().
+                treeSetCreate("test").serializer(BTreeKeySerializer.INTEGER).make();
+
         //(NavigableSet<Integer>) cl.newInstance();
         assertEquals(0, result.size());
         assertFalse(result.iterator().hasNext());
