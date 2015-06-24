@@ -5,11 +5,34 @@ import org.junit.Test;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.concurrent.ScheduledExecutorService;
 
 import static org.junit.Assert.*;
 @SuppressWarnings({"rawtypes","unchecked"})
 public class StoreAppendTest<E extends StoreAppend> extends EngineTest<E>{
 
+
+    public static class WithChecksums extends StoreAppendTest{
+        @Override
+        protected StoreAppend openEngine() {
+            StoreAppend s =  new StoreAppend(f.getPath(),
+                    Volume.RandomAccessFileVol.FACTORY,
+                    null,
+                    16,
+                    0,
+                    true,
+                    false,
+                    null,
+                    false,
+                    false,
+                    false,
+                    null
+            );
+            s.init();
+            return  s;
+        }
+
+    }
 
     File f = UtilsTest.tempDbFile();
 

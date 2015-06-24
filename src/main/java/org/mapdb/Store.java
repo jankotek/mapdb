@@ -87,7 +87,7 @@ public abstract class Store implements Engine {
         this.snapshotEnable = snapshotEnable;
         this.lockMask = lockScale-1;
         if(Integer.bitCount(lockScale)!=1)
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("Lock Scale must be power of two");
         //TODO replace with incrementer on java 8
         metricsDataWrite = new AtomicLong();
         metricsRecordWrite = new AtomicLong();
