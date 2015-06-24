@@ -2005,4 +2005,17 @@ public abstract class Store implements Engine {
         return snapshotEnable;
     }
 
+    protected final long longParitySet(long value) {
+        return checksum?
+                DataIO.parity16Set(value << 16):
+                DataIO.parity1Set(value<<1);
+    }
+
+    protected final long longParityGet(long value) {
+        return checksum?
+                DataIO.parity16Get(value)>>>16:
+                DataIO.parity1Get(value)>>>1;
+    }
+
+
 }

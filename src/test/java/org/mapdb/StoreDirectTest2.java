@@ -283,7 +283,7 @@ public class StoreDirectTest2 {
     }
 
     protected void verifyIndexPageChecksum(StoreDirect st) {
-        assertTrue(st.indexPageCRC);
+        assertTrue(st.checksum);
         //zero page
         for(long offset=HEAD_END+8;offset+10<=PAGE_SIZE;offset+=10){
             long indexVal = st.vol.getLong(offset);

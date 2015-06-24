@@ -74,7 +74,6 @@ public class StoreDirect extends Store {
 
     protected final List<Snapshot> snapshots;
 
-    protected final boolean indexPageCRC;
     protected final long indexValSize;
 
     public StoreDirect(String fileName,
@@ -98,8 +97,7 @@ public class StoreDirect extends Store {
         this.snapshots = snapshotEnable?
                 new CopyOnWriteArrayList<Snapshot>():
                 null;
-        this.indexPageCRC = checksum;
-        this.indexValSize = indexPageCRC ? 10 : 8;
+        this.indexValSize = checksum ? 10 : 8;
     }
 
     @Override
@@ -203,7 +201,7 @@ public class StoreDirect extends Store {
             long indexVal = parity1Set(MLINKED | MARCHIVE);
             long indexOffset = recidToOffset(recid);
             vol.putLong(indexOffset, indexVal);
-            if(indexPageCRC) {
+            if(checksum) {
                 vol.putUnsignedShort(indexOffset + 8, DataIO.longHash(indexVal)&0xFFFF);
             }
         }
@@ -415,7 +413,7 @@ public class StoreDirect extends Store {
         long indexOffset = recidToOffset(recid);
         long newval = composeIndexVal(size, offset, linked, unused, true);
         vol.putLong(indexOffset, newval);
-        if(indexPageCRC){
+        if(checksum){
             vol.putUnsignedShort(indexOffset+8, DataIO.longHash(newval)&0xFFFF);
         }
     }
@@ -711,21 +709,9 @@ public class StoreDirect extends Store {
         }
 
         //there is enough space, so just write new value
-        currSize += vol.putLongPackBidi(pageOffset+currSize,longStackValParitySet(value));
+        currSize += vol.putLongPackBidi(pageOffset+currSize, longParitySet(value));
         //and update master pointer
         headVol.putLong(masterLinkOffset, parity4Set(currSize<<48 | pageOffset));
-    }
-
-    protected final long longStackValParitySet(long value) {
-        return indexPageCRC?
-                DataIO.parity16Set(value << 16):
-                DataIO.parity1Set(value<<1);
-    }
-
-    protected final long longStackValParityGet(long value) {
-        return indexPageCRC?
-                DataIO.parity16Get(value)>>>16:
-                DataIO.parity1Get(value)>>>1;
     }
 
 
@@ -737,7 +723,7 @@ public class StoreDirect extends Store {
         //write size of current chunk with link to prev page
         vol.putLong(newPageOffset, parity4Set((CHUNKSIZE<<48) | prevPageOffset));
         //put value
-        long currSize = 8 + vol.putLongPackBidi(newPageOffset+8, longStackValParitySet(value));
+        long currSize = 8 + vol.putLongPackBidi(newPageOffset+8, longParitySet(value));
         //update master pointer
         headVol.putLong(masterLinkOffset, parity4Set((currSize<<48)|newPageOffset));
     }
@@ -766,7 +752,7 @@ public class StoreDirect extends Store {
         //clear bytes occupied by prev value
         vol.clear(pageOffset+currSize, pageOffset+oldCurrSize);
         //and finally set return value
-        ret = longStackValParityGet(ret & DataIO.PACK_LONG_BIDI_MASK);
+        ret = longParityGet(ret & DataIO.PACK_LONG_RESULT_MASK);
 
         if(CC.ASSERT && currSize<8)
             throw new AssertionError();
@@ -1098,7 +1084,7 @@ public class StoreDirect extends Store {
             }
 
             final long indexVal = vol.getLong(indexOffset);
-            if(indexPageCRC &&
+            if(checksum &&
                     vol.getUnsignedShort(indexOffset+8)!=
                             (DataIO.longHash(indexVal)&0xFFFF)){
                 throw new DBException.ChecksumBroken();
@@ -1175,7 +1161,7 @@ public class StoreDirect extends Store {
         long indexVal = vol.getLong(offset);
         if(indexVal == 0)
             throw new DBException.EngineGetVoid();
-        if(indexPageCRC){
+        if(checksum){
             int checksum = vol.getUnsignedShort(offset+8);
             if(checksum!=(DataIO.longHash(indexVal)&0xFFFF)){
                 throw new DBException.ChecksumBroken();
@@ -1188,7 +1174,7 @@ public class StoreDirect extends Store {
     protected final long recidToOffset(long recid){
         if(CC.ASSERT && recid<=0)
             throw new AssertionError("negative recid: "+recid);
-        if(indexPageCRC){
+        if(checksum){
             return recidToOffsetChecksum(recid);
         }
 

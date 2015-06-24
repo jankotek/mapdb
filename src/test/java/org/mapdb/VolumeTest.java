@@ -74,6 +74,9 @@ public class VolumeTest {
             Volume v = fab1.run(UtilsTest.tempDbFile().getPath());
             System.out.println(" "+v);
             testPackLongBidi(v);
+            testPackLong(v);
+            v.close();
+            v=null;
 
             putGetOverlap(fab1.run(UtilsTest.tempDbFile().getPath()), 100, 1000);
             putGetOverlap(fab1.run(UtilsTest.tempDbFile().getPath()), StoreDirect.PAGE_SIZE - 500, 1000);
@@ -84,6 +87,7 @@ public class VolumeTest {
                 long_compatible(fab1.run(UtilsTest.tempDbFile().getPath()), fab2.run(UtilsTest.tempDbFile().getPath()));
                 long_six_compatible(fab1.run(UtilsTest.tempDbFile().getPath()), fab2.run(UtilsTest.tempDbFile().getPath()));
                 long_pack_bidi(fab1.run(UtilsTest.tempDbFile().getPath()), fab2.run(UtilsTest.tempDbFile().getPath()));
+                long_pack(fab1.run(UtilsTest.tempDbFile().getPath()), fab2.run(UtilsTest.tempDbFile().getPath()));
                 int_compatible(fab1.run(UtilsTest.tempDbFile().getPath()), fab2.run(UtilsTest.tempDbFile().getPath()));
                 byte_compatible(fab1.run(UtilsTest.tempDbFile().getPath()), fab2.run(UtilsTest.tempDbFile().getPath()));
                 unsignedShort_compatible(fab1.run(UtilsTest.tempDbFile().getPath()), fab2.run(UtilsTest.tempDbFile().getPath()));
@@ -143,7 +147,19 @@ public class VolumeTest {
             assertEquals(i | (size << 56), v.getLongPackBidi(10));
             assertEquals(i | (size << 56), v.getLongPackBidiReverse(10 + size));
         }
-        v.close();
+    }
+
+
+    void testPackLong(Volume v) throws Exception {
+        v.ensureAvailable(10000);
+
+        for (long i = 0; i < DataIO.PACK_LONG_RESULT_MASK; i = i + 1 + i / 1000) {
+            v.clear(0, 20);
+            long size = v.putPackedLong(10,i);
+            assertTrue(i > 100000 || size < 6);
+
+            assertEquals(i | (size << 60), v.getPackedLong(10));
+        }
     }
 
     void long_compatible(Volume v1, Volume v2) {
@@ -176,6 +192,23 @@ public class VolumeTest {
             v1.getData(7, b, 0, 8);
             v2.putData(7, b, 0, 8);
             assertEquals(i, v2.getLongPackBidi(7));
+        }
+
+        v1.close();
+        v2.close();
+    }
+
+    void long_pack(Volume v1, Volume v2) {
+        v1.ensureAvailable(21);
+        v2.ensureAvailable(20);
+        byte[] b = new byte[12];
+
+        for (long i = 0; i <DataIO.PACK_LONG_RESULT_MASK; i = i + 1 + i / 1000) {
+            long len = v1.putPackedLong(7, i);
+            v1.getData(7, b, 0, 12);
+            v2.putData(7, b, 0, 12);
+            assertTrue(len<=10);
+            assertEquals((len << 60) | i, v2.getPackedLong(7));
         }
 
         v1.close();

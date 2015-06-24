@@ -69,6 +69,23 @@ public final class DataIO {
         out.writeByte((byte) (value & 0x7F));
     }
 
+    /**
+     * Calculate how much bytes packed long consumes.
+     *
+     * @param value to calculate
+     * @return number of bytes used in packed form
+     */
+    public static int packLongSize(long value) {
+        int shift = 63-Long.numberOfLeadingZeros(value);
+        shift -= shift%7; // round down to nearest multiple of 7
+        int ret = 1;
+        while(shift!=0){
+            //TODO remove cycle, just count zeroes
+            shift-=7;
+            ret++;
+        }
+        return ret;
+    }
 
 
     /**
@@ -169,7 +186,7 @@ public final class DataIO {
         //TODO koloboke credit
     }
 
-    public static final long PACK_LONG_BIDI_MASK = 0xFFFFFFFFFFFFFFL;
+    public static final long PACK_LONG_RESULT_MASK = 0xFFFFFFFFFFFFFFL;
 
 
     public static int packLongBidi(DataOutput out, long value) throws IOException {

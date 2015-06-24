@@ -134,4 +134,21 @@ public class DataIOTest {
         byte[] b = new byte[]{11,112,11,0,39,90};
         assertTrue(Serializer.BYTE_ARRAY.equals(b, DataIO.fromHexa(DataIO.toHexa(b))));
     }
+
+    @Test public void packLong() throws IOException {
+        DataInputByteArray in = new DataInputByteArray(new byte[20]);
+        DataOutputByteArray out = new DataOutputByteArray();
+        out.buf = in.buf;
+        for (long i = 0; i >0; i = i + 1 + i / 10000) {
+            in.pos = 10;
+            out.pos = 10;
+
+            DataIO.packLong(out,i);
+            long i2 = DataIO.unpackLong(in);
+
+            assertEquals(i,i2);
+            assertEquals(in.pos,out.pos);
+        }
+
+    }
 }

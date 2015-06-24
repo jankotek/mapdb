@@ -432,7 +432,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         assertEquals(PAGE_SIZE, pageId);
         assertEquals(CHUNKSIZE, DataIO.parity4Get(e.vol.getLong(pageId))>>>48);
         assertEquals(0, DataIO.parity4Get(e.vol.getLong(pageId))&MOFFSET);
-        assertEquals(DataIO.parity1Set(111<<1), e.vol.getLongPackBidi(pageId + 8)&DataIO.PACK_LONG_BIDI_MASK);
+        assertEquals(DataIO.parity1Set(111<<1), e.vol.getLongPackBidi(pageId + 8)&DataIO.PACK_LONG_RESULT_MASK);
     }
 
     @Test public void long_stack_put_five() throws IOException {
@@ -460,7 +460,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         long offset = pageId + 8;
         for(int i=111;i<=115;i++){
             long val = e.vol.getLongPackBidi(offset);
-            assertEquals(i, DataIO.parity1Get(val & DataIO.PACK_LONG_BIDI_MASK)>>>1);
+            assertEquals(i, DataIO.parity1Get(val & DataIO.PACK_LONG_RESULT_MASK)>>>1);
             offset += val >>> 56;
         }
         assertEquals(currPageSize, offset-pageId);
@@ -541,7 +541,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         assertEquals(StoreDirect.CHUNKSIZE, e.vol.getLong(pageId)>>>48);
         for(long i=1000,pos=8;;i++){
             long val = e.vol.getLongPackBidi(pageId+pos);
-            assertEquals(i, DataIO.parity1Get(val&DataIO.PACK_LONG_BIDI_MASK)>>>1);
+            assertEquals(i, DataIO.parity1Get(val&DataIO.PACK_LONG_RESULT_MASK)>>>1);
             pos+=val>>>56;
             if(pos==actualChunkSize){
                 break;
@@ -565,7 +565,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         assertEquals(PAGE_SIZE, DataIO.parity4Get(e.vol.getLong(pageId)) & StoreDirect.MOFFSET); //prev link
         assertEquals(CHUNKSIZE, e.vol.getLong(pageId)>>>48); //cur page size
         //overflow value
-        assertEquals(11L, DataIO.parity1Get(e.vol.getLongPackBidi(pageId+8)&DataIO.PACK_LONG_BIDI_MASK)>>>1);
+        assertEquals(11L, DataIO.parity1Get(e.vol.getLongPackBidi(pageId+8)&DataIO.PACK_LONG_RESULT_MASK)>>>1);
 
         //remaining bytes should be zero
         for(long offset = pageId+8+2;offset<pageId+CHUNKSIZE;offset++){

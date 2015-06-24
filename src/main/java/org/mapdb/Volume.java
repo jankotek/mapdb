@@ -266,6 +266,46 @@ public abstract class Volume implements Closeable{
     }
 
 
+    /**
+     * Put packed long at given position.
+     *
+     * @param value to be written
+     * @return number of bytes consumed by packed value
+     */
+    public int putPackedLong(long pos, long value){
+        //$DELAY$
+        int ret = 0;
+        int shift = 63-Long.numberOfLeadingZeros(value);
+        shift -= shift%7; // round down to nearest multiple of 7
+        while(shift!=0){
+            putByte(pos + (ret++), (byte) (((value >>> shift) & 0x7F) | 0x80));
+            //$DELAY$
+            shift-=7;
+        }
+        putByte(pos+(ret++),(byte) (value & 0x7F));
+        return ret;
+    }
+
+
+
+    /**
+     * Unpack long value from the Volume. Highest 4 bits reused to indicate number of bytes read from Volume.
+     * One can use {@code result & DataIO.PACK_LONG_RESULT_MASK} to remove size;
+     *
+     * @param position to read value from
+     * @return The long value, minus highest byte
+     */
+    public long getPackedLong(long position){
+        long ret = 0;
+        long pos2 = 0;
+        byte v;
+        do{
+            v = getByte(position+(pos2++));
+            ret = (ret<<7 ) | (v & 0x7F);
+        }while(v<0);
+
+        return (pos2<<60) | ret;
+    }
 
 
     /** returns underlying file if it exists */

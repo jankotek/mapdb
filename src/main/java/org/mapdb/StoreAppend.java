@@ -20,6 +20,7 @@ public class StoreAppend extends Store {
     protected static final int I_DELETE = 2;
     protected static final int I_PREALLOC = 4;
     protected static final int I_SKIP_SINGLE_BYTE = 6;
+    protected static final int I_SKIP_MULTI_BYTE = 7;
 
     protected static final int I_TX_VALID = 8;
     protected static final int I_TX_ROLLBACK = 9;
@@ -30,6 +31,20 @@ public class StoreAppend extends Store {
 
 
     protected Volume vol;
+
+    /**
+     * In memory table which maps recids into their offsets. Positive values are offsets.
+     * Zero value indicates on-used records
+     * Negative values are:
+     * <pre>
+     *     -1 - records was deleted, return null
+     *     -2 - record has zero size
+     *     -3 - null record, return null
+     * </pre>
+     *
+     *
+     */
+    //TODO this is in-memory, move to temporary file or something
     protected Volume indexTable;
 
     //guarded by StructuralLock
@@ -144,7 +159,7 @@ public class StoreAppend extends Store {
             eof = headerSize;
             for (int i = 0; i <= RECID_LAST_RESERVED; i++) {
                 indexTable.ensureAvailable(i * 8);
-                indexTable.putLong(i * 8, -2);
+                indexTable.putLong(i * 8, -3);
             }
 
             if (vol.isEmpty()) {
@@ -161,7 +176,7 @@ public class StoreAppend extends Store {
         highestRecid.set(RECID_LAST_RESERVED);
         //TODO header  here
         long feat = makeFeaturesBitmap();
-        vol.putLong(HEAD_FEATURES,feat);
+        vol.putLong(HEAD_FEATURES, feat);
         vol.sync();
     }
 
@@ -181,35 +196,46 @@ public class StoreAppend extends Store {
                 lastValidPos = pos;
                 if(pos>=volumeSize)
                     break;
+                final long instPos = pos;
                 final int inst = vol.getUnsignedByte(pos++);
+
                 if (inst == I_INSERT || inst == I_UPDATE) {
 
-                    final long recid = vol.getSixLong(pos);
-                    pos += 6;
+                    long recid = vol.getPackedLong(pos);
+                    pos += recid>>>60;
+                    recid =  longParityGet(recid & DataIO.PACK_LONG_RESULT_MASK);
 
                     highestRecid2 = Math.max(highestRecid2, recid);
 
-                    commitData.put(recid, pos - 6 - 1);
+                    commitData.put(recid, instPos);
 
                     //skip rest of the record
-                    int size = vol.getInt(pos);
-                    pos = pos + 4 + size;
+                    long size = vol.getPackedLong(pos);
+                    long dataLen = longParityGet(size & DataIO.PACK_LONG_RESULT_MASK) - 1;
+                    dataLen = Math.max(0,dataLen);
+                    pos = pos + (size>>>60) + dataLen;
                 } else if (inst == I_DELETE) {
-                    final long recid = vol.getSixLong(pos);
-                    pos += 6;
+                    long recid = vol.getPackedLong(pos);
+                    pos += recid>>>60;
+                    recid =  longParityGet(recid & DataIO.PACK_LONG_RESULT_MASK);
 
                     highestRecid2 = Math.max(highestRecid2, recid);
 
                     commitData.put(recid, -1);
                 } else if (inst == I_DELETE) {
-                    final long recid = vol.getSixLong(pos);
-                    pos += 6;
-
+                    long recid = vol.getPackedLong(pos);
+                    pos += recid>>>60;
+                    recid =  longParityGet(recid & DataIO.PACK_LONG_RESULT_MASK);
                     highestRecid2 = Math.max(highestRecid2, recid);
-
                     commitData.put(recid,-2);
+
                 } else if (inst == I_SKIP_SINGLE_BYTE) {
                     //do nothing, just skip single byte
+                } else if (inst == I_SKIP_MULTI_BYTE) {
+                    //read size and skip it
+                    //skip rest of the record
+                    long size = vol.getPackedLong(pos);
+                    pos += (size>>>60) + longParityGet(size & DataIO.PACK_LONG_RESULT_MASK);
                 } else if (inst == I_TX_VALID) {
                     if (tx){
                         //apply changes from commitData to indexTable
@@ -227,7 +253,7 @@ public class StoreAppend extends Store {
                         commitData.clear();
                     }
                 } else if (inst == 0) {
-                    //rollback last changes if thats necessary
+                    //rollback last changes if that is necessary
                     if (tx) {
                         //rollback changes in index table since last valid tx
                         commitData.clear();
@@ -254,7 +280,6 @@ public class StoreAppend extends Store {
 
         highestRecid.set(highestRecid2);
     }
-
 
     protected long alloc(int headSize, int totalSize){
         structuralLock.lock();
@@ -286,43 +311,87 @@ public class StoreAppend extends Store {
                 throw new DBException.EngineGetVoid();
             }
         }
-        if(offset<0)
-            return null; //preallocated or deleted
+
+        if(offset==-3||offset==-1) //null, preallocated or deleted
+            return null;
         if(offset == 0){ //non existent
             throw new DBException.EngineGetVoid();
         }
+        if(offset == -2){
+            //zero size record
+            return deserialize(serializer,0,new DataIO.DataInputByteArray(new byte[0]));
+        }
+
+        final long packedRecidSize = DataIO.packLongSize(longParitySet(recid));
 
         if(CC.ASSERT){
             int instruction = vol.getUnsignedByte(offset);
 
             if(instruction!= I_UPDATE && instruction!= I_INSERT)
-                throw new RuntimeException("wrong instruction "+instruction); //TODO proper error
+                throw new AssertionError("wrong instruction "+instruction);
 
-            long recid2 = vol.getSixLong(offset+1);
+            long recid2 = vol.getPackedLong(offset+1);
+
+            if(packedRecidSize!=recid2>>>60)
+                throw new AssertionError("inconsistent recid len");
+
+            recid2 = longParityGet(recid2&DataIO.PACK_LONG_RESULT_MASK);
             if(recid!=recid2)
-                throw new RuntimeException("recid does not match"); //TODO proper error
+                throw new AssertionError("recid does not match");
         }
 
-        int size = vol.getInt(offset+1+6);
-        DataInput input = vol.getDataInputOverlap(offset+1+6+4,size);
-        return deserialize(serializer, size, input);
+        offset += 1 + //instruction size
+                packedRecidSize; // recid size
+
+
+        //read size
+        long size = vol.getPackedLong(offset);
+        offset+=size>>>60;
+        size = longParityGet(size & DataIO.PACK_LONG_RESULT_MASK);
+
+        size -= 1; //normalize size
+        if(CC.ASSERT && size<=0)
+            throw new AssertionError();
+
+        DataInput input = vol.getDataInputOverlap(offset, (int) size);
+        return deserialize(serializer, (int) size, input);
     }
 
     @Override
     protected void update2(long recid, DataIO.DataOutputByteArray out) {
+        insertOrUpdate(recid, out, false);
+    }
+
+    private void insertOrUpdate(long recid, DataIO.DataOutputByteArray out, boolean isInsert) {
         if(CC.ASSERT)
             assertWriteLocked(lockPos(recid));
-        int len = out==null? -1:out.pos;
-        long plus = 1+6+4+len;
-        long offset = alloc(1+6+4, (int) plus);
-        vol.ensureAvailable(offset+plus);
-        vol.putUnsignedByte(offset, I_UPDATE);
-        vol.putSixLong(offset + 1, recid);
-        vol.putInt(offset + 1 + 6, len);
-        if(len!=-1)
-            vol.putDataOverlap(offset+1+6+4, out.buf,0,out.pos);
 
-        indexTablePut(recid, len != -1 ? offset : -3);
+        //TODO assert indexTable state, record should already exist/not exist
+
+        final int realSize = out==null ? 0: out.pos;
+        final int shiftedSize = out==null ?0 : realSize+1;  //one additional state to indicate null
+        final int headSize = 1 +  //instruction
+                DataIO.packLongSize(longParitySet(recid)) + //recid
+                DataIO.packLongSize(longParitySet(shiftedSize));   //length
+
+        long offset = alloc(headSize, headSize+realSize);
+        final long origOffset = offset;
+        //ensure available worst case scenario
+        vol.ensureAvailable(offset+headSize+realSize);
+        //instruction
+        vol.putUnsignedByte(offset, isInsert ? I_INSERT : I_UPDATE);
+        offset++;
+        //recid
+        offset+=vol.putPackedLong(offset,longParitySet(recid));
+        //size
+        offset+=vol.putPackedLong(offset,longParitySet(shiftedSize));
+
+        if(realSize!=0)
+            vol.putDataOverlap(offset, out.buf,0,out.pos);
+
+        // -3 is null record
+        // -2 is zero size record
+        indexTablePut(recid, out==null? -3 : (realSize==0) ? -2:origOffset);
     }
 
     @Override
@@ -330,14 +399,15 @@ public class StoreAppend extends Store {
         if(CC.ASSERT)
             assertWriteLocked(lockPos(recid));
 
-        int plus = 1+6;
-        long offset = alloc(plus,plus);
+        final int headSize = 1 + DataIO.packLongSize(longParitySet(recid));
+        long offset = alloc(headSize,headSize);
+        vol.ensureAvailable(offset + headSize);
 
-        vol.ensureAvailable(offset + plus);
         vol.putUnsignedByte(offset, I_DELETE); //delete instruction
-        vol.putSixLong(offset+1, recid);
+        offset++;
+        vol.putPackedLong(offset,longParitySet(recid));
 
-        indexTablePut(recid, -1);
+        indexTablePut(recid, -1); // -1 is deleted record
     }
 
     @Override
@@ -356,14 +426,15 @@ public class StoreAppend extends Store {
         Lock lock = locks[lockPos(recid)].writeLock();
         lock.lock();
         try{
-            int plus = 1+6;
-            long offset = alloc(plus,plus);
-            vol.ensureAvailable(offset + plus);
+            final int headSize = 1 + DataIO.packLongSize(longParitySet(recid));
+            long offset = alloc(headSize,headSize);
+            vol.ensureAvailable(offset + headSize);
 
             vol.putUnsignedByte(offset, I_PREALLOC);
-            vol.putSixLong(offset + 1, recid);
+            offset++;
+            vol.putPackedLong(offset, longParitySet(recid));
 
-            indexTablePut(recid,-2);
+            indexTablePut(recid,-3);
         }finally {
             lock.unlock();
         }
@@ -392,15 +463,8 @@ public class StoreAppend extends Store {
             if(cache!=null) {
                 cache.put(recid, value);
             }
-            long plus = 1+6+4+out.pos;
-            long offset = alloc(1+6+4, (int) plus);
-            vol.ensureAvailable(offset+plus);
-            vol.putUnsignedByte(offset, I_INSERT);
-            vol.putSixLong(offset+1,recid);
-            vol.putInt(offset+1+6, out.pos);
-            vol.putDataOverlap(offset+1+6+4, out.buf,0,out.pos);
 
-            indexTablePut(recid,offset);
+            insertOrUpdate(recid,out,true);
         }finally {
             lock.unlock();
         }
