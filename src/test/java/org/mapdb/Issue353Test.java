@@ -17,7 +17,7 @@ public class Issue353Test {
     private ConcurrentMap <byte[], byte[]> map;
     private DB db;
     private Random random = new Random();
-    private static final int ITERATIONS = 40000;
+    private static final int ITERATIONS = 40000*UtilsTest.scale();
 
     @Before
     public void setupDb() {

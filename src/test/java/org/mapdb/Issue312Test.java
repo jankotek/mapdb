@@ -10,6 +10,9 @@ public class Issue312Test {
 
     @Test
     public void test() throws IOException{
+        if(UtilsTest.scale()==0)
+            return;
+
         File f = File.createTempFile("mapdb","test");
         DB db = DBMaker.fileDB(f)
                 .mmapFileEnableIfSupported()

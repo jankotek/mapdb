@@ -25,7 +25,7 @@ public class Issue132Test {
     @Test(timeout=50000)
     public  void test_full() {
         long id= 0;
-        for(int count = 0; count < 50; count++) {
+        for(int count = 0; count < UtilsTest.scale()*50; count++) {
 
 
             DB db = DBMaker.memoryDB()

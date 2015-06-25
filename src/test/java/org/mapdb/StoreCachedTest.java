@@ -11,7 +11,8 @@ import java.util.concurrent.locks.LockSupport;
 import static org.junit.Assert.*;
 
 @SuppressWarnings({"rawtypes","unchecked"})
-public class StoreCachedTest<E extends StoreCached> extends StoreDirectTest<E>{
+public class
+        StoreCachedTest<E extends StoreCached> extends StoreDirectTest<E>{
 
     @Override boolean canRollback(){return false;}
 
@@ -46,6 +47,8 @@ public class StoreCachedTest<E extends StoreCached> extends StoreDirectTest<E>{
 
     @Test(timeout = 100000)
     public void flush_write_cache(){
+        if(UtilsTest.scale()==0)
+            return;
         for(ScheduledExecutorService E:
                 new ScheduledExecutorService[]{
                         null,

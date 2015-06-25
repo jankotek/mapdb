@@ -398,6 +398,8 @@ public class DBMakerTest{
     }
 
     @Test public void executor() throws InterruptedException {
+        if(UtilsTest.scale()==0)
+            return;
         final DB db = DBMaker.heapDB().executorEnable().make();
         assertNotNull(db.executor);
         assertFalse(db.executor.isTerminated());

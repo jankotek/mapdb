@@ -287,17 +287,18 @@ public class BTreeMapTest{
     }
 
     @Test public void issue_38(){
+        int max = 50000*UtilsTest.scale();
         Map<Integer, String[]> map = DBMaker
                 .memoryDB().transactionDisable()
                 .make().treeMap("test");
 
-        for (int i = 0; i < 50000; i++) {
+        for (int i = 0; i < max; i++) {
             map.put(i, new String[5]);
 
         }
 
 
-        for (int i = 0; i < 50000; i=i+1000) {
+        for (int i = 0; i < max; i=i+1000) {
             assertArrayEquals(new String[5], map.get(i));
             assertTrue(map.get(i).toString().contains("[Ljava.lang.String"));
         }
@@ -431,7 +432,7 @@ public class BTreeMapTest{
         final BTreeMap m = db.treeMap("name");
 
         //fill
-        final int c = 1000000;
+        final int c = 1000000*UtilsTest.scale();
         for(int i=0;i<=c;i++){
             m.put(i,i);
         }
@@ -455,7 +456,7 @@ public class BTreeMapTest{
         final BTreeMap m = db.treeMap("name");
 
         //fill
-        final int c = 1000000;
+        final int c = 1000000*UtilsTest.scale();
         for(int i=0;i<=c;i++){
             m.put(i,i);
         }
@@ -609,7 +610,7 @@ public class BTreeMapTest{
                 .valueSerializer(Serializer.INTEGER)
                 .make();
 
-        int max =100000;
+        int max =100000*UtilsTest.scale();
 
         for(int i=0;i<max*10;i++){
             map.put(r.nextInt(max),r.nextInt());

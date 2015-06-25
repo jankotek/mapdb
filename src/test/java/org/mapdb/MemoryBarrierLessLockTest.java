@@ -26,7 +26,7 @@ public class MemoryBarrierLessLockTest {
         Exec.execNTimes(10, new Callable() {
             @Override
             public Object call() throws Exception {
-                for(int i=0;i<1000000;i++){
+                for(int i=0;i<1000000*UtilsTest.scale();i++){
                     lock.lock();
                     long c = counter.get();
                     counter.set(c+1);
@@ -36,7 +36,7 @@ public class MemoryBarrierLessLockTest {
             };
         });
 
-        assertEquals(10L*1000000,counter.get());
+        assertEquals(10L*1000000*UtilsTest.scale(),counter.get());
     }
 
     @Test(expected=IllegalMonitorStateException.class)

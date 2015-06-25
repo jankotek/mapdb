@@ -13,6 +13,7 @@ import static org.junit.Assert.assertEquals;
 
 public class Issue258Test {
 
+    int max = UtilsTest.scale()*100000;
 
     @Test
     public void test() throws IOException {
@@ -38,7 +39,7 @@ public class Issue258Test {
         }
         map.clear();
 
-        for (int k=0; k < 100000; k++)
+        for (int k=0; k < max; k++)
         {
 
             String cmd = "iasdkaokdas"+i;
@@ -77,7 +78,7 @@ public class Issue258Test {
             }
             map.clear();
 
-            for (int k=0; k < 100000; k++)
+            for (int k=0; k < max; k++)
             {
 
                 String cmd = "iasdkaokdas"+i;
@@ -117,7 +118,7 @@ public class Issue258Test {
                 .makeEngine();
 
         Map<Long,Integer> m = new HashMap();
-        for(int i=0;i<1e6;i++){
+        for(int i=0;i<max;i++){
             long recid = e.put(i,Serializer.INTEGER);
             m.put(recid,i);
         }

@@ -396,6 +396,8 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     }
 
     @Test public void test_large_long_stack_no_commit() throws IOException {
+        if(UtilsTest.scale()==0)
+            return;
         e = openEngine();
         //dirty hack to make sure we have lock
         e.structuralLock.lock();
@@ -700,6 +702,9 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
 
     @Test public void compact_keeps_volume_type(){
+        if(UtilsTest.scale()==0)
+            return;
+
         for(final Fun.Function1<Volume,String> fab : VolumeTest.VOL_FABS){
             Volume.VolumeFactory fac = new Volume.VolumeFactory() {
                 @Override

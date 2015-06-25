@@ -32,7 +32,7 @@ public class Issue418Test {
 
 
 
-            for (int i = 0; i < 1000; i++)
+            for (int i = 0; i < UtilsTest.scale()*10000; i++)
                     map.put("foo" + i, "bar" + i);
 
 
@@ -50,7 +50,7 @@ public class Issue418Test {
             final DB db = DBMaker.fileDB(tmp).transactionDisable().make();
             final Set<Object> map = db.hashSetCreate("foo").expireMaxSize(100).makeOrGet();
 
-            for (int i = 0; i < 1000; i++)
+            for (int i = 0; i < UtilsTest.scale()*10000; i++)
                 map.add("foo" + i);
 
             db.commit();

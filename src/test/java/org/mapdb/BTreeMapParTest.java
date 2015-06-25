@@ -10,11 +10,14 @@ import static org.junit.Assert.assertEquals;
 public class BTreeMapParTest {
 
 
-    final int threadNum = 6;
-    final int max = (int) 1e6;
+    int scale = UtilsTest.scale();
+    final int threadNum = 6*scale;
+    final int max = (int) 1e6*scale;
 
     @Test
     public void parInsert() throws InterruptedException {
+        if(scale==0)
+            return;
 
 
         final ConcurrentMap m = DBMaker.memoryDB().transactionDisable().make()

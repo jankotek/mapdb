@@ -974,7 +974,9 @@ public class BTreeMapTest6 extends JSR166TestCase {
      * Submaps of submaps subdivide correctly
      */
     public void testRecursiveSubMaps() throws Exception {
-        int mapSize = expensiveTests ? 1000 : 100;
+        int mapSize = UtilsTest.scale()*1000;
+        if(mapSize==0)
+            return;
         //Class cl = ConcurrentSkipListMap.class;
         NavigableMap<Integer, Integer> map = // newMap(cl);
                 newEmptyMap();

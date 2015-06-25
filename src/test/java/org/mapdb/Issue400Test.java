@@ -9,8 +9,11 @@ import static org.junit.Assert.assertEquals;
 
 public class Issue400Test {
 
+
     @Test
     public void expire_maxSize_with_TTL() throws InterruptedException {
+        if(UtilsTest.scale()==0)
+            return;
         File f = UtilsTest.tempDbFile();
         for (int o = 0; o < 2; o++) {
             final DB db = DBMaker.fileDB(f).transactionDisable().make();
@@ -33,6 +36,9 @@ public class Issue400Test {
 
     @Test(timeout = 200000)
     public void expire_maxSize_with_TTL_short() throws InterruptedException {
+        if(UtilsTest.scale()==0)
+            return;
+
         File f = UtilsTest.tempDbFile();
         for (int o = 0; o < 2; o++) {
             final DB db = DBMaker.fileDB(f).transactionDisable().make();
@@ -57,6 +63,9 @@ public class Issue400Test {
 
     @Test(timeout = 600000)
     public void expire_maxSize_with_TTL_get() throws InterruptedException {
+        if(UtilsTest.scale()==0)
+            return;
+
         File f = UtilsTest.tempDbFile();
         for (int o = 0; o < 2; o++) {
             final DB db = DBMaker.fileDB(f).transactionDisable().make();

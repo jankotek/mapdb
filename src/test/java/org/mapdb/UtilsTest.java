@@ -17,6 +17,27 @@ import static org.junit.Assert.assertTrue;
 
 public class UtilsTest {
 
+    private static int SCALE;
+    static{
+        String prop = System.getProperty("mdbtest");
+        try {
+            SCALE = prop==null?0:Integer.valueOf(prop);
+        }catch(NumberFormatException e){
+            SCALE = 0;
+        }
+
+    }
+
+    /** how many hours should unit tests run? Controlled by:
+     *
+     * {@code mvn test -Dmdbtest=2}
+     *
+     * @return test scale
+     */
+    public static int scale() {
+        return SCALE;
+    }
+
 
     @Test public void testPackInt() throws Exception {
 
@@ -91,7 +112,7 @@ public class UtilsTest {
     public static <E> E clone(E value, Serializer<E> serializer){
         try{
             DataIO.DataOutputByteArray out = new DataIO.DataOutputByteArray();
-            serializer.serialize(out,value);
+            serializer.serialize(out, value);
             DataIO.DataInputByteBuffer in = new DataIO.DataInputByteBuffer(ByteBuffer.wrap(out.copyBytes()), 0);
 
             return serializer.deserialize(in,out.pos);
@@ -178,4 +199,5 @@ public class UtilsTest {
         }
         return -1;
     }
+
 }

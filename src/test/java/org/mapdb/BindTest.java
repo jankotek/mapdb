@@ -133,11 +133,13 @@ public class BindTest {
     }
 
     @Test public void htreemap_listeners(){
-        mapListeners(DBMaker.memoryDB().transactionDisable().make().hashMap("test"));
+        mapListeners(DBMaker.memoryDB().transactionDisable().make().
+                hashMapCreate("test").keySerializer(Serializer.INTEGER).valueSerializer(Serializer.INTEGER).make());
     }
 
     @Test public void btreemap_listeners(){
-        mapListeners(DBMaker.memoryDB().transactionDisable().make().treeMap("test"));
+        mapListeners(DBMaker.memoryDB().transactionDisable().make().
+                treeMapCreate("test").keySerializer(Serializer.INTEGER).valueSerializer(Serializer.INTEGER).make());
     }
 
 
@@ -155,7 +157,7 @@ public class BindTest {
             }
         });
 
-        int max = (int) 1e6;
+        int max = (int) Math.min(100,Math.max(1e8,Math.pow(4,UtilsTest.scale())));
         Random r = new Random();
         for(int i=0;i<max;i++){
             Integer k = r.nextInt(max/100);
@@ -185,7 +187,7 @@ public class BindTest {
                 assertEquals(i*20, rnewVal.get());
                 assertEquals(v, roldVal.get());
             }else if(m==3&& !test.containsKey(i+1)){
-                ((ConcurrentMap)test).putIfAbsent(i+1,i+2);
+                test.putIfAbsent(i + 1, i + 2);
                 assertEquals(i+1, rkey.get());
                 assertEquals(i+2, rnewVal.get());
                 assertEquals(null, roldVal.get());

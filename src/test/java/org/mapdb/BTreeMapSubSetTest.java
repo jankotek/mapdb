@@ -39,7 +39,7 @@ public class BTreeMapSubSetTest extends JSR166TestCase {
 
     protected <E> NavigableSet<E> newNavigableSet() {
         return DBMaker.memoryDB().transactionDisable()
-                .make().treeSet("test");
+                .make().treeSetCreate("test").serializer(Serializer.INTEGER).make();
     }
 
     /*
@@ -364,7 +364,7 @@ public class BTreeMapSubSetTest extends JSR166TestCase {
         NavigableSet q = populatedSet(SIZE);
         Object[] o = q.toArray();
         for (int i = 0; i < o.length; i++)
-            assertSame(o[i], q.pollFirst());
+            assertEquals(o[i], q.pollFirst());
     }
 
     /*
@@ -376,7 +376,7 @@ public class BTreeMapSubSetTest extends JSR166TestCase {
         Integer[] array = q.toArray(ints);
         assertSame(ints, array);
         for (int i = 0; i < ints.length; i++)
-            assertSame(ints[i], q.pollFirst());
+            assertEquals(ints[i], q.pollFirst());
     }
 
     /*

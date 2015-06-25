@@ -136,16 +136,17 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
 
     @Test public void compact2(){
+        long max = UtilsTest.scale()*10000;
         e = openEngine();
         Map<Long,Long> recids = new HashMap<Long, Long>();
-        for(Long l=0L;l<1000;l++){
+        for(Long l=0L;l<max;l++){
             recids.put(l,
                     e.put(l, Serializer.LONG));
         }
 
         e.commit();
         e.compact();
-        for(Long l=1000L;l<2000;l++){
+        for(Long l=max;l<max*2;l++){
             recids.put(l, e.put(l, Serializer.LONG));
         }
 
@@ -448,10 +449,13 @@ public abstract class EngineTest<ENGINE extends Engine>{
         e.close();
     }
 
-    @Test(timeout = 1000*100)
+    @Test(timeout = 1000*1000)
     public void par_update_get() throws InterruptedException {
-        int threadNum = 8;
-        final long end = System.currentTimeMillis()+5000;
+        int scale = UtilsTest.scale();
+        if(scale==0)
+            return;
+        int threadNum = Math.min(4,scale*4);
+        final long end = System.currentTimeMillis()+scale*10*60*1000;
         e = openEngine();
         final BlockingQueue<Fun.Pair<Long,byte[]>> q = new ArrayBlockingQueue(threadNum*10);
         for(int i=0;i<threadNum;i++){
@@ -486,10 +490,13 @@ public abstract class EngineTest<ENGINE extends Engine>{
     }
 
 
-    @Test(timeout = 1000*100)
+    @Test
     public void par_cas() throws InterruptedException {
-        int threadNum = 8;
-        final long end = System.currentTimeMillis()+5000;
+        int scale = UtilsTest.scale();
+        if(scale==0)
+            return;
+        int threadNum = 8*scale;
+        final long end = System.currentTimeMillis()+50000*scale;
         e = openEngine();
         final BlockingQueue<Fun.Pair<Long,byte[]>> q = new ArrayBlockingQueue(threadNum*10);
         for(int i=0;i<threadNum;i++){

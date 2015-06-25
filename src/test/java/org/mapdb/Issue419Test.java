@@ -12,6 +12,8 @@ import static org.junit.Assert.assertTrue;
 
 public class Issue419Test {
 
+    int max = 100+UtilsTest.scale()*100000;
+
     @Test public void isolate(){
 
         File f = UtilsTest.tempDbFile();
@@ -19,11 +21,11 @@ public class Issue419Test {
                 .closeOnJvmShutdown().transactionDisable().make();
 
         Set set = db.hashSetCreate("set").expireAfterAccess(30, TimeUnit.DAYS).make();
-        for (int i = 0; i < 10000; i++)
+        for (int i = 0; i < max; i++)
             set.add(i);
 
         assertTrue(set.contains(1));
-        assertEquals(10000, set.size());
+        assertEquals(max, set.size());
 
         db.close();
 
@@ -31,11 +33,11 @@ public class Issue419Test {
                 .closeOnJvmShutdown().transactionDisable().make();
 
         set = db.hashSet("set");
-        for (int i = 0; i < 10000; i++)
+        for (int i = 0; i < max; i++)
             set.add(i);
 
         assertTrue(set.contains(1));
-        assertEquals(10000, set.size());
+        assertEquals(max, set.size());
 
         db.close();
     }
@@ -47,11 +49,11 @@ public class Issue419Test {
                 .closeOnJvmShutdown().transactionDisable().make();
 
         Map set = db.hashMapCreate("set").expireAfterAccess(30, TimeUnit.DAYS).make();
-        for (int i = 0; i < 10000; i++)
+        for (int i = 0; i < max; i++)
             set.put(i, "");
 
         assertTrue(set.containsKey(1));
-        assertEquals(10000, set.size());
+        assertEquals(max, set.size());
 
         db.close();
 
@@ -59,11 +61,11 @@ public class Issue419Test {
                 .closeOnJvmShutdown().transactionDisable().make();
 
         set = db.hashMap("set");
-        for (int i = 0; i < 10000; i++)
+        for (int i = 0; i < max; i++)
             set.put(i,"");
 
         assertTrue(set.containsKey(1));
-        assertEquals(10000, set.size());
+        assertEquals(max, set.size());
 
         db.close();
     }

@@ -182,6 +182,8 @@ public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
     }
 
     void compact_tx_works(final boolean rollbacks, final boolean pre) throws InterruptedException {
+        if(UtilsTest.scale()==0)
+            return;
         e = openEngine();
         Map<Long,String> m = fill(e);
         e.commit();

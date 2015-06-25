@@ -398,9 +398,10 @@ public class PumpTest {
 
 
     @Test public void uuid_reversed(){
+        int max = UtilsTest.scale()*10000+100;
         List<UUID> u = new ArrayList<UUID>();
         Random r = new Random();
-        for(int i=0;i<1e6;i++) u.add(new UUID(r.nextLong(),r.nextLong()));
+        for(int i=0;i<max;i++) u.add(new UUID(r.nextLong(),r.nextLong()));
         Set<UUID> sorted = new TreeSet<UUID>(Collections.reverseOrder(Fun.COMPARATOR));
         sorted.addAll(u);
 
@@ -490,6 +491,8 @@ public class PumpTest {
 
 
     @Test public void sorted(){
+        if(UtilsTest.scale()==0)
+            return;
 
         DB db = DBMaker.memoryDB()
                 .transactionDisable()

@@ -23,7 +23,7 @@ public class BTreeSet3Test extends JSR166TestCase {
      */
     private NavigableSet<Integer> populatedSet(int n) {
         NavigableSet<Integer> q =
-                DBMaker.memoryDB().transactionDisable().make().treeSet("test");
+                DBMaker.memoryDB().transactionDisable().make().treeSetCreate("test").serializer(Serializer.INTEGER).make();
         assertTrue(q.isEmpty());
 
         for (int i = n-1; i >= 0; i-=2)
@@ -42,7 +42,8 @@ public class BTreeSet3Test extends JSR166TestCase {
      * Returns a new set of first 5 ints.
      */
     private NavigableSet set5() {
-        NavigableSet q = DBMaker.memoryDB().transactionDisable().make().treeSet("test");
+        NavigableSet q =
+                DBMaker.memoryDB().transactionDisable().make().treeSetCreate("test").serializer(Serializer.INTEGER).make();
         assertTrue(q.isEmpty());
         q.add(one);
         q.add(two);
@@ -73,13 +74,15 @@ public class BTreeSet3Test extends JSR166TestCase {
     }
 
     private static NavigableSet set0() {
-        NavigableSet set = DBMaker.memoryDB().transactionDisable().make().treeSet("test");
+        NavigableSet set =
+                DBMaker.memoryDB().transactionDisable().make().treeSetCreate("test").serializer(Serializer.INTEGER).make();
         assertTrue(set.isEmpty());
         return set.tailSet(m1, true);
     }
 
     private static NavigableSet dset0() {
-        NavigableSet set = DBMaker.memoryDB().transactionDisable().make().treeSet("test");
+        NavigableSet set =
+                DBMaker.memoryDB().transactionDisable().make().treeSetCreate("test").serializer(Serializer.INTEGER).make();
         assertTrue(set.isEmpty());
         return set;
     }
@@ -400,7 +403,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         NavigableSet q = populatedSet(SIZE);
         Object[] o = q.toArray();
         for (int i = 0; i < o.length; i++)
-            assertSame(o[i], q.pollFirst());
+            assertEquals(o[i], q.pollFirst());
     }
 
     /*
@@ -412,7 +415,7 @@ public class BTreeSet3Test extends JSR166TestCase {
         Integer[] array = q.toArray(ints);
         assertSame(ints, array);
         for (int i = 0; i < ints.length; i++)
-            assertSame(ints[i], q.pollFirst());
+            assertEquals(ints[i], q.pollFirst());
     }
 
     /*

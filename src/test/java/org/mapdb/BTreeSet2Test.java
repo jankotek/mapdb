@@ -660,13 +660,14 @@ public class BTreeSet2Test extends JSR166TestCase {
 
     Random rnd = new Random(666);
 
-    final boolean expensiveTests = true;
 
     /*
      * Subsets of subsets subdivide correctly
      */
     public void testRecursiveSubSets() throws Exception {
-        int setSize = expensiveTests ? 1000 : 100;
+        int setSize = UtilsTest.scale()*1000;
+        if(setSize==0)
+            return;
         Class cl = NavigableSet.class;
 
         NavigableSet<Integer> set = newSet(cl);

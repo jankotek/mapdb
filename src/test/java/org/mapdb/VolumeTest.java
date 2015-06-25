@@ -12,6 +12,9 @@ import static org.junit.Assert.*;
 
 public class VolumeTest {
 
+    int scale = UtilsTest.scale();
+    long sub = (long) Math.pow(10,5+scale);
+
     public static final Fun.Function1<Volume,String>[] VOL_FABS = new Fun.Function1[] {
 
                     new Fun.Function1<Volume,String>() {
@@ -66,6 +69,8 @@ public class VolumeTest {
 
     @Test
     public void all() throws Throwable {
+        if(scale == 0)
+            return;
         System.out.println("Run volume tests. Free space: "+File.createTempFile("mapdb","mapdb").getFreeSpace());
 
 
@@ -139,7 +144,7 @@ public class VolumeTest {
         v.ensureAvailable(10000);
 
         long max = (long) 1e14;
-        for (long i = 0; i < max; i = i + 1 + i / 1000) {
+        for (long i = 0; i < max; i = i + 1 + i / sub) {
             v.clear(0, 20);
             long size = v.putLongPackBidi(10, i);
             assertTrue(i > 100000 || size < 6);
@@ -203,7 +208,7 @@ public class VolumeTest {
         v2.ensureAvailable(20);
         byte[] b = new byte[12];
 
-        for (long i = 0; i <DataIO.PACK_LONG_RESULT_MASK; i = i + 1 + i / 1000) {
+        for (long i = 0; i <DataIO.PACK_LONG_RESULT_MASK; i = i + 1 + i / sub) {
             long len = v1.putPackedLong(7, i);
             v1.getData(7, b, 0, 12);
             v2.putData(7, b, 0, 12);
@@ -221,7 +226,7 @@ public class VolumeTest {
         v2.ensureAvailable(16);
         byte[] b = new byte[9];
 
-        for (long i = 0; i >> 48 == 0; i = i + 1 + i / 1000) {
+        for (long i = 0; i >> 48 == 0; i = i + 1 + i / sub) {
             v1.putSixLong(7, i);
             v1.getData(7, b, 0, 8);
             v2.putData(7, b, 0, 8);

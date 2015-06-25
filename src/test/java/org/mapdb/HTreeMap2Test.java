@@ -477,6 +477,9 @@ public class HTreeMap2Test {
 
     @Test (timeout = 20000)
     public void cache_load_time_expire(){
+        if(UtilsTest.scale()==0)
+            return;
+
         DB db =
                 DBMaker.memoryDB()
                         .transactionDisable()
@@ -496,6 +499,9 @@ public class HTreeMap2Test {
 
     @Test(timeout = 20000)
     public void cache_load_size_expire(){
+        if(UtilsTest.scale()==0)
+            return;
+
         DB db = DBMaker.memoryDB()
                 .transactionDisable()
                 .make();
@@ -615,6 +621,8 @@ public class HTreeMap2Test {
     */
     @Test (timeout=100000)
     public void expireAfterWrite() throws InterruptedException {
+        if(UtilsTest.scale()==0)
+            return;
         //NOTE this test has race condition and may fail under heavy load.
         //TODO increase timeout and move into integration tests.
 
@@ -695,10 +703,12 @@ public class HTreeMap2Test {
     }
 
     @Test public void pump(){
+        int max = 100+UtilsTest.scale()*1000000;
+
         DB db = DBMaker.memoryDB().transactionDisable().make();
         Set<Long> s = new HashSet();
 
-        for(long i=0;i<1e6;i++){
+        for(long i=0;i<max;i++){
             s.add(i);
         }
 
@@ -725,8 +735,8 @@ public class HTreeMap2Test {
     @Test public void pump_duplicates(){
         DB db = DBMaker.memoryDB().transactionDisable().make();
         List<Long> s = new ArrayList();
-
-        for(long i=0;i<1e6;i++){
+        int max = (int) (UtilsTest.scale()*1e6);
+        for(long i=0;i<max;i++){
             s.add(i);
         }
 
@@ -787,7 +797,8 @@ public class HTreeMap2Test {
         DB db = DBMaker.memoryDB().transactionDisable().make();
         Set<Long> s = new HashSet();
 
-        for(long i=0;i<1e6;i++){
+        int max = 100+(int) (1e6*UtilsTest.scale());
+        for(long i=0;i<max;i++){
             s.add(i);
         }
 
@@ -804,8 +815,8 @@ public class HTreeMap2Test {
     @Test public void pumpset_duplicates() {
         DB db = DBMaker.memoryDB().transactionDisable().make();
         List<Long> s = new ArrayList();
-
-        for (long i = 0; i < 1e6; i++) {
+        int max = 100+(int) (1e6*UtilsTest.scale());
+        for (long i = 0; i < max; i++) {
             s.add(i);
         }
 
@@ -825,10 +836,11 @@ public class HTreeMap2Test {
 
     @Test(expected = IllegalArgumentException.class) //TODO better exception here
     public void pumpset_duplicates_fail(){
+        int max = 100+UtilsTest.scale()*1000000;
         DB db = DBMaker.memoryDB().transactionDisable().make();
         List<Long> s = new ArrayList();
 
-        for(long i=0;i<1e6;i++){
+        for(long i=0;i<max;i++){
             s.add(i);
         }
 
@@ -913,6 +925,9 @@ public class HTreeMap2Test {
     }
 
     @Test public void dir_put_long(){
+        if(UtilsTest.scale()==0)
+            return;
+
         for(int a=0;a<100;a++) {
             long[] reference = new long[127];
             Object dir = new int[4];
@@ -949,6 +964,8 @@ public class HTreeMap2Test {
     }
 
     @Test public void dir_put_int(){
+        if(UtilsTest.scale()==0)
+            return;
         for(int a=0;a<100;a++) {
             long[] reference = new long[127];
             Object dir = new int[4];
@@ -987,6 +1004,8 @@ public class HTreeMap2Test {
 
     @Test (timeout=20000L)
     public void expiration_notification() throws InterruptedException {
+        if(UtilsTest.scale()==0)
+            return;
         DB db = DBMaker.memoryDB()
                 .transactionDisable()
                 .make();
@@ -1025,6 +1044,8 @@ public class HTreeMap2Test {
 
     @Test (timeout=20000L)
     public void expiration_overflow() throws InterruptedException {
+        if(UtilsTest.scale()==0)
+            return;
         DB db = DBMaker.memoryDB()
                 .transactionDisable()
                 .make();

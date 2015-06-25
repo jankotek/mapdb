@@ -59,18 +59,21 @@ public class TxMakerTest{
 
     }
 
-    @Test(timeout = 60000)
+    @Test
     public void concurrent_tx() throws Throwable {
-        final int threads = 10;
-        final int items = 1000;
+        int scale = UtilsTest.scale();
+        if(scale==0)
+            return;
+        final int threads = scale*4;
+        final long items = 100000*scale;
         final AtomicInteger ii = new AtomicInteger();
         final Collection s = new ConcurrentSkipListSet();
         Exec.execNTimes(threads, new Callable() {
             @Override
             public Object call() throws Exception {
-                final int t = ii.incrementAndGet() * items * 10000;
-                for (int index = t; index < t + items; index++) {
-                    final int temp = index;
+                final long t = ii.incrementAndGet() * items * 10000;
+                for (long index = t; index < t + items; index++) {
+                    final long temp = index;
                     s.add(temp);
                     tx.execute(new TxBlock() {
 
@@ -129,10 +132,13 @@ public class TxMakerTest{
 
 
 
-    @Test//(timeout = 60000)
+    @Test
     public void increment() throws Throwable {
-        final int threads = 10;
-        final int items = 1000;
+        int scale = UtilsTest.scale();
+        if(scale==0)
+            return;
+        final int threads = scale*4;
+        final long items = 100000*scale;
         DB db = tx.makeTx();
         final long recid = db.getEngine().put(1L,Serializer.LONG);
         db.commit();
@@ -172,10 +178,13 @@ public class TxMakerTest{
     }
 
 
-    @Test(timeout = 60000)
+    @Test
     public void cas() throws Throwable {
-        final int threads = 10;
-        final int items = 1000;
+        int scale = UtilsTest.scale();
+        if(scale==0)
+            return;
+        final int threads = scale*4;
+        final long items = 100000*scale;
         DB db = tx.makeTx();
         final long recid = db.getEngine().put(1L,Serializer.LONG);
         db.commit();
