@@ -708,7 +708,7 @@ public class SerializerBaseTest{
 
     @Test public void object_stack_map() throws IOException {
         for(Map c : Arrays.asList(new HashMap(), new LinkedHashMap(), new TreeMap(), new Properties())){
-            c.put(one,c);
+            c.put(one, c);
             c.put(two,one);
             c = clone(c);
             assertTrue(c.get(one)==c);
@@ -733,6 +733,13 @@ public class SerializerBaseTest{
                 continue;
             assertTrue(o==clone(o));
         }
+    }
+
+    @Test public void db_object(){
+        DB db = DBMaker.memoryDB().transactionDisable().make();
+        Atomic.Var v = db.atomicVar("aa");
+        v.set(db);
+        assertEquals(db,v.get());
     }
 
 }

@@ -136,6 +136,8 @@ public class DB implements Closeable {
                 new Fun.Function1<String, Object>() {
                     @Override
                     public String run(Object o) {
+                        if(o==DB.this)
+                            return "$$DB_OBJECT_Q!#!@#!#@9009a09sd";
                         return getNameForObject(o);
                     }
                 },
@@ -143,7 +145,10 @@ public class DB implements Closeable {
                 new Fun.Function1<Object, String>() {
                     @Override
                     public Object run(String name) {
-                        return get(name);
+                        Object ret = get(name);
+                        if(ret == null && "$$DB_OBJECT_Q!#!@#!#@9009a09sd".equals(name))
+                            return DB.this;
+                        return ret;
                     }
                 },
                 //load class catalog
