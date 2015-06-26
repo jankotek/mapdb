@@ -7,7 +7,7 @@ abstract public class JSR166TestCase extends TestCase {
     /*
      * The number of elements to place in collections, arrays, etc.
      */
-    public static final int SIZE = Math.max(20,UtilsTest.scale()*10000);
+    public static final int SIZE = 20+UtilsTest.scale()*100;
 
 
 

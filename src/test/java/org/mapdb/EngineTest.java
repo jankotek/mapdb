@@ -449,7 +449,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
         e.close();
     }
 
-    @Test(timeout = 1000*1000)
+    @Test
     public void par_update_get() throws InterruptedException {
         int scale = UtilsTest.scale();
         if(scale==0)
