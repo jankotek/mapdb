@@ -160,7 +160,7 @@ public class StoreDirect extends Store {
         int i=1;
         for(;indexPage!=0;i++){
             if(CC.ASSERT && indexPage%PAGE_SIZE!=0)
-                throw new AssertionError();
+                throw new DBException.DataCorruption();
             if(ip.length==i){
                 ip = Arrays.copyOf(ip, ip.length * 4);
             }
@@ -296,14 +296,14 @@ public class StoreDirect extends Store {
             int plus = (i == offsets.length - 1)?0:8;
             long size = (offsets[i] >>> 48) - plus;
             if(CC.ASSERT && (size&0xFFFF)!=size)
-                throw new AssertionError("size mismatch");
+                throw new DBException.DataCorruption("size mismatch");
             long offset = offsets[i] & MOFFSET;
             //System.out.println("GET "+(offset + plus)+ " - "+size+" - "+bpos);
             vol.getData(offset + plus, b, bpos, (int) size);
             bpos += size;
         }
         if (CC.ASSERT && bpos != totalSize)
-            throw new AssertionError("size does not match");
+            throw new DBException.DataCorruption("size does not match");
         return b;
     }
 
@@ -386,19 +386,19 @@ public class StoreDirect extends Store {
                 boolean last = (i==ret.length-1);
                 boolean linked = (ret[i]&MLINKED)!=0;
                 if(!last && !linked)
-                    throw new AssertionError("body not linked");
+                    throw new DBException.DataCorruption("body not linked");
                 if(last && linked)
-                    throw new AssertionError("tail is linked");
+                    throw new DBException.DataCorruption("tail is linked");
 
                 long offset = ret[i]&MOFFSET;
                 if(offset<PAGE_SIZE)
-                    throw new AssertionError("offset is too small");
+                    throw new DBException.DataCorruption("offset is too small");
                 if(((offset&MOFFSET)%16)!=0)
-                    throw new AssertionError("offset not mod 16");
+                    throw new DBException.DataCorruption("offset not mod 16");
 
                 int size = (int) (ret[i] >>>48);
                 if(size<=0)
-                    throw new AssertionError("size too small");
+                    throw new DBException.DataCorruption("size too small");
             }
 
         }
@@ -490,7 +490,7 @@ public class StoreDirect extends Store {
             structuralLock.unlock();
         }
         if(CC.ASSERT && offsets!=null && (offsets[0]&MOFFSET)<PAGE_SIZE)
-            throw new AssertionError();
+            throw new DBException.DataCorruption();
 
         int pos = lockPos(recid);
         Lock lock = locks[pos].writeLock();
@@ -517,23 +517,23 @@ public class StoreDirect extends Store {
         if(CC.ASSERT)
             assertWriteLocked(lockPos(recid));
         if(CC.ASSERT && offsetsTotalSize(offsets)!=(src==null?0:srcLen))
-            throw new AssertionError("size mismatch");
+            throw new DBException.DataCorruption("size mismatch");
 
         if(offsets!=null) {
             int outPos = 0;
             for (int i = 0; i < offsets.length; i++) {
                 final boolean last = (i == offsets.length - 1);
                 if (CC.ASSERT && ((offsets[i] & MLINKED) == 0) != last)
-                    throw new AssertionError("linked bit set wrong way");
+                    throw new DBException.DataCorruption("linked bit set wrong way");
 
                 long offset = (offsets[i] & MOFFSET);
                 if(CC.ASSERT && offset%16!=0)
-                    throw new AssertionError("not aligned to 16");
+                    throw new DBException.DataCorruption("not aligned to 16");
 
                 int plus = (last?0:8);
                 int size = (int) ((offsets[i]>>>48) - plus);
                 if(CC.ASSERT && ((size&0xFFFF)!=size || size==0))
-                    throw new AssertionError("size mismatch");
+                    throw new DBException.DataCorruption("size mismatch");
 
                 int segment = lockPos(recid);
                 //write offset to next page
@@ -546,7 +546,7 @@ public class StoreDirect extends Store {
 
             }
             if(CC.ASSERT && outPos!=srcLen)
-                throw new AssertionError("size mismatch");
+                throw new DBException.DataCorruption("size mismatch");
         }
         //update index val
         boolean firstLinked =
@@ -582,9 +582,9 @@ public class StoreDirect extends Store {
         if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
         if(CC.ASSERT && size%16!=0 )
-            throw new AssertionError();
+            throw new DBException.DataCorruption("unalligned size");
         if(CC.ASSERT && (offset%16!=0 || offset<PAGE_SIZE))
-            throw new AssertionError();
+            throw new DBException.DataCorruption("wrong offset");
 
         if(!(this instanceof  StoreWAL)) //TODO WAL needs to handle record clear, perhaps WAL instruction?
             vol.clear(offset,offset+size);
@@ -607,7 +607,7 @@ public class StoreDirect extends Store {
         if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
         if(CC.ASSERT && size<=0)
-            throw new AssertionError();
+            throw new DBException.DataCorruption("size too small");
 
         //compose of multiple single records
         long[] ret = EMPTY_LONGS;
@@ -626,17 +626,17 @@ public class StoreDirect extends Store {
         if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
         if(CC.ASSERT && size%16!=0)
-            throw new AssertionError();
+            throw new DBException.DataCorruption("unalligned size");
         if(CC.ASSERT && size>round16Up(MAX_REC_SIZE))
-            throw new AssertionError();
+            throw new DBException.DataCorruption("size too big");
 
         long masterPointerOffset = size/2 + FREE_RECID_STACK; // really is size*8/16
         long ret = longStackTake(masterPointerOffset,false) <<4; //offset is multiple of 16, save some space
         if(ret!=0) {
             if(CC.ASSERT && ret<PAGE_SIZE)
-                throw new AssertionError();
+                throw new DBException.DataCorruption("wrong ret");
             if(CC.ASSERT && ret%16!=0)
-                throw new AssertionError();
+                throw new DBException.DataCorruption("unalligned ret");
 
             return ret;
         }
@@ -646,9 +646,9 @@ public class StoreDirect extends Store {
             long page = pageAllocate();
             lastAllocatedData = page+size;
             if(CC.ASSERT && page<PAGE_SIZE)
-                throw new AssertionError();
+                throw new DBException.DataCorruption("wrong page");
             if(CC.ASSERT && page%16!=0)
-                throw new AssertionError();
+                throw new DBException.DataCorruption("unalligned page");
             return page;
         }
 
@@ -667,11 +667,11 @@ public class StoreDirect extends Store {
         lastAllocatedData+=size;
 
         if(CC.ASSERT && ret%16!=0)
-            throw new AssertionError();
+            throw new DBException.DataCorruption();
         if(CC.ASSERT && lastAllocatedData%16!=0)
-            throw new AssertionError();
+            throw new  DBException.DataCorruption();
         if(CC.ASSERT && ret<PAGE_SIZE)
-            throw new AssertionError();
+            throw new  DBException.DataCorruption();
 
         return ret;
     }
@@ -684,7 +684,7 @@ public class StoreDirect extends Store {
         if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
         if(CC.ASSERT && (masterLinkOffset<=0 || masterLinkOffset>PAGE_SIZE || masterLinkOffset % 8!=0)) //TODO perhaps remove the last check
-            throw new AssertionError();
+            throw new DBException.DataCorruption("wrong master link");
 
         long masterLinkVal = parity4Get(headVol.getLong(masterLinkOffset));
         long pageOffset = masterLinkVal&MOFFSET;
@@ -735,7 +735,7 @@ public class StoreDirect extends Store {
         if(CC.ASSERT && (masterLinkOffset<FREE_RECID_STACK ||
                 masterLinkOffset>FREE_RECID_STACK+round16Up(MAX_REC_SIZE)/2 ||
                 masterLinkOffset % 8!=0))
-            throw new AssertionError();
+            throw new DBException.DataCorruption("wrong master link");
 
         long masterLinkVal = parity4Get(headVol.getLong(masterLinkOffset));
         if(masterLinkVal==0 ){
@@ -755,7 +755,7 @@ public class StoreDirect extends Store {
         ret = longParityGet(ret & DataIO.PACK_LONG_RESULT_MASK);
 
         if(CC.ASSERT && currSize<8)
-            throw new AssertionError();
+            throw new DBException.DataCorruption();
 
         //is there space left on current page?
         if(currSize>8){
@@ -785,7 +785,7 @@ public class StoreDirect extends Store {
             }
 
             if (CC.ASSERT && currSize < 10)
-                throw new AssertionError();
+                throw new DBException.DataCorruption();
         }else{
             //no prev page does not exist
             currSize=0;
@@ -1142,7 +1142,7 @@ public class StoreDirect extends Store {
         if(size>0) {
             newOffset=freeDataTake(size);
             if (newOffset.length != 1)
-                throw new AssertionError();
+                throw new DBException.DataCorruption();
 
             //transfer data
             oldVol.transferInto(indexVal & MOFFSET, this.vol, newOffset[0]&MOFFSET, size);
@@ -1173,7 +1173,7 @@ public class StoreDirect extends Store {
 
     protected final long recidToOffset(long recid){
         if(CC.ASSERT && recid<=0)
-            throw new AssertionError("negative recid: "+recid);
+            throw new DBException.DataCorruption("negative recid: "+recid);
         if(checksum){
             return recidToOffsetChecksum(recid);
         }
@@ -1225,9 +1225,9 @@ public class StoreDirect extends Store {
     protected static long composeIndexVal(int size, long offset,
         boolean linked, boolean unused, boolean archive){
         if(CC.ASSERT && (size&0xFFFF)!=size)
-            throw new AssertionError("size too large");
+            throw new DBException.DataCorruption("size too large");
         if(CC.ASSERT && (offset&MOFFSET)!=offset)
-            throw new AssertionError("offset too large");
+            throw new DBException.DataCorruption("offset too large");
         offset = (((long)size)<<48) |
                 offset |
                 (linked?MLINKED:0L)|
@@ -1309,7 +1309,7 @@ public class StoreDirect extends Store {
         headVol.putLong(STORE_SIZE, parity16Set(storeSize + PAGE_SIZE));
 
         if(CC.ASSERT && storeSize%PAGE_SIZE!=0)
-            throw new AssertionError();
+            throw new DBException.DataCorruption();
 
         return storeSize;
     }

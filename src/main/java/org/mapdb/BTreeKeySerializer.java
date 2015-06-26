@@ -704,7 +704,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             if(CC.ASSERT){
                 for(int j:counts){
                     if(j!=0)
-                        throw new AssertionError();
+                        throw new DBException.DataCorruption("inconsistent counts");
                 }
             }
             return ret;
@@ -766,7 +766,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         @Override
         public Object[] putKey(Object[] keys, int pos, Object[] newKey) {
             if(CC.ASSERT && newKey.length!=tsize)
-                throw new AssertionError();
+                throw new DBException.DataCorruption("inconsistent size");
             pos*=tsize;
             Object[] ret = new Object[keys.length+tsize];
             System.arraycopy(keys, 0, ret, 0, pos);
@@ -784,7 +784,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             //$DELAY$
             for(Object o:keys){
                 if(CC.ASSERT && ((Object[])o).length!=tsize)
-                    throw new AssertionError();
+                    throw new DBException.DataCorruption("keys have wrong size");
                 System.arraycopy(o,0,ret,pos,tsize);
                 //$DELAY$
                 pos+=tsize;
@@ -970,7 +970,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             this.array = array;
 
             if(CC.ASSERT && ! (array.length==0 || array.length == offset[offset.length-1]))
-                throw new AssertionError();
+                throw new DBException.DataCorruption("inconsistent array size");
         }
 
         ByteArrayKeys(DataInput in, int[] offsets, int prefixLen) throws IOException {
@@ -1213,7 +1213,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             this.array = array;
 
             if(CC.ASSERT && ! (array.length==0 || array.length == offset[offset.length-1]))
-                throw new AssertionError();
+                throw new DBException.DataCorruption("inconsistent array size");
         }
 
         public CharArrayKeys(DataInput in, int[] offsets, int prefixLen) throws IOException {

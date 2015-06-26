@@ -1751,11 +1751,11 @@ public class SerializerBase extends Serializer<Object>{
 
     /** override this method to extend SerializerBase functionality*/
     protected void serializeUnknownObject(DataOutput out, Object obj, FastArrayList<Object> objectStack) throws IOException {
-        throw new AssertionError("Could not serialize unknown object: "+obj.getClass().getName());
+        throw new NotSerializableException("Could not serialize unknown object: "+obj.getClass().getName());
     }
     /** override this method to extend SerializerBase functionality*/
     protected Object deserializeUnknownHeader(DataInput is, int head, FastArrayList<Object> objectStack) throws IOException {
-        throw new AssertionError("Unknown serialization header: " + head);
+        throw new DBException.DataCorruption("Unknown serialization header: " + head);
     }
 
     /**

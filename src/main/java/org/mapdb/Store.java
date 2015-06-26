@@ -342,9 +342,11 @@ public abstract class Store implements Engine {
 
             A ret = serializer.deserialize(di, size);
             if (size + start > di.getPos())
-                throw new AssertionError("data were not fully read, check your serializer ");
+                throw new  DBException.DataCorruption("Data were not fully read, check your serializer. Read size:"
+                        +(di.getPos()-start)+", expected size:"+size);
             if (size + start < di.getPos())
-                throw new AssertionError("data were read beyond record size, check your serializer");
+                throw new  DBException.DataCorruption("Data were read beyond record size, check your serializer. Read size:"
+                        +(di.getPos()-start)+", expected size:"+size);
 
             metricsDataRead.getAndAdd(size);
             metricsRecordRead.getAndIncrement();
@@ -421,9 +423,12 @@ public abstract class Store implements Engine {
 
         A ret = serializer.deserialize(di, size);
         if (size + start > di.getPos())
-            throw new AssertionError("data were not fully read, check your serializer ");
+            throw new  DBException.DataCorruption("Data were not fully read, check your serializer. Read size:"
+                    +(di.getPos()-start)+", expected size:"+size);
         if (size + start < di.getPos())
-            throw new AssertionError("data were read beyond record size, check your serializer");
+            throw new  DBException.DataCorruption("Data were read beyond record size, check your serializer. Read size:"
+                    +(di.getPos()-start)+", expected size:"+size);
+
         return ret;
     }
 

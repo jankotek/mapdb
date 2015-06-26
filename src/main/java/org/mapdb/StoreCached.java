@@ -123,7 +123,7 @@ public class StoreCached extends StoreDirect {
         if (CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
         if (CC.ASSERT && (masterLinkOffset <= 0 || masterLinkOffset > PAGE_SIZE || masterLinkOffset % 8 != 0))
-            throw new AssertionError();
+            throw new DBException.DataCorruption("wrong master link");
 
         long masterLinkVal = parity4Get(headVol.getLong(masterLinkOffset));
         long pageOffset = masterLinkVal & MOFFSET;
@@ -163,7 +163,7 @@ public class StoreCached extends StoreDirect {
         if (CC.ASSERT && (masterLinkOffset < FREE_RECID_STACK ||
                 masterLinkOffset > FREE_RECID_STACK + round16Up(MAX_REC_SIZE) / 2 ||
                 masterLinkOffset % 8 != 0))
-            throw new AssertionError();
+            throw new DBException.DataCorruption("wrong master link");
 
         long masterLinkVal = parity4Get(headVol.getLong(masterLinkOffset));
         if (masterLinkVal == 0) {
@@ -185,7 +185,7 @@ public class StoreCached extends StoreDirect {
         ret = longParityGet(ret & DataIO.PACK_LONG_RESULT_MASK);
 
         if (CC.ASSERT && currSize < 8)
-            throw new AssertionError();
+            throw new DBException.DataCorruption("wrong currSize");
 
         //is there space left on current page?
         if (currSize > 8) {
@@ -217,7 +217,7 @@ public class StoreCached extends StoreDirect {
             }
 
             if (CC.ASSERT && currSize < 10)
-                throw new AssertionError();
+                throw new DBException.DataCorruption("wrong currSize");
         } else {
             //no prev page does not exist
             currSize = 0;
@@ -287,11 +287,11 @@ public class StoreCached extends StoreDirect {
                 byte[] val = (byte[]) dirtyStackPages.values[i];
 
                 if (CC.ASSERT && offset < PAGE_SIZE)
-                    throw new AssertionError();
+                    throw new DBException.DataCorruption("offset to small");
                 if (CC.ASSERT && val.length % 16 != 0)
-                    throw new AssertionError();
+                    throw new AssertionError("not aligned to 16");
                 if (CC.ASSERT && val.length <= 0 || val.length > MAX_REC_SIZE)
-                    throw new AssertionError();
+                    throw new DBException.DataCorruption("wrong length");
 
                 vol.putData(offset, val, 0, val.length);
             }

@@ -328,16 +328,16 @@ public class StoreAppend extends Store {
             int instruction = vol.getUnsignedByte(offset);
 
             if(instruction!= I_UPDATE && instruction!= I_INSERT)
-                throw new AssertionError("wrong instruction "+instruction);
+                throw new DBException.DataCorruption("wrong instruction "+instruction);
 
             long recid2 = vol.getPackedLong(offset+1);
 
             if(packedRecidSize!=recid2>>>60)
-                throw new AssertionError("inconsistent recid len");
+                throw new DBException.DataCorruption("inconsistent recid len");
 
             recid2 = longParityGet(recid2&DataIO.PACK_LONG_RESULT_MASK);
             if(recid!=recid2)
-                throw new AssertionError("recid does not match");
+                throw new DBException.DataCorruption("recid does not match");
         }
 
         offset += 1 + //instruction size
@@ -351,7 +351,7 @@ public class StoreAppend extends Store {
 
         size -= 1; //normalize size
         if(CC.ASSERT && size<=0)
-            throw new AssertionError();
+            throw new DBException.DataCorruption("wrong size");
 
         DataInput input = vol.getDataInputOverlap(offset, (int) size);
         return deserialize(serializer, (int) size, input);

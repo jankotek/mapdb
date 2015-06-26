@@ -228,7 +228,7 @@ public final class DataIO {
         //$DELAY$
         long b = bb[pos++];
         if(CC.ASSERT && (b&0x80)==0)
-            throw new AssertionError();
+            throw new DBException.DataCorruption("long pack bidi wrong header");
         long result = (b & 0x7F) ;
         int offset = 7;
         do {
@@ -236,7 +236,7 @@ public final class DataIO {
             b = bb[pos++];
             result |= (b & 0x7F) << offset;
             if(CC.ASSERT && offset>64)
-                throw new AssertionError();
+                throw new DBException.DataCorruption("long pack bidi too long");
             offset += 7;
         }while((b & 0x80) == 0);
         //$DELAY$
@@ -248,7 +248,7 @@ public final class DataIO {
         //$DELAY$
         long b = bb[--pos];
         if(CC.ASSERT && (b&0x80)==0)
-            throw new AssertionError();
+            throw new DBException.DataCorruption("long pack bidi wrong header");
         long result = (b & 0x7F) ;
         int counter = 1;
         do {
@@ -256,7 +256,7 @@ public final class DataIO {
             b = bb[--pos];
             result = (b & 0x7F) | (result<<7);
             if(CC.ASSERT && counter>8)
-                throw new AssertionError();
+                throw new DBException.DataCorruption("long pack bidi too long");
             counter++;
         }while((b & 0x80) == 0);
         //$DELAY$

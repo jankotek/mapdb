@@ -209,7 +209,7 @@ public abstract class Volume implements Closeable{
         //$DELAY$
         long b = getUnsignedByte(offset++); //TODO this could be inside loop, change all implementations
         if(CC.ASSERT && (b&0x80)==0)
-            throw new AssertionError();
+            throw new DBException.DataCorruption();
         long result = (b & 0x7F) ;
         int shift = 7;
         do {
@@ -217,7 +217,7 @@ public abstract class Volume implements Closeable{
             b = getUnsignedByte(offset++);
             result |= (b & 0x7F) << shift;
             if(CC.ASSERT && shift>64)
-                throw new AssertionError();
+                throw new DBException.DataCorruption();
             shift += 7;
         }while((b & 0x80) == 0);
         //$DELAY$
@@ -228,7 +228,7 @@ public abstract class Volume implements Closeable{
         //$DELAY$
         long b = getUnsignedByte(--offset);
         if(CC.ASSERT && (b&0x80)==0)
-            throw new AssertionError();
+            throw new DBException.DataCorruption();
         long result = (b & 0x7F) ;
         int counter = 1;
         do {
@@ -236,7 +236,7 @@ public abstract class Volume implements Closeable{
             b = getUnsignedByte(--offset);
             result = (b & 0x7F) | (result<<7);
             if(CC.ASSERT && counter>8)
-                throw new AssertionError();
+                throw new DBException.DataCorruption();
             counter++;
         }while((b & 0x80) == 0);
         //$DELAY$
@@ -255,7 +255,7 @@ public abstract class Volume implements Closeable{
 
     public void putSixLong(long pos, long value) {
         if(CC.ASSERT && (value>>>48!=0))
-            throw new AssertionError();
+            throw new DBException.DataCorruption();
 
         putByte(pos++, (byte) (0xff & (value >> 40)));
         putByte(pos++, (byte) (0xff & (value >> 32)));

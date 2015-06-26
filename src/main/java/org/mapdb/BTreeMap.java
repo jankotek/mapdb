@@ -384,13 +384,13 @@ public class BTreeMap<K,V>
             if(end>1){
                 for(int i = 1;i<=end;i++){
                     if(keyser.compare(keys,i-1, i)>=0)
-                        throw new AssertionError("keys are not sorted: "+Arrays.toString(keyser.keysToArray(keys)));
+                        throw new DBException.DataCorruption("keys are not sorted: "+Arrays.toString(keyser.keysToArray(keys)));
                 }
             }
             //check last key is sorted or null
             if(!isRightEdge() && keylen>2){
                 if(keyser.compare(keys,keylen-2, keylen-1)>0){
-                    throw new AssertionError("Last key is not sorted: "+Arrays.toString(keyser.keysToArray(keys)));
+                    throw new DBException.DataCorruption("Last key is not sorted: "+Arrays.toString(keyser.keysToArray(keys)));
                 }
             }
         }
@@ -464,10 +464,10 @@ public class BTreeMap<K,V>
             int childLen = child instanceof int[]? ((int[])child).length : ((long[])child).length;
 
             if(keyser!=null && childLen!=keysLen(keyser))
-                throw new AssertionError();
+                throw new DBException.DataCorruption("bnode has inconsistent lengths");
 
             if((isRightEdge() != (next()==0)))
-                throw new AssertionError();
+                throw new DBException.DataCorruption("bnode right edge inconsistent with link");
 
         }
 
@@ -605,7 +605,7 @@ public class BTreeMap<K,V>
         public void checkStructure(BTreeKeySerializer keyser, Serializer valser) {
             super.checkStructure(keyser,valser);
             if((next==0)!=isRightEdge()){
-                throw new AssertionError("Next link inconsistent: "+this);
+                throw new DBException.DataCorruption("Next link inconsistent: "+this);
             }
 
             if(valser==null)
@@ -614,14 +614,14 @@ public class BTreeMap<K,V>
             int valsSize = valser.valueArraySize(vals);
 
             if(keyser!=null && (keysLen(keyser) != valsSize+2)) {
-                throw new AssertionError("Inconsistent vals size: " + this);
+                throw new DBException.DataCorruption("Inconsistent vals size: " + this);
             }
             //$DELAY$
 
             for (int i=0;i<valsSize;i++) {
                 Object val = valser.valueArrayGet(vals,i);
                 if (val == null)
-                    throw new AssertionError("Val is null: " + this);
+                    throw new DBException.DataCorruption("Val is null: " + this);
             }
 
         }
@@ -716,8 +716,8 @@ public class BTreeMap<K,V>
         protected final int numberOfNodeMetas;
 
         public NodeSerializer(boolean valsOutsideNodes, BTreeKeySerializer keySerializer, Serializer valueSerializer,  int numberOfNodeMetas) {
-            if(CC.ASSERT && ! (keySerializer!=null))
-                throw new AssertionError();
+            if(keySerializer==null)
+                throw new NullPointerException("keySerializer not set");
             this.hasValues = valueSerializer!=null;
             this.valsOutsideNodes = valsOutsideNodes;
             this.keySerializer = keySerializer;
@@ -924,7 +924,7 @@ public class BTreeMap<K,V>
         long r = engine.get(rootRecidRef,Serializer.RECID);
         for(;;){
             if(CC.ASSERT && r<=0)
-                throw new AssertionError();
+                throw new DBException.DataCorruption("wrong recid");
 
             //$DELAY$
             BNode n= engine.get(r,nodeSerializer);
@@ -1040,7 +1040,7 @@ public class BTreeMap<K,V>
             current = nextDir((DirNode) A, v);
             //$DELAY$
             if(CC.ASSERT && ! (current>0) )
-                throw new AssertionError(A);
+                throw new DBException.DataCorruption("wrong recid");
             //if is not link
             if (current != A.next()) {
                 //stack push t
@@ -1180,7 +1180,7 @@ public class BTreeMap<K,V>
                     }
                     //$DELAY$
                     if(CC.ASSERT && ! (current>0))
-                        throw new AssertionError();
+                        throw new DBException.DataCorruption("wrong recid");
                 }else{
                     Object rootChild =
                         (current<Integer.MAX_VALUE && q<Integer.MAX_VALUE) ?
@@ -3549,21 +3549,21 @@ public class BTreeMap<K,V>
         n.checkStructure(keySerializer,valueSerializer);
 
         if(recids.get(rootRecid)!=null){
-            throw new AssertionError("Duplicate recid: "+rootRecid);
+            throw new DBException.DataCorruption("Duplicate recid: "+rootRecid);
         }
         recids.put(rootRecid,this);
 
         if(n.next()!=0L && recids.get(n.next())==null){
-            throw new AssertionError("Next link was not found: "+n);
+            throw new DBException.DataCorruption("Next link was not found: "+n);
         }
         if(n.next()==rootRecid){
-            throw new AssertionError("Recursive next: "+n);
+            throw new DBException.DataCorruption("Recursive next: "+n);
         }
         if(!n.isLeaf()){
             for(int i=n.childArrayLength()-1;i>=0;i--){
                 long recid = n.child(i);
                 if(recid==rootRecid){
-                    throw new AssertionError("Recursive recid: "+n);
+                    throw new DBException.DataCorruption("Recursive recid: "+n);
                 }
 
                 if(recid==0 || recid==n.next()){

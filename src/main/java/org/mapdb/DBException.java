@@ -19,6 +19,10 @@ public class DBException extends RuntimeException{
         super(message,cause);
     }
 
+    public DBException() {
+
+    }
+
 
     public static class EngineGetVoid extends DBException{
         public EngineGetVoid(){
@@ -85,6 +89,10 @@ public class DBException extends RuntimeException{
     public static class DataCorruption extends DBException{
         public DataCorruption(String msg){
             super(msg);
+        }
+
+        public DataCorruption() {
+            super();
         }
     }
 

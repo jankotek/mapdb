@@ -116,7 +116,7 @@ public class HTreeMap<K,V>
 
         public LinkedNode(final long next, long expireLinkNodeRecid, final K key, final V value ){
             if(CC.ASSERT && next>>>48!=0)
-                throw new AssertionError("next recid too big");
+                throw new DBException.DataCorruption("next recid too big");
             this.key = key;
             this.expireLinkNodeRecid = expireLinkNodeRecid;
             this.value = value;
@@ -147,7 +147,7 @@ public class HTreeMap<K,V>
 
         @Override
         public LinkedNode<K,V> deserialize(DataInput in, int available) throws IOException {
-            if(CC.ASSERT && ! (available!=0))
+            if(CC.ASSERT && available==0)
                 throw new AssertionError();
             return new LinkedNode<K, V>(
                     DataIO.unpackLong(in),
@@ -201,7 +201,7 @@ public class HTreeMap<K,V>
                         Integer.bitCount(c[3]);
 
                 if(len!=c.length)
-                    throw new AssertionError("bitmap!=len");
+                    throw new DBException.DataCorruption("bitmap!=len");
             }
 
             //write bitmaps
@@ -228,7 +228,7 @@ public class HTreeMap<K,V>
                         Long.bitCount(c[1]);
 
                 if(len!=c.length)
-                    throw new AssertionError("bitmap!=len");
+                    throw new DBException.DataCorruption("bitmap!=len");
             }
 
             out.writeLong(c[0]);
@@ -611,8 +611,8 @@ public class HTreeMap<K,V>
             if(dir == null)
                 return null;
             final int slot = (h>>>(level*7 )) & 0x7F;
-            if(CC.ASSERT && ! (slot<128))
-                throw new AssertionError();
+            if(CC.ASSERT && slot>128)
+                throw new DBException.DataCorruption("slot too high");
             recid = dirGetSlot(dir, slot);
             if(recid == 0)
                 return null;
@@ -623,8 +623,8 @@ public class HTreeMap<K,V>
                     LinkedNode<K,V> ln = engine.get(recid, LN_SERIALIZER);
                     if(ln == null) return null;
                     if(keySerializer.equals(ln.key, (K) o)){
-                        if(CC.ASSERT && ! (hash(ln.key)==h))
-                            throw new AssertionError();
+                        if(CC.ASSERT && hash(ln.key)!=h)
+                            throw new DBException.DataCorruption("inconsistent hash");
                         return ln;
                     }
                     if(ln.next==0) return null;
@@ -691,7 +691,7 @@ public class HTreeMap<K,V>
     /** converts hash slot into actual offset in dir array, using bitmap */
     protected static final int dirOffsetFromSlot(int[] dir, int slot) {
         if(CC.ASSERT && slot>127)
-            throw new AssertionError();
+            throw new DBException.DataCorruption("slot too high");
         int val = slot>>>5;
         slot &=31;
         int isSet = ((dir[val] >>> (slot)) & 1); //check if bit at given slot is set
@@ -715,7 +715,7 @@ public class HTreeMap<K,V>
     /** converts hash slot into actual offset in dir array, using bitmap */
     protected static final int dirOffsetFromSlot(long[] dir, int slot) {
         if(CC.ASSERT && slot>127)
-            throw new AssertionError();
+            throw new DBException.DataCorruption("slot too high");
 
         int offset = 0;
         long v = dir[0];
@@ -800,7 +800,7 @@ public class HTreeMap<K,V>
     protected static final Object dirRemove(Object dir, final int slot){
         int offset = dirOffsetFromSlot(dir, slot);
         if(CC.ASSERT && offset<=0){
-            throw new AssertionError();
+            throw new DBException.DataCorruption("offset too low");
         }
 
         if(dir instanceof int[]) {
@@ -870,8 +870,8 @@ public class HTreeMap<K,V>
             Object dir = engine.get(dirRecid, DIR_SERIALIZER);
             final int slot =  (h>>>(7*level )) & 0x7F;
 
-            if(CC.ASSERT && ! (slot<=127))
-                throw new AssertionError();
+            if(CC.ASSERT && slot>127)
+                throw new DBException.DataCorruption("slot too high");
 
             if(dir == null ){
                 //create new dir
@@ -899,7 +899,7 @@ public class HTreeMap<K,V>
                         V oldVal = ln.value;
                         ln = new LinkedNode<K, V>(ln.next, ln.expireLinkNodeRecid, ln.key, value);
                         if(CC.ASSERT && ln.next==recid)
-                            throw new AssertionError("cyclic reference in linked list");
+                            throw new DBException.DataCorruption("cyclic reference in linked list");
 
                         engine.update(recid, ln, LN_SERIALIZER);
                         if(expireFlag)
@@ -912,11 +912,11 @@ public class HTreeMap<K,V>
                             null :
                             engine.get(recid, LN_SERIALIZER));
                     if(CC.ASSERT && ln!=null && ln.next==recid)
-                        throw new AssertionError("cyclic reference in linked list");
+                        throw new DBException.DataCorruption("cyclic reference in linked list");
 
                     counter++;
                     if(CC.ASSERT && counter>1024*1024)
-                        throw new AssertionError("linked list too large");
+                        throw new DBException.DataCorruption("linked list too large");
                 }
                 //key was not found at linked list, so just append it to beginning
             }
@@ -931,7 +931,7 @@ public class HTreeMap<K,V>
                     final LinkedNode<K,V> node = new LinkedNode<K, V>(0, expireNodeRecid, key, value);
                     final long newRecid = engine.put(node, LN_SERIALIZER);
                     if(CC.ASSERT && newRecid==node.next)
-                        throw new AssertionError("cyclic reference in linked list");
+                        throw new DBException.DataCorruption("cyclic reference in linked list");
                     //add newly inserted record
                     final int pos =(h >>>(7*(level-1) )) & 0x7F;
                     nextDir = dirPut(nextDir,pos,( newRecid<<1) | 1);
@@ -951,7 +951,7 @@ public class HTreeMap<K,V>
                     nextDir = dirPut(nextDir,pos,(nodeRecid<<1) | 1);
                     engine.update(nodeRecid, n, LN_SERIALIZER);
                     if(CC.ASSERT && nodeRecid==n.next)
-                        throw new AssertionError("cyclic reference in linked list");
+                        throw new DBException.DataCorruption("cyclic reference in linked list");
                     nodeRecid = nextRecid;
                 }
 
@@ -974,7 +974,7 @@ public class HTreeMap<K,V>
                         new LinkedNode<K, V>(recid, expireNodeRecid, key, value),
                         LN_SERIALIZER);
                 if(CC.ASSERT && newRecid==recid)
-                    throw new AssertionError("cyclic reference in linked list");
+                    throw new DBException.DataCorruption("cyclic reference in linked list");
                 dir = dirPut(dir,slot,(newRecid<<1) | 1);
                 engine.update(dirRecid, dir, DIR_SERIALIZER);
                 if(expireFlag)
@@ -1028,14 +1028,14 @@ public class HTreeMap<K,V>
         int level = 3;
         dirRecids[level] = segmentRecids[segment];
 
-        if(CC.ASSERT && ! (segment==h>>>28))
-            throw new AssertionError();
+        if(CC.ASSERT && segment!=h>>>28)
+            throw new DBException.DataCorruption("inconsistent hash");
 
         while(true){
             Object dir = engine.get(dirRecids[level], DIR_SERIALIZER);
             final int slot =  (h>>>(7*level )) & 0x7F;
-            if(CC.ASSERT && ! (slot<=127))
-                throw new AssertionError();
+            if(CC.ASSERT && slot>127)
+                throw new DBException.DataCorruption("slot too high");
 
             if(dir == null ){
                 //create new dir
@@ -1075,11 +1075,11 @@ public class HTreeMap<K,V>
                             prevLn = new LinkedNode<K, V>(ln.next, prevLn.expireLinkNodeRecid,prevLn.key, prevLn.value);
                             engine.update(prevRecid, prevLn, LN_SERIALIZER);
                             if(CC.ASSERT && prevRecid==prevLn.next)
-                                throw new AssertionError("cyclic reference in linked list");
+                                throw new DBException.DataCorruption("cyclic reference in linked list");
                         }
                         //found, remove this node
                         if(CC.ASSERT && ! (hash(ln.key)==h))
-                            throw new AssertionError();
+                            throw new DBException.DataCorruption("inconsistent hash");
                         engine.delete(recid, LN_SERIALIZER);
                         if(removeExpire && expireFlag) expireLinkRemove(segment, ln.expireLinkNodeRecid);
                         notify((K) key, ln.value, null);
@@ -1177,7 +1177,7 @@ public class HTreeMap<K,V>
                 while(recid!=0){
                     LinkedNode n = engine.get(recid, LN_SERIALIZER);
                     if(CC.ASSERT && n.next==recid)
-                        throw new AssertionError("cyclic reference in linked list");
+                        throw new DBException.DataCorruption("cyclic reference in linked list");
                     engine.delete(recid,LN_SERIALIZER);
                     notify((K)n.key, (V)n.value , null);
                     recid = n.next;
@@ -1475,7 +1475,7 @@ public class HTreeMap<K,V>
                     LinkedNode ret[] = findNextLinkedNodeRecur(engine, dirRecid, hash, 3);
                     if(CC.ASSERT && ret!=null) for(LinkedNode ln:ret){
                         if(( hash(ln.key)>>>28!=segment))
-                            throw new AssertionError();
+                            throw new DBException.DataCorruption("inconsistent hash");
                     }
                     //System.out.println(Arrays.asList(ret));
                     if(ret !=null){
@@ -1801,10 +1801,10 @@ public class HTreeMap<K,V>
     protected void expireLinkAdd(int segment, long expireNodeRecid, long keyRecid, int hash){
         if(CC.ASSERT && ! (segmentLocks[segment].writeLock().isHeldByCurrentThread()))
             throw new AssertionError();
-        if(CC.ASSERT && ! (expireNodeRecid>0))
-            throw new AssertionError();
-        if(CC.ASSERT && ! (keyRecid>0))
-            throw new AssertionError();
+        if(CC.ASSERT && expireNodeRecid<=0)
+            throw new DBException.DataCorruption("recid too low");
+        if(CC.ASSERT && keyRecid<=0)
+        throw new DBException.DataCorruption("recid too low");
 
         Engine engine = engines[segment];
 
@@ -2054,10 +2054,10 @@ public class HTreeMap<K,V>
         ExpireLinkNode last =null,n=null;
         while(recid!=0){
             n = engine.get(recid, ExpireLinkNode.SERIALIZER);
-            if(CC.ASSERT && ! (n!=ExpireLinkNode.EMPTY))
-                throw new AssertionError();
-            if(CC.ASSERT && ! ( n.hash>>>28 == seg))
-                throw new AssertionError();
+            if(CC.ASSERT && n==ExpireLinkNode.EMPTY)
+                throw new DBException.DataCorruption("empty expire link node");
+            if(CC.ASSERT &&  n.hash>>>28 != seg)
+                throw new DBException.DataCorruption("inconsistent hash");
 
             final boolean remove = ++counter < removePerSegment ||
                     ((expire!=0 || expireAccess!=0) &&  n.time+expireTimeStart<System.currentTimeMillis());
@@ -2099,7 +2099,7 @@ public class HTreeMap<K,V>
         long current = engine.get(expireTails[segment],Serializer.LONG);
         if(current==0){
             if(engine.get(expireHeads[segment],Serializer.LONG)!=0)
-                throw new AssertionError("head not 0");
+                throw new DBException.DataCorruption("head not 0");
             return;
         }
 
@@ -2107,12 +2107,12 @@ public class HTreeMap<K,V>
         while(current!=0){
             ExpireLinkNode curr = engine.get(current,ExpireLinkNode.SERIALIZER);
             if(CC.ASSERT && ! (curr.prev==prev))
-                throw new AssertionError("wrong prev "+curr.prev +" - "+prev);
+                throw new DBException.DataCorruption("wrong prev "+curr.prev +" - "+prev);
             prev= current;
             current = curr.next;
         }
         if(engine.get(expireHeads[segment],Serializer.LONG)!=prev)
-            throw new AssertionError("wrong head");
+            throw new DBException.DataCorruption("wrong head");
 
     }
 

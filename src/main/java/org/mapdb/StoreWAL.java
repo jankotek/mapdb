@@ -279,7 +279,7 @@ public class StoreWAL extends StoreCached {
 
         fileNum++;
         if (CC.ASSERT && fileNum != volumes.size())
-            throw new AssertionError();
+            throw new DBException.DataCorruption();
         String filewal = getWalFileName(""+fileNum);
         Volume nextVol;
         if (readonly && filewal != null && !new File(filewal).exists()){
@@ -313,7 +313,7 @@ public class StoreWAL extends StoreCached {
         }
 
         if(CC.ASSERT && offset>>>48!=0)
-            throw new AssertionError();
+            throw new DBException.DataCorruption();
         curVol2.ensureAvailable(walOffset2+plusSize);
         int parity = 1+Long.bitCount(value)+Long.bitCount(offset);
         parity &=15;
@@ -339,7 +339,7 @@ public class StoreWAL extends StoreCached {
 
         curVol2.ensureAvailable(walOffset2+plusSize);
         if(CC.ASSERT && offset>>>48!=0)
-            throw new AssertionError();
+            throw new DBException.DataCorruption();
         offset = (((long)value)<<48) | offset;
         int parity = 1+Long.bitCount(offset);
         parity &=15;
@@ -361,7 +361,7 @@ public class StoreWAL extends StoreCached {
             curVol.putUnsignedByte(walOffset2++, singleByteSkip);
             plusSize--;
             if(CC.ASSERT && plusSize<0)
-                throw new AssertionError();
+                throw new DBException.DataCorruption();
         }
 
         //now new page starts, so add skip instruction for remaining bits
@@ -375,7 +375,7 @@ public class StoreWAL extends StoreCached {
     @Override
     protected void putDataSingleWithLink(int segment, long offset, long link, byte[] buf, int bufPos, int size) {
         if(CC.ASSERT && (size&0xFFFF)!=size)
-            throw new AssertionError();
+            throw new DBException.DataCorruption();
         //TODO optimize so array copy is not necessary, that means to clone and modify putDataSingleWithoutLink method
         byte[] buf2 = new  byte[size+8];
         DataIO.putLong(buf2,0,link);
@@ -386,9 +386,9 @@ public class StoreWAL extends StoreCached {
     @Override
     protected void putDataSingleWithoutLink(int segment, long offset, byte[] buf, int bufPos, int size) {
         if(CC.ASSERT && (size&0xFFFF)!=size)
-            throw new AssertionError();
+            throw new DBException.DataCorruption();
         if(CC.ASSERT && (offset%16!=0 && offset!=4))
-            throw new AssertionError();
+            throw new DBException.DataCorruption();
 //        if(CC.ASSERT && size%16!=0)
 //            throw new AssertionError(); //TODO allign record size to 16, and clear remaining bytes
         if(CC.ASSERT && segment!=-1)
@@ -424,7 +424,7 @@ public class StoreWAL extends StoreCached {
 
     protected DataInput walGetData(long offset, int segment) {
         if (CC.ASSERT && offset % 16 != 0)
-            throw new AssertionError();
+            throw new DBException.DataCorruption();
 
         long longval = currDataLongs[segment].get(offset);
         if(longval==0){
@@ -488,7 +488,7 @@ public class StoreWAL extends StoreCached {
         //TODO clear data on page? perhaps special instruction?
 
         if(CC.ASSERT && storeSize%PAGE_SIZE!=0)
-            throw new AssertionError();
+            throw new DBException.DataCorruption();
 
 
         return storeSize;
@@ -565,10 +565,11 @@ public class StoreWAL extends StoreCached {
                     long offset = walval&0xFFFFFFFFFFL; //last 5 bytes
                     if(CC.ASSERT){
                         int instruction = recVol.getUnsignedByte(offset);
+                        //TODO exception should not be here
                         if(instruction!=(5<<4))
-                            throw new AssertionError("wrong instruction");
+                            throw new DBException.DataCorruption("wrong instruction");
                         if(recid!=recVol.getSixLong(offset+1))
-                            throw new AssertionError("wrong recid");
+                            throw new DBException.DataCorruption("wrong recid");
                     }
 
                     //skip instruction and recid
@@ -651,13 +652,13 @@ public class StoreWAL extends StoreCached {
                 int plus = (i == offsets.length - 1)?0:8;
                 long size = (offsets[i] >>> 48) - plus;
                 if(CC.ASSERT && (size&0xFFFF)!=size)
-                    throw new AssertionError("size mismatch");
+                    throw new DBException.DataCorruption("size mismatch");
                 long offset = offsets[i] & MOFFSET;
                 vol.getData(offset + plus, b, bpos, (int) size);
                 bpos += size;
             }
             if (CC.ASSERT && bpos != totalSize)
-                throw new AssertionError("size does not match");
+                throw new DBException.DataCorruption("size does not match");
 
             DataInput in = new DataIO.DataInputByteArray(b);
             return deserialize(serializer, totalSize, in);
@@ -842,11 +843,11 @@ public class StoreWAL extends StoreCached {
                         byte[] val = (byte[]) dirtyStackPages.values[i];
 
                         if (CC.ASSERT && offset < PAGE_SIZE)
-                            throw new AssertionError();
+                            throw new DBException.DataCorruption();
                         if (CC.ASSERT && val.length % 16 != 0)
-                            throw new AssertionError();
+                            throw new DBException.DataCorruption();
                         if (CC.ASSERT && val.length <= 0 || val.length > MAX_REC_SIZE)
-                            throw new AssertionError();
+                            throw new DBException.DataCorruption();
 
                         putDataSingleWithoutLink(-1, offset, val, 0, val.length);
 
@@ -939,11 +940,11 @@ public class StoreWAL extends StoreCached {
                         byte[] val = (byte[]) dirtyStackPages.values[i];
 
                         if (CC.ASSERT && offset < PAGE_SIZE)
-                            throw new AssertionError();
+                            throw new DBException.DataCorruption();
                         if (CC.ASSERT && val.length % 16 != 0)
-                            throw new AssertionError();
+                            throw new DBException.DataCorruption();
                         if (CC.ASSERT && val.length <= 0 || val.length > MAX_REC_SIZE)
-                            throw new AssertionError();
+                            throw new DBException.DataCorruption();
 
                         putDataSingleWithoutLink(-1, offset, val, 0, val.length);
                     }
@@ -1112,7 +1113,7 @@ public class StoreWAL extends StoreCached {
                         break;
                     } else if (instr >>> 4 != 5) {
                         //TODO failsafe with corrupted wal
-                        throw new AssertionError("Invalid instruction in WAL REC" + (instr >>> 4));
+                        throw new DBException.DataCorruption("Invalid instruction in WAL REC" + (instr >>> 4));
                     }
 
                     long recid = wr.getSixLong(pos);

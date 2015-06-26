@@ -497,12 +497,13 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             String name = in.readUTF();
             Object o = getNamedObject.run(name);
             if(o==null)
-                throw new AssertionError("Named object was not found: "+name);
+                throw new DBException.DataCorruption("Named object was not found: "+name);
             objectStack.add(o);
             return o;
         }
 
-        if(head!= Header.POJO) throw new AssertionError();
+        if(head!= Header.POJO)
+            throw new DBException.DataCorruption("wrong header");
         try{
             int classId = DataIO.unpackInt(in);
             ClassInfo classInfo = getClassInfo.run(classId);

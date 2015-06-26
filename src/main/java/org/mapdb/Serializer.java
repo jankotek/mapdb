@@ -1533,7 +1533,7 @@ public abstract class Serializer<A> {
             DataIO.DataInputByteArray in2 = new DataIO.DataInputByteArray(unpacked);
             E ret =  serializer.deserialize(in2,unpackedSize);
             if(CC.ASSERT && ! (in2.pos==unpackedSize))
-                throw new AssertionError( "data were not fully read");
+                throw new DBException.DataCorruption( "data were not fully read");
             return ret;
         }
 
