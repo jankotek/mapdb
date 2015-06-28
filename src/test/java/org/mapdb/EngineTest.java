@@ -8,10 +8,10 @@ import org.junit.Test;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.LockSupport;
 
 import static org.junit.Assert.*;
 import static org.mapdb.Serializer.BYTE_ARRAY_NOSIZE;
@@ -665,4 +665,73 @@ public abstract class EngineTest<ENGINE extends Engine>{
         e.close();
     }
 
+
+    @Test public void recover_with_interrupt() throws InterruptedException {
+        int scale = UtilsTest.scale();
+        if(scale==0)
+            return;
+        e = openEngine();
+        if(!e.canRollback()) //TODO engine might have crash recovery, but no rollbacks
+            return;
+
+        final long counterRecid = e.put(0L, Serializer.LONG);
+
+        //fill recids
+        final int max = scale*1000;
+        final ArrayList<Long> recids = new ArrayList<Long>();
+        for(int j=0;j<max;j++){
+            long recid = e.put(new byte[0],Serializer.BYTE_ARRAY_NOSIZE);
+        }
+
+        final AtomicLong a = new AtomicLong(10);
+
+        for(int i=0;i<100*scale;i++) {
+
+            final CountDownLatch latch = new CountDownLatch(1);
+            Thread t = new Thread() {
+                @Override
+                public void run() {
+                    try {
+                        for (; ; ) {
+                            long A = a.incrementAndGet();
+                            Random r = new Random();
+                            e.update(counterRecid, A, Serializer.LONG);
+
+                            for (long recid : recids) {
+                                byte[] b = new byte[r.nextInt(100000)];
+                                r.nextBytes(b);
+                                e.update(recid, b, Serializer.BYTE_ARRAY_NOSIZE);
+                            }
+                            e.commit();
+                        }
+                    }finally {
+                        latch.countDown();
+                    }
+                }
+            };
+            t.start();
+            t.sleep(5000);
+            t.stop();
+            latch.await();
+            if(!e.isClosed()){
+                close();
+            }
+
+            //reopen and check the content
+            e = openEngine();
+
+            //check if A-1 was commited
+            long A = e.get(counterRecid, Serializer.LONG);
+            assertTrue(A == a.get() || A == a.get() - 1);
+            Random r = new Random(A);
+            for (long recid : recids) {
+                byte[] b = new byte[r.nextInt(100000)];
+                r.nextBytes(b);
+                byte[] b2 = e.get(recid, Serializer.BYTE_ARRAY_NOSIZE);
+                assertTrue("Data were not commited", Arrays.equals(b, b2));
+            }
+        }
+        e.close();
+
+    }
 }

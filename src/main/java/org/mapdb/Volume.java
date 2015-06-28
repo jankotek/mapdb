@@ -2024,7 +2024,7 @@ public abstract class Volume implements Closeable{
         @Override
         public boolean isEmpty() {
             try {
-                return raf.length()==0;
+                return isClosed() || raf.length()==0;
             } catch (IOException e) {
                 throw new DBException.VolumeIOError(e);
             }

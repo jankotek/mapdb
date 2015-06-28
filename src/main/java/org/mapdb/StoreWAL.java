@@ -276,7 +276,7 @@ public class StoreWAL extends StoreCached {
         headVolBackup.ensureAvailable(HEAD_END);
         byte[] b = new byte[(int) HEAD_END];
         //TODO use direct copy
-        headVol.getData(0,b,0,b.length);
+        headVol.getData(0, b, 0, b.length);
         headVolBackup.putData(0,b,0,b.length);
     }
 
@@ -885,7 +885,7 @@ public class StoreWAL extends StoreCached {
                 long finalOffset = walOffset.get();
                 curVol.ensureAvailable(finalOffset + 1); //TODO overlap here
                 //put EOF instruction
-                curVol.putUnsignedByte(finalOffset, (0 << 4) | (Long.bitCount(finalOffset)&15));
+                curVol.putUnsignedByte(finalOffset, (0 << 4) | (Long.bitCount(finalOffset) & 15));
                 curVol.sync();
                 //put wal seal
                 curVol.putLong(8, WAL_SEAL);
@@ -1237,8 +1237,10 @@ public class StoreWAL extends StoreCached {
 
         //destroy old wal files
         for(Volume wal:volumes){
-            wal.truncate(0);
-            wal.close();
+            if(!wal.isClosed()) {
+                wal.truncate(0);
+                wal.close();
+            }
             wal.deleteFile();
 
         }
