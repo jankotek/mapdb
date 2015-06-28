@@ -763,7 +763,7 @@ public final class DBMaker{
          *@deprecated renamed to {@link #fileMmapEnable()}
          */
         public Maker mmapFileEnable() {
-            return fileDB().mmapFileEnable()
+            return fileMmapEnable();
         }
 
 
@@ -790,9 +790,26 @@ public final class DBMaker{
         }
 
         /**
+         *
+         * @return this
+         * @deprecated mapdb 2.0 uses single file, no partial mapping possible
+         */
+        public Maker mmapFileEnablePartial() {
+            return this;
+        }
+
+        /**
          * Enable Memory Mapped Files only if current JVM supports it (is 64bit).
+         * @deprecated renamed to {@link #fileMmapEnableIfSupported()}
          */
         public Maker mmapFileEnableIfSupported() {
+            return fileMmapEnableIfSupported();
+        }
+
+        /**
+         * Enable Memory Mapped Files only if current JVM supports it (is 64bit).
+         */
+        public Maker fileMmapEnableIfSupported() {
             assertNotInMemoryVolume();
             props.setProperty(Keys.volume,Keys.volume_mmapfIfSupported);
             return this;
@@ -999,6 +1016,15 @@ public final class DBMaker{
          */
         public Maker readOnly(){
             props.setProperty(Keys.readOnly,TRUE);
+            return this;
+        }
+
+        /**
+         * @deprecated right now not implemented, will be renamed to allocate*()
+         * @param maxSize
+         * @return this
+         */
+        public Maker sizeLimit(double maxSize){
             return this;
         }
 
