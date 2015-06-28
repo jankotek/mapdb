@@ -55,7 +55,7 @@ public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
         e = openEngine();
         long v = e.composeIndexVal(1000, e.round16Up(10000), true, true, true);
         long offset = 0xF0000;
-        e.walPutLong(offset,v);
+        e.walPutLong(offset, v);
         e.commit();
         e.structuralLock.lock();
         e.commitLock.lock();
@@ -99,7 +99,7 @@ public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
         for(int i=0;i<1000;i++){
             String s = UtilsTest.randomString((int) (Math.random()*10000));
             long recid = e.put(s,Serializer.STRING);
-            ret.put(recid,s);
+            ret.put(recid, s);
         }
 
         return ret;
@@ -283,4 +283,9 @@ public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
         e.close();
     }
 
+    @Test public void header(){
+        StoreWAL s = openEngine();
+        assertEquals(StoreWAL.HEADER,s.vol.getInt(0));
+        assertEquals(StoreWAL.WAL_HEADER,s.curVol.getInt(0));
+    }
 }

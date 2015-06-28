@@ -15,6 +15,13 @@ import java.util.logging.Level;
  */
 public class StoreAppend extends Store {
 
+    /** 2 byte store version*/
+    protected static final int STORE_VERSION = 100;
+
+    /** 4 byte file header */
+    protected static final int HEADER = (0xAB3D<<16) | STORE_VERSION;
+
+
     protected static final int I_UPDATE = 1;
     protected static final int I_INSERT = 3;
     protected static final int I_DELETE = 2;
@@ -174,7 +181,7 @@ public class StoreAppend extends Store {
 
     protected void initCreate() {
         highestRecid.set(RECID_LAST_RESERVED);
-        //TODO header  here
+        vol.putInt(0,HEADER);
         long feat = makeFeaturesBitmap();
         vol.putLong(HEAD_FEATURES, feat);
         vol.sync();

@@ -135,4 +135,9 @@ public class StoreAppendTest<E extends StoreAppend> extends EngineTest<E>{
         //TODO ignored test
     }
     */
+
+    @Test public void header(){
+        StoreAppend s = openEngine();
+        assertEquals(StoreAppend.HEADER,s.vol.getInt(0));
+    }
 }

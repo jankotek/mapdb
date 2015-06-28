@@ -39,6 +39,12 @@ import static org.mapdb.DataIO.*;
  */
 public class StoreWAL extends StoreCached {
 
+    /** 2 byte store version*/
+    protected static final int WAL_STORE_VERSION = 100;
+
+    /** 4 byte file header */
+    protected static final int WAL_HEADER = (0x8A77<<16) | WAL_STORE_VERSION;
+
 
     protected static final long WAL_SEAL = 8234892392398238983L;
 
@@ -216,6 +222,7 @@ public class StoreWAL extends StoreCached {
         }
 
         //start new WAL file
+        //TODO do not start if readonly
         walStartNextFile();
 
         initOpenPost();
@@ -288,7 +295,12 @@ public class StoreWAL extends StoreCached {
             nextVol = volumeFactory.makeVolume(filewal, readonly);
         }
         nextVol.ensureAvailable(16);
-        //TODO write headers and stuff
+
+        if(!readonly) {
+            nextVol.putInt(0, WAL_HEADER);
+            nextVol.putLong(8, makeFeaturesBitmap());
+        }
+
         walOffset.set(16);
         volumes.add(nextVol);
 
