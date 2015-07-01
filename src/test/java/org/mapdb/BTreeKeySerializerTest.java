@@ -6,10 +6,10 @@ import java.io.DataInput;
 import java.io.IOException;
 import java.util.*;
 
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mapdb.BTreeKeySerializer.*;
+import static org.mapdb.BTreeKeySerializer.StringArrayKeys;
+import static org.mapdb.BTreeKeySerializer.UUID;
 
 @SuppressWarnings({"rawtypes","unchecked"})
 public class BTreeKeySerializerTest {
@@ -40,7 +40,7 @@ public class BTreeKeySerializerTest {
         Object[] keys2 = ser.keysToArray(ser.deserialize(in,keys.length));
         assertEquals(in.pos, out.pos);
 
-        assertArrayEquals(keys,keys2);
+        assertTrue(Arrays.equals(keys, keys2));
     }
 
     @Test public void testLong2() throws IOException {
@@ -113,7 +113,7 @@ public class BTreeKeySerializerTest {
         DataInput in = new DataIO.DataInputByteArray(out.copyBytes());
         long[] nn = (long[]) UUID.deserialize(in,  ids.size());
 
-        assertArrayEquals(vv, nn);
+        assertTrue(Arrays.equals(vv, nn));
 
         //test key addition
         java.util.UUID r = java.util.UUID.randomUUID();
@@ -127,7 +127,7 @@ public class BTreeKeySerializerTest {
 
         vv2 = (long[]) UUID.deleteKey(vv2,10);
 
-        assertArrayEquals(vv,vv2);
+        assertTrue(Arrays.equals(vv, vv2));
     }
 
     void randomSerializer(BTreeKeySerializer ser, Fun.Function0 fab){
@@ -159,7 +159,7 @@ public class BTreeKeySerializerTest {
                 keys = ser.putKey(keys,pos,key);
                 keys2.add(key);
             }
-            assertArrayEquals(keys2.toArray(),  ser.keysToArray(keys));
+            assertTrue(Arrays.equals(keys2.toArray(), ser.keysToArray(keys)));
 
 
             if(i%10==0){
@@ -167,16 +167,16 @@ public class BTreeKeySerializerTest {
                 int split = r.nextInt(keys2.size());
 
                 //first half
-                assertArrayEquals(
-                        Arrays.copyOf(keys2.toArray(),split),
+                assertTrue(Arrays.equals(
+                        Arrays.copyOf(keys2.toArray(), split),
                         ser.keysToArray(ser.copyOfRange(keys, 0, split))
-                );
+                ));
 
                 //second half
-                assertArrayEquals(
-                        Arrays.copyOfRange(keys2.toArray(),split, keys2.size()),
+                assertTrue(Arrays.equals(
+                        Arrays.copyOfRange(keys2.toArray(), split, keys2.size()),
                         ser.keysToArray(ser.copyOfRange(keys, split, keys2.size()))
-                );
+                ));
             }
 
             if(i%9==0){
@@ -185,7 +185,7 @@ public class BTreeKeySerializerTest {
                 Object kk = ser.getKey(keys, del);
                 keys = ser.deleteKey(keys,del);
                 keys2.remove(kk);
-                assertArrayEquals(keys2.toArray(),  ser.keysToArray(keys));
+                assertTrue(Arrays.equals(keys2.toArray(), ser.keysToArray(keys)));
             }
         }
 
@@ -425,7 +425,7 @@ public class BTreeKeySerializerTest {
             DataIO.DataInputByteArray in = new DataIO.DataInputByteArray(out.buf);
             Object[] keys2 = BTreeKeySerializer.STRING2.keysToArray(BTreeKeySerializer.STRING2.deserialize(in, keys.size()));
 
-            assertArrayEquals(keys.toArray(), keys2);
+            assertTrue(Arrays.equals(keys.toArray(), keys2));
         }
 
         {
@@ -435,7 +435,7 @@ public class BTreeKeySerializerTest {
             DataIO.DataInputByteArray in = new DataIO.DataInputByteArray(out.buf);
             Object[] keys2 = BTreeKeySerializer.STRING.keysToArray(BTreeKeySerializer.STRING.deserialize(in, keys.size()));
 
-            assertArrayEquals(keys.toArray(), keys2);
+            assertTrue(Arrays.equals(keys.toArray(), keys2));
         }
 
         //convert to byte[] and check with BYTE_ARRAY serializers
@@ -455,7 +455,7 @@ public class BTreeKeySerializerTest {
             DataIO.DataInputByteArray in = new DataIO.DataInputByteArray(out.buf);
             Object[] keys2 = BTreeKeySerializer.BYTE_ARRAY2.keysToArray(BTreeKeySerializer.BYTE_ARRAY2.deserialize(in, keys.size()));
 
-            assertArrayEquals(keys.toArray(), keys2);
+            assertTrue(Arrays.equals(keys.toArray(), keys2));
         }
 
         {
@@ -465,7 +465,7 @@ public class BTreeKeySerializerTest {
             DataIO.DataInputByteArray in = new DataIO.DataInputByteArray(out.buf);
             Object[] keys2 = BTreeKeySerializer.BYTE_ARRAY.keysToArray(BTreeKeySerializer.BYTE_ARRAY.deserialize(in, keys.size()));
 
-            assertArrayEquals(keys.toArray(), keys2);
+            assertTrue(Arrays.equals(keys.toArray(), keys2));
         }
 
     }

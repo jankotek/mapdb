@@ -53,7 +53,7 @@ public class BTreeMapTest{
                 true,true,false,
                 new Object[]{1,2,3}, 0);
         BTreeMap.LeafNode n2 = (BTreeMap.LeafNode) UtilsTest.clone(n, m.nodeSerializer);
-        assertArrayEquals(nodeKeysToArray(n), nodeKeysToArray(n2));
+        assertTrue(Arrays.equals(nodeKeysToArray(n), nodeKeysToArray(n2)));
         assertEquals(n.next, n2.next);
     }
 
@@ -71,8 +71,8 @@ public class BTreeMapTest{
                 mkchild(4,5,6,0));
         BTreeMap.DirNode n2 = (BTreeMap.DirNode) UtilsTest.clone(n, m.nodeSerializer);
 
-        assertArrayEquals(nodeKeysToArray(n), nodeKeysToArray(n2));
-        assertArrayEquals((int[])n.child, (int[])n2.child);
+        assertTrue(Arrays.equals(nodeKeysToArray(n), nodeKeysToArray(n2)));
+        assertTrue(Arrays.equals((int[])n.child, (int[])n2.child));
     }
 
     @Test public void test_find_children(){
@@ -221,8 +221,8 @@ public class BTreeMapTest{
         m.put(11,12);
         final long rootRecid = engine.get(m.rootRecidRef, Serializer.RECID);
         BTreeMap.LeafNode n = (BTreeMap.LeafNode) engine.get(rootRecid, m.nodeSerializer);
-        assertArrayEquals(new Object[]{null, 11, null}, nodeKeysToArray(n));
-        assertArrayEquals(new Object[]{12}, (Object[]) n.vals);
+        assertTrue(Arrays.equals(new Object[]{null, 11, null}, nodeKeysToArray(n)));
+        assertTrue(Arrays.equals(new Object[]{12}, (Object[]) n.vals));
         assertEquals(0, n.next);
     }
 
@@ -299,7 +299,7 @@ public class BTreeMapTest{
 
 
         for (int i = 0; i < max; i=i+1000) {
-            assertArrayEquals(new String[5], map.get(i));
+            assertTrue(Arrays.equals(new String[5], map.get(i)));
             assertTrue(map.get(i).toString().contains("[Ljava.lang.String"));
         }
 

@@ -19,11 +19,11 @@ public class SerializerTest {
 
     @Test public void string_ascii(){
         String s = "adas9 asd9009asd";
-        assertEquals(s,SerializerBaseTest.clone2(s,Serializer.STRING_ASCII));
+        assertEquals(s, SerializerBaseTest.clone2(s, Serializer.STRING_ASCII));
         s = "";
-        assertEquals(s, SerializerBaseTest.clone2(s,Serializer.STRING_ASCII));
+        assertEquals(s, SerializerBaseTest.clone2(s, Serializer.STRING_ASCII));
         s = "    ";
-        assertEquals(s, SerializerBaseTest.clone2(s,Serializer.STRING_ASCII));
+        assertEquals(s, SerializerBaseTest.clone2(s, Serializer.STRING_ASCII));
     }
 
     @Test public void compression_wrapper() throws IOException {
@@ -36,7 +36,7 @@ public class SerializerTest {
         assertTrue(Serializer.BYTE_ARRAY.equals(b, SerializerBaseTest.clone2(b, ser)));
 
         DataIO.DataOutputByteArray out = new DataIO.DataOutputByteArray();
-        ser.serialize(out,b);
+        ser.serialize(out, b);
         assertTrue(out.pos < 1000);
     }
 
@@ -45,7 +45,7 @@ public class SerializerTest {
 
         Object[] a = new Object[]{1,2,3,4};
 
-        assertArrayEquals(a, UtilsTest.clone(a, s));
+        assertTrue(Arrays.equals(a, (Object[])UtilsTest.clone(a, s)));
         assertEquals(s, UtilsTest.clone(s, Serializer.BASIC));
     }
 

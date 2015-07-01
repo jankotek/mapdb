@@ -3,8 +3,6 @@ package doc;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 
-import java.util.Map;
-
 
 public class cache_hash_table {
 

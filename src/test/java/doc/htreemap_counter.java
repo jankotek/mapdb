@@ -3,7 +3,6 @@ package doc;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.HTreeMap;
-import org.mapdb.Serializer;
 
 
 public class htreemap_counter {

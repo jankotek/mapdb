@@ -2,8 +2,6 @@ package doc;
 
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
-import org.mapdb.Fun;
-import org.mapdb.HTreeMap;
 
 import java.util.Map;
 

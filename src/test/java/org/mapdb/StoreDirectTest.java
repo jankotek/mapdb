@@ -85,7 +85,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 //        e.structuralLock.lock();
 //        long[] ret = e.physAllocate(100,true,false);
 //        long expected = 100L<<48 | 16L;
-//        assertArrayEquals(new long[]{expected}, ret);
+//        assertTrue(Arrays.equals(new long[]{expected}, ret);
 //    }
 //
 //    @Test
@@ -94,7 +94,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 //        long[] ret = e.physAllocate(100 + MAX_REC_SIZE,true,false);
 //        long exp1 = MLINKED |((long)MAX_REC_SIZE)<<48 | 16L;
 //        long exp2 = 108L<<48 | (16L+MAX_REC_SIZE+1);
-//        assertArrayEquals(new long[]{exp1, exp2}, ret);
+//        assertTrue(Arrays.equals(new long[]{exp1, exp2}, ret);
 //    }
 //
 //    @Test
@@ -105,15 +105,15 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 //        long exp2 = MLINKED | ((long)MAX_REC_SIZE)<<48 | (16L+MAX_REC_SIZE+1);
 //        long exp3 = ((long)116)<<48 | (16L+MAX_REC_SIZE*2+2);
 //
-//        assertArrayEquals(new long[]{exp1, exp2, exp3}, ret);
+//        assertTrue(Arrays.equals(new long[]{exp1, exp2, exp3}, ret);
 //    }
 //
 //    @Test public void second_rec_pos_round_to_16(){
 //        e.structuralLock.lock();
 //        long[] ret= e.physAllocate(1,true,false);
-//        assertArrayEquals(new long[]{1L<<48|16L},ret);
+//        assertTrue(Arrays.equals(new long[]{1L<<48|16L},ret);
 //        ret= e.physAllocate(1,true,false);
-//        assertArrayEquals(new long[]{1L<<48|32L},ret);
+//        assertTrue(Arrays.equals(new long[]{1L<<48|32L},ret);
 //
 //    }
 //
@@ -285,7 +285,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
                 indexVal&MOFFSET); //offset
         assertEquals(0, indexVal & StoreDirect.MLINKED);
         assertEquals(0, indexVal & StoreDirect.MUNUSED);
-        assertNotEquals(0, indexVal & StoreDirect.MARCHIVE);
+        assertTrue(0 != (indexVal & StoreDirect.MARCHIVE));
         e.close();
     }
 //

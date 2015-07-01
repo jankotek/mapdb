@@ -5,10 +5,7 @@ import org.junit.Test;
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static org.junit.Assert.*;
 import static org.mapdb.DataIO.*;
@@ -19,7 +16,7 @@ public class StoreDirectTest2 {
 
     @Test public void store_create(){
         StoreDirect st = newStore();
-        assertArrayEquals(new long[]{0},st.indexPages);
+        assertTrue(Arrays.equals(new long[]{0}, st.indexPages));
         st.structuralLock.lock();
         assertEquals(st.headChecksum(st.vol), st.vol.getInt(StoreDirect.HEAD_CHECKSUM));
         assertEquals(parity16Set(st.PAGE_SIZE), st.vol.getLong(StoreDirect.STORE_SIZE));

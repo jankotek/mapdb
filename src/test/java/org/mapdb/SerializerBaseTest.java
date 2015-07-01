@@ -394,21 +394,21 @@ public class SerializerBaseTest{
     @Test public void testArray() throws IOException {
         Object[] o = new Object[]{"A",Long.valueOf(1),Long.valueOf(2),Long.valueOf(3), Long.valueOf(3)};
         Object[] o2 = (Object[]) clone(o);
-        assertArrayEquals(o,o2);
+        assertTrue(Arrays.equals(o,o2));
     }
 
 
     @Test public void test_issue_38() throws IOException {
         String[] s = new String[5];
         String[] s2 = (String[]) clone(s);
-        assertArrayEquals(s, s2);
+        assertTrue(Arrays.equals(s, s2));
         assertTrue(s2.toString().contains("[Ljava.lang.String"));
     }
 
     @Test public void test_multi_dim_array() throws IOException {
         int[][] arr = new int[][]{{11,22,44},{1,2,34}};
         int[][] arr2= (int[][]) clone(arr);
-        assertArrayEquals(arr,arr2);
+        assertTrue(Arrays.equals(arr,arr2));
     }
 
     @Test public void test_multi_dim_large_array() throws IOException {
@@ -418,15 +418,15 @@ public class SerializerBaseTest{
             arr1[i]= new int[]{i,i+1};
             arr2[i]= new double[]{i,i+1};
         }
-        assertArrayEquals(arr1, (Object[]) clone(arr1));
-        assertArrayEquals(arr2, (Object[]) clone(arr2));
+        assertTrue(Arrays.equals(arr1, (Object[]) clone(arr1)));
+        assertTrue(Arrays.equals(arr2, (Object[]) clone(arr2)));
     }
 
 
     @Test public void test_multi_dim_array2() throws IOException {
         Object[][] arr = new Object[][]{{11,22,44},{1,2,34}};
         Object[][] arr2= (Object[][]) clone(arr);
-        assertArrayEquals(arr,arr2);
+        assertTrue(Arrays.equals(arr,arr2));
     }
 
 

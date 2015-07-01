@@ -56,7 +56,7 @@
 //            b[i*2+2] = a[i] & StoreDirect.MOFFSET; //offset
 //        }
 //
-//        assertArrayEquals(n, b);
+//        assertTrue(Arrays.equals(n, b);
 //    }
 //
 //    long size(long i){

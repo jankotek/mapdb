@@ -1,16 +1,15 @@
 package org.mapdb;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-
-import java.util.Random;
-import java.util.concurrent.ConcurrentMap;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mapdb.DB.HTreeMapMaker;
+
+import java.util.Random;
+import java.util.concurrent.ConcurrentMap;
+
+import static org.junit.Assert.*;
 
 public class Issue353Test {
 

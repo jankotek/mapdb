@@ -1,14 +1,5 @@
 package examples;
 
-import org.mapdb.BTreeKeySerializer;
-import org.mapdb.DB;
-import org.mapdb.DBMaker;
-import org.mapdb.Fun;
-
-import java.util.Map;
-import java.util.Random;
-import java.util.concurrent.ConcurrentNavigableMap;
-
 /*
  * Demonstrates how-to use multi value keys in BTree.
  *

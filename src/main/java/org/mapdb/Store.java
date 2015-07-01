@@ -7,7 +7,10 @@ import java.lang.ref.ReferenceQueue;
 import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -854,9 +857,10 @@ public abstract class Store implements Engine {
         public void put(long recid, Object item) {
             if(item ==null)
                 item = Cache.NULL;
-            CacheItem cacheItem = useWeakRef?
+            CacheItem cacheItem = (CacheItem) //cast needed for some buggy compilers
+                    (useWeakRef?
                     new CacheWeakItem(item,queue,recid):
-                    new CacheSoftItem(item,queue,recid);
+                    new CacheSoftItem(item,queue,recid));
             Lock lock = this.lock;
             if(lock!=null)
                 lock.lock();

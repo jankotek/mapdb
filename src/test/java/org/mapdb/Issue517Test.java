@@ -2,9 +2,9 @@ package org.mapdb;
 
 import org.junit.Test;
 
-import java.io.*;
-
-import static org.junit.Assert.*;
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 
 public class Issue517Test {
 

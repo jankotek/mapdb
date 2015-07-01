@@ -11,9 +11,7 @@ import java.nio.ByteBuffer;
 import java.util.Random;
 
 import static java.util.Arrays.asList;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class UtilsTest {
 

@@ -15,8 +15,6 @@
  ******************************************************************************/
 package org.mapdb;
 
-import org.junit.After;
-
 import java.util.concurrent.ConcurrentMap;
 
 public class HTreeMap3Test extends ConcurrentMapInterfaceTest<Integer, String> {

@@ -1,6 +1,5 @@
 package doc;
 
-import org.mapdb.Atomic;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 

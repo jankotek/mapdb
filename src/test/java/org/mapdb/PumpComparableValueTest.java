@@ -1,10 +1,10 @@
 package org.mapdb;
 
 
-import java.util.Iterator;
-
 import org.junit.Test;
 import org.mapdb.Fun.Pair;
+
+import java.util.Iterator;
 
 import static org.junit.Assert.assertEquals;
 

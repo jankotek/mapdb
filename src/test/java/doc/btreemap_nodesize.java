@@ -3,7 +3,6 @@ package doc;
 import org.mapdb.BTreeMap;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
-import org.mapdb.Serializer;
 
 public class btreemap_nodesize {
 

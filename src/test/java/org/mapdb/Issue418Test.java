@@ -5,8 +5,7 @@ import org.junit.Test;
 import java.io.File;
 import java.util.Set;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class Issue418Test {
 

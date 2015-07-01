@@ -203,7 +203,7 @@ public abstract class MapInterfaceTest<K, V> extends TestCase {
         assertEquals(map.size(), entrySetToArray1.length);
         assertTrue(Arrays.asList(entrySetToArray1).containsAll(entrySet));
 
-        Entry<?, ?>[] entrySetToArray2 = new Entry<?, ?>[map.size() + 2];
+        Entry<?, ?>[] entrySetToArray2 = new Entry[map.size() + 2];
         entrySetToArray2[map.size()] = mapEntry("foo", 1);
         assertSame(entrySetToArray2, entrySet.toArray(entrySetToArray2));
         assertNull(entrySetToArray2[map.size()]);

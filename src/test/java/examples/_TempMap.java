@@ -1,6 +1,5 @@
 package examples;
 
-import org.mapdb.BTreeMap;
 import org.mapdb.DBMaker;
 
 import java.util.Map;

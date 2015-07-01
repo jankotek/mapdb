@@ -1,10 +1,7 @@
 package doc;
 
-import org.mapdb.Atomic;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
-
-import java.util.concurrent.Executors;
 
 
 public class concurrency_executor_custom {

@@ -51,7 +51,7 @@ public class HTreeMap2Test {
         DataIO.DataInputByteBuffer in = swap(out);
 
         int[] dir2 = (int[]) HTreeMap.DIR_SERIALIZER.deserialize(in, -1);
-        assertArrayEquals((int[])dir,dir2);
+        assertTrue(Arrays.equals((int[])dir,dir2));
 
         for(int slot=1;slot<127;slot+=1 +slot/5){
             int offset = HTreeMap.dirOffsetFromSlot(dir2,slot);
@@ -333,7 +333,7 @@ public class HTreeMap2Test {
         assertEquals(111L, n.keyRecid);
         assertEquals(222, n.hash);
 
-        assertArrayEquals(new int[]{222},getExpireList(m,0));
+        assertTrue(Arrays.equals(new int[]{222},getExpireList(m,0)));
 
         n = m.expireLinkRemoveLast(0);
         assertEquals(0, n.prev);
@@ -343,7 +343,7 @@ public class HTreeMap2Test {
 
         assertEquals(ZERO, engine.get(m.expireHeads[0], Serializer.LONG));
         assertEquals(ZERO, engine.get(m.expireTails[0], Serializer.LONG));
-        assertArrayEquals(new int[]{},getExpireList(m,0));
+        assertTrue(Arrays.equals(new int[]{},getExpireList(m,0)));
         m.segmentLocks[0].writeLock().unlock();
     }
 
@@ -359,31 +359,31 @@ public class HTreeMap2Test {
             m.expireLinkAdd(s, recids[i],i*10,i*100);
         }
 
-        assertArrayEquals(new int[]{100, 200, 300, 400, 500, 600, 700, 800, 900}, getExpireList(m, s));
+        assertTrue(Arrays.equals(new int[]{100, 200, 300, 400, 500, 600, 700, 800, 900}, getExpireList(m, s)));
 
         m.expireLinkBump(s, recids[8], true);
-        assertArrayEquals(new int[]{100, 200, 300, 400, 500, 600, 700, 900, 800}, getExpireList(m, s));
+        assertTrue(Arrays.equals(new int[]{100, 200, 300, 400, 500, 600, 700, 900, 800}, getExpireList(m, s)));
 
         m.expireLinkBump(s, recids[5], true);
-        assertArrayEquals(new int[]{100, 200, 300, 400, 600, 700, 900, 800, 500}, getExpireList(m, s));
+        assertTrue(Arrays.equals(new int[]{100, 200, 300, 400, 600, 700, 900, 800, 500}, getExpireList(m, s)));
 
         m.expireLinkBump(s, recids[1], true);
-        assertArrayEquals(new int[]{200, 300, 400, 600, 700, 900, 800, 500, 100}, getExpireList(m, s));
+        assertTrue(Arrays.equals(new int[]{200, 300, 400, 600, 700, 900, 800, 500, 100}, getExpireList(m, s)));
 
         assertEquals(200, m.expireLinkRemoveLast(s).hash);
-        assertArrayEquals(new int[]{300,400,600,700,900,800,500,100},getExpireList(m,s));
+        assertTrue(Arrays.equals(new int[]{300,400,600,700,900,800,500,100},getExpireList(m,s)));
 
         assertEquals(300, m.expireLinkRemoveLast(s).hash);
-        assertArrayEquals(new int[]{400,600,700,900,800,500,100},getExpireList(m,s));
+        assertTrue(Arrays.equals(new int[]{400,600,700,900,800,500,100},getExpireList(m,s)));
 
         assertEquals(600, m.expireLinkRemove(s,recids[6]).hash);
-        assertArrayEquals(new int[]{400,700,900,800,500,100},getExpireList(m,s));
+        assertTrue(Arrays.equals(new int[]{400,700,900,800,500,100},getExpireList(m,s)));
 
         assertEquals(400, m.expireLinkRemove(s,recids[4]).hash);
-        assertArrayEquals(new int[]{700,900,800,500,100},getExpireList(m,s));
+        assertTrue(Arrays.equals(new int[]{700,900,800,500,100},getExpireList(m,s)));
 
         assertEquals(100, m.expireLinkRemove(s,recids[1]).hash);
-        assertArrayEquals(new int[]{700,900,800,500},getExpireList(m,s));
+        assertTrue(Arrays.equals(new int[]{700,900,800,500},getExpireList(m,s)));
         m.segmentLocks[s].writeLock().unlock();
 
     }
@@ -953,12 +953,12 @@ public class HTreeMap2Test {
                         dir2[j] = HTreeMap.dirGet(dir, offset);
                 }
 
-                assertArrayEquals(reference, dir2);
+                assertTrue(Arrays.equals(reference, dir2));
 
                 if (dir instanceof int[])
-                    assertArrayEquals((int[]) dir, (int[]) UtilsTest.clone(dir, HTreeMap.DIR_SERIALIZER));
+                    assertTrue(Arrays.equals((int[]) dir, (int[]) UtilsTest.clone(dir, HTreeMap.DIR_SERIALIZER)));
                 else
-                    assertArrayEquals((long[]) dir, (long[]) UtilsTest.clone(dir, HTreeMap.DIR_SERIALIZER));
+                    assertTrue(Arrays.equals((long[]) dir, (long[]) UtilsTest.clone(dir, HTreeMap.DIR_SERIALIZER)));
             }
         }
     }
@@ -991,12 +991,12 @@ public class HTreeMap2Test {
                         dir2[j] = HTreeMap.dirGet(dir, offset);
                 }
 
-                assertArrayEquals(reference, dir2);
+                assertTrue(Arrays.equals(reference, dir2));
 
                 if (dir instanceof int[])
-                    assertArrayEquals((int[]) dir, (int[]) UtilsTest.clone(dir, HTreeMap.DIR_SERIALIZER));
+                    assertTrue(Arrays.equals((int[]) dir, (int[]) UtilsTest.clone(dir, HTreeMap.DIR_SERIALIZER)));
                 else
-                    assertArrayEquals((long[]) dir, (long[]) UtilsTest.clone(dir, HTreeMap.DIR_SERIALIZER));
+                    assertTrue(Arrays.equals((long[]) dir, (long[]) UtilsTest.clone(dir, HTreeMap.DIR_SERIALIZER)));
             }
         }
     }

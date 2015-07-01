@@ -1,11 +1,12 @@
 package org.mapdb;
 
-import static org.junit.Assert.*;
 import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+
+import static org.junit.Assert.*;
 
 public class StoreLongLongMapTest {
 

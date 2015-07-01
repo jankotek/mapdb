@@ -1,19 +1,5 @@
 package org.mapdb;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicLong;
-
-import static org.junit.Assert.*;
-
 /*
 * @author Jan Kotek
 */
@@ -131,7 +117,7 @@ public class AsyncWriteEngineTest{
         t = (StoreWAL) DBMaker.fileDB(index).cacheDisable().makeEngine();
         a = new AsyncWriteEngine(t);
         for(Long recid : l){
-            assertArrayEquals(b, (byte[]) a.get(recid, Serializer.BASIC));
+            assertTrue(Arrays.equals(b, (byte[]) a.get(recid, Serializer.BASIC));
         }
         a.close();
     }

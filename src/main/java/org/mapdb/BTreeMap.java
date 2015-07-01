@@ -721,9 +721,9 @@ public class BTreeMap<K,V>
             this.hasValues = valueSerializer!=null;
             this.valsOutsideNodes = valsOutsideNodes;
             this.keySerializer = keySerializer;
-            this.valueSerializer =  hasValues?
+            this.valueSerializer =  (Serializer) (hasValues?
                     (valsOutsideNodes? new ValRefSerializer() : valueSerializer):
-                    Serializer.BOOLEAN;
+                    Serializer.BOOLEAN);
             this.numberOfNodeMetas = numberOfNodeMetas;
         }
 

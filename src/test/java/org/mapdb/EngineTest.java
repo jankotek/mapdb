@@ -2,7 +2,6 @@ package org.mapdb;
 
 
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.io.DataInput;
@@ -11,7 +10,6 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.LockSupport;
 
 import static org.junit.Assert.*;
 import static org.mapdb.Serializer.BYTE_ARRAY_NOSIZE;

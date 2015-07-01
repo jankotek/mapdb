@@ -3,8 +3,8 @@ package org.mapdb;
 
 import org.junit.Test;
 
-import javax.swing.*;
 import java.io.*;
+import java.net.HttpCookie;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
@@ -274,7 +274,7 @@ public class SerializerPojoTest{
     @Test public void test_write_object_advanced_serializationm(){
         Object[] o = new Object[]{
                 new GregorianCalendar(1,1,1),
-                new JLabel("aa")
+                new HttpCookie("aa","bb")
         };
 
         for(Object oo:o){

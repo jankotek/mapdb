@@ -3,9 +3,6 @@ package org.mapdb;
 import org.junit.Test;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.util.concurrent.ScheduledExecutorService;
 
 import static org.junit.Assert.*;
 @SuppressWarnings({"rawtypes","unchecked"})

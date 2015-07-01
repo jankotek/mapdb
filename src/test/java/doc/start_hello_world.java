@@ -3,8 +3,6 @@ package doc;
 import org.mapdb.DBMaker;
 
 import java.util.concurrent.ConcurrentNavigableMap;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class start_hello_world {
     public static void main(String[] args) {

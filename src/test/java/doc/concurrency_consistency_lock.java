@@ -1,7 +1,6 @@
 package doc;
 
 import org.mapdb.*;
-import java.util.*;
 
 
 public class concurrency_consistency_lock {

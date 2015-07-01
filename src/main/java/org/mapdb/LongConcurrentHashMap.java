@@ -23,10 +23,10 @@
  */
 
 package org.mapdb;
+
 import java.io.Serializable;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-import java.util.Random;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
