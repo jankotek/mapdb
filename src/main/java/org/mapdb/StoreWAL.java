@@ -1168,7 +1168,7 @@ public class StoreWAL extends StoreCached {
             if(wal.isEmpty()) {
                 break file;
             }
-            if(wal.getLong(8)!=WAL_SEAL) {
+            if(wal.isEmpty() || wal.length()<16 || wal.getLong(8)!=WAL_SEAL) {
                 break file;
                 //TODO better handling for corrupted logs
             }

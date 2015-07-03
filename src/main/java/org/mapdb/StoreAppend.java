@@ -194,6 +194,7 @@ public class StoreAppend extends Store {
         long pos = headerSize;
         final long volumeSize = vol.length();
         long lastValidPos= pos;
+        long lastValidCommitOffset = 0;
         long highestRecid2 = RECID_LAST_RESERVED;
         LongLongMap commitData = tx?new LongLongMap():null;
 
@@ -245,6 +246,7 @@ public class StoreAppend extends Store {
                     pos += (size>>>60) + longParityGet(size & DataIO.PACK_LONG_RESULT_MASK);
                 } else if (inst == I_TX_VALID) {
                     if (tx){
+                        lastValidCommitOffset = pos;
                         //apply changes from commitData to indexTable
                         for(int i=0;i<commitData.table.length;i+=2){
                             long recidOffset = commitData.table[i]*8;
@@ -274,12 +276,17 @@ public class StoreAppend extends Store {
                 }
             }
         }catch (RuntimeException e){
-            //log replay finished
-            //TODO log here?
-            LOG.log(Level.WARNING, "Log replay finished",e);
+            //log replay failed for some reason
             if(tx) {
+                LOG.log(Level.WARNING, "Log corrupted, most likely last TX was not committed. " +
+                        "Rolling back to last valid commit at offset: "+lastValidCommitOffset,e);
+
                 //rollback changes in index table since last valid tx
                 commitData.clear();
+            }else{
+                LOG.warning("AppendStore has transactions disabled, which means no crash protection. Data corruption at offset: "+pos);
+                //TODO data recovery possible, but needs documentation and tooling. For now just hard fail.
+                throw e;
             }
 
         }

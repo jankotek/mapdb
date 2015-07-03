@@ -160,7 +160,7 @@ public abstract class Volume implements Closeable{
 
     public void deleteFile(){
         File f = getFile();
-        if(f!=null && !f.delete()){
+        if(f!=null && f.isFile() && !f.delete()){
             LOG.warning("Could not delete file: "+f);
         }
     }
