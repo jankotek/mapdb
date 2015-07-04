@@ -8,9 +8,7 @@ import java.net.HttpCookie;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.GregorianCalendar;
+import java.util.*;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -426,5 +424,81 @@ public class SerializerPojoTest{
         assertEquals(0, db.unknownClasses.size());
 
     }
+
+
+    public static class SS implements Serializable{
+        protected final Map mm;
+
+        public SS(Map mm) {
+            this.mm = mm;
+        }
+    }
+
+    public static class MM extends AbstractMap implements Serializable{
+
+        Map m = new HashMap();
+
+        private Object writeReplace() throws ObjectStreamException {
+            return new LinkedHashMap(this);
+        }
+
+        @Override
+        public Set<Entry> entrySet() {
+            return m.entrySet();
+        }
+
+        @Override
+        public Object put(Object key, Object value) {
+            return m.put(key,value);
+        }
+    }
+
+    @Test
+    public void testWriteReplace() throws ObjectStreamException {
+        Map m = new MM();
+        m.put("11","111");
+        assertEquals(new LinkedHashMap(m),UtilsTest.clone(m,p));
+    }
+
+
+    @Test
+    public void testWriteReplace2() throws IOException {
+        File f = File.createTempFile("mapdb","mapdb");
+        Map m = new MM();
+        m.put("11", "111");
+        DB db = DBMaker.fileDB(f).transactionDisable().make();
+        db.treeMap("map").put("key",m);
+        db.commit();
+        db.close();
+
+        db = DBMaker.fileDB(f).transactionDisable().make();
+
+        assertEquals(new LinkedHashMap(m), db.treeMap("map").get("key"));
+    }
+
+
+    @Test
+    public void testWriteReplaceWrap() throws ObjectStreamException {
+        Map m = new MM();
+        m.put("11","111");
+        assertEquals(new LinkedHashMap(m),UtilsTest.clone(m,p));
+    }
+
+
+    @Test
+    public void testWriteReplace2Wrap() throws IOException {
+        File f = File.createTempFile("mapdb", "mapdb");
+        SS m = new SS(new MM());
+        m.mm.put("11", "111");
+        DB db = DBMaker.fileDB(f).transactionDisable().make();
+        db.treeMap("map").put("key", m);
+        db.commit();
+        db.close();
+
+        db = DBMaker.fileDB(f).transactionDisable().make();
+
+        assertEquals(new LinkedHashMap(m.mm), ((SS)db.treeMap("map").get("key")).mm);
+    }
+
 
 }
