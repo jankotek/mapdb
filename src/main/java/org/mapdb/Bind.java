@@ -607,6 +607,13 @@ public final class Bind {
         };
 
         primary.modificationListenerAdd(listener);
+
+        if(histogram.isEmpty()){
+            //recreate content on empty collection
+            for(Map.Entry<K,V> e:primary.entrySet()){
+                listener.update(e.getKey(),null,e.getValue());
+            }
+        }
     }
 
 
