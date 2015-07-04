@@ -113,7 +113,7 @@ public class PumpTest {
 
                 for(int i=0;i<1000;i++) m.put(i,"aaaa"+i);
 
-                Pump.copy(srcSnapshot,target);
+                Pump.copy(srcSnapshot, target);
 
                 assertEquals(src.getCatalog(), target.getCatalog());
                 Map m2 = target.treeMap("test");
@@ -438,7 +438,7 @@ public class PumpTest {
             u.add(i);
         }
 
-        Iterator res = Pump.sort(Fun.COMPARATOR,true,u.iterator(),u.iterator());
+        Iterator res = Pump.sort(Fun.COMPARATOR, true, u.iterator(), u.iterator());
 
         for(long i=0;i<100;i++){
             assertTrue(res.hasNext());
@@ -551,6 +551,47 @@ public class PumpTest {
     @Test public void empty_treemap(){
         BTreeMap m = DBMaker.memoryDB().transactionDisable()
                 .make().treeMapCreate("map")
+                .pumpSource(Fun.EMPTY_ITERATOR)
+                .make();
+        assertTrue(m.isEmpty());
+    }
+
+
+    @Test public void empty_iterator_issue452(){
+        DB db = DBMaker.memoryDB().transactionDisable().make();
+        Map m = db.treeMapCreate("m")
+                .pumpSource(Fun.EMPTY_ITERATOR)
+                .make();
+        assertTrue(m.isEmpty());
+        m = db.treeMapCreate("2m")
+                .pumpSource(Fun.EMPTY_ITERATOR,Fun.extractNoTransform())
+                .make();
+        assertTrue(m.isEmpty());
+    }
+
+    @Test public void empty_iterator_set_issue452(){
+        DB db = DBMaker.memoryDB().transactionDisable().make();
+        Set m = db.treeSetCreate("m")
+                .pumpSource(Fun.EMPTY_ITERATOR)
+                .make();
+        assertTrue(m.isEmpty());
+    }
+
+    @Test public void hash_empty_iterator_issue452(){
+        DB db = DBMaker.memoryDB().transactionDisable().make();
+        Map m = db.hashMapCreate("m")
+                .pumpSource(Fun.EMPTY_ITERATOR)
+                .make();
+        assertTrue(m.isEmpty());
+        m = db.hashMapCreate("2m")
+                .pumpSource(Fun.EMPTY_ITERATOR,Fun.extractNoTransform())
+                .make();
+        assertTrue(m.isEmpty());
+    }
+
+    @Test public void hash_empty_iterator_set_issue452(){
+        DB db = DBMaker.memoryDB().transactionDisable().make();
+        Set m = db.hashSetCreate("m")
                 .pumpSource(Fun.EMPTY_ITERATOR)
                 .make();
         assertTrue(m.isEmpty());
