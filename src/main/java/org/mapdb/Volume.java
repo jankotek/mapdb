@@ -371,6 +371,8 @@ public abstract class Volume implements Closeable{
      */
     abstract static public class ByteBufferVol extends Volume{
 
+        protected final  boolean cleanerHackEnabled;
+
         protected final ReentrantLock growLock = new ReentrantLock(CC.FAIR_LOCKS);
         protected final int sliceShift;
         protected final int sliceSizeModMask;
@@ -379,9 +381,10 @@ public abstract class Volume implements Closeable{
         protected volatile ByteBuffer[] slices = new ByteBuffer[0];
         protected final boolean readOnly;
 
-        protected ByteBufferVol(boolean readOnly,  int sliceShift) {
+        protected ByteBufferVol(boolean readOnly, int sliceShift, boolean cleanerHackEnabled) {
             this.readOnly = readOnly;
             this.sliceShift = sliceShift;
+            this.cleanerHackEnabled = cleanerHackEnabled;
             this.sliceSize = 1<< sliceShift;
             this.sliceSizeModMask = sliceSize -1;
         }
@@ -657,7 +660,16 @@ public abstract class Volume implements Closeable{
             public Volume makeVolume(String file, boolean readOnly, int sliceShift, long initSize, boolean fixedSize) {
                 //TODO optimize if fixedSize is bellow 2GB
                 //TODO prealocate initsize
-                return new MappedFileVol(new File(file),readOnly,sliceShift);
+                return new MappedFileVol(new File(file),readOnly,sliceShift,false);
+            }
+        };
+
+        public static final VolumeFactory FACTORY_WITH_CLEANER_HACK = new VolumeFactory() {
+            @Override
+            public Volume makeVolume(String file, boolean readOnly, int sliceShift, long initSize, boolean fixedSize) {
+                //TODO optimize if fixedSize is bellow 2GB
+                //TODO prealocate initsize
+                return new MappedFileVol(new File(file),readOnly,sliceShift,true);
             }
         };
 
@@ -667,8 +679,8 @@ public abstract class Volume implements Closeable{
         protected final java.io.RandomAccessFile raf;
 
 
-        public MappedFileVol(File file, boolean readOnly, int sliceShift) {
-            super(readOnly,sliceShift);
+        public MappedFileVol(File file, boolean readOnly, int sliceShift, boolean cleanerHackEnabled) {
+            super(readOnly,sliceShift, cleanerHackEnabled);
             this.file = file;
             this.mapMode = readOnly? FileChannel.MapMode.READ_ONLY: FileChannel.MapMode.READ_WRITE;
             try {
@@ -703,12 +715,14 @@ public abstract class Volume implements Closeable{
 //                if(!readOnly)
 //                    sync();
 
-                for(ByteBuffer b: slices){
-                    if(b!=null && (b instanceof MappedByteBuffer)){
-                        unmap((MappedByteBuffer) b);
+                if(cleanerHackEnabled) {
+                    for (ByteBuffer b : slices) {
+                        if (b != null && (b instanceof MappedByteBuffer)) {
+                            unmap((MappedByteBuffer) b);
+                        }
                     }
                 }
-
+                Arrays.fill(slices,null);
                 slices = null;
 
             } catch (IOException e) {
@@ -796,13 +810,17 @@ public abstract class Volume implements Closeable{
 
                 //unmap remaining buffers
                 for(int i=maxSize;i<old.length;i++){
-                    unmap((MappedByteBuffer) old[i]);
+                    if(cleanerHackEnabled) {
+                        unmap((MappedByteBuffer) old[i]);
+                    }
                     old[i] = null;
                 }
 
                 if (ByteBufferVol.windowsWorkaround) {
                     for(int i=0;i<maxSize;i++){
-                        unmap((MappedByteBuffer) old[i]);
+                        if(cleanerHackEnabled) {
+                            unmap((MappedByteBuffer) old[i]);
+                        }
                         old[i] = null;
                     }
                 }
@@ -834,10 +852,21 @@ public abstract class Volume implements Closeable{
             public Volume makeVolume(String file, boolean readOnly, int sliceShift, long initSize, boolean fixedSize) {
                 //TODO prealocate initSize
                 //TODO optimize for fixedSize smaller than 2GB
-                return new MemoryVol(true,sliceShift);
+                return new MemoryVol(true,sliceShift,false);
             }
-        }
-                ;
+        };
+
+
+        /** factory for DirectByteBuffer storage*/
+        public static final VolumeFactory FACTORY_WITH_CLEANER_HACK = new VolumeFactory() {
+            @Override
+            public Volume makeVolume(String file, boolean readOnly, int sliceShift, long initSize, boolean fixedSize) {
+                //TODO prealocate initSize
+                //TODO optimize for fixedSize smaller than 2GB
+                return new MemoryVol(true,sliceShift,true);
+            }
+        };
+
         protected final boolean useDirectBuffer;
 
         @Override
@@ -845,8 +874,8 @@ public abstract class Volume implements Closeable{
             return super.toString()+",direct="+useDirectBuffer;
         }
 
-        public MemoryVol(final boolean useDirectBuffer, final int sliceShift) {
-            super(false, sliceShift);
+        public MemoryVol(final boolean useDirectBuffer, final int sliceShift,boolean cleanerHackEnabled) {
+            super(false, sliceShift, cleanerHackEnabled);
             this.useDirectBuffer = useDirectBuffer;
         }
 
@@ -883,7 +912,7 @@ public abstract class Volume implements Closeable{
 
                 //unmap remaining buffers
                 for(int i=maxSize;i<old.length;i++){
-                    if(old[i] instanceof  MappedByteBuffer)
+                    if(cleanerHackEnabled && old[i] instanceof  MappedByteBuffer)
                         unmap((MappedByteBuffer) old[i]);
                     old[i] = null;
                 }
@@ -897,11 +926,14 @@ public abstract class Volume implements Closeable{
             growLock.lock();
             try{
                 closed = true;
-                for(ByteBuffer b: slices){
-                    if(b!=null && (b instanceof MappedByteBuffer)){
-                        unmap((MappedByteBuffer)b);
+                if(cleanerHackEnabled) {
+                    for (ByteBuffer b : slices) {
+                        if (b != null && (b instanceof MappedByteBuffer)) {
+                            unmap((MappedByteBuffer) b);
+                        }
                     }
                 }
+                Arrays.fill(slices,null);
                 slices = null;
             }finally{
                 growLock.unlock();

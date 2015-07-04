@@ -29,13 +29,13 @@ public class VolumeTest {
                     new Fun.Function1<Volume,String>() {
                         @Override
                         public Volume run(String file) {
-                            return new Volume.MemoryVol(true, CC.VOLUME_PAGE_SHIFT);
+                            return new Volume.MemoryVol(true, CC.VOLUME_PAGE_SHIFT,false);
                         }
                     },
                     new Fun.Function1<Volume,String>() {
                         @Override
                         public Volume run(String file) {
-                            return new Volume.MemoryVol(false, CC.VOLUME_PAGE_SHIFT);
+                            return new Volume.MemoryVol(false, CC.VOLUME_PAGE_SHIFT,false);
                         }
                     },
                     new Fun.Function1<Volume,String>() {
@@ -59,7 +59,7 @@ public class VolumeTest {
                     new Fun.Function1<Volume,String>() {
                         @Override
                         public Volume run(String file) {
-                            return new Volume.MappedFileVol(new File(file), false, CC.VOLUME_PAGE_SHIFT);
+                            return new Volume.MappedFileVol(new File(file), false, CC.VOLUME_PAGE_SHIFT,false);
                         }
                     }
     };

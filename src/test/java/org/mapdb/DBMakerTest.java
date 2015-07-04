@@ -578,4 +578,37 @@ public class DBMakerTest{
         assertEquals(Volume.FileChannelVol.class, d.vol.getClass());
     }
 
+
+    @Test public void fileMmapCleanerHack_file(){
+        DB db = DBMaker.fileDB(UtilsTest.tempDbFile())
+                .fileMmapEnable()
+                .transactionDisable()
+                .make();
+        assertFalse(((Volume.MappedFileVol)((StoreDirect) db.engine).vol).cleanerHackEnabled);
+        db.close();
+
+        db = DBMaker.fileDB(UtilsTest.tempDbFile())
+                .fileMmapEnable()
+                .fileMmapCleanerHackEnable()
+                .transactionDisable()
+                .make();
+        assertTrue(((Volume.MappedFileVol)((StoreDirect) db.engine).vol).cleanerHackEnabled);
+        db.close();
+    }
+
+
+    @Test public void fileMmapCleanerHack_memory(){
+        DB db = DBMaker.memoryDirectDB()
+                .transactionDisable()
+                .make();
+        assertFalse(((Volume.ByteBufferVol) ((StoreDirect) db.engine).vol).cleanerHackEnabled);
+        db.close();
+
+        db = DBMaker.memoryDirectDB()
+                .fileMmapCleanerHackEnable()
+                .transactionDisable()
+                .make();
+        assertTrue(((Volume.ByteBufferVol) ((StoreDirect) db.engine).vol).cleanerHackEnabled);
+        db.close();
+    }
 }

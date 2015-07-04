@@ -77,6 +77,7 @@ public final class DBMaker{
         String volume_directByteBuffer = "directByteBuffer";
         String volume_unsafe = "unsafe";
 
+        String fileMmapCleanerHack = "fileMmapCleanerHack";
 
         String lockScale = "lockScale";
 
@@ -698,7 +699,7 @@ public final class DBMaker{
          * @return this builder
          */
         public Maker cacheSoftRefEnable(){
-            props.put(Keys.cache,Keys.cache_softRef);
+            props.put(Keys.cache, Keys.cache_softRef);
             return this;
         }
 
@@ -779,7 +780,39 @@ public final class DBMaker{
          */
         public Maker fileMmapEnable() {
             assertNotInMemoryVolume();
-            props.setProperty(Keys.volume,Keys.volume_mmapf);
+            props.setProperty(Keys.volume, Keys.volume_mmapf);
+            return this;
+        }
+
+        /**
+         * <p>
+         * Enables cleaner hack to close mmaped files at DB.close(), rather than Garbage Collection.
+         * See relevant <a href="http://bugs.java.com/view_bug.do?bug_id=4724038">JVM bug</a>.
+         * Please note that this option closes files, but could cause all sort of problems,
+         * including JVM crash.
+         * </p><p>
+         * Memory mapped files in Java are not unmapped when file closes.
+         * Unmapping happens when {@code DirectByteBuffer} is garbage collected.
+         * Delay between file close and GC could be very long, possibly even hours.
+         * This causes file descriptor to remain open, causing all sort of problems:
+         * </p><p>
+         * On Windows opened file can not be deleted or accessed by different process.
+         * It remains locked even after JVM process exits until Windows restart.
+         * This is causing problems during compaction etc.
+         * </p><p>
+         * On Linux (and other systems) opened files consumes file descriptor. Eventually
+         * JVM process could run out of available file descriptors (couple of thousands)
+         * and would be unable to open new files or sockets.
+         * </p><p>
+         * On Oracle and OpenJDK JVMs there is option to unmap files after closing.
+         * However it is not officially supported and could result in all sort of strange behaviour.
+         * In MapDB it was linked to <a href="https://github.com/jankotek/mapdb/issues/442">JVM crashes</a>,
+         * and was disabled by default in MapDB 2.0.
+         * </p>
+         * @return this builder
+         */
+        public Maker fileMmapCleanerHackEnable() {
+            props.setProperty(Keys.fileMmapCleanerHack,TRUE);
             return this;
         }
 
@@ -1369,13 +1402,15 @@ public final class DBMaker{
 
         protected Volume.VolumeFactory  extendStoreVolumeFactory(boolean index) {
             String volume = props.getProperty(Keys.volume);
+            boolean cleanerHackEnabled = propsGetBool(Keys.fileMmapCleanerHack);
             if(Keys.volume_byteBuffer.equals(volume))
                 return Volume.ByteArrayVol.FACTORY;
             else if(Keys.volume_directByteBuffer.equals(volume))
-                return Volume.MemoryVol.FACTORY;
+                return cleanerHackEnabled?
+                        Volume.MemoryVol.FACTORY_WITH_CLEANER_HACK:
+                        Volume.MemoryVol.FACTORY;
             else if(Keys.volume_unsafe.equals(volume))
                 return Volume.UNSAFE_VOL_FACTORY;
-
             int rafMode = propsGetRafMode();
             if(rafMode == 3)
                 return Volume.FileChannelVol.FACTORY;
@@ -1385,7 +1420,9 @@ public final class DBMaker{
 
             return raf?
                     Volume.RandomAccessFileVol.FACTORY:
-                    Volume.MappedFileVol.FACTORY;
+                    (cleanerHackEnabled?
+                            Volume.MappedFileVol.FACTORY_WITH_CLEANER_HACK:
+                            Volume.MappedFileVol.FACTORY);
         }
 
     }
