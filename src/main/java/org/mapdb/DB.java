@@ -631,9 +631,14 @@ public class DB implements Closeable {
                 return namedPut(name,
                         new DB(new Engine.ReadOnlyWrapper(e)).hashMap("a"));
             }
+            HTreeMapMaker m = hashMapCreate(name);
             if(valueCreator!=null)
-                return hashMapCreate(name).valueCreator(valueCreator).make();
-            return hashMapCreate(name).make();
+                m = m.valueCreator(valueCreator);
+            if(keySerializer!=null)
+                m = m.keySerializer(keySerializer);
+            if(valueSerializer!=null)
+                m = m.valueSerializer(valueSerializer);
+            return m.make();
         }
 
 
@@ -871,7 +876,10 @@ public class DB implements Closeable {
                 return namedPut(name,
                         new DB(new Engine.ReadOnlyWrapper(e)).hashSet("a"));
             }
-            return hashSetCreate(name).makeOrGet();
+            HTreeSetMaker m = hashSetCreate(name);
+            if(serializer!=null)
+                m = m.serializer(serializer);
+            return m.makeOrGet();
             //$DELAY$
         }
 
@@ -1352,7 +1360,13 @@ public class DB implements Closeable {
                 return namedPut(name,
                         new DB(new Engine.ReadOnlyWrapper(e)).treeMap("a"));
             }
-            return treeMapCreate(name).make();
+
+            BTreeMapMaker m = treeMapCreate(name);
+            if(keySerializer!=null)
+                m = m.keySerializer(keySerializer);
+            if(valueSerializer!=null)
+                m = m.valueSerializer(valueSerializer);
+            return m.make();
 
         }
         checkType(type, "TreeMap");
@@ -1552,7 +1566,10 @@ public class DB implements Closeable {
                         new DB(new Engine.ReadOnlyWrapper(e)).treeSet("a"));
             }
             //$DELAY$
-            return treeSetCreate(name).make();
+            BTreeSetMaker m = treeSetCreate(name);
+            if(serializer!=null)
+                m = m.serializer(serializer);
+            return m.make();
 
         }
         checkType(type, "TreeSet");

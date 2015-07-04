@@ -512,4 +512,39 @@ public class DBTest {
 
         db.close();
     }
+
+    @Test public void issue540_btreemap_serializers(){
+        DB db = DBMaker.memoryDB().transactionDisable().make();
+        BTreeMap map = db.treeMap("test",BTreeKeySerializer.LONG,Serializer.BYTE_ARRAY);
+        assertEquals(map.keySerializer,BTreeKeySerializer.LONG);
+        assertEquals(map.valueSerializer,Serializer.BYTE_ARRAY);
+    }
+
+    @Test public void issue540_htreemap_serializers(){
+        DB db = DBMaker.memoryDB().transactionDisable().make();
+        Fun.Function1 f = new Fun.Function1(){
+            @Override
+            public Object run(Object o) {
+                return "A";
+            }
+        };
+        HTreeMap map = db.hashMap("test", Serializer.LONG, Serializer.BYTE_ARRAY, f);
+        assertEquals(map.keySerializer,Serializer.LONG);
+        assertEquals(map.valueSerializer,Serializer.BYTE_ARRAY);
+        assertEquals(map.valueCreator,f);
+    }
+
+
+    @Test public void issue540_btreeset_serializers(){
+        DB db = DBMaker.memoryDB().transactionDisable().make();
+        BTreeMap.KeySet set = (BTreeMap.KeySet) db.treeSet("test", BTreeKeySerializer.LONG);
+        assertEquals(((BTreeMap)set.m).keySerializer,BTreeKeySerializer.LONG);
+    }
+
+
+    @Test public void issue540_htreeset_serializers(){
+        DB db = DBMaker.memoryDB().transactionDisable().make();
+        HTreeMap.KeySet set = (HTreeMap.KeySet) db.hashSet("test", Serializer.LONG);
+        assertEquals(set.getHTreeMap().keySerializer,Serializer.LONG);
+    }
 }
