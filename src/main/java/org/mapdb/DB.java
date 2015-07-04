@@ -1550,8 +1550,15 @@ public class DB implements Closeable {
      * @return set
      */
     synchronized public <K> NavigableSet<K> treeSet(String name) {
-        return treeSet(name, null);
+        return treeSet(name, (BTreeKeySerializer)null);
     }
+
+    synchronized public <K> NavigableSet<K> treeSet(String name, Serializer serializer) {
+        if(serializer == null)
+            serializer = getDefaultSerializer();
+        return treeSet(name,serializer.getBTreeKeySerializer(null));
+    }
+
     synchronized public <K> NavigableSet<K> treeSet(String name,BTreeKeySerializer serializer){
         checkNotClosed();
         NavigableSet<K> ret = (NavigableSet<K>) getFromWeakCollection(name);

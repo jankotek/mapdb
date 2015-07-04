@@ -547,4 +547,19 @@ public class DBTest {
         HTreeMap.KeySet set = (HTreeMap.KeySet) db.hashSet("test", Serializer.LONG);
         assertEquals(set.getHTreeMap().keySerializer,Serializer.LONG);
     }
+
+    @Test public void issue540_btreeset_serializers2(){
+        DB db = DBMaker.memoryDB().transactionDisable().make();
+        BTreeMap.KeySet set = (BTreeMap.KeySet) db.treeSet("test", Serializer.LONG);
+        assertEquals(((BTreeMap)set.m).keySerializer,BTreeKeySerializer.LONG);
+    }
+
+
+    @Test public void issue540_btreemap_serializers2(){
+        DB db = DBMaker.memoryDB().transactionDisable().make();
+        BTreeMap map = db.treeMap("test",Serializer.LONG,Serializer.BYTE_ARRAY);
+        assertEquals(map.keySerializer,BTreeKeySerializer.LONG);
+        assertEquals(map.valueSerializer,Serializer.BYTE_ARRAY);
+    }
+
 }
