@@ -692,7 +692,7 @@ public class HTreeMap2Test {
     public void test()
     {
         DB db = DBMaker.memoryDB().transactionDisable().make();
-        Map<String, Integer> map = db.hashMap("map",null,null, new Fun.Function1<Integer, String>() {
+        Map<String, Integer> map = db.hashMap("map", null, null, new Fun.Function1<Integer, String>() {
             @Override
             public Integer run(String s) {
                 return Integer.MIN_VALUE;
@@ -745,10 +745,10 @@ public class HTreeMap2Test {
 
 
         HTreeMap<Long,Long> m = db.hashMapCreate("a")
-                .pumpSource(s.iterator(), new Fun.Function1<Long,Long>() {
+                .pumpSource(s.iterator(), new Fun.Function1<Long, Long>() {
                     @Override
                     public Long run(Long l) {
-                        return l*l;
+                        return l * l;
                     }
                 })
                 .pumpIgnoreDuplicates()
@@ -807,7 +807,7 @@ public class HTreeMap2Test {
                 .serializer(Serializer.LONG)
                 .make();
 
-        assertEquals(s.size(),m.size());
+        assertEquals(s.size(), m.size());
         assertTrue(s.containsAll(m));
 
     }
@@ -1078,7 +1078,7 @@ public class HTreeMap2Test {
         for(int i=1000;i<1100;i++){
             inmemory.put(i,"aa"+i);
         }
-        assertEquals(1000,ondisk.size());
+        assertEquals(1000, ondisk.size());
         assertEquals(100, inmemory.size());
 
         //wait until executor kicks in
@@ -1093,8 +1093,27 @@ public class HTreeMap2Test {
         //if value is not found in-memory it should get value from on-disk
         assertEquals("aa111",inmemory.get(111));
         assertEquals(1, inmemory.size());
+    }
+
+    @Test public void issue538_overflow_NPE1(){
+        DB db = DBMaker.memoryDB().transactionDisable().make();
+        HTreeMap m2 = db.hashMap("m2");
+        HTreeMap m = db.hashMapCreate("m")
+                .expireOverflow(m2,true)
+                .make();
+
+        assertNull(m.get("nonExistent"));
+    }
 
 
+    @Test public void issue538_overflow_NPE2(){
+        DB db = DBMaker.memoryDB().transactionDisable().make();
+        HTreeMap m2 = db.hashMap("m2");
+        HTreeMap m = db.hashMapCreate("m")
+                .expireOverflow(m2,true)
+                .make();
+
+        assertNull(m.get("nonExistent"));
     }
 }
 

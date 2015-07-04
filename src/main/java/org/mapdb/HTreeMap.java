@@ -535,7 +535,8 @@ public class HTreeMap<K,V>
 
     @Override
     public V get(final Object o){
-        if(o==null) return null;
+        if(o==null)
+            return null;
         final int h = hash(o);
         final int segment = h >>>28;
 
@@ -562,8 +563,10 @@ public class HTreeMap<K,V>
 
         //value creator is set, so create and put new value
         V value = valueCreator.run((K) o);
-        //there is race condition, vc could be called twice. But map will be updated only once
-        V prevVal = putIfAbsent((K) o,value);
+        //there is race condition, valueCreator could be called twice. But map will be updated only once
+        V prevVal = value==null ?
+                        null :
+                        putIfAbsent((K) o,value);
 
         if(prevVal!=null)
             return prevVal;
@@ -1614,7 +1617,8 @@ public class HTreeMap<K,V>
 
     @Override
     public V putIfAbsent(K key, V value) {
-        if(key==null||value==null) throw new NullPointerException();
+        if(key==null||value==null)
+            throw new NullPointerException();
 
         final int h = HTreeMap.this.hash(key);
         final int segment = h >>>28;
