@@ -853,7 +853,7 @@ public class DB {
 
         m.comparator = catPut(name+".comparator",m.comparator);
 
-        if(m.pumpPresortBatchSize!=-1 && m.pumpSource!=null){
+        if(m.pumpPresortBatchSize!=-1 && m.pumpSource!=null && m.pumpSource.hasNext()){
             Comparator presortComp =  new Comparator() {
 
                 @Override
@@ -869,7 +869,7 @@ public class DB {
         long counterRecid = !m.counter ?0L:engine.put(0L, Serializer.LONG);
 
         long rootRecidRef;
-        if(m.pumpSource==null){
+        if(m.pumpSource==null || !m.pumpSource.hasNext()){
             rootRecidRef = BTreeMap.createRootRef(engine,m.keySerializer,m.valueSerializer,m.comparator,0);
         }else{
             rootRecidRef = Pump.buildTreeMap(
@@ -1059,14 +1059,14 @@ public class DB {
         m.serializer = catPut(m.name+".keySerializer",m.serializer);
         m.comparator = catPut(m.name+".comparator",m.comparator,BTreeMap.COMPARABLE_COMPARATOR);
 
-        if(m.pumpPresortBatchSize!=-1){
+        if(m.pumpPresortBatchSize!=-1 && m.pumpSource!=null && m.pumpSource.hasNext()){
             m.pumpSource = Pump.sort(m.pumpSource,m.pumpIgnoreDuplicates, m.pumpPresortBatchSize, Collections.reverseOrder(m.comparator), getDefaultSerializer());
         }
 
         long counterRecid = !m.counter ? 0L : engine.put(0L, Serializer.LONG);
         long rootRecidRef;
 
-        if (m.pumpSource == null) {
+        if (m.pumpSource == null || !m.pumpSource.hasNext()) {
             rootRecidRef = BTreeMap.createRootRef(engine, m.serializer, null, m.comparator, 0);
         } else {
             rootRecidRef = Pump.buildTreeMap(

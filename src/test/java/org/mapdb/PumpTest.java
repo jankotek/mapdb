@@ -82,7 +82,7 @@ public class PumpTest {
                 for(int i=0;i<1000;i++) m.put(i,"99090adas d"+i);
                 src.commit();
 
-                Pump.copy(src,target);
+                Pump.copy(src, target);
 
                 assertEquals(src.getCatalog(), target.getCatalog());
                 Map m2 = target.getTreeMap("test");
@@ -245,7 +245,7 @@ public class PumpTest {
 
         Map s = db.createTreeMap("test")
             .nodeSize(6)
-            .pumpSource(list.iterator(),valueExtractor)
+            .pumpSource(list.iterator(), valueExtractor)
             .make();
 
 
@@ -284,7 +284,7 @@ public class PumpTest {
 
         Map s = db.createTreeMap("test")
                 .nodeSize(6)
-                .pumpSource(list.iterator(),valueExtractor)
+                .pumpSource(list.iterator(), valueExtractor)
                 .pumpIgnoreDuplicates()
                 .make();
 
@@ -350,7 +350,7 @@ public class PumpTest {
 
         Comparator c = Collections.reverseOrder(BTreeMap.COMPARABLE_COMPARATOR);
         List<Long> sorted = new ArrayList<Long>(u);
-        Collections.sort(sorted,c);
+        Collections.sort(sorted, c);
 
         Iterator<Long> iter = u.iterator();
         iter = Pump.sort(iter,false, 10000,c,Serializer.LONG);
@@ -376,10 +376,29 @@ public class PumpTest {
         assertTrue(i.hasNext());
         assertEquals("b",i.next());
         assertTrue(i.hasNext());
-        assertEquals("c",i.next());
+        assertEquals("c", i.next());
         assertTrue(i.hasNext());
         assertEquals("d",i.next());
         assertTrue(!i.hasNext());
     }
 
+    @Test public void empty_iterator_issue452(){
+        DB db = DBMaker.newMemoryDB().transactionDisable().make();
+        Map m = db.createTreeMap("m")
+                .pumpSource(Fun.EMPTY_ITERATOR)
+                .make();
+        assertTrue(m.isEmpty());
+        m = db.createTreeMap("2m")
+                .pumpSource(Fun.EMPTY_ITERATOR,Fun.extractNoTransform())
+                .make();
+        assertTrue(m.isEmpty());
+    }
+
+    @Test public void empty_iterator_set_issue452(){
+        DB db = DBMaker.newMemoryDB().transactionDisable().make();
+        Set m = db.createTreeSet("m")
+                .pumpSource(Fun.EMPTY_ITERATOR)
+                .make();
+        assertTrue(m.isEmpty());
+    }
 }
