@@ -4,6 +4,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 
@@ -38,6 +39,30 @@ public class SerializerTest {
         DataIO.DataOutputByteArray out = new DataIO.DataOutputByteArray();
         ser.serialize(out, b);
         assertTrue(out.pos < 1000);
+    }
+
+    @Test public void java_serializer_issue536(){
+        Long l = 1111L;
+        assertEquals(l, SerializerBaseTest.clone2(l, Serializer.JAVA));
+    }
+
+
+    @Test public void java_serializer_issue536_with_engine(){
+        DB db = DBMaker.memoryDB().transactionDisable().make();
+        Long l = 1111L;
+        long recid = db.engine.put(l,Serializer.JAVA);
+        assertEquals(l, db.engine.get(recid, Serializer.JAVA));
+    }
+
+
+    @Test public void java_serializer_issue536_with_map() {
+        DB db = DBMaker.memoryDB().transactionDisable().make();
+        Map m = db.hashMapCreate("map")
+                .keySerializer(Serializer.JAVA)
+                .make();
+        Long l = 1111L;
+        m.put(l, l);
+        assertEquals(l, m.get(l));
     }
 
     @Test public void array(){

@@ -1042,7 +1042,7 @@ public abstract class Serializer<A> {
         @Override
         public Object deserialize(DataInput in, int available) throws IOException {
             try {
-                ObjectInputStream in2 = new ObjectInputStream((InputStream) in);
+                ObjectInputStream in2 = new ObjectInputStream(new DataIO.DataInputToStream(in));
                 return in2.readObject();
             } catch (ClassNotFoundException e) {
                 throw new IOException(e);
