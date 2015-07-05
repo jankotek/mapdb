@@ -195,19 +195,19 @@ public abstract class Volume {
     }
     public static Volume volumeForFile(File f, boolean useRandomAccessFile, boolean readOnly, long sizeLimit, int chunkShift,
                                        int sizeIncrement, boolean asyncWriteEnabled) {
+        return volumeForFile(f, useRandomAccessFile, readOnly, sizeLimit, chunkShift,sizeIncrement, asyncWriteEnabled,false);
+    }
+    public static Volume volumeForFile(File f, boolean useRandomAccessFile, boolean readOnly, long sizeLimit, int chunkShift,
+                                       int sizeIncrement, boolean asyncWriteEnabled, boolean cleanerHackDisable) {
         return useRandomAccessFile ?
                 new FileChannelVol(f, readOnly,sizeLimit, chunkShift, sizeIncrement):
-                new MappedFileVol(f, readOnly,sizeLimit,chunkShift, sizeIncrement,asyncWriteEnabled);
+                new MappedFileVol(f, readOnly,sizeLimit,chunkShift, sizeIncrement,asyncWriteEnabled, cleanerHackDisable);
     }
 
 
     public static Factory fileFactory(final File indexFile, final int rafMode, final boolean readOnly, final long sizeLimit,
                                       final int chunkShift, final int sizeIncrement){
-        return fileFactory(
-                indexFile,
-                rafMode, readOnly, sizeLimit, chunkShift, sizeIncrement,
-                new File(indexFile.getPath() + StoreDirect.DATA_FILE_EXT),
-                new File(indexFile.getPath() + StoreWAL.TRANS_LOG_FILE_EXT));
+        return fileFactory(indexFile,rafMode, readOnly, sizeLimit,chunkShift,sizeIncrement);
     }
 
     public static Factory fileFactory(final File indexFile,
@@ -228,11 +228,12 @@ public abstract class Volume {
             sizeIncrement,
             physFile,
             transLogFile,
-            false
+            false, false
         );
     }
 
-        public static Factory fileFactory(final File indexFile,
+
+    public static Factory fileFactory(final File indexFile,
                                       final int rafMode,
                                       final boolean readOnly,
                                       final long sizeLimit,
@@ -242,6 +243,29 @@ public abstract class Volume {
                                       final File physFile,
                                       final File transLogFile,
                                       final boolean asyncWriteEnabled) {
+        return fileFactory(
+                indexFile,
+                rafMode,
+                readOnly,
+                sizeLimit,
+                chunkShift,
+                sizeIncrement,
+                physFile,
+                transLogFile,
+                false, false
+        );
+    }
+        public static Factory fileFactory(final File indexFile,
+                                      final int rafMode,
+                                      final boolean readOnly,
+                                      final long sizeLimit,
+                                      final int chunkShift,
+                                      final int sizeIncrement,
+
+                                      final File physFile,
+                                      final File transLogFile,
+                                      final boolean asyncWriteEnabled,
+                                      final boolean cleanerHackDisable) {
         return new Factory() {
             @Override
             public Volume createIndexVolume() {
@@ -302,7 +326,8 @@ public abstract class Volume {
          * if Async Write is enabled, do not use unmap hack see
          * https://github.com/jankotek/MapDB/issues/442
          */
-        protected final  boolean asyncWriteEnabled;
+        protected final boolean asyncWriteEnabled;
+        protected boolean cleanerHackDisabled;
 
         protected ByteBufferVol(boolean readOnly, long sizeLimit, int chunkShift) {
             this(readOnly, sizeLimit, chunkShift, false);
@@ -317,6 +342,7 @@ public abstract class Volume {
 
             this.hasLimit = sizeLimit>0;
             this.asyncWriteEnabled = asyncWriteEnabled;
+            this.cleanerHackDisabled = false;
         }
 
         @Override
@@ -479,14 +505,20 @@ public abstract class Volume {
         protected final java.io.RandomAccessFile raf;
 
         public MappedFileVol(File file, boolean readOnly, long sizeLimit, int chunkShift, int sizeIncrement) {
-            this(file,readOnly,sizeLimit,chunkShift,sizeIncrement,false);
+            this(file,readOnly,sizeLimit,chunkShift,sizeIncrement,false,false);
         }
 
+
+        public MappedFileVol(File file, boolean readOnly, long sizeLimit, int chunkShift,
+                             int sizeIncrement, boolean asyncWriteEnabled) {
+            this(file,readOnly,sizeLimit,chunkShift,sizeIncrement,asyncWriteEnabled,false);
+        }
         public MappedFileVol(File file, boolean readOnly, long sizeLimit, int chunkShift, int sizeIncrement,
-                             boolean asyncWriteEnabled) {
+                             boolean asyncWriteEnabled, boolean cleanerHackDisable) {
             super(readOnly, sizeLimit, chunkShift, asyncWriteEnabled);
             this.file = file;
             this.mapMode = readOnly? FileChannel.MapMode.READ_ONLY: FileChannel.MapMode.READ_WRITE;
+            this.cleanerHackDisabled = cleanerHackDisable;
             try {
                 FileChannelVol.checkFolder(file,readOnly);
                 this.raf = new java.io.RandomAccessFile(file, readOnly?"r":"rw");
@@ -520,9 +552,11 @@ public abstract class Volume {
 //                if(!readOnly)
 //                    sync();
 
-                for(ByteBuffer b: chunks){
-                    if(b!=null && (b instanceof MappedByteBuffer)){
-                        unmap((MappedByteBuffer) b);
+                if(!cleanerHackDisabled) {
+                    for (ByteBuffer b : chunks) {
+                        if (b != null && (b instanceof MappedByteBuffer)) {
+                            unmap((MappedByteBuffer) b);
+                        }
                     }
                 }
 
@@ -625,13 +659,17 @@ public abstract class Volume {
 
                 //unmap remaining buffers
                 for(int i=maxSize;i<old.length;i++){
-                    unmap((MappedByteBuffer) old[i]);
+                    if(!cleanerHackDisabled) {
+                        unmap((MappedByteBuffer) old[i]);
+                    }
                     old[i] = null;
                 }
 
                 if (ByteBufferVol.windowsWorkaround) {
                     for(int i=0;i<maxSize;i++){
-                        unmap((MappedByteBuffer) old[i]);
+                        if(!cleanerHackDisabled) {
+                            unmap((MappedByteBuffer) old[i]);
+                        }
                         old[i] = null;
                     }
                 }
@@ -694,7 +732,7 @@ public abstract class Volume {
 
                 //unmap remaining buffers
                 for(int i=maxSize;i<old.length;i++){
-                    if(old[i] instanceof  MappedByteBuffer)
+                    if(!cleanerHackDisabled && old[i] instanceof  MappedByteBuffer)
                         unmap((MappedByteBuffer) old[i]);
                     old[i] = null;
                 }
@@ -708,9 +746,11 @@ public abstract class Volume {
             growLock.lock();
             try{
                 closed = true;
-                for(ByteBuffer b: chunks){
-                    if(b!=null && (b instanceof MappedByteBuffer)){
-                        unmap((MappedByteBuffer)b);
+                if(!cleanerHackDisabled) {
+                    for (ByteBuffer b : chunks) {
+                        if (b != null && (b instanceof MappedByteBuffer)) {
+                            unmap((MappedByteBuffer) b);
+                        }
                     }
                 }
                 chunks = null;

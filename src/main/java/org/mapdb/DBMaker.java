@@ -53,6 +53,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         String volume_byteBuffer = "byteBuffer";
         String volume_directByteBuffer = "directByteBuffer";
 
+        String volumeCleanerHackDisable = "volumeCleanerHackDisable";
 
         String store = "store";
         String store_direct = "direct";
@@ -385,6 +386,41 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         return getThis();
     }
 
+
+    /**
+     * <p>
+     * Disables cleaner hack. Enable this option if you experience JVM crashes with memory mapped files.
+     * </p><p>
+     * Instead of closing mmaped files at DB.close(),
+     * they will be closed eventually by Garbage Collection.
+     * See relevant <a href="http://bugs.java.com/view_bug.do?bug_id=4724038">JVM bug</a>.
+     * Cleaner hack could cause all sort of problems, including JVM crash. It is enabled by default
+     * in MapDB 1.0 for compatibility reasons and is disabled by defualt in MapDB 2.0
+     * </p><p>
+     * Memory mapped files in Java are not unmapped when file closes.
+     * Unmapping happens when {@code DirectByteBuffer} is garbage collected.
+     * Delay between file close and GC could be very long, possibly even hours.
+     * This causes file descriptor to remain open, causing all sort of problems:
+     * </p><p>
+     * On Windows opened file can not be deleted or accessed by different process.
+     * It remains locked even after JVM process exits until Windows restart.
+     * This is causing problems during compaction etc.
+     * </p><p>
+     * On Linux (and other systems) opened files consumes file descriptor. Eventually
+     * JVM process could run out of available file descriptors (couple of thousands)
+     * and would be unable to open new files or sockets.
+     * </p><p>
+     * On Oracle and OpenJDK JVMs there is option to unmap files after closing.
+     * However it is not officially supported and could result in all sort of strange behaviour.
+     * In MapDB it was linked to <a href="https://github.com/jankotek/mapdb/issues/442">JVM crashes</a>,
+     * and was disabled by default in MapDB 2.0, it is still enabled in 1.0, this option disables it.
+     * </p>
+     * @return this builder
+     */
+    public DBMakerT mmapFileCleanerHackDisable() {
+        props.setProperty(Keys.volumeCleanerHackDisable,TRUE);
+        return getThis();
+    }
 
     /**
      *  Keeps small-frequently-used part of storage files memory mapped, but main area is accessed using Random Access File.
@@ -951,6 +987,7 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
 
 
     protected Volume.Factory extendStoreVolumeFactory() {
+        boolean cleanerHackDisabled = propsGetBool(Keys.volumeCleanerHackDisable);
         long sizeLimit = propsGetLong(Keys.sizeLimit,0);
         String volume = props.getProperty(Keys.volume);
         if(Keys.volume_byteBuffer.equals(volume))
@@ -968,7 +1005,9 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
                 propsGetRafMode(), propsGetBool(Keys.readOnly),
                 sizeLimit,CC.VOLUME_CHUNK_SHIFT,0,
                 dataFile, logFile,
-                propsGetBool(Keys.asyncWrite));
+                propsGetBool(Keys.asyncWrite),
+                cleanerHackDisabled
+        );
     }
 
 
