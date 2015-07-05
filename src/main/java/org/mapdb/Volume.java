@@ -691,9 +691,10 @@ public abstract class Volume implements Closeable{
                 final long fileSize = fileChannel.size();
                 if(fileSize>0){
                     //map existing data
-                    slices = new ByteBuffer[(int) ((fileSize>>> sliceShift))];
-                    for(int i=0;i< slices.length;i++){
-                        slices[i] = makeNewBuffer(1L*i* sliceSize);
+                    int chunksSize = (int) ((Fun.roundUp(fileSize,sliceSize)>>> sliceShift));
+                    slices = new ByteBuffer[chunksSize];
+                    for(int i=0;i<slices.length;i++){
+                        slices[i] = makeNewBuffer(1L*i*sliceSize);
                     }
                 }else{
                     slices = new ByteBuffer[0];

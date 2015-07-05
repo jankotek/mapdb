@@ -84,6 +84,10 @@ public final class Fun {
         return a==b || (a!=null && a.equals(b));
     }
 
+    public static long roundUp(long number, long roundUpToMultipleOf) {
+        return ((number+roundUpToMultipleOf-1)/(roundUpToMultipleOf))*roundUpToMultipleOf;
+    }
+
     /** Convert object to string, even if it is primitive array */
     static String toString(Object keys) {
         if(keys instanceof long[])
