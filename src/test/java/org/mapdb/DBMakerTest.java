@@ -399,4 +399,15 @@ public class DBMakerTest{
         Volume.MappedFileVol v = (Volume.MappedFileVol) st.index;
         assertTrue(v.asyncWriteEnabled);
     }
+
+    @Test public void cleaner_hack_disable(){
+        File f = UtilsTest.tempDbFile();
+        DB db = DBMaker.newFileDB(f)
+                .mmapFileEnable()
+                .mmapFileCleanerHackDisable()
+                .transactionDisable()
+                .make();
+        StoreDirect s = (StoreDirect) Store.forDB(db);
+        assertTrue(((Volume.MappedFileVol)s.index).cleanerHackDisabled);
+    }
 }
