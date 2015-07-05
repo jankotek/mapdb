@@ -495,7 +495,8 @@ public abstract class Volume {
                 final long fileSize = fileChannel.size();
                 if(fileSize>0){
                     //map existing data
-                    chunks = new ByteBuffer[(int) ((fileSize>>> chunkShift))];
+                    int chunksSize = (int) ((Fun.roundUp(fileSize,chunkSize)>>> chunkShift));
+                    chunks = new ByteBuffer[chunksSize];
                     for(int i=0;i<chunks.length;i++){
                         chunks[i] = makeNewBuffer(1L*i*chunkSize);
                     }
@@ -558,6 +559,35 @@ public abstract class Volume {
             try {
                 assert((offset&chunkSizeModMask)==0);
                 assert(offset>=0);
+
+                //write to end of file, to make sure space is allocated, see #442
+                if(!readOnly) {
+                    // get file size
+                    long fileSize = fileChannel.size();
+                    //and get last byte in mapped offset
+                    long lastMappedOffset = Fun.roundUp(offset+1,chunkSize);
+
+                    //expand file size, so no file is expanded by writing into mmaped ByteBuffer
+                    if(Fun.roundUp(fileSize, chunkSize)<lastMappedOffset) {
+                        //first write to last offset to expand file
+                        //possibly better performance if file is expanded only once
+                        ByteBuffer b = ByteBuffer.allocate(1);
+                        while (b.remaining()>0) {
+                            fileChannel.write(b, lastMappedOffset-1);
+                        }
+
+                        //now zero out all newly allocated bytes
+                        b = ByteBuffer.allocate(1024);
+                        for(;fileSize+1024<lastMappedOffset;fileSize+=1024){
+                            //write to all data between current size and the end
+                            while (b.remaining()>0) {
+                                fileChannel.write(b, fileSize+b.position());
+                            }
+                            b.rewind();
+                        }
+                    }
+                }
+
                 ByteBuffer ret = fileChannel.map(mapMode,offset,chunkSize);
                 return ret;
             } catch (IOException e) {

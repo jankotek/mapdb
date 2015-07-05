@@ -245,4 +245,15 @@ public class FunTest {
         assertEquals(0, Fun.BYTE_ARRAY_COMPARATOR.compare(b1,b1));
         assertEquals(0, Fun.BYTE_ARRAY_COMPARATOR.compare(b1,b1_));
     }
+
+    @Test public void roundUp(){
+        assertEquals(0, Fun.roundUp(0,5));
+        assertEquals(5, Fun.roundUp(1,5));
+        assertEquals(5, Fun.roundUp(2,5));
+        assertEquals(5, Fun.roundUp(3,5));
+        assertEquals(5, Fun.roundUp(4,5));
+        assertEquals(5, Fun.roundUp(5,5));
+        assertEquals(10, Fun.roundUp(6, 5));
+        assertEquals(10, Fun.roundUp(10,5));
+    }
 }

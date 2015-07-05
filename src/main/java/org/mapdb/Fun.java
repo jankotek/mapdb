@@ -108,6 +108,10 @@ public final class Fun {
         return a==b || (a!=null && a.equals(b));
     }
 
+    public static long roundUp(long number, long roundUpToMultipleOf) {
+        return ((number+roundUpToMultipleOf-1)/(roundUpToMultipleOf))*roundUpToMultipleOf;
+    }
+
 
     static public final class Tuple2<A,B> implements Comparable<Tuple2<A,B>>, Serializable {
 		
