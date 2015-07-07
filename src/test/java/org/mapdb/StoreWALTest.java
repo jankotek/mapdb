@@ -134,7 +134,7 @@ public class StoreWALTest extends StoreDirectTest<StoreWAL>{
 
         m = db.getHashMap("map");
 
-        assertEquals(max*2, m.size());
+        assertEquals(max * 2, m.size());
         for(int i=0;i<max;i++){
             assertEquals(i,m.get(i));
         }
@@ -179,7 +179,7 @@ public class StoreWALTest extends StoreDirectTest<StoreWAL>{
 
         //corrupt log randomly
         wal.log.putLong(1000,111111111L);
-        wal.log.putLong(2000,111111111L);
+        wal.log.putLong(2000, 111111111L);
         wal.log.sync();
         wal.log.close();
         wal.phys.close();
@@ -199,4 +199,14 @@ public class StoreWALTest extends StoreDirectTest<StoreWAL>{
 
     }
 
+
+    @Test public void empty_comqmit2(){
+        StoreWAL w = openEngine();
+        w.commit();
+        w.index.close();
+        w.phys.close();
+        w.log.close();
+        w = openEngine();
+        w.close();
+    }
 }

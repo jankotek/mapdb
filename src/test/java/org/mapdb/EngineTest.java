@@ -377,4 +377,13 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
     }
 
+    @Test public void empty_commit(){
+        e = openEngine();
+        long recid = e.put("aa",Serializer.STRING);
+        e.commit();
+        e.commit();
+        e.close();
+        e = openEngine();
+        e.close();
+    }
 }
