@@ -9,6 +9,7 @@ task(release) << {
         from '.'
         into destDir
         exclude 'target'
+        exclude '.git'
         include '**/*.java'
         filter{
             String line -> line
@@ -21,6 +22,7 @@ task(release) << {
         into destDir
         exclude 'target'
         exclude '**/*.java'
+        exclude '.git'
         filter{
             String line -> line
                     .replaceAll("<name>mapdb</name>","<name>mapdb-renamed</name>")
@@ -39,10 +41,10 @@ task(release) << {
         args 'target/mapdb-renamed/src/test/java/org/mapdb','target/mapdb-renamed/src/test/java/org/mapdb10'
     }
 
-    exec{
+/*    exec{
         commandLine 'mvn'
         args 'clean','test','release:prepare','release:perform'
         workingDir destDir
     }
-    
+  */
 }
