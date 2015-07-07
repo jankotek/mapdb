@@ -25,6 +25,7 @@ task(release) << {
         exclude '.git'
         filter{
             String line -> line
+                    .replaceAll("<artifactId>mapdb</artifactId>","<artifactId>mapdb-renamed</artifactId>")
                     .replaceAll("<name>mapdb</name>","<name>mapdb-renamed</name>")
                     .replaceAll("<scm>","<!-- <scm>")
                     .replaceAll("</scm>","<scm> -->")
