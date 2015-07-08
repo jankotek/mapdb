@@ -20,7 +20,7 @@ public class DBException extends RuntimeException{
     }
 
     public DBException() {
-
+        super();
     }
 
 

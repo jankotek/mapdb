@@ -5,6 +5,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -196,7 +197,7 @@ public class StoreDirect extends Store {
         vol.putLong(HEAD_END, parity16Set(0));
 
         lastAllocatedData = 0L;
-        vol.putLong(LAST_PHYS_ALLOCATED_DATA_OFFSET,parity3Set(lastAllocatedData));
+        vol.putLong(LAST_PHYS_ALLOCATED_DATA_OFFSET, parity3Set(lastAllocatedData));
 
         //put reserved recids
         for(long recid=1;recid<RECID_FIRST;recid++){
@@ -463,7 +464,8 @@ public class StoreDirect extends Store {
         long recid;
         structuralLock.lock();
         try {
-             recid = freeRecidTake();
+            //TODO possible race condition here? Can this modify existing data?
+            recid = freeRecidTake();
         }finally {
             structuralLock.unlock();
         }
@@ -484,32 +486,49 @@ public class StoreDirect extends Store {
         long[] offsets;
         DataOutputByteArray out = serialize(value,serializer);
         boolean notalloc = out==null || out.pos==0;
-        structuralLock.lock();
-        try {
-            recid = freeRecidTake();
-            offsets = notalloc?null:freeDataTake(out.pos);
-        }finally {
-            structuralLock.unlock();
-        }
-        if(CC.ASSERT && offsets!=null && (offsets[0]&MOFFSET)<PAGE_SIZE)
-            throw new DBException.DataCorruption();
+        final int posHigher = new Random().nextInt(lockMask);
 
-        int pos = lockPos(recid);
-        Lock lock = locks[pos].writeLock();
-        lock.lock();
+        final Lock lockHigher = locks[posHigher].writeLock();
+        lockHigher.lock();
         try {
-            if(caches!=null) {
-                caches[pos].put(recid, value);
+
+            structuralLock.lock();
+            try {
+                recid = freeRecidTake();
+            } finally {
+                structuralLock.unlock();
             }
-            if(snapshotEnable){
-                for(Snapshot snap:snapshots){
-                    snap.oldRecids[pos].putIfAbsent(recid,0);
+
+            int pos = lockPos(recid);
+            Lock lock = locks[pos].writeLock();
+            lock.lock();
+            //TODO possible deadlock, should not lock segment under different segment lock
+            //TODO investigate if this lock is necessary, recid has not been yet published, perhaps cache does not have to be updated
+            try {
+                if (caches != null) {
+                    caches[pos].put(recid, value);
                 }
-            }
+                if (snapshotEnable) {
+                    for (Snapshot snap : snapshots) {
+                        snap.oldRecids[pos].putIfAbsent(recid, 0);
+                    }
+                }
 
-            putData(recid, offsets, out==null?null:out.buf, out==null?0:out.pos);
+                structuralLock.lock();
+                try {
+                    offsets = notalloc ? null : freeDataTake(out.pos);
+                } finally {
+                    structuralLock.unlock();
+                }
+                if (CC.ASSERT && offsets != null && (offsets[0] & MOFFSET) < PAGE_SIZE)
+                    throw new DBException.DataCorruption();
+
+                putData(recid, offsets, out == null ? null : out.buf, out == null ? 0 : out.pos);
+            } finally {
+                lock.unlock();
+            }
         }finally {
-            lock.unlock();
+            lockHigher.unlock();
         }
 
         return recid;
@@ -886,7 +905,7 @@ public class StoreDirect extends Store {
 
         final boolean isStoreCached = this instanceof StoreCached;
         for(int i=0;i<locks.length;i++){
-            Lock lock = isStoreCached?locks[i].readLock():locks[i].writeLock();
+            Lock lock = locks[i].writeLock();
             lock.lock();
         }
 
@@ -945,6 +964,7 @@ public class StoreDirect extends Store {
                         //close everything
                         target.vol.sync();
                         target.close();
+                        //TODO manipulation with `vol` must be under write segment lock. Find way to swap under read lock
                         this.vol.sync();
                         this.vol.close();
                         //rename current file
@@ -965,8 +985,8 @@ public class StoreDirect extends Store {
                         //and reopen volume
                         if(this instanceof StoreCached)
                             this.headVol.close();
-                        this.headVol = this.vol = volumeFactory.makeVolume(this.fileName, readonly);
-
+                        this.vol = volumeFactory.makeVolume(this.fileName, readonly);
+                        this.headVol = vol;
                         if(isStoreCached){
                             ((StoreCached)this).dirtyStackPages.clear();
                         }
@@ -985,7 +1005,7 @@ public class StoreDirect extends Store {
             }
         }finally {
             for(int i=locks.length-1;i>=0;i--) {
-                Lock lock = isStoreCached ? locks[i].readLock() : locks[i].writeLock();
+                Lock lock = locks[i].writeLock();
                 lock.unlock();
             }
         }
