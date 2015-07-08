@@ -63,7 +63,7 @@ public abstract class DBHeaderTest {
 
         db.hashMap("aa").put("aa", "bb");
         db.commit();
-        assertEquals(1L<<Store.FEAT_COMP_LZW,getBitField());
+        assertEquals(1L<<Store.FEAT_COMP_LZF,getBitField());
         db.close();
         try {
             maker().make();

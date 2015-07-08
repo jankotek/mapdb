@@ -27,7 +27,7 @@ public abstract class Store implements Engine {
 
     protected static final Logger LOG = Logger.getLogger(Store.class.getName());
 
-    protected static final long FEAT_COMP_LZW = 64L-1L;
+    protected static final long FEAT_COMP_LZF = 64L-1L;
     protected static final long FEAT_ENC_XTEA = 64L-2L;
     protected static final long FEAT_CRC = 64L-3L;
 
@@ -147,7 +147,7 @@ public abstract class Store implements Engine {
             throw new DBException.WrongConfig("Password is set, but store is not encrypted.");
         }
 
-        boolean lzwComp = (feat>>>FEAT_COMP_LZW&1)!=0;
+        boolean lzwComp = (feat>>> FEAT_COMP_LZF &1)!=0;
         if(lzwComp&& !compress){
             throw new DBException.WrongConfig("Store was created with compression, but no compression is enabled in config.");
         }
@@ -171,7 +171,7 @@ public abstract class Store implements Engine {
 
     protected long makeFeaturesBitmap(){
         return
-            (compress ? 1L<<FEAT_COMP_LZW : 0) |
+            (compress ? 1L<< FEAT_COMP_LZF : 0) |
             (encrypt  ? 1L<<FEAT_ENC_XTEA : 0) |
             (checksum  ? 1L<<FEAT_CRC : 0)
         ;
