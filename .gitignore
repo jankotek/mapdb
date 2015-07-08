@@ -2,6 +2,7 @@
 .project
 .settings
 .idea
+.gradle
 target
 bin
 out
