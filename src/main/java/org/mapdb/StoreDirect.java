@@ -1074,7 +1074,8 @@ public class StoreDirect extends Store {
             recid++;
 
             if(CC.ASSERT && indexOffset!=recidToOffset(recid))
-                throw new AssertionError();
+                throw new AssertionError("Recid to offset conversion failed: indexOffset:"+indexOffset+
+                        ", recidToOffset: "+recidToOffset(recid)+", recid:"+recid);
 
             if(recid*indexValSize>maxRecidOffset)
                 break indexVal;

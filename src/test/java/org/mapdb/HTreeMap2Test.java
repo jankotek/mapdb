@@ -4,11 +4,12 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -1114,6 +1115,45 @@ public class HTreeMap2Test {
                 .make();
 
         assertNull(m.get("nonExistent"));
+    }
+
+    @Test public void issue542_compaction_error_while_htreemap_used() throws IOException, ExecutionException, InterruptedException {
+        long time = UtilsTest.scale() * 1000*60*5; //stress test 5 minutes
+        if(time==0)
+            return;
+        final long endTime = System.currentTimeMillis()+time;
+
+        File f = File.createTempFile("mapdb","mapdb");
+        //TODO mutate to include other types of engines
+        final DB db = DBMaker.fileDB(f).transactionDisable().deleteFilesAfterClose().make();
+
+        //start background thread which will update HTreeMap
+        Future<String> c = UtilsTest.fork(new Callable<String>(){
+            @Override
+            public String call() throws Exception {
+                HTreeMap m = db.hashMapCreate("map")
+                        .keySerializer(Serializer.INTEGER)
+                        .valueSerializer(Serializer.BYTE_ARRAY)
+                        .make();
+
+                Random r = new Random();
+                while(System.currentTimeMillis()<endTime){
+                    Integer key = r.nextInt(10000);
+                    byte[] val = new byte[r.nextInt(10000)];
+                    r.nextBytes(val);
+                    m.put(key,val);
+                }
+
+                return "";
+            }
+        });
+
+        while(System.currentTimeMillis()<endTime && !c.isDone()){
+            db.compact();
+        }
+
+        c.get();
+        db.close();
     }
 }
 

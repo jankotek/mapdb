@@ -9,6 +9,10 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.nio.ByteBuffer;
 import java.util.Random;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import static java.util.Arrays.asList;
 import static org.junit.Assert.*;
@@ -198,4 +202,10 @@ public class UtilsTest {
         return -1;
     }
 
+    public static <E> Future<E> fork(Callable<E> callable) {
+        ExecutorService s = Executors.newSingleThreadExecutor();
+        Future<E> f = s.submit(callable);
+        s.shutdown();
+        return f;
+    }
 }
