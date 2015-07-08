@@ -1,7 +1,7 @@
 package examples;
 
-import org.mapdb.DB;
-import org.mapdb.DBMaker;
+import org.mapdb10.DB;
+import org.mapdb10.DBMaker;
 
 import java.io.File;
 import java.util.Map;

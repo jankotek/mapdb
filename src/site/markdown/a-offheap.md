@@ -80,7 +80,7 @@ MapDB is in Maven Central, add this to your pom file.:
 ```xml
 <dependency>
     <groupId>org.mapdb</groupId>
-    <artifactId>mapdb</artifactId>
+    <artifactId>mapdb-renamed</artifactId>
 </dependency>
 ```
 

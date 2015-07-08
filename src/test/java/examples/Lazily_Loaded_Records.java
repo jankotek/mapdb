@@ -1,9 +1,9 @@
 package examples;
 
-import org.mapdb.Atomic;
-import org.mapdb.DB;
-import org.mapdb.DBMaker;
-import org.mapdb.Serializer;
+import org.mapdb10.Atomic;
+import org.mapdb10.DB;
+import org.mapdb10.DBMaker;
+import org.mapdb10.Serializer;
 
 import java.util.Map;
 

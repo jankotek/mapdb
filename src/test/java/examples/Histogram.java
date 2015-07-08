@@ -1,9 +1,9 @@
 package examples;
 
-import org.mapdb.Bind;
-import org.mapdb.DBMaker;
-import org.mapdb.Fun;
-import org.mapdb.HTreeMap;
+import org.mapdb10.Bind;
+import org.mapdb10.DBMaker;
+import org.mapdb10.Fun;
+import org.mapdb10.HTreeMap;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;

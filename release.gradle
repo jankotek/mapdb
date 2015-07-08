@@ -4,13 +4,31 @@ task(release) << {
     def destDir = file("target/mapdb-renamed");
     destDir.mkdirs()
 
+
+    //checkout
+    exec {
+        commandLine 'git'
+        args 'clone','git@github.com:jankotek/mapdb.git',destDir,'-b','release-misc'
+    }
+
+    exec {
+        commandLine 'rm'
+        args 'target/mapdb-renamed/pom.xml'
+    }
+
+    exec {
+        commandLine 'rm'
+        args 'target/mapdb-renamed/src/','-rf'
+    }
+
+
     //copy folder
     copy{
         from '.'
         into destDir
         exclude 'target'
-        exclude '.git'
         include '**/*.java'
+        exclude '.git'
         filter{
             String line -> line
                     .replaceAll("org.mapdb","org.mapdb10")
@@ -25,21 +43,42 @@ task(release) << {
         exclude '.git'
         filter{
             String line -> line
-                    .replaceAll("<artifactId>mapdb</artifactId>","<artifactId>mapdb-renamed</artifactId>")
-                    .replaceAll("<name>mapdb</name>","<name>mapdb-renamed</name>")
-                    .replaceAll("<scm>","<!-- <scm>")
-                    .replaceAll("</scm>","<scm> -->")
+                    .replaceAll("<artifactId>mapdb-renamed</artifactId>","<artifactId>mapdb-renamed</artifactId>")
+                    .replaceAll("<name>mapdb-renamed</name>","<name>mapdb-renamed</name>")
         }
     }
 
     //rename folders
     exec {
         commandLine 'mv'
-        args 'target/mapdb-renamed/src/main/java/org/mapdb','target/mapdb-renamed/src/main/java/org/mapdb10'
+        args 'src/main/java/org/mapdb','src/main/java/org/mapdb10'
+        workingDir destDir
     }
+
     exec {
         commandLine 'mv'
-        args 'target/mapdb-renamed/src/test/java/org/mapdb','target/mapdb-renamed/src/test/java/org/mapdb10'
+        args 'src/test/java/org/mapdb','src/test/java/org/mapdb10'
+        workingDir destDir
+    }
+
+    //add all files
+    exec {
+        commandLine 'git'
+        args 'add','-A'
+        workingDir destDir
+    }
+
+    //commit
+    exec {
+        commandLine 'git'
+        args 'commit','-m','switch-source'
+        workingDir destDir
+    }
+
+    exec {
+        commandLine 'git'
+        args 'push'
+        workingDir destDir
     }
 
 /*    exec{
