@@ -197,6 +197,25 @@ public final class Fun {
     }
 
 
+    public static <K,V> Fun.Function1<K,Map.Entry<K,V>> extractMapEntryKey(){
+        return new Fun.Function1<K, Map.Entry<K, V>>() {
+            @Override
+            public K run(Map.Entry<K, V> t) {
+                return t.getKey();
+            }
+        };
+    }
+
+    public static <K,V> Fun.Function1<V,Map.Entry<K,V>> extractMapEntryValue(){
+        return new Fun.Function1<V, Map.Entry<K, V>>() {
+            @Override
+            public V run(Map.Entry<K, V> t) {
+                return t.getValue();
+            }
+        };
+    }
+
+
     /** returns function which always returns the value itself without transformation */
     public static <K> Function1<K,K> extractNoTransform() {
         return new Function1<K, K>() {

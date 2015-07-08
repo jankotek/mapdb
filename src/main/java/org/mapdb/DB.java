@@ -1126,6 +1126,13 @@ public class DB implements Closeable {
             return this;
         }
 
+        public BTreeMapMaker pumpSource(NavigableMap m) {
+            this.pumpSource =  m.descendingMap().entrySet().iterator();
+            this.pumpKeyExtractor = Fun.extractMapEntryKey();
+            this.pumpValueExtractor = Fun.extractMapEntryValue();
+            return this;
+        }
+
         public BTreeMapMaker pumpPresort(int batchSize){
             this.pumpPresortBatchSize = batchSize;
             return this;
@@ -1186,6 +1193,8 @@ public class DB implements Closeable {
             closeEngine = true;
             return this;
         }
+
+
     }
 
     public class BTreeSetMaker{
@@ -1263,6 +1272,13 @@ public class DB implements Closeable {
             this.pumpSource = source;
             return this;
         }
+
+
+        public BTreeSetMaker pumpSource(NavigableSet m) {
+            this.pumpSource = m.descendingIterator();
+            return this;
+        }
+
 
         /**
          * If source iteretor contains an duplicate key, exception is thrown.

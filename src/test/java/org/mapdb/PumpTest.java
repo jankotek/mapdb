@@ -597,4 +597,28 @@ public class PumpTest {
         assertTrue(m.isEmpty());
     }
 
+    @Test public void btreemap_pump_takes_navigablemap(){
+        TreeMap m = new TreeMap();
+        for(int i=0;i<10000;i++){
+            m.put(i,i*111);
+        }
+        DB db = DBMaker.memoryDB().transactionDisable().make();
+        Map m2 = db.treeMapCreate("map")
+                .pumpSource(m)
+                .make();
+        assertEquals(m, m2);
+    }
+
+
+    @Test public void treemap_pump_takes_navigableset(){
+        TreeSet m = new TreeSet();
+        for(int i=0;i<10000;i++){
+            m.add(i);
+        }
+        DB db = DBMaker.memoryDB().transactionDisable().make();
+        Set m2 = db.treeSetCreate("map")
+                .pumpSource(m)
+                .make();
+        assertEquals(m,m2);
+    }
 }
