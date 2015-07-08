@@ -486,10 +486,8 @@ public class StoreDirect extends Store {
         long[] offsets;
         DataOutputByteArray out = serialize(value,serializer);
         boolean notalloc = out==null || out.pos==0;
-        final int posHigher = new Random().nextInt(locks.length);
 
-        final Lock lockHigher = locks[posHigher].writeLock();
-        lockHigher.lock();
+        commitLock.lock();
         try {
 
             structuralLock.lock();
@@ -528,7 +526,7 @@ public class StoreDirect extends Store {
                 lock.unlock();
             }
         }finally {
-            lockHigher.unlock();
+            commitLock.unlock();
         }
 
         return recid;
