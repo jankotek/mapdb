@@ -1,4 +1,4 @@
-package org.mapdb10;
+package org.mapdb20;
 
 import org.junit.Test;
 
@@ -9,7 +9,7 @@ import java.util.*;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mapdb10.BTreeKeySerializer.*;
+import static org.mapdb20.BTreeKeySerializer.*;
 
 @SuppressWarnings({"rawtypes","unchecked"})
 public class BTreeKeySerializerTest {

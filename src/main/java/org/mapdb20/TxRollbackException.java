@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package org.mapdb10;
+package org.mapdb20;
 
 /**
  * Exception thrown when transaction is rolled back.

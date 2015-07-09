@@ -1,8 +1,8 @@
-package org.mapdb10;
+package org.mapdb20;
 
 
 import org.junit.Test;
-import org.mapdb10.Fun.Pair;
+import org.mapdb20.Fun.Pair;
 
 import java.util.Iterator;
 

@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package org.mapdb10;
+package org.mapdb20;
 
 import java.io.DataInput;
 import java.io.IOException;
@@ -383,8 +383,8 @@ public final class Fun {
      * TODO document tuples
      *
      * Find all Primary Keys associated with Secondary Key.
-     * This is useful companion to {@link Bind#mapInverse(org.mapdb10.Bind.MapWithModificationListener, java.util.Set)}
-     * and {@link Bind#secondaryKey(org.mapdb10.Bind.MapWithModificationListener, java.util.Set, org.mapdb10.Fun.Function2)}
+     * This is useful companion to {@link Bind#mapInverse(org.mapdb20.Bind.MapWithModificationListener, java.util.Set)}
+     * and {@link Bind#secondaryKey(org.mapdb20.Bind.MapWithModificationListener, java.util.Set, org.mapdb20.Fun.Function2)}
      * It can by also used to find values from 'MultiMap'.
      *
      * @param set Set or 'MultiMap' to find values in

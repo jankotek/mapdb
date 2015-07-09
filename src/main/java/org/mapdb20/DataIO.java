@@ -1,4 +1,4 @@
-package org.mapdb10;
+package org.mapdb20;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -642,7 +642,7 @@ public final class DataIO {
         }
 
         /**
-         * @deprecated  use {@link org.mapdb10.DataIO.DataInputByteArray}
+         * @deprecated  use {@link org.mapdb20.DataIO.DataInputByteArray}
          */
         public DataInputByteBuffer(byte[] b) {
             this(ByteBuffer.wrap(b),0);

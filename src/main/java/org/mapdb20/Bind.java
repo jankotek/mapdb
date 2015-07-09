@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package org.mapdb10;
+package org.mapdb20;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -601,7 +601,7 @@ public final class Bind {
      *
      * In this case some data may be lost, if there are duplicated primary values.
      * It is recommended to use multimap: {@code NavigableSet<Fun.Tuple2<V,K>>} which
-     * handles value duplicities. Use {@link Bind#mapInverse(org.mapdb10.Bind.MapWithModificationListener, java.util.Map)}
+     * handles value duplicities. Use {@link Bind#mapInverse(org.mapdb20.Bind.MapWithModificationListener, java.util.Map)}
      *
      * If Secondary Set is empty its content will be recreated from Primary Map.
      *

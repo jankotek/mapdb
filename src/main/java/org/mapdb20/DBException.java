@@ -1,4 +1,4 @@
-package org.mapdb10;
+package org.mapdb20;
 
 import java.io.IOException;
 import java.nio.channels.ClosedByInterruptException;

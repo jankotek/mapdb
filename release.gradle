@@ -25,7 +25,7 @@ task(release) << {
         exclude '.git'
         filter{
             String line -> line
-                    .replaceAll("org.mapdb","org.mapdb10")
+                    .replaceAll("org.mapdb","org.mapdb20")
         }
     }
 

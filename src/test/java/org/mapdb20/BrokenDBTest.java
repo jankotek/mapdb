@@ -1,7 +1,7 @@
-package org.mapdb10;
+package org.mapdb20;
 
 import org.junit.*;
-import org.mapdb10.Volume.MappedFileVol;
+import org.mapdb20.Volume.MappedFileVol;
 
 import java.io.*;
 import java.util.Arrays;

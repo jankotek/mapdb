@@ -1,4 +1,4 @@
-package org.mapdb10;
+package org.mapdb20;
 
 
 import org.junit.Test;
@@ -6,7 +6,7 @@ import org.junit.Test;
 import java.util.Comparator;
 
 import static org.junit.Assert.*;
-import static org.mapdb10.Fun.Pair;
+import static org.mapdb20.Fun.Pair;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class FunTest {

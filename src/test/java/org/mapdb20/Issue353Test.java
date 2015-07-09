@@ -1,10 +1,10 @@
-package org.mapdb10;
+package org.mapdb20;
 
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mapdb10.DB.HTreeMapMaker;
+import org.mapdb20.DB.HTreeMapMaker;
 
 import java.util.Random;
 import java.util.concurrent.ConcurrentMap;

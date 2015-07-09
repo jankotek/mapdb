@@ -23,7 +23,7 @@
  * http://creativecommons.org/licenses/publicdomain
  */
 
-package org.mapdb10;
+package org.mapdb20;
 
 
 import java.io.Closeable;

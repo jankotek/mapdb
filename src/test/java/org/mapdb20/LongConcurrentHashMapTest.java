@@ -6,7 +6,7 @@
  * Pat Fisher, Mike Judd.
  */
 
-package org.mapdb10;
+package org.mapdb20;
 
 import junit.framework.TestCase;
 

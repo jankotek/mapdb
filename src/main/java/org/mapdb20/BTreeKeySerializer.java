@@ -1,4 +1,4 @@
-package org.mapdb10;
+package org.mapdb20;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -427,7 +427,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
     };
 
     /**
-     * @deprecated use {@link org.mapdb10.BTreeKeySerializer#LONG}
+     * @deprecated use {@link org.mapdb20.BTreeKeySerializer#LONG}
      */
     public static final BTreeKeySerializer ZERO_OR_POSITIVE_LONG = LONG;
 
@@ -595,7 +595,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
     };
 
     /**
-     * @deprecated use {@link org.mapdb10.BTreeKeySerializer#INTEGER}
+     * @deprecated use {@link org.mapdb20.BTreeKeySerializer#INTEGER}
      */
     public static final  BTreeKeySerializer ZERO_OR_POSITIVE_INT = INTEGER;
 

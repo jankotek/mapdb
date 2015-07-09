@@ -1,4 +1,4 @@
-package org.mapdb10;
+package org.mapdb20;
 
 
 public class StoreHeapTest extends EngineTest<StoreHeap>{

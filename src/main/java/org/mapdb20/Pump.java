@@ -13,7 +13,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package org.mapdb10;
+package org.mapdb20;
 
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
@@ -392,8 +392,8 @@ public final class Pump {
      * @param counterRecid TODO make size counter friendly to use
      * @param keySerializer serializer for keys, use null for default value
      * @param valueSerializer serializer for value, use null for default value
-     * @throws org.mapdb10.DBException.PumpSourceNotSorted if source iterator is not reverse sorted
-     * @throws org.mapdb10.DBException.PumpSourceDuplicate if source iterator has duplicates
+     * @throws org.mapdb20.DBException.PumpSourceNotSorted if source iterator is not reverse sorted
+     * @throws org.mapdb20.DBException.PumpSourceDuplicate if source iterator has duplicates
      */
     public static  <E,K,V> long buildTreeMap(Iterator<E> source,
                                              Engine engine,

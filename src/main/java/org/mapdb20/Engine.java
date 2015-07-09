@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package org.mapdb10;
+package org.mapdb20;
 
 import java.io.Closeable;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <p>
  * Centerpiece for record management, {@code Engine} is simple key value store.
  * Engine is low-level interface and is not meant to be used directly
- * by user. For most operations user should use {@link org.mapdb10.DB} class.
+ * by user. For most operations user should use {@link org.mapdb20.DB} class.
  * </p><p>
  *
  * In this store key is primitive {@code long} number, typically pointer to index table.
@@ -46,7 +46,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * <ol>
  *  <li> <b>DISK</b> - raw file or memory
- *  <li> {@link org.mapdb10.StoreWAL} - permanent record store with transactions
+ *  <li> {@link org.mapdb20.StoreWAL} - permanent record store with transactions
  *  <li> <b>USER</b> - {@link DB} and collections
  * </ol>
  *
@@ -74,20 +74,20 @@ public interface Engine  extends Closeable {
 
     /**
      * <p>
-     * Content of this map is manipulated by {@link org.mapdb10.DB} class.
+     * Content of this map is manipulated by {@link org.mapdb20.DB} class.
      * </p>
      * There are 8 reserved record ids. They store information relevant to
-     * {@link org.mapdb10.DB} and higher level functions. Those are preallocated when store is created.
+     * {@link org.mapdb20.DB} and higher level functions. Those are preallocated when store is created.
      */
     long RECID_NAME_CATALOG = 1;
 
     /**
      * <p>
-     * Points to class catalog. A list of classes used in {@link org.mapdb10.SerializerPojo}
+     * Points to class catalog. A list of classes used in {@link org.mapdb20.SerializerPojo}
      * to serialize java objects.
      * </p>
      * There are 8 reserved record ids. They store information relevant to
-     * {@link org.mapdb10.DB} and higher level functions. Those are preallocated when store is created.
+     * {@link org.mapdb20.DB} and higher level functions. Those are preallocated when store is created.
      */
     long RECID_CLASS_CATALOG = 2;
 
@@ -98,7 +98,7 @@ public interface Engine  extends Closeable {
      * data are read-able.
      * </p><p>
      * There are 8 reserved record ids. They store information relevant to
-     * {@link org.mapdb10.DB} and higher level functions. Those are preallocated when store is created.
+     * {@link org.mapdb20.DB} and higher level functions. Those are preallocated when store is created.
      * </p>
      */
     long RECID_RECORD_CHECK = 3;
@@ -106,7 +106,7 @@ public interface Engine  extends Closeable {
     /**
      * <p>
      * There are 8 reserved record ids. They store information relevant to
-     * {@link org.mapdb10.DB} and higher level functions. Those are preallocated when store is created.
+     * {@link org.mapdb20.DB} and higher level functions. Those are preallocated when store is created.
      * </p><p>
      * This value is last reserved record id. User ids (recids returned by {@link Engine#put(Object, Serializer)})
      * starts from {@code RECID_LAST_RESERVED+1}
@@ -117,7 +117,7 @@ public interface Engine  extends Closeable {
     /**
      * <p>
      * There are 8 reserved record ids. They store information relevant to
-     * {@link org.mapdb10.DB} and higher level functions. Those are preallocated when store is created.
+     * {@link org.mapdb20.DB} and higher level functions. Those are preallocated when store is created.
      * </p><p>
      * This constant is first recid available to user. It is first value returned by {@link #put(Object, Serializer)} if store is empty.
      * </p>

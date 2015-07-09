@@ -1,4 +1,4 @@
-package org.mapdb10;
+package org.mapdb20;
 
 
 import org.junit.After;
@@ -12,7 +12,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.Assert.*;
-import static org.mapdb10.Serializer.BYTE_ARRAY_NOSIZE;
+import static org.mapdb20.Serializer.BYTE_ARRAY_NOSIZE;
 
 /*
  * Tests contract of various implementations of Engine interface

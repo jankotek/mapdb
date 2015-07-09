@@ -21,7 +21,7 @@
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/licenses/publicdomain
  */
-package org.mapdb10;
+package org.mapdb20;
 
 import java.io.DataInput;
 import java.io.IOException;

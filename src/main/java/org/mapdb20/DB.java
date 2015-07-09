@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package org.mapdb10;
+package org.mapdb20;
 
 import java.io.Closeable;
 import java.io.File;
@@ -596,7 +596,7 @@ public class DB implements Closeable {
     }
 
     /**
-     * @deprecated method renamed, use {@link DB#hashMap(String,Serializer, Serializer, org.mapdb10.Fun.Function1)}
+     * @deprecated method renamed, use {@link DB#hashMap(String,Serializer, Serializer, org.mapdb20.Fun.Function1)}
      */
     synchronized public <K,V> HTreeMap<K,V> getHashMap(String name, Fun.Function1<V,K> valueCreator){
         return hashMap(name, null, null, valueCreator);
@@ -2542,7 +2542,7 @@ public class DB implements Closeable {
     /**
      * Commit changes made on collections loaded by this DB
      *
-     * @see org.mapdb10.Engine#commit()
+     * @see org.mapdb20.Engine#commit()
      */
     synchronized public void commit() {
         checkNotClosed();
@@ -2590,7 +2590,7 @@ public class DB implements Closeable {
     /**
      * Rollback changes made on collections loaded by this DB
      *
-     * @see org.mapdb10.Engine#rollback()
+     * @see org.mapdb20.Engine#rollback()
      */
     synchronized public void rollback() {
         checkNotClosed();

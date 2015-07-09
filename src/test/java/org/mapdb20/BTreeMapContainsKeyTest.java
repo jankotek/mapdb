@@ -1,4 +1,4 @@
-package org.mapdb10;
+package org.mapdb20;
 
 import org.junit.After;
 
@@ -7,8 +7,8 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.Map;
 
-import static org.mapdb10.BTreeKeySerializer.BASIC;
-import static org.mapdb10.BTreeMap.createRootRef;
+import static org.mapdb20.BTreeKeySerializer.BASIC;
+import static org.mapdb20.BTreeMap.createRootRef;
 
 public class BTreeMapContainsKeyTest extends JSR166TestCase {
 

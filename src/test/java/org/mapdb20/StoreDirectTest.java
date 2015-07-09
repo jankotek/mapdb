@@ -1,4 +1,4 @@
-package org.mapdb10;
+package org.mapdb20;
 
 
 import org.junit.Ignore;
@@ -11,7 +11,7 @@ import java.util.*;
 import java.util.concurrent.locks.Lock;
 
 import static org.junit.Assert.*;
-import static org.mapdb10.StoreDirect.*;
+import static org.mapdb20.StoreDirect.*;
 
 @SuppressWarnings({"rawtypes","unchecked"})
 public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{

@@ -1,4 +1,4 @@
-package org.mapdb10;
+package org.mapdb20;
 
 import java.util.ArrayList;
 import java.util.List;

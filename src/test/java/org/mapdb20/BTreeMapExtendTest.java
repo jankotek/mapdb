@@ -1,4 +1,4 @@
-package org.mapdb10;
+package org.mapdb20;
 
 /*
  *  Licensed to the Apache Software Foundation (ASF) under one or more

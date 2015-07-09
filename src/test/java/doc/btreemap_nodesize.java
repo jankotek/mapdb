@@ -1,8 +1,8 @@
 package doc;
 
-import org.mapdb10.BTreeMap;
-import org.mapdb10.DB;
-import org.mapdb10.DBMaker;
+import org.mapdb20.BTreeMap;
+import org.mapdb20.DB;
+import org.mapdb20.DBMaker;
 
 public class btreemap_nodesize {
 

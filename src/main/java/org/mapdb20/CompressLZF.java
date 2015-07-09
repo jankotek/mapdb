@@ -69,7 +69,7 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.mapdb10;
+package org.mapdb20;
 
 import java.io.DataInput;
 import java.io.IOException;

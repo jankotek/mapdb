@@ -1,4 +1,4 @@
-package org.mapdb10;
+package org.mapdb20;
 
 public class Serialized2DerivedBean extends Serialization2Bean {
     private static final long serialVersionUID = 2071817382135925585L;

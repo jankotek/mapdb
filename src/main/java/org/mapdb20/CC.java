@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package org.mapdb10;
+package org.mapdb20;
 
 /**
  * <p>
@@ -97,7 +97,7 @@ interface CC {
 
     String DEFAULT_CACHE = DBMaker.Keys.cache_disable;
 
-    /** default executor scheduled rate for {@link org.mapdb10.Store.Cache.WeakSoftRef} */
+    /** default executor scheduled rate for {@link org.mapdb20.Store.Cache.WeakSoftRef} */
     long DEFAULT_CACHE_EXECUTOR_PERIOD = 1000;
 
     int DEFAULT_FREE_SPACE_RECLAIM_Q = 5;

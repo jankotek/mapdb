@@ -1,4 +1,4 @@
-package org.mapdb10;
+package org.mapdb20;
 
 import org.junit.After;
 import org.junit.Before;
@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mapdb10.Fun.*;
+import static org.mapdb20.Fun.*;
 
 @SuppressWarnings({"rawtypes","unchecked"})
 public class BindTest {

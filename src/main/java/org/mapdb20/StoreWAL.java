@@ -15,7 +15,7 @@
  *  limitations under the License.
  */
 
-package org.mapdb10;
+package org.mapdb20;
 
 
 import java.io.DataInput;
@@ -32,7 +32,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static org.mapdb10.DataIO.*;
+import static org.mapdb20.DataIO.*;
 
 /**
  * Write-Ahead-Log

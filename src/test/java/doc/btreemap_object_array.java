@@ -1,9 +1,9 @@
 package doc;
 
-import org.mapdb10.BTreeMap;
-import org.mapdb10.DB;
-import org.mapdb10.DBMaker;
-import org.mapdb10.Serializer;
+import org.mapdb20.BTreeMap;
+import org.mapdb20.DB;
+import org.mapdb20.DBMaker;
+import org.mapdb20.Serializer;
 
 
 public class btreemap_object_array {

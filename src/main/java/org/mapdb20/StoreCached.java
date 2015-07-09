@@ -1,11 +1,11 @@
-package org.mapdb10;
+package org.mapdb20;
 
 import java.util.Arrays;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 
-import static org.mapdb10.DataIO.*;
+import static org.mapdb20.DataIO.*;
 
 /**
  * Extends {@link StoreDirect} with Write Cache

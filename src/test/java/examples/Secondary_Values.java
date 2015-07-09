@@ -1,6 +1,6 @@
 package examples;
 
-import org.mapdb10.*;
+import org.mapdb20.*;
 
 import java.io.Serializable;
 import java.util.NavigableSet;

@@ -1,4 +1,4 @@
-package org.mapdb10;
+package org.mapdb20;
 
 import org.junit.Test;
 
@@ -8,8 +8,8 @@ import java.io.IOException;
 import java.util.*;
 
 import static org.junit.Assert.*;
-import static org.mapdb10.DataIO.*;
-import static org.mapdb10.StoreDirect.*;
+import static org.mapdb20.DataIO.*;
+import static org.mapdb20.StoreDirect.*;
 
 public class StoreDirectTest2 {
 

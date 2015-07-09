@@ -1,4 +1,4 @@
-package org.mapdb10;
+package org.mapdb20;
 
 import org.junit.After;
 import org.junit.Before;
@@ -167,7 +167,7 @@ public class Issue41Test {
         }
 
         public static final class Serializer extends
-                org.mapdb10.Serializer<Value> implements Serializable {
+                org.mapdb20.Serializer<Value> implements Serializable {
 
             private static final long serialVersionUID = 140L;
 
@@ -248,7 +248,7 @@ public class Issue41Test {
         }
 
         public static final class Serializer extends
-                org.mapdb10.Serializer<Key> implements Serializable {
+                org.mapdb20.Serializer<Key> implements Serializable {
 
             private static final long serialVersionUID = 1L;
 

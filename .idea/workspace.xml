@@ -5,7 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="970e1fc2-af49-41b4-85c3-74ae55599668" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/release.gradle" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/release.gradle" afterPath="$PROJECT_DIR$/release.gradle" />
     </list>
     <ignored path="mapdb.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -99,8 +99,8 @@
       <file leaf-file-name="release.gradle" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/release.gradle">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.33070865">
-              <caret line="14" column="63" selection-start-line="14" selection-start-column="63" selection-end-line="14" selection-end-column="63" />
+            <state vertical-scroll-proportion="0.33858266">
+              <caret line="61" column="26" selection-start-line="61" selection-start-column="26" selection-end-line="61" selection-end-column="26" />
               <folding />
             </state>
           </provider>
@@ -593,6 +593,15 @@
       </ExternalSystemSettings>
       <method />
     </configuration>
+    <configuration default="true" type="GroovyScriptRunConfiguration" factoryName="Groovy">
+      <module name="" />
+      <setting name="path" value="" />
+      <setting name="vmparams" value="" />
+      <setting name="params" value="" />
+      <setting name="workDir" value="file://$PROJECT_DIR$" />
+      <setting name="debug" value="false" />
+      <method />
+    </configuration>
     <configuration default="true" type="JUnit" factoryName="JUnit">
       <extension name="coverage" enabled="false" merge="false" sample_coverage="true" runner="idea" />
       <module name="" />
@@ -965,7 +974,6 @@
   <component name="VcsManagerConfiguration">
     <option name="CHECK_CODE_SMELLS_BEFORE_PROJECT_COMMIT" value="false" />
     <option name="CHECK_NEW_TODO" value="false" />
-    <MESSAGE value="EngineTest: add crash test for StoreWAL and StoreAppend" />
     <MESSAGE value="News about mapdb 2.0 beta1" />
     <MESSAGE value="Fix errors" />
     <MESSAGE value="Add link to blogpost" />
@@ -990,7 +998,8 @@
     <MESSAGE value="Store: correct typo" />
     <MESSAGE value="StoreDirect: Fix deadlock in compaction, add some lock assertions, see #542" />
     <MESSAGE value="DB: javadoc queues deprecation info" />
-    <option name="LAST_COMMIT_MESSAGE" value="DB: javadoc queues deprecation info" />
+    <MESSAGE value="Add build script for renamed release" />
+    <option name="LAST_COMMIT_MESSAGE" value="Add build script for renamed release" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -1517,8 +1526,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/release.gradle">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.33070865">
-          <caret line="14" column="63" selection-start-line="14" selection-start-column="63" selection-end-line="14" selection-end-column="63" />
+        <state vertical-scroll-proportion="0.33858266">
+          <caret line="61" column="26" selection-start-line="61" selection-start-column="26" selection-end-line="61" selection-end-column="26" />
           <folding />
         </state>
       </provider>

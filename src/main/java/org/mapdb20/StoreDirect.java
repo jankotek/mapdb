@@ -1,4 +1,4 @@
-package org.mapdb10;
+package org.mapdb20;
 
 import java.io.DataInput;
 import java.io.File;
@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.logging.Level;
 
-import static org.mapdb10.DataIO.*;
+import static org.mapdb20.DataIO.*;
 
 public class StoreDirect extends Store {
 

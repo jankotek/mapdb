@@ -17,7 +17,7 @@
  *  limitations under the License.
  */
 
-package org.mapdb10;
+package org.mapdb20;
 
 
 import java.util.Arrays;
