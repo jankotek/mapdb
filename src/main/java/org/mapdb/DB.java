@@ -1698,7 +1698,31 @@ public class DB implements Closeable {
         return ret;
     }
 
-    /** @deprecated queues API is going to be reworked */
+    /**
+     *  <p>
+     *  Why are queues methods deprecated?
+     *  </p><p>
+     *  I am not really happy with current implementation.
+     *  But I also have no time to rewrite them in 2.0.
+     *  So current version is going to stay in 2.0 with deprecated flag.
+     * </p><p>
+     *  I am not sure what will happen in 2.1. Most likely I will redesign
+     *  and extend Queues to include blocking, counted, full-dequeue implementation,
+     *  multiple/single consumers/producers... etc. API will switch
+     *  to some sort of Maker style pattern.
+     *  </p><p>
+     *  In case of new queue framework, I might keep old implementation, but move it to separate JAR.
+     *  So storage format will not change, but it will use different API to instantiate Queues.
+     * </p><p>
+     *  But there is also small chance I will remove deprecation flag and keep current implementation.
+     *  I am not going to leave MapDB without at least some sort of Queue support.
+     *  </p><p>
+     * So feel free to use current implementation, it will be supported for 2.0 lifecycle (probably 6+ months).
+     * But once 2.1 release with long-term support is out, there might be some migration needed.
+     * </p><p>
+     * Hope this makes sense
+     * </p>
+     * @deprecated queues API is going to be reworked */
     synchronized public <E> BlockingQueue<E> getQueue(String name) {
         checkNotClosed();
         Queues.Queue<E> ret = (Queues.Queue<E>) getFromWeakCollection(name);
@@ -1730,7 +1754,31 @@ public class DB implements Closeable {
     }
 
 
-    /** @deprecated queues API is going to be reworked */
+    /**
+     *  <p>
+     *  Why are queues methods deprecated?
+     *  </p><p>
+     *  I am not really happy with current implementation.
+     *  But I also have no time to rewrite them in 2.0.
+     *  So current version is going to stay in 2.0 with deprecated flag.
+     * </p><p>
+     *  I am not sure what will happen in 2.1. Most likely I will redesign
+     *  and extend Queues to include blocking, counted, full-dequeue implementation,
+     *  multiple/single consumers/producers... etc. API will switch
+     *  to some sort of Maker style pattern.
+     *  </p><p>
+     *  In case of new queue framework, I might keep old implementation, but move it to separate JAR.
+     *  So storage format will not change, but it will use different API to instantiate Queues.
+     * </p><p>
+     *  But there is also small chance I will remove deprecation flag and keep current implementation.
+     *  I am not going to leave MapDB without at least some sort of Queue support.
+     *  </p><p>
+     * So feel free to use current implementation, it will be supported for 2.0 lifecycle (probably 6+ months).
+     * But once 2.1 release with long-term support is out, there might be some migration needed.
+     * </p><p>
+     * Hope this makes sense
+     * </p>
+     * @deprecated queues API is going to be reworked */
     synchronized public <E> BlockingQueue<E> createQueue(String name, Serializer<E> serializer, boolean useLocks) {
         checkNameNotExists(name);
 
@@ -1751,8 +1799,31 @@ public class DB implements Closeable {
 
     }
 
-
-    /** @deprecated queues API is going to be reworked */
+    /**
+     *  <p>
+     *  Why are queues methods deprecated?
+     *  </p><p>
+     *  I am not really happy with current implementation.
+     *  But I also have no time to rewrite them in 2.0.
+     *  So current version is going to stay in 2.0 with deprecated flag.
+     * </p><p>
+     *  I am not sure what will happen in 2.1. Most likely I will redesign
+     *  and extend Queues to include blocking, counted, full-dequeue implementation,
+     *  multiple/single consumers/producers... etc. API will switch
+     *  to some sort of Maker style pattern.
+     *  </p><p>
+     *  In case of new queue framework, I might keep old implementation, but move it to separate JAR.
+     *  So storage format will not change, but it will use different API to instantiate Queues.
+     * </p><p>
+     *  But there is also small chance I will remove deprecation flag and keep current implementation.
+     *  I am not going to leave MapDB without at least some sort of Queue support.
+     *  </p><p>
+     * So feel free to use current implementation, it will be supported for 2.0 lifecycle (probably 6+ months).
+     * But once 2.1 release with long-term support is out, there might be some migration needed.
+     * </p><p>
+     * Hope this makes sense
+     * </p>
+     * @deprecated queues API is going to be reworked */
     synchronized public <E> BlockingQueue<E> getStack(String name) {
         checkNotClosed();
         Queues.Stack<E> ret = (Queues.Stack<E>) getFromWeakCollection(name);
@@ -1785,7 +1856,31 @@ public class DB implements Closeable {
 
 
 
-    /** @deprecated queues API is going to be reworked */
+    /**
+     *  <p>
+     *  Why are queues methods deprecated?
+     *  </p><p>
+     *  I am not really happy with current implementation.
+     *  But I also have no time to rewrite them in 2.0.
+     *  So current version is going to stay in 2.0 with deprecated flag.
+     * </p><p>
+     *  I am not sure what will happen in 2.1. Most likely I will redesign
+     *  and extend Queues to include blocking, counted, full-dequeue implementation,
+     *  multiple/single consumers/producers... etc. API will switch
+     *  to some sort of Maker style pattern.
+     *  </p><p>
+     *  In case of new queue framework, I might keep old implementation, but move it to separate JAR.
+     *  So storage format will not change, but it will use different API to instantiate Queues.
+     * </p><p>
+     *  But there is also small chance I will remove deprecation flag and keep current implementation.
+     *  I am not going to leave MapDB without at least some sort of Queue support.
+     *  </p><p>
+     * So feel free to use current implementation, it will be supported for 2.0 lifecycle (probably 6+ months).
+     * But once 2.1 release with long-term support is out, there might be some migration needed.
+     * </p><p>
+     * Hope this makes sense
+     * </p>
+     * @deprecated queues API is going to be reworked */
     synchronized public <E> BlockingQueue<E> createStack(String name, Serializer<E> serializer, boolean useLocks) {
         checkNameNotExists(name);
 
@@ -1802,8 +1897,31 @@ public class DB implements Closeable {
         return ret;
     }
 
-
-    /** @deprecated queues API is going to be reworked */
+    /**
+     *  <p>
+     *  Why are queues methods deprecated?
+     *  </p><p>
+     *  I am not really happy with current implementation.
+     *  But I also have no time to rewrite them in 2.0.
+     *  So current version is going to stay in 2.0 with deprecated flag.
+     * </p><p>
+     *  I am not sure what will happen in 2.1. Most likely I will redesign
+     *  and extend Queues to include blocking, counted, full-dequeue implementation,
+     *  multiple/single consumers/producers... etc. API will switch
+     *  to some sort of Maker style pattern.
+     *  </p><p>
+     *  In case of new queue framework, I might keep old implementation, but move it to separate JAR.
+     *  So storage format will not change, but it will use different API to instantiate Queues.
+     * </p><p>
+     *  But there is also small chance I will remove deprecation flag and keep current implementation.
+     *  I am not going to leave MapDB without at least some sort of Queue support.
+     *  </p><p>
+     * So feel free to use current implementation, it will be supported for 2.0 lifecycle (probably 6+ months).
+     * But once 2.1 release with long-term support is out, there might be some migration needed.
+     * </p><p>
+     * Hope this makes sense
+     * </p>
+     * @deprecated queues API is going to be reworked */
     synchronized public <E> BlockingQueue<E> getCircularQueue(String name) {
         checkNotClosed();
         BlockingQueue<E> ret = (BlockingQueue<E>) getFromWeakCollection(name);
@@ -1838,7 +1956,31 @@ public class DB implements Closeable {
 
 
 
-    /** @deprecated queues API is going to be reworked */
+    /**
+     *  <p>
+     *  Why are queues methods deprecated?
+     *  </p><p>
+     *  I am not really happy with current implementation.
+     *  But I also have no time to rewrite them in 2.0.
+     *  So current version is going to stay in 2.0 with deprecated flag.
+     * </p><p>
+     *  I am not sure what will happen in 2.1. Most likely I will redesign
+     *  and extend Queues to include blocking, counted, full-dequeue implementation,
+     *  multiple/single consumers/producers... etc. API will switch
+     *  to some sort of Maker style pattern.
+     *  </p><p>
+     *  In case of new queue framework, I might keep old implementation, but move it to separate JAR.
+     *  So storage format will not change, but it will use different API to instantiate Queues.
+     * </p><p>
+     *  But there is also small chance I will remove deprecation flag and keep current implementation.
+     *  I am not going to leave MapDB without at least some sort of Queue support.
+     *  </p><p>
+     * So feel free to use current implementation, it will be supported for 2.0 lifecycle (probably 6+ months).
+     * But once 2.1 release with long-term support is out, there might be some migration needed.
+     * </p><p>
+     * Hope this makes sense
+     * </p>
+     * @deprecated queues API is going to be reworked */
     synchronized public <E> BlockingQueue<E> createCircularQueue(String name, Serializer<E> serializer, long size) {
         checkNameNotExists(name);
         if(serializer==null) serializer = getDefaultSerializer();
