@@ -41,7 +41,35 @@ public abstract class Store implements Engine {
     protected final ReentrantLock structuralLock = new ReentrantLock(CC.FAIR_LOCKS);
 
     /** protects lifecycle methods such as commit, rollback and close() */
-    protected final ReentrantLock commitLock = new ReentrantLock(CC.FAIR_LOCKS);
+    protected final ReentrantLock commitLock =
+            !CC.ASSERT?
+            new ReentrantLock(CC.FAIR_LOCKS):
+            new ReentrantLock(CC.FAIR_LOCKS) {
+
+                @Override
+                public void lock() {
+                    check();
+                    super.lock();
+                }
+
+                @Override
+                public void unlock() {
+                    super.unlock();
+                    check();
+                }
+
+                private void check() {
+                    if(structuralLock.isHeldByCurrentThread())
+                        throw new AssertionError("Can not lock commitLock, structuralLock already locked");
+                    for (ReadWriteLock l : locks) {
+                        if (!(l instanceof ReentrantReadWriteLock))
+                            return; //different locking strategy, can not tell if locked by current thread
+                        if (((ReentrantReadWriteLock) l).isWriteLockedByCurrentThread())
+                            throw new AssertionError("Current thread holds WriteLock, can not lock CommitLock");
+                    }
+                }
+            };
+
 
     /** protects data from being overwritten while read */
     protected final ReadWriteLock[] locks;

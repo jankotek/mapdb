@@ -57,10 +57,12 @@ public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
         long offset = 0xF0000;
         e.walPutLong(offset, v);
         e.commit();
-        e.structuralLock.lock();
         e.commitLock.lock();
+        e.structuralLock.lock();
         e.replayWAL();
         assertEquals(v, e.vol.getLong(offset));
+        e.structuralLock.unlock();
+        e.commitLock.unlock();
     }
 
     @Test public void WAL_replay_mixed(){
@@ -74,9 +76,10 @@ public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
             Arrays.fill(d, (byte) i);
             e.putDataSingleWithoutLink(-1,e.round16Up(100000)+64+i*16,d,0,d.length);
         }
+        e.structuralLock.unlock();
         e.commit();
-        e.structuralLock.lock();
         e.commitLock.lock();
+        e.structuralLock.lock();
         e.replayWAL();
 
         for(int i=0;i<3;i++) {
@@ -90,7 +93,8 @@ public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
             e.vol.getData(e.round16Up(100000)+64+i*16,d2,0,d2.length);
             assertTrue(Serializer.BYTE_ARRAY.equals(d, d2));
         }
-
+        e.structuralLock.unlock();
+        e.commitLock.unlock();
     }
 
     Map<Long,String> fill(StoreWAL e){

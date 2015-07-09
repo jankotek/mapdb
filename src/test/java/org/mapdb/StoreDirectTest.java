@@ -307,7 +307,8 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     @Test public void test_long_stack_puts_record_offset_into_index() throws IOException {
         e = openEngine();
         e.structuralLock.lock();
-        e.longStackPut(FREE_RECID_STACK, 1,false);
+        e.longStackPut(FREE_RECID_STACK, 1, false);
+        e.structuralLock.unlock();
         e.commit();
         assertEquals(8 + 2,
                 e.headVol.getLong(FREE_RECID_STACK)>>>48);
@@ -328,7 +329,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         }
 
         assertEquals(0, getLongStack(FREE_RECID_STACK).size());
-
+        e.structuralLock.unlock();
     }
 
     protected List<Long> getLongStack(long masterLinkOffset) {
@@ -344,6 +345,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.structuralLock.lock();
         e.longStackPut(FREE_RECID_STACK, 111,false);
         assertEquals(111L, e.longStackTake(FREE_RECID_STACK,false));
+        e.structuralLock.unlock();
     }
 
 
@@ -359,9 +361,11 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         }
 
         Collections.reverse(list);
+        e.structuralLock.unlock();
         e.commit();
-
+        e.structuralLock.lock();
         assertEquals(list, getLongStack(FREE_RECID_STACK));
+        e.structuralLock.unlock();
     }
 
     @Test public void test_large_long_stack() throws IOException {
@@ -375,10 +379,12 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
             list.add(i);
         }
 
+        e.structuralLock.unlock();
         Collections.reverse(list);
         e.commit();
-
+        e.structuralLock.lock();
         assertEquals(list, getLongStack(FREE_RECID_STACK));
+        e.structuralLock.unlock();
     }
 
     @Test public void test_basic_long_stack_no_commit() throws IOException {
@@ -393,6 +399,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         for(long i =max-1;i>=1;i--){
             assertEquals(i, e.longStackTake(FREE_RECID_STACK,false));
         }
+        e.structuralLock.unlock();
     }
 
     @Test public void test_large_long_stack_no_commit() throws IOException {
@@ -417,7 +424,8 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     @Test public void long_stack_page_created_after_put() throws IOException {
         e = openEngine();
         e.structuralLock.lock();
-        e.longStackPut(FREE_RECID_STACK, 111,false);
+        e.longStackPut(FREE_RECID_STACK, 111, false);
+        e.structuralLock.unlock();
         e.commit();
 
         if(e instanceof StoreWAL){
@@ -426,6 +434,8 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
             e.structuralLock.lock();
             ((StoreWAL)e).replayWAL();
             clearEverything();
+            e.structuralLock.unlock();
+            e.commitLock.unlock();
         }
 
         long pageId = e.vol.getLong(FREE_RECID_STACK);
@@ -445,13 +455,15 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.longStackPut(FREE_RECID_STACK, 113,false);
         e.longStackPut(FREE_RECID_STACK, 114,false);
         e.longStackPut(FREE_RECID_STACK, 115,false);
-
+        e.structuralLock.unlock();
         e.commit();
         if(e instanceof  StoreWAL){
             e.commitLock.lock();
             e.structuralLock.lock();
             ((StoreWAL)e).replayWAL();
             clearEverything();
+            e.structuralLock.unlock();
+            e.commitLock.unlock();
         }
         long pageId = e.vol.getLong(FREE_RECID_STACK);
         long currPageSize = pageId>>>48;
@@ -466,12 +478,14 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
             offset += val >>> 56;
         }
         assertEquals(currPageSize, offset-pageId);
+
     }
 
     @Test public void long_stack_page_deleted_after_take() throws IOException {
         e = openEngine();
         e.structuralLock.lock();
-        e.longStackPut(FREE_RECID_STACK, 111,false);
+        e.longStackPut(FREE_RECID_STACK, 111, false);
+        e.structuralLock.unlock();
         e.commit();
         if(e instanceof  StoreWAL){
             e.commitLock.lock();
@@ -479,14 +493,21 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
             ((StoreWAL)e).replayWAL();
             clearEverything();
             ((StoreWAL)e).walStartNextFile();
+            ((StoreWAL) e).structuralLock.unlock();
+            ((StoreWAL) e).commitLock.unlock();
         }
-
-        assertEquals(111L, e.longStackTake(FREE_RECID_STACK,false));
+        e.structuralLock.lock();
+        assertEquals(111L, e.longStackTake(FREE_RECID_STACK, false));
+        e.structuralLock.unlock();
         e.commit();
         if(e instanceof  StoreWAL){
-            ((StoreWAL)e).replayWAL();
+            ((StoreWAL) e).commitLock.lock();
+            ((StoreWAL) e).structuralLock.lock();
+            ((StoreWAL) e).replayWAL();
             clearEverything();
             ((StoreWAL)e).walStartNextFile();
+            ((StoreWAL) e).structuralLock.unlock();
+            ((StoreWAL) e).commitLock.unlock();
         }
 
         assertEquals(0L, DataIO.parity1Get(e.headVol.getLong(FREE_RECID_STACK)));
@@ -495,16 +516,20 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     @Test public void long_stack_page_deleted_after_take2() throws IOException {
         e = openEngine();
         e.structuralLock.lock();
-        e.longStackPut(FREE_RECID_STACK, 111,false);
+        e.longStackPut(FREE_RECID_STACK, 111, false);
+        e.structuralLock.unlock();
         e.commit();
-
+        e.structuralLock.lock();
         assertEquals(111L, e.longStackTake(FREE_RECID_STACK,false));
+        e.structuralLock.unlock();
         e.commit();
         if(e instanceof  StoreWAL){
             e.commitLock.lock();
             e.structuralLock.lock();
             ((StoreWAL)e).replayWAL();
             clearEverything();
+            ((StoreWAL) e).structuralLock.unlock();
+            ((StoreWAL) e).commitLock.unlock();
         }
 
         assertEquals(0L, DataIO.parity1Get(e.headVol.getLong(FREE_RECID_STACK)));
@@ -525,11 +550,13 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
             if(e.headVol.getLong(FREE_RECID_STACK)>>48 >CHUNKSIZE-10)
                 break;
         }
+        e.structuralLock.unlock();
         e.commit();
+        e.commitLock.lock();
+        e.structuralLock.lock();
+
         if(e instanceof  StoreWAL){
             //TODO method to commit and force WAL replay
-            e.commitLock.lock();
-            e.structuralLock.lock();
             ((StoreWAL)e).replayWAL();
             clearEverything();
             ((StoreWAL)e).walStartNextFile();
@@ -552,7 +579,12 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
         //add one more item, this will trigger page overflow
         e.longStackPut(FREE_RECID_STACK, 11L,false);
+        e.structuralLock.unlock();
+        e.commitLock.unlock();
         e.commit();
+        e.commitLock.lock();
+        e.structuralLock.lock();
+
         if(e instanceof  StoreWAL){
             ((StoreWAL)e).replayWAL();
             clearEverything();
@@ -573,6 +605,8 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         for(long offset = pageId+8+2;offset<pageId+CHUNKSIZE;offset++){
             assertEquals(0,e.vol.getByte(offset));
         }
+        e.structuralLock.unlock();
+        e.commitLock.unlock();
     }
 
 

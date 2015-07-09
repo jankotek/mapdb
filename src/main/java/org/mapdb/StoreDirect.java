@@ -94,7 +94,7 @@ public class StoreDirect extends Store {
                        int sizeIncrement,
                        ScheduledExecutorService executor
                        ) {
-        super(fileName,volumeFactory, cache, lockScale, lockingStrategy, checksum,compress,password,readonly, snapshotEnable);
+        super(fileName, volumeFactory, cache, lockScale, lockingStrategy, checksum, compress, password, readonly, snapshotEnable);
         this.vol = volumeFactory.makeVolume(fileName, readonly);
         this.executor = executor;
         this.snapshots = snapshotEnable?
@@ -484,7 +484,7 @@ public class StoreDirect extends Store {
     public <A> long put(A value, Serializer<A> serializer) {
         long recid;
         long[] offsets;
-        DataOutputByteArray out = serialize(value,serializer);
+        DataOutputByteArray out = serialize(value, serializer);
         boolean notalloc = out==null || out.pos==0;
 
         commitLock.lock();
@@ -902,13 +902,14 @@ public class StoreDirect extends Store {
         }
 
         final boolean isStoreCached = this instanceof StoreCached;
-        for(int i=0;i<locks.length;i++){
-            Lock lock = locks[i].writeLock();
-            lock.lock();
-        }
+        commitLock.lock();
 
         try{
-            commitLock.lock();
+            for(int i=0;i<locks.length;i++){
+                Lock lock = locks[i].writeLock();
+                lock.lock();
+            }
+
             try {
 
                 //clear caches, so freed recids throw an exception, instead of returning null
@@ -998,15 +999,16 @@ public class StoreDirect extends Store {
                 }finally {
                     structuralLock.unlock();
                 }
-            }finally{
-                commitLock.unlock();
+            }finally {
+                for(int i=locks.length-1;i>=0;i--) {
+                    Lock lock = locks[i].writeLock();
+                    lock.unlock();
+                }
             }
-        }finally {
-            for(int i=locks.length-1;i>=0;i--) {
-                Lock lock = locks[i].writeLock();
-                lock.unlock();
-            }
+        }finally{
+            commitLock.unlock();
         }
+
     }
 
     protected boolean compactOldFilesExists() {
