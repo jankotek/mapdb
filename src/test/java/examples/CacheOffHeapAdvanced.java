@@ -23,7 +23,7 @@ public class CacheOffHeapAdvanced {
 
         //first create store
         DB db = DBMaker
-                .newMemoryDirectDB()
+                .memoryDirectDB()
                 .transactionDisable()
             //some additional options for DB
                // .asyncWriteEnable()
@@ -32,7 +32,7 @@ public class CacheOffHeapAdvanced {
 
 
         HTreeMap cache = db
-                .createHashMap("cache")
+                .hashMapCreate("cache")
                 .expireStoreSize(cacheSizeInGB)
                 .counterEnable() //disable this if cache.size() is not used
                 //use proper serializers to and improve performance
@@ -62,8 +62,8 @@ public class CacheOffHeapAdvanced {
 
         }
 
-        // and release memory. Only necessary with `DBMaker.newCacheDirect()`
-        cache.close();
+        // and close to release memory
+        db.close();
 
     }
 }

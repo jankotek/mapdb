@@ -18,13 +18,13 @@ public class _HelloWorld {
         //Configure and open database using builder pattern.
         //All options are available with code auto-completion.
         File dbFile = File.createTempFile("mapdb","db");
-        DB db = DBMaker.newFileDB(dbFile)
+        DB db = DBMaker.fileDB(dbFile)
                 .closeOnJvmShutdown()
                 .encryptionEnable("password")
                 .make();
 
         //open an collection, TreeMap has better performance then HashMap
-        ConcurrentNavigableMap<Integer,String> map = db.getTreeMap("collectionName");
+        ConcurrentNavigableMap<Integer,String> map = db.treeMap("collectionName");
 
         map.put(1,"one");
         map.put(2,"two");

@@ -23,11 +23,6 @@ This product includes software developed for Apache Harmony
 Copyright 2008-2012 The Apache Software Foundation
 
 
-This product includes software developed by Nathen Sweet for Kryo
-Relicensed under Apache License 2 (or later) with Nathans permission.
-(DataInput2.packInt/Long and DataOutput.unpackInt/Long methods)
-Copyright (c) 2012 Nathan Sweet
-
 This product includes software developed for Android project
 (SerializerPojo, a few lines to invoke constructor, see comments)
 //Copyright (C) 2012 The Android Open Source Project, licenced under Apache 2 license

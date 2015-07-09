@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="VcsDirectoryMappings">
+    <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../mapdb-benchmarks" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../mapdb-microbenchmarks" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../mapdb-site" vcs="Git" />
+  </component>
+</project>

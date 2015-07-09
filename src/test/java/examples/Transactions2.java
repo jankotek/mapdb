@@ -10,19 +10,19 @@ import java.util.Map;
 public class Transactions2 {
 
     public static void main(String[] args) {
-        TxMaker txMaker = DBMaker.newMemoryDB().makeTxMaker();
+        TxMaker txMaker = DBMaker.memoryDB().makeTxMaker();
 
         // Execute transaction within single block.
         txMaker.execute(new TxBlock(){
             @Override public void tx(DB db) throws TxRollbackException {
-                Map m = db.getHashMap("test");
+                Map m = db.hashMap("test");
                 m.put("test","test");
             }
         });
 
         //show result of block execution
         DB tx1 = txMaker.makeTx();
-        Object val = tx1.getHashMap("test").get("test");
+        Object val = tx1.hashMap("test").get("test");
         System.out.println(val);
 
         tx1.close();

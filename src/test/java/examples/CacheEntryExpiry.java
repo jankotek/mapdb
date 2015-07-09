@@ -21,15 +21,14 @@ public class CacheEntryExpiry {
     public static void main(String[] args) {
         //init off-heap store with 2GB size limit
         DB db = DBMaker
-                .newMemoryDirectDB()    //use off-heap memory, on-heap is `.newMemoryDB()`
-                .sizeLimit(2)           //limit store size to 2GB
+                .memoryDirectDB()    //use off-heap memory, on-heap is `.memoryDB()`
                 .transactionDisable()   //better performance
                 .make();
 
         //create map, entries are expired if not accessed (get,iterate) for 10 seconds or 30 seconds after 'put'
         //There is also maximal size limit to prevent OutOfMemoryException
         HTreeMap map = db
-                .createHashMap("cache")
+                .hashMapCreate("cache")
                 .expireMaxSize(1000000)
                 .expireAfterWrite(30, TimeUnit.SECONDS)
                 .expireAfterAccess(10, TimeUnit.SECONDS)

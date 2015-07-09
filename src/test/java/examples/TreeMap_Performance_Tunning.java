@@ -7,7 +7,7 @@ import java.io.File;
 import java.util.Map;
 import java.util.Random;
 
-/**
+/*
  * Demonstrates how BTree parameters affects performance. BTreeMap has two key parameters
  * which affects its performance:
  * <h4>Maximal node size</h4>
@@ -22,7 +22,6 @@ import java.util.Random;
  *
  *
  *
- * <p/>
  * Sample output
  * <pre>
  *  Node size |  small vals  |  large vals  |  large vals outside node
@@ -56,7 +55,7 @@ public class TreeMap_Performance_Tunning {
                 boolean valueOutsideOfNodes = (j==2);
 
                 DB db = DBMaker
-                        .newFileDB(new File("/mnt/big/adsasd"))
+                        .fileDB(new File("/mnt/big/adsasd"))
                         .deleteFilesAfterClose()
                         .closeOnJvmShutdown()
                         .transactionDisable()
@@ -66,8 +65,8 @@ public class TreeMap_Performance_Tunning {
 
                 Map<Long,String> map =
                         (valueOutsideOfNodes?
-                                (db.createTreeMap("test").valuesOutsideNodesEnable()):
-                                db.createTreeMap("test"))
+                                (db.treeMapCreate("test").valuesOutsideNodesEnable()):
+                                db.treeMapCreate("test"))
                     .nodeSize(nodeSize)
                     .make();
 

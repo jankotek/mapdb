@@ -15,7 +15,7 @@ import java.util.Map;
 public class Secondary_Map {
 
     public static void main(String[] args) {
-        HTreeMap<Long, String> primary = DBMaker.newMemoryDB().make().getHashMap("test");
+        HTreeMap<Long, String> primary = DBMaker.memoryDB().make().hashMap("test");
 
         // secondary map will hold String.size() from primary map as its value
         Map<Long,Integer> secondary = new HashMap(); //can be normal java map, or MapDB map

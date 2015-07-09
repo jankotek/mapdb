@@ -4,14 +4,14 @@ MapDB is free as speech and free as beer under
 
 Find out more at:
   * [Home page - www.mapdb.org](http://www.mapdb.org)
-  * [Introduction](http://www.mapdb.org/02-getting-started.html)
+  * [Introduction](http://www.mapdb.org/doc/getting-started.html)
   * [Examples](https://github.com/jankotek/MapDB/tree/master/src/test/java/examples)
   * [Javadoc](http://www.mapdb.org/apidocs/index.html)
 
 
 15 minutes overview
 ------------
-<a href="http://youtu.be/_KGDwwEP5js"><img src="http://www.mapdb.org/images/mapdb-overview-youtube.png"/></a>
+<a href="http://youtu.be/_KGDwwEP5js"><img src="https://img.youtube.com/vi/_KGDwwEP5js/0.jpg"/></a>
 
 
 

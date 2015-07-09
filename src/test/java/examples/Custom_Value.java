@@ -65,11 +65,11 @@ public class Custom_Value {
 
         // Open db in temp directory
         File f = File.createTempFile("mapdb","temp");
-		DB db = DBMaker.newFileDB(f)
+		DB db = DBMaker.fileDB(f)
 				.make();
 		
 		// Open or create table
-		Map<String,Person> dbMap = db.getTreeMap("personAndCity");
+		Map<String,Person> dbMap = db.treeMap("personAndCity");
 		
 		// Add data
 		Person bilbo = new Person("Bilbo","The Shire");
@@ -91,7 +91,7 @@ public class Custom_Value {
         // analyze the class structure.
         //
 
-        class CustomSerializer implements Serializer<Person>, Serializable{
+        class CustomSerializer extends Serializer<Person> implements Serializable{
 
             @Override
             public void serialize(DataOutput out, Person value) throws IOException {
@@ -113,9 +113,9 @@ public class Custom_Value {
 
         Serializer<Person> serializer = new CustomSerializer();
 
-        DB db2 = DBMaker.newTempFileDB().make();
+        DB db2 = DBMaker.tempFileDB().make();
 
-        Map<String,Person> map2 = db2.createHashMap("map").valueSerializer(serializer).make();
+        Map<String,Person> map2 = db2.hashMapCreate("map").valueSerializer(serializer).make();
 
         map2.put("North", new Person("Yet another dwarf","Somewhere"));
 

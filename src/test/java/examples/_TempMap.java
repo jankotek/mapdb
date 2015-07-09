@@ -1,6 +1,5 @@
 package examples;
 
-import org.mapdb10.BTreeMap;
 import org.mapdb10.DBMaker;
 
 import java.util.Map;
@@ -15,16 +14,12 @@ public class _TempMap {
 
         // open new empty map
         // DBMaker will create files in temporary folder and opens it
-        Map<String, String> map = DBMaker.newTempTreeMap();
+        Map<String, String> map = DBMaker.tempTreeMap();
 
         //put some stuff into map
         //all data are stored in file in temp folder
         map.put("aa", "bb");
         map.put("cc", "dd");
-
-        // Close map to release resources.
-        // It is optional, there is JVM shutdown hook which deletes files on JVM exit.
-        ((BTreeMap)map).close();
 
         // After JVM exits files are deleted.
         // This map was temporary, there is no way to recover its data !

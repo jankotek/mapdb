@@ -27,7 +27,7 @@ public class Huge_Insert {
          */
         File dbFile = File.createTempFile("mapdb","temp");
         DB db = DBMaker
-                .newFileDB(dbFile)
+                .fileDB(dbFile)
                 /** disabling Write Ahead Log makes import much faster */
                 .transactionDisable()
                 .make();
@@ -63,8 +63,9 @@ public class Huge_Insert {
          */
         source = Pump.sort(source,
                 true, 100000,
-                Collections.reverseOrder(BTreeMap.COMPARABLE_COMPARATOR), //reverse  order comparator
-                db.getDefaultSerializer()
+                Collections.reverseOrder(Fun.COMPARATOR), //reverse  order comparator
+                db.getDefaultSerializer(),
+                null //sort in single threaded mode
                 );
 
 
@@ -74,7 +75,7 @@ public class Huge_Insert {
          * Keys are sorted, so only difference between consequential keys is stored.
          * This method is called delta-packing and typically saves 60% of disk space.
          */
-        BTreeKeySerializer<String> keySerializer = BTreeKeySerializer.STRING;
+        BTreeKeySerializer keySerializer = BTreeKeySerializer.STRING;
 
 
         /**
@@ -89,7 +90,7 @@ public class Huge_Insert {
         /**
          * Create BTreeMap and fill it with data
          */
-        Map<String,Integer> map = db.createTreeMap("map")
+        Map<String,Integer> map = db.treeMapCreate("map")
                 .pumpSource(source,valueExtractor)
                 //.pumpPresort(100000) // for presorting data we could also use this method
                 .keySerializer(keySerializer)
