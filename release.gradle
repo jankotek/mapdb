@@ -25,7 +25,7 @@ task(release) << {
         exclude '.git'
         filter{
             String line -> line
-                    .replaceAll("org.mapdb","org.mapdb10")
+                    .replaceAll("org.mapdb","org.mapdb20")
         }
     }
 
@@ -37,8 +37,8 @@ task(release) << {
         exclude '.git'
         filter{
             String line -> line
-                    .replaceAll("<artifactId>mapdb-renamed</artifactId>","<artifactId>mapdb-renamed</artifactId>")
-                    .replaceAll("<name>mapdb-renamed</name>","<name>mapdb-renamed</name>")
+                    .replaceAll("<artifactId>mapdb</artifactId>","<artifactId>mapdb-renamed</artifactId>")
+                    .replaceAll("<name>mapdb</name>","<name>mapdb-renamed</name>")
         }
     }
 
