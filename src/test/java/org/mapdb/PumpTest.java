@@ -128,7 +128,7 @@ public class PumpTest {
     }
 
     @Test public void presort(){
-        final Integer max = 10000;
+        final int max = 10000;
         List<Integer> list = new ArrayList<Integer>(max);
         for(Integer i=0;i<max;i++) list.add(i);
         Collections.shuffle(list);
@@ -136,16 +136,16 @@ public class PumpTest {
         Iterator<Integer> sorted = Pump.sort(list.iterator(),false, max/20,
                 Fun.COMPARATOR, Serializer.INTEGER, null);
 
-        Integer counter=0;
+        int counter=0;
         while(sorted.hasNext()){
-            assertEquals(counter++, sorted.next());
+            assertEquals(counter++, (int)sorted.next());
         }
         assertEquals(max,counter);
     }
 
 
     @Test public void presort_parallel(){
-        final Integer max = 10000;
+        final int max = 10000;
         List<Integer> list = new ArrayList<Integer>(max);
         for(Integer i=0;i<max;i++) list.add(i);
         Collections.shuffle(list);
@@ -154,16 +154,16 @@ public class PumpTest {
                 Fun.COMPARATOR, Serializer.INTEGER,
                 Executors.newCachedThreadPool());
 
-        Integer counter=0;
+        int counter=0;
         while(sorted.hasNext()){
-            assertEquals(counter++, sorted.next());
+            assertEquals(counter++, (int)sorted.next());
         }
         assertEquals(max,counter);
     }
 
 
     @Test public void presort_duplicates(){
-        final Integer max = 10000;
+        final int max = 10000;
         List<Integer> list = new ArrayList<Integer>(max);
         for(Integer i=0;i<max;i++){
             list.add(i);
@@ -174,7 +174,7 @@ public class PumpTest {
         Iterator<Integer> sorted = Pump.sort(list.iterator(),true, max/20,
                 Fun.COMPARATOR, Serializer.INTEGER,null);
 
-        Integer counter=0;
+        int counter=0;
         while(sorted.hasNext()){
             Object v = sorted.next();
             assertEquals(counter++, v);
@@ -183,7 +183,7 @@ public class PumpTest {
     }
 
     @Test public void presort_duplicates_parallel(){
-        final Integer max = 10000;
+        final int max = 10000;
         List<Integer> list = new ArrayList<Integer>(max);
         for(Integer i=0;i<max;i++){
             list.add(i);
@@ -194,7 +194,7 @@ public class PumpTest {
         Iterator<Integer> sorted = Pump.sort(list.iterator(),true, max/20,
                 Fun.COMPARATOR, Serializer.INTEGER,Executors.newCachedThreadPool());
 
-        Integer counter=0;
+        int counter=0;
         while(sorted.hasNext()){
             Object v = sorted.next();
             assertEquals(counter++, v);
@@ -216,11 +216,11 @@ public class PumpTest {
                 .pumpSource(list.iterator())
                 .make();
 
-        Iterator iter =s.iterator();
+        Iterator<Integer> iter =s.iterator();
 
-        Integer count = 0;
+        int count = 0;
         while(iter.hasNext()){
-            assertEquals(count++, iter.next());
+            assertEquals(count++, (int)iter.next());
         }
 
         for(Integer i:list){
@@ -248,11 +248,11 @@ public class PumpTest {
                 .pumpIgnoreDuplicates()
                 .make();
 
-        Iterator iter =s.iterator();
+        Iterator<Integer> iter =s.iterator();
 
-        Integer count = 0;
+        int count = 0;
         while(iter.hasNext()){
-            assertEquals(count++, iter.next());
+            assertEquals(count++, (int)iter.next());
         }
 
         for(Integer i:list){
@@ -285,11 +285,11 @@ public class PumpTest {
             .make();
 
 
-        Iterator iter =s.keySet().iterator();
+        Iterator<Integer> iter =s.keySet().iterator();
 
-        Integer count = 0;
+        int count = 0;
         while(iter.hasNext()){
-            assertEquals(count++, iter.next());
+            assertEquals(count++, (int)iter.next());
         }
 
         for(Integer i:list){
@@ -323,11 +323,11 @@ public class PumpTest {
                 .make();
 
 
-        Iterator iter =s.keySet().iterator();
+        Iterator<Integer> iter =s.keySet().iterator();
 
-        Integer count = 0;
+        int count = 0;
         while(iter.hasNext()){
-            assertEquals(count++, iter.next());
+            assertEquals(count++, (int)iter.next());
         }
 
         for(Integer i:list){
@@ -364,11 +364,11 @@ public class PumpTest {
                 .make();
 
 
-        Iterator iter =s.keySet().iterator();
+        Iterator<Integer> iter =s.keySet().iterator();
 
-        Integer count = 0;
+        int count = 0;
         while(iter.hasNext()){
-            assertEquals(count++, iter.next());
+            assertEquals(count++, (int)iter.next());
         }
 
         for(Integer i:list){
