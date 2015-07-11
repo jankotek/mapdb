@@ -140,7 +140,7 @@ public class PumpTest {
         while(sorted.hasNext()){
             assertEquals(counter++, (int)sorted.next());
         }
-        assertEquals(max,counter);
+        assertEquals((Object)max,counter);
     }
 
 
@@ -158,7 +158,7 @@ public class PumpTest {
         while(sorted.hasNext()){
             assertEquals(counter++, (int)sorted.next());
         }
-        assertEquals(max,counter);
+        assertEquals((Object)max,counter);
     }
 
 
@@ -179,7 +179,7 @@ public class PumpTest {
             Object v = sorted.next();
             assertEquals(counter++, v);
         }
-        assertEquals(max,counter);
+        assertEquals((Object)max,counter);
     }
 
     @Test public void presort_duplicates_parallel(){
@@ -199,7 +199,7 @@ public class PumpTest {
             Object v = sorted.next();
             assertEquals(counter++, v);
         }
-        assertEquals(max,counter);
+        assertEquals((Object)max,counter);
     }
 
 
