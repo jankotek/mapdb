@@ -417,6 +417,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         for(long i =max-1;i>=1;i--){
             assertEquals(i, e.longStackTake(FREE_RECID_STACK,false));
         }
+        e.structuralLock.unlock();
     }
 
 
