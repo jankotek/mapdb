@@ -742,4 +742,11 @@ public class SerializerBaseTest{
         assertEquals(db,v.get());
     }
 
+    @Test public void serializer_inflate_wrapper() throws IOException {
+        Serializer.CompressionInflateWrapper c =
+                new Serializer.CompressionInflateWrapper(Serializer.BYTE_ARRAY, -1,
+                        new byte[]{1,2,3,4,4,5,6,7,9,0,10});
+
+        assertEquals(c, clone(c));
+    }
 }

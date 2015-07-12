@@ -24,6 +24,9 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.UUID;
+import java.util.zip.Deflater;
+import java.util.zip.Inflater;
+import java.util.zip.InflaterInputStream;
 
 /**
  * Provides serialization and deserialization
@@ -1555,6 +1558,128 @@ public abstract class Serializer<A> {
         public boolean isTrusted() {
             return true;
         }
+    }
+
+
+    /** wraps another serializer and (de)compresses its output/input using Inflate*/
+    public final static class CompressionInflateWrapper<E> extends Serializer<E> implements Serializable {
+
+        private static final long serialVersionUID = 8529699349939823553L;
+        protected final Serializer<E> serializer;
+        protected final int compressLevel;
+        protected final byte[] dictionary;
+
+        public CompressionInflateWrapper(Serializer<E> serializer) {
+            this(serializer, Deflater.DEFAULT_STRATEGY, null);
+        }
+
+        public CompressionInflateWrapper(Serializer<E> serializer, int compressLevel, byte[] dictionary) {
+            this.serializer = serializer;
+            this.compressLevel = compressLevel;
+            this.dictionary = dictionary==null || dictionary.length==0 ? null : dictionary;
+        }
+
+        /** used for deserialization */
+        @SuppressWarnings("unchecked")
+        protected CompressionInflateWrapper(SerializerBase serializerBase, DataInput is, SerializerBase.FastArrayList<Object> objectStack) throws IOException {
+            objectStack.add(this);
+            this.serializer = (Serializer<E>) serializerBase.deserialize(is,objectStack);
+            this.compressLevel = is.readByte();
+            int dictlen = DataIO.unpackInt(is);
+            if(dictlen==0) {
+                dictionary = null;
+            } else {
+                byte[] d = new byte[dictlen];
+                is.readFully(d);
+                dictionary = d;
+            }
+        }
+
+
+        @Override
+        public void serialize(DataOutput out, E value) throws IOException {
+            DataIO.DataOutputByteArray out2 = new DataIO.DataOutputByteArray();
+            serializer.serialize(out2,value);
+
+            byte[] tmp = new byte[out2.pos+41];
+            int newLen;
+            try{
+                Deflater deflater = new Deflater(compressLevel);
+                if(dictionary!=null) {
+                    deflater.setDictionary(dictionary);
+                }
+
+                deflater.setInput(out2.buf,0,out2.pos);
+                deflater.finish();
+                newLen = deflater.deflate(tmp);
+                //LZF.get().compress(out2.buf,out2.pos,tmp,0);
+            }catch(IndexOutOfBoundsException e){
+                newLen=0; //larger after compression
+            }
+            if(newLen>=out2.pos){
+                //compression adds size, so do not compress
+                DataIO.packInt(out,0);
+                out.write(out2.buf,0,out2.pos);
+                return;
+            }
+
+            DataIO.packInt(out, out2.pos+1); //unpacked size, zero indicates no compression
+            out.write(tmp,0,newLen);
+        }
+
+        @Override
+        public E deserialize(DataInput in, int available) throws IOException {
+            final int unpackedSize = DataIO.unpackInt(in)-1;
+            if(unpackedSize==-1){
+                //was not compressed
+                return serializer.deserialize(in, available>0?available-1:available);
+            }
+
+            Inflater inflater = new Inflater();
+            if(dictionary!=null) {
+                inflater.setDictionary(dictionary);
+            }
+
+            InflaterInputStream in4 = new InflaterInputStream(
+                    new DataIO.DataInputToStream(in), inflater);
+
+            byte[] unpacked = new byte[unpackedSize];
+            in4.read(unpacked,0,unpackedSize);
+
+            DataIO.DataInputByteArray in2 = new DataIO.DataInputByteArray(unpacked);
+            E ret =  serializer.deserialize(in2,unpackedSize);
+            if(CC.ASSERT && ! (in2.pos==unpackedSize))
+                throw new DBException.DataCorruption( "data were not fully read");
+            return ret;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            CompressionInflateWrapper<?> that = (CompressionInflateWrapper<?>) o;
+
+            if (compressLevel != that.compressLevel) return false;
+            if (!serializer.equals(that.serializer)) return false;
+            return Arrays.equals(dictionary, that.dictionary);
+
+        }
+
+        @Override
+        public int hashCode() {
+            int result = serializer.hashCode();
+            result = 31 * result + compressLevel;
+            result = 31 * result + (dictionary != null ? Arrays.hashCode(dictionary) : 0);
+            return result;
+        }
+
+        @Override
+        public boolean isTrusted() {
+            return true;
+        }
+
+        //TODO override values
     }
 
     public static final class Array<T> extends Serializer<T[]> implements  Serializable{

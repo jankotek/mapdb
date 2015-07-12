@@ -122,4 +122,14 @@ public class SerializerTest {
     @Test public void Int_packed_zigzag(){
         testInt(Serializer.INTEGER_PACKED_ZIGZAG);
     }
+
+    @Test public void inflate_wrapper(){
+        Serializer.CompressionInflateWrapper c =
+                new Serializer.CompressionInflateWrapper(Serializer.BYTE_ARRAY, -1,
+                        new byte[]{1,1,1,1,1,1,1,1,1,1,1,23,4,5,6,7,8,9,65,2});
+
+        byte[] b = new byte[]{1,1,1,1,1,1,1,1,1,1,1,1,4,5,6,3,3,3,3,35,6,67,7,3,43,34};
+
+        assertTrue(Arrays.equals(b, UtilsTest.<byte[]>clone(b, c)));
+    }
 }

@@ -341,6 +341,19 @@ public class SerializerBase extends Serializer<Object>{
                 SerializerBase.this.serialize(out, value.serializer,objectStack);
             }
         });
+
+        ser.put(CompressionInflateWrapper.class, new Ser<CompressionInflateWrapper>(){
+            @Override
+            public void serialize(DataOutput out, CompressionInflateWrapper value, FastArrayList objectStack) throws IOException {
+                out.write(Header.MAPDB);
+                DataIO.packInt(out, HeaderMapDB.SERIALIZER_COMPRESSION_INFLATE_WRAPPER);
+                SerializerBase.this.serialize(out, value.serializer,objectStack);
+                out.writeByte(value.compressLevel);
+                DataIO.packInt(out, value.dictionary==null? 0 : value.dictionary.length);
+                if(value.dictionary!=null && value.dictionary.length>0)
+                    out.write(value.dictionary);
+            }
+        });
         ser.put(Array.class, new Ser<Array>(){
             @Override
             public void serialize(DataOutput out, Array value, FastArrayList objectStack) throws IOException {
@@ -1430,6 +1443,7 @@ public class SerializerBase extends Serializer<Object>{
         int SERIALIZER_COMPRESSION_WRAPPER = 60;
         int B_TREE_COMPRESS_KEY_SERIALIZER = 64;
         int SERIALIZER_ARRAY = 65;
+        int SERIALIZER_COMPRESSION_INFLATE_WRAPPER = 72;
     }
 
 
@@ -1585,6 +1599,20 @@ public class SerializerBase extends Serializer<Object>{
             mapdb_add(69, Serializer.INTEGER_PACKED);
             mapdb_add(70, Serializer.INTEGER_PACKED_ZIGZAG);
             mapdb_add(71, Serializer.RECID_ARRAY);
+
+            //72
+            mapdb_add(HeaderMapDB.SERIALIZER_COMPRESSION_INFLATE_WRAPPER, new Deser() {
+                @Override
+                public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+                    return new CompressionInflateWrapper(SerializerBase.this, in, objectStack);
+                }
+
+                @Override
+                public boolean needsObjectStack() {
+                    return true;
+                }
+            });
+
         }
 
 
