@@ -124,23 +124,21 @@ public abstract class Serializer<A> {
     public static final Serializer<String> STRING_ASCII = new Serializer<String>() {
         @Override
         public void serialize(DataOutput out, String value) throws IOException {
-            char[] cc = new char[value.length()];
-            //TODO does this really works? is not char 2 byte unsigned?
-            value.getChars(0,cc.length,cc,0);
-            DataIO.packInt(out,cc.length);
-            for(char c:cc){
-                out.write(c);
+            int size = value.length();
+            DataIO.packInt(out, size);
+            for (int i = 0; i < size; i++) {
+                out.write(value.charAt(i));
             }
         }
 
         @Override
         public String deserialize(DataInput in, int available) throws IOException {
             int size = DataIO.unpackInt(in);
-            char[] cc = new char[size];
-            for(int i=0;i<size;i++){
-                cc[i] = (char) in.readUnsignedByte();
+            StringBuilder result = new StringBuilder(size);
+            for (int i = 0; i < size; i++) {
+                result.append((char)in.readUnsignedByte());
             }
-            return new String(cc);
+            return result.toString();
         }
 
         @Override
