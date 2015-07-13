@@ -669,7 +669,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
         if(scale==0)
             return;
         e = openEngine();
-        if(!e.canRollback()) //TODO engine might have crash recovery, but no rollbacks
+        if(!e.canRollback() || e instanceof StoreHeap) //TODO engine might have crash recovery, but no rollbacks
             return;
 
         final long counterRecid = e.put(0L, Serializer.LONG);
@@ -679,6 +679,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
         final ArrayList<Long> recids = new ArrayList<Long>();
         for(int j=0;j<max;j++){
             long recid = e.put(new byte[0],Serializer.BYTE_ARRAY_NOSIZE);
+            recids.add(recid);
         }
 
         final AtomicLong a = new AtomicLong(10);
