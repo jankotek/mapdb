@@ -70,7 +70,7 @@ public class SerializerTest {
 
         Object[] a = new Object[]{1,2,3,4};
 
-        assertTrue(Arrays.equals(a, (Object[])UtilsTest.clone(a, s)));
+        assertTrue(Arrays.equals(a, (Object[]) UtilsTest.clone(a, s)));
         assertEquals(s, UtilsTest.clone(s, Serializer.BASIC));
     }
 
@@ -123,13 +123,46 @@ public class SerializerTest {
         testInt(Serializer.INTEGER_PACKED_ZIGZAG);
     }
 
-    @Test public void inflate_wrapper(){
-        Serializer.CompressionInflateWrapper c =
-                new Serializer.CompressionInflateWrapper(Serializer.BYTE_ARRAY, -1,
+    @Test public void deflate_wrapper(){
+        Serializer.CompressionDeflateWrapper c =
+                new Serializer.CompressionDeflateWrapper(Serializer.BYTE_ARRAY, -1,
                         new byte[]{1,1,1,1,1,1,1,1,1,1,1,23,4,5,6,7,8,9,65,2});
 
         byte[] b = new byte[]{1,1,1,1,1,1,1,1,1,1,1,1,4,5,6,3,3,3,3,35,6,67,7,3,43,34};
 
         assertTrue(Arrays.equals(b, UtilsTest.<byte[]>clone(b, c)));
+    }
+
+    @Test public void deflate_wrapper_values(){
+        DB db = DBMaker.memoryDB().transactionDisable().make();
+        Map m = db.treeMapCreate("a")
+                .valueSerializer(new Serializer.CompressionDeflateWrapper(Serializer.LONG))
+                .keySerializer(Serializer.LONG)
+                .make();
+
+        for(long i=0;i<1000;i++){
+            m.put(i,i*10);
+        }
+
+        for(long i=0;i<1000;i++){
+            assertEquals(i*10,m.get(i));
+        }
+    }
+
+
+    @Test public void compress_wrapper_values(){
+        DB db = DBMaker.memoryDB().transactionDisable().make();
+        Map m = db.treeMapCreate("a")
+                .valueSerializer(new Serializer.CompressionWrapper(Serializer.LONG))
+                .keySerializer(Serializer.LONG)
+                .make();
+
+        for(long i=0;i<1000;i++){
+            m.put(i,i*10);
+        }
+
+        for(long i=0;i<1000;i++){
+            assertEquals(i * 10, m.get(i));
+        }
     }
 }

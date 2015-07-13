@@ -1488,15 +1488,23 @@ public abstract class Serializer<A> {
             }
         };
 
+        // this flag is here for compatibility with 2.0-beta1 and beta2. Value compression was not added back then
+        // this flag should be removed some time in future, and replaced with default value 'true'.
+        // value 'false' is format used in 2.0
+        protected final boolean compressValues;
+
         public CompressionWrapper(Serializer<E> serializer) {
             this.serializer = serializer;
+            this.compressValues = true;
         }
+
 
         /** used for deserialization */
         @SuppressWarnings("unchecked")
-		protected CompressionWrapper(SerializerBase serializerBase, DataInput is, SerializerBase.FastArrayList<Object> objectStack) throws IOException {
+		protected CompressionWrapper(SerializerBase serializerBase, DataInput is, SerializerBase.FastArrayList<Object> objectStack, boolean compressValues) throws IOException {
             objectStack.add(this);
             this.serializer = (Serializer<E>) serializerBase.deserialize(is,objectStack);
+            this.compressValues = compressValues;
         }
 
 
@@ -1512,7 +1520,7 @@ public abstract class Serializer<A> {
             }catch(IndexOutOfBoundsException e){
                 newLen=0; //larger after compression
             }
-            if(newLen>=out2.pos){
+            if(newLen>=out2.pos||newLen==0){
                 //compression adds size, so do not compress
                 DataIO.packInt(out,0);
                 out.write(out2.buf,0,out2.pos);
@@ -1546,34 +1554,154 @@ public abstract class Serializer<A> {
             if (o == null || getClass() != o.getClass()) return false;
 
             CompressionWrapper<?> that = (CompressionWrapper<?>) o;
-            return serializer.equals(that.serializer);
+            return serializer.equals(that.serializer) && compressValues == that.compressValues;
         }
 
         @Override
         public int hashCode() {
-            return serializer.hashCode();
+            return serializer.hashCode()+(compressValues ?1:0);
         }
 
         @Override
         public boolean isTrusted() {
             return true;
         }
+
+
+        @Override
+        public void valueArraySerialize(DataOutput out, Object vals) throws IOException {
+            if(!compressValues) {
+                super.valueArraySerialize(out, vals);
+                return;
+            }
+
+            DataIO.DataOutputByteArray out2 = new DataIO.DataOutputByteArray();
+            serializer.valueArraySerialize(out2, vals);
+
+            if(out2.pos==0)
+                return;
+
+
+            byte[] tmp = new byte[out2.pos+41];
+            int newLen;
+            try{
+                newLen = LZF.get().compress(out2.buf,out2.pos,tmp,0);
+            }catch(IndexOutOfBoundsException e){
+                newLen=0; //larger after compression
+            }
+            if(newLen>=out2.pos||newLen==0){
+                //compression adds size, so do not compress
+                DataIO.packInt(out,0);
+                out.write(out2.buf,0,out2.pos);
+                return;
+            }
+
+            DataIO.packInt(out, out2.pos+1); //unpacked size, zero indicates no compression
+            out.write(tmp,0,newLen);
+        }
+
+        @Override
+        public Object valueArrayDeserialize(DataInput in, int size) throws IOException {
+            if(!compressValues) {
+                return super.valueArrayDeserialize(in, size);
+            }
+
+            if(size==0)
+                return serializer.valueArrayEmpty();
+
+            final int unpackedSize = DataIO.unpackInt(in)-1;
+            if(unpackedSize==-1){
+                //was not compressed
+                return serializer.valueArrayDeserialize(in,size);
+            }
+
+            byte[] unpacked = new byte[unpackedSize];
+            LZF.get().expand(in,unpacked,0,unpackedSize);
+            DataIO.DataInputByteArray in2 = new DataIO.DataInputByteArray(unpacked);
+            Object ret =  serializer.valueArrayDeserialize(in2, size);
+            if(CC.ASSERT && ! (in2.pos==unpackedSize))
+                throw new DBException.DataCorruption( "data were not fully read");
+            return ret;
+        }
+
+        @Override
+        public E valueArrayGet(Object vals, int pos) {
+            return compressValues ?
+                    serializer.valueArrayGet(vals, pos):
+                    super.valueArrayGet(vals, pos);
+        }
+
+        @Override
+        public int valueArraySize(Object vals) {
+            return compressValues ?
+                    serializer.valueArraySize(vals):
+                    super.valueArraySize(vals);
+        }
+
+        @Override
+        public Object valueArrayEmpty() {
+            return compressValues ?
+                    serializer.valueArrayEmpty():
+                    super.valueArrayEmpty();
+        }
+
+        @Override
+        public Object valueArrayPut(Object vals, int pos, E newValue) {
+            return compressValues ?
+                serializer.valueArrayPut(vals, pos, newValue):
+                super.valueArrayPut(vals, pos, newValue);
+        }
+
+        @Override
+        public Object valueArrayUpdateVal(Object vals, int pos, E newValue) {
+            return compressValues ?
+                    serializer.valueArrayUpdateVal(vals, pos, newValue):
+                    super.valueArrayUpdateVal(vals, pos, newValue);
+        }
+
+        @Override
+        public Object valueArrayFromArray(Object[] objects) {
+            return compressValues ?
+                    serializer.valueArrayFromArray(objects):
+                    super.valueArrayFromArray(objects);
+        }
+
+        @Override
+        public Object valueArrayCopyOfRange(Object vals, int from, int to) {
+            return compressValues ?
+                    serializer.valueArrayCopyOfRange(vals, from, to):
+                    super.valueArrayCopyOfRange(vals, from, to);
+        }
+
+        @Override
+        public Object valueArrayDeleteValue(Object vals, int pos) {
+            return compressValues ?
+                    serializer.valueArrayDeleteValue(vals, pos):
+                    super.valueArrayDeleteValue(vals, pos);
+        }
+
+        @Override
+        public BTreeKeySerializer getBTreeKeySerializer(Comparator comparator) {
+            //TODO compress BTreeKey serializer?
+            return serializer.getBTreeKeySerializer(comparator);
+        }
+
     }
 
 
-    /** wraps another serializer and (de)compresses its output/input using Inflate*/
-    public final static class CompressionInflateWrapper<E> extends Serializer<E> implements Serializable {
+    /** wraps another serializer and (de)compresses its output/input using Deflate*/
+    public final static class CompressionDeflateWrapper<E> extends Serializer<E> implements Serializable {
 
         private static final long serialVersionUID = 8529699349939823553L;
         protected final Serializer<E> serializer;
         protected final int compressLevel;
         protected final byte[] dictionary;
 
-        public CompressionInflateWrapper(Serializer<E> serializer) {
+        public CompressionDeflateWrapper(Serializer<E> serializer) {
             this(serializer, Deflater.DEFAULT_STRATEGY, null);
         }
 
-        public CompressionInflateWrapper(Serializer<E> serializer, int compressLevel, byte[] dictionary) {
+        public CompressionDeflateWrapper(Serializer<E> serializer, int compressLevel, byte[] dictionary) {
             this.serializer = serializer;
             this.compressLevel = compressLevel;
             this.dictionary = dictionary==null || dictionary.length==0 ? null : dictionary;
@@ -1581,7 +1709,7 @@ public abstract class Serializer<A> {
 
         /** used for deserialization */
         @SuppressWarnings("unchecked")
-        protected CompressionInflateWrapper(SerializerBase serializerBase, DataInput is, SerializerBase.FastArrayList<Object> objectStack) throws IOException {
+        protected CompressionDeflateWrapper(SerializerBase serializerBase, DataInput is, SerializerBase.FastArrayList<Object> objectStack) throws IOException {
             objectStack.add(this);
             this.serializer = (Serializer<E>) serializerBase.deserialize(is,objectStack);
             this.compressLevel = is.readByte();
@@ -1616,7 +1744,7 @@ public abstract class Serializer<A> {
             }catch(IndexOutOfBoundsException e){
                 newLen=0; //larger after compression
             }
-            if(newLen>=out2.pos){
+            if(newLen>=out2.pos||newLen==0){
                 //compression adds size, so do not compress
                 DataIO.packInt(out,0);
                 out.write(out2.buf,0,out2.pos);
@@ -1658,7 +1786,7 @@ public abstract class Serializer<A> {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
 
-            CompressionInflateWrapper<?> that = (CompressionInflateWrapper<?>) o;
+            CompressionDeflateWrapper<?> that = (CompressionDeflateWrapper<?>) o;
 
             if (compressLevel != that.compressLevel) return false;
             if (!serializer.equals(that.serializer)) return false;
@@ -1679,7 +1807,117 @@ public abstract class Serializer<A> {
             return true;
         }
 
-        //TODO override values
+        @Override
+        public void valueArraySerialize(DataOutput out, Object vals) throws IOException {
+            DataIO.DataOutputByteArray out2 = new DataIO.DataOutputByteArray();
+            serializer.valueArraySerialize(out2,vals);
+            if(out2.pos==0)
+                return;
+
+            byte[] tmp = new byte[out2.pos+41];
+            int newLen;
+            try{
+                Deflater deflater = new Deflater(compressLevel);
+                if(dictionary!=null) {
+                    deflater.setDictionary(dictionary);
+                }
+
+                deflater.setInput(out2.buf,0,out2.pos);
+                deflater.finish();
+                newLen = deflater.deflate(tmp);
+                //LZF.get().compress(out2.buf,out2.pos,tmp,0);
+            }catch(IndexOutOfBoundsException e){
+                newLen=0; //larger after compression
+            }
+            if(newLen>=out2.pos||newLen==0){
+                //compression adds size, so do not compress
+                DataIO.packInt(out,0);
+                out.write(out2.buf,0,out2.pos);
+                return;
+            }
+
+            DataIO.packInt(out, out2.pos+1); //unpacked size, zero indicates no compression
+            out.write(tmp,0,newLen);
+        }
+
+        @Override
+        public Object valueArrayDeserialize(DataInput in, int size) throws IOException {
+            if(size==0) {
+                return serializer.valueArrayEmpty();
+            }
+
+            //decompress all values in single blob, it has better compressibility
+            final int unpackedSize = DataIO.unpackInt(in)-1;
+            if(unpackedSize==-1){
+                //was not compressed
+                return serializer.valueArrayDeserialize(in,size);
+            }
+
+            Inflater inflater = new Inflater();
+            if(dictionary!=null) {
+                inflater.setDictionary(dictionary);
+            }
+
+            InflaterInputStream in4 = new InflaterInputStream(
+                    new DataIO.DataInputToStream(in), inflater);
+
+            byte[] unpacked = new byte[unpackedSize];
+            in4.read(unpacked,0,unpackedSize);
+
+            //now got data unpacked, so use serializer to deal with it
+
+            DataIO.DataInputByteArray in2 = new DataIO.DataInputByteArray(unpacked);
+            Object ret =  serializer.valueArrayDeserialize(in2, size);
+            if(CC.ASSERT && ! (in2.pos==unpackedSize))
+                throw new DBException.DataCorruption( "data were not fully read");
+            return ret;
+        }
+
+        @Override
+        public E valueArrayGet(Object vals, int pos) {
+            return serializer.valueArrayGet(vals, pos);
+        }
+
+        @Override
+        public int valueArraySize(Object vals) {
+            return serializer.valueArraySize(vals);
+        }
+
+        @Override
+        public Object valueArrayEmpty() {
+            return serializer.valueArrayEmpty();
+        }
+
+        @Override
+        public Object valueArrayPut(Object vals, int pos, E newValue) {
+            return serializer.valueArrayPut(vals, pos, newValue);
+        }
+
+        @Override
+        public Object valueArrayUpdateVal(Object vals, int pos, E newValue) {
+            return serializer.valueArrayUpdateVal(vals, pos, newValue);
+        }
+
+        @Override
+        public Object valueArrayFromArray(Object[] objects) {
+            return serializer.valueArrayFromArray(objects);
+        }
+
+        @Override
+        public Object valueArrayCopyOfRange(Object vals, int from, int to) {
+            return serializer.valueArrayCopyOfRange(vals, from, to);
+        }
+
+        @Override
+        public Object valueArrayDeleteValue(Object vals, int pos) {
+            return serializer.valueArrayDeleteValue(vals, pos);
+        }
+
+        @Override
+        public BTreeKeySerializer getBTreeKeySerializer(Comparator comparator) {
+            //TODO compress BTreeKey serializer?
+            return serializer.getBTreeKeySerializer(comparator);
+        }
     }
 
     public static final class Array<T> extends Serializer<T[]> implements  Serializable{
