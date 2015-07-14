@@ -371,6 +371,13 @@ public class VolumeTest {
         //open mmap file, size should grow to multiple of chunk size
         Volume.MappedFileVol m = new Volume.MappedFileVol(f, false,CC.VOLUME_PAGE_SHIFT,true);
         assertEquals(1, m.slices.length);
+        m.sync();
+        m.close();
+        assertEquals(chunkSize, f.length());
+
+        //open mmap file, size should grow to multiple of chunk size
+        m = new Volume.MappedFileVol(f, false,CC.VOLUME_PAGE_SHIFT,true);
+        assertEquals(1, m.slices.length);
         m.ensureAvailable(add + 4);
         assertEquals(11, m.getInt(add));
         m.sync();
