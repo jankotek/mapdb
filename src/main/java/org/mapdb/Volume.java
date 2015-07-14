@@ -603,7 +603,7 @@ public abstract class Volume implements Closeable{
          * There is no public JVM API to unmap buffer, so this tries to use SUN proprietary API for unmap.
          * Any error is silently ignored (for example SUN API does not exist on Android).
          */
-        protected boolean unmap(MappedByteBuffer b){
+        protected static boolean unmap(MappedByteBuffer b){
             try{
                 if(unmapHackSupported){
 
@@ -653,25 +653,206 @@ public abstract class Volume implements Closeable{
 
     }
 
+    /**
+     * Abstract Volume over single ByteBuffer, maximal size is 2GB (32bit limit).
+     * It leaves ByteBufferVol details (allocation, disposal) on subclasses.
+     * Most methods are final for better performance (JIT compiler can inline those).
+     */
+    abstract static public class ByteBufferVolSingle extends Volume{
+
+        protected final  boolean cleanerHackEnabled;
+
+        protected ByteBuffer buffer;
+
+        protected final boolean readOnly;
+        protected final long maxSize;
+
+
+
+        protected ByteBufferVolSingle(boolean readOnly, long maxSize, boolean cleanerHackEnabled) {
+            //TODO assert size
+            this.readOnly = readOnly;
+            this.maxSize = maxSize;
+            this.cleanerHackEnabled = cleanerHackEnabled;
+        }
+
+        @Override
+        public void ensureAvailable(long offset) {
+            //TODO max size assertion
+        }
+
+        @Override public final void putLong(final long offset, final long value) {
+            if(CC.VOLUME_PRINT_STACK_AT_OFFSET!=0 && CC.VOLUME_PRINT_STACK_AT_OFFSET>=offset && CC.VOLUME_PRINT_STACK_AT_OFFSET <= offset+8){
+                new IOException("VOL STACK:").printStackTrace();
+            }
+
+            buffer.putLong((int) offset, value);
+        }
+
+        @Override public final void putInt(final long offset, final int value) {
+            if(CC.VOLUME_PRINT_STACK_AT_OFFSET!=0 && CC.VOLUME_PRINT_STACK_AT_OFFSET>=offset && CC.VOLUME_PRINT_STACK_AT_OFFSET <= offset+4){
+                new IOException("VOL STACK:").printStackTrace();
+            }
+
+            buffer.putInt((int) (offset), value);
+        }
+
+
+        @Override public final void putByte(final long offset, final byte value) {
+            if(CC.VOLUME_PRINT_STACK_AT_OFFSET!=0 && CC.VOLUME_PRINT_STACK_AT_OFFSET>=offset && CC.VOLUME_PRINT_STACK_AT_OFFSET <= offset+1){
+                new IOException("VOL STACK:").printStackTrace();
+            }
+
+            buffer.put((int) offset, value);
+        }
+
+
+
+        @Override public void putData(final long offset, final byte[] src, int srcPos, int srcSize){
+            if(CC.VOLUME_PRINT_STACK_AT_OFFSET!=0 && CC.VOLUME_PRINT_STACK_AT_OFFSET>=offset && CC.VOLUME_PRINT_STACK_AT_OFFSET <= offset+srcSize){
+                new IOException("VOL STACK:").printStackTrace();
+            }
+
+
+            final ByteBuffer b1 = buffer.duplicate();
+            final int bufPos = (int) offset;
+
+            b1.position(bufPos);
+            b1.put(src, srcPos, srcSize);
+        }
+
+
+        @Override public final void putData(final long offset, final ByteBuffer buf) {
+            if(CC.VOLUME_PRINT_STACK_AT_OFFSET!=0 && CC.VOLUME_PRINT_STACK_AT_OFFSET>=offset && CC.VOLUME_PRINT_STACK_AT_OFFSET <= offset+buf.remaining()){
+                new IOException("VOL STACK:").printStackTrace();
+            }
+
+            final ByteBuffer b1 = buffer.duplicate();
+            final int bufPos = (int) offset;
+            //no overlap, so just write the value
+            b1.position(bufPos);
+            b1.put(buf);
+        }
+
+        @Override
+        public void transferInto(long inputOffset, Volume target, long targetOffset, long size) {
+            final ByteBuffer b1 = buffer.duplicate();
+            final int bufPos = (int) inputOffset;
+
+            b1.position(bufPos);
+            //TODO size>Integer.MAX_VALUE
+            b1.limit((int) (bufPos + size));
+            target.putData(targetOffset, b1);
+        }
+
+        @Override public void getData(final long offset, final byte[] src, int srcPos, int srcSize){
+            final ByteBuffer b1 = buffer.duplicate();
+            final int bufPos = (int) offset;
+
+            b1.position(bufPos);
+            b1.get(src, srcPos, srcSize);
+        }
+
+
+        @Override final public long getLong(long offset) {
+            return buffer.getLong((int) offset);
+        }
+
+        @Override final public int getInt(long offset) {
+            return buffer.getInt((int) offset);
+        }
+
+
+        @Override public final byte getByte(long offset) {
+            return buffer.get((int) offset);
+        }
+
+
+        @Override
+        public final DataIO.DataInputByteBuffer getDataInput(long offset, int size) {
+            return new DataIO.DataInputByteBuffer(buffer, (int) (offset));
+        }
+
+
+
+        @Override
+        public void putDataOverlap(long offset, byte[] data, int pos, int len) {
+            putData(offset,data,pos,len);
+        }
+
+        @Override
+        public DataInput getDataInputOverlap(long offset, int size) {
+            //return mapped buffer
+            return getDataInput(offset,size);
+        }
+
+
+        @Override
+        public void clear(long startOffset, long endOffset) {
+            int start = (int) (startOffset);
+            int end = (int) (endOffset);
+
+            ByteBuffer buf = buffer;
+
+            int pos = start;
+            while(pos<end){
+                buf = buf.duplicate();
+                buf.position(pos);
+                buf.put(CLEAR, 0, Math.min(CLEAR.length, end-pos));
+                pos+=CLEAR.length;
+            }
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return buffer==null || buffer.limit()==0;
+        }
+
+
+        @Override
+        public int sliceSize() {
+            return -1;
+        }
+
+        @Override
+        public boolean isSliced() {
+            return false;
+        }
+
+
+    }
+
+
     public static final class MappedFileVol extends ByteBufferVol {
 
         public static final VolumeFactory FACTORY = new VolumeFactory() {
             @Override
             public Volume makeVolume(String file, boolean readOnly, int sliceShift, long initSize, boolean fixedSize) {
-                //TODO optimize if fixedSize is bellow 2GB
-                //TODO prealocate initsize
-                return new MappedFileVol(new File(file),readOnly,sliceShift,false);
+                return factory(file, readOnly, sliceShift, false);
             }
         };
+
 
         public static final VolumeFactory FACTORY_WITH_CLEANER_HACK = new VolumeFactory() {
             @Override
             public Volume makeVolume(String file, boolean readOnly, int sliceShift, long initSize, boolean fixedSize) {
-                //TODO optimize if fixedSize is bellow 2GB
-                //TODO prealocate initsize
-                return new MappedFileVol(new File(file),readOnly,sliceShift,true);
+                return factory(file, readOnly, sliceShift, true);
             }
         };
+
+
+        private static Volume factory(String file, boolean readOnly, int sliceShift, boolean cleanerHackEnabled) {
+            File f = new File(file);
+            if(readOnly){
+                long flen = f.length();
+                if(flen <= Integer.MAX_VALUE) {
+                    return new MappedFileVolSingle(f, readOnly, flen, false);
+                }
+            }
+            //TODO prealocate initsize
+            return new MappedFileVol(f,readOnly,sliceShift,false);
+        }
+
 
         protected final File file;
         protected final FileChannel fileChannel;
@@ -752,10 +933,6 @@ public abstract class Volume implements Closeable{
 
         }
 
-        @Override
-        public int sliceSize() {
-            return sliceSize;
-        }
 
         @Override
         protected ByteBuffer makeNewBuffer(long offset) {
@@ -764,6 +941,7 @@ public abstract class Volume implements Closeable{
                     throw new AssertionError();
                 if(CC.ASSERT && ! (offset>=0))
                     throw new AssertionError();
+                //TODO write to offset, to prevent file from expanding via MMAP buffer
                 ByteBuffer ret = fileChannel.map(mapMode,offset, sliceSize);
                 if(CC.ASSERT && ret.order() != ByteOrder.BIG_ENDIAN)
                     throw new AssertionError("Little-endian");
@@ -844,6 +1022,95 @@ public abstract class Volume implements Closeable{
         }
 
     }
+
+
+
+    public static final class MappedFileVolSingle extends ByteBufferVolSingle {
+
+        protected final File file;
+        protected final FileChannel fileChannel;
+        protected final FileChannel.MapMode mapMode;
+        protected final java.io.RandomAccessFile raf;
+
+
+        public MappedFileVolSingle(File file, boolean readOnly, long maxSize, boolean cleanerHackEnabled) {
+            super(readOnly,maxSize, cleanerHackEnabled);
+            this.file = file;
+            this.mapMode = readOnly? FileChannel.MapMode.READ_ONLY: FileChannel.MapMode.READ_WRITE;
+            try {
+                FileChannelVol.checkFolder(file,readOnly);
+                this.raf = new java.io.RandomAccessFile(file, readOnly?"r":"rw");
+                this.fileChannel = raf.getChannel();
+
+                final long fileSize = fileChannel.size();
+                if(readOnly) {
+                    maxSize = Math.min(maxSize, fileSize);
+                }else if(maxSize<fileSize){
+                    //TODO write to offset, to prevent file from expanding via MMAP buffer
+                }
+
+                buffer = fileChannel.map(mapMode, 0, maxSize);
+                if(readOnly)
+                    buffer = buffer.asReadOnlyBuffer();
+                //TODO assert endianess
+            } catch (IOException e) {
+                throw new DBException.VolumeIOError(e);
+            }
+        }
+
+        @Override
+        synchronized public void close() {
+            try{
+                closed = true;
+                fileChannel.close();
+                raf.close();
+                //TODO not sure if no sync causes problems while unlocking files
+                //however if it is here, it causes slow commits, sync is called on write-ahead-log just before it is deleted and closed
+//                if(!readOnly)
+//                    sync();
+
+                if (cleanerHackEnabled && buffer != null && (buffer instanceof MappedByteBuffer)) {
+                    ByteBufferVol.unmap((MappedByteBuffer) buffer);
+                }
+                buffer = null;
+
+            } catch (IOException e) {
+                throw new DBException.VolumeIOError(e);
+            }
+        }
+
+        @Override
+        synchronized public void sync() {
+            if(readOnly)
+                return;
+            if(buffer instanceof MappedByteBuffer)
+                ((MappedByteBuffer)buffer).force();
+        }
+
+
+        @Override
+        public boolean isEmpty() {
+            return length()<=0;
+        }
+
+        @Override
+        public long length() {
+            return file.length();
+        }
+
+        @Override
+        public File getFile() {
+            return file;
+        }
+
+
+        @Override
+        public void truncate(long size) {
+            //TODO truncate
+        }
+
+    }
+
 
     public static final class MemoryVol extends ByteBufferVol {
 
@@ -946,6 +1213,56 @@ public abstract class Volume implements Closeable{
         @Override
         public long length() {
             return ((long)slices.length)*sliceSize;
+        }
+
+        @Override
+        public File getFile() {
+            return null;
+        }
+    }
+
+
+    public static final class MemoryVolSingle extends ByteBufferVolSingle {
+
+        protected final boolean useDirectBuffer;
+
+        @Override
+        public String toString() {
+            return super.toString() + ",direct=" + useDirectBuffer;
+        }
+
+        public MemoryVolSingle(final boolean useDirectBuffer, final long maxSize, boolean cleanerHackEnabled) {
+            super(false, maxSize, cleanerHackEnabled);
+            this.useDirectBuffer = useDirectBuffer;
+            this.buffer = useDirectBuffer?
+                    ByteBuffer.allocateDirect((int) maxSize):
+                    ByteBuffer.allocate((int) maxSize);
+        }
+
+        @Override
+        public void truncate(long size) {
+            //TODO truncate
+        }
+
+        @Override
+        synchronized public void close() {
+            if(closed)
+                return;
+
+            if(cleanerHackEnabled && buffer instanceof MappedByteBuffer){
+                ByteBufferVol.unmap((MappedByteBuffer) buffer);
+            }
+            buffer = null;
+            closed = true;
+        }
+
+        @Override
+        public void sync() {
+        }
+
+        @Override
+        public long length() {
+            return maxSize;
         }
 
         @Override

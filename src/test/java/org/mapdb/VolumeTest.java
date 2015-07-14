@@ -5,6 +5,7 @@ import org.junit.Test;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
 
 import static org.junit.Assert.*;
 
@@ -62,7 +63,19 @@ public class VolumeTest {
                         public Volume run(String file) {
                             return new Volume.MappedFileVol(new File(file), false, CC.VOLUME_PAGE_SHIFT,false);
                         }
-                    }
+                    },
+                    new Fun.Function1<Volume,String>() {
+                        @Override
+                        public Volume run(String file) {
+                            return new Volume.MappedFileVolSingle(new File(file), false, 10000000,false);
+                        }
+                    },
+                    new Fun.Function1<Volume,String>() {
+                        @Override
+                        public Volume run(String file) {
+                            return new Volume.MemoryVolSingle(false, 10000000,false);
+                        }
+                    },
     };
 
     @Test
@@ -396,6 +409,21 @@ public class VolumeTest {
 
         m.close();
         f.delete();
+    }
+
+    @Test public void small_mmap_file_single() throws IOException {
+        File f = File.createTempFile("mapdb","mapdb");
+        RandomAccessFile raf = new RandomAccessFile(f,"rw");
+        int len = 10000000;
+        raf.setLength(len);
+        raf.close();
+        assertEquals(len, f.length());
+
+        Volume v = Volume.MappedFileVol.FACTORY.makeVolume(f.getPath(), true);
+
+        assertTrue(v instanceof Volume.MappedFileVolSingle);
+        ByteBuffer b = ((Volume.MappedFileVolSingle)v).buffer;
+        assertEquals(len, b.limit());
     }
 
 }
