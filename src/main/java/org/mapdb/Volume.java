@@ -941,7 +941,22 @@ public abstract class Volume implements Closeable{
                     throw new AssertionError();
                 if(CC.ASSERT && ! (offset>=0))
                     throw new AssertionError();
-                //TODO write to offset, to prevent file from expanding via MMAP buffer
+
+                if(!readOnly) {
+                    long maxSize = Fun.roundUp(offset+1, sliceSize);
+                    final long fileSize = raf.length();
+                    if(fileSize<maxSize) {
+                        //zero out data between fileSize and maxSize, so mmap file operation does not expand file
+                        raf.seek(fileSize);
+                        long offset2 = fileSize;
+                        do {
+                            raf.write(CLEAR, 0, (int) Math.min(CLEAR.length, maxSize - offset2));
+                            offset2 += CLEAR.length;
+                        } while (offset2 < maxSize);
+                    }
+                }
+
+
                 ByteBuffer ret = fileChannel.map(mapMode,offset, sliceSize);
                 if(CC.ASSERT && ret.order() != ByteOrder.BIG_ENDIAN)
                     throw new AssertionError("Little-endian");
@@ -1028,10 +1043,7 @@ public abstract class Volume implements Closeable{
     public static final class MappedFileVolSingle extends ByteBufferVolSingle {
 
         protected final File file;
-        protected final FileChannel fileChannel;
         protected final FileChannel.MapMode mapMode;
-        protected final java.io.RandomAccessFile raf;
-
 
         public MappedFileVolSingle(File file, boolean readOnly, long maxSize, boolean cleanerHackEnabled) {
             super(readOnly,maxSize, cleanerHackEnabled);
@@ -1039,20 +1051,26 @@ public abstract class Volume implements Closeable{
             this.mapMode = readOnly? FileChannel.MapMode.READ_ONLY: FileChannel.MapMode.READ_WRITE;
             try {
                 FileChannelVol.checkFolder(file,readOnly);
-                this.raf = new java.io.RandomAccessFile(file, readOnly?"r":"rw");
-                this.fileChannel = raf.getChannel();
+                java.io.RandomAccessFile raf = new java.io.RandomAccessFile(file, readOnly?"r":"rw");
 
-                final long fileSize = fileChannel.size();
+                final long fileSize = raf.length();
                 if(readOnly) {
                     maxSize = Math.min(maxSize, fileSize);
-                }else if(maxSize<fileSize){
-                    //TODO write to offset, to prevent file from expanding via MMAP buffer
+                }else if(fileSize<maxSize){
+                    //zero out data between fileSize and maxSize, so mmap file operation does not expand file
+                    raf.seek(fileSize);
+                    long offset = fileSize;
+                    do{
+                        raf.write(CLEAR,0, (int) Math.min(CLEAR.length, maxSize-offset));
+                        offset+=CLEAR.length;
+                    }while(offset<maxSize);
                 }
 
-                buffer = fileChannel.map(mapMode, 0, maxSize);
+                buffer = raf.getChannel().map(mapMode, 0, maxSize);
                 if(readOnly)
                     buffer = buffer.asReadOnlyBuffer();
                 //TODO assert endianess
+                raf.close();
             } catch (IOException e) {
                 throw new DBException.VolumeIOError(e);
             }
@@ -1060,10 +1078,7 @@ public abstract class Volume implements Closeable{
 
         @Override
         synchronized public void close() {
-            try{
                 closed = true;
-                fileChannel.close();
-                raf.close();
                 //TODO not sure if no sync causes problems while unlocking files
                 //however if it is here, it causes slow commits, sync is called on write-ahead-log just before it is deleted and closed
 //                if(!readOnly)
@@ -1073,10 +1088,6 @@ public abstract class Volume implements Closeable{
                     ByteBufferVol.unmap((MappedByteBuffer) buffer);
                 }
                 buffer = null;
-
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
         }
 
         @Override
