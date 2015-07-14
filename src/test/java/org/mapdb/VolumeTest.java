@@ -82,7 +82,7 @@ public class VolumeTest {
     public void all() throws Throwable {
         if(scale == 0)
             return;
-        System.out.println("Run volume tests. Free space: "+File.createTempFile("mapdb","mapdb").getFreeSpace());
+        System.out.println("Run volume tests. Free space: " + File.createTempFile("mapdb", "mapdb").getFreeSpace());
 
 
         for (Fun.Function1<Volume,String> fab1 : VOL_FABS) {
@@ -123,7 +123,7 @@ public class VolumeTest {
         byte[] b = new byte[8];
 
         for (int i =Character.MIN_VALUE;i<=Character.MAX_VALUE; i++) {
-            v1.putUnsignedShort(7,i);
+            v1.putUnsignedShort(7, i);
             v1.getData(7, b, 0, 8);
             v2.putData(7, b, 0, 8);
             assertEquals(i, v2.getUnsignedShort(7));
@@ -223,7 +223,7 @@ public class VolumeTest {
             long len = v1.putPackedLong(7, i);
             v1.getData(7, b, 0, 12);
             v2.putData(7, b, 0, 12);
-            assertTrue(len<=10);
+            assertTrue(len <= 10);
             assertEquals((len << 60) | i, v2.getPackedLong(7));
         }
 
@@ -297,7 +297,7 @@ public class VolumeTest {
     void putGetOverlap(Volume vol, long offset, int size) throws IOException {
         byte[] b = UtilsTest.randomByteArray(size);
 
-        vol.ensureAvailable(offset+size);
+        vol.ensureAvailable(offset + size);
         vol.putDataOverlap(offset, b, 0, b.length);
 
         byte[] b2 = new byte[size];
@@ -431,6 +431,20 @@ public class VolumeTest {
         assertTrue(v instanceof Volume.MappedFileVolSingle);
         ByteBuffer b = ((Volume.MappedFileVolSingle)v).buffer;
         assertEquals(len, b.limit());
+    }
+
+    @Test public void single_mmap_grow() throws IOException {
+        File f = File.createTempFile("mapdb","mapdb");
+        RandomAccessFile raf = new RandomAccessFile(f,"rw");
+        raf.seek(0);
+        raf.writeLong(112314123);
+        raf.close();
+        assertEquals(8, f.length());
+
+        Volume.MappedFileVolSingle v = new Volume.MappedFileVolSingle(f,false,1000,false);
+        assertEquals(1000, f.length());
+        assertEquals(112314123,v.getLong(0));
+        v.close();
     }
 
 }
