@@ -846,11 +846,11 @@ public abstract class Volume implements Closeable{
             if(readOnly){
                 long flen = f.length();
                 if(flen <= Integer.MAX_VALUE) {
-                    return new MappedFileVolSingle(f, readOnly, flen, false);
+                    return new MappedFileVolSingle(f, readOnly, flen, cleanerHackEnabled);
                 }
             }
             //TODO prealocate initsize
-            return new MappedFileVol(f,readOnly,sliceShift,false);
+            return new MappedFileVol(f,readOnly,sliceShift,cleanerHackEnabled);
         }
 
 
