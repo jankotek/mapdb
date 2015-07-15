@@ -859,6 +859,7 @@ public abstract class Volume implements Closeable{
         protected final FileChannel.MapMode mapMode;
         protected final java.io.RandomAccessFile raf;
 
+        protected volatile boolean rafSync = false;
 
         public MappedFileVol(File file, boolean readOnly, int sliceShift, boolean cleanerHackEnabled) {
             super(readOnly,sliceShift, cleanerHackEnabled);
@@ -917,9 +918,19 @@ public abstract class Volume implements Closeable{
 
         @Override
         public void sync() {
-            if(readOnly) return;
+            if(readOnly)
+                return;
             growLock.lock();
             try{
+                if(rafSync){
+                    rafSync = false;
+                    try {
+                        raf.getFD().sync();
+                    } catch (IOException e) {
+                        throw new DBException.VolumeIOError(e);
+                    }
+                }
+
                 for(ByteBuffer b: slices){
                     if(b!=null && (b instanceof MappedByteBuffer)){
                         MappedByteBuffer bb = ((MappedByteBuffer) b);
@@ -947,6 +958,7 @@ public abstract class Volume implements Closeable{
                     final long fileSize = raf.length();
                     if(fileSize<maxSize) {
                         //zero out data between fileSize and maxSize, so mmap file operation does not expand file
+                        rafSync = true;
                         raf.seek(fileSize);
                         long offset2 = fileSize;
                         do {
