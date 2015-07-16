@@ -26,7 +26,7 @@ public class StoreHeap extends Store{
 
 
     public StoreHeap(boolean txDisabled, int lockScale, int lockingStrategy, boolean snapshotEnable){
-        super(null,null,null,lockScale, 0, false,false,null,false, snapshotEnable);
+        super(null,null,null,lockScale, 0, false,false,null,false,false, snapshotEnable);
         data = new LongObjectMap[this.lockScale];
         for(int i=0;i<data.length;i++){
             data[i] = new LongObjectMap();

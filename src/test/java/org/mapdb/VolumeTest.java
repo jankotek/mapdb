@@ -43,37 +43,37 @@ public class VolumeTest {
                     new Fun.Function1<Volume,String>() {
                         @Override
                         public Volume run(String file) {
-                            return Volume.UNSAFE_VOL_FACTORY.makeVolume(null, false, CC.VOLUME_PAGE_SHIFT, 0, false);
+                            return Volume.UNSAFE_VOL_FACTORY.makeVolume(null, false, false, CC.VOLUME_PAGE_SHIFT, 0, false);
                         }
                     },
                     new Fun.Function1<Volume,String>() {
                         @Override
                         public Volume run(String file) {
-                            return new Volume.FileChannelVol(new File(file), false, CC.VOLUME_PAGE_SHIFT);
+                            return new Volume.FileChannelVol(new File(file), false, false, CC.VOLUME_PAGE_SHIFT);
                         }
                     },
                     new Fun.Function1<Volume,String>() {
                         @Override
                         public Volume run(String file) {
-                            return new Volume.RandomAccessFileVol(new File(file), false);
+                            return new Volume.RandomAccessFileVol(new File(file), false, false);
                         }
                     },
                     new Fun.Function1<Volume,String>() {
                         @Override
                         public Volume run(String file) {
-                            return new Volume.MappedFileVol(new File(file), false, CC.VOLUME_PAGE_SHIFT,false);
+                            return new Volume.MappedFileVol(new File(file), false, false, CC.VOLUME_PAGE_SHIFT,false);
                         }
                     },
                     new Fun.Function1<Volume,String>() {
                         @Override
                         public Volume run(String file) {
-                            return new Volume.MappedFileVolSingle(new File(file), false, 10000000,false);
+                            return new Volume.MappedFileVolSingle(new File(file), false, false, (long) 4e7,false);
                         }
                     },
                     new Fun.Function1<Volume,String>() {
                         @Override
                         public Volume run(String file) {
-                            return new Volume.MemoryVolSingle(false, 10000000,false);
+                            return new Volume.MemoryVolSingle(false, (long) 4e7,false);
                         }
                     },
     };
@@ -91,6 +91,7 @@ public class VolumeTest {
             System.out.println(" "+v);
             testPackLongBidi(v);
             testPackLong(v);
+            assertEquals(v.getFile()!=null, v.getFileLocked());
             v.close();
             v=null;
 
@@ -369,14 +370,14 @@ public class VolumeTest {
         raf.close();
 
         //open mmap file, size should grow to multiple of chunk size
-        Volume.MappedFileVol m = new Volume.MappedFileVol(f, false,CC.VOLUME_PAGE_SHIFT,true);
+        Volume.MappedFileVol m = new Volume.MappedFileVol(f, false,false, CC.VOLUME_PAGE_SHIFT,true);
         assertEquals(1, m.slices.length);
         m.sync();
         m.close();
         assertEquals(chunkSize, f.length());
 
         //open mmap file, size should grow to multiple of chunk size
-        m = new Volume.MappedFileVol(f, false,CC.VOLUME_PAGE_SHIFT,true);
+        m = new Volume.MappedFileVol(f, false,false, CC.VOLUME_PAGE_SHIFT,true);
         assertEquals(1, m.slices.length);
         m.ensureAvailable(add + 4);
         assertEquals(11, m.getInt(add));
@@ -389,7 +390,7 @@ public class VolumeTest {
         raf.writeInt(11);
         raf.close();
 
-        m = new Volume.MappedFileVol(f, false,CC.VOLUME_PAGE_SHIFT,true);
+        m = new Volume.MappedFileVol(f, false,false, CC.VOLUME_PAGE_SHIFT,true);
         assertEquals(2, m.slices.length);
         m.sync();
         m.ensureAvailable(chunkSize + add + 4);
@@ -399,7 +400,7 @@ public class VolumeTest {
         m.close();
         assertEquals(chunkSize * 2, f.length());
 
-        m = new Volume.MappedFileVol(f, false,CC.VOLUME_PAGE_SHIFT,true);
+        m = new Volume.MappedFileVol(f, false,false, CC.VOLUME_PAGE_SHIFT,true);
         m.sync();
         assertEquals(chunkSize * 2, f.length());
         m.ensureAvailable(chunkSize + add + 4);
@@ -441,9 +442,9 @@ public class VolumeTest {
         raf.close();
         assertEquals(8, f.length());
 
-        Volume.MappedFileVolSingle v = new Volume.MappedFileVolSingle(f,false,1000,false);
+        Volume.MappedFileVolSingle v = new Volume.MappedFileVolSingle(f,false,false, 1000,false);
         assertEquals(1000, f.length());
-        assertEquals(112314123,v.getLong(0));
+        assertEquals(112314123, v.getLong(0));
         v.close();
     }
 

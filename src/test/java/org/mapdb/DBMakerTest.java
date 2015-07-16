@@ -611,4 +611,46 @@ public class DBMakerTest{
         assertTrue(((Volume.ByteBufferVol) ((StoreDirect) db.engine).vol).cleanerHackEnabled);
         db.close();
     }
+
+    @Test public void file_locked() throws IOException {
+        File f = File.createTempFile("mapdb", "mapdb");
+        DB db = DBMaker.fileDB(f).transactionDisable().make();
+
+        StoreDirect s = (StoreDirect) db.getEngine();
+        assertTrue(s.vol.getFileLocked());
+    }
+
+
+    @Test public void file_locked_disabled() throws IOException {
+        File f = File.createTempFile("mapdb","mapdb");
+        DB db = DBMaker.fileDB(f).transactionDisable()
+                .fileLockDisable()
+                .make();
+
+        StoreDirect s = (StoreDirect) db.getEngine();
+        assertFalse(s.vol.getFileLocked());
+    }
+
+
+    @Test public void file_locked_disabled_wal() throws IOException {
+        File f = File.createTempFile("mapdb","mapdb");
+        DB db = DBMaker.fileDB(f)
+                .fileLockDisable()
+                .make();
+
+        StoreWAL s = (StoreWAL) db.getEngine();
+        assertFalse(s.vol.getFileLocked());
+        assertFalse(s.curVol.getFileLocked());
+    }
+
+
+    @Test public void file_locked_disabled_append() throws IOException {
+        File f = File.createTempFile("mapdb","mapdb");
+        DB db = DBMaker.appendFileDB(f)
+                .fileLockDisable()
+                .make();
+
+        StoreAppend s = (StoreAppend) db.getEngine();
+        assertFalse(s.vol.getFileLocked());
+    }
 }

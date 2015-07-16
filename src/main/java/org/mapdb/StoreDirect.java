@@ -89,13 +89,14 @@ public class StoreDirect extends Store {
                        byte[] password,
                        boolean readonly,
                        boolean snapshotEnable,
+                       boolean fileLockDisable,
                        int freeSpaceReclaimQ,
                        boolean commitFileSyncDisable,
                        int sizeIncrement,
                        ScheduledExecutorService executor
                        ) {
-        super(fileName, volumeFactory, cache, lockScale, lockingStrategy, checksum, compress, password, readonly, snapshotEnable);
-        this.vol = volumeFactory.makeVolume(fileName, readonly);
+        super(fileName, volumeFactory, cache, lockScale, lockingStrategy, checksum, compress, password, readonly, snapshotEnable,fileLockDisable);
+        this.vol = volumeFactory.makeVolume(fileName, readonly, fileLockDisable);
         this.executor = executor;
         this.snapshots = snapshotEnable?
                 new CopyOnWriteArrayList<Snapshot>():
@@ -243,7 +244,7 @@ public class StoreDirect extends Store {
                 null,
                 CC.DEFAULT_LOCK_SCALE,
                 0,
-                false,false,null,false,false,0,
+                false,false,null,false,false,false,0,
                 false,0,
                 null);
     }
@@ -928,7 +929,7 @@ public class StoreDirect extends Store {
                         volumeFactory,
                         null,lockScale,
                         executor==null?LOCKING_STRATEGY_NOLOCK:LOCKING_STRATEGY_WRITELOCK,
-                        checksum,compress,null,false,false,0,false,0,
+                        checksum,compress,null,false,false,fileLockDisable,0,false,0,
                         null);
                 target.init();
                 final AtomicLong maxRecid = new AtomicLong(RECID_LAST_RESERVED);
@@ -984,7 +985,7 @@ public class StoreDirect extends Store {
                         //and reopen volume
                         if(this instanceof StoreCached)
                             this.headVol.close();
-                        this.vol = volumeFactory.makeVolume(this.fileName, readonly);
+                        this.vol = volumeFactory.makeVolume(this.fileName, readonly, fileLockDisable);
                         this.headVol = vol;
                         if(isStoreCached){
                             ((StoreCached)this).dirtyStackPages.clear();

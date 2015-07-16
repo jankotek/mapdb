@@ -61,7 +61,7 @@ public class BrokenDBTest {
         DBMaker.fileDB(index).make().close();
 
         // corrupt file
-        MappedFileVol physVol = new Volume.MappedFileVol(index, false, CC.VOLUME_PAGE_SHIFT,false);
+        MappedFileVol physVol = new Volume.MappedFileVol(index, false, false, CC.VOLUME_PAGE_SHIFT,false);
         physVol.ensureAvailable(32);
         //TODO corrupt file somehow
 //        physVol.putInt(0, StoreDirect.HEADER);

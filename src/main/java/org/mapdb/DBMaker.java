@@ -20,6 +20,7 @@ package org.mapdb;
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
+import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.security.SecureRandom;
 import java.util.*;
@@ -78,6 +79,9 @@ public final class DBMaker{
         String volume_unsafe = "unsafe";
 
         String fileMmapCleanerHack = "fileMmapCleanerHack";
+
+        String fileLockDisable = "fileLockDisable";
+        String fileLockHeartBeatEnable = "fileLockHeartBeatEnable";
 
         String lockScale = "lockScale";
 
@@ -816,6 +820,24 @@ public final class DBMaker{
             return this;
         }
 
+       /**
+        * <p>
+        * MapDB needs exclusive lock over storage file when in use.
+        * With opened multiple times at the same time, storage file gets quickly corrupted.
+        * To prevent multiple opening MapDB uses {@link FileChannel#lock()}.
+        * However file might remain locked if DB is not closed correctly or JVM crashes
+        * If file is already locked, opening it fails with {@link DBException.FileLocked}
+        * </p><p>
+        * This option disables exclusive file locking. Use it if you have troubles to reopen files
+        *
+        * </p>
+        * @return this builder
+        */
+        public Maker fileLockDisable() {
+            props.setProperty(Keys.fileLockDisable,TRUE);
+            return this;
+        }
+
         private void assertNotInMemoryVolume() {
             if(Keys.volume_byteBuffer.equals(props.getProperty(Keys.volume)) ||
                     Keys.volume_directByteBuffer.equals(props.getProperty(Keys.volume)))
@@ -1147,6 +1169,7 @@ public final class DBMaker{
 
 
             final boolean readOnly = propsGetBool(Keys.readOnly);
+            final boolean fileLockDisable = propsGetBool(Keys.fileLockDisable) || propsGetBool(Keys.fileLockHeartBeatEnable);
             final String file = props.containsKey(Keys.file)? props.getProperty(Keys.file):"";
             final String volume = props.getProperty(Keys.volume);
             final String store = props.getProperty(Keys.store);
@@ -1191,6 +1214,7 @@ public final class DBMaker{
                         encKey,
                         propsGetBool(Keys.readOnly),
                         snapshotEnabled,
+                        fileLockDisable,
                         propsGetBool(Keys.transactionDisable),
                         storeExecutor
                 );
@@ -1212,6 +1236,7 @@ public final class DBMaker{
                             encKey,
                             propsGetBool(Keys.readOnly),
                             snapshotEnabled,
+                            fileLockDisable,
                             propsGetInt(Keys.freeSpaceReclaimQ, CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
                             propsGetBool(Keys.commitFileSyncDisable),
                             0,
@@ -1231,6 +1256,7 @@ public final class DBMaker{
                             encKey,
                             propsGetBool(Keys.readOnly),
                             snapshotEnabled,
+                            fileLockDisable,
                             propsGetInt(Keys.freeSpaceReclaimQ, CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
                             propsGetBool(Keys.commitFileSyncDisable),
                             0,
@@ -1250,6 +1276,7 @@ public final class DBMaker{
                             encKey,
                             propsGetBool(Keys.readOnly),
                             snapshotEnabled,
+                            fileLockDisable,
                             propsGetInt(Keys.freeSpaceReclaimQ, CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
                             propsGetBool(Keys.commitFileSyncDisable),
                             0,

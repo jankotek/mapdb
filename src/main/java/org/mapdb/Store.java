@@ -88,6 +88,7 @@ public abstract class Store implements Engine {
     protected final EncryptionXTEA encryptionXTEA;
     protected final ThreadLocal<CompressLZF> LZF;
     protected final boolean snapshotEnable;
+    protected final boolean fileLockDisable;
 
     protected final AtomicLong metricsDataWrite;
     protected final AtomicLong metricsRecordWrite;
@@ -111,12 +112,14 @@ public abstract class Store implements Engine {
             boolean compress,
             byte[] password,
             boolean readonly,
-            boolean snapshotEnable) {
+            boolean snapshotEnable,
+            boolean fileLockDisable) {
         this.fileName = fileName;
         this.volumeFactory = volumeFactory;
         this.lockScale = lockScale;
         this.snapshotEnable = snapshotEnable;
         this.lockMask = lockScale-1;
+        this.fileLockDisable = fileLockDisable;
         if(Integer.bitCount(lockScale)!=1)
             throw new IllegalArgumentException("Lock Scale must be power of two");
         //TODO replace with incrementer on java 8

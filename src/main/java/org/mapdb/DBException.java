@@ -55,6 +55,18 @@ public class DBException extends RuntimeException{
     }
 
 
+    /** Some other process (possibly DB) holds exclusive lock over this file, so it can not be opened */
+    public static class FileLocked extends DBException{
+
+        public FileLocked(String message) {
+            super(message);
+        }
+
+        public FileLocked(String message, Throwable cause) {
+            super(message,cause);
+        }
+    }
+
     public static class VolumeIOError extends DBException{
         public VolumeIOError(String msg){
             super(msg);

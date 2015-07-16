@@ -47,7 +47,7 @@ public abstract class DBHeaderTest {
 
 
     public long getBitField() {
-        Volume v = new Volume.RandomAccessFileVol(file,true);
+        Volume v = new Volume.RandomAccessFileVol(file,true,false);
         long ret = v.getLong(8);
         v.close();
         return ret;
@@ -172,7 +172,7 @@ public abstract class DBHeaderTest {
         db.close();
 
         //fake bitfield
-        Volume r = new Volume.RandomAccessFileVol(file,false);
+        Volume r = new Volume.RandomAccessFileVol(file,false,false);
         r.putLong(8, 2L << 32);
         r.sync();
         r.close();

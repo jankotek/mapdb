@@ -743,7 +743,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         for(final Fun.Function1<Volume,String> fab : VolumeTest.VOL_FABS){
             Volume.VolumeFactory fac = new Volume.VolumeFactory() {
                 @Override
-                public Volume makeVolume(String file, boolean readOnly, int sliceShift, long initSize, boolean fixedSize) {
+                public Volume makeVolume(String file, boolean readOnly, boolean fileLockDisable, int sliceShift, long initSize, boolean fixedSize) {
                     return fab.run(file);
                 }
             };
@@ -754,7 +754,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
                     CC.DEFAULT_LOCK_SCALE,
                     0,
                     false,false,null,
-                    false,false,0,
+                    false,false,false,0,
                     false,0,
                     null);
             e.init();
