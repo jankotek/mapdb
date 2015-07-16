@@ -493,7 +493,7 @@ public abstract class Volume implements Closeable{
             b1.position(bufPos);
             //TODO size>Integer.MAX_VALUE
             b1.limit((int) (bufPos+size));
-            target.putData(targetOffset,b1);
+            target.putData(targetOffset, b1);
         }
 
         @Override public void getData(final long offset, final byte[] src, int srcPos, int srcSize){
@@ -871,7 +871,7 @@ public abstract class Volume implements Closeable{
 
         protected volatile boolean rafSync = false;
 
-        public MappedFileVol(File file, boolean readOnly, boolean lockDisable, int sliceShift, boolean cleanerHackEnabled) {
+        public MappedFileVol(File file, boolean readOnly, boolean fileLockDisable, int sliceShift, boolean cleanerHackEnabled) {
             super(readOnly,sliceShift, cleanerHackEnabled);
             this.file = file;
             this.mapMode = readOnly? FileChannel.MapMode.READ_ONLY: FileChannel.MapMode.READ_WRITE;
@@ -880,15 +880,7 @@ public abstract class Volume implements Closeable{
                 this.raf = new java.io.RandomAccessFile(file, readOnly?"r":"rw");
                 this.fileChannel = raf.getChannel();
 
-                if(lockDisable || readOnly){
-                    fileLock = null;
-                }else {
-                    try {
-                        fileLock = fileChannel.lock();
-                    } catch (IOException e) {
-                        throw new DBException.FileLocked("Can not lock file, perhaps other DB is already using it. File: " + file, e);
-                    }
-                }
+                fileLock = Volume.lockFile(file,raf,readOnly,fileLockDisable);
 
                 final long fileSize = fileChannel.size();
                 if(fileSize>0){
@@ -1099,15 +1091,8 @@ public abstract class Volume implements Closeable{
                 raf = new java.io.RandomAccessFile(file, readOnly?"r":"rw");
                 buffer = raf.getChannel().map(mapMode, 0, maxSize);
 
-                if(fileLockDisabled || readOnly){
-                    fileLock = null;
-                }else {
-                    try {
-                        fileLock = raf.getChannel().lock();
-                    } catch (IOException e) {
-                        throw new DBException.FileLocked("Can not lock file, perhaps other DB is already using it. File: " + file, e);
-                    }
-                }
+                fileLock = Volume.lockFile(file, raf, readOnly, fileLockDisabled);
+
 
                 final long fileSize = raf.length();
                 if(readOnly) {
@@ -1403,15 +1388,9 @@ public abstract class Volume implements Closeable{
                     size = channel.size();
                 }
 
-                if(fileLockDisabled || readOnly){
-                    fileLock = null;
-                }else {
-                    try {
-                        fileLock = channel.lock();
-                    } catch (IOException e) {
-                        throw new DBException.FileLocked("Can not lock file, perhaps other DB is already using it. File: " + file, e);
-                    }
-                }
+                fileLock = Volume.lockFile(file,raf,readOnly,fileLockDisabled);
+
+
             }catch(ClosedByInterruptException e){
                 throw new DBException.VolumeClosedByInterrupt(e);
             }catch(ClosedChannelException e){
@@ -1835,7 +1814,7 @@ public abstract class Volume implements Closeable{
             byte[] buf = slices[((int) (inputOffset >>> sliceShift))];
 
             //TODO size>Integer.MAX_VALUE
-            target.putData(targetOffset,buf,pos, (int) size);
+            target.putData(targetOffset, buf, pos, (int) size);
         }
 
 
@@ -2020,7 +1999,7 @@ public abstract class Volume implements Closeable{
 
         @Override
         public void putLong(long offset, long v) {
-            DataIO.putLong(data, (int) offset,v);
+            DataIO.putLong(data, (int) offset, v);
         }
 
 
@@ -2352,15 +2331,7 @@ public abstract class Volume implements Closeable{
             try {
                 this.raf = new RandomAccessFile(file,readOnly?"r":"rw");
 
-                if(fileLockDisable || readOnly){
-                    fileLock = null;
-                }else {
-                    try {
-                        fileLock = raf.getChannel().lock();
-                    } catch (IOException e) {
-                        throw new DBException.FileLocked("Can not lock file, perhaps other DB is already using it. File: " + file, e);
-                    }
-                }
+                this.fileLock = Volume.lockFile(file, raf, readOnly, fileLockDisable);
 
             } catch (IOException e) {
                 throw new DBException.VolumeIOError(e);
@@ -2568,6 +2539,19 @@ public abstract class Volume implements Closeable{
                 throw new DBException.VolumeIOError(e);
             }
         }
+    }
+
+    private static FileLock lockFile(File file, RandomAccessFile raf, boolean readOnly, boolean fileLockDisable) {
+        if(fileLockDisable || readOnly){
+            return null;
+        }else {
+            try {
+                return raf.getChannel().lock();
+            } catch (Exception e) {
+                throw new DBException.FileLocked("Can not lock file, perhaps other DB is already using it. File: " + file, e);
+            }
+        }
+
     }
 }
 

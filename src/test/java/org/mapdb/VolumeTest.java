@@ -88,10 +88,10 @@ public class VolumeTest {
         for (Fun.Function1<Volume,String> fab1 : VOL_FABS) {
 
             Volume v = fab1.run(UtilsTest.tempDbFile().getPath());
-            System.out.println(" "+v);
+            System.out.println(" " + v);
             testPackLongBidi(v);
             testPackLong(v);
-            assertEquals(v.getFile()!=null, v.getFileLocked());
+            assertEquals(v.getFile() != null, v.getFileLocked());
             v.close();
             v=null;
 
@@ -446,6 +446,28 @@ public class VolumeTest {
         assertEquals(1000, f.length());
         assertEquals(112314123, v.getLong(0));
         v.close();
+    }
+
+    @Test
+    public void lock_double_open() throws IOException {
+        File f = File.createTempFile("mapdb","mapdb");
+        Volume.RandomAccessFileVol v = new Volume.RandomAccessFileVol(f,false,false);
+        v.ensureAvailable(8);
+        v.putLong(0, 111L);
+
+        //second open should fail, since locks are enabled
+        assertTrue(v.getFileLocked());
+
+        try {
+            Volume.RandomAccessFileVol v2 = new Volume.RandomAccessFileVol(f, false, false);
+            fail();
+        }catch(DBException.FileLocked l){
+            //ignored
+        }
+        v.close();
+        Volume.RandomAccessFileVol v2 = new Volume.RandomAccessFileVol(f, false, false);
+
+        assertEquals(111L, v2.getLong(0));
     }
 
 }
