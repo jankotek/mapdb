@@ -23,6 +23,7 @@ public class StoreAppendTest<E extends StoreAppend> extends EngineTest<E>{
                     false,
                     false,
                     false,
+                    null,
                     false,
                     null
             );

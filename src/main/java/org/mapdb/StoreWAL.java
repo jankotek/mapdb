@@ -107,7 +107,7 @@ public class StoreWAL extends StoreCached {
                 null,
                 CC.DEFAULT_LOCK_SCALE,
                 0,
-                false, false, null, false,false, false, 0,
+                false, false, null, false,false, false, null, 0,
                 false, 0,
                 null, 0L,
                 0);
@@ -125,6 +125,7 @@ public class StoreWAL extends StoreCached {
             boolean readonly,
             boolean snapshotEnable,
             boolean fileLockDisable,
+            HeartbeatFileLock fileLockHeartbeat,
             int freeSpaceReclaimQ,
             boolean commitFileSyncDisable,
             int sizeIncrement,
@@ -135,7 +136,7 @@ public class StoreWAL extends StoreCached {
         super(fileName, volumeFactory, cache,
                 lockScale,
                 lockingStrategy,
-                checksum, compress, password, readonly, snapshotEnable, fileLockDisable,
+                checksum, compress, password, readonly, snapshotEnable, fileLockDisable, fileLockHeartbeat,
                 freeSpaceReclaimQ, commitFileSyncDisable, sizeIncrement,
                 executor,
                 executorScheduledRate,
@@ -1333,6 +1334,10 @@ public class StoreWAL extends StoreCached {
                     }
                     Arrays.fill(caches,null);
                 }
+                if(fileLockHeartbeat !=null) {
+                    fileLockHeartbeat.unlock();
+                    fileLockHeartbeat = null;
+                }
                 closed = true;
             }finally {
                 commitLock.unlock();
@@ -1399,7 +1404,7 @@ public class StoreWAL extends StoreCached {
                     volumeFactory,
                     null,lockScale,
                     executor==null?LOCKING_STRATEGY_NOLOCK:LOCKING_STRATEGY_WRITELOCK,
-                    checksum,compress,null,false,false,fileLockDisable,0,false,0,
+                    checksum,compress,null,false,false,fileLockDisable,null, 0,false,0,
                     null);
             target.init();
             walCCompact = target.vol;

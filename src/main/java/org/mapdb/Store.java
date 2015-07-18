@@ -95,6 +95,7 @@ public abstract class Store implements Engine {
     protected final AtomicLong metricsDataRead;
     protected final AtomicLong metricsRecordRead;
 
+    protected DataIO.HeartbeatFileLock fileLockHeartbeat;
 
     protected final Cache[] caches;
 
@@ -113,13 +114,15 @@ public abstract class Store implements Engine {
             byte[] password,
             boolean readonly,
             boolean snapshotEnable,
-            boolean fileLockDisable) {
+            boolean fileLockDisable,
+            DataIO.HeartbeatFileLock fileLockHeartbeat) {
         this.fileName = fileName;
         this.volumeFactory = volumeFactory;
         this.lockScale = lockScale;
         this.snapshotEnable = snapshotEnable;
         this.lockMask = lockScale-1;
         this.fileLockDisable = fileLockDisable;
+        this.fileLockHeartbeat = fileLockHeartbeat;
         if(Integer.bitCount(lockScale)!=1)
             throw new IllegalArgumentException("Lock Scale must be power of two");
         //TODO replace with incrementer on java 8

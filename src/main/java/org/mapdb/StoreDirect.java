@@ -5,7 +5,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -90,12 +89,14 @@ public class StoreDirect extends Store {
                        boolean readonly,
                        boolean snapshotEnable,
                        boolean fileLockDisable,
+                       DataIO.HeartbeatFileLock fileLockHeartbeat,
                        int freeSpaceReclaimQ,
                        boolean commitFileSyncDisable,
                        int sizeIncrement,
                        ScheduledExecutorService executor
                        ) {
-        super(fileName, volumeFactory, cache, lockScale, lockingStrategy, checksum, compress, password, readonly, snapshotEnable,fileLockDisable);
+        super(fileName, volumeFactory, cache, lockScale, lockingStrategy, checksum, compress, password, readonly,
+                snapshotEnable,fileLockDisable, fileLockHeartbeat);
         this.vol = volumeFactory.makeVolume(fileName, readonly, fileLockDisable);
         this.executor = executor;
         this.snapshots = snapshotEnable?
@@ -244,7 +245,7 @@ public class StoreDirect extends Store {
                 null,
                 CC.DEFAULT_LOCK_SCALE,
                 0,
-                false,false,null,false,false,false,0,
+                false,false,null,false,false,false,null,0,
                 false,0,
                 null);
     }
@@ -841,6 +842,10 @@ public class StoreDirect extends Store {
                 }
                 Arrays.fill(caches,null);
             }
+            if(fileLockHeartbeat !=null) {
+                fileLockHeartbeat.unlock();
+                fileLockHeartbeat = null;
+            }
             closed = true;
         }finally{
             commitLock.unlock();
@@ -929,7 +934,7 @@ public class StoreDirect extends Store {
                         volumeFactory,
                         null,lockScale,
                         executor==null?LOCKING_STRATEGY_NOLOCK:LOCKING_STRATEGY_WRITELOCK,
-                        checksum,compress,null,false,false,fileLockDisable,0,false,0,
+                        checksum,compress,null,false,false,fileLockDisable,null,0,false,0,
                         null);
                 target.init();
                 final AtomicLong maxRecid = new AtomicLong(RECID_LAST_RESERVED);

@@ -1,5 +1,6 @@
 package org.mapdb;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.channels.ClosedByInterruptException;
 
@@ -160,4 +161,9 @@ public class DBException extends RuntimeException{
         }
     }
 
+    public static class FileDeleteFailed extends DBException {
+        public FileDeleteFailed(File file) {
+            super("Could not delete file: "+file);
+        }
+    }
 }

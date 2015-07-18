@@ -2,7 +2,10 @@ package org.mapdb;
 
 import java.io.*;
 import java.nio.ByteBuffer;
+import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Various IO classes and utilities..
@@ -1138,5 +1141,259 @@ public final class DataIO {
         return ret;
     }
 
+    /**
+     * File locking mechanism. Creates '*.lock' file and starts background thread to periodically modify it.
+     * If JVM dies, file gets old and expires.
+     *
+     * @see DBMaker.Maker#fileLockHeartbeatEnable()
+     */
+    public static final class HeartbeatFileLock{
+
+        /*
+         * This class originally comes from H2 Database and was relicensed
+         * under Apache 2.0 license with Thomas Mueller permission.
+         *
+         * Original copyright notice:
+         *
+         * Copyright 2004-2013 H2 Group. Multiple-Licensed under the H2 License,
+         * Version 1.0, and under the Eclipse Public License, Version 1.0
+         * (http://h2database.com/html/license.html).
+         * Initial Developer: H2 Group
+         */
+
+
+        private static final Logger LOG = Logger.getLogger(HeartbeatFileLock.class.getName());
+
+        private static final int SLEEP_GAP = 25;
+        private static final int TIME_GRANULARITY = 2000;
+
+        final private long id = new SecureRandom().nextLong();
+        volatile private File file;
+
+        /**
+         * Whether the file is locked.
+         */
+        private volatile boolean locked;
+
+        /**
+         * The number of milliseconds to sleep after checking a file.
+         */
+        private final int sleep;
+
+
+        /**
+         * The last time the lock file was written.
+         */
+        private long lastWrite;
+
+
+        private Thread watchdog;
+
+        private final Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                HeartbeatFileLock.this.run();
+            }
+        };
+
+        public HeartbeatFileLock(File file, int sleep) {
+            this.file = file;
+            this.sleep = sleep;
+        }
+
+        private void run(){
+            LOG.fine("Lock Watchdog start");
+            try {
+                while (locked && file != null) {
+                    if( LOG.isLoggable(Level.FINE))
+                        LOG.fine("watchdog check");
+                    try {
+                        if (!file.exists() ||
+                                file.lastModified() != lastWrite) {
+                            save();
+                        }
+                        Thread.sleep(sleep);
+                    } catch (OutOfMemoryError e) {
+                        // ignore
+                    } catch (InterruptedException e) {
+                        // ignore
+                    } catch (NullPointerException e) {
+                        // ignore
+                    } catch (Exception e) {
+                        LOG.log(Level.FINE,"MapDB Lock Watchdog", e);
+                    }
+                }
+            } catch (Exception e) {
+                LOG.log(Level.WARNING, "MapDB Lock Watchdog failed", e);
+            }finally {
+                LOG.fine("Lock Watcher end");
+            }
+        }
+
+        private void waitUntilOld() {
+            for (int i = 0; i < 2 * TIME_GRANULARITY / SLEEP_GAP; i++) {
+                long last = file.lastModified();
+                long dist = System.currentTimeMillis() - last;
+                if (dist < -TIME_GRANULARITY) {
+                    // lock file modified in the future -
+                    // wait for a bit longer than usual
+                    sleep(10 * sleep);
+
+                    return;
+                } else if (dist > TIME_GRANULARITY) {
+                    return;
+                }
+
+                sleep(SLEEP_GAP);
+            }
+            throw new DBException.FileLocked("Lock file recently modified");
+        }
+
+        public synchronized void lock(){
+            if (locked) {
+                throw new DBException.FileLocked("Already locked, cannot call lock() twice");
+            }
+
+            try {
+                // TODO is this needed?: FileUtils.createDirectories(FileUtils.getParent(fileName));
+                if (!file.createNewFile()) {
+
+                    waitUntilOld();
+                    save();
+
+                    sleep(10 * sleep);
+
+                    if (load() != id) {
+                        throw new DBException.FileLocked("Locked by another process");
+                    }
+                    delete();
+                    if (!file.createNewFile()) {
+                        throw new DBException.FileLocked("Another process was faster");
+                    }
+                }
+                save();
+                sleep(SLEEP_GAP);
+                if (load() != id) {
+                    file = null;
+                    throw new DBException.FileLocked("Concurrent update");
+                }
+
+                //TODO use MapDB Executor Service if available
+                watchdog = new Thread(runnable,
+                        "MapDB File Lock Watchdog " + file.getAbsolutePath());
+
+                watchdog.setDaemon(true);
+                try {
+                    watchdog.setPriority(Thread.MAX_PRIORITY - 1);
+                }catch(Exception e){
+                    LOG.log(Level.FINE,"Could not set thread priority",e);
+                }
+                watchdog.start();
+
+            }catch(IOException e){
+                throw new DBException.FileLocked("Could not lock file: " + file, e);
+            }
+            locked = true;
+        }
+
+        /**
+         * Unlock the file. The watchdog thread is stopped. This method does nothing
+         * if the file is already unlocked.
+         */
+        public synchronized void unlock() {
+            if (!locked) {
+                return;
+            }
+            locked = false;
+            try {
+                if (watchdog != null) {
+                    watchdog.interrupt();
+                }
+            } catch (Exception e) {
+                LOG.log(Level.FINE, "unlock interrupt", e);
+            }
+            try {
+                if (file != null) {
+                    if (load() == id) {
+                        delete();
+                    }
+                }
+            } catch (Exception e) {
+                LOG.log(Level.FINE, "unlock", e);
+            } finally {
+                file = null;
+            }
+            try {
+                if (watchdog != null) {
+                    watchdog.join();
+                }
+            } catch (Exception e) {
+                LOG.log(Level.FINE, "unlock", e);
+            } finally {
+                watchdog = null;
+            }
+        }
+
+
+        private void save() throws IOException {
+            //save file
+            RandomAccessFile raf = new RandomAccessFile(file,"rw");
+            raf.seek(0);
+            raf.writeLong(id);
+            raf.getFD().sync(); //TODO is raf synced on close? In that case this is redundant, it applies to Volumes etc
+            raf.close();
+            lastWrite = file.lastModified();
+        }
+
+        private long load() throws IOException{
+            //load file
+            RandomAccessFile raf = new RandomAccessFile(file,"r");
+            raf.seek(0);
+            long ret = raf.readLong();
+            raf.close();
+            return ret;
+        }
+
+        private static void sleep(int delay){
+            try {
+                Thread.sleep(delay);
+            } catch (InterruptedException e) {
+                throw new DBException.Interrupted(e);
+            }
+        }
+
+        protected void delete() {
+            for (int i = 0; i < CC.FILE_RETRY; i++) { //TODO use delete/retry mapdb wide, in compaction!
+                boolean ok = file.delete();
+                if (ok || !file.exists()) {
+                    return;
+                }
+                wait(i);
+            }
+            throw new DBException.FileDeleteFailed(file);
+        }
+
+        //TODO h2 code, check context and errors. what it is ????
+        private static void wait(int i) {
+            if (i == 8) {
+                System.gc();
+            }
+            try {
+                // sleep at most 256 ms
+                long sleep = Math.min(256, i * i);
+                Thread.sleep(sleep);
+            } catch (InterruptedException e) {
+                // ignore
+            }
+        }
+
+        public boolean isLocked() {
+            return locked;
+        }
+
+        public File getFile() {
+            return file;
+        }
+    }
 
 }

@@ -78,10 +78,12 @@ public class StoreAppend extends Store {
                           boolean readonly,
                           boolean snapshotEnable,
                           boolean fileLockDisable,
+                          DataIO.HeartbeatFileLock fileLockHeartbeat,
                           boolean txDisabled,
                           ScheduledExecutorService compactionExecutor
                     ) {
-        super(fileName, volumeFactory, cache, lockScale,lockingStrategy, checksum, compress, password, readonly, snapshotEnable,fileLockDisable);
+        super(fileName, volumeFactory, cache, lockScale,lockingStrategy, checksum, compress, password, readonly,
+                snapshotEnable,fileLockDisable, fileLockHeartbeat);
         this.tx = !txDisabled;
         if(tx){
             modified = new LongLongMap[this.lockScale];
@@ -108,6 +110,7 @@ public class StoreAppend extends Store {
                 false,
                 false,
                 false,
+                null,
                 false,
                 null
         );
@@ -123,7 +126,8 @@ public class StoreAppend extends Store {
                 null, //TODO password on snapshot
                 true, //snapshot is readonly
                 false,
-                false);
+                false,
+                null);
 
         indexTable = host.indexTable;
         vol = host.vol;
@@ -512,6 +516,10 @@ public class StoreAppend extends Store {
                     c.close();
                 }
                 Arrays.fill(caches,null);
+            }
+            if(fileLockHeartbeat !=null) {
+                fileLockHeartbeat.unlock();
+                fileLockHeartbeat = null;
             }
             closed = true;
         }finally{
