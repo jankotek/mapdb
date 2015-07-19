@@ -229,6 +229,24 @@ public abstract class EngineTest<ENGINE extends Engine>{
         e.close();
     }
 
+    @Test public void empty_update_commit(){
+        if(UtilsTest.scale()==0)
+            return;
+
+        e = openEngine();
+        long recid = e.put("", Serializer.STRING_NOSIZE);
+        assertEquals("", e.get(recid, Serializer.STRING_NOSIZE));
+
+        for(int i=0;i<10000;i++) {
+            String s = UtilsTest.randomString(80000);
+            e.update(recid, s, Serializer.STRING_NOSIZE);
+            assertEquals(s, e.get(recid, Serializer.STRING_NOSIZE));
+            e.commit();
+            assertEquals(s, e.get(recid, Serializer.STRING_NOSIZE));
+        }
+        e.close();
+    }
+
 
     @Test public void test_store_reopen(){
         e = openEngine();

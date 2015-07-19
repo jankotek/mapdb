@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.Level;
 
 import static org.mapdb.DataIO.*;
 
@@ -547,6 +548,47 @@ public class StoreWAL extends StoreCached {
         return page;
     }
 
+
+    /** return positions of (possibly) linked record */
+    @Override
+    protected long[] offsetsGet(int segment, long indexVal) {;
+        if(indexVal>>>48==0){
+            return ((indexVal&MLINKED)!=0) ? null : StoreDirect.EMPTY_LONGS;
+        }
+
+        long[] ret = new long[]{indexVal};
+        while((ret[ret.length-1]&MLINKED)!=0){
+            ret = Arrays.copyOf(ret, ret.length + 1);
+            long oldLink = ret[ret.length-2]&MOFFSET;
+
+            //get WAL position from current transaction, or previous (not yet fully replayed) transactions
+            long val = currDataLongs[segment].get(oldLink);
+            if(val==0)
+                val = prevDataLongs[segment].get(oldLink);
+            if(val!=0) {
+                //was found in previous position, read link from WAL
+                int file = (int) ((val>>>32) & 0xFFFFL); // get WAL file number
+                val = val & 0xFFFFFFFFL; // convert to WAL offset;
+                val = volumes.get(file).getLong(val);
+            }else{
+                //was not found in any transaction, read from main store
+                val = vol.getLong(oldLink);
+            }
+            ret[ret.length-1] = parity3Get(val);
+        }
+
+        if(CC.ASSERT){
+           offsetsVerify(ret);
+        }
+
+        if (CC.LOG_STORE && LOG.isLoggable(Level.FINEST)) {
+            LOG.log(Level.FINEST, "indexVal={0}, ret={1}",
+                    new Object[]{Long.toHexString(indexVal), Arrays.toString(ret)});
+        }
+
+        return ret;
+    }
+
     @Override
     protected <A> A get2(long recid, Serializer<A> serializer) {
         if (CC.ASSERT)
@@ -644,7 +686,7 @@ public class StoreWAL extends StoreCached {
             }
         }
 
-        long[] offsets = offsetsGet(indexValGet(recid));
+        long[] offsets = offsetsGet(lockPos(recid),indexValGet(recid));
         if (offsets == null) {
             return null; //zero size
         }else if (offsets.length==0){
@@ -831,7 +873,7 @@ public class StoreWAL extends StoreCached {
                     currLongLongs[segment].clear();
 
                     v = currDataLongs[segment].table;
-                    currDataLongs[segment].size=0;
+
                     for(int i=0;i<v.length;i+=2){
                         long offset = v[i];
                         if(offset==0)

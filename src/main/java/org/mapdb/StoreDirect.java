@@ -60,7 +60,7 @@ public class StoreDirect extends Store {
 
     protected static final long INITCRC_INDEX_PAGE = 4329042389490239043L;
 
-    private static final long[] EMPTY_LONGS = new long[0];
+    protected static final long[] EMPTY_LONGS = new long[0];
 
 
     //TODO this refs are swapped during compaction. Investigate performance implications
@@ -290,7 +290,7 @@ public class StoreDirect extends Store {
         if (CC.ASSERT)
             assertReadLocked(recid);
 
-        long[] offsets = offsetsGet(indexValGet(recid));
+        long[] offsets = offsetsGet(lockPos(recid),indexValGet(recid));
         return getFromOffset(serializer, offsets);
     }
 
@@ -367,7 +367,7 @@ public class StoreDirect extends Store {
             }
         }
 
-        long[] oldOffsets = offsetsGet(oldIndexVal);
+        long[] oldOffsets = offsetsGet(pos,oldIndexVal);
         int oldSize = offsetsTotalSize(oldOffsets);
         int newSize = out==null?0:out.pos;
         long[] newOffsets;
@@ -400,14 +400,34 @@ public class StoreDirect extends Store {
         putData(recid, newOffsets, out==null?null:out.buf, out==null?0:out.pos);
     }
 
-    protected void offsetsVerify(long[] linkedOffsets) {
+    protected void offsetsVerify(long[] ret) {
         //TODO check non tail records are mod 16
         //TODO check linkage
+        if(ret==null)
+            return;
+        for(int i=0;i<ret.length;i++) {
+            boolean last = (i==ret.length-1);
+            boolean linked = (ret[i]&MLINKED)!=0;
+            if(!last && !linked)
+                throw new DBException.DataCorruption("body not linked");
+            if(last && linked)
+                throw new DBException.DataCorruption("tail is linked");
+
+            long offset = ret[i]&MOFFSET;
+            if(offset<PAGE_SIZE)
+                throw new DBException.DataCorruption("offset is too small");
+            if(((offset&MOFFSET)%16)!=0)
+                throw new DBException.DataCorruption("offset not mod 16");
+
+            int size = (int) (ret[i] >>>48);
+            if(size<=0)
+                throw new DBException.DataCorruption("size too small");
+        }
     }
 
 
     /** return positions of (possibly) linked record */
-    protected long[] offsetsGet(long indexVal) {;
+    protected long[] offsetsGet(int segment, long indexVal) {;
         if(indexVal>>>48==0){
 
             return ((indexVal&MLINKED)!=0) ? null : EMPTY_LONGS;
@@ -420,25 +440,7 @@ public class StoreDirect extends Store {
         }
 
         if(CC.ASSERT){
-            for(int i=0;i<ret.length;i++) {
-                boolean last = (i==ret.length-1);
-                boolean linked = (ret[i]&MLINKED)!=0;
-                if(!last && !linked)
-                    throw new DBException.DataCorruption("body not linked");
-                if(last && linked)
-                    throw new DBException.DataCorruption("tail is linked");
-
-                long offset = ret[i]&MOFFSET;
-                if(offset<PAGE_SIZE)
-                    throw new DBException.DataCorruption("offset is too small");
-                if(((offset&MOFFSET)%16)!=0)
-                    throw new DBException.DataCorruption("offset not mod 16");
-
-                int size = (int) (ret[i] >>>48);
-                if(size<=0)
-                    throw new DBException.DataCorruption("size too small");
-            }
-
+           offsetsVerify(ret);
         }
 
         if (CC.LOG_STORE && LOG.isLoggable(Level.FINEST)) {
@@ -475,11 +477,11 @@ public class StoreDirect extends Store {
         if(CC.ASSERT)
             assertWriteLocked(lockPos(recid));
 
+        final int pos = lockPos(recid);
         long oldIndexVal = indexValGet(recid);
-        long[] offsets = offsetsGet(oldIndexVal);
+        long[] offsets = offsetsGet(pos,oldIndexVal);
         boolean releaseOld = true;
         if(snapshotEnable){
-            int pos = lockPos(recid);
             for(Snapshot snap:snapshots){
                 snap.oldRecids[pos].putIfAbsent(recid,oldIndexVal);
                 releaseOld = false;
@@ -1229,7 +1231,7 @@ public class StoreDirect extends Store {
             //deal with linked record non zero record
             if((indexVal & MLINKED)!=0 && indexVal>>>48!=0){
                 //load entire linked record into byte[]
-                long[] offsets = offsetsGet(indexValGet(recid));
+                long[] offsets = offsetsGet(lockPos(recid),indexValGet(recid));
                 int totalSize = offsetsTotalSize(offsets);
                 byte[] b = getLoadLinkedRecord(offsets, totalSize);
 
@@ -1475,7 +1477,7 @@ public class StoreDirect extends Store {
                     return null; //TODO deserialize empty object
 
                 if(indexVal!=0){
-                    long[] offsets = engine.offsetsGet(indexVal);
+                    long[] offsets = engine.offsetsGet(pos, indexVal);
                     return engine.getFromOffset(serializer,offsets);
                 }
 
