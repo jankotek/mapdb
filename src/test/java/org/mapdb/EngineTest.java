@@ -711,7 +711,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
                     try {
                         for (; ; ) {
                             long A = a.incrementAndGet();
-                            Random r = new Random();
+                            Random r = new Random(A);
                             e.update(counterRecid, A, Serializer.LONG);
 
                             for (long recid : recids) {
@@ -727,7 +727,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
                 }
             };
             t.start();
-            t.sleep(5000);
+            Thread.sleep(5000);
             t.stop();
             latch.await();
             if(!e.isClosed()){
