@@ -89,6 +89,11 @@ public class VolumeTest {
 
             Volume v = fab1.run(UtilsTest.tempDbFile().getPath());
             System.out.println(" " + v);
+
+            assertTrue(v.isEmpty()); //newly created volume should be empty
+            v.ensureAvailable(10);
+            assertFalse(v.isEmpty());
+
             testPackLongBidi(v);
             testPackLong(v);
             assertEquals(v.getFile() != null, v.getFileLocked());

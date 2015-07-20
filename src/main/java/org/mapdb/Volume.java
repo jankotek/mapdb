@@ -675,6 +675,7 @@ public abstract class Volume implements Closeable{
 
         protected final boolean readOnly;
         protected final long maxSize;
+        protected volatile boolean empty = true;
 
 
 
@@ -687,7 +688,7 @@ public abstract class Volume implements Closeable{
 
         @Override
         public void ensureAvailable(long offset) {
-            //TODO max size assertion
+            empty = false;
         }
 
         @Override public final void putLong(final long offset, final long value) {
@@ -814,7 +815,7 @@ public abstract class Volume implements Closeable{
 
         @Override
         public boolean isEmpty() {
-            return buffer==null || buffer.limit()==0;
+            return buffer==null || buffer.limit()==0 || empty;
         }
 
 
@@ -1089,12 +1090,12 @@ public abstract class Volume implements Closeable{
             try {
                 FileChannelVol.checkFolder(file,readOnly);
                 raf = new java.io.RandomAccessFile(file, readOnly?"r":"rw");
-                buffer = raf.getChannel().map(mapMode, 0, maxSize);
 
                 fileLock = Volume.lockFile(file, raf, readOnly, fileLockDisabled);
 
 
                 final long fileSize = raf.length();
+                empty = fileSize == 0;
                 if(readOnly) {
                     maxSize = Math.min(maxSize, fileSize);
                 }else if(fileSize<maxSize){
@@ -1106,6 +1107,7 @@ public abstract class Volume implements Closeable{
                         offset+=CLEAR.length;
                     }while(offset<maxSize);
                 }
+                buffer = raf.getChannel().map(mapMode, 0, maxSize);
 
                 if(readOnly)
                     buffer = buffer.asReadOnlyBuffer();
@@ -1148,12 +1150,7 @@ public abstract class Volume implements Closeable{
             if(buffer instanceof MappedByteBuffer)
                 ((MappedByteBuffer)buffer).force();
         }
-
-
-        @Override
-        public boolean isEmpty() {
-            return length()<=0;
-        }
+        
 
         @Override
         public long length() {
