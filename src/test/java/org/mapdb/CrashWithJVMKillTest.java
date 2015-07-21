@@ -34,9 +34,7 @@ public class CrashWithJVMKillTest {
                     this.getClass().getName(),
                     tmpDir+"/mapdb"+Math.random(), tmpDir+"/mapdb"+Math.random());
             Process p = b.start();
-            while (p.isAlive()) {
-                Thread.sleep(1);
-            }
+            p.waitFor();
             String out = outStreamToString(p.getInputStream());
             assertTrue(out.startsWith("started_"));
             assertTrue(out.endsWith("_killed"));
