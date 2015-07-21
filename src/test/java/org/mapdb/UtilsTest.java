@@ -40,6 +40,11 @@ public class UtilsTest {
     }
 
 
+    public static boolean shortTest() {
+        return scale()==0;
+    }
+
+
     @Test public void testPackInt() throws Exception {
 
         DataIO.DataOutputByteArray out = new DataIO.DataOutputByteArray();
@@ -172,7 +177,7 @@ public class UtilsTest {
 
     /* faster version of Random.nextBytes() */
     public static byte[] randomByteArray(int size){
-        return randomByteArray(size,(int) (100000*Math.random()));
+        return randomByteArray(size, (int) (100000 * Math.random()));
     }
     /* faster version of Random.nextBytes() */
     public static byte[] randomByteArray(int size, int randomSeed){
@@ -234,4 +239,5 @@ public class UtilsTest {
             }
         }
     }
+
 }

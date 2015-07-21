@@ -38,6 +38,8 @@ public class CrashWithInterruptTest {
     @Parameterized.Parameters
     public static Iterable params() throws IOException {
         List ret = new ArrayList();
+        if(UtilsTest.shortTest())
+            return ret;
 
         for(boolean notAppend:BOOLS){
             for(boolean tx:BOOLS){
