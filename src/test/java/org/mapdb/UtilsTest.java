@@ -172,15 +172,17 @@ public class UtilsTest {
 
     /* faster version of Random.nextBytes() */
     public static byte[] randomByteArray(int size){
-        int seed = (int) (100000*Math.random());
+        return randomByteArray(size,(int) (100000*Math.random()));
+    }
+    /* faster version of Random.nextBytes() */
+    public static byte[] randomByteArray(int size, int randomSeed){
         byte[] ret = new byte[size];
         for(int i=0;i<ret.length;i++){
-            ret[i] = (byte) seed;
-            seed = 31*seed+DataIO.intHash(seed);
+            ret[i] = (byte) randomSeed;
+            randomSeed = 31*randomSeed+DataIO.intHash(randomSeed);
         }
         return ret;
     }
-
     public static int randomInt() {
         return new Random().nextInt();
     }
