@@ -129,7 +129,7 @@
                         <fileset>
                             <directory>/tmp/</directory>
                             <includes>
-                                <include>mapdTest*</include>
+                                <include>mapdbTest*</include>
                                 <include>mapdbTest*/*</include>
                             </includes>
                             <followSymlinks>false</followSymlinks>
