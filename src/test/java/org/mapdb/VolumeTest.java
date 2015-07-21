@@ -176,7 +176,6 @@ public class VolumeTest {
             vol.getDataInputOverlap(offset, size).readFully(b2, 0, size);
 
             assertTrue(Serializer.BYTE_ARRAY.equals(b, b2));
-            vol.close();
         }
 
 
@@ -200,7 +199,6 @@ public class VolumeTest {
             for (int i = 0; i < size; i++) {
                 assertEquals(b2[i + 1000], b3[i + 100]);
             }
-            vol.close();
         }
     }
 
