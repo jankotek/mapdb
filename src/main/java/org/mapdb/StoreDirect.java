@@ -1033,7 +1033,9 @@ public class StoreDirect extends Store {
                         volumeFactory,
                         null,lockScale,
                         executor==null?LOCKING_STRATEGY_NOLOCK:LOCKING_STRATEGY_WRITELOCK,
-                        checksum,compress,null,false,false,fileLockDisable,null,0,false,0,
+                        checksum,compress,null,false,false,
+                        true, //locking is disabled on compacted file
+                        null,0,false,0,
                         null);
                 target.init();
                 final AtomicLong maxRecid = new AtomicLong(RECID_LAST_RESERVED);
