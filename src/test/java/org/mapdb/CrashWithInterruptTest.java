@@ -129,9 +129,6 @@ public class CrashWithInterruptTest {
             Thread.sleep(5000);
             t.stop();
             latch.await();
-            if(!db.isClosed()){
-                db.close();
-            }
 
             //reopen and check the content
             db = dbMaker.make();
