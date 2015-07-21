@@ -51,6 +51,8 @@ public class CrashWithInterruptTest {
                                             DBMaker.appendFileDB(f) :
                                             DBMaker.fileDB(f);
 
+                                    maker.fileLockDisable();
+
                                     if (mmap)
                                         maker.fileMmapEnableIfSupported();
 
