@@ -66,7 +66,7 @@ public class Issue332Test {
 
     @Test
     public void run() throws IOException {
-        File f = File.createTempFile("mapdb","mapdb");
+        File f = File.createTempFile("mapdbTest","mapdb");
         DB db = DBMaker.fileDB(f)
                 .closeOnJvmShutdown()
                 .make();

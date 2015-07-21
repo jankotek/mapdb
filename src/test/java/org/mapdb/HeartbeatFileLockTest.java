@@ -20,7 +20,7 @@ public class HeartbeatFileLockTest {
         if(UtilsTest.scale()==0)
             return;
 
-        File f = File.createTempFile("mapdb","madpb");
+        File f = File.createTempFile("mapdbTest","madpb");
         f.delete();
         f.createNewFile();
         f.setLastModified(System.currentTimeMillis() + 10000);
@@ -33,7 +33,7 @@ public class HeartbeatFileLockTest {
     public void testSimple() throws IOException {
         if(UtilsTest.scale()==0)
             return;
-        File f = File.createTempFile("mapdb","madpb");
+        File f = File.createTempFile("mapdbTest","madpb");
         f.delete();
 
         DataIO.HeartbeatFileLock lock1 = new DataIO.HeartbeatFileLock(f,CC.FILE_LOCK_HEARTBEAT);
@@ -63,7 +63,7 @@ public class HeartbeatFileLockTest {
         if(count==0)
             return;
 
-        final File f = File.createTempFile("mapdb","mapdb");
+        final File f = File.createTempFile("mapdbTest","mapdb");
         f.delete();
 
         final AtomicInteger counter = new AtomicInteger();

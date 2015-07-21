@@ -206,7 +206,7 @@ public class SerializerTest {
         }
     }
     @Test public void issue546() throws IOException {
-        File f = File.createTempFile("mapdb","mapdb");
+        File f = File.createTempFile("mapdbTest","mapdb");
         DB db = DBMaker
                 .fileDB(f)
                 .transactionDisable()

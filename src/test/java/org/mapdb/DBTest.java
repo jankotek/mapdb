@@ -258,7 +258,7 @@ public class DBTest {
     };
 
     @Test public void hashMap_serializers_non_serializable() throws IOException {
-        File f = File.createTempFile("mapdb","mapdb");
+        File f = File.createTempFile("mapdbTest","mapdb");
         DB db = DBMaker
                 .fileDB(f)
                 .transactionDisable()
@@ -320,7 +320,7 @@ public class DBTest {
     }
 
     @Test public void treeMap_serializers_non_serializable() throws IOException {
-        File f = File.createTempFile("mapdb","mapdb");
+        File f = File.createTempFile("mapdbTest","mapdb");
         DB db = DBMaker
                 .fileDB(f)
                 .transactionDisable()
@@ -382,7 +382,7 @@ public class DBTest {
     }
 
     @Test public void treeSet_serializers_non_serializable() throws IOException {
-        File f = File.createTempFile("mapdb","mapdb");
+        File f = File.createTempFile("mapdbTest","mapdb");
         DB db = DBMaker
                 .fileDB(f)
                 .transactionDisable()
@@ -429,7 +429,7 @@ public class DBTest {
 
 
     @Test public void hashSet_serializers_non_serializable() throws IOException {
-        File f = File.createTempFile("mapdb","mapdb");
+        File f = File.createTempFile("mapdbTest","mapdb");
         DB db = DBMaker
                 .fileDB(f)
                 .transactionDisable()
@@ -475,7 +475,7 @@ public class DBTest {
     }
 
     @Test public void atomicvar_serializers_non_serializable() throws IOException {
-        File f = File.createTempFile("mapdb","mapdb");
+        File f = File.createTempFile("mapdbTest","mapdb");
         DB db = DBMaker
                 .fileDB(f)
                 .transactionDisable()

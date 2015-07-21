@@ -13,7 +13,7 @@ public class Issue312Test {
         if(UtilsTest.scale()==0)
             return;
 
-        File f = File.createTempFile("mapdb","test");
+        File f = File.createTempFile("mapdbTest","test");
         DB db = DBMaker.fileDB(f)
                 .mmapFileEnableIfSupported()
                 .transactionDisable()

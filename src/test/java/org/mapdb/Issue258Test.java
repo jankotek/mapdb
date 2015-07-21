@@ -18,7 +18,7 @@ public class Issue258Test {
     @Test
     public void test() throws IOException {
 
-        File tmp = File.createTempFile("mapdb","");
+        File tmp = File.createTempFile("mapdbTest","");
 
 
         for(int i=0;i<10;i++){
@@ -56,7 +56,7 @@ public class Issue258Test {
     @Test
     public void testWithChecksum() throws IOException {
 
-        File tmp = File.createTempFile("mapdb","");
+        File tmp = File.createTempFile("mapdbTest","");
 
 
         for(int i=0;i<10;i++){
@@ -96,7 +96,7 @@ public class Issue258Test {
     @Test
     public void testWithChecksumEmpty() throws IOException {
 
-        File tmp = File.createTempFile("mapdb","");
+        File tmp = File.createTempFile("mapdbTest","");
 
 
         for(int i=0;i<10;i++){
@@ -110,7 +110,7 @@ public class Issue258Test {
     }
 
     @Test public void many_recids_reopen_with_checksum() throws IOException {
-        File tmp = File.createTempFile("mapdb","");
+        File tmp = File.createTempFile("mapdbTest","");
 
         Engine e = DBMaker.fileDB(tmp)
                 .transactionDisable()

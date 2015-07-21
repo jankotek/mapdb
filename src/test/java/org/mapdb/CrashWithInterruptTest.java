@@ -48,7 +48,7 @@ public class CrashWithInterruptTest {
                         for (boolean largeVals : BOOLS) {
                             for (boolean clearMap : BOOLS) {
                                 for (boolean hashMap : BOOLS) {
-                                    File f = File.createTempFile("mapdb", "mapdb");
+                                    File f = File.createTempFile("mapdbTest", "mapdb");
                                     DBMaker.Maker maker = !notAppend ?
                                             DBMaker.appendFileDB(f) :
                                             DBMaker.fileDB(f);

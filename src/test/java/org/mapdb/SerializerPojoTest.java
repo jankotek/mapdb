@@ -463,7 +463,7 @@ public class SerializerPojoTest{
 
     @Test
     public void testWriteReplace2() throws IOException {
-        File f = File.createTempFile("mapdb","mapdb");
+        File f = File.createTempFile("mapdbTest","mapdb");
         Map m = new MM();
         m.put("11", "111");
         DB db = DBMaker.fileDB(f).transactionDisable().make();
@@ -487,7 +487,7 @@ public class SerializerPojoTest{
 
     @Test
     public void testWriteReplace2Wrap() throws IOException {
-        File f = File.createTempFile("mapdb", "mapdb");
+        File f = File.createTempFile("mapdbTest", "mapdb");
         SS m = new SS(new MM());
         m.mm.put("11", "111");
         DB db = DBMaker.fileDB(f).transactionDisable().make();

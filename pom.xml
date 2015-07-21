@@ -121,6 +121,22 @@
             </plugin>
 
 
+            <plugin>
+                <artifactId>maven-clean-plugin</artifactId>
+                <version>2.6.1</version>
+                <configuration>
+                    <filesets>
+                        <fileset>
+                            <directory>/tmp/</directory>
+                            <includes>
+                                <include>mapdTest*</include>
+                                <include>mapdbTest*/*</include>
+                            </includes>
+                            <followSymlinks>false</followSymlinks>
+                        </fileset>
+                    </filesets>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 

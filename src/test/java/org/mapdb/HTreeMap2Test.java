@@ -1123,7 +1123,7 @@ public class HTreeMap2Test {
             return;
         final long endTime = System.currentTimeMillis()+time;
 
-        File f = File.createTempFile("mapdb","mapdb");
+        File f = File.createTempFile("mapdbTest","mapdb");
         //TODO mutate to include other types of engines
         final DB db = DBMaker.fileDB(f).transactionDisable().deleteFilesAfterClose().make();
 

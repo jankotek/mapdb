@@ -619,7 +619,7 @@ public class DBMakerTest{
     }
 
     @Test public void file_locked() throws IOException {
-        File f = File.createTempFile("mapdb", "mapdb");
+        File f = File.createTempFile("mapdbTest", "mapdb");
         DB db = DBMaker.fileDB(f).transactionDisable().make();
 
         StoreDirect s = (StoreDirect) db.getEngine();
@@ -630,7 +630,7 @@ public class DBMakerTest{
 
 
     @Test public void file_locked_disabled() throws IOException {
-        File f = File.createTempFile("mapdb","mapdb");
+        File f = File.createTempFile("mapdbTest","mapdb");
         DB db = DBMaker.fileDB(f).transactionDisable()
                 .fileLockDisable()
                 .make();
@@ -643,7 +643,7 @@ public class DBMakerTest{
 
 
     @Test public void file_locked_disabled_wal() throws IOException {
-        File f = File.createTempFile("mapdb","mapdb");
+        File f = File.createTempFile("mapdbTest","mapdb");
         DB db = DBMaker.fileDB(f)
                 .fileLockDisable()
                 .make();
@@ -657,7 +657,7 @@ public class DBMakerTest{
 
 
     @Test public void file_locked_disabled_append() throws IOException {
-        File f = File.createTempFile("mapdb","mapdb");
+        File f = File.createTempFile("mapdbTest","mapdb");
         DB db = DBMaker.appendFileDB(f)
                 .fileLockDisable()
                 .make();
@@ -669,7 +669,7 @@ public class DBMakerTest{
     }
 
     @Test public void file_locked_heartbeat() throws IOException {
-        File f = File.createTempFile("mapdb","mapdb");
+        File f = File.createTempFile("mapdbTest","mapdb");
         DB db = DBMaker.fileDB(f).transactionDisable()
                 .fileLockHeartbeatEnable()
                 .make();

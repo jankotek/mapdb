@@ -27,7 +27,7 @@ public class CrashWithJVMKillTest {
         long end = System.currentTimeMillis()+1000*60*10*UtilsTest.scale();
 
         String tmpDir = System.getProperty("java.io.tmpdir");
-        String wal = tmpDir+"/mapdb"+Math.random();
+        String wal = tmpDir+"/mapdbTest"+Math.random();
         String props = wal+"props";
         while(end>System.currentTimeMillis()) {
             ProcessBuilder b = new ProcessBuilder("java",

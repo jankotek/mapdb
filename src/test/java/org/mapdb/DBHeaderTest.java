@@ -37,7 +37,7 @@ public abstract class DBHeaderTest {
     File file;
     {
         try {
-            file = File.createTempFile("mapdb","mapdb");
+            file = File.createTempFile("mapdbTest","mapdb");
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

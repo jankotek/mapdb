@@ -152,7 +152,7 @@ public class UtilsTest {
      */
     public static File tempDbFile() {
         try{
-            File index = File.createTempFile("mapdb","db");
+            File index = File.createTempFile("mapdbTest","db");
             index.deleteOnExit();
 
             return index;

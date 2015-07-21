@@ -241,7 +241,7 @@ public class StoreDirectTest2 {
     }
 
     @Test public void zero_index_page_checksum() throws IOException {
-        File f = File.createTempFile("mapdb", "mapdb");
+        File f = File.createTempFile("mapdbTest", "mapdb");
         StoreDirect st = (StoreDirect) DBMaker.fileDB(f)
                 .transactionDisable()
                 .checksumEnable()

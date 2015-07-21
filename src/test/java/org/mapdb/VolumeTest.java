@@ -441,7 +441,7 @@ public class VolumeTest {
     @Test
     public void mmap_init_size() throws IOException {
         //test if mmaping file size repeatably increases file
-        File f = File.createTempFile("mapdb","mapdb");
+        File f = File.createTempFile("mapdbTest","mapdb");
 
         long chunkSize = 1<<CC.VOLUME_PAGE_SHIFT;
         long add = 100000;
@@ -503,7 +503,7 @@ public class VolumeTest {
     }
 
     @Test public void small_mmap_file_single() throws IOException {
-        File f = File.createTempFile("mapdb","mapdb");
+        File f = File.createTempFile("mapdbTest","mapdb");
         RandomAccessFile raf = new RandomAccessFile(f,"rw");
         int len = 10000000;
         raf.setLength(len);
@@ -518,7 +518,7 @@ public class VolumeTest {
     }
 
     @Test public void single_mmap_grow() throws IOException {
-        File f = File.createTempFile("mapdb","mapdb");
+        File f = File.createTempFile("mapdbTest","mapdb");
         RandomAccessFile raf = new RandomAccessFile(f,"rw");
         raf.seek(0);
         raf.writeLong(112314123);
@@ -533,7 +533,7 @@ public class VolumeTest {
 
     @Test
     public void lock_double_open() throws IOException {
-        File f = File.createTempFile("mapdb","mapdb");
+        File f = File.createTempFile("mapdbTest","mapdb");
         Volume.RandomAccessFileVol v = new Volume.RandomAccessFileVol(f,false,false);
         v.ensureAvailable(8);
         v.putLong(0, 111L);
