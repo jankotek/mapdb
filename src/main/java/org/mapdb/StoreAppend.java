@@ -323,7 +323,9 @@ public class StoreAppend extends Store {
         if(CC.ASSERT)
             assertReadLocked(recid);
 
-        long offset = modified[lockPos(recid)].get(recid);
+        long offset = tx?
+                modified[lockPos(recid)].get(recid):
+                0;
         if(offset==0) {
             try {
                 offset = indexTable.getLong(recid * 8);
