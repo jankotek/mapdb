@@ -229,6 +229,24 @@ public abstract class EngineTest<ENGINE extends Engine>{
         e.close();
     }
 
+    @Test public void empty_update_commit(){
+        if(UtilsTest.scale()==0)
+            return;
+
+        e = openEngine();
+        long recid = e.put("", Serializer.STRING_NOSIZE);
+        assertEquals("", e.get(recid, Serializer.STRING_NOSIZE));
+
+        for(int i=0;i<10000;i++) {
+            String s = UtilsTest.randomString(80000);
+            e.update(recid, s, Serializer.STRING_NOSIZE);
+            assertEquals(s, e.get(recid, Serializer.STRING_NOSIZE));
+            e.commit();
+            assertEquals(s, e.get(recid, Serializer.STRING_NOSIZE));
+        }
+        e.close();
+    }
+
 
     @Test public void test_store_reopen(){
         e = openEngine();
@@ -669,7 +687,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
         if(scale==0)
             return;
         e = openEngine();
-        if(!e.canRollback()) //TODO engine might have crash recovery, but no rollbacks
+        if(!e.canRollback() || e instanceof StoreHeap) //TODO engine might have crash recovery, but no rollbacks
             return;
 
         final long counterRecid = e.put(0L, Serializer.LONG);
@@ -679,6 +697,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
         final ArrayList<Long> recids = new ArrayList<Long>();
         for(int j=0;j<max;j++){
             long recid = e.put(new byte[0],Serializer.BYTE_ARRAY_NOSIZE);
+            recids.add(recid);
         }
 
         final AtomicLong a = new AtomicLong(10);
@@ -692,7 +711,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
                     try {
                         for (; ; ) {
                             long A = a.incrementAndGet();
-                            Random r = new Random();
+                            Random r = new Random(A);
                             e.update(counterRecid, A, Serializer.LONG);
 
                             for (long recid : recids) {
@@ -708,7 +727,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
                 }
             };
             t.start();
-            t.sleep(5000);
+            Thread.sleep(5000);
             t.stop();
             latch.await();
             if(!e.isClosed()){

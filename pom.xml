@@ -27,9 +27,9 @@
     </developers>
 
     <scm>
-        <connection>scm:git:git@github.com:jankotek/MapDB.git</connection>
-        <developerConnection>scm:git:git@github.com:jankotek/MapDB.git</developerConnection>
-        <url>git@github.com:jankotek/MapDB.git</url>
+        <connection>scm:git:git@github.com:jankotek/mapdb.git</connection>
+        <developerConnection>scm:git:git@github.com:jankotek/mapdb.git</developerConnection>
+        <url>git@github.com:jankotek/mapdb.git</url>
     </scm>
 
     <properties>
@@ -42,7 +42,7 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.11</version>
+            <version>4.12</version>
             <type>jar</type>
             <scope>test</scope>
             <optional>false</optional>
@@ -121,6 +121,22 @@
             </plugin>
 
 
+            <plugin>
+                <artifactId>maven-clean-plugin</artifactId>
+                <version>2.6.1</version>
+                <configuration>
+                    <filesets>
+                        <fileset>
+                            <directory>/tmp/</directory>
+                            <includes>
+                                <include>mapdbTest*</include>
+                                <include>mapdbTest*/*</include>
+                            </includes>
+                            <followSymlinks>false</followSymlinks>
+                        </fileset>
+                    </filesets>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 

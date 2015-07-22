@@ -77,10 +77,13 @@ public class StoreAppend extends Store {
                           byte[] password,
                           boolean readonly,
                           boolean snapshotEnable,
+                          boolean fileLockDisable,
+                          DataIO.HeartbeatFileLock fileLockHeartbeat,
                           boolean txDisabled,
                           ScheduledExecutorService compactionExecutor
                     ) {
-        super(fileName, volumeFactory, cache, lockScale,lockingStrategy, checksum, compress, password, readonly, snapshotEnable);
+        super(fileName, volumeFactory, cache, lockScale,lockingStrategy, checksum, compress, password, readonly,
+                snapshotEnable,fileLockDisable, fileLockHeartbeat);
         this.tx = !txDisabled;
         if(tx){
             modified = new LongLongMap[this.lockScale];
@@ -107,6 +110,8 @@ public class StoreAppend extends Store {
                 false,
                 false,
                 false,
+                null,
+                false,
                 null
         );
     }
@@ -120,7 +125,9 @@ public class StoreAppend extends Store {
                 host.compress,
                 null, //TODO password on snapshot
                 true, //snapshot is readonly
-                false);
+                false,
+                false,
+                null);
 
         indexTable = host.indexTable;
         vol = host.vol;
@@ -159,10 +166,8 @@ public class StoreAppend extends Store {
         super.init();
         structuralLock.lock();
         try {
-            vol = volumeFactory.makeVolume(fileName, readonly);
+            vol = volumeFactory.makeVolume(fileName, readonly,fileLockDisable);
             indexTable = new Volume.ByteArrayVol(CC.VOLUME_PAGE_SHIFT);
-            if (!readonly)
-                vol.ensureAvailable(headerSize);
             eof = headerSize;
             for (int i = 0; i <= RECID_LAST_RESERVED; i++) {
                 indexTable.ensureAvailable(i * 8);
@@ -180,6 +185,8 @@ public class StoreAppend extends Store {
     }
 
     protected void initCreate() {
+        vol.ensureAvailable(headerSize);
+
         highestRecid.set(RECID_LAST_RESERVED);
         vol.putInt(0,HEADER);
         long feat = makeFeaturesBitmap();
@@ -188,6 +195,9 @@ public class StoreAppend extends Store {
     }
 
     protected void initOpen() {
+        if (!readonly)
+            vol.ensureAvailable(headerSize);
+
         checkFeaturesBitmap(vol.getLong(HEAD_FEATURES));
 
         //replay log
@@ -316,7 +326,9 @@ public class StoreAppend extends Store {
         if(CC.ASSERT)
             assertReadLocked(recid);
 
-        long offset = modified[lockPos(recid)].get(recid);
+        long offset = tx?
+                modified[lockPos(recid)].get(recid):
+                0;
         if(offset==0) {
             try {
                 offset = indexTable.getLong(recid * 8);
@@ -509,6 +521,10 @@ public class StoreAppend extends Store {
                     c.close();
                 }
                 Arrays.fill(caches,null);
+            }
+            if(fileLockHeartbeat !=null) {
+                fileLockHeartbeat.unlock();
+                fileLockHeartbeat = null;
             }
             closed = true;
         }finally{

@@ -88,12 +88,14 @@ public abstract class Store implements Engine {
     protected final EncryptionXTEA encryptionXTEA;
     protected final ThreadLocal<CompressLZF> LZF;
     protected final boolean snapshotEnable;
+    protected final boolean fileLockDisable;
 
     protected final AtomicLong metricsDataWrite;
     protected final AtomicLong metricsRecordWrite;
     protected final AtomicLong metricsDataRead;
     protected final AtomicLong metricsRecordRead;
 
+    protected DataIO.HeartbeatFileLock fileLockHeartbeat;
 
     protected final Cache[] caches;
 
@@ -111,12 +113,16 @@ public abstract class Store implements Engine {
             boolean compress,
             byte[] password,
             boolean readonly,
-            boolean snapshotEnable) {
+            boolean snapshotEnable,
+            boolean fileLockDisable,
+            DataIO.HeartbeatFileLock fileLockHeartbeat) {
         this.fileName = fileName;
         this.volumeFactory = volumeFactory;
         this.lockScale = lockScale;
         this.snapshotEnable = snapshotEnable;
         this.lockMask = lockScale-1;
+        this.fileLockDisable = fileLockDisable;
+        this.fileLockHeartbeat = fileLockHeartbeat;
         if(Integer.bitCount(lockScale)!=1)
             throw new IllegalArgumentException("Lock Scale must be power of two");
         //TODO replace with incrementer on java 8
@@ -162,11 +168,24 @@ public abstract class Store implements Engine {
                 return new CompressLZF();
             }
         };
+
+        if(CC.LOG_STORE && LOG.isLoggable(Level.FINE)){
+            LOG.log(Level.FINE, "Store constructed: fileName={0}, volumeFactory={1}, cache={2}, lockScale={3}, " +
+                            "lockingStrategy={4}, checksum={5}, compress={6}, password={7}, readonly={8}, " +
+                            "snapshotEnable={9}, fileLockDisable={10}, fileLockHeartbeat={11}",
+                    new Object[]{fileName, volumeFactory, cache, lockScale, lockingStrategy, checksum,
+                    compress, (password!=null), readonly, snapshotEnable, fileLockDisable, fileLockHeartbeat});
+        }
+
     }
 
     public void init(){}
 
     protected void checkFeaturesBitmap(final long feat){
+        if(CC.LOG_STORE && LOG.isLoggable(Level.FINE)) {
+            LOG.log(Level.FINE, "Feature Bitmap: {0}", Long.toBinaryString(feat));
+        }
+
         boolean xteaEnc = (feat>>>FEAT_ENC_XTEA&1)!=0;
         if(xteaEnc&& !encrypt){
             throw new DBException.WrongConfig("Store was created with encryption, but no password is set in config.");
@@ -219,7 +238,12 @@ public abstract class Store implements Engine {
         try{
             A o = cache==null ? null : (A) cache.get(recid);
             if(o!=null) {
-                return o== Cache.NULL?null:o;
+                if(o == Cache.NULL)
+                    o = null;
+                if (CC.LOG_STORE && LOG.isLoggable(Level.FINEST)) {
+                    LOG.log(Level.FINEST, "Get from cache: recid={0}, serializer={1}, rec={2}", new Object[]{recid, serializer, o});
+                }
+                return o;
             }
             o =  get2(recid,serializer);
             if(cache!=null) {
@@ -243,6 +267,11 @@ public abstract class Store implements Engine {
 
         //serialize outside lock
         DataIO.DataOutputByteArray out = serialize(value, serializer);
+
+        if (CC.LOG_STORE && LOG.isLoggable(Level.FINEST)) {
+            LOG.log(Level.FINEST, "Update: recid={0}, serializer={1}, serSize={2}, rec={3}", new Object[]{recid, serializer, out.pos, value});
+        }
+
         int lockPos = lockPos(recid);
         final Lock lock = locks[lockPos].writeLock();
         final Cache cache = caches==null ? null : caches[lockPos];
@@ -472,6 +501,9 @@ public abstract class Store implements Engine {
         if(closed)
             throw new IllegalAccessError("closed");
 
+        if (CC.LOG_STORE && LOG.isLoggable(Level.FINEST)) {
+            LOG.log(Level.FINEST, "CAS: recid={0}, serializer={1}, expectedRec={2}, newRec={3}", new Object[]{recid, serializer, expectedOldValue, newValue});
+        }
 
         //TODO binary CAS & serialize outside lock
         final int lockPos = lockPos(recid);
@@ -506,6 +538,10 @@ public abstract class Store implements Engine {
         if(closed)
             throw new IllegalAccessError("closed");
 
+
+        if (CC.LOG_STORE && LOG.isLoggable(Level.FINEST)) {
+            LOG.log(Level.FINEST, "Delete: recid={0}, serializer={1}", new Object[]{recid, serializer});
+        }
 
         final int lockPos = lockPos(recid);
         final Lock lock = locks[lockPos].writeLock();
@@ -582,6 +618,11 @@ public abstract class Store implements Engine {
     public void clearCache() {
         if(closed)
             throw new IllegalAccessError("closed");
+
+
+        if (CC.LOG_STORE && LOG.isLoggable(Level.FINE)) {
+            LOG.log(Level.FINE, "Clear Cache");
+        }
 
         if(caches==null)
             return;

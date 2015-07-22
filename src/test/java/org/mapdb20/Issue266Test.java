@@ -40,7 +40,7 @@ public class Issue266Test {
     @Test
     public void testEnum() throws IOException {
 
-        File f = File.createTempFile("mapdb","asdas");
+        File f = File.createTempFile("mapdbTest","asdas");
         DB db = DBMaker.fileDB(f).make();
 
         AdvancedEnum testEnumValue = AdvancedEnum.C;

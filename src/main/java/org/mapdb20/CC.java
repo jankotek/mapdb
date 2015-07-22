@@ -129,5 +129,26 @@ interface CC {
 
     //TODO AppendStoreTest par* test fails if this changes  to FileChannelVol
     Volume.VolumeFactory DEFAULT_FILE_VOLUME_FACTORY = Volume.RandomAccessFileVol.FACTORY;
+
+
+    /**
+     * System property <code>h2.maxFileRetry</code> (default: 16).<br />
+     * Number of times to retry file delete and rename. in Windows, files can't
+     * be deleted if they are open. Waiting a bit can help (sometimes the
+     * Windows Explorer opens the files for a short time) may help. Sometimes,
+     * running garbage collection may close files if the user forgot to call
+     * Connection.close() or InputStream.close().
+     *
+     * TODO H2 specific comment reedit
+     * TODO file retry is useful, apply MapDB wide
+     */
+    int FILE_RETRY = 16;
+
+
+    /**
+     * The number of milliseconds to wait between checking the .lock file
+     * still exists once a db is locked.
+     */
+    int FILE_LOCK_HEARTBEAT = 1000;
 }
 

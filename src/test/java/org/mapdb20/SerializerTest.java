@@ -2,11 +2,8 @@ package org.mapdb20;
 
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Random;
-import java.util.UUID;
+import java.io.*;
+import java.util.*;
 
 import static org.junit.Assert.*;
 
@@ -70,7 +67,7 @@ public class SerializerTest {
 
         Object[] a = new Object[]{1,2,3,4};
 
-        assertTrue(Arrays.equals(a, (Object[])UtilsTest.clone(a, s)));
+        assertTrue(Arrays.equals(a, (Object[]) UtilsTest.clone(a, s)));
         assertEquals(s, UtilsTest.clone(s, Serializer.BASIC));
     }
 
@@ -122,4 +119,128 @@ public class SerializerTest {
     @Test public void Int_packed_zigzag(){
         testInt(Serializer.INTEGER_PACKED_ZIGZAG);
     }
+
+    @Test public void deflate_wrapper(){
+        Serializer.CompressionDeflateWrapper c =
+                new Serializer.CompressionDeflateWrapper(Serializer.BYTE_ARRAY, -1,
+                        new byte[]{1,1,1,1,1,1,1,1,1,1,1,23,4,5,6,7,8,9,65,2});
+
+        byte[] b = new byte[]{1,1,1,1,1,1,1,1,1,1,1,1,4,5,6,3,3,3,3,35,6,67,7,3,43,34};
+
+        assertTrue(Arrays.equals(b, UtilsTest.<byte[]>clone(b, c)));
+    }
+
+    @Test public void deflate_wrapper_values(){
+        DB db = DBMaker.memoryDB().transactionDisable().make();
+        Map m = db.treeMapCreate("a")
+                .valueSerializer(new Serializer.CompressionDeflateWrapper(Serializer.LONG))
+                .keySerializer(Serializer.LONG)
+                .make();
+
+        for(long i=0;i<1000;i++){
+            m.put(i,i*10);
+        }
+
+        for(long i=0;i<1000;i++){
+            assertEquals(i*10,m.get(i));
+        }
+    }
+
+
+    @Test public void compress_wrapper_values(){
+        DB db = DBMaker.memoryDB().transactionDisable().make();
+        Map m = db.treeMapCreate("a")
+                .valueSerializer(new Serializer.CompressionWrapper(Serializer.LONG))
+                .keySerializer(Serializer.LONG)
+                .make();
+
+        for(long i=0;i<1000;i++){
+            m.put(i,i*10);
+        }
+
+        for(long i=0;i<1000;i++){
+            assertEquals(i * 10, m.get(i));
+        }
+    }
+
+
+    static final class StringS implements Comparable<StringS>{
+        final String s;
+
+        StringS(String s) {
+            this.s = s;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            StringS stringS = (StringS) o;
+
+            return !(s != null ? !s.equals(stringS.s) : stringS.s != null);
+
+        }
+
+        @Override
+        public int hashCode() {
+            return s != null ? s.hashCode() : 0;
+        }
+
+        @Override
+        public int compareTo(StringS o) {
+            return s.compareTo(o.s);
+        }
+    }
+
+    static final class StringSSerializer extends Serializer<StringS> implements Serializable {
+
+        @Override
+        public void serialize(DataOutput out, StringS value) throws IOException {
+            out.writeUTF(value.s);
+        }
+
+        @Override
+        public StringS deserialize(DataInput in, int available) throws IOException {
+            return new StringS(in.readUTF());
+        }
+    }
+    @Test public void issue546() throws IOException {
+        File f = File.createTempFile("mapdbTest","mapdb");
+        DB db = DBMaker
+                .fileDB(f)
+                .transactionDisable()
+                .make();
+
+
+
+        BTreeKeySerializer XYZ_SERIALIZER = new BTreeKeySerializer.ArrayKeySerializer(
+                new Comparator[]{Fun.COMPARATOR,Fun.COMPARATOR},
+                new Serializer[]{new StringSSerializer(), new StringSSerializer()}
+        );
+
+        NavigableSet<Object[]> multiMap = db.treeSetCreate("xyz")
+                .serializer(XYZ_SERIALIZER)
+                .make();
+
+        multiMap.add(new Object[]{new StringS("str1"), new StringS("str2")});
+        db.close();
+
+        db = DBMaker
+                .fileDB(f)
+                .transactionDisable()
+                .asyncWriteEnable()
+                .make();
+
+
+        multiMap = db.treeSetCreate("xyz")
+                .serializer(XYZ_SERIALIZER)
+                .makeOrGet();
+
+        assertEquals(1, multiMap.size());
+        assertTrue(multiMap.contains(new Object[]{new StringS("str1"), new StringS("str2")}));
+        db.close();
+
+    }
+
 }

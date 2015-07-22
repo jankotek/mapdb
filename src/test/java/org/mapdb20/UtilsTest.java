@@ -8,11 +8,10 @@ import java.io.*;
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 
 import static java.util.Arrays.asList;
 import static org.junit.Assert.*;
@@ -38,6 +37,11 @@ public class UtilsTest {
      */
     public static int scale() {
         return SCALE;
+    }
+
+
+    public static boolean shortTest() {
+        return scale()==0;
     }
 
 
@@ -148,7 +152,7 @@ public class UtilsTest {
      */
     public static File tempDbFile() {
         try{
-            File index = File.createTempFile("mapdb","db");
+            File index = File.createTempFile("mapdbTest","db");
             index.deleteOnExit();
 
             return index;
@@ -173,15 +177,17 @@ public class UtilsTest {
 
     /* faster version of Random.nextBytes() */
     public static byte[] randomByteArray(int size){
-        int seed = (int) (100000*Math.random());
+        return randomByteArray(size, (int) (100000 * Math.random()));
+    }
+    /* faster version of Random.nextBytes() */
+    public static byte[] randomByteArray(int size, int randomSeed){
         byte[] ret = new byte[size];
         for(int i=0;i<ret.length;i++){
-            ret[i] = (byte) seed;
-            seed = 31*seed+DataIO.intHash(seed);
+            ret[i] = (byte) randomSeed;
+            randomSeed = 31*randomSeed+DataIO.intHash(randomSeed);
         }
         return ret;
     }
-
     public static int randomInt() {
         return new Random().nextInt();
     }
@@ -208,4 +214,30 @@ public class UtilsTest {
         s.shutdown();
         return f;
     }
+
+    public static List<Future> fork(int count, Callable callable) {
+        ArrayList<Future> ret = new ArrayList();
+        for(int i=0;i<count;i++){
+            ret.add(fork(callable));
+        }
+        return ret;
+    }
+
+    public static void forkAwait(List<Future> futures) throws ExecutionException, InterruptedException {
+        futures = new ArrayList(futures);
+
+        while(!futures.isEmpty()){
+            for(int i=0; i<futures.size();i++){
+                Future f = futures.get(i);
+                try {
+                    f.get(100, TimeUnit.MILLISECONDS);
+                    //get was fine, so remove from list and continue
+                    futures.remove(i);
+                } catch (TimeoutException e) {
+                    //thats fine, not yet finished, continue
+                }
+            }
+        }
+    }
+
 }

@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.Level;
 
 import static org.mapdb20.DataIO.*;
 
@@ -107,7 +108,7 @@ public class StoreWAL extends StoreCached {
                 null,
                 CC.DEFAULT_LOCK_SCALE,
                 0,
-                false, false, null, false,false, 0,
+                false, false, null, false,false, false, null, 0,
                 false, 0,
                 null, 0L,
                 0);
@@ -124,6 +125,8 @@ public class StoreWAL extends StoreCached {
             byte[] password,
             boolean readonly,
             boolean snapshotEnable,
+            boolean fileLockDisable,
+            HeartbeatFileLock fileLockHeartbeat,
             int freeSpaceReclaimQ,
             boolean commitFileSyncDisable,
             int sizeIncrement,
@@ -134,7 +137,7 @@ public class StoreWAL extends StoreCached {
         super(fileName, volumeFactory, cache,
                 lockScale,
                 lockingStrategy,
-                checksum, compress, password, readonly, snapshotEnable,
+                checksum, compress, password, readonly, snapshotEnable, fileLockDisable, fileLockHeartbeat,
                 freeSpaceReclaimQ, commitFileSyncDisable, sizeIncrement,
                 executor,
                 executorScheduledRate,
@@ -185,14 +188,14 @@ public class StoreWAL extends StoreCached {
                      new File(wal0Name).exists())){
             //fill compaction stuff
 
-            walC =  walCompSealExists?volumeFactory.makeVolume(walCompSeal, readonly) : null;
-            walCCompact = walCompSealExists? volumeFactory.makeVolume(walCompSeal + ".compact", readonly) : null;
+            walC =  walCompSealExists?volumeFactory.makeVolume(walCompSeal, readonly, true) : null;
+            walCCompact = walCompSealExists? volumeFactory.makeVolume(walCompSeal + ".compact", readonly, true) : null;
 
             for(int i=0;;i++){
                 String rname = getWalFileName("r"+i);
                 if(!new File(rname).exists())
                     break;
-                walRec.add(volumeFactory.makeVolume(rname, readonly));
+                walRec.add(volumeFactory.makeVolume(rname, readonly, true));
             }
 
 
@@ -201,7 +204,7 @@ public class StoreWAL extends StoreCached {
                 String wname = getWalFileName(""+i);
                 if(!new File(wname).exists())
                     break;
-                volumes.add(volumeFactory.makeVolume(wname, readonly));
+                volumes.add(volumeFactory.makeVolume(wname, readonly, true));
             }
 
             initOpenPost();
@@ -292,7 +295,7 @@ public class StoreWAL extends StoreCached {
         if (readonly && filewal != null && !new File(filewal).exists()){
             nextVol = new Volume.ReadOnly(new Volume.ByteArrayVol(8));
         }else {
-            nextVol = volumeFactory.makeVolume(filewal, readonly);
+            nextVol = volumeFactory.makeVolume(filewal, readonly, true);
         }
         nextVol.ensureAvailable(16);
 
@@ -545,6 +548,47 @@ public class StoreWAL extends StoreCached {
         return page;
     }
 
+
+    /** return positions of (possibly) linked record */
+    @Override
+    protected long[] offsetsGet(int segment, long indexVal) {;
+        if(indexVal>>>48==0){
+            return ((indexVal&MLINKED)!=0) ? null : StoreDirect.EMPTY_LONGS;
+        }
+
+        long[] ret = new long[]{indexVal};
+        while((ret[ret.length-1]&MLINKED)!=0){
+            ret = Arrays.copyOf(ret, ret.length + 1);
+            long oldLink = ret[ret.length-2]&MOFFSET;
+
+            //get WAL position from current transaction, or previous (not yet fully replayed) transactions
+            long val = currDataLongs[segment].get(oldLink);
+            if(val==0)
+                val = prevDataLongs[segment].get(oldLink);
+            if(val!=0) {
+                //was found in previous position, read link from WAL
+                int file = (int) ((val>>>32) & 0xFFFFL); // get WAL file number
+                val = val & 0xFFFFFFFFL; // convert to WAL offset;
+                val = volumes.get(file).getLong(val);
+            }else{
+                //was not found in any transaction, read from main store
+                val = vol.getLong(oldLink);
+            }
+            ret[ret.length-1] = parity3Get(val);
+        }
+
+        if(CC.ASSERT){
+           offsetsVerify(ret);
+        }
+
+        if (CC.LOG_STORE && LOG.isLoggable(Level.FINEST)) {
+            LOG.log(Level.FINEST, "indexVal={0}, ret={1}",
+                    new Object[]{Long.toHexString(indexVal), Arrays.toString(ret)});
+        }
+
+        return ret;
+    }
+
     @Override
     protected <A> A get2(long recid, Serializer<A> serializer) {
         if (CC.ASSERT)
@@ -642,7 +686,7 @@ public class StoreWAL extends StoreCached {
             }
         }
 
-        long[] offsets = offsetsGet(indexValGet(recid));
+        long[] offsets = offsetsGet(lockPos(recid),indexValGet(recid));
         if (offsets == null) {
             return null; //zero size
         }else if (offsets.length==0){
@@ -725,7 +769,7 @@ public class StoreWAL extends StoreCached {
             if(compactionInProgress){
                 //use record format rather than instruction format.
                 String recvalName = getWalFileName("r"+walRec.size());
-                Volume v = volumeFactory.makeVolume(recvalName, readonly);
+                Volume v = volumeFactory.makeVolume(recvalName, readonly, true);
                 walRec.add(v);
                 v.ensureAvailable(16);
                 long offset = 16;
@@ -829,7 +873,7 @@ public class StoreWAL extends StoreCached {
                     currLongLongs[segment].clear();
 
                     v = currDataLongs[segment].table;
-                    currDataLongs[segment].size=0;
+
                     for(int i=0;i<v.length;i+=2){
                         long offset = v[i];
                         if(offset==0)
@@ -1078,7 +1122,7 @@ public class StoreWAL extends StoreCached {
                     }
 
                     //and reopen volume
-                    this.realVol = volumeFactory.makeVolume(this.fileName, readonly);
+                    this.realVol = volumeFactory.makeVolume(this.fileName, readonly, fileLockDisable);
                     this.vol = new Volume.ReadOnly(this.realVol);
                     this.initHeadVol();
 
@@ -1332,6 +1376,10 @@ public class StoreWAL extends StoreCached {
                     }
                     Arrays.fill(caches,null);
                 }
+                if(fileLockHeartbeat !=null) {
+                    fileLockHeartbeat.unlock();
+                    fileLockHeartbeat = null;
+                }
                 closed = true;
             }finally {
                 commitLock.unlock();
@@ -1377,7 +1425,7 @@ public class StoreWAL extends StoreCached {
                     String walCFileName = getWalFileName("c");
                     if(walC!=null)
                         walC.close();
-                    walC = volumeFactory.makeVolume(walCFileName, readonly);
+                    walC = volumeFactory.makeVolume(walCFileName, readonly, true);
                     walC.ensureAvailable(16);
                     walC.putLong(0,0); //TODO wal header
                     walC.putLong(8,0);
@@ -1398,7 +1446,7 @@ public class StoreWAL extends StoreCached {
                     volumeFactory,
                     null,lockScale,
                     executor==null?LOCKING_STRATEGY_NOLOCK:LOCKING_STRATEGY_WRITELOCK,
-                    checksum,compress,null,false,false,0,false,0,
+                    checksum,compress,null,false,false,fileLockDisable,null, 0,false,0,
                     null);
             target.init();
             walCCompact = target.vol;

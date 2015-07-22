@@ -1,0 +1,941 @@
+#
+# There is insufficient memory for the Java Runtime Environment to continue.
+# Native memory allocation (mmap) failed to map 249561088 bytes for committing reserved memory.
+# Possible reasons:
+#   The system is out of physical RAM or swap space
+#   In 32 bit mode, the process size limit was hit
+# Possible solutions:
+#   Reduce memory load on the system
+#   Increase physical memory or swap space
+#   Check if swap backing store is full
+#   Use 64 bit Java on a 64 bit OS
+#   Decrease Java heap size (-Xmx/-Xms)
+#   Decrease number of Java threads
+#   Decrease Java thread stack sizes (-Xss)
+#   Set larger code cache with -XX:ReservedCodeCacheSize=
+# This output file may be truncated or incomplete.
+#
+#  Out of Memory Error (os_linux.cpp:2671), pid=3863, tid=139899401438976
+#
+# JRE version: Java(TM) SE Runtime Environment (8.0_25-b17) (build 1.8.0_25-b17)
+# Java VM: Java HotSpot(TM) 64-Bit Server VM (25.25-b02 mixed mode linux-amd64 compressed oops)
+# Failed to write core dump. Core dumps have been disabled. To enable core dumping, try "ulimit -c unlimited" before starting Java again
+#
+
+---------------  T H R E A D  ---------------
+
+Current thread (0x00007f3cf4073800):  VMThread [stack: 0x00007f3cde108000,0x00007f3cde209000] [id=3872]
+
+Stack: [0x00007f3cde108000,0x00007f3cde209000],  sp=0x00007f3cde207170,  free space=1020k
+Native frames: (J=compiled Java code, j=interpreted, Vv=VM code, C=native code)
+V  [libjvm.so+0xa7923a]  VMError::report_and_die()+0x2ca
+V  [libjvm.so+0x4e552b]  report_vm_out_of_memory(char const*, int, unsigned long, VMErrorType, char const*)+0x8b
+V  [libjvm.so+0x8e5613]  os::Linux::commit_memory_impl(char*, unsigned long, bool)+0x103
+V  [libjvm.so+0x8e5b69]  os::pd_commit_memory(char*, unsigned long, unsigned long, bool)+0x29
+V  [libjvm.so+0x8df83a]  os::commit_memory(char*, unsigned long, unsigned long, bool)+0x2a
+V  [libjvm.so+0x94f923]  PSVirtualSpace::expand_by(unsigned long)+0x53
+V  [libjvm.so+0x950d28]  PSYoungGen::resize_generation(unsigned long, unsigned long)+0xf8
+V  [libjvm.so+0x94fe82]  PSYoungGen::resize(unsigned long, unsigned long)+0x22
+V  [libjvm.so+0x94d163]  PSScavenge::invoke_no_policy()+0xf53
+V  [libjvm.so+0x94d8e1]  PSScavenge::invoke()+0x41
+V  [libjvm.so+0x907800]  ParallelScavengeHeap::failed_mem_allocate(unsigned long)+0x70
+V  [libjvm.so+0xa7a8b7]  VM_ParallelGCFailedAllocation::doit()+0x97
+V  [libjvm.so+0xa81fd5]  VM_Operation::evaluate()+0x55
+V  [libjvm.so+0xa803aa]  VMThread::evaluate_operation(VM_Operation*)+0xba
+V  [libjvm.so+0xa8072e]  VMThread::loop()+0x1ce
+V  [libjvm.so+0xa80ba0]  VMThread::run()+0x70
+V  [libjvm.so+0x8e7d48]  java_start(Thread*)+0x108
+
+VM_Operation (0x00007f3cdcad9830): ParallelGCFailedAllocation, mode: safepoint, requested by thread 0x00007f3cf4282000
+
+
+---------------  P R O C E S S  ---------------
+
+Java Threads: ( => current thread )
+  0x00007f3cf4282000 JavaThread "Thread-2" [_thread_blocked, id=3910, stack(0x00007f3cdc9da000,0x00007f3cdcadb000)]
+  0x00007f3cf40d9800 JavaThread "Monitor Ctrl-Break" daemon [_thread_in_native, id=3894, stack(0x00007f3cdd334000,0x00007f3cdd435000)]
+  0x00007f3cf40b7000 JavaThread "Service Thread" daemon [_thread_blocked, id=3886, stack(0x00007f3cdd738000,0x00007f3cdd839000)]
+  0x00007f3cf40ae800 JavaThread "C1 CompilerThread2" daemon [_thread_blocked, id=3885, stack(0x00007f3cdd839000,0x00007f3cdd93a000)]
+  0x00007f3cf40ad000 JavaThread "C2 CompilerThread1" daemon [_thread_blocked, id=3884, stack(0x00007f3cdd93a000,0x00007f3cdda3b000)]
+  0x00007f3cf40aa000 JavaThread "C2 CompilerThread0" daemon [_thread_blocked, id=3883, stack(0x00007f3cdda3b000,0x00007f3cddb3c000)]
+  0x00007f3cf40a8000 JavaThread "Signal Dispatcher" daemon [_thread_blocked, id=3882, stack(0x00007f3cddb3c000,0x00007f3cddc3d000)]
+  0x00007f3cf407c800 JavaThread "Finalizer" daemon [_thread_blocked, id=3878, stack(0x00007f3cddf06000,0x00007f3cde007000)]
+  0x00007f3cf407a800 JavaThread "Reference Handler" daemon [_thread_blocked, id=3877, stack(0x00007f3cde007000,0x00007f3cde108000)]
+  0x00007f3cf400a800 JavaThread "main" [_thread_blocked, id=3864, stack(0x00007f3cfa91d000,0x00007f3cfaa1e000)]
+
+Other Threads:
+=>0x00007f3cf4073800 VMThread [stack: 0x00007f3cde108000,0x00007f3cde209000] [id=3872]
+  0x00007f3cf40b9000 WatcherThread [stack: 0x00007f3cdd637000,0x00007f3cdd738000] [id=3887]
+
+VM state:at safepoint (normal execution)
+
+VM Mutex/Monitor currently owned by a thread:  ([mutex/lock_event])
+[0x00007f3cf4006850] Threads_lock - owner thread: 0x00007f3cf4073800
+[0x00007f3cf4006d50] Heap_lock - owner thread: 0x00007f3cf4282000
+
+Heap:
+ PSYoungGen      total 278528K, used 14382K [0x00000000d7780000, 0x00000000ea680000, 0x0000000100000000)
+  eden space 248320K, 0% used [0x00000000d7780000,0x00000000d7780000,0x00000000e6a00000)
+  from space 30208K, 47% used [0x00000000e6a00000,0x00000000e780b9c0,0x00000000e8780000)
+  to   space 28672K, 0% used [0x00000000e8780000,0x00000000e8780000,0x00000000ea380000)
+ ParOldGen       total 83456K, used 54702K [0x0000000086600000, 0x000000008b780000, 0x00000000d7780000)
+  object space 83456K, 65% used [0x0000000086600000,0x0000000089b6b878,0x000000008b780000)
+ Metaspace       used 6912K, capacity 7046K, committed 7296K, reserved 1056768K
+  class space    used 810K, capacity 851K, committed 896K, reserved 1048576K
+
+Card table byte_map: [0x00007f3ce423f000,0x00007f3ce460d000] byte_map_base: 0x00007f3ce3e0c000
+
+Marking Bits: (ParMarkBitMap*) 0x00007f3cf9e032c0
+ Begin Bits: [0x00007f3cdffe3000, 0x00007f3ce1e4b000)
+ End Bits:   [0x00007f3ce1e4b000, 0x00007f3ce3cb3000)
+
+Polling page: 0x00007f3cfaa49000
+
+CodeCache: size=245760Kb used=2925Kb max_used=2925Kb free=242834Kb
+ bounds [0x00007f3ce49cd000, 0x00007f3ce4cad000, 0x00007f3cf39cd000]
+ total_blobs=1132 nmethods=821 adapters=227
+ compilation: enabled
+
+Compilation events (10 events):
+Event: 10.292 Thread 0x00007f3cf40ae800  817       3       org.mapdb.HTreeMap::counter (59 bytes)
+Event: 10.293 Thread 0x00007f3cf40ae800 nmethod 817 0x00007f3ce4ca1e50 code [0x00007f3ce4ca2000, 0x00007f3ce4ca25c8]
+Event: 10.294 Thread 0x00007f3cf40ae800  816       3       org.mapdb.HTreeMap::dirOffsetFromSlot (25 bytes)
+Event: 10.295 Thread 0x00007f3cf40ae800 nmethod 816 0x00007f3ce4ca0290 code [0x00007f3ce4ca0420, 0x00007f3ce4ca08b8]
+Event: 11.023 Thread 0x00007f3cf40ae800  818       3       org.mapdb.Fun::roundUp (10 bytes)
+Event: 11.123 Thread 0x00007f3cf40ae800 nmethod 818 0x00007f3ce4ca1ad0 code [0x00007f3ce4ca1c40, 0x00007f3ce4ca1db0]
+Event: 11.129 Thread 0x00007f3cf40ae800  819       3       java.nio.ByteBuffer::order (17 bytes)
+Event: 11.133 Thread 0x00007f3cf40ae800 nmethod 819 0x00007f3ce4ca1710 code [0x00007f3ce4ca1880, 0x00007f3ce4ca1a50]
+Event: 11.240 Thread 0x00007f3cf40ae800  820       3       java.util.Arrays::fill (23 bytes)
+Event: 11.241 Thread 0x00007f3cf40ae800 nmethod 820 0x00007f3ce4ca5b90 code [0x00007f3ce4ca5d00, 0x00007f3ce4ca5ef0]
+
+GC Heap History (10 events):
+Event: 3.124 GC heap after
+Heap after GC invocations=2 (full 0):
+ PSYoungGen      total 67584K, used 5119K [0x00000000d7780000, 0x00000000dbe80000, 0x0000000100000000)
+  eden space 62464K, 0% used [0x00000000d7780000,0x00000000d7780000,0x00000000db480000)
+  from space 5120K, 99% used [0x00000000db980000,0x00000000dbe7fd50,0x00000000dbe80000)
+  to   space 5120K, 0% used [0x00000000db480000,0x00000000db480000,0x00000000db980000)
+ ParOldGen       total 83456K, used 15643K [0x0000000086600000, 0x000000008b780000, 0x00000000d7780000)
+  object space 83456K, 18% used [0x0000000086600000,0x0000000087546db0,0x000000008b780000)
+ Metaspace       used 6850K, capacity 6978K, committed 7040K, reserved 1056768K
+  class space    used 807K, capacity 851K, committed 896K, reserved 1048576K
+}
+Event: 4.088 GC heap before
+{Heap before GC invocations=3 (full 0):
+ PSYoungGen      total 67584K, used 67583K [0x00000000d7780000, 0x00000000dbe80000, 0x0000000100000000)
+  eden space 62464K, 100% used [0x00000000d7780000,0x00000000db480000,0x00000000db480000)
+  from space 5120K, 99% used [0x00000000db980000,0x00000000dbe7fd50,0x00000000dbe80000)
+  to   space 5120K, 0% used [0x00000000db480000,0x00000000db480000,0x00000000db980000)
+ ParOldGen       total 83456K, used 15643K [0x0000000086600000, 0x000000008b780000, 0x00000000d7780000)
+  object space 83456K, 18% used [0x0000000086600000,0x0000000087546db0,0x000000008b780000)
+ Metaspace       used 6850K, capacity 6978K, committed 7040K, reserved 1056768K
+  class space    used 807K, capacity 851K, committed 896K, reserved 1048576K
+Event: 4.180 GC heap after
+Heap after GC invocations=3 (full 0):
+ PSYoungGen      total 67584K, used 5099K [0x00000000d7780000, 0x00000000dfb80000, 0x0000000100000000)
+  eden space 62464K, 0% used [0x00000000d7780000,0x00000000d7780000,0x00000000db480000)
+  from space 5120K, 99% used [0x00000000db480000,0x00000000db97acd0,0x00000000db980000)
+  to   space 5120K, 0% used [0x00000000df680000,0x00000000df680000,0x00000000dfb80000)
+ ParOldGen       total 83456K, used 38360K [0x0000000086600000, 0x000000008b780000, 0x00000000d7780000)
+  object space 83456K, 45% used [0x0000000086600000,0x0000000088b76160,0x000000008b780000)
+ Metaspace       used 6850K, capacity 6978K, committed 7040K, reserved 1056768K
+  class space    used 807K, capacity 851K, committed 896K, reserved 1048576K
+}
+Event: 4.939 GC heap before
+{Heap before GC invocations=4 (full 0):
+ PSYoungGen      total 67584K, used 67563K [0x00000000d7780000, 0x00000000dfb80000, 0x0000000100000000)
+  eden space 62464K, 100% used [0x00000000d7780000,0x00000000db480000,0x00000000db480000)
+  from space 5120K, 99% used [0x00000000db480000,0x00000000db97acd0,0x00000000db980000)
+  to   space 5120K, 0% used [0x00000000df680000,0x00000000df680000,0x00000000dfb80000)
+ ParOldGen       total 83456K, used 38360K [0x0000000086600000, 0x000000008b780000, 0x00000000d7780000)
+  object space 83456K, 45% used [0x0000000086600000,0x0000000088b76160,0x000000008b780000)
+ Metaspace       used 6866K, capacity 6978K, committed 7040K, reserved 1056768K
+  class space    used 807K, capacity 851K, committed 896K, reserved 1048576K
+Event: 4.999 GC heap after
+Heap after GC invocations=4 (full 0):
+ PSYoungGen      total 130048K, used 5119K [0x00000000d7780000, 0x00000000dfb80000, 0x0000000100000000)
+  eden space 124928K, 0% used [0x00000000d7780000,0x00000000d7780000,0x00000000df180000)
+  from space 5120K, 99% used [0x00000000df680000,0x00000000dfb7ff30,0x00000000dfb80000)
+  to   space 5120K, 0% used [0x00000000df180000,0x00000000df180000,0x00000000df680000)
+ ParOldGen       total 83456K, used 48140K [0x0000000086600000, 0x000000008b780000, 0x00000000d7780000)
+  object space 83456K, 57% used [0x0000000086600000,0x0000000089503040,0x000000008b780000)
+ Metaspace       used 6866K, capacity 6978K, committed 7040K, reserved 1056768K
+  class space    used 807K, capacity 851K, committed 896K, reserved 1048576K
+}
+Event: 6.708 GC heap before
+{Heap before GC invocations=5 (full 0):
+ PSYoungGen      total 130048K, used 130047K [0x00000000d7780000, 0x00000000dfb80000, 0x0000000100000000)
+  eden space 124928K, 100% used [0x00000000d7780000,0x00000000df180000,0x00000000df180000)
+  from space 5120K, 99% used [0x00000000df680000,0x00000000dfb7ff30,0x00000000dfb80000)
+  to   space 5120K, 0% used [0x00000000df180000,0x00000000df180000,0x00000000df680000)
+ ParOldGen       total 83456K, used 48140K [0x0000000086600000, 0x000000008b780000, 0x00000000d7780000)
+  object space 83456K, 57% used [0x0000000086600000,0x0000000089503040,0x000000008b780000)
+ Metaspace       used 6870K, capacity 6978K, committed 7040K, reserved 1056768K
+  class space    used 807K, capacity 851K, committed 896K, reserved 1048576K
+Event: 6.744 GC heap after
+Heap after GC invocations=5 (full 0):
+ PSYoungGen      total 130048K, used 5115K [0x00000000d7780000, 0x00000000ea380000, 0x0000000100000000)
+  eden space 124928K, 0% used [0x00000000d7780000,0x00000000d7780000,0x00000000df180000)
+  from space 5120K, 99% used [0x00000000df180000,0x00000000df67ee88,0x00000000df680000)
+  to   space 28672K, 0% used [0x00000000e8780000,0x00000000e8780000,0x00000000ea380000)
+ ParOldGen       total 83456K, used 54454K [0x0000000086600000, 0x000000008b780000, 0x00000000d7780000)
+  object space 83456K, 65% used [0x0000000086600000,0x0000000089b2d858,0x000000008b780000)
+ Metaspace       used 6870K, capacity 6978K, committed 7040K, reserved 1056768K
+  class space    used 807K, capacity 851K, committed 896K, reserved 1048576K
+}
+Event: 9.624 GC heap before
+{Heap before GC invocations=6 (full 0):
+ PSYoungGen      total 130048K, used 130043K [0x00000000d7780000, 0x00000000ea380000, 0x0000000100000000)
+  eden space 124928K, 100% used [0x00000000d7780000,0x00000000df180000,0x00000000df180000)
+  from space 5120K, 99% used [0x00000000df180000,0x00000000df67ee88,0x00000000df680000)
+  to   space 28672K, 0% used [0x00000000e8780000,0x00000000e8780000,0x00000000ea380000)
+ ParOldGen       total 83456K, used 54454K [0x0000000086600000, 0x000000008b780000, 0x00000000d7780000)
+  object space 83456K, 65% used [0x0000000086600000,0x0000000089b2d858,0x000000008b780000)
+ Metaspace       used 6911K, capacity 7046K, committed 7296K, reserved 1056768K
+  class space    used 810K, capacity 851K, committed 896K, reserved 1048576K
+Event: 9.676 GC heap after
+Heap after GC invocations=6 (full 0):
+ PSYoungGen      total 276992K, used 22043K [0x00000000d7780000, 0x00000000ea680000, 0x0000000100000000)
+  eden space 248320K, 0% used [0x00000000d7780000,0x00000000d7780000,0x00000000e6a00000)
+  from space 28672K, 76% used [0x00000000e8780000,0x00000000e9d06f30,0x00000000ea380000)
+  to   space 30208K, 0% used [0x00000000e6a00000,0x00000000e6a00000,0x00000000e8780000)
+ ParOldGen       total 83456K, used 54454K [0x0000000086600000, 0x000000008b780000, 0x00000000d7780000)
+  object space 83456K, 65% used [0x0000000086600000,0x0000000089b2d858,0x000000008b780000)
+ Metaspace       used 6911K, capacity 7046K, committed 7296K, reserved 1056768K
+  class space    used 810K, capacity 851K, committed 896K, reserved 1048576K
+}
+Event: 11.728 GC heap before
+{Heap before GC invocations=7 (full 0):
+ PSYoungGen      total 276992K, used 270363K [0x00000000d7780000, 0x00000000ea680000, 0x0000000100000000)
+  eden space 248320K, 100% used [0x00000000d7780000,0x00000000e6a00000,0x00000000e6a00000)
+  from space 28672K, 76% used [0x00000000e8780000,0x00000000e9d06f30,0x00000000ea380000)
+  to   space 30208K, 0% used [0x00000000e6a00000,0x00000000e6a00000,0x00000000e8780000)
+ ParOldGen       total 83456K, used 54454K [0x0000000086600000, 0x000000008b780000, 0x00000000d7780000)
+  object space 83456K, 65% used [0x0000000086600000,0x0000000089b2d858,0x000000008b780000)
+ Metaspace       used 6912K, capacity 7046K, committed 7296K, reserved 1056768K
+  class space    used 810K, capacity 851K, committed 896K, reserved 1048576K
+
+Deoptimization events (5 events):
+Event: 1.284 Thread 0x00007f3cf400a800 Uncommon trap: reason=class_check action=maybe_recompile pc=0x00007f3ce4b9ea3c method=java.util.regex.Pattern$CharProperty.match(Ljava/util/regex/Matcher;ILjava/lang/CharSequence;)Z @ 18
+Event: 1.284 Thread 0x00007f3cf400a800 Uncommon trap: reason=class_check action=maybe_recompile pc=0x00007f3ce4b9ea3c method=java.util.regex.Pattern$CharProperty.match(Ljava/util/regex/Matcher;ILjava/lang/CharSequence;)Z @ 18
+Event: 1.285 Thread 0x00007f3cf400a800 Uncommon trap: reason=class_check action=maybe_recompile pc=0x00007f3ce4b9ea3c method=java.util.regex.Pattern$CharProperty.match(Ljava/util/regex/Matcher;ILjava/lang/CharSequence;)Z @ 18
+Event: 1.285 Thread 0x00007f3cf400a800 Uncommon trap: reason=class_check action=maybe_recompile pc=0x00007f3ce4b9ea3c method=java.util.regex.Pattern$CharProperty.match(Ljava/util/regex/Matcher;ILjava/lang/CharSequence;)Z @ 18
+Event: 7.457 Thread 0x00007f3cf4282000 Uncommon trap: reason=unreached action=reinterpret pc=0x00007f3ce4c76050 method=java.util.concurrent.locks.AbstractQueuedSynchronizer.doReleaseShared()V @ 6
+
+Internal exceptions (10 events):
+Event: 2.204 Thread 0x00007f3cf400a800 Exception <a 'java/security/PrivilegedActionException'> (0x00000000d85119b8) thrown at [/HUDSON/workspace/8-2-build-linux-amd64/jdk8u25/1514/hotspot/src/share/vm/prims/jvm.cpp, line 1312]
+Event: 2.205 Thread 0x00007f3cf400a800 Exception <a 'java/security/PrivilegedActionException'> (0x00000000d8515608) thrown at [/HUDSON/workspace/8-2-build-linux-amd64/jdk8u25/1514/hotspot/src/share/vm/prims/jvm.cpp, line 1312]
+Event: 2.219 Thread 0x00007f3cf400a800 Exception <a 'java/security/PrivilegedActionException'> (0x00000000d851fac8) thrown at [/HUDSON/workspace/8-2-build-linux-amd64/jdk8u25/1514/hotspot/src/share/vm/prims/jvm.cpp, line 1312]
+Event: 2.221 Thread 0x00007f3cf400a800 Exception <a 'java/security/PrivilegedActionException'> (0x00000000d85238a0) thrown at [/HUDSON/workspace/8-2-build-linux-amd64/jdk8u25/1514/hotspot/src/share/vm/prims/jvm.cpp, line 1312]
+Event: 2.223 Thread 0x00007f3cf400a800 Exception <a 'java/security/PrivilegedActionException'> (0x00000000d8526eb0) thrown at [/HUDSON/workspace/8-2-build-linux-amd64/jdk8u25/1514/hotspot/src/share/vm/prims/jvm.cpp, line 1312]
+Event: 2.225 Thread 0x00007f3cf400a800 Exception <a 'java/security/PrivilegedActionException'> (0x00000000d852be48) thrown at [/HUDSON/workspace/8-2-build-linux-amd64/jdk8u25/1514/hotspot/src/share/vm/prims/jvm.cpp, line 1312]
+Event: 2.227 Thread 0x00007f3cf400a800 Exception <a 'java/security/PrivilegedActionException'> (0x00000000d852fb48) thrown at [/HUDSON/workspace/8-2-build-linux-amd64/jdk8u25/1514/hotspot/src/share/vm/prims/jvm.cpp, line 1312]
+Event: 2.324 Thread 0x00007f3cf400a800 Exception <a 'java/security/PrivilegedActionException'> (0x00000000d856d030) thrown at [/HUDSON/workspace/8-2-build-linux-amd64/jdk8u25/1514/hotspot/src/share/vm/prims/jvm.cpp, line 1312]
+Event: 7.454 Thread 0x00007f3cf400a800 JVM_StopThread thread JavaThread 0x00007f3cf4282000 as oop 0x00000000df336938 [exception 0x00007f3cfaa1ad10]
+Event: 7.489 Thread 0x00007f3cf400a800 Exception <a 'java/security/PrivilegedActionException'> (0x00000000dc7dd170) thrown at [/HUDSON/workspace/8-2-build-linux-amd64/jdk8u25/1514/hotspot/src/share/vm/prims/jvm.cpp, line 1312]
+
+Events (10 events):
+Event: 9.095 Thread 0x00007f3cf400a800 DEOPT PACKING pc=0x00007f3ce4c96c41 sp=0x00007f3cfaa1ad20
+Event: 9.095 Thread 0x00007f3cf400a800 DEOPT UNPACKING pc=0x00007f3ce4a13f73 sp=0x00007f3cfaa1aa60 mode 0
+Event: 9.623 Executing VM operation: ParallelGCFailedAllocation
+Event: 9.676 Executing VM operation: ParallelGCFailedAllocation done
+Event: 9.684 Executing VM operation: RevokeBias
+Event: 9.684 Executing VM operation: RevokeBias done
+Event: 10.128 Thread 0x00007f3cf4282000 Thread added: 0x00007f3cf4282000
+Event: 10.255 Executing VM operation: RevokeBias
+Event: 10.255 Executing VM operation: RevokeBias done
+Event: 11.722 Executing VM operation: ParallelGCFailedAllocation
+
+
+Dynamic libraries:
+00400000-00401000 r-xp 00000000 08:11 17698136                           /opt/jdk8/bin/java
+00600000-00601000 rw-p 00000000 08:11 17698136                           /opt/jdk8/bin/java
+023a7000-023c8000 rw-p 00000000 00:00 0                                  [heap]
+86600000-8b780000 rw-p 00000000 00:00 0 
+8b780000-d7780000 ---p 00000000 00:00 0 
+d7780000-ea680000 rw-p 00000000 00:00 0 
+f9480000-100000000 ---p 00000000 00:00 0 
+100000000-1000e0000 rw-p 00000000 00:00 0 
+1000e0000-140000000 ---p 00000000 00:00 0 
+7f3c8d900000-7f3c8da00000 rw-s 0c500000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8da00000-7f3c8db00000 rw-s 0c400000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8db00000-7f3c8dc00000 rw-s 0c300000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8dc00000-7f3c8dd00000 rw-s 0c200000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8dd00000-7f3c8de00000 rw-s 0c100000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8de00000-7f3c8df00000 rw-s 0c000000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8df00000-7f3c8e000000 rw-s 0bf00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8e000000-7f3c8e100000 rw-s 0be00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8e100000-7f3c8e200000 rw-s 0bd00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8e200000-7f3c8e300000 rw-s 0bc00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8e300000-7f3c8e400000 rw-s 0bb00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8e400000-7f3c8e500000 rw-s 0ba00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8e500000-7f3c8e600000 rw-s 0b900000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8e600000-7f3c8e700000 rw-s 0b800000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8e700000-7f3c8e800000 rw-s 0b700000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8e800000-7f3c8e900000 rw-s 0b600000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8e900000-7f3c8ea00000 rw-s 0b500000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8ea00000-7f3c8eb00000 rw-s 0b400000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8eb00000-7f3c8ec00000 rw-s 0b300000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8ec00000-7f3c8ed00000 rw-s 0b200000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8ed00000-7f3c8ee00000 rw-s 0b100000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8ee00000-7f3c8ef00000 rw-s 0b000000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8ef00000-7f3c8f000000 rw-s 0af00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8f000000-7f3c8f100000 rw-s 0ae00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8f100000-7f3c8f200000 rw-s 0ad00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8f200000-7f3c8f300000 rw-s 0ac00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8f300000-7f3c8f400000 rw-s 0ab00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8f400000-7f3c8f500000 rw-s 0aa00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8f500000-7f3c8f600000 rw-s 0a900000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8f600000-7f3c8f700000 rw-s 08900000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8f700000-7f3c8f800000 rw-s 08800000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8f800000-7f3c8f900000 rw-s 08700000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8f900000-7f3c8fa00000 rw-s 08600000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8fa00000-7f3c8fb00000 rw-s 08500000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8fb00000-7f3c8fc00000 rw-s 08400000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8fc00000-7f3c8fd00000 rw-s 08300000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8fd00000-7f3c8fe00000 rw-s 08200000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8fe00000-7f3c8ff00000 rw-s 08100000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c8ff00000-7f3c90000000 rw-s 08000000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c90000000-7f3c90100000 rw-s 07f00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c90100000-7f3c90200000 rw-s 07e00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c90200000-7f3c90300000 rw-s 07d00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c90300000-7f3c90400000 rw-s 07c00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c90400000-7f3c90500000 rw-s 07b00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c90500000-7f3c90600000 rw-s 07a00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c90600000-7f3c90700000 rw-s 07900000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c90700000-7f3c90800000 rw-s 07800000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c90800000-7f3c90900000 rw-s 07700000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c90900000-7f3c90a00000 rw-s 07600000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c90a00000-7f3c90b00000 rw-s 07500000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c90b00000-7f3c90c00000 rw-s 07400000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c90c00000-7f3c90d00000 rw-s 07300000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c90d00000-7f3c90e00000 rw-s 07200000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c90e00000-7f3c90f00000 rw-s 07100000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c90f00000-7f3c91000000 rw-s 07000000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c91000000-7f3c91100000 rw-s 06f00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c91100000-7f3c91200000 rw-s 06e00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c91200000-7f3c91300000 rw-s 06d00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c91300000-7f3c91400000 rw-s 06c00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c91400000-7f3c91500000 rw-s 06b00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c91500000-7f3c91600000 rw-s 06a00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c91600000-7f3c91700000 rw-s 06900000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c91700000-7f3c91800000 rw-s 06800000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c91800000-7f3c91900000 rw-s 06700000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c91900000-7f3c91a00000 rw-s 06600000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c91a00000-7f3c91b00000 rw-s 06500000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c91b00000-7f3c91c00000 rw-s 06400000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c91c00000-7f3c91d00000 rw-s 06300000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c91d00000-7f3c91e00000 rw-s 06200000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c91e00000-7f3c91f00000 rw-s 06100000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c91f00000-7f3c92000000 rw-s 06000000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c92000000-7f3c92100000 rw-s 05f00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c92100000-7f3c92200000 rw-s 05e00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c92200000-7f3c92300000 rw-s 05d00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c92300000-7f3c92400000 rw-s 05c00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c92400000-7f3c92500000 rw-s 05b00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c92500000-7f3c92600000 rw-s 05a00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c92600000-7f3c92700000 rw-s 05900000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c92700000-7f3c92800000 rw-s 05800000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c92800000-7f3c92900000 rw-s 05700000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c92900000-7f3c92a00000 rw-s 05600000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c92a00000-7f3c92b00000 rw-s 05500000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c92b00000-7f3c92c00000 rw-s 05400000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c92c00000-7f3c92d00000 rw-s 05300000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c92d00000-7f3c92e00000 rw-s 05200000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c92e00000-7f3c92f00000 rw-s 05100000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c92f00000-7f3c93000000 rw-s 05000000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c93000000-7f3c93100000 rw-s 04f00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c93100000-7f3c93200000 rw-s 04e00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c93200000-7f3c93300000 rw-s 04d00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c93300000-7f3c93400000 rw-s 04c00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c93400000-7f3c93500000 rw-s 04b00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c93500000-7f3c93600000 rw-s 04a00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c93600000-7f3c93700000 rw-s 04900000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c93700000-7f3c93800000 rw-s 04800000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c93800000-7f3c93900000 rw-s 04700000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c93900000-7f3c93a00000 rw-s 04600000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c93a00000-7f3c93b00000 rw-s 04500000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c93b00000-7f3c93c00000 rw-s 04400000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c93c00000-7f3c93d00000 rw-s 04300000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c93d00000-7f3c93e00000 rw-s 04200000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c93e00000-7f3c93f00000 rw-s 04100000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c93f00000-7f3c94000000 rw-s 04000000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c94000000-7f3c94100000 rw-s 03f00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c94100000-7f3c94200000 rw-s 03e00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c94200000-7f3c94300000 rw-s 03d00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c94300000-7f3c94400000 rw-s 03c00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c94400000-7f3c94500000 rw-s 03b00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c94500000-7f3c94600000 rw-s 03a00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c94600000-7f3c94700000 rw-s 03900000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c94700000-7f3c94800000 rw-s 03800000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c94800000-7f3c94900000 rw-s 03700000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c94900000-7f3c94a00000 rw-s 03600000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c94a00000-7f3c94b00000 rw-s 03500000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c94b00000-7f3c94c00000 rw-s 03400000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c94c00000-7f3c94d00000 rw-s 03300000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c94d00000-7f3c94e00000 rw-s 03200000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c94e00000-7f3c94f00000 rw-s 03100000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c94f00000-7f3c95000000 rw-s 03000000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c95000000-7f3c95100000 rw-s 02f00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c95100000-7f3c95200000 rw-s 02e00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c95200000-7f3c95300000 rw-s 02d00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c95300000-7f3c95400000 rw-s 02c00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c95400000-7f3c95500000 rw-s 02b00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c95500000-7f3c95600000 rw-s 02a00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c95600000-7f3c95700000 rw-s 02900000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c95700000-7f3c95800000 rw-s 02800000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c95800000-7f3c95900000 rw-s 02700000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c95900000-7f3c95a00000 rw-s 02600000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c95a00000-7f3c95b00000 rw-s 02500000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c95b00000-7f3c95c00000 rw-s 02400000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c95c00000-7f3c95d00000 rw-s 02300000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c95d00000-7f3c95e00000 rw-s 02200000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c95e00000-7f3c95f00000 rw-s 02100000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c95f00000-7f3c96000000 rw-s 02000000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c96000000-7f3c96100000 rw-s 01f00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c96100000-7f3c96200000 rw-s 01e00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c96200000-7f3c96300000 rw-s 01d00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c96300000-7f3c96400000 rw-s 01c00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c96400000-7f3c96500000 rw-s 01b00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c96500000-7f3c96600000 rw-s 01a00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c96600000-7f3c96700000 rw-s 01900000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c96700000-7f3c96800000 rw-s 01800000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c96800000-7f3c96900000 rw-s 01700000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c96900000-7f3c96a00000 rw-s 01600000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c96a00000-7f3c96b00000 rw-s 01500000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c96b00000-7f3c96c00000 rw-s 01400000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c96c00000-7f3c96d00000 rw-s 01300000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c96d00000-7f3c96e00000 rw-s 01200000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c96e00000-7f3c96f00000 rw-s 01100000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c96f00000-7f3c97000000 rw-s 01000000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c97000000-7f3c97100000 rw-s 00f00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c97100000-7f3c97200000 rw-s 00e00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c97200000-7f3c97300000 rw-s 00d00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c97300000-7f3c97400000 rw-s 00c00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c97400000-7f3c97500000 rw-s 00b00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c97500000-7f3c97600000 rw-s 00a00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c97600000-7f3c97700000 rw-s 00900000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c97700000-7f3c97800000 rw-s 00800000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c97800000-7f3c97900000 rw-s 00700000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c97900000-7f3c97a00000 rw-s 00600000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c97a00000-7f3c97b00000 rw-s 00500000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c97b00000-7f3c97c00000 rw-s 00400000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c97c00000-7f3c97d00000 rw-s 00300000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c97d00000-7f3c97e00000 rw-s 00200000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c97e00000-7f3c97f00000 rw-s 00100000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c97f00000-7f3c98000000 rw-s 00000000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c98000000-7f3c98100000 rw-s 0a800000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c98100000-7f3c98200000 rw-s 0a700000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c98200000-7f3c98300000 rw-s 0a600000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c98300000-7f3c98400000 rw-s 0a500000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c98400000-7f3c98500000 rw-s 0a400000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c98500000-7f3c98600000 rw-s 0a300000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c98600000-7f3c98700000 rw-s 0a200000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c98700000-7f3c98800000 rw-s 0a100000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c98800000-7f3c98900000 rw-s 0a000000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c98900000-7f3c98a00000 rw-s 09f00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c98a00000-7f3c98b00000 rw-s 09e00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c98b00000-7f3c98c00000 rw-s 09d00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c98c00000-7f3c98d00000 rw-s 09c00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c98d00000-7f3c98e00000 rw-s 09b00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c98e00000-7f3c98f00000 rw-s 09a00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c98f00000-7f3c99000000 rw-s 09900000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c99000000-7f3c99100000 rw-s 09800000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c99100000-7f3c99200000 rw-s 09700000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c99200000-7f3c99300000 rw-s 09600000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c99300000-7f3c99400000 rw-s 09500000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c99400000-7f3c99500000 rw-s 09400000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c99500000-7f3c99600000 rw-s 09300000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c99600000-7f3c99700000 rw-s 09200000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c99700000-7f3c99800000 rw-s 09100000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c99800000-7f3c99900000 rw-s 09000000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c99900000-7f3c99a00000 rw-s 08f00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c99a00000-7f3c99b00000 rw-s 08e00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c99b00000-7f3c99c00000 rw-s 08d00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c99c00000-7f3c99d00000 rw-s 08c00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c99d00000-7f3c99e00000 rw-s 08b00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c99e00000-7f3c99f00000 rw-s 08a00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c99f00000-7f3c9a000000 rw-s 06a00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9a000000-7f3c9a100000 rw-s 06900000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9a100000-7f3c9a200000 rw-s 06800000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9a200000-7f3c9a300000 rw-s 06700000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9a300000-7f3c9a400000 rw-s 06600000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9a400000-7f3c9a500000 rw-s 06500000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9a500000-7f3c9a600000 rw-s 06400000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9a600000-7f3c9a700000 rw-s 06300000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9a700000-7f3c9a800000 rw-s 06200000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9a800000-7f3c9a900000 rw-s 06100000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9a900000-7f3c9aa00000 rw-s 06000000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9aa00000-7f3c9ab00000 rw-s 05f00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9ab00000-7f3c9ac00000 rw-s 05e00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9ac00000-7f3c9ad00000 rw-s 05d00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9ad00000-7f3c9ae00000 rw-s 05c00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9ae00000-7f3c9af00000 rw-s 05b00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9af00000-7f3c9b000000 rw-s 05a00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9b000000-7f3c9b100000 rw-s 05900000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9b100000-7f3c9b200000 rw-s 05800000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9b200000-7f3c9b300000 rw-s 05700000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9b300000-7f3c9b400000 rw-s 05600000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9b400000-7f3c9b500000 rw-s 05500000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9b500000-7f3c9b600000 rw-s 05400000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9b600000-7f3c9b700000 rw-s 05300000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9b700000-7f3c9b800000 rw-s 05200000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9b800000-7f3c9b900000 rw-s 05100000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9b900000-7f3c9ba00000 rw-s 05000000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9ba00000-7f3c9bb00000 rw-s 04f00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9bb00000-7f3c9bc00000 rw-s 04e00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9bc00000-7f3c9bd00000 rw-s 04d00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9bd00000-7f3c9be00000 rw-s 04c00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9be00000-7f3c9bf00000 rw-s 04b00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9bf00000-7f3c9c000000 rw-s 04a00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9c000000-7f3c9c100000 rw-s 04900000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9c100000-7f3c9c200000 rw-s 04800000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9c200000-7f3c9c300000 rw-s 04700000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9c300000-7f3c9c400000 rw-s 04600000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9c400000-7f3c9c500000 rw-s 04500000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9c500000-7f3c9c600000 rw-s 04400000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9c600000-7f3c9c700000 rw-s 04300000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9c700000-7f3c9c800000 rw-s 04200000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9c800000-7f3c9c900000 rw-s 04100000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9c900000-7f3c9ca00000 rw-s 04000000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9ca00000-7f3c9cb00000 rw-s 03f00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9cb00000-7f3c9cc00000 rw-s 03e00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9cc00000-7f3c9cd00000 rw-s 03d00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9cd00000-7f3c9ce00000 rw-s 03c00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9ce00000-7f3c9cf00000 rw-s 03b00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9cf00000-7f3c9d000000 rw-s 03a00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9d000000-7f3c9d100000 rw-s 03900000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9d100000-7f3c9d200000 rw-s 03800000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9d200000-7f3c9d300000 rw-s 03700000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9d300000-7f3c9d400000 rw-s 03600000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9d400000-7f3c9d500000 rw-s 03500000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9d500000-7f3c9d600000 rw-s 03400000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9d600000-7f3c9d700000 rw-s 03300000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9d700000-7f3c9d800000 rw-s 03200000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9d800000-7f3c9d900000 rw-s 03100000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9d900000-7f3c9da00000 rw-s 03000000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9da00000-7f3c9db00000 rw-s 02f00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9db00000-7f3c9dc00000 rw-s 02e00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9dc00000-7f3c9dd00000 rw-s 02d00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9dd00000-7f3c9de00000 rw-s 02c00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9de00000-7f3c9df00000 rw-s 02b00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9df00000-7f3c9e000000 rw-s 02a00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9e000000-7f3c9e100000 rw-s 02900000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9e100000-7f3c9e200000 rw-s 02800000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9e200000-7f3c9e300000 rw-s 02700000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9e300000-7f3c9e400000 rw-s 02600000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9e400000-7f3c9e500000 rw-s 02500000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9e500000-7f3c9e600000 rw-s 02400000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9e600000-7f3c9e700000 rw-s 02300000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9e700000-7f3c9e800000 rw-s 02200000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9e800000-7f3c9e900000 rw-s 02100000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9e900000-7f3c9ea00000 rw-s 02000000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9ea00000-7f3c9eb00000 rw-s 01f00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9eb00000-7f3c9ec00000 rw-s 01e00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9ec00000-7f3c9ed00000 rw-s 01d00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9ed00000-7f3c9ee00000 rw-s 01c00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9ee00000-7f3c9ef00000 rw-s 01b00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9ef00000-7f3c9f000000 rw-s 01a00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9f000000-7f3c9f100000 rw-s 01900000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9f100000-7f3c9f200000 rw-s 01800000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9f200000-7f3c9f300000 rw-s 01700000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9f300000-7f3c9f400000 rw-s 01600000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9f400000-7f3c9f500000 rw-s 01500000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9f500000-7f3c9f600000 rw-s 01400000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9f600000-7f3c9f700000 rw-s 01300000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9f700000-7f3c9f800000 rw-s 01200000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9f800000-7f3c9f900000 rw-s 01100000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9f900000-7f3c9fa00000 rw-s 01000000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9fa00000-7f3c9fb00000 rw-s 00f00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9fb00000-7f3c9fc00000 rw-s 00e00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9fc00000-7f3c9fd00000 rw-s 00d00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9fd00000-7f3c9fe00000 rw-s 00c00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9fe00000-7f3c9ff00000 rw-s 00b00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3c9ff00000-7f3ca0000000 rw-s 00a00000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3ca0000000-7f3ca0021000 rw-p 00000000 00:00 0 
+7f3ca0021000-7f3ca4000000 ---p 00000000 00:00 0 
+7f3ca4000000-7f3ca4021000 rw-p 00000000 00:00 0 
+7f3ca4021000-7f3ca8000000 ---p 00000000 00:00 0 
+7f3ca8000000-7f3ca8021000 rw-p 00000000 00:00 0 
+7f3ca8021000-7f3cac000000 ---p 00000000 00:00 0 
+7f3cac000000-7f3cac021000 rw-p 00000000 00:00 0 
+7f3cac021000-7f3cb0000000 ---p 00000000 00:00 0 
+7f3cb0000000-7f3cb04c5000 rw-p 00000000 00:00 0 
+7f3cb04c5000-7f3cb4000000 ---p 00000000 00:00 0 
+7f3cb4000000-7f3cb4273000 rw-p 00000000 00:00 0 
+7f3cb4273000-7f3cb8000000 ---p 00000000 00:00 0 
+7f3cb8000000-7f3cb8021000 rw-p 00000000 00:00 0 
+7f3cb8021000-7f3cbc000000 ---p 00000000 00:00 0 
+7f3cbc000000-7f3cbc423000 rw-p 00000000 00:00 0 
+7f3cbc423000-7f3cc0000000 ---p 00000000 00:00 0 
+7f3cc0000000-7f3cc0021000 rw-p 00000000 00:00 0 
+7f3cc0021000-7f3cc4000000 ---p 00000000 00:00 0 
+7f3cc4000000-7f3cc4021000 rw-p 00000000 00:00 0 
+7f3cc4021000-7f3cc8000000 ---p 00000000 00:00 0 
+7f3cc8000000-7f3cc8021000 rw-p 00000000 00:00 0 
+7f3cc8021000-7f3ccc000000 ---p 00000000 00:00 0 
+7f3ccc000000-7f3ccc27b000 rw-p 00000000 00:00 0 
+7f3ccc27b000-7f3cd0000000 ---p 00000000 00:00 0 
+7f3cd0000000-7f3cd0021000 rw-p 00000000 00:00 0 
+7f3cd0021000-7f3cd4000000 ---p 00000000 00:00 0 
+7f3cd4000000-7f3cd4021000 rw-p 00000000 00:00 0 
+7f3cd4021000-7f3cd8000000 ---p 00000000 00:00 0 
+7f3cd8000000-7f3cd8021000 rw-p 00000000 00:00 0 
+7f3cd8021000-7f3cdc000000 ---p 00000000 00:00 0 
+7f3cdc0da000-7f3cdc1da000 rw-s 00900000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3cdc1da000-7f3cdc2da000 rw-s 00800000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3cdc2da000-7f3cdc3da000 rw-s 00700000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3cdc3da000-7f3cdc4da000 rw-s 00600000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3cdc4da000-7f3cdc5da000 rw-s 00500000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3cdc5da000-7f3cdc6da000 rw-s 00400000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3cdc6da000-7f3cdc7da000 rw-s 00300000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3cdc7da000-7f3cdc8da000 rw-s 00200000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3cdc8da000-7f3cdc9da000 rw-s 00100000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3cdc9da000-7f3cdc9dd000 ---p 00000000 00:00 0 
+7f3cdc9dd000-7f3cdcadb000 rw-p 00000000 00:00 0                          [stack:3910]
+7f3cdcadb000-7f3cdcbdb000 rw-s 00000000 08:11 12321667                   /tmp/mapdb7000301557578157677mapdb
+7f3cdcbdb000-7f3cdcbec000 r-xp 00000000 08:11 17698542                   /opt/jdk8/jre/lib/amd64/libnio.so
+7f3cdcbec000-7f3cdcdeb000 ---p 00011000 08:11 17698542                   /opt/jdk8/jre/lib/amd64/libnio.so
+7f3cdcdeb000-7f3cdcdec000 rw-p 00010000 08:11 17698542                   /opt/jdk8/jre/lib/amd64/libnio.so
+7f3cdcdec000-7f3cdcdf0000 r--s 00093000 08:11 17698564                   /opt/jdk8/jre/lib/jsse.jar
+7f3cdcdf0000-7f3cdcdf2000 r--s 00009000 00:27 27944041                   /home/jan/.m2/repository/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar
+7f3cdcdf2000-7f3cdcdf8000 r--s 00036000 00:27 27944042                   /home/jan/.m2/repository/junit/junit/4.11/junit-4.11.jar
+7f3cdcdf8000-7f3cdcdfa000 r--s 0001a000 08:11 17698459                   /opt/jdk8/jre/lib/jce.jar
+7f3cdcdfa000-7f3cdce0d000 r--s 000d5000 08:11 17698456                   /opt/jdk8/jre/lib/plugin.jar
+7f3cdce0d000-7f3cdce11000 r--s 00093000 08:11 17698564                   /opt/jdk8/jre/lib/jsse.jar
+7f3cdce11000-7f3cdce1b000 r--s 00069000 08:11 17698324                   /opt/jdk8/jre/lib/javaws.jar
+7f3cdce1b000-7f3cdce1d000 r--s 00007000 08:11 17698593                   /opt/jdk8/jre/lib/jfxswt.jar
+7f3cdce1d000-7f3cdd11d000 rw-p 00000000 00:00 0 
+7f3cdd11d000-7f3cdd133000 r-xp 00000000 08:11 17698513                   /opt/jdk8/jre/lib/amd64/libnet.so
+7f3cdd133000-7f3cdd333000 ---p 00016000 08:11 17698513                   /opt/jdk8/jre/lib/amd64/libnet.so
+7f3cdd333000-7f3cdd334000 rw-p 00016000 08:11 17698513                   /opt/jdk8/jre/lib/amd64/libnet.so
+7f3cdd334000-7f3cdd337000 ---p 00000000 00:00 0 
+7f3cdd337000-7f3cdd435000 rw-p 00000000 00:00 0                          [stack:3894]
+7f3cdd435000-7f3cdd436000 r-xp 00000000 08:11 17695122                   /opt/idea/bin/libbreakgen64.so
+7f3cdd436000-7f3cdd635000 ---p 00001000 08:11 17695122                   /opt/idea/bin/libbreakgen64.so
+7f3cdd635000-7f3cdd636000 r--p 00000000 08:11 17695122                   /opt/idea/bin/libbreakgen64.so
+7f3cdd636000-7f3cdd637000 rw-p 00001000 08:11 17695122                   /opt/idea/bin/libbreakgen64.so
+7f3cdd637000-7f3cdd638000 ---p 00000000 00:00 0 
+7f3cdd638000-7f3cdd738000 rw-p 00000000 00:00 0                          [stack:3887]
+7f3cdd738000-7f3cdd73b000 ---p 00000000 00:00 0 
+7f3cdd73b000-7f3cdd839000 rw-p 00000000 00:00 0                          [stack:3886]
+7f3cdd839000-7f3cdd83c000 ---p 00000000 00:00 0 
+7f3cdd83c000-7f3cdd93a000 rw-p 00000000 00:00 0                          [stack:3885]
+7f3cdd93a000-7f3cdd93d000 ---p 00000000 00:00 0 
+7f3cdd93d000-7f3cdda3b000 rw-p 00000000 00:00 0                          [stack:3884]
+7f3cdda3b000-7f3cdda3e000 ---p 00000000 00:00 0 
+7f3cdda3e000-7f3cddb3c000 rw-p 00000000 00:00 0                          [stack:3883]
+7f3cddb3c000-7f3cddb3f000 ---p 00000000 00:00 0 
+7f3cddb3f000-7f3cddc3d000 rw-p 00000000 00:00 0                          [stack:3882]
+7f3cddc3d000-7f3cddf06000 r--p 00000000 08:11 16524651                   /usr/lib/locale/locale-archive
+7f3cddf06000-7f3cddf09000 ---p 00000000 00:00 0 
+7f3cddf09000-7f3cde007000 rw-p 00000000 00:00 0                          [stack:3878]
+7f3cde007000-7f3cde00a000 ---p 00000000 00:00 0 
+7f3cde00a000-7f3cde108000 rw-p 00000000 00:00 0                          [stack:3877]
+7f3cde108000-7f3cde109000 ---p 00000000 00:00 0 
+7f3cde109000-7f3cdf1ca000 rw-p 00000000 00:00 0                          [stack:3872]
+7f3cdf1ca000-7f3cdf3a0000 r--s 03caa000 08:11 17698561                   /opt/jdk8/jre/lib/rt.jar
+7f3cdf3a0000-7f3cdfa56000 rw-p 00000000 00:00 0 
+7f3cdfa56000-7f3cdfc16000 ---p 00000000 00:00 0 
+7f3cdfc16000-7f3ce3cb3000 rw-p 00000000 00:00 0 
+7f3ce3cb3000-7f3ce3cb4000 ---p 00000000 00:00 0 
+7f3ce3cb4000-7f3ce3db4000 rw-p 00000000 00:00 0                          [stack:3868]
+7f3ce3db4000-7f3ce3db5000 ---p 00000000 00:00 0 
+7f3ce3db5000-7f3ce3eb5000 rw-p 00000000 00:00 0                          [stack:3867]
+7f3ce3eb5000-7f3ce3eb6000 ---p 00000000 00:00 0 
+7f3ce3eb6000-7f3ce3fdf000 rw-p 00000000 00:00 0                          [stack:3866]
+7f3ce3fdf000-7f3ce423f000 ---p 00000000 00:00 0 
+7f3ce423f000-7f3ce4268000 rw-p 00000000 00:00 0 
+7f3ce4268000-7f3ce44c7000 ---p 00000000 00:00 0 
+7f3ce44c7000-7f3ce4560000 rw-p 00000000 00:00 0 
+7f3ce4560000-7f3ce460c000 ---p 00000000 00:00 0 
+7f3ce460c000-7f3ce4619000 rw-p 00000000 00:00 0 
+7f3ce4619000-7f3ce49cd000 ---p 00000000 00:00 0 
+7f3ce49cd000-7f3ce4cad000 rwxp 00000000 00:00 0 
+7f3ce4cad000-7f3cf39cd000 ---p 00000000 00:00 0 
+7f3cf39cd000-7f3cf39e7000 r-xp 00000000 08:11 17698507                   /opt/jdk8/jre/lib/amd64/libzip.so
+7f3cf39e7000-7f3cf3be7000 ---p 0001a000 08:11 17698507                   /opt/jdk8/jre/lib/amd64/libzip.so
+7f3cf3be7000-7f3cf3be8000 rw-p 0001a000 08:11 17698507                   /opt/jdk8/jre/lib/amd64/libzip.so
+7f3cf3be8000-7f3cf3bf3000 r-xp 00000000 08:11 14811164                   /lib/x86_64-linux-gnu/libnss_files-2.19.so
+7f3cf3bf3000-7f3cf3df2000 ---p 0000b000 08:11 14811164                   /lib/x86_64-linux-gnu/libnss_files-2.19.so
+7f3cf3df2000-7f3cf3df3000 r--p 0000a000 08:11 14811164                   /lib/x86_64-linux-gnu/libnss_files-2.19.so
+7f3cf3df3000-7f3cf3df4000 rw-p 0000b000 08:11 14811164                   /lib/x86_64-linux-gnu/libnss_files-2.19.so
+7f3cf3df4000-7f3cf3dff000 r-xp 00000000 08:11 14811287                   /lib/x86_64-linux-gnu/libnss_nis-2.19.so
+7f3cf3dff000-7f3cf3ffe000 ---p 0000b000 08:11 14811287                   /lib/x86_64-linux-gnu/libnss_nis-2.19.so
+7f3cf3ffe000-7f3cf3fff000 r--p 0000a000 08:11 14811287                   /lib/x86_64-linux-gnu/libnss_nis-2.19.so
+7f3cf3fff000-7f3cf4000000 rw-p 0000b000 08:11 14811287                   /lib/x86_64-linux-gnu/libnss_nis-2.19.so
+7f3cf4000000-7f3cf43c6000 rw-p 00000000 00:00 0 
+7f3cf43c6000-7f3cf8000000 ---p 00000000 00:00 0 
+7f3cf8001000-7f3cf801a000 r--s 001ea000 08:11 17698579                   /opt/jdk8/jre/lib/deploy.jar
+7f3cf801a000-7f3cf803b000 rw-p 00000000 00:00 0 
+7f3cf803b000-7f3cf803c000 ---p 00000000 00:00 0 
+7f3cf803c000-7f3cf813c000 rw-p 00000000 00:00 0                          [stack:3865]
+7f3cf813c000-7f3cf8153000 r-xp 00000000 08:11 14811207                   /lib/x86_64-linux-gnu/libnsl-2.19.so
+7f3cf8153000-7f3cf8352000 ---p 00017000 08:11 14811207                   /lib/x86_64-linux-gnu/libnsl-2.19.so
+7f3cf8352000-7f3cf8353000 r--p 00016000 08:11 14811207                   /lib/x86_64-linux-gnu/libnsl-2.19.so
+7f3cf8353000-7f3cf8354000 rw-p 00017000 08:11 14811207                   /lib/x86_64-linux-gnu/libnsl-2.19.so
+7f3cf8354000-7f3cf8356000 rw-p 00000000 00:00 0 
+7f3cf8356000-7f3cf835f000 r-xp 00000000 08:11 14811206                   /lib/x86_64-linux-gnu/libnss_compat-2.19.so
+7f3cf835f000-7f3cf855e000 ---p 00009000 08:11 14811206                   /lib/x86_64-linux-gnu/libnss_compat-2.19.so
+7f3cf855e000-7f3cf855f000 r--p 00008000 08:11 14811206                   /lib/x86_64-linux-gnu/libnss_compat-2.19.so
+7f3cf855f000-7f3cf8560000 rw-p 00009000 08:11 14811206                   /lib/x86_64-linux-gnu/libnss_compat-2.19.so
+7f3cf8560000-7f3cf858a000 r-xp 00000000 08:11 17698471                   /opt/jdk8/jre/lib/amd64/libjava.so
+7f3cf858a000-7f3cf878a000 ---p 0002a000 08:11 17698471                   /opt/jdk8/jre/lib/amd64/libjava.so
+7f3cf878a000-7f3cf878c000 rw-p 0002a000 08:11 17698471                   /opt/jdk8/jre/lib/amd64/libjava.so
+7f3cf878c000-7f3cf8799000 r-xp 00000000 08:11 17698497                   /opt/jdk8/jre/lib/amd64/libverify.so
+7f3cf8799000-7f3cf8999000 ---p 0000d000 08:11 17698497                   /opt/jdk8/jre/lib/amd64/libverify.so
+7f3cf8999000-7f3cf899b000 rw-p 0000d000 08:11 17698497                   /opt/jdk8/jre/lib/amd64/libverify.so
+7f3cf899b000-7f3cf89a2000 r-xp 00000000 08:11 14811281                   /lib/x86_64-linux-gnu/librt-2.19.so
+7f3cf89a2000-7f3cf8ba1000 ---p 00007000 08:11 14811281                   /lib/x86_64-linux-gnu/librt-2.19.so
+7f3cf8ba1000-7f3cf8ba2000 r--p 00006000 08:11 14811281                   /lib/x86_64-linux-gnu/librt-2.19.so
+7f3cf8ba2000-7f3cf8ba3000 rw-p 00007000 08:11 14811281                   /lib/x86_64-linux-gnu/librt-2.19.so
+7f3cf8ba3000-7f3cf8ca8000 r-xp 00000000 08:11 14811153                   /lib/x86_64-linux-gnu/libm-2.19.so
+7f3cf8ca8000-7f3cf8ea7000 ---p 00105000 08:11 14811153                   /lib/x86_64-linux-gnu/libm-2.19.so
+7f3cf8ea7000-7f3cf8ea8000 r--p 00104000 08:11 14811153                   /lib/x86_64-linux-gnu/libm-2.19.so
+7f3cf8ea8000-7f3cf8ea9000 rw-p 00105000 08:11 14811153                   /lib/x86_64-linux-gnu/libm-2.19.so
+7f3cf8ea9000-7f3cf9b16000 r-xp 00000000 08:11 17698525                   /opt/jdk8/jre/lib/amd64/server/libjvm.so
+7f3cf9b16000-7f3cf9d15000 ---p 00c6d000 08:11 17698525                   /opt/jdk8/jre/lib/amd64/server/libjvm.so
+7f3cf9d15000-7f3cf9deb000 rw-p 00c6c000 08:11 17698525                   /opt/jdk8/jre/lib/amd64/server/libjvm.so
+7f3cf9deb000-7f3cf9e2e000 rw-p 00000000 00:00 0 
+7f3cf9e2e000-7f3cf9fe9000 r-xp 00000000 08:11 14811277                   /lib/x86_64-linux-gnu/libc-2.19.so
+7f3cf9fe9000-7f3cfa1e8000 ---p 001bb000 08:11 14811277                   /lib/x86_64-linux-gnu/libc-2.19.so
+7f3cfa1e8000-7f3cfa1ec000 r--p 001ba000 08:11 14811277                   /lib/x86_64-linux-gnu/libc-2.19.so
+7f3cfa1ec000-7f3cfa1ee000 rw-p 001be000 08:11 14811277                   /lib/x86_64-linux-gnu/libc-2.19.so
+7f3cfa1ee000-7f3cfa1f3000 rw-p 00000000 00:00 0 
+7f3cfa1f3000-7f3cfa1f6000 r-xp 00000000 08:11 14811181                   /lib/x86_64-linux-gnu/libdl-2.19.so
+7f3cfa1f6000-7f3cfa3f5000 ---p 00003000 08:11 14811181                   /lib/x86_64-linux-gnu/libdl-2.19.so
+7f3cfa3f5000-7f3cfa3f6000 r--p 00002000 08:11 14811181                   /lib/x86_64-linux-gnu/libdl-2.19.so
+7f3cfa3f6000-7f3cfa3f7000 rw-p 00003000 08:11 14811181                   /lib/x86_64-linux-gnu/libdl-2.19.so
+7f3cfa3f7000-7f3cfa40c000 r-xp 00000000 08:11 17699226                   /opt/jdk8/lib/amd64/jli/libjli.so
+7f3cfa40c000-7f3cfa60b000 ---p 00015000 08:11 17699226                   /opt/jdk8/lib/amd64/jli/libjli.so
+7f3cfa60b000-7f3cfa60c000 rw-p 00014000 08:11 17699226                   /opt/jdk8/lib/amd64/jli/libjli.so
+7f3cfa60c000-7f3cfa625000 r-xp 00000000 08:11 14811278                   /lib/x86_64-linux-gnu/libpthread-2.19.so
+7f3cfa625000-7f3cfa824000 ---p 00019000 08:11 14811278                   /lib/x86_64-linux-gnu/libpthread-2.19.so
+7f3cfa824000-7f3cfa825000 r--p 00018000 08:11 14811278                   /lib/x86_64-linux-gnu/libpthread-2.19.so
+7f3cfa825000-7f3cfa826000 rw-p 00019000 08:11 14811278                   /lib/x86_64-linux-gnu/libpthread-2.19.so
+7f3cfa826000-7f3cfa82a000 rw-p 00000000 00:00 0 
+7f3cfa82a000-7f3cfa84d000 r-xp 00000000 08:11 14811236                   /lib/x86_64-linux-gnu/ld-2.19.so
+7f3cfa84d000-7f3cfa852000 r--s 00084000 08:11 17698562                   /opt/jdk8/jre/lib/jfr.jar
+7f3cfa852000-7f3cfa91d000 rw-p 00000000 00:00 0 
+7f3cfa91d000-7f3cfa920000 ---p 00000000 00:00 0 
+7f3cfa920000-7f3cfaa23000 rw-p 00000000 00:00 0                          [stack:3864]
+7f3cfaa23000-7f3cfaa24000 r--s 00000000 08:11 17698558                   /opt/jdk8/jre/lib/management-agent.jar
+7f3cfaa24000-7f3cfaa29000 r--s 002f8000 08:11 17698458                   /opt/jdk8/jre/lib/charsets.jar
+7f3cfaa29000-7f3cfaa3c000 r--s 00344000 08:11 17698590                   /opt/jdk8/jre/lib/resources.jar
+7f3cfaa3c000-7f3cfaa3e000 r--s 0001f000 08:11 17707876                   /opt/idea/plugins/junit/lib/junit-rt.jar
+7f3cfaa3e000-7f3cfaa40000 r--s 00016000 08:11 17703838                   /opt/idea/lib/idea_rt.jar
+7f3cfaa40000-7f3cfaa48000 rw-s 00000000 08:11 12321523                   /tmp/hsperfdata_jan/3863
+7f3cfaa48000-7f3cfaa49000 rw-p 00000000 00:00 0 
+7f3cfaa49000-7f3cfaa4a000 ---p 00000000 00:00 0 
+7f3cfaa4a000-7f3cfaa4c000 rw-p 00000000 00:00 0 
+7f3cfaa4c000-7f3cfaa4d000 r--p 00022000 08:11 14811236                   /lib/x86_64-linux-gnu/ld-2.19.so
+7f3cfaa4d000-7f3cfaa4e000 rw-p 00023000 08:11 14811236                   /lib/x86_64-linux-gnu/ld-2.19.so
+7f3cfaa4e000-7f3cfaa4f000 rw-p 00000000 00:00 0 
+7ffd2a596000-7ffd2a5b7000 rw-p 00000000 00:00 0                          [stack]
+7ffd2a5b9000-7ffd2a5bb000 r-xp 00000000 00:00 0                          [vdso]
+7ffd2a5bb000-7ffd2a5bd000 r--p 00000000 00:00 0                          [vvar]
+ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0                  [vsyscall]
+
+VM Arguments:
+jvm_args: -Dvisualvm.id=41643367446582 -ea -Dmdbtest=1 -Didea.launcher.port=7542 -Didea.launcher.bin.path=/opt/idea/bin -Dfile.encoding=UTF-8 
+java_command: com.intellij.rt.execution.application.AppMain com.intellij.rt.execution.junit.JUnitStarter -ideVersion5 org.mapdb.CrashWithInterruptTest
+java_class_path (initial): /opt/idea/lib/idea_rt.jar:/opt/idea/plugins/junit/lib/junit-rt.jar:/opt/jdk8/jre/lib/resources.jar:/opt/jdk8/jre/lib/charsets.jar:/opt/jdk8/jre/lib/deploy.jar:/opt/jdk8/jre/lib/management-agent.jar:/opt/jdk8/jre/lib/jfr.jar:/opt/jdk8/jre/lib/jfxswt.jar:/opt/jdk8/jre/lib/javaws.jar:/opt/jdk8/jre/lib/rt.jar:/opt/jdk8/jre/lib/jsse.jar:/opt/jdk8/jre/lib/plugin.jar:/opt/jdk8/jre/lib/jce.jar:/opt/jdk8/jre/lib/ext/jfxrt.jar:/opt/jdk8/jre/lib/ext/localedata.jar:/opt/jdk8/jre/lib/ext/sunec.jar:/opt/jdk8/jre/lib/ext/sunpkcs11.jar:/opt/jdk8/jre/lib/ext/sunjce_provider.jar:/opt/jdk8/jre/lib/ext/cldrdata.jar:/opt/jdk8/jre/lib/ext/nashorn.jar:/opt/jdk8/jre/lib/ext/dnsns.jar:/opt/jdk8/jre/lib/ext/zipfs.jar:/home/jan/mapdb/mapdb/target/test-classes:/home/jan/mapdb/mapdb/target/classes:/home/jan/.m2/repository/junit/junit/4.11/junit-4.11.jar:/home/jan/.m2/repository/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar
+Launcher Type: SUN_STANDARD
+
+Environment Variables:
+JAVA_HOME=/opt/jdk8
+JRE_HOME=/opt/jdk8/jre
+PATH=/home/jan/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/home/jan/bin:/opt/jdk8/bin:/opt/jdk8/jre/bin
+LD_LIBRARY_PATH=/opt/idea/bin:
+SHELL=/usr/bin/fish
+DISPLAY=:0
+
+Signal Handlers:
+SIGSEGV: [libjvm.so+0xa79a80], sa_mask[0]=11111111011111111101111111111110, sa_flags=SA_RESTART|SA_SIGINFO
+SIGBUS: [libjvm.so+0xa79a80], sa_mask[0]=11111111011111111101111111111110, sa_flags=SA_RESTART|SA_SIGINFO
+SIGFPE: [libjvm.so+0x8e24e0], sa_mask[0]=11111111011111111101111111111110, sa_flags=SA_RESTART|SA_SIGINFO
+SIGPIPE: [libjvm.so+0x8e24e0], sa_mask[0]=11111111011111111101111111111110, sa_flags=SA_RESTART|SA_SIGINFO
+SIGXFSZ: [libjvm.so+0x8e24e0], sa_mask[0]=11111111011111111101111111111110, sa_flags=SA_RESTART|SA_SIGINFO
+SIGILL: [libjvm.so+0x8e24e0], sa_mask[0]=11111111011111111101111111111110, sa_flags=SA_RESTART|SA_SIGINFO
+SIGUSR1: SIG_DFL, sa_mask[0]=00000000000000000000000000000000, sa_flags=none
+SIGUSR2: [libjvm.so+0x8e3d10], sa_mask[0]=00100000000000000000000000000000, sa_flags=SA_RESTART|SA_SIGINFO
+SIGHUP: [libjvm.so+0x8e50d0], sa_mask[0]=11111111011111111101111111111110, sa_flags=SA_RESTART|SA_SIGINFO
+SIGINT: [libjvm.so+0x8e50d0], sa_mask[0]=11111111011111111101111111111110, sa_flags=SA_RESTART|SA_SIGINFO
+SIGTERM: [libjvm.so+0x8e50d0], sa_mask[0]=11111111011111111101111111111110, sa_flags=SA_RESTART|SA_SIGINFO
+SIGQUIT: [libjvm.so+0x8e50d0], sa_mask[0]=11111111011111111101111111111110, sa_flags=SA_RESTART|SA_SIGINFO
+
+
+---------------  S Y S T E M  ---------------
+
+OS:DISTRIB_ID=Ubuntu
+DISTRIB_RELEASE=14.04
+DISTRIB_CODENAME=trusty
+DISTRIB_DESCRIPTION="Ubuntu 14.04.2 LTS"
+
+uname:Linux 3.16.0-43-generic #58~14.04.1-Ubuntu SMP Mon Jun 22 10:21:20 UTC 2015 x86_64
+libc:glibc 2.19 NPTL 2.19 
+rlimit: STACK 8192k, CORE 0k, NPROC 30988, NOFILE 65535, AS infinity
+load average:2.27 2.58 2.49
+
+/proc/meminfo:
+MemTotal:        7962904 kB
+MemFree:          159168 kB
+MemAvailable:     179160 kB
+Buffers:            4352 kB
+Cached:          1697816 kB
+SwapCached:            0 kB
+Active:          6549044 kB
+Inactive:         815200 kB
+Active(anon):    6515352 kB
+Inactive(anon):   777160 kB
+Active(file):      33692 kB
+Inactive(file):    38040 kB
+Unevictable:          32 kB
+Mlocked:              32 kB
+SwapTotal:             0 kB
+SwapFree:              0 kB
+Dirty:                24 kB
+Writeback:             0 kB
+AnonPages:       5663244 kB
+Mapped:           871872 kB
+Shmem:           1629320 kB
+Slab:             279744 kB
+SReclaimable:     137188 kB
+SUnreclaim:       142556 kB
+KernelStack:       13360 kB
+PageTables:        72396 kB
+NFS_Unstable:          0 kB
+Bounce:                0 kB
+WritebackTmp:          0 kB
+CommitLimit:     3981452 kB
+Committed_AS:   12758412 kB
+VmallocTotal:   34359738367 kB
+VmallocUsed:      552616 kB
+VmallocChunk:   34359173928 kB
+HardwareCorrupted:     0 kB
+AnonHugePages:   2207744 kB
+HugePages_Total:       0
+HugePages_Free:        0
+HugePages_Rsvd:        0
+HugePages_Surp:        0
+Hugepagesize:       2048 kB
+DirectMap4k:       89868 kB
+DirectMap2M:     8085504 kB
+
+
+CPU:total 4 (2 cores per cpu, 2 threads per core) family 6 model 37 stepping 5, cmov, cx8, fxsr, mmx, sse, sse2, sse3, ssse3, sse4.1, sse4.2, popcnt, aes, clmul, ht, tsc, tscinvbit
+
+/proc/cpuinfo:
+processor	: 0
+vendor_id	: GenuineIntel
+cpu family	: 6
+model		: 37
+model name	: Intel(R) Core(TM) i7 CPU       L 640  @ 2.13GHz
+stepping	: 5
+microcode	: 0x2
+cpu MHz		: 1199.000
+cache size	: 4096 KB
+physical id	: 0
+siblings	: 4
+core id		: 0
+cpu cores	: 2
+apicid		: 0
+initial apicid	: 0
+fpu		: yes
+fpu_exception	: yes
+cpuid level	: 11
+wp		: yes
+flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx rdtscp lm constant_tsc arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc aperfmperf pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 cx16 xtpr pdcm pcid sse4_1 sse4_2 popcnt aes lahf_lm ida arat dtherm tpr_shadow vnmi flexpriority ept vpid
+bogomips	: 4255.86
+clflush size	: 64
+cache_alignment	: 64
+address sizes	: 36 bits physical, 48 bits virtual
+power management:
+
+processor	: 1
+vendor_id	: GenuineIntel
+cpu family	: 6
+model		: 37
+model name	: Intel(R) Core(TM) i7 CPU       L 640  @ 2.13GHz
+stepping	: 5
+microcode	: 0x2
+cpu MHz		: 1199.000
+cache size	: 4096 KB
+physical id	: 0
+siblings	: 4
+core id		: 0
+cpu cores	: 2
+apicid		: 1
+initial apicid	: 1
+fpu		: yes
+fpu_exception	: yes
+cpuid level	: 11
+wp		: yes
+flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx rdtscp lm constant_tsc arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc aperfmperf pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 cx16 xtpr pdcm pcid sse4_1 sse4_2 popcnt aes lahf_lm ida arat dtherm tpr_shadow vnmi flexpriority ept vpid
+bogomips	: 4255.86
+clflush size	: 64
+cache_alignment	: 64
+address sizes	: 36 bits physical, 48 bits virtual
+power management:
+
+processor	: 2
+vendor_id	: GenuineIntel
+cpu family	: 6
+model		: 37
+model name	: Intel(R) Core(TM) i7 CPU       L 640  @ 2.13GHz
+stepping	: 5
+microcode	: 0x2
+cpu MHz		: 1199.000
+cache size	: 4096 KB
+physical id	: 0
+siblings	: 4
+core id		: 2
+cpu cores	: 2
+apicid		: 4
+initial apicid	: 4
+fpu		: yes
+fpu_exception	: yes
+cpuid level	: 11
+wp		: yes
+flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx rdtscp lm constant_tsc arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc aperfmperf pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 cx16 xtpr pdcm pcid sse4_1 sse4_2 popcnt aes lahf_lm ida arat dtherm tpr_shadow vnmi flexpriority ept vpid
+bogomips	: 4255.86
+clflush size	: 64
+cache_alignment	: 64
+address sizes	: 36 bits physical, 48 bits virtual
+power management:
+
+processor	: 3
+vendor_id	: GenuineIntel
+cpu family	: 6
+model		: 37
+model name	: Intel(R) Core(TM) i7 CPU       L 640  @ 2.13GHz
+stepping	: 5
+microcode	: 0x2
+cpu MHz		: 1199.000
+cache size	: 4096 KB
+physical id	: 0
+siblings	: 4
+core id		: 2
+cpu cores	: 2
+apicid		: 5
+initial apicid	: 5
+fpu		: yes
+fpu_exception	: yes
+cpuid level	: 11
+wp		: yes
+flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx rdtscp lm constant_tsc arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc aperfmperf pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 cx16 xtpr pdcm pcid sse4_1 sse4_2 popcnt aes lahf_lm ida arat dtherm tpr_shadow vnmi flexpriority ept vpid
+bogomips	: 4255.86
+clflush size	: 64
+cache_alignment	: 64
+address sizes	: 36 bits physical, 48 bits virtual
+power management:
+
+
+
+Memory: 4k page, physical 7962904k(158672k free), swap 0k(0k free)
+
+vm_info: Java HotSpot(TM) 64-Bit Server VM (25.25-b02) for linux-amd64 JRE (1.8.0_25-b17), built on Sep 17 2014 17:32:11 by "java_re" with gcc 4.3.0 20080428 (Red Hat 4.3.0-8)
+
+time: Tue Jul 21 10:14:55 2015
+elapsed time: 11 seconds (0d 0h 0m 11s)
+

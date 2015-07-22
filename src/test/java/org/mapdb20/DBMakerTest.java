@@ -380,7 +380,7 @@ public class DBMakerTest{
     @Test public void treemap_pump_presert(){
         List unsorted = Arrays.asList(4,7,5,12,9,10,11,0);
 
-        NavigableMap<Integer,Integer> s = DBMaker.memoryDB().transactionDisable().make()
+        BTreeMap<Integer,Integer> s = DBMaker.memoryDB().transactionDisable().make()
                 .treeMapCreate("t")
                 .pumpPresort(10)
                 .pumpSource(unsorted.iterator(), Fun.extractNoTransform())
@@ -388,6 +388,7 @@ public class DBMakerTest{
 
         assertEquals(Integer.valueOf(0),s.firstEntry().getKey());
         assertEquals(Integer.valueOf(12), s.lastEntry().getKey());
+        s.close();
     }
 
     @Test public void heap_store(){
@@ -395,6 +396,7 @@ public class DBMakerTest{
         Engine  s = Store.forDB(db);
 
         assertTrue(s instanceof StoreHeap);
+        db.close();
     }
 
     @Test public void executor() throws InterruptedException {
@@ -434,6 +436,7 @@ public class DBMakerTest{
         Thread.sleep(2000);
         assertTrue(closed.get());
         assertNull(db.executor);
+        db.close();
     }
 
     @Test public void temp_HashMap_standalone(){
@@ -508,6 +511,7 @@ public class DBMakerTest{
                 .transactionDisable()
                 .make();
         assertEquals(StoreCached.class, Store.forDB(db).getClass());
+        db.close();
     }
 
     @Test public void asyncWriteQueueSize(){
@@ -518,6 +522,7 @@ public class DBMakerTest{
                 .make();
         StoreCached c = (StoreCached) Store.forDB(db);
         assertEquals(12345,c.writeQueueSize);
+        db.close();
     }
 
 
@@ -576,6 +581,7 @@ public class DBMakerTest{
                 .transactionDisable().make();
         StoreDirect d = (StoreDirect) Store.forDB(db);
         assertEquals(Volume.FileChannelVol.class, d.vol.getClass());
+        db.close();
     }
 
 
@@ -611,4 +617,69 @@ public class DBMakerTest{
         assertTrue(((Volume.ByteBufferVol) ((StoreDirect) db.engine).vol).cleanerHackEnabled);
         db.close();
     }
+
+    @Test public void file_locked() throws IOException {
+        File f = File.createTempFile("mapdbTest", "mapdb");
+        DB db = DBMaker.fileDB(f).transactionDisable().make();
+
+        StoreDirect s = (StoreDirect) db.getEngine();
+        assertTrue(s.vol.getFileLocked());
+        assertNull(s.fileLockHeartbeat);
+        db.close();
+    }
+
+
+    @Test public void file_locked_disabled() throws IOException {
+        File f = File.createTempFile("mapdbTest","mapdb");
+        DB db = DBMaker.fileDB(f).transactionDisable()
+                .fileLockDisable()
+                .make();
+
+        StoreDirect s = (StoreDirect) db.getEngine();
+        assertFalse(s.vol.getFileLocked());
+        assertNull(s.fileLockHeartbeat);
+        db.close();
+    }
+
+
+    @Test public void file_locked_disabled_wal() throws IOException {
+        File f = File.createTempFile("mapdbTest","mapdb");
+        DB db = DBMaker.fileDB(f)
+                .fileLockDisable()
+                .make();
+
+        StoreWAL s = (StoreWAL) db.getEngine();
+        assertFalse(s.vol.getFileLocked());
+        assertFalse(s.curVol.getFileLocked());
+        assertNull(s.fileLockHeartbeat);
+        db.close();
+    }
+
+
+    @Test public void file_locked_disabled_append() throws IOException {
+        File f = File.createTempFile("mapdbTest","mapdb");
+        DB db = DBMaker.appendFileDB(f)
+                .fileLockDisable()
+                .make();
+
+        StoreAppend s = (StoreAppend) db.getEngine();
+        assertFalse(s.vol.getFileLocked());
+        assertNull(s.fileLockHeartbeat);
+        db.close();
+    }
+
+    @Test public void file_locked_heartbeat() throws IOException {
+        File f = File.createTempFile("mapdbTest","mapdb");
+        DB db = DBMaker.fileDB(f).transactionDisable()
+                .fileLockHeartbeatEnable()
+                .make();
+
+        StoreDirect s = (StoreDirect) db.getEngine();
+        assertFalse(s.vol.getFileLocked());
+
+        assertTrue(s.fileLockHeartbeat.isLocked());
+        assertEquals(new File(f.getPath() + ".lock"), s.fileLockHeartbeat.getFile());
+        db.close();
+    }
+
 }

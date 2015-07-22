@@ -42,6 +42,8 @@ public class StoreCached extends StoreDirect {
             byte[] password,
             boolean readonly,
             boolean snapshotEnable,
+            boolean fileLockDisable,
+            HeartbeatFileLock fileLockHeartbeat,
             int freeSpaceReclaimQ,
             boolean commitFileSyncDisable,
             int sizeIncrement,
@@ -51,7 +53,7 @@ public class StoreCached extends StoreDirect {
         super(fileName, volumeFactory, cache,
                 lockScale,
                 lockingStrategy,
-                checksum, compress, password, readonly, snapshotEnable,
+                checksum, compress, password, readonly, snapshotEnable, fileLockDisable, fileLockHeartbeat,
                 freeSpaceReclaimQ, commitFileSyncDisable, sizeIncrement,executor);
 
         this.writeQueueSize = writeQueueSize;
@@ -99,7 +101,7 @@ public class StoreCached extends StoreDirect {
                 null,
                 CC.DEFAULT_LOCK_SCALE,
                 0,
-                false, false, null, false, false, 0,
+                false, false, null, false, false, false, null,0,
                 false, 0,
                 null, 0L, 0);
     }

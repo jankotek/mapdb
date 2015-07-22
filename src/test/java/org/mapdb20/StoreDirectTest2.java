@@ -70,11 +70,11 @@ public class StoreDirectTest2 {
 
         Volume.VolumeFactory fab = new Volume.VolumeFactory() {
             @Override
-            public Volume makeVolume(String file, boolean readOnly, int sliceShift, long initSize, boolean fixedSize) {
+            public Volume makeVolume(String file, boolean readOnly, boolean fileLockDisable, int sliceShift, long initSize, boolean fixedSize) {
                 return vol;
             }
         };
-        StoreDirect st = new StoreDirect(null, fab, null, CC.DEFAULT_LOCK_SCALE, 0, false, false,null, false,false,  0,false,0, null);
+        StoreDirect st = new StoreDirect(null, fab, null, CC.DEFAULT_LOCK_SCALE, 0, false, false,null, false,false, false, null, 0,false,0, null);
         st.init();
 
         Map<Long,String> recids = new HashMap();
@@ -87,7 +87,7 @@ public class StoreDirectTest2 {
         //close would destroy Volume,so this will do
         st.commit();
 
-        st = new StoreDirect(null, fab, null, CC.DEFAULT_LOCK_SCALE, 0, false, false,null, false, false, 0,false,0, null);
+        st = new StoreDirect(null, fab, null, CC.DEFAULT_LOCK_SCALE, 0, false, false,null, false, false, false, null, 0,false,0, null);
         st.init();
 
         for(Map.Entry<Long,String> e:recids.entrySet()){
@@ -241,7 +241,7 @@ public class StoreDirectTest2 {
     }
 
     @Test public void zero_index_page_checksum() throws IOException {
-        File f = File.createTempFile("mapdb", "mapdb");
+        File f = File.createTempFile("mapdbTest", "mapdb");
         StoreDirect st = (StoreDirect) DBMaker.fileDB(f)
                 .transactionDisable()
                 .checksumEnable()

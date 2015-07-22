@@ -13,7 +13,7 @@ public class Issue523Test {
 
     @Test
     public void  MapDbReadOnlyTest() throws IOException {
-        File dbFile = File.createTempFile("mapdb","mapdb");
+        File dbFile = File.createTempFile("mapdbTest","mapdb");
         testCreate(dbFile);
         testRead(dbFile);
     }

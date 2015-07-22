@@ -100,7 +100,7 @@ public class QueuesTest {
 
     @Test(timeout=100000)
     public void queueTakeRollback() throws IOException, InterruptedException {
-        File f = File.createTempFile("mapdb","aa");
+        File f = File.createTempFile("mapdbTest","aa");
         {
             DB db = DBMaker.fileDB(f).make();
             boolean newQueue = !db.exists("test");

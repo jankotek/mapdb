@@ -3,10 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/mapdb.iml" filepath="$PROJECT_DIR$/mapdb.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../mapdb-benchmarks/mapdb-benchmarks.iml" filepath="$PROJECT_DIR$/../mapdb-benchmarks/mapdb-benchmarks.iml" />
       <module fileurl="file://$PROJECT_DIR$/../mapdb-burn/mapdb-burn.iml" filepath="$PROJECT_DIR$/../mapdb-burn/mapdb-burn.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../mapdb-exporter/mapdb-exporter.iml" filepath="$PROJECT_DIR$/../mapdb-exporter/mapdb-exporter.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../mapdb-microbenchmarks/mapdb-microbenchmarks.iml" filepath="$PROJECT_DIR$/../mapdb-microbenchmarks/mapdb-microbenchmarks.iml" />
       <module fileurl="file://$PROJECT_DIR$/../mapdb-site/mapdb-site.iml" filepath="$PROJECT_DIR$/../mapdb-site/mapdb-site.iml" />
     </modules>
   </component>

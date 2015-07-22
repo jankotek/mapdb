@@ -145,6 +145,10 @@ public class ExamplesTest {
         CacheEntryExpiry.main(args);
     }
 
+    @Test public void TreeMap_Value_Compression(){
+        TreeMap_Value_Compression.main(args);
+    }
+
 }
 
 

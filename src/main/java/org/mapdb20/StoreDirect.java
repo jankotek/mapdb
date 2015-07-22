@@ -5,7 +5,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -61,7 +60,7 @@ public class StoreDirect extends Store {
 
     protected static final long INITCRC_INDEX_PAGE = 4329042389490239043L;
 
-    private static final long[] EMPTY_LONGS = new long[0];
+    protected static final long[] EMPTY_LONGS = new long[0];
 
 
     //TODO this refs are swapped during compaction. Investigate performance implications
@@ -89,18 +88,27 @@ public class StoreDirect extends Store {
                        byte[] password,
                        boolean readonly,
                        boolean snapshotEnable,
+                       boolean fileLockDisable,
+                       DataIO.HeartbeatFileLock fileLockHeartbeat,
                        int freeSpaceReclaimQ,
                        boolean commitFileSyncDisable,
                        int sizeIncrement,
                        ScheduledExecutorService executor
                        ) {
-        super(fileName, volumeFactory, cache, lockScale, lockingStrategy, checksum, compress, password, readonly, snapshotEnable);
-        this.vol = volumeFactory.makeVolume(fileName, readonly);
+        super(fileName, volumeFactory, cache, lockScale, lockingStrategy, checksum, compress, password, readonly,
+                snapshotEnable,fileLockDisable, fileLockHeartbeat);
+        //TODO this should be in init method
+        this.vol = volumeFactory.makeVolume(fileName, readonly, fileLockDisable);
         this.executor = executor;
         this.snapshots = snapshotEnable?
                 new CopyOnWriteArrayList<Snapshot>():
                 null;
         this.indexValSize = checksum ? 10 : 8;
+
+        if(CC.LOG_STORE && LOG.isLoggable(Level.FINE)){
+            LOG.log(Level.FINE, "StoreDirect constructed: executor={0}, snapshots={1}, indexValSize={2}",
+                    new Object[]{executor,snapshots,indexValSize});
+        }
     }
 
     @Override
@@ -143,7 +151,9 @@ public class StoreDirect extends Store {
             throw new DBException.WrongConfig("This is not MapDB file");
         }
 
-
+        if (CC.LOG_STORE && LOG.isLoggable(Level.FINE)) {
+            LOG.log(Level.FINE, "initOpen: file={0}, volLength={1}, vol={2}", new Object[]{fileName, vol.length(), vol});
+        }
         //check header config
         checkFeaturesBitmap(vol.getLong(HEAD_FEATURES));
 
@@ -174,6 +184,11 @@ public class StoreDirect extends Store {
         }
         indexPages = Arrays.copyOf(ip,i);
         lastAllocatedData = parity3Get(vol.getLong(LAST_PHYS_ALLOCATED_DATA_OFFSET));
+
+        if (CC.LOG_STORE && LOG.isLoggable(Level.FINEST)) {
+            LOG.log(Level.FINEST, "indexPages: {0}", Arrays.toString(indexPages));
+            LOG.log(Level.FINEST, "lastAllocatedData: {0}", lastAllocatedData);
+        }
     }
 
     protected void initCreate() {
@@ -184,6 +199,13 @@ public class StoreDirect extends Store {
 
         //create initial structure
 
+        //set features bitmap
+        final long features = makeFeaturesBitmap();
+
+        if (CC.LOG_STORE && LOG.isLoggable(Level.FINE)) {
+            LOG.log(Level.FINE, "initCreate: file={0}, volLength={1}, vol={2}, features={3}",
+                    new Object[]{fileName, vol.length(), vol, Long.toBinaryString(features)});
+        }
         //create new store
         indexPages = new long[]{0};
 
@@ -217,9 +239,6 @@ public class StoreDirect extends Store {
         //write header
         vol.putInt(0,HEADER);
 
-        //set features bitmap
-        long features = makeFeaturesBitmap();
-
         vol.putLong(HEAD_FEATURES, features);
 
 
@@ -243,7 +262,7 @@ public class StoreDirect extends Store {
                 null,
                 CC.DEFAULT_LOCK_SCALE,
                 0,
-                false,false,null,false,false,0,
+                false,false,null,false,false,false,null,0,
                 false,0,
                 null);
     }
@@ -256,8 +275,13 @@ public class StoreDirect extends Store {
             offset< HEAD_END;
             offset+=8){
             long val = vol2.getLong(offset);
-            ret += DataIO.longHash(offset+val);
+            ret += DataIO.longHash(offset + val);
         }
+
+        if (CC.LOG_STORE && LOG.isLoggable(Level.FINEST)) {
+            LOG.log(Level.FINEST, "headChecksum={0}", Integer.toHexString(ret));
+        }
+
         return ret;
     }
 
@@ -266,11 +290,14 @@ public class StoreDirect extends Store {
         if (CC.ASSERT)
             assertReadLocked(recid);
 
-        long[] offsets = offsetsGet(indexValGet(recid));
+        long[] offsets = offsetsGet(lockPos(recid),indexValGet(recid));
         return getFromOffset(serializer, offsets);
     }
 
     protected <A> A getFromOffset(Serializer<A> serializer, long[] offsets) {
+        if (CC.LOG_STORE && LOG.isLoggable(Level.FINEST)) {
+            LOG.log(Level.FINEST, "serializer={0}, offsets={1}",new Object[]{serializer, Arrays.toString(offsets)});
+        }
         if (offsets == null) {
             return null; //zero size
         }else if (offsets.length==0){
@@ -292,6 +319,9 @@ public class StoreDirect extends Store {
     }
 
     private byte[] getLoadLinkedRecord(long[] offsets, int totalSize) {
+        if (CC.LOG_STORE && LOG.isLoggable(Level.FINEST)) {
+            LOG.log(Level.FINEST, "totalSize={0}, offsets={1}", new Object[]{totalSize, Arrays.toString(offsets)});
+        }
         //load data
         byte[] b = new byte[totalSize];
         int bpos = 0;
@@ -337,10 +367,15 @@ public class StoreDirect extends Store {
             }
         }
 
-        long[] oldOffsets = offsetsGet(oldIndexVal);
+        long[] oldOffsets = offsetsGet(pos,oldIndexVal);
         int oldSize = offsetsTotalSize(oldOffsets);
         int newSize = out==null?0:out.pos;
         long[] newOffsets;
+
+        if (CC.LOG_STORE && LOG.isLoggable(Level.FINEST)) {
+            LOG.log(Level.FINEST, "recid={0}, oldIndexVal={1}, oldSize={2}, newSize={3}, oldOffsets={4}",
+                    new Object[]{recid, oldIndexVal, oldSize, newSize, Arrays.toString(oldOffsets)});
+        }
 
         //if new version fits into old one, reuse space
         if(releaseOld && oldSize==newSize){
@@ -365,14 +400,34 @@ public class StoreDirect extends Store {
         putData(recid, newOffsets, out==null?null:out.buf, out==null?0:out.pos);
     }
 
-    protected void offsetsVerify(long[] linkedOffsets) {
+    protected void offsetsVerify(long[] ret) {
         //TODO check non tail records are mod 16
         //TODO check linkage
+        if(ret==null)
+            return;
+        for(int i=0;i<ret.length;i++) {
+            boolean last = (i==ret.length-1);
+            boolean linked = (ret[i]&MLINKED)!=0;
+            if(!last && !linked)
+                throw new DBException.DataCorruption("body not linked");
+            if(last && linked)
+                throw new DBException.DataCorruption("tail is linked");
+
+            long offset = ret[i]&MOFFSET;
+            if(offset<PAGE_SIZE)
+                throw new DBException.DataCorruption("offset is too small");
+            if(((offset&MOFFSET)%16)!=0)
+                throw new DBException.DataCorruption("offset not mod 16");
+
+            int size = (int) (ret[i] >>>48);
+            if(size<=0)
+                throw new DBException.DataCorruption("size too small");
+        }
     }
 
 
     /** return positions of (possibly) linked record */
-    protected long[] offsetsGet(long indexVal) {;
+    protected long[] offsetsGet(int segment, long indexVal) {;
         if(indexVal>>>48==0){
 
             return ((indexVal&MLINKED)!=0) ? null : EMPTY_LONGS;
@@ -385,26 +440,14 @@ public class StoreDirect extends Store {
         }
 
         if(CC.ASSERT){
-            for(int i=0;i<ret.length;i++) {
-                boolean last = (i==ret.length-1);
-                boolean linked = (ret[i]&MLINKED)!=0;
-                if(!last && !linked)
-                    throw new DBException.DataCorruption("body not linked");
-                if(last && linked)
-                    throw new DBException.DataCorruption("tail is linked");
-
-                long offset = ret[i]&MOFFSET;
-                if(offset<PAGE_SIZE)
-                    throw new DBException.DataCorruption("offset is too small");
-                if(((offset&MOFFSET)%16)!=0)
-                    throw new DBException.DataCorruption("offset not mod 16");
-
-                int size = (int) (ret[i] >>>48);
-                if(size<=0)
-                    throw new DBException.DataCorruption("size too small");
-            }
-
+           offsetsVerify(ret);
         }
+
+        if (CC.LOG_STORE && LOG.isLoggable(Level.FINEST)) {
+            LOG.log(Level.FINEST, "indexVal={0}, ret={1}",
+                    new Object[]{Long.toHexString(indexVal), Arrays.toString(ret)});
+        }
+
 
         return ret;
     }
@@ -415,9 +458,16 @@ public class StoreDirect extends Store {
 
         long indexOffset = recidToOffset(recid);
         long newval = composeIndexVal(size, offset, linked, unused, true);
+
+        if (CC.LOG_STORE && LOG.isLoggable(Level.FINEST)) {
+            LOG.log(Level.FINEST, "recid={0}, indexOffset={1}, newval={2}",
+                    new Object[]{recid, indexOffset, Long.toHexString(newval)});
+        }
+
+
         vol.putLong(indexOffset, newval);
         if(checksum){
-            vol.putUnsignedShort(indexOffset+8, DataIO.longHash(newval)&0xFFFF);
+            vol.putUnsignedShort(indexOffset + 8, DataIO.longHash(newval) & 0xFFFF);
         }
     }
 
@@ -427,15 +477,21 @@ public class StoreDirect extends Store {
         if(CC.ASSERT)
             assertWriteLocked(lockPos(recid));
 
+        final int pos = lockPos(recid);
         long oldIndexVal = indexValGet(recid);
-        long[] offsets = offsetsGet(oldIndexVal);
+        long[] offsets = offsetsGet(pos,oldIndexVal);
         boolean releaseOld = true;
         if(snapshotEnable){
-            int pos = lockPos(recid);
             for(Snapshot snap:snapshots){
                 snap.oldRecids[pos].putIfAbsent(recid,oldIndexVal);
                 releaseOld = false;
             }
+        }
+
+
+        if (CC.LOG_STORE && LOG.isLoggable(Level.FINEST)) {
+            LOG.log(Level.FINEST, "recid={0}, oldIndexVal={1}, releaseOld={2}, offsets={3}",
+                    new Object[]{recid, Long.toHexString(oldIndexVal), releaseOld, Arrays.toString(offsets)});
         }
 
         if(offsets!=null && releaseOld) {
@@ -475,6 +531,10 @@ public class StoreDirect extends Store {
             indexValPut(recid, 0, 0L, true, true);
         }finally {
             lock.unlock();
+        }
+
+        if (CC.LOG_STORE && LOG.isLoggable(Level.FINEST)) {
+            LOG.log(Level.FINEST, "recid={0}",recid);
         }
         return recid;
     }
@@ -529,6 +589,11 @@ public class StoreDirect extends Store {
             commitLock.unlock();
         }
 
+
+        if (CC.LOG_STORE && LOG.isLoggable(Level.FINEST)) {
+            LOG.log(Level.FINEST, "recid={0}, serSize={1}, serializer={2}",
+                    new Object[]{recid, notalloc?0:out.pos, serializer});
+        }
         return recid;
     }
 
@@ -537,6 +602,12 @@ public class StoreDirect extends Store {
             assertWriteLocked(lockPos(recid));
         if(CC.ASSERT && offsetsTotalSize(offsets)!=(src==null?0:srcLen))
             throw new DBException.DataCorruption("size mismatch");
+
+
+        if (CC.LOG_STORE && LOG.isLoggable(Level.FINEST)) {
+            LOG.log(Level.FINEST, "recid={0}, srcLen={1}, offsets={2}",
+                    new Object[]{recid, srcLen, Arrays.toString(offsets)});
+        }
 
         if(offsets!=null) {
             int outPos = 0;
@@ -578,7 +649,7 @@ public class StoreDirect extends Store {
     }
 
     protected void putDataSingleWithoutLink(int segment, long offset, byte[] buf, int bufPos, int size) {
-        vol.putData(offset,buf,bufPos,size);
+        vol.putData(offset, buf, bufPos, size);
     }
 
     protected void putDataSingleWithLink(int segment, long offset, long link, byte[] buf, int bufPos, int size) {
@@ -604,6 +675,13 @@ public class StoreDirect extends Store {
             throw new DBException.DataCorruption("unalligned size");
         if(CC.ASSERT && (offset%16!=0 || offset<PAGE_SIZE))
             throw new DBException.DataCorruption("wrong offset");
+
+
+        if (CC.LOG_STORE && LOG.isLoggable(Level.FINEST)) {
+            LOG.log(Level.FINEST, "offset={0}, size={1}",
+                    new Object[]{offset, size});
+        }
+
 
         if(!(this instanceof  StoreWAL)) //TODO WAL needs to handle record clear, perhaps WAL instruction?
             vol.clear(offset,offset+size);
@@ -638,6 +716,13 @@ public class StoreDirect extends Store {
         //allocate last section
         ret = Arrays.copyOf(ret,ret.length+1);
         ret[ret.length-1] = (((long)size)<<48) | freeDataTakeSingle(round16Up(size)) ;
+
+
+        if (CC.LOG_STORE && LOG.isLoggable(Level.FINEST)) {
+            LOG.log(Level.FINEST, "size={0}, ret={1}",
+                    new Object[]{size, Arrays.toString(ret)});
+        }
+
         return ret;
     }
 
@@ -657,6 +742,11 @@ public class StoreDirect extends Store {
             if(CC.ASSERT && ret%16!=0)
                 throw new DBException.DataCorruption("unalligned ret");
 
+            if (CC.LOG_STORE && LOG.isLoggable(Level.FINEST)) {
+                LOG.log(Level.FINEST, "size={0}, ret={1}",
+                        new Object[]{size, Long.toHexString(ret)});
+            }
+
             return ret;
         }
 
@@ -668,6 +758,12 @@ public class StoreDirect extends Store {
                 throw new DBException.DataCorruption("wrong page");
             if(CC.ASSERT && page%16!=0)
                 throw new DBException.DataCorruption("unalligned page");
+
+            if (CC.LOG_STORE && LOG.isLoggable(Level.FINEST)) {
+                LOG.log(Level.FINEST, "size={0}, ret={1}",
+                        new Object[]{size, Long.toHexString(ret)});
+            }
+
             return page;
         }
 
@@ -691,6 +787,11 @@ public class StoreDirect extends Store {
             throw new  DBException.DataCorruption();
         if(CC.ASSERT && ret<PAGE_SIZE)
             throw new  DBException.DataCorruption();
+
+        if (CC.LOG_STORE && LOG.isLoggable(Level.FINEST)) {
+            LOG.log(Level.FINEST, "size={0}, ret={1}",
+                    new Object[]{size, Long.toHexString(ret)});
+        }
 
         return ret;
     }
@@ -840,6 +941,10 @@ public class StoreDirect extends Store {
                 }
                 Arrays.fill(caches,null);
             }
+            if(fileLockHeartbeat !=null) {
+                fileLockHeartbeat.unlock();
+                fileLockHeartbeat = null;
+            }
             closed = true;
         }finally{
             commitLock.unlock();
@@ -928,7 +1033,9 @@ public class StoreDirect extends Store {
                         volumeFactory,
                         null,lockScale,
                         executor==null?LOCKING_STRATEGY_NOLOCK:LOCKING_STRATEGY_WRITELOCK,
-                        checksum,compress,null,false,false,0,false,0,
+                        checksum,compress,null,false,false,
+                        true, //locking is disabled on compacted file
+                        null,0,false,0,
                         null);
                 target.init();
                 final AtomicLong maxRecid = new AtomicLong(RECID_LAST_RESERVED);
@@ -984,7 +1091,7 @@ public class StoreDirect extends Store {
                         //and reopen volume
                         if(this instanceof StoreCached)
                             this.headVol.close();
-                        this.vol = volumeFactory.makeVolume(this.fileName, readonly);
+                        this.vol = volumeFactory.makeVolume(this.fileName, readonly, fileLockDisable);
                         this.headVol = vol;
                         if(isStoreCached){
                             ((StoreCached)this).dirtyStackPages.clear();
@@ -1126,7 +1233,7 @@ public class StoreDirect extends Store {
             //deal with linked record non zero record
             if((indexVal & MLINKED)!=0 && indexVal>>>48!=0){
                 //load entire linked record into byte[]
-                long[] offsets = offsetsGet(indexValGet(recid));
+                long[] offsets = offsetsGet(lockPos(recid),indexValGet(recid));
                 int totalSize = offsetsTotalSize(offsets);
                 byte[] b = getLoadLinkedRecord(offsets, totalSize);
 
@@ -1372,7 +1479,7 @@ public class StoreDirect extends Store {
                     return null; //TODO deserialize empty object
 
                 if(indexVal!=0){
-                    long[] offsets = engine.offsetsGet(indexVal);
+                    long[] offsets = engine.offsetsGet(pos, indexVal);
                     return engine.getFromOffset(serializer,offsets);
                 }
 

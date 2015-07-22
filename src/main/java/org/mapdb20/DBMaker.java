@@ -20,6 +20,7 @@ package org.mapdb20;
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
+import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.security.SecureRandom;
 import java.util.*;
@@ -78,6 +79,9 @@ public final class DBMaker{
         String volume_unsafe = "unsafe";
 
         String fileMmapCleanerHack = "fileMmapCleanerHack";
+
+        String fileLockDisable = "fileLockDisable";
+        String fileLockHeartbeatEnable = "fileLockHeartbeatEnable";
 
         String lockScale = "lockScale";
 
@@ -816,6 +820,75 @@ public final class DBMaker{
             return this;
         }
 
+       /**
+        * <p>
+        * MapDB needs exclusive lock over storage file it is using.
+        * When single file is used by multiple DB instances at the same time, storage file gets quickly corrupted.
+        * To prevent multiple opening MapDB uses {@link FileChannel#lock()}.
+        * If file is already locked, opening it fails with {@link DBException.FileLocked}
+        * </p><p>
+        * In some cases file might remain locked, if DB is not closed correctly or JVM crashes.
+        * This option disables exclusive file locking. Use it if you have troubles to reopen files
+        *
+        * </p>
+        * @return this builder
+        */
+        public Maker fileLockDisable() {
+            props.setProperty(Keys.fileLockDisable,TRUE);
+            return this;
+        }
+
+        /**
+         * <p>
+         * MapDB needs exclusive lock over storage file it is using.
+         * When single file is used by multiple DB instances at the same time, storage file gets quickly corrupted.
+         * To prevent multiple opening MapDB uses {@link FileChannel#lock()}.
+         * If file is already locked, opening it fails with {@link DBException.FileLocked}
+         * </p><p>
+         * In some cases file might remain locked, if DB is not closed correctly or JVM crashes.
+         * This option replaces {@link FileChannel#lock()} exclusive file locking with {@code *.lock} file.
+         * This file is periodically updated by background thread. If JVM dies, the lock file gets old
+         * and eventually expires. Use it if you have troubles to reopen files.
+         * </p><p>
+         * This method was taken from <a href="http://www.h2database.com/">H2 database</a>.
+         * It was originally written by	Thomas Mueller and modified for MapDB purposes.
+         * </p><p>
+         * Original description from H2 documentation:
+         * </p><ul>
+         * <li>If the lock file does not exist, it is created (using the atomic operation <code>File.createNewFile</code>).
+         *  Then, the process waits a little bit (20 ms) and checks the file again. If the file was changed during this time,
+         *  the operation is aborted. This protects against a race condition when one process deletes the lock file just after
+         *  another one create it, and a third process creates the file again. It does not occur if there are only
+         *  two writers. </li>
+         * <li> If the file can be created, a random number is inserted together with the locking method ('file').
+         *  Afterwards, a watchdog thread is started that checks regularly (every second once by default)
+         *  if the file was deleted or modified by another (challenger) thread / process. Whenever that occurs,
+         *  the file is overwritten with the old data. The watchdog thread runs with high priority so that a change
+         *  to the lock file does not get through undetected even if the system is very busy. However, the watchdog
+         *  thread does use very little resources (CPU time), because it waits most of the time. Also, the watchdog
+         *  only reads from the hard disk and does not write to it. </li>
+         * <li> If the lock file exists and was recently
+         *  modified, the process waits for some time (up to two seconds). If it was still changed, an exception is thrown
+         *  (database is locked). This is done to eliminate race conditions with many concurrent writers. Afterwards,
+         *  the file is overwritten with a new version (challenge). After that, the thread waits for 2 seconds.
+         *  If there is a watchdog thread protecting the file, he will overwrite the change and this process will fail
+         *  to lock the database. However, if there is no watchdog thread, the lock file will still be as written by
+         *  this thread. In this case, the file is deleted and atomically created again. The watchdog thread is started
+         *  in this case and the file is locked. </li>
+         * </ul>
+         * <p> This algorithm is tested with over 100 concurrent threads. In some cases, when there are many concurrent
+         * threads trying to lock the database, they block each other (meaning the file cannot be locked by any of them)
+         * for some time. However, the file never gets locked by two threads at the same time. However using that many
+         * concurrent threads / processes is not the common use case. Generally, an application should throw an error
+         * to the user if it cannot open a database, and not try again in a (fast) loop. </p>
+         *
+         * @return this builder
+         */
+        public Maker fileLockHeartbeatEnable() {
+            props.setProperty(Keys.fileLockHeartbeatEnable,TRUE);
+            return this;
+        }
+
         private void assertNotInMemoryVolume() {
             if(Keys.volume_byteBuffer.equals(props.getProperty(Keys.volume)) ||
                     Keys.volume_directByteBuffer.equals(props.getProperty(Keys.volume)))
@@ -1147,6 +1220,7 @@ public final class DBMaker{
 
 
             final boolean readOnly = propsGetBool(Keys.readOnly);
+            final boolean fileLockDisable = propsGetBool(Keys.fileLockDisable) || propsGetBool(Keys.fileLockHeartbeatEnable);
             final String file = props.containsKey(Keys.file)? props.getProperty(Keys.file):"";
             final String volume = props.getProperty(Keys.volume);
             final String store = props.getProperty(Keys.store);
@@ -1158,6 +1232,14 @@ public final class DBMaker{
                 throw new UnsupportedOperationException("Can not open non-existing file in read-only mode.");
             }
 
+            DataIO.HeartbeatFileLock heartbeatFileLock = null;
+            if(propsGetBool(Keys.fileLockHeartbeatEnable) && file!=null && file.length()>0
+                    && !readOnly){ //TODO should we lock readonly files?
+
+                File lockFile = new File(file+".lock");
+                heartbeatFileLock = new DataIO.HeartbeatFileLock(lockFile, CC.FILE_LOCK_HEARTBEAT);
+                heartbeatFileLock.lock();
+            }
 
             Engine engine;
             int lockingStrategy = 0;
@@ -1191,6 +1273,8 @@ public final class DBMaker{
                         encKey,
                         propsGetBool(Keys.readOnly),
                         snapshotEnabled,
+                        fileLockDisable,
+                        heartbeatFileLock,
                         propsGetBool(Keys.transactionDisable),
                         storeExecutor
                 );
@@ -1212,6 +1296,8 @@ public final class DBMaker{
                             encKey,
                             propsGetBool(Keys.readOnly),
                             snapshotEnabled,
+                            fileLockDisable,
+                            heartbeatFileLock,
                             propsGetInt(Keys.freeSpaceReclaimQ, CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
                             propsGetBool(Keys.commitFileSyncDisable),
                             0,
@@ -1231,6 +1317,8 @@ public final class DBMaker{
                             encKey,
                             propsGetBool(Keys.readOnly),
                             snapshotEnabled,
+                            fileLockDisable,
+                            heartbeatFileLock,
                             propsGetInt(Keys.freeSpaceReclaimQ, CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
                             propsGetBool(Keys.commitFileSyncDisable),
                             0,
@@ -1250,6 +1338,8 @@ public final class DBMaker{
                             encKey,
                             propsGetBool(Keys.readOnly),
                             snapshotEnabled,
+                            fileLockDisable,
+                            heartbeatFileLock,
                             propsGetInt(Keys.freeSpaceReclaimQ, CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
                             propsGetBool(Keys.commitFileSyncDisable),
                             0,

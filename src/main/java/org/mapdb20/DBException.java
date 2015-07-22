@@ -1,5 +1,6 @@
 package org.mapdb20;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.channels.ClosedByInterruptException;
 
@@ -54,6 +55,18 @@ public class DBException extends RuntimeException{
         }
     }
 
+
+    /** Some other process (possibly DB) holds exclusive lock over this file, so it can not be opened */
+    public static class FileLocked extends DBException{
+
+        public FileLocked(String message) {
+            super(message);
+        }
+
+        public FileLocked(String message, Throwable cause) {
+            super(message,cause);
+        }
+    }
 
     public static class VolumeIOError extends DBException{
         public VolumeIOError(String msg){
@@ -148,4 +161,15 @@ public class DBException extends RuntimeException{
         }
     }
 
+    public static class FileDeleteFailed extends DBException {
+        public FileDeleteFailed(File file) {
+            super("Could not delete file: "+file);
+        }
+    }
+
+    public static class VolumeMaxSizeExceeded extends DBException {
+        public VolumeMaxSizeExceeded(long length, long requestedLength) {
+            super("Could not expand store. Maximal store size: "+length+", new requested size: "+requestedLength);
+        }
+    }
 }

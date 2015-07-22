@@ -4,6 +4,7 @@ import java.io.DataInput;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileLock;
 import java.util.Arrays;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
@@ -28,7 +29,7 @@ class UnsafeStuff {
 
         public static final VolumeFactory FACTORY = new VolumeFactory() {
             @Override
-            public Volume makeVolume(String file, boolean readOnly, int sliceShift, long initSize, boolean fixedSize) {
+            public Volume makeVolume(String file, boolean readOnly, boolean fileLockDisable, int sliceShift, long initSize, boolean fixedSize) {
                 return new UnsafeVolume(0,sliceShift);
             }
         };
@@ -381,6 +382,11 @@ class UnsafeStuff {
         @Override
         public File getFile() {
             return null;
+        }
+
+        @Override
+        public boolean getFileLocked() {
+            return false;
         }
 
         @Override
