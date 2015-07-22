@@ -1980,7 +1980,13 @@ public abstract class Volume implements Closeable{
 
         public SingleByteArrayVol(byte[] data){
             this.data = data;
-            empty = false;
+            empty = true;
+            for(byte b:data){
+                if(b!=0){
+                    empty=false;
+                    break;
+                }
+            }
         }
 
 

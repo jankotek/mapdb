@@ -168,8 +168,6 @@ public class StoreAppend extends Store {
         try {
             vol = volumeFactory.makeVolume(fileName, readonly,fileLockDisable);
             indexTable = new Volume.ByteArrayVol(CC.VOLUME_PAGE_SHIFT);
-            if (!readonly)
-                vol.ensureAvailable(headerSize);
             eof = headerSize;
             for (int i = 0; i <= RECID_LAST_RESERVED; i++) {
                 indexTable.ensureAvailable(i * 8);
@@ -187,6 +185,8 @@ public class StoreAppend extends Store {
     }
 
     protected void initCreate() {
+        vol.ensureAvailable(headerSize);
+
         highestRecid.set(RECID_LAST_RESERVED);
         vol.putInt(0,HEADER);
         long feat = makeFeaturesBitmap();
@@ -195,6 +195,9 @@ public class StoreAppend extends Store {
     }
 
     protected void initOpen() {
+        if (!readonly)
+            vol.ensureAvailable(headerSize);
+
         checkFeaturesBitmap(vol.getLong(HEAD_FEATURES));
 
         //replay log
