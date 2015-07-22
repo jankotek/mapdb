@@ -123,6 +123,9 @@ public abstract class Store implements Engine {
         this.lockMask = lockScale-1;
         this.fileLockDisable = fileLockDisable;
         this.fileLockHeartbeat = fileLockHeartbeat;
+        if(fileLockHeartbeat!=null) {
+            fileLockHeartbeat.setQuitAfterGCed(Store.this);
+        }
         if(Integer.bitCount(lockScale)!=1)
             throw new IllegalArgumentException("Lock Scale must be power of two");
         //TODO replace with incrementer on java 8

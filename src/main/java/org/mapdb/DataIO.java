@@ -1,6 +1,8 @@
 package org.mapdb;
 
 import java.io.*;
+import java.lang.ref.Reference;
+import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.util.Arrays;
@@ -1147,7 +1149,6 @@ public final class DataIO {
      *
      * @see DBMaker.Maker#fileLockHeartbeatEnable()
      */
-    //TODO take weak reference to Engine from background thread. Quit heartbeat if Engine was GCed.
     public static final class HeartbeatFileLock{
 
         /*
@@ -1167,6 +1168,9 @@ public final class DataIO {
 
         private static final int SLEEP_GAP = 25;
         private static final int TIME_GRANULARITY = 2000;
+
+        /** quit hearbeat after this was GCed */
+        private  WeakReference quitAfterGCed = null;
 
         final private long id = new SecureRandom().nextLong();
         volatile private File file;
@@ -1202,6 +1206,11 @@ public final class DataIO {
             this.sleep = sleep;
         }
 
+        public void setQuitAfterGCed(Object object){
+            this.quitAfterGCed = object==null?
+                    null:
+                    new WeakReference(object);
+        }
         private void run(){
             LOG.fine("Lock Watchdog start");
             try {
@@ -1209,6 +1218,9 @@ public final class DataIO {
                     if( LOG.isLoggable(Level.FINE))
                         LOG.fine("watchdog check");
                     try {
+                        WeakReference quitAfterGCed = this.quitAfterGCed;
+                        if(quitAfterGCed!=null && quitAfterGCed.get()==null)
+                            return;
                         if (!file.exists() ||
                                 file.lastModified() != lastWrite) {
                             save();
