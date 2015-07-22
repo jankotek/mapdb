@@ -1971,21 +1971,25 @@ public abstract class Volume implements Closeable{
     public static final class SingleByteArrayVol extends Volume{
 
         protected final byte[] data;
+        protected volatile boolean empty;
 
         public SingleByteArrayVol(int size) {
             this(new byte[size]);
+            empty = true;
         }
 
         public SingleByteArrayVol(byte[] data){
             this.data = data;
+            empty = false;
         }
 
 
         @Override
         public void ensureAvailable(long offset) {
             if(offset >= data.length){
-                //TODO throw an exception
+                throw new DBException.VolumeMaxSizeExceeded(data.length, offset);
             }
+            empty = false;
         }
 
         @Override
@@ -2089,12 +2093,7 @@ public abstract class Volume implements Closeable{
 
         @Override
         public boolean isEmpty() {
-            //TODO better way to check if data were written here, perhaps eliminate this method completely
-            for(byte b:data){
-                if(b!=0)
-                    return false;
-            }
-            return true;
+            return empty;
         }
 
 
@@ -2336,12 +2335,17 @@ public abstract class Volume implements Closeable{
         }
 
         @Override
-        public void ensureAvailable(long offset) {
-            //TODO ensure avail
+        public synchronized void ensureAvailable(long offset) {
+            try {
+                if(raf.length()<offset)
+                    raf.setLength(offset);
+            } catch (IOException e) {
+                throw new DBException.VolumeIOError(e);
+            }
         }
 
         @Override
-        public void truncate(long size) {
+        public synchronized void truncate(long size) {
             try {
                 raf.setLength(size);
             } catch (IOException e) {

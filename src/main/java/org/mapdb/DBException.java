@@ -166,4 +166,10 @@ public class DBException extends RuntimeException{
             super("Could not delete file: "+file);
         }
     }
+
+    public static class VolumeMaxSizeExceeded extends DBException {
+        public VolumeMaxSizeExceeded(long length, long requestedLength) {
+            super("Could not expand store. Maximal store size: "+length+", new requested size: "+requestedLength);
+        }
+    }
 }
