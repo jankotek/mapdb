@@ -19,7 +19,7 @@ public class Issue41Test {
 
     private static int NB_OPERATIONS = 1000;
 
-    private File DB_PATH = UtilsTest.tempDbFile();
+    private File DB_PATH = TT.tempDbFile();
 
     private static String MAP_NAME = "mymap";
 

@@ -33,7 +33,7 @@ public class StoreAppendTest<E extends StoreAppend> extends EngineTest<E>{
 
     }
 
-    File f = UtilsTest.tempDbFile();
+    File f = TT.tempDbFile();
 
 
     @Override

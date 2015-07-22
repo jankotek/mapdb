@@ -18,7 +18,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
     @Override boolean canRollback(){return false;}
 
-    File f = UtilsTest.tempDbFile();
+    File f = TT.tempDbFile();
 
 
 //    static final long FREE_RECID_STACK = StoreDirect.IO_FREE_RECID+32;
@@ -403,7 +403,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     }
 
     @Test public void test_large_long_stack_no_commit() throws IOException {
-        if(UtilsTest.scale()==0)
+        if(TT.scale()==0)
             return;
         e = openEngine();
         //dirty hack to make sure we have lock
@@ -618,7 +618,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
 
     @Test public void delete_files_after_close(){
-        File f = UtilsTest.tempDbFile();
+        File f = TT.tempDbFile();
         File phys = new File(f.getPath());
 
         DB db = DBMaker.fileDB(f).transactionDisable().deleteFilesAfterClose().make();
@@ -649,9 +649,9 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     @Test public void prealloc(){
         e = openEngine();
         long recid = e.preallocate();
-        assertNull(e.get(recid,UtilsTest.FAIL));
+        assertNull(e.get(recid, TT.FAIL));
         e.commit();
-        assertNull(e.get(recid,UtilsTest.FAIL));
+        assertNull(e.get(recid, TT.FAIL));
     }
 
     @Ignore //TODO deal with store versioning and feature bits
@@ -737,7 +737,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
 
     @Test public void compact_keeps_volume_type(){
-        if(UtilsTest.scale()==0)
+        if(TT.scale()==0)
             return;
 
         for(final Fun.Function1<Volume,String> fab : VolumeTest.VOL_FABS){
@@ -748,7 +748,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
                 }
             };
             //init
-            File f = UtilsTest.tempDbFile();
+            File f = TT.tempDbFile();
             e = (E) new StoreDirect(f.getPath(), fac,
                     null,
                     CC.DEFAULT_LOCK_SCALE,
@@ -763,7 +763,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
             Map<Long, String> data = new LinkedHashMap();
             for(int i=0;i<1000;i++){
-                String ss = UtilsTest.randomString(1000);
+                String ss = TT.randomString(1000);
                 long recid = e.put(ss,Serializer.STRING);
             }
 

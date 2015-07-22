@@ -159,7 +159,7 @@ public class BindTest {
             }
         });
 
-        int max = (int) Math.min(100,Math.max(1e8,Math.pow(4,UtilsTest.scale())));
+        int max = (int) Math.min(100,Math.max(1e8,Math.pow(4, TT.scale())));
         Random r = new Random();
         for(int i=0;i<max;i++){
             Integer k = r.nextInt(max/100);

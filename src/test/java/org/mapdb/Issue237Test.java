@@ -10,7 +10,7 @@ import static org.junit.Assert.assertEquals;
 
 public class Issue237Test {
 
-    File file = UtilsTest.tempDbFile();
+    File file = TT.tempDbFile();
 
 
     @Test

@@ -97,12 +97,12 @@ public class Issue332Test {
     }
 
     @Test public void test_ser_itself(){
-        String other = UtilsTest.clone(problem, new TestSerializer());
+        String other = TT.clone(problem, new TestSerializer());
         assertEquals(problem, other);
     }
 
     @Test public void test_comp(){
-        String other = UtilsTest.clone(problem, VALUE_SERIALIZER);
+        String other = TT.clone(problem, VALUE_SERIALIZER);
         assertEquals(problem, other);
     }
 

@@ -16,7 +16,7 @@ import java.util.concurrent.*;
 import static java.util.Arrays.asList;
 import static org.junit.Assert.*;
 
-public class UtilsTest {
+public class TT {
 
     private static int SCALE;
     static{
@@ -37,6 +37,10 @@ public class UtilsTest {
      */
     public static int scale() {
         return SCALE;
+    }
+
+    public static long nowPlusMinutes(double minutes){
+        return System.currentTimeMillis() + (long)(scale()+1000*60*minutes);
     }
 
 

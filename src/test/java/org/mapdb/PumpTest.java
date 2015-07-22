@@ -32,7 +32,7 @@ public class PumpTest {
 
     DB makeDB(int i){
         switch(i){
-            case 0: return DBMaker.appendFileDB(UtilsTest.tempDbFile()).deleteFilesAfterClose().snapshotEnable().make();
+            case 0: return DBMaker.appendFileDB(TT.tempDbFile()).deleteFilesAfterClose().snapshotEnable().make();
             case 1: return DBMaker.memoryDB().snapshotEnable().make();
             case 2: return DBMaker.memoryDB().snapshotEnable().transactionDisable().make();
             case 3: return DBMaker.memoryDB().snapshotEnable().makeTxMaker().makeTx();
@@ -398,7 +398,7 @@ public class PumpTest {
 
 
     @Test public void uuid_reversed(){
-        int max = UtilsTest.scale()*10000+100;
+        int max = TT.scale()*10000+100;
         List<UUID> u = new ArrayList<UUID>();
         Random r = new Random();
         for(int i=0;i<max;i++) u.add(new UUID(r.nextLong(),r.nextLong()));
@@ -491,7 +491,7 @@ public class PumpTest {
 
 
     @Test public void sorted(){
-        if(UtilsTest.scale()==0)
+        if(TT.scale()==0)
             return;
 
         DB db = DBMaker.memoryDB()

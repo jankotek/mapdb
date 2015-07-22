@@ -13,7 +13,7 @@ public class Issue254Test {
 
     @Test
     public void test(){
-        File f = UtilsTest.tempDbFile();
+        File f = TT.tempDbFile();
         DB db = DBMaker.fileDB(f)
                 .transactionDisable()
                 .make();
@@ -36,7 +36,7 @@ public class Issue254Test {
     DB ro;
 
     {
-        File f = UtilsTest.tempDbFile();
+        File f = TT.tempDbFile();
         ro = DBMaker.fileDB(f).transactionDisable().transactionDisable().make();
         ro = DBMaker.fileDB(f).transactionDisable().transactionDisable().readOnly().make();
     }

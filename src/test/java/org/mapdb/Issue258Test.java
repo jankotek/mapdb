@@ -13,7 +13,7 @@ import static org.junit.Assert.assertEquals;
 
 public class Issue258Test {
 
-    int max = UtilsTest.scale()*100000;
+    int max = TT.scale()*100000;
 
     @Test
     public void test() throws IOException {

@@ -15,7 +15,7 @@ import static org.junit.Assert.*;
 
 public class VolumeTest {
 
-    static final int scale = UtilsTest.scale();
+    static final int scale = TT.scale();
     static final long sub = (long) Math.pow(10, 5 + scale);
 
     public static final Fun.Function1<Volume, String>[] VOL_FABS = new Fun.Function1[]{
@@ -94,7 +94,7 @@ public class VolumeTest {
         @Parameterized.Parameters
         public static Iterable params() throws IOException {
             List ret = new ArrayList();
-            if (UtilsTest.shortTest())
+            if (TT.shortTest())
                 return ret;
 
             for (Object o : VOL_FABS) {
@@ -108,7 +108,7 @@ public class VolumeTest {
 
         @Test
         public void empty() {
-            Volume v = fab.run(UtilsTest.tempDbFile().getPath());
+            Volume v = fab.run(TT.tempDbFile().getPath());
 
             assertTrue(v.isEmpty()); //newly created volume should be empty
             v.ensureAvailable(10);
@@ -119,7 +119,7 @@ public class VolumeTest {
 
         @Test
         public void testPackLongBidi() throws Exception {
-            Volume v = fab.run(UtilsTest.tempDbFile().getPath());
+            Volume v = fab.run(TT.tempDbFile().getPath());
 
             v.ensureAvailable(10000);
 
@@ -138,7 +138,7 @@ public class VolumeTest {
 
         @Test
         public void testPackLong() throws Exception {
-            Volume v = fab.run(UtilsTest.tempDbFile().getPath());
+            Volume v = fab.run(TT.tempDbFile().getPath());
 
             v.ensureAvailable(10000);
 
@@ -155,7 +155,7 @@ public class VolumeTest {
 
         @Test
         public void overlap() throws Throwable {
-            Volume v = fab.run(UtilsTest.tempDbFile().getPath());
+            Volume v = fab.run(TT.tempDbFile().getPath());
 
             putGetOverlap(v, 100, 1000);
             putGetOverlap(v, StoreDirect.PAGE_SIZE - 500, 1000);
@@ -167,7 +167,7 @@ public class VolumeTest {
         }
 
         void putGetOverlap(Volume vol, long offset, int size) throws IOException {
-            byte[] b = UtilsTest.randomByteArray(size);
+            byte[] b = TT.randomByteArray(size);
 
             vol.ensureAvailable(offset + size);
             vol.putDataOverlap(offset, b, 0, b.length);
@@ -184,7 +184,7 @@ public class VolumeTest {
             long offset = (long) (2e6 + 2000);
             vol.ensureAvailable(offset + size);
 
-            byte[] b = UtilsTest.randomByteArray(size);
+            byte[] b = TT.randomByteArray(size);
 
             byte[] b2 = new byte[size + 2000];
 
@@ -216,7 +216,7 @@ public class VolumeTest {
         @Parameterized.Parameters
         public static Iterable params() throws IOException {
             List ret = new ArrayList();
-            if (UtilsTest.shortTest())
+            if (TT.shortTest())
                 return ret;
 
             for (Object o : VOL_FABS) {
@@ -230,8 +230,8 @@ public class VolumeTest {
 
         @Test
         public void unsignedShort_compatible() {
-            Volume v1 = fab1.run(UtilsTest.tempDbFile().getPath());
-            Volume v2 = fab2.run(UtilsTest.tempDbFile().getPath());
+            Volume v1 = fab1.run(TT.tempDbFile().getPath());
+            Volume v2 = fab2.run(TT.tempDbFile().getPath());
 
             v1.ensureAvailable(16);
             v2.ensureAvailable(16);
@@ -251,8 +251,8 @@ public class VolumeTest {
 
         @Test
         public void unsignedByte_compatible() {
-            Volume v1 = fab1.run(UtilsTest.tempDbFile().getPath());
-            Volume v2 = fab2.run(UtilsTest.tempDbFile().getPath());
+            Volume v1 = fab1.run(TT.tempDbFile().getPath());
+            Volume v2 = fab2.run(TT.tempDbFile().getPath());
 
             v1.ensureAvailable(16);
             v2.ensureAvailable(16);
@@ -272,8 +272,8 @@ public class VolumeTest {
 
         @Test
         public void long_compatible() {
-            Volume v1 = fab1.run(UtilsTest.tempDbFile().getPath());
-            Volume v2 = fab2.run(UtilsTest.tempDbFile().getPath());
+            Volume v1 = fab1.run(TT.tempDbFile().getPath());
+            Volume v2 = fab2.run(TT.tempDbFile().getPath());
 
             v1.ensureAvailable(16);
             v2.ensureAvailable(16);
@@ -296,8 +296,8 @@ public class VolumeTest {
 
         @Test
         public void long_pack_bidi() {
-            Volume v1 = fab1.run(UtilsTest.tempDbFile().getPath());
-            Volume v2 = fab2.run(UtilsTest.tempDbFile().getPath());
+            Volume v1 = fab1.run(TT.tempDbFile().getPath());
+            Volume v2 = fab2.run(TT.tempDbFile().getPath());
 
             v1.ensureAvailable(16);
             v2.ensureAvailable(16);
@@ -316,8 +316,8 @@ public class VolumeTest {
 
         @Test
         public void long_pack() {
-            Volume v1 = fab1.run(UtilsTest.tempDbFile().getPath());
-            Volume v2 = fab2.run(UtilsTest.tempDbFile().getPath());
+            Volume v1 = fab1.run(TT.tempDbFile().getPath());
+            Volume v2 = fab2.run(TT.tempDbFile().getPath());
 
             v1.ensureAvailable(21);
             v2.ensureAvailable(20);
@@ -338,8 +338,8 @@ public class VolumeTest {
 
         @Test
         public void long_six_compatible() {
-            Volume v1 = fab1.run(UtilsTest.tempDbFile().getPath());
-            Volume v2 = fab2.run(UtilsTest.tempDbFile().getPath());
+            Volume v1 = fab1.run(TT.tempDbFile().getPath());
+            Volume v2 = fab2.run(TT.tempDbFile().getPath());
 
             v1.ensureAvailable(16);
             v2.ensureAvailable(16);
@@ -358,8 +358,8 @@ public class VolumeTest {
 
         @Test
         public void int_compatible() {
-            Volume v1 = fab1.run(UtilsTest.tempDbFile().getPath());
-            Volume v2 = fab2.run(UtilsTest.tempDbFile().getPath());
+            Volume v1 = fab1.run(TT.tempDbFile().getPath());
+            Volume v2 = fab2.run(TT.tempDbFile().getPath());
 
             v1.ensureAvailable(16);
             v2.ensureAvailable(16);
@@ -382,8 +382,8 @@ public class VolumeTest {
 
         @Test
         public void byte_compatible() {
-            Volume v1 = fab1.run(UtilsTest.tempDbFile().getPath());
-            Volume v2 = fab2.run(UtilsTest.tempDbFile().getPath());
+            Volume v1 = fab1.run(TT.tempDbFile().getPath());
+            Volume v2 = fab2.run(TT.tempDbFile().getPath());
 
             v1.ensureAvailable(16);
             v2.ensureAvailable(16);
@@ -413,7 +413,7 @@ public class VolumeTest {
 
 
     @Test public void direct_bb_overallocate(){
-        if(UtilsTest.shortTest())
+        if(TT.shortTest())
             return;
 
         Volume vol = new Volume.MemoryVol(true, CC.VOLUME_PAGE_SHIFT,false);
@@ -426,7 +426,7 @@ public class VolumeTest {
     }
 
     @Test public void byte_overallocate(){
-        if(UtilsTest.shortTest())
+        if(TT.shortTest())
             return;
 
         Volume vol = new Volume.ByteArrayVol(CC.VOLUME_PAGE_SHIFT);

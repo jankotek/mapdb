@@ -7,7 +7,7 @@ import java.util.Map;
 public class IssuesTest {
 
     @Test public void issue130(){
-        DB db = DBMaker.appendFileDB(UtilsTest.tempDbFile())
+        DB db = DBMaker.appendFileDB(TT.tempDbFile())
                 .closeOnJvmShutdown()
                 .make();
 

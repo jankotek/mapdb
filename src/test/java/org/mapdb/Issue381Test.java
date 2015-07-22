@@ -13,7 +13,7 @@ public class Issue381Test {
             throws Exception
     {
 
-        File f = UtilsTest.tempDbFile();
+        File f = TT.tempDbFile();
 
         for(int j=0;j<10;j++) {
             final int INSTANCES = 1000;

@@ -6,10 +6,6 @@ import java.io.*;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Random;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -21,10 +17,10 @@ public class CrashWithJVMKillTest {
 
     @Test
     public void test() throws IOException, InterruptedException {
-        if(UtilsTest.scale()==0)
+        if(TT.scale()==0)
             return;
 
-        long end = System.currentTimeMillis()+1000*60*10*UtilsTest.scale();
+        long end = System.currentTimeMillis()+1000*60*10* TT.scale();
 
         String tmpDir = System.getProperty("java.io.tmpdir");
         String wal = tmpDir+"/mapdbTest"+Math.random();

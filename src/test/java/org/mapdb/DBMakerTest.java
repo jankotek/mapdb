@@ -38,7 +38,7 @@ public class DBMakerTest{
 
     @Test
     public void testNewFileDB() throws Exception {
-        File f = UtilsTest.tempDbFile();
+        File f = TT.tempDbFile();
         DB db = DBMaker.fileDB(f)
                 .transactionDisable().make();
         verifyDB(db);
@@ -65,7 +65,7 @@ public class DBMakerTest{
     @Test
     public void testMake() throws Exception {
         DB db = DBMaker
-                .fileDB(UtilsTest.tempDbFile())
+                .fileDB(TT.tempDbFile())
                 .transactionDisable()
                 .make();
         verifyDB(db);
@@ -80,7 +80,7 @@ public class DBMakerTest{
     @Test
     public void testCacheHashTableEnable() throws Exception {
         DB db = DBMaker
-                .fileDB(UtilsTest.tempDbFile())
+                .fileDB(TT.tempDbFile())
                 .cacheHashTableEnable()
                 .transactionDisable()
                 .make();
@@ -97,7 +97,7 @@ public class DBMakerTest{
     @Test
     public void testMakeMapped() throws Exception {
         DB db = DBMaker
-                .fileDB(UtilsTest.tempDbFile())
+                .fileDB(TT.tempDbFile())
                 .transactionDisable()
                 .mmapFileEnable()
                 .make();
@@ -177,7 +177,7 @@ public class DBMakerTest{
 
 
     @Test public void read_only() throws IOException {
-        File f = UtilsTest.tempDbFile();
+        File f = TT.tempDbFile();
         DB db = DBMaker.fileDB(f).make();
         db.close();
         db = DBMaker
@@ -192,7 +192,7 @@ public class DBMakerTest{
 
     @Test(expected = DBException.WrongConfig.class)
     public void reopen_wrong_checksum() throws IOException {
-        File f = UtilsTest.tempDbFile();
+        File f = TT.tempDbFile();
         DB db = DBMaker.fileDB(f).make();
         db.close();
         db = DBMaker
@@ -213,7 +213,7 @@ public class DBMakerTest{
 
 
     @Test public void checksum() throws IOException {
-        File f = UtilsTest.tempDbFile();
+        File f = TT.tempDbFile();
         DB db = DBMaker
                 .fileDB(f)
                 .deleteFilesAfterClose()
@@ -228,7 +228,7 @@ public class DBMakerTest{
     }
 
     @Test public void encrypt() throws IOException {
-        File f = UtilsTest.tempDbFile();
+        File f = TT.tempDbFile();
         DB db = DBMaker
                 .fileDB(f)
                 .deleteFilesAfterClose()
@@ -244,7 +244,7 @@ public class DBMakerTest{
 
     @Test(expected = DBException.WrongConfig.class)
     public void reopen_wrong_encrypt() throws IOException {
-        File f = UtilsTest.tempDbFile();
+        File f = TT.tempDbFile();
         DB db = DBMaker.fileDB(f).make();
         db.close();
         db = DBMaker
@@ -261,7 +261,7 @@ public class DBMakerTest{
 
 
     @Test public void compress() throws IOException {
-        File f = UtilsTest.tempDbFile();
+        File f = TT.tempDbFile();
         DB db = DBMaker
                 .fileDB(f)
                 .deleteFilesAfterClose()
@@ -276,7 +276,7 @@ public class DBMakerTest{
 
     @Test(expected = DBException.WrongConfig.class)
     public void reopen_wrong_compress() throws IOException {
-        File f = UtilsTest.tempDbFile();
+        File f = TT.tempDbFile();
         DB db = DBMaker.fileDB(f).make();
         db.close();
         db = DBMaker
@@ -400,7 +400,7 @@ public class DBMakerTest{
     }
 
     @Test public void executor() throws InterruptedException {
-        if(UtilsTest.scale()==0)
+        if(TT.scale()==0)
             return;
         final DB db = DBMaker.heapDB().executorEnable().make();
         assertNotNull(db.executor);
@@ -576,7 +576,7 @@ public class DBMakerTest{
     }
 
     @Test public void fileChannel(){
-        DB db = DBMaker.fileDB(UtilsTest.tempDbFile())
+        DB db = DBMaker.fileDB(TT.tempDbFile())
                 .fileChannelEnable()
                 .transactionDisable().make();
         StoreDirect d = (StoreDirect) Store.forDB(db);
@@ -586,14 +586,14 @@ public class DBMakerTest{
 
 
     @Test public void fileMmapCleanerHack_file(){
-        DB db = DBMaker.fileDB(UtilsTest.tempDbFile())
+        DB db = DBMaker.fileDB(TT.tempDbFile())
                 .fileMmapEnable()
                 .transactionDisable()
                 .make();
         assertFalse(((Volume.MappedFileVol)((StoreDirect) db.engine).vol).cleanerHackEnabled);
         db.close();
 
-        db = DBMaker.fileDB(UtilsTest.tempDbFile())
+        db = DBMaker.fileDB(TT.tempDbFile())
                 .fileMmapEnable()
                 .fileMmapCleanerHackEnable()
                 .transactionDisable()

@@ -2,11 +2,9 @@ package org.mapdb;
 
 import java.io.File;
 
-import static org.junit.Assert.*;
-
 public class StoreCacheHashTableTest<E extends StoreDirect> extends EngineTest<E>{
 
-    File f = UtilsTest.tempDbFile();
+    File f = TT.tempDbFile();
 
     @Override protected E openEngine() {
         StoreDirect e =new StoreDirect(

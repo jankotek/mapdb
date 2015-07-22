@@ -16,7 +16,7 @@ public class
 
     @Override boolean canRollback(){return false;}
 
-    File f = UtilsTest.tempDbFile();
+    File f = TT.tempDbFile();
 
 
     @Override protected E openEngine() {
@@ -47,7 +47,7 @@ public class
 
     @Test(timeout = 100000)
     public void flush_write_cache(){
-        if(UtilsTest.scale()==0)
+        if(TT.scale()==0)
             return;
         for(ScheduledExecutorService E:
                 new ScheduledExecutorService[]{

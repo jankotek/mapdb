@@ -67,18 +67,18 @@ public class SerializerTest {
 
         Object[] a = new Object[]{1,2,3,4};
 
-        assertTrue(Arrays.equals(a, (Object[]) UtilsTest.clone(a, s)));
-        assertEquals(s, UtilsTest.clone(s, Serializer.BASIC));
+        assertTrue(Arrays.equals(a, (Object[]) TT.clone(a, s)));
+        assertEquals(s, TT.clone(s, Serializer.BASIC));
     }
 
     void testLong(Serializer<Long> ser){
         for(Long i= (long) -1e5;i<1e5;i++){
-            assertEquals(i, UtilsTest.clone(i,ser));
+            assertEquals(i, TT.clone(i, ser));
         }
 
         for(Long i=0L;i>0;i+=1+i/10000){
-            assertEquals(i, UtilsTest.clone(i, ser));
-            assertEquals(new Long(-i), UtilsTest.clone(-i, ser));
+            assertEquals(i, TT.clone(i, ser));
+            assertEquals(new Long(-i), TT.clone(-i, ser));
         }
     }
 
@@ -98,12 +98,12 @@ public class SerializerTest {
 
     void testInt(Serializer<Integer> ser){
         for(Integer i= (int) -1e5;i<1e5;i++){
-            assertEquals(i, UtilsTest.clone(i,ser));
+            assertEquals(i, TT.clone(i, ser));
         }
 
         for(Integer i=0;i>0;i+=1+i/10000){
-            assertEquals(i, UtilsTest.clone(i, ser));
-            assertEquals(new Long(-i), UtilsTest.clone(-i, ser));
+            assertEquals(i, TT.clone(i, ser));
+            assertEquals(new Long(-i), TT.clone(-i, ser));
         }
     }
 
@@ -127,7 +127,7 @@ public class SerializerTest {
 
         byte[] b = new byte[]{1,1,1,1,1,1,1,1,1,1,1,1,4,5,6,3,3,3,3,35,6,67,7,3,43,34};
 
-        assertTrue(Arrays.equals(b, UtilsTest.<byte[]>clone(b, c)));
+        assertTrue(Arrays.equals(b, TT.<byte[]>clone(b, c)));
     }
 
     @Test public void deflate_wrapper_values(){

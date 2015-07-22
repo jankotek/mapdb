@@ -9,7 +9,7 @@ public class Issue308Test {
 
     @Test
     public void test() {
-        if(UtilsTest.scale()==0)
+        if(TT.scale()==0)
             return;
 
         DB db = DBMaker.tempFileDB()

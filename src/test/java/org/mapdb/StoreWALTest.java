@@ -16,7 +16,7 @@ public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
 
     @Override boolean canRollback(){return true;}
 
-    File f = UtilsTest.tempDbFile();
+    File f = TT.tempDbFile();
 
 
     @Override protected E openEngine() {
@@ -101,7 +101,7 @@ public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
         Map<Long,String> ret = new LinkedHashMap<Long, String>();
 
         for(int i=0;i<1000;i++){
-            String s = UtilsTest.randomString((int) (Math.random()*10000));
+            String s = TT.randomString((int) (Math.random() * 10000));
             long recid = e.put(s,Serializer.STRING);
             ret.put(recid, s);
         }
@@ -186,7 +186,7 @@ public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
     }
 
     void compact_tx_works(final boolean rollbacks, final boolean pre) throws InterruptedException {
-        if(UtilsTest.scale()==0)
+        if(TT.scale()==0)
             return;
         e = openEngine();
         Map<Long,String> m = fill(e);

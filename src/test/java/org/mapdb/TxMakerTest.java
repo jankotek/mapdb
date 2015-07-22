@@ -61,7 +61,7 @@ public class TxMakerTest{
 
     @Test
     public void concurrent_tx() throws Throwable {
-        int scale = UtilsTest.scale();
+        int scale = TT.scale();
         if(scale==0)
             return;
         final int threads = scale*4;
@@ -134,7 +134,7 @@ public class TxMakerTest{
 
     @Test
     public void increment() throws Throwable {
-        int scale = UtilsTest.scale();
+        int scale = TT.scale();
         if(scale==0)
             return;
         final int threads = scale*4;
@@ -180,7 +180,7 @@ public class TxMakerTest{
 
     @Test
     public void cas() throws Throwable {
-        int scale = UtilsTest.scale();
+        int scale = TT.scale();
         if(scale==0)
             return;
         final int threads = scale*4;

@@ -40,7 +40,7 @@ public class Issue69Test {
 
 		StringBuilder buff = new StringBuilder();
 
-		long maxIterations = 1000000*UtilsTest.scale();
+		long maxIterations = 1000000* TT.scale();
 		int valueLength = 1024;
 		long maxKeys = 1000;
 		long i = 1;

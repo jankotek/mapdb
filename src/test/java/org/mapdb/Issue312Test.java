@@ -10,7 +10,7 @@ public class Issue312Test {
 
     @Test
     public void test() throws IOException{
-        if(UtilsTest.scale()==0)
+        if(TT.scale()==0)
             return;
 
         File f = File.createTempFile("mapdbTest","test");

@@ -456,7 +456,7 @@ public class SerializerBaseTest{
 
     @Test public void test_strings_var_sizes() throws IOException {
         for(int i=0;i<50;i++){
-            String s = UtilsTest.randomString(i);
+            String s = TT.randomString(i);
             assertEquals(s, clone((s)));
         }
     }
@@ -571,7 +571,7 @@ public class SerializerBaseTest{
         }
     }
     @Test public void test_Named(){
-        File f = UtilsTest.tempDbFile();
+        File f = TT.tempDbFile();
         DB db = DBMaker.fileDB(f).make();
         Map map = db.treeMap("map");
 
@@ -605,7 +605,7 @@ public class SerializerBaseTest{
     }
 
     @Test public void test_atomic_ref_serializable(){
-        File f = UtilsTest.tempDbFile();
+        File f = TT.tempDbFile();
         DB db = DBMaker.fileDB(f).make();
         Map map = db.treeMap("map");
 

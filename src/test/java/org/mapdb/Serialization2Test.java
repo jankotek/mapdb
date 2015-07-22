@@ -15,7 +15,7 @@ public class Serialization2Test{
 
 
     @Test public void test2() throws IOException {
-        File index = UtilsTest.tempDbFile();
+        File index = TT.tempDbFile();
         DB db = DBMaker.fileDB(index).transactionDisable().make();
 
         Serialization2Bean processView = new Serialization2Bean();
@@ -34,7 +34,7 @@ public class Serialization2Test{
 
 
     @Test public void test2_engine() throws IOException {
-        File index = UtilsTest.tempDbFile();
+        File index = TT.tempDbFile();
         DB db = DBMaker.fileDB(index).make();
 
         Serialization2Bean processView = new Serialization2Bean();
@@ -51,7 +51,7 @@ public class Serialization2Test{
 
 
     @Test  public void test3() throws IOException {
-        File index = UtilsTest.tempDbFile();
+        File index = TT.tempDbFile();
 
         Serialized2DerivedBean att = new Serialized2DerivedBean();
         DB db = DBMaker.fileDB(index).make();
@@ -81,7 +81,7 @@ public class Serialization2Test{
 
     @Test  public void testReopenWithDefrag(){
 
-        File f = UtilsTest.tempDbFile();
+        File f = TT.tempDbFile();
 
         DB db = DBMaker.fileDB(f)
                 .transactionDisable()

@@ -134,7 +134,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
 
     @Test public void compact2(){
-        long max = UtilsTest.scale()*10000;
+        long max = TT.scale()*10000;
         e = openEngine();
         Map<Long,Long> recids = new HashMap<Long, Long>();
         for(Long l=0L;l<max;l++){
@@ -159,7 +159,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
     @Test public void compact_large_record(){
         e = openEngine();
-        byte[] b = UtilsTest.randomByteArray(100000);
+        byte[] b = TT.randomByteArray(100000);
         long recid = e.put(b, Serializer.BYTE_ARRAY_NOSIZE);
         e.commit();
         e.compact();
@@ -230,7 +230,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
     }
 
     @Test public void empty_update_commit(){
-        if(UtilsTest.scale()==0)
+        if(TT.scale()==0)
             return;
 
         e = openEngine();
@@ -238,7 +238,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
         assertEquals("", e.get(recid, Serializer.STRING_NOSIZE));
 
         for(int i=0;i<10000;i++) {
-            String s = UtilsTest.randomString(80000);
+            String s = TT.randomString(80000);
             e.update(recid, s, Serializer.STRING_NOSIZE);
             assertEquals(s, e.get(recid, Serializer.STRING_NOSIZE));
             e.commit();
@@ -467,15 +467,15 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
     @Test
     public void par_update_get() throws InterruptedException {
-        int scale = UtilsTest.scale();
+        int scale = TT.scale();
         if(scale==0)
             return;
         int threadNum = Math.min(4,scale*4);
-        final long end = System.currentTimeMillis()+scale*10*60*1000;
+        final long end = TT.nowPlusMinutes(10);
         e = openEngine();
         final BlockingQueue<Fun.Pair<Long,byte[]>> q = new ArrayBlockingQueue(threadNum*10);
         for(int i=0;i<threadNum;i++){
-            byte[] b = UtilsTest.randomByteArray(new Random().nextInt(10000));
+            byte[] b = TT.randomByteArray(new Random().nextInt(10000));
             long recid = e.put(b,BYTE_ARRAY_NOSIZE);
             q.put(new Fun.Pair(recid,b));
         }
@@ -491,7 +491,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
                     int size = r.nextInt(1000);
                     if (r.nextInt(10) == 1)
                         size = size * 100;
-                    byte[] b = UtilsTest.randomByteArray(size);
+                    byte[] b = TT.randomByteArray(size);
                     e.update(t.a, b, Serializer.BYTE_ARRAY_NOSIZE);
                     q.put(new Fun.Pair<Long, byte[]>(t.a, b));
                 }
@@ -508,15 +508,15 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
     @Test
     public void par_cas() throws InterruptedException {
-        int scale = UtilsTest.scale();
+        int scale = TT.scale();
         if(scale==0)
             return;
         int threadNum = 8*scale;
-        final long end = System.currentTimeMillis()+50000*scale;
+        final long end = TT.nowPlusMinutes(10);
         e = openEngine();
         final BlockingQueue<Fun.Pair<Long,byte[]>> q = new ArrayBlockingQueue(threadNum*10);
         for(int i=0;i<threadNum;i++){
-            byte[] b = UtilsTest.randomByteArray(new Random().nextInt(10000));
+            byte[] b = TT.randomByteArray(new Random().nextInt(10000));
             long recid = e.put(b,BYTE_ARRAY_NOSIZE);
             q.put(new Fun.Pair(recid,b));
         }
@@ -531,7 +531,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
                     int size = r.nextInt(10000);
                     if(r.nextInt(10)==1)
                         size = size*100;
-                    byte[] b = UtilsTest.randomByteArray(size);
+                    byte[] b = TT.randomByteArray(size);
                     assertTrue(e.compareAndSwap(t.a, t.b, b, Serializer.BYTE_ARRAY_NOSIZE));
                     q.put(new Fun.Pair<Long,byte[]>(t.a,b));
                 }
@@ -558,7 +558,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
     @Test public void update_reserved_recid_large(){
         e = openEngine();
-        byte[] data = UtilsTest.randomByteArray((int) 1e7);
+        byte[] data = TT.randomByteArray((int) 1e7);
         e.update(Engine.RECID_NAME_CATALOG,data,Serializer.BYTE_ARRAY_NOSIZE);
         assertTrue(Serializer.BYTE_ARRAY.equals(data, e.get(Engine.RECID_NAME_CATALOG, Serializer.BYTE_ARRAY_NOSIZE)));
         e.commit();
@@ -683,7 +683,7 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
 
     @Test public void recover_with_interrupt() throws InterruptedException {
-        int scale = UtilsTest.scale();
+        int scale = TT.scale();
         if(scale==0)
             return;
         e = openEngine();
@@ -702,7 +702,9 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
         final AtomicLong a = new AtomicLong(10);
 
-        for(int i=0;i<100*scale;i++) {
+        long endTime = TT.nowPlusMinutes(10);
+
+        while(endTime>System.currentTimeMillis()) {
 
             final CountDownLatch latch = new CountDownLatch(1);
             Thread t = new Thread() {

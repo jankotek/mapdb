@@ -68,7 +68,7 @@ public class Issue162Test {
         assertEquals("two",map.get(2L).string);
     }
 
-    File path = UtilsTest.tempDbFile();
+    File path = TT.tempDbFile();
 
     @Test public void testHashMap() {
         System.out.println("--- Testing HashMap with custom serializer");

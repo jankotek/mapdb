@@ -1,6 +1,5 @@
 package org.mapdb;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -38,7 +37,7 @@ public class CrashWithInterruptTest {
     @Parameterized.Parameters
     public static Iterable params() throws IOException {
         List ret = new ArrayList();
-        if(UtilsTest.shortTest())
+        if(TT.shortTest())
             return ret;
 
         for(boolean notAppend:BOOLS){
@@ -82,11 +81,11 @@ public class CrashWithInterruptTest {
 
     @Test
     public void  crash_with_interrupt() throws InterruptedException {
-        int scale = UtilsTest.scale();
+        int scale = TT.scale();
         if(scale==0)
             return;
 
-        long endTime = System.currentTimeMillis()+ scale * 1000 * 60 * 5; //5 minutes for each scale point
+        final long endTime = TT.nowPlusMinutes(5);
 
         db = dbMaker.make();
         if(!db.engine.canRollback() || db.engine instanceof StoreHeap) //TODO engine might have crash recovery, but no rollbacks
@@ -103,7 +102,7 @@ public class CrashWithInterruptTest {
 
         final AtomicLong a = new AtomicLong(10);
 
-        while(System.currentTimeMillis()<endTime) {
+        while(endTime>System.currentTimeMillis()) {
 
             final CountDownLatch latch = new CountDownLatch(1);
             Thread t = new Thread() {
@@ -119,7 +118,7 @@ public class CrashWithInterruptTest {
 
                             for(long j=0;j<max;j++){
                                 int size = r.nextInt(largeVals?100000:100);
-                                byte[] b = UtilsTest.randomByteArray(size, r.nextInt());
+                                byte[] b = TT.randomByteArray(size, r.nextInt());
                                 map.put(j,b);
                             }
                             db.commit();
@@ -146,7 +145,7 @@ public class CrashWithInterruptTest {
             Random r = new Random(A);
             for(long j=0;j<max;j++){
                 int size = r.nextInt(largeVals?100000:100);
-                byte[] b = UtilsTest.randomByteArray(size, r.nextInt());
+                byte[] b = TT.randomByteArray(size, r.nextInt());
                 byte[] b2 = map.get(j);
                 assertTrue("Data were not commited", Arrays.equals(b, b2));
             }

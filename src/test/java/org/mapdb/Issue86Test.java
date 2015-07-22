@@ -21,11 +21,11 @@ public class Issue86Test {
     public void Array() {
         DB createFileStore = createFileStore();
         Map map = createFileStore.treeMap("testMap");
-        int maxSize = 1000*UtilsTest.scale();
+        int maxSize = 1000* TT.scale();
         for (int i = 1; i < maxSize; i++) {
             String[] array = new String[i];
             for (int j = 0; j < i; j++) {
-                array[j] = UtilsTest.randomString(100);
+                array[j] = TT.randomString(100);
             }
             map.put(i, array);
         }
@@ -35,7 +35,7 @@ public class Issue86Test {
     public void FieldArray() {
         DB createFileStore = createFileStore();
         Map map = createFileStore.treeMap("testMap");
-        int maxSize =  1000*UtilsTest.scale();
+        int maxSize =  1000* TT.scale();
         for (int i = 1; i < maxSize; i++) {
             map.put(i, new StringContainer(i));
         }
@@ -59,7 +59,7 @@ public class Issue86Test {
         public StringContainer(int size) {
             container = new String[size];
             for (int i = 0; i < size; i++) {
-                container[i] = UtilsTest.randomString(100);
+                container[i] = TT.randomString(100);
             }
         }
     }

@@ -14,7 +14,7 @@ public class Issue170Test {
                 .compressionEnable()
                 .transactionDisable()
                 .make().treeMapCreate("test").make();
-        int max = UtilsTest.scale()*100000;
+        int max = TT.scale()*100000;
         for(int i=0;i<max;i++){
             m.put(UUID.randomUUID().toString(),UUID.randomUUID().toString());
         }
