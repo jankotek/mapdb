@@ -1147,6 +1147,7 @@ public final class DataIO {
      *
      * @see DBMaker.Maker#fileLockHeartbeatEnable()
      */
+    //TODO take weak reference to Engine from background thread. Quit heartbeat if Engine was GCed.
     public static final class HeartbeatFileLock{
 
         /*
