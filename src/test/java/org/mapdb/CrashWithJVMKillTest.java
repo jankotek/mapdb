@@ -33,10 +33,10 @@ public class CrashWithJVMKillTest {
             Process p = b.start();
             p.waitFor();
             String out = outStreamToString(p.getInputStream());
-            assertTrue(out.startsWith("started_"));
-            assertTrue(out.endsWith("_killed"));
+            assertTrue(out,out.startsWith("started_"));
+            assertTrue(out,out.endsWith("_killed"));
             assertEquals(137, p.exitValue());
-            assertEquals("", outStreamToString(p.getErrorStream()));
+//            assertEquals(out,"", outStreamToString(p.getErrorStream()));
         }
     }
 
@@ -51,6 +51,8 @@ public class CrashWithJVMKillTest {
         DB db = DBMaker.fileDB(new File(wal, "store"))
                 .make();
 
+        db.compact();
+
         Map<Long,byte[]> m = db.treeMapCreate("hash")
                 .keySerializer(Serializer.LONG)
                 .valueSerializer(Serializer.BYTE_ARRAY)
@@ -62,9 +64,12 @@ public class CrashWithJVMKillTest {
         //find last sucessfull commmit
         if(props.exists() && props.listFiles().length>0){
             //list all files, find latest one
-            File[] ff = props.listFiles();
+            final File[] ff = props.listFiles();
             Arrays.sort(ff);
             seed = Long.valueOf(ff[ff.length-1].getName());
+            for(int i=0;i<ff.length-1;i++){
+                ff[i].delete();
+            }
 
             //check content of map
             Random r = new Random(seed);
