@@ -432,12 +432,20 @@ public abstract class Volume implements Closeable{
 
         protected abstract ByteBuffer makeNewBuffer(long offset);
 
+        protected final ByteBuffer getSlice(long offset){
+            ByteBuffer[] slices = this.slices;
+            int pos = (int)(offset >>> sliceShift);
+            if(pos>=slices.length)
+                throw new DBException.VolumeEOF("Get/Set beyong file size. Requested offset: "+offset+", volume size: "+length());
+            return slices[pos];
+        }
+
         @Override public final void putLong(final long offset, final long value) {
             if(CC.VOLUME_PRINT_STACK_AT_OFFSET!=0 && CC.VOLUME_PRINT_STACK_AT_OFFSET>=offset && CC.VOLUME_PRINT_STACK_AT_OFFSET <= offset+8){
                 new IOException("VOL STACK:").printStackTrace();
             }
 
-            slices[(int)(offset >>> sliceShift)].putLong((int) (offset & sliceSizeModMask), value);
+            getSlice(offset).putLong((int) (offset & sliceSizeModMask), value);
         }
 
         @Override public final void putInt(final long offset, final int value) {
@@ -445,7 +453,7 @@ public abstract class Volume implements Closeable{
                 new IOException("VOL STACK:").printStackTrace();
             }
 
-            slices[(int)(offset >>> sliceShift)].putInt((int) (offset & sliceSizeModMask), value);
+            getSlice(offset).putInt((int) (offset & sliceSizeModMask), value);
         }
 
 
@@ -454,7 +462,7 @@ public abstract class Volume implements Closeable{
                 new IOException("VOL STACK:").printStackTrace();
             }
 
-            slices[(int)(offset >>> sliceShift)].put((int) (offset & sliceSizeModMask), value);
+            getSlice(offset).put((int) (offset & sliceSizeModMask), value);
         }
 
 
@@ -465,7 +473,7 @@ public abstract class Volume implements Closeable{
             }
 
 
-            final ByteBuffer b1 = slices[(int)(offset >>> sliceShift)].duplicate();
+            final ByteBuffer b1 = getSlice(offset).duplicate();
             final int bufPos = (int) (offset& sliceSizeModMask);
 
             b1.position(bufPos);
@@ -478,7 +486,7 @@ public abstract class Volume implements Closeable{
                 new IOException("VOL STACK:").printStackTrace();
             }
 
-            final ByteBuffer b1 = slices[(int)(offset >>> sliceShift)].duplicate();
+            final ByteBuffer b1 = getSlice(offset).duplicate();
             final int bufPos = (int) (offset& sliceSizeModMask);
             //no overlap, so just write the value
             b1.position(bufPos);
@@ -487,7 +495,7 @@ public abstract class Volume implements Closeable{
 
         @Override
         public void transferInto(long inputOffset, Volume target, long targetOffset, long size) {
-            final ByteBuffer b1 = slices[(int)(inputOffset >>> sliceShift)].duplicate();
+            final ByteBuffer b1 =getSlice(inputOffset).duplicate();
             final int bufPos = (int) (inputOffset& sliceSizeModMask);
 
             b1.position(bufPos);
@@ -497,7 +505,7 @@ public abstract class Volume implements Closeable{
         }
 
         @Override public void getData(final long offset, final byte[] src, int srcPos, int srcSize){
-            final ByteBuffer b1 = slices[(int)(offset >>> sliceShift)].duplicate();
+            final ByteBuffer b1 = getSlice(offset).duplicate();
             final int bufPos = (int) (offset& sliceSizeModMask);
 
             b1.position(bufPos);
@@ -506,22 +514,22 @@ public abstract class Volume implements Closeable{
 
 
         @Override final public long getLong(long offset) {
-            return slices[(int)(offset >>> sliceShift)].getLong((int) (offset& sliceSizeModMask));
+            return getSlice(offset).getLong((int) (offset & sliceSizeModMask));
         }
 
         @Override final public int getInt(long offset) {
-            return slices[(int)(offset >>> sliceShift)].getInt((int) (offset& sliceSizeModMask));
+            return getSlice(offset).getInt((int) (offset & sliceSizeModMask));
         }
 
 
         @Override public final byte getByte(long offset) {
-            return slices[(int)(offset >>> sliceShift)].get((int) (offset& sliceSizeModMask));
+            return getSlice(offset).get((int) (offset & sliceSizeModMask));
         }
 
 
         @Override
         public final DataIO.DataInputByteBuffer getDataInput(long offset, int size) {
-            return new DataIO.DataInputByteBuffer(slices[(int)(offset >>> sliceShift)], (int) (offset& sliceSizeModMask));
+            return new DataIO.DataInputByteBuffer(getSlice(offset), (int) (offset& sliceSizeModMask));
         }
 
 
@@ -532,7 +540,7 @@ public abstract class Volume implements Closeable{
 
             if(overlap){
                 while(len>0){
-                    ByteBuffer b = slices[((int) (offset >>> sliceShift))].duplicate();
+                    ByteBuffer b = getSlice(offset).duplicate();
                     b.position((int) (offset&sliceSizeModMask));
 
                     int toPut = Math.min(len,sliceSize - b.position());
@@ -556,7 +564,7 @@ public abstract class Volume implements Closeable{
                 byte[] bb = new byte[size];
                 final int origLen = size;
                 while(size>0){
-                    ByteBuffer b = slices[((int) (offset >>> sliceShift))].duplicate();
+                    ByteBuffer b = getSlice(offset).duplicate();
                     b.position((int) (offset&sliceSizeModMask));
 
                     int toPut = Math.min(size,sliceSize - b.position());
@@ -578,7 +586,7 @@ public abstract class Volume implements Closeable{
         public void clear(long startOffset, long endOffset) {
             if(CC.ASSERT && (startOffset >>> sliceShift) != ((endOffset-1) >>> sliceShift))
                 throw new AssertionError();
-            ByteBuffer buf = slices[(int)(startOffset >>> sliceShift)];
+            ByteBuffer buf = getSlice(startOffset);
             int start = (int) (startOffset&sliceSizeModMask);
             int end = (int) (endOffset&sliceSizeModMask);
 
