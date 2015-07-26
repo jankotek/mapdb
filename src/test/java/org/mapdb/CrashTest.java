@@ -111,7 +111,7 @@ public class CrashTest {
             Process p = b.start();
             p.waitFor();
             String out = outStreamToString(p.getInputStream());
-            System.err.println(outStreamToString(p.getErrorStream()));
+            System.err.print(outStreamToString(p.getErrorStream()));
             assertTrue(out,out.startsWith("started_"));
             assertTrue(out, out.endsWith("_killed"));
             assertEquals(137, p.exitValue());
