@@ -1,6 +1,7 @@
 package org.mapdb;
 
 import junit.framework.AssertionFailedError;
+import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -118,6 +119,11 @@ public class CrashTest {
 
 //            assertEquals(out,"", outStreamToString(p.getErrorStream()));
         }
+    }
+
+    @After
+    public void clean(){
+        p.file.delete();
     }
 
     public static void main(String[] args) throws IOException {
