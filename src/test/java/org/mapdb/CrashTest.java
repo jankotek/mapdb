@@ -174,6 +174,8 @@ public class CrashTest {
                 assertTrue(dbSeed.get()==getSeed(seedStartDir, 0) || dbSeed.get()==getSeed(seedStartDir, 1));
             }
 
+            if(dbSeed.get()!=oldSeed)
+                commitCount++;
 
             Map<Long,byte[]> m = map(p,db);
             //check content of map
