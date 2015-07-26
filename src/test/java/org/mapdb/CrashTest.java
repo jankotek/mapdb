@@ -98,7 +98,7 @@ public class CrashTest {
         long end = System.currentTimeMillis()+1000*60*10* TT.scale();
 
         String tmpDir = System.getProperty("java.io.tmpdir");
-        if(new File(tmpDir).getFreeSpace()<20e9)
+        if(new File(tmpDir).getFreeSpace()<10e9)
             fail("not enough free disk space");
 
         String props = tmpDir+"/mapdbTestProps"+Math.random();
