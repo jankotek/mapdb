@@ -48,6 +48,9 @@ public class TT {
         return scale()==0;
     }
 
+    public static final boolean[] BOOLS = {true, false};
+
+
 
     @Test public void testPackInt() throws Exception {
 
@@ -244,4 +247,17 @@ public class TT {
         }
     }
 
+    public static String serializeToString(Object o) throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ObjectOutputStream out2 = new ObjectOutputStream(out);
+        out2.writeObject(o);
+        out2.close();
+        byte[] b = out.toByteArray();
+        return DataIO.toHexa(b);
+    }
+
+    public static <A> A deserializeFromString(String s) throws IOException, ClassNotFoundException {
+        ByteArrayInputStream in = new ByteArrayInputStream(DataIO.fromHexa(s));
+        return (A) new ObjectInputStream(in).readObject();
+    }
 }
