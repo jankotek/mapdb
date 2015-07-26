@@ -260,4 +260,20 @@ public class TT {
         ByteArrayInputStream in = new ByteArrayInputStream(DataIO.fromHexa(s));
         return (A) new ObjectInputStream(in).readObject();
     }
+
+    /** recursive delete directory */
+    public static void dirDelete(File dir) {
+        String tempDir = System.getProperty("java.io.tmpdir");
+        assertTrue(dir.getAbsolutePath().startsWith(tempDir));
+        dirDelete2(dir);
+    }
+
+    private static void dirDelete2(File dir){
+        if(dir.isDirectory()) {
+            for (File f : dir.listFiles()) {
+                dirDelete2(f);
+            }
+        }
+        dir.delete();
+    }
 }
