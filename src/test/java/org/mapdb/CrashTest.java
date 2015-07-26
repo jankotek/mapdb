@@ -84,7 +84,7 @@ public class CrashTest {
             maker.fileLockDisable();
 
             if (mmap)
-                maker.fileMmapEnableIfSupported();
+                maker.fileMmapEnableIfSupported().fileMmapCleanerHackEnable();
 
             if (cache)
                 maker.cacheHashTableEnable();
