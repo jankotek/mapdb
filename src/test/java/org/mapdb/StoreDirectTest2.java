@@ -104,12 +104,12 @@ public class StoreDirectTest2 {
         long[] bufs = st.freeDataTake(recSize);
 
         assertEquals(2,bufs.length);
-        assertEquals(MAX_REC_SIZE, bufs[0]>>>48);
-        assertEquals(PAGE_SIZE, bufs[0]&MOFFSET);
+        assertEquals(MAX_REC_SIZE, bufs[0] >>> 48);
+        assertEquals(PAGE_SIZE, bufs[0] & MOFFSET);
         assertEquals(MLINKED,bufs[0]&MLINKED);
 
-        assertEquals(recSize-MAX_REC_SIZE+8, bufs[1]>>>48);
-        assertEquals(st.PAGE_SIZE + round16Up(MAX_REC_SIZE), bufs[1]&MOFFSET);
+        assertEquals(recSize - MAX_REC_SIZE + 8, bufs[1] >>> 48);
+        assertEquals(st.PAGE_SIZE + round16Up(MAX_REC_SIZE), bufs[1] & MOFFSET);
         assertEquals(0, bufs[1] & MLINKED);
     }
 
@@ -181,7 +181,7 @@ public class StoreDirectTest2 {
         };
         st.locks[st.lockPos(recid)].writeLock().lock();
         int bufSize = 19+100-8;
-        st.putData(recid,offsets,newBuf(bufSize).buf,bufSize);
+        st.putData(recid, offsets, newBuf(bufSize).buf, bufSize);
 
         //verify index val
         assertEquals(19L << 48 | o | MLINKED | MARCHIVE, st.indexValGet(recid));
@@ -337,7 +337,7 @@ public class StoreDirectTest2 {
         //now run recids
         for(long recid=1;recid<=maxRecid;recid++){
             long offset = st.recidToOffset(recid);
-            assertTrue(""+recid + " - "+offset+" - "+(offset%PAGE_SIZE),
+            assertTrue("" + recid + " - " + offset + " - " + (offset % PAGE_SIZE),
                     m.remove(offset));
         }
         assertTrue(m.isEmpty());
@@ -373,6 +373,28 @@ public class StoreDirectTest2 {
                     m.remove(offset));
         }
         assertTrue(m.isEmpty());
+    }
+
+    @Test public void larger_does_not_cause_overlaps(){
+        if(TT.shortTest())
+            return;
+
+        File f = TT.tempDbFile();
+        String s = TT.randomString(40000);
+
+        DB db = DBMaker.fileDB(f).allocateIncrement(2*1024*1024).fileMmapEnable().transactionDisable().make();
+        Map m = db.hashMap("test");
+        for(int i=0;i<10000;i++){
+            m.put(i,s);
+        }
+        db.close();
+        db = DBMaker.fileDB(f).fileMmapEnable().transactionDisable().make();
+        m = db.hashMap("test");
+        for(int i=0;i<10000;i++){
+            assertEquals(s, m.get(i));
+        }
+        db.close();
+        f.delete();
     }
 
 }
