@@ -86,14 +86,45 @@ public class DataIOTest {
         assertEquals(1073741824, DataIO.nextPowTwo(1073741824));
     }
 
+
+    @Test public void testNextPowTwoLong(){
+        assertEquals(1, DataIO.nextPowTwo(1L));
+        assertEquals(2, DataIO.nextPowTwo(2L));
+        assertEquals(4, DataIO.nextPowTwo(3L));
+        assertEquals(4, DataIO.nextPowTwo(4L));
+
+        assertEquals(64, DataIO.nextPowTwo(33L));
+        assertEquals(64, DataIO.nextPowTwo(61L));
+
+        assertEquals(1024, DataIO.nextPowTwo(777L));
+        assertEquals(1024, DataIO.nextPowTwo(1024L));
+
+        assertEquals(1073741824, DataIO.nextPowTwo(1073741824L-100));
+        assertEquals(1073741824, DataIO.nextPowTwo((long) (1073741824*0.7)));
+        assertEquals(1073741824, DataIO.nextPowTwo(1073741824L));
+    }
+
     @Test public void testNextPowTwo2(){
         for(int i=1;i<1073750016;i+= 1 + i/100000){
             int pow = nextPowTwo(i);
             assertTrue(pow>=i);
+            assertTrue(pow/2<i);
             assertTrue(Integer.bitCount(pow)==1);
 
         }
     }
+
+
+    @Test public void testNextPowTwo2Long(){
+        for(long i=1;i<10000L*Integer.MAX_VALUE;i+= 1 + i/100000){
+            long pow = nextPowTwo(i);
+            assertTrue(pow>=i);
+            assertTrue(pow/2<i);
+            assertTrue(Long.bitCount(pow)==1);
+
+        }
+    }
+
 
     @Test public void packLongCompat() throws IOException {
         DataOutputByteArray b = new DataOutputByteArray();

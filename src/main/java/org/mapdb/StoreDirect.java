@@ -78,6 +78,10 @@ public class StoreDirect extends Store {
 
     protected final long indexValSize;
 
+    protected final long startSize;
+    protected final long sizeIncrement;
+    protected final int sliceShift;
+
     public StoreDirect(String fileName,
                        Volume.VolumeFactory volumeFactory,
                        Cache cache,
@@ -90,24 +94,26 @@ public class StoreDirect extends Store {
                        boolean snapshotEnable,
                        boolean fileLockDisable,
                        DataIO.HeartbeatFileLock fileLockHeartbeat,
-                       int freeSpaceReclaimQ,
-                       boolean commitFileSyncDisable,
-                       int sizeIncrement,
-                       ScheduledExecutorService executor
+                       ScheduledExecutorService executor,
+                       long startSize,
+                       long sizeIncrement
                        ) {
         super(fileName, volumeFactory, cache, lockScale, lockingStrategy, checksum, compress, password, readonly,
-                snapshotEnable,fileLockDisable, fileLockHeartbeat);
-        //TODO this should be in init method
-        this.vol = volumeFactory.makeVolume(fileName, readonly, fileLockDisable);
+                snapshotEnable, fileLockDisable, fileLockHeartbeat);
         this.executor = executor;
         this.snapshots = snapshotEnable?
                 new CopyOnWriteArrayList<Snapshot>():
                 null;
         this.indexValSize = checksum ? 10 : 8;
 
+        this.sizeIncrement = Math.max(1L<<CC.VOLUME_PAGE_SHIFT, DataIO.nextPowTwo(sizeIncrement));
+        this.startSize = Fun.roundUp(Math.max(1L<<CC.VOLUME_PAGE_SHIFT,startSize), this.sizeIncrement);
+        this.sliceShift = Volume.sliceShiftFromSize(this.sizeIncrement);
+
         if(CC.LOG_STORE && LOG.isLoggable(Level.FINE)){
-            LOG.log(Level.FINE, "StoreDirect constructed: executor={0}, snapshots={1}, indexValSize={2}",
-                    new Object[]{executor,snapshots,indexValSize});
+            LOG.log(Level.FINE, "StoreDirect constructed: executor={0}, snapshots={1}, indexValSize={2}, " +
+                            "startSize={3}, sizeIncrement={4}",
+                    new Object[]{executor,snapshots,indexValSize,startSize,sizeIncrement});
         }
     }
 
@@ -117,7 +123,11 @@ public class StoreDirect extends Store {
         try {
             structuralLock.lock();
             try {
-                if (vol.isEmpty()) {
+                boolean empty = Volume.isEmptyFile(fileName);
+
+                this.vol = volumeFactory.makeVolume(fileName, readonly, fileLockDisable, sliceShift, startSize, false);
+
+                if (empty) {
                     initCreate();
                 } else {
                     initOpen();
@@ -154,6 +164,12 @@ public class StoreDirect extends Store {
         if (CC.LOG_STORE && LOG.isLoggable(Level.FINE)) {
             LOG.log(Level.FINE, "initOpen: file={0}, volLength={1}, vol={2}", new Object[]{fileName, vol.length(), vol});
         }
+
+        if(vol.getInt(0)!=HEADER){
+            //TODO handle version numbers
+            throw new DBException.DataCorruption("wrong header in file: "+fileName);
+        }
+
         //check header config
         checkFeaturesBitmap(vol.getLong(HEAD_FEATURES));
 
@@ -262,9 +278,8 @@ public class StoreDirect extends Store {
                 null,
                 CC.DEFAULT_LOCK_SCALE,
                 0,
-                false,false,null,false,false,false,null,0,
-                false,0,
-                null);
+                false,false,null,false,false,false,null,
+                null, 0L, 0L);
     }
 
     protected int headChecksum(Volume vol2) {
@@ -1035,8 +1050,8 @@ public class StoreDirect extends Store {
                         executor==null?LOCKING_STRATEGY_NOLOCK:LOCKING_STRATEGY_WRITELOCK,
                         checksum,compress,null,false,false,
                         true, //locking is disabled on compacted file
-                        null,0,false,0,
-                        null);
+                        null,
+                        null, startSize, sizeIncrement);
                 target.init();
                 final AtomicLong maxRecid = new AtomicLong(RECID_LAST_RESERVED);
 

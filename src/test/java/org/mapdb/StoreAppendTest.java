@@ -25,7 +25,9 @@ public class StoreAppendTest<E extends StoreAppend> extends EngineTest<E>{
                     false,
                     null,
                     false,
-                    null
+                    null,
+                    0L,
+                    0L
             );
             s.init();
             return  s;

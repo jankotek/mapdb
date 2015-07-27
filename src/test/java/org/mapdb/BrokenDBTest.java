@@ -34,10 +34,9 @@ public class BrokenDBTest {
         try {
             DBMaker.fileDB(index).make();
             Assert.fail("Expected exception not thrown");
-        } catch (final DBException.VolumeIOError e) {
-            //TODO there should be broken header Exception or something like that
-//            // will fail!
-//            Assert.assertTrue("Wrong message", e.getMessage().contains("storage has invalid header"));
+        } catch (final DBException.DataCorruption e) {
+            // will fail!
+            Assert.assertTrue("Wrong message", e.getMessage().contains("wrong header in file"));
         }
 
         index.delete();
@@ -61,7 +60,7 @@ public class BrokenDBTest {
         DBMaker.fileDB(index).make().close();
 
         // corrupt file
-        MappedFileVol physVol = new Volume.MappedFileVol(index, false, false, CC.VOLUME_PAGE_SHIFT,false);
+        MappedFileVol physVol = new Volume.MappedFileVol(index, false, false, CC.VOLUME_PAGE_SHIFT,false, 0L);
         physVol.ensureAvailable(32);
         //TODO corrupt file somehow
 //        physVol.putInt(0, StoreDirect.HEADER);

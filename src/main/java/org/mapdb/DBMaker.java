@@ -126,6 +126,8 @@ public final class DBMaker{
 
         String fullTx = "fullTx";
 
+        String allocateStartSize = "allocateStartSize";
+        String allocateIncrement = "allocateIncrement";
     }
 
 
@@ -1169,6 +1171,29 @@ public final class DBMaker{
         }
 
 
+        /**
+         * Tells allocator to set initial store size, when new store is created.
+         * Value is rounder up to nearest multiple of 1MB or allocation increment.
+         *
+         * @return this builder
+         */
+        public Maker allocateStartSize(long size){
+            props.setProperty(Keys.allocateStartSize,""+size);
+            return this;
+        }
+
+        /**
+         * Tells allocator to grow store with this size increment. Minimal value is 1MB.
+         * Incremental size is rounded up to nearest power of two.
+         *
+         * @return this builder
+         */
+        public Maker allocateIncrement(long sizeIncrement){
+            props.setProperty(Keys.allocateIncrement,""+sizeIncrement);
+            return this;
+        }
+
+
 
         /** constructs DB using current settings */
         public DB make(){
@@ -1252,6 +1277,9 @@ public final class DBMaker{
 
             final int lockScale = DataIO.nextPowTwo(propsGetInt(Keys.lockScale,CC.DEFAULT_LOCK_SCALE));
 
+            final long allocateStartSize = propsGetLong(Keys.allocateStartSize,0L);
+            final long allocateIncrement = propsGetLong(Keys.allocateIncrement,0L);
+
             boolean cacheLockDisable = lockingStrategy!=0;
             byte[] encKey = propsGetXteaEncKey();
             final boolean snapshotEnabled =  propsGetBool(Keys.snapshots);
@@ -1276,7 +1304,9 @@ public final class DBMaker{
                         fileLockDisable,
                         heartbeatFileLock,
                         propsGetBool(Keys.transactionDisable),
-                        storeExecutor
+                        storeExecutor,
+                        allocateStartSize,
+                        allocateIncrement
                 );
             }else{
                 Volume.VolumeFactory volFac = extendStoreVolumeFactory(false);
@@ -1298,10 +1328,9 @@ public final class DBMaker{
                             snapshotEnabled,
                             fileLockDisable,
                             heartbeatFileLock,
-                            propsGetInt(Keys.freeSpaceReclaimQ, CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
-                            propsGetBool(Keys.commitFileSyncDisable),
-                            0,
                             storeExecutor,
+                            allocateStartSize,
+                            allocateIncrement,
                             CC.DEFAULT_STORE_EXECUTOR_SCHED_RATE,
                             propsGetInt(Keys.asyncWriteQueueSize,CC.DEFAULT_ASYNC_WRITE_QUEUE_SIZE)
                     );
@@ -1319,10 +1348,9 @@ public final class DBMaker{
                             snapshotEnabled,
                             fileLockDisable,
                             heartbeatFileLock,
-                            propsGetInt(Keys.freeSpaceReclaimQ, CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
-                            propsGetBool(Keys.commitFileSyncDisable),
-                            0,
                             storeExecutor,
+                            allocateStartSize,
+                            allocateIncrement,
                             CC.DEFAULT_STORE_EXECUTOR_SCHED_RATE,
                             propsGetInt(Keys.asyncWriteQueueSize,CC.DEFAULT_ASYNC_WRITE_QUEUE_SIZE)
                     );
@@ -1340,10 +1368,9 @@ public final class DBMaker{
                             snapshotEnabled,
                             fileLockDisable,
                             heartbeatFileLock,
-                            propsGetInt(Keys.freeSpaceReclaimQ, CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
-                            propsGetBool(Keys.commitFileSyncDisable),
-                            0,
-                            storeExecutor);
+                            storeExecutor,
+                            allocateStartSize,
+                            allocateIncrement);
                 }
             }
 

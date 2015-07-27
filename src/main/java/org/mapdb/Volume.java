@@ -46,6 +46,24 @@ import java.util.logging.Logger;
  */
 public abstract class Volume implements Closeable{
 
+    static int sliceShiftFromSize(long sizeIncrement) {
+        //TODO optimize this method with bitcount operation
+        sizeIncrement = DataIO.nextPowTwo(sizeIncrement);
+        for(int i=0;i<32;i++){
+            if((1L<<i)==sizeIncrement){
+                return i;
+            }
+        }
+        throw new AssertionError("Could not find sliceShift");
+    }
+
+    static boolean isEmptyFile(String fileName) {
+        if(fileName==null || fileName.length()==0)
+            return true;
+        File f = new File(fileName);
+        return !f.exists() || f.length()==0;
+    }
+
     public static abstract class VolumeFactory{
         public abstract Volume makeVolume(String file, boolean readOnly, boolean fileLockDisabled,
                                           int sliceShift, long initSize, boolean fixedSize);
@@ -82,7 +100,8 @@ public abstract class Volume implements Closeable{
 
             if(clazz!=null){
                 try {
-                    return (Volume) clazz.getConstructor(long.class, int.class).newInstance(0L, sliceShift);
+                    return (Volume) clazz.getConstructor(long.class, int.class, long.class)
+                            .newInstance(0L, sliceShift, initSize);
                 } catch (Exception e) {
                     LOG.log(Level.WARNING, "Could not invoke UnsafeVolume constructor. " +
                             "Falling back to DirectByteBuffer",e);
@@ -161,8 +180,6 @@ public abstract class Volume implements Closeable{
      * @return slice size or {@code -1} if not sliced
      */
     abstract public int sliceSize();
-
-    public abstract boolean isEmpty();
 
     public void deleteFile(){
         File f = getFile();
@@ -401,6 +418,7 @@ public abstract class Volume implements Closeable{
 
         @Override
         public final void ensureAvailable(long offset) {
+            offset=Fun.roundUp(offset,1L<<sliceShift);
             int slicePos = (int) (offset >>> sliceShift);
 
             //check for most common case, this is already mapped
@@ -411,13 +429,13 @@ public abstract class Volume implements Closeable{
             growLock.lock();
             try{
                 //check second time
-                if(slicePos< slices.length)
+                if(slicePos <= slices.length)
                     return;
 
                 int oldSize = slices.length;
                 ByteBuffer[] slices2 = slices;
 
-                slices2 = Arrays.copyOf(slices2, Math.max(slicePos+1, slices2.length + slices2.length/1000));
+                slices2 = Arrays.copyOf(slices2, slicePos);
 
                 for(int pos=oldSize;pos<slices2.length;pos++) {
                     slices2[pos]=makeNewBuffer(1L* sliceSize *pos);
@@ -600,11 +618,6 @@ public abstract class Volume implements Closeable{
         }
 
         @Override
-        public boolean isEmpty() {
-            return slices==null || slices.length==0;
-        }
-
-        @Override
         public boolean isSliced(){
             return true;
         }
@@ -683,8 +696,6 @@ public abstract class Volume implements Closeable{
 
         protected final boolean readOnly;
         protected final long maxSize;
-        protected volatile boolean empty = true;
-
 
 
         protected ByteBufferVolSingle(boolean readOnly, long maxSize, boolean cleanerHackEnabled) {
@@ -696,7 +707,7 @@ public abstract class Volume implements Closeable{
 
         @Override
         public void ensureAvailable(long offset) {
-            empty = false;
+            //TODO throw error if too big
         }
 
         @Override public final void putLong(final long offset, final long value) {
@@ -821,10 +832,6 @@ public abstract class Volume implements Closeable{
             }
         }
 
-        @Override
-        public boolean isEmpty() {
-            return buffer==null || buffer.limit()==0 || empty;
-        }
 
 
         @Override
@@ -846,7 +853,7 @@ public abstract class Volume implements Closeable{
         public static final VolumeFactory FACTORY = new VolumeFactory() {
             @Override
             public Volume makeVolume(String file, boolean readOnly, boolean fileLockDisabled, int sliceShift, long initSize, boolean fixedSize) {
-                return factory(file, readOnly, fileLockDisabled, sliceShift, false);
+                return factory(file, readOnly, fileLockDisabled, sliceShift, false, initSize);
             }
         };
 
@@ -854,21 +861,24 @@ public abstract class Volume implements Closeable{
         public static final VolumeFactory FACTORY_WITH_CLEANER_HACK = new VolumeFactory() {
             @Override
             public Volume makeVolume(String file, boolean readOnly, boolean fileLockDisabled, int sliceShift, long initSize, boolean fixedSize) {
-                return factory(file, readOnly, fileLockDisabled, sliceShift, true);
+                return factory(file, readOnly, fileLockDisabled, sliceShift, true,initSize);
             }
         };
 
 
-        private static Volume factory(String file, boolean readOnly, boolean fileLockDisabled, int sliceShift, boolean cleanerHackEnabled) {
+        private static Volume factory(String file, boolean readOnly, boolean fileLockDisabled, int sliceShift,
+                                      boolean cleanerHackEnabled, long initSize) {
             File f = new File(file);
             if(readOnly){
                 long flen = f.length();
                 if(flen <= Integer.MAX_VALUE) {
-                    return new MappedFileVolSingle(f, readOnly, fileLockDisabled,  flen, cleanerHackEnabled);
+                    return new MappedFileVolSingle(f, readOnly, fileLockDisabled,
+                            Math.max(flen,initSize),
+                            cleanerHackEnabled);
                 }
             }
             //TODO prealocate initsize
-            return new MappedFileVol(f,readOnly,fileLockDisabled, sliceShift,cleanerHackEnabled);
+            return new MappedFileVol(f,readOnly,fileLockDisabled, sliceShift,cleanerHackEnabled,initSize);
         }
 
 
@@ -880,25 +890,34 @@ public abstract class Volume implements Closeable{
 
         protected volatile boolean rafSync = false;
 
-        public MappedFileVol(File file, boolean readOnly, boolean fileLockDisable, int sliceShift, boolean cleanerHackEnabled) {
+        public MappedFileVol(File file, boolean readOnly, boolean fileLockDisable,
+                             int sliceShift, boolean cleanerHackEnabled, long initSize) {
             super(readOnly,sliceShift, cleanerHackEnabled);
             this.file = file;
             this.mapMode = readOnly? FileChannel.MapMode.READ_ONLY: FileChannel.MapMode.READ_WRITE;
             try {
-                FileChannelVol.checkFolder(file,readOnly);
+                FileChannelVol.checkFolder(file, readOnly);
                 this.raf = new java.io.RandomAccessFile(file, readOnly?"r":"rw");
                 this.fileChannel = raf.getChannel();
 
                 fileLock = Volume.lockFile(file,raf,readOnly,fileLockDisable);
 
                 final long fileSize = fileChannel.size();
-                if(fileSize>0){
-                    //map existing data
-                    int chunksSize = (int) ((Fun.roundUp(fileSize,sliceSize)>>> sliceShift));
+                long endSize = fileSize;
+                if(initSize>fileSize && !readOnly)
+                    endSize = initSize; //allocate more data
+
+                if(endSize>0){
+                    //map data
+                    int chunksSize = (int) ((Fun.roundUp(endSize,sliceSize)>>> sliceShift));
                     slices = new ByteBuffer[chunksSize];
                     for(int i=0;i<slices.length;i++){
                         slices[i] = makeNewBuffer(1L*i*sliceSize);
                     }
+//                    TODO clear newly allocated data
+//                    if(endSize>fileSize && !readOnly){
+//                        clear(fileSize, endSize);
+//                    }
                 }else{
                     slices = new ByteBuffer[0];
                 }
@@ -1010,11 +1029,6 @@ public abstract class Volume implements Closeable{
 
 
         @Override
-        public boolean isEmpty() {
-            return length()<=0;
-        }
-
-        @Override
         public long length() {
             return file.length();
         }
@@ -1086,12 +1100,43 @@ public abstract class Volume implements Closeable{
 
     public static final class MappedFileVolSingle extends ByteBufferVolSingle {
 
+
+        protected final static VolumeFactory FACTORY = new VolumeFactory() {
+            @Override
+            public Volume makeVolume(String file, boolean readOnly, boolean fileLockDisabled, int sliceShift, long initSize, boolean fixedSize) {
+                if(initSize>Integer.MAX_VALUE)
+                    throw new IllegalArgumentException("startSize larger 2GB");
+                return new MappedFileVolSingle(
+                        new File(file),
+                        readOnly,
+                        fileLockDisabled,
+                        initSize,
+                        false);
+            }
+        };
+
+        protected final static VolumeFactory FACTORY_WITH_CLEANER_HACK = new VolumeFactory() {
+            @Override
+            public Volume makeVolume(String file, boolean readOnly, boolean fileLockDisabled, int sliceShift, long initSize, boolean fixedSize) {
+                if(initSize>Integer.MAX_VALUE)
+                    throw new IllegalArgumentException("startSize larger 2GB");
+                return new MappedFileVolSingle(
+                        new File(file),
+                        readOnly,
+                        fileLockDisabled,
+                        initSize,
+                        true);
+            }
+        };
+
+
         protected final File file;
         protected final FileChannel.MapMode mapMode;
         protected final RandomAccessFile raf;
         protected final FileLock fileLock;
 
-        public MappedFileVolSingle(File file, boolean readOnly, boolean fileLockDisabled, long maxSize, boolean cleanerHackEnabled) {
+        public MappedFileVolSingle(File file, boolean readOnly, boolean fileLockDisabled, long maxSize,
+                                   boolean cleanerHackEnabled) {
             super(readOnly,maxSize, cleanerHackEnabled);
             this.file = file;
             this.mapMode = readOnly? FileChannel.MapMode.READ_ONLY: FileChannel.MapMode.READ_WRITE;
@@ -1103,7 +1148,6 @@ public abstract class Volume implements Closeable{
 
 
                 final long fileSize = raf.length();
-                empty = fileSize == 0;
                 if(readOnly) {
                     maxSize = Math.min(maxSize, fileSize);
                 }else if(fileSize<maxSize){
@@ -1189,9 +1233,8 @@ public abstract class Volume implements Closeable{
         public static final VolumeFactory FACTORY = new VolumeFactory() {
             @Override
             public Volume makeVolume(String file, boolean readOnly, boolean fileLockDisabled, int sliceShift, long initSize, boolean fixedSize) {
-                //TODO prealocate initSize
                 //TODO optimize for fixedSize smaller than 2GB
-                return new MemoryVol(true,sliceShift,false);
+                return new MemoryVol(true,sliceShift,false, initSize);
             }
         };
 
@@ -1199,10 +1242,9 @@ public abstract class Volume implements Closeable{
         /** factory for DirectByteBuffer storage*/
         public static final VolumeFactory FACTORY_WITH_CLEANER_HACK = new VolumeFactory() {
             @Override
-            public Volume makeVolume(String file, boolean readOnly, boolean fileLockDisabled, int sliceShift, long initSize, boolean fixedSize) {
-                //TODO prealocate initSize
+            public Volume makeVolume(String file, boolean readOnly, boolean fileLockDisabled, int sliceShift, long initSize, boolean fixedSize) {//TODO prealocate initSize
                 //TODO optimize for fixedSize smaller than 2GB
-                return new MemoryVol(true,sliceShift,true);
+                return new MemoryVol(true,sliceShift,true, initSize);
             }
         };
 
@@ -1213,9 +1255,11 @@ public abstract class Volume implements Closeable{
             return super.toString()+",direct="+useDirectBuffer;
         }
 
-        public MemoryVol(final boolean useDirectBuffer, final int sliceShift,boolean cleanerHackEnabled) {
+        public MemoryVol(final boolean useDirectBuffer, final int sliceShift,boolean cleanerHackEnabled, long initSize) {
             super(false, sliceShift, cleanerHackEnabled);
             this.useDirectBuffer = useDirectBuffer;
+            if(initSize!=0)
+                ensureAvailable(initSize);
         }
 
         @Override
@@ -1363,7 +1407,7 @@ public abstract class Volume implements Closeable{
 
             @Override
             public Volume makeVolume(String file, boolean readOnly, boolean fileLockDisabled, int sliceShift, long initSize, boolean fixedSize) {
-                return new FileChannelVol(new File(file),readOnly, fileLockDisabled, sliceShift);
+                return new FileChannelVol(new File(file),readOnly, fileLockDisabled, sliceShift,initSize);
             }
         };
 
@@ -1377,7 +1421,7 @@ public abstract class Volume implements Closeable{
         protected volatile long size;
         protected final Lock growLock = new ReentrantLock(CC.FAIR_LOCKS);
 
-        public FileChannelVol(File file, boolean readOnly, boolean fileLockDisabled, int sliceShift){
+        public FileChannelVol(File file, boolean readOnly, boolean fileLockDisabled, int sliceShift, long initSize){
             this.file = file;
             this.readOnly = readOnly;
             this.sliceSize = 1<<sliceShift;
@@ -1395,6 +1439,14 @@ public abstract class Volume implements Closeable{
 
                 fileLock = Volume.lockFile(file,raf,readOnly,fileLockDisabled);
 
+                if(initSize!=0 && !readOnly){
+                    long oldSize = channel.size();
+                    if(initSize>oldSize){
+                        raf.setLength(initSize);
+                        clear(oldSize,initSize);
+                    }
+                }
+
 
             }catch(ClosedByInterruptException e){
                 throw new DBException.VolumeClosedByInterrupt(e);
@@ -1406,7 +1458,7 @@ public abstract class Volume implements Closeable{
         }
 
         public FileChannelVol(File file) {
-            this(file, false, false, CC.VOLUME_PAGE_SHIFT);
+            this(file, false, false, CC.VOLUME_PAGE_SHIFT,0L);
         }
 
         protected static void checkFolder(File file, boolean readOnly) throws IOException {
@@ -1427,8 +1479,7 @@ public abstract class Volume implements Closeable{
 
         @Override
         public void ensureAvailable(long offset) {
-            if(offset% sliceSize !=0)
-                offset += sliceSize - offset% sliceSize; //round up to multiply of slice size
+            offset=Fun.roundUp(offset,sliceSize);
 
             if(offset>size){
                 growLock.lock();
@@ -1619,18 +1670,6 @@ public abstract class Volume implements Closeable{
             }
         }
 
-        @Override
-        public boolean isEmpty() {
-            try {
-                return channel==null || channel.size()==0;
-            }catch(ClosedByInterruptException e){
-                throw new DBException.VolumeClosedByInterrupt(e);
-            }catch(ClosedChannelException e){
-                throw new DBException.VolumeClosed(e);
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
-        }
 
         @Override
         public int sliceSize() {
@@ -1700,8 +1739,7 @@ public abstract class Volume implements Closeable{
             @Override
             public Volume makeVolume(String file, boolean readOnly, boolean fileLockDisable, int sliceShift, long initSize, boolean fixedSize) {
                 //TODO optimize for fixedSize if bellow 2GB
-                //TODO preallocate minimal size
-                return new ByteArrayVol(sliceShift);
+                return new ByteArrayVol(sliceShift, initSize);
             }
         };
 
@@ -1713,15 +1751,27 @@ public abstract class Volume implements Closeable{
 
         protected volatile byte[][] slices = new byte[0][];
 
-        protected ByteArrayVol(int sliceShift) {
+        protected ByteArrayVol(int sliceShift, long initSize) {
             this.sliceShift = sliceShift;
             this.sliceSize = 1<< sliceShift;
             this.sliceSizeModMask = sliceSize -1;
+
+            if(initSize!=0){
+                ensureAvailable(initSize);
+            }
+        }
+
+        protected final byte[] getSlice(long offset){
+            byte[][] slices = this.slices;
+            int pos = ((int) (offset >>> sliceShift));
+            if(pos>=slices.length)
+                throw new DBException.VolumeEOF();
+            return slices[pos];
         }
 
         @Override
         public final void ensureAvailable(long offset) {
-
+            offset=Fun.roundUp(offset,1L<<sliceShift);
             int slicePos = (int) (offset >>> sliceShift);
 
             //check for most common case, this is already mapped
@@ -1732,13 +1782,13 @@ public abstract class Volume implements Closeable{
             growLock.lock();
             try {
                 //check second time
-                if (slicePos < slices.length)
+                if (slicePos <= slices.length)
                     return;
 
                 int oldSize = slices.length;
                 byte[][] slices2 = slices;
 
-                slices2 = Arrays.copyOf(slices2, Math.max(slicePos + 1, slices2.length + slices2.length / 1000));
+                slices2 = Arrays.copyOf(slices2, slicePos);
 
                 for (int pos = oldSize; pos < slices2.length; pos++) {
                     slices2[pos] = new byte[sliceSize];
@@ -1776,7 +1826,7 @@ public abstract class Volume implements Closeable{
         @Override
         public void putLong(long offset, long v) {
             int pos = (int) (offset & sliceSizeModMask);
-            byte[] buf = slices[((int) (offset >>> sliceShift))];
+            byte[] buf = getSlice(offset);
             DataIO.putLong(buf,pos,v);
         }
 
@@ -1784,7 +1834,7 @@ public abstract class Volume implements Closeable{
         @Override
         public void putInt(long offset, int value) {
             int pos = (int) (offset & sliceSizeModMask);
-            byte[] buf = slices[((int) (offset >>> sliceShift))];
+            byte[] buf = getSlice(offset);
             buf[pos++] = (byte) (0xff & (value >> 24));
             buf[pos++] = (byte) (0xff & (value >> 16));
             buf[pos++] = (byte) (0xff & (value >> 8));
@@ -1793,22 +1843,21 @@ public abstract class Volume implements Closeable{
 
         @Override
         public void putByte(long offset, byte value) {
-            final byte[] b = slices[((int) (offset >>> sliceShift))];
+            final byte[] b = getSlice(offset);
             b[((int) (offset & sliceSizeModMask))] = value;
         }
 
         @Override
         public void putData(long offset, byte[] src, int srcPos, int srcSize) {
             int pos = (int) (offset & sliceSizeModMask);
-            byte[] buf = slices[((int) (offset >>> sliceShift))];
-
+            byte[] buf = getSlice(offset);
             System.arraycopy(src,srcPos,buf,pos,srcSize);
         }
 
         @Override
         public void putData(long offset, ByteBuffer buf) {
             int pos = (int) (offset & sliceSizeModMask);
-            byte[] dst = slices[((int) (offset >>> sliceShift))];
+            byte[] dst = getSlice(offset);
             buf.get(dst, pos, buf.remaining());
         }
 
@@ -1816,7 +1865,7 @@ public abstract class Volume implements Closeable{
         @Override
         public void transferInto(long inputOffset, Volume target, long targetOffset, long size) {
             int pos = (int) (inputOffset & sliceSizeModMask);
-            byte[] buf = slices[((int) (inputOffset >>> sliceShift))];
+            byte[] buf = getSlice(inputOffset);
 
             //TODO size>Integer.MAX_VALUE
             target.putData(targetOffset, buf, pos, (int) size);
@@ -1830,7 +1879,7 @@ public abstract class Volume implements Closeable{
 
             if(overlap){
                 while(len>0){
-                    byte[] b = slices[((int) (offset >>> sliceShift))];
+                    byte[] b = getSlice(offset);
                     int pos2 = (int) (offset&sliceSizeModMask);
 
                     int toPut = Math.min(len,sliceSize - pos2);
@@ -1853,7 +1902,7 @@ public abstract class Volume implements Closeable{
                 byte[] bb = new byte[size];
                 final int origLen = size;
                 while(size>0){
-                    byte[] b = slices[((int) (offset >>> sliceShift))];
+                    byte[] b = getSlice(offset);
                     int pos = (int) (offset&sliceSizeModMask);
 
                     int toPut = Math.min(size,sliceSize - pos);
@@ -1874,7 +1923,7 @@ public abstract class Volume implements Closeable{
         public void clear(long startOffset, long endOffset) {
             if(CC.ASSERT && (startOffset >>> sliceShift) != ((endOffset-1) >>> sliceShift))
                 throw new AssertionError();
-            byte[] buf = slices[(int)(startOffset >>> sliceShift)];
+            byte[] buf = getSlice(startOffset);
             int start = (int) (startOffset&sliceSizeModMask);
             int end = (int) (endOffset&sliceSizeModMask);
 
@@ -1888,16 +1937,14 @@ public abstract class Volume implements Closeable{
         @Override
         public long getLong(long offset) {
             int pos = (int) (offset & sliceSizeModMask);
-            byte[] buf = slices[((int) (offset >>> sliceShift))];
+            byte[] buf = getSlice(offset);
             return DataIO.getLong(buf,pos);
         }
-
-
 
         @Override
         public int getInt(long offset) {
             int pos = (int) (offset & sliceSizeModMask);
-            byte[] buf = slices[((int) (offset >>> sliceShift))];
+            byte[] buf = getSlice(offset);
 
             //TODO verify loop
             final int end = pos + 4;
@@ -1910,21 +1957,21 @@ public abstract class Volume implements Closeable{
 
         @Override
         public byte getByte(long offset) {
-            final byte[] b = slices[((int) (offset >>> sliceShift))];
+            final byte[] b = getSlice(offset);
             return b[((int) (offset & sliceSizeModMask))];
         }
 
         @Override
         public DataInput getDataInput(long offset, int size) {
             int pos = (int) (offset & sliceSizeModMask);
-            byte[] buf = slices[((int) (offset >>> sliceShift))];
+            byte[] buf = getSlice(offset);
             return new DataIO.DataInputByteArray(buf,pos);
         }
 
         @Override
         public void getData(long offset, byte[] bytes, int bytesPos, int length) {
             int pos = (int) (offset & sliceSizeModMask);
-            byte[] buf = slices[((int) (offset >>> sliceShift))];
+            byte[] buf = getSlice(offset);
             System.arraycopy(buf,pos,bytes,bytesPos,length);
         }
 
@@ -1939,11 +1986,6 @@ public abstract class Volume implements Closeable{
 
         }
 
-
-        @Override
-        public boolean isEmpty() {
-            return slices.length==0;
-        }
 
         @Override
         public int sliceSize() {
@@ -1978,23 +2020,23 @@ public abstract class Volume implements Closeable{
       */
     public static final class SingleByteArrayVol extends Volume{
 
+        protected final static VolumeFactory FACTORY = new VolumeFactory() {
+            @Override
+            public Volume makeVolume(String file, boolean readOnly, boolean fileLockDisabled, int sliceShift, long initSize, boolean fixedSize) {
+                if(initSize>Integer.MAX_VALUE)
+                    throw new IllegalArgumentException("startSize larger 2GB");
+                return new SingleByteArrayVol((int) initSize);
+            }
+        };
+
         protected final byte[] data;
-        protected volatile boolean empty;
 
         public SingleByteArrayVol(int size) {
             this(new byte[size]);
-            empty = true;
         }
 
         public SingleByteArrayVol(byte[] data){
             this.data = data;
-            empty = true;
-            for(byte b:data){
-                if(b!=0){
-                    empty=false;
-                    break;
-                }
-            }
         }
 
 
@@ -2003,7 +2045,6 @@ public abstract class Volume implements Closeable{
             if(offset >= data.length){
                 throw new DBException.VolumeMaxSizeExceeded(data.length, offset);
             }
-            empty = false;
         }
 
         @Override
@@ -2104,12 +2145,6 @@ public abstract class Volume implements Closeable{
         @Override
         public void sync() {
         }
-
-        @Override
-        public boolean isEmpty() {
-            return empty;
-        }
-
 
         @Override
         public int sliceSize() {
@@ -2234,10 +2269,6 @@ public abstract class Volume implements Closeable{
             return vol.sliceSize();
         }
 
-        @Override
-        public boolean isEmpty() {
-            return vol.isEmpty();
-        }
 
         @Override
         public void deleteFile() {
@@ -2328,7 +2359,7 @@ public abstract class Volume implements Closeable{
             @Override
             public Volume makeVolume(String file, boolean readOnly, boolean fileLockDisable, int sliceShift, long initSize, boolean fixedSize) {
                 //TODO allocate initSize
-                return new RandomAccessFileVol(new File(file), readOnly, fileLockDisable);
+                return new RandomAccessFileVol(new File(file), readOnly, fileLockDisable, initSize);
             }
         };
         protected final File file;
@@ -2336,13 +2367,20 @@ public abstract class Volume implements Closeable{
         protected final FileLock fileLock;
 
 
-        public RandomAccessFileVol(File file, boolean readOnly, boolean fileLockDisable) {
+        public RandomAccessFileVol(File file, boolean readOnly, boolean fileLockDisable, long initSize) {
             this.file = file;
             try {
                 this.raf = new RandomAccessFile(file,readOnly?"r":"rw");
-
                 this.fileLock = Volume.lockFile(file, raf, readOnly, fileLockDisable);
 
+                //grow file if needed
+                if(initSize!=0 && !readOnly){
+                    long oldLen = raf.length();
+                    if(initSize>raf.length()) {
+                        raf.setLength(initSize);
+                        clear(oldLen,initSize);
+                    }
+                }
             } catch (IOException e) {
                 throw new DBException.VolumeIOError(e);
             }
@@ -2505,16 +2543,6 @@ public abstract class Volume implements Closeable{
         public int sliceSize() {
             return 0;
         }
-
-        @Override
-        public boolean isEmpty() {
-            try {
-                return isClosed() || raf.length()==0;
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
-        }
-
 
         @Override
         public boolean isSliced() {

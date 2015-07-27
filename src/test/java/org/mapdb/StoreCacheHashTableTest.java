@@ -20,10 +20,9 @@ public class StoreCacheHashTableTest<E extends StoreDirect> extends EngineTest<E
                 false,
                 false,
                 null,
-                0,
-                false,
-                0,
-                null
+                null,
+                0L,
+                0L
                 );
         e.init();
         return (E)e;

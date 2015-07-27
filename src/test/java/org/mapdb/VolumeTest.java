@@ -23,7 +23,7 @@ public class VolumeTest {
             new Fun.Function1<Volume, String>() {
                 @Override
                 public Volume run(String file) {
-                    return new Volume.ByteArrayVol(CC.VOLUME_PAGE_SHIFT);
+                    return new Volume.ByteArrayVol(CC.VOLUME_PAGE_SHIFT,0L);
                 }
             },
             new Fun.Function1<Volume, String>() {
@@ -35,13 +35,13 @@ public class VolumeTest {
             new Fun.Function1<Volume, String>() {
                 @Override
                 public Volume run(String file) {
-                    return new Volume.MemoryVol(true, CC.VOLUME_PAGE_SHIFT, false);
+                    return new Volume.MemoryVol(true, CC.VOLUME_PAGE_SHIFT, false,0L);
                 }
             },
             new Fun.Function1<Volume, String>() {
                 @Override
                 public Volume run(String file) {
-                    return new Volume.MemoryVol(false, CC.VOLUME_PAGE_SHIFT, false);
+                    return new Volume.MemoryVol(false, CC.VOLUME_PAGE_SHIFT, false,0L);
                 }
             },
             new Fun.Function1<Volume, String>() {
@@ -53,19 +53,19 @@ public class VolumeTest {
             new Fun.Function1<Volume, String>() {
                 @Override
                 public Volume run(String file) {
-                    return new Volume.FileChannelVol(new File(file), false, false, CC.VOLUME_PAGE_SHIFT);
+                    return new Volume.FileChannelVol(new File(file), false, false, CC.VOLUME_PAGE_SHIFT,0L);
                 }
             },
             new Fun.Function1<Volume, String>() {
                 @Override
                 public Volume run(String file) {
-                    return new Volume.RandomAccessFileVol(new File(file), false, false);
+                    return new Volume.RandomAccessFileVol(new File(file), false, false,0L);
                 }
             },
             new Fun.Function1<Volume, String>() {
                 @Override
                 public Volume run(String file) {
-                    return new Volume.MappedFileVol(new File(file), false, false, CC.VOLUME_PAGE_SHIFT, false);
+                    return new Volume.MappedFileVol(new File(file), false, false, CC.VOLUME_PAGE_SHIFT, false, 0L);
                 }
             },
             new Fun.Function1<Volume, String>() {
@@ -103,19 +103,6 @@ public class VolumeTest {
 
             return ret;
         }
-
-        ;
-
-        @Test
-        public void empty() {
-            Volume v = fab.run(TT.tempDbFile().getPath());
-
-            assertTrue(v.isEmpty()); //newly created volume should be empty
-            v.ensureAvailable(10);
-            assertFalse(v.isEmpty());
-            v.close();
-        }
-
 
         @Test
         public void testPackLongBidi() throws Exception {
@@ -416,7 +403,7 @@ public class VolumeTest {
         if(TT.shortTest())
             return;
 
-        Volume vol = new Volume.MemoryVol(true, CC.VOLUME_PAGE_SHIFT,false);
+        Volume vol = new Volume.MemoryVol(true, CC.VOLUME_PAGE_SHIFT,false, 0L);
         try {
             vol.ensureAvailable((long) 1e10);
         }catch(DBException.OutOfMemory e){
@@ -429,7 +416,7 @@ public class VolumeTest {
         if(TT.shortTest())
             return;
 
-        Volume vol = new Volume.ByteArrayVol(CC.VOLUME_PAGE_SHIFT);
+        Volume vol = new Volume.ByteArrayVol(CC.VOLUME_PAGE_SHIFT,0L);
         try {
             vol.ensureAvailable((long) 1e10);
         }catch(DBException.OutOfMemory e){
@@ -453,14 +440,14 @@ public class VolumeTest {
         raf.close();
 
         //open mmap file, size should grow to multiple of chunk size
-        Volume.MappedFileVol m = new Volume.MappedFileVol(f, false,false, CC.VOLUME_PAGE_SHIFT,true);
+        Volume.MappedFileVol m = new Volume.MappedFileVol(f, false,false, CC.VOLUME_PAGE_SHIFT,true, 0L);
         assertEquals(1, m.slices.length);
         m.sync();
         m.close();
         assertEquals(chunkSize, f.length());
 
         //open mmap file, size should grow to multiple of chunk size
-        m = new Volume.MappedFileVol(f, false,false, CC.VOLUME_PAGE_SHIFT,true);
+        m = new Volume.MappedFileVol(f, false,false, CC.VOLUME_PAGE_SHIFT,true, 0L);
         assertEquals(1, m.slices.length);
         m.ensureAvailable(add + 4);
         assertEquals(11, m.getInt(add));
@@ -473,7 +460,7 @@ public class VolumeTest {
         raf.writeInt(11);
         raf.close();
 
-        m = new Volume.MappedFileVol(f, false,false, CC.VOLUME_PAGE_SHIFT,true);
+        m = new Volume.MappedFileVol(f, false,false, CC.VOLUME_PAGE_SHIFT,true, 0L);
         assertEquals(2, m.slices.length);
         m.sync();
         m.ensureAvailable(chunkSize + add + 4);
@@ -483,7 +470,7 @@ public class VolumeTest {
         m.close();
         assertEquals(chunkSize * 2, f.length());
 
-        m = new Volume.MappedFileVol(f, false,false, CC.VOLUME_PAGE_SHIFT,true);
+        m = new Volume.MappedFileVol(f, false,false, CC.VOLUME_PAGE_SHIFT,true, 0L) ;
         m.sync();
         assertEquals(chunkSize * 2, f.length());
         m.ensureAvailable(chunkSize + add + 4);
@@ -534,7 +521,7 @@ public class VolumeTest {
     @Test
     public void lock_double_open() throws IOException {
         File f = File.createTempFile("mapdbTest","mapdb");
-        Volume.RandomAccessFileVol v = new Volume.RandomAccessFileVol(f,false,false);
+        Volume.RandomAccessFileVol v = new Volume.RandomAccessFileVol(f,false,false,0L);
         v.ensureAvailable(8);
         v.putLong(0, 111L);
 
@@ -542,15 +529,44 @@ public class VolumeTest {
         assertTrue(v.getFileLocked());
 
         try {
-            Volume.RandomAccessFileVol v2 = new Volume.RandomAccessFileVol(f, false, false);
+            Volume.RandomAccessFileVol v2 = new Volume.RandomAccessFileVol(f, false, false,0L);
             fail();
         }catch(DBException.FileLocked l){
             //ignored
         }
         v.close();
-        Volume.RandomAccessFileVol v2 = new Volume.RandomAccessFileVol(f, false, false);
+        Volume.RandomAccessFileVol v2 = new Volume.RandomAccessFileVol(f, false, false,0L);
 
         assertEquals(111L, v2.getLong(0));
     }
 
+    @Test public void initSize(){
+        if(TT.shortTest())
+            return;
+
+        Volume.VolumeFactory[] factories = new Volume.VolumeFactory[]{
+                CC.DEFAULT_FILE_VOLUME_FACTORY,
+                CC.DEFAULT_MEMORY_VOLUME_FACTORY,
+                Volume.ByteArrayVol.FACTORY,
+                Volume.FileChannelVol.FACTORY,
+                Volume.MappedFileVol.FACTORY,
+                Volume.MappedFileVol.FACTORY,
+                Volume.MemoryVol.FACTORY,
+                Volume.MemoryVol.FACTORY_WITH_CLEANER_HACK,
+                Volume.RandomAccessFileVol.FACTORY,
+                Volume.SingleByteArrayVol.FACTORY,
+                Volume.MappedFileVolSingle.FACTORY,
+                Volume.MappedFileVolSingle.FACTORY_WITH_CLEANER_HACK,
+                Volume.UNSAFE_VOL_FACTORY,
+        };
+
+        for(Volume.VolumeFactory fac:factories){
+            File f = TT.tempDbFile();
+            long initSize = 20*1024*1024;
+            Volume vol = fac.makeVolume(f.getPath(),false,true,CC.VOLUME_PAGE_SHIFT,initSize,false);
+            assertEquals(vol.getClass().getName(), initSize, vol.length());
+            vol.close();
+            f.delete();
+        }
+    }
 }

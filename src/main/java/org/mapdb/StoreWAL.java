@@ -108,9 +108,9 @@ public class StoreWAL extends StoreCached {
                 null,
                 CC.DEFAULT_LOCK_SCALE,
                 0,
-                false, false, null, false,false, false, null, 0,
-                false, 0,
-                null, 0L,
+                false, false, null, false,false, false, null,
+                null, 0L, 0L,
+                0L,
                 0);
     }
 
@@ -127,10 +127,9 @@ public class StoreWAL extends StoreCached {
             boolean snapshotEnable,
             boolean fileLockDisable,
             HeartbeatFileLock fileLockHeartbeat,
-            int freeSpaceReclaimQ,
-            boolean commitFileSyncDisable,
-            int sizeIncrement,
             ScheduledExecutorService executor,
+            long startSize,
+            long sizeIncrement,
             long executorScheduledRate,
             int writeQueueSize
         ) {
@@ -138,8 +137,9 @@ public class StoreWAL extends StoreCached {
                 lockScale,
                 lockingStrategy,
                 checksum, compress, password, readonly, snapshotEnable, fileLockDisable, fileLockHeartbeat,
-                freeSpaceReclaimQ, commitFileSyncDisable, sizeIncrement,
                 executor,
+                startSize,
+                sizeIncrement,
                 executorScheduledRate,
                 writeQueueSize);
         prevLongLongs = new LongLongMap[this.lockScale];
@@ -275,12 +275,9 @@ public class StoreWAL extends StoreCached {
         //backup headVol
         if(headVolBackup!=null && !headVolBackup.isClosed())
             headVolBackup.close();
-        headVolBackup = new Volume.ByteArrayVol(CC.VOLUME_PAGE_SHIFT);
-        headVolBackup.ensureAvailable(HEAD_END);
         byte[] b = new byte[(int) HEAD_END];
-        //TODO use direct copy
         headVol.getData(0, b, 0, b.length);
-        headVolBackup.putData(0,b,0,b.length);
+        headVolBackup = new Volume.SingleByteArrayVol(b);
     }
 
     protected void walStartNextFile() {
@@ -293,7 +290,7 @@ public class StoreWAL extends StoreCached {
         String filewal = getWalFileName(""+fileNum);
         Volume nextVol;
         if (readonly && filewal != null && !new File(filewal).exists()){
-            nextVol = new Volume.ReadOnly(new Volume.ByteArrayVol(8));
+            nextVol = new Volume.ReadOnly(new Volume.ByteArrayVol(8,0L));
         }else {
             nextVol = volumeFactory.makeVolume(filewal, readonly, true);
         }
@@ -1066,8 +1063,8 @@ public class StoreWAL extends StoreCached {
 
         //check if compaction files are present and walid
         final boolean compaction =
-                walC!=null && !walC.isEmpty() &&
-                walCCompact!=null && !walCCompact.isEmpty();
+                walC!=null && walC.length()!=0 &&
+                walCCompact!=null && walCCompact.length()!=0;
 
 
         if(compaction){
@@ -1156,7 +1153,7 @@ public class StoreWAL extends StoreCached {
             }
 
             for(Volume wr:walRec){
-                if(wr.isEmpty())
+                if(wr.length()==0)
                     break;
                 wr.ensureAvailable(16); //TODO this should not be here, Volume should be already mapped if file existsi
                 if(wr.getLong(8)!=StoreWAL.WAL_SEAL)
@@ -1209,10 +1206,7 @@ public class StoreWAL extends StoreCached {
             throw new AssertionError();
 
         file:for(Volume wal:volumes){
-            if(wal.isEmpty()) {
-                break file;
-            }
-            if(wal.isEmpty() || wal.length()<16 || wal.getLong(8)!=WAL_SEAL) {
+            if(wal.length()<16 || wal.getLong(8)!=WAL_SEAL) {
                 break file;
                 //TODO better handling for corrupted logs
             }
@@ -1446,8 +1440,7 @@ public class StoreWAL extends StoreCached {
                     volumeFactory,
                     null,lockScale,
                     executor==null?LOCKING_STRATEGY_NOLOCK:LOCKING_STRATEGY_WRITELOCK,
-                    checksum,compress,null,false,false,fileLockDisable,null, 0,false,0,
-                    null);
+                    checksum,compress,null,false,false,fileLockDisable,null, null, 0L, 0L);
             target.init();
             walCCompact = target.vol;
 

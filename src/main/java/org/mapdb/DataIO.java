@@ -317,6 +317,10 @@ public final class DataIO {
 
 
 
+    public static long nextPowTwo(final long a)
+    {
+        return 1L << (64 - Long.numberOfLeadingZeros(a - 1L));
+    }
 
     public static int nextPowTwo(final int a)
     {
