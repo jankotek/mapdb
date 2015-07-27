@@ -25,7 +25,7 @@ import static org.junit.Assert.*;
 public class CrashTest {
 
     static final int MIN_RUNTIME = 1000*5;
-    static final int MAX_RUNTIME = 1000*6;
+    static final int MAX_RUNTIME = 1000*60;
 
 
     public static File DIR;
@@ -113,13 +113,15 @@ public class CrashTest {
 
 
         long oldSeed=0;
-        long commitCount = 0;
+        long crashCount = 0;
 
         while(end>System.currentTimeMillis()) {
             //fork JVM, pass current dir and config index as param
             {
-                ProcessBuilder b = new ProcessBuilder("java",
-                        "-classpath", System.getProperty("java.class.path"),
+                ProcessBuilder b = new ProcessBuilder(
+                        jvmExecutable(),
+                        "-classpath",
+                        System.getProperty("java.class.path"),
                         "-Dmdbtest=" + TT.scale(),
                         this.getClass().getName(),
                         p.dir.getAbsolutePath(),
@@ -175,7 +177,7 @@ public class CrashTest {
             }
 
             if(dbSeed.get()!=oldSeed)
-                commitCount++;
+                crashCount++;
 
             Map<Long,byte[]> m = map(p,db);
             //check content of map
@@ -201,8 +203,8 @@ public class CrashTest {
             }
 
         }
-        assertTrue("no commits were made",commitCount>0);
-        System.out.println("Finished after " + commitCount + " commits");
+        assertTrue("no commits were made",crashCount>0);
+        System.out.println("Finished after " + crashCount + " crashes");
     }
 
     @After
@@ -335,5 +337,13 @@ public class CrashTest {
         File[] f = seedDir.listFiles();
         Arrays.sort(f);
         return Long.valueOf(f[f.length-1-indexFromEnd].getName());
+    }
+
+    static String jvmExecutable(){
+        String exec = System.getProperty("os.name").startsWith("Win") ? "java.exe":"java";
+        String javaHome = System.getProperty("java.home");
+        if(javaHome==null ||"".equals(javaHome))
+            return exec;
+        return javaHome+ File.separator + "bin" + File.separator + exec;
     }
 }
