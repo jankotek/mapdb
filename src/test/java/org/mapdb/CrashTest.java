@@ -24,8 +24,8 @@ import static org.junit.Assert.*;
 @RunWith(Parameterized.class)
 public class CrashTest {
 
-    static final int MIN_RUNTIME = 1000*5;
-    static final int MAX_RUNTIME = 1000*60;
+    static final int MIN_RUNTIME = 1000*1;
+    static final int MAX_RUNTIME = 1000*6;
 
 
     public static File DIR;
