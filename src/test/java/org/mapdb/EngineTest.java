@@ -753,4 +753,21 @@ public abstract class EngineTest<ENGINE extends Engine>{
         e.close();
 
     }
+
+    @Test public void commit_huge(){
+        if(TT.shortTest())
+            return;
+        e = openEngine();
+        long recid = e.put(new byte[1000 * 1000 * 1000], Serializer.BYTE_ARRAY_NOSIZE);
+        e.commit();
+
+        reopen();
+
+        byte[] b = e.get(recid, Serializer.BYTE_ARRAY_NOSIZE);
+        assertEquals(1000*1000*1000, b.length);
+        for(byte bb:b){
+            assertEquals(0,bb);
+        }
+        e.close();
+    }
 }
