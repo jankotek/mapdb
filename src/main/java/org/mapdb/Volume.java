@@ -914,7 +914,7 @@ public abstract class Volume implements Closeable{
 
                 // fill with zeroes from  old size to new size
                 // this will prevent file from growing via mmap operation
-                RandomAccessFileVol.clearRAF(raf, oldSize*sliceSize, offset);
+                RandomAccessFileVol.clearRAF(raf, 1L*oldSize*sliceSize, offset);
                 raf.getFD().sync();
 
                 //grow slices
