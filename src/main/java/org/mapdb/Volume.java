@@ -416,40 +416,6 @@ public abstract class Volume implements Closeable{
         }
 
 
-        @Override
-        public final void ensureAvailable(long offset) {
-            offset=Fun.roundUp(offset,1L<<sliceShift);
-            int slicePos = (int) (offset >>> sliceShift);
-
-            //check for most common case, this is already mapped
-            if (slicePos < slices.length){
-                return;
-            }
-
-            growLock.lock();
-            try{
-                //check second time
-                if(slicePos <= slices.length)
-                    return;
-
-                int oldSize = slices.length;
-                ByteBuffer[] slices2 = slices;
-
-                slices2 = Arrays.copyOf(slices2, slicePos);
-
-                for(int pos=oldSize;pos<slices2.length;pos++) {
-                    slices2[pos]=makeNewBuffer(1L* sliceSize *pos);
-                }
-
-
-                slices = slices2;
-            }finally{
-                growLock.unlock();
-            }
-        }
-
-        protected abstract ByteBuffer makeNewBuffer(long offset);
-
         protected final ByteBuffer getSlice(long offset){
             ByteBuffer[] slices = this.slices;
             int pos = (int)(offset >>> sliceShift);
@@ -888,8 +854,6 @@ public abstract class Volume implements Closeable{
         protected final java.io.RandomAccessFile raf;
         protected final FileLock fileLock;
 
-        protected volatile boolean rafSync = false;
-
         public MappedFileVol(File file, boolean readOnly, boolean fileLockDisable,
                              int sliceShift, boolean cleanerHackEnabled, long initSize) {
             super(readOnly,sliceShift, cleanerHackEnabled);
@@ -910,14 +874,18 @@ public abstract class Volume implements Closeable{
                 if(endSize>0){
                     //map data
                     int chunksSize = (int) ((Fun.roundUp(endSize,sliceSize)>>> sliceShift));
+                    if(endSize>fileSize && !readOnly){
+                        RandomAccessFileVol.clearRAF(raf,fileSize, endSize);
+                        raf.getFD().sync();
+                    }
+
                     slices = new ByteBuffer[chunksSize];
                     for(int i=0;i<slices.length;i++){
-                        slices[i] = makeNewBuffer(1L*i*sliceSize);
+                        ByteBuffer b = fileChannel.map(mapMode,1L*sliceSize*i, sliceSize);
+                        if(CC.ASSERT && b.order() != ByteOrder.BIG_ENDIAN)
+                            throw new AssertionError("Little-endian");
+                        slices[i] = b;
                     }
-//                    TODO clear newly allocated data
-//                    if(endSize>fileSize && !readOnly){
-//                        clear(fileSize, endSize);
-//                    }
                 }else{
                     slices = new ByteBuffer[0];
                 }
@@ -925,6 +893,50 @@ public abstract class Volume implements Closeable{
                 throw new DBException.VolumeIOError(e);
             }
         }
+
+        @Override
+        public final void ensureAvailable(long offset) {
+            offset=Fun.roundUp(offset,1L<<sliceShift);
+            int slicePos = (int) (offset >>> sliceShift);
+
+            //check for most common case, this is already mapped
+            if (slicePos < slices.length){
+                return;
+            }
+
+            growLock.lock();
+            try{
+                //check second time
+                if(slicePos <= slices.length)
+                    return;
+
+                int oldSize = slices.length;
+
+                // fill with zeroes from  old size to new size
+                // this will prevent file from growing via mmap operation
+                RandomAccessFileVol.clearRAF(raf, oldSize*sliceSize, offset);
+                raf.getFD().sync();
+
+                //grow slices
+                ByteBuffer[] slices2 = slices;
+
+                slices2 = Arrays.copyOf(slices2, slicePos);
+
+                for(int pos=oldSize;pos<slices2.length;pos++) {
+                    ByteBuffer b = fileChannel.map(mapMode,1L*sliceSize*pos, sliceSize);
+                    if(CC.ASSERT && b.order() != ByteOrder.BIG_ENDIAN)
+                        throw new AssertionError("Little-endian");
+                    slices2[pos] = b;
+                }
+
+                slices = slices2;
+            } catch (IOException e) {
+                throw new DBException.VolumeIOError(e);
+            }finally{
+                growLock.unlock();
+            }
+        }
+
 
         @Override
         public void close() {
@@ -968,15 +980,6 @@ public abstract class Volume implements Closeable{
                 return;
             growLock.lock();
             try{
-                if(rafSync){
-                    rafSync = false;
-                    try {
-                        raf.getFD().sync();
-                    } catch (IOException e) {
-                        throw new DBException.VolumeIOError(e);
-                    }
-                }
-
                 for(ByteBuffer b: slices){
                     if(b!=null && (b instanceof MappedByteBuffer)){
                         MappedByteBuffer bb = ((MappedByteBuffer) b);
@@ -991,41 +994,6 @@ public abstract class Volume implements Closeable{
         }
 
 
-        @Override
-        protected ByteBuffer makeNewBuffer(long offset) {
-            try {
-                if(CC.ASSERT && ! ((offset& sliceSizeModMask)==0))
-                    throw new AssertionError();
-                if(CC.ASSERT && ! (offset>=0))
-                    throw new AssertionError();
-
-                if(!readOnly) {
-                    long maxSize = Fun.roundUp(offset+1, sliceSize);
-                    final long fileSize = raf.length();
-                    if(fileSize<maxSize) {
-                        //zero out data between fileSize and maxSize, so mmap file operation does not expand file
-                        rafSync = true;
-                        raf.seek(fileSize);
-                        long offset2 = fileSize;
-                        do {
-                            raf.write(CLEAR, 0, (int) Math.min(CLEAR.length, maxSize - offset2));
-                            offset2 += CLEAR.length;
-                        } while (offset2 < maxSize);
-                    }
-                }
-
-
-                ByteBuffer ret = fileChannel.map(mapMode,offset, sliceSize);
-                if(CC.ASSERT && ret.order() != ByteOrder.BIG_ENDIAN)
-                    throw new AssertionError("Little-endian");
-                if(mapMode == FileChannel.MapMode.READ_ONLY) {
-                    ret = ret.asReadOnlyBuffer();
-                }
-                return ret;
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
-        }
 
 
         @Override
@@ -1085,10 +1053,14 @@ public abstract class Volume implements Closeable{
 
                 if (ByteBufferVol.windowsWorkaround) {
                     for(int pos=0;pos<maxSize;pos++) {
-                        slices[pos]=makeNewBuffer(1L* sliceSize *pos);
+                        ByteBuffer b = fileChannel.map(mapMode,1L*sliceSize*pos, sliceSize);
+                        if(CC.ASSERT && b.order() != ByteOrder.BIG_ENDIAN)
+                            throw new AssertionError("Little-endian");
+                        slices[pos] = b;
                     }
                 }
-
+            } catch (IOException e) {
+                throw new DBException.VolumeIOError(e);
             }finally {
                 growLock.unlock();
             }
@@ -1262,17 +1234,42 @@ public abstract class Volume implements Closeable{
                 ensureAvailable(initSize);
         }
 
+
         @Override
-        protected ByteBuffer makeNewBuffer(long offset) {
-            try {
-                ByteBuffer b =  useDirectBuffer ?
-                        ByteBuffer.allocateDirect(sliceSize) :
-                        ByteBuffer.allocate(sliceSize);
-                if(CC.ASSERT && b.order()!= ByteOrder.BIG_ENDIAN)
-                    throw new AssertionError("little-endian");
-                return b;
+        public final void ensureAvailable(long offset) {
+            offset=Fun.roundUp(offset,1L<<sliceShift);
+            int slicePos = (int) (offset >>> sliceShift);
+
+            //check for most common case, this is already mapped
+            if (slicePos < slices.length){
+                return;
+            }
+
+            growLock.lock();
+            try{
+                //check second time
+                if(slicePos <= slices.length)
+                    return;
+
+                int oldSize = slices.length;
+                ByteBuffer[] slices2 = slices;
+
+                slices2 = Arrays.copyOf(slices2, slicePos);
+
+                for(int pos=oldSize;pos<slices2.length;pos++) {
+                    ByteBuffer b =  useDirectBuffer ?
+                            ByteBuffer.allocateDirect(sliceSize) :
+                            ByteBuffer.allocate(sliceSize);
+                    if(CC.ASSERT && b.order()!= ByteOrder.BIG_ENDIAN)
+                        throw new AssertionError("little-endian");
+                    slices2[pos]=b;
+                }
+
+                slices = slices2;
             }catch(OutOfMemoryError e){
                 throw new DBException.OutOfMemory(e);
+            }finally{
+                growLock.unlock();
             }
         }
 
@@ -2571,15 +2568,18 @@ public abstract class Volume implements Closeable{
         @Override
         public synchronized void clear(long startOffset, long endOffset) {
             try {
-                raf.seek(startOffset);
-                while(startOffset<endOffset){
-                    long remaining = Math.min(CLEAR.length, endOffset - startOffset);
-                    raf.write(CLEAR, 0, (int)remaining);
-                    startOffset+=CLEAR.length;
-                }
-
+                clearRAF(raf, startOffset, endOffset);
             } catch (IOException e) {
                 throw new DBException.VolumeIOError(e);
+            }
+        }
+
+        protected static void clearRAF(RandomAccessFile raf, long startOffset, long endOffset) throws IOException {
+            raf.seek(startOffset);
+            while(startOffset<endOffset){
+                long remaining = Math.min(CLEAR.length, endOffset - startOffset);
+                raf.write(CLEAR, 0, (int)remaining);
+                startOffset+=CLEAR.length;
             }
         }
     }
