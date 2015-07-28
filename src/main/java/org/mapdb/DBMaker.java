@@ -149,7 +149,8 @@ public final class DBMaker{
 
     /**
      * Creates new in-memory database. Changes are lost after JVM exits.
-     * This will use HEAP memory so Garbage Collector is affected.
+     * This option serializes data into {@code byte[]},
+     * so they are not affected by Garbage Collector.
      */
     public static Maker memoryDB(){
         return new Maker()._newMemoryDB();
@@ -164,8 +165,9 @@ public final class DBMaker{
      * <p>
      * Creates new in-memory database. Changes are lost after JVM exits.
      * </p><p>
-     *
-     * This will use DirectByteBuffer outside of HEAP, so Garbage Collector is not affected
+     * This will use {@code DirectByteBuffer{} outside of HEAP, so Garbage Collector is not affected
+     * You should increase ammount of direct memory with
+     * {@code -XX:MaxDirectMemorySize=10G} JVM param
      * </p>
      */
     public static Maker memoryDirectDB(){
