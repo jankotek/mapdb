@@ -554,6 +554,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     static protected Object sunReflFac = null;
     static protected Method androidConstructor = null;
     static private Method androidConstructorGinger = null;
+    static private Method androidConstructorJelly = null;
     static private Object constructorId;
 
     static{
@@ -591,6 +592,20 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             Method newInstance = ObjectStreamClass.class.getDeclaredMethod("newInstance", Class.class, getConstructorId.getReturnType());
             newInstance.setAccessible(true);
             androidConstructorGinger = newInstance;
+
+        }catch(Exception e){
+            //ignore
+        }
+
+        if(sunConstructor == null && androidConstructor == null && androidConstructorGinger == null)try{
+            //try android post 4.2 way
+            Method getConstructorId = ObjectStreamClass.class.getDeclaredMethod("getConstructorId", Class.class);
+            getConstructorId.setAccessible(true);
+            constructorId = getConstructorId.invoke(null, Object.class);
+
+            Method newInstance = ObjectStreamClass.class.getDeclaredMethod("newInstance", Class.class, long.class);
+            newInstance.setAccessible(true);
+            androidConstructorJelly = newInstance;
 
         }catch(Exception e){
             //ignore
@@ -636,8 +651,10 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         }else if(androidConstructorGinger!=null){
             //android (post ginger) specific way
             return (T)androidConstructorGinger.invoke(null, clazz, constructorId);
-        }
-        else{
+        } else if(androidConstructorJelly!=null) {
+            //android (post 4.2) specific way
+            return (T) androidConstructorJelly.invoke(null, clazz, constructorId);
+        }else{
             //try usual generic stuff which does not skip constructor
             Constructor<?> c = class2constuctor.get(clazz);
             if(c==null){
