@@ -1,5 +1,6 @@
 package org.mapdb;
 
+import org.junit.After;
 import org.junit.Test;
 
 import java.io.File;
@@ -37,6 +38,11 @@ public class StoreAppendTest<E extends StoreAppend> extends EngineTest<E>{
 
     File f = TT.tempDbFile();
 
+
+    @After
+    public void deleteFile(){
+        f.delete();
+    }
 
     @Override
     protected E openEngine() {

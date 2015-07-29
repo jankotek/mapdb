@@ -1,6 +1,7 @@
 package org.mapdb;
 
 
+import org.junit.After;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -20,6 +21,10 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
     File f = TT.tempDbFile();
 
+    @After
+    public void deleteFile(){
+        f.delete();
+    }
 
 //    static final long FREE_RECID_STACK = StoreDirect.IO_FREE_RECID+32;
 

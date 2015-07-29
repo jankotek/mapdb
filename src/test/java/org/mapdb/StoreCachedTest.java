@@ -3,20 +3,17 @@ package org.mapdb;
 
 import org.junit.Test;
 
-import java.io.File;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.locks.LockSupport;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 @SuppressWarnings({"rawtypes","unchecked"})
 public class
         StoreCachedTest<E extends StoreCached> extends StoreDirectTest<E>{
 
     @Override boolean canRollback(){return false;}
-
-    File f = TT.tempDbFile();
 
 
     @Override protected E openEngine() {

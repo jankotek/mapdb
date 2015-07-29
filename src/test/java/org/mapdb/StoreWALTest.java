@@ -16,8 +16,6 @@ public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
 
     @Override boolean canRollback(){return true;}
 
-    File f = TT.tempDbFile();
-
 
     @Override protected E openEngine() {
         StoreWAL e =new StoreWAL(f.getPath());
