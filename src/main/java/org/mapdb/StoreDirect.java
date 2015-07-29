@@ -1194,6 +1194,9 @@ public class StoreDirect extends Store {
                         }
 
                     }
+
+                    //reset free size
+                    freeSize.set(-1);
                 }finally {
                     structuralLock.unlock();
                 }

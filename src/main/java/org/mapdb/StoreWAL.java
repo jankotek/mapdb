@@ -1428,6 +1428,8 @@ public class StoreWAL extends StoreCached {
                     walC.putLong(0,0); //TODO wal header
                     walC.putLong(8,0);
 
+                    //reset free size
+                    freeSize.set(-1);
                 }finally {
                     structuralLock.unlock();
                 }
