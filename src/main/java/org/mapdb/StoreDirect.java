@@ -613,6 +613,10 @@ public class StoreDirect extends Store {
             //TODO possible deadlock, should not lock segment under different segment lock
             //TODO investigate if this lock is necessary, recid has not been yet published, perhaps cache does not have to be updated
             try {
+                if(CC.ASSERT && vol.getLong(recidToOffset(recid))!=0){
+                    throw new AssertionError("Recid not empty: "+recid);
+                }
+
                 if (caches != null) {
                     caches[pos].put(recid, value);
                 }
@@ -1240,9 +1244,26 @@ public class StoreDirect extends Store {
     }
 
     protected void compactIndexPages(final long maxRecidOffset, final StoreDirect target, final AtomicLong maxRecid) {
+        int lastIndexPage = indexPages.length;
+
+        // check for case when last index pages are completely empty (full of unused records),
+        // in that case they can be excluded from compaction
+        indexPage: while(lastIndexPage>0){
+            long pageOffset = indexPages[lastIndexPage-1];
+            for(long offset=pageOffset+8; offset<pageOffset+PAGE_SIZE;offset+=indexValSize) {
+                long indexVal = vol.getLong(offset);
+                //check if it was NOT discarted
+                if ((indexVal & MUNUSED) == 0 && indexVal != 0) {
+                    break indexPage;
+                }
+            }
+            //entire last page is full of empty records, exclude it from compaction
+            lastIndexPage--;
+        }
+
         //iterate over index pages
         if(executor == null) {
-            for (int indexPageI = 0; indexPageI < indexPages.length; indexPageI++) {
+            for (int indexPageI = 0; indexPageI < lastIndexPage; indexPageI++) {
                 compactIndexPage(maxRecidOffset, target, maxRecid, indexPageI);
             }
         }else {
@@ -1251,7 +1272,7 @@ public class StoreDirect extends Store {
             //main thread checks number of tasks in interval, if one is finished it will
             //schedule next one
             final List<Future> tasks = new ArrayList();
-            for (int indexPageI = 0; indexPageI < indexPages.length; indexPageI++) {
+            for (int indexPageI = 0; indexPageI < lastIndexPage; indexPageI++) {
                 final int indexPageI2 = indexPageI;
                 //now submit tasks to executor, it will compact single page
                 //TODO handle RejectedExecutionException?
@@ -1282,11 +1303,12 @@ public class StoreDirect extends Store {
     protected void compactIndexPage(long maxRecidOffset, StoreDirect target, AtomicLong maxRecid, int indexPageI) {
         final long indexPage = indexPages[indexPageI];
 
-        long recid = (indexPageI==0? 0 : indexPageI * PAGE_SIZE/indexValSize - HEAD_END/indexValSize);
-        final long indexPageStart = (indexPage==0?HEAD_END+8 : indexPage);
+        long recid = (indexPageI==0? 0 : indexPageI * (PAGE_SIZE-8)/indexValSize - HEAD_END/indexValSize);
+        final long indexPageStart = (indexPage==0?HEAD_END+8 : indexPage+8);
+
         final long indexPageEnd = indexPage+PAGE_SIZE;
 
-        //iterate over indexOffset values
+       //iterate over indexOffset values
         //TODO check if preloading and caching of all indexVals on this index page would improve performance
         indexVal:
         for( long indexOffset=indexPageStart;
@@ -1301,11 +1323,6 @@ public class StoreDirect extends Store {
             if(recid*indexValSize>maxRecidOffset)
                 break indexVal;
 
-            //update maxRecid in thread safe way
-            for(long oldMaxRecid=maxRecid.get();
-                !maxRecid.compareAndSet(oldMaxRecid, Math.max(recid,oldMaxRecid));
-                oldMaxRecid=maxRecid.get()){
-            }
 
             final long indexVal = vol.getLong(indexOffset);
             if(checksum &&
@@ -1331,7 +1348,7 @@ public class StoreDirect extends Store {
                 int totalSize = offsetsTotalSize(offsets);
                 byte[] b = getLoadLinkedRecord(offsets, totalSize);
 
-                //now put into new store, ecquire locks
+                //now put into new store, acquire locks
                 target.locks[lockPos(recid)].writeLock().lock();
                 target.structuralLock.lock();
                 //allocate space
@@ -1355,6 +1372,13 @@ public class StoreDirect extends Store {
             target.structuralLock.unlock();
             target.locks[lockPos(recid)].writeLock().unlock();
 
+        }
+
+        //update maxRecid in thread safe way
+        for(;;){
+            long oldMaxRecid = maxRecid.get();
+            if(oldMaxRecid>recid || maxRecid.compareAndSet(oldMaxRecid, recid))
+                break;
         }
     }
 
@@ -1468,8 +1492,9 @@ public class StoreDirect extends Store {
 
         //try to reuse recid from free list
         long currentRecid = longStackTake(FREE_RECID_STACK,false);
-        if(currentRecid!=0)
+        if(currentRecid!=0) {
             return currentRecid;
+        }
 
         currentRecid = parity1Get(headVol.getLong(MAX_RECID_OFFSET));
         currentRecid+=indexValSize;
