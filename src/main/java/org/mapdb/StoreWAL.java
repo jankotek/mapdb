@@ -507,7 +507,7 @@ public class StoreWAL extends StoreCached {
     }
 
     @Override
-    protected byte[] loadLongStackPage(long pageOffset) {
+    protected byte[] loadLongStackPage(long pageOffset, boolean willBeModified) {
         if (CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
@@ -533,7 +533,9 @@ public class StoreWAL extends StoreCached {
             Volume vol = volumes.get(fileNum);
             vol.getData(dataOffset, b, 0, arraySize);
             //page is going to be modified, so put it back into dirtyStackPages)
-            dirtyStackPages.put(pageOffset, b);
+            if (willBeModified) {
+                dirtyStackPages.put(pageOffset, b);
+            }
             return b;
         }
 
@@ -541,7 +543,9 @@ public class StoreWAL extends StoreCached {
         int pageSize = (int) (parity4Get(vol.getLong(pageOffset)) >>> 48);
         page = new byte[pageSize];
         vol.getData(pageOffset, page, 0, pageSize);
-        dirtyStackPages.put(pageOffset, page);
+        if (willBeModified){
+            dirtyStackPages.put(pageOffset, page);
+        }
         return page;
     }
 

@@ -783,4 +783,32 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         }
     }
 
+    @Test public void test_free_space(){
+        if(TT.shortTest())
+            return;
+
+        e = openEngine();
+
+        assertTrue(e.getFreeSize()>=0);
+
+        List<Long> recids = new ArrayList<Long>();
+        for(int i=0;i<10000;i++){
+            recids.add(
+                e.put(TT.randomByteArray(1024), Serializer.BYTE_ARRAY_NOSIZE));
+        }
+        assertEquals(0, e.getFreeSize());
+
+        e.commit();
+        for(Long recid:recids){
+            e.delete(recid,Serializer.BYTE_ARRAY_NOSIZE);
+        }
+        e.commit();
+
+        assertEquals(10000 * 1024, e.getFreeSize());
+
+        e.compact();
+        assertTrue(e.getFreeSize() <100000); //some leftovers after compaction
+
+    }
+
 }

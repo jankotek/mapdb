@@ -527,7 +527,22 @@ public class StoreDirect extends Store {
 
     @Override
     public long getFreeSize() {
-        return -1; //TODO freesize
+        structuralLock.lock();
+        try{
+            //traverse list of recids,
+            long freeSize=
+                    8* longStackCount(FREE_RECID_STACK);
+
+            for(long stackNum = 1;stackNum<=SLOTS_COUNT;stackNum++){
+                long indexOffset = FREE_RECID_STACK+stackNum*8;
+                long size = stackNum*16;
+                freeSize += size * longStackCount(indexOffset);
+            }
+
+            return freeSize;
+        }finally {
+            structuralLock.unlock();
+        }
     }
 
     @Override
@@ -932,6 +947,43 @@ public class StoreDirect extends Store {
         //release old page, size is stored as part of prev page value
         freeDataPut(pageOffset, currPageSize);
 
+        return ret;
+    }
+
+
+    protected long longStackCount(final long masterLinkOffset){
+        if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
+            throw new AssertionError();
+        if (CC.ASSERT && (masterLinkOffset <= 0 || masterLinkOffset > PAGE_SIZE || masterLinkOffset % 8 != 0))
+            throw new DBException.DataCorruption("wrong master link");
+
+
+        long nextLinkVal = DataIO.parity4Get(
+                headVol.getLong(masterLinkOffset));
+        long ret = 0;
+        while(true){
+            long currSize = nextLinkVal>>>48;
+            final long pageOffset = nextLinkVal&MOFFSET;
+
+            if(pageOffset==0)
+                break;
+
+            //now read bytes from end of page, until they are zeros
+            while (vol.getUnsignedByte(pageOffset + currSize-1) == 0) {
+                currSize--;
+            }
+
+            //iterate from end of page until start of page is reached
+            while(currSize>8){
+                long read = vol.getLongPackBidiReverse(pageOffset+currSize);
+                //extract number of read bytes
+                currSize-= read >>>56;
+                ret++;
+            }
+
+            nextLinkVal = DataIO.parity4Get(
+                    vol.getLong(pageOffset));
+        }
         return ret;
     }
 

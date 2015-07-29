@@ -133,7 +133,7 @@ public class StoreCached extends StoreDirect {
             return;
         }
 
-        byte[] page = loadLongStackPage(pageOffset);
+        byte[] page = loadLongStackPage(pageOffset, true);
 
         long currSize = masterLinkVal >>> 48;
 
@@ -172,7 +172,7 @@ public class StoreCached extends StoreDirect {
         long currSize = masterLinkVal >>> 48;
         final long pageOffset = masterLinkVal & MOFFSET;
 
-        byte[] page = loadLongStackPage(pageOffset);
+        byte[] page = loadLongStackPage(pageOffset,true);
 
         //read packed link from stack
         long ret = DataIO.unpackLongBidiReverse(page, (int) currSize);
@@ -203,7 +203,7 @@ public class StoreCached extends StoreDirect {
         if (prevPageOffset != 0) {
             //yes previous page exists
 
-            byte[] page2 = loadLongStackPage(prevPageOffset);
+            byte[] page2 = loadLongStackPage(prevPageOffset,true);
 
             //find pointer to end of previous page
             // (data are packed with var size, traverse from end of page, until zeros
@@ -234,7 +234,7 @@ public class StoreCached extends StoreDirect {
         return ret;
     }
 
-    protected byte[] loadLongStackPage(long pageOffset) {
+    protected byte[] loadLongStackPage(long pageOffset, boolean willBeModified) {
         if (CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
@@ -243,10 +243,53 @@ public class StoreCached extends StoreDirect {
             int pageSize = (int) (parity4Get(vol.getLong(pageOffset)) >>> 48);
             page = new byte[pageSize];
             vol.getData(pageOffset, page, 0, pageSize);
-            dirtyStackPages.put(pageOffset, page);
+            if(willBeModified) {
+                dirtyStackPages.put(pageOffset, page);
+            }
         }
         return page;
     }
+
+
+    @Override
+    protected long longStackCount(final long masterLinkOffset){
+        if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
+            throw new AssertionError();
+        if (CC.ASSERT && (masterLinkOffset <= 0 || masterLinkOffset > PAGE_SIZE || masterLinkOffset % 8 != 0))
+            throw new DBException.DataCorruption("wrong master link");
+
+        long nextLinkVal = DataIO.parity4Get(
+                headVol.getLong(masterLinkOffset));
+        long ret = 0;
+        while(true){
+            int currSize = (int) (nextLinkVal>>>48);
+            final long pageOffset = nextLinkVal&MOFFSET;
+
+            if(pageOffset==0)
+                break;
+
+            byte[] page = loadLongStackPage(pageOffset, false);
+
+            //work on dirty page
+            while ((page[currSize-1] & 0xFF) == 0) {
+                currSize--;
+            }
+
+            //iterate from end of page until start of page is reached
+            while(currSize>8){
+                long read = DataIO.unpackLongBidiReverse(page,currSize);
+                //extract number of read bytes
+                currSize-= read >>>56;
+                ret++;
+            }
+
+            nextLinkVal = DataIO.parity4Get(
+                    DataIO.getLong(page,0));
+
+        }
+        return ret;
+    }
+
 
     @Override
     protected void longStackNewPage(long masterLinkOffset, long prevPageOffset, long value) {
