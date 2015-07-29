@@ -95,6 +95,8 @@ public abstract class Store implements Engine {
     protected final AtomicLong metricsDataRead;
     protected final AtomicLong metricsRecordRead;
 
+    protected final boolean deserializeExtra;
+
     protected DataIO.HeartbeatFileLock fileLockHeartbeat;
 
     protected final Cache[] caches;
@@ -162,6 +164,7 @@ public abstract class Store implements Engine {
         this.checksum = checksum;
         this.compress = compress;
         this.encrypt =  password!=null;
+        this.deserializeExtra = (this.checksum || this.encrypt || this.compress);
         this.readonly = readonly;
         this.encryptionXTEA = !encrypt?null:new EncryptionXTEA(password);
 
@@ -397,7 +400,7 @@ public abstract class Store implements Engine {
             //TODO return future and finish deserialization outside lock, does even bring any performance bonus?
 
             DataIO.DataInputInternal di = (DataIO.DataInputInternal) input;
-            if (size > 0 && (checksum || encrypt || compress))  {
+            if (size > 0 && deserializeExtra)  {
                 return deserializeExtra(serializer,size,di);
             }
 
