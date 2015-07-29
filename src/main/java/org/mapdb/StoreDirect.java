@@ -82,6 +82,8 @@ public class StoreDirect extends Store {
     protected final long sizeIncrement;
     protected final int sliceShift;
 
+    protected final AtomicLong freeSize = new AtomicLong(-1);
+
     public StoreDirect(String fileName,
                        Volume.VolumeFactory volumeFactory,
                        Cache cache,
@@ -527,21 +529,39 @@ public class StoreDirect extends Store {
 
     @Override
     public long getFreeSize() {
+        long ret = freeSize.get();
+        if(ret!=-1)
+            return ret;
         structuralLock.lock();
         try{
+            //try one more time under lock
+            ret = freeSize.get();
+            if(ret!=-1)
+                return ret;
+
             //traverse list of recids,
-            long freeSize=
+            ret=
                     8* longStackCount(FREE_RECID_STACK);
 
             for(long stackNum = 1;stackNum<=SLOTS_COUNT;stackNum++){
                 long indexOffset = FREE_RECID_STACK+stackNum*8;
                 long size = stackNum*16;
-                freeSize += size * longStackCount(indexOffset);
+                ret += size * longStackCount(indexOffset);
             }
 
-            return freeSize;
+            freeSize.set(ret);
+
+            return ret;
         }finally {
             structuralLock.unlock();
+        }
+    }
+
+    protected void freeSizeIncrement(int increment){
+        for(;;) {
+            long val = freeSize.get();
+            if (val == -1 || freeSize.compareAndSet(val, val + increment))
+                return;
         }
     }
 
@@ -722,6 +742,8 @@ public class StoreDirect extends Store {
             return;
         }
 
+        freeSizeIncrement(size);
+
         long masterPointerOffset = size/2 + FREE_RECID_STACK; // really is size*8/16
         longStackPut(
                 masterPointerOffset,
@@ -776,6 +798,8 @@ public class StoreDirect extends Store {
                 LOG.log(Level.FINEST, "size={0}, ret={1}",
                         new Object[]{size, Long.toHexString(ret)});
             }
+
+            freeSizeIncrement(-size);
 
             return ret;
         }
