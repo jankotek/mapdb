@@ -54,7 +54,7 @@ public class CacheOffHeap {
 
         }
 
-        // and release memory. Only necessary with `DBMaker.newCacheDirect()`
+        // and release memory. Only necessary with `DBMaker.memoryDirect()`
         cache.close();
 
     }
