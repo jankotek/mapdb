@@ -567,6 +567,179 @@ public abstract class Volume implements Closeable{
 
 
         @Override
+        public void putUnsignedShort(long offset, int value) {
+            final ByteBuffer b = getSlice(offset);
+            int bpos = (int) (offset & sliceSizeModMask);
+
+            b.put(bpos++, (byte) (value >> 8));
+            b.put(bpos, (byte) (value));
+        }
+
+        @Override
+        public int getUnsignedShort(long offset) {
+            final ByteBuffer b = getSlice(offset);
+            int bpos = (int) (offset & sliceSizeModMask);
+
+            return (( (b.get(bpos++) & 0xff) << 8) |
+                    ( (b.get(bpos) & 0xff)));
+        }
+
+        @Override
+        public int getUnsignedByte(long offset) {
+            final ByteBuffer b = getSlice(offset);
+            int bpos = (int) (offset & sliceSizeModMask);
+
+            return b.get(bpos) & 0xff;
+        }
+
+        @Override
+        public void putUnsignedByte(long offset, int byt) {
+            final ByteBuffer b = getSlice(offset);
+            int bpos = (int) (offset & sliceSizeModMask);
+
+            b.put(bpos, toByte(byt));
+        }
+
+        protected static byte toByte(int byt) {
+            return (byte) (byt & 0xff);
+        }
+
+
+        protected static byte toByte(long l) {
+            return (byte) (l & 0xff);
+        }
+        @Override
+        public int putLongPackBidi(long offset, long value) {
+            final ByteBuffer b = getSlice(offset);
+            int bpos = (int) (offset & sliceSizeModMask);
+
+            b.put(bpos++, toByte((value & 0x7F) | 0x80));
+            value >>>= 7;
+            int counter = 2;
+
+            //$DELAY$
+            while ((value & ~0x7FL) != 0) {
+                b.put(bpos++, toByte(value & 0x7F));
+                value >>>= 7;
+                //$DELAY$
+                counter++;
+            }
+            //$DELAY$
+            b.put(bpos, toByte(value | 0x80));
+            return counter;
+        }
+
+        @Override
+        public long getLongPackBidi(long offset) {
+            final ByteBuffer bb = getSlice(offset);
+            int bpos = (int) (offset & sliceSizeModMask);
+
+            //$DELAY$
+            long b = bb.get(bpos++) & 0xffL; //TODO this could be inside loop, change all implementations
+            if(CC.ASSERT && (b&0x80)==0)
+                throw new DBException.DataCorruption();
+            long result = (b & 0x7F) ;
+            int shift = 7;
+            do {
+                //$DELAY$
+                b = bb.get(bpos++) & 0xffL;
+                result |= (b & 0x7F) << shift;
+                if(CC.ASSERT && shift>64)
+                    throw new DBException.DataCorruption();
+                shift += 7;
+            }while((b & 0x80) == 0);
+            //$DELAY$
+            return (((long)(shift/7))<<56) | result;
+        }
+
+        @Override
+        public long getLongPackBidiReverse(long offset) {
+            final ByteBuffer bb = getSlice(offset);
+            int bpos = (int) (offset & sliceSizeModMask);
+
+            //$DELAY$
+            long b = bb.get(--bpos) & 0xffL;
+            if(CC.ASSERT && (b&0x80)==0)
+                throw new DBException.DataCorruption();
+            long result = (b & 0x7F) ;
+            int counter = 1;
+            do {
+                //$DELAY$
+                b = bb.get(--bpos) & 0xffL;
+                result = (b & 0x7F) | (result<<7);
+                if(CC.ASSERT && counter>8)
+                    throw new DBException.DataCorruption();
+                counter++;
+            }while((b & 0x80) == 0);
+            //$DELAY$
+            return (((long)counter)<<56) | result;
+        }
+
+        @Override
+        public long getSixLong(long pos) {
+            final ByteBuffer bb = getSlice(pos);
+            int bpos = (int) (pos & sliceSizeModMask);
+
+            return
+                    ((long) (bb.get(bpos++) & 0xff) << 40) |
+                            ((long) (bb.get(bpos++) & 0xff) << 32) |
+                            ((long) (bb.get(bpos++) & 0xff) << 24) |
+                            ((long) (bb.get(bpos++) & 0xff) << 16) |
+                            ((long) (bb.get(bpos++) & 0xff) << 8) |
+                            ((long) (bb.get(bpos) & 0xff));
+        }
+
+        @Override
+        public void putSixLong(long pos, long value) {
+            final ByteBuffer b = getSlice(pos);
+            int bpos = (int) (pos & sliceSizeModMask);
+
+            if(CC.ASSERT && (value >>>48!=0))
+                throw new DBException.DataCorruption();
+
+            b.put(bpos++, (byte) (0xff & (value >> 40)));
+            b.put(bpos++, (byte) (0xff & (value >> 32)));
+            b.put(bpos++, (byte) (0xff & (value >> 24)));
+            b.put(bpos++, (byte) (0xff & (value >> 16)));
+            b.put(bpos++, (byte) (0xff & (value >> 8)));
+            b.put(bpos, (byte) (0xff & (value)));
+        }
+
+        @Override
+        public int putPackedLong(long pos, long value) {
+            final ByteBuffer b = getSlice(pos);
+            int bpos = (int) (pos & sliceSizeModMask);
+
+            //$DELAY$
+            int ret = 0;
+            int shift = 63-Long.numberOfLeadingZeros(value);
+            shift -= shift%7; // round down to nearest multiple of 7
+            while(shift!=0){
+                b.put(bpos + (ret++), (byte) (((value >>> shift) & 0x7F) | 0x80));
+                //$DELAY$
+                shift-=7;
+            }
+            b.put(bpos +(ret++),(byte) (value & 0x7F));
+            return ret;
+        }
+
+        @Override
+        public long getPackedLong(long position) {
+            final ByteBuffer b = getSlice(position);
+            int bpos = (int) (position & sliceSizeModMask);
+
+            long ret = 0;
+            int pos2 = 0;
+            byte v;
+            do{
+                v = b.get(bpos +(pos2++));
+                ret = (ret<<7 ) | (v & 0x7F);
+            }while(v<0);
+
+            return (((long)pos2)<<60) | ret;
+        }
+
+        @Override
         public void clear(long startOffset, long endOffset) {
             if(CC.ASSERT && (startOffset >>> sliceShift) != ((endOffset-1) >>> sliceShift))
                 throw new AssertionError();
@@ -1174,7 +1347,7 @@ public abstract class Volume implements Closeable{
             if(buffer instanceof MappedByteBuffer)
                 ((MappedByteBuffer)buffer).force();
         }
-        
+
 
         @Override
         public long length() {
@@ -2581,6 +2754,186 @@ public abstract class Volume implements Closeable{
                 raf.write(CLEAR, 0, (int)remaining);
                 startOffset+=CLEAR.length;
             }
+        }
+
+        @Override
+        public synchronized void putUnsignedShort(long offset, int value) {
+            try {
+                raf.seek(offset);
+                raf.write(value >> 8);
+                raf.write(value);
+            } catch (IOException e) {
+                throw new DBException.VolumeIOError(e);
+            }
+        }
+
+        @Override
+        public synchronized int getUnsignedShort(long offset) {
+            try {
+                raf.seek(offset);
+                return (raf.readUnsignedByte() << 8) |
+                        raf.readUnsignedByte();
+
+            } catch (IOException e) {
+                throw new DBException.VolumeIOError(e);
+            }
+        }
+
+        @Override
+        public synchronized int putLongPackBidi(long offset, long value) {
+            try {
+                raf.seek(offset);
+                raf.write((((int) value & 0x7F)) | 0x80);
+                value >>>= 7;
+                int counter = 2;
+
+                //$DELAY$
+                while ((value & ~0x7FL) != 0) {
+                    raf.write(((int) value & 0x7F));
+                    value >>>= 7;
+                    //$DELAY$
+                    counter++;
+                }
+                //$DELAY$
+                raf.write((int) (value | 0x80));
+                return counter;
+            } catch (IOException e) {
+                throw new DBException.VolumeIOError(e);
+            }
+        }
+
+        @Override
+        public synchronized long getLongPackBidi(long offset) {
+            try {
+                raf.seek(offset);
+                //$DELAY$
+                long b = raf.readUnsignedByte(); //TODO this could be inside loop, change all implementations
+                if(CC.ASSERT && (b&0x80)==0)
+                    throw new DBException.DataCorruption();
+                long result = (b & 0x7F) ;
+                int shift = 7;
+                do {
+                    //$DELAY$
+                    b = raf.readUnsignedByte();
+                    result |= (b & 0x7F) << shift;
+                    if(CC.ASSERT && shift>64)
+                        throw new DBException.DataCorruption();
+                    shift += 7;
+                }while((b & 0x80) == 0);
+                //$DELAY$
+                return (((long)(shift/7))<<56) | result;
+            } catch (IOException e) {
+                throw new DBException.VolumeIOError(e);
+            }
+
+        }
+
+        @Override
+        public synchronized long getLongPackBidiReverse(long offset) {
+            try {
+                //$DELAY$
+                raf.seek(--offset);
+                long b = raf.readUnsignedByte();
+                if(CC.ASSERT && (b&0x80)==0)
+                    throw new DBException.DataCorruption();
+                long result = (b & 0x7F) ;
+                int counter = 1;
+                do {
+                    //$DELAY$
+                    raf.seek(--offset);
+                    b = raf.readUnsignedByte();
+                    result = (b & 0x7F) | (result<<7);
+                    if(CC.ASSERT && counter>8)
+                        throw new DBException.DataCorruption();
+                    counter++;
+                }while((b & 0x80) == 0);
+                //$DELAY$
+                return (((long)counter)<<56) | result;
+            } catch (IOException e) {
+                throw new DBException.VolumeIOError(e);
+            }
+
+        }
+
+        @Override
+        public synchronized long getSixLong(long offset) {
+            try {
+                raf.seek(offset);
+                return
+                        (((long) raf.readUnsignedByte()) << 40) |
+                                (((long) raf.readUnsignedByte()) << 32) |
+                                (((long) raf.readUnsignedByte()) << 24) |
+                                (raf.readUnsignedByte() << 16) |
+                                (raf.readUnsignedByte() << 8) |
+                                raf.readUnsignedByte();
+            } catch (IOException e) {
+                throw new DBException.VolumeIOError(e);
+            }
+        }
+
+        @Override
+        public synchronized void putSixLong(long pos, long value) {
+            if(CC.ASSERT && (value >>>48!=0))
+                throw new DBException.DataCorruption();
+            try {
+                raf.seek(pos);
+
+                raf.write((int) (value >>> 40));
+                raf.write((int) (value >>> 32));
+                raf.write((int) (value >>> 24));
+                raf.write((int) (value >>> 16));
+                raf.write((int) (value >>> 8));
+                raf.write((int) (value));
+            } catch (IOException e) {
+                throw new DBException.VolumeIOError(e);
+            }
+
+        }
+
+        @Override
+        public int putPackedLong(long pos, long value) {
+            try {
+                raf.seek(pos);
+
+                //$DELAY$
+                int ret = 1;
+                int shift = 63-Long.numberOfLeadingZeros(value);
+                shift -= shift%7; // round down to nearest multiple of 7
+                while(shift!=0){
+                    ret++;
+                    raf.write((int) (((value >>> shift) & 0x7F) | 0x80));
+                    //$DELAY$
+                    shift-=7;
+                }
+                raf.write ((int) (value & 0x7F));
+                return ret;
+            } catch (IOException e) {
+                throw new DBException.VolumeIOError(e);
+            }
+
+        }
+
+
+
+        @Override
+        public long getPackedLong(long pos) {
+            try {
+                raf.seek(pos);
+
+                long ret = 0;
+                long pos2 = 0;
+                byte v;
+                do{
+                    pos2++;
+                    v = raf.readByte();
+                    ret = (ret<<7 ) | (v & 0x7F);
+                }while(v<0);
+
+                return (pos2<<60) | ret;
+            } catch (IOException e) {
+                throw new DBException.VolumeIOError(e);
+            }
+
         }
     }
 
