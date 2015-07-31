@@ -1153,13 +1153,23 @@ public abstract class Volume implements Closeable{
                 return;
             growLock.lock();
             try{
-                for(ByteBuffer b: slices){
+                ByteBuffer[] slices = this.slices;
+                if(slices==null)
+                    return;
+
+                // Iterate in reverse order.
+                // In some cases if JVM crashes during iteration,
+                // first part of the file would be synchronized,
+                // while part of file would be missing.
+                // It is better if end of file is synchronized first, since it has less sensitive data,
+                // and it increases chance to detect file corruption.
+                for(int i=slices.length-1;i>=0;i--){
+                    ByteBuffer b = slices[i];
                     if(b!=null && (b instanceof MappedByteBuffer)){
                         MappedByteBuffer bb = ((MappedByteBuffer) b);
                         bb.force();
                     }
                 }
-
             }finally{
                 growLock.unlock();
             }
