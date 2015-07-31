@@ -110,6 +110,7 @@
                     <reuseForks>${reuseForks}</reuseForks>
                     <forkCount>${forkCount}</forkCount>
                     <threadCount>${threadCount}</threadCount>
+                    <argLine>-Xmx5G -XX:MaxDirectMemorySize=5G</argLine>
 
                     <includes>
                         <include>**/*</include>
