@@ -613,8 +613,10 @@ public abstract class EngineTest<ENGINE extends Engine>{
         e.delete(recid2, Serializer.STRING);
         e.compact();
 
-        assertEquals(recid2, e.preallocate());
-        assertEquals(recid1, e.preallocate());
+        TT.sortAndEquals(
+                new long[]{recid1, recid2},
+                new long[]{e.preallocate(),e.preallocate()});
+
         e.close();
     }
 

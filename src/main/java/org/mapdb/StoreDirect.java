@@ -38,7 +38,9 @@ public class StoreDirect extends Store {
 
 
     protected static final long STORE_SIZE = 8*2;
-    /** offset of maximal allocated recid. It is {@code <<3 parity1}*/
+    /** physical offset of maximal allocated recid. Parity1.
+     * It is value of last allocated RECID multiplied by recid size.
+     * Use {@code val/indexValSize} to get actual RECID*/
     protected static final long MAX_RECID_OFFSET = 8*3;
     protected static final long LAST_PHYS_ALLOCATED_DATA_OFFSET = 8*4; //TODO update doc
     protected static final long FREE_RECID_STACK = 8*5;
@@ -1121,8 +1123,6 @@ public class StoreDirect extends Store {
                 snapshotCloseAllOnCompact();
 
 
-                final long maxRecidOffset = parity1Get(headVol.getLong(MAX_RECID_OFFSET));
-
                 String compactedFile = vol.getFile()==null? null : fileName+".compact";
                 final StoreDirect target = new StoreDirect(compactedFile,
                         volumeFactory,
@@ -1133,13 +1133,15 @@ public class StoreDirect extends Store {
                         null,
                         null, startSize, sizeIncrement);
                 target.init();
-                final AtomicLong maxRecid = new AtomicLong(RECID_LAST_RESERVED);
+
+                final AtomicLong maxRecid = new AtomicLong(
+                        parity1Get(headVol.getLong(MAX_RECID_OFFSET))/indexValSize);
 
                 //TODO what about recids which are already in freeRecidLongStack?
                 // I think it gets restored by traversing index table,
                 // so there is no need to traverse and copy freeRecidLongStack
                 // TODO same problem in StoreWAL
-                compactIndexPages(maxRecidOffset, target, maxRecid);
+                compactIndexPages(target, maxRecid);
 
 
                 //update some stuff
@@ -1243,28 +1245,34 @@ public class StoreDirect extends Store {
         }
     }
 
-    protected void compactIndexPages(final long maxRecidOffset, final StoreDirect target, final AtomicLong maxRecid) {
+    protected void compactIndexPages(final StoreDirect target, final AtomicLong maxRecid) {
         int lastIndexPage = indexPages.length;
 
-        // check for case when last index pages are completely empty (full of unused records),
-        // in that case they can be excluded from compaction
-        indexPage: while(lastIndexPage>0){
-            long pageOffset = indexPages[lastIndexPage-1];
-            for(long offset=pageOffset+8; offset<pageOffset+PAGE_SIZE;offset+=indexValSize) {
-                long indexVal = vol.getLong(offset);
-                //check if it was NOT discarted
-                if ((indexVal & MUNUSED) == 0 && indexVal != 0) {
-                    break indexPage;
-                }
+        // make maxRecid lower if possible
+        // decrement maxRecid until non-empty recid is found
+        recidLoop: for(;;){
+            if(maxRecid.get()<=RECID_LAST_RESERVED){
+                //some recids are reserved, so break if we reach those
+                break recidLoop;
             }
-            //entire last page is full of empty records, exclude it from compaction
-            lastIndexPage--;
+
+            long indexVal = indexValGetRaw(maxRecid.get());
+            if ((indexVal & MUNUSED) == 0 && indexVal != 0) {
+                //non empty recid found, so break this loop
+                break recidLoop;
+            }
+            // maxRecid is empty, so decrement and move on
+            maxRecid.decrementAndGet();
         }
 
         //iterate over index pages
+        long maxRecidOffset = recidToOffset(maxRecid.get());
         if(executor == null) {
-            for (int indexPageI = 0; indexPageI < lastIndexPage; indexPageI++) {
-                compactIndexPage(maxRecidOffset, target, maxRecid, indexPageI);
+            for (int indexPageI = 0;
+                 indexPageI < lastIndexPage && indexPages[indexPageI]<=maxRecidOffset;
+                 indexPageI++) {
+
+                compactIndexPage(target, indexPageI, maxRecid.get());
             }
         }else {
             //compact pages in multiple threads.
@@ -1272,14 +1280,16 @@ public class StoreDirect extends Store {
             //main thread checks number of tasks in interval, if one is finished it will
             //schedule next one
             final List<Future> tasks = new ArrayList();
-            for (int indexPageI = 0; indexPageI < lastIndexPage; indexPageI++) {
+            for (int indexPageI = 0;
+                 indexPageI < lastIndexPage && indexPages[indexPageI]<=maxRecidOffset;
+                 indexPageI++) {
                 final int indexPageI2 = indexPageI;
                 //now submit tasks to executor, it will compact single page
                 //TODO handle RejectedExecutionException?
                 Future f = executor.submit(new Runnable() {
                     @Override
                     public void run() {
-                      compactIndexPage(maxRecidOffset, target, maxRecid, indexPageI2);
+                      compactIndexPage(target, indexPageI2, maxRecid.get());
                     }
                 });
                 tasks.add(f);
@@ -1300,7 +1310,7 @@ public class StoreDirect extends Store {
         }
     }
 
-    protected void compactIndexPage(long maxRecidOffset, StoreDirect target, AtomicLong maxRecid, int indexPageI) {
+    protected void compactIndexPage(StoreDirect target, int indexPageI, long maxRecid) {
         final long indexPage = indexPages[indexPageI];
 
         long recid = (indexPageI==0? 0 : indexPageI * (PAGE_SIZE-8)/indexValSize - HEAD_END/indexValSize);
@@ -1320,7 +1330,7 @@ public class StoreDirect extends Store {
                 throw new AssertionError("Recid to offset conversion failed: indexOffset:"+indexOffset+
                         ", recidToOffset: "+recidToOffset(recid)+", recid:"+recid);
 
-            if(recid*indexValSize>maxRecidOffset)
+            if(recid>maxRecid)
                 break indexVal;
 
 
@@ -1373,13 +1383,6 @@ public class StoreDirect extends Store {
             target.locks[lockPos(recid)].writeLock().unlock();
 
         }
-
-        //update maxRecid in thread safe way
-        for(;;){
-            long oldMaxRecid = maxRecid.get();
-            if(oldMaxRecid>recid || maxRecid.compareAndSet(oldMaxRecid, recid))
-                break;
-        }
     }
 
 
@@ -1405,6 +1408,9 @@ public class StoreDirect extends Store {
 
 
     protected long indexValGet(long recid) {
+        if(CC.ASSERT)
+            assertReadLocked(recid);
+
         long offset = recidToOffset(recid);
         long indexVal = vol.getLong(offset);
         if(indexVal == 0)
@@ -1417,6 +1423,15 @@ public class StoreDirect extends Store {
         }
         //check parity and throw recid does not exist if broken
         return DataIO.parity1Get(indexVal);
+    }
+
+
+    protected long indexValGetRaw(long recid) {
+        if(CC.ASSERT)
+            assertReadLocked(recid);
+
+        long offset = recidToOffset(recid);
+        return vol.getLong(offset);
     }
 
     protected final long recidToOffset(long recid){

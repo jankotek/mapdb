@@ -470,6 +470,23 @@ public class StoreWAL extends StoreCached {
     }
 
     @Override
+    protected long indexValGetRaw(long recid) {
+        if(CC.ASSERT)
+            assertReadLocked(recid);
+        int segment = lockPos(recid);
+        long offset = recidToOffset(recid);
+        long ret = currLongLongs[segment].get(offset);
+        if(ret!=0) {
+            return ret;
+        }
+        ret = prevLongLongs[segment].get(offset);
+        if(ret!=0)
+            return ret;
+        return super.indexValGetRaw(recid);
+    }
+
+
+    @Override
     protected void indexValPut(long recid, int size, long offset, boolean linked, boolean unused) {
         if(CC.ASSERT)
             assertWriteLocked(lockPos(recid));
@@ -1450,14 +1467,14 @@ public class StoreWAL extends StoreCached {
             target.init();
             walCCompact = target.vol;
 
-            final AtomicLong maxRecid = new AtomicLong(RECID_LAST_RESERVED);
+            final AtomicLong maxRecid = new AtomicLong(
+                    parity1Get(headVol.getLong(MAX_RECID_OFFSET))/indexValSize);
 
-            compactIndexPages(maxRecidOffset, target, maxRecid);
+            compactIndexPages(target, maxRecid);
 
             while($_TEST_HACK_COMPACT_PRE_COMMIT_WAIT){
                 LockSupport.parkNanos(10000);
             }
-
 
             target.vol.putLong(MAX_RECID_OFFSET, parity1Set(maxRecid.get() * indexValSize));
 

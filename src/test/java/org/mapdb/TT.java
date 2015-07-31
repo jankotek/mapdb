@@ -9,6 +9,7 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.*;
@@ -275,5 +276,11 @@ public class TT {
             }
         }
         dir.delete();
+    }
+
+    public static void sortAndEquals(long[] longs, long[] longs1) {
+        Arrays.sort(longs);
+        Arrays.sort(longs1);
+        assertArrayEquals(longs,longs1);
     }
 }

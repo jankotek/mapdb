@@ -253,7 +253,8 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         }
 
         //second list should be reverse of first, as Linked Offset List is LIFO
-        Collections.reverse(recids);
+        Collections.sort(recids);
+        Collections.sort(recids);
         assertEquals(recids, recids2);
     }
 //
