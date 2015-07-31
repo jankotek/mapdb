@@ -34,6 +34,9 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <forkCount>1</forkCount>
+        <threadCount>1</threadCount>
+        <reuseForks>true</reuseForks>
     </properties>
 
     <dependencies>
@@ -104,6 +107,9 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.16</version>
                 <configuration>
+                    <reuseForks>${reuseForks}</reuseForks>
+                    <forkCount>${forkCount}</forkCount>
+                    <threadCount>${threadCount}</threadCount>
                     <argLine>-Xmx5G -XX:MaxDirectMemorySize=5G</argLine>
 
                     <includes>
