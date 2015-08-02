@@ -344,10 +344,7 @@ public class DB implements Closeable {
             return this;
         }
 
-        /**
-         *
-         * @deprecated this is not working correctly right now, will be removed or fixed.
-         */
+        /** maximal size of store in GB, if store is larger entries will start expiring */
         public HTreeMapMaker expireStoreSize(double maxStoreSize) {
             this.expireStoreSize = (long) (maxStoreSize*1024L*1024L*1024L);
             return this;

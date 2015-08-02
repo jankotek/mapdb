@@ -109,7 +109,7 @@ public class StoreWAL extends StoreCached {
                 CC.DEFAULT_LOCK_SCALE,
                 0,
                 false, false, null, false,false, false, null,
-                null, 0L, 0L,
+                null, 0L, 0L, false,
                 0L,
                 0);
     }
@@ -130,6 +130,7 @@ public class StoreWAL extends StoreCached {
             ScheduledExecutorService executor,
             long startSize,
             long sizeIncrement,
+            boolean recidReuse,
             long executorScheduledRate,
             int writeQueueSize
         ) {
@@ -140,6 +141,7 @@ public class StoreWAL extends StoreCached {
                 executor,
                 startSize,
                 sizeIncrement,
+                recidReuse,
                 executorScheduledRate,
                 writeQueueSize);
         prevLongLongs = new LongLongMap[this.lockScale];
@@ -1463,7 +1465,7 @@ public class StoreWAL extends StoreCached {
                     volumeFactory,
                     null,lockScale,
                     executor==null?LOCKING_STRATEGY_NOLOCK:LOCKING_STRATEGY_WRITELOCK,
-                    checksum,compress,null,false,false,fileLockDisable,null, null, 0L, 0L);
+                    checksum,compress,null,false,false,fileLockDisable,null, null, 0L, 0L, false);
             target.init();
             walCCompact = target.vol;
 

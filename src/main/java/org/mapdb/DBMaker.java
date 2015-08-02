@@ -128,6 +128,7 @@ public final class DBMaker{
 
         String allocateStartSize = "allocateStartSize";
         String allocateIncrement = "allocateIncrement";
+        String allocateRecidReuse = "allocateRecidReuse";
     }
 
 
@@ -1195,6 +1196,20 @@ public final class DBMaker{
             return this;
         }
 
+        /**
+         * Tells allocator to reuse recids immediately after record delete.
+         * Usually recids are released after store compaction
+         * It decreases store fragmentation.
+         * But could cause race conditions and class cast exception in case of wrong threading
+         *
+         * @return this builder
+         */
+        public Maker allocateRecidReuseEnable(){
+            props.setProperty(Keys.allocateRecidReuse,TRUE);
+            return this;
+        }
+
+
 
 
         /** constructs DB using current settings */
@@ -1281,6 +1296,7 @@ public final class DBMaker{
 
             final long allocateStartSize = propsGetLong(Keys.allocateStartSize,0L);
             final long allocateIncrement = propsGetLong(Keys.allocateIncrement,0L);
+            final boolean allocateRecidReuse = propsGetBool(Keys.allocateRecidReuse);
 
             boolean cacheLockDisable = lockingStrategy!=0;
             byte[] encKey = propsGetXteaEncKey();
@@ -1333,6 +1349,7 @@ public final class DBMaker{
                             storeExecutor,
                             allocateStartSize,
                             allocateIncrement,
+                            allocateRecidReuse,
                             CC.DEFAULT_STORE_EXECUTOR_SCHED_RATE,
                             propsGetInt(Keys.asyncWriteQueueSize,CC.DEFAULT_ASYNC_WRITE_QUEUE_SIZE)
                     );
@@ -1353,6 +1370,7 @@ public final class DBMaker{
                             storeExecutor,
                             allocateStartSize,
                             allocateIncrement,
+                            allocateRecidReuse,
                             CC.DEFAULT_STORE_EXECUTOR_SCHED_RATE,
                             propsGetInt(Keys.asyncWriteQueueSize,CC.DEFAULT_ASYNC_WRITE_QUEUE_SIZE)
                     );
@@ -1372,7 +1390,8 @@ public final class DBMaker{
                             heartbeatFileLock,
                             storeExecutor,
                             allocateStartSize,
-                            allocateIncrement);
+                            allocateIncrement,
+                            allocateRecidReuse);
                 }
             }
 

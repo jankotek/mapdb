@@ -72,7 +72,7 @@ public class StoreDirectTest2 {
         File f = TT.tempDbFile();
 
         StoreDirect st = new StoreDirect(f.getPath(), CC.DEFAULT_FILE_VOLUME_FACTORY,
-                null, CC.DEFAULT_LOCK_SCALE, 0, false, false,null, false,false, false, null, null, 0L, 0L);
+                null, CC.DEFAULT_LOCK_SCALE, 0, false, false,null, false,false, false, null, null, 0L, 0L, false);
         st.init();
 
         Map<Long,String> recids = new HashMap();
@@ -86,7 +86,7 @@ public class StoreDirectTest2 {
         st.close();
 
         st = new StoreDirect(f.getPath(), CC.DEFAULT_FILE_VOLUME_FACTORY,
-                null, CC.DEFAULT_LOCK_SCALE, 0, false, false,null, false, false, false, null, null, 0L, 0L);
+                null, CC.DEFAULT_LOCK_SCALE, 0, false, false,null, false, false, false, null, null, 0L, 0L, false);
         st.init();
 
         for(Map.Entry<Long,String> e:recids.entrySet()){

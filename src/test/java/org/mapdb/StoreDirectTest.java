@@ -761,7 +761,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
                     0,
                     false,false,null,
                     false,false,false,null,
-                    null, 0L, 0L);
+                    null, 0L, 0L, false);
             e.init();
 
             //fill with some data

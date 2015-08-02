@@ -82,6 +82,7 @@ public class StoreDirect extends Store {
 
     protected final long startSize;
     protected final long sizeIncrement;
+    protected final boolean recidReuse;
     protected final int sliceShift;
 
     protected final AtomicLong freeSize = new AtomicLong(-1);
@@ -100,7 +101,8 @@ public class StoreDirect extends Store {
                        DataIO.HeartbeatFileLock fileLockHeartbeat,
                        ScheduledExecutorService executor,
                        long startSize,
-                       long sizeIncrement
+                       long sizeIncrement,
+                       boolean recidReuse
                        ) {
         super(fileName, volumeFactory, cache, lockScale, lockingStrategy, checksum, compress, password, readonly,
                 snapshotEnable, fileLockDisable, fileLockHeartbeat);
@@ -112,6 +114,7 @@ public class StoreDirect extends Store {
 
         this.sizeIncrement = Math.max(1L<<CC.VOLUME_PAGE_SHIFT, DataIO.nextPowTwo(sizeIncrement));
         this.startSize = Fun.roundUp(Math.max(1L<<CC.VOLUME_PAGE_SHIFT,startSize), this.sizeIncrement);
+        this.recidReuse = recidReuse;
         this.sliceShift = Volume.sliceShiftFromSize(this.sizeIncrement);
 
         if(CC.LOG_STORE && LOG.isLoggable(Level.FINE)){
@@ -283,7 +286,7 @@ public class StoreDirect extends Store {
                 CC.DEFAULT_LOCK_SCALE,
                 0,
                 false,false,null,false,false,false,null,
-                null, 0L, 0L);
+                null, 0L, 0L, false);
     }
 
     protected int headChecksum(Volume vol2) {
@@ -522,6 +525,15 @@ public class StoreDirect extends Store {
             }
         }
         indexValPut(recid,0,0,true,true);
+        if(recidReuse){
+            structuralLock.lock();
+            try {
+                longStackPut(FREE_RECID_STACK, recid, false);
+            }finally {
+                structuralLock.unlock();
+            }
+        }
+
     }
 
     @Override
@@ -615,7 +627,7 @@ public class StoreDirect extends Store {
             //TODO possible deadlock, should not lock segment under different segment lock
             //TODO investigate if this lock is necessary, recid has not been yet published, perhaps cache does not have to be updated
             try {
-                if(CC.ASSERT && vol.getLong(recidToOffset(recid))!=0){
+                if(CC.ASSERT && !recidReuse && vol.getLong(recidToOffset(recid))!=0){
                     throw new AssertionError("Recid not empty: "+recid);
                 }
 
@@ -1131,7 +1143,7 @@ public class StoreDirect extends Store {
                         checksum,compress,null,false,false,
                         true, //locking is disabled on compacted file
                         null,
-                        null, startSize, sizeIncrement);
+                        null, startSize, sizeIncrement, false);
                 target.init();
 
                 final AtomicLong maxRecid = new AtomicLong(

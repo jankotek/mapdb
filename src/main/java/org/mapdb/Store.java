@@ -1765,7 +1765,10 @@ public abstract class Store implements Engine {
 
             return true;
         }
-        
+
+        public boolean isEmpty(){
+            return start == end;
+        }
     }
 
     /** fake lock */

@@ -22,7 +22,8 @@ public class StoreCacheHashTableTest<E extends StoreDirect> extends EngineTest<E
                 null,
                 null,
                 0L,
-                0L
+                0L,
+                false
                 );
         e.init();
         return (E)e;
