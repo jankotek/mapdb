@@ -167,8 +167,7 @@ public class BTreeMap<K,V>
     protected static SortedMap<String, Object> preinitCatalog(DB db) {
 
         Long rootRef = db.getEngine().get(Engine.RECID_NAME_CATALOG, Serializer.RECID);
-
-        BTreeKeySerializer keyser = BTreeKeySerializer.STRING;
+;
         //$DELAY$
         if(rootRef==null){
             if(db.getEngine().isReadOnly())
@@ -176,7 +175,7 @@ public class BTreeMap<K,V>
 
             NodeSerializer rootSerializer = new NodeSerializer(false,BTreeKeySerializer.STRING,
                     db.getDefaultSerializer(), 0);
-            BNode root = new LeafNode(keyser.emptyKeys(), true,true,false, new Object[]{}, 0);
+            BNode root = new LeafNode(BTreeKeySerializer.STRING.emptyKeys(), true,true,false, new Object[]{}, 0);
             rootRef = db.getEngine().put(root, rootSerializer);
             //$DELAY$
             db.getEngine().update(Engine.RECID_NAME_CATALOG,rootRef, Serializer.RECID);
@@ -192,7 +191,7 @@ public class BTreeMap<K,V>
                 32,
                 false,
                 0,
-                keyser,
+                BTreeKeySerializer.STRING,
                 valser,
                 0
                 );
