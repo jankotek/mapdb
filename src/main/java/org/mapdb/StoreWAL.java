@@ -130,7 +130,7 @@ public class StoreWAL extends StoreCached {
             ScheduledExecutorService executor,
             long startSize,
             long sizeIncrement,
-            boolean recidReuse,
+            boolean recidReuseDisable,
             long executorScheduledRate,
             int writeQueueSize
         ) {
@@ -141,7 +141,7 @@ public class StoreWAL extends StoreCached {
                 executor,
                 startSize,
                 sizeIncrement,
-                recidReuse,
+                recidReuseDisable,
                 executorScheduledRate,
                 writeQueueSize);
         prevLongLongs = new LongLongMap[this.lockScale];

@@ -82,7 +82,7 @@ public class StoreDirect extends Store {
 
     protected final long startSize;
     protected final long sizeIncrement;
-    protected final boolean recidReuse;
+    protected final boolean recidReuseDisable;
     protected final int sliceShift;
 
     protected final AtomicLong freeSize = new AtomicLong(-1);
@@ -102,7 +102,7 @@ public class StoreDirect extends Store {
                        ScheduledExecutorService executor,
                        long startSize,
                        long sizeIncrement,
-                       boolean recidReuse
+                       boolean recidReuseDisable
                        ) {
         super(fileName, volumeFactory, cache, lockScale, lockingStrategy, checksum, compress, password, readonly,
                 snapshotEnable, fileLockDisable, fileLockHeartbeat);
@@ -114,7 +114,7 @@ public class StoreDirect extends Store {
 
         this.sizeIncrement = Math.max(1L<<CC.VOLUME_PAGE_SHIFT, DataIO.nextPowTwo(sizeIncrement));
         this.startSize = Fun.roundUp(Math.max(1L<<CC.VOLUME_PAGE_SHIFT,startSize), this.sizeIncrement);
-        this.recidReuse = recidReuse;
+        this.recidReuseDisable = recidReuseDisable;
         this.sliceShift = Volume.sliceShiftFromSize(this.sizeIncrement);
 
         if(CC.LOG_STORE && LOG.isLoggable(Level.FINE)){
@@ -525,7 +525,7 @@ public class StoreDirect extends Store {
             }
         }
         indexValPut(recid,0,0,true,true);
-        if(recidReuse){
+        if(!recidReuseDisable){
             structuralLock.lock();
             try {
                 longStackPut(FREE_RECID_STACK, recid, false);
@@ -627,7 +627,7 @@ public class StoreDirect extends Store {
             //TODO possible deadlock, should not lock segment under different segment lock
             //TODO investigate if this lock is necessary, recid has not been yet published, perhaps cache does not have to be updated
             try {
-                if(CC.ASSERT && !recidReuse && vol.getLong(recidToOffset(recid))!=0){
+                if(CC.ASSERT && recidReuseDisable && vol.getLong(recidToOffset(recid))!=0){
                     throw new AssertionError("Recid not empty: "+recid);
                 }
 
