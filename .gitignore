@@ -12,3 +12,5 @@ helper
 *.iws
 .directory
 *.log
+.gradle
+*.log
