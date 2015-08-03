@@ -306,6 +306,8 @@ public abstract class EngineTest<ENGINE extends Engine>{
         long recid = e.put("aaa", Serializer.STRING);
         e.delete(recid, Serializer.STRING);
         assertNull(e.get(recid, Serializer.ILLEGAL_ACCESS));
+        e.commit();
+        reopen();
         long recid2 = e.put("bbb", Serializer.STRING);
         if(e instanceof StoreHeap || e instanceof StoreAppend)
             return; //TODO implement it at those two
