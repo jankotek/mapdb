@@ -127,7 +127,8 @@ public final class Bind {
      * {@link DB#hashMapCreate(String)} and
      * {@link DB#treeMapCreate(String)}
      *
-     *
+     * @param <K> type of key in map
+     * @param <V> type of value in map
      * @param map primary map whose size needs to be tracked
      * @param sizeCounter number updated when Map Entry is added or removed.
      */

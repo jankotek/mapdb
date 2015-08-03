@@ -149,7 +149,7 @@ public class DBTest {
 
 
     @Test public void basic_reopen(){
-        File f = UtilsTest.tempDbFile();
+        File f = TT.tempDbFile();
         DB db = DBMaker.fileDB(f).make();
         Map map = db.treeMap("map");
         map.put("aa", "bb");
@@ -165,7 +165,7 @@ public class DBTest {
     }
 
     @Test public void basic_reopen_notx(){
-        File f = UtilsTest.tempDbFile();
+        File f = TT.tempDbFile();
         DB db = DBMaker.fileDB(f).transactionDisable().make();
         Map map = db.treeMap("map");
         map.put("aa", "bb");

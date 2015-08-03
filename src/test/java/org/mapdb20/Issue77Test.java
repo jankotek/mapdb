@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 
 public class Issue77Test {
     private  Random random = new Random(1);
-    private  File dir = new File(UtilsTest.tempDbFile()+"aaa");
+    private  File dir = new File(TT.tempDbFile()+"aaa");
 
     @Test
     public void run(){

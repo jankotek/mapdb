@@ -126,6 +126,9 @@ public final class DBMaker{
 
         String fullTx = "fullTx";
 
+        String allocateStartSize = "allocateStartSize";
+        String allocateIncrement = "allocateIncrement";
+        String allocateRecidReuse = "allocateRecidReuse";
     }
 
 
@@ -147,7 +150,8 @@ public final class DBMaker{
 
     /**
      * Creates new in-memory database. Changes are lost after JVM exits.
-     * This will use HEAP memory so Garbage Collector is affected.
+     * This option serializes data into {@code byte[]},
+     * so they are not affected by Garbage Collector.
      */
     public static Maker memoryDB(){
         return new Maker()._newMemoryDB();
@@ -162,8 +166,9 @@ public final class DBMaker{
      * <p>
      * Creates new in-memory database. Changes are lost after JVM exits.
      * </p><p>
-     *
-     * This will use DirectByteBuffer outside of HEAP, so Garbage Collector is not affected
+     * This will use {@code DirectByteBuffer} outside of HEAP, so Garbage Collector is not affected
+     * You should increase ammount of direct memory with
+     * {@code -XX:MaxDirectMemorySize=10G} JVM param
      * </p>
      */
     public static Maker memoryDirectDB(){
@@ -1169,6 +1174,44 @@ public final class DBMaker{
         }
 
 
+        /**
+         * Tells allocator to set initial store size, when new store is created.
+         * Value is rounder up to nearest multiple of 1MB or allocation increment.
+         *
+         * @return this builder
+         */
+        public Maker allocateStartSize(long size){
+            props.setProperty(Keys.allocateStartSize,""+size);
+            return this;
+        }
+
+        /**
+         * Tells allocator to grow store with this size increment. Minimal value is 1MB.
+         * Incremental size is rounded up to nearest power of two.
+         *
+         * @return this builder
+         */
+        public Maker allocateIncrement(long sizeIncrement){
+            props.setProperty(Keys.allocateIncrement,""+sizeIncrement);
+            return this;
+        }
+
+        /**
+         * Tells allocator to reuse recids immediately after record delete.
+         * Usually recids are released after store compaction
+         * It decreases store fragmentation.
+         * But could cause race conditions and class cast exception in case of wrong threading
+         *
+         * @deprecated this setting might be removed before 2.0 stable release, it is very likely it will become enabled by default
+         * @return this builder
+         */
+        public Maker allocateRecidReuseEnable(){
+            props.setProperty(Keys.allocateRecidReuse,TRUE);
+            return this;
+        }
+
+
+
 
         /** constructs DB using current settings */
         public DB make(){
@@ -1252,6 +1295,10 @@ public final class DBMaker{
 
             final int lockScale = DataIO.nextPowTwo(propsGetInt(Keys.lockScale,CC.DEFAULT_LOCK_SCALE));
 
+            final long allocateStartSize = propsGetLong(Keys.allocateStartSize,0L);
+            final long allocateIncrement = propsGetLong(Keys.allocateIncrement,0L);
+            final boolean allocateRecidReuse = propsGetBool(Keys.allocateRecidReuse);
+
             boolean cacheLockDisable = lockingStrategy!=0;
             byte[] encKey = propsGetXteaEncKey();
             final boolean snapshotEnabled =  propsGetBool(Keys.snapshots);
@@ -1276,7 +1323,9 @@ public final class DBMaker{
                         fileLockDisable,
                         heartbeatFileLock,
                         propsGetBool(Keys.transactionDisable),
-                        storeExecutor
+                        storeExecutor,
+                        allocateStartSize,
+                        allocateIncrement
                 );
             }else{
                 Volume.VolumeFactory volFac = extendStoreVolumeFactory(false);
@@ -1298,10 +1347,10 @@ public final class DBMaker{
                             snapshotEnabled,
                             fileLockDisable,
                             heartbeatFileLock,
-                            propsGetInt(Keys.freeSpaceReclaimQ, CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
-                            propsGetBool(Keys.commitFileSyncDisable),
-                            0,
                             storeExecutor,
+                            allocateStartSize,
+                            allocateIncrement,
+                            allocateRecidReuse,
                             CC.DEFAULT_STORE_EXECUTOR_SCHED_RATE,
                             propsGetInt(Keys.asyncWriteQueueSize,CC.DEFAULT_ASYNC_WRITE_QUEUE_SIZE)
                     );
@@ -1319,10 +1368,10 @@ public final class DBMaker{
                             snapshotEnabled,
                             fileLockDisable,
                             heartbeatFileLock,
-                            propsGetInt(Keys.freeSpaceReclaimQ, CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
-                            propsGetBool(Keys.commitFileSyncDisable),
-                            0,
                             storeExecutor,
+                            allocateStartSize,
+                            allocateIncrement,
+                            allocateRecidReuse,
                             CC.DEFAULT_STORE_EXECUTOR_SCHED_RATE,
                             propsGetInt(Keys.asyncWriteQueueSize,CC.DEFAULT_ASYNC_WRITE_QUEUE_SIZE)
                     );
@@ -1340,10 +1389,10 @@ public final class DBMaker{
                             snapshotEnabled,
                             fileLockDisable,
                             heartbeatFileLock,
-                            propsGetInt(Keys.freeSpaceReclaimQ, CC.DEFAULT_FREE_SPACE_RECLAIM_Q),
-                            propsGetBool(Keys.commitFileSyncDisable),
-                            0,
-                            storeExecutor);
+                            storeExecutor,
+                            allocateStartSize,
+                            allocateIncrement,
+                            allocateRecidReuse);
                 }
             }
 

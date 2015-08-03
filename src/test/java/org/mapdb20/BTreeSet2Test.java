@@ -665,7 +665,7 @@ public class BTreeSet2Test extends JSR166TestCase {
      * Subsets of subsets subdivide correctly
      */
     public void testRecursiveSubSets() throws Exception {
-        int setSize = UtilsTest.scale()*1000;
+        int setSize = TT.scale()*1000;
         if(setSize==0)
             return;
         Class cl = NavigableSet.class;

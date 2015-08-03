@@ -24,7 +24,9 @@ public class CacheOffHeapAdvanced {
         //first create store
         DB db = DBMaker
                 .memoryDirectDB()
+            // make it faster
                 .transactionDisable()
+                .allocateRecidReuseEnable()
             //some additional options for DB
                // .asyncWriteEnable()
                // .cacheSize(100000)

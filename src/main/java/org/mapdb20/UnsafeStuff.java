@@ -30,7 +30,7 @@ class UnsafeStuff {
         public static final VolumeFactory FACTORY = new VolumeFactory() {
             @Override
             public Volume makeVolume(String file, boolean readOnly, boolean fileLockDisable, int sliceShift, long initSize, boolean fixedSize) {
-                return new UnsafeVolume(0,sliceShift);
+                return new UnsafeVolume(0,sliceShift, initSize);
             }
         };
 
@@ -103,27 +103,31 @@ class UnsafeStuff {
 
 
         public UnsafeVolume() {
-            this(0, CC.VOLUME_PAGE_SHIFT);
+            this(0, CC.VOLUME_PAGE_SHIFT,0L);
         }
 
-        public UnsafeVolume(long sizeLimit, int sliceShift) {
+        public UnsafeVolume(long sizeLimit, int sliceShift, long initSize) {
             this.sizeLimit = sizeLimit;
             this.hasLimit = sizeLimit>0;
             this.sliceShift = sliceShift;
             this.sliceSize = 1<< sliceShift;
             this.sliceSizeModMask = sliceSize -1;
-
+            if(initSize!=0)
+                ensureAvailable(initSize);
         }
 
 
         @Override
         public void ensureAvailable(long offset) {
+            offset=Fun.roundUp(offset,1L<<sliceShift);
+
             //*LOG*/ System.err.printf("tryAvailabl: offset:%d\n",offset);
             //*LOG*/ System.err.flush();
             if(hasLimit && offset>sizeLimit) {
                 //return false;
                 throw new IllegalAccessError("too big"); //TODO size limit here
             }
+
 
             int slicePos = (int) (offset >>> sliceShift);
 
@@ -135,14 +139,14 @@ class UnsafeStuff {
             growLock.lock();
             try{
                 //check second time
-                if(slicePos< addresses.length)
+                if(slicePos<= addresses.length)
                     return; //already enough space
 
                 int oldSize = addresses.length;
                 long[] addresses2 = addresses;
                 sun.nio.ch.DirectBuffer[] buffers2 = buffers;
 
-                int newSize = Math.max(slicePos + 1, addresses2.length * 2);
+                int newSize = slicePos;
                 addresses2 = Arrays.copyOf(addresses2, newSize);
                 buffers2 = Arrays.copyOf(buffers2, newSize);
 
@@ -361,11 +365,6 @@ class UnsafeStuff {
         @Override
         public int sliceSize() {
             return sliceSize;
-        }
-
-        @Override
-        public boolean isEmpty() {
-            return addresses.length==0;
         }
 
 

@@ -3,20 +3,17 @@ package org.mapdb20;
 
 import org.junit.Test;
 
-import java.io.File;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.locks.LockSupport;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 @SuppressWarnings({"rawtypes","unchecked"})
 public class
         StoreCachedTest<E extends StoreCached> extends StoreDirectTest<E>{
 
     @Override boolean canRollback(){return false;}
-
-    File f = UtilsTest.tempDbFile();
 
 
     @Override protected E openEngine() {
@@ -47,7 +44,7 @@ public class
 
     @Test(timeout = 100000)
     public void flush_write_cache(){
-        if(UtilsTest.scale()==0)
+        if(TT.scale()==0)
             return;
         for(ScheduledExecutorService E:
                 new ScheduledExecutorService[]{
@@ -68,10 +65,10 @@ public class
                     false,
                     false,
                     null,
-                    0,
-                    false,
-                    0,
                     E,
+                    0L,
+                    0L,
+                    false,
                     1024,
                     M
             );

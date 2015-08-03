@@ -108,9 +108,9 @@ public class StoreWAL extends StoreCached {
                 null,
                 CC.DEFAULT_LOCK_SCALE,
                 0,
-                false, false, null, false,false, false, null, 0,
-                false, 0,
-                null, 0L,
+                false, false, null, false,false, false, null,
+                null, 0L, 0L, false,
+                0L,
                 0);
     }
 
@@ -127,10 +127,10 @@ public class StoreWAL extends StoreCached {
             boolean snapshotEnable,
             boolean fileLockDisable,
             HeartbeatFileLock fileLockHeartbeat,
-            int freeSpaceReclaimQ,
-            boolean commitFileSyncDisable,
-            int sizeIncrement,
             ScheduledExecutorService executor,
+            long startSize,
+            long sizeIncrement,
+            boolean recidReuse,
             long executorScheduledRate,
             int writeQueueSize
         ) {
@@ -138,8 +138,10 @@ public class StoreWAL extends StoreCached {
                 lockScale,
                 lockingStrategy,
                 checksum, compress, password, readonly, snapshotEnable, fileLockDisable, fileLockHeartbeat,
-                freeSpaceReclaimQ, commitFileSyncDisable, sizeIncrement,
                 executor,
+                startSize,
+                sizeIncrement,
+                recidReuse,
                 executorScheduledRate,
                 writeQueueSize);
         prevLongLongs = new LongLongMap[this.lockScale];
@@ -275,12 +277,9 @@ public class StoreWAL extends StoreCached {
         //backup headVol
         if(headVolBackup!=null && !headVolBackup.isClosed())
             headVolBackup.close();
-        headVolBackup = new Volume.ByteArrayVol(CC.VOLUME_PAGE_SHIFT);
-        headVolBackup.ensureAvailable(HEAD_END);
         byte[] b = new byte[(int) HEAD_END];
-        //TODO use direct copy
         headVol.getData(0, b, 0, b.length);
-        headVolBackup.putData(0,b,0,b.length);
+        headVolBackup = new Volume.SingleByteArrayVol(b);
     }
 
     protected void walStartNextFile() {
@@ -293,7 +292,7 @@ public class StoreWAL extends StoreCached {
         String filewal = getWalFileName(""+fileNum);
         Volume nextVol;
         if (readonly && filewal != null && !new File(filewal).exists()){
-            nextVol = new Volume.ReadOnly(new Volume.ByteArrayVol(8));
+            nextVol = new Volume.ReadOnly(new Volume.ByteArrayVol(8,0L));
         }else {
             nextVol = volumeFactory.makeVolume(filewal, readonly, true);
         }
@@ -473,6 +472,23 @@ public class StoreWAL extends StoreCached {
     }
 
     @Override
+    protected long indexValGetRaw(long recid) {
+        if(CC.ASSERT)
+            assertReadLocked(recid);
+        int segment = lockPos(recid);
+        long offset = recidToOffset(recid);
+        long ret = currLongLongs[segment].get(offset);
+        if(ret!=0) {
+            return ret;
+        }
+        ret = prevLongLongs[segment].get(offset);
+        if(ret!=0)
+            return ret;
+        return super.indexValGetRaw(recid);
+    }
+
+
+    @Override
     protected void indexValPut(long recid, int size, long offset, boolean linked, boolean unused) {
         if(CC.ASSERT)
             assertWriteLocked(lockPos(recid));
@@ -510,7 +526,7 @@ public class StoreWAL extends StoreCached {
     }
 
     @Override
-    protected byte[] loadLongStackPage(long pageOffset) {
+    protected byte[] loadLongStackPage(long pageOffset, boolean willBeModified) {
         if (CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
@@ -536,7 +552,9 @@ public class StoreWAL extends StoreCached {
             Volume vol = volumes.get(fileNum);
             vol.getData(dataOffset, b, 0, arraySize);
             //page is going to be modified, so put it back into dirtyStackPages)
-            dirtyStackPages.put(pageOffset, b);
+            if (willBeModified) {
+                dirtyStackPages.put(pageOffset, b);
+            }
             return b;
         }
 
@@ -544,7 +562,9 @@ public class StoreWAL extends StoreCached {
         int pageSize = (int) (parity4Get(vol.getLong(pageOffset)) >>> 48);
         page = new byte[pageSize];
         vol.getData(pageOffset, page, 0, pageSize);
-        dirtyStackPages.put(pageOffset, page);
+        if (willBeModified){
+            dirtyStackPages.put(pageOffset, page);
+        }
         return page;
     }
 
@@ -1066,8 +1086,8 @@ public class StoreWAL extends StoreCached {
 
         //check if compaction files are present and walid
         final boolean compaction =
-                walC!=null && !walC.isEmpty() &&
-                walCCompact!=null && !walCCompact.isEmpty();
+                walC!=null && walC.length()!=0 &&
+                walCCompact!=null && walCCompact.length()!=0;
 
 
         if(compaction){
@@ -1156,7 +1176,7 @@ public class StoreWAL extends StoreCached {
             }
 
             for(Volume wr:walRec){
-                if(wr.isEmpty())
+                if(wr.length()==0)
                     break;
                 wr.ensureAvailable(16); //TODO this should not be here, Volume should be already mapped if file existsi
                 if(wr.getLong(8)!=StoreWAL.WAL_SEAL)
@@ -1209,10 +1229,7 @@ public class StoreWAL extends StoreCached {
             throw new AssertionError();
 
         file:for(Volume wal:volumes){
-            if(wal.isEmpty()) {
-                break file;
-            }
-            if(wal.isEmpty() || wal.length()<16 || wal.getLong(8)!=WAL_SEAL) {
+            if(wal.length()<16 || wal.getLong(8)!=WAL_SEAL) {
                 break file;
                 //TODO better handling for corrupted logs
             }
@@ -1430,6 +1447,8 @@ public class StoreWAL extends StoreCached {
                     walC.putLong(0,0); //TODO wal header
                     walC.putLong(8,0);
 
+                    //reset free size
+                    freeSize.set(-1);
                 }finally {
                     structuralLock.unlock();
                 }
@@ -1446,19 +1465,18 @@ public class StoreWAL extends StoreCached {
                     volumeFactory,
                     null,lockScale,
                     executor==null?LOCKING_STRATEGY_NOLOCK:LOCKING_STRATEGY_WRITELOCK,
-                    checksum,compress,null,false,false,fileLockDisable,null, 0,false,0,
-                    null);
+                    checksum,compress,null,false,false,fileLockDisable,null, null, 0L, 0L, false);
             target.init();
             walCCompact = target.vol;
 
-            final AtomicLong maxRecid = new AtomicLong(RECID_LAST_RESERVED);
+            final AtomicLong maxRecid = new AtomicLong(
+                    parity1Get(headVol.getLong(MAX_RECID_OFFSET))/indexValSize);
 
-            compactIndexPages(maxRecidOffset, target, maxRecid);
+            compactIndexPages(target, maxRecid);
 
             while($_TEST_HACK_COMPACT_PRE_COMMIT_WAIT){
                 LockSupport.parkNanos(10000);
             }
-
 
             target.vol.putLong(MAX_RECID_OFFSET, parity1Set(maxRecid.get() * indexValSize));
 

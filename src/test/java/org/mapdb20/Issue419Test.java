@@ -12,11 +12,11 @@ import static org.junit.Assert.assertTrue;
 
 public class Issue419Test {
 
-    int max = 100+UtilsTest.scale()*100000;
+    int max = 100+ TT.scale()*100000;
 
     @Test public void isolate(){
 
-        File f = UtilsTest.tempDbFile();
+        File f = TT.tempDbFile();
         DB db = DBMaker.fileDB(f)
                 .closeOnJvmShutdown().transactionDisable().make();
 
@@ -44,7 +44,7 @@ public class Issue419Test {
 
     @Test public void isolate_map(){
 
-        File f = UtilsTest.tempDbFile();
+        File f = TT.tempDbFile();
         DB db = DBMaker.fileDB(f)
                 .closeOnJvmShutdown().transactionDisable().make();
 

@@ -27,7 +27,7 @@ public class Issue241
 
     private static DB getDb()
     {
-        final File dbFile = UtilsTest.tempDbFile();
+        final File dbFile = TT.tempDbFile();
         return DBMaker.appendFileDB(dbFile).make();
     }
 

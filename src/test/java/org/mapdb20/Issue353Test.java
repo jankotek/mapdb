@@ -16,11 +16,11 @@ public class Issue353Test {
     private ConcurrentMap <byte[], byte[]> map;
     private DB db;
     private Random random = new Random();
-    private static final int ITERATIONS = 40000*UtilsTest.scale();
+    private static final int ITERATIONS = 40000* TT.scale();
 
     @Before
     public void setupDb() {
-        db = DBMaker.fileDB(UtilsTest.tempDbFile()).closeOnJvmShutdown().mmapFileEnableIfSupported()
+        db = DBMaker.fileDB(TT.tempDbFile()).closeOnJvmShutdown().mmapFileEnableIfSupported()
                 .commitFileSyncDisable().transactionDisable().compressionEnable().freeSpaceReclaimQ(0).make();
         HTreeMapMaker maker = db.hashMapCreate("products")
                 .valueSerializer(Serializer.BYTE_ARRAY)

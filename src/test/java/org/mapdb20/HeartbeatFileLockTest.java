@@ -17,7 +17,7 @@ public class HeartbeatFileLockTest {
 
     @Test
     public void testFutureModificationDate() throws Exception {
-        if(UtilsTest.scale()==0)
+        if(TT.scale()==0)
             return;
 
         File f = File.createTempFile("mapdbTest","madpb");
@@ -31,7 +31,7 @@ public class HeartbeatFileLockTest {
 
     @Test
     public void testSimple() throws IOException {
-        if(UtilsTest.scale()==0)
+        if(TT.scale()==0)
             return;
         File f = File.createTempFile("mapdbTest","madpb");
         f.delete();
@@ -58,7 +58,7 @@ public class HeartbeatFileLockTest {
 
     @Test
     public void test_parallel() throws InterruptedException, IOException, ExecutionException {
-        int count = 16*UtilsTest.scale();
+        int count = 16* TT.scale();
         final long end = System.currentTimeMillis()+100000*count;
         if(count==0)
             return;
@@ -67,27 +67,27 @@ public class HeartbeatFileLockTest {
         f.delete();
 
         final AtomicInteger counter = new AtomicInteger();
-        List<Future> futures = UtilsTest.fork(count, new Callable() {
-                @Override
-                public Object call() throws Exception {
-                    while (System.currentTimeMillis() < end) {
-                        DataIO.HeartbeatFileLock lock = new DataIO.HeartbeatFileLock(f, CC.FILE_LOCK_HEARTBEAT);
-                        try {
-                            lock.lock();
-                        }catch(DBException.FileLocked e){
-                            continue;
-                        }
-                        assertEquals(1,counter.incrementAndGet());
-                        lock.unlock();
-                        assertEquals(0, counter.decrementAndGet());
+        List<Future> futures = TT.fork(count, new Callable() {
+            @Override
+            public Object call() throws Exception {
+                while (System.currentTimeMillis() < end) {
+                    DataIO.HeartbeatFileLock lock = new DataIO.HeartbeatFileLock(f, CC.FILE_LOCK_HEARTBEAT);
+                    try {
+                        lock.lock();
+                    } catch (DBException.FileLocked e) {
+                        continue;
                     }
-                    return null;
+                    assertEquals(1, counter.incrementAndGet());
+                    lock.unlock();
+                    assertEquals(0, counter.decrementAndGet());
                 }
-            });
+                return null;
+            }
+        });
 
 
         //await termination
-        UtilsTest.forkAwait(futures);
+        TT.forkAwait(futures);
     }
 
 

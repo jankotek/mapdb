@@ -11,7 +11,7 @@ import static org.junit.Assert.assertEquals;
 public class BTreeMapParTest {
 
 
-    int scale = UtilsTest.scale();
+    int scale = TT.scale();
     final int threadNum = 6*scale;
     final int max = (int) 1e6*scale;
 

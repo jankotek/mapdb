@@ -143,7 +143,7 @@ public class HTreeSetTest{
 
 
     @Test public void issue116_isEmpty(){
-        Set s = DBMaker.fileDB(UtilsTest.tempDbFile())
+        Set s = DBMaker.fileDB(TT.tempDbFile())
                 .transactionDisable()
                 .make()
                 .hashSet("name");

@@ -1,6 +1,7 @@
 package org.mapdb20;
 
 import java.io.*;
+import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.util.Arrays;
@@ -19,7 +20,8 @@ public final class DataIO {
      *
      * @param is The input stream.
      * @return The long value.
-     * @throws java.io.IOException
+     *
+     * @throws java.io.IOException in case of IO error
      */
     static public int unpackInt(DataInput is) throws IOException {
         int ret = 0;
@@ -37,7 +39,8 @@ public final class DataIO {
      *
      * @param in The input stream.
      * @return The long value.
-     * @throws java.io.IOException
+     *
+     * @throws java.io.IOException in case of IO error
      */
     static public long unpackLong(DataInput in) throws IOException {
         long ret = 0;
@@ -57,8 +60,8 @@ public final class DataIO {
      *
      * @param out DataOutput to put value into
      * @param value to be serialized, must be non-negative
-     * @throws java.io.IOException
      *
+     * @throws java.io.IOException in case of IO error
      */
     static public void packLong(DataOutput out, long value) throws IOException {
         //$DELAY$
@@ -96,7 +99,7 @@ public final class DataIO {
      *
      * @param in The input stream.
      * @return The long value.
-     * @throws java.io.IOException
+     * @throws java.io.IOException in case of IO error
      */
     static public long unpackRecid(DataInput in) throws IOException {
         long val = unpackLong(in);
@@ -111,8 +114,7 @@ public final class DataIO {
      *
      * @param out DataOutput to put value into
      * @param value to be serialized, must be non-negative
-     * @throws java.io.IOException
-     *
+     * @throws java.io.IOException in case of IO error
      */
     static public void packRecid(DataOutput out, long value) throws IOException {
         value = DataIO.parity3Set(value<<3);
@@ -126,7 +128,7 @@ public final class DataIO {
      *
      * @param out DataOutput to put value into
      * @param value to be serialized, must be non-negative
-     * @throws java.io.IOException
+     * @throws java.io.IOException in case of IO error
      */
 
     static public void packInt(DataOutput out, int value) throws IOException {
@@ -158,7 +160,7 @@ public final class DataIO {
      *
      * @param out DataOutput to put value into
      * @param value to be serialized, must be non-negative
-     * @throws java.io.IOException
+     * @throws java.io.IOException in case of IO error
      */
 
     static public void packIntBigger(DataOutput out, int value) throws IOException {
@@ -315,6 +317,10 @@ public final class DataIO {
 
 
 
+    public static long nextPowTwo(final long a)
+    {
+        return 1L << (64 - Long.numberOfLeadingZeros(a - 1L));
+    }
 
     public static int nextPowTwo(final int a)
     {
@@ -331,10 +337,10 @@ public final class DataIO {
         int getPos();
         void setPos(int pos);
 
-        /** return underlying {@code byte[]} or null if it does not exist*/
+        /** @return underlying {@code byte[]} or null if it does not exist*/
         byte[] internalByteArray();
 
-        /** return underlying {@code ByteBuffer} or null if it does not exist*/
+        /** @return underlying {@code ByteBuffer} or null if it does not exist*/
         ByteBuffer internalByteBuffer();
 
 
@@ -645,6 +651,7 @@ public final class DataIO {
         }
 
         /**
+         * @param b byte buffer
          * @deprecated  use {@link org.mapdb20.DataIO.DataInputByteArray}
          */
         public DataInputByteBuffer(byte[] b) {
@@ -892,6 +899,7 @@ public final class DataIO {
 
         /**
          * make sure there will be enough space in buffer to write N bytes
+         * @param n number of bytes which can be safely written after this method returns
          */
         public void ensureAvail(int n) {
             //$DELAY$
@@ -1167,6 +1175,9 @@ public final class DataIO {
         private static final int SLEEP_GAP = 25;
         private static final int TIME_GRANULARITY = 2000;
 
+        /** quit hearbeat after this was GCed */
+        private  WeakReference quitAfterGCed = null;
+
         final private long id = new SecureRandom().nextLong();
         volatile private File file;
 
@@ -1201,6 +1212,11 @@ public final class DataIO {
             this.sleep = sleep;
         }
 
+        public void setQuitAfterGCed(Object object){
+            this.quitAfterGCed = object==null?
+                    null:
+                    new WeakReference(object);
+        }
         private void run(){
             LOG.fine("Lock Watchdog start");
             try {
@@ -1208,6 +1224,9 @@ public final class DataIO {
                     if( LOG.isLoggable(Level.FINE))
                         LOG.fine("watchdog check");
                     try {
+                        WeakReference quitAfterGCed = this.quitAfterGCed;
+                        if(quitAfterGCed!=null && quitAfterGCed.get()==null)
+                            return;
                         if (!file.exists() ||
                                 file.lastModified() != lastWrite) {
                             save();

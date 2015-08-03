@@ -84,7 +84,11 @@ public class DBException extends RuntimeException{
 
     public static class VolumeEOF extends VolumeIOError {
         public VolumeEOF() {
-            super("Beyond End Of File accessed");
+            this("Beyond End Of File accessed");
+        }
+
+        public VolumeEOF(String s) {
+            super(s);
         }
     }
 

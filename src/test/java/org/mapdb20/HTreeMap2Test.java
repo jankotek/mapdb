@@ -478,7 +478,7 @@ public class HTreeMap2Test {
 
     @Test (timeout = 20000)
     public void cache_load_time_expire(){
-        if(UtilsTest.scale()==0)
+        if(TT.scale()==0)
             return;
 
         DB db =
@@ -500,7 +500,7 @@ public class HTreeMap2Test {
 
     @Test(timeout = 20000)
     public void cache_load_size_expire(){
-        if(UtilsTest.scale()==0)
+        if(TT.scale()==0)
             return;
 
         DB db = DBMaker.memoryDB()
@@ -622,7 +622,7 @@ public class HTreeMap2Test {
     */
     @Test (timeout=100000)
     public void expireAfterWrite() throws InterruptedException {
-        if(UtilsTest.scale()==0)
+        if(TT.scale()==0)
             return;
         //NOTE this test has race condition and may fail under heavy load.
         //TODO increase timeout and move into integration tests.
@@ -704,7 +704,7 @@ public class HTreeMap2Test {
     }
 
     @Test public void pump(){
-        int max = 100+UtilsTest.scale()*1000000;
+        int max = 100+ TT.scale()*1000000;
 
         DB db = DBMaker.memoryDB().transactionDisable().make();
         Set<Long> s = new HashSet();
@@ -736,7 +736,7 @@ public class HTreeMap2Test {
     @Test public void pump_duplicates(){
         DB db = DBMaker.memoryDB().transactionDisable().make();
         List<Long> s = new ArrayList();
-        int max = (int) (UtilsTest.scale()*1e6);
+        int max = (int) (TT.scale()*1e6);
         for(long i=0;i<max;i++){
             s.add(i);
         }
@@ -798,7 +798,7 @@ public class HTreeMap2Test {
         DB db = DBMaker.memoryDB().transactionDisable().make();
         Set<Long> s = new HashSet();
 
-        int max = 100+(int) (1e6*UtilsTest.scale());
+        int max = 100+(int) (1e6* TT.scale());
         for(long i=0;i<max;i++){
             s.add(i);
         }
@@ -816,7 +816,7 @@ public class HTreeMap2Test {
     @Test public void pumpset_duplicates() {
         DB db = DBMaker.memoryDB().transactionDisable().make();
         List<Long> s = new ArrayList();
-        int max = 100+(int) (1e6*UtilsTest.scale());
+        int max = 100+(int) (1e6* TT.scale());
         for (long i = 0; i < max; i++) {
             s.add(i);
         }
@@ -837,7 +837,7 @@ public class HTreeMap2Test {
 
     @Test(expected = IllegalArgumentException.class) //TODO better exception here
     public void pumpset_duplicates_fail(){
-        int max = 100+UtilsTest.scale()*1000000;
+        int max = 100+ TT.scale()*1000000;
         DB db = DBMaker.memoryDB().transactionDisable().make();
         List<Long> s = new ArrayList();
 
@@ -926,7 +926,7 @@ public class HTreeMap2Test {
     }
 
     @Test public void dir_put_long(){
-        if(UtilsTest.scale()==0)
+        if(TT.scale()==0)
             return;
 
         for(int a=0;a<100;a++) {
@@ -957,15 +957,15 @@ public class HTreeMap2Test {
                 assertTrue(Arrays.equals(reference, dir2));
 
                 if (dir instanceof int[])
-                    assertTrue(Arrays.equals((int[]) dir, (int[]) UtilsTest.clone(dir, HTreeMap.DIR_SERIALIZER)));
+                    assertTrue(Arrays.equals((int[]) dir, (int[]) TT.clone(dir, HTreeMap.DIR_SERIALIZER)));
                 else
-                    assertTrue(Arrays.equals((long[]) dir, (long[]) UtilsTest.clone(dir, HTreeMap.DIR_SERIALIZER)));
+                    assertTrue(Arrays.equals((long[]) dir, (long[]) TT.clone(dir, HTreeMap.DIR_SERIALIZER)));
             }
         }
     }
 
     @Test public void dir_put_int(){
-        if(UtilsTest.scale()==0)
+        if(TT.scale()==0)
             return;
         for(int a=0;a<100;a++) {
             long[] reference = new long[127];
@@ -995,9 +995,9 @@ public class HTreeMap2Test {
                 assertTrue(Arrays.equals(reference, dir2));
 
                 if (dir instanceof int[])
-                    assertTrue(Arrays.equals((int[]) dir, (int[]) UtilsTest.clone(dir, HTreeMap.DIR_SERIALIZER)));
+                    assertTrue(Arrays.equals((int[]) dir, (int[]) TT.clone(dir, HTreeMap.DIR_SERIALIZER)));
                 else
-                    assertTrue(Arrays.equals((long[]) dir, (long[]) UtilsTest.clone(dir, HTreeMap.DIR_SERIALIZER)));
+                    assertTrue(Arrays.equals((long[]) dir, (long[]) TT.clone(dir, HTreeMap.DIR_SERIALIZER)));
             }
         }
     }
@@ -1005,7 +1005,7 @@ public class HTreeMap2Test {
 
     @Test (timeout=20000L)
     public void expiration_notification() throws InterruptedException {
-        if(UtilsTest.scale()==0)
+        if(TT.scale()==0)
             return;
         DB db = DBMaker.memoryDB()
                 .transactionDisable()
@@ -1045,7 +1045,7 @@ public class HTreeMap2Test {
 
     @Test (timeout=20000L)
     public void expiration_overflow() throws InterruptedException {
-        if(UtilsTest.scale()==0)
+        if(TT.scale()==0)
             return;
         DB db = DBMaker.memoryDB()
                 .transactionDisable()
@@ -1118,7 +1118,7 @@ public class HTreeMap2Test {
     }
 
     @Test public void issue542_compaction_error_while_htreemap_used() throws IOException, ExecutionException, InterruptedException {
-        long time = UtilsTest.scale() * 1000*60*5; //stress test 5 minutes
+        long time = TT.scale() * 1000*60*5; //stress test 5 minutes
         if(time==0)
             return;
         final long endTime = System.currentTimeMillis()+time;
@@ -1128,7 +1128,7 @@ public class HTreeMap2Test {
         final DB db = DBMaker.fileDB(f).transactionDisable().deleteFilesAfterClose().make();
 
         //start background thread which will update HTreeMap
-        Future<String> c = UtilsTest.fork(new Callable<String>(){
+        Future<String> c = TT.fork(new Callable<String>() {
             @Override
             public String call() throws Exception {
                 HTreeMap m = db.hashMapCreate("map")
@@ -1137,11 +1137,11 @@ public class HTreeMap2Test {
                         .make();
 
                 Random r = new Random();
-                while(System.currentTimeMillis()<endTime){
+                while (System.currentTimeMillis() < endTime) {
                     Integer key = r.nextInt(10000);
                     byte[] val = new byte[r.nextInt(10000)];
                     r.nextBytes(val);
-                    m.put(key,val);
+                    m.put(key, val);
                 }
 
                 return "";

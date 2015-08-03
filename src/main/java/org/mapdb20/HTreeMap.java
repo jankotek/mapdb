@@ -94,6 +94,9 @@ public class HTreeMap<K,V>
     protected final long[] expireHeads;
     protected final long[] expireTails;
 
+    protected final long[] expireStoreSizes;
+    protected final long[] expireStoreSizesCompact;
+
     protected final Fun.Function1<V,K> valueCreator;
     /**
      * Indicates if this collection collection was not made by DB by user.
@@ -381,6 +384,39 @@ public class HTreeMap<K,V>
         expireSingleThreadFlag = (expireFlag && executor==null);
 
         this.executor = executor;
+
+        if(expireStoreSize>0){
+            expireStoreSizesCompact = new long[engines.length];
+            expireStoreSizes = new long[engines.length];
+
+            for(int i=0;i<engines.length;i++) {
+                Engine e = engines[i];
+                boolean isFirstEngine = true;
+                for (int j = 0; j < i; j++) {
+                    if (engines[j] == e) {
+                        isFirstEngine = false;
+                        break;
+                    }
+                }
+
+                long thisEngineCount = 0;
+                for (Engine e2 : engines) {
+                    if (e2 == e)
+                        thisEngineCount++;
+                }
+
+                expireStoreSizes[i] = (long) (0.85 * expireStoreSize * thisEngineCount / engines.length);
+
+                if (isFirstEngine){
+                    expireStoreSizesCompact[i] = expireStoreSize * thisEngineCount / engines.length;
+                }else{
+                    expireStoreSizesCompact[i] = 0;
+                }
+            }
+        }else{
+            expireStoreSizes = null;
+            expireStoreSizesCompact = null;
+        }
 
         if(expireFlag && executor!=null){
             if(executor!=null && engines[0].canRollback()) {
@@ -2030,29 +2066,32 @@ public class HTreeMap<K,V>
             }
         }
 
-
-        if(expireStoreSize!=0 && removePerSegment==0){
-            //TODO calculate for all segments
-            //TODO thread unsafe access if underlying engine is thread-unsafe
-            Store store = Store.forEngine(engines[0]);
-            long storeSize = store.getCurrSize()-store.getFreeSize();
-            if(expireStoreSize<storeSize){
-                removePerSegment=640;
-                if(LOG.isLoggable(Level.FINE)){
-                    LOG.log(Level.FINE, "HTreeMap store store size ({0,number,integer}) over limit," +
-                                    "will remove {1,number,integer} entries per segment",
-                            new Object[]{storeSize, removePerSegment});
-                }
-            }
-        }
         return removePerSegment;
     }
 
     protected long expirePurgeSegment(int seg, long removePerSegment) {
+        //TODO make this auditable with logging
         if(CC.ASSERT && !segmentLocks[seg].isWriteLockedByCurrentThread())
             throw new AssertionError("seg write lock");
 //            expireCheckSegment(seg);
         Engine engine = engines[seg];
+
+        //remove some extra entries if free space in this segment is running down
+        if(expireStoreSize!=0){
+            Store store = Store.forEngine(engine);
+            long storeSize = store.getCurrSize();
+            if(storeSize>0){
+                long free = store.getFreeSize();
+                long compactStoreSize = expireStoreSizesCompact[seg];
+                if(expireStoreSizesCompact[seg]>0 && compactStoreSize<storeSize && compactStoreSize*0.2<free){
+                    //trigger compaction
+                    engine.compact();
+                }else if(expireStoreSizes[seg] < storeSize - free){
+                    removePerSegment+=600;
+                }
+            }
+        }
+
         long recid = engine.get(expireTails[seg],Serializer.LONG);
         long counter=0;
         ExpireLinkNode last =null,n=null;

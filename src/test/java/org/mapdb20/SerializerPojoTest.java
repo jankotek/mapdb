@@ -36,13 +36,13 @@ public class SerializerPojoTest{
 
     @Test public void testEnum() throws Exception{
         Order o = Order.ASCENDING;
-        o = (Order) UtilsTest.clone(o, p);
+        o = (Order) TT.clone(o, p);
         assertEquals(o,Order.ASCENDING );
         assertEquals(o.ordinal(),Order.ASCENDING .ordinal());
         assertEquals(o.name(),Order.ASCENDING .name());
 
         o = Order.DESCENDING;
-        o = (Order) UtilsTest.clone(o, p);
+        o = (Order) TT.clone(o, p);
         assertEquals(o,Order.DESCENDING );
         assertEquals(o.ordinal(),Order.DESCENDING .ordinal());
         assertEquals(o.name(),Order.DESCENDING .name());
@@ -198,7 +198,7 @@ public class SerializerPojoTest{
 
     @Test public void testSerializable() throws Exception {
 
-        assertEquals(b, UtilsTest.clone(b, p));
+        assertEquals(b, TT.clone(b, p));
     }
 
 
@@ -206,7 +206,7 @@ public class SerializerPojoTest{
         AbstractMap.SimpleEntry b = new AbstractMap.SimpleEntry("abcd", null);
         b.setValue(b.getKey());
 
-        AbstractMap.SimpleEntry bx = (AbstractMap.SimpleEntry) UtilsTest.clone(b, p);
+        AbstractMap.SimpleEntry bx = (AbstractMap.SimpleEntry) TT.clone(b, p);
         assertEquals(bx, b);
         assert (bx.getKey() == bx.getValue());
 
@@ -216,7 +216,7 @@ public class SerializerPojoTest{
         AbstractMap.SimpleEntry b = new AbstractMap.SimpleEntry("abcd", null);
         b.setValue(b);
 
-        AbstractMap.SimpleEntry bx = (AbstractMap.SimpleEntry) UtilsTest.clone(b, p);
+        AbstractMap.SimpleEntry bx = (AbstractMap.SimpleEntry) TT.clone(b, p);
         assertTrue(bx == bx.getValue());
         assertEquals(bx.getKey(), "abcd");
 
@@ -228,7 +228,7 @@ public class SerializerPojoTest{
         l.add("123");
         l.add(l);
 
-        ArrayList l2 = (ArrayList) UtilsTest.clone(l, p);
+        ArrayList l2 = (ArrayList) TT.clone(l, p);
 
         assertTrue(l2.size() == 2);
         assertEquals(l2.get(0), "123");
@@ -237,7 +237,7 @@ public class SerializerPojoTest{
 
     @Test public void testPersistedSimple() throws Exception {
 
-        File f = UtilsTest.tempDbFile();
+        File f = TT.tempDbFile();
         DB r1 = DBMaker.fileDB(f).make();
         long recid = r1.engine.put("AA",r1.getDefaultSerializer());
         r1.commit();
@@ -254,7 +254,7 @@ public class SerializerPojoTest{
 
     @Test public void testPersisted() throws Exception {
         Bean1 b1 = new Bean1("abc", "dcd");
-        File f = UtilsTest.tempDbFile();
+        File f = TT.tempDbFile();
         DB r1 = DBMaker.fileDB(f).make();
         long recid = r1.engine.put(b1, r1.getDefaultSerializer());
         r1.commit();
@@ -347,7 +347,7 @@ public class SerializerPojoTest{
         t.aa = 12;
         t.ss = "bb";
         t.bb = 13;
-        t = (test_transient) UtilsTest.clone(t, p);
+        t = (test_transient) TT.clone(t, p);
         assertEquals(0,t.aa);
         assertEquals(null,t.ss);
         assertEquals(13,t.bb);
@@ -457,7 +457,7 @@ public class SerializerPojoTest{
     public void testWriteReplace() throws ObjectStreamException {
         Map m = new MM();
         m.put("11","111");
-        assertEquals(new LinkedHashMap(m),UtilsTest.clone(m,p));
+        assertEquals(new LinkedHashMap(m), TT.clone(m, p));
     }
 
 
@@ -481,7 +481,7 @@ public class SerializerPojoTest{
     public void testWriteReplaceWrap() throws ObjectStreamException {
         Map m = new MM();
         m.put("11","111");
-        assertEquals(new LinkedHashMap(m),UtilsTest.clone(m,p));
+        assertEquals(new LinkedHashMap(m), TT.clone(m, p));
     }
 
 

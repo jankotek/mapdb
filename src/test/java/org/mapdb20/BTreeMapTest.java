@@ -52,7 +52,7 @@ public class BTreeMapTest{
                 new Object[]{1,2,3},
                 true,true,false,
                 new Object[]{1,2,3}, 0);
-        BTreeMap.LeafNode n2 = (BTreeMap.LeafNode) UtilsTest.clone(n, m.nodeSerializer);
+        BTreeMap.LeafNode n2 = (BTreeMap.LeafNode) TT.clone(n, m.nodeSerializer);
         assertTrue(Arrays.equals(nodeKeysToArray(n), nodeKeysToArray(n2)));
         assertEquals(n.next, n2.next);
     }
@@ -69,7 +69,7 @@ public class BTreeMapTest{
                 new Object[]{1,2,3},
                 false,true,false,
                 mkchild(4,5,6,0));
-        BTreeMap.DirNode n2 = (BTreeMap.DirNode) UtilsTest.clone(n, m.nodeSerializer);
+        BTreeMap.DirNode n2 = (BTreeMap.DirNode) TT.clone(n, m.nodeSerializer);
 
         assertTrue(Arrays.equals(nodeKeysToArray(n), nodeKeysToArray(n2)));
         assertTrue(Arrays.equals((int[])n.child, (int[])n2.child));
@@ -287,7 +287,7 @@ public class BTreeMapTest{
     }
 
     @Test public void issue_38(){
-        int max = 50000*UtilsTest.scale();
+        int max = 50000* TT.scale();
         Map<Integer, String[]> map = DBMaker
                 .memoryDB().transactionDisable()
                 .make().treeMap("test");
@@ -432,7 +432,7 @@ public class BTreeMapTest{
         final BTreeMap m = db.treeMap("name");
 
         //fill
-        final int c = 1000000*UtilsTest.scale();
+        final int c = 1000000* TT.scale();
         for(int i=0;i<=c;i++){
             m.put(i,i);
         }
@@ -456,7 +456,7 @@ public class BTreeMapTest{
         final BTreeMap m = db.treeMap("name");
 
         //fill
-        final int c = 1000000*UtilsTest.scale();
+        final int c = 1000000* TT.scale();
         for(int i=0;i<=c;i++){
             m.put(i,i);
         }
@@ -610,7 +610,7 @@ public class BTreeMapTest{
                 .valueSerializer(Serializer.INTEGER)
                 .make();
 
-        int max =100000*UtilsTest.scale();
+        int max =100000* TT.scale();
 
         for(int i=0;i<max*10;i++){
             map.put(r.nextInt(max),r.nextInt());
@@ -626,7 +626,7 @@ public class BTreeMapTest{
         for(int i :new int[]{10,200,6000}){
 
             int max = i*100;
-            File f = UtilsTest.tempDbFile();
+            File f = TT.tempDbFile();
             DB db = DBMaker.fileDB(f)
                     .transactionDisable()
                     .make();

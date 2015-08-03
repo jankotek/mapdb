@@ -11,7 +11,7 @@ public class Issue418Test {
 
     @Test
     public void test(){
-        final File tmp = UtilsTest.tempDbFile();
+        final File tmp = TT.tempDbFile();
 
         long[] expireHeads = null;
         long[] expireTails = null;
@@ -31,7 +31,7 @@ public class Issue418Test {
 
 
 
-            for (int i = 0; i < UtilsTest.scale()*10000; i++)
+            for (int i = 0; i < TT.scale()*10000; i++)
                     map.put("foo" + i, "bar" + i);
 
 
@@ -43,13 +43,13 @@ public class Issue418Test {
 
     @Test
     public void test_set(){
-        final File tmp = UtilsTest.tempDbFile();
+        final File tmp = TT.tempDbFile();
 
         for (int o = 0; o < 2; o++) {
             final DB db = DBMaker.fileDB(tmp).transactionDisable().make();
             final Set<Object> map = db.hashSetCreate("foo").expireMaxSize(100).makeOrGet();
 
-            for (int i = 0; i < UtilsTest.scale()*10000; i++)
+            for (int i = 0; i < TT.scale()*10000; i++)
                 map.add("foo" + i);
 
             db.commit();

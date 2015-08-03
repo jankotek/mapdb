@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="AnalysisUIOptions">
+    <option name="SCOPE_TYPE" value="8" />
+    <option name="CUSTOM_SCOPE_NAME" value="Project Production Files" />
+  </component>
   <component name="ChangeListManager">
     <list default="true" id="106c57a6-c64a-4155-8bd0-92b87d0d6bd5" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pom.xml" afterPath="$PROJECT_DIR$/pom.xml" />
@@ -20,7 +24,7 @@
   </component>
   <component name="ChangesViewManager" flattened_view="true" show_ignored="false" />
   <component name="CreatePatchCommitExecutor">
-    <option name="PATCH_PATH" value="" />
+    <option name="PATCH_PATH" value="$PROJECT_DIR$/.." />
   </component>
   <component name="ErrorTreeViewConfiguration">
     <option name="hideWarnings" value="true" />
@@ -32,104 +36,137 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="VolumeTest.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/VolumeTest.java">
+      <file leaf-file-name="StoreCached.java" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/StoreCached.java">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="114" column="0" selection-start-line="114" selection-start-column="0" selection-end-line="114" selection-end-column="0" />
+              <caret line="457" column="19" selection-start-line="457" selection-start-column="19" selection-end-line="457" selection-end-column="19" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="Assert.class" pinned="false" current-in-tab="false">
-        <entry file="jar://$MAVEN_REPOSITORY$/junit/junit/4.11/junit-4.11.jar!/org/junit/Assert.class">
+      <file leaf-file-name="Issue381Test.java" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/Issue381Test.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="-6.5384617">
-              <caret line="39" column="0" selection-start-line="39" selection-start-column="0" selection-end-line="39" selection-end-column="0" />
+            <state vertical-scroll-proportion="0.0">
+              <caret line="26" column="49" selection-start-line="26" selection-start-column="49" selection-end-line="26" selection-end-column="49" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="Volume.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/Volume.java">
+      <file leaf-file-name="Atomic.java" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/Atomic.java">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="2345" column="0" selection-start-line="2345" selection-start-column="0" selection-end-line="2345" selection-end-column="0" />
+              <caret line="744" column="11" selection-start-line="744" selection-start-column="11" selection-end-line="744" selection-end-column="11" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="Bind.java" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/Bind.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0">
+              <caret line="156" column="49" selection-start-line="156" selection-start-column="49" selection-end-line="156" selection-end-column="49" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="BTreeKeySerializer.java" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/BTreeKeySerializer.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0">
+              <caret line="667" column="17" selection-start-line="667" selection-start-column="17" selection-end-line="667" selection-end-column="17" />
               <folding>
-                <element signature="e#69920#69921#0" expanded="true" />
-                <element signature="e#69956#69957#0" expanded="true" />
+                <element signature="e#28997#28998#0" expanded="true" />
+                <element signature="e#29042#29043#0" expanded="true" />
+                <element signature="e#29097#29098#0" expanded="true" />
+                <element signature="e#29139#29140#0" expanded="true" />
+                <element signature="e#29200#29201#0" expanded="true" />
+                <element signature="e#29245#29246#0" expanded="true" />
+                <element signature="e#30197#30198#0" expanded="true" />
+                <element signature="e#30267#30268#0" expanded="true" />
+                <element signature="e#33401#33402#0" expanded="true" />
+                <element signature="e#33445#33446#0" expanded="true" />
+                <element signature="e#33499#33500#0" expanded="true" />
+                <element signature="e#33536#33537#0" expanded="true" />
+                <element signature="e#38558#38559#0" expanded="true" />
+                <element signature="e#38594#38595#0" expanded="true" />
+                <element signature="e#41232#41233#0" expanded="true" />
+                <element signature="e#41276#41277#0" expanded="true" />
+                <element signature="e#41330#41331#0" expanded="true" />
+                <element signature="e#41367#41368#0" expanded="true" />
+                <element signature="e#50056#50057#0" expanded="true" />
+                <element signature="e#50119#50120#0" expanded="true" />
+                <element signature="e#50204#50205#0" expanded="true" />
+                <element signature="e#50258#50259#0" expanded="true" />
+                <element signature="e#50333#50334#0" expanded="true" />
+                <element signature="e#50386#50387#0" expanded="true" />
+                <element signature="e#50449#50450#0" expanded="true" />
+                <element signature="e#50494#50495#0" expanded="true" />
+                <element signature="e#50551#50552#0" expanded="true" />
+                <element signature="e#50595#50596#0" expanded="true" />
+                <element signature="e#50658#50659#0" expanded="true" />
+                <element signature="e#50701#50702#0" expanded="true" />
+                <element signature="e#50974#50975#0" expanded="true" />
+                <element signature="e#51038#51039#0" expanded="true" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="StoreAppend.java" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/StoreAppend.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.5872534">
-              <caret line="199" column="0" selection-start-line="199" selection-start-column="0" selection-end-line="199" selection-end-column="0" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="DBHeaderTest.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/DBHeaderTest.java">
+      <file leaf-file-name="BTreeMap.java" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/BTreeMap.java">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="28" column="24" selection-start-line="28" selection-start-column="24" selection-end-line="28" selection-end-column="24" />
+              <caret line="3507" column="0" selection-start-line="3507" selection-start-column="0" selection-end-line="3507" selection-end-column="0" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="StoreAppendTest.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/StoreAppendTest.java">
+      <file leaf-file-name="Serializer.java" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/Serializer.java">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="138" column="0" selection-start-line="138" selection-start-column="0" selection-end-line="138" selection-end-column="0" />
+              <caret line="2067" column="0" selection-start-line="2067" selection-start-column="0" selection-end-line="2067" selection-end-column="0" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="Store.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/Store.java">
+      <file leaf-file-name="DataIO.java" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/DataIO.java">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="1700" column="0" selection-start-line="1700" selection-start-column="0" selection-end-line="1700" selection-end-column="0" />
-              <folding />
+              <caret line="913" column="51" selection-start-line="913" selection-start-column="51" selection-end-line="913" selection-end-column="51" />
+              <folding>
+                <element signature="e#18911#18912#0" expanded="true" />
+                <element signature="e#18961#18962#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="DBException.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/DBException.java">
+      <file leaf-file-name="DB.java" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/DB.java">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="169" column="18" selection-start-line="169" selection-start-column="18" selection-end-line="169" selection-end-column="18" />
+              <caret line="663" column="0" selection-start-line="663" selection-start-column="0" selection-end-line="663" selection-end-column="0" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="RandomAccessFile.java" pinned="false" current-in-tab="false">
-        <entry file="jar:///opt/jdk8/src.zip!/java/io/RandomAccessFile.java">
+      <file leaf-file-name="DBMaker.java" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/DBMaker.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="572" column="23" selection-start-line="572" selection-start-column="23" selection-end-line="572" selection-end-column="23" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="success.rst" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/../mapdb-site/success.rst">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="-6.3461537">
-              <caret line="11" column="45" selection-start-line="11" selection-start-column="45" selection-end-line="11" selection-end-column="45" />
+            <state vertical-scroll-proportion="0.3321739">
+              <caret line="168" column="45" selection-start-line="168" selection-start-column="45" selection-end-line="168" selection-end-column="45" />
               <folding />
             </state>
           </provider>
@@ -141,6 +178,7 @@
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="Class" />
+        <option value="JUnit4 Test Class" />
       </list>
     </option>
   </component>
@@ -155,36 +193,57 @@
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
-        <option value="$PROJECT_DIR$/../mapdb-burn/src/kill/Killer.java" />
-        <option value="$PROJECT_DIR$/../mapdb-burn/build.gradle" />
-        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/LongTest.java" />
-        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/EngineTest.java" />
-        <option value="$PROJECT_DIR$/../mapdb-burn/src/kill/CommitKill.java" />
-        <option value="$PROJECT_DIR$/src/main/java/org/mapdb/StoreDirect.java" />
-        <option value="$PROJECT_DIR$/src/main/java/org/mapdb/StoreWAL.java" />
-        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/CrashWithInterruptTest.java" />
-        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/CrashWithJVMKillTest.java" />
-        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/DBHeaderTest.java" />
-        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/DBMakerTest.java" />
-        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/DBTest.java" />
-        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/HeartbeatFileLockTest.java" />
-        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/HTreeMap2Test.java" />
-        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/Issue258Test.java" />
-        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/Issue266Test.java" />
-        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/Issue312Test.java" />
-        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/Issue332Test.java" />
-        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/Issue523Test.java" />
-        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/QueuesTest.java" />
-        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/SerializerPojoTest.java" />
-        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/SerializerTest.java" />
-        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/StoreDirectTest2.java" />
-        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/UtilsTest.java" />
-        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/VolumeTest.java" />
-        <option value="$PROJECT_DIR$/pom.xml" />
-        <option value="$PROJECT_DIR$/../mapdb-site/success.rst" />
-        <option value="$PROJECT_DIR$/src/main/java/org/mapdb/DBException.java" />
-        <option value="$PROJECT_DIR$/src/main/java/org/mapdb/Volume.java" />
+        <option value="$PROJECT_DIR$/src/test/java/doc/performance_crc32.java" />
+        <option value="$PROJECT_DIR$/src/test/java/doc/performance_filechannel.java" />
+        <option value="$PROJECT_DIR$/src/test/java/doc/performance_transaction_disable.java" />
+        <option value="$PROJECT_DIR$/src/test/java/doc/performance_async_write.java" />
+        <option value="$PROJECT_DIR$/src/test/java/doc/performance_memory_heap.java" />
+        <option value="$PROJECT_DIR$/src/test/java/doc/performance_memory_byte_array.java" />
+        <option value="$PROJECT_DIR$/src/test/java/doc/performance_memory_direct.java" />
+        <option value="$PROJECT_DIR$/src/test/java/doc/performance_allocation.java" />
+        <option value="$PROJECT_DIR$/../mapdb-site/doc/performance.rst" />
+        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/TxMakerTest.java" />
+        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/StoreDirectFreeSpaceTest.java" />
+        <option value="$PROJECT_DIR$/src/main/java/org/mapdb/SerializerPojo.java" />
+        <option value="$PROJECT_DIR$/logger.properties" />
+        <option value="$PROJECT_DIR$/../mapdb-burn/src/Test.java" />
+        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/HTreeMapTest.java" />
+        <option value="$PROJECT_DIR$/src/test/java/examples/CacheOffHeap.java" />
+        <option value="$PROJECT_DIR$/src/test/java/examples/CacheEntryExpiry.java" />
         <option value="$PROJECT_DIR$/src/main/java/org/mapdb/StoreAppend.java" />
+        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/StoreWALTest.java" />
+        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/StoreAppendTest.java" />
+        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/VolumeTest.java" />
+        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/TT.java" />
+        <option value="$PROJECT_DIR$/src/main/java/org/mapdb/Volume.java" />
+        <option value="$PROJECT_DIR$/pom.xml" />
+        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/LongQueueTest.java" />
+        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/CrashTest.java" />
+        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/HTreeSetTest.java" />
+        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/HTreeMap2Test.java" />
+        <option value="$PROJECT_DIR$/src/main/java/org/mapdb/Store.java" />
+        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/HTreeMap3Test.java" />
+        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/StoreDirectTest2.java" />
+        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/StoreDirectTest.java" />
+        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/StoreCacheHashTableTest.java" />
+        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/StoreCachedTest.java" />
+        <option value="$PROJECT_DIR$/src/main/java/org/mapdb/StoreWAL.java" />
+        <option value="$PROJECT_DIR$/src/main/java/org/mapdb/StoreDirect.java" />
+        <option value="$PROJECT_DIR$/src/test/java/examples/CacheOffHeapAdvanced.java" />
+        <option value="$PROJECT_DIR$/src/main/java/org/mapdb/StoreHeap.java" />
+        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/EngineTest.java" />
+        <option value="$PROJECT_DIR$/src/main/java/org/mapdb/StoreCached.java" />
+        <option value="$PROJECT_DIR$/src/main/java/org/mapdb/HTreeMap.java" />
+        <option value="$PROJECT_DIR$/.gitignore" />
+        <option value="$PROJECT_DIR$/src/test/java/org/mapdb/Issue381Test.java" />
+        <option value="$PROJECT_DIR$/src/main/java/org/mapdb/Atomic.java" />
+        <option value="$PROJECT_DIR$/src/main/java/org/mapdb/Bind.java" />
+        <option value="$PROJECT_DIR$/src/main/java/org/mapdb/BTreeKeySerializer.java" />
+        <option value="$PROJECT_DIR$/src/main/java/org/mapdb/BTreeMap.java" />
+        <option value="$PROJECT_DIR$/src/main/java/org/mapdb/Serializer.java" />
+        <option value="$PROJECT_DIR$/src/main/java/org/mapdb/DataIO.java" />
+        <option value="$PROJECT_DIR$/src/main/java/org/mapdb/DB.java" />
+        <option value="$PROJECT_DIR$/src/main/java/org/mapdb/DBMaker.java" />
       </list>
     </option>
   </component>
@@ -194,6 +253,16 @@
         <option name="mavenHome" value="Bundled (Maven 3)" />
       </MavenGeneralSettings>
     </option>
+  </component>
+  <component name="MavenProjectNavigator">
+    <treeState>
+      <PATH>
+        <PATH_ELEMENT>
+          <option name="myItemId" value="" />
+          <option name="myItemType" value="org.jetbrains.idea.maven.navigator.MavenProjectsStructure$RootNode" />
+        </PATH_ELEMENT>
+      </PATH>
+    </treeState>
   </component>
   <component name="NamedScopeManager">
     <order />
@@ -241,180 +310,91 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
-              <option name="myItemId" value="mapdb-site" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
               <option name="myItemId" value="mapdb" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="mapdb-burn" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="mapdb" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="mapdb-burn" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="test" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="mapdb" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="mapdb-burn" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="src" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="mapdb" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="mapdb" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="mapdb" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="mapdb" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="src" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="test" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="java" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="mapdb" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="mapdb" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="src" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
         </subPane>
       </pane>
-      <pane id="Scope" />
       <pane id="PackagesPane" />
       <pane id="Scratches" />
+      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
     <property name="last_opened_file_path" value="$PROJECT_DIR$/../mapdb-burn" />
-    <property name="project.structure.last.edited" value="Modules" />
+    <property name="project.structure.last.edited" value="Project" />
     <property name="project.structure.proportion" value="0.15" />
     <property name="project.structure.side.proportion" value="0.2" />
     <property name="OverrideImplement.combined" value="true" />
     <property name="OverrideImplement.overriding.sorted" value="false" />
     <property name="recentsLimit" value="5" />
     <property name="dynamic.classpath" value="false" />
-    <property name="extract.method.default.visibility" value="private" />
+    <property name="extract.method.default.visibility" value="protected" />
     <property name="restartRequiresConfirmation" value="true" />
+    <property name="FullScreen" value="false" />
+    <property name="settings.editor.selected.configurable" value="editor.preferences.import" />
+    <property name="settings.editor.splitter.proportion" value="0.2" />
+    <property name="com.intellij.testIntegration.createTest.CreateTestDialog.defaultLibrary" value="JUnit4" />
+    <property name="com.intellij.testIntegration.createTest.CreateTestDialog.includeInheritedMembers" value="false" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatWidth0" value="211" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatOrder0" value="0" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatWidth1" value="234" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatOrder1" value="1" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatWidth2" value="241" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatOrder2" value="2" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatWidth3" value="1149" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatOrder3" value="3" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeWidth0" value="222" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeOrder0" value="0" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeWidth1" value="231" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeOrder1" value="1" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeWidth2" value="237" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeOrder2" value="2" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeWidth3" value="1145" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeOrder3" value="3" />
   </component>
-  <component name="RunManager" selected="JUnit.org.mapdb in mapdb">
-    <configuration default="false" name="VolumeTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+  <component name="RecentsManager">
+    <key name="CreateTestDialog.Recents.Supers">
+      <recent name="" />
+    </key>
+    <key name="CreateTestDialog.RecentsKey">
+      <recent name="org.mapdb" />
+    </key>
+    <key name="CopyClassDialog.RECENTS_KEY">
+      <recent name="doc" />
+    </key>
+  </component>
+  <component name="RunManager" selected="JUnit.Issue381Test">
+    <configuration default="false" name="CacheOffHeapAdvanced" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
       <extension name="coverage" enabled="false" merge="false" sample_coverage="true" runner="idea">
         <pattern>
-          <option name="PATTERN" value="org.mapdb.*" />
+          <option name="PATTERN" value="examples.*" />
           <option name="ENABLED" value="true" />
         </pattern>
       </extension>
-      <module name="mapdb" />
+      <option name="MAIN_CLASS_NAME" value="examples.CacheOffHeapAdvanced" />
+      <option name="VM_PARAMETERS" value="-XX:MaxDirectMemorySize=2G" />
+      <option name="PROGRAM_PARAMETERS" value="" />
+      <option name="WORKING_DIRECTORY" value="file://$PROJECT_DIR$" />
       <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
-      <option name="ALTERNATIVE_JRE_PATH" />
-      <option name="PACKAGE_NAME" value="org.mapdb" />
-      <option name="MAIN_CLASS_NAME" value="org.mapdb.VolumeTest" />
-      <option name="METHOD_NAME" />
-      <option name="TEST_OBJECT" value="class" />
-      <option name="VM_PARAMETERS" value="-ea" />
-      <option name="PARAMETERS" />
-      <option name="WORKING_DIRECTORY" value="$MODULE_DIR$" />
+      <option name="ALTERNATIVE_JRE_PATH" value="" />
+      <option name="ENABLE_SWING_INSPECTOR" value="false" />
       <option name="ENV_VARIABLES" />
       <option name="PASS_PARENT_ENVS" value="true" />
-      <option name="TEST_SEARCH_SCOPE">
-        <value defaultName="singleModule" />
-      </option>
+      <module name="mapdb" />
       <envs />
-      <patterns />
       <RunnerSettings RunnerId="JProfiler">
         <option name="WINDOW" value="false" />
       </RunnerSettings>
       <method />
     </configuration>
-    <configuration default="false" name="VolumeTest.small_mmap_file_single" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <extension name="coverage" enabled="false" merge="false" sample_coverage="true" runner="idea">
-        <pattern>
-          <option name="PATTERN" value="org.mapdb.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
+    <configuration default="false" name="All in mapdb" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <extension name="coverage" enabled="false" merge="false" sample_coverage="true" runner="idea" />
       <module name="mapdb" />
       <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
       <option name="ALTERNATIVE_JRE_PATH" />
-      <option name="PACKAGE_NAME" value="org.mapdb" />
-      <option name="MAIN_CLASS_NAME" value="org.mapdb.VolumeTest" />
-      <option name="METHOD_NAME" value="small_mmap_file_single" />
-      <option name="TEST_OBJECT" value="method" />
-      <option name="VM_PARAMETERS" value="-ea" />
-      <option name="PARAMETERS" />
-      <option name="WORKING_DIRECTORY" value="$MODULE_DIR$" />
-      <option name="ENV_VARIABLES" />
-      <option name="PASS_PARENT_ENVS" value="true" />
-      <option name="TEST_SEARCH_SCOPE">
-        <value defaultName="singleModule" />
-      </option>
-      <envs />
-      <patterns />
-      <method />
-    </configuration>
-    <configuration default="false" name="org.mapdb in mapdb" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <extension name="coverage" enabled="false" merge="false" sample_coverage="true" runner="idea">
-        <pattern>
-          <option name="PATTERN" value="org.mapdb.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <module name="mapdb" />
-      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
-      <option name="ALTERNATIVE_JRE_PATH" />
-      <option name="PACKAGE_NAME" value="org.mapdb" />
+      <option name="PACKAGE_NAME" value="" />
       <option name="MAIN_CLASS_NAME" />
       <option name="METHOD_NAME" />
       <option name="TEST_OBJECT" value="package" />
@@ -430,36 +410,7 @@
       <patterns />
       <method />
     </configuration>
-    <configuration default="false" name="CrashWithJVMKillTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <extension name="coverage" enabled="false" merge="false" sample_coverage="true" runner="idea">
-        <pattern>
-          <option name="PATTERN" value="org.mapdb.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <module name="mapdb" />
-      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
-      <option name="ALTERNATIVE_JRE_PATH" value="" />
-      <option name="PACKAGE_NAME" value="org.mapdb" />
-      <option name="MAIN_CLASS_NAME" value="org.mapdb.CrashWithJVMKillTest" />
-      <option name="METHOD_NAME" value="" />
-      <option name="TEST_OBJECT" value="class" />
-      <option name="VM_PARAMETERS" value="-ea -Dmdbtest=1" />
-      <option name="PARAMETERS" value="" />
-      <option name="WORKING_DIRECTORY" value="file://$MODULE_DIR$" />
-      <option name="ENV_VARIABLES" />
-      <option name="PASS_PARENT_ENVS" value="true" />
-      <option name="TEST_SEARCH_SCOPE">
-        <value defaultName="singleModule" />
-      </option>
-      <envs />
-      <patterns />
-      <RunnerSettings RunnerId="JProfiler">
-        <option name="WINDOW" value="false" />
-      </RunnerSettings>
-      <method />
-    </configuration>
-    <configuration default="false" name="StoreAppendTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+    <configuration default="false" name="StoreAppendTest and 8 more" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <extension name="coverage" enabled="false" merge="false" sample_coverage="true" runner="idea">
         <pattern>
           <option name="PATTERN" value="org.mapdb.*" />
@@ -470,7 +421,79 @@
       <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
       <option name="ALTERNATIVE_JRE_PATH" />
       <option name="PACKAGE_NAME" value="org.mapdb" />
-      <option name="MAIN_CLASS_NAME" value="org.mapdb.StoreAppendTest" />
+      <option name="MAIN_CLASS_NAME" value="org.mapdb.EngineTest" />
+      <option name="METHOD_NAME" />
+      <option name="TEST_OBJECT" value="pattern" />
+      <option name="VM_PARAMETERS" value="-ea" />
+      <option name="PARAMETERS" />
+      <option name="WORKING_DIRECTORY" value="$MODULE_DIR$" />
+      <option name="ENV_VARIABLES" />
+      <option name="PASS_PARENT_ENVS" value="true" />
+      <option name="TEST_SEARCH_SCOPE">
+        <value defaultName="singleModule" />
+      </option>
+      <envs />
+      <patterns>
+        <pattern testClass="org.mapdb.StoreAppendTest" />
+        <pattern testClass="org.mapdb.StoreCacheHashTableTest" />
+        <pattern testClass="org.mapdb.StoreCachedTest" />
+        <pattern testClass="org.mapdb.StoreDirectTest" />
+        <pattern testClass="org.mapdb.StoreHeapTest" />
+        <pattern testClass="org.mapdb.StoreHeapTxTest" />
+        <pattern testClass="org.mapdb.StoreWALTest" />
+        <pattern testClass="org.mapdb.StoreAppendTest$WithChecksums" />
+        <pattern testClass="org.mapdb.StoreHeapTest$WithSnapshot" />
+      </patterns>
+      <method />
+    </configuration>
+    <configuration default="false" name="StoreCachedTest.delete_and_get" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <extension name="coverage" enabled="false" merge="false" sample_coverage="true" runner="idea">
+        <pattern>
+          <option name="PATTERN" value="org.mapdb.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <module name="mapdb" />
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
+      <option name="ALTERNATIVE_JRE_PATH" />
+      <option name="PACKAGE_NAME" value="org.mapdb" />
+      <option name="MAIN_CLASS_NAME" value="org.mapdb.StoreCachedTest" />
+      <option name="METHOD_NAME" value="delete_and_get" />
+      <option name="TEST_OBJECT" value="method" />
+      <option name="VM_PARAMETERS" value="-ea" />
+      <option name="PARAMETERS" />
+      <option name="WORKING_DIRECTORY" value="$MODULE_DIR$" />
+      <option name="ENV_VARIABLES" />
+      <option name="PASS_PARENT_ENVS" value="true" />
+      <option name="TEST_SEARCH_SCOPE">
+        <value defaultName="singleModule" />
+      </option>
+      <envs />
+      <patterns>
+        <pattern testClass="org.mapdb.StoreAppendTest" />
+        <pattern testClass="org.mapdb.StoreCacheHashTableTest" />
+        <pattern testClass="org.mapdb.StoreCachedTest" />
+        <pattern testClass="org.mapdb.StoreDirectTest" />
+        <pattern testClass="org.mapdb.StoreHeapTest" />
+        <pattern testClass="org.mapdb.StoreHeapTxTest" />
+        <pattern testClass="org.mapdb.StoreWALTest" />
+        <pattern testClass="org.mapdb.StoreAppendTest$WithChecksums" />
+        <pattern testClass="org.mapdb.StoreHeapTest$WithSnapshot" />
+      </patterns>
+      <method />
+    </configuration>
+    <configuration default="false" name="Issue381Test" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <extension name="coverage" enabled="false" merge="false" sample_coverage="true" runner="idea">
+        <pattern>
+          <option name="PATTERN" value="org.mapdb.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <module name="mapdb" />
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
+      <option name="ALTERNATIVE_JRE_PATH" />
+      <option name="PACKAGE_NAME" value="org.mapdb" />
+      <option name="MAIN_CLASS_NAME" value="org.mapdb.Issue381Test" />
       <option name="METHOD_NAME" />
       <option name="TEST_OBJECT" value="class" />
       <option name="VM_PARAMETERS" value="-ea" />
@@ -623,7 +646,7 @@
       </RunnerSettings>
       <method />
     </configuration>
-    <configuration default="false" name="VolumeTest$IndividualTest.empty" type="JUnit" factoryName="JUnit" nameIsGenerated="true">
+    <configuration default="false" name="org.mapdb.VolumeTest$*" type="JUnit" factoryName="JUnit" nameIsGenerated="true">
       <extension name="coverage" enabled="false" merge="false" sample_coverage="true" runner="idea">
         <pattern>
           <option name="PATTERN" value="org.mapdb.*" />
@@ -634,9 +657,69 @@
       <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
       <option name="ALTERNATIVE_JRE_PATH" value="" />
       <option name="PACKAGE_NAME" value="org.mapdb" />
-      <option name="MAIN_CLASS_NAME" value="org.mapdb.VolumeTest$IndividualTest" />
-      <option name="METHOD_NAME" value="empty" />
-      <option name="TEST_OBJECT" value="method" />
+      <option name="MAIN_CLASS_NAME" value="" />
+      <option name="METHOD_NAME" value="" />
+      <option name="TEST_OBJECT" value="pattern" />
+      <option name="VM_PARAMETERS" value="-ea -Dmdbtest=1" />
+      <option name="PARAMETERS" value="" />
+      <option name="WORKING_DIRECTORY" value="file://$MODULE_DIR$" />
+      <option name="ENV_VARIABLES" />
+      <option name="PASS_PARENT_ENVS" value="true" />
+      <option name="TEST_SEARCH_SCOPE">
+        <value defaultName="singleModule" />
+      </option>
+      <envs />
+      <patterns>
+        <pattern testClass="org.mapdb.VolumeTest$*" />
+      </patterns>
+      <RunnerSettings RunnerId="JProfiler">
+        <option name="WINDOW" value="false" />
+      </RunnerSettings>
+      <method />
+    </configuration>
+    <configuration default="false" name="CrashTest" type="JUnit" factoryName="JUnit" nameIsGenerated="true">
+      <extension name="coverage" enabled="false" merge="false" sample_coverage="true" runner="idea">
+        <pattern>
+          <option name="PATTERN" value="org.mapdb.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <module name="mapdb" />
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
+      <option name="ALTERNATIVE_JRE_PATH" value="" />
+      <option name="PACKAGE_NAME" value="org.mapdb" />
+      <option name="MAIN_CLASS_NAME" value="org.mapdb.CrashTest" />
+      <option name="METHOD_NAME" value="" />
+      <option name="TEST_OBJECT" value="class" />
+      <option name="VM_PARAMETERS" value="-ea -Dmdbtest=2" />
+      <option name="PARAMETERS" value="" />
+      <option name="WORKING_DIRECTORY" value="file://$MODULE_DIR$" />
+      <option name="ENV_VARIABLES" />
+      <option name="PASS_PARENT_ENVS" value="true" />
+      <option name="TEST_SEARCH_SCOPE">
+        <value defaultName="singleModule" />
+      </option>
+      <envs />
+      <patterns />
+      <RunnerSettings RunnerId="JProfiler">
+        <option name="WINDOW" value="false" />
+      </RunnerSettings>
+      <method />
+    </configuration>
+    <configuration default="false" name="VolumeTest$DoubleTest" type="JUnit" factoryName="JUnit" nameIsGenerated="true">
+      <extension name="coverage" enabled="false" merge="false" sample_coverage="true" runner="idea">
+        <pattern>
+          <option name="PATTERN" value="org.mapdb.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <module name="mapdb" />
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
+      <option name="ALTERNATIVE_JRE_PATH" value="" />
+      <option name="PACKAGE_NAME" value="org.mapdb" />
+      <option name="MAIN_CLASS_NAME" value="org.mapdb.VolumeTest$DoubleTest" />
+      <option name="METHOD_NAME" value="" />
+      <option name="TEST_OBJECT" value="class" />
       <option name="VM_PARAMETERS" value="-ea -Dmdbtest=1" />
       <option name="PARAMETERS" value="" />
       <option name="WORKING_DIRECTORY" value="file://$MODULE_DIR$" />
@@ -652,616 +735,531 @@
       </RunnerSettings>
       <method />
     </configuration>
-    <list size="7">
+    <configuration default="false" name="StoreAppendTest,commit_huge and 8 more" type="JUnit" factoryName="JUnit" nameIsGenerated="true">
+      <extension name="coverage" enabled="false" merge="false" sample_coverage="true" runner="idea">
+        <pattern>
+          <option name="PATTERN" value="org.mapdb.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <module name="mapdb" />
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
+      <option name="ALTERNATIVE_JRE_PATH" value="" />
+      <option name="PACKAGE_NAME" value="org.mapdb" />
+      <option name="MAIN_CLASS_NAME" value="" />
+      <option name="METHOD_NAME" value="" />
+      <option name="TEST_OBJECT" value="pattern" />
+      <option name="VM_PARAMETERS" value="-ea -Dmdbtest=1 -Xmx4G" />
+      <option name="PARAMETERS" value="" />
+      <option name="WORKING_DIRECTORY" value="file://$MODULE_DIR$" />
+      <option name="ENV_VARIABLES" />
+      <option name="PASS_PARENT_ENVS" value="true" />
+      <option name="TEST_SEARCH_SCOPE">
+        <value defaultName="singleModule" />
+      </option>
+      <envs />
+      <patterns>
+        <pattern testClass="org.mapdb.StoreAppendTest,commit_huge" />
+        <pattern testClass="org.mapdb.StoreCacheHashTableTest,commit_huge" />
+        <pattern testClass="org.mapdb.StoreCachedTest,commit_huge" />
+        <pattern testClass="org.mapdb.StoreDirectTest,commit_huge" />
+        <pattern testClass="org.mapdb.StoreHeapTest,commit_huge" />
+        <pattern testClass="org.mapdb.StoreHeapTxTest,commit_huge" />
+        <pattern testClass="org.mapdb.StoreWALTest,commit_huge" />
+        <pattern testClass="org.mapdb.StoreAppendTest$WithChecksums,commit_huge" />
+        <pattern testClass="org.mapdb.StoreHeapTest$WithSnapshot,commit_huge" />
+      </patterns>
+      <RunnerSettings RunnerId="JProfiler">
+        <option name="WINDOW" value="false" />
+      </RunnerSettings>
+      <method />
+    </configuration>
+    <configuration default="false" name="StoreAppendTest$WithChecksums.commit_huge" type="JUnit" factoryName="JUnit" nameIsGenerated="true">
+      <extension name="coverage" enabled="false" merge="false" sample_coverage="true" runner="idea">
+        <pattern>
+          <option name="PATTERN" value="org.mapdb.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <module name="mapdb" />
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
+      <option name="ALTERNATIVE_JRE_PATH" value="" />
+      <option name="PACKAGE_NAME" value="org.mapdb" />
+      <option name="MAIN_CLASS_NAME" value="org.mapdb.StoreAppendTest$WithChecksums" />
+      <option name="METHOD_NAME" value="commit_huge" />
+      <option name="TEST_OBJECT" value="method" />
+      <option name="VM_PARAMETERS" value="-ea -Dmdbtest=1 -Xmx5G" />
+      <option name="PARAMETERS" value="" />
+      <option name="WORKING_DIRECTORY" value="file://$MODULE_DIR$" />
+      <option name="ENV_VARIABLES" />
+      <option name="PASS_PARENT_ENVS" value="true" />
+      <option name="TEST_SEARCH_SCOPE">
+        <value defaultName="singleModule" />
+      </option>
+      <envs />
+      <patterns>
+        <pattern testClass="org.mapdb.StoreAppendTest,commit_huge" />
+        <pattern testClass="org.mapdb.StoreCacheHashTableTest,commit_huge" />
+        <pattern testClass="org.mapdb.StoreCachedTest,commit_huge" />
+        <pattern testClass="org.mapdb.StoreDirectTest,commit_huge" />
+        <pattern testClass="org.mapdb.StoreHeapTest,commit_huge" />
+        <pattern testClass="org.mapdb.StoreHeapTxTest,commit_huge" />
+        <pattern testClass="org.mapdb.StoreWALTest,commit_huge" />
+        <pattern testClass="org.mapdb.StoreAppendTest$WithChecksums,commit_huge" />
+        <pattern testClass="org.mapdb.StoreHeapTest$WithSnapshot,commit_huge" />
+      </patterns>
+      <RunnerSettings RunnerId="JProfiler">
+        <option name="WINDOW" value="false" />
+      </RunnerSettings>
+      <method />
+    </configuration>
+    <configuration default="false" name="HTreeMapTest" type="JUnit" factoryName="JUnit" nameIsGenerated="true">
+      <extension name="coverage" enabled="false" merge="false" sample_coverage="true" runner="idea">
+        <pattern>
+          <option name="PATTERN" value="org.mapdb.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <module name="mapdb" />
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
+      <option name="ALTERNATIVE_JRE_PATH" value="" />
+      <option name="PACKAGE_NAME" value="org.mapdb" />
+      <option name="MAIN_CLASS_NAME" value="org.mapdb.HTreeMapTest" />
+      <option name="METHOD_NAME" value="" />
+      <option name="TEST_OBJECT" value="class" />
+      <option name="VM_PARAMETERS" value="-ea -Dmdbtest=1 -Xmx2G" />
+      <option name="PARAMETERS" value="" />
+      <option name="WORKING_DIRECTORY" value="file://$MODULE_DIR$" />
+      <option name="ENV_VARIABLES" />
+      <option name="PASS_PARENT_ENVS" value="true" />
+      <option name="TEST_SEARCH_SCOPE">
+        <value defaultName="singleModule" />
+      </option>
+      <envs />
+      <patterns />
+      <RunnerSettings RunnerId="JProfiler">
+        <option name="WINDOW" value="false" />
+      </RunnerSettings>
+      <method />
+    </configuration>
+    <configuration default="false" name="VolumeTest$IndividualTest" type="JUnit" factoryName="JUnit" nameIsGenerated="true">
+      <extension name="coverage" enabled="false" merge="false" sample_coverage="true" runner="idea">
+        <pattern>
+          <option name="PATTERN" value="org.mapdb.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <module name="mapdb" />
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
+      <option name="ALTERNATIVE_JRE_PATH" value="" />
+      <option name="PACKAGE_NAME" value="org.mapdb" />
+      <option name="MAIN_CLASS_NAME" value="org.mapdb.VolumeTest$IndividualTest" />
+      <option name="METHOD_NAME" value="" />
+      <option name="TEST_OBJECT" value="class" />
+      <option name="VM_PARAMETERS" value="-ea -Dmdbtest=1" />
+      <option name="PARAMETERS" value="" />
+      <option name="WORKING_DIRECTORY" value="file://$MODULE_DIR$" />
+      <option name="ENV_VARIABLES" />
+      <option name="PASS_PARENT_ENVS" value="true" />
+      <option name="TEST_SEARCH_SCOPE">
+        <value defaultName="singleModule" />
+      </option>
+      <envs />
+      <patterns />
+      <RunnerSettings RunnerId="JProfiler">
+        <option name="WINDOW" value="false" />
+      </RunnerSettings>
+      <method />
+    </configuration>
+    <list size="13">
       <item index="0" class="java.lang.String" itemvalue="JUnit.IndividualTest and 1 more" />
-      <item index="1" class="java.lang.String" itemvalue="JUnit.VolumeTest" />
-      <item index="2" class="java.lang.String" itemvalue="JUnit.VolumeTest.small_mmap_file_single" />
-      <item index="3" class="java.lang.String" itemvalue="JUnit.org.mapdb in mapdb" />
-      <item index="4" class="java.lang.String" itemvalue="JUnit.CrashWithJVMKillTest" />
-      <item index="5" class="java.lang.String" itemvalue="JUnit.VolumeTest$IndividualTest.empty" />
-      <item index="6" class="java.lang.String" itemvalue="JUnit.StoreAppendTest" />
+      <item index="1" class="java.lang.String" itemvalue="JUnit.org.mapdb.VolumeTest$*" />
+      <item index="2" class="java.lang.String" itemvalue="JUnit.CrashTest" />
+      <item index="3" class="java.lang.String" itemvalue="JUnit.VolumeTest$DoubleTest" />
+      <item index="4" class="java.lang.String" itemvalue="JUnit.StoreAppendTest,commit_huge and 8 more" />
+      <item index="5" class="java.lang.String" itemvalue="JUnit.StoreAppendTest$WithChecksums.commit_huge" />
+      <item index="6" class="java.lang.String" itemvalue="JUnit.HTreeMapTest" />
+      <item index="7" class="java.lang.String" itemvalue="JUnit.VolumeTest$IndividualTest" />
+      <item index="8" class="java.lang.String" itemvalue="Application.CacheOffHeapAdvanced" />
+      <item index="9" class="java.lang.String" itemvalue="JUnit.All in mapdb" />
+      <item index="10" class="java.lang.String" itemvalue="JUnit.StoreAppendTest and 8 more" />
+      <item index="11" class="java.lang.String" itemvalue="JUnit.StoreCachedTest.delete_and_get" />
+      <item index="12" class="java.lang.String" itemvalue="JUnit.Issue381Test" />
     </list>
     <recent_temporary>
       <list size="5">
-        <item index="0" class="java.lang.String" itemvalue="JUnit.org.mapdb in mapdb" />
-        <item index="1" class="java.lang.String" itemvalue="JUnit.StoreAppendTest" />
-        <item index="2" class="java.lang.String" itemvalue="JUnit.CrashWithJVMKillTest" />
-        <item index="3" class="java.lang.String" itemvalue="JUnit.VolumeTest.small_mmap_file_single" />
-        <item index="4" class="java.lang.String" itemvalue="JUnit.VolumeTest" />
+        <item index="0" class="java.lang.String" itemvalue="JUnit.Issue381Test" />
+        <item index="1" class="java.lang.String" itemvalue="JUnit.StoreCachedTest.delete_and_get" />
+        <item index="2" class="java.lang.String" itemvalue="JUnit.StoreAppendTest and 8 more" />
+        <item index="3" class="java.lang.String" itemvalue="JUnit.All in mapdb" />
+        <item index="4" class="java.lang.String" itemvalue="Application.CacheOffHeapAdvanced" />
       </list>
     </recent_temporary>
   </component>
   <component name="ShelveChangesManager" show_recycled="false" />
+  <component name="StructureViewFactory">
+    <option name="ACTIVE_ACTIONS" value=",ALPHA_COMPARATOR" />
+  </component>
+  <component name="TodoView">
+    <todo-panel id="selected-file">
+      <is-autoscroll-to-source value="true" />
+    </todo-panel>
+    <todo-panel id="all">
+      <are-packages-shown value="true" />
+      <is-autoscroll-to-source value="true" />
+    </todo-panel>
+  </component>
   <component name="ToolWindowManager">
     <frame x="1277" y="32" width="1926" height="1052" extended-state="6" />
-    <editor active="true" />
+    <editor active="false" />
     <layout>
-      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="14" side_tool="false" content_ui="tabs" />
+      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32976446" sideWeight="0.5" order="14" side_tool="false" content_ui="tabs" />
       <window_info id="FindBugs-IDEA" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
-      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32976446" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32869378" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Palette&#9;" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Application Servers" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
-      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32901832" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.26552463" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
+      <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32960597" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32869378" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.35546038" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.14536741" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.13951011" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
       <window_info id="Run with VisualVM" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
-      <window_info id="JProfiler" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32976446" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
-      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.24959612" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="JProfiler" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32762313" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.38650963" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
+      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.18104367" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="true" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3961456" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.39507493" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
       <window_info id="Debug with VisualVM" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="12" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="SLIDING" type="SLIDING" visible="false" weight="0.4" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="13" side_tool="false" content_ui="tabs" />
-      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.24973376" sideWeight="0.5" order="4" side_tool="false" content_ui="combo" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.38650963" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
+      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.37859425" sideWeight="0.5" order="4" side_tool="false" content_ui="combo" />
     </layout>
     <layout-to-restore>
-      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="14" side_tool="false" content_ui="tabs" />
+      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32976446" sideWeight="0.5" order="14" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="12" side_tool="false" content_ui="tabs" />
       <window_info id="FindBugs-IDEA" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
-      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32976446" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32869378" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Palette&#9;" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="SLIDING" type="SLIDING" visible="false" weight="0.4" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Application Servers" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32960597" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="13" side_tool="false" content_ui="tabs" />
-      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.46369293" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32869378" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.35546038" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.108093716" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
-      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.24973376" sideWeight="0.5" order="4" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.13951011" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.37859425" sideWeight="0.5" order="4" side_tool="false" content_ui="combo" />
       <window_info id="Run with VisualVM" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
-      <window_info id="JProfiler" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32976446" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32987553" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
-      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.24973376" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="JProfiler" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32762313" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.38650963" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
+      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.18104367" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="true" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3993576" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.39507493" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
       <window_info id="Debug with VisualVM" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
     </layout-to-restore>
+  </component>
+  <component name="Vcs.Log.UiProperties">
+    <option name="RECENTLY_FILTERED_USER_GROUPS">
+      <collection />
+    </option>
+    <option name="RECENTLY_FILTERED_BRANCH_GROUPS">
+      <collection />
+    </option>
   </component>
   <component name="VcsContentAnnotationSettings">
     <option name="myLimit" value="2678400000" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Maven: make repo lowercase" />
-    <MESSAGE value="StoreAppend: fix NPE in get() with TX disabled" />
-    <MESSAGE value="Maven: update JUnit dep" />
-    <MESSAGE value="Test: add CrashWithInterruptTest" />
-    <MESSAGE value="Store: disable file locking for compaction files and WAL" />
-    <MESSAGE value="CrashTest: do not close file after it was interrupted" />
-    <MESSAGE value="CrashTest: do not lock files" />
-    <MESSAGE value="CrashTest: add JVM test" />
-    <MESSAGE value="CrashTest: fix compilation error" />
-    <MESSAGE value="VolumeTest: parametrize" />
-    <MESSAGE value="VolumeTest: fix NPE" />
-    <MESSAGE value="Test &amp; Maven: mvn clean will delete /tmp/mapdbTest* temporary files. Change temp file prefix." />
-    <MESSAGE value="Pom: Fix typo" />
-    <MESSAGE value="Update list of users" />
-    <MESSAGE value="Volume: fix some edge cases handling" />
-    <MESSAGE value="Fix failing test, correct minor edge case" />
-    <option name="LAST_COMMIT_MESSAGE" value="Fix failing test, correct minor edge case" />
+    <option name="CHECK_CODE_SMELLS_BEFORE_PROJECT_COMMIT" value="false" />
+    <option name="CHECK_NEW_TODO" value="false" />
+    <MESSAGE value="Volume: fix int/long conversion error" />
+    <MESSAGE value="Example: update CacheOffHeap. Fix #432" />
+    <MESSAGE value="SerializerPojo: Added androidConstructorJelly for Android 4.2+. Fix #390. &#10;&#10;This code comes from pull request by natasky&#10;https://github.com/jankotek/mapdb/pull/390" />
+    <MESSAGE value="Update logger.properties." />
+    <MESSAGE value="DB: deprecate HTreeMapMaker.expireStoreSize for now." />
+    <MESSAGE value="StoreDirect: implement free size statistics" />
+    <MESSAGE value="Store tests: delete files after test finishes" />
+    <MESSAGE value="StoreDirect: cache freeSize value and increment it at runtime" />
+    <MESSAGE value="StoreDirect: compaction resets free size" />
+    <MESSAGE value="StoreDirect: fix compaction" />
+    <MESSAGE value="Store: small performance improvement on deserialization" />
+    <MESSAGE value="Volume: optimize some methods in RAF and MMAP files" />
+    <MESSAGE value="StoreDirect &amp; WAL: fix broken compaction" />
+    <MESSAGE value="Maven: add -DthreadCount=N option for unit tests" />
+    <MESSAGE value="Maven: increase memory for unit tests" />
+    <MESSAGE value="Maven: remove unnecessary parameters" />
+    <MESSAGE value="Volume: sync mmap files in reverse order, that should give better crash resitence to WAL" />
+    <MESSAGE value="Pom: revert last commit" />
+    <MESSAGE value="Store: add LongQueue utility class" />
+    <MESSAGE value="BTreeMap: remove small code duplicate" />
+    <MESSAGE value="Store: add recidReuse, fix HTreeMap expireStoreSize(). Fix #552" />
+    <MESSAGE value="recid-reuse" />
+    <MESSAGE value=".gitignore update" />
+    <MESSAGE value="DBMaker: add deprecation warning to recid reuse" />
+    <MESSAGE value="Javadoc: fix one error and some warnings" />
+    <option name="LAST_COMMIT_MESSAGE" value="Javadoc: fix one error and some warnings" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" type="java-line">
-          <url>file://$PROJECT_DIR$/../mapdb-burn/src/kill/CommitKill.java</url>
-          <line>46</line>
+          <url>jar://$USER_HOME$/.ideaLibSources/junit-4.11-sources.jar!/org/junit/Assert.java</url>
+          <line>85</line>
           <properties />
+          <option name="timeStamp" value="18" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
-          <url>jar://$MAVEN_REPOSITORY$/junit/junit/4.11/junit-4.11.jar!/org/junit/Assert.class</url>
-          <line>39</line>
+          <url>file://$PROJECT_DIR$/src/test/java/org/mapdb/DBMakerTest.java</url>
+          <line>715</line>
           <properties />
-          <option name="timeStamp" value="3" />
+          <option name="timeStamp" value="19" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
-          <url>file://$PROJECT_DIR$/src/test/java/org/mapdb/StoreAppendTest.java</url>
-          <line>138</line>
+          <url>file://$PROJECT_DIR$/src/test/java/org/mapdb/StoreDirectTest.java</url>
+          <line>812</line>
           <properties />
-          <option name="timeStamp" value="4" />
+          <option name="timeStamp" value="26" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
-          <url>file://$PROJECT_DIR$/src/main/java/org/mapdb/StoreAppend.java</url>
-          <line>176</line>
+          <url>file://$PROJECT_DIR$/src/main/java/org/mapdb/StoreWAL.java</url>
+          <line>1480</line>
           <properties />
-          <option name="timeStamp" value="5" />
+          <option name="timeStamp" value="29" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
-          <url>file://$PROJECT_DIR$/src/main/java/org/mapdb/Volume.java</url>
-          <line>2345</line>
+          <url>file://$PROJECT_DIR$/src/main/java/org/mapdb/Store.java</url>
+          <line>410</line>
           <properties />
-          <option name="timeStamp" value="6" />
+          <option name="timeStamp" value="39" />
         </line-breakpoint>
-        <line-breakpoint enabled="true" type="java-method">
-          <url>file://$PROJECT_DIR$/src/main/java/org/mapdb/Volume.java</url>
-          <line>303</line>
-          <properties class="org.mapdb.Volume" method="getPackedLong" />
-          <option name="timeStamp" value="1" />
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/main/java/org/mapdb/StoreDirect.java</url>
+          <line>1358</line>
+          <properties />
+          <option name="timeStamp" value="46" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/main/java/org/mapdb/StoreDirect.java</url>
+          <line>1428</line>
+          <properties />
+          <option name="timeStamp" value="47" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/main/java/org/mapdb/StoreDirect.java</url>
+          <line>1270</line>
+          <properties />
+          <option name="timeStamp" value="49" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/main/java/org/mapdb/StoreDirect.java</url>
+          <line>1345</line>
+          <properties />
+          <option name="timeStamp" value="50" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/main/java/org/mapdb/HTreeMap.java</url>
+          <line>2089</line>
+          <properties />
+          <option name="timeStamp" value="61" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/main/java/org/mapdb/HTreeMap.java</url>
+          <line>2087</line>
+          <properties />
+          <option name="timeStamp" value="62" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/test/java/org/mapdb/EngineTest.java</url>
+          <line>308</line>
+          <properties />
+          <option name="timeStamp" value="64" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/test/java/org/mapdb/EngineTest.java</url>
+          <line>306</line>
+          <properties />
+          <option name="timeStamp" value="65" />
         </line-breakpoint>
       </breakpoints>
-      <option name="time" value="7" />
+      <breakpoints-dialog>
+        <breakpoints-dialog />
+      </breakpoints-dialog>
+      <option name="time" value="68" />
     </breakpoint-manager>
-    <watches-manager />
+    <watches-manager>
+      <configuration name="JUnit">
+        <watch expression="seedStartDir.listFiles()" language="JAVA" custom="" />
+        <watch expression="seedEndDir.listFiles()" language="JAVA" custom="" />
+        <watch expression="seed.get()" language="JAVA" custom="" />
+        <watch expression="new File(fileName).length()" language="JAVA" custom="" />
+        <watch expression="recidToOffset(recid)" />
+        <watch expression="indexOffset" />
+      </configuration>
+      <configuration name="Application">
+        <watch expression="seedStartDir.listFiles()" language="JAVA" custom="" />
+        <watch expression="seedEndDir.listFiles()" language="JAVA" custom="" />
+        <watch expression="seed.get()" language="JAVA" custom="" />
+        <watch expression="new File(fileName).length()" language="JAVA" custom="" />
+        <watch expression="recidToOffset(recid)" />
+        <watch expression="indexOffset" />
+      </configuration>
+    </watches-manager>
   </component>
   <component name="antWorkspaceConfiguration">
     <option name="IS_AUTOSCROLL_TO_SOURCE" value="false" />
     <option name="FILTER_TARGETS" value="false" />
   </component>
   <component name="editorHistoryManager">
-    <entry file="jar://$MAVEN_REPOSITORY$/junit/junit/4.11/junit-4.11.jar!/org/junit/experimental/theories/Theories.class">
+    <entry file="jar:///opt/jdk8/src.zip!/java/nio/MappedByteBuffer.java">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="87" column="24" selection-start-line="87" selection-start-column="24" selection-end-line="87" selection-end-column="24" />
+          <caret line="80" column="16" selection-start-line="80" selection-start-column="16" selection-end-line="80" selection-end-column="16" />
         </state>
       </provider>
     </entry>
-    <entry file="jar://$MAVEN_REPOSITORY$/junit/junit/4.11/junit-4.11.jar!/org/junit/Ignore.class">
+    <entry file="jar:///opt/jdk8/src.zip!/java/nio/DirectByteBuffer.java">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="14" column="18" selection-start-line="14" selection-start-column="18" selection-end-line="14" selection-end-column="18" />
+          <caret line="183" column="5" selection-start-line="183" selection-start-column="5" selection-end-line="183" selection-end-column="5" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/BTreeSet3Test.java">
+    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/StoreDirectFreeSpaceTest.java">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="11" column="13" selection-start-line="11" selection-start-column="13" selection-end-line="11" selection-end-column="13" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/pom.xml">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="44" column="25" selection-start-line="44" selection-start-column="25" selection-end-line="44" selection-end-column="25" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/UtilsTest.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="181" column="64" selection-start-line="181" selection-start-column="64" selection-end-line="181" selection-end-column="64" />
-          <folding>
-            <element signature="imports" expanded="false" />
-            <element signature="e#896#897#0" expanded="false" />
-            <element signature="e#924#925#0" expanded="false" />
-            <element signature="e#966#967#0" expanded="false" />
-            <element signature="e#999#1000#0" expanded="false" />
-            <element signature="e#4132#4133#0" expanded="false" />
-            <element signature="e#4165#4166#0" expanded="false" />
-            <element signature="e#5109#5110#0" expanded="false" />
-            <element signature="e#5185#5186#0" expanded="false" />
-            <element signature="e#5555#5556#0" expanded="false" />
-            <element signature="e#5600#5601#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar:///opt/jdk6/src.zip!/java/lang/Comparable.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="79" column="17" selection-start-line="79" selection-start-column="17" selection-end-line="79" selection-end-column="17" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/release.gradle">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar:///opt/jdk6/src.zip!/java/io/File.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="1860" column="24" selection-start-line="1860" selection-start-column="15" selection-end-line="1860" selection-end-column="24" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar:///opt/jdk6/src.zip!/java/io/FileDescriptor.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="117" column="23" selection-start-line="117" selection-start-column="23" selection-end-line="117" selection-end-column="23" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar:///opt/jdk6/src.zip!/java/lang/ProcessBuilder.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="-1.1201764">
-          <caret line="104" column="19" selection-start-line="104" selection-start-column="19" selection-end-line="104" selection-end-column="19" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar:///opt/jdk6/src.zip!/java/lang/Comparable.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="79" column="17" selection-start-line="79" selection-start-column="17" selection-end-line="79" selection-end-column="17" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar://$MAVEN_REPOSITORY$/junit/junit/4.11/junit-4.11.jar!/org/junit/Ignore.class">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="14" column="18" selection-start-line="14" selection-start-column="18" selection-end-line="14" selection-end-column="18" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/BTreeSet3Test.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="11" column="13" selection-start-line="11" selection-start-column="13" selection-end-line="11" selection-end-column="13" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar://$MAVEN_REPOSITORY$/junit/junit/4.11/junit-4.11.jar!/org/junit/experimental/theories/Theories.class">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="87" column="24" selection-start-line="87" selection-start-column="24" selection-end-line="87" selection-end-column="24" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/DBMaker.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="1371" column="0" selection-start-line="1371" selection-start-column="0" selection-end-line="1371" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#56673#0" expanded="false" />
-            <element signature="imports" expanded="false" />
-            <element signature="e#4267#4268#0" expanded="false" />
-            <element signature="e#4314#4315#0" expanded="false" />
-            <element signature="e#4436#4437#0" expanded="false" />
-            <element signature="e#4467#4468#0" expanded="false" />
-            <element signature="e#4662#4663#0" expanded="false" />
-            <element signature="e#4711#4712#0" expanded="false" />
-            <element signature="e#4837#4838#0" expanded="false" />
-            <element signature="e#4870#4871#0" expanded="false" />
-            <element signature="e#5139#5140#0" expanded="false" />
-            <element signature="e#5194#5195#0" expanded="false" />
-            <element signature="e#5333#5334#0" expanded="false" />
-            <element signature="e#5372#5373#0" expanded="false" />
-            <element signature="e#5964#5965#0" expanded="false" />
-            <element signature="e#6019#6020#0" expanded="false" />
-            <element signature="e#6157#6158#0" expanded="false" />
-            <element signature="e#6196#6197#0" expanded="false" />
-            <element signature="e#6428#6429#0" expanded="false" />
-            <element signature="e#6485#6486#0" expanded="false" />
-            <element signature="e#6633#6634#0" expanded="false" />
-            <element signature="e#6674#6675#0" expanded="false" />
-            <element signature="e#7400#7401#0" expanded="false" />
-            <element signature="e#7436#7437#0" expanded="false" />
-            <element signature="e#8160#8161#0" expanded="false" />
-            <element signature="e#8196#8197#0" expanded="false" />
-            <element signature="e#8918#8919#0" expanded="false" />
-            <element signature="e#8954#8955#0" expanded="false" />
-            <element signature="e#9660#9661#0" expanded="false" />
-            <element signature="e#9696#9697#0" expanded="false" />
-            <element signature="e#10099#10100#0" expanded="false" />
-            <element signature="e#10134#10135#0" expanded="false" />
-            <element signature="e#11902#11903#0" expanded="false" />
-            <element signature="e#11940#11941#0" expanded="false" />
-            <element signature="e#12075#12076#0" expanded="false" />
-            <element signature="e#12110#12111#0" expanded="false" />
-            <element signature="e#12617#12618#0" expanded="false" />
-            <element signature="e#12685#12686#0" expanded="false" />
-            <element signature="e#14754#14755#0" expanded="false" />
-            <element signature="e#14829#14830#0" expanded="false" />
-            <element signature="e#23651#23652#0" expanded="false" />
-            <element signature="e#23698#23699#0" expanded="false" />
-            <element signature="e#31320#31321#0" expanded="false" />
-            <element signature="e#31355#31356#0" expanded="false" />
-            <element signature="e#31584#31585#0" expanded="false" />
-            <element signature="e#31642#31643#0" expanded="false" />
-            <element signature="e#39249#39250#0" expanded="false" />
-            <element signature="e#39284#39285#0" expanded="false" />
-            <element signature="e#54546#54547#0" expanded="false" />
-            <element signature="e#54583#54584#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/DataIO.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="1258" column="32" selection-start-line="1258" selection-start-column="32" selection-end-line="1258" selection-end-column="32" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/StoreDirect.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="632" column="31" selection-start-line="632" selection-start-column="31" selection-end-line="632" selection-end-column="31" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/EngineTest.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="715" column="0" selection-start-line="715" selection-start-column="0" selection-end-line="715" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar:///opt/jdk8/src.zip!/java/lang/ProcessBuilder.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="906" column="19" selection-start-line="906" selection-start-column="19" selection-end-line="906" selection-end-column="19" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/StoreWAL.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="4.464286">
-          <caret line="401" column="49" selection-start-line="401" selection-start-column="49" selection-end-line="401" selection-end-column="49" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../mapdb-burn/src/kill/CommitKill.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="81" column="0" selection-start-line="34" selection-start-column="3" selection-end-line="81" selection-end-column="0" />
-          <folding>
-            <element signature="imports" expanded="true" />
-            <element signature="e#671#786#0" expanded="true" />
-            <element signature="e#785#786#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar:///opt/jdk8/src.zip!/java/lang/Process.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="139" column="29" selection-start-line="139" selection-start-column="29" selection-end-line="139" selection-end-column="29" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/BTreeMapTest6.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="5" column="3" selection-start-line="5" selection-start-column="3" selection-end-line="5" selection-end-column="3" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/CrashWithInterruptTest.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="50" column="79" selection-start-line="50" selection-start-column="79" selection-end-line="50" selection-end-column="79" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/CrashWithJVMKillTest.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="29" column="39" selection-start-line="29" selection-start-column="39" selection-end-line="29" selection-end-column="39" />
+          <caret line="114" column="12" selection-start-line="114" selection-start-column="12" selection-end-line="114" selection-end-column="12" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/DBMakerTest.java">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="671" column="50" selection-start-line="671" selection-start-column="50" selection-end-line="671" selection-end-column="50" />
+          <caret line="473" column="10" selection-start-line="473" selection-start-column="10" selection-end-line="473" selection-end-column="10" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/DBTest.java">
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/TxEngine.java">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="384" column="50" selection-start-line="384" selection-start-column="50" selection-end-line="384" selection-end-column="50" />
+          <caret line="122" column="25" selection-start-line="122" selection-start-column="25" selection-end-line="122" selection-end-column="25" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/HeartbeatFileLockTest.java">
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/CC.java">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="35" column="47" selection-start-line="35" selection-start-column="47" selection-end-line="35" selection-end-column="47" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/HTreeMap2Test.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="1125" column="50" selection-start-line="1125" selection-start-column="50" selection-end-line="1125" selection-end-column="50" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/Issue258Test.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="98" column="49" selection-start-line="98" selection-start-column="49" selection-end-line="98" selection-end-column="49" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/Issue266Test.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="42" column="47" selection-start-line="42" selection-start-column="47" selection-end-line="42" selection-end-column="47" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/Issue312Test.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="15" column="38" selection-start-line="15" selection-start-column="38" selection-end-line="15" selection-end-column="38" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/Issue332Test.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="68" column="50" selection-start-line="68" selection-start-column="50" selection-end-line="68" selection-end-column="50" />
+          <caret line="134" column="72" selection-start-line="134" selection-start-column="72" selection-end-line="134" selection-end-column="72" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/Issue523Test.java">
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/SerializerPojo.java">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="15" column="55" selection-start-line="15" selection-start-column="55" selection-end-line="15" selection-end-column="55" />
-          <folding />
+          <caret line="648" column="23" selection-start-line="648" selection-start-column="23" selection-end-line="648" selection-end-column="23" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/QueuesTest.java">
+    <entry file="file://$PROJECT_DIR$/logger.properties">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="102" column="47" selection-start-line="102" selection-start-column="47" selection-end-line="102" selection-end-column="47" />
-          <folding />
+          <caret line="8" column="57" selection-start-line="8" selection-start-column="8" selection-end-line="8" selection-end-column="57" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/SerializerPojoTest.java">
+    <entry file="file://$PROJECT_DIR$/src/test/java/examples/CacheEntryExpiry.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.6">
+          <caret line="45" column="0" selection-start-line="42" selection-start-column="0" selection-end-line="45" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/StoreWALTest.java">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="489" column="51" selection-start-line="489" selection-start-column="51" selection-end-line="489" selection-end-column="51" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/SerializerTest.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="208" column="50" selection-start-line="208" selection-start-column="50" selection-end-line="208" selection-end-column="50" />
-          <folding>
-            <element signature="imports" expanded="false" />
-            <element signature="e#2687#2688#0" expanded="false" />
-            <element signature="e#2728#2729#0" expanded="false" />
-            <element signature="e#2767#2768#0" expanded="false" />
-            <element signature="e#2815#2816#0" expanded="false" />
-            <element signature="e#2860#2861#0" expanded="false" />
-            <element signature="e#2915#2916#0" expanded="false" />
-            <element signature="e#3279#3280#0" expanded="false" />
-            <element signature="e#3322#3323#0" expanded="false" />
-            <element signature="e#3360#3361#0" expanded="false" />
-            <element signature="e#3410#3411#0" expanded="false" />
-            <element signature="e#3454#3455#0" expanded="false" />
-            <element signature="e#3511#3512#0" expanded="false" />
-            <element signature="e#5007#5008#0" expanded="false" />
-            <element signature="e#5041#5042#0" expanded="false" />
-            <element signature="e#5396#5397#0" expanded="false" />
-            <element signature="e#5455#5456#0" expanded="false" />
-            <element signature="e#5516#5517#0" expanded="false" />
-            <element signature="e#5563#5564#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/UtilsTest.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="154" column="55" selection-start-line="154" selection-start-column="55" selection-end-line="154" selection-end-column="55" />
-          <folding>
-            <element signature="imports" expanded="false" />
-            <element signature="e#896#897#0" expanded="false" />
-            <element signature="e#924#925#0" expanded="false" />
-            <element signature="e#966#967#0" expanded="false" />
-            <element signature="e#999#1000#0" expanded="false" />
-            <element signature="e#4132#4133#0" expanded="false" />
-            <element signature="e#4165#4166#0" expanded="false" />
-            <element signature="e#5109#5110#0" expanded="false" />
-            <element signature="e#5185#5186#0" expanded="false" />
-            <element signature="e#5555#5556#0" expanded="false" />
-            <element signature="e#5600#5601#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/StoreDirectTest2.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="243" column="55" selection-start-line="243" selection-start-column="55" selection-end-line="243" selection-end-column="55" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar:///opt/jdk8/src.zip!/java/io/File.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="2066" column="23" selection-start-line="2066" selection-start-column="23" selection-end-line="2066" selection-end-column="23" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/pom.xml">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="165" column="0" selection-start-line="165" selection-start-column="0" selection-end-line="165" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../mapdb-site/success.rst">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="-6.3461537">
-          <caret line="11" column="45" selection-start-line="11" selection-start-column="45" selection-end-line="11" selection-end-column="45" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar:///opt/jdk8/src.zip!/java/io/RandomAccessFile.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="572" column="23" selection-start-line="572" selection-start-column="23" selection-end-line="572" selection-end-column="23" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar://$MAVEN_REPOSITORY$/junit/junit/4.11/junit-4.11.jar!/org/junit/Assert.class">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="-6.5384617">
-          <caret line="39" column="0" selection-start-line="39" selection-start-column="0" selection-end-line="39" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/DBException.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="169" column="18" selection-start-line="169" selection-start-column="18" selection-end-line="169" selection-end-column="18" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/DBHeaderTest.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="28" column="24" selection-start-line="28" selection-start-column="24" selection-end-line="28" selection-end-column="24" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/VolumeTest.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="114" column="0" selection-start-line="114" selection-start-column="0" selection-end-line="114" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/Store.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="1700" column="0" selection-start-line="1700" selection-start-column="0" selection-end-line="1700" selection-end-column="0" />
-          <folding />
+          <caret line="17" column="0" selection-start-line="17" selection-start-column="0" selection-end-line="17" selection-end-column="0" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/StoreAppendTest.java">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="138" column="0" selection-start-line="138" selection-start-column="0" selection-end-line="138" selection-end-column="0" />
+          <caret line="15" column="38" selection-start-line="15" selection-start-column="38" selection-end-line="15" selection-end-column="38" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../mapdb-site/doc/format.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/test/java/examples/CacheOffHeap.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="26" column="35" selection-start-line="26" selection-start-column="35" selection-end-line="26" selection-end-column="35" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="jar:///opt/jdk8/src.zip!/java/io/RandomAccessFile.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="685" column="21" selection-start-line="685" selection-start-column="21" selection-end-line="685" selection-end-column="21" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="jar:///opt/jdk8/src.zip!/java/nio/ByteBuffer.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="287" column="42" selection-start-line="287" selection-start-column="42" selection-end-line="287" selection-end-column="42" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/VolumeTest.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="28" column="31" selection-start-line="28" selection-start-column="31" selection-end-line="28" selection-end-column="31" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/ClosedThrowsExceptionTest.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="58" column="24" selection-start-line="58" selection-start-column="24" selection-end-line="58" selection-end-column="24" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/TT.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="283" column="38" selection-start-line="283" selection-start-column="38" selection-end-line="283" selection-end-column="38" />
+          <folding>
+            <element signature="imports" expanded="false" />
+            <element signature="e#914#915#0" expanded="false" />
+            <element signature="e#942#943#0" expanded="false" />
+            <element signature="e#4348#4349#0" expanded="false" />
+            <element signature="e#4381#4382#0" expanded="false" />
+            <element signature="e#5325#5326#0" expanded="false" />
+            <element signature="e#5401#5402#0" expanded="false" />
+            <element signature="e#5771#5772#0" expanded="false" />
+            <element signature="e#5816#5817#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/DBException.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="98" column="114" selection-start-line="98" selection-start-column="87" selection-end-line="98" selection-end-column="114" />
           <folding />
         </state>
       </provider>
@@ -1269,18 +1267,414 @@
     <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/Volume.java">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="2345" column="0" selection-start-line="2345" selection-start-column="0" selection-end-line="2345" selection-end-column="0" />
+          <caret line="1492" column="40" selection-start-line="1492" selection-start-column="40" selection-end-line="1492" selection-end-column="40" />
           <folding>
-            <element signature="e#69920#69921#0" expanded="true" />
-            <element signature="e#69956#69957#0" expanded="true" />
+            <element signature="e#0#96661#0" expanded="false" />
+            <element signature="imports" expanded="false" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pom.xml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="112" column="71" selection-start-line="112" selection-start-column="71" selection-end-line="112" selection-end-column="71" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/LongQueueTest.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="11" column="0" selection-start-line="11" selection-start-column="0" selection-end-line="11" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/CrashTest.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="30" column="27" selection-start-line="30" selection-start-column="27" selection-end-line="30" selection-end-column="27" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/HTreeMap2Test.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="207" column="21" selection-start-line="207" selection-start-column="21" selection-end-line="207" selection-end-column="21" />
+          <folding>
+            <element signature="imports" expanded="false" />
+            <element signature="e#672#673#0" expanded="false" />
+            <element signature="e#698#699#0" expanded="false" />
+            <element signature="e#7732#7733#0" expanded="false" />
+            <element signature="e#7784#7785#0" expanded="false" />
+            <element signature="e#20504#20505#0" expanded="false" />
+            <element signature="e#20542#20543#0" expanded="false" />
+            <element signature="e#20605#20606#0" expanded="false" />
+            <element signature="e#20677#20678#0" expanded="false" />
+            <element signature="e#21299#21300#0" expanded="false" />
+            <element signature="e#21355#21356#0" expanded="false" />
+            <element signature="e#21919#21920#0" expanded="false" />
+            <element signature="e#21977#21978#0" expanded="false" />
+            <element signature="e#22799#22800#0" expanded="false" />
+            <element signature="e#22859#22860#0" expanded="false" />
+            <element signature="e#23763#23764#0" expanded="false" />
+            <element signature="e#23821#23822#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/HTreeSetTest.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="109" column="103" selection-start-line="109" selection-start-column="103" selection-end-line="109" selection-end-column="103" />
+          <folding>
+            <element signature="e#0#5534#0" expanded="false" />
+            <element signature="imports" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/Engine.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="222" column="13" selection-start-line="222" selection-start-column="13" selection-end-line="222" selection-end-column="13" />
+          <folding>
+            <element signature="e#0#19799#0" expanded="false" />
+            <element signature="imports" expanded="false" />
+            <element signature="e#11533#11534#0" expanded="false" />
+            <element signature="e#11609#11610#0" expanded="false" />
+            <element signature="e#11903#11904#0" expanded="false" />
+            <element signature="e#11979#11980#0" expanded="false" />
+            <element signature="e#12030#12031#0" expanded="false" />
+            <element signature="e#12106#12107#0" expanded="false" />
+            <element signature="e#12158#12159#0" expanded="false" />
+            <element signature="e#12234#12235#0" expanded="false" />
+            <element signature="e#12291#12292#0" expanded="false" />
+            <element signature="e#12326#12327#0" expanded="false" />
+            <element signature="e#12720#12721#0" expanded="false" />
+            <element signature="e#12796#12797#0" expanded="false" />
+            <element signature="e#13107#13108#0" expanded="false" />
+            <element signature="e#13151#13152#0" expanded="false" />
+            <element signature="e#13235#13236#0" expanded="false" />
+            <element signature="e#13295#13296#0" expanded="false" />
+            <element signature="e#13344#13345#0" expanded="false" />
+            <element signature="e#13383#13384#0" expanded="false" />
+            <element signature="e#13438#13439#0" expanded="false" />
+            <element signature="e#13486#13487#0" expanded="false" />
+            <element signature="e#13544#13545#0" expanded="false" />
+            <element signature="e#13595#13596#0" expanded="false" />
+            <element signature="e#13658#13659#0" expanded="false" />
+            <element signature="e#13695#13696#0" expanded="false" />
+            <element signature="e#13749#13750#0" expanded="false" />
+            <element signature="e#13792#13793#0" expanded="false" />
+            <element signature="e#13851#13852#0" expanded="false" />
+            <element signature="e#13902#13903#0" expanded="false" />
+            <element signature="e#15097#15098#0" expanded="false" />
+            <element signature="e#15148#15149#0" expanded="false" />
+            <element signature="e#15232#15233#0" expanded="false" />
+            <element signature="e#15291#15292#0" expanded="false" />
+            <element signature="e#15375#15376#0" expanded="false" />
+            <element signature="e#15434#15435#0" expanded="false" />
+            <element signature="e#15533#15534#0" expanded="false" />
+            <element signature="e#15594#15595#0" expanded="false" />
+            <element signature="e#15913#15914#0" expanded="false" />
+            <element signature="e#15968#15969#0" expanded="false" />
+            <element signature="e#16267#16268#0" expanded="false" />
+            <element signature="e#16315#16316#0" expanded="false" />
+            <element signature="e#16365#16366#0" expanded="false" />
+            <element signature="e#16404#16405#0" expanded="false" />
+            <element signature="e#16591#16592#0" expanded="false" />
+            <element signature="e#16641#16642#0" expanded="false" />
+            <element signature="e#16699#16700#0" expanded="false" />
+            <element signature="e#16750#16751#0" expanded="false" />
+            <element signature="e#16808#16809#0" expanded="false" />
+            <element signature="e#16859#16860#0" expanded="false" />
+            <element signature="e#17060#17061#0" expanded="false" />
+            <element signature="e#17097#17098#0" expanded="false" />
+            <element signature="e#17151#17152#0" expanded="false" />
+            <element signature="e#17194#17195#0" expanded="false" />
+            <element signature="e#17245#17246#0" expanded="false" />
+            <element signature="e#17285#17286#0" expanded="false" />
+            <element signature="e#17466#17467#0" expanded="false" />
+            <element signature="e#17536#17537#0" expanded="false" />
+            <element signature="e#17621#17622#0" expanded="false" />
+            <element signature="e#17691#17692#0" expanded="false" />
+            <element signature="e#17775#17776#0" expanded="false" />
+            <element signature="e#17845#17846#0" expanded="false" />
+            <element signature="e#18307#18308#0" expanded="false" />
+            <element signature="e#18377#18378#0" expanded="false" />
+            <element signature="e#18426#18427#0" expanded="false" />
+            <element signature="e#18496#18497#0" expanded="false" />
+            <element signature="e#18551#18552#0" expanded="false" />
+            <element signature="e#18586#18587#0" expanded="false" />
+            <element signature="e#18636#18637#0" expanded="false" />
+            <element signature="e#18706#18707#0" expanded="false" />
+            <element signature="e#18922#18923#0" expanded="false" />
+            <element signature="e#18992#18993#0" expanded="false" />
+            <element signature="e#19050#19051#0" expanded="false" />
+            <element signature="e#19120#19121#0" expanded="false" />
+            <element signature="e#19178#19179#0" expanded="false" />
+            <element signature="e#19248#19249#0" expanded="false" />
+            <element signature="e#19471#19472#0" expanded="false" />
+            <element signature="e#19541#19542#0" expanded="false" />
+            <element signature="e#19595#19596#0" expanded="false" />
+            <element signature="e#19665#19666#0" expanded="false" />
+            <element signature="e#19716#19717#0" expanded="false" />
+            <element signature="e#19786#19787#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/HTreeMap3Test.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="68" column="36" selection-start-line="68" selection-start-column="36" selection-end-line="68" selection-end-column="36" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/StoreDirectTest2.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="87" column="13" selection-start-line="87" selection-start-column="13" selection-end-line="87" selection-end-column="13" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/StoreDirectTest.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="763" column="39" selection-start-line="763" selection-start-column="39" selection-end-line="763" selection-end-column="39" />
+          <folding>
+            <element signature="imports" expanded="false" />
+            <element signature="e#545#546#0" expanded="false" />
+            <element signature="e#571#572#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/StoreCacheHashTableTest.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="25" column="21" selection-start-line="25" selection-start-column="21" selection-end-line="25" selection-end-column="21" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/StoreCachedTest.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="12" column="12" selection-start-line="12" selection-start-column="12" selection-end-line="12" selection-end-column="12" />
+          <folding>
+            <element signature="imports" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/StoreWAL.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="136" column="10" selection-start-line="136" selection-start-column="10" selection-end-line="136" selection-end-column="10" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/test/java/examples/CacheOffHeapAdvanced.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="46" column="17" selection-start-line="46" selection-start-column="17" selection-end-line="46" selection-end-column="17" />
+          <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/StoreAppend.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.5872534">
-          <caret line="199" column="0" selection-start-line="199" selection-start-column="0" selection-end-line="199" selection-end-column="0" />
+        <state vertical-scroll-proportion="0.0">
+          <caret line="500" column="14" selection-start-line="500" selection-start-column="14" selection-end-line="500" selection-end-column="14" />
+          <folding>
+            <element signature="e#16138#16139#0" expanded="false" />
+            <element signature="e#16162#16163#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/StoreHeapTest.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="3" column="13" selection-start-line="3" selection-start-column="13" selection-end-line="3" selection-end-column="13" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/StoreHeap.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="94" column="70" selection-start-line="94" selection-start-column="70" selection-end-line="94" selection-end-column="70" />
+          <folding>
+            <element signature="e#2806#2807#0" expanded="false" />
+            <element signature="e#2863#2864#0" expanded="false" />
+            <element signature="e#4421#4422#0" expanded="false" />
+            <element signature="e#4446#4447#0" expanded="false" />
+            <element signature="e#4493#4494#0" expanded="false" />
+            <element signature="e#4518#4519#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/Store.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="559" column="0" selection-start-line="559" selection-start-column="0" selection-end-line="559" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/StoreDirect.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="535" column="0" selection-start-line="535" selection-start-column="0" selection-end-line="535" selection-end-column="0" />
+          <folding>
+            <element signature="e#18851#18852#0" expanded="true" />
+            <element signature="e#18918#18919#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/HTreeMap.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="1177" column="28" selection-start-line="1177" selection-start-column="28" selection-end-line="1177" selection-end-column="28" />
+          <folding>
+            <element signature="e#0#77690#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/.gitignore">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="-1.7307693">
+          <caret line="3" column="5" selection-start-line="3" selection-start-column="5" selection-end-line="3" selection-end-column="5" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/EngineTest.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.6">
+          <caret line="765" column="13" selection-start-line="765" selection-start-column="13" selection-end-line="765" selection-end-column="13" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/StoreCached.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="457" column="19" selection-start-line="457" selection-start-column="19" selection-end-line="457" selection-end-column="19" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/Issue381Test.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="26" column="49" selection-start-line="26" selection-start-column="49" selection-end-line="26" selection-end-column="49" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/Atomic.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="744" column="11" selection-start-line="744" selection-start-column="11" selection-end-line="744" selection-end-column="11" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/Bind.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="156" column="49" selection-start-line="156" selection-start-column="49" selection-end-line="156" selection-end-column="49" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/BTreeKeySerializer.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="667" column="17" selection-start-line="667" selection-start-column="17" selection-end-line="667" selection-end-column="17" />
+          <folding>
+            <element signature="e#28997#28998#0" expanded="true" />
+            <element signature="e#29042#29043#0" expanded="true" />
+            <element signature="e#29097#29098#0" expanded="true" />
+            <element signature="e#29139#29140#0" expanded="true" />
+            <element signature="e#29200#29201#0" expanded="true" />
+            <element signature="e#29245#29246#0" expanded="true" />
+            <element signature="e#30197#30198#0" expanded="true" />
+            <element signature="e#30267#30268#0" expanded="true" />
+            <element signature="e#33401#33402#0" expanded="true" />
+            <element signature="e#33445#33446#0" expanded="true" />
+            <element signature="e#33499#33500#0" expanded="true" />
+            <element signature="e#33536#33537#0" expanded="true" />
+            <element signature="e#38558#38559#0" expanded="true" />
+            <element signature="e#38594#38595#0" expanded="true" />
+            <element signature="e#41232#41233#0" expanded="true" />
+            <element signature="e#41276#41277#0" expanded="true" />
+            <element signature="e#41330#41331#0" expanded="true" />
+            <element signature="e#41367#41368#0" expanded="true" />
+            <element signature="e#50056#50057#0" expanded="true" />
+            <element signature="e#50119#50120#0" expanded="true" />
+            <element signature="e#50204#50205#0" expanded="true" />
+            <element signature="e#50258#50259#0" expanded="true" />
+            <element signature="e#50333#50334#0" expanded="true" />
+            <element signature="e#50386#50387#0" expanded="true" />
+            <element signature="e#50449#50450#0" expanded="true" />
+            <element signature="e#50494#50495#0" expanded="true" />
+            <element signature="e#50551#50552#0" expanded="true" />
+            <element signature="e#50595#50596#0" expanded="true" />
+            <element signature="e#50658#50659#0" expanded="true" />
+            <element signature="e#50701#50702#0" expanded="true" />
+            <element signature="e#50974#50975#0" expanded="true" />
+            <element signature="e#51038#51039#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/BTreeMap.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="3507" column="0" selection-start-line="3507" selection-start-column="0" selection-end-line="3507" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/Serializer.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="2067" column="0" selection-start-line="2067" selection-start-column="0" selection-end-line="2067" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/DataIO.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="913" column="51" selection-start-line="913" selection-start-column="51" selection-end-line="913" selection-end-column="51" />
+          <folding>
+            <element signature="e#18911#18912#0" expanded="true" />
+            <element signature="e#18961#18962#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/DB.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="663" column="0" selection-start-line="663" selection-start-column="0" selection-end-line="663" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/DBMaker.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.3321739">
+          <caret line="168" column="45" selection-start-line="168" selection-start-column="45" selection-end-line="168" selection-end-column="45" />
           <folding />
         </state>
       </provider>
@@ -1325,7 +1719,7 @@
       </state>
       <state key="ModuleStructureConfigurable.UI">
         <settings>
-          <last-edited>mapdb-burn</last-edited>
+          <last-edited>mapdb</last-edited>
           <splitter-proportions>
             <option name="proportions">
               <list>

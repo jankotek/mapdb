@@ -67,6 +67,10 @@ public class StoreAppend extends Store {
 
     protected final boolean isSnapshot;
 
+    protected final long startSize;
+    protected final long sizeIncrement;
+    protected final int sliceShift;
+
     protected StoreAppend(String fileName,
                           Volume.VolumeFactory volumeFactory,
                           Cache cache,
@@ -80,7 +84,9 @@ public class StoreAppend extends Store {
                           boolean fileLockDisable,
                           DataIO.HeartbeatFileLock fileLockHeartbeat,
                           boolean txDisabled,
-                          ScheduledExecutorService compactionExecutor
+                          ScheduledExecutorService compactionExecutor,
+                          long startSize,
+                          long sizeIncrement
                     ) {
         super(fileName, volumeFactory, cache, lockScale,lockingStrategy, checksum, compress, password, readonly,
                 snapshotEnable,fileLockDisable, fileLockHeartbeat);
@@ -96,6 +102,10 @@ public class StoreAppend extends Store {
         this.compactionExecutor = compactionExecutor;
         this.snapshots = Collections.synchronizedSet(new HashSet<StoreAppend>());
         this.isSnapshot = false;
+        this.sizeIncrement = Math.max(1L<<CC.VOLUME_PAGE_SHIFT, DataIO.nextPowTwo(sizeIncrement));
+        this.startSize = Fun.roundUp(Math.max(1L<<CC.VOLUME_PAGE_SHIFT,startSize), this.sizeIncrement);
+        this.sliceShift = Volume.sliceShiftFromSize(this.sizeIncrement);
+
     }
 
     public StoreAppend(String fileName) {
@@ -112,7 +122,9 @@ public class StoreAppend extends Store {
                 false,
                 null,
                 false,
-                null
+                null,
+                0,
+                0
         );
     }
 
@@ -159,6 +171,9 @@ public class StoreAppend extends Store {
         this.snapshots = host.snapshots;
         this.isSnapshot = true;
         host.snapshots.add(StoreAppend.this);
+        this.startSize = host.startSize;
+        this.sizeIncrement = host.sizeIncrement;
+        this.sliceShift = host.sliceShift;
     }
 
     @Override
@@ -166,15 +181,18 @@ public class StoreAppend extends Store {
         super.init();
         structuralLock.lock();
         try {
-            vol = volumeFactory.makeVolume(fileName, readonly,fileLockDisable);
-            indexTable = new Volume.ByteArrayVol(CC.VOLUME_PAGE_SHIFT);
+            boolean empty = Volume.isEmptyFile(fileName);
+
+            vol = volumeFactory.makeVolume(fileName, readonly,fileLockDisable,sliceShift, startSize, false);
+            indexTable = new Volume.ByteArrayVol(CC.VOLUME_PAGE_SHIFT,0L);
+            indexTable.ensureAvailable(RECID_LAST_RESERVED*8);
             eof = headerSize;
             for (int i = 0; i <= RECID_LAST_RESERVED; i++) {
                 indexTable.ensureAvailable(i * 8);
                 indexTable.putLong(i * 8, -3);
             }
 
-            if (vol.isEmpty()) {
+            if (empty) {
                 initCreate();
             } else {
                 initOpen();

@@ -1,6 +1,7 @@
 package org.mapdb20;
 
 
+import org.junit.After;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -18,8 +19,12 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
     @Override boolean canRollback(){return false;}
 
-    File f = UtilsTest.tempDbFile();
+    File f = TT.tempDbFile();
 
+    @After
+    public void deleteFile(){
+        f.delete();
+    }
 
 //    static final long FREE_RECID_STACK = StoreDirect.IO_FREE_RECID+32;
 
@@ -248,7 +253,8 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         }
 
         //second list should be reverse of first, as Linked Offset List is LIFO
-        Collections.reverse(recids);
+        Collections.sort(recids);
+        Collections.sort(recids);
         assertEquals(recids, recids2);
     }
 //
@@ -403,7 +409,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     }
 
     @Test public void test_large_long_stack_no_commit() throws IOException {
-        if(UtilsTest.scale()==0)
+        if(TT.scale()==0)
             return;
         e = openEngine();
         //dirty hack to make sure we have lock
@@ -618,7 +624,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
 
     @Test public void delete_files_after_close(){
-        File f = UtilsTest.tempDbFile();
+        File f = TT.tempDbFile();
         File phys = new File(f.getPath());
 
         DB db = DBMaker.fileDB(f).transactionDisable().deleteFilesAfterClose().make();
@@ -649,9 +655,9 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     @Test public void prealloc(){
         e = openEngine();
         long recid = e.preallocate();
-        assertNull(e.get(recid,UtilsTest.FAIL));
+        assertNull(e.get(recid, TT.FAIL));
         e.commit();
-        assertNull(e.get(recid,UtilsTest.FAIL));
+        assertNull(e.get(recid, TT.FAIL));
     }
 
     @Ignore //TODO deal with store versioning and feature bits
@@ -737,7 +743,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
 
     @Test public void compact_keeps_volume_type(){
-        if(UtilsTest.scale()==0)
+        if(TT.scale()==0)
             return;
 
         for(final Fun.Function1<Volume,String> fab : VolumeTest.VOL_FABS){
@@ -748,22 +754,21 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
                 }
             };
             //init
-            File f = UtilsTest.tempDbFile();
+            File f = TT.tempDbFile();
             e = (E) new StoreDirect(f.getPath(), fac,
                     null,
                     CC.DEFAULT_LOCK_SCALE,
                     0,
                     false,false,null,
-                    false,false,false,null,0,
-                    false,0,
-                    null);
+                    false,false,false,null,
+                    null, 0L, 0L, false);
             e.init();
 
             //fill with some data
 
             Map<Long, String> data = new LinkedHashMap();
             for(int i=0;i<1000;i++){
-                String ss = UtilsTest.randomString(1000);
+                String ss = TT.randomString(1000);
                 long recid = e.put(ss,Serializer.STRING);
             }
 
@@ -782,6 +787,34 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
             e.close();
             f.delete();
         }
+    }
+
+    @Test public void test_free_space(){
+        if(TT.shortTest())
+            return;
+
+        e = openEngine();
+
+        assertTrue(e.getFreeSize()>=0);
+
+        List<Long> recids = new ArrayList<Long>();
+        for(int i=0;i<10000;i++){
+            recids.add(
+                e.put(TT.randomByteArray(1024), Serializer.BYTE_ARRAY_NOSIZE));
+        }
+        assertEquals(0, e.getFreeSize());
+
+        e.commit();
+        for(Long recid:recids){
+            e.delete(recid,Serializer.BYTE_ARRAY_NOSIZE);
+        }
+        e.commit();
+
+        assertEquals(10000 * 1024, e.getFreeSize());
+
+        e.compact();
+        assertTrue(e.getFreeSize() <100000); //some leftovers after compaction
+
     }
 
 }

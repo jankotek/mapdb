@@ -69,7 +69,7 @@ public class Issue266Test {
 
 
         DB db = DBMaker.memoryDB().make();
-        AdvancedEnum a = (AdvancedEnum) UtilsTest.clone(AdvancedEnum.A, db.getDefaultSerializer());
+        AdvancedEnum a = (AdvancedEnum) TT.clone(AdvancedEnum.A, db.getDefaultSerializer());
         assertEquals(a.toString(),AdvancedEnum.A.toString());
         assertEquals(a.ordinal(),AdvancedEnum.A.ordinal());
 

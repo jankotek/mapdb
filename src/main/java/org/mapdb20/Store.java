@@ -95,6 +95,8 @@ public abstract class Store implements Engine {
     protected final AtomicLong metricsDataRead;
     protected final AtomicLong metricsRecordRead;
 
+    protected final boolean deserializeExtra;
+
     protected DataIO.HeartbeatFileLock fileLockHeartbeat;
 
     protected final Cache[] caches;
@@ -123,6 +125,9 @@ public abstract class Store implements Engine {
         this.lockMask = lockScale-1;
         this.fileLockDisable = fileLockDisable;
         this.fileLockHeartbeat = fileLockHeartbeat;
+        if(fileLockHeartbeat!=null) {
+            fileLockHeartbeat.setQuitAfterGCed(Store.this);
+        }
         if(Integer.bitCount(lockScale)!=1)
             throw new IllegalArgumentException("Lock Scale must be power of two");
         //TODO replace with incrementer on java 8
@@ -159,6 +164,7 @@ public abstract class Store implements Engine {
         this.checksum = checksum;
         this.compress = compress;
         this.encrypt =  password!=null;
+        this.deserializeExtra = (this.checksum || this.encrypt || this.compress);
         this.readonly = readonly;
         this.encryptionXTEA = !encrypt?null:new EncryptionXTEA(password);
 
@@ -394,7 +400,7 @@ public abstract class Store implements Engine {
             //TODO return future and finish deserialization outside lock, does even bring any performance bonus?
 
             DataIO.DataInputInternal di = (DataIO.DataInputInternal) input;
-            if (size > 0 && (checksum || encrypt || compress))  {
+            if (size > 0 && deserializeExtra)  {
                 return deserializeExtra(serializer,size,di);
             }
 
@@ -1695,6 +1701,75 @@ public abstract class Store implements Engine {
         }
     }
 
+    /**
+     Queue of primitive long. It uses circular buffer of packed longs, so it is very memory efficient.
+     It has two operations put and take, items are placed in FIFO order.
+     */
+    public static final class LongQueue {
+        static final int MAX_PACKED_LEN = 10;
+
+        protected int size;
+        protected byte[] b;
+        protected int start = 0;
+        protected int end = 0;
+
+        public LongQueue(){
+            this(1023);
+        }
+
+        /** size is in bytes, each long consumes between 1 to 10 bytes depending on its value */
+        public LongQueue(int size){
+            this.size = size;
+            this.b = new byte[size];
+        }
+
+        /**
+         * Takes and returns value from queue. If queue is empty it returns {@code Long.MIN_VALUE}.
+         */
+        public long take(){
+            if (start==end){
+                return Long.MIN_VALUE; // empty;
+            }
+            //unpack long, increase start
+            long ret = 0;
+            byte v;
+            do{
+                //$DELAY$
+                v = b[start];
+                start = (++start)%size;
+                ret = (ret<<7 ) | (v & 0x7F);
+            }while(v<0);
+            return ret;
+        }
+
+        /** Puts value in queue, returns true if queue was not full and value was inserted */
+        public boolean put(long value){
+            if(end < start && start-end<=MAX_PACKED_LEN){
+                return false; //not enough free space
+            }
+            //the same case, but with boundary crossing
+            if(start < end && start+size-end<=MAX_PACKED_LEN){
+                return false; //not enough free space
+            }
+
+            //pack long, increase end
+            int shift = 63-Long.numberOfLeadingZeros(value);
+            shift -= shift%7; // round down to nearest multiple of 7
+            while(shift!=0){
+                b[end] = (byte) (((value>>>shift) & 0x7F) | 0x80);
+                end = (++end)%size;
+                shift-=7;
+            }
+            b[end] = (byte) (value & 0x7F);
+            end = (++end)%size;
+
+            return true;
+        }
+
+        public boolean isEmpty(){
+            return start == end;
+        }
+    }
 
     /** fake lock */
 

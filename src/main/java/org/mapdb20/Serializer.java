@@ -2030,6 +2030,8 @@ public abstract class Serializer<A> {
      *
      * @param out ObjectOutput to save object into
      * @param value Object to serialize
+     *
+     * @throws java.io.IOException in case of IO error
      */
     abstract public void serialize(DataOutput out, A value)
             throws IOException;
@@ -2041,7 +2043,7 @@ public abstract class Serializer<A> {
      * @param in to read serialized data from
      * @param available how many bytes are available in DataInput for reading, may be -1 (in streams) or 0 (null).
      * @return deserialized object
-     * @throws java.io.IOException
+     * @throws java.io.IOException in case of IO error
      */
     abstract public A deserialize( DataInput in, int available)
             throws IOException;

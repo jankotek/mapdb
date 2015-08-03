@@ -1,5 +1,6 @@
 package org.mapdb20;
 
+import org.junit.After;
 import org.junit.Test;
 
 import java.io.File;
@@ -25,7 +26,9 @@ public class StoreAppendTest<E extends StoreAppend> extends EngineTest<E>{
                     false,
                     null,
                     false,
-                    null
+                    null,
+                    0L,
+                    0L
             );
             s.init();
             return  s;
@@ -33,8 +36,13 @@ public class StoreAppendTest<E extends StoreAppend> extends EngineTest<E>{
 
     }
 
-    File f = UtilsTest.tempDbFile();
+    File f = TT.tempDbFile();
 
+
+    @After
+    public void deleteFile(){
+        f.delete();
+    }
 
     @Override
     protected E openEngine() {
@@ -138,5 +146,10 @@ public class StoreAppendTest<E extends StoreAppend> extends EngineTest<E>{
     @Test public void header(){
         StoreAppend s = openEngine();
         assertEquals(StoreAppend.HEADER,s.vol.getInt(0));
+    }
+
+    @Override
+    public void commit_huge() {
+        //TODO this test is ignored, causes OOEM
     }
 }

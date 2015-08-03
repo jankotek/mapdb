@@ -39,13 +39,13 @@ public class ExamplesTest {
     }
 
     @Test public void Cache(){
-        if(UtilsTest.scale()==0)
+        if(TT.scale()==0)
             return;
         CacheEntryExpiry.main(args);
     }
 
     @Test public void CacheOverflow() throws InterruptedException {
-        if(UtilsTest.scale()==0)
+        if(TT.scale()==0)
             return;
         CacheOverflow.main(args);
     }
@@ -55,7 +55,7 @@ public class ExamplesTest {
     }
 
     @Test public void Huge_Insert() throws IOException {
-        if(UtilsTest.scale()==0)
+        if(TT.scale()==0)
             return;
 
         Huge_Insert.main(args);
@@ -71,7 +71,7 @@ public class ExamplesTest {
     }
 
     @Test public void Histogram(){
-        if(UtilsTest.scale()==0)
+        if(TT.scale()==0)
             return;
 
         Histogram.main(args);
@@ -122,25 +122,25 @@ public class ExamplesTest {
     }
 
     @Test public void CacheOffHeap(){
-        if(UtilsTest.scale()==0)
+        if(TT.scale()==0)
             return;
         CacheOffHeap.main(args);
     }
 
     @Test public void CacheOffHeapAdvanced(){
-        if(UtilsTest.scale()==0)
+        if(TT.scale()==0)
             return;
         CacheOffHeapAdvanced.main(args);
     }
 
     @Test public void TreeMap_Performance_Tunning(){
-        if(UtilsTest.scale()==0)
+        if(TT.scale()==0)
             return;
         TreeMap_Performance_Tunning.main(args);
     }
 
     @Test public void CacheEntryExpiry(){
-        if(UtilsTest.scale()==0)
+        if(TT.scale()==0)
             return;
         CacheEntryExpiry.main(args);
     }

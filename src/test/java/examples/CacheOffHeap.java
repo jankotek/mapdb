@@ -20,7 +20,13 @@ public class CacheOffHeap {
 
         // Create cache backed by off-heap store
         // In this case store will use ByteBuffers backed by byte[].
-        HTreeMap cache = DBMaker.newCache(cacheSizeInGB);
+        HTreeMap cache = DBMaker
+                .memoryDirectDB()
+                .transactionDisable()
+                .make()
+                .hashMapCreate("test")
+                .expireStoreSize(cacheSizeInGB) //TODO not sure this actually works
+                .make();
 
         // Other alternative is to use Direct ByteBuffers.
         // In this case the memory is not released if cache is not correctly closed.
@@ -48,7 +54,8 @@ public class CacheOffHeap {
 
         }
 
-        // and close to release memory (optional)
-        cache.getEngine().close();
+        // and release memory. Only necessary with `DBMaker.memoryDirect()`
+        cache.close();
+
     }
 }

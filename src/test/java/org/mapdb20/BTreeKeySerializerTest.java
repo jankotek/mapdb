@@ -242,7 +242,7 @@ public class BTreeKeySerializerTest {
             @Override
             public Object run() {
                 int size = r.nextInt(100);
-                return UtilsTest.randomString(size);
+                return TT.randomString(size);
             }
         });
     }
@@ -254,7 +254,7 @@ public class BTreeKeySerializerTest {
             @Override
             public Object run() {
                 int size = r.nextInt(100);
-                return UtilsTest.randomString(size);
+                return TT.randomString(size);
             }
         });
     }
@@ -266,7 +266,7 @@ public class BTreeKeySerializerTest {
             @Override
             public Object run() {
                 int size = r.nextInt(100);
-                return UtilsTest.randomString(size)+((char)200);
+                return TT.randomString(size)+((char)200);
             }
         });
     }
@@ -277,7 +277,7 @@ public class BTreeKeySerializerTest {
             @Override
             public Object run() {
                 int size = r.nextInt(100);
-                return UtilsTest.randomString(size)+((char)200);
+                return TT.randomString(size)+((char)200);
             }
         });
     }
@@ -288,7 +288,7 @@ public class BTreeKeySerializerTest {
             @Override
             public Object run() {
                 int size = r.nextInt(100);
-                return UtilsTest.randomString(size)+((char)2222);
+                return TT.randomString(size)+((char)2222);
             }
         });
     }
@@ -299,7 +299,7 @@ public class BTreeKeySerializerTest {
             @Override
             public Object run() {
                 int size = r.nextInt(100);
-                return UtilsTest.randomString(size)+((char)2222);
+                return TT.randomString(size)+((char)2222);
             }
         });
     }
@@ -318,7 +318,7 @@ public class BTreeKeySerializerTest {
         randomSerializer(new  BTreeKeySerializer.Compress(BTreeKeySerializer.BASIC), new Fun.Function0() {
             @Override
             public Object run() {
-                return UtilsTest.randomString(100);
+                return TT.randomString(100);
             }
         });
     }
@@ -384,7 +384,7 @@ public class BTreeKeySerializerTest {
     @Test public void string_formats_compatible() throws IOException {
         ArrayList keys = new ArrayList();
         for(int i=0;i<1000;i++){
-            keys.add("common prefix "+ UtilsTest.randomString(10+new Random().nextInt(100)));
+            keys.add("common prefix "+ TT.randomString(10 + new Random().nextInt(100)));
         }
 
         checkStringSerializers(keys);
@@ -394,7 +394,7 @@ public class BTreeKeySerializerTest {
     @Test public void string_formats_compatible_no_prefix() throws IOException {
         ArrayList keys = new ArrayList();
         for(int i=0;i<1000;i++){
-            keys.add(UtilsTest.randomString(10+new Random().nextInt(100)));
+            keys.add(TT.randomString(10 + new Random().nextInt(100)));
         }
 
         checkStringSerializers(keys);
@@ -403,7 +403,7 @@ public class BTreeKeySerializerTest {
     @Test public void string_formats_compatible_equal_size() throws IOException {
         ArrayList keys = new ArrayList();
         for(int i=0;i<1000;i++){
-            keys.add("common prefix "+ UtilsTest.randomString(10));
+            keys.add("common prefix "+ TT.randomString(10));
         }
 
         checkStringSerializers(keys);

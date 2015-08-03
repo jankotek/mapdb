@@ -9,6 +9,7 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.*;
@@ -16,7 +17,7 @@ import java.util.concurrent.*;
 import static java.util.Arrays.asList;
 import static org.junit.Assert.*;
 
-public class UtilsTest {
+public class TT {
 
     private static int SCALE;
     static{
@@ -39,10 +40,17 @@ public class UtilsTest {
         return SCALE;
     }
 
+    public static long nowPlusMinutes(double minutes){
+        return System.currentTimeMillis() + (long)(scale()+1000*60*minutes);
+    }
+
 
     public static boolean shortTest() {
         return scale()==0;
     }
+
+    public static final boolean[] BOOLS = {true, false};
+
 
 
     @Test public void testPackInt() throws Exception {
@@ -240,4 +248,39 @@ public class UtilsTest {
         }
     }
 
+    public static String serializeToString(Object o) throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ObjectOutputStream out2 = new ObjectOutputStream(out);
+        out2.writeObject(o);
+        out2.close();
+        byte[] b = out.toByteArray();
+        return DataIO.toHexa(b);
+    }
+
+    public static <A> A deserializeFromString(String s) throws IOException, ClassNotFoundException {
+        ByteArrayInputStream in = new ByteArrayInputStream(DataIO.fromHexa(s));
+        return (A) new ObjectInputStream(in).readObject();
+    }
+
+    /** recursive delete directory */
+    public static void dirDelete(File dir) {
+        String tempDir = System.getProperty("java.io.tmpdir");
+        assertTrue(dir.getAbsolutePath().startsWith(tempDir));
+        dirDelete2(dir);
+    }
+
+    private static void dirDelete2(File dir){
+        if(dir.isDirectory()) {
+            for (File f : dir.listFiles()) {
+                dirDelete2(f);
+            }
+        }
+        dir.delete();
+    }
+
+    public static void sortAndEquals(long[] longs, long[] longs1) {
+        Arrays.sort(longs);
+        Arrays.sort(longs1);
+        assertArrayEquals(longs,longs1);
+    }
 }
