@@ -1202,6 +1202,7 @@ public final class DBMaker{
          * It decreases store fragmentation.
          * But could cause race conditions and class cast exception in case of wrong threading
          *
+         * @deprecated this setting might be removed before 2.0 stable release, it is very likely it will become enabled by default
          * @return this builder
          */
         public Maker allocateRecidReuseEnable(){
