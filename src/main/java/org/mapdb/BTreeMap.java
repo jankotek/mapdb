@@ -163,7 +163,7 @@ public class BTreeMap<K,V>
     protected final boolean closeEngine;
 
 
-    /** hack used for DB Catalog*/
+    /* hack used for DB Catalog*/
     protected static SortedMap<String, Object> preinitCatalog(DB db) {
 
         Long rootRef = db.getEngine().get(Engine.RECID_NAME_CATALOG, Serializer.RECID);
@@ -937,7 +937,7 @@ public class BTreeMap<K,V>
         leftEdges = Collections.synchronizedList(leftEdges2);
     }
 
-    /** creates empty root node and returns recid of its reference*/
+    /* creates empty root node and returns recid of its reference*/
     static protected long createRootRef(Engine engine, BTreeKeySerializer keySer, Serializer valueSer, int numberOfNodeMetas){
         Object emptyArray = valueSer!=null?
                 valueSer.valueArrayEmpty():
@@ -3483,7 +3483,7 @@ public class BTreeMap<K,V>
 
 
 
-    /** expand array size by 1, and put value at given position. No items from original array are lost*/
+    /* expand array size by 1, and put value at given position. No items from original array are lost*/
     protected static Object[] arrayPut(final Object[] array, final int pos, final Object value){
         final Object[] ret = Arrays.copyOf(array, array.length+1);
         if(pos<array.length){

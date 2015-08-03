@@ -166,7 +166,7 @@ public final class DBMaker{
      * <p>
      * Creates new in-memory database. Changes are lost after JVM exits.
      * </p><p>
-     * This will use {@code DirectByteBuffer{} outside of HEAP, so Garbage Collector is not affected
+     * This will use {@code DirectByteBuffer} outside of HEAP, so Garbage Collector is not affected
      * You should increase ammount of direct memory with
      * {@code -XX:MaxDirectMemorySize=10G} JVM param
      * </p>

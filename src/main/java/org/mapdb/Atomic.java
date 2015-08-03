@@ -721,7 +721,7 @@ final public class Atomic {
             this.serializer = serializer;
         }
 
-        /** used for deserialization */
+        /* used for deserialization */
         protected Var(Engine engine, SerializerBase serializerBase, DataInput is, SerializerBase.FastArrayList<Object> objectStack) throws IOException {
             objectStack.add(this);
             this.engine = engine;

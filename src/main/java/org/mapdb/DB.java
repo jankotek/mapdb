@@ -248,7 +248,12 @@ public class DB implements Closeable {
         return value;
     }
 
-    /** returns name for this object, if it has name and was instanciated by this DB*/
+    /**
+     * Get name for object. DB keeps weak reference to all objects it instanciated
+     *
+     * @param obj object to get name for
+     * @return name for this object, if it has name and was instanciated by this DB
+     */
     public String getNameForObject(Object obj) {
         return namesLookup.get(new IdentityWrapper(obj));
     }

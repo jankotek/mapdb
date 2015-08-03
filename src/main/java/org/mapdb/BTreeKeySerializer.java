@@ -26,7 +26,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
      * @param out output stream where to put ata
      * @param keys An object which represents keys
      *
-     * @throws IOException
+     * @throws IOException in case of an writting error
      */
     public abstract void serialize(DataOutput out, KEYS keys) throws IOException;
 
@@ -34,9 +34,10 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
      * Deserializes keys for single BTree Node. To
      *
      * @param in input stream to read data from
+     * @param nodeSize number of keys in deserialized node
      * @return an object which represents keys
      *
-     * @throws IOException
+     * @throws IOException in case of an reading error
      */
     public abstract KEYS deserialize(DataInput in, int nodeSize) throws IOException;
 
@@ -63,7 +64,14 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
 
     public abstract int length(KEYS keys);
 
-    /** expand keys array by one and put {@code newKey} at position {@code pos} */
+    /** expand keys array by one and put {@code newKey} at position {@code pos}
+     *
+     *  @param keys array of keys to put new key into
+     *  @param pos of new key
+     *  @param newKey new key to insert
+     *
+     *  @return array of keys with new key at given position
+     */
     public abstract KEYS putKey(KEYS keys, int pos, KEY newKey);
 
 
@@ -74,6 +82,10 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
     /**
      * Find the first children node with a key equal or greater than the given key.
      * If all items are smaller it returns {@code keyser.length(keys)}
+     *
+     * @param node BTree Node to find position in
+     * @param key key whose position needs to be find
+     * @return position of key in node
      */
     public int findChildren(final BTreeMap.BNode node, final Object key) {
         KEYS keys = (KEYS) node.keys;
@@ -638,7 +650,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             this.comparator = new Fun.ArrayComparator(comparators);
         }
 
-        /** used for deserialization, extra is to avoid argument collision */
+        /* used for deserialization, extra is to avoid argument collision */
         public ArrayKeySerializer(SerializerBase serializerBase, DataInput is,
                                   SerializerBase.FastArrayList<Object> objectStack) throws IOException {
             objectStack.add(this);
