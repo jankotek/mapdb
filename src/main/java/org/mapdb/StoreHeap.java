@@ -1,5 +1,7 @@
 package org.mapdb;
 
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -155,6 +157,30 @@ public class StoreHeap extends Store{
     @Override
     public long getFreeSize() {
         return -1;
+    }
+
+    @Override
+    public void backupFull(OutputStream out) {
+        //TODO full backup
+        throw new UnsupportedOperationException("not yet implemented");
+    }
+
+    @Override
+    public void backupFullRestore(InputStream in) {
+        //TODO full backup
+        throw new UnsupportedOperationException("not yet implemented");
+    }
+
+    @Override
+    public void backupIncremental(OutputStream out) {
+        //TODO full backup
+        throw new UnsupportedOperationException("not yet implemented");
+    }
+
+    @Override
+    public void backupIncrementalRestore(InputStream[] in) {
+        //TODO full backup
+        throw new UnsupportedOperationException("not yet implemented");
     }
 
     @Override

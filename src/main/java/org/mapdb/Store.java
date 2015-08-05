@@ -1,8 +1,6 @@
 package org.mapdb;
 
-import java.io.DataInput;
-import java.io.IOError;
-import java.io.IOException;
+import java.io.*;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
@@ -663,6 +661,14 @@ public abstract class Store implements Engine {
         map.put(DB.METRICS_CACHE_HIT,cacheHit);
         map.put(DB.METRICS_CACHE_MISS, cacheMiss);
     }
+
+    public abstract void backupFull(OutputStream out);
+
+    public abstract void backupFullRestore(InputStream in);
+
+    public abstract void backupIncremental(OutputStream out);
+
+    public abstract void backupIncrementalRestore(InputStream[] in);
 
     /**
      * Cache implementation, part of {@link Store} class.

@@ -789,4 +789,29 @@ public final class Pump {
     public static void copy(DB src, DB target) {
         //TODO implement
     }
+
+    public static void backupFull(DB db, OutputStream out) {
+        Store store = Store.forDB(db);
+        store.backupFull(out);
+    }
+
+    public static DB backupFullRestore(DBMaker.Maker maker, InputStream in) {
+        DB db = maker.make();
+        Store store = Store.forDB(db);
+        store.backupFullRestore(in);
+        return db;
+    }
+
+    public static void backupIncremental(DB db, OutputStream out) {
+        backupFull(db, out);
+    }
+
+
+    public static DB backupIncrementalRestore(DBMaker.Maker maker, InputStream[] in) {
+        DB db = maker.make();
+        Store store = Store.forDB(db);
+        store.backupFullRestore(in[in.length-1]);
+        return db;
+    }
+
 }
