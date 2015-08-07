@@ -786,32 +786,93 @@ public final class Pump {
 
     }
 
+    /** @deprecated not yet implemented */
     public static void copy(DB src, DB target) {
         //TODO implement
     }
 
     public static void backupFull(DB db, OutputStream out) {
         Store store = Store.forDB(db);
-        store.backupFull(out);
+        store.backup(out, false);
     }
 
     public static DB backupFullRestore(DBMaker.Maker maker, InputStream in) {
         DB db = maker.make();
         Store store = Store.forDB(db);
-        store.backupFullRestore(in);
+        store.backupRestore(new InputStream[]{in});
         return db;
     }
 
-    public static void backupIncremental(DB db, OutputStream out) {
-        backupFull(db, out);
+    public static void backupIncremental(DB db, File backupDir) {
+        try {
+            File[] files = backupDir.listFiles();
+            boolean isEmpty = (files.length==0);
+
+            //find maximal timestamp, increase current if necessary
+            long timestamp = System.currentTimeMillis();
+            long lastTimestamp = 0;
+            for(File f:files){
+                String num = nameWithoutExt(f);
+                long fTimestamp = Long.valueOf(num);
+                timestamp = Math.max(fTimestamp+1, timestamp);
+                lastTimestamp = Math.max(lastTimestamp, fTimestamp);
+            }
+
+            File file = new File(backupDir, "" + timestamp + (isEmpty?".full":".inc"));
+
+            FileOutputStream out = new FileOutputStream(file);
+            Store store = Store.forDB(db);
+
+            //write header
+            DataOutputStream out2 = new DataOutputStream(out);
+            out2.writeInt(StoreDirect.HEADER);
+            out2.writeInt(0); //checksum
+            out2.writeLong(store.makeFeaturesBitmap());
+            out2.writeLong(0); //file size
+            out2.writeLong(timestamp);
+            out2.writeLong(lastTimestamp);
+
+            store.backup(out, true);
+            out.flush();
+            out.close();
+        }catch(IOException e){
+            throw new DBException.VolumeIOError(e);
+        }
+    }
+
+    public static DB backupIncrementalRestore(DBMaker.Maker maker, File backupDir) {
+        try{
+            File[] files = backupDir.listFiles();
+
+            //sort by timestamp
+            Arrays.sort(files, new Comparator<File>(){
+                @Override
+                public int compare(File o1, File o2) {
+                    long n1 = Long.valueOf(nameWithoutExt(o1));
+                    long n2 = Long.valueOf(nameWithoutExt(o2));
+                    return Fun.compareLong(n1,n2);
+                }
+            });
+
+            InputStream[] ins = new InputStream[files.length];
+            for(int i=0;i<ins.length;i++){
+                ins[i] = new FileInputStream(files[i]);
+                ins[i].skip(40);
+            }
+
+            DB db = maker.make();
+            Store store = Store.forDB(db);
+            store.backupRestore(ins);
+            return db;
+        }catch(IOException e){
+            throw new DBException.VolumeIOError(e);
+        }
     }
 
 
-    public static DB backupIncrementalRestore(DBMaker.Maker maker, InputStream[] in) {
-        DB db = maker.make();
-        Store store = Store.forDB(db);
-        store.backupFullRestore(in[in.length-1]);
-        return db;
+    protected static String nameWithoutExt(File f) {
+        String num = f.getName();
+        num = num.substring(0, num.indexOf('.'));
+        return num;
     }
-
 }

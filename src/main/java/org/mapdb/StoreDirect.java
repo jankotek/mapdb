@@ -1110,101 +1110,7 @@ public class StoreDirect extends Store {
     }
 
     @Override
-    public void backupFull(OutputStream out) {
-        //lock everything
-        for(ReadWriteLock lock:locks){
-            lock.readLock().lock();
-        }
-        try {
-            long maxRecid = DataIO.parity1Get(headVol.getLong(MAX_RECID_OFFSET)) / indexValSize;
-            recidLoop:
-            for (long recid = 1; recid <= maxRecid; recid++) {
-                long indexOffset = recidToOffset(recid);
-                final long indexVal = vol.getLong(indexOffset);
-                if(checksum &&
-                        vol.getUnsignedShort(indexOffset+8)!=
-                                (DataIO.longHash(indexVal)&0xFFFF)){
-                    throw new DBException.ChecksumBroken();
-                }
-
-                //check if was discarted
-                if((indexVal&MUNUSED)!=0||indexVal == 0){
-                    continue recidLoop;
-                }
-
-                //write recid
-                DataIO.packLong(out, recid);
-
-                //load record
-                long[] offsets = offsetsGet(lockPos(recid),indexValGet(recid));
-                int totalSize = offsetsTotalSize(offsets);
-                if(offsets!=null) {
-                    byte[] b = getLoadLinkedRecord(offsets, totalSize);
-
-                    //write size and data
-                    DataIO.packLong(out, b.length+1);
-                    out.write(b);
-                }else{
-                    DataIO.packLong(out, 0);
-                }
-                //TODO checksums
-            }
-            //EOF mark
-            DataIO.packLong(out,-1);
-        }catch (IOException e){
-            throw new DBException.VolumeIOError(e);
-        }finally {
-            //unlock everything in reverse order to prevent deadlocks
-            for(int i=locks.length-1;i>=0;i--){
-                locks[i].readLock().unlock();
-            }
-        }
-    }
-
-    @Override
-    public void backupFullRestore(InputStream in) {
-        //check we are empty
-        if(RECID_LAST_RESERVED+1!=DataIO.parity1Get(headVol.getLong(MAX_RECID_OFFSET))/indexValSize){
-            throw new DBException.WrongConfig("Can not restore backup, this store is not empty!");
-        }
-
-        for(ReadWriteLock lock:locks){
-            lock.writeLock().lock();
-        }
-        structuralLock.lock();
-        try {
-            recidLoop:
-            for (; ; ) {
-                long recid = DataIO.unpackLong(in);
-                if(recid==-1) { // EOF
-                    return;
-                }
-
-                long len = DataIO.unpackLong(in);
-                if(len==0){
-                    //null record
-                    indexValPut(recid, 0, 0, true, false);
-                }else{
-                    byte[] data = new byte[(int) (len - 1)];
-                    DataIO.readFully(in,data);
-                    long[] newOffsets = freeDataTake(data.length);
-                    pageIndexEnsurePageForRecidAllocated(recid);
-                    putData(recid, newOffsets, data, data.length);
-                }
-            }
-        }catch (IOException e){
-            throw new DBException.VolumeIOError(e);
-        }finally {
-            structuralLock.unlock();
-            //unlock everything in reverse order to prevent deadlocks
-            for(int i=locks.length-1;i>=0;i--){
-                locks[i].writeLock().unlock();
-            }
-        }
-    }
-
-    @Override
-    public void backupIncremental(OutputStream out) {
+    public void backup(OutputStream out, boolean incremental) {
         //lock everything
         for(ReadWriteLock lock:locks){
             lock.writeLock().lock();
@@ -1214,7 +1120,7 @@ public class StoreDirect extends Store {
             recidLoop:
             for (long recid = 1; recid <= maxRecid; recid++) {
                 long indexOffset = recidToOffset(recid);
-                final long indexVal = vol.getLong(indexOffset);
+                long indexVal = vol.getLong(indexOffset);
                 if(checksum &&
                         vol.getUnsignedShort(indexOffset+8)!=
                                 (DataIO.longHash(indexVal)&0xFFFF)){
@@ -1227,18 +1133,21 @@ public class StoreDirect extends Store {
                 }
 
                 //check if recid was modified since last incrementa thingy
-                if((indexVal&MARCHIVE)==0){
+                if(incremental && (indexVal&MARCHIVE)==0){
                     continue recidLoop;
                 }
+
+                //TODO we need write lock to do this, there could be setting make backup without archive marker, but only under readlock
                 //mark value as not modified
+                indexVal = DataIO.parity1Get(indexVal);
                 indexValPut(recid, (int) (indexVal>>>48), indexVal&MOFFSET,
-                        (indexVal&MLINKED)==0, false);
+                        (indexVal&MLINKED)!=0, false);
 
                 //write recid
                 DataIO.packLong(out, recid);
 
                 //load record
-                long[] offsets = offsetsGet(lockPos(recid),indexValGet(recid));
+                long[] offsets = offsetsGet(lockPos(recid),indexVal);
                 int totalSize = offsetsTotalSize(offsets);
                 if(offsets!=null) {
                     byte[] b = getLoadLinkedRecord(offsets, totalSize);
@@ -1263,8 +1172,10 @@ public class StoreDirect extends Store {
         }
     }
 
+
+
     @Override
-    public void backupIncrementalRestore(InputStream[] ins) {
+    public void backupRestore(InputStream[] ins) {
         //check we are empty
         if(RECID_LAST_RESERVED+1!=DataIO.parity1Get(headVol.getLong(MAX_RECID_OFFSET))/indexValSize){
             throw new DBException.WrongConfig("Can not restore backup, this store is not empty!");
@@ -1277,29 +1188,33 @@ public class StoreDirect extends Store {
         try {
             BitSet usedRecid = new BitSet();
 
+            streamsLoop:
             for(int i=ins.length-1;i>=0;i--) {
                 InputStream in = ins[i];
                 recidLoop:
                 for (; ; ) {
                     long recid = DataIO.unpackLong(in);
                     if (recid == -1) { // EOF
-                        return;
+                        continue streamsLoop;
                     }
 
                     long len = DataIO.unpackLong(in);
 
-                    if(recid>Integer.MAX_VALUE)
-                        throw new AssertionError(); //TODO support bigger recids
-                    if(usedRecid.get((int) recid)){
-                        //recid was already addressed in other incremental backup
-                        //so skip length and continue
-                        long toSkip =  len-1;
-                        if(toSkip>0){
-                            in.skip(toSkip);
+                    if(ins.length!=1) {
+                        if(recid>Integer.MAX_VALUE)
+                            throw new AssertionError(); //TODO support bigger recids
+
+                        if (usedRecid.get((int) recid)) {
+                            //recid was already addressed in other incremental backup
+                            //so skip length and continue
+                            long toSkip = len - 1;
+                            if (toSkip > 0) {
+                                in.skip(toSkip);
+                            }
+                            continue recidLoop;
                         }
-                        continue recidLoop;
+                        usedRecid.set((int) recid);
                     }
-                    usedRecid.set((int) recid);
 
                     if (len == 0) {
                         //null record

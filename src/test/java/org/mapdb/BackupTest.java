@@ -4,12 +4,14 @@ import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class BackupTest {
@@ -35,7 +37,7 @@ public class BackupTest {
 
         Set m2 = db2.hashSet("test");
 
-        assertTrue(m.size() == 1000);
+        assertEquals(1000, m.size());
         assertTrue(m.containsAll(m2));
         assertTrue(m2.containsAll(m));
     }
@@ -44,6 +46,7 @@ public class BackupTest {
     public void incremental_backup() {
         DB db = DBMaker.memoryDB().transactionDisable().make();
         Map m = db.hashMap("test");
+        File dir = TT.tempDbDir();
 
         List<byte[]> backups = new ArrayList<byte[]>();
 
@@ -52,7 +55,7 @@ public class BackupTest {
                 m.put(i, TT.randomString(1000, j*1000+i));
             }
             ByteArrayOutputStream out = new ByteArrayOutputStream();
-            Pump.backupIncremental(db,out);
+            Pump.backupIncremental(db,dir);
             backups.add(out.toByteArray());
         }
 
@@ -63,7 +66,7 @@ public class BackupTest {
 
         DB db2 = Pump.backupIncrementalRestore(
                 DBMaker.memoryDB().transactionDisable(),
-                in);
+                dir);
 
         Map m2 = db2.hashMap("test");
 

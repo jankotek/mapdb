@@ -169,12 +169,18 @@ public class TT {
         }
     }
 
+    public static File tempDbDir() {
+        String tmpDir = System.getProperty("java.io.tmpdir");
+        File ret =  new File(tmpDir+File.separator+"mapdbTest"+System.currentTimeMillis()+"-"+Math.random());
+        ret.mkdir();
+        return ret;
+    }
 
     private static final char[] chars = "0123456789abcdefghijklmnopqrstuvwxyz !@#$%^&*()_+=-{}[]:\",./<>?|\\".toCharArray();
 
 
     public static String randomString(int size) {
-        return randomString(size, (int) (100000*Math.random()));
+        return randomString(size, (int) (100000 * Math.random()));
     }
 
     public static String randomString(int size, int seed) {

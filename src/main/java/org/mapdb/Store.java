@@ -662,13 +662,9 @@ public abstract class Store implements Engine {
         map.put(DB.METRICS_CACHE_MISS, cacheMiss);
     }
 
-    public abstract void backupFull(OutputStream out);
+    public abstract void backup(OutputStream out, boolean incremental);
 
-    public abstract void backupFullRestore(InputStream in);
-
-    public abstract void backupIncremental(OutputStream out);
-
-    public abstract void backupIncrementalRestore(InputStream[] in);
+    public abstract void backupRestore(InputStream[] in);
 
     /**
      * Cache implementation, part of {@link Store} class.

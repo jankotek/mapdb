@@ -159,26 +159,15 @@ public class StoreHeap extends Store{
         return -1;
     }
 
+
     @Override
-    public void backupFull(OutputStream out) {
+    public void backup(OutputStream out, boolean incremental) {
         //TODO full backup
         throw new UnsupportedOperationException("not yet implemented");
     }
 
     @Override
-    public void backupFullRestore(InputStream in) {
-        //TODO full backup
-        throw new UnsupportedOperationException("not yet implemented");
-    }
-
-    @Override
-    public void backupIncremental(OutputStream out) {
-        //TODO full backup
-        throw new UnsupportedOperationException("not yet implemented");
-    }
-
-    @Override
-    public void backupIncrementalRestore(InputStream[] in) {
+    public void backupRestore(InputStream[] in) {
         //TODO full backup
         throw new UnsupportedOperationException("not yet implemented");
     }
