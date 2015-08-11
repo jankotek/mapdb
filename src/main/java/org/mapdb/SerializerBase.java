@@ -1671,7 +1671,7 @@ public class SerializerBase extends Serializer<Object>{
 
 
     protected Class deserializeClass(DataInput is) throws IOException {
-        return SerializerPojo.classForName(is.readUTF());
+        return SerializerPojo.DEFAULT_CLASS_LOADER.run(is.readUTF());
     }
 
 

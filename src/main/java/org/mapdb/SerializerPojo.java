@@ -33,7 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SerializerPojo extends SerializerBase implements Serializable{
 
 
-    protected static final Serializer<ClassInfo> CLASS_INFO_SERIALIZER = new Serializer<ClassInfo>() {
+    protected final Serializer<ClassInfo> classInfoSerializer = new Serializer<ClassInfo>() {
 
         @Override
 		public void serialize(DataOutput out, ClassInfo ci) throws IOException {
@@ -53,16 +53,24 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
         @Override
 		public ClassInfo deserialize(DataInput in, int available) throws IOException{
-            final ClassLoader classLoader = SerializerPojo.classForNameClassLoader();
-
             String className = in.readUTF();
+            Class clazz = null;
             boolean isEnum = in.readBoolean();
             boolean isExternalizable = in.readBoolean();
 
             int fieldsNum = isExternalizable? 0 : DataIO.unpackInt(in);
             FieldInfo[] fields = new FieldInfo[fieldsNum];
             for (int j = 0; j < fieldsNum; j++) {
-                fields[j] = new FieldInfo(in.readUTF(), in.readBoolean(), classLoader, in.readUTF(), classForName(classLoader, className));
+                String fieldName = in.readUTF();
+                boolean primitive = in.readBoolean();
+                String type = in.readUTF();
+                if(clazz == null)
+                    clazz = classLoader.run(className);
+
+                fields[j] = new FieldInfo(fieldName,
+                        type,
+                        primitive?null:classLoader.run(type),
+                        clazz);
             }
             return new ClassInfo(className, fields,isEnum,isExternalizable);
         }
@@ -76,21 +84,22 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     };
     private static final long serialVersionUID = 3181417366609199703L;
 
-    protected static ClassLoader classForNameClassLoader() {
-        return Thread.currentThread().getContextClassLoader();
-    }
+    protected static final Fun.Function1<Class, String> DEFAULT_CLASS_LOADER = new Fun.Function1<Class, String>() {
+        @Override
+        public Class run(String className) {
+            ClassLoader loader =  Thread.currentThread().getContextClassLoader();
+            return classForName(className, loader);
+        }
+    };
 
-    protected static Class<?> classForName(String className) {
-        return classForName(classForNameClassLoader(), className);
-    }
-
-    protected static Class<?> classForName(ClassLoader loader, String className) {
+    protected static Class classForName(String className, ClassLoader loader) {
         try {
-            return Class.forName(className, true,loader);
+            return Class.forName(className, true, loader);
         } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
+            throw new DBException.ClassNotFound(e);
         }
     }
+
 
     protected final Engine engine;
 
@@ -100,6 +109,8 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     protected final Fun.Function0<ClassInfo[]> getClassInfos;
     protected final Fun.Function1Int<ClassInfo> getClassInfo;
     protected final Fun.Function1<Void,String> notifyMissingClassInfo;
+    protected final Fun.Function1<Class, String> classLoader;
+
 
     public SerializerPojo(
             Fun.Function1<String, Object> getNameForObject,
@@ -107,9 +118,11 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             Fun.Function1Int<ClassInfo> getClassInfo,
             Fun.Function0<ClassInfo[]> getClassInfos,
             Fun.Function1<Void, String> notifyMissingClassInfo,
+            Fun.Function1<Class, String> classLoader,
             Engine engine){
         this.getNameForObject = getNameForObject;
         this.getNamedObject = getNamedObject;
+        this.classLoader = classLoader!=null? classLoader : DEFAULT_CLASS_LOADER;
         this.engine = engine;
         this.getClassInfo = getClassInfo!=null?getClassInfo:new Fun.Function1Int<ClassInfo>() {
             @Override public ClassInfo run(int a) {
@@ -215,17 +228,17 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         protected final Class<?> clazz;
         protected Field field;
 
-        FieldInfo(String name, boolean primitive, String type, Class<?> clazz) {
-            this(name, primitive, SerializerPojo.classForNameClassLoader(), type, clazz);
-        }
-
-        public FieldInfo(String name, boolean primitive, ClassLoader classLoader, String type, Class<?> clazz) {
-            this(name, type, primitive ? null : classForName(classLoader, type), clazz);
-        }
-
-        public FieldInfo(ObjectStreamField sf, ClassLoader loader, Class<?> clazz) {
-            this(sf.getName(), sf.isPrimitive(), loader, sf.getType().getName(), clazz);
-        }
+//        FieldInfo(String name, boolean primitive, String type, Class<?> clazz) {
+//            this(name, primitive, SerializerPojo.classForNameClassLoader(), type, clazz);
+//        }
+//
+//        public FieldInfo(String name, boolean primitive, ClassLoader classLoader, String type, Class<?> clazz) {
+//            this(name, type, primitive ? null : classForName(classLoader, type), clazz);
+//        }
+//
+//        public FieldInfo(ObjectStreamField sf, ClassLoader loader, Class<?> clazz) {
+//            this(sf.getName(), sf.isPrimitive(), loader, sf.getType().getName(), clazz);
+//        }
 
         public FieldInfo(String name, String type, Class<?> typeClass, Class<?> clazz) {
             this.name = name;
@@ -288,14 +301,19 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
 
 
-    public static ClassInfo makeClassInfo(ClassLoader classLoader, String className){
-        Class clazz = classForName(classLoader, className);
+    public ClassInfo makeClassInfo(String className){
+        Class clazz = classLoader.run(className);
         final boolean advancedSer = usesAdvancedSerialization(clazz);
         ObjectStreamField[] streamFields = advancedSer ? new ObjectStreamField[0] : makeFieldsForClass(clazz);
         FieldInfo[] fields = new FieldInfo[streamFields.length];
         for (int i = 0; i < fields.length; i++) {
             ObjectStreamField sf = streamFields[i];
-            fields[i] = new FieldInfo(sf, classLoader, clazz);
+            String type = sf.getType().getName();
+            fields[i] = new FieldInfo(
+                    sf.getName(),
+                    type,
+                    sf.isPrimitive() ? null : classLoader.run(type),
+                    clazz);
         }
 
         return new ClassInfo(clazz.getName(), fields, clazz.isEnum(), advancedSer);
@@ -519,7 +537,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
                 return o;
             }
 
-            Class<?> clazz = classForNameClassLoader().loadClass(classInfo.name);
+            Class<?> clazz = classLoader.run(classInfo.name);
             if (!Serializable.class.isAssignableFrom(clazz))
                 throw new NotSerializableException(clazz.getName());
 
@@ -559,7 +577,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
     static{
         try{
-            Class<?> clazz = classForName("sun.reflect.ReflectionFactory");
+            Class<?> clazz = DEFAULT_CLASS_LOADER.run("sun.reflect.ReflectionFactory");
             if(clazz!=null){
                 Method getReflectionFactory = clazz.getMethod("getReflectionFactory");
                 sunReflFac = getReflectionFactory.invoke(null);
@@ -710,14 +728,14 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             int classId = DataIO.unpackInt(this);
 
             final Class clazz;
+            String className;
             if(classId == -1){
                 //unknown class, so read its name
-                String className = this.readUTF();
-                clazz = Class.forName(className, false, SerializerPojo.classForNameClassLoader());
+                className = this.readUTF();
             }else{
-                String className = classes[classId].name;
-                clazz = SerializerPojo.classForNameClassLoader().loadClass(className);
+                className = classes[classId].name;
             }
+            clazz = classLoader.run(className);
             final ObjectStreamClass descriptor = ObjectStreamClass.lookup(clazz);
 
             lastDescriptor = descriptor;
@@ -729,9 +747,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         @Override
         protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
             if (desc == lastDescriptor) return lastDescriptorClass;
-
-            ClassLoader loader = SerializerPojo.classForNameClassLoader();
-            Class<?> clazz = Class.forName(desc.getName(), false, loader);
+            Class<?> clazz = classLoader.run(desc.getName());
             if (clazz != null)
                 return clazz;
             return super.resolveClass(desc);

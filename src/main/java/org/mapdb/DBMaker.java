@@ -401,6 +401,9 @@ public final class DBMaker{
         protected ScheduledExecutorService cacheExecutor;
 
         protected ScheduledExecutorService storeExecutor;
+        protected ClassLoader serializerClassLoader;
+        protected Map<String,ClassLoader> serializerClassLoaderRegistry;
+
 
         protected Properties props = new Properties();
 
@@ -1197,6 +1200,47 @@ public final class DBMaker{
         }
 
         /**
+         * Sets class loader used to POJO serializer to load classes during deserialization.
+         *
+         * @return this builder
+         */
+        public Maker serializerClassLoader(ClassLoader classLoader ){
+            this.serializerClassLoader = classLoader;
+            return this;
+        }
+
+        /**
+         * Register class with given Class Loader. This loader will be used by POJO deserializer to load and instantiate new classes.
+         * This might be needed in OSGI containers etc.
+         *
+         * @return this builder
+         */
+        public Maker serializerRegisterClass(String className, ClassLoader classLoader ){
+            if(this.serializerClassLoaderRegistry==null)
+                this.serializerClassLoaderRegistry = new HashMap<String, ClassLoader>();
+            this.serializerClassLoaderRegistry.put(className, classLoader);
+            return this;
+        }
+
+
+        /**
+         * Register classes with their Class Loaders. This loader will be used by POJO deserializer to load and instantiate new classes.
+         * This might be needed in OSGI containers etc.
+         *
+         * @return this builder
+         */
+        public Maker serializerRegisterClass(Class... classes){
+            if(this.serializerClassLoaderRegistry==null)
+                this.serializerClassLoaderRegistry = new HashMap<String, ClassLoader>();
+            for(Class clazz:classes) {
+                this.serializerClassLoaderRegistry.put(clazz.getName(), clazz.getClassLoader());
+            }
+            return this;
+        }
+
+
+
+        /**
          * Allocator reuses recids immediately, that can cause problems to some data types.
          * This option disables recid reusing, until they are released by compaction.
          * This option will cause higher store fragmentation with HTreeMap, queues etc..
@@ -1239,7 +1283,8 @@ public final class DBMaker{
                         metricsExec2,
                         metricsLogInterval,
                         storeExecutor,
-                        cacheExecutor);
+                        cacheExecutor,
+                        makeClassLoader());
                 dbCreated = true;
                 return db;
             }finally {
@@ -1247,6 +1292,33 @@ public final class DBMaker{
                 if(!dbCreated)
                     engine.close();
             }
+        }
+
+        protected Fun.Function1<Class, String> makeClassLoader() {
+            if(serializerClassLoader==null &&
+                    (serializerClassLoaderRegistry==null || serializerClassLoaderRegistry.isEmpty())){
+                return null;
+            }
+
+            //makje defensive copies
+            final ClassLoader serializerClassLoader2 = this.serializerClassLoader;
+            final Map<String, ClassLoader> serializerClassLoaderRegistry2 =
+                    new HashMap<String, ClassLoader>();
+            if(this.serializerClassLoaderRegistry!=null){
+                serializerClassLoaderRegistry2.putAll(this.serializerClassLoaderRegistry);
+            }
+
+            return new Fun.Function1<Class, String>() {
+                @Override
+                public Class run(String className) {
+                    ClassLoader loader = serializerClassLoaderRegistry2.get(className);
+                    if(loader == null)
+                        loader = serializerClassLoader2;
+                    if(loader == null)
+                        loader = Thread.currentThread().getContextClassLoader();
+                    return SerializerPojo.classForName(className, loader);
+                }
+            };
         }
 
 
@@ -1257,7 +1329,7 @@ public final class DBMaker{
             //init catalog if needed
             DB db = new DB(e);
             db.commit();
-            return new TxMaker(e, propsGetBool(Keys.strictDBGet), propsGetBool(Keys.snapshots), executor);
+            return new TxMaker(e, propsGetBool(Keys.strictDBGet), executor, makeClassLoader());
         }
 
         /** constructs Engine using current settings */

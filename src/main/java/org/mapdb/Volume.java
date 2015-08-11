@@ -809,7 +809,7 @@ public abstract class Volume implements Closeable{
         static{
             try{
                 unmapHackSupported =
-                        SerializerPojo.classForName("sun.nio.ch.DirectBuffer")!=null;
+                        SerializerPojo.DEFAULT_CLASS_LOADER.run("sun.nio.ch.DirectBuffer")!=null;
             }catch(Exception e){
                 unmapHackSupported = false;
             }

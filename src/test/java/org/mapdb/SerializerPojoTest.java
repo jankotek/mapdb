@@ -16,7 +16,7 @@ import static org.junit.Assert.assertTrue;
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class SerializerPojoTest{
 
-    SerializerPojo p = new SerializerPojo(null,null,null,null, null, null);
+    SerializerPojo p = new SerializerPojo(null,null,null,null, null, null, null);
 
     enum Order
     {
@@ -173,25 +173,25 @@ public class SerializerPojoTest{
     Bean2 b2 = new Bean2("aa", "bb", "cc");
 
     @Test public void testGetFieldValue1() throws Exception {
-        assertEquals("aa", p.getFieldValue(new SerializerPojo.FieldInfo("field1",false,String.class.getName(),b.getClass()), b));
+        assertEquals("aa", p.getFieldValue(new SerializerPojo.FieldInfo("field1",String.class.getName(),String.class,b.getClass()), b));
     }
 
     @Test public void testGetFieldValue2() throws Exception {
-        assertEquals("bb", p.getFieldValue(new SerializerPojo.FieldInfo("field2",false,String.class.getName(),b.getClass()), b));
+        assertEquals("bb", p.getFieldValue(new SerializerPojo.FieldInfo("field2",String.class.getName(),String.class,b.getClass()), b));
         assertEquals(0, b.getCalled);
     }
 
     @Test public void testGetFieldValue3() throws Exception {
-        assertEquals("aa", p.getFieldValue(new SerializerPojo.FieldInfo("field1",false,String.class.getName(),b2.getClass()), b2));
+        assertEquals("aa", p.getFieldValue(new SerializerPojo.FieldInfo("field1",String.class.getName(),String.class,b2.getClass()), b2));
     }
 
     @Test public void testGetFieldValue4() throws Exception {
-        assertEquals("bb", p.getFieldValue(new SerializerPojo.FieldInfo("field2",false,String.class.getName(),b2.getClass()), b2));
+        assertEquals("bb", p.getFieldValue(new SerializerPojo.FieldInfo("field2",String.class.getName(),String.class,b2.getClass()), b2));
         assertEquals(0, b2.getCalled);
     }
 
     @Test public void testGetFieldValue5() throws Exception {
-        assertEquals("cc", p.getFieldValue(new SerializerPojo.FieldInfo("field3",false,String.class.getName(),b2.getClass()), b2));
+        assertEquals("cc", p.getFieldValue(new SerializerPojo.FieldInfo("field3",String.class.getName(),String.class,b2.getClass()), b2));
     }
 
 
