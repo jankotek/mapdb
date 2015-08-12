@@ -2,6 +2,7 @@ package org.mapdb20;
 
 import org.junit.Test;
 
+import java.io.DataOutput;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
@@ -174,7 +175,7 @@ public class DataIOTest {
             in.pos = 10;
             out.pos = 10;
 
-            DataIO.packLong(out,i);
+            DataIO.packLong((DataOutput)out,i);
             long i2 = DataIO.unpackLong(in);
 
             assertEquals(i,i2);

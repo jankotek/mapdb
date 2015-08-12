@@ -96,7 +96,7 @@ public class TT {
         for(long i = 0;i>-1L  ; i=i+1 + i/111){  //overflow is expected
             out.pos = 0;
 
-            DataIO.packLong(out, i);
+            DataIO.packLong((DataOutput)out, i);
             in.pos = 0;
             in.buf.clear();
 
@@ -169,12 +169,22 @@ public class TT {
         }
     }
 
+    public static File tempDbDir() {
+        String tmpDir = System.getProperty("java.io.tmpdir");
+        File ret =  new File(tmpDir+File.separator+"mapdbTest"+System.currentTimeMillis()+"-"+Math.random());
+        ret.mkdir();
+        return ret;
+    }
 
     private static final char[] chars = "0123456789abcdefghijklmnopqrstuvwxyz !@#$%^&*()_+=-{}[]:\",./<>?|\\".toCharArray();
 
+
     public static String randomString(int size) {
+        return randomString(size, (int) (100000 * Math.random()));
+    }
+
+    public static String randomString(int size, int seed) {
         StringBuilder b = new StringBuilder(size);
-        int seed = (int) (100000*Math.random());
         for(int i=0;i<size;i++){
             b.append(chars[Math.abs(seed)%chars.length]);
             seed = 31*seed+DataIO.intHash(seed);

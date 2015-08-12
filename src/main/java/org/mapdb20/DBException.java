@@ -176,4 +176,10 @@ public class DBException extends RuntimeException{
             super("Could not expand store. Maximal store size: "+length+", new requested size: "+requestedLength);
         }
     }
+
+    public static class ClassNotFound extends DBException {
+        public ClassNotFound(ClassNotFoundException e) {
+            super("Class not found! Check classpath or register your class with DBMaker.serializerRegisterClass()",e);
+        }
+    }
 }

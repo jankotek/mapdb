@@ -1,6 +1,8 @@
 package org.mapdb20;
 
 import java.io.DataInput;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -651,5 +653,19 @@ public class StoreAppend extends Store {
         if(isSnapshot)
             return;
 
+    }
+
+
+    @Override
+    public void backup(OutputStream out, boolean incremental) {
+        //TODO full backup
+        throw new UnsupportedOperationException("not yet implemented");
+    }
+
+
+    @Override
+    public void backupRestore(InputStream[] in) {
+        //TODO full backup
+        throw new UnsupportedOperationException("not yet implemented");
     }
 }

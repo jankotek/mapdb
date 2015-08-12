@@ -128,7 +128,7 @@ public final class DBMaker{
 
         String allocateStartSize = "allocateStartSize";
         String allocateIncrement = "allocateIncrement";
-        String allocateRecidReuse = "allocateRecidReuse";
+        String allocateRecidReuseDisable = "allocateRecidReuseDisable";
     }
 
 
@@ -401,6 +401,9 @@ public final class DBMaker{
         protected ScheduledExecutorService cacheExecutor;
 
         protected ScheduledExecutorService storeExecutor;
+        protected ClassLoader serializerClassLoader;
+        protected Map<String,ClassLoader> serializerClassLoaderRegistry;
+
 
         protected Properties props = new Properties();
 
@@ -1197,21 +1200,68 @@ public final class DBMaker{
         }
 
         /**
-         * Tells allocator to reuse recids immediately after record delete.
-         * Usually recids are released after store compaction
-         * It decreases store fragmentation.
-         * But could cause race conditions and class cast exception in case of wrong threading
+         * Sets class loader used to POJO serializer to load classes during deserialization.
          *
-         * @deprecated this setting might be removed before 2.0 stable release, it is very likely it will become enabled by default
          * @return this builder
          */
-        public Maker allocateRecidReuseEnable(){
-            props.setProperty(Keys.allocateRecidReuse,TRUE);
+        public Maker serializerClassLoader(ClassLoader classLoader ){
+            this.serializerClassLoader = classLoader;
+            return this;
+        }
+
+        /**
+         * Register class with given Class Loader. This loader will be used by POJO deserializer to load and instantiate new classes.
+         * This might be needed in OSGI containers etc.
+         *
+         * @return this builder
+         */
+        public Maker serializerRegisterClass(String className, ClassLoader classLoader ){
+            if(this.serializerClassLoaderRegistry==null)
+                this.serializerClassLoaderRegistry = new HashMap<String, ClassLoader>();
+            this.serializerClassLoaderRegistry.put(className, classLoader);
+            return this;
+        }
+
+
+        /**
+         * Register classes with their Class Loaders. This loader will be used by POJO deserializer to load and instantiate new classes.
+         * This might be needed in OSGI containers etc.
+         *
+         * @return this builder
+         */
+        public Maker serializerRegisterClass(Class... classes){
+            if(this.serializerClassLoaderRegistry==null)
+                this.serializerClassLoaderRegistry = new HashMap<String, ClassLoader>();
+            for(Class clazz:classes) {
+                this.serializerClassLoaderRegistry.put(clazz.getName(), clazz.getClassLoader());
+            }
             return this;
         }
 
 
 
+        /**
+         * Allocator reuses recids immediately, that can cause problems to some data types.
+         * This option disables recid reusing, until they are released by compaction.
+         * This option will cause higher store fragmentation with HTreeMap, queues etc..
+         *
+         * @deprecated this setting might be removed before 2.0 stable release, it is very likely it will become enabled by default
+         * @return this builder
+         */
+        public Maker allocateRecidReuseDisable(){
+            props.setProperty(Keys.allocateRecidReuseDisable,TRUE);
+            return this;
+        }
+
+
+        /**
+         * @deprecated this setting does nothing, recidReuse is now enabled by default
+         * TODO remove this option in a few weeks, beta4 added this
+         * @return this builder
+         */
+        public Maker allocateRecidReuseEnable(){
+            return this;
+        }
 
         /** constructs DB using current settings */
         public DB make(){
@@ -1233,7 +1283,8 @@ public final class DBMaker{
                         metricsExec2,
                         metricsLogInterval,
                         storeExecutor,
-                        cacheExecutor);
+                        cacheExecutor,
+                        makeClassLoader());
                 dbCreated = true;
                 return db;
             }finally {
@@ -1241,6 +1292,33 @@ public final class DBMaker{
                 if(!dbCreated)
                     engine.close();
             }
+        }
+
+        protected Fun.Function1<Class, String> makeClassLoader() {
+            if(serializerClassLoader==null &&
+                    (serializerClassLoaderRegistry==null || serializerClassLoaderRegistry.isEmpty())){
+                return null;
+            }
+
+            //makje defensive copies
+            final ClassLoader serializerClassLoader2 = this.serializerClassLoader;
+            final Map<String, ClassLoader> serializerClassLoaderRegistry2 =
+                    new HashMap<String, ClassLoader>();
+            if(this.serializerClassLoaderRegistry!=null){
+                serializerClassLoaderRegistry2.putAll(this.serializerClassLoaderRegistry);
+            }
+
+            return new Fun.Function1<Class, String>() {
+                @Override
+                public Class run(String className) {
+                    ClassLoader loader = serializerClassLoaderRegistry2.get(className);
+                    if(loader == null)
+                        loader = serializerClassLoader2;
+                    if(loader == null)
+                        loader = Thread.currentThread().getContextClassLoader();
+                    return SerializerPojo.classForName(className, loader);
+                }
+            };
         }
 
 
@@ -1251,7 +1329,7 @@ public final class DBMaker{
             //init catalog if needed
             DB db = new DB(e);
             db.commit();
-            return new TxMaker(e, propsGetBool(Keys.strictDBGet), propsGetBool(Keys.snapshots), executor);
+            return new TxMaker(e, propsGetBool(Keys.strictDBGet), executor, makeClassLoader());
         }
 
         /** constructs Engine using current settings */
@@ -1297,7 +1375,7 @@ public final class DBMaker{
 
             final long allocateStartSize = propsGetLong(Keys.allocateStartSize,0L);
             final long allocateIncrement = propsGetLong(Keys.allocateIncrement,0L);
-            final boolean allocateRecidReuse = propsGetBool(Keys.allocateRecidReuse);
+            final boolean allocateRecidReuseDisable = propsGetBool(Keys.allocateRecidReuseDisable);
 
             boolean cacheLockDisable = lockingStrategy!=0;
             byte[] encKey = propsGetXteaEncKey();
@@ -1350,7 +1428,7 @@ public final class DBMaker{
                             storeExecutor,
                             allocateStartSize,
                             allocateIncrement,
-                            allocateRecidReuse,
+                            allocateRecidReuseDisable,
                             CC.DEFAULT_STORE_EXECUTOR_SCHED_RATE,
                             propsGetInt(Keys.asyncWriteQueueSize,CC.DEFAULT_ASYNC_WRITE_QUEUE_SIZE)
                     );
@@ -1371,7 +1449,7 @@ public final class DBMaker{
                             storeExecutor,
                             allocateStartSize,
                             allocateIncrement,
-                            allocateRecidReuse,
+                            allocateRecidReuseDisable,
                             CC.DEFAULT_STORE_EXECUTOR_SCHED_RATE,
                             propsGetInt(Keys.asyncWriteQueueSize,CC.DEFAULT_ASYNC_WRITE_QUEUE_SIZE)
                     );
@@ -1392,7 +1470,7 @@ public final class DBMaker{
                             storeExecutor,
                             allocateStartSize,
                             allocateIncrement,
-                            allocateRecidReuse);
+                            allocateRecidReuseDisable);
                 }
             }
 

@@ -1430,7 +1430,8 @@ public abstract class Serializer<A> {
 
         @Override
         public Class<?> deserialize(DataInput in, int available) throws IOException {
-            return SerializerPojo.classForName(in.readUTF());
+            //TODO this should respect registered ClassLoaders from DBMaker.serializerRegisterClasses()
+            return SerializerPojo.DEFAULT_CLASS_LOADER.run(in.readUTF());
         }
 
         @Override

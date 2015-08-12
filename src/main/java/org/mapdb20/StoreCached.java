@@ -47,14 +47,14 @@ public class StoreCached extends StoreDirect {
             ScheduledExecutorService executor,
             long startSize,
             long sizeIncrement,
-            boolean recidReuse,
+            boolean recidReuseDisable,
             long executorScheduledRate,
             final int writeQueueSize) {
         super(fileName, volumeFactory, cache,
                 lockScale,
                 lockingStrategy,
                 checksum, compress, password, readonly, snapshotEnable, fileLockDisable, fileLockHeartbeat,
-                executor,startSize, sizeIncrement, recidReuse);
+                executor,startSize, sizeIncrement, recidReuseDisable);
 
         this.writeQueueSize = writeQueueSize;
         this.writeQueueSizePerSegment = writeQueueSize/lockScale;

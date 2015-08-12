@@ -4,6 +4,7 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
@@ -730,4 +731,38 @@ public class DBMakerTest{
 
         db.close();
     }
+
+    @Test public void serializer_class_loader(){
+        final Set<String> loadedClasses = new HashSet<String>();
+        ClassLoader l = new ClassLoader() {
+            @Override
+            public Class<?> loadClass(String name) throws ClassNotFoundException {
+                loadedClasses.add(name);
+                return super.loadClass(name);
+            }
+        };
+        DB db = DBMaker.memoryDB().serializerClassLoader(l).transactionDisable().make();
+
+        TT.clone(new Class1(), db.getDefaultSerializer());
+        assertTrue(loadedClasses.contains(Class1.class.getName()));
+
+        db.close();
+        loadedClasses.clear();
+
+        db = DBMaker.memoryDB()
+                .serializerRegisterClass(Class2.class.getName(),l)
+                .transactionDisable()
+                .make();
+
+        TT.clone(new Class2(), db.getDefaultSerializer());
+        assertTrue(loadedClasses.contains(Class2.class.getName()));
+        db.close();
+    }
+
+    public static class Class1 implements Serializable {
+    }
+
+    public static class Class2 implements Serializable {
+    }
+
 }

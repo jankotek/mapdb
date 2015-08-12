@@ -55,7 +55,28 @@ public final class DataIO {
 
 
     /**
-     * Pack long into output stream.
+     * Unpack long value from the input stream.
+     *
+     * @param in The input stream.
+     * @return The long value.
+     *
+     * @throws java.io.IOException in case of IO error
+     */
+    static public long unpackLong(InputStream in) throws IOException {
+        long ret = 0;
+        int v;
+        do{
+            v = in.read();
+            if(v==-1)
+                throw new EOFException();
+            ret = (ret<<7 ) | (v & 0x7F);
+        }while((v&0x80)!=0);
+
+        return ret;
+    }
+
+    /**
+     * Pack long into output.
      * It will occupy 1-10 bytes depending on value (lower values occupy smaller space)
      *
      * @param out DataOutput to put value into
@@ -73,6 +94,28 @@ public final class DataIO {
             shift-=7;
         }
         out.writeByte((byte) (value & 0x7F));
+    }
+
+
+    /**
+     * Pack long into output.
+     * It will occupy 1-10 bytes depending on value (lower values occupy smaller space)
+     *
+     * @param out OutputStream to put value into
+     * @param value to be serialized, must be non-negative
+     *
+     * @throws java.io.IOException in case of IO error
+     */
+    static public void packLong(OutputStream out, long value) throws IOException {
+        //$DELAY$
+        int shift = 63-Long.numberOfLeadingZeros(value);
+        shift -= shift%7; // round down to nearest multiple of 7
+        while(shift!=0){
+            out.write((int) (((value>>>shift) & 0x7F) | 0x80));
+            //$DELAY$
+            shift-=7;
+        }
+        out.write((int) (value & 0x7F));
     }
 
     /**
@@ -325,6 +368,16 @@ public final class DataIO {
     public static int nextPowTwo(final int a)
     {
         return 1 << (32 - Integer.numberOfLeadingZeros(a - 1));
+    }
+
+    public static void readFully(InputStream in, byte[] data) throws IOException {
+        int len = data.length;
+        for(int read=0; read<len;){
+            int c = in.read(data, read, len - read);
+            if(c<0)
+                throw new EOFException();
+            read+=c;
+        }
     }
 
 

@@ -99,7 +99,7 @@ public class DB implements Closeable {
      * @param engine
      */
     public DB(final Engine engine){
-        this(engine,false,false, null, false, null, 0, null, null);
+        this(engine,false,false, null, false, null, 0, null, null, null);
     }
 
     public DB(
@@ -111,7 +111,8 @@ public class DB implements Closeable {
             ScheduledExecutorService metricsExecutor,
             long metricsLogInterval,
             ScheduledExecutorService storeExecutor,
-            ScheduledExecutorService cacheExecutor
+            ScheduledExecutorService cacheExecutor,
+            Fun.Function1<Class, String> classLoader
             ) {
         //TODO investigate dereference and how non-final field affect performance. Perhaps abandon dereference completely
 //        if(!(engine instanceof EngineWrapper)){
@@ -158,7 +159,7 @@ public class DB implements Closeable {
                         long[] classInfoRecids = DB.this.engine.get(Engine.RECID_CLASS_CATALOG, Serializer.RECID_ARRAY);
                         if(classInfoRecids==null || index<0 || index>=classInfoRecids.length)
                             return null;
-                        return getEngine().get(classInfoRecids[index], SerializerPojo.CLASS_INFO_SERIALIZER);
+                        return getEngine().get(classInfoRecids[index], serializerPojo.classInfoSerializer);
                     }
                 },
                 new Fun.Function0<SerializerPojo.ClassInfo[]>() {
@@ -167,7 +168,7 @@ public class DB implements Closeable {
                         long[] classInfoRecids = engine.get(Engine.RECID_CLASS_CATALOG, Serializer.RECID_ARRAY);
                         SerializerPojo.ClassInfo[] ret = new SerializerPojo.ClassInfo[classInfoRecids==null?0:classInfoRecids.length];
                         for(int i=0;i<ret.length;i++){
-                            ret[i] = engine.get(classInfoRecids[i],SerializerPojo.CLASS_INFO_SERIALIZER);
+                            ret[i] = engine.get(classInfoRecids[i],serializerPojo.classInfoSerializer);
                         }
                         return ret;
                     }
@@ -179,6 +180,7 @@ public class DB implements Closeable {
                         return null;
                     }
                 },
+                classLoader,
                 engine);
         reinit();
 
@@ -2569,11 +2571,10 @@ public class DB implements Closeable {
                 int pos = classInfoRecids.length;
                 classInfoRecids = Arrays.copyOf(classInfoRecids,classInfoRecids.length+toBeAdded.length);
 
-                final ClassLoader classLoader = SerializerPojo.classForNameClassLoader();
                 for (String className : toBeAdded) {
-                    SerializerPojo.ClassInfo classInfo = SerializerPojo.makeClassInfo(classLoader, className);
+                    SerializerPojo.ClassInfo classInfo = serializerPojo.makeClassInfo(className);
                     //persist and add new recids
-                    classInfoRecids[pos++] = engine.put(classInfo,SerializerPojo.CLASS_INFO_SERIALIZER);
+                    classInfoRecids[pos++] = engine.put(classInfo,serializerPojo.classInfoSerializer);
                 }
                 if(!engine.compareAndSwap(Engine.RECID_CLASS_CATALOG, classInfoRecidsOrig, classInfoRecids, Serializer.RECID_ARRAY)){
                     LOG.log(Level.WARNING, "Could not update class catalog with new classes, CAS failed");

@@ -33,12 +33,19 @@ public class TxMaker implements Closeable {
     /** parent engine under which modifications are stored */
     protected Engine engine;
 
+    protected final Fun.Function1<Class, String> serializerClassLoader;
+
     public TxMaker(Engine engine) {
-        this(engine,false,false, null);
+        this(engine,false, null, null);
     }
 
-    public TxMaker(Engine engine, boolean strictDBGet, boolean txSnapshotsEnabled, ScheduledExecutorService executor) {
-        if(engine==null) throw new IllegalArgumentException();
+    public TxMaker(
+            Engine engine,
+            boolean strictDBGet,
+            ScheduledExecutorService executor,
+            Fun.Function1<Class, String> serializerClassLoader) {
+        if(engine==null)
+            throw new IllegalArgumentException();
         if(!engine.canSnapshot())
             throw new IllegalArgumentException("Snapshot must be enabled for TxMaker");
         if(engine.isReadOnly())
@@ -46,6 +53,7 @@ public class TxMaker implements Closeable {
         this.engine = engine;
         this.strictDBGet = strictDBGet;
         this.executor = executor;
+        this.serializerClassLoader = serializerClassLoader;
     }
 
     
@@ -55,7 +63,7 @@ public class TxMaker implements Closeable {
             throw new AssertionError();
 //        if(txSnapshotsEnabled)
 //            snapshot = new TxEngine(snapshot,false); //TODO
-        return new DB(snapshot,strictDBGet,false,executor, true, null, 0, null, null);
+        return new DB(snapshot,strictDBGet,false,executor, true, null, 0, null, null, serializerClassLoader);
     }
 
     public void close() {

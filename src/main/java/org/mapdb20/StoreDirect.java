@@ -1,9 +1,9 @@
 package org.mapdb20;
 
-import java.io.DataInput;
-import java.io.File;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
@@ -11,6 +11,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
 import java.util.logging.Level;
 
 import static org.mapdb20.DataIO.*;
@@ -82,7 +83,7 @@ public class StoreDirect extends Store {
 
     protected final long startSize;
     protected final long sizeIncrement;
-    protected final boolean recidReuse;
+    protected final boolean recidReuseDisable;
     protected final int sliceShift;
 
     protected final AtomicLong freeSize = new AtomicLong(-1);
@@ -102,7 +103,7 @@ public class StoreDirect extends Store {
                        ScheduledExecutorService executor,
                        long startSize,
                        long sizeIncrement,
-                       boolean recidReuse
+                       boolean recidReuseDisable
                        ) {
         super(fileName, volumeFactory, cache, lockScale, lockingStrategy, checksum, compress, password, readonly,
                 snapshotEnable, fileLockDisable, fileLockHeartbeat);
@@ -114,7 +115,7 @@ public class StoreDirect extends Store {
 
         this.sizeIncrement = Math.max(1L<<CC.VOLUME_PAGE_SHIFT, DataIO.nextPowTwo(sizeIncrement));
         this.startSize = Fun.roundUp(Math.max(1L<<CC.VOLUME_PAGE_SHIFT,startSize), this.sizeIncrement);
-        this.recidReuse = recidReuse;
+        this.recidReuseDisable = recidReuseDisable;
         this.sliceShift = Volume.sliceShiftFromSize(this.sizeIncrement);
 
         if(CC.LOG_STORE && LOG.isLoggable(Level.FINE)){
@@ -524,8 +525,8 @@ public class StoreDirect extends Store {
                 structuralLock.unlock();
             }
         }
-        indexValPut(recid,0,0,true,true);
-        if(recidReuse){
+        indexValPut(recid, 0, 0, true, true);
+        if(!recidReuseDisable){
             structuralLock.lock();
             try {
                 longStackPut(FREE_RECID_STACK, recid, false);
@@ -627,7 +628,7 @@ public class StoreDirect extends Store {
             //TODO possible deadlock, should not lock segment under different segment lock
             //TODO investigate if this lock is necessary, recid has not been yet published, perhaps cache does not have to be updated
             try {
-                if(CC.ASSERT && !recidReuse && vol.getLong(recidToOffset(recid))!=0){
+                if(CC.ASSERT && recidReuseDisable && vol.getLong(recidToOffset(recid))!=0){
                     throw new AssertionError("Recid not empty: "+recid);
                 }
 
@@ -721,8 +722,8 @@ public class StoreDirect extends Store {
     }
 
     protected void putDataSingleWithLink(int segment, long offset, long link, byte[] buf, int bufPos, int size) {
-        vol.putLong(offset,link);
-        vol.putData(offset+8, buf,bufPos,size);
+        vol.putLong(offset, link);
+        vol.putData(offset + 8, buf, bufPos, size);
     }
 
     protected void freeDataPut(long[] linkedOffsets) {
@@ -765,7 +766,7 @@ public class StoreDirect extends Store {
         long masterPointerOffset = size/2 + FREE_RECID_STACK; // really is size*8/16
         longStackPut(
                 masterPointerOffset,
-                offset>>>4, //offset is multiple of 16, save some space
+                offset >>> 4, //offset is multiple of 16, save some space
                 false);
     }
 
@@ -1106,6 +1107,136 @@ public class StoreDirect extends Store {
     @Override
     public void clearCache() {
 
+    }
+
+    @Override
+    public void backup(OutputStream out, boolean incremental) {
+        //lock everything
+        for(ReadWriteLock lock:locks){
+            lock.writeLock().lock();
+        }
+        try {
+            long maxRecid = DataIO.parity1Get(headVol.getLong(MAX_RECID_OFFSET)) / indexValSize;
+            recidLoop:
+            for (long recid = 1; recid <= maxRecid; recid++) {
+                long indexOffset = recidToOffset(recid);
+                long indexVal = vol.getLong(indexOffset);
+                if(checksum &&
+                        vol.getUnsignedShort(indexOffset+8)!=
+                                (DataIO.longHash(indexVal)&0xFFFF)){
+                    throw new DBException.ChecksumBroken();
+                }
+
+                //check if was discarted
+                if((indexVal&MUNUSED)!=0||indexVal == 0){
+                    continue recidLoop;
+                }
+
+                //check if recid was modified since last incrementa thingy
+                if(incremental && (indexVal&MARCHIVE)==0){
+                    continue recidLoop;
+                }
+
+                //TODO we need write lock to do this, there could be setting make backup without archive marker, but only under readlock
+                //mark value as not modified
+                indexVal = DataIO.parity1Get(indexVal);
+                indexValPut(recid, (int) (indexVal>>>48), indexVal&MOFFSET,
+                        (indexVal&MLINKED)!=0, false);
+
+                //write recid
+                DataIO.packLong(out, recid);
+
+                //load record
+                long[] offsets = offsetsGet(lockPos(recid),indexVal);
+                int totalSize = offsetsTotalSize(offsets);
+                if(offsets!=null) {
+                    byte[] b = getLoadLinkedRecord(offsets, totalSize);
+
+                    //write size and data
+                    DataIO.packLong(out, b.length+1);
+                    out.write(b);
+                }else{
+                    DataIO.packLong(out, 0);
+                }
+                //TODO checksums
+            }
+            //EOF mark
+            DataIO.packLong(out,-1);
+        }catch (IOException e){
+            throw new DBException.VolumeIOError(e);
+        }finally {
+            //unlock everything in reverse order to prevent deadlocks
+            for(int i=locks.length-1;i>=0;i--){
+                locks[i].writeLock().unlock();
+            }
+        }
+    }
+
+
+
+    @Override
+    public void backupRestore(InputStream[] ins) {
+        //check we are empty
+        if(RECID_LAST_RESERVED+1!=DataIO.parity1Get(headVol.getLong(MAX_RECID_OFFSET))/indexValSize){
+            throw new DBException.WrongConfig("Can not restore backup, this store is not empty!");
+        }
+
+        for(ReadWriteLock lock:locks){
+            lock.writeLock().lock();
+        }
+        structuralLock.lock();
+        try {
+            BitSet usedRecid = new BitSet();
+
+            streamsLoop:
+            for(int i=ins.length-1;i>=0;i--) {
+                InputStream in = ins[i];
+                recidLoop:
+                for (; ; ) {
+                    long recid = DataIO.unpackLong(in);
+                    if (recid == -1) { // EOF
+                        continue streamsLoop;
+                    }
+
+                    long len = DataIO.unpackLong(in);
+
+                    if(ins.length!=1) {
+                        if(recid>Integer.MAX_VALUE)
+                            throw new AssertionError(); //TODO support bigger recids
+
+                        if (usedRecid.get((int) recid)) {
+                            //recid was already addressed in other incremental backup
+                            //so skip length and continue
+                            long toSkip = len - 1;
+                            if (toSkip > 0) {
+                                in.skip(toSkip);
+                            }
+                            continue recidLoop;
+                        }
+                        usedRecid.set((int) recid);
+                    }
+
+                    if (len == 0) {
+                        //null record
+                        indexValPut(recid, 0, 0, true, false);
+                    } else {
+                        byte[] data = new byte[(int) (len - 1)];
+                        DataIO.readFully(in, data);
+                        long[] newOffsets = freeDataTake(data.length);
+                        pageIndexEnsurePageForRecidAllocated(recid);
+                        putData(recid, newOffsets, data, data.length);
+                    }
+                }
+            }
+        }catch (IOException e){
+            throw new DBException.VolumeIOError(e);
+        }finally {
+            structuralLock.unlock();
+            //unlock everything in reverse order to prevent deadlocks
+            for(int i=locks.length-1;i>=0;i--){
+                locks[i].writeLock().unlock();
+            }
+        }
     }
 
     @Override
