@@ -59,20 +59,43 @@ public class QueuesTest {
         db.close();
     }
 
-    @Test public void circular_queue_persisted(){
+    @Test
+    public void circular_queue_persisted_Not_Full(){
         //i put disk limit 4 objects ,
         File f = TT.tempDbFile();
         DB db = DBMaker.fileDB(f).transactionDisable().make();
-        Queue queue = db.createCircularQueue("test",null, 4);
+        Queue queue = db.createCircularQueue("test", null, 4);
         //when i put 6 objects to queue
         queue.add(0);
         queue.add(1);
         queue.add(2);
-        queue.add(3);
+
+        db.close();
+        db = DBMaker.fileDB(f).transactionDisable().deleteFilesAfterClose().make();
+        queue = db.getCircularQueue("test");
+
+        assertEquals(0, queue.poll());
+        assertEquals(1, queue.poll());
+        assertEquals(2, queue.poll());
+        assertNull(queue.poll());
+        db.close();
+
+    }
+
+    @Test
+    public void circular_queue_persisted(){
+        //i put disk limit 4 objects ,
+        File f = TT.tempDbFile();
+        DB db = DBMaker.fileDB(f).transactionDisable().make();
+        Queue queue = db.createCircularQueue("test",null, 3);
+        //when i put 6 objects to queue
+        queue.add(0);
+        queue.add(1);
+        queue.add(2);
         //now deletes 0 on first
-        queue.add(4);
+        queue.add(3);
         //now deletes 1
-        queue.add(5);
+        queue.add(4);
 
         db.close();
         db = DBMaker.fileDB(f).transactionDisable().deleteFilesAfterClose().make();
@@ -81,8 +104,18 @@ public class QueuesTest {
         assertEquals(2, queue.poll());
         assertEquals(3, queue.poll());
         assertEquals(4, queue.poll());
-        assertEquals(5, queue.poll());
         assertNull(queue.poll());
+
+        //Now queue is empty.
+        //Then try to add and poll 3 times to check every position
+        for(int i = 0; i < 3; i++) {
+            queue.add(5);
+            assertEquals(5, queue.poll());
+        }
+
+        // Now queue should be empty.
+        assertTrue(queue.isEmpty());
+
         db.close();
 
     }

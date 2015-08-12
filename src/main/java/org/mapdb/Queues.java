@@ -383,14 +383,54 @@ public final class Queues {
         public boolean add(Object o) {
             lock.lock();
             try{
+                boolean full = isFull();
                 long nRecid = headInsert.get();
                 Node<E> n = engine.get(nRecid, nodeSerializer);
+
                 n = new Node<E>(n.next, (E) o);
                 engine.update(nRecid, n, nodeSerializer);
                 headInsert.set(n.next);
-                //move 'poll' head if it points to currently replaced item
-                head.compareAndSet(nRecid, n.next);
+
+
+                if (full) {
+                    // Get the head node and make it the new empty spot
+                    long headRecid = head.get();
+                    Node<E> headN = engine.get(headRecid, nodeSerializer);
+                    // let the empty spot be null
+                    headN = new Node<E>(headN.next, null);
+                    engine.update(headRecid, headN, nodeSerializer);
+
+                    // Move the head to the next position
+                    head.compareAndSet(headRecid, headN.next);
+                }
                 return true;
+            }finally {
+                lock.unlock();
+            }
+        }
+
+        /**
+         * If the end (headInsert) pointer refers to the slot preceding the one referred
+         * to by the start (head) pointer, the buffer is full
+         * @return
+         */
+        private boolean isFull(){
+            long nHIRecid = headInsert.get();
+            long nHrecid = head.get();
+            Node<E> headInsertNode = engine.get(nHIRecid, nodeSerializer);
+
+            long precedingHeadRecId = headInsertNode.next;
+
+            return precedingHeadRecId == nHrecid;
+        }
+
+        public boolean isEmpty(){
+            lock.lock();
+            try{
+                long nHIRecid = headInsert.get();
+                long nHrecid = head.get();
+
+                return nHIRecid == nHrecid;
             }finally {
                 lock.unlock();
             }
@@ -416,7 +456,12 @@ public final class Queues {
                 long nRecid = head.get();
                 Node<E> n = engine.get(nRecid, nodeSerializer);
                 engine.update(nRecid, new Node<E>(n.next, null), nodeSerializer);
-                head.set(n.next);
+
+                // If there are no elements don't move.
+                if (!isEmpty()) {
+                    head.set(n.next);
+                }
+
                 return n.value;
             }finally {
                 lock.unlock();
