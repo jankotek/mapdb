@@ -1999,7 +1999,12 @@ public class DB implements Closeable {
         long firstRecid = 0;
         //$DELAY$
         Serializer<Queues.SimpleQueue.Node<E>> nodeSer = new Queues.SimpleQueue.NodeSerializer<E>(serializer);
-        for(long i=0;i<size;i++){
+        /*
+        * 'size+1' because one spot is always kept empty
+        * otherwise, "empty" and "full" conditions will match:
+        * http://en.wikipedia.org/wiki/Circular_buffer#Difficulties
+        */
+        for(long i=0;i<size+1;i++){
             Queues.SimpleQueue.Node<E> n = new Queues.SimpleQueue.Node<E>(prevRecid, null);
             prevRecid = engine.put(n, nodeSer);
             if(firstRecid==0) firstRecid = prevRecid;
