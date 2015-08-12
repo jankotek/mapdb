@@ -7,7 +7,7 @@ task(release) << {
     //checkout
     exec {
         commandLine 'git'
-        args 'clone','git@github.com:jankotek/mapdb.git','target/release-misc','-b','release-misc'
+        args 'clone','git@github.com:jankotek/mapdb.git','target/release-misc','-b','release-misc','--depth','1'
     }
 
     exec {
