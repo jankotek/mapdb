@@ -149,6 +149,14 @@ public class ExamplesTest {
         TreeMap_Value_Compression.main(args);
     }
 
+    @Test public void Backup() throws IOException {
+        Backup.main(args);
+    }
+    @Test public void Backup_Incremental() throws IOException {
+        Backup_Incremental.main(args);
+    }
+
+
 }
 
 
