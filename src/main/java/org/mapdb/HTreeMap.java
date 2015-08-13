@@ -789,12 +789,10 @@ public class HTreeMap<K,V>
                     //make space for new value
                     System.arraycopy(dir_, offset, dir_, offset + 1, dir_.length - 1 - offset);
                     //and update bitmap
-                    //TODO assert slot bit was not set
                     int bytePos = slot / 32;
                     int bitPos = slot % 32;
                     dir_[bytePos] = (dir_[bytePos] | (1 << bitPos));
                 } else {
-                    //TODO assert slot bit was set
                     dir_ = dir_.clone();
                 }
                 //and insert value itself
@@ -823,12 +821,10 @@ public class HTreeMap<K,V>
             //make space for new value
             System.arraycopy(dir_, offset, dir_, offset + 1, dir_.length - 1 - offset);
             //and update bitmap
-            //TODO assert slot bit was not set
             int bytePos = slot / 64;
             int bitPos = slot % 64;
             dir_[bytePos] = (dir_[bytePos] | (1L << bitPos));
         } else {
-            //TODO assert slot bit was set
             dir_ = dir_.clone();
         }
         //and insert value itself
@@ -850,7 +846,6 @@ public class HTreeMap<K,V>
             System.arraycopy(dir_, offset + 1, dir2, offset, dir2.length - offset);
 
             //unset bitmap bit
-            //TODO assert slot bit was set
             int bytePos = slot / 32;
             int bitPos = slot % 32;
             dir2[bytePos] =  (dir2[bytePos] & ~(1 << bitPos));
@@ -863,7 +858,6 @@ public class HTreeMap<K,V>
             System.arraycopy(dir_, offset + 1, dir2, offset, dir2.length - offset);
 
             //unset bitmap bit
-            //TODO assert slot bit was set
             int bytePos = slot / 64;
             int bitPos = slot % 64;
             dir2[bytePos] =  (dir2[bytePos] & ~(1L << bitPos));
