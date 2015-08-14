@@ -8,6 +8,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executors;
@@ -560,6 +561,18 @@ public class DBTest {
         BTreeMap map = db.treeMap("test",Serializer.LONG,Serializer.BYTE_ARRAY);
         assertEquals(map.keySerializer,BTreeKeySerializer.LONG);
         assertEquals(map.valueSerializer,Serializer.BYTE_ARRAY);
+    }
+
+    @Test public void keys() throws IllegalAccessException {
+        Class c = DB.Keys.class;
+        assertTrue(c.getDeclaredFields().length>0);
+        for (Field f : c.getDeclaredFields()) {
+            f.setAccessible(true);
+            String value = (String) f.get(null);
+
+            assertEquals("."+f.getName(),value);
+        }
+
     }
 
 }
