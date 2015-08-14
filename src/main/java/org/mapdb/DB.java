@@ -1065,12 +1065,20 @@ public class DB implements Closeable {
 
 
 
-    public class BTreeMapMaker{
+    public static class BTreeMapMaker{
         protected final String name;
+        protected final DB db;
 
         public BTreeMapMaker(String name) {
-            this.name = name;
+            this(name,null);
         }
+
+        protected BTreeMapMaker(String name, DB db) {
+            this.name = name;
+            this.db = db;
+            executor = db==null ? null : db.executor;
+        }
+
 
         protected int nodeSize = 32;
         protected boolean valuesOutsideNodes = false;
@@ -1088,7 +1096,7 @@ public class DB implements Closeable {
         protected boolean pumpIgnoreDuplicates = false;
         protected boolean closeEngine = false;
 
-        protected Executor executor = DB.this.executor;
+        protected Executor executor = null;
 
 
         /** nodeSize maximal size of node, larger node causes overflow and creation of new BTree node. Use large number for small keys, use small number for large keys.*/
@@ -1191,22 +1199,27 @@ public class DB implements Closeable {
         }
 
         public <K,V> BTreeMap<K,V> make(){
-            return DB.this.treeMapCreate(BTreeMapMaker.this);
+            if(db==null)
+                throw new IllegalAccessError("This maker is not attached to any DB, it only hold configuration");
+            return db.treeMapCreate(BTreeMapMaker.this);
         }
 
         public <K,V> BTreeMap<K,V> makeOrGet(){
-            synchronized(DB.this){
+            if(db==null)
+                throw new IllegalAccessError("This maker is not attached to any DB, it only hold configuration");
+
+            synchronized(db){
                 //TODO add parameter check
-                return (BTreeMap<K, V>) (catGet(name+Keys.type)==null?
+                return (BTreeMap<K, V>) (db.catGet(name + Keys.type)==null?
                         make() :
-                        treeMap(name,getKeySerializer(),valueSerializer));
+                        db.treeMap(name, getKeySerializer(), valueSerializer));
             }
         }
 
         protected BTreeKeySerializer getKeySerializer() {
             if(_keySerializer==null) {
                 if (_keySerializer2 == null && _comparator!=null)
-                    _keySerializer2 = getDefaultSerializer();
+                    _keySerializer2 = db.getDefaultSerializer();
                 if(_keySerializer2!=null)
                     _keySerializer = _keySerializer2.getBTreeKeySerializer(_comparator);
             }
@@ -1482,7 +1495,7 @@ public class DB implements Closeable {
      * @return maker, call {@code .make()} to create map
      */
     public BTreeMapMaker treeMapCreate(String name){
-        return new BTreeMapMaker(name);
+        return new BTreeMapMaker(name,DB.this);
     }
 
     synchronized protected <K,V> BTreeMap<K,V> treeMapCreate(final BTreeMapMaker m){

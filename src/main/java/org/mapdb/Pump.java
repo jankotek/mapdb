@@ -875,4 +875,49 @@ public final class Pump {
         num = num.substring(0, num.indexOf('.'));
         return num;
     }
+
+    public static void archiveTreeMap(NavigableMap source, File target, DB.BTreeMapMaker config) {
+        //init store
+        StoreArchive s = new StoreArchive(
+                target.getPath(),
+                Volume.RandomAccessFileVol.FACTORY,
+                false);
+        s.init();
+
+        //do import
+        long counterRecid = config.counter ? s.put(0L, Serializer.LONG) : 0L;
+        long rootRecid = Pump.buildTreeMap(
+                source.descendingMap().entrySet().iterator(),
+                s,
+                Fun.extractMapEntryKey(),
+                Fun.extractMapEntryValue(),
+                false,
+                config.nodeSize,
+                config.valuesOutsideNodes,
+                counterRecid,
+                config.getKeySerializer(),
+                (Serializer)config.valueSerializer,
+                null
+                );
+
+        //create named catalog
+        String name = config.name;
+        NavigableMap<String, Object> c = new TreeMap<String, Object>();
+        c.put(name + DB.Keys.type,"TreeMap");
+        c.put(name + DB.Keys.rootRecidRef, rootRecid);
+        c.put(name + DB.Keys.maxNodeSize, config.nodeSize);
+        c.put(name + DB.Keys.valuesOutsideNodes, config.valuesOutsideNodes);
+        c.put(name + DB.Keys.counterRecids, counterRecid);
+        c.put(name + DB.Keys.keySerializer, config.getKeySerializer());
+        c.put(name + DB.Keys.valueSerializer, config.valueSerializer);
+        c.put(name + DB.Keys.numberOfNodeMetas, 0);
+
+        //and apply it
+        s.rewriteNamedCatalog(c);
+
+        //create testing record
+
+
+        s.close();
+    }
 }

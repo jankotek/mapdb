@@ -52,6 +52,7 @@ public final class DBMaker{
 
     protected static final String TRUE = "true";
 
+
     protected interface Keys{
         String cache = "cache";
 
@@ -95,6 +96,7 @@ public final class DBMaker{
         String store_wal = "wal";
         String store_append = "append";
         String store_heap = "heap";
+        String store_archive = "archive";
         String storeExecutorPeriod = "storeExecutorPeriod";
 
         String transactionDisable = "transactionDisable";
@@ -129,6 +131,7 @@ public final class DBMaker{
         String allocateStartSize = "allocateStartSize";
         String allocateIncrement = "allocateIncrement";
         String allocateRecidReuseDisable = "allocateRecidReuseDisable";
+
     }
 
 
@@ -212,6 +215,11 @@ public final class DBMaker{
     public static Maker appendFileDB(File file) {
         return new Maker()._newAppendFileDB(file);
     }
+
+    public static Maker archiveFileDB(File file) {
+        return new Maker()._newArchiveFileDB(file);
+    }
+
 
     /** @deprecated method renamed, prefix removed, use {@link DBMaker#appendFileDB(File)} */
     public static Maker newAppendFileDB(File file) {
@@ -444,6 +452,11 @@ public final class DBMaker{
             return this;
         }
 
+        public Maker _newArchiveFileDB(File file) {
+            props.setProperty(Keys.file, file.getPath());
+            props.setProperty(Keys.store, Keys.store_archive);
+            return this;
+        }
 
 
         public Maker _newFileDB(File file){
@@ -1380,8 +1393,15 @@ public final class DBMaker{
             boolean cacheLockDisable = lockingStrategy!=0;
             byte[] encKey = propsGetXteaEncKey();
             final boolean snapshotEnabled =  propsGetBool(Keys.snapshots);
-            if(Keys.store_heap.equals(store)){
-                engine = new StoreHeap(propsGetBool(Keys.transactionDisable),lockScale,lockingStrategy,snapshotEnabled);
+            if(Keys.store_heap.equals(store)) {
+                engine = new StoreHeap(propsGetBool(Keys.transactionDisable), lockScale, lockingStrategy, snapshotEnabled);
+            }else if(Keys.store_archive.equals(store)){
+                Volume.VolumeFactory volFac = extendStoreVolumeFactory(false);
+                engine = new StoreArchive(
+                        file,
+                        volFac,
+                        true
+                );
             }else  if(Keys.store_append.equals(store)){
                 if(Keys.volume_byteBuffer.equals(volume)||Keys.volume_directByteBuffer.equals(volume))
                     throw new UnsupportedOperationException("Append Storage format is not supported with in-memory dbs");
