@@ -147,6 +147,7 @@ public class StoreArchiveTest {
 
         assertTrue(source.entrySet().containsAll(m.entrySet()));
         assertTrue(m.entrySet().containsAll(source.entrySet()));
-
+        db.close();
+        f.delete();
     }
 }
