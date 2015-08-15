@@ -765,4 +765,7 @@ public class DBMakerTest{
     public static class Class2 implements Serializable {
     }
 
+    @Test public void cc() throws IllegalAccessException {
+        assertEquals(CC.DEFAULT_CACHE, DBMaker.CC().get("DEFAULT_CACHE"));
+    }
 }

@@ -20,6 +20,7 @@ package org.mapdb;
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.security.SecureRandom;
@@ -1695,4 +1696,18 @@ public final class DBMaker{
         );
     }
 
+    /**
+     * Returns Compiler Config, static settings MapDB was compiled with
+     * @return Compiler Config
+     */
+    public static Map<String,Object> CC() throws IllegalAccessException {
+        Map<String, Object> ret = new TreeMap<String, Object>();
+
+        for (Field f : CC.class.getDeclaredFields()) {
+            f.setAccessible(true);
+            Object value = f.get(null);
+            ret.put(f.getName(), value);
+        }
+        return ret;
+    }
 }

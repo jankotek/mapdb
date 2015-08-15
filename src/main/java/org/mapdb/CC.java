@@ -37,7 +37,6 @@ package org.mapdb;
  *
  * @author  Jan Kotek
  */
-//TODO add methods to DBMaker to access compiler settings
 interface CC {
 
     /**
