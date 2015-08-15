@@ -394,12 +394,19 @@ public abstract class Store implements Engine {
 
     protected <A> A deserialize(Serializer<A> serializer, int size, DataInput input){
         try {
-            //TODO if serializer is not trusted, use boundary check
             //TODO return future and finish deserialization outside lock, does even bring any performance bonus?
 
             DataIO.DataInputInternal di = (DataIO.DataInputInternal) input;
             if (size > 0 && deserializeExtra)  {
                 return deserializeExtra(serializer,size,di);
+            }
+
+            if(!serializer.isTrusted() && !alreadyCopyedDataInput(input,size)){
+                //if serializer is not trusted, introduce hard boundary check, so it does not read other records data
+                DataIO.DataInputByteArray b = new DataIO.DataInputByteArray(new byte[size]);
+                input.readFully(b.buf);
+                input = b;
+                di = b;
             }
 
             int start = di.getPos();
@@ -419,6 +426,14 @@ public abstract class Store implements Engine {
         }catch(IOException e){
             throw new IOError(e);
         }
+    }
+
+    /* Some Volumes (RAF) already copy their DataInput into byte[]. */
+    private final boolean alreadyCopyedDataInput(DataInput input, int size){
+        if(!(input instanceof DataIO.DataInputByteArray))
+            return false;
+        DataIO.DataInputByteArray input2 = (DataIO.DataInputByteArray) input;
+        return input2.pos==0 && input2.buf.length==size;
     }
 
     /** helper method, it is called if compression or other stuff is used. It can not be JITed that well. */

@@ -162,7 +162,8 @@ public class HTreeMap<K,V>
 
         @Override
         public boolean isTrusted() {
-            return keySerializer.isTrusted() && valueSerializer.isTrusted();
+            return keySerializer.isTrusted() &&
+                    (valueSerializer==null || valueSerializer.isTrusted());
         }
     };
 

@@ -2059,6 +2059,22 @@ public abstract class Serializer<A> {
         return -1;
     }
 
+    /**
+     * <p>
+     * MapDB has relax record size boundary checking.
+     * It expect deserializer to read exactly as many bytes as were writen during serialization.
+     * If deserializer reads more bytes it might start reading others record data in store.
+     * </p><p>
+     * Some serializers (Kryo) have problems with this. To prevent this we can not read
+     * data directly from store, but must copy them into separate {@code byte[]}.
+     * So zero copy optimalizations is disabled by default, and must be explicitly enabled here.
+     * </p><p>
+     * This flag indicates if this serializer was 'verified' to read as many bytes as it
+     * writes. It should be also much better tested etc.
+     * </p>
+     *
+     * @return true if this serializer is well tested and writes as many bytes as it reads.
+     */
     public boolean isTrusted(){
         return false;
     }
