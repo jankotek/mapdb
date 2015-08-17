@@ -14,15 +14,6 @@ This product includes software developed by Doug Lea and JSR 166 group:
  * http://creativecommons.org/licenses/publicdomain
 
 
-This product includes software developed for Apache Solr
-(LongConcurrentLRUMap.java)
-Copyright 2006-2014 The Apache Software Foundation
-
-This product includes software developed for Apache Harmony
-(LongHashMap.java)
-Copyright 2008-2012 The Apache Software Foundation
-
-
 This product includes software developed for Android project
 (SerializerPojo, a few lines to invoke constructor, see comments)
 //Copyright (C) 2012 The Android Open Source Project, licenced under Apache 2 license
