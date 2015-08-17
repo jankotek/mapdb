@@ -983,7 +983,7 @@ public abstract class Serializer<A> {
         @Override
         public int hashCode(int[] bytes, int seed) {
             for (int i : bytes) {
-                seed = -1640531527 * seed + i;
+                seed = (-1640531527) * seed + i;
             }
             return seed;
         }
@@ -1029,7 +1029,7 @@ public abstract class Serializer<A> {
         public int hashCode(long[] bytes, int seed) {
             for (long element : bytes) {
                 int elementHash = (int)(element ^ (element >>> 32));
-                seed = -1640531527 * seed + elementHash;
+                seed = (-1640531527) * seed + elementHash;
             }
             return seed;
         }
@@ -1075,7 +1075,7 @@ public abstract class Serializer<A> {
         public int hashCode(double[] bytes, int seed) {
             for (double element : bytes) {
                 long bits = Double.doubleToLongBits(element);
-                seed = -1640531527 * seed + (int)(bits ^ (bits >>> 32));
+                seed = (-1640531527) * seed + (int)(bits ^ (bits >>> 32));
             }
             return seed;
         }
@@ -1398,7 +1398,7 @@ public abstract class Serializer<A> {
         @Override
         public int hashCode(short[] shorts, int seed) {
             for (short element : shorts)
-                seed = -1640531527 * seed + element;
+                seed = (-1640531527) * seed + element;
             return seed;
         }
     };
@@ -1435,7 +1435,7 @@ public abstract class Serializer<A> {
         @Override
         public int hashCode(float[] floats, int seed) {
             for (float element : floats)
-                seed = -1640531527 * seed + Float.floatToIntBits(element);
+                seed = (-1640531527) * seed + Float.floatToIntBits(element);
             return seed;
         }
     };
@@ -2034,7 +2034,7 @@ public abstract class Serializer<A> {
         public int hashCode(T[] objects, int seed) {
             seed+=objects.length;
             for(T a:objects){
-                seed=-1640531527*seed+serializer.hashCode(a,seed);
+                seed=(-1640531527)*seed+serializer.hashCode(a,seed);
             }
             return seed;
         }
