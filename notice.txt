@@ -37,7 +37,7 @@ Some Map unit tests are from  Google Collections.
 Credit goes to Jared Levy, George van den Driessche and other Google Collections developers.
 Copyright (C) 2007 Google Inc.
 
-Luc Peuvrier wrote some unit tests for ConcurrerentNavigableMap interface.
+Luc Peuvrier wrote some unit tests for ConcurrentNavigableMap interface.
 
 XXHash used for char[] and byte[] hashes is from LZ4-Java
 (DataIO.java and UnsafeStuff.java)
