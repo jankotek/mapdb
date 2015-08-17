@@ -3052,6 +3052,116 @@ public abstract class Volume implements Closeable{
             }
 
         }
+
+        @Override
+        public synchronized long hash(long off, long len, long seed){
+            if (len < 0) {
+                throw new IllegalArgumentException("lengths must be >= 0");
+            }
+            long bufLen = length();
+            if(off<0 || off>=bufLen || off+len<0 || off+len>bufLen){
+                throw new IndexOutOfBoundsException();
+            }
+
+            final long end = off + len;
+            long h64;
+
+            try {
+                raf.seek(off);
+
+                if (len >= 32) {
+                    final long limit = end - 32;
+                    long v1 = seed + PRIME64_1 + PRIME64_2;
+                    long v2 = seed + PRIME64_2;
+                    long v3 = seed + 0;
+                    long v4 = seed - PRIME64_1;
+                    do {
+                        v1 += Long.reverseBytes(raf.readLong()) * PRIME64_2;
+                        v1 = rotateLeft(v1, 31);
+                        v1 *= PRIME64_1;
+                        off += 8;
+
+                        v2 += Long.reverseBytes(raf.readLong()) * PRIME64_2;
+                        v2 = rotateLeft(v2, 31);
+                        v2 *= PRIME64_1;
+                        off += 8;
+
+                        v3 += Long.reverseBytes(raf.readLong()) * PRIME64_2;
+                        v3 = rotateLeft(v3, 31);
+                        v3 *= PRIME64_1;
+                        off += 8;
+
+                        v4 += Long.reverseBytes(raf.readLong()) * PRIME64_2;
+                        v4 = rotateLeft(v4, 31);
+                        v4 *= PRIME64_1;
+                        off += 8;
+                    } while (off <= limit);
+
+                    h64 = rotateLeft(v1, 1) + rotateLeft(v2, 7) + rotateLeft(v3, 12) + rotateLeft(v4, 18);
+
+                    v1 *= PRIME64_2;
+                    v1 = rotateLeft(v1, 31);
+                    v1 *= PRIME64_1;
+                    h64 ^= v1;
+                    h64 = h64 * PRIME64_1 + PRIME64_4;
+
+                    v2 *= PRIME64_2;
+                    v2 = rotateLeft(v2, 31);
+                    v2 *= PRIME64_1;
+                    h64 ^= v2;
+                    h64 = h64 * PRIME64_1 + PRIME64_4;
+
+                    v3 *= PRIME64_2;
+                    v3 = rotateLeft(v3, 31);
+                    v3 *= PRIME64_1;
+                    h64 ^= v3;
+                    h64 = h64 * PRIME64_1 + PRIME64_4;
+
+                    v4 *= PRIME64_2;
+                    v4 = rotateLeft(v4, 31);
+                    v4 *= PRIME64_1;
+                    h64 ^= v4;
+                    h64 = h64 * PRIME64_1 + PRIME64_4;
+                } else {
+                    h64 = seed + PRIME64_5;
+                }
+
+                h64 += len;
+
+                while (off <= end - 8) {
+                    long k1 = Long.reverseBytes(raf.readLong());
+                    k1 *= PRIME64_2;
+                    k1 = rotateLeft(k1, 31);
+                    k1 *= PRIME64_1;
+                    h64 ^= k1;
+                    h64 = rotateLeft(h64, 27) * PRIME64_1 + PRIME64_4;
+                    off += 8;
+                }
+
+                if (off <= end - 4) {
+                    h64 ^= (Integer.reverseBytes(raf.readInt()) & 0xFFFFFFFFL) * PRIME64_1;
+                    h64 = rotateLeft(h64, 23) * PRIME64_2 + PRIME64_3;
+                    off += 4;
+                }
+
+                while (off < end) {
+                    h64 ^= (raf.readByte() & 0xFF) * PRIME64_5;
+                    h64 = rotateLeft(h64, 11) * PRIME64_1;
+                    ++off;
+                }
+
+                h64 ^= h64 >>> 33;
+                h64 *= PRIME64_2;
+                h64 ^= h64 >>> 29;
+                h64 *= PRIME64_3;
+                h64 ^= h64 >>> 32;
+
+                return h64;
+            }catch(IOException e){
+                throw new DBException.VolumeIOError(e);
+            }
+        }
+
     }
 
     private static FileLock lockFile(File file, RandomAccessFile raf, boolean readOnly, boolean fileLockDisable) {

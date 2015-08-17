@@ -154,6 +154,18 @@ public class VolumeTest {
 
         }
 
+        @Test public void hash(){
+            byte[] b = new byte[11111];
+            new Random().nextBytes(b);
+            Volume v = fab.run(TT.tempDbFile().getPath());
+            v.ensureAvailable(b.length);
+            v.putData(0,b,0,b.length);
+
+            assertEquals(DataIO.hash(b,0,b.length,11), v.hash(0,b.length,11));
+
+            v.close();
+        }
+
         void putGetOverlap(Volume vol, long offset, int size) throws IOException {
             byte[] b = TT.randomByteArray(size);
 
