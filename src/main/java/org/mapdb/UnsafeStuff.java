@@ -1,13 +1,23 @@
 package org.mapdb;
 
+
 import java.io.DataInput;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.FileLock;
+import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import static java.lang.Long.rotateLeft;
+import static org.mapdb.DataIO.PRIME64_1;
+import static org.mapdb.DataIO.PRIME64_2;
+import static org.mapdb.DataIO.PRIME64_3;
+import static org.mapdb.DataIO.PRIME64_4;
+import static org.mapdb.DataIO.PRIME64_5;
+
 
 /**
  * Contains classes which use {@code sun.misc.Unsafe}.
@@ -16,13 +26,58 @@ import java.util.logging.Level;
  * and MapDB will use other option.
  *
  */
-//TODO UnsafeVolume has hardcoded Little Endian, add some check or fail
 class UnsafeStuff {
+
+    static final Logger LOG = Logger.getLogger(UnsafeStuff.class.getName());
+
+    static final sun.misc.Unsafe UNSAFE = getUnsafe();
+
+    @SuppressWarnings("restriction")
+    private static sun.misc.Unsafe getUnsafe() {
+        if(ByteOrder.nativeOrder()!=ByteOrder.LITTLE_ENDIAN){
+            LOG.log(Level.WARNING,"This is not Little Endian platform. Unsafe optimizations are disabled.");
+            return null;
+        }
+        try {
+            java.lang.reflect.Field singleoneInstanceField = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+            singleoneInstanceField.setAccessible(true);
+            sun.misc.Unsafe ret =  (sun.misc.Unsafe)singleoneInstanceField.get(null);
+            return ret;
+        } catch (Throwable e) {
+            LOG.log(Level.WARNING,"Could not instantiate sun.misc.Unsafe. Fall back to DirectByteBuffer and other alternatives.",e);
+            return null;
+        }
+    }
+
+    private static final long BYTE_ARRAY_OFFSET;
+    private static final int BYTE_ARRAY_SCALE;
+    private static final long INT_ARRAY_OFFSET;
+    private static final int INT_ARRAY_SCALE;
+    private static final long SHORT_ARRAY_OFFSET;
+    private static final int SHORT_ARRAY_SCALE;
+    private static final long CHAR_ARRAY_OFFSET;
+    private static final int CHAR_ARRAY_SCALE;
+
+    static {
+        BYTE_ARRAY_OFFSET = UNSAFE==null?-1:UNSAFE.arrayBaseOffset(byte[].class);
+        BYTE_ARRAY_SCALE = UNSAFE==null?-1:UNSAFE.arrayIndexScale(byte[].class);
+        INT_ARRAY_OFFSET = UNSAFE==null?-1:UNSAFE.arrayBaseOffset(int[].class);
+        INT_ARRAY_SCALE = UNSAFE==null?-1:UNSAFE.arrayIndexScale(int[].class);
+        SHORT_ARRAY_OFFSET = UNSAFE==null?-1:UNSAFE.arrayBaseOffset(short[].class);
+        SHORT_ARRAY_SCALE = UNSAFE==null?-1:UNSAFE.arrayIndexScale(short[].class);
+        CHAR_ARRAY_OFFSET = UNSAFE==null?-1:UNSAFE.arrayBaseOffset(char[].class);
+        CHAR_ARRAY_SCALE = UNSAFE==null?-1:UNSAFE.arrayIndexScale(char[].class);
+    }
+
+
+    public static boolean unsafeAvailable(){
+        return UNSAFE !=null;
+    }
 
 
     static final class UnsafeVolume extends Volume {
 
-        private static final sun.misc.Unsafe UNSAFE = getUnsafe();
+
 
         // Cached array base offset
         private static final long ARRAY_BASE_OFFSET = UNSAFE ==null?-1 : UNSAFE.arrayBaseOffset(byte[].class);;
@@ -37,22 +92,6 @@ class UnsafeStuff {
         public static boolean unsafeAvailable(){
             return UNSAFE !=null;
         }
-
-        @SuppressWarnings("restriction")
-        private static sun.misc.Unsafe getUnsafe() {
-            try {
-
-                java.lang.reflect.Field singleoneInstanceField = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
-                singleoneInstanceField.setAccessible(true);
-                sun.misc.Unsafe ret =  (sun.misc.Unsafe)singleoneInstanceField.get(null);
-                return ret;
-            } catch (Throwable e) {
-                LOG.log(Level.WARNING,"Could not instantiate sun.miscUnsafe. Fall back to DirectByteBuffer.",e);
-                return null;
-            }
-        }
-
-
 
 
         // This number limits the number of bytes to copy per call to Unsafe's
@@ -433,7 +472,7 @@ class UnsafeStuff {
 
             @Override
             public long unpackLong() throws IOException {
-                sun.misc.Unsafe UNSAFE = UnsafeVolume.UNSAFE;
+                sun.misc.Unsafe UNSAFE = UnsafeStuff.UNSAFE;
                 long pos = pos2;
                 long ret = 0;
                 byte v;
@@ -449,7 +488,7 @@ class UnsafeStuff {
 
             @Override
             public int unpackInt() throws IOException {
-                sun.misc.Unsafe UNSAFE = UnsafeVolume.UNSAFE;
+                sun.misc.Unsafe UNSAFE = UnsafeStuff.UNSAFE;
                 long pos = pos2;
                 int ret = 0;
                 byte v;
@@ -466,7 +505,7 @@ class UnsafeStuff {
 
             @Override
             public long[] unpackLongArrayDeltaCompression(final int size) throws IOException {
-                sun.misc.Unsafe UNSAFE = UnsafeVolume.UNSAFE;
+                sun.misc.Unsafe UNSAFE = UnsafeStuff.UNSAFE;
                 long[] ret = new long[size];
                 long pos2_ = pos2;
                 long prev=0;
@@ -487,7 +526,7 @@ class UnsafeStuff {
 
             @Override
             public void unpackLongArray(long[] array, int start, int end) {
-                sun.misc.Unsafe UNSAFE = UnsafeVolume.UNSAFE;
+                sun.misc.Unsafe UNSAFE = UnsafeStuff.UNSAFE;
                 long pos2_ = pos2;
                 long ret;
                 byte v;
@@ -505,7 +544,7 @@ class UnsafeStuff {
 
             @Override
             public void unpackIntArray(int[] array, int start, int end) {
-                sun.misc.Unsafe UNSAFE = UnsafeVolume.UNSAFE;
+                sun.misc.Unsafe UNSAFE = UnsafeStuff.UNSAFE;
                 long pos2_ = pos2;
                 int ret;
                 byte v;
@@ -546,12 +585,12 @@ class UnsafeStuff {
 
             @Override
             public byte readByte() throws IOException {
-                return UnsafeVolume.UNSAFE.getByte(pos2++);
+                return UnsafeStuff.UNSAFE.getByte(pos2++);
             }
 
             @Override
             public int readUnsignedByte() throws IOException {
-                return UnsafeVolume.UNSAFE.getByte(pos2++) & 0xFF;
+                return UnsafeStuff.UNSAFE.getByte(pos2++) & 0xFF;
             }
 
             @Override
@@ -576,14 +615,14 @@ class UnsafeStuff {
 
             @Override
             public int readInt() throws IOException {
-                int ret = UnsafeVolume.UNSAFE.getInt(pos2);
+                int ret = UnsafeStuff.UNSAFE.getInt(pos2);
                 pos2+=4;
                 return Integer.reverseBytes(ret);
             }
 
             @Override
             public long readLong() throws IOException {
-                long ret = UnsafeVolume.UNSAFE.getLong(pos2);
+                long ret = UnsafeStuff.UNSAFE.getLong(pos2);
                 pos2+=8;
                 return Long.reverseBytes(ret);
             }
@@ -616,4 +655,236 @@ class UnsafeStuff {
         }
     }
 
+
+    /**
+     * <p>
+     * Calculates XXHash64 from given {@code byte[]} buffer.
+     * </p><p>
+     * This code comes from <a href="https://github.com/jpountz/lz4-java">LZ4-Java</a> created
+     * by Adrien Grand.
+     * </p>
+     *
+     * @param buf to calculate hash from
+     * @param off offset to start calculation from
+     * @param len length of data to calculate hash
+     * @param seed  hash seed
+     * @return XXHash.
+     */
+    public static long hash(byte[] buf, int off, int len, long seed) {
+        if (UNSAFE==null){
+            return DataIO.hash(buf,off,len,seed);
+        }
+
+        if (len < 0) {
+            throw new IllegalArgumentException("lengths must be >= 0");
+        }
+        if(off<0 || off>=buf.length || off+len<0 || off+len>buf.length){
+            throw new IndexOutOfBoundsException();
+        }
+
+        final int end = off + len;
+        long h64;
+
+        if (len >= 32) {
+            final int limit = end - 32;
+            long v1 = seed + PRIME64_1 + PRIME64_2;
+            long v2 = seed + PRIME64_2;
+            long v3 = seed + 0;
+            long v4 = seed - PRIME64_1;
+            do {
+                v1 += readLongLE(buf, off) * PRIME64_2;
+                v1 = rotateLeft(v1, 31);
+                v1 *= PRIME64_1;
+                off += 8;
+
+                v2 += readLongLE(buf, off) * PRIME64_2;
+                v2 = rotateLeft(v2, 31);
+                v2 *= PRIME64_1;
+                off += 8;
+
+                v3 += readLongLE(buf, off) * PRIME64_2;
+                v3 = rotateLeft(v3, 31);
+                v3 *= PRIME64_1;
+                off += 8;
+
+                v4 += readLongLE(buf, off) * PRIME64_2;
+                v4 = rotateLeft(v4, 31);
+                v4 *= PRIME64_1;
+                off += 8;
+            } while (off <= limit);
+
+            h64 = rotateLeft(v1, 1) + rotateLeft(v2, 7) + rotateLeft(v3, 12) + rotateLeft(v4, 18);
+
+            v1 *= PRIME64_2; v1 = rotateLeft(v1, 31); v1 *= PRIME64_1; h64 ^= v1;
+            h64 = h64 * PRIME64_1 + PRIME64_4;
+
+            v2 *= PRIME64_2; v2 = rotateLeft(v2, 31); v2 *= PRIME64_1; h64 ^= v2;
+            h64 = h64 * PRIME64_1 + PRIME64_4;
+
+            v3 *= PRIME64_2; v3 = rotateLeft(v3, 31); v3 *= PRIME64_1; h64 ^= v3;
+            h64 = h64 * PRIME64_1 + PRIME64_4;
+
+            v4 *= PRIME64_2; v4 = rotateLeft(v4, 31); v4 *= PRIME64_1; h64 ^= v4;
+            h64 = h64 * PRIME64_1 + PRIME64_4;
+        } else {
+            h64 = seed + PRIME64_5;
+        }
+
+        h64 += len;
+
+        while (off <= end - 8) {
+            long k1 = readLongLE(buf, off);
+            k1 *= PRIME64_2; k1 = rotateLeft(k1, 31); k1 *= PRIME64_1; h64 ^= k1;
+            h64 = rotateLeft(h64, 27) * PRIME64_1 + PRIME64_4;
+            off += 8;
+        }
+
+        if (off <= end - 4) {
+            h64 ^= (readIntLE(buf, off) & 0xFFFFFFFFL) * PRIME64_1;
+            h64 = rotateLeft(h64, 23) * PRIME64_2 + PRIME64_3;
+            off += 4;
+        }
+
+        while (off < end) {
+            h64 ^= (buf[off] & 0xFF) * PRIME64_5;
+            h64 = rotateLeft(h64, 11) * PRIME64_1;
+            ++off;
+        }
+
+        h64 ^= h64 >>> 33;
+        h64 *= PRIME64_2;
+        h64 ^= h64 >>> 29;
+        h64 *= PRIME64_3;
+        h64 ^= h64 >>> 32;
+
+        return h64;
+    }
+
+
+    public static long readLongLE(byte[] src, int srcOff) {
+        return UNSAFE.getLong(src, BYTE_ARRAY_OFFSET + srcOff);
+    }
+
+
+    public static int readIntLE(byte[] src, int srcOff) {
+        return UNSAFE.getInt(src, BYTE_ARRAY_OFFSET + srcOff);
+    }
+
+
+    /**
+     * <p>
+     * Calculates XXHash64 from given {@code char[]} buffer.
+     * </p><p>
+     * This code comes from <a href="https://github.com/jpountz/lz4-java">LZ4-Java</a> created
+     * by Adrien Grand.
+     * </p>
+     *
+     * @param buf to calculate hash from
+     * @param off offset to start calculation from
+     * @param len length of data to calculate hash
+     * @param seed  hash seed
+     * @return XXHash.
+     */
+    public static long hash(char[] buf, int off, int len, long seed) {
+        if (UNSAFE==null){
+            return DataIO.hash(buf,off,len,seed);
+        }
+
+        if (len < 0) {
+            throw new IllegalArgumentException("lengths must be >= 0");
+        }
+        if(off<0 || off>=buf.length || off+len<0 || off+len>buf.length){
+            throw new IndexOutOfBoundsException();
+        }
+
+        final int end = off + len;
+        long h64;
+
+        if (len >= 16) {
+            final int limit = end - 16;
+            long v1 = seed + PRIME64_1 + PRIME64_2;
+            long v2 = seed + PRIME64_2;
+            long v3 = seed + 0;
+            long v4 = seed - PRIME64_1;
+            do {
+                v1 += readLongLE(buf, off) * PRIME64_2;
+                v1 = rotateLeft(v1, 31);
+                v1 *= PRIME64_1;
+                off += 4;
+
+                v2 += readLongLE(buf, off) * PRIME64_2;
+                v2 = rotateLeft(v2, 31);
+                v2 *= PRIME64_1;
+                off += 4;
+
+                v3 += readLongLE(buf, off) * PRIME64_2;
+                v3 = rotateLeft(v3, 31);
+                v3 *= PRIME64_1;
+                off += 4;
+
+                v4 += readLongLE(buf, off) * PRIME64_2;
+                v4 = rotateLeft(v4, 31);
+                v4 *= PRIME64_1;
+                off += 4;
+            } while (off <= limit);
+
+            h64 = rotateLeft(v1, 1) + rotateLeft(v2, 7) + rotateLeft(v3, 12) + rotateLeft(v4, 18);
+
+            v1 *= PRIME64_2; v1 = rotateLeft(v1, 31); v1 *= PRIME64_1; h64 ^= v1;
+            h64 = h64 * PRIME64_1 + PRIME64_4;
+
+            v2 *= PRIME64_2; v2 = rotateLeft(v2, 31); v2 *= PRIME64_1; h64 ^= v2;
+            h64 = h64 * PRIME64_1 + PRIME64_4;
+
+            v3 *= PRIME64_2; v3 = rotateLeft(v3, 31); v3 *= PRIME64_1; h64 ^= v3;
+            h64 = h64 * PRIME64_1 + PRIME64_4;
+
+            v4 *= PRIME64_2; v4 = rotateLeft(v4, 31); v4 *= PRIME64_1; h64 ^= v4;
+            h64 = h64 * PRIME64_1 + PRIME64_4;
+        } else {
+            h64 = seed + PRIME64_5;
+        }
+
+        h64 += len;
+
+        while (off <= end - 4) {
+            long k1 = readLongLE(buf, off);
+            k1 *= PRIME64_2; k1 = rotateLeft(k1, 31); k1 *= PRIME64_1; h64 ^= k1;
+            h64 = rotateLeft(h64, 27) * PRIME64_1 + PRIME64_4;
+            off += 4;
+        }
+
+        if (off <= end - 2) {
+            h64 ^= (readIntLE(buf, off) & 0xFFFFFFFFL) * PRIME64_1;
+            h64 = rotateLeft(h64, 23) * PRIME64_2 + PRIME64_3;
+            off += 2;
+        }
+
+        while (off < end) {
+            h64 ^= (readCharLE(buf,off) & 0xFFFF) * PRIME64_5;
+            h64 = rotateLeft(h64, 11) * PRIME64_1;
+            ++off;
+        }
+
+        h64 ^= h64 >>> 33;
+        h64 *= PRIME64_2;
+        h64 ^= h64 >>> 29;
+        h64 *= PRIME64_3;
+        h64 ^= h64 >>> 32;
+
+        return h64;
+    }
+
+    public static long readLongLE(char[] src, int srcOff) {
+        return UNSAFE.getLong(src, CHAR_ARRAY_OFFSET + srcOff * CHAR_ARRAY_SCALE);
+    }
+
+
+    public static int readIntLE(char[] src, int srcOff) {
+        return UNSAFE.getInt(src, CHAR_ARRAY_OFFSET + srcOff * CHAR_ARRAY_SCALE);
+    }
+
+    public static char readCharLE(char[] src, int srcOff) {
+        return UNSAFE.getChar(src, CHAR_ARRAY_OFFSET + srcOff*CHAR_ARRAY_SCALE);
+    }
 }

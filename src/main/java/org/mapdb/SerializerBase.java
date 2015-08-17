@@ -1630,6 +1630,8 @@ public class SerializerBase extends Serializer<Object>{
                     return true;
                 }
             });
+
+            mapdb_add(74, Serializer.STRING_XXHASH);
         }
 
 

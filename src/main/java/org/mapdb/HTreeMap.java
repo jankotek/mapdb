@@ -168,13 +168,13 @@ public class HTreeMap<K,V>
     };
 
     private final  void assertHashConsistent(K key) throws IOException {
-        int hash = keySerializer.hashCode(key);
+        int hash = keySerializer.hashCode(key, hashSalt);
         DataIO.DataOutputByteArray out = new DataIO.DataOutputByteArray();
         keySerializer.serialize(out,key);
         DataIO.DataInputByteArray in = new DataIO.DataInputByteArray(out.buf, 0);
 
         K key2 = keySerializer.deserialize(in,-1);
-        if(hash!=keySerializer.hashCode(key2)){
+        if(hash!=keySerializer.hashCode(key2, hashSalt)){
             throw new IllegalArgumentException("Key does not have consistent hash before and after deserialization. Class: "+key.getClass());
         }
         if(!keySerializer.equals(key,key2)){
@@ -1287,7 +1287,7 @@ public class HTreeMap<K,V>
         public int hashCode() {
             int result = 0;
             for (K k : this) {
-                result += keySerializer.hashCode(k);
+                result += keySerializer.hashCode(k, hashSalt);
             }
             return result;
 
@@ -1405,12 +1405,10 @@ public class HTreeMap<K,V>
 
 
     protected int hash(final Object key) {
-        //TODO investigate if hashSalt has any efect
-        int h = keySerializer.hashCode((K) key) ^ hashSalt;
-        //stear hashcode a bit, to make sure bits are spread
+        int h = keySerializer.hashCode((K) key, hashSalt) ^ hashSalt;
+        //mix hashcode a bit, to make sure bits are spread
         h = h * -1640531527;
         h =  h ^ h >> 16;
-        //TODO koloboke credit
 
         //this section is eliminated by compiler, if no debugging is used
         if(SEG==1){
@@ -1640,7 +1638,7 @@ public class HTreeMap<K,V>
         @Override
         public int hashCode() {
             final V value = HTreeMap.this.get(key);
-            return (key == null ? 0 : keySerializer.hashCode(key)) ^
+            return (key == null ? 0 : keySerializer.hashCode(key, hashSalt)) ^
                     (value == null ? 0 : value.hashCode());
         }
     }

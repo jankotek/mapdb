@@ -59,6 +59,47 @@ public abstract class Serializer<A> {
     };
 
 
+
+    /**
+     * <p>
+     * Serializes strings using UTF8 encoding.
+     * Stores string size so can be used as collection serializer.
+     * Does not handle null values
+     * </p><p>
+     * Unlike {@link Serializer#STRING} this method hashes String with more reliable XXHash.
+     * </p>
+     */
+    public static final Serializer<String> STRING_XXHASH = new Serializer<String>() {
+        @Override
+        public void serialize(DataOutput out, String value) throws IOException {
+            out.writeUTF(value);
+        }
+
+        @Override
+        public String deserialize(DataInput in, int available) throws IOException {
+            return in.readUTF();
+        }
+
+        @Override
+        public boolean isTrusted() {
+            return true;
+        }
+
+        @Override
+        public BTreeKeySerializer getBTreeKeySerializer(Comparator comparator) {
+            if(comparator!=null && comparator!=Fun.COMPARATOR) {
+                return super.getBTreeKeySerializer(comparator);
+            }
+            return BTreeKeySerializer.STRING;
+        }
+
+        @Override
+        public int hashCode(String s, int seed) {
+            char[] c = s.toCharArray();
+            return CHAR_ARRAY.hashCode(c, seed);
+        }
+    };
+
     /**
      * Serializes strings using UTF8 encoding.
      * Stores string size so can be used as collection serializer.
@@ -749,8 +790,8 @@ public abstract class Serializer<A> {
         }
 
         @Override
-        public int hashCode(long[] bytes) {
-            return Arrays.hashCode(bytes);
+        public int hashCode(long[] bytes, int seed) {
+            return LONG_ARRAY.hashCode(bytes,seed);
         }
 
     };
@@ -806,9 +847,9 @@ public abstract class Serializer<A> {
             return Arrays.equals(a1,a2);
         }
 
-        @Override
-        public int hashCode(byte[] bytes) {
-            return Arrays.hashCode(bytes);
+        public int hashCode(byte[] bytes, int seed) {
+            return DataIO.longHash(
+                    DataIO.hash(bytes, 0, bytes.length, seed));
         }
 
         @Override
@@ -849,8 +890,8 @@ public abstract class Serializer<A> {
         }
 
         @Override
-        public int hashCode(byte[] bytes) {
-            return Arrays.hashCode(bytes);
+        public int hashCode(byte[] bytes, int seed) {
+            return BYTE_ARRAY.hashCode(bytes, seed);
         }
 
         @Override
@@ -897,8 +938,9 @@ public abstract class Serializer<A> {
         }
 
         @Override
-        public int hashCode(char[] bytes) {
-            return Arrays.hashCode(bytes);
+        public int hashCode(char[] bytes, int seed) {
+            return DataIO.longHash(
+                    DataIO.hash(bytes, 0, bytes.length, seed));
         }
 
 
@@ -939,8 +981,11 @@ public abstract class Serializer<A> {
         }
 
         @Override
-        public int hashCode(int[] bytes) {
-            return Arrays.hashCode(bytes);
+        public int hashCode(int[] bytes, int seed) {
+            for (int i : bytes) {
+                seed = -1640531527 * seed + i;
+            }
+            return seed;
         }
 
 
@@ -981,8 +1026,12 @@ public abstract class Serializer<A> {
         }
 
         @Override
-        public int hashCode(long[] bytes) {
-            return Arrays.hashCode(bytes);
+        public int hashCode(long[] bytes, int seed) {
+            for (long element : bytes) {
+                int elementHash = (int)(element ^ (element >>> 32));
+                seed = -1640531527 * seed + elementHash;
+            }
+            return seed;
         }
 
 
@@ -1023,8 +1072,12 @@ public abstract class Serializer<A> {
         }
 
         @Override
-        public int hashCode(double[] bytes) {
-            return Arrays.hashCode(bytes);
+        public int hashCode(double[] bytes, int seed) {
+            for (double element : bytes) {
+                long bits = Double.doubleToLongBits(element);
+                seed = -1640531527 * seed + (int)(bits ^ (bits >>> 32));
+            }
+            return seed;
         }
 
 
@@ -1084,7 +1137,7 @@ public abstract class Serializer<A> {
         }
 
         @Override
-        public int hashCode(UUID uuid) {
+        public int hashCode(UUID uuid, int seed) {
             //on java6 uuid.hashCode is not thread safe. This is workaround
             long a = uuid.getLeastSignificantBits() ^ uuid.getMostSignificantBits();
             return ((int)(a>>32))^(int) a;
@@ -1307,7 +1360,7 @@ public abstract class Serializer<A> {
         }
 
         @Override
-        public int hashCode(boolean[] booleans) {
+        public int hashCode(boolean[] booleans, int seed) {
             return Arrays.hashCode(booleans);
         }
     };
@@ -1343,8 +1396,10 @@ public abstract class Serializer<A> {
         }
 
         @Override
-        public int hashCode(short[] shorts) {
-            return Arrays.hashCode(shorts);
+        public int hashCode(short[] shorts, int seed) {
+            for (short element : shorts)
+                seed = -1640531527 * seed + element;
+            return seed;
         }
     };
 
@@ -1378,8 +1433,10 @@ public abstract class Serializer<A> {
         }
 
         @Override
-        public int hashCode(float[] floats) {
-            return Arrays.hashCode(floats);
+        public int hashCode(float[] floats, int seed) {
+            for (float element : floats)
+                seed = -1640531527 * seed + Float.floatToIntBits(element);
+            return seed;
         }
     };
 
@@ -1445,7 +1502,7 @@ public abstract class Serializer<A> {
         }
 
         @Override
-        public int hashCode(Class<?> aClass) {
+        public int hashCode(Class<?> aClass, int seed) {
             //class does not override identity hash code
             return aClass.toString().hashCode();
         }
@@ -1974,12 +2031,12 @@ public abstract class Serializer<A> {
         }
 
         @Override
-        public int hashCode(T[] objects) {
-            int ret = objects.length;
+        public int hashCode(T[] objects, int seed) {
+            seed+=objects.length;
             for(T a:objects){
-                ret=31*ret+serializer.hashCode(a);
+                seed=-1640531527*seed+serializer.hashCode(a,seed);
             }
-            return ret;
+            return seed;
         }
 
         @Override
@@ -2083,7 +2140,7 @@ public abstract class Serializer<A> {
         return a1==a2 || (a1!=null && a1.equals(a2));
     }
 
-    public int hashCode(A a){
+    public int hashCode(A a, int seed){
         return a.hashCode();
     }
 

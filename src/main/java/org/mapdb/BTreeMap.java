@@ -247,7 +247,7 @@ public class BTreeMap<K,V>
         }
 
         @Override
-        public int hashCode(ValRef valRef) {
+        public int hashCode(ValRef valRef, int seed) {
             throw new IllegalAccessError();
         }
     }
