@@ -5,6 +5,7 @@ import java.lang.ref.ReferenceQueue;
 import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -632,6 +633,20 @@ public abstract class Store implements Engine {
     public abstract long getCurrSize();
 
     public abstract long getFreeSize();
+
+    /**
+     * <p>
+     * If underlying storage is memory-mapped-file, this method will try to
+     * load and precache all file data into disk cache.
+     * Most likely it will call {@link MappedByteBuffer#load()},
+     * but could also read content of entire file etc
+     * This method will not pin data into memory, they might be removed at any time.
+     * </p>
+     *
+     * @return true if this method did something, false if underlying storage does not support loading,
+     * or is already in-memory
+     */
+    public abstract boolean fileLoad();
 
     @Override
     public void clearCache() {

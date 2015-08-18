@@ -272,6 +272,11 @@ public final class StoreArchive extends Store{
     }
 
     @Override
+    public boolean fileLoad() {
+        return vol.fileLoad();
+    }
+
+    @Override
     public void backup(OutputStream out, boolean incremental) {
         throw new UnsupportedOperationException("StoreArchive has different RECID layout");
     }

@@ -72,6 +72,21 @@ public abstract class Volume implements Closeable{
         return !f.exists() || f.length()==0;
     }
 
+    /**
+     * <p>
+     * If underlying storage is memory-mapped-file, this method will try to
+     * load and precache all file data into disk cache.
+     * Most likely it will call {@link MappedByteBuffer#load()},
+     * but could also read content of entire file etc
+     * This method will not pin data into memory, they might be removed at any time.
+     * </p>
+     *
+     * @return true if this method did something, false if underlying storage does not support loading
+     */
+    public  boolean fileLoad(){
+        return false;
+    }
+
     public static abstract class VolumeFactory{
         public abstract Volume makeVolume(String file, boolean readOnly, boolean fileLockDisabled,
                                           int sliceShift, long initSize, boolean fixedSize);
@@ -1356,6 +1371,16 @@ public abstract class Volume implements Closeable{
             }
         }
 
+        @Override
+        public boolean fileLoad() {
+            ByteBuffer[] slices = this.slices;
+            for(ByteBuffer b:slices){
+                if(b instanceof MappedByteBuffer){
+                    ((MappedByteBuffer)b).load();
+                }
+            }
+            return true;
+        }
     }
 
 
@@ -1486,6 +1511,11 @@ public abstract class Volume implements Closeable{
             //TODO truncate
         }
 
+        @Override
+        public boolean fileLoad() {
+            ((MappedByteBuffer)buffer).load();
+            return true;
+        }
     }
 
 

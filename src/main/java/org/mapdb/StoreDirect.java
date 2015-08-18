@@ -572,6 +572,11 @@ public class StoreDirect extends Store {
         }
     }
 
+    @Override
+    public boolean fileLoad() {
+        return vol.fileLoad();
+    }
+
     protected void freeSizeIncrement(int increment){
         for(;;) {
             long val = freeSize.get();
