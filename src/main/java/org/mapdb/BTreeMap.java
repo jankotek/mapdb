@@ -1027,7 +1027,7 @@ public class BTreeMap<K,V>
     @Override
     public V put(K key, V value){
         if(key==null||value==null) throw new NullPointerException();
-        return put2(key,value, false);
+        return put2(key, value, false);
     }
 
     protected V put2(final K key, final V value2, final boolean putOnlyIfAbsent){
@@ -1089,26 +1089,27 @@ public class BTreeMap<K,V>
                     }
 
                     //insert new
-                    V value = value2;
                     if(valsOutsideNodes){
-                        long recid = engine.put(value2, valueSerializer);
+                        long recid = ((ValRef)oldVal).recid;
+                        oldVal = valExpand(oldVal);
                         //$DELAY$
-                        value = (V) new ValRef(recid);
-                    }
+                        engine.update(recid,value2,valueSerializer);
+                    }else {
 
-                    //$DELAY$
-                    A = ((LeafNode)A).copyChangeValue(valueSerializer, pos,value);
+                        A = ((LeafNode) A).copyChangeValue(valueSerializer, pos, value2);
+                        //$DELAY$
+                        engine.update(current, A, nodeSerializer);
+                    }
                     if(CC.ASSERT && ! (nodeLocks.get(current)==Thread.currentThread()))
                         throw new AssertionError();
-                    engine.update(current, A, nodeSerializer);
+
                     //$DELAY$
-                    //already in here
-                    V ret =  valExpand(oldVal);
-                    notify(key,ret, value2);
+                    notify(key, (V) oldVal, value2);
                     unlock(nodeLocks, current);
                     //$DELAY$
-                    if(CC.ASSERT) assertNoLocks(nodeLocks);
-                    return ret;
+                    if(CC.ASSERT)
+                        assertNoLocks(nodeLocks);
+                    return (V) oldVal;
                 }
 
                 //if v > highvalue(a)
@@ -1530,29 +1531,29 @@ public class BTreeMap<K,V>
             if(pos>0 && pos!=A.keysLen(keySerializer)-1){
                 //found, delete from node
                 //$DELAY$
-                Object oldVal =   A.val(pos-1, valueSerializer);
-                oldVal = valExpand(oldVal);
+                Object oldValNotExpanded =   A.val(pos-1, valueSerializer);
+                Object oldVal = valExpand(oldValNotExpanded);
                 if(value!=null && valueSerializer!=null && !valueSerializer.equals((V)value,(V)oldVal)){
                     unlock(nodeLocks, current);
                     //$DELAY$
                     return null;
                 }
 
-                Object putNewValueOutside = putNewValue;
-                if(putNewValue!=null && valsOutsideNodes){
-                    //$DELAY$
-                    long recid = engine.put((V)putNewValue,valueSerializer);
-                    //$DELAY$
-                    putNewValueOutside = new ValRef(recid);
+                if(valsOutsideNodes){
+                    long recid = ((ValRef)oldValNotExpanded).recid;
+                    engine.update(recid, (V) putNewValue,valueSerializer);
                 }
 
-                A = putNewValue!=null?
-                        ((LeafNode)A).copyChangeValue(valueSerializer,pos,putNewValueOutside):
-                        ((LeafNode)A).copyRemoveKey(keySerializer,valueSerializer,pos);
+                if(putNewValue==null || !valsOutsideNodes){ //if existing item is updated outside of node, there is no need to modify node
+                    A = putNewValue!=null?
+                            ((LeafNode)A).copyChangeValue(valueSerializer,pos,putNewValue):
+                            ((LeafNode)A).copyRemoveKey(keySerializer,valueSerializer,pos);
+                    //$DELAY$
+                    engine.update(current, A, nodeSerializer);
+                }
                 if(CC.ASSERT && ! (nodeLocks.get(current)==Thread.currentThread()))
                     throw new AssertionError();
-                //$DELAY$
-                engine.update(current, A, nodeSerializer);
+
                 notify((K)key, (V)oldVal, (V)putNewValue);
                 unlock(nodeLocks, current);
                 return (V) oldVal;

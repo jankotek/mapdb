@@ -702,6 +702,49 @@ public class BTreeMapTest{
                 m.findSmallerNodeRecur(n,12,false));
     }
 
+
+    @Test public void issue403_store_grows_with_values_outside_nodes(){
+        File f = TT.tempDbFile();
+        DB db = DBMaker.fileDB(f)
+                .closeOnJvmShutdown()
+                .transactionDisable()
+                .make();
+
+        BTreeMap<Long,byte[]> id2entry = db.treeMapCreate("id2entry")
+                .valueSerializer(Serializer.BYTE_ARRAY)
+                .keySerializer(Serializer.LONG)
+                .valuesOutsideNodesEnable()
+                .make();
+
+        Store store = Store.forDB(db);
+        byte[] b = TT.randomByteArray(10000);
+        id2entry.put(11L, b);
+        long size = store.getCurrSize();
+        for(int i=0;i<100;i++) {
+            byte[] b2 = TT.randomByteArray(10000);
+            assertArrayEquals(b, id2entry.put(11L, b2));
+            b = b2;
+        }
+        assertEquals(size, store.getCurrSize());
+
+        for(int i=0;i<100;i++) {
+            byte[] b2 = TT.randomByteArray(10000);
+            assertArrayEquals(b, id2entry.replace(11L, b2));
+            b = b2;
+        }
+        assertEquals(size,store.getCurrSize());
+
+        for(int i=0;i<100;i++) {
+            byte[] b2 = TT.randomByteArray(10000);
+            assertTrue(id2entry.replace(11L, b, b2));
+            b = b2;
+        }
+        assertEquals(size,store.getCurrSize());
+
+
+        db.close();
+        f.delete();
+    }
 }
 
 
