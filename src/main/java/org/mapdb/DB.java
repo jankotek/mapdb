@@ -875,12 +875,16 @@ public class DB implements Closeable {
     protected Object serializableOrPlaceHolder(Object o) {
         SerializerBase b = (SerializerBase)getDefaultSerializer();
         if(o == null || b.isSerializable(o)){
-            if(!(o instanceof BTreeKeySerializer.BasicKeySerializer))
+            //try to serialize into temporary buffer
+            try {
+                DataIO.DataOutputByteArray out = new DataIO.DataOutputByteArray();
+                b.serialize(out,o);
+                //object is serializable
                 return o;
-
-            BTreeKeySerializer.BasicKeySerializer oo = (BTreeKeySerializer.BasicKeySerializer) o;
-            if(b.isSerializable(oo.serializer) && b.isSerializable(oo.comparator))
-                return o;
+            } catch (Exception e) {
+                //object is not serializable
+                return Fun.PLACEHOLDER;
+            }
         }
 
         return Fun.PLACEHOLDER;

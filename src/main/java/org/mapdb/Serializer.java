@@ -1982,6 +1982,8 @@ public abstract class Serializer<A> {
 		protected final Serializer<T> serializer;
 
         public Array(Serializer<T> serializer) {
+            if(serializer==null)
+                throw new NullPointerException("null serializer");
             this.serializer = serializer;
         }
 

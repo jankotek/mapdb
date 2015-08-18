@@ -599,4 +599,42 @@ public class DBTest {
         assertNull(v.get());
     }
 
+
+    static class Issue546_NonSerializableSerializer extends Serializer<String>{
+
+        @Override
+        public void serialize(DataOutput out, String value) throws IOException {
+            out.writeUTF(value);
+        }
+
+        @Override
+        public String deserialize(DataInput in, int available) throws IOException {
+            return in.readUTF();
+        }
+    }
+
+    @Test public void issue546_ArraySerializer_with_non_serializable_fields(){
+        File f = TT.tempDbFile();
+        DB db = DBMaker.fileDB(f).transactionDisable().make();
+        Serializer.Array ser = new Serializer.Array(new Issue546_NonSerializableSerializer());
+
+        Set<String[]> s = db.hashSetCreate("set").serializer(ser).make();
+        s.add(new String[]{"aa"});
+        assertArrayEquals(new String[]{"aa"}, s.iterator().next());
+
+        db.close();
+
+        //reinstantiate, it should fail, no serializer is found
+        db = DBMaker.fileDB(f).transactionDisable().make();
+        try {
+            s = db.hashSet("set");
+            fail();
+        }catch(DBException.UnknownSerializer e){
+            //expected
+        }
+        s = db.hashSetCreate("set").serializer(ser).makeOrGet();
+
+        assertArrayEquals(new String[]{"aa"}, s.iterator().next());
+
+    }
 }
