@@ -159,6 +159,11 @@ public class StoreHeap extends Store{
         return -1;
     }
 
+    @Override
+    public boolean fileLoad() {
+        return false;
+    }
+
 
     @Override
     public void backup(OutputStream out, boolean incremental) {

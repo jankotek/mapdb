@@ -224,9 +224,11 @@ public final class Pump {
                         Iterator<Object[]> subset = Fun.filter(items,next).iterator();
                         if(!subset.hasNext())
                             break;
+                        List<Object[]> subset2 = new LinkedList<Object[]>();
+                        while(subset.hasNext())
+                            subset2.add(subset.next());
                         List<Object[]> toadd = new ArrayList<Object[]>();
-                        while(subset.hasNext()){
-                            Object[] t = subset.next();
+                        for(Object[] t:subset2){
                             items.remove(t);
                             iter = iterators[(Integer)t[1]];
                             if(iter.hasNext())
@@ -874,5 +876,50 @@ public final class Pump {
         String num = f.getName();
         num = num.substring(0, num.indexOf('.'));
         return num;
+    }
+
+    public static void archiveTreeMap(NavigableMap source, File target, DB.BTreeMapMaker config) {
+        //init store
+        StoreArchive s = new StoreArchive(
+                target.getPath(),
+                Volume.RandomAccessFileVol.FACTORY,
+                false);
+        s.init();
+
+        //do import
+        long counterRecid = config.counter ? s.put(0L, Serializer.LONG) : 0L;
+        long rootRecid = Pump.buildTreeMap(
+                source.descendingMap().entrySet().iterator(),
+                s,
+                Fun.extractMapEntryKey(),
+                Fun.extractMapEntryValue(),
+                false,
+                config.nodeSize,
+                config.valuesOutsideNodes,
+                counterRecid,
+                config.getKeySerializer(),
+                (Serializer)config.valueSerializer,
+                null
+                );
+
+        //create named catalog
+        String name = config.name;
+        NavigableMap<String, Object> c = new TreeMap<String, Object>();
+        c.put(name + DB.Keys.type,"TreeMap");
+        c.put(name + DB.Keys.rootRecidRef, rootRecid);
+        c.put(name + DB.Keys.maxNodeSize, config.nodeSize);
+        c.put(name + DB.Keys.valuesOutsideNodes, config.valuesOutsideNodes);
+        c.put(name + DB.Keys.counterRecids, counterRecid);
+        c.put(name + DB.Keys.keySerializer, config.getKeySerializer());
+        c.put(name + DB.Keys.valueSerializer, config.valueSerializer);
+        c.put(name + DB.Keys.numberOfNodeMetas, 0);
+
+        //and apply it
+        s.rewriteNamedCatalog(c);
+
+        //create testing record
+
+
+        s.close();
     }
 }

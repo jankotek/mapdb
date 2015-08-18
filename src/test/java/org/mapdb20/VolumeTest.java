@@ -10,6 +10,7 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import static org.junit.Assert.*;
 
@@ -151,6 +152,18 @@ public class VolumeTest {
 
             v.close();
 
+        }
+
+        @Test public void hash(){
+            byte[] b = new byte[11111];
+            new Random().nextBytes(b);
+            Volume v = fab.run(TT.tempDbFile().getPath());
+            v.ensureAvailable(b.length);
+            v.putData(0,b,0,b.length);
+
+            assertEquals(DataIO.hash(b,0,b.length,11), v.hash(0,b.length,11));
+
+            v.close();
         }
 
         void putGetOverlap(Volume vol, long offset, int size) throws IOException {
@@ -567,6 +580,24 @@ public class VolumeTest {
             assertEquals(vol.getClass().getName(), initSize, vol.length());
             vol.close();
             f.delete();
+        }
+    }
+
+    @Test public void hash(){
+        Random r = new Random();
+        for(int i=0;i<100;i++){
+            int len = 100+r.nextInt(1999);
+            byte[] b = new byte[len];
+            r.nextBytes(b);
+
+            Volume vol = new Volume.SingleByteArrayVol(len);
+            vol.putData(0, b,0,b.length);
+
+            assertEquals(
+                    DataIO.hash(b,0,b.length,0),
+                    vol.hash(0,b.length,0)
+                    );
+
         }
     }
 }

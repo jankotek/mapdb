@@ -1630,6 +1630,8 @@ public class SerializerBase extends Serializer<Object>{
                     return true;
                 }
             });
+
+            mapdb_add(74, Serializer.STRING_XXHASH);
         }
 
 
@@ -2207,6 +2209,34 @@ public class SerializerBase extends Serializer<Object>{
         }
 
         return false;
+    }
+
+    /**
+     * Tries to serialize two object and return true if they are binary equal
+     * @param a1 first object
+     * @param a2 second object
+     * @return true if objects are equal or binary equal, false if not equal or some failure happend
+     */
+    public boolean equalsBinary(Object a1, Object a2) {
+        if(Fun.eq(a1,a2))
+            return true;
+        if(a1==null||a2==null)
+            return false;
+        if(a1.getClass()!=a2.getClass())
+            return false;
+        if(!(a1 instanceof Serializable) || !(a2 instanceof Serializable))
+            return false; //serializing non serializable would most likely throw an exception
+
+        try {
+            DataIO.DataOutputByteArray out1 = new DataIO.DataOutputByteArray();
+            serialize(out1,a1);
+            DataIO.DataOutputByteArray out2 = new DataIO.DataOutputByteArray();
+            serialize(out2,a2);
+
+            return out1.pos==out2.pos && Arrays.equals(out1.buf, out2.buf);
+        } catch (Exception e) {
+            return false;
+        }
     }
 
 }

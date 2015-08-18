@@ -162,18 +162,19 @@ public class HTreeMap<K,V>
 
         @Override
         public boolean isTrusted() {
-            return keySerializer.isTrusted() && valueSerializer.isTrusted();
+            return keySerializer.isTrusted() &&
+                    (valueSerializer==null || valueSerializer.isTrusted());
         }
     };
 
     private final  void assertHashConsistent(K key) throws IOException {
-        int hash = keySerializer.hashCode(key);
+        int hash = keySerializer.hashCode(key, hashSalt);
         DataIO.DataOutputByteArray out = new DataIO.DataOutputByteArray();
         keySerializer.serialize(out,key);
         DataIO.DataInputByteArray in = new DataIO.DataInputByteArray(out.buf, 0);
 
         K key2 = keySerializer.deserialize(in,-1);
-        if(hash!=keySerializer.hashCode(key2)){
+        if(hash!=keySerializer.hashCode(key2, hashSalt)){
             throw new IllegalArgumentException("Key does not have consistent hash before and after deserialization. Class: "+key.getClass());
         }
         if(!keySerializer.equals(key,key2)){
@@ -789,12 +790,10 @@ public class HTreeMap<K,V>
                     //make space for new value
                     System.arraycopy(dir_, offset, dir_, offset + 1, dir_.length - 1 - offset);
                     //and update bitmap
-                    //TODO assert slot bit was not set
                     int bytePos = slot / 32;
                     int bitPos = slot % 32;
                     dir_[bytePos] = (dir_[bytePos] | (1 << bitPos));
                 } else {
-                    //TODO assert slot bit was set
                     dir_ = dir_.clone();
                 }
                 //and insert value itself
@@ -823,12 +822,10 @@ public class HTreeMap<K,V>
             //make space for new value
             System.arraycopy(dir_, offset, dir_, offset + 1, dir_.length - 1 - offset);
             //and update bitmap
-            //TODO assert slot bit was not set
             int bytePos = slot / 64;
             int bitPos = slot % 64;
             dir_[bytePos] = (dir_[bytePos] | (1L << bitPos));
         } else {
-            //TODO assert slot bit was set
             dir_ = dir_.clone();
         }
         //and insert value itself
@@ -850,7 +847,6 @@ public class HTreeMap<K,V>
             System.arraycopy(dir_, offset + 1, dir2, offset, dir2.length - offset);
 
             //unset bitmap bit
-            //TODO assert slot bit was set
             int bytePos = slot / 32;
             int bitPos = slot % 32;
             dir2[bytePos] =  (dir2[bytePos] & ~(1 << bitPos));
@@ -863,7 +859,6 @@ public class HTreeMap<K,V>
             System.arraycopy(dir_, offset + 1, dir2, offset, dir2.length - offset);
 
             //unset bitmap bit
-            //TODO assert slot bit was set
             int bytePos = slot / 64;
             int bitPos = slot % 64;
             dir2[bytePos] =  (dir2[bytePos] & ~(1L << bitPos));
@@ -1292,7 +1287,7 @@ public class HTreeMap<K,V>
         public int hashCode() {
             int result = 0;
             for (K k : this) {
-                result += keySerializer.hashCode(k);
+                result += keySerializer.hashCode(k, hashSalt);
             }
             return result;
 
@@ -1410,12 +1405,10 @@ public class HTreeMap<K,V>
 
 
     protected int hash(final Object key) {
-        //TODO investigate if hashSalt has any efect
-        int h = keySerializer.hashCode((K) key) ^ hashSalt;
-        //stear hashcode a bit, to make sure bits are spread
+        int h = keySerializer.hashCode((K) key, hashSalt) ^ hashSalt;
+        //mix hashcode a bit, to make sure bits are spread
         h = h * -1640531527;
         h =  h ^ h >> 16;
-        //TODO koloboke credit
 
         //this section is eliminated by compiler, if no debugging is used
         if(SEG==1){
@@ -1645,7 +1638,7 @@ public class HTreeMap<K,V>
         @Override
         public int hashCode() {
             final V value = HTreeMap.this.get(key);
-            return (key == null ? 0 : keySerializer.hashCode(key)) ^
+            return (key == null ? 0 : keySerializer.hashCode(key, hashSalt)) ^
                     (value == null ? 0 : value.hashCode());
         }
     }

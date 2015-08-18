@@ -1,9 +1,9 @@
 MapDB
-Copyright 2012-2014 Jan Kotek
+Copyright 2012-2015 Jan Kotek
 
 This product includes software developed by Thomas Mueller and H2 group
 Relicensed under Apache License 2 with Thomas permission.
-(CompressLZF.java and EncryptionXTEA.java)
+(CompressLZF.java and EncryptionXTEA.java and Heartbeat file lock)
 Copyright (c) 2004-2011 H2 Group
 
 
@@ -12,15 +12,6 @@ This product includes software developed by Doug Lea and JSR 166 group:
  * Written by Doug Lea with assistance from members of JCP JSR-166
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/licenses/publicdomain
-
-
-This product includes software developed for Apache Solr
-(LongConcurrentLRUMap.java)
-Copyright 2006-2014 The Apache Software Foundation
-
-This product includes software developed for Apache Harmony
-(LongHashMap.java)
-Copyright 2008-2012 The Apache Software Foundation
 
 
 This product includes software developed for Android project
@@ -37,5 +28,16 @@ Some Map unit tests are from  Google Collections.
 Credit goes to Jared Levy, George van den Driessche and other Google Collections developers.
 Copyright (C) 2007 Google Inc.
 
-Luc Peuvrier wrote some unit tests for ConcurrerentNavigableMap interface.
+Luc Peuvrier wrote some unit tests for ConcurrentNavigableMap interface.
 
+XXHash used for char[] and byte[] hashes is from LZ4-Java
+(DataIO.java and UnsafeStuff.java)
+LZ4-Java project, Copyright (C) 2014 Adrien Grand
+
+LongObjectMap, LongLongMap and LongObjectObject map are based on Koloboke source code.
+(Store.java)
+Copyright (C) OpenHFT, Roman Leventov
+
+DataIO.longHash and DataIO.intHash are inspired by Koloboke source code
+(DataIO.java)
+Copyright (C) OpenHFT, Roman Leventov

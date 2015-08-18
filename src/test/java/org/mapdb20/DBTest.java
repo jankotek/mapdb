@@ -4,10 +4,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
+import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executors;
@@ -302,7 +300,7 @@ public class DBTest {
                     .makeOrGet();
             fail();
         }catch(DBException.UnknownSerializer e){
-            assertEquals(e.getMessage(),"Map 'map' has no keySerializer defined in Name Catalog nor constructor argument.");
+            assertEquals(e.getMessage(),"map.keySerializer is not defined in Name Catalog nor constructor argument");
         }
 
         try {
@@ -313,7 +311,7 @@ public class DBTest {
                     .makeOrGet();
             fail();
         }catch(DBException.UnknownSerializer e){
-            assertEquals(e.getMessage(),"Map 'map' has no valueSerializer defined in Name Catalog nor constructor argument.");
+            assertEquals(e.getMessage(),"map.valueSerializer is not defined in Name Catalog nor constructor argument");
         }
 
         db.close();
@@ -364,7 +362,7 @@ public class DBTest {
                     .makeOrGet();
             fail();
         }catch(DBException.UnknownSerializer e){
-            assertEquals(e.getMessage(),"Map 'map' has no keySerializer defined in Name Catalog nor constructor argument.");
+            assertEquals(e.getMessage(),"map.keySerializer is not defined in Name Catalog nor constructor argument");
         }
 
         try {
@@ -375,7 +373,7 @@ public class DBTest {
                     .makeOrGet();
             fail();
         }catch(DBException.UnknownSerializer e){
-            assertEquals(e.getMessage(),"Map 'map' has no valueSerializer defined in Name Catalog nor constructor argument.");
+            assertEquals(e.getMessage(),"map.valueSerializer is not defined in Name Catalog nor constructor argument");
         }
 
         db.close();
@@ -421,7 +419,7 @@ public class DBTest {
                     .makeOrGet();
             fail();
         }catch(DBException.UnknownSerializer e){
-            assertEquals(e.getMessage(),"Set 'map' has no serializer defined in Name Catalog nor constructor argument.");
+            assertEquals(e.getMessage(),"map.serializer is not defined in Name Catalog nor constructor argument");
         }
 
         db.close();
@@ -468,7 +466,7 @@ public class DBTest {
                     .makeOrGet();
             fail();
         }catch(DBException.UnknownSerializer e){
-            assertEquals(e.getMessage(),"Set 'map' has no serializer defined in Name Catalog nor constructor argument.");
+            assertEquals(e.getMessage(),"map.serializer is not defined in Name Catalog nor constructor argument");
         }
 
         db.close();
@@ -562,4 +560,100 @@ public class DBTest {
         assertEquals(map.valueSerializer,Serializer.BYTE_ARRAY);
     }
 
+    @Test public void keys() throws IllegalAccessException {
+        Class c = DB.Keys.class;
+        assertTrue(c.getDeclaredFields().length > 0);
+        for (Field f : c.getDeclaredFields()) {
+            f.setAccessible(true);
+            String value = (String) f.get(null);
+
+            assertEquals("."+f.getName(),value);
+        }
+
+    }
+
+    @Test public void issue553_atomic_var_serializer_not_persisted(){
+        DB db = DBMaker.memoryDB().transactionDisable().make();
+
+        Atomic.Var v = db.atomicVarCreate("aa", "aa", Serializer.STRING);
+
+        Atomic.Var v2 = db.atomicVar("aa");
+
+        assertEquals(Serializer.STRING,v2.serializer);
+        assertEquals("aa", v2.get());
+    }
+
+    @Test public void issue553_atomic_var_nulls(){
+        DB db = DBMaker.memoryDB().transactionDisable().make();
+
+        Atomic.Var v = db.atomicVarCreate("aa", null, Serializer.LONG);
+
+        assertNull(v.get());
+        v.set(111L);
+        assertEquals(111L, v.get());
+
+        v = db.atomicVar("bb");
+        assertNull(v.get());
+    }
+
+
+    static class Issue546_NonSerializableSerializer extends Serializer<String>{
+
+        @Override
+        public void serialize(DataOutput out, String value) throws IOException {
+            out.writeUTF(value);
+        }
+
+        @Override
+        public String deserialize(DataInput in, int available) throws IOException {
+            return in.readUTF();
+        }
+    }
+
+    @Test public void issue546_ArraySerializer_with_non_serializable_fields(){
+        File f = TT.tempDbFile();
+        DB db = DBMaker.fileDB(f).transactionDisable().make();
+        Serializer.Array ser = new Serializer.Array(new Issue546_NonSerializableSerializer());
+
+        Set<String[]> s = db.hashSetCreate("set").serializer(ser).make();
+        s.add(new String[]{"aa"});
+        assertArrayEquals(new String[]{"aa"}, s.iterator().next());
+
+        db.close();
+
+        //reinstantiate, it should fail, no serializer is found
+        db = DBMaker.fileDB(f).transactionDisable().make();
+        try {
+            s = db.hashSet("set");
+            fail();
+        }catch(DBException.UnknownSerializer e){
+            //expected
+        }
+        s = db.hashSetCreate("set").serializer(ser).makeOrGet();
+
+        assertArrayEquals(new String[]{"aa"}, s.iterator().next());
+
+    }
+
+    static class Issue546_SerializableSerializer extends Serializer<String> implements Serializable {
+
+        @Override
+        public void serialize(DataOutput out, String value) throws IOException {
+            out.writeUTF(value);
+        }
+
+        @Override
+        public String deserialize(DataInput in, int available) throws IOException {
+            return in.readUTF();
+        }
+    }
+
+    @Test public void issue546_serializer_warning(){
+        File f = TT.tempDbFile();
+        DB db = DBMaker.fileDB(f).transactionDisable().make();
+        Set<String[]> s = db.hashSetCreate("set").serializer(new Issue546_SerializableSerializer()).make();
+        db.close();
+        db = DBMaker.fileDB(f).transactionDisable().make();
+        s = db.hashSetCreate("set").serializer(new Issue546_SerializableSerializer()).makeOrGet();
+    }
 }

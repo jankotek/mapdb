@@ -99,7 +99,6 @@ import java.util.concurrent.locks.LockSupport;
  *
  * B-Linked-Tree used here does not require locking for read.
  * Updates and inserts locks only one, two or three nodes.
- * Original BTree design does not use overlapping lock (lock is released before parent node is locked), I added it just to feel safer.
  * </p><p>
  *
  * This B-Linked-Tree structure does not support removal well, entry deletion does not collapse tree nodes. Massive
@@ -247,7 +246,7 @@ public class BTreeMap<K,V>
         }
 
         @Override
-        public int hashCode(ValRef valRef) {
+        public int hashCode(ValRef valRef, int seed) {
             throw new IllegalAccessError();
         }
     }
@@ -403,6 +402,14 @@ public class BTreeMap<K,V>
         public abstract int valSize(Serializer valueSerializer);
 
         public abstract int childArrayLength();
+
+        public int childIndexOf(long child){
+            for(int i=0;i<childArrayLength();i++){
+                if(child(i)==child)
+                    return i;
+            }
+            return -1;
+        }
     }
 
     public final static class DirNode extends BNode{
@@ -1020,7 +1027,7 @@ public class BTreeMap<K,V>
     @Override
     public V put(K key, V value){
         if(key==null||value==null) throw new NullPointerException();
-        return put2(key,value, false);
+        return put2(key, value, false);
     }
 
     protected V put2(final K key, final V value2, final boolean putOnlyIfAbsent){
@@ -1082,26 +1089,27 @@ public class BTreeMap<K,V>
                     }
 
                     //insert new
-                    V value = value2;
                     if(valsOutsideNodes){
-                        long recid = engine.put(value2, valueSerializer);
+                        long recid = ((ValRef)oldVal).recid;
+                        oldVal = valExpand(oldVal);
                         //$DELAY$
-                        value = (V) new ValRef(recid);
-                    }
+                        engine.update(recid,value2,valueSerializer);
+                    }else {
 
-                    //$DELAY$
-                    A = ((LeafNode)A).copyChangeValue(valueSerializer, pos,value);
+                        A = ((LeafNode) A).copyChangeValue(valueSerializer, pos, value2);
+                        //$DELAY$
+                        engine.update(current, A, nodeSerializer);
+                    }
                     if(CC.ASSERT && ! (nodeLocks.get(current)==Thread.currentThread()))
                         throw new AssertionError();
-                    engine.update(current, A, nodeSerializer);
+
                     //$DELAY$
-                    //already in here
-                    V ret =  valExpand(oldVal);
-                    notify(key,ret, value2);
+                    notify(key, (V) oldVal, value2);
                     unlock(nodeLocks, current);
                     //$DELAY$
-                    if(CC.ASSERT) assertNoLocks(nodeLocks);
-                    return ret;
+                    if(CC.ASSERT)
+                        assertNoLocks(nodeLocks);
+                    return (V) oldVal;
                 }
 
                 //if v > highvalue(a)
@@ -1523,29 +1531,29 @@ public class BTreeMap<K,V>
             if(pos>0 && pos!=A.keysLen(keySerializer)-1){
                 //found, delete from node
                 //$DELAY$
-                Object oldVal =   A.val(pos-1, valueSerializer);
-                oldVal = valExpand(oldVal);
+                Object oldValNotExpanded =   A.val(pos-1, valueSerializer);
+                Object oldVal = valExpand(oldValNotExpanded);
                 if(value!=null && valueSerializer!=null && !valueSerializer.equals((V)value,(V)oldVal)){
                     unlock(nodeLocks, current);
                     //$DELAY$
                     return null;
                 }
 
-                Object putNewValueOutside = putNewValue;
-                if(putNewValue!=null && valsOutsideNodes){
-                    //$DELAY$
-                    long recid = engine.put((V)putNewValue,valueSerializer);
-                    //$DELAY$
-                    putNewValueOutside = new ValRef(recid);
+                if(valsOutsideNodes){
+                    long recid = ((ValRef)oldValNotExpanded).recid;
+                    engine.update(recid, (V) putNewValue,valueSerializer);
                 }
 
-                A = putNewValue!=null?
-                        ((LeafNode)A).copyChangeValue(valueSerializer,pos,putNewValueOutside):
-                        ((LeafNode)A).copyRemoveKey(keySerializer,valueSerializer,pos);
+                if(putNewValue==null || !valsOutsideNodes){ //if existing item is updated outside of node, there is no need to modify node
+                    A = putNewValue!=null?
+                            ((LeafNode)A).copyChangeValue(valueSerializer,pos,putNewValue):
+                            ((LeafNode)A).copyRemoveKey(keySerializer,valueSerializer,pos);
+                    //$DELAY$
+                    engine.update(current, A, nodeSerializer);
+                }
                 if(CC.ASSERT && ! (nodeLocks.get(current)==Thread.currentThread()))
                     throw new AssertionError();
-                //$DELAY$
-                engine.update(current, A, nodeSerializer);
+
                 notify((K)key, (V)oldVal, (V)putNewValue);
                 unlock(nodeLocks, current);
                 return (V) oldVal;
@@ -3470,7 +3478,7 @@ public class BTreeMap<K,V>
 
     private static void printRecur(BTreeMap m, long recid, String s) {
         BTreeMap.BNode n = (BTreeMap.BNode) m.engine.get(recid, m.nodeSerializer);
-        System.out.println(s+recid+"-"+n);
+        System.out.println(s + recid + "-" + n);
         if(!n.isLeaf()){
             int childArrayLen = n.childArrayLength()-1;
             for(int i=0;i<childArrayLen;i++){
@@ -3580,6 +3588,147 @@ public class BTreeMap<K,V>
         if(closeEngine) {
             engine.close();
         }
+    }
+
+    void compactLevel(int level){
+        int k = maxNodeSize * 3/4;
+
+//        current := pointer to leftmost node at level (i + 1)
+        long current = leftEdges.get(level+1); //TODO check level
+//        one := nil
+        long one = 0;
+//        while ( current != nil )
+//        {
+        while(current!=0) {
+//            lock(current)
+            lock(nodeLocks, current);
+//            F := get(current)
+            BNode F = engine.get(current, nodeSerializer);
+//            pos := the index of pointer one in F
+            int pos = F.childIndexOf(one); //TODO verify
+//            oldone := one
+            long olddone = one;
+//            if (( one == nil ) or (pos > -1 and F.i > pos))
+//            {
+            if (((one == 0)) || (pos > -1 && F.keysLen(keySerializer) > pos)) {
+//                if ( one == nil )
+//                {
+                if (one == 0) {
+//                    one := F.p[0]
+                    one = F.child(0);
+//                }
+//                else
+//                {
+                } else {
+//                    one := F.p[(pos + 1)]
+                    one = F.child(pos + 1);
+//                }
+                }
+//                lock(one)
+                lock(nodeLocks, one);
+//                A := get(one)
+                BNode A = engine.get(one, nodeSerializer);
+//                two := link of A
+                long two = A.next();
+//                if ( two == nil )
+//                {
+                if (two == 0) {
+//                    return
+                    return;
+//                }
+                }
+//                lock(two)
+                lock(nodeLocks, two);
+//                B := get(two)
+                BNode B = engine.get(two, nodeSerializer);
+//                if the index of pointer two in F > -1
+//                {
+                if (F.childIndexOf(two) > -1) { //two is in F
+//                    if (k > A.i or k > B.i)
+//                    {
+                    if (k > A.keysLen(keySerializer) || k > B.keysLen(keySerializer)) {
+//                        rearrange A and B
+                        //TODO ??
+                        // root delete is not implemented yet, so skip that branch
+//                        if B.deleted
+//                        {
+//                            delete link to two from F
+//                        }
+//                        else
+                        {
+//                            F.v[pos] = highvalue(A)
+                            F = F; // TODO copy and modify??
+                        }
+
+//                        put(A, one)
+                        engine.update(one, A, nodeSerializer);
+//                        unlock(one)
+                        unlock(nodeLocks, one);
+//                        put(F, current)
+                        engine.update(current, F, nodeSerializer);
+//                        unlock(current)
+                        unlock(nodeLocks, current);
+//                        put(B, two)
+                        engine.update(two, B, nodeSerializer);
+//                        unlock(two)
+                        unlock(nodeLocks, two);
+//                    }
+                    }
+                    // root delete is not implemented yet, so skip that branch
+//                    if ( B.deleted == false )
+//                    {
+//                        unlock(current)
+//                        unlock(one)
+//                        unlock(two)
+//                        one := two
+//                    }
+//                }
+//                else
+//                {
+                } else {
+//                    unlock(current)
+                    unlock(nodeLocks, current);
+//                    unlock(one)
+                    unlock(nodeLocks, one);
+//                    unlock(two)
+                    unlock(nodeLocks, two);
+//                    if highvalue(B) > highvalue(F)
+//                    {
+                    if (keySerializer.comparator().compare(B.highKey(keySerializer), F.highKey(keySerializer)) > 0) {
+//                        current := link of F
+                        current = F.next();
+//                        one := nil
+                        one = 0;
+//                    }
+//                    else
+//                    {
+                    } else {
+//                        if (k > A.i or k > B.i)
+//                        {
+                        if (k > A.keysLen(keySerializer) || k > B.keysLen(keySerializer)) {
+//                            one := oldone
+                            one = olddone;
+//                        }
+                        }
+//                    }
+                    }
+//                }
+                }
+//            }
+//            else
+//            {
+            } else {
+//                unlock(current)
+                unlock(nodeLocks, current);
+//                current := link of F
+                current = F.next();
+//                one := nil
+                one = 0;
+//            }
+            }
+//        }
+        }
+
     }
 
 

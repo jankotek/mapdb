@@ -400,6 +400,8 @@ public final class Fun {
                 if(!iter.hasNext())
                     return Fun.EMPTY_ITERATOR;
 
+                final Comparator comparator = set.comparator();
+
                 return new Iterator<Object[]>() {
 
                     Object[] next = moveToNext();
@@ -410,12 +412,11 @@ public final class Fun {
                         Object[] next = iter.next();
                         if(next==null)
                             return null;
+                        Object[] next2 = next.length<=keys.length? next :
+                                Arrays.copyOf(next,keys.length); //TODO optimize away arrayCopy
                         //check all elements are equal
-                        //TODO this does not work if byte[] etc is used in array. Document or fail!
-                        //TODO add special check for Fun.ARRAY comparator and use its sub-comparators
-                        for(int i=0;i<keys.length;i++){
-                            if(!keys[i].equals(next[i]))
-                                return null;
+                        if(comparator.compare(next2,keys)!=0){
+                            return null;
                         }
                         return next;
                     }

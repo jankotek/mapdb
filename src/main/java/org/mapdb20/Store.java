@@ -5,6 +5,7 @@ import java.lang.ref.ReferenceQueue;
 import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -394,12 +395,19 @@ public abstract class Store implements Engine {
 
     protected <A> A deserialize(Serializer<A> serializer, int size, DataInput input){
         try {
-            //TODO if serializer is not trusted, use boundary check
             //TODO return future and finish deserialization outside lock, does even bring any performance bonus?
 
             DataIO.DataInputInternal di = (DataIO.DataInputInternal) input;
             if (size > 0 && deserializeExtra)  {
                 return deserializeExtra(serializer,size,di);
+            }
+
+            if(!serializer.isTrusted() && !alreadyCopyedDataInput(input,size)){
+                //if serializer is not trusted, introduce hard boundary check, so it does not read other records data
+                DataIO.DataInputByteArray b = new DataIO.DataInputByteArray(new byte[size]);
+                input.readFully(b.buf);
+                input = b;
+                di = b;
             }
 
             int start = di.getPos();
@@ -419,6 +427,14 @@ public abstract class Store implements Engine {
         }catch(IOException e){
             throw new IOError(e);
         }
+    }
+
+    /* Some Volumes (RAF) already copy their DataInput into byte[]. */
+    private final boolean alreadyCopyedDataInput(DataInput input, int size){
+        if(!(input instanceof DataIO.DataInputByteArray))
+            return false;
+        DataIO.DataInputByteArray input2 = (DataIO.DataInputByteArray) input;
+        return input2.pos==0 && input2.buf.length==size;
     }
 
     /** helper method, it is called if compression or other stuff is used. It can not be JITed that well. */
@@ -617,6 +633,20 @@ public abstract class Store implements Engine {
     public abstract long getCurrSize();
 
     public abstract long getFreeSize();
+
+    /**
+     * <p>
+     * If underlying storage is memory-mapped-file, this method will try to
+     * load and precache all file data into disk cache.
+     * Most likely it will call {@link MappedByteBuffer#load()},
+     * but could also read content of entire file etc
+     * This method will not pin data into memory, they might be removed at any time.
+     * </p>
+     *
+     * @return true if this method did something, false if underlying storage does not support loading,
+     * or is already in-memory
+     */
+    public abstract boolean fileLoad();
 
     @Override
     public void clearCache() {

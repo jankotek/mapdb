@@ -2,6 +2,9 @@ package org.mapdb20;
 
 import org.junit.Test;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Random;
 
@@ -43,5 +46,28 @@ public class StoreTest {
         }
     }
 
+    static final Serializer<byte[]> untrusted = new Serializer<byte[]>(){
+
+        @Override
+        public void serialize(DataOutput out, byte[] value) throws IOException {
+            out.write(value);
+        }
+
+        @Override
+        public byte[] deserialize(DataInput in, int available) throws IOException {
+            byte[] ret = new byte[available+1];
+            in.readFully(ret);
+            return ret;
+        }
+    };
+
+    @Test(expected = ArrayIndexOutOfBoundsException.class)
+    public void untrusted_serializer_beyond(){
+        Store s = (Store)DBMaker.memoryDirectDB()
+                .transactionDisable()
+                .makeEngine();
+        long recid = s.put(new byte[1000], untrusted);
+        s.get(recid,untrusted);
+    }
 
 }

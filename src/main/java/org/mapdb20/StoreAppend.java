@@ -467,6 +467,11 @@ public class StoreAppend extends Store {
     }
 
     @Override
+    public boolean fileLoad() {
+        return vol.fileLoad();
+    }
+
+    @Override
     public long preallocate() {
         long recid = highestRecid.incrementAndGet();
         Lock lock = locks[lockPos(recid)].writeLock();
