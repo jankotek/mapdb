@@ -565,7 +565,7 @@ public class DBTest {
 
     @Test public void keys() throws IllegalAccessException {
         Class c = DB.Keys.class;
-        assertTrue(c.getDeclaredFields().length>0);
+        assertTrue(c.getDeclaredFields().length > 0);
         for (Field f : c.getDeclaredFields()) {
             f.setAccessible(true);
             String value = (String) f.get(null);
@@ -573,6 +573,30 @@ public class DBTest {
             assertEquals("."+f.getName(),value);
         }
 
+    }
+
+    @Test public void issue553_atomic_var_serializer_not_persisted(){
+        DB db = DBMaker.memoryDB().transactionDisable().make();
+
+        Atomic.Var v = db.atomicVarCreate("aa", "aa", Serializer.STRING);
+
+        Atomic.Var v2 = db.atomicVar("aa");
+
+        assertEquals(Serializer.STRING,v2.serializer);
+        assertEquals("aa", v2.get());
+    }
+
+    @Test public void issue553_atomic_var_nulls(){
+        DB db = DBMaker.memoryDB().transactionDisable().make();
+
+        Atomic.Var v = db.atomicVarCreate("aa", null, Serializer.LONG);
+
+        assertNull(v.get());
+        v.set(111L);
+        assertEquals(111L, v.get());
+
+        v = db.atomicVar("bb");
+        assertNull(v.get());
     }
 
 }
