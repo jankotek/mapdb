@@ -412,8 +412,10 @@ public final class Fun {
                         Object[] next = iter.next();
                         if(next==null)
                             return null;
+                        Object[] next2 = next.length<=keys.length? next :
+                                Arrays.copyOf(next,keys.length); //TODO optimize away arrayCopy
                         //check all elements are equal
-                        if(comparator.compare(next,keys)<0){
+                        if(comparator.compare(next2,keys)!=0){
                             return null;
                         }
                         return next;

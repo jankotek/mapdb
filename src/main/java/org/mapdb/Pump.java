@@ -224,9 +224,11 @@ public final class Pump {
                         Iterator<Object[]> subset = Fun.filter(items,next).iterator();
                         if(!subset.hasNext())
                             break;
+                        List<Object[]> subset2 = new LinkedList<Object[]>();
+                        while(subset.hasNext())
+                            subset2.add(subset.next());
                         List<Object[]> toadd = new ArrayList<Object[]>();
-                        while(subset.hasNext()){
-                            Object[] t = subset.next();
+                        for(Object[] t:subset2){
                             items.remove(t);
                             iter = iterators[(Integer)t[1]];
                             if(iter.hasNext())
