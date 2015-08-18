@@ -4,6 +4,8 @@ package org.mapdb;
 import org.junit.Test;
 
 import java.util.Comparator;
+import java.util.Iterator;
+import java.util.TreeSet;
 
 import static org.junit.Assert.*;
 import static org.mapdb.Fun.Pair;
@@ -104,5 +106,20 @@ public class FunTest {
         assertEquals(5, Fun.roundUp(5, 5));
         assertEquals(10, Fun.roundUp(6, 5));
         assertEquals(10, Fun.roundUp(10, 5));
+    }
+
+    @Test public void filter(){
+        TreeSet<Object[]> set = new TreeSet(Fun.COMPARABLE_ARRAY_COMPARATOR);
+        for(int i=0;i<3;i++){
+            for(int j=0;j<3;j++){
+                set.add(new Object[]{i,j});
+            }
+        }
+        Iterator<Object[]> iter = Fun.filter(set, 2).iterator();
+
+        assertArrayEquals(new Object[]{2,0}, iter.next());
+        assertArrayEquals(new Object[]{2,1}, iter.next());
+        assertArrayEquals(new Object[]{2,2}, iter.next());
+        assertFalse(iter.hasNext());
     }
 }

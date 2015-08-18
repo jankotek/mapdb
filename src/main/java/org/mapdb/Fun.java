@@ -400,6 +400,8 @@ public final class Fun {
                 if(!iter.hasNext())
                     return Fun.EMPTY_ITERATOR;
 
+                final Comparator comparator = set.comparator();
+
                 return new Iterator<Object[]>() {
 
                     Object[] next = moveToNext();
@@ -411,11 +413,8 @@ public final class Fun {
                         if(next==null)
                             return null;
                         //check all elements are equal
-                        //TODO this does not work if byte[] etc is used in array. Document or fail!
-                        //TODO add special check for Fun.ARRAY comparator and use its sub-comparators
-                        for(int i=0;i<keys.length;i++){
-                            if(!keys[i].equals(next[i]))
-                                return null;
+                        if(comparator.compare(next,keys)<0){
+                            return null;
                         }
                         return next;
                     }
