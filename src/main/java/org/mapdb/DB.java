@@ -687,27 +687,8 @@ public class DB implements Closeable {
         //check type
         checkType(type, "HashMap");
 
-        Object keySer2 = catGet(name+Keys.keySerializer);
-        if(keySerializer!=null){
-            if(keySer2!=Fun.PLACEHOLDER && keySer2!=keySerializer){
-                LOG.warning("Map '"+name+"' has keySerializer defined in Name Catalog, but other serializer was passed as constructor argument. Using one from constructor argument.");
-            }
-            keySer2 = keySerializer;
-        }
-        if(keySer2==Fun.PLACEHOLDER){
-            throw new DBException.UnknownSerializer("Map '"+name+"' has no keySerializer defined in Name Catalog nor constructor argument.");
-        }
-
-        Object valSer2 = catGet(name+Keys.valueSerializer);
-        if(valueSerializer!=null){
-            if(valSer2!=Fun.PLACEHOLDER && valSer2!=valueSerializer){
-                LOG.warning("Map '"+name+"' has valueSerializer defined in name catalog, but other serializer was passed as constructor argument. Using one from constructor argument.");
-            }
-            valSer2 = valueSerializer;
-        }
-        if(valSer2==Fun.PLACEHOLDER) {
-            throw new DBException.UnknownSerializer("Map '" + name + "' has no valueSerializer defined in Name Catalog nor constructor argument.");
-        }
+        Object keySer2 = checkPlaceholder(name+Keys.keySerializer, keySerializer);
+        Object valSer2 = checkPlaceholder(name+Keys.valueSerializer, valueSerializer);
 
         //open existing map
         //$DELAY$
@@ -737,6 +718,21 @@ public class DB implements Closeable {
         namedPut(name, ret);
         //$DELAY$
         return ret;
+    }
+
+    protected <K> K checkPlaceholder(String nameCatParam, K fromConstructor) {
+        K fromCatalog = catGet(nameCatParam);
+        if(fromConstructor!=null){
+            if(fromCatalog!= Fun.PLACEHOLDER && fromCatalog!=fromConstructor &&
+                    !((SerializerBase)getDefaultSerializer()).equalsBinary(fromCatalog, fromConstructor)){
+                LOG.warning(nameCatParam+" is defined in Name Catalog, but other serializer was passed as constructor argument. Using one from constructor argument");
+            }
+            fromCatalog = fromConstructor;
+        }
+        if(fromCatalog==Fun.PLACEHOLDER || fromCatalog==null){
+            throw new DBException.UnknownSerializer(nameCatParam+" is not defined in Name Catalog nor constructor argument");
+        }
+        return fromCatalog;
     }
 
     public  <V> V namedPut(String name, Object ret) {
@@ -933,17 +929,7 @@ public class DB implements Closeable {
         //check type
         checkType(type, "HashSet");
 
-        Object keySer2 = catGet(name+Keys.serializer);
-        if(serializer!=null){
-            if(keySer2!=Fun.PLACEHOLDER && keySer2!=serializer){
-                LOG.warning("Set '"+name+"' has serializer defined in Name Catalog, but other serializer was passed as constructor argument. Using one from constructor argument.");
-            }
-            keySer2 = serializer;
-        }
-        if(keySer2==Fun.PLACEHOLDER){
-            throw new DBException.UnknownSerializer("Set '"+name+"' has no serializer defined in Name Catalog nor constructor argument.");
-        }
-
+        Object keySer2 = checkPlaceholder(name+Keys.serializer, serializer);
 
         //open existing map
         ret = new HTreeMap<K, Object>(
@@ -1446,28 +1432,8 @@ public class DB implements Closeable {
         }
         checkType(type, "TreeMap");
 
-
-        Object keySer2 = catGet(name+Keys.keySerializer);
-        if(keySerializer!=null){
-            if(keySer2!=Fun.PLACEHOLDER && keySer2!=keySerializer){
-                LOG.warning("Map '"+name+"' has keySerializer defined in Name Catalog, but other serializer was passed as constructor argument. Using one from constructor argument.");
-            }
-            keySer2 = keySerializer;
-        }
-        if(keySer2==Fun.PLACEHOLDER){
-            throw new DBException.UnknownSerializer("Map '"+name+"' has no keySerializer defined in Name Catalog nor constructor argument.");
-        }
-
-        Object valSer2 = catGet(name+Keys.valueSerializer);
-        if(valueSerializer!=null){
-            if(valSer2!=Fun.PLACEHOLDER && valSer2!=valueSerializer){
-                LOG.warning("Map '"+name+"' has valueSerializer defined in name catalog, but other serializer was passed as constructor argument. Using one from constructor argument.");
-            }
-            valSer2 = valueSerializer;
-        }
-        if(valSer2==Fun.PLACEHOLDER) {
-            throw new DBException.UnknownSerializer("Map '" + name + "' has no valueSerializer defined in Name Catalog nor constructor argument.");
-        }
+        Object keySer2 = checkPlaceholder(name+Keys.keySerializer, keySerializer);
+        Object valSer2 = checkPlaceholder(name+Keys.valueSerializer, valueSerializer);
 
         ret = new BTreeMap<K, V>(engine,
                 false,
@@ -1656,17 +1622,7 @@ public class DB implements Closeable {
         }
         checkType(type, "TreeSet");
 
-        Object keySer2 = catGet(name+Keys.serializer);
-        if(serializer!=null){
-            if(keySer2!=Fun.PLACEHOLDER && keySer2!=serializer){
-                LOG.warning("Set '"+name+"' has serializer defined in Name Catalog, but other serializer was passed as constructor argument. Using one from constructor argument.");
-            }
-            keySer2 = serializer;
-        }
-        if(keySer2==Fun.PLACEHOLDER){
-            throw new DBException.UnknownSerializer("Set '"+name+"' has no serializer defined in Name Catalog nor constructor argument.");
-        }
-
+        Object keySer2 = checkPlaceholder(name+Keys.serializer, serializer);
 
         //$DELAY$
         ret = new BTreeMap<K, Object>(

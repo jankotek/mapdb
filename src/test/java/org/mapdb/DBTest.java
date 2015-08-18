@@ -4,10 +4,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.Set;
@@ -303,7 +300,7 @@ public class DBTest {
                     .makeOrGet();
             fail();
         }catch(DBException.UnknownSerializer e){
-            assertEquals(e.getMessage(),"Map 'map' has no keySerializer defined in Name Catalog nor constructor argument.");
+            assertEquals(e.getMessage(),"map.keySerializer is not defined in Name Catalog nor constructor argument");
         }
 
         try {
@@ -314,7 +311,7 @@ public class DBTest {
                     .makeOrGet();
             fail();
         }catch(DBException.UnknownSerializer e){
-            assertEquals(e.getMessage(),"Map 'map' has no valueSerializer defined in Name Catalog nor constructor argument.");
+            assertEquals(e.getMessage(),"map.valueSerializer is not defined in Name Catalog nor constructor argument");
         }
 
         db.close();
@@ -365,7 +362,7 @@ public class DBTest {
                     .makeOrGet();
             fail();
         }catch(DBException.UnknownSerializer e){
-            assertEquals(e.getMessage(),"Map 'map' has no keySerializer defined in Name Catalog nor constructor argument.");
+            assertEquals(e.getMessage(),"map.keySerializer is not defined in Name Catalog nor constructor argument");
         }
 
         try {
@@ -376,7 +373,7 @@ public class DBTest {
                     .makeOrGet();
             fail();
         }catch(DBException.UnknownSerializer e){
-            assertEquals(e.getMessage(),"Map 'map' has no valueSerializer defined in Name Catalog nor constructor argument.");
+            assertEquals(e.getMessage(),"map.valueSerializer is not defined in Name Catalog nor constructor argument");
         }
 
         db.close();
@@ -422,7 +419,7 @@ public class DBTest {
                     .makeOrGet();
             fail();
         }catch(DBException.UnknownSerializer e){
-            assertEquals(e.getMessage(),"Set 'map' has no serializer defined in Name Catalog nor constructor argument.");
+            assertEquals(e.getMessage(),"map.serializer is not defined in Name Catalog nor constructor argument");
         }
 
         db.close();
@@ -469,7 +466,7 @@ public class DBTest {
                     .makeOrGet();
             fail();
         }catch(DBException.UnknownSerializer e){
-            assertEquals(e.getMessage(),"Set 'map' has no serializer defined in Name Catalog nor constructor argument.");
+            assertEquals(e.getMessage(),"map.serializer is not defined in Name Catalog nor constructor argument");
         }
 
         db.close();
@@ -636,5 +633,27 @@ public class DBTest {
 
         assertArrayEquals(new String[]{"aa"}, s.iterator().next());
 
+    }
+
+    static class Issue546_SerializableSerializer extends Serializer<String> implements Serializable {
+
+        @Override
+        public void serialize(DataOutput out, String value) throws IOException {
+            out.writeUTF(value);
+        }
+
+        @Override
+        public String deserialize(DataInput in, int available) throws IOException {
+            return in.readUTF();
+        }
+    }
+
+    @Test public void issue546_serializer_warning(){
+        File f = TT.tempDbFile();
+        DB db = DBMaker.fileDB(f).transactionDisable().make();
+        Set<String[]> s = db.hashSetCreate("set").serializer(new Issue546_SerializableSerializer()).make();
+        db.close();
+        db = DBMaker.fileDB(f).transactionDisable().make();
+        s = db.hashSetCreate("set").serializer(new Issue546_SerializableSerializer()).makeOrGet();
     }
 }
