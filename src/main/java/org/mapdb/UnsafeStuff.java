@@ -678,7 +678,7 @@ class UnsafeStuff {
         if (len < 0) {
             throw new IllegalArgumentException("lengths must be >= 0");
         }
-        if(off<0 || off>=buf.length || off+len<0 || off+len>buf.length){
+        if(off<0 || off>buf.length || off+len<0 || off+len>buf.length){
             throw new IndexOutOfBoundsException();
         }
 
@@ -793,7 +793,7 @@ class UnsafeStuff {
         if (len < 0) {
             throw new IllegalArgumentException("lengths must be >= 0");
         }
-        if(off<0 || off>=buf.length || off+len<0 || off+len>buf.length){
+        if(off<0 || off>buf.length || off+len<0 || off+len>buf.length){
             throw new IndexOutOfBoundsException();
         }
 
