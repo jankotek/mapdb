@@ -107,7 +107,7 @@ public final class Queues {
                 //update head
                 if(head.compareAndSet(head2,n.next)){
                     //updated fine, so we can take a value
-                    engine.delete(head2,nodeSerializer);
+                    engine.update(head2,null, nodeSerializer);
                     return n.value;
                 }
             }
@@ -352,7 +352,7 @@ public final class Queues {
 
         @Override
         public boolean add(E e) {
-            long nextTail = engine.preallocate(); //nodeSerializer
+            long nextTail = engine.put(null, nodeSerializer);
 
             long tail2 = tail.get();
             while(!tail.compareAndSet(tail2,nextTail)){

@@ -1796,13 +1796,15 @@ public class DB implements Closeable {
      * @deprecated queues API is going to be reworked */
     synchronized public <E> BlockingQueue<E> createQueue(String name, Serializer<E> serializer, boolean useLocks) {
         checkNameNotExists(name);
+        if(serializer==null)
+            serializer= getDefaultSerializer();
 
-        long node = engine.preallocate(); //serializer is new Queues.SimpleQueue.NodeSerializer(serializer)
+        long node = engine.put(null,new Queues.Queue.NodeSerializer(serializer));
         long headRecid = engine.put(node, Serializer.LONG);
         long tailRecid = engine.put(node, Serializer.LONG);
         //$DELAY$
         Queues.Queue<E> ret = new Queues.Queue<E>(engine,
-                catPut(name+Keys.serializer,serializer,getDefaultSerializer()),
+                catPut(name+Keys.serializer,serializer),
                 catPut(name +Keys.headRecid,headRecid),
                 catPut(name+Keys.tailRecid,tailRecid),
                 catPut(name+Keys.useLocks,useLocks)
@@ -1899,11 +1901,14 @@ public class DB implements Closeable {
     synchronized public <E> BlockingQueue<E> createStack(String name, Serializer<E> serializer, boolean useLocks) {
         checkNameNotExists(name);
 
-        long node = engine.preallocate();
+        if(serializer==null)
+            serializer = getDefaultSerializer();
+
+        long node = engine.put(null, new Queues.SimpleQueue.NodeSerializer(serializer));
         long headRecid = engine.put(node, Serializer.LONG);
         //$DELAY$
         Queues.Stack<E> ret = new Queues.Stack<E>(engine,
-                catPut(name+Keys.serializer,serializer,getDefaultSerializer()),
+                catPut(name+Keys.serializer,serializer),
                 catPut(name+Keys.headRecid,headRecid)
         );
         //$DELAY$
