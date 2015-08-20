@@ -227,7 +227,7 @@ public class BTreeMap<K,V>
         }
     }
 
-    protected static final Serializer<ValRef> VALREF_SERIALIZER = new Serializer<ValRef>(){
+    protected static final Serializer<ValRef> VALREF_SERIALIZER = new Serializer.EightByteSerializer<ValRef>(){
 
         @Override
         public void serialize(DataOutput out, ValRef value) throws IOException {
@@ -240,8 +240,8 @@ public class BTreeMap<K,V>
         }
 
         @Override
-        public boolean isTrusted() {
-            return true;
+        public int fixedSize() {
+            return -1;
         }
 
         @Override
@@ -253,6 +253,34 @@ public class BTreeMap<K,V>
         public int hashCode(ValRef valRef, int seed) {
             throw new IllegalAccessError();
         }
+
+        @Override
+        protected ValRef unpack(long l) {
+            return new ValRef(l);
+        }
+
+        @Override
+        protected long pack(ValRef l) {
+            return l.recid;
+        }
+
+        @Override
+        public void valueArraySerialize(DataOutput out, Object vals) throws IOException {
+            for(long o:(long[]) vals){
+                DataIO.packLong(out, o);
+            }
+        }
+
+        @Override
+        public Object valueArrayDeserialize(DataInput in, int size) throws IOException {
+            //TODO six-byte long[]
+            long[] ret = new long[size];
+            for(int i=0;i<size;i++){
+                ret[i] = DataIO.unpackLong(in);
+            }
+            return ret;
+        }
+
     };
 
     /** common interface for BTree node */
@@ -918,7 +946,7 @@ public class BTreeMap<K,V>
         this.valueNodeSerializer = valsOutsideNodes ? VALREF_SERIALIZER : this.valueSerializer;
         entrySet = new EntrySet(this, this.valueSerializer);
 
-        this.nodeSerializer = new NodeSerializer(valsOutsideNodes,keySerializer,valueSerializer,numberOfNodeMetas);
+        this.nodeSerializer = new NodeSerializer(valsOutsideNodes,keySerializer,valueNodeSerializer,numberOfNodeMetas);
 
         this.keySet = new KeySet(this, hasValues);
         //$DELAY$
@@ -950,10 +978,13 @@ public class BTreeMap<K,V>
     }
 
     /* creates empty root node and returns recid of its reference*/
-    static protected long createRootRef(Engine engine, BTreeKeySerializer keySer, Serializer valueSer, int numberOfNodeMetas){
-        Object emptyArray = valueSer!=null?
-                valueSer.valueArrayEmpty():
-                Serializer.BOOLEAN.valueArrayEmpty();
+    static protected long createRootRef(Engine engine, BTreeKeySerializer keySer, Serializer valueSer, boolean valuesOutsideNodes, int numberOfNodeMetas){
+        if(valuesOutsideNodes)
+            valueSer = BTreeMap.VALREF_SERIALIZER;
+        else if(valueSer==null)
+            valueSer = Serializer.BOOLEAN;
+        Object emptyArray = valueSer.valueArrayEmpty();
+
         final LeafNode emptyRoot = new LeafNode(keySer.emptyKeys(), true,true, false,emptyArray, 0);
         //empty root is serializer simpler way, so we can use dummy values
         long rootRecidVal = engine.put(emptyRoot,  new NodeSerializer(false,keySer, valueSer, numberOfNodeMetas));

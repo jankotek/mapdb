@@ -26,7 +26,7 @@ public class BTreeMapTest{
         engine = new StoreDirect(null);
         engine.init();
         m = new BTreeMap(engine,false,
-                BTreeMap.createRootRef(engine,BTreeKeySerializer.BASIC,Serializer.BASIC,0),
+                BTreeMap.createRootRef(engine,BTreeKeySerializer.BASIC,Serializer.BASIC,valsOutside,0),
                 6,valsOutside,0, BTreeKeySerializer.BASIC,Serializer.BASIC,
                 0);
     }

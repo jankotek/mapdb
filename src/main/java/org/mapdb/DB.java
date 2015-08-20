@@ -1503,7 +1503,7 @@ public class DB implements Closeable {
 
         long rootRecidRef;
         if(m.pumpSource==null || !m.pumpSource.hasNext()){
-            rootRecidRef = BTreeMap.createRootRef(engine,keySerializer,m.valueSerializer,0);
+            rootRecidRef = BTreeMap.createRootRef(engine,keySerializer,m.valueSerializer,m.valuesOutsideNodes,0);
         }else{
             rootRecidRef = Pump.buildTreeMap(
                     (Iterator<K>)m.pumpSource,
@@ -1680,7 +1680,7 @@ public class DB implements Closeable {
         long rootRecidRef;
         //$DELAY$
         if(m.pumpSource==null || !m.pumpSource.hasNext()){
-            rootRecidRef = BTreeMap.createRootRef(engine,serializer,null,0);
+            rootRecidRef = BTreeMap.createRootRef(engine,serializer,null,false, 0);
         }else{
             rootRecidRef = Pump.buildTreeMap(
                     (Iterator<Object>)m.pumpSource,

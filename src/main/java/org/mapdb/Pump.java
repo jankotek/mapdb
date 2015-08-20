@@ -425,6 +425,7 @@ public final class Pump {
                 }
             };
         }
+        Serializer valueNodeSerializer = valuesStoredOutsideNodes ? BTreeMap.VALREF_SERIALIZER : valueSerializer;
 
         // update source iterator with new one, which just ignores duplicates
         if(ignoreDuplicates){
@@ -438,7 +439,7 @@ public final class Pump {
         final int maxNodeSize = (int) (nodeSize * NODE_LOAD);
 
         // temporary serializer for nodes
-        Serializer<BTreeMap.BNode> nodeSerializer = new BTreeMap.NodeSerializer(valuesStoredOutsideNodes,keySerializer,valueSerializer,0);
+        Serializer<BTreeMap.BNode> nodeSerializer = new BTreeMap.NodeSerializer(valuesStoredOutsideNodes,keySerializer,valueNodeSerializer,0);
 
         //hold tree structure
         ArrayList<ArrayList<K>> dirKeys = new ArrayList();
@@ -488,7 +489,7 @@ public final class Pump {
                     isLeftMost,             //left most
                     lastLeafRecid==0,   //right most
                     false,
-                    valueSerializer.valueArrayFromArray(leafValues.toArray()),
+                    valueNodeSerializer.valueArrayFromArray(leafValues.toArray()),
                     lastLeafRecid
             );
 
@@ -585,7 +586,7 @@ public final class Pump {
                     true,
                     true,
                     false,
-                    valueSerializer.valueArrayEmpty(),
+                    valueNodeSerializer.valueArrayEmpty(),
                     0L);
 
             rootRecid = engine.put(emptyRoot, nodeSerializer);
