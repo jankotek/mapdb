@@ -335,6 +335,12 @@ public class SerializerBaseTest{
         assertTrue(Arrays.equals(l, (boolean[]) deserialize));
     }
 
+    @Test public void testBooleanArray3() throws ClassNotFoundException, IOException {
+        boolean[] l = new boolean[] { true,false,false,false,true,true,false,false,false,false,true,true,false };
+        Object deserialize = clone((l));
+        assertTrue(Arrays.equals(l, (boolean[]) deserialize));
+    }
+
     @Test public void testDoubleArray() throws ClassNotFoundException, IOException {
         double[] l = new double[] { Math.PI, 1D };
         Object deserialize = clone((l));
@@ -572,7 +578,7 @@ public class SerializerBaseTest{
     }
     @Test public void test_Named(){
         File f = TT.tempDbFile();
-        DB db = DBMaker.fileDB(f).make();
+        DB db = DBMaker.fileDB(f).transactionDisable().make();
         Map map = db.treeMap("map");
 
         Map map2 = db.treeMap("map2");
@@ -590,7 +596,7 @@ public class SerializerBaseTest{
         db.commit();
         db.close();
 
-        db = DBMaker.fileDB(f).deleteFilesAfterClose().make();
+        db = DBMaker.fileDB(f).transactionDisable().deleteFilesAfterClose().make();
         map = db.treeMap("map");
 
         map2 = (Map) map.get("map2_");
@@ -602,11 +608,13 @@ public class SerializerBaseTest{
 
         along = (Atomic.Long) map.get("along_");
         assertEquals(111L,along.get());
+        db.close();
+        f.delete();
     }
 
     @Test public void test_atomic_ref_serializable(){
         File f = TT.tempDbFile();
-        DB db = DBMaker.fileDB(f).make();
+        DB db = DBMaker.fileDB(f).transactionDisable().make();
         Map map = db.treeMap("map");
 
         long recid = db.getEngine().put(11L, Serializer.LONG);
@@ -631,7 +639,7 @@ public class SerializerBaseTest{
 
         db.commit();
         db.close();
-        db = DBMaker.fileDB(f).deleteFilesAfterClose().make();
+        db = DBMaker.fileDB(f).transactionDisable().deleteFilesAfterClose().make();
         map = db.treeMap("map");
 
         l = (Atomic.Long) map.get("long");
@@ -649,6 +657,8 @@ public class SerializerBaseTest{
         v = (Atomic.Var) map.get("var");
         assertEquals("hovnocuc", v.get());
         assertEquals(db.getDefaultSerializer(), v.serializer);
+        db.close();
+        f.delete();
     }
 
 
@@ -740,6 +750,7 @@ public class SerializerBaseTest{
         Atomic.Var v = db.atomicVar("aa");
         v.set(db);
         assertEquals(db,v.get());
+        db.close();
     }
 
     @Test public void serializer_deflate_wrapper() throws IOException {

@@ -283,6 +283,21 @@ public class BTreeMap<K,V>
 
     };
 
+    /** packed boolean used to represent values in TreeSet. Each boolean flag takes single bite */
+    protected static final Serializer<Boolean> BOOLEAN_PACKED = new Serializer.BooleanSer() {
+
+        @Override
+        public void valueArraySerialize(DataOutput out, Object vals) throws IOException {
+            SerializerBase.writeBooleanArray(out,(boolean[]) vals);
+        }
+
+        @Override
+        public Object valueArrayDeserialize(DataInput in, int size) throws IOException {
+            return SerializerBase.readBooleanArray(size, in);
+        }
+    };
+
+
     /** common interface for BTree node */
     public abstract static class BNode{
 
@@ -761,7 +776,7 @@ public class BTreeMap<K,V>
             this.keySerializer = keySerializer;
             this.valueSerializer =  (Serializer) (hasValues?
                     (valsOutsideNodes? VALREF_SERIALIZER : valueSerializer):
-                    Serializer.BOOLEAN);
+                    BTreeMap.BOOLEAN_PACKED);
             this.numberOfNodeMetas = numberOfNodeMetas;
         }
 
@@ -942,7 +957,7 @@ public class BTreeMap<K,V>
         this.numberOfNodeMetas = numberOfNodeMetas;
 
         this.keySerializer = keySerializer;
-        this.valueSerializer = valueSerializer!=null? valueSerializer: (Serializer<V>) Serializer.BOOLEAN;
+        this.valueSerializer = valueSerializer!=null? valueSerializer: (Serializer<V>) BTreeMap.BOOLEAN_PACKED;
         this.valueNodeSerializer = valsOutsideNodes ? VALREF_SERIALIZER : this.valueSerializer;
         entrySet = new EntrySet(this, this.valueSerializer);
 
@@ -982,7 +997,7 @@ public class BTreeMap<K,V>
         if(valuesOutsideNodes)
             valueSer = BTreeMap.VALREF_SERIALIZER;
         else if(valueSer==null)
-            valueSer = Serializer.BOOLEAN;
+            valueSer = BTreeMap.BOOLEAN_PACKED;
         Object emptyArray = valueSer.valueArrayEmpty();
 
         final LeafNode emptyRoot = new LeafNode(keySer.emptyKeys(), true,true, false,emptyArray, 0);

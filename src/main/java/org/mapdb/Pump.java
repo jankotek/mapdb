@@ -415,7 +415,7 @@ public final class Pump {
             keyExtractor= (Fun.Function1<K, E>) Fun.extractNoTransform();
         if(valueSerializer==null){
             //this is set
-            valueSerializer = (Serializer<V>) Serializer.BOOLEAN;
+            valueSerializer = (Serializer<V>) BTreeMap.BOOLEAN_PACKED;
             if(valueExtractor!=null)
                 throw new IllegalArgumentException();
             valueExtractor = new Fun.Function1() {

@@ -767,7 +767,10 @@ public abstract class Serializer<A> {
     };
 
 
-    public static final Serializer<Boolean> BOOLEAN = new Serializer<Boolean>() {
+    public static final Serializer<Boolean> BOOLEAN = new BooleanSer();
+
+    protected static class BooleanSer extends Serializer<Boolean> {
+
         @Override
         public void serialize(DataOutput out, Boolean value) throws IOException {
             out.writeBoolean(value);
@@ -788,7 +791,80 @@ public abstract class Serializer<A> {
             return true;
         }
 
+        @Override
+        public void valueArraySerialize(DataOutput out, Object vals) throws IOException {
+            for(boolean b:((boolean[])vals)){
+                out.writeBoolean(b);
+            }
+        }
 
+        @Override
+        public Object valueArrayDeserialize(DataInput in, int size) throws IOException {
+            boolean[] ret = new boolean[size];
+            for(int i=0;i<size;i++){
+                ret[i] = in.readBoolean();
+            }
+            return ret;
+        }
+
+        @Override
+        public Boolean valueArrayGet(Object vals, int pos) {
+            return ((boolean[])vals)[pos];
+        }
+
+        @Override
+        public int valueArraySize(Object vals) {
+            return ((boolean[])vals).length;
+        }
+
+        @Override
+        public Object valueArrayEmpty() {
+            return new boolean[0];
+        }
+
+        @Override
+        public Object valueArrayPut(Object vals, int pos, Boolean newValue) {
+            boolean[] array = (boolean[]) vals;
+            final boolean[] ret = Arrays.copyOf(array, array.length+1);
+            if(pos<array.length){
+                System.arraycopy(array, pos, ret, pos+1, array.length-pos);
+            }
+            ret[pos] = newValue;
+            return ret;
+
+        }
+
+        @Override
+        public Object valueArrayUpdateVal(Object vals, int pos, Boolean newValue) {
+            boolean[] vals2 = ((boolean[])vals).clone();
+            vals2[pos] = newValue;
+            return vals2;
+
+        }
+
+        @Override
+        public Object valueArrayFromArray(Object[] objects) {
+            boolean[] ret = new boolean[objects.length];
+            for(int i=0;i<ret.length;i++){
+                ret[i] = (Boolean)objects[i];
+            }
+            return ret;
+        }
+
+        @Override
+        public Object valueArrayCopyOfRange(Object vals, int from, int to) {
+            return Arrays.copyOfRange((boolean[]) vals, from, to);
+        }
+
+        @Override
+        public Object valueArrayDeleteValue(Object vals, int pos) {
+            boolean[] valsOrig = (boolean[]) vals;
+            boolean[] vals2 = new boolean[valsOrig.length-1];
+            System.arraycopy(vals,0,vals2, 0, pos-1);
+            System.arraycopy(vals, pos, vals2, pos-1, vals2.length-(pos-1));
+            return vals2;
+
+        }
     };
 
 
@@ -1425,13 +1501,13 @@ public abstract class Serializer<A> {
         @Override
         public void serialize(DataOutput out, boolean[] value) throws IOException {
             DataIO.packInt(out, value.length);//write the number of booleans not the number of bytes
-            byte[] a = SerializerBase.booleanToByteArray(value);
-            out.write(a);
+            SerializerBase.writeBooleanArray(out,value);
         }
 
         @Override
         public boolean[] deserialize(DataInput in, int available) throws IOException {
-            return SerializerBase.readBooleanArray(DataIO.unpackInt(in), in);
+            int size = DataIO.unpackInt(in);
+            return SerializerBase.readBooleanArray(size, in);
         }
 
         @Override

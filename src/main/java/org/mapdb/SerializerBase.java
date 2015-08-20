@@ -1806,166 +1806,42 @@ public class SerializerBase extends Serializer<Object>{
     }
 
     /**
-     * Builds a byte array from the array of booleans, compressing up to 8 booleans per byte.
+     * Writes boolean[] into output, each value in array is represented by single byte
      *
-     * Author of this method is Chris Alexander.
+     * @author Original author of this method is Chris Alexander, it was later optimized by Jan Kotek
      *
-     * @param bool The booleans to be compressed.
-     * @return The fully compressed byte array.
+     * @param bool The booleans to be writen.
      */
-    protected static byte[] booleanToByteArray(boolean[] bool) {
-        int boolLen = bool.length;
-        int mod8 = boolLen%8;
-        byte[] boolBytes = new byte[(boolLen/8)+((boolLen%8 == 0)?0:1)];
-
-        boolean isFlushWith8 = mod8 == 0;
-        int length = (isFlushWith8)?boolBytes.length:boolBytes.length-1;
-        int x = 0;
-        int boolByteIndex;
-        for (boolByteIndex=0; boolByteIndex<length;) {
-            byte b = (byte)	(((bool[x++]? 0x01 : 0x00) << 0) |
-                    ((bool[x++]? 0x01 : 0x00) << 1) |
-                    ((bool[x++]? 0x01 : 0x00) << 2) |
-                    ((bool[x++]? 0x01 : 0x00) << 3) |
-                    ((bool[x++]? 0x01 : 0x00) << 4) |
-                    ((bool[x++]? 0x01 : 0x00) << 5) |
-                    ((bool[x++]? 0x01 : 0x00) << 6) |
-                    ((bool[x++]? 0x01 : 0x00) << 7));
-            boolBytes[boolByteIndex++] = b;
-        }
-        if (!isFlushWith8) {//If length is not a multiple of 8 we must do the last byte conditionally on every element.
-            byte b = (byte)	0x00;
-
-            switch(mod8) {
-                case 1:
-                    b |=	((bool[x++]? 0x01 : 0x00) << 0);
-                    break;
-                case 2:
-                    b |=	((bool[x++]? 0x01 : 0x00) << 0) |
-                            ((bool[x++]? 0x01 : 0x00) << 1);
-                    break;
-                case 3:
-                    b |=	((bool[x++]? 0x01 : 0x00) << 0) |
-                            ((bool[x++]? 0x01 : 0x00) << 1) |
-                            ((bool[x++]? 0x01 : 0x00) << 2);
-                    break;
-                case 4:
-                    b |=	((bool[x++]? 0x01 : 0x00) << 0) |
-                            ((bool[x++]? 0x01 : 0x00) << 1) |
-                            ((bool[x++]? 0x01 : 0x00) << 2) |
-                            ((bool[x++]? 0x01 : 0x00) << 3);
-                    break;
-                case 5:
-                    b |=	((bool[x++]? 0x01 : 0x00) << 0) |
-                            ((bool[x++]? 0x01 : 0x00) << 1) |
-                            ((bool[x++]? 0x01 : 0x00) << 2) |
-                            ((bool[x++]? 0x01 : 0x00) << 3) |
-                            ((bool[x++]? 0x01 : 0x00) << 4);
-                    break;
-                case 6:
-                    b |=	((bool[x++]? 0x01 : 0x00) << 0) |
-                            ((bool[x++]? 0x01 : 0x00) << 1) |
-                            ((bool[x++]? 0x01 : 0x00) << 2) |
-                            ((bool[x++]? 0x01 : 0x00) << 3) |
-                            ((bool[x++]? 0x01 : 0x00) << 4) |
-                            ((bool[x++]? 0x01 : 0x00) << 5);
-                    break;
-                case 7:
-                    b |=	((bool[x++]? 0x01 : 0x00) << 0) |
-                            ((bool[x++]? 0x01 : 0x00) << 1) |
-                            ((bool[x++]? 0x01 : 0x00) << 2) |
-                            ((bool[x++]? 0x01 : 0x00) << 3) |
-                            ((bool[x++]? 0x01 : 0x00) << 4) |
-                            ((bool[x++]? 0x01 : 0x00) << 5) |
-                            ((bool[x++]? 0x01 : 0x00) << 6);
-                    break;
-                case 8:
-                    b |=	((bool[x++]? 0x01 : 0x00) << 0) |
-                            ((bool[x++]? 0x01 : 0x00) << 1) |
-                            ((bool[x++]? 0x01 : 0x00) << 2) |
-                            ((bool[x++]? 0x01 : 0x00) << 3) |
-                            ((bool[x++]? 0x01 : 0x00) << 4) |
-                            ((bool[x++]? 0x01 : 0x00) << 5) |
-                            ((bool[x++]? 0x01 : 0x00) << 6) |
-                            ((bool[x++]? 0x01 : 0x00) << 7);
-                    break;
+    protected static void  writeBooleanArray(DataOutput out, boolean[] bool) throws IOException {
+        int pos = 0;
+        for(;pos<bool.length;){
+            int v = 0;
+            for(int i=0;i<8 && pos<bool.length;i++){
+                v += bool[pos++]?(1<<i):0;
             }
-
-            ////////////////////////
-            // OLD
-            ////////////////////////
-			/* The code below was replaced with the switch statement
-			 * above. It increases performance by only doing 1
-			 * check against mod8 (switch statement) and only doing 1
-			 * assignment operation for every possible value of mod8,
-			 * rather than doing up to 8 assignment operations and an
-			 * if check in between each one. The code is longer but
-			 * faster.
-			 *
-			byte b = (byte)	0x00;
-			b |= ((bool[x++]? 0x01 : 0x00) << 0);
-			if (mod8 > 1) {
-				b |= ((bool[x++]? 0x01 : 0x00) << 1);
-				if (mod8 > 2) {
-					b |= ((bool[x++]? 0x01 : 0x00) << 2);
-					if (mod8 > 3) {
-						b |= ((bool[x++]? 0x01 : 0x00) << 3);
-						if (mod8 > 4) {
-							b |= ((bool[x++]? 0x01 : 0x00) << 4);
-							if (mod8 > 5) {
-								b |= ((bool[x++]? 0x01 : 0x00) << 5);
-								if (mod8 > 6) {
-									b |= ((bool[x++]? 0x01 : 0x00) << 6);
-									if (mod8 > 7) {
-										b |= ((bool[x++]? 0x01 : 0x00) << 7);
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-			*/
-            boolBytes[boolByteIndex++] = b;
+            out.write(v);
         }
-
-        return boolBytes;
     }
 
 
 
     /**
-     * Unpacks an integer from the DataInput indicating the number of booleans that are compressed. It then calculates
-     * the number of bytes, reads them in, and decompresses and converts them into an array of booleans using the
-     * toBooleanArray(byte[]); method. The array of booleans are trimmed to <code>numBools</code> elements. This is
-     * necessary in situations where the number of booleans is not a multiple of 8.
+     * Unpacks boolean[], each value in array is represented by single bite
      *
-     * Author of this method is Chris Alexander.
+     * @author  author of this method is Chris Alexander, it was later optimized by Jan Kotek
      *
      * @return The boolean array decompressed from the bytes read in.
      * @throws IOException If an error occurred while reading.
      */
     protected static boolean[] readBooleanArray(int numBools,DataInput is) throws IOException {
-        int length = (numBools/8)+((numBools%8 == 0)?0:1);
-        byte[] boolBytes = new byte[length];
-        is.readFully(boolBytes);
-
-
-        boolean[] tmp = new boolean[boolBytes.length*8];
-        int len = boolBytes.length;
-        int boolIndex = 0;
-        for (byte boolByte : boolBytes) {
-            for (int y = 0; y < 8; y++) {
-                tmp[boolIndex++] = (boolByte & (0x01 << y)) != 0x00;
+        boolean[] ret = new boolean[numBools];
+        for(int i=0;i<numBools;){
+            int b = is.readUnsignedByte();
+            for(int j=0;i<numBools&&j<8;j++){
+                ret[i++] = ((b>>>j)&1)!=0;
             }
         }
-
-        //Trim excess booleans
-        boolean[] finalBoolArray = new boolean[numBools];
-        System.arraycopy(tmp, 0, finalBoolArray, 0, numBools);
-
-        //Return the trimmed, uncompressed boolean array
-        return finalBoolArray;
+        return ret;
     }
 
 
