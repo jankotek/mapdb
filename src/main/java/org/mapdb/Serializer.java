@@ -69,7 +69,7 @@ public abstract class Serializer<A> {
      * Unlike {@link Serializer#STRING} this method hashes String with more reliable XXHash.
      * </p>
      */
-    public static final Serializer<String> STRING_XXHASH = new Serializer<String>() {
+    public static final Serializer<String> STRING_XXHASH = new StringValueSerializer (){
         @Override
         public void serialize(DataOutput out, String value) throws IOException {
             out.writeUTF(value);
@@ -105,7 +105,7 @@ public abstract class Serializer<A> {
      * Stores string size so can be used as collection serializer.
      * Does not handle null values
      */
-    public static final Serializer<String> STRING = new Serializer<String>() {
+    public static final Serializer<String> STRING = new StringValueSerializer (){
         @Override
         public void serialize(DataOutput out, String value) throws IOException {
             out.writeUTF(value);
@@ -129,6 +129,91 @@ public abstract class Serializer<A> {
             return BTreeKeySerializer.STRING;
         }
     };
+
+    private static abstract class StringValueSerializer extends Serializer<String>{
+        @Override
+        public void valueArraySerialize(DataOutput out, Object vals) throws IOException {
+            char[][] vals2 = (char[][]) vals;
+            for(char[] v:vals2){
+                DataIO.packInt(out, v.length);
+                for(char c:v){
+                    DataIO.packInt(out, c);
+                }
+            }
+        }
+
+        @Override
+        public Object valueArrayDeserialize(DataInput in, int size) throws IOException {
+            char[][] ret = new char[size][];
+            for(int i=0;i<size;i++){
+                int size2 = DataIO.unpackInt(in);
+                char[] cc = new char[size2];
+                for(int j=0;j<size2;j++){
+                    cc[j] = (char) DataIO.unpackInt(in);
+                }
+                ret[i] = cc;
+            }
+            return ret;
+        }
+
+        @Override
+        public String valueArrayGet(Object vals, int pos) {
+            return new String(((char[][])vals)[pos]);
+        }
+
+        @Override
+        public int valueArraySize(Object vals) {
+            return ((char[][])vals).length;
+        }
+
+        @Override
+        public Object valueArrayEmpty() {
+            return new char[0][];
+        }
+
+        @Override
+        public Object valueArrayPut(Object vals, int pos, String newValue) {
+            char[][] array = (char[][]) vals;
+            final char[][] ret = Arrays.copyOf(array, array.length+1);
+            if(pos<array.length){
+                System.arraycopy(array, pos, ret, pos+1, array.length-pos);
+            }
+            ret[pos] = newValue.toCharArray();
+            return ret;
+
+        }
+
+        @Override
+        public Object valueArrayUpdateVal(Object vals, int pos, String newValue) {
+            char[][] cc = (char[][]) vals;
+            cc = cc.clone();
+            cc[pos] = newValue.toCharArray();
+            return cc;
+        }
+
+        @Override
+        public Object valueArrayFromArray(Object[] objects) {
+            char[][] ret = new char[objects.length][];
+            for(int i=0;i<ret.length;i++){
+                ret[i] = ((String)objects[i]).toCharArray();
+            }
+            return ret;
+        }
+
+        @Override
+        public Object valueArrayCopyOfRange(Object vals, int from, int to) {
+            return Arrays.copyOfRange((char[][]) vals, from, to);
+        }
+
+        @Override
+        public Object valueArrayDeleteValue(Object vals, int pos) {
+            char[][] valsOrig = (char[][]) vals;
+            char[][] vals2 = new char[valsOrig.length-1][];
+            System.arraycopy(vals,0,vals2, 0, pos-1);
+            System.arraycopy(vals, pos, vals2, pos-1, vals2.length-(pos-1));
+            return vals2;
+        }
+    }
 
     /**
      * Serializes strings using UTF8 encoding.
@@ -202,7 +287,7 @@ public abstract class Serializer<A> {
      * Used mainly for testing.
      * Does not handle null values.
      */
-    public static final Serializer<String> STRING_NOSIZE = new Serializer<String>() {
+    public static final Serializer<String> STRING_NOSIZE = new StringValueSerializer (){
 
         private final Charset UTF8_CHARSET = Charset.forName("UTF8");
 
