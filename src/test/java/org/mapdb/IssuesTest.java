@@ -9,13 +9,15 @@ import java.util.concurrent.BlockingQueue;
 public class IssuesTest {
 
     @Test public void issue130(){
-        DB db = DBMaker.appendFileDB(TT.tempDbFile())
+        File f = TT.tempDbFile();
+        DB db = DBMaker.appendFileDB(f)
                 .closeOnJvmShutdown()
                 .make();
 
         Map store = db.treeMap("collectionName");
 
-
+        db.close();
+        f.delete();
     }
 
 
@@ -34,5 +36,13 @@ public class IssuesTest {
         db.compact();
         db.commit();
         next = queue.poll();
+        db.close();
+        file.delete();
+    }
+
+    @Test public void issue468(){
+        DB db = DBMaker.memoryDB().transactionDisable().make();
+        db.createCircularQueue("recents", Serializer.STRING, 200);
+        db.close();
     }
 }
