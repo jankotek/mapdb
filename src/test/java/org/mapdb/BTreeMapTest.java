@@ -745,6 +745,13 @@ public class BTreeMapTest{
         db.close();
         f.delete();
     }
+
+    @Test public void setLong(){
+        BTreeMap.KeySet k = (BTreeMap.KeySet) DBMaker.heapDB().transactionDisable().make().treeSet("test");
+        k.add(11);
+        assertEquals(1,k.sizeLong());
+    }
+
 }
 
 

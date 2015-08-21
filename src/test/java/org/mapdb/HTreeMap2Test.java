@@ -1155,5 +1155,12 @@ public class HTreeMap2Test {
         c.get();
         db.close();
     }
+
+    @Test public void setLong(){
+        HTreeMap.KeySet k = (HTreeMap.KeySet) DBMaker.heapDB().transactionDisable().make().hashSet("test");
+        k.add(11);
+        assertEquals(1,k.sizeLong());
+    }
 }
+
 

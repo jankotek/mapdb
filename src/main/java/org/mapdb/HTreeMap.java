@@ -1231,13 +1231,17 @@ public class HTreeMap<K,V>
 
 
 
-    protected class KeySet
+    public class KeySet
             extends AbstractSet<K>
             implements Closeable{
 
         @Override
         public int size() {
             return HTreeMap.this.size();
+        }
+
+        public long sizeLong() {
+            return HTreeMap.this.sizeLong();
         }
 
         @Override

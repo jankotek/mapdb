@@ -2369,7 +2369,7 @@ public class BTreeMap<K,V>
 
 
 
-    static final class KeySet<E>
+    public static final class KeySet<E>
             extends AbstractSet<E>
             implements NavigableSet<E>,
             Closeable{
@@ -2382,6 +2382,14 @@ public class BTreeMap<K,V>
         }
         @Override
 		public int size() { return m.size(); }
+
+        public long sizeLong(){
+            if (m instanceof BTreeMap)
+                return ((BTreeMap<Object,E>)m).sizeLong();
+            else
+                return ((SubMap<Object,E>)m).sizeLong();
+        }
+
         @Override
 		public boolean isEmpty() { return m.isEmpty(); }
         @Override
@@ -2658,9 +2666,13 @@ public class BTreeMap<K,V>
 
         @Override
         public int size() {
+            return (int) Math.min(sizeLong(), Integer.MAX_VALUE);
+        }
+
+        public long sizeLong() {
             //TODO use counted btrees once they become available
             if(hi==null && lo==null)
-                return m.size();
+                return m.sizeLong();
 
             Iterator<K> i = keyIterator();
             long counter = 0;
@@ -2668,8 +2680,9 @@ public class BTreeMap<K,V>
                 counter++;
                 i.next();
             }
-            return (int) Math.min(counter, Integer.MAX_VALUE);
+            return counter;
         }
+
 
         @Override
 		public boolean isEmpty() {
