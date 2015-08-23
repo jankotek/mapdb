@@ -1345,7 +1345,7 @@ public class StoreWAL extends StoreCached {
                 }
 
                 if(hasUncommitedData()){
-                    LOG.warning("Closing storage with uncommited data, those data will be discarted.");
+                    LOG.warning("Closing storage with uncommited data, those data will be discarded.");
                 }
 
 
