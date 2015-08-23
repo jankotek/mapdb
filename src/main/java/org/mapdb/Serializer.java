@@ -133,23 +133,25 @@ public abstract class Serializer<A> {
     private static abstract class StringValueSerializer extends Serializer<String>{
         @Override
         public void valueArraySerialize(DataOutput out, Object vals) throws IOException {
+            DataIO.DataOutputByteArray out2 = (DataIO.DataOutputByteArray) out;
             char[][] vals2 = (char[][]) vals;
             for(char[] v:vals2){
-                DataIO.packInt(out, v.length);
+                out2.packInt(v.length);
                 for(char c:v){
-                    DataIO.packInt(out, c);
+                    out2.packInt(c);
                 }
             }
         }
 
         @Override
         public Object valueArrayDeserialize(DataInput in, int size) throws IOException {
+            DataIO.DataInputInternal in2 = (DataIO.DataInputInternal) in;
             char[][] ret = new char[size][];
             for(int i=0;i<size;i++){
-                int size2 = DataIO.unpackInt(in);
+                int size2 = in2.unpackInt();
                 char[] cc = new char[size2];
                 for(int j=0;j<size2;j++){
-                    cc[j] = (char) DataIO.unpackInt(in);
+                    cc[j] = (char) in2.unpackInt();
                 }
                 ret[i] = cc;
             }
