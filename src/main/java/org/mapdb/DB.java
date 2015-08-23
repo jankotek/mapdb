@@ -650,9 +650,28 @@ public class DB implements Closeable {
      * Is best for large keys and large values.
      *
      * @param name of map
-     * @param valueCreator if value is not found, new is created and placed into map.
+     * @param keySerializer serializer used on keys
+     * @param valueSerializer serializer used on values
      * @return map
      */
+    synchronized public <K,V> HTreeMap<K,V> hashMap(
+            String name,
+            Serializer<K> keySerializer,
+            Serializer<V> valueSerializer) {
+        return hashMap(name, keySerializer,valueSerializer,null);
+    }
+
+        /**
+         * Opens existing or creates new Hash Tree Map.
+         * This collection perform well under concurrent access.
+         * Is best for large keys and large values.
+         *
+         * @param name of map
+         * @param keySerializer serializer used on keys
+         * @param valueSerializer serializer used on values
+         * @param valueCreator if value is not found, new is created and placed into map.
+         * @return map
+         */
     synchronized public <K,V> HTreeMap<K,V> hashMap(
             String name,
             Serializer<K> keySerializer,
