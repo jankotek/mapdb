@@ -1132,7 +1132,7 @@ public class StoreDirect extends Store {
                     throw new DBException.ChecksumBroken();
                 }
 
-                //check if was discarted
+                //check if was discarded
                 if((indexVal&MUNUSED)!=0||indexVal == 0){
                     continue recidLoop;
                 }
@@ -1489,7 +1489,7 @@ public class StoreDirect extends Store {
                 throw new DBException.ChecksumBroken();
             }
 
-            //check if was discarted
+            //check if was discarded
             if((indexVal&MUNUSED)!=0||indexVal == 0){
                 //mark rec id as free, so it can be reused
                 target.structuralLock.lock();
