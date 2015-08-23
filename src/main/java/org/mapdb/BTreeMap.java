@@ -466,7 +466,7 @@ public class BTreeMap<K,V>
             super(keys, leftEdge, rightEdge, tooLarge);
             this.child = child;
 
-            if(CC.ASSERT)
+            if(CC.PARANOID)
                 checkStructure(null,null);
         }
 
@@ -634,7 +634,7 @@ public class BTreeMap<K,V>
             this.vals = vals;
             this.next = next;
 
-            if(CC.ASSERT)
+            if(CC.PARANOID)
                 checkStructure(null,null);
         }
 
@@ -785,7 +785,7 @@ public class BTreeMap<K,V>
             final boolean isLeaf = value.isLeaf();
 
             //check node integrity in paranoid mode
-            if(CC.ASSERT){
+            if(CC.PARANOID){
                 value.checkStructure(keySerializer,valueSerializer);
             }
             //$DELAY$
@@ -860,7 +860,7 @@ public class BTreeMap<K,V>
                 node = deserializeDir(in2, size, left, right);
             }
             //$DELAY$
-            if(CC.ASSERT){
+            if(CC.PARANOID){
                 node.checkStructure(keySerializer,valueSerializer);
             }
             return node;
