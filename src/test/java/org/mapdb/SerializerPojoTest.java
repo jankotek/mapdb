@@ -514,11 +514,13 @@ public class SerializerPojoTest{
 
 
 
-    @Test public void java_serialization_writeReplace_in_object_graph() throws IOException, ClassNotFoundException {
+    @Test(expected = ClassCastException.class)
+    public void java_serialization_writeReplace_in_object_graph() throws IOException, ClassNotFoundException {
         TT.cloneJavaSerialization(new WriteReplaceBB());
     }
 
-    @Test public void pojo_serialization_writeReplace_in_object_graph() throws IOException, ClassNotFoundException {
+    @Test(expected = ClassCastException.class)
+    public void pojo_serialization_writeReplace_in_object_graph() throws IOException, ClassNotFoundException {
         DB db = DBMaker.heapDB().make();
         TT.clone(new WriteReplaceBB(), db.getDefaultSerializer());
     }
