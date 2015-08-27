@@ -320,19 +320,29 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     }
 
     protected static boolean usesAdvancedSerialization(Class<?> clazz) {
-        if(Externalizable.class.isAssignableFrom(clazz)) return true;
+        if(Externalizable.class.isAssignableFrom(clazz))
+            return true;
         try {
-            if(clazz.getDeclaredMethod("readObject",ObjectInputStream.class)!=null) return true;
-        } catch (NoSuchMethodException e) {
-        }
-        try {
-            if(clazz.getDeclaredMethod("writeObject",ObjectOutputStream.class)!=null) return true;
+            if(clazz.getDeclaredMethod("readObject",ObjectInputStream.class)!=null)
+                return true;
         } catch (NoSuchMethodException e) {
         }
 
+        try {
+            if(clazz.getDeclaredMethod("writeObject",ObjectOutputStream.class)!=null)
+                return true;
+        } catch (NoSuchMethodException e) {
+        }
 
         try {
-            if(clazz.getDeclaredMethod("writeReplace")!=null) return true;
+            if(clazz.getDeclaredMethod("writeReplace")!=null)
+                return true;
+        } catch (NoSuchMethodException e) {
+        }
+
+        try {
+            if(clazz.getDeclaredMethod("readResolve")!=null)
+                return true;
         } catch (NoSuchMethodException e) {
         }
 
