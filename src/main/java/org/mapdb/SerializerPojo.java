@@ -534,12 +534,12 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
         if(head!= Header.POJO)
             throw new DBException.DataCorruption("wrong header");
-        try{
+        try {
             int classId = DataIO.unpackInt(in);
             ClassInfo classInfo = getClassInfo.run(classId);
 
             //is unknown Class or uses specialized serialization
-            if(classId==-1 || classInfo.useObjectStream){
+            if (classId == -1 || classInfo.useObjectStream) {
                 //deserialize using object stream
                 ObjectInputStream2 in2 = new ObjectInputStream2(in, getClassInfos.run());
                 Object o = in2.readObject();
@@ -552,11 +552,10 @@ public class SerializerPojo extends SerializerBase implements Serializable{
                 throw new NotSerializableException(clazz.getName());
 
             Object o;
-            if(classInfo.isEnum) {
+            if (classInfo.isEnum) {
                 int ordinal = DataIO.unpackInt(in);
                 o = clazz.getEnumConstants()[ordinal];
-            }
-            else{
+            } else {
                 o = createInstanceSkippinkConstructor(clazz);
             }
 
@@ -572,8 +571,8 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             }
 
             return o;
-        } catch (Exception e) {
-            throw new RuntimeException("Could not instantiate class", e);
+        }catch(ClassNotFoundException e){
+            throw new DBException.ClassNotFound(e);
         }
     }
 
@@ -659,38 +658,47 @@ public class SerializerPojo extends SerializerBase implements Serializable{
      * </p>
      */
     @SuppressWarnings("restriction")
-	protected <T> T createInstanceSkippinkConstructor(Class<T> clazz)
-            throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException {
+	protected <T> T createInstanceSkippinkConstructor(Class<T> clazz) {
 
-        if(sunConstructor !=null){
-            //Sun specific way
-            Constructor<?> intConstr = class2constuctor.get(clazz);
+        try {
+            if (sunConstructor != null) {
+                //Sun specific way
+                Constructor<?> intConstr = class2constuctor.get(clazz);
 
-            if (intConstr == null) {
-                Constructor<?> objDef = Object.class.getDeclaredConstructor();
-                intConstr = (Constructor<?>) sunConstructor.invoke(sunReflFac, clazz, objDef);
-                class2constuctor.put(clazz, intConstr);
+                if (intConstr == null) {
+                    Constructor<?> objDef = Object.class.getDeclaredConstructor();
+                    intConstr = (Constructor<?>) sunConstructor.invoke(sunReflFac, clazz, objDef);
+                    class2constuctor.put(clazz, intConstr);
+                }
+
+                return (T) intConstr.newInstance();
+            } else if (androidConstructor != null) {
+                //android (harmony) specific way
+                return (T) androidConstructor.invoke(null, clazz, Object.class);
+            } else if (androidConstructorGinger != null) {
+                //android (post ginger) specific way
+                return (T) androidConstructorGinger.invoke(null, clazz, constructorId);
+            } else if (androidConstructorJelly != null) {
+                //android (post 4.2) specific way
+                return (T) androidConstructorJelly.invoke(null, clazz, constructorId);
+            } else {
+                //try usual generic stuff which does not skip constructor
+                Constructor<?> c = class2constuctor.get(clazz);
+                if (c == null) {
+                    c = clazz.getConstructor();
+                    if (!c.isAccessible()) c.setAccessible(true);
+                    class2constuctor.put(clazz, c);
+                }
+                return (T) c.newInstance();
             }
-
-            return (T)intConstr.newInstance();
-        }else if(androidConstructor!=null){
-            //android (harmony) specific way
-            return (T)androidConstructor.invoke(null, clazz, Object.class);
-        }else if(androidConstructorGinger!=null){
-            //android (post ginger) specific way
-            return (T)androidConstructorGinger.invoke(null, clazz, constructorId);
-        } else if(androidConstructorJelly!=null) {
-            //android (post 4.2) specific way
-            return (T) androidConstructorJelly.invoke(null, clazz, constructorId);
-        }else{
-            //try usual generic stuff which does not skip constructor
-            Constructor<?> c = class2constuctor.get(clazz);
-            if(c==null){
-                c =clazz.getConstructor();
-                if(!c.isAccessible()) c.setAccessible(true);
-                class2constuctor.put(clazz,c);
-            }
-            return (T)c.newInstance();
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        } catch (InvocationTargetException e) {
+            throw new RuntimeException(e);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        } catch (InstantiationException e) {
+            throw new RuntimeException(e);
         }
     }
 
