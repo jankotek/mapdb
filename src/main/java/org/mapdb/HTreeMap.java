@@ -15,14 +15,9 @@
  */
 package org.mapdb;
 
-import java.io.Closeable;
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
@@ -53,7 +48,7 @@ public class HTreeMap<K,V>
         extends AbstractMap<K,V>
         implements ConcurrentMap<K, V>,
         Bind.MapWithModificationListener<K,V>,
-        Closeable {
+        Closeable, Serializable {
 
     protected static final Logger LOG = Logger.getLogger(HTreeMap.class.getName());
 
@@ -1233,7 +1228,7 @@ public class HTreeMap<K,V>
 
     public class KeySet
             extends AbstractSet<K>
-            implements Closeable{
+            implements Closeable, Serializable{
 
         @Override
         public int size() {
@@ -1305,6 +1300,15 @@ public class HTreeMap<K,V>
         public HTreeMap getHTreeMap() {
             return HTreeMap.this;
         }
+
+        Object writeReplace() throws ObjectStreamException {
+            Set ret =  Collections.newSetFromMap(new ConcurrentHashMap());
+            for(Object e:this){
+                ret.add(e);
+            }
+            return ret;
+        }
+
     }
 
 
@@ -2259,6 +2263,14 @@ public class HTreeMap<K,V>
     static Engine[] fillEngineArray(Engine engine){
         Engine[] ret = new Engine[SEG];
         Arrays.fill(ret,engine);
+        return ret;
+    }
+
+    Object writeReplace() throws ObjectStreamException {
+        Map ret = new ConcurrentHashMap();
+        for(Map.Entry e:entrySet()){
+            ret.put(e.getKey(), e.getValue());
+        }
         return ret;
     }
 

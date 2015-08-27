@@ -8,6 +8,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentNavigableMap;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.*;
@@ -95,8 +97,8 @@ public class BTreeMapTest{
         BTreeMap.BNode n2 = new BTreeMap.DirNode(new Integer[]{10,20,30,40,50},false,false,false,mkchild(child));
         assertEquals(4,BTreeKeySerializer.BASIC.findChildren(n2, 49));
         assertEquals(4,BTreeKeySerializer.BASIC.findChildren(n2, 50));
-        assertEquals(3,BTreeKeySerializer.BASIC.findChildren(n2, 40));
-        assertEquals(3,BTreeKeySerializer.BASIC.findChildren(n2, 39));
+        assertEquals(3, BTreeKeySerializer.BASIC.findChildren(n2, 40));
+        assertEquals(3, BTreeKeySerializer.BASIC.findChildren(n2, 39));
     }
 
 
@@ -750,6 +752,32 @@ public class BTreeMapTest{
         BTreeMap.KeySet k = (BTreeMap.KeySet) DBMaker.heapDB().transactionDisable().make().treeSet("test");
         k.add(11);
         assertEquals(1,k.sizeLong());
+    }
+
+
+    @Test public void serialize_clone() throws IOException, ClassNotFoundException {
+        BTreeMap m = DBMaker.memoryDB().transactionDisable().make().treeMap("map");
+        for(int i=0;i<1000;i++){
+            m.put(i,i*10);
+        }
+
+        Map m2 = TT.cloneJavaSerialization(m);
+        assertEquals(ConcurrentSkipListMap.class, m2.getClass());
+        assertTrue(m2.entrySet().containsAll(m.entrySet()));
+        assertTrue(m.entrySet().containsAll(m2.entrySet()));
+    }
+
+
+    @Test public void serialize_set_clone() throws IOException, ClassNotFoundException {
+        Set m = DBMaker.memoryDB().transactionDisable().make().treeSet("map");
+        for(int i=0;i<1000;i++){
+            m.add(i);
+        }
+
+        Set m2 = TT.cloneJavaSerialization(m);
+        assertEquals(ConcurrentSkipListSet.class, m2.getClass());
+        assertTrue(m2.containsAll(m));
+        assertTrue(m.containsAll(m2));
     }
 
 }

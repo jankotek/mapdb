@@ -26,12 +26,11 @@
 package org.mapdb;
 
 
-import java.io.Closeable;
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentNavigableMap;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.locks.LockSupport;
 
 
@@ -115,7 +114,7 @@ public class BTreeMap<K,V>
         extends AbstractMap<K,V>
         implements ConcurrentNavigableMap<K,V>,
         Bind.MapWithModificationListener<K,V>,
-        Closeable {
+        Closeable, Serializable {
 
     /** recid under which reference to rootRecid is stored */
     protected final long rootRecidRef;
@@ -2372,7 +2371,7 @@ public class BTreeMap<K,V>
     public static final class KeySet<E>
             extends AbstractSet<E>
             implements NavigableSet<E>,
-            Closeable{
+            Closeable, Serializable{
 
         protected final ConcurrentNavigableMap<E,Object> m;
         private final boolean hasValues;
@@ -2499,6 +2498,14 @@ public class BTreeMap<K,V>
         public void close() {
             if(m instanceof BTreeMap)
                 ((BTreeMap)m).close();
+        }
+
+        Object writeReplace() throws ObjectStreamException {
+            Set ret = new ConcurrentSkipListSet();
+            for(Object e:this){
+                ret.add(e);
+            }
+            return ret;
         }
     }
 
@@ -3795,5 +3802,13 @@ public class BTreeMap<K,V>
 
     }
 
+
+    Object writeReplace() throws ObjectStreamException {
+        Map ret = new ConcurrentSkipListMap();
+        for(Map.Entry e:entrySet()){
+            ret.put(e.getKey(), e.getValue());
+        }
+        return ret;
+    }
 
 }
