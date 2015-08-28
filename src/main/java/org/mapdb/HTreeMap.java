@@ -924,17 +924,7 @@ public class HTreeMap<K,V>
 
                 while(ln!=null){
                     if(keySerializer.equals(ln.key,key)){
-                        //found, replace value at this node
-                        V oldVal = ln.value;
-                        ln = new LinkedNode<K, V>(ln.next, ln.expireLinkNodeRecid, ln.key, value);
-                        if(CC.ASSERT && ln.next==recid)
-                            throw new DBException.DataCorruption("cyclic reference in linked list");
-
-                        engine.update(recid, ln, LN_SERIALIZER);
-                        if(expireFlag)
-                            expireLinkBump(segment,ln.expireLinkNodeRecid,false);
-                        notify(key,  oldVal, value);
-                        return oldVal;
+                        return putUpdate(key, value, segment, engine, recid, ln);
                     }
                     recid = ln.next;
                     ln = ((recid==0)?
@@ -953,67 +943,88 @@ public class HTreeMap<K,V>
 
             //check if linked list has overflow and needs to be expanded to new dir level
             if(counter>=BUCKET_OVERFLOW && level>=1){
-                Object nextDir = new int[4];
-
-                {
-                    final long expireNodeRecid = expireFlag? engine.preallocate():0L;
-                    final LinkedNode<K,V> node = new LinkedNode<K, V>(0, expireNodeRecid, key, value);
-                    final long newRecid = engine.put(node, LN_SERIALIZER);
-                    if(CC.ASSERT && newRecid==node.next)
-                        throw new DBException.DataCorruption("cyclic reference in linked list");
-                    //add newly inserted record
-                    final int pos =(h >>>(7*(level-1) )) & 0x7F;
-                    nextDir = dirPut(nextDir,pos,( newRecid<<1) | 1);
-                    if(expireFlag)
-                        expireLinkAdd(segment,expireNodeRecid,newRecid,h);
-                }
-
-
-                //redistribute linked bucket into new dir
-                long nodeRecid = dirOffset<0?0: dirGet(dir, dirOffset)>>>1;
-                while(nodeRecid!=0){
-                    LinkedNode<K,V> n = engine.get(nodeRecid, LN_SERIALIZER);
-                    final long nextRecid = n.next;
-                    final int pos = (hash(n.key) >>>(7*(level -1) )) & 0x7F;
-                    final long recid2 = dirGetSlot(nextDir,pos);
-                    n = new LinkedNode<K, V>(recid2>>>1, n.expireLinkNodeRecid, n.key, n.value);
-                    nextDir = dirPut(nextDir,pos,(nodeRecid<<1) | 1);
-                    engine.update(nodeRecid, n, LN_SERIALIZER);
-                    if(CC.ASSERT && nodeRecid==n.next)
-                        throw new DBException.DataCorruption("cyclic reference in linked list");
-                    nodeRecid = nextRecid;
-                }
-
-                //insert nextDir and update parent dir
-                long nextDirRecid = engine.put(nextDir, DIR_SERIALIZER);
-                int parentPos = (h>>>(7*level )) & 0x7F;
-                dir = dirPut(dir, parentPos, (nextDirRecid<<1) | 0);
-                engine.update(dirRecid, dir, DIR_SERIALIZER);
-                notify(key, null, value);
-                //update counter
-                counter(segment, engine, +1);
-
-                return null;
+                putExpand(key, value, h, segment, dirRecid, engine, level, dir, dirOffset);
             }else{
                 // record does not exist in linked list, so create new one
-                recid = dirOffset<0? 0: dirGet(dir, dirOffset)>>>1;
-                final long expireNodeRecid = expireFlag? engine.put(ExpireLinkNode.EMPTY, ExpireLinkNode.SERIALIZER):0L;
-
-                final long newRecid = engine.put(
-                        new LinkedNode<K, V>(recid, expireNodeRecid, key, value),
-                        LN_SERIALIZER);
-                if(CC.ASSERT && newRecid==recid)
-                    throw new DBException.DataCorruption("cyclic reference in linked list");
-                dir = dirPut(dir,slot,(newRecid<<1) | 1);
-                engine.update(dirRecid, dir, DIR_SERIALIZER);
-                if(expireFlag)
-                    expireLinkAdd(segment,expireNodeRecid, newRecid,h);
-                notify(key, null, value);
-                //update counter
-                counter(segment,engine,+1);
-                return null;
+                putNew(key, value, h, segment, dirRecid, engine, dir, slot, dirOffset);
             }
+            return null;
         }
+    }
+
+    private V putUpdate(K key, V value, int segment, Engine engine, long recid, LinkedNode<K, V> ln) {
+        //found, replace value at this node
+        V oldVal = ln.value;
+        ln = new LinkedNode<K, V>(ln.next, ln.expireLinkNodeRecid, ln.key, value);
+        if(CC.ASSERT && ln.next==recid)
+            throw new DBException.DataCorruption("cyclic reference in linked list");
+
+        engine.update(recid, ln, LN_SERIALIZER);
+        if(expireFlag)
+            expireLinkBump(segment,ln.expireLinkNodeRecid,false);
+        notify(key,  oldVal, value);
+        return oldVal;
+    }
+
+    private void putNew(K key, V value, int h, int segment, long dirRecid, Engine engine, Object dir, int slot, int dirOffset) {
+        long recid;
+        recid = dirOffset<0? 0: dirGet(dir, dirOffset)>>>1;
+        final long expireNodeRecid = expireFlag? engine.put(ExpireLinkNode.EMPTY, ExpireLinkNode.SERIALIZER):0L;
+
+        final long newRecid = engine.put(
+                new LinkedNode<K, V>(recid, expireNodeRecid, key, value),
+                LN_SERIALIZER);
+        if(CC.ASSERT && newRecid==recid)
+            throw new DBException.DataCorruption("cyclic reference in linked list");
+        dir = dirPut(dir,slot,(newRecid<<1) | 1);
+        engine.update(dirRecid, dir, DIR_SERIALIZER);
+        if(expireFlag)
+            expireLinkAdd(segment,expireNodeRecid, newRecid,h);
+        notify(key, null, value);
+        //update counter
+        counter(segment,engine,+1);
+    }
+
+    private void putExpand(K key, V value, int h, int segment, long dirRecid, Engine engine, int level, Object dir, int dirOffset) {
+        Object nextDir = new int[4];
+
+        {
+            final long expireNodeRecid = expireFlag? engine.preallocate():0L;
+            final LinkedNode<K,V> node = new LinkedNode<K, V>(0, expireNodeRecid, key, value);
+            final long newRecid = engine.put(node, LN_SERIALIZER);
+            if(CC.ASSERT && newRecid==node.next)
+                throw new DBException.DataCorruption("cyclic reference in linked list");
+            //add newly inserted record
+            final int pos =(h >>>(7*(level-1) )) & 0x7F;
+            nextDir = dirPut(nextDir,pos,( newRecid<<1) | 1);
+            if(expireFlag)
+                expireLinkAdd(segment,expireNodeRecid,newRecid,h);
+        }
+
+
+        //redistribute linked bucket into new dir
+        long nodeRecid = dirOffset<0?0: dirGet(dir, dirOffset)>>>1;
+        while(nodeRecid!=0){
+            LinkedNode<K,V> n = engine.get(nodeRecid, LN_SERIALIZER);
+            final long nextRecid = n.next;
+            final int pos = (hash(n.key) >>>(7*(level -1) )) & 0x7F;
+            final long recid2 = dirGetSlot(nextDir,pos);
+            n = new LinkedNode<K, V>(recid2>>>1, n.expireLinkNodeRecid, n.key, n.value);
+            nextDir = dirPut(nextDir,pos,(nodeRecid<<1) | 1);
+            engine.update(nodeRecid, n, LN_SERIALIZER);
+            if(CC.ASSERT && nodeRecid==n.next)
+                throw new DBException.DataCorruption("cyclic reference in linked list");
+            nodeRecid = nextRecid;
+        }
+
+        //insert nextDir and update parent dir
+        long nextDirRecid = engine.put(nextDir, DIR_SERIALIZER);
+        int parentPos = (h>>>(7*level )) & 0x7F;
+        dir = dirPut(dir, parentPos, (nextDirRecid<<1) | 0);
+        engine.update(dirRecid, dir, DIR_SERIALIZER);
+        notify(key, null, value);
+        //update counter
+        counter(segment, engine, +1);
     }
 
     protected void counter(int segment, Engine engine, int plus) {
