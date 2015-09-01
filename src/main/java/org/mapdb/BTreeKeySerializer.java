@@ -749,8 +749,11 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             int r;
             //$DELAY$
             for(int i=0;i<len;i++){
+                Object tval = tuple[i];
+                if(tval==null)
+                    return -1;
                 //$DELAY$
-                r = comparators[i].compare(keys[pos++],tuple[i]);
+                r = comparators[i].compare(keys[pos++],tval);
                 if(r!=0)
                     return r;
             }
