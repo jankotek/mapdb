@@ -45,4 +45,21 @@ public class IssuesTest {
         db.createCircularQueue("recents", Serializer.STRING, 200);
         db.close();
     }
+
+    @Test public void issue567(){
+        File dbFile = TT.tempDbFile();
+        DBMaker.Maker dbMaker = DBMaker.fileDB(dbFile).cacheHardRefEnable();
+        TxMaker txMaker = dbMaker.makeTxMaker();
+
+        DB db1 = txMaker.makeTx();
+        db1.treeMapCreate("test1").makeOrGet();
+        db1.commit();
+        db1.close();
+
+        DB db2 = txMaker.makeTx();
+        db2.treeMapCreate("test2").makeOrGet();
+        db2.commit();
+        db2.close();
+    }
+
 }

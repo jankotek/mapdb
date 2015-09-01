@@ -1338,6 +1338,11 @@ public final class DBMaker{
 
         public TxMaker makeTxMaker(){
             props.setProperty(Keys.fullTx,TRUE);
+            if(props.containsKey(Keys.cache)){
+                props.remove(Keys.cache);
+                LOG.warning("Cache setting was disabled. Instance Cache can not be used together with TxMaker");
+            }
+
             snapshotEnable();
             Engine e = makeEngine();
             //init catalog if needed
