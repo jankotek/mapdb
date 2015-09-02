@@ -2724,6 +2724,10 @@ public abstract class Volume implements Closeable{
 
         @Override
         public synchronized void putLong(long offset, long value) {
+            if(CC.VOLUME_PRINT_STACK_AT_OFFSET!=0 && CC.VOLUME_PRINT_STACK_AT_OFFSET>=offset && CC.VOLUME_PRINT_STACK_AT_OFFSET <= offset+8){
+                new IOException("VOL STACK:").printStackTrace();
+            }
+
             try {
                 raf.seek(offset);
                 raf.writeLong(value);
@@ -2735,6 +2739,10 @@ public abstract class Volume implements Closeable{
 
         @Override
         public synchronized  void putInt(long offset, int value) {
+            if(CC.VOLUME_PRINT_STACK_AT_OFFSET!=0 && CC.VOLUME_PRINT_STACK_AT_OFFSET>=offset && CC.VOLUME_PRINT_STACK_AT_OFFSET <= offset+4){
+                new IOException("VOL STACK:").printStackTrace();
+            }
+
             try {
                 raf.seek(offset);
                 raf.writeInt(value);
@@ -2746,6 +2754,10 @@ public abstract class Volume implements Closeable{
 
         @Override
         public  synchronized void putByte(long offset, byte value) {
+            if(CC.VOLUME_PRINT_STACK_AT_OFFSET!=0 && CC.VOLUME_PRINT_STACK_AT_OFFSET==offset){
+                new IOException("VOL STACK:").printStackTrace();
+            }
+
             try {
                 raf.seek(offset);
                 raf.writeByte(value);
@@ -2757,6 +2769,10 @@ public abstract class Volume implements Closeable{
 
         @Override
         public  synchronized void putData(long offset, byte[] src, int srcPos, int srcSize) {
+            if(CC.VOLUME_PRINT_STACK_AT_OFFSET!=0 && CC.VOLUME_PRINT_STACK_AT_OFFSET>=offset && CC.VOLUME_PRINT_STACK_AT_OFFSET <= offset+srcSize){
+                new IOException("VOL STACK:").printStackTrace();
+            }
+
             try {
                 raf.seek(offset);
                 raf.write(src,srcPos,srcSize);
@@ -2770,6 +2786,10 @@ public abstract class Volume implements Closeable{
             byte[] bb = buf.array();
             int pos = buf.position();
             int size = buf.limit()-pos;
+            if(CC.VOLUME_PRINT_STACK_AT_OFFSET!=0 && CC.VOLUME_PRINT_STACK_AT_OFFSET>=offset && CC.VOLUME_PRINT_STACK_AT_OFFSET <= offset+size){
+                new IOException("VOL STACK:").printStackTrace();
+            }
+
             if(bb==null) {
                 bb = new byte[size];
                 buf.get(bb);
