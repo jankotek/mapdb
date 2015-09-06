@@ -62,4 +62,26 @@ public class IssuesTest {
         db2.close();
     }
 
+    @Test public void issue570(){
+        int scale = TT.scale();
+        if(scale==0)
+            return;
+        File f = TT.tempDbFile();
+        for(int j=0;j<10000*scale;j++) {
+            DB db = DBMaker.fileDB(f)
+                    .checksumEnable()
+                    .make();
+            StoreWAL w = (StoreWAL) db.getEngine();
+            Map<String, String> map = db.hashMap("testMap");
+
+            for (int i = 0; i < 10; i++) {
+                map.put(""+j, "someval");
+                db.commit();
+            }
+            db.compact();
+            db.close();
+        }
+        f.delete();
+    }
+
 }
