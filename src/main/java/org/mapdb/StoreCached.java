@@ -179,7 +179,7 @@ public class StoreCached extends StoreDirect {
         long ret = DataIO.unpackLongBidiReverse(page, (int) currSize);
         //extract number of read bytes
         long oldCurrSize = currSize;
-        currSize -= ret >>> 56;
+        currSize -= ret >>> 60;
         //clear bytes occupied by prev value
         Arrays.fill(page, (int) currSize, (int) oldCurrSize, (byte) 0);
         //and finally set return value
@@ -280,7 +280,7 @@ public class StoreCached extends StoreDirect {
             while(currSize>8){
                 long read = DataIO.unpackLongBidiReverse(page,currSize);
                 //extract number of read bytes
-                currSize-= read >>>56;
+                currSize-= read >>>60;
                 ret++;
             }
 

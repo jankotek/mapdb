@@ -267,7 +267,7 @@ public abstract class Volume implements Closeable{
             shift += 7;
         }while((b & 0x80) == 0);
         //$DELAY$
-        return (((long)(shift/7))<<56) | result;
+        return (((long)(shift/7))<<60) | result;
     }
 
     public long getLongPackBidiReverse(long offset){
@@ -286,7 +286,7 @@ public abstract class Volume implements Closeable{
             counter++;
         }while((b & 0x80) == 0);
         //$DELAY$
-        return (((long)counter)<<56) | result;
+        return (((long)counter)<<60) | result;
     }
 
     public long getSixLong(long pos) {
@@ -771,7 +771,7 @@ public abstract class Volume implements Closeable{
                 shift += 7;
             }while((b & 0x80) == 0);
             //$DELAY$
-            return (((long)(shift/7))<<56) | result;
+            return (((long)(shift/7))<<60) | result;
         }
 
         @Override
@@ -794,7 +794,7 @@ public abstract class Volume implements Closeable{
                 counter++;
             }while((b & 0x80) == 0);
             //$DELAY$
-            return (((long)counter)<<56) | result;
+            return (((long)counter)<<60) | result;
         }
 
         @Override
@@ -2988,7 +2988,7 @@ public abstract class Volume implements Closeable{
                     shift += 7;
                 }while((b & 0x80) == 0);
                 //$DELAY$
-                return (((long)(shift/7))<<56) | result;
+                return (((long)(shift/7))<<60) | result;
             } catch (IOException e) {
                 throw new DBException.VolumeIOError(e);
             }
@@ -3015,7 +3015,7 @@ public abstract class Volume implements Closeable{
                     counter++;
                 }while((b & 0x80) == 0);
                 //$DELAY$
-                return (((long)counter)<<56) | result;
+                return (((long)counter)<<60) | result;
             } catch (IOException e) {
                 throw new DBException.VolumeIOError(e);
             }

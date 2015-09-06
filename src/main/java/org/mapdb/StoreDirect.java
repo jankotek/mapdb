@@ -946,7 +946,7 @@ public class StoreDirect extends Store {
         long ret = vol.getLongPackBidiReverse(pageOffset+currSize);
         //extract number of read bytes
         long oldCurrSize = currSize;
-        currSize-= ret >>>56;
+        currSize-= ret >>>60;
         //clear bytes occupied by prev value
         vol.clear(pageOffset+currSize, pageOffset+oldCurrSize);
         //and finally set return value
@@ -1025,7 +1025,7 @@ public class StoreDirect extends Store {
             while(currSize>8){
                 long read = vol.getLongPackBidiReverse(pageOffset+currSize);
                 //extract number of read bytes
-                currSize-= read >>>56;
+                currSize-= read >>>60;
                 ret++;
             }
 

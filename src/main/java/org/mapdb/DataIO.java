@@ -233,7 +233,7 @@ public final class DataIO {
         return h ^ h >> 16;
     }
 
-    public static final long PACK_LONG_RESULT_MASK = 0xFFFFFFFFFFFFFFL;
+    public static final long PACK_LONG_RESULT_MASK = 0xFFFFFFFFFFFFFFFL;
 
 
     public static int packLongBidi(DataOutput out, long value) throws IOException {
@@ -287,7 +287,7 @@ public final class DataIO {
             offset += 7;
         }while((b & 0x80) == 0);
         //$DELAY$
-        return (((long)(offset/7))<<56) | result;
+        return (((long)(offset/7))<<60) | result;
     }
 
 
@@ -307,7 +307,7 @@ public final class DataIO {
             counter++;
         }while((b & 0x80) == 0);
         //$DELAY$
-        return (((long)counter)<<56) | result;
+        return (((long)counter)<<60) | result;
     }
 
     public static long getLong(byte[] buf, int pos) {

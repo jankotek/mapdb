@@ -117,8 +117,8 @@ public class VolumeTest {
                 long size = v.putLongPackBidi(10, i);
                 assertTrue(i > 100000 || size < 6);
 
-                assertEquals(i | (size << 56), v.getLongPackBidi(10));
-                assertEquals(i | (size << 56), v.getLongPackBidiReverse(10 + size));
+                assertEquals(i | (size << 60), v.getLongPackBidi(10));
+                assertEquals(i | (size << 60), v.getLongPackBidiReverse(10 + size));
             }
             v.close();
         }
