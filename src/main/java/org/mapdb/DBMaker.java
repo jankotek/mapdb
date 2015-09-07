@@ -1608,7 +1608,13 @@ public final class DBMaker{
          */
         protected static boolean JVMSupportsLargeMappedFiles() {
             String prop = System.getProperty("os.arch");
-            if(prop!=null && prop.contains("64")) return true;
+            if(prop!=null && prop.contains("64")) {
+                String os = System.getProperty("os.name");
+                if(os==null)
+                    return false;
+                os = os.toLowerCase();
+                return !os.startsWith("windows");
+            }
             //TODO better check for 32bit JVM
             return false;
         }
