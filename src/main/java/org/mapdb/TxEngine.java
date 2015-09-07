@@ -573,7 +573,7 @@ public class TxEngine implements Engine {
                 txs.remove(ref);
                 cleanTxQueue();
 
-                TxEngine.this.superCommit();
+//                TxEngine.this.superCommit();
 
                 close();
             }finally {

@@ -56,6 +56,9 @@ public class TxMaker implements Closeable {
         this.serializerClassLoader = serializerClassLoader;
     }
 
+    public Engine getGlobalEngine(){
+        return engine;
+    }
     
     public DB makeTx(){
         Engine snapshot = engine.snapshot();
