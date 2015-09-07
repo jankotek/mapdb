@@ -454,7 +454,7 @@ public class TxEngine implements Engine {
                 try{
                     A oldVal = getNoLock(recid, serializer);
                     boolean ret = oldVal==expectedOldValue ||
-                            (oldVal!=null && oldVal.equals(expectedOldValue));
+                            (oldVal!=null && serializer.equals(oldVal,expectedOldValue));
                     if(ret){
                         mod.put(recid,new Fun.Pair(newValue,serializer));
                     }
