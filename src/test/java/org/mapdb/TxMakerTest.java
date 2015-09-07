@@ -1,14 +1,19 @@
 package org.mapdb;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class TxMakerTest{
@@ -19,6 +24,12 @@ public class TxMakerTest{
         tx  =
                 //new TxMaker(new TxEngine(new DB(new StoreHeap()).getEngine(),true));
                 DBMaker.memoryDB().makeTxMaker();
+    }
+
+    @After public void destroy(){
+        if(tx!=null){
+            tx.close();
+        }
     }
 
     @Test public void simple_commit(){
@@ -238,6 +249,7 @@ public class TxMakerTest{
         db.getEngine().update(recid, "bb", Serializer.STRING);
         assertEquals("aa",snapshot.getEngine().get(recid,Serializer.STRING));
         assertEquals("bb",db.getEngine().get(recid,Serializer.STRING));
+        txMaker.close();
 
     }
 
@@ -255,8 +267,9 @@ public class TxMakerTest{
         db = txMaker.makeTx();
         DB snapshot = db.snapshot();
         db.getEngine().update(recid, "bb", Serializer.STRING);
-        assertEquals("aa",snapshot.getEngine().get(recid,Serializer.STRING));
+        assertEquals("aa", snapshot.getEngine().get(recid, Serializer.STRING));
         assertEquals("bb",db.getEngine().get(recid,Serializer.STRING));
+        txMaker.close();
 
     }
 
@@ -309,6 +322,7 @@ public class TxMakerTest{
 // ensure that D sees the results of B and C
         assertEquals(47, mapTxD.get("Value1"));
         assertEquals(2000, mapTxD.get("Value2"));
+        txMaker.close();
     }
 
     @Test
@@ -359,6 +373,28 @@ public class TxMakerTest{
 // ensure that D sees the results of B and C
         assertEquals(47, mapTxD.get("Value1"));
         assertEquals(2000, mapTxD.get("Value2"));
+        txMaker.close();
     }
 
+
+    @Test public void cas_null(){
+        TxMaker txMaker =
+                DBMaker.memoryDB().makeTxMaker();
+
+        DB tx = txMaker.makeTx();
+        Atomic.Var v = tx.atomicVar("aa");
+        tx.commit();
+
+        tx = txMaker.makeTx();
+        v = tx.atomicVar("aa");
+        assertTrue(v.compareAndSet(null, "bb"));
+        tx.commit();
+
+        tx = txMaker.makeTx();
+        v = tx.atomicVar("aa");
+        assertEquals("bb",v.get());
+        tx.commit();
+
+        txMaker.close();
+    }
 }
