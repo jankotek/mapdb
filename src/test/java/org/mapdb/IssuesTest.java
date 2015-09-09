@@ -67,7 +67,7 @@ public class IssuesTest {
         if(scale==0)
             return;
         File f = TT.tempDbFile();
-        for(int j=0;j<10000*scale;j++) {
+        for(int j=0;j<100*scale;j++) {
             DB db = DBMaker.fileDB(f)
                     .checksumEnable()
                     .make();
