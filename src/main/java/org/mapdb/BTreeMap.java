@@ -91,8 +91,7 @@ import java.util.concurrent.locks.LockSupport;
  * Concurrent operations on B∗-trees with overtaking</a>
  * written by Yehoshua Sagiv.
  * More practical aspects of BTreeMap implementation are based on
- * <a href="http://cs.au.dk/~tyoung/~td202/">notes</a>
- * and <a href="http://cs.au.dk/~tyoung/~td202/btree/">demo application</a> from Thomas Dinsdale-Young.
+ * <a href="http://cs.au.dk/~tyoung/btree/index.html">demo application</a> from Thomas Dinsdale-Young.
  * Also more work from Thomas: <a href="http://www.doc.ic.ac.uk/research/technicalreports/2011/#10">A Simple Abstraction for Complex Concurrent Indexes</a>
  * </p><p>
  *
