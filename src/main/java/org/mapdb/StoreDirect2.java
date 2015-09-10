@@ -52,6 +52,11 @@ public class StoreDirect2 extends Store{
     }
 
     @Override
+    public void init() {
+        vol = headVol = volumeFactory.makeVolume(fileName,readonly,fileLockDisable);
+    }
+
+    @Override
     protected <A> A get2(long recid, Serializer<A> serializer) {
         return null;
     }
