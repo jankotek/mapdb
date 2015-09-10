@@ -166,6 +166,25 @@ public class VolumeTest {
             v.close();
         }
 
+        @Test public void clear(){
+            long offset = 7339936;
+            long size = 96;
+            Volume v = fab.run(TT.tempDbFile().getPath());
+            v.ensureAvailable(offset + 10000);
+            for(long o=0;o<offset+10000;o++){
+                v.putUnsignedByte(o,11);
+            }
+            v.clear(offset,offset+size);
+
+            for(long o=0;o<offset+10000;o++){
+                int b = v.getUnsignedByte(o);
+                int expected = 11;
+                if(o>=offset && o<offset+size)
+                    expected=0;
+                assertEquals(expected,b);
+            }
+        }
+
         void putGetOverlap(Volume vol, long offset, int size) throws IOException {
             byte[] b = TT.randomByteArray(size);
 

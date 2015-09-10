@@ -867,7 +867,7 @@ public abstract class Volume implements Closeable{
                 throw new AssertionError();
             ByteBuffer buf = getSlice(startOffset);
             int start = (int) (startOffset&sliceSizeModMask);
-            int end = (int) (endOffset&sliceSizeModMask);
+            int end = (int) (start+(endOffset-startOffset));
 
             int pos = start;
             while(pos<end){
@@ -2068,6 +2068,10 @@ public abstract class Volume implements Closeable{
 
         protected volatile byte[][] slices = new byte[0][];
 
+        protected ByteArrayVol() {
+            this(CC.VOLUME_PAGE_SHIFT, 0L);
+        }
+
         protected ByteArrayVol(int sliceShift, long initSize) {
             this.sliceShift = sliceShift;
             this.sliceSize = 1<< sliceShift;
@@ -2242,7 +2246,7 @@ public abstract class Volume implements Closeable{
                 throw new AssertionError();
             byte[] buf = getSlice(startOffset);
             int start = (int) (startOffset&sliceSizeModMask);
-            int end = (int) (endOffset&sliceSizeModMask);
+            int end = (int) (start+(endOffset-startOffset));
 
             int pos = start;
             while(pos<end){
