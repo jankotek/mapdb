@@ -183,4 +183,22 @@ public class DataIOTest {
         }
 
     }
+
+    @Test public void packInt() throws IOException {
+        DataInputByteArray in = new DataInputByteArray(new byte[20]);
+        DataOutputByteArray out = new DataOutputByteArray();
+        out.buf = in.buf;
+        for (int i = 0; i >0; i = i + 1 + i / 10000) {
+            in.pos = 10;
+            out.pos = 10;
+
+            DataIO.packInt((DataOutput)out,i);
+            long i2 = DataIO.unpackInt(in);
+
+            assertEquals(i,i2);
+            assertEquals(in.pos,out.pos);
+        }
+
+    }
+
 }
