@@ -46,7 +46,7 @@ interface CC {
      */
     boolean ASSERT = true;
 
-    boolean PARANOID = false;
+    boolean PARANOID = true;
 
 
     /**
@@ -107,6 +107,8 @@ interface CC {
 
     int VOLUME_PAGE_SHIFT = 20; // 1 MB
 
+    long VOLUME_PAGE_SIZE = 1<<VOLUME_PAGE_SHIFT;
+
     /**
      * Will print stack trace of all operations which are write any data at given offset
      * Used for debugging.
@@ -149,5 +151,9 @@ interface CC {
      * still exists once a db is locked.
      */
     int FILE_LOCK_HEARTBEAT = 1000;
+
+    /** fill all unused storage sections with zeroes, slower but safer */
+    boolean VOLUME_ZEROUT = true;
+
 }
 
