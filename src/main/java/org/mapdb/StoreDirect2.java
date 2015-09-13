@@ -2,6 +2,7 @@ package org.mapdb;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.*;
 
 /**
  *
@@ -51,7 +52,7 @@ public class StoreDirect2 extends Store{
         );
     }
 
-    protected int HEADER_SIZE = 10000;
+    protected static final int HEADER_SIZE = 1024*10;
 
     @Override
     public void init() {
@@ -204,7 +205,7 @@ public class StoreDirect2 extends Store{
         return (newTail<<48) + ret;
     }
 
-    private long longStackPageFindTail(long pageOffset) {
+    long longStackPageFindTail(long pageOffset) {
         long stackTail;
         //get size of the previous page
         long pageHeader =  DataIO.parity4Get(vol.getLong(pageOffset));
@@ -251,6 +252,10 @@ public class StoreDirect2 extends Store{
         //check that new value fits into this Long Stack
         int bytesWritten = DataIO.packLongSize(value);
         long stackSize = DataIO.parity4Get(vol.getLong(pageOffset)) >>> 48; //page size is first 2 bytes in long stack page
+
+        if(stackTail==0){
+            stackTail = longStackPageFindTail(pageOffset);
+        }
 
         if(stackTail+(bytesWritten)>stackSize) {
             //it does not fit, so return -1
@@ -415,4 +420,53 @@ public class StoreDirect2 extends Store{
 
         return (pageSize<<48) + pageOffset;
     }
+
+    Map<Long,List<Long>> longStackDumpAll(){
+        Map<Long,List<Long>> ret = new LinkedHashMap<Long, List<Long>>();
+        masterLoop: for(long masterLinkOffset=0;masterLinkOffset<HEADER_SIZE;masterLinkOffset+=8){
+            long masterLinkVal = headVol.getLong(masterLinkOffset);
+            if(masterLinkVal==0)
+                continue masterLoop;
+            masterLinkVal = DataIO.parity4Get(masterLinkVal);
+
+            long pageOffset = masterLinkVal&StoreDirect.MOFFSET;
+            if(pageOffset==0)
+                continue masterLoop;
+
+            pageLoop: for(;;) {
+                List<Long> l = new ArrayList<Long>();
+                long pageHeader = DataIO.parity4Get(vol.getLong(pageOffset));
+                long nextPage = pageHeader&StoreDirect.MOFFSET;
+                long pageSize = pageHeader>>>48;
+
+                long tail = 8;
+                findTailLoop: for (; ; ) {
+                    if (tail == pageSize)
+                        break findTailLoop;
+                    long r = vol.getPackedLong(pageOffset + tail);
+                    if ((r & DataIO.PACK_LONG_RESULT_MASK) == 0) {
+                        //tail found
+                        break findTailLoop;
+                    }
+                    if (CC.ASSERT) {
+                        //verify that this is dividable by zero
+                        DataIO.parity1Get(r & DataIO.PACK_LONG_RESULT_MASK);
+                    }
+                    //increment tail pointer with number of bytes read
+                    tail += r >>> 60;
+                    long val = DataIO.parity1Get(r & DataIO.PACK_LONG_RESULT_MASK) >>> 1;
+                    l.add(val);
+                }
+                Collections.reverse(l);
+                ret.put(masterLinkOffset, l);
+
+                //move to next page
+                if(nextPage==0)
+                    break pageLoop;
+                pageOffset = nextPage;
+            }
+        }
+        return ret;
+    }
+
 }

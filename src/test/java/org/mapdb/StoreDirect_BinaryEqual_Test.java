@@ -7,6 +7,7 @@ import org.junit.runners.Parameterized;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import static org.junit.Assert.*;
 import static org.mapdb.DataIO.*;
@@ -37,11 +38,14 @@ public class StoreDirect_BinaryEqual_Test {
     }
 
     private void assertBinaryEquals() {
-        assertEquals(s1.vol.length(), s2.vol.length());
-        long size = s1.vol.length();
-        for(long offset=0;offset<size;offset++){
-            int b1 = s1.vol.getUnsignedByte(offset);
-            int b2 = s2.vol.getUnsignedByte(offset);
+        assertEquals(s1.longStackDumpAll(), s2.longStackDumpAll());
+
+        long s1len = s1.vol.length();
+        long s2len = s2.vol.length();
+        long maxLen = Math.max(s1len, s2len);
+        for(long offset=0;offset<maxLen;offset++){
+            int b1 = offset<s1len?s1.vol.getUnsignedByte(offset):0;
+            int b2 = offset<s2len?s2.vol.getUnsignedByte(offset):0;
             if(b1!=b2)
                 throw new AssertionError("Not equal at offset:"+offset+",  "+b1+"!="+b2);
         }
@@ -132,6 +136,61 @@ public class StoreDirect_BinaryEqual_Test {
             }
             for(long i=1000;i<2000;i++) {
                 s.longStackTake(16);
+            }
+
+            s.structuralLock.unlock();
+            commit(s);
+        }
+        assertBinaryEquals();
+    }
+
+
+    @Test public void mixed(){
+        for(StoreDirect2 s:stores) {
+            s.init();
+            s.structuralLock.lock();
+            s.headVol.putLong(16, parity4Set(0));
+            s.headVol.putLong(24, parity4Set(0));
+            for(long i=1000;i<2000;i++) {
+                s.longStackPut(16, i);
+            }
+
+            for(long i=1000;i<2000;i++) {
+                s.longStackPut(24, i);
+            }
+
+            for(long i=1000;i<2000;i++) {
+                s.longStackTake(16);
+            }
+
+            s.structuralLock.unlock();
+            commit(s);
+        }
+        assertBinaryEquals();
+
+    }
+
+    @Test public void mixed_huge(){
+        if(TT.shortTest())
+            return;
+
+        long scale = (long) (1e7*TT.scale());
+
+        for(StoreDirect2 s:stores) {
+            Random r = new Random(0);
+            s.init();
+            s.structuralLock.lock();
+            for(long offset=0;offset<StoreDirect2.HEADER_SIZE;offset+=8){
+                s.headVol.putLong(offset, parity4Set(0));
+            }
+
+            for(long i=0;i<scale;i++) {
+                long offset = r.nextInt((StoreDirect2.HEADER_SIZE-8) / 8) * 8;
+                if (r.nextInt(10) < 3) {
+                    s.longStackTake(offset);
+                } else {
+                    s.longStackPut(offset, 1+r.nextInt((int) 1e7));
+                }
             }
 
             s.structuralLock.unlock();

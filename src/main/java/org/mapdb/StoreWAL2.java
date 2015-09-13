@@ -1,8 +1,6 @@
 package org.mapdb;
 
 
-import java.util.Arrays;
-
 public class StoreWAL2 extends StoreCached2{
 
     /*
@@ -15,6 +13,7 @@ public class StoreWAL2 extends StoreCached2{
      */
     protected final LongObjectMap<byte[]> longStackCommited = new LongObjectMap<byte[]>();
 
+    protected byte[] headVolBackup = new byte[HEADER_SIZE];
 
     public StoreWAL2(String fileName,
                         Volume.VolumeFactory volumeFactory,
@@ -55,6 +54,21 @@ public class StoreWAL2 extends StoreCached2{
     }
 
     @Override
+    public void rollback() {
+        commitLock.lock();
+        try{
+            structuralLock.lock();
+            try{
+                longStackPages.clear();
+                headVol.putData(0, headVolBackup, 0, headVolBackup.length);
+            }finally {
+                structuralLock.unlock();
+            }
+        }finally {
+            commitLock.unlock();
+        }
+    }
+    @Override
     public void commit() {
         commitLock.lock();
         try{
@@ -74,6 +88,7 @@ public class StoreWAL2 extends StoreCached2{
                     longStackCommited.put(pageOffset,page);
                 }
                 longStackPages.clear();
+                headVol.getData(0, headVolBackup, 0, headVolBackup.length);
             }finally {
                 structuralLock.unlock();
             }
@@ -89,6 +104,7 @@ public class StoreWAL2 extends StoreCached2{
         try{
             structuralLock.lock();
             try{
+                vol.ensureAvailable(storeSize);
                 pagesLoop: for(int i=0;i<longStackPages.set.length;i++){
                     long pageOffset = longStackPages.set[i];
                     if(pageOffset==0) {
@@ -107,7 +123,6 @@ public class StoreWAL2 extends StoreCached2{
                             throw new AssertionError();
                         longStackCommited.remove(pageOffset);
                     }
-
                     //write page
                     vol.putData(pageOffset,page,0,page.length-1);
                 }
@@ -128,8 +143,9 @@ public class StoreWAL2 extends StoreCached2{
                 longStackCommited.clear();
 
                 //copy headVol into main store
-                byte[] headVolBytes = ((Volume.SingleByteArrayVol)headVol).data;
-                vol.putData(0, headVolBytes, 0, headVolBytes.length);
+                headVol.getData(0, headVolBackup, 0, headVolBackup.length);
+                vol.putData(0, headVolBackup, 0, headVolBackup.length);
+
             }finally {
                 structuralLock.unlock();
             }
@@ -145,8 +161,18 @@ public class StoreWAL2 extends StoreCached2{
     @Override
     protected void longStackPageDelete(long pageOffset) {
         byte[] page = longStackPages.get(pageOffset);
-        Arrays.fill(page, (byte) 0);
+        for(int i=0;i<page.length-1;i++){
+            page[i]=0;
+        }
+        if(storeSize==pageOffset+page.length-1)
+            storeSize -= page.length-1;
         longStackPageSetModified(page);
+        if(CC.PARANOID && CC.VOLUME_ZEROUT) {
+            for (int i = 8; i < page.length - 1; i++) {
+                if (page[i] != 0)
+                    throw new AssertionError();
+            }
+        }
     }
 
 

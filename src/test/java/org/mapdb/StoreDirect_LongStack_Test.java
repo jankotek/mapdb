@@ -287,4 +287,24 @@ public class StoreDirect_LongStack_Test {
         }
     }
 
+    @Test public void find_tail(){
+        StoreDirect2 s = new StoreDirect2(null);
+        s.structuralLock.lock();
+        s.vol = s.headVol = new Volume.ByteArrayVol();
+        s.headVol.ensureAvailable(32+160);
+        //create page and fill it with values
+        s.headVol.putLong(16, parity4Set((0L<<48)|32)); //zero tail indicates that tail is not known
+
+        //page size is 160, next offset is 0
+        s.vol.putLong(32, parity4Set((160L<<48)|0));
+        //put 100 single byte packed longs
+        long pos = 32+8;
+        for(int i=0;i<100;i++){
+            pos+=s.vol.putPackedLong(pos, parity1Set(10L<<1));
+        }
+
+        assertEquals(pos-32, s.longStackPageFindTail(32));
+
+    }
+
 }

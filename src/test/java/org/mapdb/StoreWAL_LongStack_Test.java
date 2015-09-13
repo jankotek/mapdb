@@ -9,7 +9,7 @@ import static org.mapdb.DataIO.parity4Set;
 public class StoreWAL_LongStack_Test {
 
     @Test
-    public void commit(){
+    public void commit_rollback(){
         StoreWAL2 s = new StoreWAL2(null);
         s.init();
         s.structuralLock.lock();
@@ -31,6 +31,17 @@ public class StoreWAL_LongStack_Test {
         assertEquals(1, s.longStackPages.size);
         assertEquals(1, s.longStackCommited.size);
 
+        s.structuralLock.unlock();
+        s.rollback();
+        assertEquals(0, s.longStackPages.size);
+        assertEquals(1, s.longStackCommited.size);
+
+        s.structuralLock.lock();
+        assertEquals(10000, s.longStackTake(16));
+        assertEquals(1, s.longStackPages.size);
+        assertEquals(1, s.longStackCommited.size);
+
     }
+
 
 }

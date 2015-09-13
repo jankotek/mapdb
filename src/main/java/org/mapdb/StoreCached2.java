@@ -124,6 +124,29 @@ public class StoreCached2 extends StoreDirect2{
         try{
             structuralLock.lock();
             try{
+                if(CC.PARANOID){
+                    //ensure there is no overlap in modified pages
+
+                    l1: for(int i=0;i<longStackPages.set.length;i++){
+                        long pageOffset = longStackPages.set[i];
+                        if(pageOffset==0)
+                            continue l1;
+                        long pageSize = ((byte[])longStackPages.values[i]).length-1;
+
+                        l2: for(int j=0;j<longStackPages.set.length;j++){
+                            long pageOffset2 = longStackPages.set[i];
+                            if(pageOffset2==0 ||  pageOffset==pageOffset2)
+                                continue l2;
+
+                            if(pageOffset<=pageOffset2 && pageOffset2<=pageOffset+pageSize){
+                                throw new AssertionError();
+                            }
+                        }
+
+                    }
+                }
+                vol.ensureAvailable(storeSize);
+
                 pagesLoop: for(int i=0;i<longStackPages.set.length;i++){
                     long pageOffset = longStackPages.set[i];
                     if(pageOffset==0) {
@@ -137,7 +160,6 @@ public class StoreCached2 extends StoreDirect2{
 
                     // write page into store
                     // last byte in `page` stores bit flags, is not part of storage
-                    vol.ensureAvailable(pageOffset+page.length-1);
                     vol.putData(pageOffset,page,0,page.length-1);
                 }
                 longStackPages.clear();
@@ -206,7 +228,7 @@ public class StoreCached2 extends StoreDirect2{
 
         byte[] page = new byte[(int) (pageSize+1)];
         page[page.length-1] = 0;
-        if(CC.ASSERT && longStackPages.get(pageOffset)!=null) {
+        if(CC.ASSERT && !(this instanceof StoreWAL2) && longStackPages.get(pageOffset)!=null) {
             throw new AssertionError();
         }
         longStackPages.put(pageOffset, page);
@@ -285,6 +307,11 @@ public class StoreCached2 extends StoreDirect2{
         //read return value
         long ret = DataIO.unpackLongReturnSize(page, (int) stackTail);
 
+        //zeroout old value
+        for(long pos = stackTail, limit=stackTail+(ret>>>60);pos<limit;pos++){
+            page[(int)pos] = 0;
+        }
+
         if(CC.ASSERT && (ret>>>60)+stackTail != masterLinkVal>>>48 && masterLinkVal>>>48!=0){
             //number of bytes read is not matching old stackTail
             throw new AssertionError();
@@ -309,8 +336,21 @@ public class StoreCached2 extends StoreDirect2{
     }
 
     protected void longStackPageDelete(long pageOffset) {
+        if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
+            throw new AssertionError();
+
         //this page becomes empty, so delete it
-        longStackPages.remove(pageOffset);
+        byte[] old = longStackPages.remove(pageOffset);
+
+        if(storeSize==pageOffset+old.length-1)
+            storeSize -= old.length-1;
+
+        if(CC.PARANOID && CC.VOLUME_ZEROUT) {
+            for (int i = 8; i < old.length - 1; i++) {
+                if (old[i] != 0)
+                    throw new AssertionError();
+            }
+        }
     }
 
     /**
@@ -329,9 +369,15 @@ public class StoreCached2 extends StoreDirect2{
             longStackPageCreate(value,masterLinkOffset,0L);
             return;
         }
-
         long stackTail = masterLinkVal>>>48;
         final long pageOffset = masterLinkVal & StoreDirect.MOFFSET;
+
+        if(stackTail==0)
+            stackTail = longStackPageFindTail(pageOffset);
+
+        if(CC.ASSERT && stackTail<8){
+            throw new AssertionError();
+        }
 
         byte[] page = longStackLoadPage(pageOffset);
 
@@ -346,6 +392,17 @@ public class StoreCached2 extends StoreDirect2{
 
         longStackPageSetModified(page);
         stackTail += DataIO.packLongReturnSize(page, (int) stackTail, DataIO.parity1Set(value<<1));
+
+        if(CC.ASSERT && CC.VOLUME_ZEROUT){
+            for(int i=(int)stackTail;i<page.length-1;i++){
+                if(page[i]!=0)
+                    throw new AssertionError();
+            }
+        }
+
+        if(CC.ASSERT && stackTail<8){
+            throw new AssertionError();
+        }
 
         //update masterLink with new value
         long newMasterLinkVal = DataIO.parity4Set((stackTail<<48) + pageOffset);
@@ -392,6 +449,50 @@ public class StoreCached2 extends StoreDirect2{
         headVol.putLong(masterLinkOffset, DataIO.parity4Set((tail<<48)+pageOffset));
 
         return (pageSize<<48) + pageOffset;
+    }
+
+    @Override
+    long longStackPageFindTail(long pageOffset) {
+        byte[] page = longStackLoadPage(pageOffset);
+        long stackTail;
+        //get size of the previous page
+        long pageHeader =  DataIO.parity4Get(DataIO.getLong(page,0));
+        long pageSize = pageHeader>>>48;
+        if(CC.ASSERT && pageSize!=page.length-1)
+            throw new AssertionError();
+        //in order to find tail of this page, read all packed longs on this page
+        stackTail = 8;
+        findTailLoop: for(;;){
+            if(stackTail==pageSize)
+                break findTailLoop;
+            long r = DataIO.unpackLongReturnSize(page, (int) stackTail);
+            if((r&DataIO.PACK_LONG_RESULT_MASK)==0) {
+                //tail found
+                break findTailLoop;
+            }
+            if(CC.ASSERT){
+                //verify that this is dividable by zero
+                DataIO.parity1Get(r&DataIO.PACK_LONG_RESULT_MASK);
+            }
+            //increment tail pointer with number of bytes read
+            stackTail+= r>>>60;
+        }
+
+
+        if(CC.ASSERT && CC.VOLUME_ZEROUT){
+            for(int i= (int) stackTail; i<page.length-1; i++) {
+                if (page[i] != 0)
+                    throw new AssertionError();
+            }
+        }
+        return stackTail;
+    }
+
+    @Override
+    void ensureAllZeroes(long startOffset, long endOffset) {
+        startOffset = Math.min(startOffset, vol.length());
+        endOffset = Math.min(endOffset, vol.length());
+        super.ensureAllZeroes(startOffset, endOffset);
     }
 
     protected void longStackPageSetModified(byte[] page) {
