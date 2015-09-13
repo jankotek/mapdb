@@ -51,9 +51,13 @@ public class StoreDirect2 extends Store{
         );
     }
 
+    protected int HEADER_SIZE = 10000;
+
     @Override
     public void init() {
         vol = headVol = volumeFactory.makeVolume(fileName,readonly,fileLockDisable);
+        vol.ensureAvailable(HEADER_SIZE);
+        storeSize = HEADER_SIZE;
     }
 
     @Override
@@ -144,7 +148,7 @@ public class StoreDirect2 extends Store{
      *
      * @return New Stack Tail (2 bytes) and value from stack (6 bytes)
      */
-    long longStackTakeFromPage(long pageOffset, final long stackTail){
+    long longStackTakeFromPage(long pageOffset, long stackTail){
         if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
@@ -154,12 +158,17 @@ public class StoreDirect2 extends Store{
             long size = header>>>48;
             if(stackTail>size)
                 throw new AssertionError();
-            if(stackTail<8)
+            if(stackTail<8 && stackTail!=0)
                 throw new AssertionError();
+        }
+
+        if(stackTail==0){
+            stackTail = longStackPageFindTail(pageOffset);
         }
 
         if(stackTail==8)
             return 0L;
+
 
         long newTail = stackTail-2;
 
@@ -193,6 +202,36 @@ public class StoreDirect2 extends Store{
 
         //combine both return values and return
         return (newTail<<48) + ret;
+    }
+
+    private long longStackPageFindTail(long pageOffset) {
+        long stackTail;
+        //get size of the previous page
+        long pageHeader =  DataIO.parity4Get(vol.getLong(pageOffset));
+        long pageSize = pageHeader>>>48;
+
+        //in order to find tail of this page, read all packed longs on this page
+        stackTail = 8;
+        findTailLoop: for(;;){
+            if(stackTail==pageSize)
+                break findTailLoop;
+            long r = vol.getPackedLong(pageOffset+stackTail);
+            if((r&DataIO.PACK_LONG_RESULT_MASK)==0) {
+                //tail found
+                break findTailLoop;
+            }
+            if(CC.ASSERT){
+                //verify that this is dividable by zero
+                DataIO.parity1Get(r&DataIO.PACK_LONG_RESULT_MASK);
+            }
+            //increment tail pointer with number of bytes read
+            stackTail+= r>>>60;
+        }
+
+        if(CC.ASSERT && CC.VOLUME_ZEROUT){
+            ensureAllZeroes(pageOffset+stackTail, pageOffset+pageSize);
+        }
+        return stackTail;
     }
 
     /**
@@ -279,36 +318,6 @@ public class StoreDirect2 extends Store{
             //move to previous page if it exists
             pageOffset = pageHeader & StoreDirect.MOFFSET;
             newStackTail=0;
-            if(pageOffset!=0){
-                //is there previous page?
-
-                //get size of the previous page
-                pageHeader =  DataIO.parity4Get(vol.getLong(pageOffset));
-                pageSize = pageHeader>>>48;
-
-                //in order to find tail of this page, read all packed longs on this page
-                newStackTail = 8;
-                findTailLoop: for(;;){
-                    if(newStackTail==pageSize)
-                        break findTailLoop;
-                    long r = vol.getPackedLong(pageOffset+newStackTail);
-                    if((r&DataIO.PACK_LONG_RESULT_MASK)==0) {
-                        //tail found
-                        break findTailLoop;
-                    }
-                    if(CC.ASSERT){
-                        //verify that this is dividable by zero
-                        DataIO.parity1Get(r&DataIO.PACK_LONG_RESULT_MASK);
-                    }
-                    //increment tail pointer with number of bytes read
-                    newStackTail+= r>>>60;
-                }
-
-                if(CC.ASSERT && CC.VOLUME_ZEROUT){
-                    ensureAllZeroes(pageOffset+newStackTail, pageOffset+pageSize);
-                }
-            }
-
         }
 
         //update masterLink with new value

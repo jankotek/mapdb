@@ -246,8 +246,8 @@ public class StoreDirect_LongStack_Test {
         //take value from this page, it should be deleted and zeroed out
         assertEquals(2L, s.longStackTake(16));
 
-        //Master Link Value points to previous page with correct tail
-        assertEquals(parity4Set((9L << 48) + 800L), s.headVol.getLong(16));
+        //Master Link Value points to previous page with unknown tail
+        assertEquals(parity4Set((0L << 48) + 800L), s.headVol.getLong(16));
 
         //and all zero
         TT.assertZeroes(s.vol, 24, 800);
@@ -258,8 +258,7 @@ public class StoreDirect_LongStack_Test {
     }
 
     @Test public void large_set(){
-        if(TT.shortTest())
-            return;
+        int cycles = 2 + TT.scale()*1000;
         StoreDirect2 s = new StoreDirect2(null);
         s.structuralLock.lock();
         s.vol = s.headVol = new Volume.ByteArrayVol();
@@ -270,7 +269,7 @@ public class StoreDirect_LongStack_Test {
         int max =  1000000;
         Random r = new Random(1);
 
-        for(int i=0;i<1000;i++){
+        for(int i=0;i<cycles;i++){
             long[] vals = new long[max];
             for(int j=0;j<max;j++){
                 long val = r.nextLong()&StoreDirect.MOFFSET;
@@ -285,9 +284,7 @@ public class StoreDirect_LongStack_Test {
             TT.assertZeroes(s.vol, 24, s.vol.length());
 
             assertEquals(32,s.storeSize);
-
         }
-
     }
 
 }
