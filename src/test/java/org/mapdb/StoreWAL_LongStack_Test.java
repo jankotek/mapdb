@@ -8,6 +8,8 @@ import static org.mapdb.DataIO.parity4Set;
 
 public class StoreWAL_LongStack_Test {
 
+    final long masterLinkOffset = StoreDirect2.O_MASTER_LINK_START;
+
     @Test
     public void commit_rollback(){
         StoreWAL2 s = new StoreWAL2(null);
@@ -15,10 +17,10 @@ public class StoreWAL_LongStack_Test {
         s.structuralLock.lock();
         s.headVol.putLong(16, parity4Set(0));
 
-        s.longStackPut(16, 10000);
+        s.longStackPut(masterLinkOffset, 10000);
         assertEquals(1, s.longStackPages.size);
         assertEquals(0, s.longStackCommited.size);
-        TT.assertZeroes(s.vol, 24, s.vol.length());
+        TT.assertZeroes(s.vol, StoreDirect2.HEADER_SIZE, s.vol.length());
 
         s.structuralLock.unlock();
         s.commit();
@@ -27,7 +29,7 @@ public class StoreWAL_LongStack_Test {
         TT.assertZeroes(s.vol, 24, s.vol.length());
 
         s.structuralLock.lock();
-        assertEquals(10000, s.longStackTake(16));
+        assertEquals(10000, s.longStackTake(masterLinkOffset));
         assertEquals(1, s.longStackPages.size);
         assertEquals(1, s.longStackCommited.size);
 
@@ -37,7 +39,7 @@ public class StoreWAL_LongStack_Test {
         assertEquals(1, s.longStackCommited.size);
 
         s.structuralLock.lock();
-        assertEquals(10000, s.longStackTake(16));
+        assertEquals(10000, s.longStackTake(masterLinkOffset));
         assertEquals(1, s.longStackPages.size);
         assertEquals(1, s.longStackCommited.size);
 

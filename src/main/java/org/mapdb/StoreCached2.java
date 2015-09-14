@@ -59,8 +59,13 @@ public class StoreCached2 extends StoreDirect2{
     public void init() {
         vol = volumeFactory.makeVolume(fileName,readonly,fileLockDisable);
         vol.ensureAvailable(HEADER_SIZE);
-        headVol = new Volume.SingleByteArrayVol(HEADER_SIZE);
+        headVol = new Volume.SingleByteArrayVol((int)HEADER_SIZE);
         storeSize = HEADER_SIZE;
+
+        final long masterLinkVal = DataIO.parity4Set(0L);
+        for(long offset=O_MASTER_LINK_START;offset<HEADER_SIZE;offset+=8){
+            headVol.putLong(offset,masterLinkVal);
+        }
     }
 
     @Override
@@ -243,6 +248,11 @@ public class StoreCached2 extends StoreDirect2{
      * @return value taken from Long Stack
      */
     long longStackTake(long masterLinkOffset){
+        if(CC.ASSERT && masterLinkOffset<O_MASTER_LINK_START)
+            throw new AssertionError();
+        if(CC.ASSERT && masterLinkOffset>=HEADER_SIZE)
+            throw new AssertionError();
+
         if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
@@ -342,6 +352,11 @@ public class StoreCached2 extends StoreDirect2{
      * @param value
      */
     void longStackPut(long masterLinkOffset, long value){
+        if(CC.ASSERT && masterLinkOffset<O_MASTER_LINK_START)
+            throw new AssertionError();
+        if(CC.ASSERT && masterLinkOffset>=HEADER_SIZE)
+            throw new AssertionError();
+
         if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
         if(CC.ASSERT & value==0)

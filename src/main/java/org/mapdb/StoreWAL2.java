@@ -13,7 +13,7 @@ public class StoreWAL2 extends StoreCached2{
      */
     protected final LongObjectMap<byte[]> longStackCommited = new LongObjectMap<byte[]>();
 
-    protected byte[] headVolBackup = new byte[HEADER_SIZE];
+    protected byte[] headVolBackup = new byte[(int) HEADER_SIZE];
 
     public StoreWAL2(String fileName,
                         Volume.VolumeFactory volumeFactory,

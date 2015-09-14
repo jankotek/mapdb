@@ -9,6 +9,8 @@ import java.util.*;
  */
 public class StoreDirect2 extends Store{
 
+    protected static final long O_MASTER_LINK_START = 64;
+    protected static final long HEADER_SIZE = 1024*10;
 
     protected Volume vol;
     protected Volume headVol;
@@ -52,13 +54,16 @@ public class StoreDirect2 extends Store{
         );
     }
 
-    protected static final int HEADER_SIZE = 1024*10;
 
     @Override
     public void init() {
         vol = headVol = volumeFactory.makeVolume(fileName,readonly,fileLockDisable);
         vol.ensureAvailable(HEADER_SIZE);
         storeSize = HEADER_SIZE;
+        final long masterLinkVal = DataIO.parity4Set(0L);
+        for(long offset=O_MASTER_LINK_START;offset<HEADER_SIZE;offset+=8){
+            headVol.putLong(offset,masterLinkVal);
+        }
     }
 
     @Override
@@ -277,6 +282,11 @@ public class StoreDirect2 extends Store{
      * @return value taken from Long Stack
      */
     long longStackTake(long masterLinkOffset){
+        if(CC.ASSERT && masterLinkOffset<O_MASTER_LINK_START)
+            throw new AssertionError();
+        if(CC.ASSERT && masterLinkOffset>=HEADER_SIZE)
+            throw new AssertionError();
+
         if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
@@ -290,7 +300,7 @@ public class StoreDirect2 extends Store{
         //take value and normalize
         long ret = longStackTakeFromPage(pageOffset, stackTail);
         if(ret==0) {
-            // stack is empty, so return
+            // stack is empty, so returns
             return 0;
         }
 
@@ -342,6 +352,11 @@ public class StoreDirect2 extends Store{
      * @param value
      */
     void longStackPut(long masterLinkOffset, long value){
+        if(CC.ASSERT && masterLinkOffset<O_MASTER_LINK_START)
+            throw new AssertionError();
+        if(CC.ASSERT && masterLinkOffset>=HEADER_SIZE)
+            throw new AssertionError();
+
         if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
         if(CC.ASSERT & value==0)

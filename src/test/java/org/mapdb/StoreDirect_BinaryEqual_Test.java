@@ -18,6 +18,8 @@ import static org.mapdb.DataIO.*;
 @RunWith(Parameterized.class)
 public class StoreDirect_BinaryEqual_Test {
 
+    final long masterLinkOffset = StoreDirect2.O_MASTER_LINK_START;
+
     final StoreDirect2[] stores;
     final StoreDirect2 s1,s2;
 
@@ -75,8 +77,7 @@ public class StoreDirect_BinaryEqual_Test {
         for(StoreDirect2 s:stores) {
             s.init();
             s.structuralLock.lock();
-            s.headVol.putLong(16, parity4Set(0));
-            s.longStackPut(16, 1600);
+            s.longStackPut(masterLinkOffset, 1600);
             s.structuralLock.unlock();
             commit(s);
         }
@@ -87,9 +88,8 @@ public class StoreDirect_BinaryEqual_Test {
         for(StoreDirect2 s:stores) {
             s.init();
             s.structuralLock.lock();
-            s.headVol.putLong(16, parity4Set(0));
-            s.longStackPut(16, 1600);
-            s.longStackPut(16, 1900);
+            s.longStackPut(masterLinkOffset, 1600);
+            s.longStackPut(masterLinkOffset, 1900);
             s.structuralLock.unlock();
             commit(s);
         }
@@ -102,7 +102,7 @@ public class StoreDirect_BinaryEqual_Test {
             s.structuralLock.lock();
             s.headVol.putLong(16, parity4Set(0));
             for(long i=1000;i<2000;i++) {
-                s.longStackPut(16, i);
+                s.longStackPut(masterLinkOffset, i);
             }
             s.structuralLock.unlock();
             commit(s);
@@ -114,9 +114,8 @@ public class StoreDirect_BinaryEqual_Test {
         for(StoreDirect2 s:stores) {
             s.init();
             s.structuralLock.lock();
-            s.headVol.putLong(16, parity4Set(0));
             for(long i=1000;i<2000;i++) {
-                s.longStackPut(16, i);
+                s.longStackPut(masterLinkOffset, i);
             }
 
             s.structuralLock.unlock();
@@ -130,12 +129,12 @@ public class StoreDirect_BinaryEqual_Test {
         for(StoreDirect2 s:stores) {
             s.init();
             s.structuralLock.lock();
-            s.headVol.putLong(16, parity4Set(0));
+            s.headVol.putLong(masterLinkOffset, parity4Set(0));
             for(long i=1000;i<2000;i++) {
-                s.longStackPut(16, i);
+                s.longStackPut(masterLinkOffset, i);
             }
             for(long i=1000;i<2000;i++) {
-                s.longStackTake(16);
+                s.longStackTake(masterLinkOffset);
             }
 
             s.structuralLock.unlock();
@@ -149,18 +148,16 @@ public class StoreDirect_BinaryEqual_Test {
         for(StoreDirect2 s:stores) {
             s.init();
             s.structuralLock.lock();
-            s.headVol.putLong(16, parity4Set(0));
-            s.headVol.putLong(24, parity4Set(0));
             for(long i=1000;i<2000;i++) {
-                s.longStackPut(16, i);
+                s.longStackPut(masterLinkOffset, i);
             }
 
             for(long i=1000;i<2000;i++) {
-                s.longStackPut(24, i);
+                s.longStackPut(masterLinkOffset+8, i);
             }
 
             for(long i=1000;i<2000;i++) {
-                s.longStackTake(16);
+                s.longStackTake(masterLinkOffset);
             }
 
             s.structuralLock.unlock();
@@ -180,12 +177,12 @@ public class StoreDirect_BinaryEqual_Test {
             Random r = new Random(0);
             s.init();
             s.structuralLock.lock();
-            for(long offset=0;offset<StoreDirect2.HEADER_SIZE;offset+=8){
-                s.headVol.putLong(offset, parity4Set(0));
-            }
 
             for(long i=0;i<scale;i++) {
-                long offset = r.nextInt((StoreDirect2.HEADER_SIZE-8) / 8) * 8;
+                long offset = StoreDirect2.O_MASTER_LINK_START+ r.nextInt(
+                        (int) (StoreDirect2.HEADER_SIZE-StoreDirect2.O_MASTER_LINK_START));
+                //round to 8
+                offset = (offset/8)*8;
                 if (r.nextInt(10) < 3) {
                     s.longStackTake(offset);
                 } else {
