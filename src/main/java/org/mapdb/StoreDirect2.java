@@ -177,7 +177,7 @@ public class StoreDirect2 extends Store{
         // so we need to decrement newTail, until we hit end of previous long, or 7
 
         //decrement position, until read value is found
-        while((vol.getUnsignedByte(pageOffset+newTail)&0x80)!=0 && newTail>7){
+        while((vol.getUnsignedByte(pageOffset+newTail)&0x80)==0 && newTail>7){
             if(CC.ASSERT && stackTail-newTail>7)
                 throw new AssertionError(); //too far, data corrupted
             newTail--;
@@ -188,7 +188,7 @@ public class StoreDirect2 extends Store{
             throw new AssertionError();
 
         //read return value
-        long ret = vol.getPackedLong(pageOffset+newTail);
+        long ret = vol.getPackedLongReverse(pageOffset+newTail);
 
         if(CC.VOLUME_ZEROUT){
             vol.clear(pageOffset+newTail, pageOffset+stackTail);
@@ -206,28 +206,17 @@ public class StoreDirect2 extends Store{
     }
 
     long longStackPageFindTail(long pageOffset) {
-        long stackTail;
         //get size of the previous page
         long pageHeader =  DataIO.parity4Get(vol.getLong(pageOffset));
         long pageSize = pageHeader>>>48;
 
-        //in order to find tail of this page, read all packed longs on this page
-        stackTail = 8;
-        findTailLoop: for(;;){
-            if(stackTail==pageSize)
-                break findTailLoop;
-            long r = vol.getPackedLong(pageOffset+stackTail);
-            if((r&DataIO.PACK_LONG_RESULT_MASK)==0) {
-                //tail found
-                break findTailLoop;
-            }
-            if(CC.ASSERT){
-                //verify that this is dividable by zero
-                DataIO.parity1Get(r&DataIO.PACK_LONG_RESULT_MASK);
-            }
-            //increment tail pointer with number of bytes read
-            stackTail+= r>>>60;
+        long stackTail = pageSize-1;
+        //iterate down until non zero byte, that is tail
+        while(vol.getUnsignedByte(pageOffset+stackTail)==0){
+            stackTail--;
         }
+        stackTail++;
+
 
         if(CC.ASSERT && CC.VOLUME_ZEROUT){
             ensureAllZeroes(pageOffset+stackTail, pageOffset+pageSize);
@@ -269,7 +258,7 @@ public class StoreDirect2 extends Store{
         }
 
         //increment stack tail and return new tail
-        stackTail+= vol.putPackedLong(pageOffset+stackTail, value);
+        stackTail+= vol.putPackedLongReverse(pageOffset + stackTail, value);
 
         return stackTail;
     }
@@ -414,7 +403,7 @@ public class StoreDirect2 extends Store{
         //set page header
         vol.putLong(pageOffset, DataIO.parity4Set((pageSize << 48) + previousPage));
         //put new value
-        long tail = 8 + vol.putPackedLong(pageOffset+8, DataIO.parity1Set(value<<1));
+        long tail = 8 + vol.putPackedLongReverse(pageOffset + 8, DataIO.parity1Set(value << 1));
         //update master pointer
         headVol.putLong(masterLinkOffset, DataIO.parity4Set((tail<<48)+pageOffset));
 
@@ -439,11 +428,18 @@ public class StoreDirect2 extends Store{
                 long nextPage = pageHeader&StoreDirect.MOFFSET;
                 long pageSize = pageHeader>>>48;
 
+                long end = pageSize-1;
+                //iterate down until non zero byte, that is tail
+                while(vol.getUnsignedByte(pageOffset+end)==0){
+                    end--;
+                }
+                end++;
+
                 long tail = 8;
                 findTailLoop: for (; ; ) {
-                    if (tail == pageSize)
+                    if (tail == end)
                         break findTailLoop;
-                    long r = vol.getPackedLong(pageOffset + tail);
+                    long r = vol.getPackedLongReverse(pageOffset + tail);
                     if ((r & DataIO.PACK_LONG_RESULT_MASK) == 0) {
                         //tail found
                         break findTailLoop;

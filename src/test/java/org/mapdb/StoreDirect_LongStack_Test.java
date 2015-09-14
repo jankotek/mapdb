@@ -35,7 +35,7 @@ public class StoreDirect_LongStack_Test {
         TT.assertZeroes(vol, 0, 100);
         TT.assertZeroes(vol, 100+newTail, 1000);
         assertEquals(vol.getLong(100), parity3Set(200L << 48));
-        assertEquals(parity1Set(val << 1), vol.getPackedLong(108)&PACK_LONG_RESULT_MASK);
+        assertEquals(parity1Set(val << 1), vol.getPackedLongReverse(108)&PACK_LONG_RESULT_MASK);
 
         //perform take and verify it
         assertEquals((8L<<48)+val, s.longStackTakeFromPage(100,newTail));
@@ -101,8 +101,8 @@ public class StoreDirect_LongStack_Test {
         // master link offset is at 16
         long packedSize = packLongSize(10000L<<1);
         long tail = 8;
-        s.vol.putPackedLong(160 + tail, parity1Set(10000L << 1));
-        s.vol.putPackedLong(160 + tail + packedSize, parity1Set(10000L << 1));
+        s.vol.putPackedLongReverse(160 + tail, parity1Set(10000L << 1));
+        s.vol.putPackedLongReverse(160 + tail + packedSize, parity1Set(10000L << 1));
         tail = tail+packedSize*2;
 
         s.headVol.putLong(16, parity4Set((tail << 48) + 160));
@@ -149,7 +149,7 @@ public class StoreDirect_LongStack_Test {
         //verify Page Header
         assertEquals(parity4Set((160L << 48) + 320L), s.vol.getLong(176));
         //get value in long stack
-        assertEquals(parity1Set(10000L << 1), s.vol.getPackedLong(176+8)&PACK_LONG_RESULT_MASK);
+        assertEquals(parity1Set(10000L << 1), s.vol.getPackedLongReverse(176+8)&PACK_LONG_RESULT_MASK);
     }
 
     @Test public void long_stack_put_creates_new_page(){
@@ -170,7 +170,7 @@ public class StoreDirect_LongStack_Test {
         //verify Page Header
         assertEquals(parity4Set(160L << 48), s.vol.getLong(176));
         //get value in long stack
-        assertEquals(parity1Set(10000L<<1), s.vol.getPackedLong(176+8)&PACK_LONG_RESULT_MASK);
+        assertEquals(parity1Set(10000L<<1), s.vol.getPackedLongReverse(176+8)&PACK_LONG_RESULT_MASK);
     }
 
     @Test public void long_stack_put_creates_new_page_after_page_full(){
@@ -196,7 +196,7 @@ public class StoreDirect_LongStack_Test {
         //verify Page Header
         assertEquals(parity4Set((160L << 48)+32), s.vol.getLong(176));
         //get value in long stack
-        assertEquals(parity1Set(10000L<<1), s.vol.getPackedLong(176+8)&PACK_LONG_RESULT_MASK);
+        assertEquals(parity1Set(10000L<<1), s.vol.getPackedLongReverse(176+8)&PACK_LONG_RESULT_MASK);
     }
 
     @Test public void long_stack_page_removed_single(){
@@ -207,7 +207,7 @@ public class StoreDirect_LongStack_Test {
         //create fake page with size 160 at offset 32
         s.vol.putLong(32, parity4Set(160L<<48));
         //put value 2 into this page
-        s.vol.putPackedLong(32 + 8, parity1Set(2 << 1));
+        s.vol.putPackedLongReverse(32 + 8, parity1Set(2 << 1));
 
         //set Master Pointer to point to this fake page
         s.headVol = new Volume.SingleByteArrayVol(1000);
@@ -231,13 +231,13 @@ public class StoreDirect_LongStack_Test {
         //create fake page with size 16 at offset 800
         s.vol.putLong(800, parity4Set(16L << 48));
         //put value 2 into this page
-        s.vol.putPackedLong(800 + 8, parity1Set(2 << 1));
+        s.vol.putPackedLongReverse(800 + 8, parity1Set(2 << 1));
 
         //create fake page with size 160 at offset 32,
         //set its previous link to page 800
         s.vol.putLong(32, parity4Set((160L<<48)+800));
         //put value 2 into this page
-        s.vol.putPackedLong(32+8, parity1Set(2<<1));
+        s.vol.putPackedLongReverse(32+8, parity1Set(2<<1));
 
         //set Master Pointer to point to this fake page
         s.headVol = new Volume.SingleByteArrayVol(1000);
@@ -254,7 +254,7 @@ public class StoreDirect_LongStack_Test {
 
         //and previous page was not modified
         assertEquals(parity4Set(16L<<48), s.vol.getLong(800));
-        assertEquals(parity1Set(2 << 1), s.vol.getPackedLong(800 + 8) & PACK_LONG_RESULT_MASK);
+        assertEquals(parity1Set(2 << 1), s.vol.getPackedLongReverse(800 + 8) & PACK_LONG_RESULT_MASK);
     }
 
     @Test public void large_set(){
@@ -300,11 +300,27 @@ public class StoreDirect_LongStack_Test {
         //put 100 single byte packed longs
         long pos = 32+8;
         for(int i=0;i<100;i++){
-            pos+=s.vol.putPackedLong(pos, parity1Set(10L<<1));
+            pos+=s.vol.putPackedLongReverse(pos, parity1Set(10L<<1));
         }
 
         assertEquals(pos-32, s.longStackPageFindTail(32));
-
     }
+
+    @Test public void reverse_flag_packed_long(){
+        StoreDirect2 s = new StoreDirect2(null);
+        s.init();
+        s.structuralLock.lock();
+        s.vol.putLong(1024, parity4Set(0));
+        s.longStackPut(1024, 1000);
+        s.longStackPut(1024, 1000);
+        s.longStackPut(1024, 1000);
+
+        long masterLinkVal = parity4Get(s.vol.getLong(1024));
+        long pageOffset = masterLinkVal&StoreDirect.MOFFSET;
+        long tail = masterLinkVal >>> 48;
+
+        assertTrue((s.vol.getUnsignedByte(pageOffset+tail-1)& 0x7F) != 0);
+    }
+
 
 }

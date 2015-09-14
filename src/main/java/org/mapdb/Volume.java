@@ -332,6 +332,26 @@ public abstract class Volume implements Closeable{
         return ret;
     }
 
+    /**
+     * Put packed long at given position.
+     * This method uses reverse bit flag, which is not compatible with other methods.
+     *
+     * @param value to be written
+     * @return number of bytes consumed by packed value
+     */
+    public int putPackedLongReverse(long pos, long value){
+        //$DELAY$
+        int ret = 0;
+        int shift = 63-Long.numberOfLeadingZeros(value);
+        shift -= shift%7; // round down to nearest multiple of 7
+        while(shift!=0){
+            putByte(pos + (ret++), (byte) (((value >>> shift) & 0x7F) ));
+            //$DELAY$
+            shift-=7;
+        }
+        putByte(pos+(ret++),(byte) ((value & 0x7F)| 0x80));
+        return ret;
+    }
 
 
     /**
@@ -349,6 +369,26 @@ public abstract class Volume implements Closeable{
             v = getByte(position+(pos2++));
             ret = (ret<<7 ) | (v & 0x7F);
         }while(v<0);
+
+        return (pos2<<60) | ret;
+    }
+
+    /**
+     * Unpack long value from the Volume. Highest 4 bits reused to indicate number of bytes read from Volume.
+     * One can use {@code result & DataIO.PACK_LONG_RESULT_MASK} to remove size.
+     * This method uses reverse bit flag, which is not compatible with other methods.
+     *
+     * @param position to read value from
+     * @return The long value, minus highest byte
+     */
+    public long getPackedLongReverse(long position){
+        long ret = 0;
+        long pos2 = 0;
+        byte v;
+        do{
+            v = getByte(position+(pos2++));
+            ret = (ret<<7 ) | (v & 0x7F);
+        }while(v>=0);
 
         return (pos2<<60) | ret;
     }

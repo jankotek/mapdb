@@ -262,29 +262,12 @@ public class StoreCached2 extends StoreDirect2{
         byte[] page = longStackLoadPage(pageOffset);
         if(stackTail==0){
             //stack tail is unknown, find end of this page
-            stackTail = 8;
-            findTailLoop: for(;;){
-                if(stackTail>=page.length-1)
-                    break findTailLoop;
-                long r = DataIO.unpackLongReturnSize(page, (int) stackTail);
-                if((r&DataIO.PACK_LONG_RESULT_MASK)==0) {
-                    //tail found
-                    break findTailLoop;
-                }
-                if(CC.ASSERT){
-                    //verify that this is dividable by zero
-                    DataIO.parity1Get(r&DataIO.PACK_LONG_RESULT_MASK);
-                }
-                //increment tail pointer with number of bytes read
-                stackTail+= r>>>60;
+            stackTail = page.length-2;
+            //iterate down until non zero byte, that is tail
+            while(page[((int) stackTail)]==0){
+                stackTail--;
             }
-
-            if(CC.ASSERT && CC.VOLUME_ZEROUT){
-                for(int i= (int) stackTail;i<page.length-2;i++){
-                    if(page[i]!=0)
-                        throw new AssertionError();
-                }
-            }
+            stackTail++;
         }
 
         longStackPageSetModified(page);
@@ -294,7 +277,7 @@ public class StoreCached2 extends StoreDirect2{
 
         //decrement position, until read value is found
         stackTail-=2;
-        while(page[((int) stackTail)]<0 && stackTail>7){
+        while(page[((int) stackTail)]>=0 && stackTail>7){
             if(CC.ASSERT && stackTail-stackTail>7)
                 throw new AssertionError(); //too far, data corrupted
             stackTail--;
@@ -305,7 +288,7 @@ public class StoreCached2 extends StoreDirect2{
             throw new AssertionError();
 
         //read return value
-        long ret = DataIO.unpackLongReturnSize(page, (int) stackTail);
+        long ret = DataIO.unpackLongReverseReturnSize(page, (int) stackTail);
 
         //zeroout old value
         for(long pos = stackTail, limit=stackTail+(ret>>>60);pos<limit;pos++){
@@ -391,7 +374,7 @@ public class StoreCached2 extends StoreDirect2{
         }
 
         longStackPageSetModified(page);
-        stackTail += DataIO.packLongReturnSize(page, (int) stackTail, DataIO.parity1Set(value<<1));
+        stackTail += DataIO.packLongReverseReturnSize(page, (int) stackTail, DataIO.parity1Set(value << 1));
 
         if(CC.ASSERT && CC.VOLUME_ZEROUT){
             for(int i=(int)stackTail;i<page.length-1;i++){
@@ -444,7 +427,7 @@ public class StoreCached2 extends StoreDirect2{
         DataIO.putLong(page,0, DataIO.parity4Set((pageSize << 48) + previousPage));
         //put new value
         long valueWithParity = DataIO.parity1Set(value << 1);
-        long tail = 8+ DataIO.packLongReturnSize(page, 8, valueWithParity);
+        long tail = 8+ DataIO.packLongReverseReturnSize(page, 8, valueWithParity);
         //update master pointer
         headVol.putLong(masterLinkOffset, DataIO.parity4Set((tail<<48)+pageOffset));
 
@@ -454,29 +437,18 @@ public class StoreCached2 extends StoreDirect2{
     @Override
     long longStackPageFindTail(long pageOffset) {
         byte[] page = longStackLoadPage(pageOffset);
-        long stackTail;
         //get size of the previous page
         long pageHeader =  DataIO.parity4Get(DataIO.getLong(page,0));
         long pageSize = pageHeader>>>48;
         if(CC.ASSERT && pageSize!=page.length-1)
             throw new AssertionError();
         //in order to find tail of this page, read all packed longs on this page
-        stackTail = 8;
-        findTailLoop: for(;;){
-            if(stackTail==pageSize)
-                break findTailLoop;
-            long r = DataIO.unpackLongReturnSize(page, (int) stackTail);
-            if((r&DataIO.PACK_LONG_RESULT_MASK)==0) {
-                //tail found
-                break findTailLoop;
-            }
-            if(CC.ASSERT){
-                //verify that this is dividable by zero
-                DataIO.parity1Get(r&DataIO.PACK_LONG_RESULT_MASK);
-            }
-            //increment tail pointer with number of bytes read
-            stackTail+= r>>>60;
+        long stackTail = pageSize-1;
+        //iterate down until non zero byte, that is tail
+        while(page[((int) stackTail)]==0){
+            stackTail--;
         }
+        stackTail++;
 
 
         if(CC.ASSERT && CC.VOLUME_ZEROUT){
