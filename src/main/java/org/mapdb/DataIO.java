@@ -336,14 +336,11 @@ public final class DataIO {
     }
 
     public static int longHash(long h) {
-        //$DELAY$
-        h = h * -7046029254386353131L;
         h ^= h >> 32;
-        return (int)(h ^ h >> 16);
+        return intHash((int) h);
     }
 
     public static int intHash(int h) {
-        //$DELAY$
         h = h * -1640531527;
         return h ^ h >> 16;
     }
