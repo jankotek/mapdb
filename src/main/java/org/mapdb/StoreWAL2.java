@@ -85,7 +85,9 @@ public class StoreWAL2 extends StoreCached2{
                         continue pagesLoop;
                     }
 
-                    longStackCommited.put(pageOffset,page);
+                    byte[] oldPage = longStackCommited.put(pageOffset,page);
+                    if(CC.ASSERT && oldPage!=null && oldPage.length!=page.length)
+                        throw new AssertionError();
                 }
                 longStackPages.clear();
                 headVol.getData(0, headVolBackup, 0, headVolBackup.length);
@@ -113,17 +115,15 @@ public class StoreWAL2 extends StoreCached2{
                         continue pagesLoop;
                     }
 
-                    //make sure that it has the same size as prev pages
-                    byte[] page2 = longStackCommited.get(pageOffset);
-                    if(page2!=null){
-                        if(page.length!=page2.length)
-                            throw new AssertionError();
-                        longStackCommited.remove(pageOffset);
-                    }
-                    //write page
-                    vol.putData(pageOffset,page,0,page.length-1);
+                    byte[] oldPage = longStackCommited.put(pageOffset,page);
+                    if(CC.ASSERT && oldPage!=null && oldPage.length!=page.length)
+                        throw new AssertionError();
                 }
                 longStackPages.clear();
+
+                if(CC.PARANOID){
+                    assertNoOverlaps(longStackCommited);
+                }
 
                 pagesLoop: for(Map.Entry<Long,byte[]> e:longStackCommited.entrySet()){
                     long pageOffset = e.getKey();

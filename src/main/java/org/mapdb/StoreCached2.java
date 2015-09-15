@@ -132,23 +132,7 @@ public class StoreCached2 extends StoreDirect2{
             structuralLock.lock();
             try{
                 if(CC.PARANOID){
-                    //ensure there is no overlap in modified pages
-                    l1: for(Map.Entry<Long,byte[]> e:longStackPages.entrySet()){
-                        long pageOffset = e.getKey();
-                        byte[] page = e.getValue();
-                        long pageSize = page.length-1;
-
-                        l2: for(Map.Entry<Long,byte[]> e2:longStackPages.entrySet()){
-                            long pageOffset2 = e2.getKey();
-                            if( pageOffset==pageOffset2)
-                                continue l2;
-
-                            if(pageOffset<=pageOffset2 && pageOffset2<pageOffset+pageSize){
-                                throw new AssertionError();
-                            }
-                        }
-
-                    }
+                    assertNoOverlaps(longStackPages);
                 }
                 vol.ensureAvailable(storeSize);
 
@@ -176,6 +160,26 @@ public class StoreCached2 extends StoreDirect2{
             vol.sync();
         }finally {
             commitLock.unlock();
+        }
+    }
+
+    protected void assertNoOverlaps(Map<Long, byte[]> pages) {
+        //ensure there is no overlap in modified pages
+        l1: for(Map.Entry<Long,byte[]> e: pages.entrySet()){
+            long pageOffset = e.getKey();
+            byte[] page = e.getValue();
+            long pageSize = page.length-1;
+
+            l2: for(Map.Entry<Long,byte[]> e2: pages.entrySet()){
+                long pageOffset2 = e2.getKey();
+                if( pageOffset==pageOffset2)
+                    continue l2;
+
+                if(pageOffset<=pageOffset2 && pageOffset2<pageOffset+pageSize){
+                    throw new AssertionError();
+                }
+            }
+
         }
     }
 
