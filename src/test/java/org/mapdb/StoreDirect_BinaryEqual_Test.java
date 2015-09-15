@@ -20,12 +20,10 @@ public class StoreDirect_BinaryEqual_Test {
 
     final long masterLinkOffset = StoreDirect2.O_MASTER_LINK_START;
 
-    final StoreDirect2[] stores;
-    final StoreDirect2 s1,s2;
+    final Fun.Function0<StoreDirect2> s1,s2;
 
 
-    public StoreDirect_BinaryEqual_Test(StoreDirect2 s1, StoreDirect2 s2) {
-        this.stores = new StoreDirect2[]{s1,s2};
+    public StoreDirect_BinaryEqual_Test(Fun.Function0<StoreDirect2> s1, Fun.Function0<StoreDirect2> s2) {
         this.s1 = s1;
         this.s2 = s2;
     }
@@ -33,13 +31,34 @@ public class StoreDirect_BinaryEqual_Test {
     @Parameterized.Parameters
     public static Iterable params() throws IOException {
         List ret = new ArrayList();
-        ret.add(new Object[]{new StoreDirect2(null), new StoreDirect2(null)});
-        ret.add(new Object[]{new StoreDirect2(null), new StoreCached2(null)});
-        ret.add(new Object[]{new StoreDirect2(null), new StoreWAL2(null)});
+        Fun.Function0<StoreDirect2> direct = new Fun.Function0<StoreDirect2>() {
+            @Override public StoreDirect2 run() {
+                return new StoreDirect2(null);
+            }
+        };
+        Fun.Function0<StoreDirect2> cached = new Fun.Function0<StoreDirect2>() {
+            @Override public StoreDirect2 run() {
+                return new StoreCached2(null);
+            }
+        };
+        Fun.Function0<StoreDirect2> wal = new Fun.Function0<StoreDirect2>() {
+            @Override public StoreDirect2 run() {
+                return new StoreWAL2(null);
+            }
+        };
+        ret.add(new Object[]{direct, direct});
+        ret.add(new Object[]{direct, cached});
+        ret.add(new Object[]{direct, wal});
         return ret;
     }
 
-    private void assertBinaryEquals() {
+    StoreDirect2[] stores(){
+        return new StoreDirect2[]{s1.run(), s2.run()};
+    }
+
+    private void assertBinaryEquals(StoreDirect2[] stores) {
+        StoreDirect2 s1 = stores[0];
+        StoreDirect2 s2 = stores[1];
         assertEquals(s1.longStackDumpAll(), s2.longStackDumpAll());
 
         long s1len = s1.vol.length();
@@ -63,17 +82,18 @@ public class StoreDirect_BinaryEqual_Test {
 
 
     @Test public void init(){
-        s1.init();
-        s2.init();
-
-        commit(s1);
-        commit(s2);
-        assertBinaryEquals();
+        StoreDirect2[] stores = stores();
+        for(StoreDirect2 s:stores){
+            s.init();
+            commit(s);
+        }
+        assertBinaryEquals(stores);
     }
 
 
 
     @Test public void long_stack_put(){
+        StoreDirect2[] stores = stores();
         for(StoreDirect2 s:stores) {
             s.init();
             s.structuralLock.lock();
@@ -81,10 +101,11 @@ public class StoreDirect_BinaryEqual_Test {
             s.structuralLock.unlock();
             commit(s);
         }
-        assertBinaryEquals();
+        assertBinaryEquals(stores);
     }
 
     @Test public void long_stack_put2(){
+        StoreDirect2[] stores = stores();
         for(StoreDirect2 s:stores) {
             s.init();
             s.structuralLock.lock();
@@ -93,39 +114,26 @@ public class StoreDirect_BinaryEqual_Test {
             s.structuralLock.unlock();
             commit(s);
         }
-        assertBinaryEquals();
+        assertBinaryEquals(stores);
     }
 
     @Test public void long_stack_put_many(){
-        for(StoreDirect2 s:stores) {
-            s.init();
-            s.structuralLock.lock();
-            s.headVol.putLong(16, parity4Set(0));
-            for(long i=1000;i<2000;i++) {
-                s.longStackPut(masterLinkOffset, i);
-            }
-            s.structuralLock.unlock();
-            commit(s);
-        }
-        assertBinaryEquals();
-    }
-
-    @Test public void long_stack_put__many(){
+        StoreDirect2[] stores = stores();
         for(StoreDirect2 s:stores) {
             s.init();
             s.structuralLock.lock();
             for(long i=1000;i<2000;i++) {
                 s.longStackPut(masterLinkOffset, i);
             }
-
             s.structuralLock.unlock();
             commit(s);
         }
-        assertBinaryEquals();
+        assertBinaryEquals(stores);
     }
 
 
     @Test public void long_stack_put_take_many(){
+        StoreDirect2[] stores = stores();
         for(StoreDirect2 s:stores) {
             s.init();
             s.structuralLock.lock();
@@ -140,11 +148,12 @@ public class StoreDirect_BinaryEqual_Test {
             s.structuralLock.unlock();
             commit(s);
         }
-        assertBinaryEquals();
+        assertBinaryEquals(stores);
     }
 
 
     @Test public void mixed(){
+        StoreDirect2[] stores = stores();
         for(StoreDirect2 s:stores) {
             s.init();
             s.structuralLock.lock();
@@ -163,14 +172,14 @@ public class StoreDirect_BinaryEqual_Test {
             s.structuralLock.unlock();
             commit(s);
         }
-        assertBinaryEquals();
+        assertBinaryEquals(stores);
 
     }
 
     @Test public void mixed_huge(){
         if(TT.shortTest())
             return;
-
+        StoreDirect2[] stores = stores();
         long scale = (long) (1e7*TT.scale());
 
         for(StoreDirect2 s:stores) {
@@ -193,7 +202,7 @@ public class StoreDirect_BinaryEqual_Test {
             s.structuralLock.unlock();
             commit(s);
         }
-        assertBinaryEquals();
+        assertBinaryEquals(stores);
     }
 
 

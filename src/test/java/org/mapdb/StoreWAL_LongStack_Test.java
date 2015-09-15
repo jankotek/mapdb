@@ -18,30 +18,30 @@ public class StoreWAL_LongStack_Test {
         s.headVol.putLong(16, parity4Set(0));
 
         s.longStackPut(masterLinkOffset, 10000);
-        assertEquals(1, s.longStackPages.size);
-        assertEquals(0, s.longStackCommited.size);
+        assertEquals(1, s.longStackPages.size());
+        assertEquals(0, s.longStackCommited.size());
         TT.assertZeroes(s.vol, StoreDirect2.HEADER_SIZE, s.vol.length());
 
         s.structuralLock.unlock();
         s.commit();
-        assertEquals(0, s.longStackPages.size);
-        assertEquals(1, s.longStackCommited.size);
+        assertEquals(0, s.longStackPages.size());
+        assertEquals(1, s.longStackCommited.size());
         TT.assertZeroes(s.vol, 24, s.vol.length());
 
         s.structuralLock.lock();
         assertEquals(10000, s.longStackTake(masterLinkOffset));
-        assertEquals(1, s.longStackPages.size);
-        assertEquals(1, s.longStackCommited.size);
+        assertEquals(1, s.longStackPages.size());
+        assertEquals(1, s.longStackCommited.size());
 
         s.structuralLock.unlock();
         s.rollback();
-        assertEquals(0, s.longStackPages.size);
-        assertEquals(1, s.longStackCommited.size);
+        assertEquals(0, s.longStackPages.size());
+        assertEquals(1, s.longStackCommited.size());
 
         s.structuralLock.lock();
         assertEquals(10000, s.longStackTake(masterLinkOffset));
-        assertEquals(1, s.longStackPages.size);
-        assertEquals(1, s.longStackCommited.size);
+        assertEquals(1, s.longStackPages.size());
+        assertEquals(1, s.longStackCommited.size());
 
     }
 

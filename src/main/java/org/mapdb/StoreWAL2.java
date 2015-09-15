@@ -1,6 +1,9 @@
 package org.mapdb;
 
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class StoreWAL2 extends StoreCached2{
 
     /*
@@ -11,7 +14,7 @@ public class StoreWAL2 extends StoreCached2{
      * - Second lowest bit indicates if page was created and not loaded, if this bit is zero,
      *   real content of storage is all zeroes.
      */
-    protected final LongObjectMap<byte[]> longStackCommited = new LongObjectMap<byte[]>();
+    protected final Map<Long,byte[]> longStackCommited = new HashMap<Long,byte[]>();
 
     protected byte[] headVolBackup = new byte[(int) HEADER_SIZE];
 
@@ -74,12 +77,9 @@ public class StoreWAL2 extends StoreCached2{
         try{
             structuralLock.lock();
             try{
-                pagesLoop: for(int i=0;i<longStackPages.set.length;i++){
-                    long pageOffset = longStackPages.set[i];
-                    if(pageOffset==0) {
-                        continue pagesLoop;
-                    }
-                    byte[] page = (byte[]) longStackPages.values[i];
+                pagesLoop:  for(Map.Entry<Long,byte[]> e:longStackPages.entrySet()){
+                    long pageOffset = e.getKey();
+                    byte[] page = e.getValue();
                     //if page was not modified continue
                     if((page[page.length-1]&1)==0){
                         continue pagesLoop;
@@ -105,12 +105,9 @@ public class StoreWAL2 extends StoreCached2{
             structuralLock.lock();
             try{
                 vol.ensureAvailable(storeSize);
-                pagesLoop: for(int i=0;i<longStackPages.set.length;i++){
-                    long pageOffset = longStackPages.set[i];
-                    if(pageOffset==0) {
-                        continue pagesLoop;
-                    }
-                    byte[] page = (byte[]) longStackPages.values[i];
+                pagesLoop: for(Map.Entry<Long,byte[]> e:longStackPages.entrySet()){
+                    long pageOffset = e.getKey();
+                    byte[] page = e.getValue();
                     //if page was not modified continue
                     if((page[page.length-1]&1)==0){
                         continue pagesLoop;
@@ -128,12 +125,9 @@ public class StoreWAL2 extends StoreCached2{
                 }
                 longStackPages.clear();
 
-                pagesLoop: for(int i=0;i<longStackCommited.set.length;i++){
-                    long pageOffset = longStackCommited.set[i];
-                    if(pageOffset==0) {
-                        continue pagesLoop;
-                    }
-                    byte[] page = (byte[]) longStackCommited.values[i];
+                pagesLoop: for(Map.Entry<Long,byte[]> e:longStackCommited.entrySet()){
+                    long pageOffset = e.getKey();
+                    byte[] page = e.getValue();
                     //if page was not modified continue
                     if((page[page.length-1]&1)==0){
                         continue pagesLoop;

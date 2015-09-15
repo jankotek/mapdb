@@ -2,6 +2,8 @@ package org.mapdb;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  *
@@ -16,7 +18,7 @@ public class StoreCached2 extends StoreDirect2{
      * - Second lowest bit indicates if page was created and not loaded, if this bit is zero,
      *   real content of storage is all zeroes.
      */
-    protected final LongObjectMap<byte[]> longStackPages = new LongObjectMap<byte[]>();
+    protected final Map<Long,byte[]> longStackPages = new HashMap<Long,byte[]>();
 
     public StoreCached2(String fileName,
                         Volume.VolumeFactory volumeFactory,
@@ -131,19 +133,17 @@ public class StoreCached2 extends StoreDirect2{
             try{
                 if(CC.PARANOID){
                     //ensure there is no overlap in modified pages
+                    l1: for(Map.Entry<Long,byte[]> e:longStackPages.entrySet()){
+                        long pageOffset = e.getKey();
+                        byte[] page = e.getValue();
+                        long pageSize = page.length-1;
 
-                    l1: for(int i=0;i<longStackPages.set.length;i++){
-                        long pageOffset = longStackPages.set[i];
-                        if(pageOffset==0)
-                            continue l1;
-                        long pageSize = ((byte[])longStackPages.values[i]).length-1;
-
-                        l2: for(int j=0;j<longStackPages.set.length;j++){
-                            long pageOffset2 = longStackPages.set[i];
-                            if(pageOffset2==0 ||  pageOffset==pageOffset2)
+                        l2: for(Map.Entry<Long,byte[]> e2:longStackPages.entrySet()){
+                            long pageOffset2 = e2.getKey();
+                            if( pageOffset==pageOffset2)
                                 continue l2;
 
-                            if(pageOffset<=pageOffset2 && pageOffset2<=pageOffset+pageSize){
+                            if(pageOffset<=pageOffset2 && pageOffset2<pageOffset+pageSize){
                                 throw new AssertionError();
                             }
                         }
@@ -152,12 +152,9 @@ public class StoreCached2 extends StoreDirect2{
                 }
                 vol.ensureAvailable(storeSize);
 
-                pagesLoop: for(int i=0;i<longStackPages.set.length;i++){
-                    long pageOffset = longStackPages.set[i];
-                    if(pageOffset==0) {
-                        continue pagesLoop;
-                    }
-                    byte[] page = (byte[]) longStackPages.values[i];
+                pagesLoop:  for(Map.Entry<Long,byte[]> e:longStackPages.entrySet()){
+                    long pageOffset = e.getKey();
+                    byte[] page = e.getValue();
                     //if page was not modified continue
                     if((page[page.length-1]&1)==0){
                         continue pagesLoop;
