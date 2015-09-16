@@ -1148,8 +1148,8 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             int len = Math.min(len1,strLen);
             //$DELAY$
             while(len-- != 0){
-                byte b1 = array[start1++];
-                byte b2 = string[start2++];
+                int b1 = array[start1++] & 0xFF;
+                int b2 = string[start2++] & 0xFF;
                 if(b1!=b2){
                     return b1-b2;
                 }
@@ -1166,8 +1166,8 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             int len = Math.min(len1,strLen);
              //$DELAY$
             while(len-- != 0){
-                char b1 = (char) (array[start1++] & 0xff);
-                char b2 = string.charAt(start2++);
+                int b1 =  (array[start1++] & 0xff);
+                int b2 = string.charAt(start2++);
                 if(b1!=b2){
                     return b1-b2;
                 }
@@ -1184,8 +1184,8 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             int len = Math.min(len1,len2);
             //$DELAY$
             while(len-- != 0){
-                byte b1 = array[start1++];
-                byte b2 = array[start2++];
+                int b1 = array[start1++] & 0xFF;
+                int b2 = array[start2++] & 0xFF;
                 if(b1!=b2){
                     return b1-b2;
                 }
@@ -1808,17 +1808,15 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         }
 
         /** compares two char arrays, has same contract as {@link String#compareTo(String)} */
-        int compare(byte[] c1, byte[] c2){
-            int end = (c1.length <= c2.length) ? c1.length : c2.length;
-            int ret;
-            //$DELAY$
-            for(int i=0;i<end;i++){
-                if ((ret = c1[i] - c2[i]) != 0) {
-                    return ret;
-                }
+        int compare(byte[] o1, byte[] o2){
+            final int len = Math.min(o1.length,o2.length);
+            for(int i=0;i<len;i++){
+                int b1 = o1[i] & 0xFF;
+                int b2 = o2[i] &0xFF;
+                if(b1!=b2)
+                    return b1-b2;
             }
-            //$DELAY$
-            return c1.length - c2.length;
+            return o1.length - o2.length;
         }
 
 
