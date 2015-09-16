@@ -650,9 +650,28 @@ public class DB implements Closeable {
      * Is best for large keys and large values.
      *
      * @param name of map
-     * @param valueCreator if value is not found, new is created and placed into map.
+     * @param keySerializer serializer used on keys
+     * @param valueSerializer serializer used on values
      * @return map
      */
+    synchronized public <K,V> HTreeMap<K,V> hashMap(
+            String name,
+            Serializer<K> keySerializer,
+            Serializer<V> valueSerializer) {
+        return hashMap(name, keySerializer,valueSerializer,null);
+    }
+
+        /**
+         * Opens existing or creates new Hash Tree Map.
+         * This collection perform well under concurrent access.
+         * Is best for large keys and large values.
+         *
+         * @param name of map
+         * @param keySerializer serializer used on keys
+         * @param valueSerializer serializer used on values
+         * @param valueCreator if value is not found, new is created and placed into map.
+         * @return map
+         */
     synchronized public <K,V> HTreeMap<K,V> hashMap(
             String name,
             Serializer<K> keySerializer,
@@ -1503,7 +1522,7 @@ public class DB implements Closeable {
 
         long rootRecidRef;
         if(m.pumpSource==null || !m.pumpSource.hasNext()){
-            rootRecidRef = BTreeMap.createRootRef(engine,keySerializer,m.valueSerializer,0);
+            rootRecidRef = BTreeMap.createRootRef(engine,keySerializer,m.valueSerializer,m.valuesOutsideNodes,0);
         }else{
             rootRecidRef = Pump.buildTreeMap(
                     (Iterator<K>)m.pumpSource,
@@ -1680,7 +1699,7 @@ public class DB implements Closeable {
         long rootRecidRef;
         //$DELAY$
         if(m.pumpSource==null || !m.pumpSource.hasNext()){
-            rootRecidRef = BTreeMap.createRootRef(engine,serializer,null,0);
+            rootRecidRef = BTreeMap.createRootRef(engine,serializer,null,false, 0);
         }else{
             rootRecidRef = Pump.buildTreeMap(
                     (Iterator<Object>)m.pumpSource,
@@ -1796,13 +1815,15 @@ public class DB implements Closeable {
      * @deprecated queues API is going to be reworked */
     synchronized public <E> BlockingQueue<E> createQueue(String name, Serializer<E> serializer, boolean useLocks) {
         checkNameNotExists(name);
+        if(serializer==null)
+            serializer= getDefaultSerializer();
 
-        long node = engine.preallocate(); //serializer is new Queues.SimpleQueue.NodeSerializer(serializer)
+        long node = engine.put(null,new Queues.Queue.NodeSerializer(serializer));
         long headRecid = engine.put(node, Serializer.LONG);
         long tailRecid = engine.put(node, Serializer.LONG);
         //$DELAY$
         Queues.Queue<E> ret = new Queues.Queue<E>(engine,
-                catPut(name+Keys.serializer,serializer,getDefaultSerializer()),
+                catPut(name+Keys.serializer,serializer),
                 catPut(name +Keys.headRecid,headRecid),
                 catPut(name+Keys.tailRecid,tailRecid),
                 catPut(name+Keys.useLocks,useLocks)
@@ -1899,11 +1920,14 @@ public class DB implements Closeable {
     synchronized public <E> BlockingQueue<E> createStack(String name, Serializer<E> serializer, boolean useLocks) {
         checkNameNotExists(name);
 
-        long node = engine.preallocate();
+        if(serializer==null)
+            serializer = getDefaultSerializer();
+
+        long node = engine.put(null, new Queues.SimpleQueue.NodeSerializer(serializer));
         long headRecid = engine.put(node, Serializer.LONG);
         //$DELAY$
         Queues.Stack<E> ret = new Queues.Stack<E>(engine,
-                catPut(name+Keys.serializer,serializer,getDefaultSerializer()),
+                catPut(name+Keys.serializer,serializer),
                 catPut(name+Keys.headRecid,headRecid)
         );
         //$DELAY$

@@ -30,7 +30,7 @@ public class BTreeMapContainsKeyTest extends JSR166TestCase {
         r = DBMaker.memoryDB().transactionDisable().makeEngine();
         map = new BTreeMap(
                 r,false,
-                createRootRef(r,BASIC, Serializer.BASIC,0),
+                createRootRef(r,BASIC, Serializer.BASIC,valsOutsideNodes, 0),
                 6, valsOutsideNodes, 0, BASIC, valueSerializer, 0);
     }
 

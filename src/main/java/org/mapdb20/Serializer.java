@@ -69,7 +69,7 @@ public abstract class Serializer<A> {
      * Unlike {@link Serializer#STRING} this method hashes String with more reliable XXHash.
      * </p>
      */
-    public static final Serializer<String> STRING_XXHASH = new Serializer<String>() {
+    public static final Serializer<String> STRING_XXHASH = new StringValueSerializer (){
         @Override
         public void serialize(DataOutput out, String value) throws IOException {
             out.writeUTF(value);
@@ -105,7 +105,7 @@ public abstract class Serializer<A> {
      * Stores string size so can be used as collection serializer.
      * Does not handle null values
      */
-    public static final Serializer<String> STRING = new Serializer<String>() {
+    public static final Serializer<String> STRING = new StringValueSerializer (){
         @Override
         public void serialize(DataOutput out, String value) throws IOException {
             out.writeUTF(value);
@@ -129,6 +129,93 @@ public abstract class Serializer<A> {
             return BTreeKeySerializer.STRING;
         }
     };
+
+    private static abstract class StringValueSerializer extends Serializer<String>{
+        @Override
+        public void valueArraySerialize(DataOutput out, Object vals) throws IOException {
+            DataIO.DataOutputByteArray out2 = (DataIO.DataOutputByteArray) out;
+            char[][] vals2 = (char[][]) vals;
+            for(char[] v:vals2){
+                out2.packInt(v.length);
+                for(char c:v){
+                    out2.packInt(c);
+                }
+            }
+        }
+
+        @Override
+        public Object valueArrayDeserialize(DataInput in, int size) throws IOException {
+            DataIO.DataInputInternal in2 = (DataIO.DataInputInternal) in;
+            char[][] ret = new char[size][];
+            for(int i=0;i<size;i++){
+                int size2 = in2.unpackInt();
+                char[] cc = new char[size2];
+                for(int j=0;j<size2;j++){
+                    cc[j] = (char) in2.unpackInt();
+                }
+                ret[i] = cc;
+            }
+            return ret;
+        }
+
+        @Override
+        public String valueArrayGet(Object vals, int pos) {
+            return new String(((char[][])vals)[pos]);
+        }
+
+        @Override
+        public int valueArraySize(Object vals) {
+            return ((char[][])vals).length;
+        }
+
+        @Override
+        public Object valueArrayEmpty() {
+            return new char[0][];
+        }
+
+        @Override
+        public Object valueArrayPut(Object vals, int pos, String newValue) {
+            char[][] array = (char[][]) vals;
+            final char[][] ret = Arrays.copyOf(array, array.length+1);
+            if(pos<array.length){
+                System.arraycopy(array, pos, ret, pos+1, array.length-pos);
+            }
+            ret[pos] = newValue.toCharArray();
+            return ret;
+
+        }
+
+        @Override
+        public Object valueArrayUpdateVal(Object vals, int pos, String newValue) {
+            char[][] cc = (char[][]) vals;
+            cc = cc.clone();
+            cc[pos] = newValue.toCharArray();
+            return cc;
+        }
+
+        @Override
+        public Object valueArrayFromArray(Object[] objects) {
+            char[][] ret = new char[objects.length][];
+            for(int i=0;i<ret.length;i++){
+                ret[i] = ((String)objects[i]).toCharArray();
+            }
+            return ret;
+        }
+
+        @Override
+        public Object valueArrayCopyOfRange(Object vals, int from, int to) {
+            return Arrays.copyOfRange((char[][]) vals, from, to);
+        }
+
+        @Override
+        public Object valueArrayDeleteValue(Object vals, int pos) {
+            char[][] valsOrig = (char[][]) vals;
+            char[][] vals2 = new char[valsOrig.length-1][];
+            System.arraycopy(vals,0,vals2, 0, pos-1);
+            System.arraycopy(vals, pos, vals2, pos-1, vals2.length-(pos-1));
+            return vals2;
+        }
+    }
 
     /**
      * Serializes strings using UTF8 encoding.
@@ -202,7 +289,7 @@ public abstract class Serializer<A> {
      * Used mainly for testing.
      * Does not handle null values.
      */
-    public static final Serializer<String> STRING_NOSIZE = new Serializer<String>() {
+    public static final Serializer<String> STRING_NOSIZE = new StringValueSerializer (){
 
         private final Charset UTF8_CHARSET = Charset.forName("UTF8");
 
@@ -682,7 +769,10 @@ public abstract class Serializer<A> {
     };
 
 
-    public static final Serializer<Boolean> BOOLEAN = new Serializer<Boolean>() {
+    public static final Serializer<Boolean> BOOLEAN = new BooleanSer();
+
+    protected static class BooleanSer extends Serializer<Boolean> {
+
         @Override
         public void serialize(DataOutput out, Boolean value) throws IOException {
             out.writeBoolean(value);
@@ -703,7 +793,80 @@ public abstract class Serializer<A> {
             return true;
         }
 
+        @Override
+        public void valueArraySerialize(DataOutput out, Object vals) throws IOException {
+            for(boolean b:((boolean[])vals)){
+                out.writeBoolean(b);
+            }
+        }
 
+        @Override
+        public Object valueArrayDeserialize(DataInput in, int size) throws IOException {
+            boolean[] ret = new boolean[size];
+            for(int i=0;i<size;i++){
+                ret[i] = in.readBoolean();
+            }
+            return ret;
+        }
+
+        @Override
+        public Boolean valueArrayGet(Object vals, int pos) {
+            return ((boolean[])vals)[pos];
+        }
+
+        @Override
+        public int valueArraySize(Object vals) {
+            return ((boolean[])vals).length;
+        }
+
+        @Override
+        public Object valueArrayEmpty() {
+            return new boolean[0];
+        }
+
+        @Override
+        public Object valueArrayPut(Object vals, int pos, Boolean newValue) {
+            boolean[] array = (boolean[]) vals;
+            final boolean[] ret = Arrays.copyOf(array, array.length+1);
+            if(pos<array.length){
+                System.arraycopy(array, pos, ret, pos+1, array.length-pos);
+            }
+            ret[pos] = newValue;
+            return ret;
+
+        }
+
+        @Override
+        public Object valueArrayUpdateVal(Object vals, int pos, Boolean newValue) {
+            boolean[] vals2 = ((boolean[])vals).clone();
+            vals2[pos] = newValue;
+            return vals2;
+
+        }
+
+        @Override
+        public Object valueArrayFromArray(Object[] objects) {
+            boolean[] ret = new boolean[objects.length];
+            for(int i=0;i<ret.length;i++){
+                ret[i] = (Boolean)objects[i];
+            }
+            return ret;
+        }
+
+        @Override
+        public Object valueArrayCopyOfRange(Object vals, int from, int to) {
+            return Arrays.copyOfRange((boolean[]) vals, from, to);
+        }
+
+        @Override
+        public Object valueArrayDeleteValue(Object vals, int pos) {
+            boolean[] valsOrig = (boolean[]) vals;
+            boolean[] vals2 = new boolean[valsOrig.length-1];
+            System.arraycopy(vals,0,vals2, 0, pos-1);
+            System.arraycopy(vals, pos, vals2, pos-1, vals2.length-(pos-1));
+            return vals2;
+
+        }
     };
 
 
@@ -1340,13 +1503,13 @@ public abstract class Serializer<A> {
         @Override
         public void serialize(DataOutput out, boolean[] value) throws IOException {
             DataIO.packInt(out, value.length);//write the number of booleans not the number of bytes
-            byte[] a = SerializerBase.booleanToByteArray(value);
-            out.write(a);
+            SerializerBase.writeBooleanArray(out,value);
         }
 
         @Override
         public boolean[] deserialize(DataInput in, int available) throws IOException {
-            return SerializerBase.readBooleanArray(DataIO.unpackInt(in), in);
+            int size = DataIO.unpackInt(in);
+            return SerializerBase.readBooleanArray(size, in);
         }
 
         @Override

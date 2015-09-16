@@ -415,7 +415,7 @@ public final class Pump {
             keyExtractor= (Fun.Function1<K, E>) Fun.extractNoTransform();
         if(valueSerializer==null){
             //this is set
-            valueSerializer = (Serializer<V>) Serializer.BOOLEAN;
+            valueSerializer = (Serializer<V>) BTreeMap.BOOLEAN_PACKED;
             if(valueExtractor!=null)
                 throw new IllegalArgumentException();
             valueExtractor = new Fun.Function1() {
@@ -425,6 +425,7 @@ public final class Pump {
                 }
             };
         }
+        Serializer valueNodeSerializer = valuesStoredOutsideNodes ? BTreeMap.VALREF_SERIALIZER : valueSerializer;
 
         // update source iterator with new one, which just ignores duplicates
         if(ignoreDuplicates){
@@ -438,7 +439,7 @@ public final class Pump {
         final int maxNodeSize = (int) (nodeSize * NODE_LOAD);
 
         // temporary serializer for nodes
-        Serializer<BTreeMap.BNode> nodeSerializer = new BTreeMap.NodeSerializer(valuesStoredOutsideNodes,keySerializer,valueSerializer,0);
+        Serializer<BTreeMap.BNode> nodeSerializer = new BTreeMap.NodeSerializer(valuesStoredOutsideNodes,keySerializer,valueNodeSerializer,0);
 
         //hold tree structure
         ArrayList<ArrayList<K>> dirKeys = new ArrayList();
@@ -488,7 +489,7 @@ public final class Pump {
                     isLeftMost,             //left most
                     lastLeafRecid==0,   //right most
                     false,
-                    valueSerializer.valueArrayFromArray(leafValues.toArray()),
+                    valueNodeSerializer.valueArrayFromArray(leafValues.toArray()),
                     lastLeafRecid
             );
 
@@ -585,7 +586,7 @@ public final class Pump {
                     true,
                     true,
                     false,
-                    valueSerializer.valueArrayEmpty(),
+                    valueNodeSerializer.valueArrayEmpty(),
                     0L);
 
             rootRecid = engine.put(emptyRoot, nodeSerializer);
@@ -922,4 +923,50 @@ public final class Pump {
 
         s.close();
     }
+
+    public static void archiveTreeMap(Iterator<Fun.Pair> source, String file, Volume.VolumeFactory factory, DB.BTreeMapMaker config) {
+        //init store
+        StoreArchive s = new StoreArchive(
+                file,
+                factory,
+                false);
+        s.init();
+
+        //do import
+        long counterRecid = config.counter ? s.put(0L, Serializer.LONG) : 0L;
+        long rootRecid = Pump.buildTreeMap(
+                source,
+                s,
+                (Fun.Function1)Fun.extractKey(),
+                (Fun.Function1)Fun.extractValue(),
+                false,
+                config.nodeSize,
+                config.valuesOutsideNodes,
+                counterRecid,
+                config.getKeySerializer(),
+                (Serializer)config.valueSerializer,
+                null
+        );
+
+        //create named catalog
+        String name = config.name;
+        NavigableMap<String, Object> c = new TreeMap<String, Object>();
+        c.put(name + DB.Keys.type,"TreeMap");
+        c.put(name + DB.Keys.rootRecidRef, rootRecid);
+        c.put(name + DB.Keys.maxNodeSize, config.nodeSize);
+        c.put(name + DB.Keys.valuesOutsideNodes, config.valuesOutsideNodes);
+        c.put(name + DB.Keys.counterRecids, counterRecid);
+        c.put(name + DB.Keys.keySerializer, config.getKeySerializer());
+        c.put(name + DB.Keys.valueSerializer, config.valueSerializer);
+        c.put(name + DB.Keys.numberOfNodeMetas, 0);
+
+        //and apply it
+        s.rewriteNamedCatalog(c);
+
+        //create testing record
+
+
+        s.close();
+    }
+
 }

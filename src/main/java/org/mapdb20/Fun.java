@@ -233,13 +233,12 @@ public final class Fun {
             if(o1==o2) return 0;
             final int len = Math.min(o1.length,o2.length);
             for(int i=0;i<len;i++){
-                if(o1[i]==o2[i])
-                    continue;
-                if(o1[i]>o2[i])
-                    return 1;
-                return -1;
+                int b1 = o1[i]&0xFF;
+                int b2 = o2[i]&0xFF;
+                if(b1!=b2)
+                    return b1-b2;
             }
-            return compareInt(o1.length, o2.length);
+            return o1.length - o2.length;
         }
     };
 
@@ -247,14 +246,12 @@ public final class Fun {
     public static final Comparator<char[]> CHAR_ARRAY_COMPARATOR = new Comparator<char[]>() {
         @Override
         public int compare(char[] o1, char[] o2) {
-            if(o1==o2) return 0;
             final int len = Math.min(o1.length,o2.length);
             for(int i=0;i<len;i++){
-                if(o1[i]==o2[i])
-                    continue;
-                if(o1[i]>o2[i])
-                    return 1;
-                return -1;
+                int b1 = o1[i];
+                int b2 = o2[i];
+                if(b1!=b2)
+                    return b1-b2;
             }
             return compareInt(o1.length, o2.length);
         }
@@ -328,7 +325,7 @@ public final class Fun {
     public static final class ArrayComparator implements Comparator<Object[]>{
         protected final Comparator[] comparators;
 
-        public ArrayComparator(Comparator<?>[] comparators2) {
+        public ArrayComparator(Comparator... comparators2) {
             this.comparators = comparators2.clone();
             for(int i=0;i<this.comparators.length;i++){
                 if(this.comparators[i]==null)
@@ -345,10 +342,21 @@ public final class Fun {
 
         @Override
         public int compare(Object[] o1, Object[] o2) {
-            if(o1==o2) return 0;
             int len = Math.min(o1.length,o2.length);
+            int r;
             for(int i=0;i<len;i++){
-                int r = comparators[i].compare(o1[i],o2[i]);
+                Object a1 = o1[i];
+                Object a2 = o2[i];
+
+                if(a1==a2) { //this case handles both nulls
+                    r = 0;
+                }else if(a1==null) {
+                    r = 1; //null is positive infinity, always greater than anything else
+                }else if(a2==null) {
+                    r = -1;
+                }else{
+                    r = comparators[i].compare(a1,a2);;
+                }
                 if(r!=0)
                     return r;
             }

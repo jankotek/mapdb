@@ -26,12 +26,11 @@
 package org.mapdb20;
 
 
-import java.io.Closeable;
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentNavigableMap;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.locks.LockSupport;
 
 
@@ -92,8 +91,7 @@ import java.util.concurrent.locks.LockSupport;
  * Concurrent operations on B∗-trees with overtaking</a>
  * written by Yehoshua Sagiv.
  * More practical aspects of BTreeMap implementation are based on
- * <a href="http://cs.au.dk/~tyoung/~td202/">notes</a>
- * and <a href="http://cs.au.dk/~tyoung/~td202/btree/">demo application</a> from Thomas Dinsdale-Young.
+ * <a href="http://cs.au.dk/~tyoung/btree/index.html">demo application</a> from Thomas Dinsdale-Young.
  * Also more work from Thomas: <a href="http://www.doc.ic.ac.uk/research/technicalreports/2011/#10">A Simple Abstraction for Complex Concurrent Indexes</a>
  * </p><p>
  *
@@ -115,7 +113,7 @@ public class BTreeMap<K,V>
         extends AbstractMap<K,V>
         implements ConcurrentNavigableMap<K,V>,
         Bind.MapWithModificationListener<K,V>,
-        Closeable {
+        Closeable, Serializable {
 
     /** recid under which reference to rootRecid is stored */
     protected final long rootRecidRef;
@@ -123,8 +121,12 @@ public class BTreeMap<K,V>
     /** Serializer used to convert keys from/into binary form. */
     protected final BTreeKeySerializer keySerializer;
 
-    /** Serializer used to convert keys from/into binary form*/
+    /** Serializer used to convert values from/into binary form*/
     protected final Serializer<V> valueSerializer;
+
+    /** Serializer used to convert values inside nodes from/into binary form
+     * If maps has external serializer, this is ValRef serializer*/
+    protected final Serializer valueNodeSerializer;
 
     /** holds node level locks*/
     protected final LongConcurrentHashMap<Thread> nodeLocks = new LongConcurrentHashMap<Thread>();
@@ -223,7 +225,7 @@ public class BTreeMap<K,V>
         }
     }
 
-    protected static final class ValRefSerializer extends Serializer<ValRef>{
+    protected static final Serializer<ValRef> VALREF_SERIALIZER = new Serializer.EightByteSerializer<ValRef>(){
 
         @Override
         public void serialize(DataOutput out, ValRef value) throws IOException {
@@ -236,8 +238,8 @@ public class BTreeMap<K,V>
         }
 
         @Override
-        public boolean isTrusted() {
-            return true;
+        public int fixedSize() {
+            return -1;
         }
 
         @Override
@@ -249,7 +251,50 @@ public class BTreeMap<K,V>
         public int hashCode(ValRef valRef, int seed) {
             throw new IllegalAccessError();
         }
-    }
+
+        @Override
+        protected ValRef unpack(long l) {
+            return new ValRef(l);
+        }
+
+        @Override
+        protected long pack(ValRef l) {
+            return l.recid;
+        }
+
+        @Override
+        public void valueArraySerialize(DataOutput out, Object vals) throws IOException {
+            for(long o:(long[]) vals){
+                DataIO.packLong(out, o);
+            }
+        }
+
+        @Override
+        public Object valueArrayDeserialize(DataInput in, int size) throws IOException {
+            //TODO six-byte long[]
+            long[] ret = new long[size];
+            for(int i=0;i<size;i++){
+                ret[i] = DataIO.unpackLong(in);
+            }
+            return ret;
+        }
+
+    };
+
+    /** packed boolean used to represent values in TreeSet. Each boolean flag takes single bite */
+    protected static final Serializer<Boolean> BOOLEAN_PACKED = new Serializer.BooleanSer() {
+
+        @Override
+        public void valueArraySerialize(DataOutput out, Object vals) throws IOException {
+            SerializerBase.writeBooleanArray(out,(boolean[]) vals);
+        }
+
+        @Override
+        public Object valueArrayDeserialize(DataInput in, int size) throws IOException {
+            return SerializerBase.readBooleanArray(size, in);
+        }
+    };
+
 
     /** common interface for BTree node */
     public abstract static class BNode{
@@ -419,7 +464,7 @@ public class BTreeMap<K,V>
             super(keys, leftEdge, rightEdge, tooLarge);
             this.child = child;
 
-            if(CC.ASSERT)
+            if(CC.PARANOID)
                 checkStructure(null,null);
         }
 
@@ -587,7 +632,7 @@ public class BTreeMap<K,V>
             this.vals = vals;
             this.next = next;
 
-            if(CC.ASSERT)
+            if(CC.PARANOID)
                 checkStructure(null,null);
         }
 
@@ -728,8 +773,8 @@ public class BTreeMap<K,V>
             this.valsOutsideNodes = valsOutsideNodes;
             this.keySerializer = keySerializer;
             this.valueSerializer =  (Serializer) (hasValues?
-                    (valsOutsideNodes? new ValRefSerializer() : valueSerializer):
-                    Serializer.BOOLEAN);
+                    (valsOutsideNodes? VALREF_SERIALIZER : valueSerializer):
+                    BTreeMap.BOOLEAN_PACKED);
             this.numberOfNodeMetas = numberOfNodeMetas;
         }
 
@@ -738,7 +783,7 @@ public class BTreeMap<K,V>
             final boolean isLeaf = value.isLeaf();
 
             //check node integrity in paranoid mode
-            if(CC.ASSERT){
+            if(CC.PARANOID){
                 value.checkStructure(keySerializer,valueSerializer);
             }
             //$DELAY$
@@ -813,7 +858,7 @@ public class BTreeMap<K,V>
                 node = deserializeDir(in2, size, left, right);
             }
             //$DELAY$
-            if(CC.ASSERT){
+            if(CC.PARANOID){
                 node.checkStructure(keySerializer,valueSerializer);
             }
             return node;
@@ -910,10 +955,11 @@ public class BTreeMap<K,V>
         this.numberOfNodeMetas = numberOfNodeMetas;
 
         this.keySerializer = keySerializer;
-        this.valueSerializer = valueSerializer!=null? valueSerializer: (Serializer<V>) Serializer.BOOLEAN;
+        this.valueSerializer = valueSerializer!=null? valueSerializer: (Serializer<V>) BTreeMap.BOOLEAN_PACKED;
+        this.valueNodeSerializer = valsOutsideNodes ? VALREF_SERIALIZER : this.valueSerializer;
         entrySet = new EntrySet(this, this.valueSerializer);
 
-        this.nodeSerializer = new NodeSerializer(valsOutsideNodes,keySerializer,valueSerializer,numberOfNodeMetas);
+        this.nodeSerializer = new NodeSerializer(valsOutsideNodes,keySerializer,valueNodeSerializer,numberOfNodeMetas);
 
         this.keySet = new KeySet(this, hasValues);
         //$DELAY$
@@ -945,10 +991,13 @@ public class BTreeMap<K,V>
     }
 
     /* creates empty root node and returns recid of its reference*/
-    static protected long createRootRef(Engine engine, BTreeKeySerializer keySer, Serializer valueSer, int numberOfNodeMetas){
-        Object emptyArray = valueSer!=null?
-                valueSer.valueArrayEmpty():
-                Serializer.BOOLEAN.valueArrayEmpty();
+    static protected long createRootRef(Engine engine, BTreeKeySerializer keySer, Serializer valueSer, boolean valuesOutsideNodes, int numberOfNodeMetas){
+        if(valuesOutsideNodes)
+            valueSer = BTreeMap.VALREF_SERIALIZER;
+        else if(valueSer==null)
+            valueSer = BTreeMap.BOOLEAN_PACKED;
+        Object emptyArray = valueSer.valueArrayEmpty();
+
         final LeafNode emptyRoot = new LeafNode(keySer.emptyKeys(), true,true, false,emptyArray, 0);
         //empty root is serializer simpler way, so we can use dummy values
         long rootRecidVal = engine.put(emptyRoot,  new NodeSerializer(false,keySer, valueSer, numberOfNodeMetas));
@@ -984,16 +1033,12 @@ public class BTreeMap<K,V>
             //$DELAY$
             if (pos > 0 && pos != A.keysLen(keySerializer) - 1) {
                 //found
-                Object val =  A.val(pos - 1,valueSerializer);
+                Object val =  A.val(pos - 1,valueNodeSerializer);
                 //$DELAY$
                 if(expandValue)
                     val = valExpand(val);
                 return val;
-            } else if (pos <= 0 && -pos - 1 != A.keysLen(keySerializer) - 1) {
-                //$DELAY$
-                //not found
-                return null;
-            } else {
+            } else if( pos<=0 && -pos> A.keysLen(keySerializer)){
                 //move to next link
                 current = A.next();
                 //$DELAY$
@@ -1001,6 +1046,10 @@ public class BTreeMap<K,V>
                     return null;
                 }
                 A = engine.get(current, nodeSerializer);
+            } else {
+                //$DELAY$
+                //not found
+                return null;
             }
         }
 
@@ -1079,7 +1128,7 @@ public class BTreeMap<K,V>
                         0==A.compare(keySerializer,pos,v)){
                     //$DELAY$
                     //yes key is already in tree
-                    Object oldVal = A.val(pos-1,valueSerializer);
+                    Object oldVal = A.val(pos-1,valueNodeSerializer);
                     //$DELAY$
                     if(putOnlyIfAbsent){
                         //is not absent, so quit
@@ -1096,7 +1145,7 @@ public class BTreeMap<K,V>
                         engine.update(recid,value2,valueSerializer);
                     }else {
 
-                        A = ((LeafNode) A).copyChangeValue(valueSerializer, pos, value2);
+                        A = ((LeafNode) A).copyChangeValue(valueNodeSerializer, pos, value2);
                         //$DELAY$
                         engine.update(current, A, nodeSerializer);
                     }
@@ -1145,7 +1194,7 @@ public class BTreeMap<K,V>
 
             int pos = keySerializer.findChildren(A, v);
             //$DELAY$
-            A = A.copyAddKey(keySerializer,valueSerializer, pos,v,p,value);
+            A = A.copyAddKey(keySerializer,valueNodeSerializer, pos,v,p,value);
             //$DELAY$
             // can be new item inserted into A without splitting it?
             if(A.keysLen(keySerializer) - (A.isLeaf()?1:0)<maxNodeSize){
@@ -1164,10 +1213,10 @@ public class BTreeMap<K,V>
 
                 final int splitPos = A.keysLen(keySerializer)/2;
                 //$DELAY$
-                BNode B = A.copySplitRight(keySerializer,valueSerializer, splitPos);
+                BNode B = A.copySplitRight(keySerializer,valueNodeSerializer, splitPos);
                 //$DELAY$
                 long q = engine.put(B, nodeSerializer);
-                A = A.copySplitLeft(keySerializer,valueSerializer, splitPos, q);
+                A = A.copySplitLeft(keySerializer,valueNodeSerializer, splitPos, q);
                 //$DELAY$
                 if(CC.ASSERT && ! (nodeLocks.get(current)==Thread.currentThread()))
                     throw new AssertionError();
@@ -1531,7 +1580,7 @@ public class BTreeMap<K,V>
             if(pos>0 && pos!=A.keysLen(keySerializer)-1){
                 //found, delete from node
                 //$DELAY$
-                Object oldValNotExpanded =   A.val(pos-1, valueSerializer);
+                Object oldValNotExpanded =   A.val(pos-1, valueNodeSerializer);
                 Object oldVal = valExpand(oldValNotExpanded);
                 if(value!=null && valueSerializer!=null && !valueSerializer.equals((V)value,(V)oldVal)){
                     unlock(nodeLocks, current);
@@ -1546,8 +1595,8 @@ public class BTreeMap<K,V>
 
                 if(putNewValue==null || !valsOutsideNodes){ //if existing item is updated outside of node, there is no need to modify node
                     A = putNewValue!=null?
-                            ((LeafNode)A).copyChangeValue(valueSerializer,pos,putNewValue):
-                            ((LeafNode)A).copyRemoveKey(keySerializer,valueSerializer,pos);
+                            ((LeafNode)A).copyChangeValue(valueNodeSerializer,pos,putNewValue):
+                            ((LeafNode)A).copyRemoveKey(keySerializer,valueNodeSerializer,pos);
                     //$DELAY$
                     engine.update(current, A, nodeSerializer);
                 }
@@ -1613,7 +1662,7 @@ public class BTreeMap<K,V>
             if(hasListeners) {
                 //$DELAY$
                 for (int i = 1; i < size; i++) {
-                    Object val = (V) A.val(i - 1, valueSerializer);
+                    Object val = A.val(i - 1, valueNodeSerializer);
                     val = valExpand(val);
                     //$DELAY$
                     notify((K) A.key(keySerializer,i),(V) val, null);
@@ -1621,7 +1670,7 @@ public class BTreeMap<K,V>
             }
 
             //remove all node content
-            A = ((LeafNode) A).copyClear(keySerializer,valueSerializer);
+            A = ((LeafNode) A).copyClear(keySerializer,valueNodeSerializer);
             //$DELAY$
             engine.update(current, A, nodeSerializer);
 
@@ -1680,7 +1729,7 @@ public class BTreeMap<K,V>
         @Override
         public V next() {
             if(currentLeaf == null) throw new NoSuchElementException();
-            Object ret = currentLeaf.val(currentPos-1,m.valueSerializer);
+            Object ret = currentLeaf.val(currentPos-1,m.valueNodeSerializer);
             //$DELAY$
             advance();
             //$DELAY$
@@ -1703,7 +1752,7 @@ public class BTreeMap<K,V>
         public Entry<K, V> next() {
             if(currentLeaf == null) throw new NoSuchElementException();
             K ret = (K) currentLeaf.key(m.keySerializer,currentPos);
-            Object val = currentLeaf.val(currentPos-1,m.valueSerializer);
+            Object val = currentLeaf.val(currentPos-1,m.valueNodeSerializer);
             //$DELAY$
             advance();
             //$DELAY$
@@ -1740,7 +1789,7 @@ public class BTreeMap<K,V>
         @Override
         public V next() {
             if(currentLeaf == null) throw new NoSuchElementException();
-            Object ret = currentLeaf.val(currentPos-1,m.valueSerializer);
+            Object ret = currentLeaf.val(currentPos-1,m.valueNodeSerializer);
             //$DELAY$
             advance();
             //$DELAY$
@@ -1760,7 +1809,7 @@ public class BTreeMap<K,V>
             if(currentLeaf == null)
                 throw new NoSuchElementException();
             K ret = (K) currentLeaf.key(m.keySerializer,currentPos);
-            Object val = currentLeaf.val(currentPos - 1, m.valueSerializer);
+            Object val = currentLeaf.val(currentPos - 1, m.valueNodeSerializer);
             //$DELAY$
             advance();
             //$DELAY$
@@ -1861,7 +1910,7 @@ public class BTreeMap<K,V>
             l = (LeafNode) engine.get(l.next, nodeSerializer);
         }
         //$DELAY$
-        return makeEntry(l.key(keySerializer,1), valExpand(l.val(0, valueSerializer)));
+        return makeEntry(l.key(keySerializer,1), valExpand(l.val(0, valueNodeSerializer)));
     }
 
 
@@ -1940,7 +1989,7 @@ public class BTreeMap<K,V>
                 if(leaf){
                     //$DELAY$
                     return key2==null ? null :
-                            makeEntry(key2, valExpand(n.val(i-1, valueSerializer)));
+                            makeEntry(key2, valExpand(n.val(i-1, valueNodeSerializer)));
                 }else{
                     final long recid = n.child(i);
                     if(recid==0) continue;
@@ -2040,8 +2089,8 @@ public class BTreeMap<K,V>
             //iterate over keys to find last non null key
             for(int i=n.keysLen(keySerializer)-2; i>0;i--){
                 Object k = n.key(keySerializer,i);
-                if(k!=null && n.valSize(valueSerializer)>0) {
-                    Object val = valExpand(n.val(i-1,valueSerializer));
+                if(k!=null && n.valSize(valueNodeSerializer)>0) {
+                    Object val = valExpand(n.val(i-1,valueNodeSerializer));
                     //$DELAY$
                     if(val!=null){
                         //$DELAY$
@@ -2123,7 +2172,7 @@ public class BTreeMap<K,V>
                 //$DELAY$
                 if(-leaf.compare(keySerializer, i, key)<comp){
                     //$DELAY$
-                    return makeEntry(leaf.key(keySerializer,i), valExpand(leaf.val(i-1,valueSerializer)));
+                    return makeEntry(leaf.key(keySerializer,i), valExpand(leaf.val(i-1,valueNodeSerializer)));
                 }
 
 
@@ -2318,10 +2367,10 @@ public class BTreeMap<K,V>
 
 
 
-    static final class KeySet<E>
+    public static final class KeySet<E>
             extends AbstractSet<E>
             implements NavigableSet<E>,
-            Closeable{
+            Closeable, Serializable{
 
         protected final ConcurrentNavigableMap<E,Object> m;
         private final boolean hasValues;
@@ -2331,6 +2380,14 @@ public class BTreeMap<K,V>
         }
         @Override
 		public int size() { return m.size(); }
+
+        public long sizeLong(){
+            if (m instanceof BTreeMap)
+                return ((BTreeMap<Object,E>)m).sizeLong();
+            else
+                return ((SubMap<Object,E>)m).sizeLong();
+        }
+
         @Override
 		public boolean isEmpty() { return m.isEmpty(); }
         @Override
@@ -2440,6 +2497,14 @@ public class BTreeMap<K,V>
         public void close() {
             if(m instanceof BTreeMap)
                 ((BTreeMap)m).close();
+        }
+
+        Object writeReplace() throws ObjectStreamException {
+            Set ret = new ConcurrentSkipListSet();
+            for(Object e:this){
+                ret.add(e);
+            }
+            return ret;
         }
     }
 
@@ -2607,9 +2672,13 @@ public class BTreeMap<K,V>
 
         @Override
         public int size() {
+            return (int) Math.min(sizeLong(), Integer.MAX_VALUE);
+        }
+
+        public long sizeLong() {
             //TODO use counted btrees once they become available
             if(hi==null && lo==null)
-                return m.size();
+                return m.sizeLong();
 
             Iterator<K> i = keyIterator();
             long counter = 0;
@@ -2617,8 +2686,9 @@ public class BTreeMap<K,V>
                 counter++;
                 i.next();
             }
-            return (int) Math.min(counter, Integer.MAX_VALUE);
+            return counter;
         }
+
 
         @Override
 		public boolean isEmpty() {
@@ -3553,7 +3623,7 @@ public class BTreeMap<K,V>
 
     private void checkNodeRecur(long rootRecid, Store.LongObjectMap recids) {
         BNode n = engine.get(rootRecid, nodeSerializer);
-        n.checkStructure(keySerializer,valueSerializer);
+        n.checkStructure(keySerializer,valueNodeSerializer);
 
         if(recids.get(rootRecid)!=null){
             throw new DBException.DataCorruption("Duplicate recid: "+rootRecid);
@@ -3731,5 +3801,13 @@ public class BTreeMap<K,V>
 
     }
 
+
+    Object writeReplace() throws ObjectStreamException {
+        Map ret = new ConcurrentSkipListMap();
+        for(Map.Entry e:entrySet()){
+            ret.put(e.getKey(), e.getValue());
+        }
+        return ret;
+    }
 
 }

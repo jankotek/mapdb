@@ -501,4 +501,29 @@ public class SerializerPojoTest{
     }
 
 
+    static class WriteReplaceAA implements Serializable{
+        Object writeReplace() throws ObjectStreamException {
+            return "";
+        }
+
+    }
+
+    static class WriteReplaceBB implements Serializable{
+        WriteReplaceAA aa = new WriteReplaceAA();
+    }
+
+
+
+    @Test(expected = ClassCastException.class)
+    public void java_serialization_writeReplace_in_object_graph() throws IOException, ClassNotFoundException {
+        TT.cloneJavaSerialization(new WriteReplaceBB());
+    }
+
+    @Test(expected = ClassCastException.class)
+    public void pojo_serialization_writeReplace_in_object_graph() throws IOException, ClassNotFoundException {
+        DB db = DBMaker.heapDB().make();
+        TT.clone(new WriteReplaceBB(), db.getDefaultSerializer());
+    }
+
+
 }

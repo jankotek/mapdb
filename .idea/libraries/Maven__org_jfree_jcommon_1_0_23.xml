@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: org.jfree:jcommon:1.0.23">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/jfree/jcommon/1.0.23/jcommon-1.0.23.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$MAVEN_REPOSITORY$/org/jfree/jcommon/1.0.23/jcommon-1.0.23-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/jfree/jcommon/1.0.23/jcommon-1.0.23-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

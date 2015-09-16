@@ -96,7 +96,7 @@ public class TT {
         for(long i = 0;i>-1L  ; i=i+1 + i/111){  //overflow is expected
             out.pos = 0;
 
-            DataIO.packLong((DataOutput)out, i);
+            DataIO.packLong((DataOutput) out, i);
             in.pos = 0;
             in.buf.clear();
 
@@ -134,6 +134,19 @@ public class TT {
             throw new IOError(ee);
         }
     }
+
+    /* clone value using java serialization */
+    public static <E> E cloneJavaSerialization(E value) throws IOException, ClassNotFoundException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ObjectOutputStream out2 = new ObjectOutputStream(out);
+        out2.writeObject(value);
+        out2.flush();
+
+        ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
+        return (E) new ObjectInputStream(in).readObject();
+    }
+
+
 
 
     public static Serializer FAIL = new Serializer() {

@@ -5,5 +5,6 @@
     <mapping directory="$PROJECT_DIR$/../mapdb-benchmarks" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/../mapdb-microbenchmarks" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/../mapdb-site" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../mapdb-tools" vcs="Git" />
   </component>
 </project>

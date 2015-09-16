@@ -81,7 +81,7 @@ public class HTreeMap2Test {
         assertEquals(123456, n2.next);
         assertEquals(0L, n2.expireLinkNodeRecid);
         assertEquals(123L,n2.key);
-        assertEquals(456L,n2.value);
+        assertEquals(456L, n2.value);
     }
 
     @Test public void test_simple_put(){
@@ -377,8 +377,8 @@ public class HTreeMap2Test {
         assertEquals(300, m.expireLinkRemoveLast(s).hash);
         assertTrue(Arrays.equals(new int[]{400,600,700,900,800,500,100},getExpireList(m,s)));
 
-        assertEquals(600, m.expireLinkRemove(s,recids[6]).hash);
-        assertTrue(Arrays.equals(new int[]{400,700,900,800,500,100},getExpireList(m,s)));
+        assertEquals(600, m.expireLinkRemove(s, recids[6]).hash);
+        assertTrue(Arrays.equals(new int[]{400, 700, 900, 800, 500, 100}, getExpireList(m, s)));
 
         assertEquals(400, m.expireLinkRemove(s,recids[4]).hash);
         assertTrue(Arrays.equals(new int[]{700,900,800,500,100},getExpireList(m,s)));
@@ -440,7 +440,7 @@ public class HTreeMap2Test {
         Thread.sleep(500);
         m.get("aa"); //so internal tasks have change to run
         long size = m.size();
-        assertTrue(""+size,size>900 && size<=1050);
+        assertTrue("" + size, size > 900 && size <= 1050);
     }
 
 
@@ -685,7 +685,7 @@ public class HTreeMap2Test {
                 .make();
 
         for(int i=0;i<1e5;i++){
-            m.put(new AA(i),i);
+            m.put(new AA(i), i);
         }
     }
 
@@ -1155,5 +1155,39 @@ public class HTreeMap2Test {
         c.get();
         db.close();
     }
+
+    @Test public void setLong(){
+        HTreeMap.KeySet k = (HTreeMap.KeySet) DBMaker.heapDB().transactionDisable().make().hashSet("test");
+        k.add(11);
+        assertEquals(1, k.sizeLong());
+    }
+
+
+    @Test public void serialize_clone() throws IOException, ClassNotFoundException {
+        Map m = DBMaker.memoryDB().transactionDisable().make().hashMap("map");
+        for(int i=0;i<1000;i++){
+            m.put(i,i*10);
+        }
+
+        Map m2 = TT.cloneJavaSerialization(m);
+        assertEquals(ConcurrentHashMap.class, m2.getClass());
+        assertTrue(m2.entrySet().containsAll(m.entrySet()));
+        assertTrue(m.entrySet().containsAll(m2.entrySet()));
+    }
+
+
+    @Test public void serialize_set_clone() throws IOException, ClassNotFoundException {
+        Set m = DBMaker.memoryDB().transactionDisable().make().hashSet("map");
+        for(int i=0;i<1000;i++){
+            m.add(i);
+        }
+
+        Set m2 = TT.cloneJavaSerialization(m);
+        assertFalse(HTreeMap.KeySet.class.equals(m2.getClass()));
+        assertTrue(m2.containsAll(m));
+        assertTrue(m.containsAll(m2));
+    }
+
 }
+
 

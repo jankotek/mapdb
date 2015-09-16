@@ -117,8 +117,8 @@ public class VolumeTest {
                 long size = v.putLongPackBidi(10, i);
                 assertTrue(i > 100000 || size < 6);
 
-                assertEquals(i | (size << 56), v.getLongPackBidi(10));
-                assertEquals(i | (size << 56), v.getLongPackBidiReverse(10 + size));
+                assertEquals(i | (size << 60), v.getLongPackBidi(10));
+                assertEquals(i | (size << 60), v.getLongPackBidiReverse(10 + size));
             }
             v.close();
         }
@@ -164,6 +164,25 @@ public class VolumeTest {
             assertEquals(DataIO.hash(b,0,b.length,11), v.hash(0,b.length,11));
 
             v.close();
+        }
+
+        @Test public void clear(){
+            long offset = 7339936;
+            long size = 96;
+            Volume v = fab.run(TT.tempDbFile().getPath());
+            v.ensureAvailable(offset + 10000);
+            for(long o=0;o<offset+10000;o++){
+                v.putUnsignedByte(o,11);
+            }
+            v.clear(offset,offset+size);
+
+            for(long o=0;o<offset+10000;o++){
+                int b = v.getUnsignedByte(o);
+                int expected = 11;
+                if(o>=offset && o<offset+size)
+                    expected=0;
+                assertEquals(expected,b);
+            }
         }
 
         void putGetOverlap(Volume vol, long offset, int size) throws IOException {

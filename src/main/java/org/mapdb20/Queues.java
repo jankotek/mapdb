@@ -55,12 +55,18 @@ public final class Queues {
             @Override
             public void serialize(DataOutput out, Node<E> value) throws IOException {
                 DataIO.packLong(out,value.next);
-                serializer.serialize(out, value.value);
+                if(value.value!=null) {
+                    serializer.serialize(out, value.value);
+                }
             }
 
             @Override
             public Node<E> deserialize(DataInput in, int available) throws IOException {
-                return new Node<E>(DataIO.unpackLong(in), serializer.deserialize(in,-1));
+                long recid = DataIO.unpackLong(in);
+                E e = (available-DataIO.packLongSize(recid)<=0)?
+                        null:
+                        serializer.deserialize(in,-1);
+                return new Node<E>(recid, e);
             }
 
 
@@ -107,7 +113,7 @@ public final class Queues {
                 //update head
                 if(head.compareAndSet(head2,n.next)){
                     //updated fine, so we can take a value
-                    engine.delete(head2,nodeSerializer);
+                    engine.update(head2,null, nodeSerializer);
                     return n.value;
                 }
             }
@@ -352,7 +358,7 @@ public final class Queues {
 
         @Override
         public boolean add(E e) {
-            long nextTail = engine.preallocate(); //nodeSerializer
+            long nextTail = engine.put(null, nodeSerializer);
 
             long tail2 = tail.get();
             while(!tail.compareAndSet(tail2,nextTail)){

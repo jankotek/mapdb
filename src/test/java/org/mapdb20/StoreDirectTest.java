@@ -482,7 +482,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         for(int i=111;i<=115;i++){
             long val = e.vol.getLongPackBidi(offset);
             assertEquals(i, DataIO.parity1Get(val & DataIO.PACK_LONG_RESULT_MASK)>>>1);
-            offset += val >>> 56;
+            offset += val >>> 60;
         }
         assertEquals(currPageSize, offset-pageId);
 
@@ -578,7 +578,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         for(long i=1000,pos=8;;i++){
             long val = e.vol.getLongPackBidi(pageId+pos);
             assertEquals(i, DataIO.parity1Get(val&DataIO.PACK_LONG_RESULT_MASK)>>>1);
-            pos+=val>>>56;
+            pos+=val>>>60;
             if(pos==actualChunkSize){
                 break;
             }

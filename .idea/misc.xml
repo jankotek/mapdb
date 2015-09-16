@@ -25,6 +25,9 @@
     <option name="originalFiles">
       <list>
         <option value="$PROJECT_DIR$/pom.xml" />
+        <option value="$PROJECT_DIR$/../mapdb-benchmarks/pom.xml" />
+        <option value="$PROJECT_DIR$/../mapdb-microbenchmarks/pom.xml" />
+        <option value="$PROJECT_DIR$/../mapdb-tools/pom.xml" />
       </list>
     </option>
   </component>

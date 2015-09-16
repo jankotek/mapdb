@@ -267,7 +267,7 @@ public abstract class Volume implements Closeable{
             shift += 7;
         }while((b & 0x80) == 0);
         //$DELAY$
-        return (((long)(shift/7))<<56) | result;
+        return (((long)(shift/7))<<60) | result;
     }
 
     public long getLongPackBidiReverse(long offset){
@@ -286,7 +286,7 @@ public abstract class Volume implements Closeable{
             counter++;
         }while((b & 0x80) == 0);
         //$DELAY$
-        return (((long)counter)<<56) | result;
+        return (((long)counter)<<60) | result;
     }
 
     public long getSixLong(long pos) {
@@ -771,7 +771,7 @@ public abstract class Volume implements Closeable{
                 shift += 7;
             }while((b & 0x80) == 0);
             //$DELAY$
-            return (((long)(shift/7))<<56) | result;
+            return (((long)(shift/7))<<60) | result;
         }
 
         @Override
@@ -794,7 +794,7 @@ public abstract class Volume implements Closeable{
                 counter++;
             }while((b & 0x80) == 0);
             //$DELAY$
-            return (((long)counter)<<56) | result;
+            return (((long)counter)<<60) | result;
         }
 
         @Override
@@ -867,7 +867,7 @@ public abstract class Volume implements Closeable{
                 throw new AssertionError();
             ByteBuffer buf = getSlice(startOffset);
             int start = (int) (startOffset&sliceSizeModMask);
-            int end = (int) (endOffset&sliceSizeModMask);
+            int end = (int) (start+(endOffset-startOffset));
 
             int pos = start;
             while(pos<end){
@@ -2068,6 +2068,10 @@ public abstract class Volume implements Closeable{
 
         protected volatile byte[][] slices = new byte[0][];
 
+        protected ByteArrayVol() {
+            this(CC.VOLUME_PAGE_SHIFT, 0L);
+        }
+
         protected ByteArrayVol(int sliceShift, long initSize) {
             this.sliceShift = sliceShift;
             this.sliceSize = 1<< sliceShift;
@@ -2242,7 +2246,7 @@ public abstract class Volume implements Closeable{
                 throw new AssertionError();
             byte[] buf = getSlice(startOffset);
             int start = (int) (startOffset&sliceSizeModMask);
-            int end = (int) (endOffset&sliceSizeModMask);
+            int end = (int) (start+(endOffset-startOffset));
 
             int pos = start;
             while(pos<end){
@@ -2724,6 +2728,10 @@ public abstract class Volume implements Closeable{
 
         @Override
         public synchronized void putLong(long offset, long value) {
+            if(CC.VOLUME_PRINT_STACK_AT_OFFSET!=0 && CC.VOLUME_PRINT_STACK_AT_OFFSET>=offset && CC.VOLUME_PRINT_STACK_AT_OFFSET <= offset+8){
+                new IOException("VOL STACK:").printStackTrace();
+            }
+
             try {
                 raf.seek(offset);
                 raf.writeLong(value);
@@ -2735,6 +2743,10 @@ public abstract class Volume implements Closeable{
 
         @Override
         public synchronized  void putInt(long offset, int value) {
+            if(CC.VOLUME_PRINT_STACK_AT_OFFSET!=0 && CC.VOLUME_PRINT_STACK_AT_OFFSET>=offset && CC.VOLUME_PRINT_STACK_AT_OFFSET <= offset+4){
+                new IOException("VOL STACK:").printStackTrace();
+            }
+
             try {
                 raf.seek(offset);
                 raf.writeInt(value);
@@ -2746,6 +2758,10 @@ public abstract class Volume implements Closeable{
 
         @Override
         public  synchronized void putByte(long offset, byte value) {
+            if(CC.VOLUME_PRINT_STACK_AT_OFFSET!=0 && CC.VOLUME_PRINT_STACK_AT_OFFSET==offset){
+                new IOException("VOL STACK:").printStackTrace();
+            }
+
             try {
                 raf.seek(offset);
                 raf.writeByte(value);
@@ -2757,6 +2773,10 @@ public abstract class Volume implements Closeable{
 
         @Override
         public  synchronized void putData(long offset, byte[] src, int srcPos, int srcSize) {
+            if(CC.VOLUME_PRINT_STACK_AT_OFFSET!=0 && CC.VOLUME_PRINT_STACK_AT_OFFSET>=offset && CC.VOLUME_PRINT_STACK_AT_OFFSET <= offset+srcSize){
+                new IOException("VOL STACK:").printStackTrace();
+            }
+
             try {
                 raf.seek(offset);
                 raf.write(src,srcPos,srcSize);
@@ -2770,6 +2790,10 @@ public abstract class Volume implements Closeable{
             byte[] bb = buf.array();
             int pos = buf.position();
             int size = buf.limit()-pos;
+            if(CC.VOLUME_PRINT_STACK_AT_OFFSET!=0 && CC.VOLUME_PRINT_STACK_AT_OFFSET>=offset && CC.VOLUME_PRINT_STACK_AT_OFFSET <= offset+size){
+                new IOException("VOL STACK:").printStackTrace();
+            }
+
             if(bb==null) {
                 bb = new byte[size];
                 buf.get(bb);
@@ -2968,7 +2992,7 @@ public abstract class Volume implements Closeable{
                     shift += 7;
                 }while((b & 0x80) == 0);
                 //$DELAY$
-                return (((long)(shift/7))<<56) | result;
+                return (((long)(shift/7))<<60) | result;
             } catch (IOException e) {
                 throw new DBException.VolumeIOError(e);
             }
@@ -2995,7 +3019,7 @@ public abstract class Volume implements Closeable{
                     counter++;
                 }while((b & 0x80) == 0);
                 //$DELAY$
-                return (((long)counter)<<56) | result;
+                return (((long)counter)<<60) | result;
             } catch (IOException e) {
                 throw new DBException.VolumeIOError(e);
             }

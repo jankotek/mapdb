@@ -5,6 +5,7 @@ import org.junit.Test;
 
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.SortedSet;
 import java.util.TreeSet;
 
 import static org.junit.Assert.*;
@@ -117,9 +118,35 @@ public class FunTest {
         }
         Iterator<Object[]> iter = Fun.filter(set, 2).iterator();
 
-        assertArrayEquals(new Object[]{2,0}, iter.next());
-        assertArrayEquals(new Object[]{2,1}, iter.next());
-        assertArrayEquals(new Object[]{2,2}, iter.next());
+        assertArrayEquals(new Object[]{2, 0}, iter.next());
+        assertArrayEquals(new Object[]{2, 1}, iter.next());
+        assertArrayEquals(new Object[]{2, 2}, iter.next());
         assertFalse(iter.hasNext());
+    }
+
+    @Test public void subfilter_composite_map(){
+        Comparator<Object[]> comparator = new Fun.ArrayComparator(
+                Fun.COMPARATOR, Fun.COMPARATOR, Fun.COMPARATOR
+        );
+        TreeSet m = new TreeSet(comparator);
+
+        for(int i=0;i<10;i++){
+            for(long j=0;j<10;j++){
+                for(long k=0;k<10;k++){
+                    m.add(new Object[]{i,j,""+k});
+                }
+            }
+        }
+        assertEquals(10*10*10,m.size());
+
+        SortedSet s = m.subSet(
+                new Object[]{2,4L},
+                new Object[]{2,4L,null}
+        );
+
+        assertEquals(10, s.size());
+        for(long k=0;k<10;k++){
+            assertTrue(m.contains(new Object[]{2,4L,""+k}));
+        }
     }
 }

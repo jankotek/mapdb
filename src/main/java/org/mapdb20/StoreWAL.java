@@ -29,8 +29,6 @@ import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.LockSupport;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 
 import static org.mapdb20.DataIO.*;
@@ -54,14 +52,6 @@ public class StoreWAL extends StoreCached {
 
     /**
      * Contains index table modified in previous transactions.
-     *
-     * If compaction is in progress, than the value is not index, but following:
-     * <pre>
-     *  Long.MAX_VALUE == TOMBSTONE
-     *  First three bytes is WAL file number
-     *  Remaining 5 bytes is offset in WAL file
-     * </pre>
-     *
      */
     protected final LongLongMap[] prevLongLongs;
     protected final LongLongMap[] currLongLongs;
@@ -71,18 +61,9 @@ public class StoreWAL extends StoreCached {
     protected final LongLongMap pageLongStack = new LongLongMap();
     protected final List<Volume> volumes = Collections.synchronizedList(new ArrayList<Volume>());
 
-    /** WAL file sealed after compaction is completed, if no valid seal, compaction file should be destroyed */
-    protected volatile Volume walC;
-
-    /** File into which store is compacted. */
-    protected volatile Volume walCCompact;
 
     /** record WALs, store recid-record pairs. Created during compaction when memory allocator is not available */
     protected final List<Volume> walRec = Collections.synchronizedList(new ArrayList<Volume>());
-
-    protected final ReentrantLock compactLock = new ReentrantLock(CC.FAIR_LOCKS);
-    /** protected by commitLock */
-    protected volatile boolean compactionInProgress = false;
 
     protected Volume curVol;
 
@@ -190,9 +171,6 @@ public class StoreWAL extends StoreCached {
                      new File(wal0Name).exists())){
             //fill compaction stuff
 
-            walC =  walCompSealExists?volumeFactory.makeVolume(walCompSeal, readonly, true) : null;
-            walCCompact = walCompSealExists? volumeFactory.makeVolume(walCompSeal + ".compact", readonly, true) : null;
-
             for(int i=0;;i++){
                 String rname = getWalFileName("r"+i);
                 if(!new File(rname).exists())
@@ -213,12 +191,6 @@ public class StoreWAL extends StoreCached {
 
             replayWAL();
 
-            if(walC!=null)
-                walC.close();
-            walC = null;
-            if(walCCompact!=null)
-                walCCompact.close();
-            walCCompact = null;
             for(Volume v:walRec){
                 v.close();
             }
@@ -235,16 +207,6 @@ public class StoreWAL extends StoreCached {
 
     @Override
     protected void initFailedCloseFiles() {
-        if(walC!=null && !walC.isClosed()) {
-            walC.close();
-        }
-        walC = null;
-
-        if(walCCompact!=null && !walCCompact.isClosed()) {
-            walCCompact.close();
-        }
-        walCCompact = null;
-
         if(walRec!=null){
             for(Volume v:walRec){
                 if(v!=null && !v.isClosed())
@@ -503,8 +465,6 @@ public class StoreWAL extends StoreCached {
     protected void indexLongPut(long offset, long val) {
         if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw  new AssertionError();
-        if(CC.ASSERT && compactionInProgress)
-            throw new AssertionError();
         walPutLong(offset,val);
     }
 
@@ -632,32 +592,6 @@ public class StoreWAL extends StoreCached {
             }
 
             if(walval!=0){
-                if(compactionInProgress){
-                    //read from Record log
-                    if(walval==Long.MAX_VALUE) //TOMBSTONE or null
-                        return null;
-                    final int fileNum = (int) (walval>>>(5*8));
-                    Volume recVol = walRec.get(fileNum);
-                    long offset = walval&0xFFFFFFFFFFL; //last 5 bytes
-                    if(CC.ASSERT){
-                        int instruction = recVol.getUnsignedByte(offset);
-                        //TODO exception should not be here
-                        if(instruction!=(5<<4))
-                            throw new DBException.DataCorruption("wrong instruction");
-                        if(recid!=recVol.getSixLong(offset+1))
-                            throw new DBException.DataCorruption("wrong recid");
-                    }
-
-                    //skip instruction and recid
-                    offset+=1+6;
-                    final int size = recVol.getInt(offset);
-                    //TODO instruction checksum
-                    final DataInput in = size==0?
-                            new DataIO.DataInputByteArray(new byte[0]):
-                            recVol.getDataInput(offset+4,size);
-
-                    return deserialize(serializer, size, in);
-                }
 
                 //read record from WAL
                 boolean linked = (walval&MLINKED)!=0;
@@ -786,86 +720,9 @@ public class StoreWAL extends StoreCached {
         commitLock.lock();
         try{
 
-            if(compactionInProgress){
-                //use record format rather than instruction format.
-                String recvalName = getWalFileName("r"+walRec.size());
-                Volume v = volumeFactory.makeVolume(recvalName, readonly, true);
-                walRec.add(v);
-                v.ensureAvailable(16);
-                long offset = 16;
-
-                for(int segment=0;segment<locks.length;segment++) {
-                    Lock lock = locks[segment].writeLock();
-                    lock.lock();
-                    try {
-                        LongObjectObjectMap<Object,Serializer> writeCache1 = writeCache[segment];
-                        LongLongMap prevLongs = prevLongLongs[segment];
-                        long[] set = writeCache1.set;
-                        Object[] values = writeCache1.values;
-                        for(int i=0;i<set.length;i++){
-                            long recid = set[i];
-                            if(recid==0)
-                                continue;
-                            Object value = values[i*2];
-                            DataOutputByteArray buf;
-                            int size;
-                            if (value == TOMBSTONE2) {
-                                buf = null;
-                                size = -2;
-                            } else {
-                                Serializer s = (Serializer) values[i*2+1];
-                                buf = serialize(value, s); //TODO somehow serialize outside lock?
-                                size = buf==null?-1:buf.pos;
-                            }
-
-                            int needed = 1+6+4 +(buf==null?0:buf.pos); //TODO int overflow, limit max record size to 1GB
-                            //TODO skip page if overlap
-
-
-                            prevLongs.put(recidToOffset(recid),
-                                    (((long)fileNum)<<(5*8)) |  //first 3 bytes is file number
-                                    offset                  //wal offset
-                                    );
-
-                            v.putUnsignedByte(offset, (5<<4));
-                            offset++;
-
-                            v.putSixLong(offset, recid);
-                            offset+=6;
-
-                            v.putInt(offset, size);
-                            offset+=4;
-
-                            if(size>0) {
-                                v.putData(offset, buf.buf, 0, size);
-                                offset+=size;
-                            }
-
-                            if(buf!=null)
-                                recycledDataOut.lazySet(buf);
-
-                        }
-                        writeCache1.clear();
-
-                    } finally {
-                        lock.unlock();
-                    }
-                }
-                structuralLock.lock();
-                try {
-                    //finish instruction
-                    v.putUnsignedByte(offset, 0);
-                    v.sync();
-                    v.putLong(8, StoreWAL.WAL_SEAL);
-                    v.sync();
-                    return;
-                }finally {
-                    structuralLock.unlock();
-                }
-            }
 
             //if big enough, do full WAL replay
-            if(volumes.size()>FULL_REPLAY_AFTER_N_TX && !compactionInProgress) {
+            if(volumes.size()>FULL_REPLAY_AFTER_N_TX) {
                 commitFullWALReplay();
                 return;
             }
@@ -1084,90 +941,10 @@ public class StoreWAL extends StoreCached {
           6) reinitialize memory allocator if replay WAL happened
          */
 
-        //check if compaction files are present and walid
-        final boolean compaction =
-                walC!=null && walC.length()!=0 &&
-                walCCompact!=null && walCCompact.length()!=0;
-
-
-        if(compaction){
-            //check compaction file was finished well
-            walC.ensureAvailable(16);
-            boolean walCSeal = walC.getLong(8) == WAL_SEAL;
-
-            //TODO if walCSeal check indexChecksum on walCCompact volume
-
-            if(!walCSeal){
-                LOG.warning("Compaction failed, seal not present. Removing incomplete compacted file, keeping old fragmented file.");
-                walC.close();
-                walC.deleteFile();
-                walC = null;
-                walCCompact.close();
-                walCCompact.deleteFile();
-                walCCompact = null;
-            }else{
-
-                //compaction is valid, so swap compacted file with current
-                if(vol.getFile()==null){
-                    //no file present, so we are in-memory, just swap volumes
-                    //in memory vol without file, just swap everything
-                    Volume oldVol = this.vol;
-                    this.realVol = walCCompact;
-                    this.vol = new Volume.ReadOnly(realVol);
-                    this.headVol.close();
-                    this.headVolBackup.close();
-                    initHeadVol();
-                    //TODO update variables
-                    oldVol.close();
-                }else{
-                    //file is not null, we are working on file system, so swap files
-                    File walCCompactFile = walCCompact.getFile();
-                    walCCompact.sync();
-                    walCCompact.close();
-                    walCCompact = null;
-
-                    File thisFile = new File(fileName);
-                    File thisFileBackup = new File(fileName+".wal.c.orig");
-
-                    this.vol.close();
-                    if(!thisFile.renameTo(thisFileBackup)){
-                        //TODO recovery here. Perhaps copy data from one file to other, instead of renaming it
-                        throw new AssertionError("failed to rename file " + thisFile);
-                    }
-
-                    //rename compacted file to current file
-                    if (!walCCompactFile.renameTo(thisFile)) {
-                        //TODO recovery here.
-                        throw new AssertionError("failed to rename file " + walCCompactFile);
-                    }
-
-                    //and reopen volume
-                    this.realVol = volumeFactory.makeVolume(this.fileName, readonly, fileLockDisable);
-                    this.vol = new Volume.ReadOnly(this.realVol);
-                    this.initHeadVol();
-
-                    //delete orig file
-                    if(!thisFileBackup.delete()){
-                        LOG.warning("Could not delete original compacted file: "+thisFileBackup);
-                    }
-                }
-                walC.close();
-                walC.deleteFile();
-                walC = null;
-
-                initOpenPost();
-            }
-        }
 
         if(!walRec.isEmpty()){
             //convert walRec into WAL log files.
             //memory allocator was not available at the time of compaction
-//  TODO no wal open during compaction
-//            if(CC.ASSERT && !volumes.isEmpty())
-//                throw new AssertionError();
-//
-//            if(CC.ASSERT && curVol!=null)
-//                throw new AssertionError();
             structuralLock.lock();
             try {
                 walStartNextFile();
@@ -1335,8 +1112,6 @@ public class StoreWAL extends StoreCached {
 
     @Override
     public void close() {
-        compactLock.lock();
-        try{
             commitLock.lock();
             try{
 
@@ -1345,7 +1120,7 @@ public class StoreWAL extends StoreCached {
                 }
 
                 if(hasUncommitedData()){
-                    LOG.warning("Closing storage with uncommited data, those data will be discarted.");
+                    LOG.warning("Closing storage with uncommited data, those data will be discarded.");
                 }
 
 
@@ -1358,11 +1133,6 @@ public class StoreWAL extends StoreCached {
                         structuralLock.unlock();
                     }
                 }
-
-                if(walC!=null)
-                    walC.close();
-                if(walCCompact!=null)
-                    walCCompact.close();
 
 
                 for(Volume v:walRec){
@@ -1401,115 +1171,11 @@ public class StoreWAL extends StoreCached {
             }finally {
                 commitLock.unlock();
             }
-        }finally {
-            compactLock.unlock();
-        }
     }
 
     @Override
     public void compact() {
-        compactLock.lock();
-
-        try{
-
-            if(compactOldFilesExists())
-                return;
-
-            commitLock.lock();
-            try{
-                //check if there are uncommited data, and log warning if yes
-                if(hasUncommitedData()){
-                    //TODO how to deal with uncommited data? Is there way not to commit? Perhaps upgrade to recordWAL?
-                    LOG.warning("Compaction started with uncommited data. Calling commit automatically.");
-                }
-
-                snapshotCloseAllOnCompact();
-
-                //cleanup everything
-                commitFullWALReplay();
-                //start compaction
-                compactionInProgress = true;
-
-                //start zero WAL file with compaction flag
-                structuralLock.lock();
-                try {
-                    if(CC.ASSERT && fileNum!=0)
-                        throw new AssertionError();
-                    if(CC.ASSERT && walC!=null)
-                        throw new AssertionError();
-
-                    //start walC file, which indicates if compaction finished fine
-                    String walCFileName = getWalFileName("c");
-                    if(walC!=null)
-                        walC.close();
-                    walC = volumeFactory.makeVolume(walCFileName, readonly, true);
-                    walC.ensureAvailable(16);
-                    walC.putLong(0,0); //TODO wal header
-                    walC.putLong(8,0);
-
-                    //reset free size
-                    freeSize.set(-1);
-                }finally {
-                    structuralLock.unlock();
-                }
-            }finally {
-                commitLock.unlock();
-            }
-
-            final long maxRecidOffset = parity1Get(headVol.getLong(MAX_RECID_OFFSET));
-
-            //open target file
-            final String targetFile = getWalFileName("c.compact");
-
-            final StoreDirect target = new StoreDirect(targetFile,
-                    volumeFactory,
-                    null,lockScale,
-                    executor==null?LOCKING_STRATEGY_NOLOCK:LOCKING_STRATEGY_WRITELOCK,
-                    checksum,compress,null,false,false,fileLockDisable,null, null, 0L, 0L, false);
-            target.init();
-            walCCompact = target.vol;
-
-            final AtomicLong maxRecid = new AtomicLong(
-                    parity1Get(headVol.getLong(MAX_RECID_OFFSET))/indexValSize);
-
-            compactIndexPages(target, maxRecid);
-
-            while($_TEST_HACK_COMPACT_PRE_COMMIT_WAIT){
-                LockSupport.parkNanos(10000);
-            }
-
-            target.vol.putLong(MAX_RECID_OFFSET, parity1Set(maxRecid.get() * indexValSize));
-
-            //compaction finished fine, so now flush target file, and seal log file. This makes compaction durable
-            target.commit(); //sync all files, that is durable since there are no background tasks
-
-            walC.putLong(8, WAL_SEAL);
-            walC.sync();
-
-
-            commitLock.lock();
-            try{
-
-                if(hasUncommitedData()){
-                    LOG.warning("Uncommited data at end of compaction, autocommit");
-
-                }
-                //TODO there should be full WAL replay, but without commit
-                commitFullWALReplay();
-
-                compactionInProgress = false;
-            }finally {
-                commitLock.unlock();
-            }
-
-            while($_TEST_HACK_COMPACT_POST_COMMIT_WAIT){
-                LockSupport.parkNanos(10000);
-            }
-
-        }finally {
-            compactionInProgress = false; //TODO this should be under commitLock, but still better than leaving it true
-            compactLock.unlock();
-        }
+        LOG.warning("Compaction not yet implemented with StoreWAL, disable transactions to compact this store");
     }
 
     /** return true if there are uncommited data in current transaction, otherwise false*/

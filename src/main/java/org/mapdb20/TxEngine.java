@@ -453,7 +453,8 @@ public class TxEngine implements Engine {
                 lock.lock();
                 try{
                     A oldVal = getNoLock(recid, serializer);
-                    boolean ret = oldVal!=null && oldVal.equals(expectedOldValue);
+                    boolean ret = oldVal==expectedOldValue ||
+                            (oldVal!=null && serializer.equals(oldVal,expectedOldValue));
                     if(ret){
                         mod.put(recid,new Fun.Pair(newValue,serializer));
                     }
@@ -572,7 +573,7 @@ public class TxEngine implements Engine {
                 txs.remove(ref);
                 cleanTxQueue();
 
-                TxEngine.this.superCommit();
+//                TxEngine.this.superCommit();
 
                 close();
             }finally {

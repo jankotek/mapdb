@@ -18,12 +18,6 @@
       <profile default="true" name="Default" enabled="true">
         <processorPath useClasspath="true" />
       </profile>
-      <profile default="false" name="Annotation profile for mapdb-microbenchmarks" enabled="true">
-        <sourceOutputDir name="target/generated-sources/annotations" />
-        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
-        <outputRelativeToContentRoot value="true" />
-        <processorPath useClasspath="true" />
-      </profile>
       <profile default="false" name="Annotation profile for mapdb" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
@@ -31,11 +25,34 @@
         <processorPath useClasspath="true" />
         <module name="mapdb" />
       </profile>
+      <profile default="false" name="Annotation profile for mapdb-benchmarks" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="true" />
+        <module name="mapdb-benchmarks" />
+      </profile>
+      <profile default="false" name="Annotation profile for mapdb-microbenchmarks" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="true" />
+        <module name="mapdb-microbenchmarks" />
+      </profile>
+      <profile default="false" name="Annotation profile for mapdb-tools" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="true" />
+        <module name="mapdb-tools" />
+      </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="mapdb" target="1.6" />
+      <module name="mapdb-benchmarks" target="1.6" />
       <module name="mapdb-exporter" target="1.5" />
       <module name="mapdb-microbenchmarks" target="1.6" />
+      <module name="mapdb-tools" target="1.6" />
       <module name="mapdb-utils" target="1.6" />
     </bytecodeTargetLevel>
   </component>
