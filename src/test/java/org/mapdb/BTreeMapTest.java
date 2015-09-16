@@ -780,6 +780,18 @@ public class BTreeMapTest{
         assertTrue(m.containsAll(m2));
     }
 
+    @Test public void findChildren2_next_link(){
+        Object[] keys = new Object[]{10,20,30,40,50};
+        BTreeMap.LeafNode n = new BTreeMap.LeafNode(
+                keys,false,false,false,keys,111L
+        );
+
+        assertEquals(0, BTreeKeySerializer.BASIC.findChildren2(n,10));
+        assertEquals(-1, BTreeKeySerializer.BASIC.findChildren2(n,9));
+        assertEquals(4, BTreeKeySerializer.BASIC.findChildren2(n,50));
+        assertEquals(-6, BTreeKeySerializer.BASIC.findChildren2(n,51));
+    }
+
 }
 
 

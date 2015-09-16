@@ -1038,11 +1038,7 @@ public class BTreeMap<K,V>
                 if(expandValue)
                     val = valExpand(val);
                 return val;
-            } else if (pos <= 0 && -pos - 1 != A.keysLen(keySerializer) - 1) {
-                //$DELAY$
-                //not found
-                return null;
-            } else {
+            } else if( pos<=0 && -pos> A.keysLen(keySerializer)){
                 //move to next link
                 current = A.next();
                 //$DELAY$
@@ -1050,6 +1046,10 @@ public class BTreeMap<K,V>
                     return null;
                 }
                 A = engine.get(current, nodeSerializer);
+            } else {
+                //$DELAY$
+                //not found
+                return null;
             }
         }
 

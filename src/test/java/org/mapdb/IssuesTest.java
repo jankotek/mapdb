@@ -5,6 +5,10 @@ import org.junit.Test;
 import java.io.File;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class IssuesTest {
 
@@ -82,6 +86,38 @@ public class IssuesTest {
             db.close();
         }
         f.delete();
+    }
+
+    @Test public void issue581() throws Throwable {
+        DB db = DBMaker.heapDB().make();
+        final Map map = db.treeMap("map");
+        int entries = 1000000;
+
+        ExecutorService exec = Executors.newFixedThreadPool(20);
+        final AtomicReference<Throwable> ex = new AtomicReference<Throwable>(null);
+        for(int i=0;i<entries;i++){
+            final String val = ""+i;
+            final int id = val.hashCode();
+            exec.submit(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        map.put(id, val);
+                        if (!map.containsKey(id))
+                            ex.set(new AssertionError("does not contain key:" + id + " val:" + val));
+                    }catch(Throwable e){
+                        ex.set(e);
+                    }
+                }
+            });
+        }
+
+        exec.shutdown();
+        while (!exec.awaitTermination(10, TimeUnit.MILLISECONDS) && ex.get()==null) {
+        }
+        Throwable e = ex.get();
+        if (e != null)
+            throw new AssertionError(e);
     }
 
 }
