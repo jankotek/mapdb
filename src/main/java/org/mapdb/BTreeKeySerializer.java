@@ -58,7 +58,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
 
     public static final BTreeKeySerializer<Object, Object[]> BASIC = new BTreeKeySerializer.BasicKeySerializer(Serializer.BASIC, Fun.COMPARATOR);
 
-    public abstract Comparator<?> comparator();
+    public abstract Comparator<KEY> comparator();
 
     public abstract KEYS emptyKeys();
 
@@ -228,7 +228,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         }
 
         @Override
-        public Comparator<?> comparator() {
+        public Comparator comparator() {
             return comparator;
         }
 
@@ -324,7 +324,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         }
 
         @Override
-        public Comparator<?> comparator() {
+        public Comparator<Long> comparator() {
             return Fun.COMPARATOR;
         }
 
@@ -496,7 +496,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         }
 
         @Override
-        public Comparator<?> comparator() {
+        public Comparator<Integer> comparator() {
             return Fun.COMPARATOR;
         }
 
@@ -767,7 +767,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         }
 
         @Override
-        public Comparator<?> comparator() {
+        public Comparator<Object[]> comparator() {
             return comparator;
         }
 
@@ -897,7 +897,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         }
 
         @Override
-        public Comparator<?> comparator() {
+        public Comparator<UUID> comparator() {
             return Fun.COMPARATOR;
         }
 
@@ -1579,7 +1579,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         }
 
         @Override
-        public Comparator<?> comparator() {
+        public Comparator<String> comparator() {
             return Fun.COMPARATOR;
         }
 
@@ -1707,7 +1707,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         }
 
         @Override
-        public Comparator<?> comparator() {
+        public Comparator<String> comparator() {
             return Fun.COMPARATOR;
         }
 
@@ -1839,7 +1839,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         }
 
         @Override
-        public Comparator<?> comparator() {
+        public Comparator<byte[]> comparator() {
             return Fun.BYTE_ARRAY_COMPARATOR;
         }
 
@@ -1949,7 +1949,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         }
 
         @Override
-        public Comparator<?> comparator() {
+        public Comparator<byte[]> comparator() {
             return Fun.BYTE_ARRAY_COMPARATOR;
         }
 
