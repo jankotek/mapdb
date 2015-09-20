@@ -19,7 +19,10 @@ public class StoreDirect2Test {
         for(long offset=StoreDirect2.O_STACK_FREE_RECID; offset<StoreDirect2.HEADER_SIZE;offset+=8){
             assertEquals(parity4Set(0), s.headVol.getLong(offset));
         }
+    }
 
+    @Test public void constants(){
+        assertEquals(0, StoreDirect2.HEADER_SIZE%16);
     }
 
 }

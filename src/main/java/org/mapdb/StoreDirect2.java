@@ -9,11 +9,12 @@ import java.util.*;
  */
 public class StoreDirect2 extends Store{
 
-    protected static final long STACK_COUNT = 1024*64/16;
+    protected static final long STACK_COUNT = 1+1024*64/16;
 
-    protected static final long O_STACK_FREE_RECID = 64;
+    protected static final long O_STACK_FREE_RECID = 72;
     protected static final long HEADER_SIZE = O_STACK_FREE_RECID + STACK_COUNT*8;
 
+    protected static final long O_STORE_SIZE = 16;
 
 
     protected Volume vol;
@@ -493,10 +494,12 @@ public class StoreDirect2 extends Store{
     static long longStackMasterLinkOffset(long pageSize){
         if(CC.ASSERT && pageSize<=0)
             throw new AssertionError();
-        if(CC.ASSERT && pageSize>=64*1024)
+        if(CC.ASSERT && pageSize>64*1024)
+            throw new AssertionError();
+        if(CC.ASSERT && pageSize % 16!=0)
             throw new AssertionError();
 
-        return O_STACK_FREE_RECID + round16Up(pageSize)/2;  //(2==16/8)
+        return O_STACK_FREE_RECID + pageSize/2;  //(2==16/8)
     }
 
 }

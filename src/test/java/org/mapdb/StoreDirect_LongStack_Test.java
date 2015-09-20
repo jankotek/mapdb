@@ -71,9 +71,9 @@ public class StoreDirect_LongStack_Test {
             assertEquals(tail, bytesWritten);
             vals.add(val);
         }
-        assertEquals(s.vol.getLong(M +100), parity3Set(200L << 48));
+        assertEquals(s.vol.getLong(M + 100), parity3Set(200L << 48));
         TT.assertZeroes(s.vol, StoreDirect2.HEADER_SIZE, M +100);
-        TT.assertZeroes(s.vol, M +100 + tail, s.vol.length());
+        TT.assertZeroes(s.vol, M + 100 + tail, s.vol.length());
 
         //now take values
         Collections.reverse(vals);
@@ -86,30 +86,30 @@ public class StoreDirect_LongStack_Test {
             tail = (int) newTail;
         }
         assertEquals(8, tail);
-        assertEquals(s.vol.getLong(M +100), parity3Set(200L << 48));
+        assertEquals(s.vol.getLong(M + 100), parity3Set(200L << 48));
         TT.assertZeroes(s.vol, StoreDirect2.HEADER_SIZE, M +100);
-        TT.assertZeroes(s.vol, M +108, s.vol.length());
+        TT.assertZeroes(s.vol, M + 108, s.vol.length());
     }
 
     @Test public void long_stack_take(){
         StoreDirect2 s = new StoreDirect2(null);
         s.init();
         s.structuralLock.lock();
-        s.vol.ensureAvailable(M *2);
+        s.vol.ensureAvailable(M * 2);
         // longStack page is at offset 160 with size 200
         s.vol.putLong(M +160, parity4Set(200L << 48));
         // master link offset is at 16
         long packedSize = packLongSize(10000L<<1);
         long tail = 8;
-        s.vol.putPackedLongReverse(M +160 + tail, parity1Set(10000L << 1));
-        s.vol.putPackedLongReverse(M +160 + tail + packedSize, parity1Set(10000L << 1));
+        s.vol.putPackedLongReverse(M + 160 + tail, parity1Set(10000L << 1));
+        s.vol.putPackedLongReverse(M + 160 + tail + packedSize, parity1Set(10000L << 1));
         tail = tail+packedSize*2;
 
-        s.headVol.putLong(masterLinkOffset, parity4Set((tail << 48) + M +160));
+        s.headVol.putLong(masterLinkOffset, parity4Set((tail << 48) + M + 160));
 
         long ret = s.longStackTake(masterLinkOffset);
         assertEquals(10000L, ret);
-        assertEquals(parity4Set(((8 + packedSize) << 48) + M +160), s.headVol.getLong(masterLinkOffset));
+        assertEquals(parity4Set(((8 + packedSize) << 48) + M + 160), s.headVol.getLong(masterLinkOffset));
     }
 
     @Test public void long_stack_put(){
@@ -143,11 +143,11 @@ public class StoreDirect_LongStack_Test {
         long packedSize = packLongSize(10000L<<1);
 
         //store size
-        assertEquals(s.storeSize, M +176 + 160);
+        assertEquals(s.storeSize, M + 176 + 160);
         //verify Master Link Value
-        assertEquals(parity4Set(((8 + packedSize) << 48) + M +176), s.headVol.getLong(masterLinkOffset));
+        assertEquals(parity4Set(((8 + packedSize) << 48) + M + 176), s.headVol.getLong(masterLinkOffset));
         //verify Page Header
-        assertEquals(parity4Set((160L << 48) + M +320L), s.vol.getLong(M +176));
+        assertEquals(parity4Set((160L << 48) + M + 320L), s.vol.getLong(M + 176));
         //get value in long stack
         assertEquals(parity1Set(10000L << 1), s.vol.getPackedLongReverse(M +176+8)&PACK_LONG_RESULT_MASK);
     }
@@ -184,7 +184,7 @@ public class StoreDirect_LongStack_Test {
 
         //set Master Pointer to point at this fake page
         s.headVol = new Volume.SingleByteArrayVol(1000);
-        s.headVol.putLong(masterLinkOffset, parity4Set((8L<<48)+M+32));
+        s.headVol.putLong(masterLinkOffset, parity4Set((8L << 48) + M + 32));
         s.storeSize = M+176;
 
         long packedSize = packLongSize(10000L<<1);
@@ -210,7 +210,7 @@ public class StoreDirect_LongStack_Test {
         //create fake page with size 160 at offset M+32
         s.vol.putLong(M + 32, parity4Set(160L << 48));
         //put value 2 into this page
-        s.vol.putPackedLongReverse(M+32 + 8, parity1Set(2 << 1));
+        s.vol.putPackedLongReverse(M + 32 + 8, parity1Set(2 << 1));
 
         //set Master Pointer to point to this fake page
         s.headVol.putLong(masterLinkOffset, parity4Set((9L << 48) + M+32));
@@ -234,9 +234,9 @@ public class StoreDirect_LongStack_Test {
 
 
         //create fake page with size 16 at offset 800
-        s.vol.putLong(M+800, parity4Set(16L << 48));
+        s.vol.putLong(M + 800, parity4Set(16L << 48));
         //put value 2 into this page
-        s.vol.putPackedLongReverse(M+800 + 8, parity1Set(2 << 1));
+        s.vol.putPackedLongReverse(M + 800 + 8, parity1Set(2 << 1));
         s.storeSize = M+800+16;
 
         //create fake page with size 160 at offset 32,
@@ -255,11 +255,11 @@ public class StoreDirect_LongStack_Test {
         assertEquals(parity4Set((0L << 48) + M+800L), s.headVol.getLong(masterLinkOffset));
 
         //and all zero
-        TT.assertZeroes(s.vol, M, M+800);
+        TT.assertZeroes(s.vol, M, M + 800);
 
         //and previous page was not modified
         assertEquals(parity4Set(16L<<48), s.vol.getLong(M+800));
-        assertEquals(parity1Set(2 << 1), s.vol.getPackedLongReverse(M+800 + 8) & PACK_LONG_RESULT_MASK);
+        assertEquals(parity1Set(2 << 1), s.vol.getPackedLongReverse(M + 800 + 8) & PACK_LONG_RESULT_MASK);
     }
 
     @Test public void large_set(){
@@ -295,10 +295,10 @@ public class StoreDirect_LongStack_Test {
         s.vol = s.headVol = new Volume.ByteArrayVol();
         s.headVol.ensureAvailable(32+160);
         //create page and fill it with values
-        s.headVol.putLong(16, parity4Set((0L<<48)|32)); //zero tail indicates that tail is not known
+        s.headVol.putLong(16, parity4Set((0L << 48) | 32)); //zero tail indicates that tail is not known
 
         //page size is 160, next offset is 0
-        s.vol.putLong(32, parity4Set((160L<<48)|0));
+        s.vol.putLong(32, parity4Set((160L << 48) | 0));
         //put 100 single byte packed longs
         long pos = 32+8;
         for(int i=0;i<100;i++){
@@ -321,7 +321,17 @@ public class StoreDirect_LongStack_Test {
         long pageOffset = masterLinkVal&StoreDirect.MOFFSET;
         long tail = masterLinkVal >>> 48;
 
-        assertTrue((s.vol.getUnsignedByte(pageOffset+tail-1)& 0x7F) != 0);
+        assertTrue((s.vol.getUnsignedByte(pageOffset + tail - 1) & 0x7F) != 0);
+    }
+
+    @Test public void put_max_size(){
+        StoreDirect2 s = new StoreDirect2(null);
+        s.init();
+        s.structuralLock.lock();
+        long masterLinkOffset = StoreDirect2.longStackMasterLinkOffset(64 * 1024);
+        assertTrue(masterLinkOffset< StoreDirect2.HEADER_SIZE);
+        s.longStackPut(masterLinkOffset, 1111L);
+        assertEquals(1111L, s.longStackTake(masterLinkOffset));
     }
 
 
