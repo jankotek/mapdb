@@ -8,7 +8,12 @@ import static org.junit.Assert.assertTrue;
 import static org.mapdb.DataIO.parity4Get;
 import static org.mapdb.DataIO.parity4Set;
 
-public class StoreDirect2Test {
+public class StoreDirect2Test extends StoreDirect2_BaseTest{
+
+    @Override
+    protected StoreDirect2 openStore() {
+        return new StoreDirect2(null);
+    }
 
     @Test
     public void header(){
@@ -27,5 +32,6 @@ public class StoreDirect2Test {
     @Test public void constants(){
         assertEquals(0, StoreDirect2.HEADER_SIZE%16);
     }
+
 
 }

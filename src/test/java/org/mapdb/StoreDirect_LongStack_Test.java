@@ -324,15 +324,5 @@ public class StoreDirect_LongStack_Test {
         assertTrue((s.vol.getUnsignedByte(pageOffset + tail - 1) & 0x7F) != 0);
     }
 
-    @Test public void put_max_size(){
-        StoreDirect2 s = new StoreDirect2(null);
-        s.init();
-        s.structuralLock.lock();
-        long masterLinkOffset = StoreDirect2.longStackMasterLinkOffset(64 * 1024);
-        assertTrue(masterLinkOffset< StoreDirect2.HEADER_SIZE);
-        s.longStackPut(masterLinkOffset, 1111L);
-        assertEquals(1111L, s.longStackTake(masterLinkOffset));
-    }
-
 
 }
