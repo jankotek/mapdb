@@ -188,11 +188,9 @@ public class StoreDirect_BinaryEqual_Test {
             s.structuralLock.lock();
 
             for(long i=0;i<scale;i++) {
-                long offset = StoreDirect2.O_STACK_FREE_RECID + r.nextInt(
-                        (int) (StoreDirect2.HEADER_SIZE-StoreDirect2.O_STACK_FREE_RECID));
-                //round to 8
-                offset = (offset/8)*8;
-                if (r.nextInt(10) < 3) {
+                long offset = StoreDirect2.O_STACK_FREE_RECID;
+
+                if (r.nextInt(100) < 12) {
                     s.longStackTake(offset);
                 } else {
                     s.longStackPut(offset, 1+r.nextInt((int) 1e7));

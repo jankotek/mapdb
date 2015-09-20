@@ -2,6 +2,7 @@ package org.mapdb;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -181,22 +182,23 @@ public class StoreCached2 extends StoreDirect2{
     }
 
     protected void assertNoOverlaps(Map<Long, byte[]> pages) {
-        //ensure there is no overlap in modified pages
-        l1: for(Map.Entry<Long,byte[]> e: pages.entrySet()){
-            long pageOffset = e.getKey();
-            byte[] page = e.getValue();
-            long pageSize = page.length-1;
+        //put all keys into sorted array
+        long[] sorted = new long[pages.size()];
 
-            l2: for(Map.Entry<Long,byte[]> e2: pages.entrySet()){
-                long pageOffset2 = e2.getKey();
-                if( pageOffset==pageOffset2)
-                    continue l2;
+        int c = 0;
+        for(Long key:pages.keySet()){
+            sorted[c++] = key;
+        }
 
-                if(pageOffset<=pageOffset2 && pageOffset2<pageOffset+pageSize){
-                    throw new AssertionError();
-                }
-            }
+        Arrays.sort(sorted);
 
+        for(int i=0;i<sorted.length-1;i++){
+            long offset = sorted[i];
+            long pageSize = pages.get(offset).length-1;
+            long offsetNext = sorted[i+1];
+
+            if(offset+pageSize<offsetNext)
+                throw new AssertionError();
         }
     }
 
@@ -437,26 +439,44 @@ public class StoreCached2 extends StoreDirect2{
         if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
-        long pageSize = 160;
-        long pageOffset = storeSizeGet();
+        long pageSize = 0;
+        long pageOffset = 0;
 
-        if((pageOffset >>> CC.VOLUME_PAGE_SHIFT) != ((pageOffset+pageSize-1) >>> CC.VOLUME_PAGE_SHIFT)){
-            //crossing page boundaries
-            long sizeUntilBoundary = CC.VOLUME_PAGE_SIZE-pageOffset%CC.VOLUME_PAGE_SIZE;
-
-            //there are two options, if remaining size is enough for long stack, just use it
-            if(sizeUntilBoundary>9){
-                pageSize =sizeUntilBoundary;
-            }else{
-                //there is not enough space for new page, so just drop the space (do not even add it to free list)
-                //to create page beyond 1MB overlap
-                pageOffset += sizeUntilBoundary;
-                storeSizeSet(pageOffset);//pageOffset helds old store size
+        //try to reuse existing space
+        pageLoop:
+        for(long pageSize2 = STACK_MIN_PAGE_SIZE;pageSize2<=STACK_MAX_PAGE_SIZE; pageSize2+=16){
+            long pageOffset2 = longStackTake(StoreDirect2.longStackMasterLinkOffset(pageSize2));
+            if(pageOffset2!=0) {
+                pageSize = pageSize2;
+                pageOffset = pageOffset2;
+                break pageLoop;
             }
         }
 
-        long storeSize = storeSizeGet();
-        storeSizeSet(storeSize+pageSize);
+
+        //there is no existing space to reuse, so append to EOF
+        if(pageOffset==0) {
+            pageSize = 160;
+            pageOffset = storeSizeGet();
+
+            if ((pageOffset >>> CC.VOLUME_PAGE_SHIFT) != ((pageOffset + pageSize - 1) >>> CC.VOLUME_PAGE_SHIFT)) {
+                //crossing page boundaries
+                long sizeUntilBoundary = CC.VOLUME_PAGE_SIZE - pageOffset % CC.VOLUME_PAGE_SIZE;
+
+                //there are two options, if remaining size is enough for long stack, just use it
+                if (sizeUntilBoundary > 9) {
+                    pageSize = sizeUntilBoundary;
+                } else {
+                    //there is not enough space for new page, so just drop the space (do not even add it to free list)
+                    //to create page beyond 1MB overlap
+                    pageOffset += sizeUntilBoundary;
+                    storeSizeSet(pageOffset);//pageOffset helds old store size
+                }
+            }
+
+            long storeSize = storeSizeGet();
+            storeSizeSet(storeSize + pageSize);
+        }
 
 
         byte[] page = longStackNewPage(pageOffset, pageSize);

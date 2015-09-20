@@ -22,6 +22,12 @@ public class StoreDirect2 extends Store{
      */
     protected static final long O_STORE_SIZE = 16;
 
+    /** store will not use Long Stack Pages smaller than this (unless it absolutely has to*/
+    protected static final long STACK_MIN_PAGE_SIZE = 64;
+
+    /** store will not use Long Stack Pages larger than this*/
+    protected static final long STACK_MAX_PAGE_SIZE = 128*6;
+
 
     protected Volume vol;
     protected Volume headVol;
@@ -352,10 +358,7 @@ public class StoreDirect2 extends Store{
     }
 
     void ensureAllZeroes(long startOffset, long endOffset) {
-        for(long offset = startOffset; offset<endOffset; offset++){
-            if(vol.getUnsignedByte(offset)!=0)
-                throw new AssertionError();
-        }
+        vol.assertZeroes(startOffset, endOffset);
     }
 
     /**
@@ -399,7 +402,7 @@ public class StoreDirect2 extends Store{
             long pageSize = pageHeader>>>48;
             //zero out current page
             vol.clear(pageOffset, pageOffset+pageSize);
-            ensureAllZeroes(pageOffset, pageOffset+pageSize);
+            ensureAllZeroes(pageOffset, pageOffset + pageSize);
             freePageToRelease = (pageSize<<48)+pageOffset;
 
             //move to previous page if it exists
@@ -416,7 +419,7 @@ public class StoreDirect2 extends Store{
             long freePageSize=  freePageToRelease>>>48;
             long freePageOffset = freePageToRelease & StoreDirect.MOFFSET;
             if(CC.ASSERT && CC.VOLUME_ZEROUT){
-                ensureAllZeroes(freePageOffset, freePageOffset+freePageSize);
+                ensureAllZeroes(freePageOffset, freePageOffset + freePageSize);
             }
 
             if(storeSizeGet()==freePageOffset+freePageSize){
@@ -469,27 +472,46 @@ public class StoreDirect2 extends Store{
         if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
-        long pageSize = 160;
-        long pageOffset = storeSizeGet();
+        long pageSize = 0;
+        long pageOffset = 0;
 
-        if((pageOffset >>> CC.VOLUME_PAGE_SHIFT) != ((pageOffset+pageSize-1) >>> CC.VOLUME_PAGE_SHIFT)){
-            //crossing page boundaries
-            long sizeUntilBoundary = CC.VOLUME_PAGE_SIZE-pageOffset%CC.VOLUME_PAGE_SIZE;
-
-            //there are two options, if remaining size is enough for long stack, just use it
-            if(sizeUntilBoundary>9){
-                pageSize =sizeUntilBoundary;
-            }else{
-                //there is not enough space for new page, so just drop the space (do not even add it to free list)
-                //to create page beyond 1MB overlap
-                pageOffset += sizeUntilBoundary;
-                storeSizeSet(pageOffset);//pageOffset helds old store size
+        //try to reuse existing space
+        pageLoop:
+        for(long pageSize2 = STACK_MIN_PAGE_SIZE;pageSize2<=STACK_MAX_PAGE_SIZE; pageSize2+=16){
+            long pageOffset2 = longStackTake(StoreDirect2.longStackMasterLinkOffset(pageSize2));
+            if(pageOffset2!=0) {
+                pageSize = pageSize2;
+                pageOffset = pageOffset2;
+                break pageLoop;
             }
         }
 
-        long storeSize = storeSizeGet();
-        storeSizeSet(storeSize+pageSize);
-        vol.ensureAvailable(storeSize+pageSize);
+
+        //there is no existing space to reuse, so append to EOF
+        if(pageOffset==0) {
+            //expand file
+            pageSize = 160;
+            pageOffset = storeSizeGet();
+
+            if ((pageOffset >>> CC.VOLUME_PAGE_SHIFT) != ((pageOffset + pageSize - 1) >>> CC.VOLUME_PAGE_SHIFT)) {
+                //crossing page boundaries
+                long sizeUntilBoundary = CC.VOLUME_PAGE_SIZE - pageOffset % CC.VOLUME_PAGE_SIZE;
+
+                //there are two options, if remaining size is enough for long stack, just use it
+                if (sizeUntilBoundary > 9) {
+                    pageSize = sizeUntilBoundary;
+                } else {
+                    //there is not enough space for new page, so just drop the space (do not even add it to free list)
+                    //to create page beyond 1MB overlap
+                    pageOffset += sizeUntilBoundary;
+                    storeSizeSet(pageOffset);//pageOffset helds old store size
+                }
+            }
+
+            long storeSize = storeSizeGet();
+            storeSizeSet(storeSize + pageSize);
+            vol.ensureAvailable(storeSize + pageSize);
+        }
 
         if(CC.VOLUME_ZEROUT && CC.PARANOID){
             ensureAllZeroes(pageOffset, pageOffset + pageSize);

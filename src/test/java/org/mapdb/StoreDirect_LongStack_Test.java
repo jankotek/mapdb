@@ -183,7 +183,7 @@ public class StoreDirect_LongStack_Test {
         s.vol.putLong(M + 32, parity4Set(9L << 48));
 
         //set Master Pointer to point at this fake page
-        s.headVol = new Volume.SingleByteArrayVol(1000);
+
         s.headVol.putLong(masterLinkOffset, parity4Set((8L << 48) + M + 32));
         s.storeSizeSet( M+176);
 
