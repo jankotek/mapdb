@@ -108,6 +108,7 @@
                 <configuration>
                     <parallel>methods</parallel>
                     <threadCount>${threadCount}</threadCount>
+                    <perCoreThreadCount>false</perCoreThreadCount>
                     <argLine>${argLine}</argLine>
 
                     <includes>
