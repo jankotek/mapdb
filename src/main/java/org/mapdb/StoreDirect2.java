@@ -487,10 +487,7 @@ public class StoreDirect2 extends Store{
 
 
     protected static long round16Up(long pos) {
-        //TODO optimize this, no conditions
-        long rem = pos&15;  // modulo 16
-        if(rem!=0) pos +=16-rem;
-        return pos;
+        return (pos+15)/16*16;
     }
 
     static long longStackMasterLinkOffset(long pageSize){
