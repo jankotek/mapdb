@@ -14,19 +14,35 @@ public class StoreDirect2 extends Store{
 
     protected static final long STACK_COUNT = 1+1024*64/16;
 
-    protected static final long O_STACK_FREE_RECID = 72;
-    protected static final long HEADER_SIZE = O_STACK_FREE_RECID + STACK_COUNT*8;
 
     /**
      * Contains current size of store. It is offset beyond which all bytes are zero. Parity 4.
      */
     protected static final long O_STORE_SIZE = 16;
 
+    /** Maxinal recid returned by allocator. All smaller recids are either occupied or stored in Free Recid Long Stack. Parity3 with shift*/
+    protected static final long O_MAX_RECID=  24;
+
+    /** Pointer to first Index Page. Parity 16 */
+    protected static final long O_FIRST_INDEX_PAGE = 32;
+
+
+    protected static final long O_STACK_FREE_RECID = 72;
+    protected static final long HEADER_SIZE = O_STACK_FREE_RECID + STACK_COUNT*8;
+
+
     /** store will not use Long Stack Pages smaller than this (unless it absolutely has to*/
     protected static final long STACK_MIN_PAGE_SIZE = 64;
 
     /** store will not use Long Stack Pages larger than this*/
     protected static final long STACK_MAX_PAGE_SIZE = 128*6;
+
+    protected static final long MOFFSET = 0x0000FFFFFFFFFFF0L;
+
+    protected static final long MLINKED = 0x8L;
+    protected static final long MUNUSED = 0x4L;
+    protected static final long MARCHIVE = 0x2L;
+    protected static final long MPARITY = 0x1L;
 
 
     protected Volume vol;
@@ -59,7 +75,7 @@ public class StoreDirect2 extends Store{
                 fileLockHeartbeat);
     }
 
-    public StoreDirect2(String fileName){
+    public StoreDirect2(String fileName) {
         this(
                 fileName,
                 fileName == null ? CC.DEFAULT_MEMORY_VOLUME_FACTORY : CC.DEFAULT_FILE_VOLUME_FACTORY,
@@ -454,7 +470,7 @@ public class StoreDirect2 extends Store{
             return;
         }
 
-        final long stackTail = masterLinkVal>>>48;
+        final long stackTail = masterLinkVal >>> 48;
         final long pageOffset = masterLinkVal & StoreDirect.MOFFSET;
 
         long newStackTail = longStackPutIntoPage(value, pageOffset, stackTail);
@@ -535,20 +551,126 @@ public class StoreDirect2 extends Store{
         Map<Long,List<Long>> ret = new LinkedHashMap<Long, List<Long>>();
         masterLoop: for(long masterSize = 0; masterSize<64*1024; masterSize+=16){
             long masterLinkOffset = masterSize==0? O_STACK_FREE_RECID : longStackMasterLinkOffset(masterSize);
-            long masterLinkVal = headVol.getLong(masterLinkOffset);
-            if(masterLinkVal==0)
-                continue masterLoop;
-            masterLinkVal = DataIO.parity4Get(masterLinkVal);
+            ret.put(masterSize, longStackDump(masterLinkOffset));
+        }
+        return ret;
+    }
+
+    List<Long> longStackDump(long masterLinkOffset) {
+        List<Long> ret = new ArrayList<Long>();
+        long masterLinkVal = headVol.getLong(masterLinkOffset);
+        if(masterLinkVal==0)
+            return ret;
+        masterLinkVal = DataIO.parity4Get(masterLinkVal);
+
+        long pageOffset = masterLinkVal&StoreDirect.MOFFSET;
+        if(pageOffset==0)
+            return ret;
+
+        pageLoop: for(;;) {
+            long pageHeader = DataIO.parity4Get(vol.getLong(pageOffset));
+            long nextPage = pageHeader&StoreDirect.MOFFSET;
+            long pageSize = pageHeader>>>48;
+
+            long end = pageSize-1;
+            //iterate down until non zero byte, that is tail
+            while(vol.getUnsignedByte(pageOffset+end)==0){
+                end--;
+            }
+            end++;
+
+            long tail = 8;
+            findTailLoop: for (; ; ) {
+                if (tail == end)
+                    break findTailLoop;
+                long r = vol.getPackedLongReverse(pageOffset + tail);
+                if ((r & DataIO.PACK_LONG_RESULT_MASK) == 0) {
+                    //tail found
+                    break findTailLoop;
+                }
+                if (CC.ASSERT) {
+                    //verify that this is dividable by zero
+                    DataIO.parity1Get(r & DataIO.PACK_LONG_RESULT_MASK);
+                }
+                //increment tail pointer with number of bytes read
+                tail += r >>> 60;
+                long val = DataIO.parity1Get(r & DataIO.PACK_LONG_RESULT_MASK) >>> 1;
+                ret.add(val);
+            }
+
+            //move to next page
+            if(nextPage==0)
+                break pageLoop;
+            pageOffset = nextPage;
+        }
+        return ret;
+    }
+
+
+
+
+    protected static long round16Up(long pos) {
+        return (pos+15)/16*16;
+    }
+
+    static long longStackMasterLinkOffset(long pageSize){
+        if(CC.ASSERT && pageSize<=0)
+            throw new AssertionError();
+        if(CC.ASSERT && pageSize>64*1024)
+            throw new AssertionError();
+        if(CC.ASSERT && pageSize % 16!=0)
+            throw new AssertionError();
+
+        return O_STACK_FREE_RECID + pageSize/2;  //(2==16/8)
+    }
+
+    protected void freeRecidPut(long recid){
+
+    }
+
+    protected long freeRecidTake(){
+        return 0L;
+    }
+
+
+    /** paranoid store check. Check for overlaps, empty space etc... */
+    void storeCheck(){
+        long storeSize = storeSizeGet();
+        /**
+         * This BitSet contains 1 for bytes which are accounted for (part of data, or marked as free)
+         * At end there should be no unaccounted bytes, and this BitSet is completely filled
+         */
+        BitSet b = new BitSet((int) storeSize); // TODO limited to 2GB, add BitSet methods to Volume
+        b.set(0, (int) HEADER_SIZE, true);
+
+        if(vol.length()<storeSize)
+            throw new AssertionError("Store too small, need "+storeSize+", got "+vol.length());
+
+        vol.assertZeroes(storeSize, vol.length());
+
+        //TODO do accounting for recid once pages are implemented
+
+
+        /**
+         * Check free data by traversing Long Stack Pages
+         */
+        //iterate over Long Stack Pages
+        masterSizeLoop:
+        for(long masterSize = 16; masterSize<=64*1024;masterSize+=16) {
+            long masterOffset = StoreDirect2.longStackMasterLinkOffset(masterSize);
+            long masterLinkVal = parity4Get(headVol.getLong(masterOffset));
 
             long pageOffset = masterLinkVal&StoreDirect.MOFFSET;
             if(pageOffset==0)
-                continue masterLoop;
+                continue masterSizeLoop;
 
             pageLoop: for(;;) {
-                List<Long> l = new ArrayList<Long>();
                 long pageHeader = DataIO.parity4Get(vol.getLong(pageOffset));
                 long nextPage = pageHeader&StoreDirect.MOFFSET;
                 long pageSize = pageHeader>>>48;
+
+                //mark this Long Stack Page empty
+                storeCheckMark(b, true, pageOffset, pageSize);
 
                 long end = pageSize-1;
                 //iterate down until non zero byte, that is tail
@@ -573,10 +695,10 @@ public class StoreDirect2 extends Store{
                     //increment tail pointer with number of bytes read
                     tail += r >>> 60;
                     long val = DataIO.parity1Get(r & DataIO.PACK_LONG_RESULT_MASK) >>> 1;
-                    l.add(val);
+
+                    //content of Long Stack should be free, so mark it as used
+                    storeCheckMark(b, false, val & MOFFSET, masterSize);
                 }
-                Collections.reverse(l);
-                ret.put(masterSize, l);
 
                 //move to next page
                 if(nextPage==0)
@@ -584,23 +706,28 @@ public class StoreDirect2 extends Store{
                 pageOffset = nextPage;
             }
         }
-        return ret;
+
+        //assert that all data are accounted for
+        for(int offset = 0; offset<storeSize;offset++){
+            if(!b.get(offset))
+                throw new AssertionError("zero at "+offset);
+        }
+
+
     }
 
+    private void storeCheckMark(BitSet b, boolean used, long pageOffset, long pageSize) {
+        //check it was not previously marked by something else, there could be cyclic reference otherwise etc
+        for(int o= (int) pageOffset;o<pageOffset+pageSize;o++){
+            if(b.get(o))
+                throw new AssertionError("Offset is marked twice: "+o);
+        }
+        b.set((int)pageOffset, (int)(pageOffset+pageSize),true);
 
-    protected static long round16Up(long pos) {
-        return (pos+15)/16*16;
-    }
-
-    static long longStackMasterLinkOffset(long pageSize){
-        if(CC.ASSERT && pageSize<=0)
-            throw new AssertionError();
-        if(CC.ASSERT && pageSize>64*1024)
-            throw new AssertionError();
-        if(CC.ASSERT && pageSize % 16!=0)
-            throw new AssertionError();
-
-        return O_STACK_FREE_RECID + pageSize/2;  //(2==16/8)
+        if(!used){
+            //this section is not used, so should be zero
+            vol.assertZeroes(pageOffset, pageOffset+pageSize);
+        }
     }
 
 }
