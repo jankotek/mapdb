@@ -4,6 +4,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.*;
 
+import static org.mapdb.DataIO.*;
+
 /**
  *
  */
@@ -14,13 +16,15 @@ public class StoreDirect2 extends Store{
     protected static final long O_STACK_FREE_RECID = 72;
     protected static final long HEADER_SIZE = O_STACK_FREE_RECID + STACK_COUNT*8;
 
+    /**
+     * Contains current size of store. It is offset beyond which all bytes are zero. Parity 4.
+     */
     protected static final long O_STORE_SIZE = 16;
 
 
     protected Volume vol;
     protected Volume headVol;
 
-    protected long storeSize;
 
     public StoreDirect2(String fileName,
                            Volume.VolumeFactory volumeFactory,
@@ -64,11 +68,19 @@ public class StoreDirect2 extends Store{
     public void init() {
         vol = headVol = volumeFactory.makeVolume(fileName,readonly,fileLockDisable);
         vol.ensureAvailable(HEADER_SIZE);
-        storeSize = HEADER_SIZE;
-        final long masterLinkVal = DataIO.parity4Set(0L);
+        storeSizeSet(HEADER_SIZE);
+        final long masterLinkVal = parity4Set(0L);
         for(long offset= O_STACK_FREE_RECID;offset<HEADER_SIZE;offset+=8){
             headVol.putLong(offset,masterLinkVal);
         }
+    }
+
+    protected void storeSizeSet(long storeSize) {
+        headVol.putLong(O_STORE_SIZE, parity4Set(storeSize));
+    }
+
+    protected long storeSizeGet(){
+       return parity4Get(headVol.getLong(O_STORE_SIZE));
     }
 
     @Override
@@ -330,7 +342,7 @@ public class StoreDirect2 extends Store{
         }
 
         //update masterLink with new value
-        long newMasterLinkVal = DataIO.parity4Set((newStackTail<<48) + pageOffset);
+        long newMasterLinkVal = parity4Set((newStackTail << 48) + pageOffset);
         headVol.putLong(masterLinkOffset, newMasterLinkVal);
 
         if(freePageToRelease!=0){
@@ -341,8 +353,8 @@ public class StoreDirect2 extends Store{
                 ensureAllZeroes(freePageOffset, freePageOffset+freePageSize);
             }
 
-            if(storeSize==freePageOffset+freePageSize){
-                storeSize-=freePageSize;
+            if(storeSizeGet()==freePageOffset+freePageSize){
+                storeSizeSet(freePageOffset);
             }else{
                 longStackPut(longStackMasterLinkOffset(freePageSize), freePageOffset);
             }
@@ -383,7 +395,7 @@ public class StoreDirect2 extends Store{
         }
 
         //update masterLink with new value
-        long newMasterLinkVal = DataIO.parity4Set((newStackTail<<48) + pageOffset);
+        long newMasterLinkVal = parity4Set((newStackTail << 48) + pageOffset);
         headVol.putLong(masterLinkOffset, newMasterLinkVal);
     }
 
@@ -392,7 +404,7 @@ public class StoreDirect2 extends Store{
             throw new AssertionError();
 
         long pageSize = 160;
-        long pageOffset = storeSize;
+        long pageOffset = storeSizeGet();
 
         if((pageOffset >>> CC.VOLUME_PAGE_SHIFT) != ((pageOffset+pageSize-1) >>> CC.VOLUME_PAGE_SHIFT)){
             //crossing page boundaries
@@ -403,14 +415,15 @@ public class StoreDirect2 extends Store{
                 pageSize =sizeUntilBoundary;
             }else{
                 //there is not enough space for new page, so just drop the space (do not even add it to free list)
-                //and create page beyond boundary
-                storeSize +=sizeUntilBoundary;
-                pageOffset = storeSize;
+                //to create page beyond 1MB overlap
+                pageOffset += sizeUntilBoundary;
+                storeSizeSet(pageOffset);//pageOffset helds old store size
             }
         }
 
-        storeSize+=pageSize;
-        vol.ensureAvailable(storeSize);
+        long storeSize = storeSizeGet();
+        storeSizeSet(storeSize+pageSize);
+        vol.ensureAvailable(storeSize+pageSize);
 
         if(CC.VOLUME_ZEROUT && CC.PARANOID){
             ensureAllZeroes(pageOffset, pageOffset + pageSize);
@@ -421,11 +434,11 @@ public class StoreDirect2 extends Store{
         }
 
         //set page header
-        vol.putLong(pageOffset, DataIO.parity4Set((pageSize << 48) + previousPage));
+        vol.putLong(pageOffset, parity4Set((pageSize << 48) + previousPage));
         //put new value
         long tail = 8 + vol.putPackedLongReverse(pageOffset + 8, DataIO.parity1Set(value << 1));
         //update master pointer
-        headVol.putLong(masterLinkOffset, DataIO.parity4Set((tail<<48)+pageOffset));
+        headVol.putLong(masterLinkOffset, parity4Set((tail << 48) + pageOffset));
 
         return (pageSize<<48) + pageOffset;
     }

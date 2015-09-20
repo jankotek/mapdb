@@ -106,7 +106,7 @@ public class StoreWAL2 extends StoreCached2{
         try{
             structuralLock.lock();
             try{
-                vol.ensureAvailable(storeSize);
+                vol.ensureAvailable(storeSizeGet());
                 pagesLoop: for(Map.Entry<Long,byte[]> e:longStackPages.entrySet()){
                     long pageOffset = e.getKey();
                     byte[] page = e.getValue();
@@ -159,8 +159,10 @@ public class StoreWAL2 extends StoreCached2{
             page[i]=0;
         }
         long pageSize = page.length-1;
-        if(storeSize==pageOffset+pageSize) {
-            storeSize -= pageSize;
+
+        if(storeSizeGet()==pageOffset+pageSize) {
+            //decrement file size, if at end of the storage
+            storeSizeSet(pageOffset);
         }else{
             longStackPut(longStackMasterLinkOffset(pageSize), pageOffset);
         }

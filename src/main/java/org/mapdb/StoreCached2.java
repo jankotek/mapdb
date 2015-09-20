@@ -62,7 +62,7 @@ public class StoreCached2 extends StoreDirect2{
         vol = volumeFactory.makeVolume(fileName,readonly,fileLockDisable);
         vol.ensureAvailable(HEADER_SIZE);
         headVol = new Volume.SingleByteArrayVol((int)HEADER_SIZE);
-        storeSize = HEADER_SIZE;
+        storeSizeSet(HEADER_SIZE);
 
         final long masterLinkVal = DataIO.parity4Set(0L);
         for(long offset= O_STACK_FREE_RECID;offset<HEADER_SIZE;offset+=8){
@@ -134,7 +134,7 @@ public class StoreCached2 extends StoreDirect2{
                 if(CC.PARANOID){
                     assertNoOverlaps(longStackPages);
                 }
-                vol.ensureAvailable(storeSize);
+                vol.ensureAvailable(storeSizeGet());
 
                 pagesLoop:  for(Map.Entry<Long,byte[]> e:longStackPages.entrySet()){
                     long pageOffset = e.getKey();
@@ -340,9 +340,9 @@ public class StoreCached2 extends StoreDirect2{
         //this page becomes empty, so delete it
         byte[] old = longStackPages.remove(pageOffset);
         long pageSize = old.length-1;
-        if(storeSize==pageOffset+pageSize) {
+        if(storeSizeGet()==pageOffset+pageSize) {
             //decrement file size, if at end of the storage
-            storeSize -= pageSize;
+            storeSizeSet(pageOffset);
         }else{
             longStackPut(longStackMasterLinkOffset(pageSize), pageOffset);
         }
@@ -421,7 +421,7 @@ public class StoreCached2 extends StoreDirect2{
             throw new AssertionError();
 
         long pageSize = 160;
-        long pageOffset = storeSize;
+        long pageOffset = storeSizeGet();
 
         if((pageOffset >>> CC.VOLUME_PAGE_SHIFT) != ((pageOffset+pageSize-1) >>> CC.VOLUME_PAGE_SHIFT)){
             //crossing page boundaries
@@ -432,13 +432,15 @@ public class StoreCached2 extends StoreDirect2{
                 pageSize =sizeUntilBoundary;
             }else{
                 //there is not enough space for new page, so just drop the space (do not even add it to free list)
-                //and create page beyond boundary
-                storeSize +=sizeUntilBoundary;
-                pageOffset = storeSize;
+                //to create page beyond 1MB overlap
+                pageOffset += sizeUntilBoundary;
+                storeSizeSet(pageOffset);//pageOffset helds old store size
             }
         }
 
-        storeSize+=pageSize;
+        long storeSize = storeSizeGet();
+        storeSizeSet(storeSize+pageSize);
+
 
         byte[] page = longStackNewPage(pageOffset, pageSize);
         longStackPageSetModified(page);

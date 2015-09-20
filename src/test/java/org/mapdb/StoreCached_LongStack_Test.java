@@ -30,7 +30,7 @@ public class StoreCached_LongStack_Test {
         s.commit();
         assertEquals(0, s.longStackPages.size());
         assertEquals(expectedMasterLinkValue, s.headVol.getLong(masterLinkOffset));
-        assertEquals(StoreDirect2.HEADER_SIZE+160,s.storeSize);
+        assertEquals(StoreDirect2.HEADER_SIZE+160,s.storeSizeGet());
     }
 
     @Test public void put_take(){

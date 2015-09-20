@@ -3,8 +3,7 @@ package org.mapdb;
 
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.mapdb.DataIO.parity4Set;
+import static org.junit.Assert.*;
 
 public class StoreWAL_LongStack_Test {
 
@@ -15,7 +14,6 @@ public class StoreWAL_LongStack_Test {
         StoreWAL2 s = new StoreWAL2(null);
         s.init();
         s.structuralLock.lock();
-        s.headVol.putLong(16, parity4Set(0));
 
         s.longStackPut(masterLinkOffset, 10000);
         assertEquals(1, s.longStackPages.size());

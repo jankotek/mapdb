@@ -134,7 +134,7 @@ public class StoreDirect_LongStack_Test {
         s.init();
         s.structuralLock.lock();
         s.vol.ensureAvailable(M * 2);
-        s.storeSize = M +176; //page should be created at end of file, by expanding file
+        s.storeSizeSet(M +176); //page should be created at end of file, by expanding file
 
         long retVal = s.longStackPageCreate(10000L, masterLinkOffset, M +320);
 
@@ -143,7 +143,7 @@ public class StoreDirect_LongStack_Test {
         long packedSize = packLongSize(10000L<<1);
 
         //store size
-        assertEquals(s.storeSize, M + 176 + 160);
+        assertEquals(s.storeSizeGet(), M + 176 + 160);
         //verify Master Link Value
         assertEquals(parity4Set(((8 + packedSize) << 48) + M + 176), s.headVol.getLong(masterLinkOffset));
         //verify Page Header
@@ -157,14 +157,14 @@ public class StoreDirect_LongStack_Test {
         s.init();
         s.structuralLock.lock();
         s.vol.ensureAvailable(M *2);
-        s.storeSize = M +176; //page should be created at end of file, by expanding file
+        s.storeSizeSet(M +176); //page should be created at end of file, by expanding file
 
 
         long packedSize = packLongSize(10000L<<1);
 
         s.longStackPut(masterLinkOffset,10000L);
         //store size
-        assertEquals(s.storeSize, M + 176 + 160);
+        assertEquals(s.storeSizeGet(), M + 176 + 160);
         //verify Master Link Value
         assertEquals(parity4Set(((8 + packedSize) << 48) + M + 176), s.headVol.getLong(masterLinkOffset));
         //verify Page Header
@@ -185,13 +185,13 @@ public class StoreDirect_LongStack_Test {
         //set Master Pointer to point at this fake page
         s.headVol = new Volume.SingleByteArrayVol(1000);
         s.headVol.putLong(masterLinkOffset, parity4Set((8L << 48) + M + 32));
-        s.storeSize = M+176;
+        s.storeSizeSet( M+176);
 
         long packedSize = packLongSize(10000L<<1);
 
         s.longStackPut(masterLinkOffset,10000L);
         //store size
-        assertEquals(s.storeSize, M+176 + 160);
+        assertEquals(s.storeSizeGet(), M+176 + 160);
         //verify Master Link Value
         assertEquals(parity4Set(((8 + packedSize) << 48) + M+176), s.headVol.getLong(masterLinkOffset));
         //verify Page Header
@@ -214,7 +214,7 @@ public class StoreDirect_LongStack_Test {
 
         //set Master Pointer to point to this fake page
         s.headVol.putLong(masterLinkOffset, parity4Set((9L << 48) + M+32));
-        s.storeSize = M+32+160;
+        s.storeSizeSet(M+32+160);
 
         //take value from this page, it should be deleted and zeroed out
         assertEquals(2L, s.longStackTake(masterLinkOffset));
@@ -237,7 +237,7 @@ public class StoreDirect_LongStack_Test {
         s.vol.putLong(M + 800, parity4Set(16L << 48));
         //put value 2 into this page
         s.vol.putPackedLongReverse(M + 800 + 8, parity1Set(2 << 1));
-        s.storeSize = M+800+16;
+        s.storeSizeSet(M+800+16);
 
         //create fake page with size 160 at offset 32,
         //set its previous link to page 800
@@ -285,7 +285,7 @@ public class StoreDirect_LongStack_Test {
             assertEquals(0L, s.longStackTake(masterLinkOffset));
             TT.assertZeroes(s.vol, StoreDirect2.HEADER_SIZE, s.vol.length());
 
-            assertEquals(StoreDirect2.HEADER_SIZE,s.storeSize);
+            assertEquals(StoreDirect2.HEADER_SIZE,s.storeSizeGet());
         }
     }
 
