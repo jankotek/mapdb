@@ -3,6 +3,7 @@ package org.mapdb;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.*;
+import java.util.logging.Level;
 
 import static org.mapdb.DataIO.*;
 
@@ -66,12 +67,59 @@ public class StoreDirect2 extends Store{
 
     @Override
     public void init() {
-        vol = headVol = volumeFactory.makeVolume(fileName,readonly,fileLockDisable);
-        vol.ensureAvailable(HEADER_SIZE);
-        storeSizeSet(HEADER_SIZE);
-        final long masterLinkVal = parity4Set(0L);
-        for(long offset= O_STACK_FREE_RECID;offset<HEADER_SIZE;offset+=8){
-            headVol.putLong(offset,masterLinkVal);
+        try {
+            boolean empty = Volume.isEmptyFile(fileName);
+
+            vol = volumeFactory.makeVolume(fileName,readonly,fileLockDisable);
+
+            if (empty) {
+                //create new one
+                vol.ensureAvailable(HEADER_SIZE);
+                headVol = initHeadVolOpen();
+                storeSizeSet(HEADER_SIZE);
+                final long masterLinkVal = parity4Set(0L);
+                for (long offset = O_STACK_FREE_RECID; offset < HEADER_SIZE; offset += 8) {
+                    headVol.putLong(offset, masterLinkVal);
+                }
+            } else {
+                //reopen existing
+                long volLen = vol.length();
+                if (volLen < HEADER_SIZE){
+                    closeFilesIgnoreException();
+                    throw new DBException.DataCorruption("Store is too small");
+                }
+                headVol = initHeadVolOpen();
+
+                //some basic assertions
+                if (storeSizeGet() > volLen) {
+                    closeFilesIgnoreException();
+                    throw new DBException.DataCorruption("Store is too small");
+                }
+            }
+        }catch(RuntimeException e){
+            closeFilesIgnoreException();
+            throw e;
+        }
+    }
+
+    protected Volume initHeadVolOpen() {
+        if(CC.ASSERT && vol==null)
+            throw new AssertionError();
+        if(CC.ASSERT && vol.length()<O_STORE_SIZE)
+            throw new AssertionError();
+        return vol;
+    }
+
+    /** will try to close opened files. If an exception is thrown, it is logged and ignored */
+    protected void closeFilesIgnoreException() {
+        try {
+            if (vol != null && !vol.isClosed()) {
+                vol.close();
+                vol = null;
+                headVol = null;
+            }
+        }catch(Exception e){
+            LOG.log(Level.WARNING, "Could not close file: "+fileName,e);
         }
     }
 
@@ -135,12 +183,30 @@ public class StoreDirect2 extends Store{
 
     @Override
     public void close() {
-
+        commitLock.lock();
+        try {
+            closed = true;
+            Volume vol = this.vol;
+            if(vol!=null && !readonly)
+                vol.sync();
+            closeFilesIgnoreException();
+        }finally {
+            commitLock.unlock();
+        }
     }
 
     @Override
     public void commit() {
-
+        if(readonly)
+            return;
+        commitLock.lock();
+        try {
+            Volume vol = this.vol;
+            if(vol!=null)
+                vol.sync();
+        }finally {
+            commitLock.unlock();
+        }
     }
 
     @Override

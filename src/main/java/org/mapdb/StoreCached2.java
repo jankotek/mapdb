@@ -57,17 +57,16 @@ public class StoreCached2 extends StoreDirect2{
         );
     }
 
-    @Override
-    public void init() {
-        vol = volumeFactory.makeVolume(fileName,readonly,fileLockDisable);
-        vol.ensureAvailable(HEADER_SIZE);
-        headVol = new Volume.SingleByteArrayVol((int)HEADER_SIZE);
-        storeSizeSet(HEADER_SIZE);
 
-        final long masterLinkVal = DataIO.parity4Set(0L);
-        for(long offset= O_STACK_FREE_RECID;offset<HEADER_SIZE;offset+=8){
-            headVol.putLong(offset,masterLinkVal);
-        }
+    @Override
+    protected Volume initHeadVolOpen() {
+        if(CC.ASSERT && vol==null)
+            throw new AssertionError();
+        if(CC.ASSERT && vol.length()<O_STORE_SIZE)
+            throw new AssertionError();
+        Volume.SingleByteArrayVol ret = new Volume.SingleByteArrayVol((int)HEADER_SIZE);
+        vol.getData(0, ret.data,0,ret.data.length);
+        return ret;
     }
 
     @Override
@@ -122,45 +121,63 @@ public class StoreCached2 extends StoreDirect2{
 
     @Override
     public void close() {
-
+        commitLock.lock();
+        try {
+            flush();
+            closed = true;
+            Volume vol = this.vol;
+            if(vol!=null && !readonly)
+                vol.sync();
+            closeFilesIgnoreException();
+        }finally {
+            commitLock.unlock();
+        }
     }
+
 
     @Override
     public void commit() {
         commitLock.lock();
         try{
-            structuralLock.lock();
-            try{
-                if(CC.PARANOID){
-                    assertNoOverlaps(longStackPages);
-                }
-                vol.ensureAvailable(storeSizeGet());
-
-                pagesLoop:  for(Map.Entry<Long,byte[]> e:longStackPages.entrySet()){
-                    long pageOffset = e.getKey();
-                    byte[] page = e.getValue();
-                    //if page was not modified continue
-                    if((page[page.length-1]&1)==0){
-                        continue pagesLoop;
-                    }
-
-                    // write page into store
-                    // last byte in `page` stores bit flags, is not part of storage
-                    vol.putData(pageOffset,page,0,page.length-1);
-                }
-                longStackPages.clear();
-
-                //copy headVol into main store
-                byte[] headVolBytes = ((Volume.SingleByteArrayVol)headVol).data;
-                vol.putData(0, headVolBytes, 0, headVolBytes.length);
-            }finally {
-                structuralLock.unlock();
-            }
-
-            vol.sync();
+            flush();
         }finally {
             commitLock.unlock();
         }
+    }
+
+    private void flush() {
+        if(CC.ASSERT && !commitLock.isHeldByCurrentThread())
+            throw new AssertionError();
+
+        structuralLock.lock();
+        try{
+            if(CC.PARANOID){
+                assertNoOverlaps(longStackPages);
+            }
+            vol.ensureAvailable(storeSizeGet());
+
+            pagesLoop:  for(Map.Entry<Long,byte[]> e:longStackPages.entrySet()){
+                long pageOffset = e.getKey();
+                byte[] page = e.getValue();
+                //if page was not modified continue
+                if((page[page.length-1]&1)==0){
+                    continue pagesLoop;
+                }
+
+                // write page into store
+                // last byte in `page` stores bit flags, is not part of storage
+                vol.putData(pageOffset,page,0,page.length-1);
+            }
+            longStackPages.clear();
+
+            //copy headVol into main store
+            byte[] headVolBytes = ((Volume.SingleByteArrayVol)headVol).data;
+            vol.putData(0, headVolBytes, 0, headVolBytes.length);
+        }finally {
+            structuralLock.unlock();
+        }
+
+        vol.sync();
     }
 
     protected void assertNoOverlaps(Map<Long, byte[]> pages) {

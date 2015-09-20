@@ -208,4 +208,42 @@ public class StoreWAL2 extends StoreCached2{
         return page;
     }
 
+
+    @Override
+    public void close() {
+        commitLock.lock();
+        try{
+            structuralLock.lock();
+            try{
+                if(longStackPages.size()!=0)
+                    LOG.warning("Uncommited data on close, those will be discarded.");
+
+                vol.ensureAvailable(storeSizeGet());
+
+                pagesLoop: for(Map.Entry<Long,byte[]> e:longStackCommited.entrySet()){
+                    long pageOffset = e.getKey();
+                    byte[] page = e.getValue();
+                    //if page was not modified continue
+                    if((page[page.length-1]&1)==0){
+                        continue pagesLoop;
+                    }
+                    vol.putData(pageOffset,page,0,page.length-1);
+                }
+                longStackCommited.clear();
+
+                //copy headVol into main store
+                headVol.getData(0, headVolBackup, 0, headVolBackup.length);
+                vol.putData(0, headVolBackup, 0, headVolBackup.length);
+
+            }finally {
+                structuralLock.unlock();
+            }
+
+            vol.sync();
+            closeFilesIgnoreException();
+        }finally {
+            commitLock.unlock();
+        }
+
+    }
 }

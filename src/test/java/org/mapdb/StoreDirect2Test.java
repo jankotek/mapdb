@@ -11,8 +11,8 @@ import static org.mapdb.DataIO.parity4Set;
 public class StoreDirect2Test extends StoreDirect2_BaseTest{
 
     @Override
-    protected StoreDirect2 openStore() {
-        return new StoreDirect2(null);
+    protected StoreDirect2 openStore(String file) {
+        return new StoreDirect2(file);
     }
 
     @Test
