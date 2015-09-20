@@ -14,7 +14,7 @@ import static org.mapdb.DataIO.*;
 
 public class StoreDirect_LongStack_Test {
 
-    final long masterLinkOffset = StoreDirect2.O_MASTER_LINK_START;
+    final long masterLinkOffset = StoreDirect2.O_STACK_FREE_RECID;
     final long M = StoreDirect2.HEADER_SIZE;
 
     @Test public void longStack_put_take_single(){
@@ -214,6 +214,7 @@ public class StoreDirect_LongStack_Test {
 
         //set Master Pointer to point to this fake page
         s.headVol.putLong(masterLinkOffset, parity4Set((9L << 48) + M+32));
+        s.storeSize = M+32+160;
 
         //take value from this page, it should be deleted and zeroed out
         assertEquals(2L, s.longStackTake(masterLinkOffset));
@@ -236,6 +237,7 @@ public class StoreDirect_LongStack_Test {
         s.vol.putLong(M+800, parity4Set(16L << 48));
         //put value 2 into this page
         s.vol.putPackedLongReverse(M+800 + 8, parity1Set(2 << 1));
+        s.storeSize = M+800+16;
 
         //create fake page with size 160 at offset 32,
         //set its previous link to page 800

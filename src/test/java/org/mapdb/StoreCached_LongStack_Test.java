@@ -8,7 +8,7 @@ import static org.mapdb.DataIO.parity4Set;
 
 public class StoreCached_LongStack_Test {
 
-    final long masterLinkOffset = StoreDirect2.O_MASTER_LINK_START;
+    final long masterLinkOffset = StoreDirect2.O_STACK_FREE_RECID;
 
     @Test public void modified(){
         StoreCached2 s = new StoreCached2(null);

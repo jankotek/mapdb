@@ -158,8 +158,12 @@ public class StoreWAL2 extends StoreCached2{
         for(int i=0;i<page.length-1;i++){
             page[i]=0;
         }
-        if(storeSize==pageOffset+page.length-1)
-            storeSize -= page.length-1;
+        long pageSize = page.length-1;
+        if(storeSize==pageOffset+pageSize) {
+            storeSize -= pageSize;
+        }else{
+            longStackPut(longStackMasterLinkOffset(pageSize), pageOffset);
+        }
         longStackPageSetModified(page);
         if(CC.PARANOID && CC.VOLUME_ZEROUT) {
             for (int i = 8; i < page.length - 1; i++) {

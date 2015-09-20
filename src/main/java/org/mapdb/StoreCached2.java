@@ -65,7 +65,7 @@ public class StoreCached2 extends StoreDirect2{
         storeSize = HEADER_SIZE;
 
         final long masterLinkVal = DataIO.parity4Set(0L);
-        for(long offset=O_MASTER_LINK_START;offset<HEADER_SIZE;offset+=8){
+        for(long offset= O_STACK_FREE_RECID;offset<HEADER_SIZE;offset+=8){
             headVol.putLong(offset,masterLinkVal);
         }
     }
@@ -249,7 +249,7 @@ public class StoreCached2 extends StoreDirect2{
      * @return value taken from Long Stack
      */
     long longStackTake(long masterLinkOffset){
-        if(CC.ASSERT && masterLinkOffset<O_MASTER_LINK_START)
+        if(CC.ASSERT && masterLinkOffset< O_STACK_FREE_RECID)
             throw new AssertionError();
         if(CC.ASSERT && masterLinkOffset>=HEADER_SIZE)
             throw new AssertionError();
@@ -313,31 +313,39 @@ public class StoreCached2 extends StoreDirect2{
         ret &= 0xFFFFFFFFFFFFL;
         ret = DataIO.parity1Get(ret)>>>1;
 
+        long pageToDelete = 0;
         if(stackTail==8){
-            long origPageOffset = pageOffset;
+            pageToDelete = pageOffset;
             //move page to previous link
             pageOffset = DataIO.parity4Get(DataIO.getLong(page,0)) & StoreDirect.MOFFSET;
             //tail is not known on previous page, so will have to find it on next take
             stackTail = 0;
-            longStackPageDelete(origPageOffset);
         }
 
         //update masterLink with new value
         long newMasterLinkVal = DataIO.parity4Set((stackTail<<48) + pageOffset);
         headVol.putLong(masterLinkOffset, newMasterLinkVal);
 
+        if(pageToDelete!=0)
+            longStackPageDelete(pageToDelete);
+
         return ret;
     }
 
+    /** deletes long stack page, it must be loaded into `longStackPages` cache */
     protected void longStackPageDelete(long pageOffset) {
         if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
         //this page becomes empty, so delete it
         byte[] old = longStackPages.remove(pageOffset);
-
-        if(storeSize==pageOffset+old.length-1)
-            storeSize -= old.length-1;
+        long pageSize = old.length-1;
+        if(storeSize==pageOffset+pageSize) {
+            //decrement file size, if at end of the storage
+            storeSize -= pageSize;
+        }else{
+            longStackPut(longStackMasterLinkOffset(pageSize), pageOffset);
+        }
 
         if(CC.PARANOID && CC.VOLUME_ZEROUT) {
             for (int i = 8; i < old.length - 1; i++) {
@@ -353,7 +361,7 @@ public class StoreCached2 extends StoreDirect2{
      * @param value
      */
     void longStackPut(long masterLinkOffset, long value){
-        if(CC.ASSERT && masterLinkOffset<O_MASTER_LINK_START)
+        if(CC.ASSERT && masterLinkOffset< O_STACK_FREE_RECID)
             throw new AssertionError();
         if(CC.ASSERT && masterLinkOffset>=HEADER_SIZE)
             throw new AssertionError();

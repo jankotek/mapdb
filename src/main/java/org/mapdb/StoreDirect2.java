@@ -9,8 +9,12 @@ import java.util.*;
  */
 public class StoreDirect2 extends Store{
 
-    protected static final long O_MASTER_LINK_START = 64;
-    protected static final long HEADER_SIZE = 1024*10;
+    protected static final long STACK_COUNT = 1024*64/16;
+
+    protected static final long O_STACK_FREE_RECID = 64;
+    protected static final long HEADER_SIZE = O_STACK_FREE_RECID + STACK_COUNT*8;
+
+
 
     protected Volume vol;
     protected Volume headVol;
@@ -61,7 +65,7 @@ public class StoreDirect2 extends Store{
         vol.ensureAvailable(HEADER_SIZE);
         storeSize = HEADER_SIZE;
         final long masterLinkVal = DataIO.parity4Set(0L);
-        for(long offset=O_MASTER_LINK_START;offset<HEADER_SIZE;offset+=8){
+        for(long offset= O_STACK_FREE_RECID;offset<HEADER_SIZE;offset+=8){
             headVol.putLong(offset,masterLinkVal);
         }
     }
@@ -282,7 +286,7 @@ public class StoreDirect2 extends Store{
      * @return value taken from Long Stack
      */
     long longStackTake(long masterLinkOffset){
-        if(CC.ASSERT && masterLinkOffset<O_MASTER_LINK_START)
+        if(CC.ASSERT && masterLinkOffset< O_STACK_FREE_RECID)
             throw new AssertionError();
         if(CC.ASSERT && masterLinkOffset>=HEADER_SIZE)
             throw new AssertionError();
@@ -339,7 +343,7 @@ public class StoreDirect2 extends Store{
             if(storeSize==freePageOffset+freePageSize){
                 storeSize-=freePageSize;
             }else{
-                //TODO put this page into free list
+                longStackPut(longStackMasterLinkOffset(freePageSize), freePageOffset);
             }
         }
 
@@ -352,7 +356,7 @@ public class StoreDirect2 extends Store{
      * @param value
      */
     void longStackPut(long masterLinkOffset, long value){
-        if(CC.ASSERT && masterLinkOffset<O_MASTER_LINK_START)
+        if(CC.ASSERT && masterLinkOffset< O_STACK_FREE_RECID)
             throw new AssertionError();
         if(CC.ASSERT && masterLinkOffset>=HEADER_SIZE)
             throw new AssertionError();
@@ -408,7 +412,7 @@ public class StoreDirect2 extends Store{
         vol.ensureAvailable(storeSize);
 
         if(CC.VOLUME_ZEROUT && CC.PARANOID){
-            ensureAllZeroes(pageOffset, pageOffset+pageSize);
+            ensureAllZeroes(pageOffset, pageOffset + pageSize);
         }
         //ensure it is not crossing boundary
         if(CC.ASSERT && (pageOffset >>> CC.VOLUME_PAGE_SHIFT) != ((pageOffset+pageSize-1) >>> CC.VOLUME_PAGE_SHIFT)){
@@ -427,7 +431,8 @@ public class StoreDirect2 extends Store{
 
     Map<Long,List<Long>> longStackDumpAll(){
         Map<Long,List<Long>> ret = new LinkedHashMap<Long, List<Long>>();
-        masterLoop: for(long masterLinkOffset=0;masterLinkOffset<HEADER_SIZE;masterLinkOffset+=8){
+        masterLoop: for(long masterSize = 0; masterSize<64*1024; masterSize+=16){
+            long masterLinkOffset = masterSize==0? O_STACK_FREE_RECID : longStackMasterLinkOffset(masterSize);
             long masterLinkVal = headVol.getLong(masterLinkOffset);
             if(masterLinkVal==0)
                 continue masterLoop;
@@ -469,7 +474,7 @@ public class StoreDirect2 extends Store{
                     l.add(val);
                 }
                 Collections.reverse(l);
-                ret.put(masterLinkOffset, l);
+                ret.put(masterSize, l);
 
                 //move to next page
                 if(nextPage==0)
@@ -478,6 +483,23 @@ public class StoreDirect2 extends Store{
             }
         }
         return ret;
+    }
+
+
+    protected static long round16Up(long pos) {
+        //TODO optimize this, no conditions
+        long rem = pos&15;  // modulo 16
+        if(rem!=0) pos +=16-rem;
+        return pos;
+    }
+
+    static long longStackMasterLinkOffset(long pageSize){
+        if(CC.ASSERT && pageSize<=0)
+            throw new AssertionError();
+        if(CC.ASSERT && pageSize>=64*1024)
+            throw new AssertionError();
+
+        return O_STACK_FREE_RECID + round16Up(pageSize)/2;  //(2==16/8)
     }
 
 }

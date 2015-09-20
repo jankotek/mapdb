@@ -18,7 +18,7 @@ import static org.mapdb.DataIO.*;
 @RunWith(Parameterized.class)
 public class StoreDirect_BinaryEqual_Test {
 
-    final long masterLinkOffset = StoreDirect2.O_MASTER_LINK_START;
+    final long masterLinkOffset = StoreDirect2.O_STACK_FREE_RECID;
 
     final Fun.Function0<StoreDirect2> s1,s2;
 
@@ -188,8 +188,8 @@ public class StoreDirect_BinaryEqual_Test {
             s.structuralLock.lock();
 
             for(long i=0;i<scale;i++) {
-                long offset = StoreDirect2.O_MASTER_LINK_START+ r.nextInt(
-                        (int) (StoreDirect2.HEADER_SIZE-StoreDirect2.O_MASTER_LINK_START));
+                long offset = StoreDirect2.O_STACK_FREE_RECID + r.nextInt(
+                        (int) (StoreDirect2.HEADER_SIZE-StoreDirect2.O_STACK_FREE_RECID));
                 //round to 8
                 offset = (offset/8)*8;
                 if (r.nextInt(10) < 3) {
