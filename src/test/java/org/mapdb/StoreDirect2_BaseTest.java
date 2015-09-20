@@ -40,6 +40,7 @@ public abstract class StoreDirect2_BaseTest {
         assertEquals(storeSize, s.storeSizeGet());
         assertEquals(111L, s.longStackTake(StoreDirect2.O_STACK_FREE_RECID));
         s.structuralLock.unlock();
+        s.commit();
         s.close();
         f.delete();
     }
@@ -57,6 +58,7 @@ public abstract class StoreDirect2_BaseTest {
             s.longStackPut(masterLinkOffset, 1111L);
             assertEquals(1111L, s.longStackTake(masterLinkOffset));
             s.structuralLock.unlock();
+            s.commit(); // no warnings
             s.close();
         }
     }
