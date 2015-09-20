@@ -115,6 +115,9 @@ public class StoreArchiveTest {
     }
 
     @Test public void large_record(){
+        if(TT.shortTest())
+            return;
+
         StoreArchive e = new StoreArchive(
                 null,
                 Volume.ByteArrayVol.FACTORY,
