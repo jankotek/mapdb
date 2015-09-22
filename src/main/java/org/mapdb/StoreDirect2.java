@@ -3,6 +3,7 @@ package org.mapdb;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 
 import static org.mapdb.DataIO.*;
@@ -20,7 +21,7 @@ public class StoreDirect2 extends Store{
      */
     protected static final long O_STORE_SIZE = 16;
 
-    /** Maxinal recid returned by allocator. All smaller recids are either occupied or stored in Free Recid Long Stack. Parity3 with shift*/
+    /** Maxinal recid returned by allocator. All smaller recids are either occupied or stored in Free Recid Long Stack. Parity4 with shift*/
     protected static final long O_MAX_RECID=  24;
 
     /** Pointer to first Index Page. Parity 16 */
@@ -44,9 +45,13 @@ public class StoreDirect2 extends Store{
     protected static final long MARCHIVE = 0x2L;
     protected static final long MPARITY = 0x1L;
 
+    protected static final long PAGE_SIZE = 1L<<CC.VOLUME_PAGE_SHIFT;
+
 
     protected Volume vol;
     protected Volume headVol;
+
+    protected final List<Long> indexPages = new CopyOnWriteArrayList<Long>();
 
 
     public StoreDirect2(String fileName,
@@ -89,16 +94,32 @@ public class StoreDirect2 extends Store{
 
     @Override
     public void init() {
+        if(CC.ASSERT && indexPages.size()!=0)
+            throw new AssertionError();
+
         try {
             boolean empty = Volume.isEmptyFile(fileName);
 
             vol = volumeFactory.makeVolume(fileName,readonly,fileLockDisable);
 
             if (empty) {
-                //create new one
-                vol.ensureAvailable(HEADER_SIZE);
+                //create new store
+
+                //allocate space and set sizes
+                vol.ensureAvailable(PAGE_SIZE);
                 headVol = initHeadVolOpen();
-                storeSizeSet(HEADER_SIZE);
+                storeSizeSet(PAGE_SIZE);
+
+                //prepare index page
+                indexPages.add(0L);
+                maxRecidSet(RECID_LAST_RESERVED);
+                headVol.putLong(O_FIRST_INDEX_PAGE, parity16Set(0));
+                //preallocate recids
+                for(long recid = 1; recid<=RECID_LAST_RESERVED; recid++){
+                    indexValSet(recid, 0);
+                }
+
+                //initialize Long Stack
                 final long masterLinkVal = parity4Set(0L);
                 for (long offset = O_STACK_FREE_RECID; offset < HEADER_SIZE; offset += 8) {
                     headVol.putLong(offset, masterLinkVal);
@@ -106,7 +127,7 @@ public class StoreDirect2 extends Store{
             } else {
                 //reopen existing
                 long volLen = vol.length();
-                if (volLen < HEADER_SIZE){
+                if (volLen < PAGE_SIZE){
                     closeFilesIgnoreException();
                     throw new DBException.DataCorruption("Store is too small");
                 }
@@ -117,11 +138,29 @@ public class StoreDirect2 extends Store{
                     closeFilesIgnoreException();
                     throw new DBException.DataCorruption("Store is too small");
                 }
+
+                //load index pages
+                indexPages.add(0L);
+                long nextIndexPage = parity16Get(headVol.getLong(O_FIRST_INDEX_PAGE));
+                while(nextIndexPage!=0){
+                    if(nextIndexPage%PAGE_SIZE!=0)
+                        throw new DBException.DataCorruption("Index page pointer wrong");
+                    indexPages.add(nextIndexPage);
+                    nextIndexPage = parity16Get(vol.getLong(nextIndexPage));
+                }
             }
+
+            initFinalize();
+
         }catch(RuntimeException e){
             closeFilesIgnoreException();
             throw e;
         }
+    }
+
+    /** called by {@link #init() at end of method, to finalize storage closure */
+    protected void initFinalize() {
+        vol.sync();
     }
 
     protected Volume initHeadVolOpen() {
@@ -141,7 +180,7 @@ public class StoreDirect2 extends Store{
                 headVol = null;
             }
         }catch(Exception e){
-            LOG.log(Level.WARNING, "Could not close file: "+fileName,e);
+            LOG.log(Level.WARNING, "Could not close file: " + fileName, e);
         }
     }
 
@@ -152,6 +191,43 @@ public class StoreDirect2 extends Store{
     protected long storeSizeGet(){
        return parity4Get(headVol.getLong(O_STORE_SIZE));
     }
+
+    protected void indexValSet(long recid, long indexVal) {
+        long offset = recidToOffset(recid);
+        if(offset>=PAGE_SIZE)
+            throw new UnsupportedOperationException();
+        vol.putLong(offset, parity1Set(indexVal));
+    }
+
+    protected final long recidToOffset(long recid) {
+        if(CC.ASSERT && recid<=0)
+            throw new AssertionError();
+        if(CC.ASSERT && recid>>>48 !=0)
+            throw new AssertionError();
+        //there is no zero recid, but that position will be used for zero Index Page checksum
+
+        //convert recid to offset
+        recid = HEADER_SIZE + recid * 8 ;
+
+        //compensate for 16 bytes at start of each index page (next page link and checksum)
+        recid+= Math.min(1, recid/PAGE_SIZE)*    //min servers as replacement for if(recid>=PAGE_SIZE)
+                (16 + ((recid-PAGE_SIZE)/(PAGE_SIZE-16))*16);
+
+        //look up real offset
+        recid = indexPages.get((int) (recid / PAGE_SIZE)) + recid%PAGE_SIZE;
+        return recid;
+
+    }
+
+
+    protected void maxRecidSet(long maxRecid) {
+        headVol.putLong(O_MAX_RECID, parity4Set(maxRecid<<4));
+    }
+
+    protected long maxRecidGet(){
+        return parity4Get(headVol.getLong(O_MAX_RECID))>>>4;
+    }
+
 
     @Override
     protected <A> A get2(long recid, Serializer<A> serializer) {
@@ -511,7 +587,7 @@ public class StoreDirect2 extends Store{
 
             if ((pageOffset >>> CC.VOLUME_PAGE_SHIFT) != ((pageOffset + pageSize - 1) >>> CC.VOLUME_PAGE_SHIFT)) {
                 //crossing page boundaries
-                long sizeUntilBoundary = CC.VOLUME_PAGE_SIZE - pageOffset % CC.VOLUME_PAGE_SIZE;
+                long sizeUntilBoundary = PAGE_SIZE - pageOffset % PAGE_SIZE;
 
                 //there are two options, if remaining size is enough for long stack, just use it
                 if (sizeUntilBoundary > 9) {
@@ -641,7 +717,29 @@ public class StoreDirect2 extends Store{
          * At end there should be no unaccounted bytes, and this BitSet is completely filled
          */
         BitSet b = new BitSet((int) storeSize); // TODO limited to 2GB, add BitSet methods to Volume
-        b.set(0, (int) HEADER_SIZE, true);
+        b.set(0, (int) (HEADER_SIZE+ 8), true); // +8 is zero Index Page checksum
+
+        //mark unused recid before end of current page;
+        {
+            long maxRecid = maxRecidGet();
+            long offset = 0;
+            for(long recid = 1; recid<=maxRecid; recid++){
+                offset = recidToOffset(recid);
+                long indexVal = vol.getLong(offset);
+                if(indexVal==0)
+                    continue; // unused recid
+                b.set((int)offset,(int)offset+8);
+            }
+
+            offset +=8;
+            if(offset%PAGE_SIZE!=0){
+                //mark rest of this Index Page as used
+                long endOffset = Fun.roundUp(offset, PAGE_SIZE);
+                vol.assertZeroes(offset,endOffset);
+                b.set((int)offset,(int)endOffset);
+            }
+
+        }
 
         if(vol.length()<storeSize)
             throw new AssertionError("Store too small, need "+storeSize+", got "+vol.length());

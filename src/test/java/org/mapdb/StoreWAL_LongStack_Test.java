@@ -18,13 +18,13 @@ public class StoreWAL_LongStack_Test {
         s.longStackPut(masterLinkOffset, 10000);
         assertEquals(1, s.longStackPages.size());
         assertEquals(0, s.longStackCommited.size());
-        TT.assertZeroes(s.vol, StoreDirect2.HEADER_SIZE, s.vol.length());
+        TT.assertZeroes(s.vol, s.recidToOffset(Store.RECID_FIRST), s.vol.length());
 
         s.structuralLock.unlock();
         s.commit();
         assertEquals(0, s.longStackPages.size());
         assertEquals(1, s.longStackCommited.size());
-        TT.assertZeroes(s.vol, 24, s.vol.length());
+        TT.assertZeroes(s.vol, s.recidToOffset(Store.RECID_FIRST), s.vol.length());
 
         s.structuralLock.lock();
         assertEquals(10000, s.longStackTake(masterLinkOffset));

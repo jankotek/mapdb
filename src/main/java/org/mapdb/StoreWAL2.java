@@ -106,7 +106,8 @@ public class StoreWAL2 extends StoreCached2{
         try{
             structuralLock.lock();
             try{
-                vol.ensureAvailable(storeSizeGet());
+                final long storeSize = storeSizeGet();
+                vol.ensureAvailable(storeSize);
                 pagesLoop: for(Map.Entry<Long,byte[]> e:longStackPages.entrySet()){
                     long pageOffset = e.getKey();
                     byte[] page = e.getValue();
@@ -132,6 +133,19 @@ public class StoreWAL2 extends StoreCached2{
                     if((page[page.length-1]&1)==0){
                         continue pagesLoop;
                     }
+
+                    if(pageOffset>=storeSize){
+                        // this page writes beyond EOF, if it only contains zeroes, we can continue
+                        if(longStackPageDeleteMarkerGet(page)){
+                            //it has delete marker, so just ensure it only contains zeros
+                            if(CC.PARANOID){
+                                longStackPageAssertEmpty(page);
+                            }
+                            //this page writes zeroes beyond EOF, and can be ignored
+                            continue pagesLoop;
+                        }
+                    }
+
                     vol.putData(pageOffset,page,0,page.length-1);
                 }
                 longStackCommited.clear();
@@ -151,6 +165,13 @@ public class StoreWAL2 extends StoreCached2{
 
     }
 
+    protected void longStackPageAssertEmpty(byte[] page) {
+        for(int i=0;i<page.length-1;i++){
+            if(page[i]!=0)
+                throw new AssertionError();
+        }
+    }
+
 
     @Override
     protected void longStackPageDelete(long pageOffset) {
@@ -167,6 +188,7 @@ public class StoreWAL2 extends StoreCached2{
             longStackPut(longStackMasterLinkOffset(pageSize), pageOffset);
         }
         longStackPageSetModified(page);
+        longStackPageSetDeleted(page);
         if(CC.PARANOID && CC.VOLUME_ZEROUT) {
             for (int i = 8; i < page.length - 1; i++) {
                 if (page[i] != 0)
@@ -218,7 +240,8 @@ public class StoreWAL2 extends StoreCached2{
                 if(longStackPages.size()!=0)
                     LOG.warning("Uncommited data on close, those will be discarded.");
 
-                vol.ensureAvailable(storeSizeGet());
+                long storeSize = storeSizeGet();
+                vol.ensureAvailable(storeSize);
 
                 pagesLoop: for(Map.Entry<Long,byte[]> e:longStackCommited.entrySet()){
                     long pageOffset = e.getKey();
@@ -227,6 +250,19 @@ public class StoreWAL2 extends StoreCached2{
                     if((page[page.length-1]&1)==0){
                         continue pagesLoop;
                     }
+
+                    if(pageOffset>=storeSize){
+                        // this page writes beyond EOF, if it only contains zeroes, we can continue
+                        if(longStackPageDeleteMarkerGet(page)){
+                            //it has delete marker, so just ensure it only contains zeros
+                            if(CC.PARANOID){
+                                longStackPageAssertEmpty(page);
+                            }
+                            //this page writes zeroes beyond EOF, and can be ignored
+                            continue pagesLoop;
+                        }
+                    }
+
                     vol.putData(pageOffset,page,0,page.length-1);
                 }
                 longStackCommited.clear();
@@ -245,5 +281,15 @@ public class StoreWAL2 extends StoreCached2{
             commitLock.unlock();
         }
 
+    }
+
+    protected boolean longStackPageDeleteMarkerGet(byte[] page) {
+        byte b = page[page.length-1];
+        return (b & (1<<2)) != 0;
+    }
+
+    protected void longStackPageSetDeleted(byte[] page) {
+        int pos = page.length-1;
+        page[pos] |= (1<<2);
     }
 }

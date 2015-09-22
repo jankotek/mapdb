@@ -71,6 +71,16 @@ public class StoreCached2 extends StoreDirect2{
     }
 
     @Override
+    protected void initFinalize(){
+        //dump content of headVol into main file, caching is active
+        byte[] headVolData = ((Volume.SingleByteArrayVol)headVol).data;
+        if(CC.ASSERT && headVolData.length!=HEADER_SIZE)
+            throw new AssertionError();
+        vol.putData(0, headVolData, 0, headVolData.length);
+        vol.sync();
+    }
+
+    @Override
     protected <A> A get2(long recid, Serializer<A> serializer) {
         return null;
     }
@@ -461,7 +471,7 @@ public class StoreCached2 extends StoreDirect2{
 
             if ((pageOffset >>> CC.VOLUME_PAGE_SHIFT) != ((pageOffset + pageSize - 1) >>> CC.VOLUME_PAGE_SHIFT)) {
                 //crossing page boundaries
-                long sizeUntilBoundary = CC.VOLUME_PAGE_SIZE - pageOffset % CC.VOLUME_PAGE_SIZE;
+                long sizeUntilBoundary = PAGE_SIZE - pageOffset % PAGE_SIZE;
 
                 //there are two options, if remaining size is enough for long stack, just use it
                 if (sizeUntilBoundary > 9) {

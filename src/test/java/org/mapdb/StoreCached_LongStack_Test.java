@@ -18,11 +18,11 @@ public class StoreCached_LongStack_Test {
 
         // Long Stack Page should be stored in collection
         assertEquals(1, s.longStackPages.size());
-        assertEquals(161, s.longStackPages.get(StoreDirect2.HEADER_SIZE).length);
+        assertEquals(161, s.longStackPages.get(StoreDirect2.PAGE_SIZE).length);
         // original store is not modified
-        TT.assertZeroes(s.vol, StoreDirect2.HEADER_SIZE , s.vol.length());
+        TT.assertZeroes(s.vol, s.recidToOffset(Store.RECID_FIRST), s.vol.length());
         // and headVol is separate buffer
-        long expectedMasterLinkValue = parity4Set(((8L + packLongSize(1000)) << 48) + StoreDirect2.HEADER_SIZE);
+        long expectedMasterLinkValue = parity4Set(((8L + packLongSize(1000)) << 48) + StoreDirect2.PAGE_SIZE);
         assertEquals(expectedMasterLinkValue, s.headVol.getLong(masterLinkOffset));
 
         s.structuralLock.unlock();
@@ -30,7 +30,7 @@ public class StoreCached_LongStack_Test {
         s.commit();
         assertEquals(0, s.longStackPages.size());
         assertEquals(expectedMasterLinkValue, s.headVol.getLong(masterLinkOffset));
-        assertEquals(StoreDirect2.HEADER_SIZE+160,s.storeSizeGet());
+        assertEquals(StoreDirect2.PAGE_SIZE+160,s.storeSizeGet());
     }
 
     @Test public void put_take(){
@@ -46,7 +46,7 @@ public class StoreCached_LongStack_Test {
         assertEquals(1000, s.longStackTake(masterLinkOffset));
         assertEquals(0, s.longStackPages.size());
         assertEquals(parity4Set(0), s.headVol.getLong(masterLinkOffset));
-        TT.assertZeroes(s.vol, 0, s.vol.length());
+        TT.assertZeroes(s.vol, s.recidToOffset(Store.RECID_FIRST), s.vol.length());
     }
 
     @Test public void put_take_two(){
@@ -65,7 +65,7 @@ public class StoreCached_LongStack_Test {
         assertEquals(1000, s.longStackTake(masterLinkOffset));
         assertEquals(0, s.longStackPages.size());
         assertEquals(parity4Set(0), s.headVol.getLong(masterLinkOffset));
-        TT.assertZeroes(s.vol, 0, s.vol.length());
+        TT.assertZeroes(s.vol, s.recidToOffset(Store.RECID_FIRST), s.vol.length());
     }
 
 }

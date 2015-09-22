@@ -15,7 +15,7 @@ import static org.mapdb.DataIO.*;
 public class StoreDirect_LongStack_Test {
 
     final long masterLinkOffset = StoreDirect2.O_STACK_FREE_RECID;
-    final long M = StoreDirect2.HEADER_SIZE;
+    final long M = StoreDirect2.PAGE_SIZE;
 
     @Test public void longStack_put_take_single(){
         StoreDirect2 s = new StoreDirect2(null);
@@ -33,14 +33,14 @@ public class StoreDirect_LongStack_Test {
         assertEquals(stackTail + packLongSize(val << 1), newTail);
 
         //verify no other data were modified
-        TT.assertZeroes(s.vol, StoreDirect2.HEADER_SIZE, M +100);
+        TT.assertZeroes(s.vol, s.recidToOffset(Store.RECID_FIRST), M +100);
         TT.assertZeroes(s.vol, M +100+newTail, s.vol.length());
         assertEquals(s.vol.getLong(M +100), parity3Set(200L << 48));
         assertEquals(parity1Set(val << 1), s.vol.getPackedLongReverse(M +108)&PACK_LONG_RESULT_MASK);
 
         //perform take and verify it
         assertEquals((8L<<48)+val, s.longStackTakeFromPage(M+100,newTail));
-        TT.assertZeroes(s.vol, StoreDirect2.HEADER_SIZE, M +100);
+        TT.assertZeroes(s.vol, s.recidToOffset(Store.RECID_FIRST), M +100);
         TT.assertZeroes(s.vol, M +108, s.vol.length());
         assertEquals(s.vol.getLong(M +100), parity3Set(200L<< 48));
     }
@@ -48,7 +48,7 @@ public class StoreDirect_LongStack_Test {
     @Test public void long_stack_page_fill(){
         Random r = new Random();
 
-        StoreDirect2 s = new StoreDirect2(null);s.init();
+        StoreDirect2 s = new StoreDirect2(null);
         s.init();
         s.structuralLock.lock();
 
@@ -72,7 +72,7 @@ public class StoreDirect_LongStack_Test {
             vals.add(val);
         }
         assertEquals(s.vol.getLong(M + 100), parity3Set(200L << 48));
-        TT.assertZeroes(s.vol, StoreDirect2.HEADER_SIZE, M +100);
+        TT.assertZeroes(s.vol, s.recidToOffset(Store.RECID_FIRST), M +100);
         TT.assertZeroes(s.vol, M + 100 + tail, s.vol.length());
 
         //now take values
@@ -87,7 +87,7 @@ public class StoreDirect_LongStack_Test {
         }
         assertEquals(8, tail);
         assertEquals(s.vol.getLong(M + 100), parity3Set(200L << 48));
-        TT.assertZeroes(s.vol, StoreDirect2.HEADER_SIZE, M +100);
+        TT.assertZeroes(s.vol, s.recidToOffset(Store.RECID_FIRST), M +100);
         TT.assertZeroes(s.vol, M + 108, s.vol.length());
     }
 
@@ -223,7 +223,7 @@ public class StoreDirect_LongStack_Test {
         assertEquals(parity4Set(0L), s.headVol.getLong(masterLinkOffset));
 
         //and all zero
-        TT.assertZeroes(s.vol, StoreDirect2.HEADER_SIZE, s.vol.length());
+        TT.assertZeroes(s.vol, s.recidToOffset(Store.RECID_FIRST), s.vol.length());
     }
 
     @Test public void long_stack_page_removed_prev_link(){
@@ -255,7 +255,7 @@ public class StoreDirect_LongStack_Test {
         assertEquals(parity4Set((0L << 48) + M+800L), s.headVol.getLong(masterLinkOffset));
 
         //and all zero
-        TT.assertZeroes(s.vol, M, M + 800);
+        TT.assertZeroes(s.vol, s.recidToOffset(Store.RECID_FIRST), M + 800);
 
         //and previous page was not modified
         assertEquals(parity4Set(16L<<48), s.vol.getLong(M+800));
@@ -283,9 +283,9 @@ public class StoreDirect_LongStack_Test {
                 assertEquals(vals[j], s.longStackTake(masterLinkOffset));
             }
             assertEquals(0L, s.longStackTake(masterLinkOffset));
-            TT.assertZeroes(s.vol, StoreDirect2.HEADER_SIZE, s.vol.length());
+            TT.assertZeroes(s.vol, s.recidToOffset(Store.RECID_FIRST), s.vol.length());
 
-            assertEquals(StoreDirect2.HEADER_SIZE,s.storeSizeGet());
+            assertEquals(M,s.storeSizeGet());
         }
     }
 

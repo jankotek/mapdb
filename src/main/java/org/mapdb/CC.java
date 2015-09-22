@@ -107,7 +107,6 @@ interface CC {
 
     int VOLUME_PAGE_SHIFT = 20; // 1 MB
 
-    long VOLUME_PAGE_SIZE = 1<<VOLUME_PAGE_SHIFT;
 
     /**
      * Will print stack trace of all operations which are write any data at given offset
