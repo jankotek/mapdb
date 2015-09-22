@@ -145,9 +145,18 @@ public class StoreDirect2 extends Store{
                 while(nextIndexPage!=0){
                     if(nextIndexPage%PAGE_SIZE!=0)
                         throw new DBException.DataCorruption("Index page pointer wrong");
+
+                    if(nextIndexPage%PAGE_SIZE!=0)
+                        throw new DBException.DataCorruption("index page not div by PAGE_SIZE");
+
                     indexPages.add(nextIndexPage);
+                    long oldPage = nextIndexPage;
                     nextIndexPage = parity16Get(vol.getLong(nextIndexPage));
+                    if(oldPage>=nextIndexPage && nextIndexPage!=0)
+                        throw new DBException.DataCorruption("Index page offset not bigger");
                 }
+
+
             }
 
             initFinalize();
