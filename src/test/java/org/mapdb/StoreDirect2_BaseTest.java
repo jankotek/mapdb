@@ -9,7 +9,7 @@ import java.util.BitSet;
 
 import static org.junit.Assert.*;
 import static org.mapdb.DataIO.*;
-import static org.mapdb.StoreDirect2.PAGE_SIZE;
+import static org.mapdb.StoreDirect2.*;
 
 public abstract class StoreDirect2_BaseTest {
 
@@ -29,7 +29,7 @@ public abstract class StoreDirect2_BaseTest {
         assertArrayEquals(volHeader, headHeader);
 
 
-        assertEquals(PAGE_SIZE, parity4Get(s.vol.getLong(StoreDirect2.O_STORE_SIZE)));
+        assertEquals(PAGE_SIZE, parity4Get(s.vol.getLong(O_STORE_SIZE)));
         assertEquals(Store.RECID_LAST_RESERVED, parity4Get(s.vol.getLong(StoreDirect2.O_MAX_RECID)) >>> 4);
 
         assertEquals(Arrays.asList(0L), s.indexPages);
@@ -131,6 +131,36 @@ public abstract class StoreDirect2_BaseTest {
         }
 
 
+    }
+
+    @Test public void index_pages_init(){
+        File f = TT.tempDbFile();
+        //init store
+        StoreDirect2 s = openStore(f.getPath());
+        s.init();
+        s.close();
+
+        //now create tree index pages
+        Volume v = Volume.RandomAccessFileVol.FACTORY.makeVolume(f.getPath(),false);
+        v.ensureAvailable(PAGE_SIZE*6);
+        v.putLong(O_STORE_SIZE, parity4Set(PAGE_SIZE * 6));
+
+        v.putLong(O_FIRST_INDEX_PAGE, parity16Set(PAGE_SIZE * 2));
+        v.putLong(PAGE_SIZE*2, parity16Set(PAGE_SIZE * 4));
+        v.putLong(PAGE_SIZE*4, parity16Set(PAGE_SIZE*5));
+        v.putLong(PAGE_SIZE*5, parity16Set(0));
+        v.sync();
+        v.close();
+
+        //reopen and check index pages
+        s = openStore(f.getPath());
+        //if store becomes more paranoid this might fail
+        s.init();
+        assertEquals(Arrays.asList(0L, PAGE_SIZE*2, PAGE_SIZE*4, PAGE_SIZE*5), s.indexPages);
+        s.close();
+
+
+        f.delete();
     }
 
 }
