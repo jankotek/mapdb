@@ -7,6 +7,8 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.*;
+import static org.mapdb.DataIO.*;
+import static org.mapdb.StoreDirect2.round16Up;
 
 public class StoreDirect2Test extends StoreDirect2_BaseTest{
 
@@ -51,6 +53,28 @@ public class StoreDirect2Test extends StoreDirect2_BaseTest{
         }catch(AssertionError e){
             assertEquals("Offset is marked twice: 16",e.getMessage());
         }
+    }
+
+    @Test public void put_delete(){
+        StoreDirect2 s = new StoreDirect2(null);
+        s.init();
+
+
+        byte[] b = TT.randomByteArray(100,11);
+        long recid = s.put(b, Serializer.BYTE_ARRAY_NOSIZE);
+
+        byte[] b2 = new byte[b.length];
+        s.vol.getData(StoreDirect2.PAGE_SIZE, b2, 0, b2.length);
+        assertArrayEquals(b, b2);
+        assertEquals(StoreDirect2.PAGE_SIZE + round16Up(b.length), parity4Get(s.vol.getLong(StoreDirect2.O_STORE_SIZE)));
+
+        s.delete(recid, Serializer.BYTE_ARRAY_NOSIZE);
+
+        assertEquals(StoreDirect2.PAGE_SIZE + 160, parity4Get(s.vol.getLong(StoreDirect2.O_STORE_SIZE)));
+        s.structuralLock.lock();
+        assertEquals(recid, s.freeRecidTake());
+        assertEquals(StoreDirect2.PAGE_SIZE, parity4Get(s.vol.getLong(StoreDirect2.O_STORE_SIZE)));
+
     }
 
 }

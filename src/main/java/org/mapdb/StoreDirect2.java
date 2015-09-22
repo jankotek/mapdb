@@ -1,5 +1,6 @@
 package org.mapdb;
 
+import java.io.DataInput;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.*;
@@ -116,7 +117,7 @@ public class StoreDirect2 extends Store{
                 headVol.putLong(O_FIRST_INDEX_PAGE, parity16Set(0));
                 //preallocate recids
                 for(long recid = 1; recid<=RECID_LAST_RESERVED; recid++){
-                    indexValSet(recid, 0);
+                    indexValSet(recid, parity1Set(0));
                 }
 
                 //initialize Long Stack
@@ -194,6 +195,8 @@ public class StoreDirect2 extends Store{
     }
 
     protected void storeSizeSet(long storeSize) {
+        if(CC.ASSERT && storeSize<PAGE_SIZE)
+            throw new AssertionError();
         headVol.putLong(O_STORE_SIZE, parity4Set(storeSize));
     }
 
@@ -201,11 +204,21 @@ public class StoreDirect2 extends Store{
        return parity4Get(headVol.getLong(O_STORE_SIZE));
     }
 
+
     protected void indexValSet(long recid, long indexVal) {
         long offset = recidToOffset(recid);
         if(offset>=PAGE_SIZE)
             throw new UnsupportedOperationException();
-        vol.putLong(offset, parity1Set(indexVal));
+        if(CC.ASSERT && indexVal!=0 )
+            parity1Get(indexVal); //will throw an exception if parity is not set, zero is valid value for empty records
+        vol.putLong(offset, indexVal);
+    }
+
+    protected long indexValGet(long recid) {
+        long offset = recidToOffset(recid);
+        if(offset>=PAGE_SIZE)
+            throw new UnsupportedOperationException();
+        return vol.getLong(offset);
     }
 
     protected final long recidToOffset(long recid) {
@@ -250,6 +263,35 @@ public class StoreDirect2 extends Store{
 
     @Override
     protected <A> void delete2(long recid, Serializer<A> serializer) {
+        long indexVal = indexValGet(recid);
+        long size = indexVal>>>48;
+        long offset = indexVal & MOFFSET;
+
+        if(offset==0)
+            throw new AssertionError();
+        if(size==0)
+            throw new AssertionError();
+
+        if(CC.PARANOID){
+            //try to deserialize old value
+            DataInput in = vol.getDataInput(offset, (int) size);
+            deserialize(serializer, (int) size, in);
+        }
+
+        size = round16Up(size);
+        //clear old values
+        if(CC.VOLUME_ZEROUT) {
+            vol.clear(offset, offset + size);
+            indexValSet(recid, 0);
+        }
+
+        structuralLock.lock();
+        try{
+            freeDataPut(offset, round16Up(size));
+            freeRecidPut(recid);
+        }finally {
+            structuralLock.unlock();
+        }
 
     }
 
@@ -285,8 +327,40 @@ public class StoreDirect2 extends Store{
 
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
-        return 0;
+        DataOutputByteArray out = serialize(value, serializer);
+        commitLock.lock();
+        try{
+            long recid;
+            long dataOffset;
+            structuralLock.lock();
+            try{
+                recid = freeRecidTake();
+                dataOffset = freeDataTake(round16Up(out.pos));
+            }finally {
+                structuralLock.unlock();
+            }
+            if(CC.ASSERT && indexValGet(recid)!=0)
+                throw new AssertionError();
+
+            if(CC.ASSERT && (dataOffset&16)!=0)
+                throw new AssertionError();
+
+            //write data
+            vol.putData(dataOffset,out.buf,0,out.pos);
+
+            long size = out.pos;
+            long indexVal = parity1Set(
+                    size<<48 |
+                    dataOffset |
+                    MARCHIVE
+            );
+            indexValSet(recid, indexVal);
+            return recid;
+        }finally {
+            commitLock.unlock();
+        }
     }
+
 
     @Override
     public void close() {
@@ -709,13 +783,6 @@ public class StoreDirect2 extends Store{
         return O_STACK_FREE_RECID + pageSize/2;  //(2==16/8)
     }
 
-    protected void freeRecidPut(long recid){
-
-    }
-
-    protected long freeRecidTake(){
-        return 0L;
-    }
 
 
     /** paranoid store check. Check for overlaps, empty space etc... */
@@ -836,5 +903,69 @@ public class StoreDirect2 extends Store{
             vol.assertZeroes(pageOffset, pageOffset+pageSize);
         }
     }
+
+    protected long freeRecidTake(){
+        if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
+            throw new AssertionError();
+
+        long recid = longStackTake(O_STACK_FREE_RECID);
+        if(recid==0){
+            //increase max recid on current page
+            recid = parity4Get(headVol.getLong(O_MAX_RECID))>>>4;
+            recid++;
+            //and save it back
+            headVol.putLong(O_MAX_RECID, parity4Set(recid << 4));
+        }
+        return recid;
+    }
+
+    protected void freeRecidPut(long recid){
+        if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
+            throw new AssertionError();
+        longStackPut(O_STACK_FREE_RECID, recid);
+        indexValSet(recid, 0);
+    }
+
+    protected void freeDataPut(long offset, long size) {
+        if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
+            throw new AssertionError();
+        if(CC.ASSERT && offset%16!=0)
+            throw new AssertionError();
+        if(CC.ASSERT && size%16!=0)
+            throw new AssertionError();
+        if(storeSizeGet()==offset+size) {
+            storeSizeSet(offset);
+        }else {
+            longStackPut(longStackMasterLinkOffset(size), offset);
+        }
+    }
+    protected long freeDataTake(long size) {
+        if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
+            throw new AssertionError();
+        if(CC.ASSERT && size>64*1024)
+            throw new AssertionError();
+        if(CC.ASSERT && size%16!=0)
+            throw new AssertionError();
+
+        size = round16Up(size);
+        long offset = longStackTake(StoreDirect2.longStackMasterLinkOffset(size));
+        if(offset==0){
+            //TODO try to split larger records
+        }
+        if(offset==0){
+            //append to end of file
+            offset = storeSizeGet();
+            vol.ensureAvailable(offset+size);
+            //increase file size
+            storeSizeSet(offset+size);
+            //TODO boundary overlap
+        }
+
+        if(CC.PARANOID && CC.VOLUME_ZEROUT)
+            vol.assertZeroes(offset, offset+size);
+
+        return offset;
+    }
+
 
 }
