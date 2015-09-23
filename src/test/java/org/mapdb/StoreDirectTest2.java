@@ -326,12 +326,12 @@ public class StoreDirectTest2 {
         }
 
         for(long page=PAGE_SIZE*10;page<=PAGE_SIZE*40; page+=PAGE_SIZE*10){
-            for(long offset=page+8;offset<page+PAGE_SIZE;offset+=8){
+            for(long offset=page+16;offset<page+PAGE_SIZE;offset+=8){
                 m.add(offset);
             }
         }
 
-        long maxRecid = PAGE_SIZE-8-HEAD_END + 4*PAGE_SIZE-4*8;
+        long maxRecid = PAGE_SIZE-8-HEAD_END + 4*PAGE_SIZE-4*16;
         //maxRecid is multiple of 8, reduce
         assertEquals(0,maxRecid%8);
         maxRecid/=8;

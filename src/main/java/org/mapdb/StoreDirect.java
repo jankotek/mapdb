@@ -1571,21 +1571,24 @@ public class StoreDirect extends Store {
         return vol.getLong(offset);
     }
 
-    protected final long recidToOffset(long recid){
+    protected final long recidToOffset(long recid) {
         if(CC.ASSERT && recid<=0)
-            throw new DBException.DataCorruption("negative recid: "+recid);
+            throw new AssertionError();
+        if(CC.ASSERT && recid>>>48 !=0)
+            throw new AssertionError();
+        //there is no zero recid, but that position will be used for zero Index Page checksum
 
         //convert recid to offset
-        recid = (recid-1) * INDEX_VAL_SIZE + HEAD_END + 8;
+        recid = HEAD_END + recid * 8 ;
 
-        recid+= Math.min(1, recid/PAGE_SIZE)*    //if(recid>=PAGE_SIZE)
-                (8 + ((recid-PAGE_SIZE)/(PAGE_SIZE-8))*8);
+        //compensate for 16 bytes at start of each index page (next page link and checksum)
+        recid+= Math.min(1, recid/PAGE_SIZE)*    //min servers as replacement for if(recid>=PAGE_SIZE)
+                (16 + ((recid-PAGE_SIZE)/(PAGE_SIZE-16))*16);
 
         //look up real offset
-        recid = indexPages[((int) (recid / PAGE_SIZE))] + recid%PAGE_SIZE;
+        recid = indexPages[(int) (recid / PAGE_SIZE)] + recid%PAGE_SIZE;
         return recid;
     }
-
     private long recidToOffsetChecksum(long recid) {
         //convert recid to offset
         recid = (recid-1) * INDEX_VAL_SIZE + HEAD_END + 8;
@@ -2004,4 +2007,5 @@ public class StoreDirect extends Store {
     protected long maxRecidGet(){
         return parity4Get(headVol.getLong(MAX_RECID_OFFSET))>>>4;
     }
+
 }
