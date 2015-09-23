@@ -1,10 +1,7 @@
 package org.mapdb;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -158,6 +155,18 @@ public class StoreDirect extends Store {
     protected void initFailedCloseFiles() {
 
     }
+
+
+    protected void storeSizeSet(long storeSize) {
+        if(CC.ASSERT && storeSize<PAGE_SIZE)
+            throw new AssertionError();
+        headVol.putLong(STORE_SIZE, parity4Set(storeSize));
+    }
+
+    protected long storeSizeGet(){
+        return parity4Get(headVol.getLong(STORE_SIZE));
+    }
+
 
     protected void initOpen() {
         if(CC.ASSERT && !commitLock.isHeldByCurrentThread())
@@ -768,9 +777,8 @@ public class StoreDirect extends Store {
 
         freeSizeIncrement(size);
 
-        long masterPointerOffset = size/2 + FREE_RECID_STACK; // really is size*8/16
         longStackPut(
-                masterPointerOffset,
+                longStackMasterLinkOffset(size),
                 offset >>> 4, //offset is multiple of 16, save some space
                 false);
     }
@@ -810,8 +818,7 @@ public class StoreDirect extends Store {
         if(CC.ASSERT && size>round16Up(MAX_REC_SIZE))
             throw new DBException.DataCorruption("size too big");
 
-        long masterPointerOffset = size/2 + FREE_RECID_STACK; // really is size*8/16
-        long ret = longStackTake(masterPointerOffset,false) <<4; //offset is multiple of 16, save some space
+        long ret = longStackTake(longStackMasterLinkOffset(size),false) <<4; //offset is multiple of 16, save some space
         if(ret!=0) {
             if(CC.ASSERT && ret<PAGE_SIZE)
                 throw new DBException.DataCorruption("wrong ret");
@@ -931,7 +938,7 @@ public class StoreDirect extends Store {
         if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
         if(CC.ASSERT && (masterLinkOffset<FREE_RECID_STACK ||
-                masterLinkOffset>FREE_RECID_STACK+round16Up(MAX_REC_SIZE)/2 ||
+                masterLinkOffset>longStackMasterLinkOffset(round16Up(MAX_REC_SIZE)) ||
                 masterLinkOffset % 8!=0))
             throw new DBException.DataCorruption("wrong master link");
 
@@ -1703,7 +1710,7 @@ public class StoreDirect extends Store {
         indexLongPut(nextPagePointerOffset, parity16Set(indexPage));
 
         //set zero link on next page
-        indexLongPut(indexPage,parity16Set(0));
+        indexLongPut(indexPage, parity16Set(0));
 
         //put into index page array
         long[] indexPages2 = Arrays.copyOf(indexPages,indexPages.length+1);
@@ -1727,10 +1734,7 @@ public class StoreDirect extends Store {
     }
 
     protected static int round16Up(int pos) {
-        //TODO optimize this, no conditions
-        int rem = pos&15;  // modulo 16
-        if(rem!=0) pos +=16-rem;
-        return pos;
+        return (pos+15)/16*16;
     }
 
     public static final class Snapshot extends ReadOnly{
@@ -1809,5 +1813,216 @@ public class StoreDirect extends Store {
         public void clearCache() {
 
         }
+    }
+
+    Map<Long,List<Long>> longStackDumpAll(){
+        Map<Long,List<Long>> ret = new LinkedHashMap<Long, List<Long>>();
+        masterLoop: for(long masterSize = 0; masterSize<64*1024; masterSize+=16){
+            long masterLinkOffset = masterSize==0? FREE_RECID_STACK : longStackMasterLinkOffset(masterSize);
+            ret.put(masterSize, longStackDump(masterLinkOffset));
+        }
+        return ret;
+    }
+
+    protected long longStackMasterLinkOffset(long masterSize) {
+        if(CC.ASSERT && masterSize%16!=0)
+            throw new AssertionError();
+        return masterSize/2 + FREE_RECID_STACK; // really is size*8/16
+    }
+
+    List<Long> longStackDump(long masterLinkOffset) {
+        List<Long> ret = new ArrayList<Long>();
+        long masterLinkVal = headVol.getLong(masterLinkOffset);
+        if(masterLinkVal==0)
+            return ret;
+        masterLinkVal = DataIO.parity4Get(masterLinkVal);
+
+        long pageOffset = masterLinkVal&StoreDirect.MOFFSET;
+        if(pageOffset==0)
+            return ret;
+
+        pageLoop: for(;;) {
+            long pageHeader = DataIO.parity4Get(vol.getLong(pageOffset));
+            long nextPage = pageHeader&StoreDirect.MOFFSET;
+            long pageSize = pageHeader>>>48;
+
+            long end = pageSize-1;
+            //iterate down until non zero byte, that is tail
+            while(vol.getUnsignedByte(pageOffset+end)==0){
+                end--;
+            }
+            end++;
+
+            long tail = 8;
+            findTailLoop: for (; ; ) {
+                if (tail == end)
+                    break findTailLoop;
+                long r = vol.getPackedLongReverse(pageOffset + tail);
+                if ((r & DataIO.PACK_LONG_RESULT_MASK) == 0) {
+                    //tail found
+                    break findTailLoop;
+                }
+                if (CC.ASSERT) {
+                    //verify that this is dividable by zero
+                    DataIO.parity1Get(r & DataIO.PACK_LONG_RESULT_MASK);
+                }
+                //increment tail pointer with number of bytes read
+                tail += r >>> 60;
+                long val = DataIO.parity1Get(r & DataIO.PACK_LONG_RESULT_MASK) >>> 1;
+                ret.add(val);
+            }
+
+            //move to next page
+            if(nextPage==0)
+                break pageLoop;
+            pageOffset = nextPage;
+        }
+        return ret;
+    }
+
+    /** paranoid store check. Check for overlaps, empty space etc... */
+    void storeCheck(){
+        long storeSize = storeSizeGet();
+        /**
+         * This BitSet contains 1 for bytes which are accounted for (part of data, or marked as free)
+         * At end there should be no unaccounted bytes, and this BitSet is completely filled
+         */
+        BitSet b = new BitSet((int) storeSize); // TODO limited to 2GB, add BitSet methods to Volume
+        b.set(0, (int) (HEAD_END+ 8), true); // +8 is zero Index Page checksum
+
+        //mark unused recid before end of current page;
+        {
+            long maxRecid = maxRecidGet();
+            long offset = 0;
+            for(long recid = 1; recid<=maxRecid; recid++){
+                offset = recidToOffset(recid);
+                long indexVal = vol.getLong(offset);
+                if(indexVal==0)
+                    continue; // unused recid
+                b.set((int)offset,(int)offset+8);
+            }
+
+            offset +=8;
+            if(offset%PAGE_SIZE!=0){
+                //mark rest of this Index Page as used
+                long endOffset = Fun.roundUp(offset, PAGE_SIZE);
+                vol.assertZeroes(offset,endOffset);
+                b.set((int)offset,(int)endOffset);
+            }
+
+        }
+
+        if(vol.length()<storeSize)
+            throw new AssertionError("Store too small, need "+storeSize+", got "+vol.length());
+
+        vol.assertZeroes(storeSize, vol.length());
+
+        //TODO do accounting for recid once pages are implemented
+
+
+        /**
+         * Check free data by traversing Long Stack Pages
+         */
+        //iterate over Long Stack Pages
+        masterSizeLoop:
+        for(long masterSize = 16; masterSize<=64*1024;masterSize+=16) {
+            long masterOffset = longStackMasterLinkOffset(masterSize);
+            long masterLinkVal = parity4Get(headVol.getLong(masterOffset));
+
+            long pageOffset = masterLinkVal&StoreDirect.MOFFSET;
+            if(pageOffset==0)
+                continue masterSizeLoop;
+
+            pageLoop: for(;;) {
+                long pageHeader = DataIO.parity4Get(vol.getLong(pageOffset));
+                long nextPage = pageHeader&StoreDirect.MOFFSET;
+                long pageSize = pageHeader>>>48;
+
+                //mark this Long Stack Page empty
+                storeCheckMark(b, true, pageOffset, pageSize);
+
+                long end = pageSize-1;
+                //iterate down until non zero byte, that is tail
+                while(vol.getUnsignedByte(pageOffset+end)==0){
+                    end--;
+                }
+                end++;
+
+                long tail = 8;
+                findTailLoop: for (; ; ) {
+                    if (tail == end)
+                        break findTailLoop;
+                    long r = vol.getPackedLongReverse(pageOffset + tail);
+                    if ((r & DataIO.PACK_LONG_RESULT_MASK) == 0) {
+                        //tail found
+                        break findTailLoop;
+                    }
+                    if (CC.ASSERT) {
+                        //verify that this is dividable by zero
+                        DataIO.parity1Get(r & DataIO.PACK_LONG_RESULT_MASK);
+                    }
+                    //increment tail pointer with number of bytes read
+                    tail += r >>> 60;
+                    long val = DataIO.parity1Get(r & DataIO.PACK_LONG_RESULT_MASK) >>> 1;
+
+                    //content of Long Stack should be free, so mark it as used
+                    storeCheckMark(b, false, val & MOFFSET, masterSize);
+                }
+
+                //move to next page
+                if(nextPage==0)
+                    break pageLoop;
+                pageOffset = nextPage;
+            }
+        }
+
+        //assert that all data are accounted for
+        for(int offset = 0; offset<storeSize;offset++){
+            if(!b.get(offset))
+                throw new AssertionError("zero at "+offset);
+        }
+
+
+    }
+
+    private void storeCheckMark(BitSet b, boolean used, long pageOffset, long pageSize) {
+        //check it was not previously marked by something else, there could be cyclic reference otherwise etc
+        for(int o= (int) pageOffset;o<pageOffset+pageSize;o++){
+            if(b.get(o))
+                throw new AssertionError("Offset is marked twice: "+o);
+        }
+        b.set((int)pageOffset, (int)(pageOffset+pageSize),true);
+
+        if(!used){
+            //this section is not used, so should be zero
+            vol.assertZeroes(pageOffset, pageOffset+pageSize);
+        }
+    }
+
+    /** will try to close opened files. If an exception is thrown, it is logged and ignored */
+    protected void closeFilesIgnoreException() {
+        try {
+            if (vol != null && !vol.isClosed()) {
+                vol.close();
+                vol = null;
+                headVol = null;
+            }
+        }catch(Exception e){
+            LOG.log(Level.WARNING, "Could not close file: " + fileName, e);
+        }
+    }
+
+    void assertZeroes(long startOffset, long endOffset) {
+        vol.assertZeroes(startOffset, endOffset);
+    }
+
+
+
+    protected void maxRecidSet(long maxRecid) {
+        headVol.putLong(MAX_RECID_OFFSET, parity4Set(maxRecid<<4));
+    }
+
+    protected long maxRecidGet(){
+        return parity4Get(headVol.getLong(MAX_RECID_OFFSET))>>>4;
     }
 }

@@ -162,7 +162,7 @@ public class StoreCached extends StoreDirect {
         if (CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
         if (CC.ASSERT && (masterLinkOffset < FREE_RECID_STACK ||
-                masterLinkOffset > FREE_RECID_STACK + round16Up(MAX_REC_SIZE) / 2 ||
+                masterLinkOffset > longStackMasterLinkOffset(round16Up(MAX_REC_SIZE)) ||
                 masterLinkOffset % 8 != 0))
             throw new DBException.DataCorruption("wrong master link");
 
@@ -495,6 +495,14 @@ public class StoreCached extends StoreDirect {
             lock.unlock();
         }
     }
+
+    @Override
+    void assertZeroes(long startOffset, long endOffset) {
+        startOffset = Math.min(startOffset, vol.length());
+        endOffset = Math.min(endOffset, vol.length());
+        super.assertZeroes(startOffset, endOffset);
+    }
+
 
 
 }
