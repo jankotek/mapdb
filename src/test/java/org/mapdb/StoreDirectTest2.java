@@ -21,7 +21,7 @@ public class StoreDirectTest2 {
         assertEquals(st.headChecksum(st.vol), st.vol.getInt(StoreDirect.HEAD_CHECKSUM));
         assertEquals(parity16Set(st.PAGE_SIZE), st.vol.getLong(StoreDirect.STORE_SIZE));
         assertEquals(parity16Set(0), st.vol.getLong(StoreDirect.HEAD_END)); //pointer to next page
-        assertEquals(parity4Set(st.RECID_LAST_RESERVED <<4), st.vol.getLong(StoreDirect.MAX_RECID_OFFSET));
+        assertEquals(parity4Set(st.RECID_LAST_RESERVED << 4), st.vol.getLong(StoreDirect.MAX_RECID_OFFSET));
     }
 
     @Test public void constants(){
@@ -33,7 +33,7 @@ public class StoreDirectTest2 {
         long recid = st.preallocate();
         assertEquals(Engine.RECID_FIRST,recid);
         assertEquals(st.composeIndexVal(0,0,true,true,true),st.vol.getLong(st.recidToOffset(recid)));
-        assertEquals(parity4Set(Engine.RECID_FIRST<<4), st.vol.getLong(st.MAX_RECID_OFFSET));
+        assertEquals(parity4Set(Engine.RECID_FIRST << 4), st.vol.getLong(st.MAX_RECID_OFFSET));
     }
 
 
@@ -43,7 +43,7 @@ public class StoreDirectTest2 {
             long recid = st.preallocate();
             assertEquals(Engine.RECID_FIRST+i, recid);
             assertEquals(st.composeIndexVal(0, 0, true, true, true), st.vol.getLong(st.recidToOffset(recid)));
-            assertEquals(parity4Set((Engine.RECID_FIRST + i)<<4), st.vol.getLong(st.MAX_RECID_OFFSET));
+            assertEquals(parity4Set((Engine.RECID_FIRST + i) << 4), st.vol.getLong(st.MAX_RECID_OFFSET));
         }
     }
 
@@ -366,6 +366,24 @@ public class StoreDirectTest2 {
         db.close();
         f.delete();
     }
+
+    @Test public void dump_long_stack(){
+        StoreDirect st = (StoreDirect) DBMaker.memoryDB()
+                .transactionDisable()
+                .makeEngine();
+
+        st.structuralLock.lock();
+        List<Long> a = new ArrayList<Long>();
+        for(long i=10000;i<11000;i++){
+            a.add(i);
+            st.longStackPut(StoreDirect.FREE_RECID_STACK, i,false);
+        }
+        List<Long> content = st.longStackDump(StoreDirect.FREE_RECID_STACK);
+        Collections.sort(content);
+        assertEquals(a.size(), content.size());
+        assertEquals(a,content);
+    }
+
 
     @Test public void storeCheck(){
         StoreDirect st = (StoreDirect) DBMaker.memoryDB()
