@@ -21,7 +21,7 @@ public class StoreDirectTest2 {
         assertEquals(st.headChecksum(st.vol), st.vol.getInt(StoreDirect.HEAD_CHECKSUM));
         assertEquals(parity16Set(st.PAGE_SIZE), st.vol.getLong(StoreDirect.STORE_SIZE));
         assertEquals(parity16Set(0), st.vol.getLong(StoreDirect.HEAD_END)); //pointer to next page
-        assertEquals(parity1Set(st.RECID_LAST_RESERVED * 8), st.vol.getLong(StoreDirect.MAX_RECID_OFFSET));
+        assertEquals(parity4Set(st.RECID_LAST_RESERVED <<4), st.vol.getLong(StoreDirect.MAX_RECID_OFFSET));
     }
 
     @Test public void constants(){
@@ -33,7 +33,7 @@ public class StoreDirectTest2 {
         long recid = st.preallocate();
         assertEquals(Engine.RECID_FIRST,recid);
         assertEquals(st.composeIndexVal(0,0,true,true,true),st.vol.getLong(st.recidToOffset(recid)));
-        assertEquals(parity1Set(8 * Engine.RECID_FIRST), st.vol.getLong(st.MAX_RECID_OFFSET));
+        assertEquals(parity4Set(Engine.RECID_FIRST<<4), st.vol.getLong(st.MAX_RECID_OFFSET));
     }
 
 
@@ -43,7 +43,7 @@ public class StoreDirectTest2 {
             long recid = st.preallocate();
             assertEquals(Engine.RECID_FIRST+i, recid);
             assertEquals(st.composeIndexVal(0, 0, true, true, true), st.vol.getLong(st.recidToOffset(recid)));
-            assertEquals(parity1Set(8 * (Engine.RECID_FIRST + i)), st.vol.getLong(st.MAX_RECID_OFFSET));
+            assertEquals(parity4Set((Engine.RECID_FIRST + i)<<4), st.vol.getLong(st.MAX_RECID_OFFSET));
         }
     }
 
@@ -156,7 +156,7 @@ public class StoreDirectTest2 {
         long recid = RECID_FIRST;
         long[] offsets = {19L << 48 | o};
         st.locks[st.lockPos(recid)].writeLock().lock();
-        st.putData(recid,offsets,newBuf(19).buf,19);
+        st.putData(recid, offsets, newBuf(19).buf, 19);
 
         //verify index val
         assertEquals(19L << 48 | o | MARCHIVE, st.indexValGet(recid));
@@ -220,9 +220,9 @@ public class StoreDirectTest2 {
 
         //verify pointers
         assertEquals(101L << 48 | o | MLINKED | MARCHIVE, st.indexValGet(recid));
-        assertEquals(102L<<48 | o+round16Up(101) | MLINKED , parity3Get(st.vol.getLong(o)));
+        assertEquals(102L << 48 | o + round16Up(101) | MLINKED, parity3Get(st.vol.getLong(o)));
 
-        assertEquals(103L<<48 | o+round16Up(101)+round16Up(102) , parity3Get(st.vol.getLong(o+round16Up(101))));
+        assertEquals(103L << 48 | o + round16Up(101) + round16Up(102), parity3Get(st.vol.getLong(o + round16Up(101))));
 
         //and read data
         for(int i=0;i<101-8;i++){
@@ -365,6 +365,15 @@ public class StoreDirectTest2 {
         }
         db.close();
         f.delete();
+    }
+
+    @Test public void storeCheck(){
+        StoreDirect st = (StoreDirect) DBMaker.memoryDB()
+                .transactionDisable()
+                .makeEngine();
+        st.storeCheck();
+        st.put("aa",Serializer.STRING);
+        st.storeCheck();
     }
 
 }

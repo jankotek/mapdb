@@ -249,7 +249,7 @@ public class StoreDirect extends Store {
 
         //set sizes
         vol.putLong(STORE_SIZE, parity16Set(PAGE_SIZE));
-        vol.putLong(MAX_RECID_OFFSET, parity1Set(RECID_LAST_RESERVED * INDEX_VAL_SIZE));
+        vol.putLong(MAX_RECID_OFFSET, parity4Set(RECID_LAST_RESERVED<<4));
         //pointer to next index page (zero)
         vol.putLong(HEAD_END, parity16Set(0));
 
@@ -1131,7 +1131,7 @@ public class StoreDirect extends Store {
             lock.writeLock().lock();
         }
         try {
-            long maxRecid = DataIO.parity1Get(headVol.getLong(MAX_RECID_OFFSET)) / INDEX_VAL_SIZE;
+            long maxRecid = maxRecidGet();
             recidLoop:
             for (long recid = 1; recid <= maxRecid; recid++) {
                 long indexOffset = recidToOffset(recid);
@@ -1187,7 +1187,7 @@ public class StoreDirect extends Store {
     @Override
     public void backupRestore(InputStream[] ins) {
         //check we are empty
-        if(RECID_LAST_RESERVED+1!=DataIO.parity1Get(headVol.getLong(MAX_RECID_OFFSET))/ INDEX_VAL_SIZE){
+        if(RECID_LAST_RESERVED+1!=maxRecidGet()){
             throw new DBException.WrongConfig("Can not restore backup, this store is not empty!");
         }
 
@@ -1288,7 +1288,7 @@ public class StoreDirect extends Store {
                 target.init();
 
                 final AtomicLong maxRecid = new AtomicLong(
-                        parity1Get(headVol.getLong(MAX_RECID_OFFSET))/ INDEX_VAL_SIZE);
+                        maxRecidGet());
 
                 //TODO what about recids which are already in freeRecidLongStack?
                 // I think it gets restored by traversing index table,
@@ -1301,7 +1301,7 @@ public class StoreDirect extends Store {
                 structuralLock.lock();
                 try {
 
-                    target.vol.putLong(MAX_RECID_OFFSET, parity1Set(maxRecid.get() * INDEX_VAL_SIZE));
+                    target.maxRecidSet(maxRecid.get());
                     this.indexPages = target.indexPages;
                     this.lastAllocatedData = target.lastAllocatedData;
 
@@ -1654,9 +1654,9 @@ public class StoreDirect extends Store {
             return currentRecid;
         }
 
-        currentRecid = parity1Get(headVol.getLong(MAX_RECID_OFFSET));
+        currentRecid = maxRecidGet()*INDEX_VAL_SIZE;
         currentRecid+= INDEX_VAL_SIZE;
-        headVol.putLong(MAX_RECID_OFFSET, parity1Set(currentRecid));
+        maxRecidSet(currentRecid/INDEX_VAL_SIZE);
 
         currentRecid/= INDEX_VAL_SIZE;
         //check if new index page has to be allocated
