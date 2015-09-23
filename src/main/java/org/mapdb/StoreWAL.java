@@ -743,9 +743,7 @@ public class StoreWAL extends StoreCached {
                         long value = v[i+1];
                         prevLongLongs[segment].put(offset,value);
                         walPutLong(offset,value);
-                        if(checksum && offset>HEAD_END && offset%PAGE_SIZE!=0) {
-                            walPutUnsignedShort(offset + 8, DataIO.longHash(value) & 0xFFFF);
-                        }
+
                     }
                     currLongLongs[segment].clear();
 
@@ -844,9 +842,6 @@ public class StoreWAL extends StoreCached {
                         continue;
                     long value = v[i+1];
                     walPutLong(offset,value);
-                    if(checksum && offset>HEAD_END && offset%PAGE_SIZE!=0) {
-                        walPutUnsignedShort(offset + 8, DataIO.longHash(value) & 0xFFFF);
-                    }
 
                     //remove from this
                     v[i] = 0;

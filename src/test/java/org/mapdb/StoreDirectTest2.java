@@ -282,32 +282,34 @@ public class StoreDirectTest2 {
 
     protected void verifyIndexPageChecksum(StoreDirect st) {
         assertTrue(st.checksum);
-        //zero page
-        for(long offset=HEAD_END+8;offset+10<=PAGE_SIZE;offset+=10){
-            long indexVal = st.vol.getLong(offset);
-            int check = st.vol.getUnsignedShort(offset+8);
-            if(indexVal==0){
-                assertEquals(0,check);
-                continue; // not set
-            }
-            assertEquals(check, DataIO.longHash(indexVal)&0xFFFF);
-        }
 
-
-        for(long page:st.indexPages){
-            if(page==0)
-                continue;
-
-            for(long offset=page+8;offset+10<=page+PAGE_SIZE;offset+=10){
-                long indexVal = st.vol.getLong(offset);
-                int check = st.vol.getUnsignedShort(offset+8);
-                if(indexVal==0){
-                    assertEquals(0,check);
-                    continue; // not set
-                }
-                assertEquals(check, DataIO.longHash(indexVal)&0xFFFF);
-            }
-        }
+        //TODO
+//        //zero page
+//        for(long offset=HEAD_END+8;offset+10<=PAGE_SIZE;offset+=10){
+//            long indexVal = st.vol.getLong(offset);
+//            int check = st.vol.getUnsignedShort(offset+8);
+//            if(indexVal==0){
+//                assertEquals(0,check);
+//                continue; // not set
+//            }
+//            assertEquals(check, DataIO.longHash(indexVal)&0xFFFF);
+//        }
+//
+//
+//        for(long page:st.indexPages){
+//            if(page==0)
+//                continue;
+//
+//            for(long offset=page+8;offset+10<=page+PAGE_SIZE;offset+=10){
+//                long indexVal = st.vol.getLong(offset);
+//                int check = st.vol.getUnsignedShort(offset+8);
+//                if(indexVal==0){
+//                    assertEquals(0,check);
+//                    continue; // not set
+//                }
+//                assertEquals(check, DataIO.longHash(indexVal)&0xFFFF);
+//            }
+//        }
     }
 
     @Test public void recidToOffset(){
@@ -338,38 +340,6 @@ public class StoreDirectTest2 {
         for(long recid=1;recid<=maxRecid;recid++){
             long offset = st.recidToOffset(recid);
             assertTrue("" + recid + " - " + offset + " - " + (offset % PAGE_SIZE),
-                    m.remove(offset));
-        }
-        assertTrue(m.isEmpty());
-    }
-
-    @Test public void recidToOffset_with_checksum(){
-        StoreDirect st = (StoreDirect) DBMaker.memoryDB()
-                .transactionDisable()
-                .checksumEnable()
-                .makeEngine();
-
-        //fake index pages
-        st.indexPages = new long[]{0, PAGE_SIZE*10, PAGE_SIZE*20, PAGE_SIZE*30, PAGE_SIZE*40};
-        //put expected content
-        Set<Long> m = new HashSet<Long>();
-        for(long offset=HEAD_END+8;offset<=PAGE_SIZE-10;offset+=10){
-            m.add(offset);
-        }
-
-        for(long page=PAGE_SIZE*10;page<=PAGE_SIZE*40; page+=PAGE_SIZE*10){
-            for(long offset=page+8;offset<=page+PAGE_SIZE-10;offset+=10){
-                m.add(offset);
-            }
-        }
-
-        long maxRecid = (PAGE_SIZE-8-HEAD_END)/10 + 4*((PAGE_SIZE-8)/10);
-
-
-        //now run recids
-        for(long recid=1;recid<=maxRecid;recid++){
-            long offset = st.recidToOffset(recid);
-            assertTrue("" + recid + " - " + offset + " - " + (offset % PAGE_SIZE)+ " - " + (offset - PAGE_SIZE),
                     m.remove(offset));
         }
         assertTrue(m.isEmpty());

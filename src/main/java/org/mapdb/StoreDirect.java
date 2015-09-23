@@ -38,7 +38,7 @@ public class StoreDirect extends Store {
     protected static final long STORE_SIZE = 8*2;
     /** physical offset of maximal allocated recid. Parity1.
      * It is value of last allocated RECID multiplied by recid size.
-     * Use {@code val/indexValSize} to get actual RECID*/
+     * Use {@code val/INDEX_VAL_SIZE} to get actual RECID*/
     protected static final long MAX_RECID_OFFSET = 8*3;
     protected static final long LAST_PHYS_ALLOCATED_DATA_OFFSET = 8*4; //TODO update doc
     protected static final long FREE_RECID_STACK = 8*5;
@@ -76,7 +76,7 @@ public class StoreDirect extends Store {
 
     protected final List<Snapshot> snapshots;
 
-    protected final long indexValSize;
+    protected static final long INDEX_VAL_SIZE = 8;
 
     protected final long startSize;
     protected final long sizeIncrement;
@@ -108,7 +108,6 @@ public class StoreDirect extends Store {
         this.snapshots = snapshotEnable?
                 new CopyOnWriteArrayList<Snapshot>():
                 null;
-        this.indexValSize = checksum ? 10 : 8;
 
         this.sizeIncrement = Math.max(1L<<CC.VOLUME_PAGE_SHIFT, DataIO.nextPowTwo(sizeIncrement));
         this.startSize = Fun.roundUp(Math.max(1L<<CC.VOLUME_PAGE_SHIFT,startSize), this.sizeIncrement);
@@ -116,9 +115,9 @@ public class StoreDirect extends Store {
         this.sliceShift = Volume.sliceShiftFromSize(this.sizeIncrement);
 
         if(CC.LOG_STORE && LOG.isLoggable(Level.FINE)){
-            LOG.log(Level.FINE, "StoreDirect constructed: executor={0}, snapshots={1}, indexValSize={2}, " +
+            LOG.log(Level.FINE, "StoreDirect constructed: executor={0}, snapshots={1},  " +
                             "startSize={3}, sizeIncrement={4}",
-                    new Object[]{executor,snapshots,indexValSize,startSize,sizeIncrement});
+                    new Object[]{executor,snapshots, startSize,sizeIncrement});
         }
     }
 
@@ -250,7 +249,7 @@ public class StoreDirect extends Store {
 
         //set sizes
         vol.putLong(STORE_SIZE, parity16Set(PAGE_SIZE));
-        vol.putLong(MAX_RECID_OFFSET, parity1Set(RECID_LAST_RESERVED * indexValSize));
+        vol.putLong(MAX_RECID_OFFSET, parity1Set(RECID_LAST_RESERVED * INDEX_VAL_SIZE));
         //pointer to next index page (zero)
         vol.putLong(HEAD_END, parity16Set(0));
 
@@ -262,9 +261,6 @@ public class StoreDirect extends Store {
             long indexVal = parity1Set(MLINKED | MARCHIVE);
             long indexOffset = recidToOffset(recid);
             vol.putLong(indexOffset, indexVal);
-            if(checksum) {
-                vol.putUnsignedShort(indexOffset + 8, DataIO.longHash(indexVal)&0xFFFF);
-            }
         }
 
         //put long stack master links
@@ -501,9 +497,7 @@ public class StoreDirect extends Store {
 
 
         vol.putLong(indexOffset, newval);
-        if(checksum){
-            vol.putUnsignedShort(indexOffset + 8, DataIO.longHash(newval) & 0xFFFF);
-        }
+
     }
 
 
@@ -1131,16 +1125,11 @@ public class StoreDirect extends Store {
             lock.writeLock().lock();
         }
         try {
-            long maxRecid = DataIO.parity1Get(headVol.getLong(MAX_RECID_OFFSET)) / indexValSize;
+            long maxRecid = DataIO.parity1Get(headVol.getLong(MAX_RECID_OFFSET)) / INDEX_VAL_SIZE;
             recidLoop:
             for (long recid = 1; recid <= maxRecid; recid++) {
                 long indexOffset = recidToOffset(recid);
                 long indexVal = vol.getLong(indexOffset);
-                if(checksum &&
-                        vol.getUnsignedShort(indexOffset+8)!=
-                                (DataIO.longHash(indexVal)&0xFFFF)){
-                    throw new DBException.ChecksumBroken();
-                }
 
                 //check if was discarded
                 if((indexVal&MUNUSED)!=0||indexVal == 0){
@@ -1192,7 +1181,7 @@ public class StoreDirect extends Store {
     @Override
     public void backupRestore(InputStream[] ins) {
         //check we are empty
-        if(RECID_LAST_RESERVED+1!=DataIO.parity1Get(headVol.getLong(MAX_RECID_OFFSET))/indexValSize){
+        if(RECID_LAST_RESERVED+1!=DataIO.parity1Get(headVol.getLong(MAX_RECID_OFFSET))/ INDEX_VAL_SIZE){
             throw new DBException.WrongConfig("Can not restore backup, this store is not empty!");
         }
 
@@ -1293,7 +1282,7 @@ public class StoreDirect extends Store {
                 target.init();
 
                 final AtomicLong maxRecid = new AtomicLong(
-                        parity1Get(headVol.getLong(MAX_RECID_OFFSET))/indexValSize);
+                        parity1Get(headVol.getLong(MAX_RECID_OFFSET))/ INDEX_VAL_SIZE);
 
                 //TODO what about recids which are already in freeRecidLongStack?
                 // I think it gets restored by traversing index table,
@@ -1306,7 +1295,7 @@ public class StoreDirect extends Store {
                 structuralLock.lock();
                 try {
 
-                    target.vol.putLong(MAX_RECID_OFFSET, parity1Set(maxRecid.get() * indexValSize));
+                    target.vol.putLong(MAX_RECID_OFFSET, parity1Set(maxRecid.get() * INDEX_VAL_SIZE));
                     this.indexPages = target.indexPages;
                     this.lastAllocatedData = target.lastAllocatedData;
 
@@ -1471,7 +1460,7 @@ public class StoreDirect extends Store {
     protected void compactIndexPage(StoreDirect target, int indexPageI, long maxRecid) {
         final long indexPage = indexPages[indexPageI];
 
-        long recid = (indexPageI==0? 0 : indexPageI * (PAGE_SIZE-8)/indexValSize - HEAD_END/indexValSize);
+        long recid = (indexPageI==0? 0 : indexPageI * (PAGE_SIZE-8)/ INDEX_VAL_SIZE - HEAD_END/ INDEX_VAL_SIZE);
         final long indexPageStart = (indexPage==0?HEAD_END+8 : indexPage+8);
 
         final long indexPageEnd = indexPage+PAGE_SIZE;
@@ -1481,7 +1470,7 @@ public class StoreDirect extends Store {
         indexVal:
         for( long indexOffset=indexPageStart;
                 indexOffset<indexPageEnd;
-                indexOffset+= indexValSize){
+                indexOffset+= INDEX_VAL_SIZE){
             recid++;
 
             if(CC.ASSERT && indexOffset!=recidToOffset(recid))
@@ -1493,11 +1482,6 @@ public class StoreDirect extends Store {
 
 
             final long indexVal = vol.getLong(indexOffset);
-            if(checksum &&
-                    vol.getUnsignedShort(indexOffset+8)!=
-                            (DataIO.longHash(indexVal)&0xFFFF)){
-                throw new DBException.ChecksumBroken();
-            }
 
             //check if was discarded
             if((indexVal&MUNUSED)!=0||indexVal == 0){
@@ -1573,12 +1557,7 @@ public class StoreDirect extends Store {
         long indexVal = vol.getLong(offset);
         if(indexVal == 0)
             throw new DBException.EngineGetVoid();
-        if(checksum){
-            int checksum = vol.getUnsignedShort(offset+8);
-            if(checksum!=(DataIO.longHash(indexVal)&0xFFFF)){
-                throw new DBException.ChecksumBroken();
-            }
-        }
+
         //check parity and throw recid does not exist if broken
         return DataIO.parity1Get(indexVal);
     }
@@ -1595,12 +1574,9 @@ public class StoreDirect extends Store {
     protected final long recidToOffset(long recid){
         if(CC.ASSERT && recid<=0)
             throw new DBException.DataCorruption("negative recid: "+recid);
-        if(checksum){
-            return recidToOffsetChecksum(recid);
-        }
 
         //convert recid to offset
-        recid = (recid-1) * indexValSize + HEAD_END + 8;
+        recid = (recid-1) * INDEX_VAL_SIZE + HEAD_END + 8;
 
         recid+= Math.min(1, recid/PAGE_SIZE)*    //if(recid>=PAGE_SIZE)
                 (8 + ((recid-PAGE_SIZE)/(PAGE_SIZE-8))*8);
@@ -1612,17 +1588,17 @@ public class StoreDirect extends Store {
 
     private long recidToOffsetChecksum(long recid) {
         //convert recid to offset
-        recid = (recid-1) * indexValSize + HEAD_END + 8;
+        recid = (recid-1) * INDEX_VAL_SIZE + HEAD_END + 8;
 
-        if(recid+ indexValSize >PAGE_SIZE){
+        if(recid+ INDEX_VAL_SIZE >PAGE_SIZE){
             //align from zero page
             recid+=2+8;
         }
 
         //align for every other page
         //TODO optimize away loop
-        for(long page=PAGE_SIZE*2;recid+ indexValSize >page;page+=PAGE_SIZE){
-            recid+=8+(PAGE_SIZE-8)% indexValSize;
+        for(long page=PAGE_SIZE*2;recid+ INDEX_VAL_SIZE >page;page+=PAGE_SIZE){
+            recid+=8+(PAGE_SIZE-8)% INDEX_VAL_SIZE;
         }
 
         //look up real offset
@@ -1670,10 +1646,10 @@ public class StoreDirect extends Store {
         }
 
         currentRecid = parity1Get(headVol.getLong(MAX_RECID_OFFSET));
-        currentRecid+=indexValSize;
+        currentRecid+= INDEX_VAL_SIZE;
         headVol.putLong(MAX_RECID_OFFSET, parity1Set(currentRecid));
 
-        currentRecid/=indexValSize;
+        currentRecid/= INDEX_VAL_SIZE;
         //check if new index page has to be allocated
         if(recidTooLarge(currentRecid)){
             pageIndexExtend();
@@ -1692,7 +1668,7 @@ public class StoreDirect extends Store {
 
         //convert recid into Index Page number
         //TODO is this correct?
-        recid = recid * indexValSize + HEAD_END;
+        recid = recid * INDEX_VAL_SIZE + HEAD_END;
         recid = recid / (PAGE_SIZE-8);
 
         while(indexPages.length<=recid)
@@ -1726,7 +1702,7 @@ public class StoreDirect extends Store {
             throw new AssertionError();
 
         long storeSize = storeSizeGet();
-        vol.ensureAvailable(storeSize+PAGE_SIZE);
+        vol.ensureAvailable(storeSize + PAGE_SIZE);
         vol.clear(storeSize,storeSize+PAGE_SIZE);
         storeSizeSet(storeSize + PAGE_SIZE);
 
