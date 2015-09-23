@@ -474,8 +474,8 @@ public class StoreWAL extends StoreCached {
 //        if(CC.ASSERT && compactionInProgress)
 //            throw new AssertionError();
 
-        long storeSize = parity16Get(headVol.getLong(STORE_SIZE));
-        headVol.putLong(STORE_SIZE, parity16Set(storeSize + PAGE_SIZE));
+        long storeSize = storeSizeGet();
+        storeSizeSet(storeSize + PAGE_SIZE);
         //TODO clear data on page? perhaps special instruction?
 
         if(CC.ASSERT && storeSize%PAGE_SIZE!=0)

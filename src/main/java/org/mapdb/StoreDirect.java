@@ -160,11 +160,14 @@ public class StoreDirect extends Store {
     protected void storeSizeSet(long storeSize) {
         if(CC.ASSERT && storeSize<PAGE_SIZE)
             throw new AssertionError();
-        headVol.putLong(STORE_SIZE, parity4Set(storeSize));
+        if(CC.ASSERT && storeSize%PAGE_SIZE!=0)
+            throw new AssertionError();
+
+        headVol.putLong(STORE_SIZE, parity16Set(storeSize));
     }
 
     protected long storeSizeGet(){
-        return parity4Get(headVol.getLong(STORE_SIZE));
+        return parity16Get(headVol.getLong(STORE_SIZE));
     }
 
 
@@ -1722,10 +1725,10 @@ public class StoreDirect extends Store {
         if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
-        long storeSize = parity16Get(headVol.getLong(STORE_SIZE));
+        long storeSize = storeSizeGet();
         vol.ensureAvailable(storeSize+PAGE_SIZE);
         vol.clear(storeSize,storeSize+PAGE_SIZE);
-        headVol.putLong(STORE_SIZE, parity16Set(storeSize + PAGE_SIZE));
+        storeSizeSet(storeSize + PAGE_SIZE);
 
         if(CC.ASSERT && storeSize%PAGE_SIZE!=0)
             throw new DBException.DataCorruption();
