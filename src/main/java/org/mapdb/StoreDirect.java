@@ -875,6 +875,12 @@ public class StoreDirect extends Store {
                     new Object[]{size, Long.toHexString(ret)});
         }
 
+        if(CC.PARANOID && CC.VOLUME_ZEROUT) {
+            long offset = ret&MOFFSET;
+            long size2 = ret>>>48;
+            assertZeroes(offset,offset+size2);
+        }
+
         return ret;
     }
 
