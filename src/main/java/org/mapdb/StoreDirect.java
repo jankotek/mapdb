@@ -767,7 +767,15 @@ public class StoreDirect extends Store {
 
         //shrink store if this is last record
         if(offset+size== lastAllocatedDataGet()){
-            lastAllocatedDataSet(offset);
+            if(offset%PAGE_SIZE==0){
+                //shrink current page
+                if(CC.ASSERT && offset+PAGE_SIZE!=storeSizeGet())
+                    throw new AssertionError();
+                storeSizeSet(offset);
+                lastAllocatedDataSet(0);
+            }else {
+                lastAllocatedDataSet(offset);
+            }
             return;
         }
 
@@ -2030,7 +2038,7 @@ public class StoreDirect extends Store {
             //assert that all data are accounted for
             for (int offset = 0; offset < storeSize; offset++) {
                 if (!b.get(offset))
-                    throw new AssertionError("zero at " + offset);
+                    throw new AssertionError("zero at " + offset + " - "+lastAllocatedDataGet());
             }
         }finally {
             structuralLock.unlock();
@@ -2080,6 +2088,8 @@ public class StoreDirect extends Store {
 
     protected void lastAllocatedDataSet(long offset){
         if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
+            throw new AssertionError();
+        if(CC.ASSERT && offset%PAGE_SIZE==0 && offset>0)
             throw new AssertionError();
 
         headVol.putLong(LAST_PHYS_ALLOCATED_DATA_OFFSET,parity3Set(offset));
