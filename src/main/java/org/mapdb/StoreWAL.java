@@ -704,8 +704,6 @@ public class StoreWAL extends StoreCached {
                 headVolBackup.getData(0,b,0,b.length);
                 headVol.putData(0,b,0,b.length);
 
-                lastAllocatedData = parity3Get(headVol.getLong(LAST_PHYS_ALLOCATED_DATA_OFFSET));
-
                 indexPages = indexPagesBackup.clone();
             } finally {
                 structuralLock.unlock();
@@ -786,7 +784,6 @@ public class StoreWAL extends StoreCached {
                     dirtyStackPages.clear();
                 }
 
-                headVol.putLong(LAST_PHYS_ALLOCATED_DATA_OFFSET,parity3Set(lastAllocatedData));
                 //update index checksum
                 headVol.putInt(HEAD_CHECKSUM, headChecksum(headVol));
 
@@ -882,8 +879,6 @@ public class StoreWAL extends StoreCached {
                     throw new AssertionError();
 
                 pageLongStack.clear();
-
-                headVol.putLong(LAST_PHYS_ALLOCATED_DATA_OFFSET,parity3Set(lastAllocatedData));
 
                 //update index checksum
                 headVol.putInt(HEAD_CHECKSUM, headChecksum(headVol));

@@ -70,8 +70,6 @@ public class StoreDirect extends Store {
     //TODO this only grows under structural lock, but reads are outside structural lock, does it have to be volatile?
     protected volatile long[] indexPages;
 
-    protected volatile long lastAllocatedData=0; //TODO this is under structural lock, does it have to be volatile?
-
     protected final ScheduledExecutorService executor;
 
     protected final List<Snapshot> snapshots;
@@ -217,12 +215,10 @@ public class StoreDirect extends Store {
             //move to next page
             indexPage = parity16Get(vol.getLong(indexPage));
         }
-        indexPages = Arrays.copyOf(ip,i);
-        lastAllocatedData = parity3Get(vol.getLong(LAST_PHYS_ALLOCATED_DATA_OFFSET));
+        indexPages = Arrays.copyOf(ip, i);
 
         if (CC.LOG_STORE && LOG.isLoggable(Level.FINEST)) {
             LOG.log(Level.FINEST, "indexPages: {0}", Arrays.toString(indexPages));
-            LOG.log(Level.FINEST, "lastAllocatedData: {0}", lastAllocatedData);
         }
     }
 
@@ -253,8 +249,7 @@ public class StoreDirect extends Store {
         //pointer to next index page (zero)
         vol.putLong(HEAD_END, parity16Set(0));
 
-        lastAllocatedData = 0L;
-        vol.putLong(LAST_PHYS_ALLOCATED_DATA_OFFSET, parity3Set(lastAllocatedData));
+        vol.putLong(LAST_PHYS_ALLOCATED_DATA_OFFSET, parity3Set(0));
 
         //put reserved recids
         for(long recid=1;recid<RECID_FIRST;recid++){
@@ -428,7 +423,7 @@ public class StoreDirect extends Store {
         if(CC.ASSERT)
             offsetsVerify(newOffsets);
 
-        putData(recid, newOffsets, out==null?null:out.buf, out==null?0:out.pos);
+        putData(recid, newOffsets, out == null ? null : out.buf, out == null ? 0 : out.pos);
     }
 
     protected void offsetsVerify(long[] ret) {
@@ -545,7 +540,12 @@ public class StoreDirect extends Store {
 
     @Override
     public long getCurrSize() {
-        return vol.length() - lastAllocatedData % CHUNKSIZE;
+        structuralLock.lock();
+        try {
+            return vol.length() - lastAllocatedDataGet() % CHUNKSIZE;
+        }finally {
+            structuralLock.unlock();
+        }
     }
 
     @Override
@@ -767,8 +767,8 @@ public class StoreDirect extends Store {
             vol.clear(offset,offset+size);
 
         //shrink store if this is last record
-        if(offset+size==lastAllocatedData){
-            lastAllocatedData-=size;
+        if(offset+size== lastAllocatedDataGet()){
+            lastAllocatedDataSet(offset);
             return;
         }
 
@@ -832,10 +832,10 @@ public class StoreDirect extends Store {
             return ret;
         }
 
-        if(lastAllocatedData==0){
+        if(lastAllocatedDataGet()==0){
             //allocate new data page
             long page = pageAllocate();
-            lastAllocatedData = page+size;
+            lastAllocatedDataSet(page+size);
             if(CC.ASSERT && page<PAGE_SIZE)
                 throw new DBException.DataCorruption("wrong page");
             if(CC.ASSERT && page%16!=0)
@@ -850,9 +850,9 @@ public class StoreDirect extends Store {
         }
 
         //does record fit into rest of the page?
-        if((lastAllocatedData%PAGE_SIZE + size)/PAGE_SIZE !=0){
+        if((lastAllocatedDataGet()%PAGE_SIZE + size)/PAGE_SIZE !=0){
             //throw away rest of the page and allocate new
-            lastAllocatedData=0;
+            lastAllocatedDataSet(0);
             freeDataTakeSingle(size);
             //TODO i thing return! should be here, but not sure.
 
@@ -860,8 +860,9 @@ public class StoreDirect extends Store {
             // save pointers and put them into free list after new page was allocated.
         }
         //yes it fits here, increase pointer
+        long lastAllocatedData = lastAllocatedDataGet();
         ret = lastAllocatedData;
-        lastAllocatedData+=size;
+        lastAllocatedDataSet(lastAllocatedData+size);
 
         if(CC.ASSERT && ret%16!=0)
             throw new DBException.DataCorruption();
@@ -1092,7 +1093,6 @@ public class StoreDirect extends Store {
             return;
         structuralLock.lock();
         try{
-            headVol.putLong(LAST_PHYS_ALLOCATED_DATA_OFFSET, parity3Set(lastAllocatedData));
             //and set header checksum
             vol.putInt(HEAD_CHECKSUM, headChecksum(vol));
         }finally {
@@ -1303,8 +1303,6 @@ public class StoreDirect extends Store {
 
                     target.maxRecidSet(maxRecid.get());
                     this.indexPages = target.indexPages;
-                    this.lastAllocatedData = target.lastAllocatedData;
-
 
                     //compaction done, swap target with current
                     if(compactedFile==null) {
@@ -2051,6 +2049,20 @@ public class StoreDirect extends Store {
 
     protected long maxRecidGet(){
         return parity4Get(headVol.getLong(MAX_RECID_OFFSET))>>>4;
+    }
+
+    protected void lastAllocatedDataSet(long offset){
+        if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
+            throw new AssertionError();
+
+        headVol.putLong(LAST_PHYS_ALLOCATED_DATA_OFFSET,parity3Set(offset));
+    }
+
+    protected long lastAllocatedDataGet(){
+        if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
+            throw new AssertionError();
+
+        return parity3Get(headVol.getLong(LAST_PHYS_ALLOCATED_DATA_OFFSET));
     }
 
 }

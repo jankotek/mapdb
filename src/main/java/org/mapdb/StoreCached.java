@@ -340,7 +340,6 @@ public class StoreCached extends StoreDirect {
                 vol.putData(offset, val, 0, val.length);
             }
             dirtyStackPages.clear();
-            headVol.putLong(LAST_PHYS_ALLOCATED_DATA_OFFSET,parity3Set(lastAllocatedData));
             //set header checksum
             headVol.putInt(HEAD_CHECKSUM, headChecksum(headVol));
             //and flush head
