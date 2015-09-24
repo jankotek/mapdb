@@ -376,12 +376,12 @@ public class StoreDirectTest2 {
         List<Long> a = new ArrayList<Long>();
         for(long i=10000;i<11000;i++){
             a.add(i);
-            st.longStackPut(StoreDirect.FREE_RECID_STACK, i,false);
+            st.longStackPut(StoreDirect.FREE_RECID_STACK, i, false);
         }
         List<Long> content = st.longStackDump(StoreDirect.FREE_RECID_STACK);
         Collections.sort(content);
         assertEquals(a.size(), content.size());
-        assertEquals(a,content);
+        assertEquals(a, content);
     }
 
 
@@ -390,8 +390,67 @@ public class StoreDirectTest2 {
                 .transactionDisable()
                 .makeEngine();
         st.storeCheck();
-        st.put("aa",Serializer.STRING);
+        st.put("aa", Serializer.STRING);
         st.storeCheck();
     }
 
+    @Test public void storeCheck_large(){
+        StoreDirect st = (StoreDirect) DBMaker.memoryDB()
+                .transactionDisable()
+                .makeEngine();
+        st.storeCheck();
+        st.put(TT.randomString((int) 1e6), Serializer.STRING);
+        st.storeCheck();
+    }
+
+    @Test public void storeCheck_many_recids(){
+        StoreDirect st = (StoreDirect) DBMaker.memoryDB()
+                .transactionDisable()
+                .makeEngine();
+        st.storeCheck();
+        for(int i=0;i<1e6;i++){
+            st.preallocate();
+            if(!TT.shortTest() && i%100==0)
+                st.storeCheck();
+        }
+        st.storeCheck();
+    }
+
+    @Test public void storeCheck_map(){
+        DB db = DBMaker.memoryDB().transactionDisable().make();
+        ((StoreDirect)db.engine).storeCheck();
+        synchronized (db) {
+            db.catPut("DSAADsa", "dasdsa");
+        }
+        ((StoreDirect)db.engine).storeCheck();
+        Map map = db.hashMap("map", Serializer.INTEGER, Serializer.BYTE_ARRAY);
+        ((StoreDirect)db.engine).storeCheck();
+        long n = (long) (1000 + 1e7*TT.scale());
+        Random r = new Random(1);
+        while(n-->0){  //LOL :)
+            int key = r.nextInt(10000);
+            map.put(key, new byte[r.nextInt(100000)]);
+            if(r.nextInt(10)<2)
+                map.remove(key);
+
+            //if(n%1000==0)
+                ((StoreDirect)db.engine).storeCheck();
+        }
+        ((StoreDirect)db.engine).storeCheck();
+    }
+
+    @Test public void dumpLongStack(){
+        StoreDirect st = (StoreDirect) DBMaker.memoryDB()
+                .transactionDisable()
+                .makeEngine();
+
+        st.structuralLock.lock();
+        st.longStackPut(st.longStackMasterLinkOffset(16), 110000L, false);
+        Map m = new LinkedHashMap();
+        List l = new ArrayList();
+        l.add(110000L);
+        m.put(16, l);
+
+        assertEquals(m.toString(), st.longStackDumpAll().toString());
+    }
 }

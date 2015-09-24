@@ -762,7 +762,6 @@ public class StoreDirect extends Store {
                     new Object[]{offset, size});
         }
 
-
         if(!(this instanceof  StoreWAL)) //TODO WAL needs to handle record clear, perhaps WAL instruction?
             vol.clear(offset,offset+size);
 
@@ -851,13 +850,17 @@ public class StoreDirect extends Store {
 
         //does record fit into rest of the page?
         if((lastAllocatedDataGet()%PAGE_SIZE + size)/PAGE_SIZE !=0){
-            //throw away rest of the page and allocate new
-            lastAllocatedDataSet(0);
-            freeDataTakeSingle(size);
-            //TODO i thing return! should be here, but not sure.
+            long offsetToFree = lastAllocatedDataGet();
+            long sizeToFree = Fun.roundUp(offsetToFree,PAGE_SIZE) - offsetToFree;
+            if(CC.ASSERT && (offsetToFree%16!=0 || sizeToFree%16!=0))
+                throw new AssertionError();
 
-            //TODO it could be possible to recycle data here.
-            // save pointers and put them into free list after new page was allocated.
+            //now reset, this will force new page start
+            lastAllocatedDataSet(0);
+
+            //mark space at end of this page as free
+            freeDataPut(offsetToFree, (int) sizeToFree);
+            return freeDataTakeSingle(size);
         }
         //yes it fits here, increase pointer
         long lastAllocatedData = lastAllocatedDataGet();
@@ -1021,11 +1024,13 @@ public class StoreDirect extends Store {
                 headVol.getLong(masterLinkOffset));
         long ret = 0;
         while(true){
-            long currSize = nextLinkVal>>>48;
+
             final long pageOffset = nextLinkVal&MOFFSET;
 
             if(pageOffset==0)
                 break;
+
+            long currSize = parity4Get(vol.getLong(pageOffset))>>>48;
 
             //now read bytes from end of page, until they are zeros
             while (vol.getUnsignedByte(pageOffset + currSize-1) == 0) {
@@ -1805,7 +1810,9 @@ public class StoreDirect extends Store {
         Map<Long,List<Long>> ret = new LinkedHashMap<Long, List<Long>>();
         masterLoop: for(long masterSize = 0; masterSize<64*1024; masterSize+=16){
             long masterLinkOffset = masterSize==0? FREE_RECID_STACK : longStackMasterLinkOffset(masterSize);
-            ret.put(masterSize, longStackDump(masterLinkOffset));
+            List<Long> l = longStackDump(masterLinkOffset);
+            if(!l.isEmpty())
+                ret.put(masterSize, l);
         }
         return ret;
     }
@@ -1824,11 +1831,13 @@ public class StoreDirect extends Store {
 
         pageLoop:
         while(true){
-            long currSize = nextLinkVal>>>48;
+
             final long pageOffset = nextLinkVal&MOFFSET;
 
             if(pageOffset==0)
                 break pageLoop;
+
+            long currSize = parity4Get(vol.getLong(pageOffset))>>>48;
 
             //now read bytes from end of page, until they are zeros
             while (vol.getUnsignedByte(pageOffset + currSize-1) == 0) {
@@ -1863,34 +1872,11 @@ public class StoreDirect extends Store {
             BitSet b = new BitSet((int) storeSize); // TODO limited to 2GB, add BitSet methods to Volume
             b.set(0, (int) (HEAD_END + 8), true); // +8 is zero Index Page checksum
 
-            //mark unused recid before end of current page;
-            {
-                long maxRecid = maxRecidGet();
-                long offset = 0;
-                for (long recid = 1; recid <= maxRecid; recid++) {
-                    offset = recidToOffset(recid);
-                    long indexVal = vol.getLong(offset);
-                    if (indexVal == 0)
-                        continue; // unused recid
-                    b.set((int) offset, (int) offset + 8);
-                }
-
-                offset += 8;
-                if (offset % PAGE_SIZE != 0) {
-                    //mark rest of this Index Page as used
-                    long endOffset = Fun.roundUp(offset, PAGE_SIZE);
-                    vol.assertZeroes(offset, endOffset);
-                    b.set((int) offset, (int) endOffset);
-                }
-
-            }
 
             if (vol.length() < storeSize)
                 throw new AssertionError("Store too small, need " + storeSize + ", got " + vol.length());
 
             vol.assertZeroes(storeSize, vol.length());
-
-            //TODO do accounting for recid once pages are implemented
 
 
             /**
@@ -1904,30 +1890,32 @@ public class StoreDirect extends Store {
 
                 pageLoop:
                 while (true) {
-                    long currSize = nextLinkVal >>> 48;
                     final long pageOffset = nextLinkVal & MOFFSET;
 
                     if (pageOffset == 0)
                         break pageLoop;
 
+                    long pageSize = parity4Get(vol.getLong(pageOffset)) >>> 48;
+
                     //mark this Long Stack Page occupied
-                    storeCheckMark(b, true, pageOffset, currSize);
+                    storeCheckMark(b, true, pageOffset, pageSize);
 
                     //now read bytes from end of page, until they are zeros
-                    while (vol.getUnsignedByte(pageOffset + currSize - 1) == 0) {
-                        currSize--;
+                    while (vol.getUnsignedByte(pageOffset + pageSize - 1) == 0) {
+                        pageSize--;
                     }
 
                     //iterate from end of page until start of page is reached
-                    while (currSize > 8) {
-                        long read = vol.getLongPackBidiReverse(pageOffset + currSize);
+                    valuesLoop:
+                    while (pageSize > 8) {
+                        long read = vol.getLongPackBidiReverse(pageOffset + pageSize);
                         long val = read & DataIO.PACK_LONG_RESULT_MASK;
-                        val = longParityGet(val);
-                        //content of Long Stack should be free, so mark it as used
+                        val = longParityGet(val)<<4;
+                        //content of Long Stack should be free, so mark it
                         storeCheckMark(b, false, val & MOFFSET, masterSize);
 
                         //extract number of read bytes
-                        currSize -= read >>> 60;
+                        pageSize -= read >>> 60;
                     }
 
                     nextLinkVal = DataIO.parity4Get(
@@ -1943,13 +1931,15 @@ public class StoreDirect extends Store {
             final long maxRecid = maxRecidGet();
 
 
-            pageLoop:
+            freeRecidLongStack:
             for (long nextLinkVal = parity4Get(headVol.getLong(FREE_RECID_STACK)); ; ) {
-                long currSize = nextLinkVal >>> 48;
+
                 final long pageOffset = nextLinkVal & MOFFSET;
 
                 if (pageOffset == 0)
-                    break pageLoop;
+                    break freeRecidLongStack;
+
+                long currSize = parity4Get(vol.getLong(pageOffset))>>>48;
 
                 //mark this Long Stack Page occupied
                 storeCheckMark(b, true, pageOffset, currSize);
@@ -1966,9 +1956,16 @@ public class StoreDirect extends Store {
                     if (recid > maxRecid)
                         throw new AssertionError("Recid too big");
 
-                    long recidOffset = recidToOffset(recid);
-                    //content of Long Stack should be free, so mark it as used
-                    storeCheckMark(b, false, recidOffset, 8);
+                    long indexVal = vol.getLong(recidToOffset(recid));
+                    if(indexVal!=0){
+                        indexVal = parity1Get(indexVal);
+                        if(indexVal>>>48!=0)
+                            throw new AssertionError();
+                        if((indexVal&MOFFSET)!=0)
+                            throw new AssertionError();
+                        if((indexVal&MUNUSED)==0)
+                            throw new AssertionError();
+                    }
 
                     //extract number of read bytes
                     currSize -= read >>> 60;
@@ -1980,35 +1977,55 @@ public class StoreDirect extends Store {
 
             recidLoop:
             for (long recid = 1; recid <= maxRecid; recid++) {
-                long recidOffset = recidToOffset(recid);
-                long recidVal;
+                long recidVal = 0;
                 try {
                     recidVal = indexValGet(recid);
                 } catch (DBException.EngineGetVoid e) {
-                    //recid is empty, it should be marked by traversal of free recids
-                    continue recidLoop;
                 }
 
-                long offset = recidVal & MOFFSET;
-                long size = round16Up((int) (recidVal >>> 48));
+                storeCheckMark(b,true,recidToOffset(recid), 8);
 
-                if (size == 0) {
-                    continue recidLoop;
+                linkedRecLoop:
+                for(;;) {
+                    long offset = recidVal & MOFFSET;
+                    long size = round16Up((int) (recidVal >>> 48));
+
+                    if (size == 0) {
+                        continue recidLoop;
+                    }
+                    storeCheckMark(b, true, offset, size);
+
+                    if((recidVal&MLINKED)==0)
+                        break linkedRecLoop;
+
+                    recidVal = parity3Get(vol.getLong(offset));
                 }
-                //TODO linked records
-
-                storeCheckMark(b, true, offset, size);
+            }
+            //mark unused recid before end of current page;
+            {
+                long offset = recidToOffset(maxRecidGet())+8;
+                if (offset % PAGE_SIZE != 0) {
+                    //mark rest of this Index Page as used
+                    long endOffset = Fun.roundUp(offset, PAGE_SIZE);
+                    vol.assertZeroes(offset, endOffset);
+                    b.set((int) offset, (int) endOffset);
+                }
             }
 
-            //TODO 16 bytes at begining of each index page
+
+
+            indexTableLoop:
+            for(long pageOffset:indexPages){
+                if(pageOffset==0)
+                    continue  indexTableLoop;
+                storeCheckMark(b,true, pageOffset,16);
+            }
 
             //mark unused data et EOF
-
             long lastAllocated = lastAllocatedDataGet();
             if (lastAllocated != 0) {
                 storeCheckMark(b, false, lastAllocated, Fun.roundUp(lastAllocated, PAGE_SIZE)-lastAllocated);
             }
-
 
             //assert that all data are accounted for
             for (int offset = 0; offset < storeSize; offset++) {
@@ -2018,8 +2035,6 @@ public class StoreDirect extends Store {
         }finally {
             structuralLock.unlock();
         }
-
-
     }
 
     private void storeCheckMark(BitSet b, boolean used, long pageOffset, long pageSize) {
