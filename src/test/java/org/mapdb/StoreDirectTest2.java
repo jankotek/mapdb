@@ -425,7 +425,7 @@ public class StoreDirectTest2 {
         ((StoreDirect)db.engine).storeCheck();
         Map map = db.hashMap("map", Serializer.INTEGER, Serializer.BYTE_ARRAY);
         ((StoreDirect)db.engine).storeCheck();
-        long n = (long) (1000 + 1e5*TT.scale());
+        long n = (long) (1000);
         Random r = new Random(1);
         while(n-->0){  //LOL :)
             int key = r.nextInt(10000);
