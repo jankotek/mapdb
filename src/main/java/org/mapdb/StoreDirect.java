@@ -1853,158 +1853,170 @@ public class StoreDirect extends Store {
 
     /** paranoid store check. Check for overlaps, empty space etc... */
     void storeCheck(){
-        long storeSize = storeSizeGet();
-        /**
-         * This BitSet contains 1 for bytes which are accounted for (part of data, or marked as free)
-         * At end there should be no unaccounted bytes, and this BitSet is completely filled
-         */
-        BitSet b = new BitSet((int) storeSize); // TODO limited to 2GB, add BitSet methods to Volume
-        b.set(0, (int) (HEAD_END+ 8), true); // +8 is zero Index Page checksum
+        structuralLock.lock();
+        try {
+            long storeSize = storeSizeGet();
+            /**
+             * This BitSet contains 1 for bytes which are accounted for (part of data, or marked as free)
+             * At end there should be no unaccounted bytes, and this BitSet is completely filled
+             */
+            BitSet b = new BitSet((int) storeSize); // TODO limited to 2GB, add BitSet methods to Volume
+            b.set(0, (int) (HEAD_END + 8), true); // +8 is zero Index Page checksum
 
-        //mark unused recid before end of current page;
-        {
-            long maxRecid = maxRecidGet();
-            long offset = 0;
-            for(long recid = 1; recid<=maxRecid; recid++){
-                offset = recidToOffset(recid);
-                long indexVal = vol.getLong(offset);
-                if(indexVal==0)
-                    continue; // unused recid
-                b.set((int)offset,(int)offset+8);
+            //mark unused recid before end of current page;
+            {
+                long maxRecid = maxRecidGet();
+                long offset = 0;
+                for (long recid = 1; recid <= maxRecid; recid++) {
+                    offset = recidToOffset(recid);
+                    long indexVal = vol.getLong(offset);
+                    if (indexVal == 0)
+                        continue; // unused recid
+                    b.set((int) offset, (int) offset + 8);
+                }
+
+                offset += 8;
+                if (offset % PAGE_SIZE != 0) {
+                    //mark rest of this Index Page as used
+                    long endOffset = Fun.roundUp(offset, PAGE_SIZE);
+                    vol.assertZeroes(offset, endOffset);
+                    b.set((int) offset, (int) endOffset);
+                }
+
             }
 
-            offset +=8;
-            if(offset%PAGE_SIZE!=0){
-                //mark rest of this Index Page as used
-                long endOffset = Fun.roundUp(offset, PAGE_SIZE);
-                vol.assertZeroes(offset,endOffset);
-                b.set((int)offset,(int)endOffset);
+            if (vol.length() < storeSize)
+                throw new AssertionError("Store too small, need " + storeSize + ", got " + vol.length());
+
+            vol.assertZeroes(storeSize, vol.length());
+
+            //TODO do accounting for recid once pages are implemented
+
+
+            /**
+             * Check free data by traversing Long Stack Pages
+             */
+            //iterate over Long Stack Pages
+            masterSizeLoop:
+            for (long masterSize = 16; masterSize <= 64 * 1024; masterSize += 16) {
+                long masterOffset = longStackMasterLinkOffset(masterSize);
+                long nextLinkVal = parity4Get(headVol.getLong(masterOffset));
+
+                pageLoop:
+                while (true) {
+                    long currSize = nextLinkVal >>> 48;
+                    final long pageOffset = nextLinkVal & MOFFSET;
+
+                    if (pageOffset == 0)
+                        break pageLoop;
+
+                    //mark this Long Stack Page occupied
+                    storeCheckMark(b, true, pageOffset, currSize);
+
+                    //now read bytes from end of page, until they are zeros
+                    while (vol.getUnsignedByte(pageOffset + currSize - 1) == 0) {
+                        currSize--;
+                    }
+
+                    //iterate from end of page until start of page is reached
+                    while (currSize > 8) {
+                        long read = vol.getLongPackBidiReverse(pageOffset + currSize);
+                        long val = read & DataIO.PACK_LONG_RESULT_MASK;
+                        val = longParityGet(val);
+                        //content of Long Stack should be free, so mark it as used
+                        storeCheckMark(b, false, val & MOFFSET, masterSize);
+
+                        //extract number of read bytes
+                        currSize -= read >>> 60;
+                    }
+
+                    nextLinkVal = DataIO.parity4Get(
+                            vol.getLong(pageOffset));
+                }
             }
 
-        }
+            /**
+             * Iterate over Free Recids an mark them as used
+             */
 
-        if(vol.length()<storeSize)
-            throw new AssertionError("Store too small, need "+storeSize+", got "+vol.length());
+            //iterate over recids
+            final long maxRecid = maxRecidGet();
 
-        vol.assertZeroes(storeSize, vol.length());
-
-        //TODO do accounting for recid once pages are implemented
-
-
-        /**
-         * Check free data by traversing Long Stack Pages
-         */
-        //iterate over Long Stack Pages
-        masterSizeLoop:
-        for(long masterSize = 16; masterSize<=64*1024;masterSize+=16) {
-            long masterOffset = longStackMasterLinkOffset(masterSize);
-            long nextLinkVal = parity4Get(headVol.getLong(masterOffset));
 
             pageLoop:
-            while(true){
-                long currSize = nextLinkVal>>>48;
-                final long pageOffset = nextLinkVal&MOFFSET;
+            for (long nextLinkVal = parity4Get(headVol.getLong(FREE_RECID_STACK)); ; ) {
+                long currSize = nextLinkVal >>> 48;
+                final long pageOffset = nextLinkVal & MOFFSET;
 
-                if(pageOffset==0)
+                if (pageOffset == 0)
                     break pageLoop;
 
                 //mark this Long Stack Page occupied
                 storeCheckMark(b, true, pageOffset, currSize);
 
                 //now read bytes from end of page, until they are zeros
-                while (vol.getUnsignedByte(pageOffset + currSize-1) == 0) {
+                while (vol.getUnsignedByte(pageOffset + currSize - 1) == 0) {
                     currSize--;
                 }
 
                 //iterate from end of page until start of page is reached
-                while(currSize>8){
-                    long read = vol.getLongPackBidiReverse(pageOffset+currSize);
-                    long val = read&DataIO.PACK_LONG_RESULT_MASK;
-                    val = longParityGet(val);
+                while (currSize > 8) {
+                    long read = vol.getLongPackBidiReverse(pageOffset + currSize);
+                    long recid = longParityGet(read & DataIO.PACK_LONG_RESULT_MASK);
+                    if (recid > maxRecid)
+                        throw new AssertionError("Recid too big");
+
+                    long recidOffset = recidToOffset(recid);
                     //content of Long Stack should be free, so mark it as used
-                    storeCheckMark(b, false, val & MOFFSET, masterSize);
+                    storeCheckMark(b, false, recidOffset, 8);
 
                     //extract number of read bytes
-                    currSize-= read >>>60;
+                    currSize -= read >>> 60;
                 }
 
                 nextLinkVal = DataIO.parity4Get(
                         vol.getLong(pageOffset));
             }
-        }
 
-        /**
-         * Iterate over Free Recids an mark them as used
-         */
-
-        //iterate over recids
-        final long maxRecid = maxRecidGet();
-
-
-        pageLoop:
-        for(long nextLinkVal = parity4Get(headVol.getLong(FREE_RECID_STACK));;){
-            long currSize = nextLinkVal>>>48;
-            final long pageOffset = nextLinkVal&MOFFSET;
-
-            if(pageOffset==0)
-                break pageLoop;
-
-            //mark this Long Stack Page occupied
-            storeCheckMark(b, true, pageOffset, currSize);
-
-            //now read bytes from end of page, until they are zeros
-            while (vol.getUnsignedByte(pageOffset + currSize-1) == 0) {
-                currSize--;
-            }
-
-            //iterate from end of page until start of page is reached
-            while(currSize>8){
-                long read = vol.getLongPackBidiReverse(pageOffset + currSize);
-                long recid = longParityGet(read & DataIO.PACK_LONG_RESULT_MASK);
-                if(recid>maxRecid)
-                    throw new AssertionError("Recid too big");
-
+            recidLoop:
+            for (long recid = 1; recid <= maxRecid; recid++) {
                 long recidOffset = recidToOffset(recid);
-                //content of Long Stack should be free, so mark it as used
-                storeCheckMark(b, false, recidOffset, 8);
+                long recidVal;
+                try {
+                    recidVal = indexValGet(recid);
+                } catch (DBException.EngineGetVoid e) {
+                    //recid is empty, it should be marked by traversal of free recids
+                    continue recidLoop;
+                }
 
-                //extract number of read bytes
-                currSize-= read >>>60;
+                long offset = recidVal & MOFFSET;
+                long size = round16Up((int) (recidVal >>> 48));
+
+                if (size == 0) {
+                    continue recidLoop;
+                }
+                //TODO linked records
+
+                storeCheckMark(b, true, offset, size);
             }
 
-            nextLinkVal = DataIO.parity4Get(
-                    vol.getLong(pageOffset));
-        }
+            //TODO 16 bytes at begining of each index page
 
-        recidLoop:
-        for(long recid=1;recid<=maxRecid;recid++){
-            long recidOffset = recidToOffset(recid);
-            long recidVal;
-            try {
-                recidVal = indexValGet(recid);
-            }catch(DBException.EngineGetVoid e){
-                //recid is empty, it should be marked by traversal of free recids
-                continue recidLoop;
+            //mark unused data et EOF
+
+            long lastAllocated = lastAllocatedDataGet();
+            if (lastAllocated != 0) {
+                storeCheckMark(b, false, lastAllocated, Fun.roundUp(lastAllocated, PAGE_SIZE)-lastAllocated);
             }
 
-            long offset = recidVal & MOFFSET;
-            long size = round16Up((int) (recidVal >>> 48));
 
-            if(size==0) {
-                continue recidLoop;
+            //assert that all data are accounted for
+            for (int offset = 0; offset < storeSize; offset++) {
+                if (!b.get(offset))
+                    throw new AssertionError("zero at " + offset);
             }
-            //TODO linked records
-
-            storeCheckMark(b, true, offset, size);
-        }
-
-        //TODO 16 bytes at beggining of each index page
-
-
-        //assert that all data are accounted for
-        for(int offset = 0; offset<storeSize;offset++){
-            if(!b.get(offset))
-                throw new AssertionError("zero at "+offset);
+        }finally {
+            structuralLock.unlock();
         }
 
 
