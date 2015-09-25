@@ -2107,8 +2107,13 @@ public class HTreeMap<K,V>
         long recid = engine.get(expireTails[seg],Serializer.LONG);
         long counter=0;
         ExpireLinkNode last =null,n=null;
+        recidLoop:
         while(recid!=0){
             n = engine.get(recid, ExpireLinkNode.SERIALIZER);
+            if(n==null){
+                LOG.warning("Empty expiration node");
+                break recidLoop;
+            }
             if(CC.ASSERT && n==ExpireLinkNode.EMPTY)
                 throw new DBException.DataCorruption("empty expire link node");
             if(CC.ASSERT &&  n.hash>>>28 != seg)
