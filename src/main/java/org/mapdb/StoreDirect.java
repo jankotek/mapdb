@@ -174,17 +174,13 @@ public class StoreDirect extends Store {
         if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
         int header = vol.getInt(0);
-        if(header!=header){
+        if(header!=HEADER){
+            //TODO handle version numbers
             throw new DBException.WrongConfig("This is not MapDB file");
         }
 
         if (CC.LOG_STORE && LOG.isLoggable(Level.FINE)) {
             LOG.log(Level.FINE, "initOpen: file={0}, volLength={1}, vol={2}", new Object[]{fileName, vol.length(), vol});
-        }
-
-        if(vol.getInt(0)!=HEADER){
-            //TODO handle version numbers
-            throw new DBException.DataCorruption("wrong header in file: "+fileName);
         }
 
         //check header config
