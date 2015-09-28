@@ -1710,6 +1710,8 @@ public class StoreDirect extends Store {
 
         //set zero link on next page
         indexLongPut(indexPage, parity16Set(0));
+        //zero out checksum
+        indexLongPut(indexPage+8, 0L);
 
         //put into index page array
         long[] indexPages2 = Arrays.copyOf(indexPages,indexPages.length+1);
