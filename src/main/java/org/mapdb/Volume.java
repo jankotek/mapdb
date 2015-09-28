@@ -2893,7 +2893,7 @@ public abstract class Volume implements Closeable{
             try {
                 raf.seek(offset);
                 byte[] b = new byte[size];
-                raf.read(b);
+                raf.readFully(b);
                 return new DataIO.DataInputByteArray(b);
             } catch (IOException e) {
                 throw new DBException.VolumeIOError(e);
@@ -2904,7 +2904,7 @@ public abstract class Volume implements Closeable{
         public synchronized void getData(long offset, byte[] bytes, int bytesPos, int size) {
             try {
                 raf.seek(offset);
-                raf.read(bytes,bytesPos,size);
+                raf.readFully(bytes,bytesPos,size);
             } catch (IOException e) {
                 throw new DBException.VolumeIOError(e);
             }
