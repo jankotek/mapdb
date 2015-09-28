@@ -69,9 +69,11 @@ public class TxMaker implements Closeable {
         return new DB(snapshot,strictDBGet,false,executor, true, null, 0, null, null, serializerClassLoader);
     }
 
-    public void close() {
-        engine.close();
-        engine = null;
+    public synchronized void close() {
+        if (engine != null) {
+            engine.close();
+            engine = null;
+        }
     }
 
     /**

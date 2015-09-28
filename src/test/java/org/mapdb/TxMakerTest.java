@@ -397,4 +397,9 @@ public class TxMakerTest{
 
         txMaker.close();
     }
+
+    @Test public void testDuplicateClose() {
+        tx.close();
+        tx.close();
+    }
 }
