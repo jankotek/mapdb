@@ -54,49 +54,6 @@ public final class DataIO {
         return ret;
     }
 
-    /**
-     * Unpack long value. Highest 4 bits sed to indicate number of bytes read.
-     * One can use {@code result & DataIO.PACK_LONG_RESULT_MASK} to remove size;
-     *
-     * @param b byte[] to get data from
-     * @param pos position to get data from
-     * @return long value with highest 4 bits used to indicate number of bytes read
-     */
-    static public long unpackLongReturnSize(byte[] b, int pos){
-        long ret = 0;
-        int pos2 = 0;
-        byte v;
-        do{
-            v = b[pos + (pos2++)];
-            ret = (ret<<7 ) | (v & 0x7F);
-        }while(v<0);
-
-        return (((long)pos2)<<60) | ret;
-    }
-
-    /**
-     * Unpack long value. Highest 4 bits sed to indicate number of bytes read.
-     * One can use {@code result & DataIO.PACK_LONG_RESULT_MASK} to remove size.
-     * This method uses reverse bit flag, which is not compatible with other methods.
-     *
-     *
-     * @param b byte[] to get data from
-     * @param pos position to get data from
-     * @return long value with highest 4 bits used to indicate number of bytes read
-     */
-    static public long unpackLongReverseReturnSize(byte[] b, int pos){
-        long ret = 0;
-        int pos2 = 0;
-        byte v;
-        do{
-            v = b[pos + (pos2++)];
-            ret = (ret<<7 ) | (v & 0x7F);
-        }while(v>=0);
-
-        return (((long)pos2)<<60) | ret;
-    }
-
-
 
     /**
      * Unpack long value from the input stream.
@@ -138,79 +95,6 @@ public final class DataIO {
             shift-=7;
         }
         out.writeByte((byte) (value & 0x7F));
-    }
-
-
-    /**
-     * Pack long into output.
-     * It will occupy 1-10 bytes depending on value (lower values occupy smaller space)
-     * This method uses reverse bit flag, which is not compatible with other methods.
-     *
-     * @param out DataOutput to put value into
-     * @param value to be serialized, must be non-negative
-     *
-     * @throws java.io.IOException in case of IO error
-     */
-    static public void packLongReverse(DataOutput out, long value) throws IOException {
-        //$DELAY$
-        int shift = 63-Long.numberOfLeadingZeros(value);
-        shift -= shift%7; // round down to nearest multiple of 7
-        while(shift!=0){
-            out.writeByte((byte) (((value>>>shift) & 0x7F)));
-            //$DELAY$
-            shift-=7;
-        }
-        out.writeByte((byte) ((value & 0x7F) | 0x80));
-    }
-
-
-    /**
-     * Pack long into output.
-     * It will occupy 1-10 bytes depending on value (lower values occupy smaller space)
-     *
-     * @param b byte[] to put value into
-     * @param pos array index where value will start
-     * @param value to be serialized, must be non-negative
-     *
-     * @return number of bytes written
-     */
-    static public int packLongReturnSize(byte[] b, int pos, long value){
-        //$DELAY$
-        int ret = 0;
-        int shift = 63-Long.numberOfLeadingZeros(value);
-        shift -= shift%7; // round down to nearest multiple of 7
-        while(shift!=0){
-            b[pos+ret++]=((byte) (((value>>>shift) & 0x7F) | 0x80));
-            //$DELAY$
-            shift-=7;
-        }
-        b[pos+ret++]=((byte) (value & 0x7F));
-        return ret;
-    }
-
-    /**
-     * Pack long into output.
-     * It will occupy 1-10 bytes depending on value (lower values occupy smaller space)
-     * This method uses reverse bit flag, which is not compatible with other methods.
-     *
-     * @param b byte[] to put value into
-     * @param pos array index where value will start
-     * @param value to be serialized, must be non-negative
-     *
-     * @return number of bytes written
-     */
-    static public int packLongReverseReturnSize(byte[] b, int pos, long value){
-        //$DELAY$
-        int ret = 0;
-        int shift = 63-Long.numberOfLeadingZeros(value);
-        shift -= shift%7; // round down to nearest multiple of 7
-        while(shift!=0){
-            b[pos+ret++]=((byte) (((value>>>shift) & 0x7F)));
-            //$DELAY$
-            shift-=7;
-        }
-        b[pos+ret++]=((byte) ((value & 0x7F) | 0x80));
-        return ret;
     }
 
 
@@ -337,11 +221,14 @@ public final class DataIO {
     }
 
     public static int longHash(long h) {
+        //$DELAY$
+        h = h * -7046029254386353131L;
         h ^= h >> 32;
-        return intHash((int) h);
+        return (int)(h ^ h >> 16);
     }
 
     public static int intHash(int h) {
+        //$DELAY$
         h = h * -1640531527;
         return h ^ h >> 16;
     }

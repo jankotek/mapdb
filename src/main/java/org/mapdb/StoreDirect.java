@@ -245,7 +245,7 @@ public class StoreDirect extends Store {
 
         //set sizes
         vol.putLong(STORE_SIZE, parity16Set(PAGE_SIZE));
-        vol.putLong(MAX_RECID_OFFSET, parity4Set(RECID_LAST_RESERVED<<4));
+        vol.putLong(MAX_RECID_OFFSET, parity1Set(RECID_LAST_RESERVED * INDEX_VAL_SIZE));
         //pointer to next index page (zero)
         vol.putLong(HEAD_END, parity16Set(0));
 
@@ -929,7 +929,7 @@ public class StoreDirect extends Store {
         }
 
         //there is enough space, so just write new value
-        currSize += vol.putLongPackBidi(pageOffset+currSize, longParitySet(value));
+        currSize += vol.putLongPackBidi(pageOffset + currSize, longParitySet(value));
         //and update master pointer
         headVol.putLong(masterLinkOffset, parity4Set(currSize<<48 | pageOffset));
     }
@@ -943,7 +943,7 @@ public class StoreDirect extends Store {
         //write size of current chunk with link to prev page
         vol.putLong(newPageOffset, parity4Set((CHUNKSIZE<<48) | prevPageOffset));
         //put value
-        long currSize = 8 + vol.putLongPackBidi(newPageOffset+8, longParitySet(value));
+        long currSize = 8 + vol.putLongPackBidi(newPageOffset + 8, longParitySet(value));
         //update master pointer
         headVol.putLong(masterLinkOffset, parity4Set((currSize<<48)|newPageOffset));
     }
@@ -2081,11 +2081,14 @@ public class StoreDirect extends Store {
 
 
     protected void maxRecidSet(long maxRecid) {
-        headVol.putLong(MAX_RECID_OFFSET, parity4Set(maxRecid<<4));
+        headVol.putLong(MAX_RECID_OFFSET, parity1Set(maxRecid * 8));
     }
 
     protected long maxRecidGet(){
-        return parity4Get(headVol.getLong(MAX_RECID_OFFSET))>>>4;
+        long val = parity1Get(headVol.getLong(MAX_RECID_OFFSET));
+        if(CC.ASSERT && val%8!=0)
+            throw new DBException.DataCorruption();
+        return val/8;
     }
 
     protected void lastAllocatedDataSet(long offset){

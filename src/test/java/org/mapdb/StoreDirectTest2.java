@@ -21,7 +21,7 @@ public class StoreDirectTest2 {
         assertEquals(st.headChecksum(st.vol), st.vol.getInt(StoreDirect.HEAD_CHECKSUM));
         assertEquals(parity16Set(st.PAGE_SIZE), st.vol.getLong(StoreDirect.STORE_SIZE));
         assertEquals(parity16Set(0), st.vol.getLong(StoreDirect.HEAD_END)); //pointer to next page
-        assertEquals(parity4Set(st.RECID_LAST_RESERVED << 4), st.vol.getLong(StoreDirect.MAX_RECID_OFFSET));
+        assertEquals(parity1Set(st.RECID_LAST_RESERVED * 8), st.vol.getLong(StoreDirect.MAX_RECID_OFFSET));
     }
 
     @Test public void constants(){
@@ -33,7 +33,7 @@ public class StoreDirectTest2 {
         long recid = st.preallocate();
         assertEquals(Engine.RECID_FIRST,recid);
         assertEquals(st.composeIndexVal(0,0,true,true,true),st.vol.getLong(st.recidToOffset(recid)));
-        assertEquals(parity4Set(Engine.RECID_FIRST << 4), st.vol.getLong(st.MAX_RECID_OFFSET));
+        assertEquals(parity1Set(Engine.RECID_FIRST *8), st.vol.getLong(st.MAX_RECID_OFFSET));
     }
 
 
@@ -43,7 +43,7 @@ public class StoreDirectTest2 {
             long recid = st.preallocate();
             assertEquals(Engine.RECID_FIRST+i, recid);
             assertEquals(st.composeIndexVal(0, 0, true, true, true), st.vol.getLong(st.recidToOffset(recid)));
-            assertEquals(parity4Set((Engine.RECID_FIRST + i) << 4), st.vol.getLong(st.MAX_RECID_OFFSET));
+            assertEquals(parity1Set((Engine.RECID_FIRST + i) *8), st.vol.getLong(st.MAX_RECID_OFFSET));
         }
     }
 
