@@ -860,7 +860,7 @@ public final class Pump {
             InputStream[] ins = new InputStream[files.length];
             for(int i=0;i<ins.length;i++){
                 ins[i] = new FileInputStream(files[i]);
-                ins[i].skip(40);
+                DataIO.skipFully(ins[i], 40);
             }
 
             DB db = maker.make();

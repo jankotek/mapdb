@@ -474,8 +474,8 @@ public class StoreWAL extends StoreCached {
 //        if(CC.ASSERT && compactionInProgress)
 //            throw new AssertionError();
 
-        long storeSize = parity16Get(headVol.getLong(STORE_SIZE));
-        headVol.putLong(STORE_SIZE, parity16Set(storeSize + PAGE_SIZE));
+        long storeSize = storeSizeGet();
+        storeSizeSet(storeSize + PAGE_SIZE);
         //TODO clear data on page? perhaps special instruction?
 
         if(CC.ASSERT && storeSize%PAGE_SIZE!=0)
@@ -704,8 +704,6 @@ public class StoreWAL extends StoreCached {
                 headVolBackup.getData(0,b,0,b.length);
                 headVol.putData(0,b,0,b.length);
 
-                lastAllocatedData = parity3Get(headVol.getLong(LAST_PHYS_ALLOCATED_DATA_OFFSET));
-
                 indexPages = indexPagesBackup.clone();
             } finally {
                 structuralLock.unlock();
@@ -743,9 +741,7 @@ public class StoreWAL extends StoreCached {
                         long value = v[i+1];
                         prevLongLongs[segment].put(offset,value);
                         walPutLong(offset,value);
-                        if(checksum && offset>HEAD_END && offset%PAGE_SIZE!=0) {
-                            walPutUnsignedShort(offset + 8, DataIO.longHash(value) & 0xFFFF);
-                        }
+
                     }
                     currLongLongs[segment].clear();
 
@@ -788,7 +784,6 @@ public class StoreWAL extends StoreCached {
                     dirtyStackPages.clear();
                 }
 
-                headVol.putLong(LAST_PHYS_ALLOCATED_DATA_OFFSET,parity3Set(lastAllocatedData));
                 //update index checksum
                 headVol.putInt(HEAD_CHECKSUM, headChecksum(headVol));
 
@@ -844,9 +839,6 @@ public class StoreWAL extends StoreCached {
                         continue;
                     long value = v[i+1];
                     walPutLong(offset,value);
-                    if(checksum && offset>HEAD_END && offset%PAGE_SIZE!=0) {
-                        walPutUnsignedShort(offset + 8, DataIO.longHash(value) & 0xFFFF);
-                    }
 
                     //remove from this
                     v[i] = 0;
@@ -887,8 +879,6 @@ public class StoreWAL extends StoreCached {
                     throw new AssertionError();
 
                 pageLongStack.clear();
-
-                headVol.putLong(LAST_PHYS_ALLOCATED_DATA_OFFSET,parity3Set(lastAllocatedData));
 
                 //update index checksum
                 headVol.putInt(HEAD_CHECKSUM, headChecksum(headVol));

@@ -306,4 +306,11 @@ public class TT {
         Arrays.sort(longs1);
         assertArrayEquals(longs,longs1);
     }
+
+    public static void assertZeroes(Volume vol, long start, long end) {
+        for(long offset = start; offset<end;offset++){
+            if(0!=vol.getUnsignedByte(offset))
+                throw new AssertionError("Not zero at offset: "+offset);
+        }
+    }
 }

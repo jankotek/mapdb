@@ -87,6 +87,21 @@ public abstract class Volume implements Closeable{
         return false;
     }
 
+    /**
+     * Check that all bytes between given offsets are zero. This might cross 1MB boundaries
+     * @param startOffset
+     * @param endOffset
+     *
+     * @throws org.mapdb20.DBException.DataCorruption if some byte is not zero
+     */
+    public void assertZeroes(long startOffset, long endOffset) throws DBException.DataCorruption{
+        for(long offset=startOffset;offset<endOffset;offset++){
+            if(getUnsignedByte(offset)!=0)
+                throw new DBException.DataCorruption("Not zero at offset: "+offset );
+        }
+    }
+
+
     public static abstract class VolumeFactory{
         public abstract Volume makeVolume(String file, boolean readOnly, boolean fileLockDisabled,
                                           int sliceShift, long initSize, boolean fixedSize);
@@ -2838,7 +2853,7 @@ public abstract class Volume implements Closeable{
             try {
                 raf.seek(offset);
                 byte[] b = new byte[size];
-                raf.read(b);
+                raf.readFully(b);
                 return new DataIO.DataInputByteArray(b);
             } catch (IOException e) {
                 throw new DBException.VolumeIOError(e);
@@ -2849,7 +2864,7 @@ public abstract class Volume implements Closeable{
         public synchronized void getData(long offset, byte[] bytes, int bytesPos, int size) {
             try {
                 raf.seek(offset);
-                raf.read(bytes,bytesPos,size);
+                raf.readFully(bytes,bytesPos,size);
             } catch (IOException e) {
                 throw new DBException.VolumeIOError(e);
             }

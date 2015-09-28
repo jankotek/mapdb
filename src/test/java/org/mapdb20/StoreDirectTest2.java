@@ -33,7 +33,7 @@ public class StoreDirectTest2 {
         long recid = st.preallocate();
         assertEquals(Engine.RECID_FIRST,recid);
         assertEquals(st.composeIndexVal(0,0,true,true,true),st.vol.getLong(st.recidToOffset(recid)));
-        assertEquals(parity1Set(8 * Engine.RECID_FIRST), st.vol.getLong(st.MAX_RECID_OFFSET));
+        assertEquals(parity1Set(Engine.RECID_FIRST *8), st.vol.getLong(st.MAX_RECID_OFFSET));
     }
 
 
@@ -43,7 +43,7 @@ public class StoreDirectTest2 {
             long recid = st.preallocate();
             assertEquals(Engine.RECID_FIRST+i, recid);
             assertEquals(st.composeIndexVal(0, 0, true, true, true), st.vol.getLong(st.recidToOffset(recid)));
-            assertEquals(parity1Set(8 * (Engine.RECID_FIRST + i)), st.vol.getLong(st.MAX_RECID_OFFSET));
+            assertEquals(parity1Set((Engine.RECID_FIRST + i) *8), st.vol.getLong(st.MAX_RECID_OFFSET));
         }
     }
 
@@ -156,7 +156,7 @@ public class StoreDirectTest2 {
         long recid = RECID_FIRST;
         long[] offsets = {19L << 48 | o};
         st.locks[st.lockPos(recid)].writeLock().lock();
-        st.putData(recid,offsets,newBuf(19).buf,19);
+        st.putData(recid, offsets, newBuf(19).buf, 19);
 
         //verify index val
         assertEquals(19L << 48 | o | MARCHIVE, st.indexValGet(recid));
@@ -220,9 +220,9 @@ public class StoreDirectTest2 {
 
         //verify pointers
         assertEquals(101L << 48 | o | MLINKED | MARCHIVE, st.indexValGet(recid));
-        assertEquals(102L<<48 | o+round16Up(101) | MLINKED , parity3Get(st.vol.getLong(o)));
+        assertEquals(102L << 48 | o + round16Up(101) | MLINKED, parity3Get(st.vol.getLong(o)));
 
-        assertEquals(103L<<48 | o+round16Up(101)+round16Up(102) , parity3Get(st.vol.getLong(o+round16Up(101))));
+        assertEquals(103L << 48 | o + round16Up(101) + round16Up(102), parity3Get(st.vol.getLong(o + round16Up(101))));
 
         //and read data
         for(int i=0;i<101-8;i++){
@@ -282,32 +282,34 @@ public class StoreDirectTest2 {
 
     protected void verifyIndexPageChecksum(StoreDirect st) {
         assertTrue(st.checksum);
-        //zero page
-        for(long offset=HEAD_END+8;offset+10<=PAGE_SIZE;offset+=10){
-            long indexVal = st.vol.getLong(offset);
-            int check = st.vol.getUnsignedShort(offset+8);
-            if(indexVal==0){
-                assertEquals(0,check);
-                continue; // not set
-            }
-            assertEquals(check, DataIO.longHash(indexVal)&0xFFFF);
-        }
 
-
-        for(long page:st.indexPages){
-            if(page==0)
-                continue;
-
-            for(long offset=page+8;offset+10<=page+PAGE_SIZE;offset+=10){
-                long indexVal = st.vol.getLong(offset);
-                int check = st.vol.getUnsignedShort(offset+8);
-                if(indexVal==0){
-                    assertEquals(0,check);
-                    continue; // not set
-                }
-                assertEquals(check, DataIO.longHash(indexVal)&0xFFFF);
-            }
-        }
+        //TODO
+//        //zero page
+//        for(long offset=HEAD_END+8;offset+10<=PAGE_SIZE;offset+=10){
+//            long indexVal = st.vol.getLong(offset);
+//            int check = st.vol.getUnsignedShort(offset+8);
+//            if(indexVal==0){
+//                assertEquals(0,check);
+//                continue; // not set
+//            }
+//            assertEquals(check, DataIO.longHash(indexVal)&0xFFFF);
+//        }
+//
+//
+//        for(long page:st.indexPages){
+//            if(page==0)
+//                continue;
+//
+//            for(long offset=page+8;offset+10<=page+PAGE_SIZE;offset+=10){
+//                long indexVal = st.vol.getLong(offset);
+//                int check = st.vol.getUnsignedShort(offset+8);
+//                if(indexVal==0){
+//                    assertEquals(0,check);
+//                    continue; // not set
+//                }
+//                assertEquals(check, DataIO.longHash(indexVal)&0xFFFF);
+//            }
+//        }
     }
 
     @Test public void recidToOffset(){
@@ -324,12 +326,12 @@ public class StoreDirectTest2 {
         }
 
         for(long page=PAGE_SIZE*10;page<=PAGE_SIZE*40; page+=PAGE_SIZE*10){
-            for(long offset=page+8;offset<page+PAGE_SIZE;offset+=8){
+            for(long offset=page+16;offset<page+PAGE_SIZE;offset+=8){
                 m.add(offset);
             }
         }
 
-        long maxRecid = PAGE_SIZE-8-HEAD_END + 4*PAGE_SIZE-4*8;
+        long maxRecid = PAGE_SIZE-8-HEAD_END + 4*PAGE_SIZE-4*16;
         //maxRecid is multiple of 8, reduce
         assertEquals(0,maxRecid%8);
         maxRecid/=8;
@@ -338,38 +340,6 @@ public class StoreDirectTest2 {
         for(long recid=1;recid<=maxRecid;recid++){
             long offset = st.recidToOffset(recid);
             assertTrue("" + recid + " - " + offset + " - " + (offset % PAGE_SIZE),
-                    m.remove(offset));
-        }
-        assertTrue(m.isEmpty());
-    }
-
-    @Test public void recidToOffset_with_checksum(){
-        StoreDirect st = (StoreDirect) DBMaker.memoryDB()
-                .transactionDisable()
-                .checksumEnable()
-                .makeEngine();
-
-        //fake index pages
-        st.indexPages = new long[]{0, PAGE_SIZE*10, PAGE_SIZE*20, PAGE_SIZE*30, PAGE_SIZE*40};
-        //put expected content
-        Set<Long> m = new HashSet<Long>();
-        for(long offset=HEAD_END+8;offset<=PAGE_SIZE-10;offset+=10){
-            m.add(offset);
-        }
-
-        for(long page=PAGE_SIZE*10;page<=PAGE_SIZE*40; page+=PAGE_SIZE*10){
-            for(long offset=page+8;offset<=page+PAGE_SIZE-10;offset+=10){
-                m.add(offset);
-            }
-        }
-
-        long maxRecid = (PAGE_SIZE-8-HEAD_END)/10 + 4*((PAGE_SIZE-8)/10);
-
-
-        //now run recids
-        for(long recid=1;recid<=maxRecid;recid++){
-            long offset = st.recidToOffset(recid);
-            assertTrue("" + recid + " - " + offset + " - " + (offset % PAGE_SIZE)+ " - " + (offset - PAGE_SIZE),
                     m.remove(offset));
         }
         assertTrue(m.isEmpty());
@@ -397,4 +367,90 @@ public class StoreDirectTest2 {
         f.delete();
     }
 
+    @Test public void dump_long_stack(){
+        StoreDirect st = (StoreDirect) DBMaker.memoryDB()
+                .transactionDisable()
+                .makeEngine();
+
+        st.structuralLock.lock();
+        List<Long> a = new ArrayList<Long>();
+        for(long i=10000;i<11000;i++){
+            a.add(i);
+            st.longStackPut(StoreDirect.FREE_RECID_STACK, i, false);
+        }
+        List<Long> content = st.longStackDump(StoreDirect.FREE_RECID_STACK);
+        Collections.sort(content);
+        assertEquals(a.size(), content.size());
+        assertEquals(a, content);
+    }
+
+
+    @Test public void storeCheck(){
+        StoreDirect st = (StoreDirect) DBMaker.memoryDB()
+                .transactionDisable()
+                .makeEngine();
+        st.storeCheck();
+        st.put("aa", Serializer.STRING);
+        st.storeCheck();
+    }
+
+    @Test public void storeCheck_large(){
+        StoreDirect st = (StoreDirect) DBMaker.memoryDB()
+                .transactionDisable()
+                .makeEngine();
+        st.storeCheck();
+        st.put(TT.randomString((int) 1e6), Serializer.STRING);
+        st.storeCheck();
+    }
+
+    @Test public void storeCheck_many_recids(){
+        StoreDirect st = (StoreDirect) DBMaker.memoryDB()
+                .transactionDisable()
+                .makeEngine();
+        st.storeCheck();
+        for(int i=0;i<1e6;i++){
+            st.preallocate();
+            if(!TT.shortTest() && i%100==0)
+                st.storeCheck();
+        }
+        st.storeCheck();
+    }
+
+    @Test public void storeCheck_map(){
+        DB db = DBMaker.memoryDB().transactionDisable().make();
+        ((StoreDirect)db.engine).storeCheck();
+        synchronized (db) {
+            db.catPut("DSAADsa", "dasdsa");
+        }
+        ((StoreDirect)db.engine).storeCheck();
+        Map map = db.hashMap("map", Serializer.INTEGER, Serializer.BYTE_ARRAY);
+        ((StoreDirect)db.engine).storeCheck();
+        long n = (long) (1000);
+        Random r = new Random(1);
+        while(n-->0){  //LOL :)
+            int key = r.nextInt(10000);
+            map.put(key, new byte[r.nextInt(100000)]);
+            if(r.nextInt(10)<2)
+                map.remove(key);
+
+            if(!TT.shortTest())
+                ((StoreDirect)db.engine).storeCheck();
+        }
+        ((StoreDirect)db.engine).storeCheck();
+    }
+
+    @Test public void dumpLongStack(){
+        StoreDirect st = (StoreDirect) DBMaker.memoryDB()
+                .transactionDisable()
+                .makeEngine();
+
+        st.structuralLock.lock();
+        st.longStackPut(st.longStackMasterLinkOffset(16), 110000L, false);
+        Map m = new LinkedHashMap();
+        List l = new ArrayList();
+        l.add(110000L);
+        m.put(16, l);
+
+        assertEquals(m.toString(), st.longStackDumpAll().toString());
+    }
 }

@@ -149,5 +149,9 @@ interface CC {
      * still exists once a db is locked.
      */
     int FILE_LOCK_HEARTBEAT = 1000;
+
+    /** fill all unused storage sections with zeroes, slower but safer */
+    boolean VOLUME_ZEROUT = true;
+
 }
 

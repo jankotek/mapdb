@@ -260,12 +260,6 @@ public class StoreAppend extends Store {
                     highestRecid2 = Math.max(highestRecid2, recid);
 
                     commitData.put(recid, -1);
-                } else if (inst == I_DELETE) {
-                    long recid = vol.getPackedLong(pos);
-                    pos += recid>>>60;
-                    recid =  longParityGet(recid & DataIO.PACK_LONG_RESULT_MASK);
-                    highestRecid2 = Math.max(highestRecid2, recid);
-                    commitData.put(recid,-2);
 
                 } else if (inst == I_SKIP_SINGLE_BYTE) {
                     //do nothing, just skip single byte
