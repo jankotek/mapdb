@@ -1232,7 +1232,7 @@ public class StoreDirect extends Store {
                             //so skip length and continue
                             long toSkip = len - 1;
                             if (toSkip > 0) {
-                                in.skip(toSkip);
+                                DataIO.skipFully(in, toSkip);
                             }
                             continue recidLoop;
                         }

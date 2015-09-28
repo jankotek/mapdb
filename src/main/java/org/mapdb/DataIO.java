@@ -491,6 +491,10 @@ public final class DataIO {
             read+=c;
         }
     }
+    
+    public static void skipFully(InputStream in, long length) throws IOException {
+        while ((length -= in.skip(length)) > 0);
+    }
 
 
     /**
