@@ -25,7 +25,7 @@ public class CacheOffHeap {
                 .transactionDisable()
                 .make()
                 .hashMapCreate("test")
-                .expireStoreSize(cacheSizeInGB) //TODO not sure this actually works
+                .expireStoreSize(cacheSizeInGB)
                 .make();
 
         // Other alternative is to use Direct ByteBuffers.
