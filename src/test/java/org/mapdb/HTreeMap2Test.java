@@ -1188,6 +1188,23 @@ public class HTreeMap2Test {
         assertTrue(m.containsAll(m2));
     }
 
+
+    @Test public void valueCreator(){
+        Map<Integer,Integer> m = DBMaker.memoryDB().transactionDisable().make().hashMapCreate("map")
+                .valueCreator(new Fun.Function1<Integer, Integer>() {
+                    @Override
+                    public Integer run(Integer integer) {
+                        return integer*100;
+                    }
+                }).make();
+
+        m.put(1,1);
+        m.put(2,2);
+        m.put(3,3);
+
+        assertEquals(new Integer(1), m.get(1));
+        assertEquals(new Integer(500), m.get(5));
+    }
 }
 
 

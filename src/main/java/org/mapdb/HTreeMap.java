@@ -587,7 +587,7 @@ public class HTreeMap<K,V>
         if(expireSingleThreadFlag)
             expirePurge();
 
-        if(valueCreator==null){
+        if(valueCreator==null || ln!=null){
             if(ln==null)
                 return null;
             return ln.value;
