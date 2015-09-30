@@ -355,7 +355,10 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         } catch (NoSuchMethodException e) {
         }
 
-        return false;
+        Class su = clazz.getSuperclass();
+        if(su==Object.class || su==null)
+            return false;
+        return usesAdvancedSerialization(su);
     }
 
 
