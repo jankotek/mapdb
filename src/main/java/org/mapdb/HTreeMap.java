@@ -84,6 +84,7 @@ public class HTreeMap<K,V>
     protected final long expireAccess;
     protected final long expireMaxSize;
     protected final long expireStoreSize;
+    protected final long expireTick;
     protected final boolean expireMaxSizeFlag;
 
     protected final long[] expireHeads;
@@ -102,6 +103,7 @@ public class HTreeMap<K,V>
     protected final ScheduledExecutorService executor;
     protected final Lock consistencyLock;
 
+    protected volatile long expireLastTick=0;
 
     /** node which holds key-value pair */
     protected static final class LinkedNode<K,V>{
@@ -314,6 +316,7 @@ public class HTreeMap<K,V>
             long expireAccess,
             long expireMaxSize,
             long expireStoreSize,
+            long expireTick,
             long[] expireHeads,
             long[] expireTails,
             Fun.Function1<V, K> valueCreator,
@@ -368,6 +371,7 @@ public class HTreeMap<K,V>
         this.expireMaxSizeFlag = expireMaxSize!=0;
         this.expireMaxSize = expireMaxSize;
         this.expireStoreSize = expireStoreSize;
+        this.expireTick = expireTick;
         this.valueCreator = valueCreator;
 
         if(counterRecids!=null){
@@ -2047,6 +2051,17 @@ public class HTreeMap<K,V>
         if(!expireFlag)
             return;
 
+        if(expireTick>0) {
+            long currTime = System.currentTimeMillis();
+            if (currTime>expireLastTick+expireTick){
+                //update time and proceed
+                expireLastTick = currTime;
+            }else{
+                //not enough time since last purge
+                return;
+            }
+        }
+
         //TODO sequential lock here?
         long removePerSegment = expireCalcRemovePerSegment();
 
@@ -2207,7 +2222,7 @@ public class HTreeMap<K,V>
                 segmentRecids,
                 keySerializer,
                 valueSerializer,
-                0L,0L,0L,0L,0L,
+                0L,0L,0L,0L,0L,0L,
                 null,null, null,
                 null, 0L,
                 false,

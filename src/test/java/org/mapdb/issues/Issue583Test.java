@@ -50,6 +50,7 @@ public class Issue583Test {
         HTreeMap<Integer, Value> memoryMap = memoryDb.hashMapCreate(MAP)
                 .expireMaxSize(1)
                 .expireOverflow(diskMap, true)
+                .expireTick(0)
                 .make();
 
 

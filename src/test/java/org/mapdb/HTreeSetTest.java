@@ -55,7 +55,7 @@ public class HTreeSetTest{
         engine.init();
         Engine[] engines = HTreeMap.fillEngineArray(engine);
         hs = new HTreeMap(engines,
-                false, null, 0,HTreeMap.preallocateSegments(engines),Serializer.BASIC,null,0,0,0,0,0,null,null,null,null, 0L, false, null).keySet();
+                false, null, 0,HTreeMap.preallocateSegments(engines),Serializer.BASIC,null,0,0,0,0,0,0,null,null,null,null, 0L, false, null).keySet();
         Collections.addAll(hs, objArray);
     }
 
@@ -63,7 +63,7 @@ public class HTreeSetTest{
         // Test for method java.util.HashSet()
         Engine[] engines = HTreeMap.fillEngineArray(engine);
         Set hs2 = new HTreeMap(engines,
-                false, null,0,HTreeMap.preallocateSegments(engines),Serializer.BASIC,null,0,0,0,0,0,null,null,null,null,0L, false, null).keySet();
+                false, null,0,HTreeMap.preallocateSegments(engines),Serializer.BASIC,null,0,0,0,0,0,0,null,null,null,null,0L, false, null).keySet();
         assertEquals("Created incorrect HashSet", 0, hs2.size());
     }
 
@@ -107,7 +107,7 @@ public class HTreeSetTest{
         // Test for method boolean java.util.HashSet.isEmpty()
         Engine[] engines = HTreeMap.fillEngineArray(engine);
         assertTrue("Empty set returned false", new HTreeMap(engines,
-                false, null,0,HTreeMap.preallocateSegments(engines),Serializer.BASIC,null,0,0,0,0,0,null,null,null,null,0L, false,null).keySet().isEmpty());
+                false, null,0,HTreeMap.preallocateSegments(engines),Serializer.BASIC,null,0,0,0,0,0,0,null,null,null,null,0L, false,null).keySet().isEmpty());
         assertTrue("Non-empty set returned true", !hs.isEmpty());
     }
 
