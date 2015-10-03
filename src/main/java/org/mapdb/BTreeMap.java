@@ -3387,7 +3387,7 @@ public class BTreeMap<K,V>
 
         @Override
         public ConcurrentNavigableMap<K,V> descendingMap() {
-            if(lo==null && hi==null) return m;
+            if(lo==null || hi==null) return m;
             return m.subMap(lo,loInclusive,hi,hiInclusive);
         }
 
