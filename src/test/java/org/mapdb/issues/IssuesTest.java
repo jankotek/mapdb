@@ -121,4 +121,17 @@ public class IssuesTest {
             throw new AssertionError(e);
     }
 
+    @Test public void issue595(){
+        BTreeMap m = DBMaker.heapDB().transactionDisable().make().treeMap("aa");
+
+        for(int i=0;i<1000;i++){
+            m.put(i,i);
+        }
+        m.descendingMap();
+        for(int i=0;i<1000;i++) {
+            m.tailMap(i).descendingMap();
+            m.headMap(i).descendingMap();
+        }
+    }
+
 }
