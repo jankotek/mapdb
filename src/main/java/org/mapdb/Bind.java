@@ -687,21 +687,21 @@ public final class Bind {
             /** atomically update counter in histogram*/
             private void incrementHistogram(C category, long i) {
                 //$DELAY$
+                atomicUpdateLoop:
                 for(;;){
                     //$DELAY$
                     Long oldCount = histogram.get(category);
-                    if(oldCount == null
-                         && histogram.putIfAbsent(category,i) == null   ){  //insert new count
-                            return;
+                    if(oldCount == null){
+                        //insert new count
+                        if(histogram.putIfAbsent(category,i) == null   ) {
+                             return;
+                        }
                     }else{
                         //increase existing count
-                        //$DELAY$
-                        for(Long newCount = oldCount+i;
-                            ! histogram.replace(category,oldCount, newCount);
-                            newCount = histogram.get(category)+i){
-                                //repeat until CAS does not fail
-                            }
-                        return;
+                        Long newCount = oldCount+i;
+                        if(histogram.replace(category, oldCount, newCount)) {
+                            return;
+                        }
                     }
                 }
             }
