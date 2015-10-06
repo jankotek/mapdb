@@ -36,9 +36,7 @@ public class StoreDirect extends Store {
 
 
     protected static final long STORE_SIZE = 8*2;
-    /** physical offset of maximal allocated recid. Parity1.
-     * It is value of last allocated RECID multiplied by recid size.
-     * Use {@code val/INDEX_VAL_SIZE} to get actual RECID*/
+    /** Maximal allocated recid. Parity4 plus shift.*/
     protected static final long MAX_RECID_OFFSET = 8*3;
     protected static final long LAST_PHYS_ALLOCATED_DATA_OFFSET = 8*4; //TODO update doc
     protected static final long FREE_RECID_STACK = 8*5;
@@ -241,7 +239,7 @@ public class StoreDirect extends Store {
 
         //set sizes
         vol.putLong(STORE_SIZE, parity16Set(PAGE_SIZE));
-        vol.putLong(MAX_RECID_OFFSET, parity1Set(RECID_LAST_RESERVED * INDEX_VAL_SIZE));
+        vol.putLong(MAX_RECID_OFFSET, parity4Set(RECID_LAST_RESERVED <<4));
         //pointer to next index page (zero)
         vol.putLong(HEAD_END, parity16Set(0));
 
@@ -2077,14 +2075,11 @@ public class StoreDirect extends Store {
 
 
     protected void maxRecidSet(long maxRecid) {
-        headVol.putLong(MAX_RECID_OFFSET, parity1Set(maxRecid * 8));
+        headVol.putLong(MAX_RECID_OFFSET, parity4Set(maxRecid<<4));
     }
 
     protected long maxRecidGet(){
-        long val = parity1Get(headVol.getLong(MAX_RECID_OFFSET));
-        if(CC.ASSERT && val%8!=0)
-            throw new DBException.DataCorruption();
-        return val/8;
+        return parity4Get(headVol.getLong(MAX_RECID_OFFSET))>>>4;
     }
 
     protected void lastAllocatedDataSet(long offset){
