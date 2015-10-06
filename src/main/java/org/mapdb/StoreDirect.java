@@ -19,7 +19,7 @@ public class StoreDirect extends Store {
     protected static final int STORE_VERSION = 100;
 
     /** 4 byte file header */
-    protected static final int HEADER = (0xA9DB<<16) | STORE_VERSION;
+    protected static final int HEADER = (0xA7DB<<16) | STORE_VERSION;
 
 
     protected static final long PAGE_SIZE = 1<< CC.VOLUME_PAGE_SHIFT;
