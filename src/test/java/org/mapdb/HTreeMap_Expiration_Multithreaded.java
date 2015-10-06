@@ -32,7 +32,7 @@ public class HTreeMap_Expiration_Multithreaded {
         Exec.execNTimes(10, new Callable() {
             @Override
             public Object call() throws Exception {
-                try {
+
                     Random r = new Random(1);
                     for (int i = 0; i < 2e5; i++) {
                         UUID u = new UUID(r.nextLong(), r.nextLong());
@@ -51,10 +51,7 @@ public class HTreeMap_Expiration_Multithreaded {
                             m.get(u);
                         }
                     }
-                }catch(Throwable e){
-                    e.printStackTrace();
-                }
-                return null;
+                    return null;
             }
         });
     }
