@@ -36,16 +36,14 @@ public class DataIOTest {
 
     @Test
     public void testPackLongBidi() throws Exception {
-        DataOutputByteArray b = new DataOutputByteArray();
+        byte[] b = new byte[100];
 
         long max = (long) 1e14;
         for(long i=0;i<max;i=i+1 +i/100000){
-            b.pos=0;
-            long size = packLongBidi(b,i);
+            long size = packLongBidi(b,10, i);
             assertTrue(i>100000 || size<6);
-            assertEquals(b.pos,size);
-            assertEquals(i | (size<<60), unpackLongBidi(b.buf,0));
-            assertEquals(i | (size<<60), unpackLongBidiReverse(b.buf, (int) size, 0));
+            assertEquals(i | (size<<60), unpackLongBidi(b,10));
+            assertEquals(i | (size<<60), unpackLongBidiReverse(b, (int) size+10, 10));
         }
     }
 

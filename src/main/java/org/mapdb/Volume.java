@@ -250,39 +250,30 @@ public abstract class Volume implements Closeable{
 
 
     public int putLongPackBidi(long offset, long value) {
-        putUnsignedByte(offset++, (((int) value & 0x7F)) | 0x80);
-        value >>>= 7;
-        int counter = 2;
-
         //$DELAY$
-        while ((value & ~0x7FL) != 0) {
-            putUnsignedByte(offset++, (((int) value & 0x7F)));
-            value >>>= 7;
+        long origOffset = offset;
+        int shift = 63-Long.numberOfLeadingZeros(value);
+        shift -= shift%7; // round down to nearest multiple of 7
+        while(shift!=0){
+            putByte(offset++,(byte) (((value>>>shift) & 0x7F)));
             //$DELAY$
-            counter++;
+            shift-=7;
         }
-        //$DELAY$
-        putUnsignedByte(offset, (byte) value | 0x80);
-        return counter;
+        putByte(offset++,(byte) ((value & 0x7F) | 0x80));
+        return (int) (offset-origOffset);
+
     }
 
     public long getLongPackBidi(long offset){
-        //$DELAY$
-        long b = getUnsignedByte(offset++); //TODO this could be inside loop, change all implementations
-        if(CC.ASSERT && (b&0x80)==0)
-            throw new DBException.DataCorruption();
-        long result = (b & 0x7F) ;
-        int shift = 7;
-        do {
-            //$DELAY$
-            b = getUnsignedByte(offset++);
-            result |= (b & 0x7F) << shift;
-            if(CC.ASSERT && shift>64)
-                throw new DBException.DataCorruption();
-            shift += 7;
-        }while((b & 0x80) == 0);
-        //$DELAY$
-        return (((long)(shift/7))<<60) | result;
+        long ret = 0;
+        int pos2 = 0;
+        byte v;
+        do{
+            v = getByte(offset + (pos2++));
+            ret = (ret<<7 ) | (v & 0x7F);
+        }while(v>=0);
+
+        return (((long)pos2)<<60) | ret;
     }
 
     public long getLongPackBidiReverse(long offset, long limitOffset){
@@ -290,9 +281,10 @@ public abstract class Volume implements Closeable{
             throw new AssertionError();
         //find new position
         long offset2 = offset-2;
-        while(offset2>limitOffset && (getByte(offset2)&0x80)==0){
+        while(offset2>=limitOffset && (getByte(offset2)&0x80)==0){
             offset2--;
         }
+        offset2++;
         return getLongPackBidi(offset2);
     }
 
@@ -737,50 +729,6 @@ public abstract class Volume implements Closeable{
         protected static byte toByte(long l) {
             return (byte) (l & 0xff);
         }
-        @Override
-        public int putLongPackBidi(long offset, long value) {
-            final ByteBuffer b = getSlice(offset);
-            int bpos = (int) (offset & sliceSizeModMask);
-
-            b.put(bpos++, toByte((value & 0x7F) | 0x80));
-            value >>>= 7;
-            int counter = 2;
-
-            //$DELAY$
-            while ((value & ~0x7FL) != 0) {
-                b.put(bpos++, toByte(value & 0x7F));
-                value >>>= 7;
-                //$DELAY$
-                counter++;
-            }
-            //$DELAY$
-            b.put(bpos, toByte(value | 0x80));
-            return counter;
-        }
-
-        @Override
-        public long getLongPackBidi(long offset) {
-            final ByteBuffer bb = getSlice(offset);
-            int bpos = (int) (offset & sliceSizeModMask);
-
-            //$DELAY$
-            long b = bb.get(bpos++) & 0xffL; //TODO this could be inside loop, change all implementations
-            if(CC.ASSERT && (b&0x80)==0)
-                throw new DBException.DataCorruption();
-            long result = (b & 0x7F) ;
-            int shift = 7;
-            do {
-                //$DELAY$
-                b = bb.get(bpos++) & 0xffL;
-                result |= (b & 0x7F) << shift;
-                if(CC.ASSERT && shift>64)
-                    throw new DBException.DataCorruption();
-                shift += 7;
-            }while((b & 0x80) == 0);
-            //$DELAY$
-            return (((long)(shift/7))<<60) | result;
-        }
-
         @Override
         public long getSixLong(long pos) {
             final ByteBuffer bb = getSlice(pos);
@@ -2932,55 +2880,6 @@ public abstract class Volume implements Closeable{
             } catch (IOException e) {
                 throw new DBException.VolumeIOError(e);
             }
-        }
-
-        @Override
-        public synchronized int putLongPackBidi(long offset, long value) {
-            try {
-                raf.seek(offset);
-                raf.write((((int) value & 0x7F)) | 0x80);
-                value >>>= 7;
-                int counter = 2;
-
-                //$DELAY$
-                while ((value & ~0x7FL) != 0) {
-                    raf.write(((int) value & 0x7F));
-                    value >>>= 7;
-                    //$DELAY$
-                    counter++;
-                }
-                //$DELAY$
-                raf.write((int) (value | 0x80));
-                return counter;
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
-        }
-
-        @Override
-        public synchronized long getLongPackBidi(long offset) {
-            try {
-                raf.seek(offset);
-                //$DELAY$
-                long b = raf.readUnsignedByte(); //TODO this could be inside loop, change all implementations
-                if(CC.ASSERT && (b&0x80)==0)
-                    throw new DBException.DataCorruption();
-                long result = (b & 0x7F) ;
-                int shift = 7;
-                do {
-                    //$DELAY$
-                    b = raf.readUnsignedByte();
-                    result |= (b & 0x7F) << shift;
-                    if(CC.ASSERT && shift>64)
-                        throw new DBException.DataCorruption();
-                    shift += 7;
-                }while((b & 0x80) == 0);
-                //$DELAY$
-                return (((long)(shift/7))<<60) | result;
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
-
         }
 
         @Override

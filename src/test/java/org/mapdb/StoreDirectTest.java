@@ -317,7 +317,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.longStackPut(FREE_RECID_STACK, 1, false);
         e.structuralLock.unlock();
         e.commit();
-        assertEquals(8 + 2,
+        assertEquals(8 + 1,
                 e.headVol.getLong(FREE_RECID_STACK)>>>48);
 
     }
@@ -601,7 +601,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
         //check page overflowed
         pageId = e.headVol.getLong(FREE_RECID_STACK);
-        assertEquals(8+2, pageId>>>48);
+        assertEquals(8+1, pageId>>>48);
         pageId = pageId & StoreDirect.MOFFSET;
         assertEquals(PAGE_SIZE + StoreDirect.CHUNKSIZE, pageId);
         assertEquals(PAGE_SIZE, DataIO.parity4Get(e.vol.getLong(pageId)) & StoreDirect.MOFFSET); //prev link
