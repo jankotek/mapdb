@@ -176,7 +176,7 @@ public class StoreCached extends StoreDirect {
         byte[] page = loadLongStackPage(pageOffset,true);
 
         //read packed link from stack
-        long ret = DataIO.unpackLongBidiReverse(page, (int) currSize);
+        long ret = DataIO.unpackLongBidiReverse(page, (int) currSize, 8);
         //extract number of read bytes
         long oldCurrSize = currSize;
         currSize -= ret >>> 60;
@@ -278,7 +278,7 @@ public class StoreCached extends StoreDirect {
 
             //iterate from end of page until start of page is reached
             while(currSize>8){
-                long read = DataIO.unpackLongBidiReverse(page,currSize);
+                long read = DataIO.unpackLongBidiReverse(page,currSize,8);
                 //extract number of read bytes
                 currSize-= read >>>60;
                 ret++;

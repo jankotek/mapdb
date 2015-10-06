@@ -291,23 +291,15 @@ public final class DataIO {
     }
 
 
-    public static long unpackLongBidiReverse(byte[] bb, int pos){
-        //$DELAY$
-        long b = bb[--pos];
-        if(CC.ASSERT && (b&0x80)==0)
-            throw new DBException.DataCorruption("long pack bidi wrong header");
-        long result = (b & 0x7F) ;
-        int counter = 1;
-        do {
-            //$DELAY$
-            b = bb[--pos];
-            result = (b & 0x7F) | (result<<7);
-            if(CC.ASSERT && counter>8)
-                throw new DBException.DataCorruption("long pack bidi too long");
-            counter++;
-        }while((b & 0x80) == 0);
-        //$DELAY$
-        return (((long)counter)<<60) | result;
+    public static long unpackLongBidiReverse(byte[] bb, int pos, int limit){
+        if(CC.ASSERT && pos==limit)
+            throw new AssertionError();
+        //find new position
+        int pos2 = pos-2;
+        while(pos2>limit && (bb[pos2]&0x80)==0){
+            pos2--;
+        }
+        return unpackLongBidi(bb, pos2);
     }
 
     public static long getLong(byte[] buf, int pos) {

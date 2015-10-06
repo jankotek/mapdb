@@ -959,7 +959,7 @@ public class StoreDirect extends Store {
         final long pageOffset = masterLinkVal&MOFFSET;
 
         //read packed link from stack
-        long ret = vol.getLongPackBidiReverse(pageOffset+currSize);
+        long ret = vol.getLongPackBidiReverse(pageOffset+currSize, pageOffset+8);
         //extract number of read bytes
         long oldCurrSize = currSize;
         currSize-= ret >>>60;
@@ -1041,7 +1041,7 @@ public class StoreDirect extends Store {
 
             //iterate from end of page until start of page is reached
             while(currSize>8){
-                long read = vol.getLongPackBidiReverse(pageOffset+currSize);
+                long read = vol.getLongPackBidiReverse(pageOffset+currSize, pageOffset+8);
                 //extract number of read bytes
                 currSize-= read >>>60;
                 ret++;
@@ -1850,7 +1850,7 @@ public class StoreDirect extends Store {
 
             //iterate from end of page until start of page is reached
             while(currSize>8){
-                long read = vol.getLongPackBidiReverse(pageOffset+currSize);
+                long read = vol.getLongPackBidiReverse(pageOffset+currSize, pageOffset+8);
                 long val = read&DataIO.PACK_LONG_RESULT_MASK;
                 val = longParityGet(val);
                 ret.add(val);
@@ -1912,7 +1912,7 @@ public class StoreDirect extends Store {
                     //iterate from end of page until start of page is reached
                     valuesLoop:
                     while (pageSize > 8) {
-                        long read = vol.getLongPackBidiReverse(pageOffset + pageSize);
+                        long read = vol.getLongPackBidiReverse(pageOffset + pageSize, pageOffset+8);
                         long val = read & DataIO.PACK_LONG_RESULT_MASK;
                         val = longParityGet(val)<<4;
                         //content of Long Stack should be free, so mark it
@@ -1955,7 +1955,7 @@ public class StoreDirect extends Store {
 
                 //iterate from end of page until start of page is reached
                 while (currSize > 8) {
-                    long read = vol.getLongPackBidiReverse(pageOffset + currSize);
+                    long read = vol.getLongPackBidiReverse(pageOffset + currSize, pageOffset+8);
                     long recid = longParityGet(read & DataIO.PACK_LONG_RESULT_MASK);
                     if (recid > maxRecid)
                         throw new AssertionError("Recid too big");

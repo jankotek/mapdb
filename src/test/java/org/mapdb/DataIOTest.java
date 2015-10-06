@@ -45,7 +45,7 @@ public class DataIOTest {
             assertTrue(i>100000 || size<6);
             assertEquals(b.pos,size);
             assertEquals(i | (size<<60), unpackLongBidi(b.buf,0));
-            assertEquals(i | (size<<60), unpackLongBidiReverse(b.buf, (int) size));
+            assertEquals(i | (size<<60), unpackLongBidiReverse(b.buf, (int) size, 0));
         }
     }
 
