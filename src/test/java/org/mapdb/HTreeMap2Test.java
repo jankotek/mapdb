@@ -11,6 +11,7 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.*;
@@ -1194,6 +1195,26 @@ public class HTreeMap2Test {
                 .valueCreator(new Fun.Function1<Integer, Integer>() {
                     @Override
                     public Integer run(Integer integer) {
+                        return integer * 100;
+                    }
+                }).make();
+
+        m.put(1,1);
+        m.put(2,2);
+        m.put(3, 3);
+
+        assertEquals(new Integer(1), m.get(1));
+        assertEquals(new Integer(500), m.get(5));
+    }
+
+    @Test public void valueCreator_not_executed(){
+        final AtomicLong c = new AtomicLong();
+
+        Map<Integer,Integer> m = DBMaker.memoryDB().transactionDisable().make().hashMapCreate("map")
+                .valueCreator(new Fun.Function1<Integer, Integer>() {
+                    @Override
+                    public Integer run(Integer integer) {
+                        c.incrementAndGet();
                         return integer*100;
                     }
                 }).make();
@@ -1202,8 +1223,11 @@ public class HTreeMap2Test {
         m.put(2,2);
         m.put(3,3);
 
+        assertEquals(0, c.get());
         assertEquals(new Integer(1), m.get(1));
+        assertEquals(0, c.get());
         assertEquals(new Integer(500), m.get(5));
+        assertEquals(1,c.get());
     }
 }
 
