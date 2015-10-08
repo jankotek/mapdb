@@ -400,7 +400,7 @@ public class StoreDirect extends Store {
         //if new version fits into old one, reuse space
         if(releaseOld && oldSize==newSize){
             //TODO more precise check of linked records
-            //TODO check rounUp 16 for non-linked records
+            //TODO check roundUp 16 for non-linked records
             newOffsets = oldOffsets;
         }else {
             structuralLock.lock();
@@ -792,12 +792,12 @@ public class StoreDirect extends Store {
         long[] ret = EMPTY_LONGS;
         while(size>MAX_REC_SIZE){
             ret = Arrays.copyOf(ret,ret.length+1);
-            ret[ret.length-1] = (((long)MAX_REC_SIZE)<<48) | freeDataTakeSingle(round16Up(MAX_REC_SIZE)) | MLINKED;
+            ret[ret.length-1] = (((long)MAX_REC_SIZE)<<48) | freeDataTakeSingle(round16Up(MAX_REC_SIZE),false) | MLINKED;
             size = size-MAX_REC_SIZE+8;
         }
         //allocate last section
         ret = Arrays.copyOf(ret,ret.length+1);
-        ret[ret.length-1] = (((long)size)<<48) | freeDataTakeSingle(round16Up(size)) ;
+        ret[ret.length-1] = (((long)size)<<48) | freeDataTakeSingle(round16Up(size),false) ;
 
 
         if (CC.LOG_STORE && LOG.isLoggable(Level.FINEST)) {
@@ -808,7 +808,7 @@ public class StoreDirect extends Store {
         return ret;
     }
 
-    protected long freeDataTakeSingle(int size) {
+    protected long freeDataTakeSingle(int size, boolean recursive) {
         if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
         if(CC.ASSERT && size%16!=0)
@@ -816,7 +816,8 @@ public class StoreDirect extends Store {
         if(CC.ASSERT && size>round16Up(MAX_REC_SIZE))
             throw new DBException.DataCorruption("size too big");
 
-        long ret = longStackTake(longStackMasterLinkOffset(size),false) <<4; //offset is multiple of 16, save some space
+        long ret = recursive?0:
+                longStackTake(longStackMasterLinkOffset(size),false) <<4; //offset is multiple of 16, save some space
         if(ret!=0) {
             if(CC.ASSERT && ret<PAGE_SIZE)
                 throw new DBException.DataCorruption("wrong ret");
@@ -862,7 +863,7 @@ public class StoreDirect extends Store {
 
             //mark space at end of this page as free
             freeDataPut(offsetToFree, (int) sizeToFree);
-            return freeDataTakeSingle(size);
+            return freeDataTakeSingle(size, recursive);
         }
         //yes it fits here, increase pointer
         long lastAllocatedData = lastAllocatedDataGet();
@@ -905,7 +906,7 @@ public class StoreDirect extends Store {
         long pageOffset = masterLinkVal&MOFFSET;
 
         if(masterLinkVal==0L){
-            longStackNewPage(masterLinkOffset, 0L, value);
+            longStackNewPage(masterLinkOffset, 0L, value, recursive);
             return;
         }
 
@@ -919,7 +920,7 @@ public class StoreDirect extends Store {
             //first zero out rest of the page
             vol.clear(pageOffset+currSize, pageOffset+pageSize);
             //allocate new page
-            longStackNewPage(masterLinkOffset,pageOffset,value);
+            longStackNewPage(masterLinkOffset,pageOffset,value, recursive);
             return;
         }
 
@@ -930,22 +931,33 @@ public class StoreDirect extends Store {
     }
 
 
-    protected void longStackNewPage(long masterLinkOffset, long prevPageOffset, long value) {
+    protected void longStackNewPage(long masterLinkOffset, long prevPageOffset, long value, boolean recursive) {
         if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
         long newPageSize=LONG_STACK_PREF_SIZE;
-        sizeLoop: //loop if we find size which is already used;
-        for(long size=LONG_STACK_MAX_SIZE; size>=LONG_STACK_MIN_SIZE; size-=16){
-            long indexVal = parity4Get(headVol.getLong(longStackMasterLinkOffset(size)));
-            if(indexVal!=0){
-                newPageSize=size;
-                break sizeLoop;
+        if(!recursive) {
+            sizeLoop:
+            //loop if we find size which is already used;
+            for (long size = LONG_STACK_MAX_SIZE; size >= LONG_STACK_MIN_SIZE; size -= 16) {
+                long masterLinkOffset2 = longStackMasterLinkOffset(size);
+                if (masterLinkOffset == masterLinkOffset2)
+                    continue sizeLoop;
+                long indexVal = parity4Get(headVol.getLong(masterLinkOffset2));
+                if (indexVal != 0) {
+                    newPageSize = size;
+                    break sizeLoop;
+                }
+            }
+
+            if (longStackMasterLinkOffset(newPageSize) == masterLinkOffset) {
+                // this would cause recursive mess
+                newPageSize += 16;
             }
         }
 
         // take space, if free space was found, it will be reused
-        long newPageOffset = freeDataTakeSingle((int) newPageSize);
+        long newPageOffset = freeDataTakeSingle((int) newPageSize,true);
         //write size of current chunk with link to prev page
         vol.putLong(newPageOffset, parity4Set((newPageSize<<48) | prevPageOffset));
         //put value

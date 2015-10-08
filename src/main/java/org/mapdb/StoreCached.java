@@ -130,7 +130,7 @@ public class StoreCached extends StoreDirect {
         long pageOffset = masterLinkVal & MOFFSET;
 
         if (masterLinkVal == 0L) {
-            longStackNewPage(masterLinkOffset, 0L, value);
+            longStackNewPage(masterLinkOffset, 0L, value, recursive);
             return;
         }
 
@@ -146,7 +146,7 @@ public class StoreCached extends StoreDirect {
             //first zero out rest of the page
             Arrays.fill(page, (int) currSize, (int) pageSize, (byte) 0);
             //allocate new page
-            longStackNewPage(masterLinkOffset, pageOffset, value);
+            longStackNewPage(masterLinkOffset, pageOffset, value, recursive);
             return;
         }
 
@@ -293,22 +293,34 @@ public class StoreCached extends StoreDirect {
 
 
     @Override
-    protected void longStackNewPage(long masterLinkOffset, long prevPageOffset, long value) {
+    protected void longStackNewPage(long masterLinkOffset, long prevPageOffset, long value, boolean recursive) {
         if (CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
         long newPageSize=LONG_STACK_PREF_SIZE;
-        sizeLoop: //loop if we find size which is already used;
-        for(long size=LONG_STACK_MAX_SIZE; size>=LONG_STACK_MIN_SIZE; size-=16){
-            long indexVal = parity4Get(headVol.getLong(longStackMasterLinkOffset(size)));
-            if(indexVal!=0){
-                newPageSize=size;
-                break sizeLoop;
+        if(!recursive) {
+            sizeLoop:
+            //loop if we find size which is already used;
+            for (long size = LONG_STACK_MAX_SIZE; size >= LONG_STACK_MIN_SIZE; size -= 16) {
+                long masterLinkOffset2 = longStackMasterLinkOffset(size);
+                if (masterLinkOffset == masterLinkOffset2)
+                    continue sizeLoop;
+                long indexVal = parity4Get(headVol.getLong(masterLinkOffset2));
+                if (indexVal != 0) {
+                    newPageSize = size;
+                    break sizeLoop;
+                }
+            }
+
+            if (longStackMasterLinkOffset(newPageSize) == masterLinkOffset) {
+                // this would cause recursive mess
+                newPageSize += 16;
             }
         }
 
+
         // take space, if free space was found, it will be reused
-        long newPageOffset = freeDataTakeSingle((int) newPageSize);
+        long newPageOffset = freeDataTakeSingle((int) newPageSize, true);
 
         byte[] page = new byte[(int) newPageSize];
 //TODO this is new page, so data should be clear, no need to read them, but perhaps check data are really zero, handle EOF

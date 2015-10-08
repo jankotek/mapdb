@@ -153,7 +153,7 @@ public class StoreDirectTest2 {
         StoreDirect st = newStore();
         st.structuralLock.lock();
         int totalSize = round16Up(1000);
-        long o = st.freeDataTakeSingle(totalSize)&MOFFSET;
+        long o = st.freeDataTakeSingle(totalSize,false)&MOFFSET;
 
         //write data
         long recid = RECID_FIRST;
@@ -174,7 +174,7 @@ public class StoreDirectTest2 {
         StoreDirect st = newStore();
         st.structuralLock.lock();
         int totalSize = round16Up(1000);
-        long o = st.freeDataTakeSingle(totalSize)&MOFFSET;
+        long o = st.freeDataTakeSingle(totalSize,false)&MOFFSET;
 
         //write data
         long recid = RECID_FIRST;
@@ -207,7 +207,7 @@ public class StoreDirectTest2 {
         StoreDirect st = newStore();
         st.structuralLock.lock();
         int totalSize = round16Up(1000);
-        long o = st.freeDataTakeSingle(totalSize)&MOFFSET;
+        long o = st.freeDataTakeSingle(totalSize,false)&MOFFSET;
 
         //write data
         long recid = RECID_FIRST;
