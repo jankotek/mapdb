@@ -934,7 +934,7 @@ public class StoreDirect extends Store {
         if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
-        long newPageSize=0;
+        long newPageSize=LONG_STACK_PREF_SIZE;
         sizeLoop: //loop if we find size which is already used;
         for(long size=LONG_STACK_MAX_SIZE; size>=LONG_STACK_MIN_SIZE; size-=16){
             long indexVal = parity4Get(headVol.getLong(longStackMasterLinkOffset(size)));
@@ -944,10 +944,6 @@ public class StoreDirect extends Store {
             }
         }
 
-        if(newPageSize==0) {
-            //size was not found, so just use preferred size
-            newPageSize = LONG_STACK_PREF_SIZE;
-        }
         // take space, if free space was found, it will be reused
         long newPageOffset = freeDataTakeSingle((int) newPageSize);
         //write size of current chunk with link to prev page
