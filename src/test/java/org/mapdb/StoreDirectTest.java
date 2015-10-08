@@ -332,7 +332,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         }
 
         for(long i = max-1;i>0;i--){
-            assertEquals(i, e.longStackTake(FREE_RECID_STACK,false));
+            assertEquals(i, e.longStackTake(FREE_RECID_STACK, false));
         }
 
         assertEquals(0, getLongStack(FREE_RECID_STACK).size());
@@ -350,7 +350,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     @Test public void test_long_stack_put_take_simple() throws IOException {
         e = openEngine();
         e.structuralLock.lock();
-        e.longStackPut(FREE_RECID_STACK, 111,false);
+        e.longStackPut(FREE_RECID_STACK, 111, false);
         assertEquals(111L, e.longStackTake(FREE_RECID_STACK, false));
         e.structuralLock.unlock();
     }
@@ -450,7 +450,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         assertEquals(8+2, pageId>>>48);
         pageId = pageId & StoreDirect.MOFFSET;
         assertEquals(PAGE_SIZE, pageId);
-        assertEquals(CHUNKSIZE, DataIO.parity4Get(e.vol.getLong(pageId))>>>48);
+        assertEquals(LONG_STACK_PREF_SIZE, DataIO.parity4Get(e.vol.getLong(pageId))>>>48);
         assertEquals(0, DataIO.parity4Get(e.vol.getLong(pageId))&MOFFSET);
         assertEquals(DataIO.parity1Set(111 << 1), e.vol.getLongPackBidi(pageId + 8) & DataIO.PACK_LONG_RESULT_MASK);
     }
@@ -459,8 +459,8 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e = openEngine();
         e.structuralLock.lock();
         e.longStackPut(FREE_RECID_STACK, 111,false);
-        e.longStackPut(FREE_RECID_STACK, 112,false);
-        e.longStackPut(FREE_RECID_STACK, 113,false);
+        e.longStackPut(FREE_RECID_STACK, 112, false);
+        e.longStackPut(FREE_RECID_STACK, 113, false);
         e.longStackPut(FREE_RECID_STACK, 114,false);
         e.longStackPut(FREE_RECID_STACK, 115,false);
         e.structuralLock.unlock();
@@ -477,8 +477,8 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         long currPageSize = pageId>>>48;
         pageId = pageId & StoreDirect.MOFFSET;
         assertEquals(PAGE_SIZE, pageId);
-        assertEquals(CHUNKSIZE, e.vol.getLong(pageId)>>>48);
-        assertEquals(0, e.vol.getLong(pageId)&MOFFSET); //next link
+        assertEquals(LONG_STACK_PREF_SIZE, e.vol.getLong(pageId) >>> 48);
+        assertEquals(0, e.vol.getLong(pageId) & MOFFSET); //next link
         long offset = pageId + 8;
         for(int i=111;i<=115;i++){
             long val = e.vol.getLongPackBidi(offset);
@@ -555,7 +555,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
             long val = 1000L+i;
             e.longStackPut(FREE_RECID_STACK, val ,false);
             actualChunkSize += DataIO.packLongBidi(new byte[8],0,val<<1);
-            if(e.headVol.getLong(FREE_RECID_STACK)>>48 >CHUNKSIZE-10)
+            if(e.headVol.getLong(FREE_RECID_STACK)>>48 >LONG_STACK_PREF_SIZE-10)
                 break;
         }
         e.structuralLock.unlock();
@@ -575,7 +575,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         assertEquals(actualChunkSize, pageId>>>48);
         pageId = pageId & StoreDirect.MOFFSET;
         assertEquals(PAGE_SIZE, pageId);
-        assertEquals(StoreDirect.CHUNKSIZE, e.vol.getLong(pageId)>>>48);
+        assertEquals(StoreDirect.LONG_STACK_PREF_SIZE, e.vol.getLong(pageId)>>>48);
         for(long i=1000,pos=8;;i++){
             long val = e.vol.getLongPackBidi(pageId+pos);
             assertEquals(i, DataIO.parity1Get(val&DataIO.PACK_LONG_RESULT_MASK)>>>1);
@@ -603,24 +603,18 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         pageId = e.headVol.getLong(FREE_RECID_STACK);
         assertEquals(8+1, pageId>>>48);
         pageId = pageId & StoreDirect.MOFFSET;
-        assertEquals(PAGE_SIZE + StoreDirect.CHUNKSIZE, pageId);
+        assertEquals(PAGE_SIZE + StoreDirect.LONG_STACK_PREF_SIZE, pageId);
         assertEquals(PAGE_SIZE, DataIO.parity4Get(e.vol.getLong(pageId)) & StoreDirect.MOFFSET); //prev link
-        assertEquals(CHUNKSIZE, e.vol.getLong(pageId)>>>48); //cur page size
+        assertEquals(LONG_STACK_PREF_SIZE, e.vol.getLong(pageId)>>>48); //cur page size
         //overflow value
         assertEquals(11L, DataIO.parity1Get(e.vol.getLongPackBidi(pageId+8)&DataIO.PACK_LONG_RESULT_MASK)>>>1);
 
         //remaining bytes should be zero
-        for(long offset = pageId+8+2;offset<pageId+CHUNKSIZE;offset++){
+        for(long offset = pageId+8+2;offset<pageId+LONG_STACK_PREF_SIZE;offset++){
             assertEquals(0,e.vol.getByte(offset));
         }
         e.structuralLock.unlock();
         e.commitLock.unlock();
-    }
-
-
-    @Test public void test_constants(){
-        assertTrue(StoreDirect.CHUNKSIZE % 16 == 0);
-        
     }
 
 

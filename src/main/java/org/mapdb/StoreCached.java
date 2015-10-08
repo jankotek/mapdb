@@ -297,13 +297,29 @@ public class StoreCached extends StoreDirect {
         if (CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
-        long newPageOffset = freeDataTakeSingle((int) CHUNKSIZE);
-        byte[] page = new byte[(int) CHUNKSIZE];
+        long newPageSize=0;
+        sizeLoop: //loop if we find size which is already used;
+        for(long size=LONG_STACK_MAX_SIZE; size>=LONG_STACK_MIN_SIZE; size-=16){
+            long indexVal = parity4Get(headVol.getLong(longStackMasterLinkOffset(size)));
+            if(indexVal!=0){
+                newPageSize=size;
+                break sizeLoop;
+            }
+        }
+
+        if(newPageSize==0) {
+            //size was not found, so just use preferred size
+            newPageSize = LONG_STACK_PREF_SIZE;
+        }
+        // take space, if free space was found, it will be reused
+        long newPageOffset = freeDataTakeSingle((int) newPageSize);
+
+        byte[] page = new byte[(int) newPageSize];
 //TODO this is new page, so data should be clear, no need to read them, but perhaps check data are really zero, handle EOF
 //        vol.getData(newPageOffset, page, 0, page.length);
         dirtyStackPages.put(newPageOffset, page);
         //write size of current chunk with link to prev page
-        DataIO.putLong(page, 0, parity4Set((CHUNKSIZE << 48) | prevPageOffset));
+        DataIO.putLong(page, 0, parity4Set((newPageSize << 48) | prevPageOffset));
         //put value
         long currSize = 8 + DataIO.packLongBidi(page, 8, longParitySet(value));
         //update master pointer

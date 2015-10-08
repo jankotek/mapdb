@@ -536,7 +536,7 @@ public class StoreDirect extends Store {
     public long getCurrSize() {
         structuralLock.lock();
         try {
-            return vol.length() - lastAllocatedDataGet() % CHUNKSIZE;
+            return vol.length() - lastAllocatedDataGet() % PAGE_SIZE;
         }finally {
             structuralLock.unlock();
         }
@@ -891,8 +891,9 @@ public class StoreDirect extends Store {
     }
 
 
-    //TODO use var size
-    protected final static long CHUNKSIZE = 100*16;
+    protected final static long LONG_STACK_PREF_SIZE = 160;
+    protected final static long LONG_STACK_MIN_SIZE = 32;
+    protected final static long LONG_STACK_MAX_SIZE = 256;
 
     protected void longStackPut(final long masterLinkOffset, final long value, boolean recursive){
         if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
@@ -933,9 +934,24 @@ public class StoreDirect extends Store {
         if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
-        long newPageOffset = freeDataTakeSingle((int) CHUNKSIZE);
+        long newPageSize=0;
+        sizeLoop: //loop if we find size which is already used;
+        for(long size=LONG_STACK_MAX_SIZE; size>=LONG_STACK_MIN_SIZE; size-=16){
+            long indexVal = parity4Get(headVol.getLong(longStackMasterLinkOffset(size)));
+            if(indexVal!=0){
+                newPageSize=size;
+                break sizeLoop;
+            }
+        }
+
+        if(newPageSize==0) {
+            //size was not found, so just use preferred size
+            newPageSize = LONG_STACK_PREF_SIZE;
+        }
+        // take space, if free space was found, it will be reused
+        long newPageOffset = freeDataTakeSingle((int) newPageSize);
         //write size of current chunk with link to prev page
-        vol.putLong(newPageOffset, parity4Set((CHUNKSIZE<<48) | prevPageOffset));
+        vol.putLong(newPageOffset, parity4Set((newPageSize<<48) | prevPageOffset));
         //put value
         long currSize = 8 + vol.putLongPackBidi(newPageOffset + 8, longParitySet(value));
         //update master pointer
