@@ -145,7 +145,7 @@ public class DBException extends RuntimeException{
 
     public static class PumpSourceNotSorted extends DBException {
         public PumpSourceNotSorted() {
-            super("Source iterator not sorted, use .pumpPresort(10000000) to sort keys.");
+            super("Source iterator not sorted in reverse order, use .pumpPresort(10000000) to sort keys.");
         }
     }
 
