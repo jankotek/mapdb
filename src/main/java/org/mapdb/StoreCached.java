@@ -346,6 +346,10 @@ public class StoreCached extends StoreDirect {
 
         structuralLock.lock();
         try {
+            if(CC.PARANOID){
+                assertNoOverlaps(dirtyStackPages);
+            }
+
             //flush modified Long Stack pages
             long[] set = dirtyStackPages.set;
             for(int i=0;i<set.length;i++){
@@ -374,6 +378,30 @@ public class StoreCached extends StoreDirect {
             structuralLock.unlock();
         }
         vol.sync();
+    }
+
+
+    protected void assertNoOverlaps(LongObjectMap<byte[]> pages) {
+        //put all keys into sorted array
+        long[] sorted = new long[pages.size];
+
+        int c = 0;
+        for(long key:pages.set){
+            if(key==0)
+                continue;
+            sorted[c++] = key;
+        }
+
+        Arrays.sort(sorted);
+
+        for(int i=0;i<sorted.length-1;i++){
+            long offset = sorted[i];
+            long pageSize = pages.get(offset).length-1;
+            long offsetNext = sorted[i+1];
+
+            if(offset+pageSize>offsetNext)
+                throw new AssertionError();
+        }
     }
 
     protected void flushWriteCache() {
