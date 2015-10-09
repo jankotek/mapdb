@@ -396,7 +396,7 @@ public class StoreCached extends StoreDirect {
 
         for(int i=0;i<sorted.length-1;i++){
             long offset = sorted[i];
-            long pageSize = pages.get(offset).length-1;
+            long pageSize = pages.get(offset).length;
             long offsetNext = sorted[i+1];
 
             if(offset+pageSize>offsetNext)
