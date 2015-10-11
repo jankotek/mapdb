@@ -4,6 +4,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.*;
 
@@ -47,8 +48,6 @@ public class WriteAheadLogTest {
             wal.seal();
         }
 
-
-
         WriteAheadLog.WALReplay r = new WriteAheadLog.WALReplay() {
             @Override
             public void beforeReplayStart() {
@@ -83,10 +82,113 @@ public class WriteAheadLogTest {
             public void writeTombstone(long recid) {
                 fail();
             }
+
+            @Override
+            public void writePreallocate(long recid) {
+                fail();
+            }
         };
 
         wal.replayWAL(r);
 
         assertTrue(called.get());
     }
+
+
+    @Test public void tombstone(){
+        WriteAheadLog wal = new WriteAheadLog(null);
+        wal.open(WriteAheadLog.NOREPLAY);
+        wal.startNextFile();
+
+        wal.walPutTombstone(111111L);
+        wal.seal();
+
+        final AtomicInteger c = new AtomicInteger();
+
+        wal.replayWAL(new WriteAheadLog.WALReplay() {
+            @Override
+            public void beforeReplayStart() {
+            }
+
+            @Override
+            public void writeLong(long offset, long value) {
+                fail();
+            }
+
+            @Override
+            public void writeRecord(long recid, byte[] data) {
+                fail();
+            }
+
+            @Override
+            public void writeByteArray(long offset, byte[] val) {
+                fail();
+            }
+
+            @Override
+            public void beforeDestroyWAL() {
+            }
+
+            @Override
+            public void writeTombstone(long recid) {
+                c.incrementAndGet();
+                assertEquals(111111L, recid);
+            }
+
+            @Override
+            public void writePreallocate(long recid) {
+                fail();
+            }
+        });
+        assertEquals(1,c.get());
+    }
+
+    @Test public void preallocate(){
+        WriteAheadLog wal = new WriteAheadLog(null);
+        wal.open(WriteAheadLog.NOREPLAY);
+        wal.startNextFile();
+
+        wal.walPutPreallocate(111111L);
+        wal.seal();
+
+        final AtomicInteger c = new AtomicInteger();
+
+        wal.replayWAL(new WriteAheadLog.WALReplay() {
+            @Override
+            public void beforeReplayStart() {
+            }
+
+            @Override
+            public void writeLong(long offset, long value) {
+                fail();
+            }
+
+            @Override
+            public void writeRecord(long recid, byte[] data) {
+                fail();
+            }
+
+            @Override
+            public void writeByteArray(long offset, byte[] val) {
+                fail();
+            }
+
+            @Override
+            public void beforeDestroyWAL() {
+            }
+
+            @Override
+            public void writeTombstone(long recid) {
+                fail();
+            }
+
+            @Override
+            public void writePreallocate(long recid) {
+                c.incrementAndGet();
+                assertEquals(111111L, recid);
+            }
+        });
+        assertEquals(1,c.get());
+    }
+
 }

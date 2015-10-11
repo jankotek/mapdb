@@ -28,6 +28,7 @@ public class WriteAheadLog {
     protected static final int I_SKIP_SINGLE = 4;
     protected static final int I_RECORD = 5;
     protected static final int I_TOMBSTONE = 6;
+    protected static final int I_PREALLOCATE = 7;
 
 
 
@@ -116,7 +117,6 @@ public class WriteAheadLog {
     }
 
 
-
     public interface WALReplay{
 
         void beforeReplayStart();
@@ -131,6 +131,8 @@ public class WriteAheadLog {
         void beforeDestroyWAL();
 
         void writeTombstone(long recid);
+
+        void writePreallocate(long recid);
     }
 
     /** does nothing */
@@ -157,6 +159,10 @@ public class WriteAheadLog {
 
         @Override
         public void writeTombstone(long recid) {
+        }
+
+        @Override
+        public void writePreallocate(long recid) {
         }
     };
 
@@ -291,7 +297,17 @@ public class WriteAheadLog {
                     long recid = wal.getPackedLong(pos);
                     pos += recid >>> 60;
                     recid &= DataIO.PACK_LONG_RESULT_MASK;
+                    if(((1+Long.bitCount(recid))&15)!=checksum)
+                        throw new InternalError("WAL corrupted");
+
                     replay.writeTombstone(recid);
+                }else if (instruction == I_PREALLOCATE){
+                    long recid = wal.getPackedLong(pos);
+                    pos += recid >>> 60;
+                    recid &= DataIO.PACK_LONG_RESULT_MASK;
+                    if(((1+Long.bitCount(recid))&15)!=checksum)
+                        throw new InternalError("WAL corrupted");
+                    replay.writePreallocate(recid);
                 }else{
                     throw new InternalError("WAL corrupted, unknown instruction");
                 }
@@ -495,6 +511,50 @@ public class WriteAheadLog {
         walOffset2+=8;
         curVol2.putSixLong(walOffset2, offset);
     }
+
+    public void walPutTombstone(long recid) {
+        int plusSize = 1+DataIO.packLongSize(recid);
+        long walOffset2 = walOffset.getAndAdd(plusSize);
+
+        Volume curVol2 = curVol;
+
+        //in case of overlap, put Skip Bytes instruction and try again
+        if(hadToSkip(walOffset2, plusSize)){
+            walPutTombstone(recid);
+            return;
+        }
+
+        curVol.ensureAvailable(walOffset2+plusSize);
+        int checksum = 1+Long.bitCount(recid);
+        checksum &= 15;
+        curVol.putUnsignedByte(walOffset2, (I_TOMBSTONE << 4)|checksum);
+        walOffset2+=1;
+
+        curVol.putPackedLong(walOffset2, recid);
+    }
+
+    public void walPutPreallocate(long recid) {
+        int plusSize = 1+DataIO.packLongSize(recid);
+        long walOffset2 = walOffset.getAndAdd(plusSize);
+
+        Volume curVol2 = curVol;
+
+        //in case of overlap, put Skip Bytes instruction and try again
+        if(hadToSkip(walOffset2, plusSize)){
+            walPutPreallocate(recid);
+            return;
+        }
+
+        curVol2.ensureAvailable(walOffset2+plusSize);
+        int checksum = 1+Long.bitCount(recid);
+        checksum &= 15;
+        curVol2.putUnsignedByte(walOffset2, (I_PREALLOCATE << 4)|checksum);
+        walOffset2+=1;
+
+        curVol2.putPackedLong(walOffset2, recid);
+    }
+
+
 
     protected boolean hadToSkip(long walOffset2, int plusSize) {
         //does it overlap page boundaries?

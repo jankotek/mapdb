@@ -752,6 +752,11 @@ public class StoreWAL extends StoreCached {
         public void writeTombstone(long recid) {
             throw new AssertionError();
         }
+
+        @Override
+        public void writePreallocate(long recid) {
+            throw new AssertionError();
+        }
     }
 
     protected void replayWAL(){
