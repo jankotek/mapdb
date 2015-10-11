@@ -22,11 +22,27 @@ public class WriteAheadLog {
     protected static final long WAL_SEAL = 8234892392398238983L;
     protected final long featureBitMap;
 
+    protected final int pointerOffsetBites=32;
+    protected final long pointerOffsetMask = DataIO.fillLowBits(pointerOffsetBites);
+    protected final int pointerSizeBites=16;
+    protected final long pointerSizeMask = DataIO.fillLowBits(pointerSizeBites);
+    protected final int pointerFileBites=16;
+    protected final long pointerFileMask = DataIO.fillLowBits(pointerFileBites);
+
     public WriteAheadLog(String fileName, Volume.VolumeFactory volumeFactory, long featureBitMap) {
         this.fileName = fileName;
         this.volumeFactory = volumeFactory;
         this.featureBitMap = featureBitMap;
     }
+
+    public WriteAheadLog(String fileName) {
+        this(
+                fileName,
+                fileName==null? CC.DEFAULT_MEMORY_VOLUME_FACTORY:CC.DEFAULT_FILE_VOLUME_FACTORY,
+                0L
+        );
+    }
+
 
     public void initFailedCloseFiles() {
         if(walRec!=null){
@@ -89,11 +105,14 @@ public class WriteAheadLog {
     }
 
 
+
     public interface WALReplay{
 
         void beforeReplayStart();
 
         void writeLong(long offset, long value);
+
+        void writeRecord(long recid, byte[] data);
 
         //TODO direct transfer: Volume vol, long volOffset, int length
         void writeByteArray(long offset, byte[] val);
@@ -101,6 +120,29 @@ public class WriteAheadLog {
         void beforeDestroyWAL();
 
     }
+
+    /** does nothing */
+    public static final WALReplay NOREPLAY = new WALReplay() {
+        @Override
+        public void beforeReplayStart() {
+        }
+
+        @Override
+        public void writeLong(long offset, long value) {
+        }
+
+        @Override
+        public void writeRecord(long recid, byte[] data) {
+        }
+
+        @Override
+        public void writeByteArray(long offset, byte[] val) {
+        }
+
+        @Override
+        public void beforeDestroyWAL() {
+        }
+    };
 
 
     final String fileName;
@@ -210,6 +252,25 @@ public class WriteAheadLog {
                     //skip single byte
                     if((Long.bitCount(pos-1)&15) != checksum)
                         throw new InternalError("WAL corrupted");
+                } else if (instruction == 5) {
+                    // read record
+                    long recid = wal.getPackedLong(pos);
+                    pos += recid >>> 60;
+                    recid &= DataIO.PACK_LONG_RESULT_MASK;
+
+                    long size = wal.getPackedLong(pos);
+                    pos += size >>> 60;
+                    size &= DataIO.PACK_LONG_RESULT_MASK;
+
+                    if (size == 0) {
+                        replay.writeRecord(recid, null);
+                    }else {
+                        size--; //zero is used for null
+                        byte[] data = new byte[(int) size];
+                        wal.getData(pos, data, 0, data.length);
+                        pos += size;
+                        replay.writeRecord(recid, data);
+                    }
                 }else{
                     throw new InternalError("WAL corrupted, unknown instruction");
                 }
@@ -243,19 +304,32 @@ public class WriteAheadLog {
         return volumes.size();
     }
 
-    public DataInput walGetByteArray(long longval) {
-        int arraySize = (int) (longval >>> 48);
-        int fileNum = (int) ((longval >>> 32) & 0xFFFFL);
-        long dataOffset = longval & 0xFFFFFFFFL;
+    /**
+     * Retrieve {@code DataInput} from WAL. This data were written by {@link WriteAheadLog#walPutByteArray(long, byte[], int, int)}
+     *
+     * @param walPointer pointer returned by {@link WriteAheadLog#walPutByteArray(long, byte[], int, int)}
+     * @return DataInput
+     */
+    public DataInput walGetByteArray(long walPointer) {
+        int arraySize = (int) ((walPointer >>> (pointerOffsetBites+pointerFileBites))&pointerSizeMask);
+        int fileNum = (int) ((walPointer >>> (pointerOffsetBites)) & pointerFileMask);
+        long dataOffset = (walPointer & pointerOffsetMask);
 
         Volume vol = volumes.get(fileNum);
         return vol.getDataInput(dataOffset, arraySize);
     }
 
-    public byte[] walGetByteArray2(long longval) {
-        int arraySize = (int) (longval >>> 48);
-        int fileNum = (int) ((longval >>> 32) & 0xFFFFL);
-        long dataOffset = longval & 0xFFFFFFFFL;
+
+    /**
+     * Retrieve {@code byte[]} from WAL. This data were written by {@link WriteAheadLog#walPutByteArray(long, byte[], int, int)}
+     *
+     * @param walPointer pointer returned by {@link WriteAheadLog#walPutByteArray(long, byte[], int, int)}
+     * @return DataInput
+     */
+    public byte[] walGetByteArray2(long walPointer) {
+        int arraySize = (int) ((walPointer >>> (pointerOffsetBites+pointerFileBites))&pointerSizeMask);
+        int fileNum = (int) ((walPointer >>> (pointerOffsetBites)) & pointerFileMask);
+        long dataOffset = (walPointer & pointerOffsetMask);
 
         Volume vol = volumes.get(fileNum);
         byte[] ret = new byte[arraySize];
@@ -263,6 +337,49 @@ public class WriteAheadLog {
         return ret;
     }
 
+    //TODO return DataInput
+    public byte[] walGetRecord(long walPointer) {
+        int fileNum = (int) ((walPointer >>> (pointerOffsetBites)) & pointerFileMask);
+        long dataOffset = (walPointer & pointerOffsetMask);
+
+        Volume vol = volumes.get(fileNum);
+        //skip instruction
+        //TODO verify it is 7
+        //TODO verify checksum
+        dataOffset++;
+
+        long recid = vol.getPackedLong(dataOffset);
+        dataOffset += recid >>> 60;
+        recid &= DataIO.PACK_LONG_RESULT_MASK;
+
+        long size = vol.getPackedLong(dataOffset);
+        dataOffset += size >>> 60;
+        size &= DataIO.PACK_LONG_RESULT_MASK;
+
+        if (size == 0) {
+            return null;
+        }else if(size==1){
+            return new byte[0];
+        }else {
+            size--; //zero is used for null
+            byte[] data = new byte[(int) size];
+            vol.getData(dataOffset, data, 0, data.length);
+            return data;
+        }
+    }
+
+
+    /**
+     * Puts instruction into WAL. It should write part of {@code byte[]} at given offset.
+     * This value returns pointer to WAL, which can be used to retrieve data back with {@link WriteAheadLog#walGetByteArray(long)}.
+     * Pointer is composed of file number, and offset in WAL file.
+     *
+     * @param offset where data will be written in main store, after WAL replay (6 bytes)
+     * @param buf byte array of data
+     * @param bufPos starting position within byte array
+     * @param size number of bytes to take from byte array
+     * @return
+     */
     public long walPutByteArray(long offset, byte[] buf, int bufPos, int size){
         final int plusSize = +1+2+6+size;
         long walOffset2 = walOffset.getAndAdd(plusSize);
@@ -276,18 +393,64 @@ public class WriteAheadLog {
         checksum &= 15;
         curVol.putUnsignedByte(walOffset2, (2 << 4)|checksum);
         walOffset2+=1;
+        if(CC.ASSERT && (size&0xFFFF)!=size)
+            throw new AssertionError();
         curVol.putLong(walOffset2, ((long) size) << 48 | offset);
         walOffset2+=8;
         curVol.putData(walOffset2, buf,bufPos,size);
 
-        //TODO assertions
-        long val = ((long)size)<<48;
-        val |= ((long)fileNum)<<32;
+        if(CC.ASSERT && (size&pointerSizeMask)!=size)
+            throw new AssertionError();
+        if(CC.ASSERT && (fileNum&pointerFileMask)!=fileNum)
+            throw new AssertionError();
+        if(CC.ASSERT && (walOffset2&pointerOffsetMask)!=walOffset2)
+            throw new AssertionError();
+
+        long val = ((long)size)<<(pointerOffsetBites+pointerFileBites);
+        val |= ((long)fileNum)<<(pointerOffsetBites);
         val |= walOffset2;
 
         return val;
     }
 
+    public long walPutRecord(long recid, byte[] buf, int bufPos, int size){
+        if(CC.ASSERT && buf==null && size!=0)
+            throw new AssertionError();
+        long sizeToWrite = buf==null?0:(size+1);
+        final int plusSize = +1+ DataIO.packLongSize(recid)+DataIO.packLongSize(sizeToWrite)+size;
+        long walOffset2 = walOffset.getAndAdd(plusSize);
+        long startPos = walOffset2;
+
+        if(hadToSkip(walOffset2, plusSize)){
+            return walPutRecord(recid,buf,bufPos,size);
+        }
+
+        curVol.ensureAvailable(walOffset2+plusSize);
+        int checksum = 1;//+Integer.bitCount(size)+Long.bitCount(recid)+sum(buf,bufPos,size);
+        checksum &= 15;
+        curVol.putUnsignedByte(walOffset2, (5 << 4)|checksum);
+        walOffset2+=1;
+
+        walOffset2+=curVol.putPackedLong(walOffset2, recid);
+        walOffset2+=curVol.putPackedLong(walOffset2, sizeToWrite);
+
+        if(buf!=null) {
+            curVol.putData(walOffset2, buf, bufPos, size);
+        }
+
+        long val = ((long)fileNum)<<(pointerOffsetBites);
+        val |= startPos;
+
+        return val;
+    }
+
+
+    /**
+     * Put 8 byte long into WAL.
+     *
+     * @param offset where data will be written in main store, after WAL replay (6 bytes)
+     * @param value
+     */
     protected void walPutLong(long offset, long value){
         final int plusSize = +1+8+6;
         long walOffset2 = walOffset.getAndAdd(plusSize);

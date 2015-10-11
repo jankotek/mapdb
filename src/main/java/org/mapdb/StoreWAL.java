@@ -733,6 +733,11 @@ public class StoreWAL extends StoreCached {
         }
 
         @Override
+        public void writeRecord(long recid, byte[] data) {
+            throw new AssertionError();
+        }
+
+        @Override
         public void writeByteArray(long offset, byte[] val) {
             realVol.ensureAvailable(offset+val.length);
             realVol.putData(offset, val, 0, val.length);

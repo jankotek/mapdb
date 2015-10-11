@@ -367,6 +367,14 @@ public final class DataIO {
         while ((length -= in.skip(length)) > 0);
     }
 
+    public static long fillLowBits(int bitCount) {
+        long ret = 0;
+        for(;bitCount>0;bitCount--){
+            ret = (ret<<1)|1;
+        }
+        return ret;
+    }
+
 
     /**
      * Give access to internal byte[] or ByteBuffer in DataInput2..
