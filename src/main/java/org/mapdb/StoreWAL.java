@@ -19,15 +19,10 @@ package org.mapdb;
 
 
 import java.io.DataInput;
-import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.logging.Level;
 
@@ -38,14 +33,6 @@ import static org.mapdb.DataIO.*;
  */
 public class StoreWAL extends StoreCached {
 
-    /** 2 byte store version*/
-    protected static final int WAL_STORE_VERSION = 100;
-
-    /** 4 byte file header */
-    protected static final int WAL_HEADER = (0x8A77<<16) | WAL_STORE_VERSION;
-
-
-    protected static final long WAL_SEAL = 8234892392398238983L;
 
     protected static final int FULL_REPLAY_AFTER_N_TX = 16;
 
@@ -59,18 +46,6 @@ public class StoreWAL extends StoreCached {
     protected final LongLongMap[] currDataLongs;
 
     protected final LongLongMap pageLongStack = new LongLongMap();
-    protected final List<Volume> volumes = Collections.synchronizedList(new ArrayList<Volume>());
-
-
-    /** record WALs, store recid-record pairs. Created during compaction when memory allocator is not available */
-    protected final List<Volume> walRec = Collections.synchronizedList(new ArrayList<Volume>());
-
-    protected Volume curVol;
-
-    protected int fileNum = -1;
-
-    //TODO how to protect concurrrently file offset when file is being swapped?
-    protected final AtomicLong walOffset = new AtomicLong();
 
     protected Volume headVolBackup;
 
@@ -82,6 +57,7 @@ public class StoreWAL extends StoreCached {
 
     protected volatile boolean $_TEST_HACK_COMPACT_POST_COMMIT_WAIT =false;
 
+    protected final WriteAheadLog wal;
 
     public StoreWAL(String fileName) {
         this(fileName,
@@ -125,6 +101,8 @@ public class StoreWAL extends StoreCached {
                 recidReuseDisable,
                 executorScheduledRate,
                 writeQueueSize);
+        wal = new WriteAheadLog(fileName, volumeFactory, makeFeaturesBitmap());
+
         prevLongLongs = new LongLongMap[this.lockScale];
         currLongLongs = new LongLongMap[this.lockScale];
         for (int i = 0; i < prevLongLongs.length; i++) {
@@ -159,44 +137,13 @@ public class StoreWAL extends StoreCached {
 
         realVol = vol;
 
-        //replay WAL files
-        String wal0Name = getWalFileName("0");
-        String walCompSeal = getWalFileName("c");
-        boolean walCompSealExists =
-                walCompSeal!=null &&
-                        new File(walCompSeal).exists();
-
-        if(walCompSealExists ||
-             (wal0Name!=null &&
-                     new File(wal0Name).exists())){
-            //fill compaction stuff
-
-            for(int i=0;;i++){
-                String rname = getWalFileName("r"+i);
-                if(!new File(rname).exists())
-                    break;
-                walRec.add(volumeFactory.makeVolume(rname, readonly, true));
+        wal.open(new Replay2(){
+            @Override
+            public void beforeReplayStart() {
+                super.beforeReplayStart();
+                initOpenPost();
             }
-
-
-            //fill wal files
-            for(int i=0;;i++){
-                String wname = getWalFileName(""+i);
-                if(!new File(wname).exists())
-                    break;
-                volumes.add(volumeFactory.makeVolume(wname, readonly, true));
-            }
-
-            initOpenPost();
-
-            replayWAL();
-
-            for(Volume v:walRec){
-                v.close();
-            }
-            walRec.clear();
-            volumes.clear();
-        }
+        });
 
         //start new WAL file
         //TODO do not start if readonly
@@ -207,20 +154,7 @@ public class StoreWAL extends StoreCached {
 
     @Override
     protected void initFailedCloseFiles() {
-        if(walRec!=null){
-            for(Volume v:walRec){
-                if(v!=null && !v.isClosed())
-                    v.close();
-            }
-            walRec.clear();
-        }
-        if(volumes!=null){
-            for(Volume v:volumes){
-                if(v!=null && !v.isClosed())
-                    v.close();
-            }
-            volumes.clear();
-        }
+        wal.initFailedCloseFiles();
     }
 
     protected void initOpenPost() {
@@ -248,105 +182,12 @@ public class StoreWAL extends StoreCached {
         if (CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
-        fileNum++;
-        if (CC.ASSERT && fileNum != volumes.size())
-            throw new DBException.DataCorruption();
-        String filewal = getWalFileName(""+fileNum);
-        Volume nextVol;
-        if (readonly && filewal != null && !new File(filewal).exists()){
-            nextVol = new Volume.ReadOnly(new Volume.ByteArrayVol(8,0L));
-        }else {
-            nextVol = volumeFactory.makeVolume(filewal, readonly, true);
-        }
-        nextVol.ensureAvailable(16);
-
-        if(!readonly) {
-            nextVol.putInt(0, WAL_HEADER);
-            nextVol.putLong(8, makeFeaturesBitmap());
-        }
-
-        walOffset.set(16);
-        volumes.add(nextVol);
-
-        curVol = nextVol;
-    }
-
-    protected String getWalFileName(String ext) {
-        return fileName==null? null :
-                fileName+".wal"+"."+ext;
-    }
-
-    protected void walPutLong(long offset, long value){
-        final int plusSize = +1+8+6;
-        long walOffset2 = walOffset.getAndAdd(plusSize);
-
-        Volume curVol2 = curVol;
-
-        //in case of overlap, put Skip Bytes instruction and try again
-        if(hadToSkip(walOffset2, plusSize)){
-            walPutLong(offset, value);
-            return;
-        }
-
-        if(CC.ASSERT && offset>>>48!=0)
-            throw new DBException.DataCorruption();
-        curVol2.ensureAvailable(walOffset2+plusSize);
-        int parity = 1+Long.bitCount(value)+Long.bitCount(offset);
-        parity &=15;
-        curVol2.putUnsignedByte(walOffset2, (1 << 4)|parity);
-        walOffset2+=1;
-        curVol2.putLong(walOffset2, value);
-        walOffset2+=8;
-        curVol2.putSixLong(walOffset2, offset);
+        wal.startNextFile();
     }
 
 
-    protected void walPutUnsignedShort(long offset, int value) {
-        final int plusSize = +1+8;
-        long walOffset2 = walOffset.getAndAdd(plusSize);
 
-        Volume curVol2 = curVol;
 
-        //in case of overlap, put Skip Bytes instruction and try again
-        if(hadToSkip(walOffset2, plusSize)){
-            walPutUnsignedShort(offset, value);
-            return;
-        }
-
-        curVol2.ensureAvailable(walOffset2+plusSize);
-        if(CC.ASSERT && offset>>>48!=0)
-            throw new DBException.DataCorruption();
-        offset = (((long)value)<<48) | offset;
-        int parity = 1+Long.bitCount(offset);
-        parity &=15;
-        curVol2.putUnsignedByte(walOffset2, (6 << 4)|parity);
-        walOffset2+=1;
-        curVol2.putLong(walOffset2, offset);
-    }
-
-    protected boolean hadToSkip(long walOffset2, int plusSize) {
-        //does it overlap page boundaries?
-        if((walOffset2>>>CC.VOLUME_PAGE_SHIFT)==(walOffset2+plusSize)>>>CC.VOLUME_PAGE_SHIFT){
-            return false; //no, does not, all fine
-        }
-
-        //is there enough space for 4 byte skip N bytes instruction?
-        while((walOffset2&PAGE_MASK) >= PAGE_SIZE-4 || plusSize<5){
-            //pad with single byte skip instructions, until end of page is reached
-            int singleByteSkip = (4<<4)|(Long.bitCount(walOffset2)&15);
-            curVol.putUnsignedByte(walOffset2++, singleByteSkip);
-            plusSize--;
-            if(CC.ASSERT && plusSize<0)
-                throw new DBException.DataCorruption();
-        }
-
-        //now new page starts, so add skip instruction for remaining bits
-        int val = (3<<(4+3*8)) | (plusSize-4) | ((Integer.bitCount(plusSize-4)&15)<<(3*8));
-        curVol.ensureAvailable(walOffset2 + 4);
-        curVol.putInt(walOffset2, val);
-
-        return true;
-    }
 
     @Override
     protected void putDataSingleWithLink(int segment, long offset, long link, byte[] buf, int bufPos, int size) {
@@ -372,27 +213,7 @@ public class StoreWAL extends StoreCached {
         if(CC.ASSERT && segment==-1 && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
-        final int plusSize = +1+2+6+size;
-        long walOffset2 = walOffset.getAndAdd(plusSize);
-
-        if(hadToSkip(walOffset2, plusSize)){
-            putDataSingleWithoutLink(segment,offset,buf,bufPos,size);
-            return;
-        }
-
-        curVol.ensureAvailable(walOffset2+plusSize);
-        int checksum = 1+Integer.bitCount(size)+Long.bitCount(offset)+sum(buf,bufPos,size);
-        checksum &= 15;
-        curVol.putUnsignedByte(walOffset2, (2 << 4)|checksum);
-        walOffset2+=1;
-        curVol.putLong(walOffset2, ((long) size) << 48 | offset);
-        walOffset2+=8;
-        curVol.putData(walOffset2, buf,bufPos,size);
-
-        //TODO assertions
-        long val = ((long)size)<<48;
-        val |= ((long)fileNum)<<32;
-        val |= walOffset2;
+        long val = wal.walPutByteArray(offset, buf, bufPos,size);
 
         (segment==-1?pageLongStack:currDataLongs[segment]).put(offset, val);
     }
@@ -409,12 +230,7 @@ public class StoreWAL extends StoreCached {
         if(longval==0)
             return null;
 
-        int arraySize = (int) (longval >>> 48);
-        int fileNum = (int) ((longval >>> 32) & 0xFFFFL);
-        long dataOffset = longval & 0xFFFFFFFFL;
-
-        Volume vol = volumes.get(fileNum);
-        return vol.getDataInput(dataOffset, arraySize);
+        return wal.walGetByteArray(longval);
     }
 
     @Override
@@ -465,7 +281,7 @@ public class StoreWAL extends StoreCached {
     protected void indexLongPut(long offset, long val) {
         if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw  new AssertionError();
-        walPutLong(offset,val);
+        wal.walPutLong(offset,val);
     }
 
     @Override
@@ -503,14 +319,7 @@ public class StoreWAL extends StoreCached {
         //try to get it from previous TX stored in WAL, but not yet replayed
         long walval = pageLongStack.get(pageOffset);
         if(walval!=0){
-            //get file number, offset and size in WAL
-            int arraySize = (int) (walval >>> 48);
-            int fileNum = (int) ((walval >>> 32) & 0xFFFFL);
-            long dataOffset = walval & 0xFFFFFFFFL;
-            //read and return data
-            byte[] b = new byte[arraySize];
-            Volume vol = volumes.get(fileNum);
-            vol.getData(dataOffset, b, 0, arraySize);
+            byte[] b = wal.walGetByteArray2(walval);
             //page is going to be modified, so put it back into dirtyStackPages)
             if (willBeModified) {
                 dirtyStackPages.put(pageOffset, b);
@@ -546,10 +355,15 @@ public class StoreWAL extends StoreCached {
             if(val==0)
                 val = prevDataLongs[segment].get(oldLink);
             if(val!=0) {
-                //was found in previous position, read link from WAL
-                int file = (int) ((val>>>32) & 0xFFFFL); // get WAL file number
-                val = val & 0xFFFFFFFFL; // convert to WAL offset;
-                val = volumes.get(file).getLong(val);
+//                //was found in previous position, read link from WAL
+//                int file = (int) ((val>>>32) & 0xFFFFL); // get WAL file number
+//                val = val & 0xFFFFFFFFL; // convert to WAL offset;
+//                val = volumes.get(file).getLong(val);
+                try {
+                    val = wal.walGetByteArray(val).readLong();
+                } catch (IOException e) {
+                    throw new DBException.VolumeIOError(e);
+                }
             }else{
                 //was not found in any transaction, read from main store
                 val = vol.getLong(oldLink);
@@ -720,7 +534,7 @@ public class StoreWAL extends StoreCached {
 
 
             //if big enough, do full WAL replay
-            if(volumes.size()>FULL_REPLAY_AFTER_N_TX) {
+            if(wal.getNumberOfFiles()>FULL_REPLAY_AFTER_N_TX) {
                 commitFullWALReplay();
                 return;
             }
@@ -740,7 +554,7 @@ public class StoreWAL extends StoreCached {
                             continue;
                         long value = v[i+1];
                         prevLongLongs[segment].put(offset,value);
-                        walPutLong(offset,value);
+                        wal.walPutLong(offset,value);
 
                     }
                     currLongLongs[segment].clear();
@@ -798,14 +612,7 @@ public class StoreWAL extends StoreCached {
                 headVolBackup.putData(4, b, 0, b.length);
                 indexPagesBackup = indexPages.clone();
 
-                long finalOffset = walOffset.get();
-                curVol.ensureAvailable(finalOffset + 1); //TODO overlap here
-                //put EOF instruction
-                curVol.putUnsignedByte(finalOffset, (0 << 4) | (Long.bitCount(finalOffset) & 15));
-                curVol.sync();
-                //put wal seal
-                curVol.putLong(8, WAL_SEAL);
-                curVol.sync();
+                wal.seal();
 
                 walStartNextFile();
 
@@ -838,7 +645,7 @@ public class StoreWAL extends StoreCached {
                     if(offset==0)
                         continue;
                     long value = v[i+1];
-                    walPutLong(offset,value);
+                    wal.walPutLong(offset,value);
 
                     //remove from this
                     v[i] = 0;
@@ -894,14 +701,7 @@ public class StoreWAL extends StoreCached {
                 headVolBackup.putData(4, b, 0, b.length);
                 indexPagesBackup = indexPages.clone();
 
-                long finalOffset = walOffset.get();
-                curVol.ensureAvailable(finalOffset+1); //TODO overlap here
-                //put EOF instruction
-                curVol.putUnsignedByte(finalOffset, (0<<4) | (Long.bitCount(finalOffset)&15));
-                curVol.sync();
-                //put wal seal
-                curVol.putLong(8, WAL_SEAL);
-                curVol.sync();
+                wal.seal();
 
                 //now replay full WAL
                 replayWAL();
@@ -917,182 +717,40 @@ public class StoreWAL extends StoreCached {
         }
     }
 
+    protected class Replay2 implements WriteAheadLog.WALReplay {
+        @Override
+        public void beforeReplayStart() {
+            if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
+                throw new AssertionError();
+            if(CC.ASSERT && !commitLock.isHeldByCurrentThread())
+                throw new AssertionError();
+        }
+
+        @Override
+        public void writeLong(long offset, long value) {
+            realVol.ensureAvailable(offset+8);
+            realVol.putLong(offset, value);
+        }
+
+        @Override
+        public void writeByteArray(long offset, byte[] val) {
+            realVol.ensureAvailable(offset+val.length);
+            realVol.putData(offset, val, 0, val.length);
+        }
+
+        @Override
+        public void beforeDestroyWAL() {
+            realVol.sync();
+        }
+    }
 
     protected void replayWAL(){
-
-         /*
-          Init Open for StoreWAL has following phases:
-
-          1) check existing files and their seals
-          2) if compacted file exists, swap it with original
-          3) if Record WAL files exists, initialize Memory Allocator
-          4) if Record WAL exists, convert it to WAL
-          5) replay WAL if any
-          6) reinitialize memory allocator if replay WAL happened
-         */
-
-
-        if(!walRec.isEmpty()){
-            //convert walRec into WAL log files.
-            //memory allocator was not available at the time of compaction
-            structuralLock.lock();
-            try {
-                walStartNextFile();
-            }finally {
-                structuralLock.unlock();
-            }
-
-            for(Volume wr:walRec){
-                if(wr.length()==0)
-                    break;
-                wr.ensureAvailable(16); //TODO this should not be here, Volume should be already mapped if file existsi
-                if(wr.getLong(8)!=StoreWAL.WAL_SEAL)
-                    break;
-                long pos = 16;
-                for(;;) {
-                    int instr = wr.getUnsignedByte(pos++);
-                    if (instr >>> 4 == 0) {
-                        //EOF
-                        break;
-                    } else if (instr >>> 4 != 5) {
-                        //TODO failsafe with corrupted wal
-                        throw new DBException.DataCorruption("Invalid instruction in WAL REC" + (instr >>> 4));
-                    }
-
-                    long recid = wr.getSixLong(pos);
-                    pos += 6;
-                    int size = wr.getInt(pos);
-                    //TODO zero size, null records, tombstone
-                    pos += 4;
-                    byte[] arr = new byte[size]; //TODO reuse array if bellow certain size
-                    wr.getData(pos, arr, 0, size);
-                    pos += size;
-                    update(recid, arr, Serializer.BYTE_ARRAY_NOSIZE);
-                }
-            }
-            List<Volume> l = new ArrayList(walRec);
-            walRec.clear();
-            commitFullWALReplay();
-            //delete all wr files
-            for(Volume wr:l){
-                File f = wr.getFile();
-                wr.close();
-                wr.deleteFile();
-                if(f!=null && f.exists() && !f.delete()){
-                    LOG.warning("Could not delete WAL REC file: "+f);
-                }
-            }
-            walRec.clear();
-        }
-
-
-        replayWALInstructionFiles();
+        WriteAheadLog.WALReplay replay = new Replay2();
+        wal.replayWAL(replay);
     }
 
-    private void replayWALInstructionFiles() {
-        if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
-            throw new AssertionError();
-        if(CC.ASSERT && !commitLock.isHeldByCurrentThread())
-            throw new AssertionError();
 
-        file:for(Volume wal:volumes){
-            if(wal.length()<16 || wal.getLong(8)!=WAL_SEAL) {
-                break file;
-                //TODO better handling for corrupted logs
-            }
 
-            long pos = 16;
-            for(;;) {
-                int checksum = wal.getUnsignedByte(pos++);
-                int instruction = checksum>>>4;
-                checksum = (checksum&15);
-                if (instruction == 0) {
-                    //EOF
-                    if((Long.bitCount(pos-1)&15) != checksum)
-                        throw new InternalError("WAL corrupted");
-                    continue file;
-                } else if (instruction == 1) {
-                    //write long
-                    long val = wal.getLong(pos);
-                    pos += 8;
-                    long offset = wal.getSixLong(pos);
-                    pos += 6;
-                    if(((1+Long.bitCount(val)+Long.bitCount(offset))&15)!=checksum)
-                        throw new InternalError("WAL corrupted");
-                    realVol.ensureAvailable(offset+8);
-                    realVol.putLong(offset, val);
-                } else if (instruction == 2) {
-                    //write byte[]
-                    int dataSize = wal.getUnsignedShort(pos);
-                    pos += 2;
-                    long offset = wal.getSixLong(pos);
-                    pos += 6;
-                    byte[] data = new byte[dataSize];
-                    wal.getData(pos, data, 0, data.length);
-                    pos += data.length;
-                    if(((1+Integer.bitCount(dataSize)+Long.bitCount(offset)+sum(data))&15)!=checksum)
-                        throw new InternalError("WAL corrupted");
-                    //TODO direct transfer
-                    realVol.ensureAvailable(offset+data.length);
-                    realVol.putData(offset, data, 0, data.length);
-                } else if (instruction == 3) {
-                    //skip N bytes
-                    int skipN = wal.getInt(pos - 1) & 0xFFFFFF; //read 3 bytes
-                    if((Integer.bitCount(skipN)&15) != checksum)
-                        throw new InternalError("WAL corrupted");
-                    pos += 3 + skipN;
-                } else if (instruction == 4) {
-                    //skip single byte
-                    if((Long.bitCount(pos-1)&15) != checksum)
-                        throw new InternalError("WAL corrupted");
-                } else if (instruction == 6) {
-                    //write two bytes
-                    long s = wal.getLong(pos);
-                    pos+=8;
-                    if(((1+Long.bitCount(s))&15) != checksum)
-                        throw new InternalError("WAL corrupted");
-                    long offset = s&0xFFFFFFFFFFFFL;
-                    realVol.ensureAvailable(offset + 2);
-                    realVol.putUnsignedShort(offset, (int) (s>>>48));
-                }else{
-                    throw new InternalError("WAL corrupted, unknown instruction");
-                }
-
-            }
-        }
-
-        realVol.sync();
-
-        //destroy old wal files
-        for(Volume wal:volumes){
-            if(!wal.isClosed()) {
-                wal.truncate(0);
-                wal.close();
-            }
-            wal.deleteFile();
-
-        }
-        fileNum = -1;
-        curVol = null;
-        volumes.clear();
-    }
-
-    private int sum(byte[] data) {
-        int ret = 0;
-        for(byte b:data){
-            ret+=b;
-        }
-        return Math.abs(ret);
-    }
-
-    private int sum(byte[] buf, int bufPos, int size) {
-        int ret = 0;
-        size+=bufPos;
-        while(bufPos<size){
-            ret+=buf[bufPos++];
-        }
-        return Math.abs(ret);
-    }
 
 
     @Override
@@ -1124,17 +782,7 @@ public class StoreWAL extends StoreCached {
                     }
                 }
 
-
-                for(Volume v:walRec){
-                    v.close();
-                }
-                walRec.clear();
-
-
-                for(Volume v:volumes){
-                    v.close();
-                }
-                volumes.clear();
+                wal.close();
 
                 vol.close();
                 vol = null;
@@ -1144,7 +792,7 @@ public class StoreWAL extends StoreCached {
                 headVolBackup.close();
                 headVolBackup = null;
 
-                curVol = null;
+
                 dirtyStackPages.clear();
 
                 if(caches!=null){
