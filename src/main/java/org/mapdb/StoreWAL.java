@@ -747,6 +747,11 @@ public class StoreWAL extends StoreCached {
         public void beforeDestroyWAL() {
             realVol.sync();
         }
+
+        @Override
+        public void writeTombstone(long recid) {
+            throw new AssertionError();
+        }
     }
 
     protected void replayWAL(){

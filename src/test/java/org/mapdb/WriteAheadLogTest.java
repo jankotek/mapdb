@@ -78,6 +78,11 @@ public class WriteAheadLogTest {
             @Override
             public void beforeDestroyWAL() {
             }
+
+            @Override
+            public void writeTombstone(long recid) {
+                fail();
+            }
         };
 
         wal.replayWAL(r);

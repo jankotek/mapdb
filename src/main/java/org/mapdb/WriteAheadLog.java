@@ -20,6 +20,17 @@ public class WriteAheadLog {
 
 
     protected static final long WAL_SEAL = 8234892392398238983L;
+
+    protected static final int I_EOF = 0;
+    protected static final int I_LONG = 1;
+    protected static final int I_BYTE_ARRAY = 2;
+    protected static final int I_SKIP_MANY = 3;
+    protected static final int I_SKIP_SINGLE = 4;
+    protected static final int I_RECORD = 5;
+    protected static final int I_TOMBSTONE = 6;
+
+
+
     protected final long featureBitMap;
 
     protected final int pointerOffsetBites=32;
@@ -119,6 +130,7 @@ public class WriteAheadLog {
 
         void beforeDestroyWAL();
 
+        void writeTombstone(long recid);
     }
 
     /** does nothing */
@@ -141,6 +153,10 @@ public class WriteAheadLog {
 
         @Override
         public void beforeDestroyWAL() {
+        }
+
+        @Override
+        public void writeTombstone(long recid) {
         }
     };
 
@@ -216,12 +232,12 @@ public class WriteAheadLog {
                 int checksum = wal.getUnsignedByte(pos++);
                 int instruction = checksum>>>4;
                 checksum = (checksum&15);
-                if (instruction == 0) {
+                if (instruction == I_EOF) {
                     //EOF
                     if((Long.bitCount(pos-1)&15) != checksum)
                         throw new InternalError("WAL corrupted");
                     continue file;
-                } else if (instruction == 1) {
+                } else if (instruction == I_LONG) {
                     //write long
                     long val = wal.getLong(pos);
                     pos += 8;
@@ -230,7 +246,7 @@ public class WriteAheadLog {
                     if(((1+Long.bitCount(val)+Long.bitCount(offset))&15)!=checksum)
                         throw new InternalError("WAL corrupted");
                     replay.writeLong(offset,val);
-                } else if (instruction == 2) {
+                } else if (instruction == I_BYTE_ARRAY) {
                     //write byte[]
                     int dataSize = wal.getUnsignedShort(pos);
                     pos += 2;
@@ -242,17 +258,17 @@ public class WriteAheadLog {
                     if(((1+Integer.bitCount(dataSize)+Long.bitCount(offset)+sum(data))&15)!=checksum)
                         throw new InternalError("WAL corrupted");
                     replay.writeByteArray(offset,data);
-                } else if (instruction == 3) {
+                } else if (instruction == I_SKIP_MANY) {
                     //skip N bytes
                     int skipN = wal.getInt(pos - 1) & 0xFFFFFF; //read 3 bytes
                     if((Integer.bitCount(skipN)&15) != checksum)
                         throw new InternalError("WAL corrupted");
                     pos += 3 + skipN;
-                } else if (instruction == 4) {
+                } else if (instruction == I_SKIP_SINGLE) {
                     //skip single byte
                     if((Long.bitCount(pos-1)&15) != checksum)
                         throw new InternalError("WAL corrupted");
-                } else if (instruction == 5) {
+                } else if (instruction == I_RECORD) {
                     // read record
                     long recid = wal.getPackedLong(pos);
                     pos += recid >>> 60;
@@ -264,13 +280,18 @@ public class WriteAheadLog {
 
                     if (size == 0) {
                         replay.writeRecord(recid, null);
-                    }else {
+                    } else {
                         size--; //zero is used for null
                         byte[] data = new byte[(int) size];
                         wal.getData(pos, data, 0, data.length);
                         pos += size;
                         replay.writeRecord(recid, data);
                     }
+                }else if (instruction == I_TOMBSTONE){
+                    long recid = wal.getPackedLong(pos);
+                    pos += recid >>> 60;
+                    recid &= DataIO.PACK_LONG_RESULT_MASK;
+                    replay.writeTombstone(recid);
                 }else{
                     throw new InternalError("WAL corrupted, unknown instruction");
                 }
@@ -391,7 +412,7 @@ public class WriteAheadLog {
         curVol.ensureAvailable(walOffset2+plusSize);
         int checksum = 1+Integer.bitCount(size)+Long.bitCount(offset)+sum(buf,bufPos,size);
         checksum &= 15;
-        curVol.putUnsignedByte(walOffset2, (2 << 4)|checksum);
+        curVol.putUnsignedByte(walOffset2, (I_BYTE_ARRAY << 4)|checksum);
         walOffset2+=1;
         if(CC.ASSERT && (size&0xFFFF)!=size)
             throw new AssertionError();
@@ -428,7 +449,7 @@ public class WriteAheadLog {
         curVol.ensureAvailable(walOffset2+plusSize);
         int checksum = 1;//+Integer.bitCount(size)+Long.bitCount(recid)+sum(buf,bufPos,size);
         checksum &= 15;
-        curVol.putUnsignedByte(walOffset2, (5 << 4)|checksum);
+        curVol.putUnsignedByte(walOffset2, (I_RECORD << 4)|checksum);
         walOffset2+=1;
 
         walOffset2+=curVol.putPackedLong(walOffset2, recid);
@@ -468,7 +489,7 @@ public class WriteAheadLog {
         curVol2.ensureAvailable(walOffset2+plusSize);
         int parity = 1+Long.bitCount(value)+Long.bitCount(offset);
         parity &=15;
-        curVol2.putUnsignedByte(walOffset2, (1 << 4)|parity);
+        curVol2.putUnsignedByte(walOffset2, (I_LONG << 4)|parity);
         walOffset2+=1;
         curVol2.putLong(walOffset2, value);
         walOffset2+=8;
@@ -484,7 +505,7 @@ public class WriteAheadLog {
         //is there enough space for 4 byte skip N bytes instruction?
         while((walOffset2&StoreWAL.PAGE_MASK) >= StoreWAL.PAGE_SIZE-4 || plusSize<5){
             //pad with single byte skip instructions, until end of page is reached
-            int singleByteSkip = (4<<4)|(Long.bitCount(walOffset2)&15);
+            int singleByteSkip = (I_SKIP_SINGLE<<4)|(Long.bitCount(walOffset2)&15);
             curVol.putUnsignedByte(walOffset2++, singleByteSkip);
             plusSize--;
             if(CC.ASSERT && plusSize<0)
@@ -492,7 +513,7 @@ public class WriteAheadLog {
         }
 
         //now new page starts, so add skip instruction for remaining bits
-        int val = (3<<(4+3*8)) | (plusSize-4) | ((Integer.bitCount(plusSize-4)&15)<<(3*8));
+        int val = (I_SKIP_MANY<<(4+3*8)) | (plusSize-4) | ((Integer.bitCount(plusSize-4)&15)<<(3*8));
         curVol.ensureAvailable(walOffset2 + 4);
         curVol.putInt(walOffset2, val);
 
