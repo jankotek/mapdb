@@ -29,6 +29,8 @@ public class WriteAheadLog {
     protected static final int I_RECORD = 5;
     protected static final int I_TOMBSTONE = 6;
     protected static final int I_PREALLOCATE = 7;
+    protected static final int I_COMMIT = 8;
+    protected static final int I_ROLLBACK = 9;
 
 
 
@@ -91,7 +93,7 @@ public class WriteAheadLog {
         long finalOffset = walOffset.get();
         curVol.ensureAvailable(finalOffset+1); //TODO overlap here
         //put EOF instruction
-        curVol.putUnsignedByte(finalOffset, (0<<4) | (Long.bitCount(finalOffset)&15));
+        curVol.putUnsignedByte(finalOffset, (I_EOF<<4) | (Long.bitCount(finalOffset)&15));
         curVol.sync();
         //put wal seal
         curVol.putLong(8, WAL_SEAL);
@@ -116,6 +118,50 @@ public class WriteAheadLog {
         curVol = nextVol;
     }
 
+    public void rollback() {
+        final int plusSize = +1+8;
+        long walOffset2 = walOffset.getAndAdd(plusSize);
+
+        Volume curVol2 = curVol;
+
+        //in case of overlap, put Skip Bytes instruction and try again
+        if(hadToSkip(walOffset2, plusSize)){
+            rollback();
+            return;
+        }
+
+        long checksum = 0L; //TODO checksum
+
+        curVol2.ensureAvailable(walOffset2+plusSize);
+        int parity = 1+Long.bitCount(walOffset2)+Long.bitCount(checksum);
+        parity &=15;
+        curVol2.putUnsignedByte(walOffset2, (I_ROLLBACK << 4)|parity);
+        walOffset2++;
+        curVol2.putLong(walOffset2,checksum);
+    }
+
+    public void commit() {
+        final int plusSize = +1+8;
+        long walOffset2 = walOffset.getAndAdd(plusSize);
+
+        Volume curVol2 = curVol;
+
+        //in case of overlap, put Skip Bytes instruction and try again
+        if(hadToSkip(walOffset2, plusSize)){
+            commit();
+            return;
+        }
+
+        long checksum = 0L; //TODO checksum
+
+        curVol2.ensureAvailable(walOffset2+plusSize);
+        int parity = 1+Long.bitCount(walOffset2)+Long.bitCount(checksum);
+        parity &=15;
+        curVol2.putUnsignedByte(walOffset2, (I_COMMIT << 4)|parity);
+        walOffset2++;
+        curVol2.putLong(walOffset2,checksum);
+    }
+
 
     public interface WALReplay{
 
@@ -129,6 +175,11 @@ public class WriteAheadLog {
         void writeByteArray(long offset, byte[] val);
 
         void beforeDestroyWAL();
+
+        void commit();
+
+        void rollback();
+
 
         void writeTombstone(long recid);
 
@@ -155,6 +206,14 @@ public class WriteAheadLog {
 
         @Override
         public void beforeDestroyWAL() {
+        }
+
+        @Override
+        public void commit() {
+        }
+
+        @Override
+        public void rollback() {
         }
 
         @Override
@@ -301,13 +360,25 @@ public class WriteAheadLog {
                         throw new InternalError("WAL corrupted");
 
                     replay.writeTombstone(recid);
-                }else if (instruction == I_PREALLOCATE){
+                }else if (instruction == I_PREALLOCATE) {
                     long recid = wal.getPackedLong(pos);
                     pos += recid >>> 60;
                     recid &= DataIO.PACK_LONG_RESULT_MASK;
-                    if(((1+Long.bitCount(recid))&15)!=checksum)
+                    if (((1 + Long.bitCount(recid)) & 15) != checksum)
                         throw new InternalError("WAL corrupted");
                     replay.writePreallocate(recid);
+                }else if (instruction == I_COMMIT) {
+                    long checksum2 = wal.getLong(pos);
+                    pos+=8;
+                    if(((Long.bitCount(pos-1)+Long.bitCount(checksum2))&15) != checksum)
+                        throw new InternalError("WAL corrupted");
+                    replay.commit();
+                }else if (instruction == I_ROLLBACK) {
+                    long checksum2 = wal.getLong(pos);
+                    pos+=8;
+                    if(((Long.bitCount(pos-1)+Long.bitCount(checksum2))&15) != checksum)
+                        throw new InternalError("WAL corrupted");
+                    replay.rollback();
                 }else{
                     throw new InternalError("WAL corrupted, unknown instruction");
                 }

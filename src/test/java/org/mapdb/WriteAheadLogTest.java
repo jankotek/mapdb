@@ -79,6 +79,16 @@ public class WriteAheadLogTest {
             }
 
             @Override
+            public void commit() {
+                fail();
+            }
+
+            @Override
+            public void rollback() {
+                fail();
+            }
+
+            @Override
             public void writeTombstone(long recid) {
                 fail();
             }
@@ -130,6 +140,16 @@ public class WriteAheadLogTest {
             }
 
             @Override
+            public void commit() {
+                fail();
+            }
+
+            @Override
+            public void rollback() {
+                fail();
+            }
+
+            @Override
             public void writeTombstone(long recid) {
                 c.incrementAndGet();
                 assertEquals(111111L, recid);
@@ -178,6 +198,16 @@ public class WriteAheadLogTest {
             }
 
             @Override
+            public void commit() {
+                fail();
+            }
+
+            @Override
+            public void rollback() {
+                fail();
+            }
+
+            @Override
             public void writeTombstone(long recid) {
                 fail();
             }
@@ -190,5 +220,131 @@ public class WriteAheadLogTest {
         });
         assertEquals(1,c.get());
     }
+
+    @Test public void commit(){
+        WriteAheadLog wal = new WriteAheadLog(null);
+        wal.open(WriteAheadLog.NOREPLAY);
+        wal.startNextFile();
+
+        wal.commit();
+        wal.seal();
+
+        final AtomicInteger c = new AtomicInteger();
+
+        wal.replayWAL(new WriteAheadLog.WALReplay() {
+            @Override
+            public void beforeReplayStart() {
+            }
+
+            @Override
+            public void writeLong(long offset, long value) {
+                fail();
+            }
+
+            @Override
+            public void writeRecord(long recid, byte[] data) {
+                fail();
+            }
+
+            @Override
+            public void writeByteArray(long offset, byte[] val) {
+                fail();
+            }
+
+            @Override
+            public void beforeDestroyWAL() {
+            }
+
+            @Override
+            public void commit() {
+                c.incrementAndGet();
+            }
+
+            @Override
+            public void rollback() {
+                fail();
+            }
+
+            @Override
+            public void writeTombstone(long recid) {
+                fail();
+            }
+
+            @Override
+            public void writePreallocate(long recid) {
+                fail();
+            }
+        });
+        assertEquals(1,c.get());
+    }
+    @Test public void rollback(){
+        WriteAheadLog wal = new WriteAheadLog(null);
+        wal.open(WriteAheadLog.NOREPLAY);
+        wal.startNextFile();
+
+        wal.rollback();
+        wal.seal();
+
+        final AtomicInteger c = new AtomicInteger();
+
+        wal.replayWAL(new WriteAheadLog.WALReplay() {
+            @Override
+            public void beforeReplayStart() {
+            }
+
+            @Override
+            public void writeLong(long offset, long value) {
+                fail();
+            }
+
+            @Override
+            public void writeRecord(long recid, byte[] data) {
+                fail();
+            }
+
+            @Override
+            public void writeByteArray(long offset, byte[] val) {
+                fail();
+            }
+
+            @Override
+            public void beforeDestroyWAL() {
+            }
+
+            @Override
+            public void commit() {
+                fail();
+            }
+
+            @Override
+            public void rollback() {
+                c.incrementAndGet();
+            }
+
+            @Override
+            public void writeTombstone(long recid) {
+                fail();
+            }
+
+            @Override
+            public void writePreallocate(long recid) {
+                fail();
+            }
+        });
+        assertEquals(1,c.get());
+    }
+
+    @Test
+    public void test_sequence(){
+        WALSequence s = new WALSequence(
+                new Object[]{WALSequence.commit},
+                new Object[]{WALSequence.rollback}
+        );
+
+        s.commit();
+        s.rollback();
+        assertTrue(s.seq.isEmpty());
+    }
+
 
 }

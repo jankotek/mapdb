@@ -749,6 +749,16 @@ public class StoreWAL extends StoreCached {
         }
 
         @Override
+        public void commit() {
+            //TODO generated
+        }
+
+        @Override
+        public void rollback() {
+            //TODO generated
+        }
+
+        @Override
         public void writeTombstone(long recid) {
             throw new AssertionError();
         }
