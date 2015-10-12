@@ -43,6 +43,9 @@ public class WriteAheadLog {
     protected final int pointerFileBites=16;
     protected final long pointerFileMask = DataIO.fillLowBits(pointerFileBites);
 
+    protected int lastChecksum=0;
+    protected long lastChecksumOffset=16;
+
     public WriteAheadLog(String fileName, Volume.VolumeFactory volumeFactory, long featureBitMap) {
         this.fileName = fileName;
         this.volumeFactory = volumeFactory;
@@ -119,7 +122,7 @@ public class WriteAheadLog {
     }
 
     public void rollback() {
-        final int plusSize = +1+8;
+        final int plusSize = +1+4;
         long walOffset2 = walOffset.getAndAdd(plusSize);
 
         Volume curVol2 = curVol;
@@ -130,18 +133,23 @@ public class WriteAheadLog {
             return;
         }
 
-        long checksum = 0L; //TODO checksum
+        if(lastChecksumOffset==0)
+            lastChecksumOffset=16;
+        int checksum =  lastChecksum+DataIO.longHash(curVol2.hash(lastChecksumOffset, walOffset2-lastChecksumOffset, fileNum+2));
+        lastChecksumOffset=walOffset2+plusSize;
+        lastChecksum = checksum;
+
 
         curVol2.ensureAvailable(walOffset2+plusSize);
-        int parity = 1+Long.bitCount(walOffset2)+Long.bitCount(checksum);
+        int parity = 1+Long.bitCount(walOffset2)+Integer.bitCount(checksum);
         parity &=15;
         curVol2.putUnsignedByte(walOffset2, (I_ROLLBACK << 4)|parity);
         walOffset2++;
-        curVol2.putLong(walOffset2,checksum);
+        curVol2.putInt(walOffset2,checksum);
     }
 
     public void commit() {
-        final int plusSize = +1+8;
+        final int plusSize = +1+4;
         long walOffset2 = walOffset.getAndAdd(plusSize);
 
         Volume curVol2 = curVol;
@@ -152,14 +160,18 @@ public class WriteAheadLog {
             return;
         }
 
-        long checksum = 0L; //TODO checksum
+        if(lastChecksumOffset==0)
+            lastChecksumOffset=16;
+        int checksum =  lastChecksum+DataIO.longHash(curVol2.hash(lastChecksumOffset, walOffset2-lastChecksumOffset, fileNum+1));
+        lastChecksumOffset=walOffset2+plusSize;
+        lastChecksum = checksum;
 
         curVol2.ensureAvailable(walOffset2+plusSize);
-        int parity = 1+Long.bitCount(walOffset2)+Long.bitCount(checksum);
+        int parity = 1+Long.bitCount(walOffset2)+Integer.bitCount(checksum);
         parity &=15;
         curVol2.putUnsignedByte(walOffset2, (I_COMMIT << 4)|parity);
         walOffset2++;
-        curVol2.putLong(walOffset2,checksum);
+        curVol2.putInt(walOffset2,checksum);
     }
 
 
@@ -368,15 +380,15 @@ public class WriteAheadLog {
                         throw new InternalError("WAL corrupted");
                     replay.writePreallocate(recid);
                 }else if (instruction == I_COMMIT) {
-                    long checksum2 = wal.getLong(pos);
-                    pos+=8;
-                    if(((Long.bitCount(pos-1)+Long.bitCount(checksum2))&15) != checksum)
+                    int checksum2 = wal.getInt(pos);
+                    pos+=4;
+                    if(((1+Long.bitCount(pos-5)+Integer.bitCount(checksum2))&15) != checksum)
                         throw new InternalError("WAL corrupted");
                     replay.commit();
                 }else if (instruction == I_ROLLBACK) {
-                    long checksum2 = wal.getLong(pos);
-                    pos+=8;
-                    if(((Long.bitCount(pos-1)+Long.bitCount(checksum2))&15) != checksum)
+                    int checksum2 = wal.getInt(pos);
+                    pos+=4;
+                    if(((1+Long.bitCount(pos-5)+Integer.bitCount(checksum2))&15) != checksum)
                         throw new InternalError("WAL corrupted");
                     replay.rollback();
                 }else{

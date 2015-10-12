@@ -277,62 +277,43 @@ public class WriteAheadLogTest {
         });
         assertEquals(1,c.get());
     }
+
     @Test public void rollback(){
         WriteAheadLog wal = new WriteAheadLog(null);
         wal.open(WriteAheadLog.NOREPLAY);
         wal.startNextFile();
 
+        wal.walPutLong(111L,1000);
         wal.rollback();
         wal.seal();
 
-        final AtomicInteger c = new AtomicInteger();
-
-        wal.replayWAL(new WriteAheadLog.WALReplay() {
-            @Override
-            public void beforeReplayStart() {
-            }
-
-            @Override
-            public void writeLong(long offset, long value) {
-                fail();
-            }
-
-            @Override
-            public void writeRecord(long recid, byte[] data) {
-                fail();
-            }
-
-            @Override
-            public void writeByteArray(long offset, byte[] val) {
-                fail();
-            }
-
-            @Override
-            public void beforeDestroyWAL() {
-            }
-
-            @Override
-            public void commit() {
-                fail();
-            }
-
-            @Override
-            public void rollback() {
-                c.incrementAndGet();
-            }
-
-            @Override
-            public void writeTombstone(long recid) {
-                fail();
-            }
-
-            @Override
-            public void writePreallocate(long recid) {
-                fail();
-            }
-        });
-        assertEquals(1,c.get());
+        wal.replayWAL(new WALSequence(
+                new Object[]{WALSequence.beforeReplayStart},
+                new Object[]{WALSequence.writeLong, 111L, 1000L},
+                new Object[]{WALSequence.rollback},
+                new Object[]{WALSequence.beforeDestroyWAL}
+        ));
     }
+
+
+    @Test public void commitChecksum() {
+        WriteAheadLog wal = new WriteAheadLog(null);
+        wal.open(WriteAheadLog.NOREPLAY);
+        wal.startNextFile();
+
+        wal.walPutLong(111L, 1000);
+        wal.commit();
+        long offset1 = wal.walOffset.get() - 5;
+        int checksum1 = DataIO.longHash(wal.curVol.hash(16, offset1-16, wal.fileNum+1));
+
+        assertEquals(checksum1, wal.curVol.getInt(offset1 + 1));
+        wal.walPutLong(111L, 1000);
+        wal.commit();
+        long offset2 = wal.walOffset.get() - 5;
+        int checksum2 = checksum1 + DataIO.longHash(wal.curVol.hash(offset1 + 5, offset2-offset1-5, wal.fileNum+1));
+        assertEquals(checksum2, wal.curVol.getInt(offset2 + 1));
+    }
+
 
     @Test
     public void test_sequence(){
