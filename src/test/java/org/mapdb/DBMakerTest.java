@@ -664,7 +664,7 @@ public class DBMakerTest{
                 .make();
 
         StoreAppend s = (StoreAppend) db.getEngine();
-        assertFalse(s.vol.getFileLocked());
+        assertFalse(s.wal.curVol.getFileLocked());
         assertNull(s.fileLockHeartbeat);
         db.close();
     }

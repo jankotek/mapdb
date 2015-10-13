@@ -39,7 +39,7 @@ public class WriteAheadLogTest {
         final long pointer = wal.walPutRecord(recid,data,0, data==null?0:data.length);
 
         for(int i=0;i<1;i++) {
-            byte[] val = wal.walGetRecord(pointer);
+            byte[] val = wal.walGetRecord(pointer, recid);
 
             if (data == null)
                 assertNull(val);

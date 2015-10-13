@@ -117,6 +117,8 @@ public class WriteAheadLog {
 
         walOffset.set(16);
         volumes.add(nextVol);
+        lastChecksum=0;
+        lastChecksumOffset=0;
 
         curVol = nextVol;
     }
@@ -162,6 +164,8 @@ public class WriteAheadLog {
 
         if(lastChecksumOffset==0)
             lastChecksumOffset=16;
+        if(walOffset2==lastChecksumOffset)
+            return;
         int checksum =  lastChecksum+DataIO.longHash(curVol2.hash(lastChecksumOffset, walOffset2-lastChecksumOffset, fileNum+1));
         lastChecksumOffset=walOffset2+plusSize;
         lastChecksum = checksum;
@@ -172,6 +176,14 @@ public class WriteAheadLog {
         curVol2.putUnsignedByte(walOffset2, (I_COMMIT << 4)|parity);
         walOffset2++;
         curVol2.putInt(walOffset2,checksum);
+    }
+
+    public boolean fileLoad() {
+        boolean ret=false;
+        for(Volume vol:volumes){
+            ret = vol.fileLoad();
+        }
+        return ret;
     }
 
 
@@ -285,11 +297,15 @@ public class WriteAheadLog {
 
             replayWAL(replay);
 
-            for(Volume v:walRec){
-                v.close();
-            }
+//            for(Volume v:walRec){
+//                v.close();
+//            }
             walRec.clear();
-            volumes.clear();
+//            volumes.clear();
+            fileNum = volumes.size()-1;
+            curVol = volumes.get(fileNum);
+            startNextFile();
+
         }
 
     }
@@ -297,7 +313,10 @@ public class WriteAheadLog {
     void replayWAL(WALReplay replay){
         replay.beforeReplayStart();
 
+        long fileNum2=-1;
+
         file:for(Volume wal:volumes){
+            fileNum2++;
             if(wal.length()<16 || wal.getLong(8)!=WAL_SEAL) {
                 break file;
                 //TODO better handling for corrupted logs
@@ -351,7 +370,7 @@ public class WriteAheadLog {
                     if((Long.bitCount(pos-1)&15) != checksum)
                         throw new InternalError("WAL corrupted");
                 } else if (instruction == I_RECORD) {
-                    long walId = ((long)fileNum)<<(pointerOffsetBites);
+                    long walId = (fileNum2)<<(pointerOffsetBites);
                     walId |= pos-1;
 
                     // read record
@@ -405,9 +424,10 @@ public class WriteAheadLog {
 
             }
         }
-
         replay.beforeDestroyWAL();
+    }
 
+    public void destroyWalFiles() {
         //destroy old wal files
         for(Volume wal:volumes){
             if(!wal.isClosed()) {
@@ -466,8 +486,8 @@ public class WriteAheadLog {
     }
 
     //TODO return DataInput
-    public byte[] walGetRecord(long walPointer) {
-        int fileNum = (int) ((walPointer >>> (pointerOffsetBites)) & pointerFileMask);
+    public byte[] walGetRecord(long walPointer, long expectedRecid) {
+        int fileNum = (int) ((walPointer >>> pointerOffsetBites) & pointerFileMask);
         long dataOffset = (walPointer & pointerOffsetMask);
 
         Volume vol = volumes.get(fileNum);
@@ -479,6 +499,10 @@ public class WriteAheadLog {
         long recid = vol.getPackedLong(dataOffset);
         dataOffset += recid >>> 60;
         recid &= DataIO.PACK_LONG_RESULT_MASK;
+
+        if(CC.ASSERT && expectedRecid!=0 && recid!=expectedRecid){
+            throw new AssertionError();
+        }
 
         long size = vol.getPackedLong(dataOffset);
         dataOffset += size >>> 60;
@@ -615,13 +639,13 @@ public class WriteAheadLog {
             return;
         }
 
-        curVol.ensureAvailable(walOffset2+plusSize);
+        curVol2.ensureAvailable(walOffset2+plusSize);
         int checksum = 1+Long.bitCount(recid);
         checksum &= 15;
-        curVol.putUnsignedByte(walOffset2, (I_TOMBSTONE << 4)|checksum);
+        curVol2.putUnsignedByte(walOffset2, (I_TOMBSTONE << 4)|checksum);
         walOffset2+=1;
 
-        curVol.putPackedLong(walOffset2, recid);
+        curVol2.putPackedLong(walOffset2, recid);
     }
 
     public void walPutPreallocate(long recid) {
@@ -670,23 +694,5 @@ public class WriteAheadLog {
 
         return true;
     }
-
-    static int sum(byte[] data) {
-        int ret = 0;
-        for(byte b:data){
-            ret+=b;
-        }
-        return Math.abs(ret);
-    }
-
-    static int sum(byte[] buf, int bufPos, int size) {
-        int ret = 0;
-        size+=bufPos;
-        while(bufPos<size){
-            ret+=buf[bufPos++];
-        }
-        return Math.abs(ret);
-    }
-
 
 }

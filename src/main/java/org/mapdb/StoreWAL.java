@@ -775,6 +775,7 @@ public class StoreWAL extends StoreCached {
     protected void replayWAL(){
         WriteAheadLog.WALReplay replay = new Replay2();
         wal.replayWAL(replay);
+        wal.destroyWalFiles();
     }
 
 
