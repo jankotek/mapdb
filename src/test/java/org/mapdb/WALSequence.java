@@ -47,21 +47,31 @@ public class WALSequence implements WriteAheadLog.WALReplay {
     }
 
     @Override
-    public void writeRecord(long recid, byte[] data) {
+    public void writeRecord(long recid, long walId, Volume vol, long volOffset, int length) {
         Object[] r = seq.remove();
+
+        byte[] data = new byte[length];
+        vol.getData(volOffset, data,0,data.length);
+
         assertEquals(writeRecord, r[0]);
         assertEquals(recid,r[1]);
-        assertArrayEquals(data, (byte[]) r[2]);
-        assertEquals(3,r.length);
+        assertEquals(walId, r[2]);
+        assertArrayEquals(data, (byte[]) r[3]);
+        assertEquals(4,r.length);
     }
 
     @Override
-    public void writeByteArray(long offset, byte[] val) {
+    public void writeByteArray(long offset, long walId, Volume vol, long volOffset, int length) {
         Object[] r = seq.remove();
+
+        byte[] data = new byte[length];
+        vol.getData(volOffset, data,0,data.length);
+
         assertEquals(writeByteArray, r[0]);
         assertEquals(offset, r[1]);
-        assertArrayEquals(val, (byte[]) r[2]);
-        assertEquals(3,r.length);
+        assertEquals(walId, r[2]);
+        assertArrayEquals(data, (byte[]) r[3]);
+        assertEquals(4,r.length);
     }
 
     @Override

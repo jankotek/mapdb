@@ -181,10 +181,9 @@ public class WriteAheadLog {
 
         void writeLong(long offset, long value);
 
-        void writeRecord(long recid, byte[] data);
+        void writeRecord(long recid, long walId, Volume vol, long volOffset, int length);
 
-        //TODO direct transfer: Volume vol, long volOffset, int length
-        void writeByteArray(long offset, byte[] val);
+        void writeByteArray(long offset, long walId, Volume vol, long volOffset, int length);
 
         void beforeDestroyWAL();
 
@@ -209,11 +208,11 @@ public class WriteAheadLog {
         }
 
         @Override
-        public void writeRecord(long recid, byte[] data) {
+        public void writeRecord(long recid, long walId, Volume vol, long volOffset, int length) {
         }
 
         @Override
-        public void writeByteArray(long offset, byte[] val) {
+        public void writeByteArray(long offset, long walId, Volume vol, long volOffset, int length) {
         }
 
         @Override
@@ -325,16 +324,22 @@ public class WriteAheadLog {
                     replay.writeLong(offset,val);
                 } else if (instruction == I_BYTE_ARRAY) {
                     //write byte[]
+                    long walId = ((long)fileNum)<<(pointerOffsetBites);
+                    walId |=pos-1;
+
                     int dataSize = wal.getUnsignedShort(pos);
                     pos += 2;
                     long offset = wal.getSixLong(pos);
                     pos += 6;
-                    byte[] data = new byte[dataSize];
-                    wal.getData(pos, data, 0, data.length);
-                    pos += data.length;
-                    if(((1+Integer.bitCount(dataSize)+Long.bitCount(offset)+sum(data))&15)!=checksum)
+//                    byte[] data = new byte[dataSize];
+//                    wal.getData(pos, data, 0, data.length);
+                    if(((1+Integer.bitCount(dataSize)+Long.bitCount(offset))&15)!=checksum)
                         throw new InternalError("WAL corrupted");
-                    replay.writeByteArray(offset,data);
+                    long val = ((long)fileNum)<<(pointerOffsetBites);
+                    val |=pos;
+
+                    replay.writeByteArray(offset, walId, wal, pos, dataSize);
+                    pos += dataSize;
                 } else if (instruction == I_SKIP_MANY) {
                     //skip N bytes
                     int skipN = wal.getInt(pos - 1) & 0xFFFFFF; //read 3 bytes
@@ -346,6 +351,9 @@ public class WriteAheadLog {
                     if((Long.bitCount(pos-1)&15) != checksum)
                         throw new InternalError("WAL corrupted");
                 } else if (instruction == I_RECORD) {
+                    long walId = ((long)fileNum)<<(pointerOffsetBites);
+                    walId |= pos-1;
+
                     // read record
                     long recid = wal.getPackedLong(pos);
                     pos += recid >>> 60;
@@ -356,13 +364,13 @@ public class WriteAheadLog {
                     size &= DataIO.PACK_LONG_RESULT_MASK;
 
                     if (size == 0) {
-                        replay.writeRecord(recid, null);
+                        replay.writeRecord(recid, 0, null, 0 ,0);
                     } else {
                         size--; //zero is used for null
-                        byte[] data = new byte[(int) size];
-                        wal.getData(pos, data, 0, data.length);
+//                        byte[] data = new byte[(int) size];
+//                        wal.getData(pos, data, 0, data.length);
+                        replay.writeRecord(recid, walId, wal, pos, (int) size);
                         pos += size;
-                        replay.writeRecord(recid, data);
                     }
                 }else if (instruction == I_TOMBSTONE){
                     long recid = wal.getPackedLong(pos);
@@ -509,7 +517,7 @@ public class WriteAheadLog {
         }
 
         curVol.ensureAvailable(walOffset2+plusSize);
-        int checksum = 1+Integer.bitCount(size)+Long.bitCount(offset)+sum(buf,bufPos,size);
+        int checksum = 1+Integer.bitCount(size)+Long.bitCount(offset);
         checksum &= 15;
         curVol.putUnsignedByte(walOffset2, (I_BYTE_ARRAY << 4)|checksum);
         walOffset2+=1;

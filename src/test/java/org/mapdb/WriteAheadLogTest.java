@@ -36,7 +36,7 @@ public class WriteAheadLogTest {
 
         final AtomicBoolean called = new AtomicBoolean();
 
-        long pointer = wal.walPutRecord(recid,data,0, data==null?0:data.length);
+        final long pointer = wal.walPutRecord(recid,data,0, data==null?0:data.length);
 
         for(int i=0;i<1;i++) {
             byte[] val = wal.walGetRecord(pointer);
@@ -59,18 +59,26 @@ public class WriteAheadLogTest {
             }
 
             @Override
-            public void writeRecord(long recid2, byte[] data) {
+            public void writeRecord(long recid2, long walId, Volume vol, long volOffset, int length) {
+
                 assertFalse(called.getAndSet(true));
 
                 assertEquals(recid, recid2);
-                if(data==null)
-                    assertNull(data);
-                else
-                    assertTrue(Arrays.equals(data,data));
+                if(data==null) {
+                    assertNull(vol);
+                    assertEquals(walId,0);
+                    assertEquals(volOffset,0);
+                    assertEquals(length,0);
+                }else {
+                    byte[] data = new byte[length];
+                    vol.getData(volOffset, data, 0, data.length);
+                    assertTrue(Arrays.equals(data, data));
+                    assertEquals(pointer, walId);
+                }
             }
 
             @Override
-            public void writeByteArray(long offset2, byte[] val) {
+            public void writeByteArray(long offset2, long walId, Volume vol, long volOffset, int length) {
                 fail();
             }
 
@@ -126,12 +134,12 @@ public class WriteAheadLogTest {
             }
 
             @Override
-            public void writeRecord(long recid, byte[] data) {
+            public void writeRecord(long recid, long walId, Volume vol, long volOffset, int length) {
                 fail();
             }
 
             @Override
-            public void writeByteArray(long offset, byte[] val) {
+            public void writeByteArray(long offset, long walId, Volume vol, long volOffset, int length) {
                 fail();
             }
 
@@ -184,12 +192,12 @@ public class WriteAheadLogTest {
             }
 
             @Override
-            public void writeRecord(long recid, byte[] data) {
+            public void writeRecord(long recid, long walId, Volume vol, long volOffset, int length) {
                 fail();
             }
 
             @Override
-            public void writeByteArray(long offset, byte[] val) {
+            public void writeByteArray(long offset, long walId, Volume vol, long volOffset, int length) {
                 fail();
             }
 
@@ -242,12 +250,12 @@ public class WriteAheadLogTest {
             }
 
             @Override
-            public void writeRecord(long recid, byte[] data) {
+            public void writeRecord(long recid, long walId, Volume vol, long volOffset, int length) {
                 fail();
             }
 
             @Override
-            public void writeByteArray(long offset, byte[] val) {
+            public void writeByteArray(long offset, long walId, Volume vol, long volOffset, int length) {
                 fail();
             }
 
