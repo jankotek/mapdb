@@ -145,7 +145,8 @@ public class StoreAppendTest<E extends StoreAppend> extends EngineTest<E>{
 
     @Test public void header(){
         StoreAppend s = openEngine();
-        assertEquals(StoreAppend.HEADER,s.wal.curVol.getInt(0));
+        assertEquals(WriteAheadLog.WAL_HEADER,s.wal.curVol.getInt(0));
+        assertEquals(StoreAppend.HEADER, new Volume.RandomAccessFileVol(f,false,true,0).getInt(0));
     }
 
     @Override

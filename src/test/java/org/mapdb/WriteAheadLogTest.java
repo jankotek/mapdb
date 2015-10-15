@@ -2,6 +2,7 @@ package org.mapdb;
 
 import org.junit.Test;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -335,5 +336,57 @@ public class WriteAheadLogTest {
         assertTrue(s.seq.isEmpty());
     }
 
+
+    //*******************************************
+
+    @Test public void lazy_file_create(){
+        File f = TT.tempDbFile();
+        f.delete();
+        File f2 = new File(f.getPath()+".wal.0");
+        WriteAheadLog wal = new WriteAheadLog(f.getPath());
+        wal.open(WriteAheadLog.NOREPLAY);
+
+        assertTrue(!f2.exists());
+        wal.walPutLong(111L, 111L);
+        assertTrue(f2.exists());
+        wal.close();
+        f2.delete();
+    }
+
+    @Test public void overflow_byte_array(){
+        File f = TT.tempDbFile();
+        f.delete();
+        File f0 = new File(f.getPath()+".wal.0");
+        File f1 = new File(f.getPath()+".wal.1");
+        WriteAheadLog wal = new WriteAheadLog(f.getPath());
+        wal.open(WriteAheadLog.NOREPLAY);
+
+        long lastPos=0;
+        while(!f1.exists()){
+            lastPos=wal.walOffset.get();
+            wal.walPutByteArray(111L, new byte[100],0,100);
+            assertTrue(f0.exists());
+        }
+        assertTrue(WriteAheadLog.MAX_FILE_SIZE-1000 < lastPos);
+        assertTrue(WriteAheadLog.MAX_FILE_SIZE+120>lastPos);
+    }
+
+    @Test public void overflow_record(){
+        File f = TT.tempDbFile();
+        f.delete();
+        File f0 = new File(f.getPath()+".wal.0");
+        File f1 = new File(f.getPath()+".wal.1");
+        WriteAheadLog wal = new WriteAheadLog(f.getPath());
+        wal.open(WriteAheadLog.NOREPLAY);
+
+        long lastPos=0;
+        while(!f1.exists()){
+            lastPos=wal.walOffset.get();
+            wal.walPutRecord(111L, new byte[100],0,100);
+            assertTrue(f0.exists());
+        }
+        assertTrue(WriteAheadLog.MAX_FILE_SIZE-1000 < lastPos);
+        assertTrue(WriteAheadLog.MAX_FILE_SIZE+120>lastPos);
+    }
 
 }

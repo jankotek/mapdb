@@ -2,6 +2,7 @@ package org.mapdb;
 
 import java.io.DataInput;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -32,6 +33,8 @@ public class WriteAheadLog {
     protected static final int I_COMMIT = 8;
     protected static final int I_ROLLBACK = 9;
 
+    protected static final long MAX_FILE_SIZE = 16L * 1024L * 1024L;
+    protected static final long MAX_FILE_RESERVE = 16;
 
 
     protected final long featureBitMap;
@@ -97,6 +100,7 @@ public class WriteAheadLog {
         curVol.ensureAvailable(finalOffset+1); //TODO overlap here
         //put EOF instruction
         curVol.putUnsignedByte(finalOffset, (I_EOF<<4) | (Long.bitCount(finalOffset)&15));
+        //TODO EOF should contain checksum
         curVol.sync();
         //put wal seal
         curVol.putLong(8, WAL_SEAL);
@@ -254,7 +258,7 @@ public class WriteAheadLog {
 
 
     //TODO how to protect concurrrently file offset when file is being swapped?
-    protected final AtomicLong walOffset = new AtomicLong();
+    protected final AtomicLong walOffset = new AtomicLong(16);
 
     protected final List<Volume> volumes = Collections.synchronizedList(new ArrayList<Volume>());
 
@@ -304,7 +308,7 @@ public class WriteAheadLog {
 //            volumes.clear();
             fileNum = volumes.size()-1;
             curVol = volumes.get(fileNum);
-            startNextFile();
+//            startNextFile();
 
         }
 
@@ -515,7 +519,12 @@ public class WriteAheadLog {
         }else {
             size--; //zero is used for null
             byte[] data = new byte[(int) size];
-            vol.getData(dataOffset, data, 0, data.length);
+            DataInput in = vol.getDataInputOverlap(dataOffset, data.length);
+            try {
+                in.readFully(data);
+            } catch (IOException e) {
+                throw new DBException.VolumeIOError(e);
+            }
             return data;
         }
     }
@@ -533,6 +542,7 @@ public class WriteAheadLog {
      * @return
      */
     public long walPutByteArray(long offset, byte[] buf, int bufPos, int size){
+        ensureFileReady(true);
         final int plusSize = +1+2+6+size;
         long walOffset2 = walOffset.getAndAdd(plusSize);
 
@@ -561,6 +571,8 @@ public class WriteAheadLog {
         long val = ((long)size)<<(pointerOffsetBites+pointerFileBites);
         val |= ((long)fileNum)<<(pointerOffsetBites);
         val |= walOffset2;
+        if(CC.ASSERT && walOffset2>=MAX_FILE_SIZE)
+            throw new AssertionError();
 
         return val;
     }
@@ -568,12 +580,15 @@ public class WriteAheadLog {
     public long walPutRecord(long recid, byte[] buf, int bufPos, int size){
         if(CC.ASSERT && buf==null && size!=0)
             throw new AssertionError();
+        ensureFileReady(true);
         long sizeToWrite = buf==null?0:(size+1);
         final int plusSize = +1+ DataIO.packLongSize(recid)+DataIO.packLongSize(sizeToWrite)+size;
         long walOffset2 = walOffset.getAndAdd(plusSize);
         long startPos = walOffset2;
+        if(CC.ASSERT && startPos>=MAX_FILE_SIZE)
+            throw new AssertionError();
 
-        if(hadToSkip(walOffset2, plusSize)){
+        if(hadToSkip(walOffset2, plusSize-size)){
             return walPutRecord(recid,buf,bufPos,size);
         }
 
@@ -587,12 +602,11 @@ public class WriteAheadLog {
         walOffset2+=curVol.putPackedLong(walOffset2, sizeToWrite);
 
         if(buf!=null) {
-            curVol.putData(walOffset2, buf, bufPos, size);
+            curVol.putDataOverlap(walOffset2, buf, bufPos, size);
         }
 
         long val = ((long)fileNum)<<(pointerOffsetBites);
         val |= startPos;
-
         return val;
     }
 
@@ -604,6 +618,7 @@ public class WriteAheadLog {
      * @param value
      */
     protected void walPutLong(long offset, long value){
+        ensureFileReady(false);
         final int plusSize = +1+8+6;
         long walOffset2 = walOffset.getAndAdd(plusSize);
 
@@ -627,7 +642,24 @@ public class WriteAheadLog {
         curVol2.putSixLong(walOffset2, offset);
     }
 
+    protected void ensureFileReady(boolean addressable) {
+        if(curVol==null){
+            startNextFile();
+            return;
+        }
+
+        if(addressable){
+            if(walOffset.get()+MAX_FILE_RESERVE>MAX_FILE_SIZE){
+                //EOF and move on
+                seal();
+                startNextFile();
+            }
+        }
+    }
+
+
     public void walPutTombstone(long recid) {
+        ensureFileReady(false);
         int plusSize = 1+DataIO.packLongSize(recid);
         long walOffset2 = walOffset.getAndAdd(plusSize);
 
@@ -649,6 +681,7 @@ public class WriteAheadLog {
     }
 
     public void walPutPreallocate(long recid) {
+        ensureFileReady(false);
         int plusSize = 1+DataIO.packLongSize(recid);
         long walOffset2 = walOffset.getAndAdd(plusSize);
 
