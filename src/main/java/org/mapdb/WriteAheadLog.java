@@ -85,8 +85,13 @@ public class WriteAheadLog {
         for(Volume v:walRec){
             v.close();
         }
-        walRec.clear();
 
+        //TODO wtf?
+        if(walOffset.get()>16) {
+            seal();
+        }
+
+        walRec.clear();
 
         for(Volume v:volumes){
             v.close();
@@ -96,6 +101,7 @@ public class WriteAheadLog {
     }
 
     public void seal() {
+        ensureFileReady(false);
         long finalOffset = walOffset.get();
         curVol.ensureAvailable(finalOffset+1); //TODO overlap here
         //put EOF instruction
@@ -109,8 +115,6 @@ public class WriteAheadLog {
 
     public void startNextFile() {
         fileNum++;
-        if (CC.ASSERT && fileNum != volumes.size())
-            throw new DBException.DataCorruption();
         String filewal = getWalFileName(""+fileNum);
         Volume nextVol = volumeFactory.makeVolume(filewal, false, true);
 
@@ -128,6 +132,7 @@ public class WriteAheadLog {
     }
 
     public void rollback() {
+        ensureFileReady(false);
         final int plusSize = +1+4;
         long walOffset2 = walOffset.getAndAdd(plusSize);
 
@@ -155,6 +160,7 @@ public class WriteAheadLog {
     }
 
     public void commit() {
+        ensureFileReady(false);
         final int plusSize = +1+4;
         long walOffset2 = walOffset.getAndAdd(plusSize);
 
@@ -281,15 +287,6 @@ public class WriteAheadLog {
         if(walCompSealExists ||
                 (wal0Name!=null &&
                         new File(wal0Name).exists())){
-            //fill compaction stuff
-
-            for(int i=0;;i++){
-                String rname = getWalFileName("r"+i);
-                if(!new File(rname).exists())
-                    break;
-                walRec.add(volumeFactory.makeVolume(rname, false, true));
-            }
-
 
             //fill wal files
             for(int i=0;;i++){
@@ -306,8 +303,8 @@ public class WriteAheadLog {
 //            }
             walRec.clear();
 //            volumes.clear();
-            fileNum = volumes.size()-1;
-            curVol = volumes.get(fileNum);
+//            fileNum = volumes.size()-1;
+//            curVol = volumes.get(fileNum);
 //            startNextFile();
 
         }
@@ -321,7 +318,7 @@ public class WriteAheadLog {
 
         file:for(Volume wal:volumes){
             fileNum2++;
-            if(wal.length()<16 || wal.getLong(8)!=WAL_SEAL) {
+            if(wal.length()<16 /*|| wal.getLong(8)!=WAL_SEAL*/) {
                 break file;
                 //TODO better handling for corrupted logs
             }

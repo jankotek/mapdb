@@ -34,20 +34,20 @@ public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
 
         e = openEngine();
 
-        assertTrue(wal0.exists());
+        assertFalse(wal0.exists());
         assertFalse(wal1.exists());
 
         e.put("aa", Serializer.STRING);
         e.commit();
         assertTrue(wal0.exists());
-        assertTrue(wal1.exists());
+        assertFalse(wal1.exists());
         assertFalse(wal2.exists());
 
         e.put("aa", Serializer.STRING);
         e.commit();
         assertTrue(wal0.exists());
-        assertTrue(wal1.exists());
-        assertTrue(wal2.exists());
+        assertFalse(wal1.exists());
+        assertFalse(wal2.exists());
     }
 
     @Test public void WAL_replay_long(){
@@ -302,6 +302,7 @@ public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
 
     @Test public void header(){
         StoreWAL s = openEngine();
+        s.wal.walPutLong(111L, 1111L);
         assertEquals(StoreWAL.HEADER,s.vol.getInt(0));
         assertEquals(WriteAheadLog.WAL_HEADER,s.wal.curVol.getInt(0));
     }

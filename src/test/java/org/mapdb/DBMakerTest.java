@@ -694,7 +694,6 @@ public class DBMakerTest{
     @Test public void allocate_start_size_file(){
         DB db = DBMaker.fileDB(TT.tempDbFile()).allocateStartSize(20 * 1024*1024 -10000).make();
         StoreWAL wal = (StoreWAL) Store.forDB(db);
-        assertEquals(16, wal.wal.curVol.length());
         assertEquals(20*1024*1024, wal.vol.length());
         db.close();
     }

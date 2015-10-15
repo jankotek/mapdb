@@ -30,6 +30,7 @@ public class StoreAppend extends Store {
 
     protected WriteAheadLog wal;
 
+    protected Volume headVol;
 
 
     /**
@@ -133,6 +134,7 @@ public class StoreAppend extends Store {
                 null);
 
         indexTable = host.indexTable;
+        this.wal = host.wal;
 
 
         //replace locks, so reads on snapshots are not performed while host is updated
@@ -197,14 +199,18 @@ public class StoreAppend extends Store {
     }
 
     protected void initCreate() {
+        headVol = volumeFactory.makeVolume(fileName, false,true);
+        headVol.ensureAvailable(16);
+        headVol.putInt(0,HEADER);
+        headVol.sync();
         wal.open(WriteAheadLog.NOREPLAY);
-        wal.startNextFile();
+//        wal.startNextFile();
         for(long recid=1;recid<=Store.RECID_LAST_RESERVED;recid++){
             wal.walPutPreallocate(recid);
         }
         wal.commit();
-        wal.seal();
-        wal.startNextFile();
+//        wal.seal();
+//        wal.startNextFile();
         highestRecid.set(RECID_LAST_RESERVED);
 
 //        vol.ensureAvailable(headerSize);
@@ -318,6 +324,12 @@ public class StoreAppend extends Store {
         }
         eof = lastValidPos;
 */
+        headVol = volumeFactory.makeVolume(fileName, false,true);
+        if(headVol.getInt(0)!=HEADER){
+            //TODO handle version numbers
+            throw new DBException.DataCorruption("Wrong header at:"+fileName);
+        }
+
         final AtomicLong highestRecid2 = new AtomicLong(RECID_LAST_RESERVED);
         final LongLongMap commitData = tx?new LongLongMap():null;
 
@@ -531,6 +543,7 @@ public class StoreAppend extends Store {
 
             wal.close();
             indexTable.close();
+            headVol.close();
 
             if(caches!=null){
                 for(Cache c:caches){
@@ -591,8 +604,6 @@ public class StoreAppend extends Store {
                 }
             }
             wal.commit();
-            wal.seal();
-            wal.startNextFile(); //TODO files
 
         }finally {
             commitLock.unlock();
@@ -615,8 +626,6 @@ public class StoreAppend extends Store {
                 }
             }
             wal.rollback();
-            wal.seal();
-            wal.startNextFile();
         }finally {
             commitLock.unlock();
         }

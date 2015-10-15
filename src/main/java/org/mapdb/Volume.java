@@ -433,6 +433,14 @@ public abstract class Volume implements Closeable{
             throw new IndexOutOfBoundsException();
         }
 
+        while((off&0x7)!=0 && len>0){
+            //scroll until offset is not dividable by 8
+            seed = (seed<<8) | getUnsignedByte(off);
+            off++;
+            len--;
+        }
+
+
         final long end = off + len;
         long h64;
 
@@ -2972,12 +2980,18 @@ public abstract class Volume implements Closeable{
             if(off<0 || off>=bufLen || off+len<0 || off+len>bufLen){
                 throw new IndexOutOfBoundsException();
             }
-
-            final long end = off + len;
-            long h64;
-
             try {
                 raf.seek(off);
+
+                while((off&0x7)!=0 && len>0){
+                    //scroll until offset is not dividable by 8
+                    seed = (seed<<8) | raf.readUnsignedByte();
+                    off++;
+                    len--;
+                }
+
+                final long end = off + len;
+                long h64;
 
                 if (len >= 32) {
                     final long limit = end - 32;

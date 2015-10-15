@@ -233,58 +233,16 @@ public class WriteAheadLogTest {
     @Test public void commit(){
         WriteAheadLog wal = new WriteAheadLog(null);
         wal.open(WriteAheadLog.NOREPLAY);
-        wal.startNextFile();
-
+        wal.walPutLong(111L,1111L);
         wal.commit();
         wal.seal();
 
-        final AtomicInteger c = new AtomicInteger();
-
-        wal.replayWAL(new WriteAheadLog.WALReplay() {
-            @Override
-            public void beforeReplayStart() {
-            }
-
-            @Override
-            public void writeLong(long offset, long value) {
-                fail();
-            }
-
-            @Override
-            public void writeRecord(long recid, long walId, Volume vol, long volOffset, int length) {
-                fail();
-            }
-
-            @Override
-            public void writeByteArray(long offset, long walId, Volume vol, long volOffset, int length) {
-                fail();
-            }
-
-            @Override
-            public void beforeDestroyWAL() {
-            }
-
-            @Override
-            public void commit() {
-                c.incrementAndGet();
-            }
-
-            @Override
-            public void rollback() {
-                fail();
-            }
-
-            @Override
-            public void writeTombstone(long recid) {
-                fail();
-            }
-
-            @Override
-            public void writePreallocate(long recid) {
-                fail();
-            }
-        });
-        assertEquals(1,c.get());
+        wal.replayWAL(new WALSequence(
+                new Object[]{WALSequence.beforeReplayStart},
+                new Object[]{WALSequence.writeLong, 111L,1111L},
+                new Object[]{WALSequence.commit},
+                new Object[]{WALSequence.beforeDestroyWAL}
+        ));
     }
 
     @Test public void rollback(){

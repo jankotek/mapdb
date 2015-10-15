@@ -126,9 +126,6 @@ public class StoreWAL extends StoreCached {
         realVol = vol;
         //make main vol readonly, to make sure it is never overwritten outside WAL replay
         vol = new Volume.ReadOnly(vol);
-
-        //start new WAL file
-        walStartNextFile();
     }
 
     @Override
@@ -137,6 +134,9 @@ public class StoreWAL extends StoreCached {
 
         realVol = vol;
 
+        if(readonly && !Volume.isEmptyFile(fileName+".wal.0"))
+            throw new DBException.WrongConfig("There is dirty WAL file, but storage is read-only. Can not replay file");
+
         wal.open(new Replay2(){
             @Override
             public void beforeReplayStart() {
@@ -144,10 +144,6 @@ public class StoreWAL extends StoreCached {
                 initOpenPost();
             }
         });
-
-        //start new WAL file
-        //TODO do not start if readonly
-        walStartNextFile();
 
         initOpenPost();
     }
@@ -611,10 +607,10 @@ public class StoreWAL extends StoreCached {
                 //make copy of current headVol
                 headVolBackup.putData(4, b, 0, b.length);
                 indexPagesBackup = indexPages.clone();
-
+                wal.commit();
                 wal.seal();
-
-                walStartNextFile();
+//
+//                walStartNextFile();
 
             } finally {
                 structuralLock.unlock();
@@ -753,12 +749,12 @@ public class StoreWAL extends StoreCached {
 
         @Override
         public void commit() {
-            //TODO generated
+            throw new AssertionError();
         }
 
         @Override
         public void rollback() {
-            //TODO generated
+            throw new AssertionError();
         }
 
         @Override
@@ -799,8 +795,7 @@ public class StoreWAL extends StoreCached {
                 if(hasUncommitedData()){
                     LOG.warning("Closing storage with uncommited data, those data will be discarded.");
                 }
-
-
+                wal.rollback();
                 //TODO do not replay if not dirty
                 if(!readonly) {
                     structuralLock.lock();
@@ -811,6 +806,8 @@ public class StoreWAL extends StoreCached {
                     }
                 }
 
+
+                wal.destroyWalFiles();
                 wal.close();
 
                 vol.close();
