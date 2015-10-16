@@ -2,6 +2,8 @@ MapDB provides concurrent Maps, Sets and Queues backed by disk storage or off-he
 MapDB is free as speech and free as beer under
 [Apache License 2.0](https://github.com/jankotek/MapDB/blob/master/doc/license.txt).
 
+[![Build Status](https://travis-ci.org/jankotek/mapdb.svg?branch=master)](https://travis-ci.org/jankotek/mapdb)
+
 Find out more at:
   * [Home page - www.mapdb.org](http://www.mapdb.org)
   * [Introduction](http://www.mapdb.org/doc/getting-started.html)
