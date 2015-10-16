@@ -1445,10 +1445,16 @@ public class DB implements Closeable {
         return treeMap(name,(BTreeKeySerializer)null,null);
     }
 
-    synchronized public <K,V> BTreeMap<K,V> treeMap(String name, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
+    synchronized public <K extends Comparable<? super K>,V> BTreeMap<K,V> treeMap(String name, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
         if(keySerializer==null)
             keySerializer = getDefaultSerializer();
         return treeMap(name,keySerializer.getBTreeKeySerializer(null),valueSerializer);
+    }
+
+    synchronized public <K,V> BTreeMap<K,V> treeMap(String name, Serializer<K> keySerializer, Serializer<V> valueSerializer, Comparator<K> keyComparator) {
+        if(keySerializer==null)
+            keySerializer = getDefaultSerializer();
+        return treeMap(name,keySerializer.getBTreeKeySerializer(keyComparator),valueSerializer);
     }
 
     synchronized public <K,V> BTreeMap<K,V> treeMap(String name, BTreeKeySerializer keySerializer, Serializer<V> valueSerializer){
