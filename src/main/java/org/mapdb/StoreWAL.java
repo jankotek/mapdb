@@ -793,7 +793,7 @@ public class StoreWAL extends StoreCached {
                 }
 
                 if(hasUncommitedData()){
-                    LOG.warning("Closing storage with uncommited data, those data will be discarded.");
+                    LOG.warning("Closing storage with uncommited data, this data will be discarded.");
                 }
                 wal.rollback();
                 //TODO do not replay if not dirty
