@@ -328,47 +328,61 @@ public class WriteAheadLog {
                 int checksum = wal.getUnsignedByte(pos++);
                 int instruction = checksum>>>4;
                 checksum = (checksum&15);
-                if (instruction == I_EOF) {
-                    //EOF
-                    if((Long.bitCount(pos-1)&15) != checksum)
-                        throw new InternalError("WAL corrupted");
-                    //start at new file
-                    start = walPointer(0, fileNum+1, 16);
-                    continue  commitLoop;
-                } else if (instruction == I_LONG) {
-                    pos = instLong(wal, pos, checksum, replay);
-                } else if (instruction == I_BYTE_ARRAY) {
-                    pos = instByteArray(wal, pos, checksum, replay);
-                } else if (instruction == I_SKIP_MANY) {
-                    //skip N bytes
-                    int skipN = wal.getInt(pos - 1) & 0xFFFFFF; //read 3 bytes
-                    if((Integer.bitCount(skipN)&15) != checksum)
-                        throw new InternalError("WAL corrupted");
-                    pos += 3 + skipN;
-                } else if (instruction == I_SKIP_SINGLE) {
-                    //skip single byte
-                    if((Long.bitCount(pos-1)&15) != checksum)
-                        throw new InternalError("WAL corrupted");
-                } else if (instruction == I_RECORD) {
-                    pos = instRecord(wal, pos, checksum, replay);
-                }else if (instruction == I_TOMBSTONE){
-                    pos = instTombstone(wal, pos, checksum, replay);
-                }else if (instruction == I_PREALLOCATE) {
-                    pos = instPreallocate(wal, pos, checksum, replay);
-                }else if (instruction == I_COMMIT) {
-                    int checksum2 = wal.getInt(pos);
-                    pos+=4;
-                    if(((1+Long.bitCount(pos-5)+Integer.bitCount(checksum2))&15) != checksum)
-                        throw new InternalError("WAL corrupted");
-                    replay.commit();
-                    long currentPos = walPointer(0, fileNum, pos);
-                    //skip next rollbacks if there are any
-                    start = skipRollbacks(currentPos);
-                    continue commitLoop;
-                }else if (instruction == I_ROLLBACK) {
-                    throw new DBException.DataCorruption("Rollback should be skipped");
-                }else{
-                    throw new InternalError("WAL corrupted, unknown instruction");
+                switch(instruction) {
+                    case I_EOF: {
+                        //EOF
+                        if ((Long.bitCount(pos - 1) & 15) != checksum)
+                            throw new InternalError("WAL corrupted");
+                        //start at new file
+                        start = walPointer(0, fileNum + 1, 16);
+                        continue commitLoop;
+                        //break;
+                    }
+                    case I_LONG:
+                        pos = instLong(wal, pos, checksum, replay);
+                        break;
+                    case I_BYTE_ARRAY:
+                        pos = instByteArray(wal, pos, checksum, replay);
+                        break;
+                    case I_SKIP_MANY: {
+                        //skip N bytes
+                        int skipN = wal.getInt(pos - 1) & 0xFFFFFF; //read 3 bytes
+                        if ((Integer.bitCount(skipN) & 15) != checksum)
+                            throw new InternalError("WAL corrupted");
+                        pos += 3 + skipN;
+                        break;
+                    }
+                    case I_SKIP_SINGLE: {
+                        //skip single byte
+                        if ((Long.bitCount(pos - 1) & 15) != checksum)
+                            throw new InternalError("WAL corrupted");
+                        break;
+                    }
+                    case I_RECORD:
+                        pos = instRecord(wal, pos, checksum, replay);
+                        break;
+                    case I_TOMBSTONE:
+                        pos = instTombstone(wal, pos, checksum, replay);
+                        break;
+                    case I_PREALLOCATE:
+                        pos = instPreallocate(wal, pos, checksum, replay);
+                        break;
+                    case I_COMMIT: {
+                        int checksum2 = wal.getInt(pos);
+                        pos += 4;
+                        if (((1 + Long.bitCount(pos - 5) + Integer.bitCount(checksum2)) & 15) != checksum)
+                            throw new InternalError("WAL corrupted");
+                        replay.commit();
+                        long currentPos = walPointer(0, fileNum, pos);
+                        //skip next rollbacks if there are any
+                        start = skipRollbacks(currentPos);
+                        continue commitLoop;
+                        //break
+                    }
+                    case I_ROLLBACK:
+                        throw new DBException.DataCorruption("Rollback should be skipped");
+                    default:
+                        throw new InternalError("WAL corrupted, unknown instruction");
                 }
 
             }
@@ -401,50 +415,66 @@ public class WriteAheadLog {
                 int checksum = wal.getUnsignedByte(pos++);
                 int instruction = checksum>>>4;
                 checksum = (checksum&15);
-                if (instruction == I_EOF) {
-                    //EOF
-                    if((Long.bitCount(pos-1)&15) != checksum)
-                        throw new InternalError("WAL corrupted");
-                    start = walPointer(0, fileNum2+1, 16);
-                    continue commitLoop;
-                } else if (instruction == I_LONG) {
-                    pos = instLong(wal, pos, checksum, null);
-                } else if (instruction == I_BYTE_ARRAY) {
-                    pos = instByteArray(wal, pos, checksum, null);
-                } else if (instruction == I_SKIP_MANY) {
-                    //skip N bytes
-                    int skipN = wal.getInt(pos - 1) & 0xFFFFFF; //read 3 bytes
-                    if((Integer.bitCount(skipN)&15) != checksum)
-                        throw new InternalError("WAL corrupted");
-                    pos += 3 + skipN;
-                } else if (instruction == I_SKIP_SINGLE) {
-                    //skip single byte
-                    if((Long.bitCount(pos-1)&15) != checksum)
-                        throw new InternalError("WAL corrupted");
-                } else if (instruction == I_RECORD) {
-                    pos = instRecord(wal, pos, checksum, null);
-                }else if (instruction == I_TOMBSTONE){
-                    pos = instTombstone(wal, pos, checksum, null);
-                }else if (instruction == I_PREALLOCATE) {
-                    pos = instPreallocate(wal, pos, checksum, null);
-                }else if (instruction == I_COMMIT) {
-                    int checksum2 = wal.getInt(pos);
-                    pos+=4;
-                    if(((1+Long.bitCount(pos-5)+Integer.bitCount(checksum2))&15) != checksum)
-                        throw new InternalError("WAL corrupted");
-                    //TODO checksums
-                    return start;
-                }else if (instruction == I_ROLLBACK) {
-                    int checksum2 = wal.getInt(pos);
-                    pos+=4;
-                    if(((1+Long.bitCount(pos-5)+Integer.bitCount(checksum2))&15) != checksum)
-                        throw new InternalError("WAL corrupted");
-                    //rollback instruction pushes last valid to current offset
-                    //TODO checksum
-                    start = walPointer(0, fileNum2, pos);
-                    continue commitLoop;
-                }else{
-                    throw new InternalError("WAL corrupted, unknown instruction");
+                switch(instruction){
+                    case I_EOF: {
+                        //EOF
+                        if ((Long.bitCount(pos - 1) & 15) != checksum)
+                            throw new InternalError("WAL corrupted");
+                        start = walPointer(0, fileNum2 + 1, 16);
+                        continue commitLoop;
+                        //break;
+                    }
+                    case I_LONG:
+                        pos = instLong(wal, pos, checksum, null);
+                        break;
+                    case I_BYTE_ARRAY:
+                        pos = instByteArray(wal, pos, checksum, null);
+                        break;
+                    case I_SKIP_MANY: {
+                        //skip N bytes
+                        int skipN = wal.getInt(pos - 1) & 0xFFFFFF; //read 3 bytes
+                        if ((Integer.bitCount(skipN) & 15) != checksum)
+                            throw new InternalError("WAL corrupted");
+                        pos += 3 + skipN;
+                        break;
+                    }
+                    case I_SKIP_SINGLE: {
+                        //skip single byte
+                        if ((Long.bitCount(pos - 1) & 15) != checksum)
+                            throw new InternalError("WAL corrupted");
+                        break;
+                    }
+                    case I_RECORD:
+                        pos = instRecord(wal, pos, checksum, null);
+                        break;
+                    case I_TOMBSTONE:
+                        pos = instTombstone(wal, pos, checksum, null);
+                        break;
+                    case I_PREALLOCATE:
+                        pos = instPreallocate(wal, pos, checksum, null);
+                        break;
+                    case I_COMMIT: {
+                        int checksum2 = wal.getInt(pos);
+                        pos += 4;
+                        if (((1 + Long.bitCount(pos - 5) + Integer.bitCount(checksum2)) & 15) != checksum)
+                            throw new InternalError("WAL corrupted");
+                        //TODO checksums
+                        return start;
+                        //break;
+                    }
+                    case I_ROLLBACK: {
+                        int checksum2 = wal.getInt(pos);
+                        pos += 4;
+                        if (((1 + Long.bitCount(pos - 5) + Integer.bitCount(checksum2)) & 15) != checksum)
+                            throw new InternalError("WAL corrupted");
+                        //rollback instruction pushes last valid to current offset
+                        //TODO checksum
+                        start = walPointer(0, fileNum2, pos);
+                        continue commitLoop;
+                        //break;
+                    }
+                    default:
+                        throw new InternalError("WAL corrupted, unknown instruction");
                 }
 
             }
@@ -470,45 +500,60 @@ public class WriteAheadLog {
                 int checksum = wal.getUnsignedByte(pos++);
                 int instruction = checksum>>>4;
                 checksum = (checksum&15);
-                if (instruction == I_EOF) {
-                    //EOF
-                    if((Long.bitCount(pos-1)&15) != checksum)
-                        throw new InternalError("WAL corrupted");
-                    continue file;
-                } else if (instruction == I_LONG) {
-                    pos = instLong(wal, pos, checksum, replay);
-                } else if (instruction == I_BYTE_ARRAY) {
-                    pos = instByteArray(wal, pos, checksum, replay);
-                } else if (instruction == I_SKIP_MANY) {
-                    //skip N bytes
-                    int skipN = wal.getInt(pos - 1) & 0xFFFFFF; //read 3 bytes
-                    if((Integer.bitCount(skipN)&15) != checksum)
-                        throw new InternalError("WAL corrupted");
-                    pos += 3 + skipN;
-                } else if (instruction == I_SKIP_SINGLE) {
-                    //skip single byte
-                    if((Long.bitCount(pos-1)&15) != checksum)
-                        throw new InternalError("WAL corrupted");
-                } else if (instruction == I_RECORD) {
-                    pos = instRecord(wal, pos, checksum, replay);
-                }else if (instruction == I_TOMBSTONE){
-                    pos = instTombstone(wal, pos, checksum, replay);
-                }else if (instruction == I_PREALLOCATE) {
-                    pos = instPreallocate(wal, pos, checksum, replay);
-                }else if (instruction == I_COMMIT) {
-                    int checksum2 = wal.getInt(pos);
-                    pos+=4;
-                    if(((1+Long.bitCount(pos-5)+Integer.bitCount(checksum2))&15) != checksum)
-                        throw new InternalError("WAL corrupted");
-                    replay.commit();
-                }else if (instruction == I_ROLLBACK) {
-                    int checksum2 = wal.getInt(pos);
-                    pos+=4;
-                    if(((1+Long.bitCount(pos-5)+Integer.bitCount(checksum2))&15) != checksum)
-                        throw new InternalError("WAL corrupted");
-                    replay.rollback();
-                }else{
-                    throw new InternalError("WAL corrupted, unknown instruction");
+                switch(instruction){
+                    case I_EOF: {
+                        //EOF
+                        if ((Long.bitCount(pos - 1) & 15) != checksum)
+                            throw new InternalError("WAL corrupted");
+                        continue file;
+                    }
+                    case I_LONG:
+                        pos = instLong(wal, pos, checksum, replay);
+                        break;
+                    case I_BYTE_ARRAY:
+                        pos = instByteArray(wal, pos, checksum, replay);
+                        break;
+                    case I_SKIP_MANY: {
+                        //skip N bytes
+                        int skipN = wal.getInt(pos - 1) & 0xFFFFFF; //read 3 bytes
+                        if ((Integer.bitCount(skipN) & 15) != checksum)
+                            throw new InternalError("WAL corrupted");
+                        pos += 3 + skipN;
+                        break;
+                    }
+                    case I_SKIP_SINGLE: {
+                        //skip single byte
+                        if ((Long.bitCount(pos - 1) & 15) != checksum)
+                            throw new InternalError("WAL corrupted");
+                        break;
+                    }
+                    case I_RECORD:
+                        pos = instRecord(wal, pos, checksum, replay);
+                        break;
+                    case I_TOMBSTONE:
+                        pos = instTombstone(wal, pos, checksum, replay);
+                        break;
+                    case I_PREALLOCATE:
+                        pos = instPreallocate(wal, pos, checksum, replay);
+                        break;
+                    case I_COMMIT: {
+                        int checksum2 = wal.getInt(pos);
+                        pos += 4;
+                        if (((1 + Long.bitCount(pos - 5) + Integer.bitCount(checksum2)) & 15) != checksum)
+                            throw new InternalError("WAL corrupted");
+                        replay.commit();
+                        break;
+                    }
+                    case I_ROLLBACK: {
+                        int checksum2 = wal.getInt(pos);
+                        pos += 4;
+                        if (((1 + Long.bitCount(pos - 5) + Integer.bitCount(checksum2)) & 15) != checksum)
+                            throw new InternalError("WAL corrupted");
+                        replay.rollback();
+                        break;
+                    }
+                    default:
+                        throw new InternalError("WAL corrupted, unknown instruction");
                 }
 
             }
