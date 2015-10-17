@@ -327,6 +327,7 @@ public class WriteAheadLogTest {
         }
         assertTrue(WriteAheadLog.MAX_FILE_SIZE-1000 < lastPos);
         assertTrue(WriteAheadLog.MAX_FILE_SIZE+120>lastPos);
+        wal.destroyWalFiles();
     }
 
     @Test public void overflow_record(){
@@ -345,6 +346,69 @@ public class WriteAheadLogTest {
         }
         assertTrue(WriteAheadLog.MAX_FILE_SIZE-1000 < lastPos);
         assertTrue(WriteAheadLog.MAX_FILE_SIZE+120>lastPos);
+        wal.destroyWalFiles();
     }
 
+    @Test public void open_ignores_rollback(){
+        File f = TT.tempDbFile();
+        WriteAheadLog wal = new WriteAheadLog(f.getPath());
+        wal.walPutLong(1L,11L);
+        wal.commit();
+        wal.walPutLong(2L,33L);
+        wal.rollback();
+        wal.walPutLong(3L,33L);
+        wal.commit();
+        wal.seal();
+        wal.close();
+
+        wal = new WriteAheadLog(f.getPath());
+        wal.open(new WALSequence(
+                new Object[]{WALSequence.beforeReplayStart},
+                new Object[]{WALSequence.writeLong, 1L, 11L},
+                new Object[]{WALSequence.commit},
+                // 2L is ignored, rollback section is skipped on hard replay
+                new Object[]{WALSequence.writeLong, 3L, 33L},
+                new Object[]{WALSequence.commit},
+                new Object[]{WALSequence.beforeDestroyWAL}
+        ));
+        wal.destroyWalFiles();
+        wal.close();
+
+        f.delete();
+    }
+
+    @Test public void skip_rollback(){
+        WriteAheadLog wal = new WriteAheadLog(null);
+        wal.walPutLong(1L,11L);
+        wal.commit();
+        long o1 = wal.walOffset.get();
+        wal.walPutLong(2L,33L);
+        wal.rollback();
+        long o2 = wal.walOffset.get();
+        wal.walPutLong(3L,33L);
+        wal.commit();
+        long o3 = wal.walOffset.get();
+        wal.seal();
+
+
+        assertEquals(o2, wal.skipRollbacks(o1));
+        assertEquals(o2, wal.skipRollbacks(o2));
+        assertEquals(0, wal.skipRollbacks(o3));
+    }
+
+    @Test public void skip_rollback_last_rollback(){
+        WriteAheadLog wal = new WriteAheadLog(null);
+        wal.walPutLong(1L,11L);
+        wal.commit();
+        long o1 = wal.walOffset.get();
+        wal.walPutLong(2L,33L);
+        wal.commit();
+        long o2 = wal.walOffset.get();
+        wal.walPutLong(3L,33L);
+        wal.rollback();
+        wal.seal();
+
+        assertEquals(o1, wal.skipRollbacks(o1));
+        assertEquals(0, wal.skipRollbacks(o2));
+    }
 }

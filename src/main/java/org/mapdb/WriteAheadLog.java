@@ -296,7 +296,7 @@ public class WriteAheadLog {
                 volumes.add(volumeFactory.makeVolume(wname, false, true));
             }
 
-            replayWAL(replay);
+            replayWALSkipRollbacks(replay);
 
 //            for(Volume v:walRec){
 //                v.close();
@@ -309,6 +309,148 @@ public class WriteAheadLog {
 
         }
 
+    }
+
+
+    /** replays wall, but skips section between rollbacks. That means only commited transactions will be passed to
+     * replay callback
+     */
+    void replayWALSkipRollbacks(WALReplay replay) {
+        replay.beforeReplayStart();
+
+        long start = skipRollbacks(16);
+        commitLoop: while(start!=0){
+            long fileNum = walPointerToFileNum(start);
+            Volume wal = volumes.get((int) fileNum);
+            long pos = walPointerToOffset(start);
+
+            instLoop: for(;;) {
+                int checksum = wal.getUnsignedByte(pos++);
+                int instruction = checksum>>>4;
+                checksum = (checksum&15);
+                if (instruction == I_EOF) {
+                    //EOF
+                    if((Long.bitCount(pos-1)&15) != checksum)
+                        throw new InternalError("WAL corrupted");
+                    //start at new file
+                    start = walPointer(0, fileNum+1, 16);
+                    continue  commitLoop;
+                } else if (instruction == I_LONG) {
+                    pos = instLong(wal, pos, checksum, replay);
+                } else if (instruction == I_BYTE_ARRAY) {
+                    pos = instByteArray(wal, pos, checksum, replay);
+                } else if (instruction == I_SKIP_MANY) {
+                    //skip N bytes
+                    int skipN = wal.getInt(pos - 1) & 0xFFFFFF; //read 3 bytes
+                    if((Integer.bitCount(skipN)&15) != checksum)
+                        throw new InternalError("WAL corrupted");
+                    pos += 3 + skipN;
+                } else if (instruction == I_SKIP_SINGLE) {
+                    //skip single byte
+                    if((Long.bitCount(pos-1)&15) != checksum)
+                        throw new InternalError("WAL corrupted");
+                } else if (instruction == I_RECORD) {
+                    pos = instRecord(wal, pos, checksum, replay);
+                }else if (instruction == I_TOMBSTONE){
+                    pos = instTombstone(wal, pos, checksum, replay);
+                }else if (instruction == I_PREALLOCATE) {
+                    pos = instPreallocate(wal, pos, checksum, replay);
+                }else if (instruction == I_COMMIT) {
+                    int checksum2 = wal.getInt(pos);
+                    pos+=4;
+                    if(((1+Long.bitCount(pos-5)+Integer.bitCount(checksum2))&15) != checksum)
+                        throw new InternalError("WAL corrupted");
+                    replay.commit();
+                    long currentPos = walPointer(0, fileNum, pos);
+                    //skip next rollbacks if there are any
+                    start = skipRollbacks(currentPos);
+                    continue commitLoop;
+                }else if (instruction == I_ROLLBACK) {
+                    throw new DBException.DataCorruption("Rollback should be skipped");
+                }else{
+                    throw new InternalError("WAL corrupted, unknown instruction");
+                }
+
+            }
+
+        }
+
+    }
+
+    /**
+     * Iterates log until it finds commit or rollback instruction. If commit instruction is found,
+     * it returns starting offset. If rollback instruction is find, it continues, and returns offset
+     * after last rollback. If no commit is found before end of log, it returns zero.
+     *
+     * @param start offset
+     * @return offset after last rollback
+     */
+    long skipRollbacks(long start){
+        commitLoop:for(;;){
+            long fileNum2 = walPointerToFileNum(start);
+            long pos = walPointerToOffset(start);
+            if(volumes.size()>=fileNum2)
+                return 0; //there will be no commit in this file
+            Volume wal = volumes.get((int) fileNum2);
+            if(wal.length()<16 /*|| wal.getLong(8)!=WAL_SEAL*/) {
+                break commitLoop;
+                //TODO better handling for corrupted logs
+            }
+
+            for(;;) {
+                int checksum = wal.getUnsignedByte(pos++);
+                int instruction = checksum>>>4;
+                checksum = (checksum&15);
+                if (instruction == I_EOF) {
+                    //EOF
+                    if((Long.bitCount(pos-1)&15) != checksum)
+                        throw new InternalError("WAL corrupted");
+                    start = walPointer(0, fileNum2+1, 16);
+                    continue commitLoop;
+                } else if (instruction == I_LONG) {
+                    pos = instLong(wal, pos, checksum, null);
+                } else if (instruction == I_BYTE_ARRAY) {
+                    pos = instByteArray(wal, pos, checksum, null);
+                } else if (instruction == I_SKIP_MANY) {
+                    //skip N bytes
+                    int skipN = wal.getInt(pos - 1) & 0xFFFFFF; //read 3 bytes
+                    if((Integer.bitCount(skipN)&15) != checksum)
+                        throw new InternalError("WAL corrupted");
+                    pos += 3 + skipN;
+                } else if (instruction == I_SKIP_SINGLE) {
+                    //skip single byte
+                    if((Long.bitCount(pos-1)&15) != checksum)
+                        throw new InternalError("WAL corrupted");
+                } else if (instruction == I_RECORD) {
+                    pos = instRecord(wal, pos, checksum, null);
+                }else if (instruction == I_TOMBSTONE){
+                    pos = instTombstone(wal, pos, checksum, null);
+                }else if (instruction == I_PREALLOCATE) {
+                    pos = instPreallocate(wal, pos, checksum, null);
+                }else if (instruction == I_COMMIT) {
+                    int checksum2 = wal.getInt(pos);
+                    pos+=4;
+                    if(((1+Long.bitCount(pos-5)+Integer.bitCount(checksum2))&15) != checksum)
+                        throw new InternalError("WAL corrupted");
+                    //TODO checksums
+                    return start;
+                }else if (instruction == I_ROLLBACK) {
+                    int checksum2 = wal.getInt(pos);
+                    pos+=4;
+                    if(((1+Long.bitCount(pos-5)+Integer.bitCount(checksum2))&15) != checksum)
+                        throw new InternalError("WAL corrupted");
+                    //rollback instruction pushes last valid to current offset
+                    //TODO checksum
+                    start = walPointer(0, fileNum2, pos);
+                    continue commitLoop;
+                }else{
+                    throw new InternalError("WAL corrupted, unknown instruction");
+                }
+
+            }
+        }
+
+        return 0;
     }
 
     void replayWAL(WALReplay replay){
@@ -324,7 +466,7 @@ public class WriteAheadLog {
             }
 
             long pos = 16;
-            for(;;) {
+            instLoop: for(;;) {
                 int checksum = wal.getUnsignedByte(pos++);
                 int instruction = checksum>>>4;
                 checksum = (checksum&15);
@@ -334,32 +476,9 @@ public class WriteAheadLog {
                         throw new InternalError("WAL corrupted");
                     continue file;
                 } else if (instruction == I_LONG) {
-                    //write long
-                    long val = wal.getLong(pos);
-                    pos += 8;
-                    long offset = wal.getSixLong(pos);
-                    pos += 6;
-                    if(((1+Long.bitCount(val)+Long.bitCount(offset))&15)!=checksum)
-                        throw new InternalError("WAL corrupted");
-                    replay.writeLong(offset,val);
+                    pos = instLong(wal, pos, checksum, replay);
                 } else if (instruction == I_BYTE_ARRAY) {
-                    //write byte[]
-                    long walId = ((long)fileNum)<<(pointerOffsetBites);
-                    walId |=pos-1;
-
-                    int dataSize = wal.getUnsignedShort(pos);
-                    pos += 2;
-                    long offset = wal.getSixLong(pos);
-                    pos += 6;
-//                    byte[] data = new byte[dataSize];
-//                    wal.getData(pos, data, 0, data.length);
-                    if(((1+Integer.bitCount(dataSize)+Long.bitCount(offset))&15)!=checksum)
-                        throw new InternalError("WAL corrupted");
-                    long val = ((long)fileNum)<<(pointerOffsetBites);
-                    val |=pos;
-
-                    replay.writeByteArray(offset, walId, wal, pos, dataSize);
-                    pos += dataSize;
+                    pos = instByteArray(wal, pos, checksum, replay);
                 } else if (instruction == I_SKIP_MANY) {
                     //skip N bytes
                     int skipN = wal.getInt(pos - 1) & 0xFFFFFF; //read 3 bytes
@@ -371,42 +490,11 @@ public class WriteAheadLog {
                     if((Long.bitCount(pos-1)&15) != checksum)
                         throw new InternalError("WAL corrupted");
                 } else if (instruction == I_RECORD) {
-                    long walId = (fileNum2)<<(pointerOffsetBites);
-                    walId |= pos-1;
-
-                    // read record
-                    long recid = wal.getPackedLong(pos);
-                    pos += recid >>> 60;
-                    recid &= DataIO.PACK_LONG_RESULT_MASK;
-
-                    long size = wal.getPackedLong(pos);
-                    pos += size >>> 60;
-                    size &= DataIO.PACK_LONG_RESULT_MASK;
-
-                    if (size == 0) {
-                        replay.writeRecord(recid, 0, null, 0 ,0);
-                    } else {
-                        size--; //zero is used for null
-//                        byte[] data = new byte[(int) size];
-//                        wal.getData(pos, data, 0, data.length);
-                        replay.writeRecord(recid, walId, wal, pos, (int) size);
-                        pos += size;
-                    }
+                    pos = instRecord(wal, pos, checksum, replay);
                 }else if (instruction == I_TOMBSTONE){
-                    long recid = wal.getPackedLong(pos);
-                    pos += recid >>> 60;
-                    recid &= DataIO.PACK_LONG_RESULT_MASK;
-                    if(((1+Long.bitCount(recid))&15)!=checksum)
-                        throw new InternalError("WAL corrupted");
-
-                    replay.writeTombstone(recid);
+                    pos = instTombstone(wal, pos, checksum, replay);
                 }else if (instruction == I_PREALLOCATE) {
-                    long recid = wal.getPackedLong(pos);
-                    pos += recid >>> 60;
-                    recid &= DataIO.PACK_LONG_RESULT_MASK;
-                    if (((1 + Long.bitCount(recid)) & 15) != checksum)
-                        throw new InternalError("WAL corrupted");
-                    replay.writePreallocate(recid);
+                    pos = instPreallocate(wal, pos, checksum, replay);
                 }else if (instruction == I_COMMIT) {
                     int checksum2 = wal.getInt(pos);
                     pos+=4;
@@ -426,6 +514,88 @@ public class WriteAheadLog {
             }
         }
         replay.beforeDestroyWAL();
+    }
+
+    private long instTombstone(Volume wal, long pos, int checksum, WALReplay replay) {
+        long recid = wal.getPackedLong(pos);
+        pos += recid >>> 60;
+        recid &= DataIO.PACK_LONG_RESULT_MASK;
+        if(((1+Long.bitCount(recid))&15)!=checksum)
+            throw new InternalError("WAL corrupted");
+
+        replay.writeTombstone(recid);
+        return pos;
+    }
+
+    private long instPreallocate(Volume wal, long pos, int checksum, WALReplay replay) {
+        long recid = wal.getPackedLong(pos);
+        pos += recid >>> 60;
+        recid &= DataIO.PACK_LONG_RESULT_MASK;
+        if (((1 + Long.bitCount(recid)) & 15) != checksum)
+            throw new InternalError("WAL corrupted");
+        replay.writePreallocate(recid);
+        return pos;
+    }
+
+    private long instRecord(Volume wal, long pos, int checksum, WALReplay replay) {
+        long walId = walPointer(0, fileNum, pos-1);
+
+        // read record
+        long recid = wal.getPackedLong(pos);
+        pos += recid >>> 60;
+        recid &= DataIO.PACK_LONG_RESULT_MASK;
+
+        long size = wal.getPackedLong(pos);
+        pos += size >>> 60;
+        size &= DataIO.PACK_LONG_RESULT_MASK;
+
+        if (size == 0) {
+            if(replay!=null)
+                replay.writeRecord(recid, 0, null, 0 ,0);
+        } else {
+            size--; //zero is used for null
+//                        byte[] data = new byte[(int) size];
+//                        wal.getData(pos, data, 0, data.length);
+            if(replay!=null)
+                replay.writeRecord(recid, walId, wal, pos, (int) size);
+            pos += size;
+        }
+        return pos;
+    }
+
+    private long instByteArray(Volume wal, long pos, int checksum, WALReplay replay) {
+        //write byte[]
+        long walId = walPointer(0, fileNum, pos-1);
+
+        int dataSize = wal.getUnsignedShort(pos);
+        pos += 2;
+        long offset = wal.getSixLong(pos);
+        pos += 6;
+//                    byte[] data = new byte[dataSize];
+//                    wal.getData(pos, data, 0, data.length);
+        if(((1+Integer.bitCount(dataSize)+Long.bitCount(offset))&15)!=checksum)
+            throw new InternalError("WAL corrupted");
+        long val = ((long)fileNum)<<(pointerOffsetBites);
+        val |=pos;
+
+        if(replay!=null)
+            replay.writeByteArray(offset, walId, wal, pos, dataSize);
+
+        pos += dataSize;
+        return pos;
+    }
+
+    private long instLong(Volume wal, long pos, int checksum, WALReplay replay) {
+        //write long
+        long val = wal.getLong(pos);
+        pos += 8;
+        long offset = wal.getSixLong(pos);
+        pos += 6;
+        if(((1+Long.bitCount(val)+Long.bitCount(offset))&15)!=checksum)
+            throw new InternalError("WAL corrupted");
+        if(replay!=null)
+            replay.writeLong(offset,val);
+        return pos;
     }
 
     public void destroyWalFiles() {
@@ -460,9 +630,9 @@ public class WriteAheadLog {
      * @return DataInput
      */
     public DataInput walGetByteArray(long walPointer) {
-        int arraySize = (int) ((walPointer >>> (pointerOffsetBites+pointerFileBites))&pointerSizeMask);
-        int fileNum = (int) ((walPointer >>> (pointerOffsetBites)) & pointerFileMask);
-        long dataOffset = (walPointer & pointerOffsetMask);
+        int arraySize = walPointerToSize(walPointer);
+        int fileNum = (int) (walPointerToFileNum(walPointer));
+        long dataOffset = (walPointerToOffset(walPointer));
 
         Volume vol = volumes.get(fileNum);
         return vol.getDataInput(dataOffset, arraySize);
@@ -476,20 +646,32 @@ public class WriteAheadLog {
      * @return DataInput
      */
     public byte[] walGetByteArray2(long walPointer) {
-        int arraySize = (int) ((walPointer >>> (pointerOffsetBites+pointerFileBites))&pointerSizeMask);
-        int fileNum = (int) ((walPointer >>> (pointerOffsetBites)) & pointerFileMask);
-        long dataOffset = (walPointer & pointerOffsetMask);
+        int arraySize = walPointerToSize(walPointer);
+        long fileNum = walPointerToFileNum(walPointer);
+        long dataOffset = walPointerToOffset(walPointer);
 
-        Volume vol = volumes.get(fileNum);
+        Volume vol = volumes.get((int) fileNum);
         byte[] ret = new byte[arraySize];
         vol.getData(dataOffset, ret, 0, arraySize);
         return ret;
     }
 
+    protected long walPointerToOffset(long walPointer) {
+        return walPointer & pointerOffsetMask;
+    }
+
+    protected long walPointerToFileNum(long walPointer) {
+        return (walPointer >>> (pointerOffsetBites)) & pointerFileMask;
+    }
+
+    protected int walPointerToSize(long walPointer) {
+        return (int) ((walPointer >>> (pointerOffsetBites+pointerFileBites))&pointerSizeMask);
+    }
+
     //TODO return DataInput
     public byte[] walGetRecord(long walPointer, long expectedRecid) {
         int fileNum = (int) ((walPointer >>> pointerOffsetBites) & pointerFileMask);
-        long dataOffset = (walPointer & pointerOffsetMask);
+        long dataOffset = (walPointerToOffset(walPointer));
 
         Volume vol = volumes.get(fileNum);
         //skip instruction
@@ -562,13 +744,17 @@ public class WriteAheadLog {
             throw new AssertionError();
         if(CC.ASSERT && (fileNum&pointerFileMask)!=fileNum)
             throw new AssertionError();
-        if(CC.ASSERT && (walOffset2&pointerOffsetMask)!=walOffset2)
+        if(CC.ASSERT && (walPointerToOffset(walOffset2))!=walOffset2)
             throw new AssertionError();
 
-        long val = ((long)size)<<(pointerOffsetBites+pointerFileBites);
-        val |= ((long)fileNum)<<(pointerOffsetBites);
-        val |= walOffset2;
-        if(CC.ASSERT && walOffset2>=MAX_FILE_SIZE)
+        return walPointer(size,fileNum,walOffset2);
+    }
+
+    protected long walPointer(long size, long fileNum, long offset){
+        long val = (size)<<(pointerOffsetBites+pointerFileBites);
+        val |= (fileNum)<<(pointerOffsetBites);
+        val |= offset;
+        if(CC.ASSERT && offset>=MAX_FILE_SIZE)
             throw new AssertionError();
 
         return val;
@@ -602,9 +788,7 @@ public class WriteAheadLog {
             curVol.putDataOverlap(walOffset2, buf, bufPos, size);
         }
 
-        long val = ((long)fileNum)<<(pointerOffsetBites);
-        val |= startPos;
-        return val;
+        return walPointer(0, fileNum,startPos);
     }
 
 
