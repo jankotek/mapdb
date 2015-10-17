@@ -752,7 +752,7 @@ public class DB implements Closeable {
                 executor,
                 CC.DEFAULT_HTREEMAP_EXECUTOR_PERIOD,
                 false,
-                consistencyLock.readLock()
+                consistencyLock.writeLock()
         );
 
         //$DELAY$
@@ -885,7 +885,7 @@ public class DB implements Closeable {
                 m.executor,
                 m.executorPeriod,
                 m.executor!=executor,
-                consistencyLock.readLock());
+                consistencyLock.writeLock());
         //$DELAY$
         catalog.put(name + Keys.type, "HashMap");
         namedPut(name, ret);
@@ -995,7 +995,7 @@ public class DB implements Closeable {
                 executor,
                 CC.DEFAULT_HTREEMAP_EXECUTOR_PERIOD,
                 false,
-                consistencyLock.readLock()
+                consistencyLock.writeLock()
         ).keySet();
 
         //$DELAY$
@@ -1073,7 +1073,7 @@ public class DB implements Closeable {
                 m.executor,
                 m.executorPeriod,
                 m.executor!=executor,
-                consistencyLock.readLock()
+                consistencyLock.writeLock()
                 );
         Set<K> ret2 = ret.keySet();
         //$DELAY$
