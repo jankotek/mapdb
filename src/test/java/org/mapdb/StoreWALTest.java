@@ -6,7 +6,6 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -48,52 +47,6 @@ public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
         assertTrue(wal0.exists());
         assertFalse(wal1.exists());
         assertFalse(wal2.exists());
-    }
-
-    @Test public void WAL_replay_long(){
-        e = openEngine();
-        long v = e.composeIndexVal(1000, e.round16Up(10000), true, true, true);
-        long offset = 0xF0000;
-        e.wal.walPutLong(offset, v);
-        e.commit();
-        e.commitLock.lock();
-        e.structuralLock.lock();
-        e.replayWAL();
-        assertEquals(v, e.vol.getLong(offset));
-        e.structuralLock.unlock();
-        e.commitLock.unlock();
-    }
-
-    @Test public void WAL_replay_mixed(){
-        e = openEngine();
-        e.structuralLock.lock();
-
-        for(int i=0;i<3;i++) {
-            long v = e.composeIndexVal(100+i, e.round16Up(10000)+i*16, true, true, true);
-            e.wal.walPutLong(0xF0000+i*8, v);
-            byte[] d  = new byte[9];
-            Arrays.fill(d, (byte) i);
-            e.putDataSingleWithoutLink(-1,e.round16Up(100000)+64+i*16,d,0,d.length);
-        }
-        e.structuralLock.unlock();
-        e.commit();
-        e.commitLock.lock();
-        e.structuralLock.lock();
-        e.replayWAL();
-
-        for(int i=0;i<3;i++) {
-            long v = e.composeIndexVal(100+i, e.round16Up(10000)+i*16, true, true, true);
-            assertEquals(v, e.vol.getLong(0xF0000+i*8));
-
-            byte[] d  = new byte[9];
-            Arrays.fill(d, (byte) i);
-            byte[] d2  = new byte[9];
-
-            e.vol.getData(e.round16Up(100000)+64+i*16,d2,0,d2.length);
-            assertTrue(Serializer.BYTE_ARRAY.equals(d, d2));
-        }
-        e.structuralLock.unlock();
-        e.commitLock.unlock();
     }
 
     Map<Long,String> fill(StoreWAL e){

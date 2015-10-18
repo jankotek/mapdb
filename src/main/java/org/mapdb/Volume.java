@@ -428,6 +428,9 @@ public abstract class Volume implements Closeable{
         if (len < 0) {
             throw new IllegalArgumentException("lengths must be >= 0");
         }
+        if(len==0)
+            return seed;
+
         long bufLen = length();
         if(off<0 || off>=bufLen || off+len<0 || off+len>bufLen){
             throw new IndexOutOfBoundsException();
@@ -2976,6 +2979,8 @@ public abstract class Volume implements Closeable{
             if (len < 0) {
                 throw new IllegalArgumentException("lengths must be >= 0");
             }
+            if(len==0)
+                return seed;
             long bufLen = length();
             if(off<0 || off>=bufLen || off+len<0 || off+len>bufLen){
                 throw new IndexOutOfBoundsException();

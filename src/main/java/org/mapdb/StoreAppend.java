@@ -202,6 +202,7 @@ public class StoreAppend extends Store {
         headVol = volumeFactory.makeVolume(fileName, false,true);
         headVol.ensureAvailable(16);
         headVol.putInt(0,HEADER);
+        headVol.putLong(8, makeFeaturesBitmap());
         headVol.sync();
         wal.open(WriteAheadLog.NOREPLAY);
 //        wal.startNextFile();
@@ -330,8 +331,10 @@ public class StoreAppend extends Store {
             throw new DBException.DataCorruption("Wrong header at:"+fileName);
         }
 
+        long featuresBitMap = headVol.getLong(8);
+        checkFeaturesBitmap(featuresBitMap);
+
         final AtomicLong highestRecid2 = new AtomicLong(RECID_LAST_RESERVED);
-        final LongLongMap commitData = tx?new LongLongMap():null;
 
         final WriteAheadLog.WALReplay replay = new WriteAheadLog.WALReplay() {
             @Override
@@ -351,13 +354,10 @@ public class StoreAppend extends Store {
 
             @Override
             public void writeRecord(long recid, long walId, Volume vol, long volOffset, int length) {
-                if(tx){
-                    commitData.put(recid,walId);
-                }else{
-                    long recidOffset = recid*8;
-                    indexTable.ensureAvailable(recidOffset + 8);
-                    indexTable.putLong(recidOffset, walId);
-                }
+                highestRecid2.set(Math.max(highestRecid2.get(),recid));
+                long recidOffset = recid*8;
+                indexTable.ensureAvailable(recidOffset + 8);
+                indexTable.putLong(recidOffset, walId);
             }
 
             @Override
@@ -367,44 +367,24 @@ public class StoreAppend extends Store {
 
             @Override
             public void commit() {
-                if (tx){
-                    //apply changes from commitData to indexTable
-                    for(int i=0;i<commitData.table.length;i+=2){
-                        long recidOffset = commitData.table[i]*8;
-                        if(recidOffset==0)
-                            continue;
-                        indexTable.ensureAvailable(recidOffset + 8);
-                        indexTable.putLong(recidOffset, commitData.table[i+1]);
-                    }
-                    commitData.clear();
-                }
+
             }
 
             @Override
             public void rollback() {
-                if(tx) {
-                    commitData.clear();
-                }
+                throw new DBException.DataCorruption();
             }
 
             @Override
             public void writeTombstone(long recid) {
-                if (tx){
-                    commitData.put(recid, -1);
-                }else{
-                    indexTable.ensureAvailable(recid*8+8);
-                    indexTable.putLong(recid*8,-1);
-                }
+                indexTable.ensureAvailable(recid*8+8);
+                indexTable.putLong(recid*8,-1);
             }
 
             @Override
             public void writePreallocate(long recid) {
-                if (tx){
-                    commitData.put(recid, -3);
-                }else{
-                    indexTable.ensureAvailable(recid*8+8);
-                    indexTable.putLong(recid*8,-3);
-                }
+                indexTable.ensureAvailable(recid*8+8);
+                indexTable.putLong(recid*8,-3);
             }
         };
         wal.open(replay);
@@ -541,6 +521,11 @@ public class StoreAppend extends Store {
                 return;
             }
 
+            if(!readonly) {
+                if (tx)
+                    wal.rollback();
+                wal.seal();
+            }
             wal.close();
             indexTable.close();
             headVol.close();

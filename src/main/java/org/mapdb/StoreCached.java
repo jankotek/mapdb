@@ -17,7 +17,7 @@ public class StoreCached extends StoreDirect {
      * stores modified stack pages.
      */
     //TODO only accessed under structural lock, should be LongConcurrentHashMap?
-    protected final LongObjectMap<byte[]> dirtyStackPages = new LongObjectMap<byte[]>();
+    protected final LongObjectMap<byte[]> uncommittedStackPages = new LongObjectMap<byte[]>();
     protected final LongObjectObjectMap[] writeCache;
 
     protected final static Object TOMBSTONE2 = new Object(){
@@ -228,7 +228,7 @@ public class StoreCached extends StoreDirect {
         headVol.putLong(masterLinkOffset, parity4Set(currSize << 48 | prevPageOffset));
 
         //release old page, size is stored as part of prev page value
-        dirtyStackPages.remove(pageOffset);
+        uncommittedStackPages.remove(pageOffset);
         freeDataPut(pageOffset, currPageSize);
         //TODO how TX should handle this
 
@@ -239,15 +239,17 @@ public class StoreCached extends StoreDirect {
         if (CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
 
-        byte[] page = dirtyStackPages.get(pageOffset);
+        byte[] page = uncommittedStackPages.get(pageOffset);
         if (page == null) {
             int pageSize = (int) (parity4Get(vol.getLong(pageOffset)) >>> 48);
             page = new byte[pageSize];
             vol.getData(pageOffset, page, 0, pageSize);
             if(willBeModified) {
-                dirtyStackPages.put(pageOffset, page);
+                uncommittedStackPages.put(pageOffset, page);
             }
         }
+        if(CC.ASSERT)
+            assertLongStackPage(pageOffset, page);
         return page;
     }
 
@@ -325,7 +327,7 @@ public class StoreCached extends StoreDirect {
         byte[] page = new byte[(int) newPageSize];
 //TODO this is new page, so data should be clear, no need to read them, but perhaps check data are really zero, handle EOF
 //        vol.getData(newPageOffset, page, 0, page.length);
-        dirtyStackPages.put(newPageOffset, page);
+        uncommittedStackPages.put(newPageOffset, page);
         //write size of current chunk with link to prev page
         DataIO.putLong(page, 0, parity4Set((newPageSize << 48) | prevPageOffset));
         //put value
@@ -347,27 +349,23 @@ public class StoreCached extends StoreDirect {
         structuralLock.lock();
         try {
             if(CC.PARANOID){
-                assertNoOverlaps(dirtyStackPages);
+                assertNoOverlaps(uncommittedStackPages);
             }
 
             //flush modified Long Stack pages
-            long[] set = dirtyStackPages.set;
+            long[] set = uncommittedStackPages.set;
             for(int i=0;i<set.length;i++){
                 long offset = set[i];
                 if(offset==0)
                     continue;
-                byte[] val = (byte[]) dirtyStackPages.values[i];
+                byte[] val = (byte[]) uncommittedStackPages.values[i];
 
-                if (CC.ASSERT && offset < PAGE_SIZE)
-                    throw new DBException.DataCorruption("offset to small");
-                if (CC.ASSERT && val.length % 16 != 0)
-                    throw new AssertionError("not aligned to 16");
-                if (CC.ASSERT && val.length <= 0 || val.length > MAX_REC_SIZE)
-                    throw new DBException.DataCorruption("wrong length");
+                if(CC.ASSERT)
+                    assertLongStackPage(offset, val);
 
                 vol.putData(offset, val, 0, val.length);
             }
-            dirtyStackPages.clear();
+            uncommittedStackPages.clear();
             //set header checksum
             headVol.putInt(HEAD_CHECKSUM, headChecksum(headVol));
             //and flush head
@@ -378,6 +376,15 @@ public class StoreCached extends StoreDirect {
             structuralLock.unlock();
         }
         vol.sync();
+    }
+
+    protected void assertLongStackPage(long offset, byte[] val) {
+        if (CC.ASSERT && offset < PAGE_SIZE)
+            throw new DBException.DataCorruption("offset to small");
+        if (CC.ASSERT && val.length % 16 != 0)
+            throw new AssertionError("not aligned to 16");
+        if (CC.ASSERT && val.length <= 0 || val.length > MAX_REC_SIZE)
+            throw new DBException.DataCorruption("wrong length");
     }
 
 

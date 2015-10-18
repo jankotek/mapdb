@@ -38,16 +38,36 @@ public class StoreWAL extends StoreCached {
 
 
     /**
-     * Contains index table modified in previous transactions.
+     * Contains index table modifications from previous committed transactions, which are not yet replayed into vol.
+     * Key is offset in vol, value is new index table value
      */
-    protected final LongLongMap[] prevLongLongs;
-    protected final LongLongMap[] currLongLongs;
-    protected final LongLongMap[] prevDataLongs;
-    protected final LongLongMap[] currDataLongs;
+    protected final LongLongMap[] committedIndexTable;
 
-    protected final LongLongMap pageLongStack = new LongLongMap();
+    /**
+     * Contains index table modifications from current not yet committed transaction.
+     * Key is offset in vol, value is new index table value
+     */
+    protected final LongLongMap[] uncommittedIndexTable;
 
-    protected Volume headVolBackup;
+    /**
+     * Contains vol modifications from previous committed transactions, which are not yet replayed into vol.
+     * Key is offset in vol, value is walPointer returned by {@link WriteAheadLog#walPutByteArray(long, byte[], int, int)}
+     */
+    protected final LongLongMap[] committedDataLongs;
+
+    /**
+     * Contains vol modifications from current not yet committed transaction.
+     * Key is offset in vol, value is walPointer returned by {@link WriteAheadLog#walPutByteArray(long, byte[], int, int)}
+     */
+    protected final LongLongMap[] uncommittedDataLongs;
+
+    /**
+     * Contains modified Long Stack Pages from previous committed transactions, which are not yet replayed into vol.
+     * Key is offset in vol, value is walPointer returned by {@link WriteAheadLog#walPutByteArray(long, byte[], int, int)}
+     */
+    protected final LongLongMap committedPageLongStack = new LongLongMap();
+
+    protected byte[] headVolBackup;
 
     protected long[] indexPagesBackup;
 
@@ -103,17 +123,17 @@ public class StoreWAL extends StoreCached {
                 writeQueueSize);
         wal = new WriteAheadLog(fileName, volumeFactory, makeFeaturesBitmap());
 
-        prevLongLongs = new LongLongMap[this.lockScale];
-        currLongLongs = new LongLongMap[this.lockScale];
-        for (int i = 0; i < prevLongLongs.length; i++) {
-            prevLongLongs[i] = new LongLongMap();
-            currLongLongs[i] = new LongLongMap();
+        committedIndexTable = new LongLongMap[this.lockScale];
+        uncommittedIndexTable = new LongLongMap[this.lockScale];
+        for (int i = 0; i < committedIndexTable.length; i++) {
+            committedIndexTable[i] = new LongLongMap();
+            uncommittedIndexTable[i] = new LongLongMap();
         }
-        prevDataLongs = new LongLongMap[this.lockScale];
-        currDataLongs = new LongLongMap[this.lockScale];
-        for (int i = 0; i < prevDataLongs.length; i++) {
-            prevDataLongs[i] = new LongLongMap();
-            currDataLongs[i] = new LongLongMap();
+        committedDataLongs = new LongLongMap[this.lockScale];
+        uncommittedDataLongs = new LongLongMap[this.lockScale];
+        for (int i = 0; i < committedDataLongs.length; i++) {
+            committedDataLongs[i] = new LongLongMap();
+            uncommittedDataLongs[i] = new LongLongMap();
         }
 
     }
@@ -137,13 +157,14 @@ public class StoreWAL extends StoreCached {
         if(readonly && !Volume.isEmptyFile(fileName+".wal.0"))
             throw new DBException.WrongConfig("There is dirty WAL file, but storage is read-only. Can not replay file");
 
-        wal.open(new Replay2(){
-            @Override
-            public void beforeReplayStart() {
-                super.beforeReplayStart();
-                initOpenPost();
-            }
-        });
+        //TODO replay
+//        wal.open(new Replay2(){
+//            @Override
+//            public void beforeReplayStart() {
+//                super.beforeReplayStart();
+//                initOpenPost();
+//            }
+//        });
 
         initOpenPost();
     }
@@ -167,11 +188,8 @@ public class StoreWAL extends StoreCached {
     protected void initHeadVol() {
         super.initHeadVol();
         //backup headVol
-        if(headVolBackup!=null && !headVolBackup.isClosed())
-            headVolBackup.close();
-        byte[] b = new byte[(int) HEAD_END];
-        headVol.getData(0, b, 0, b.length);
-        headVolBackup = new Volume.SingleByteArrayVol(b);
+        headVolBackup = new byte[(int) HEAD_END];
+        headVol.getData(0, headVolBackup, 0, headVolBackup.length);
     }
 
     protected void walStartNextFile() {
@@ -198,20 +216,16 @@ public class StoreWAL extends StoreCached {
 
     @Override
     protected void putDataSingleWithoutLink(int segment, long offset, byte[] buf, int bufPos, int size) {
-        if(CC.ASSERT && (size&0xFFFF)!=size)
-            throw new DBException.DataCorruption();
-        if(CC.ASSERT && (offset%16!=0 && offset!=4))
-            throw new DBException.DataCorruption();
-//        if(CC.ASSERT && size%16!=0)
-//            throw new AssertionError(); //TODO allign record size to 16, and clear remaining bytes
-        if(CC.ASSERT && segment!=-1)
+        if (CC.ASSERT && offset < PAGE_SIZE)
+            throw new DBException.DataCorruption("offset to small");
+        if (CC.ASSERT && size <= 0 || size > MAX_REC_SIZE)
+            throw new DBException.DataCorruption("wrong length");
+
+        if(CC.ASSERT && segment>=0)
             assertWriteLocked(segment);
-        if(CC.ASSERT && segment==-1 && !structuralLock.isHeldByCurrentThread())
-            throw new AssertionError();
 
         long val = wal.walPutByteArray(offset, buf, bufPos,size);
-
-        (segment==-1?pageLongStack:currDataLongs[segment]).put(offset, val);
+        uncommittedDataLongs[segment].put(offset, val);
     }
 
 
@@ -219,9 +233,9 @@ public class StoreWAL extends StoreCached {
         if (CC.ASSERT && offset % 16 != 0)
             throw new DBException.DataCorruption();
 
-        long longval = currDataLongs[segment].get(offset);
+        long longval = uncommittedDataLongs[segment].get(offset);
         if(longval==0){
-            longval = prevDataLongs[segment].get(offset);
+            longval = committedDataLongs[segment].get(offset);
         }
         if(longval==0)
             return null;
@@ -235,11 +249,11 @@ public class StoreWAL extends StoreCached {
             assertReadLocked(recid);
         int segment = lockPos(recid);
         long offset = recidToOffset(recid);
-        long ret = currLongLongs[segment].get(offset);
+        long ret = uncommittedIndexTable[segment].get(offset);
         if(ret!=0) {
             return ret;
         }
-        ret = prevLongLongs[segment].get(offset);
+        ret = committedIndexTable[segment].get(offset);
         if(ret!=0)
             return ret;
         return super.indexValGet(recid);
@@ -251,11 +265,11 @@ public class StoreWAL extends StoreCached {
             assertReadLocked(recid);
         int segment = lockPos(recid);
         long offset = recidToOffset(recid);
-        long ret = currLongLongs[segment].get(offset);
+        long ret = uncommittedIndexTable[segment].get(offset);
         if(ret!=0) {
             return ret;
         }
-        ret = prevLongLongs[segment].get(offset);
+        ret = committedIndexTable[segment].get(offset);
         if(ret!=0)
             return ret;
         return super.indexValGetRaw(recid);
@@ -270,7 +284,7 @@ public class StoreWAL extends StoreCached {
 //            throw new AssertionError();
 
         long newVal = composeIndexVal(size, offset, linked, unused, true);
-        currLongLongs[lockPos(recid)].put(recidToOffset(recid), newVal);
+        uncommittedIndexTable[lockPos(recid)].put(recidToOffset(recid), newVal);
     }
 
     @Override
@@ -307,18 +321,18 @@ public class StoreWAL extends StoreCached {
 
 
         //first try to get it from dirty pages in current TX
-        byte[] page = dirtyStackPages.get(pageOffset);
+        byte[] page = uncommittedStackPages.get(pageOffset);
         if (page != null) {
             return page;
         }
 
         //try to get it from previous TX stored in WAL, but not yet replayed
-        long walval = pageLongStack.get(pageOffset);
+        long walval = committedPageLongStack.get(pageOffset);
         if(walval!=0){
             byte[] b = wal.walGetByteArray2(walval);
-            //page is going to be modified, so put it back into dirtyStackPages)
+            //page is going to be modified, so put it back into uncommittedStackPages)
             if (willBeModified) {
-                dirtyStackPages.put(pageOffset, b);
+                uncommittedStackPages.put(pageOffset, b);
             }
             return b;
         }
@@ -328,7 +342,7 @@ public class StoreWAL extends StoreCached {
         page = new byte[pageSize];
         vol.getData(pageOffset, page, 0, pageSize);
         if (willBeModified){
-            dirtyStackPages.put(pageOffset, page);
+            uncommittedStackPages.put(pageOffset, page);
         }
         return page;
     }
@@ -347,9 +361,9 @@ public class StoreWAL extends StoreCached {
             long oldLink = ret[ret.length-2]&MOFFSET;
 
             //get WAL position from current transaction, or previous (not yet fully replayed) transactions
-            long val = currDataLongs[segment].get(oldLink);
+            long val = uncommittedDataLongs[segment].get(oldLink);
             if(val==0)
-                val = prevDataLongs[segment].get(oldLink);
+                val = committedDataLongs[segment].get(oldLink);
             if(val!=0) {
 //                //was found in previous position, read link from WAL
 //                int file = (int) ((val>>>32) & 0xFFFFL); // get WAL file number
@@ -396,9 +410,9 @@ public class StoreWAL extends StoreCached {
         }
         //is in wal?
         {
-            long walval = currLongLongs[segment].get(recidToOffset(recid));
+            long walval = uncommittedIndexTable[segment].get(recidToOffset(recid));
             if(walval==0) {
-                walval = prevLongLongs[segment].get(recidToOffset(recid));
+                walval = committedIndexTable[segment].get(recidToOffset(recid));
             }
 
             if(walval!=0){
@@ -499,6 +513,8 @@ public class StoreWAL extends StoreCached {
                     if(caches!=null) {
                         caches[segment].clear();
                     }
+                    uncommittedDataLongs[segment].clear();
+                    uncommittedIndexTable[segment].clear();
                 } finally {
                     lock.unlock();
                 }
@@ -506,15 +522,13 @@ public class StoreWAL extends StoreCached {
 
             structuralLock.lock();
             try {
-                dirtyStackPages.clear();
+                uncommittedStackPages.clear();
 
                 //restore headVol from backup
-                byte[] b = new byte[(int) HEAD_END];
-                //TODO use direct copy
-                headVolBackup.getData(0,b,0,b.length);
-                headVol.putData(0,b,0,b.length);
-
+                headVol.putData(0,headVolBackup,0,headVolBackup.length);
                 indexPages = indexPagesBackup.clone();
+
+                wal.rollback();
             } finally {
                 structuralLock.unlock();
             }
@@ -522,97 +536,51 @@ public class StoreWAL extends StoreCached {
             commitLock.unlock();
         }
     }
+
 
     @Override
     public void commit() {
         commitLock.lock();
         try{
+            //flush write caches into write ahead log
+            flushWriteCache();
 
-
-            //if big enough, do full WAL replay
-            if(wal.getNumberOfFiles()>FULL_REPLAY_AFTER_N_TX) {
-                commitFullWALReplay();
-                return;
-            }
-
-            //move all from current longs to prev
-            //each segment requires write lock
+            //move uncommited data to committed
             for(int segment=0;segment<locks.length;segment++){
-                Lock lock = locks[segment].writeLock();
-                lock.lock();
+                locks[segment].writeLock().lock();
                 try{
-                    flushWriteCacheSegment(segment);
-
-                    long[] v = currLongLongs[segment].table;
-                    for(int i=0;i<v.length;i+=2){
-                        long offset = v[i];
-                        if(offset==0)
-                            continue;
-                        long value = v[i+1];
-                        prevLongLongs[segment].put(offset,value);
-                        wal.walPutLong(offset,value);
-
-                    }
-                    currLongLongs[segment].clear();
-
-                    v = currDataLongs[segment].table;
-
-                    for(int i=0;i<v.length;i+=2){
-                        long offset = v[i];
-                        if(offset==0)
-                            continue;
-                        long value = v[i+1];
-                        prevDataLongs[segment].put(offset,value);
-                    }
-                    currDataLongs[segment].clear();
+                    moveAndClear(uncommittedIndexTable[segment], committedIndexTable[segment]);
+                    moveAndClear(uncommittedDataLongs[segment], committedDataLongs[segment]);
 
                 }finally {
-                    lock.unlock();
+                    locks[segment].writeLock().unlock();
                 }
             }
+
             structuralLock.lock();
             try {
-                //flush modified Long Stack Pages into WAL
-                {
-                    long[] set = dirtyStackPages.set;
-                    for(int i=0;i<set.length;i++){
-                        long offset = set[i];
-                        if(offset==0)
-                            continue;
-                        byte[] val = (byte[]) dirtyStackPages.values[i];
+                //flush modified Long Stack pages into WAL
+                long[] set = uncommittedStackPages.set;
+                longStackPagesLoop:
+                for (int i = 0; i < set.length; i++) {
+                    long offset = set[i];
+                    if (offset == 0)
+                        continue longStackPagesLoop;
+                    byte[] val = (byte[]) uncommittedStackPages.values[i];
+                    if (CC.ASSERT)
+                        assertLongStackPage(offset, val);
 
-                        if (CC.ASSERT && offset < PAGE_SIZE)
-                            throw new DBException.DataCorruption();
-                        if (CC.ASSERT && val.length % 16 != 0)
-                            throw new DBException.DataCorruption();
-                        if (CC.ASSERT && val.length <= 0 || val.length > MAX_REC_SIZE)
-                            throw new DBException.DataCorruption();
-
-                        putDataSingleWithoutLink(-1, offset, val, 0, val.length);
-
-                    }
-                    dirtyStackPages.clear();
+                    long walPointer = wal.walPutByteArray(offset, val, 0, val.length);
+                    committedPageLongStack.put(offset, walPointer);
                 }
+                uncommittedStackPages.clear();
 
-                //update index checksum
+                //update checksum
                 headVol.putInt(HEAD_CHECKSUM, headChecksum(headVol));
+                //take backup of headVol
+                headVol.getData(0,headVolBackup,0,headVolBackup.length);
 
-                // flush headVol into WAL
-                byte[] b = new byte[(int) HEAD_END-4];
-                //TODO use direct copy
-                headVol.getData(4, b, 0, b.length);
-                //put headVol into WAL
-                putDataSingleWithoutLink(-1, 4L, b, 0, b.length);
-
-                //make copy of current headVol
-                headVolBackup.putData(4, b, 0, b.length);
-                indexPagesBackup = indexPages.clone();
-                wal.commit();
-                wal.seal();
-//
-//                walStartNextFile();
-
-            } finally {
+            }finally {
                 structuralLock.unlock();
             }
         }finally {
@@ -620,162 +588,124 @@ public class StoreWAL extends StoreCached {
         }
     }
 
-    protected void commitFullWALReplay() {
+    private void moveAndClear(LongLongMap from, LongLongMap to) {
+        long[] table = from.table;
+        for(int i=0;i<table.length;){
+            long key = table[i++];
+            long val = table[i++];
+            if(key==0)
+                continue;
+            to.put(key,val);
+        }
+        from.clear();
+    }
+
+    protected void replaySoft(){
         if(CC.ASSERT && !commitLock.isHeldByCurrentThread())
             throw new AssertionError();
 
-        //lock all segment locks
-        //TODO use series of try..finally statements, perhaps recursion with runnable
+        LongList written = CC.PARANOID? new LongList():null;
 
-        for(int i=0;i<locks.length;i++){
-            locks[i].writeLock().lock();
-        }
-        try {
-            //flush entire write cache
-            for(int segment=0;segment<locks.length;segment++){
-                flushWriteCacheSegment(segment);
+        for(int lockPos = 0; lockPos< locks.length; lockPos++){
+            locks[lockPos].writeLock().lock();
+            try{
+                //update index table
+                long[] table = committedIndexTable[lockPos].table;
+                indexValLoop:
+                for(int pos=0;pos<table.length;){
+                    long recidOffset = table[pos++];
+                    long val = table[pos++];
+                    if(recidOffset==0)
+                        continue indexValLoop;
 
-                long[] v = currLongLongs[segment].table;
-                for(int i=0;i<v.length;i+=2){
-                    long offset = v[i];
-                    if(offset==0)
-                        continue;
-                    long value = v[i+1];
-                    wal.walPutLong(offset,value);
+                    realVol.ensureAvailable(recidOffset+8);
+                    realVol.putLong(recidOffset,val);
 
-                    //remove from this
-                    v[i] = 0;
-                    v[i+1] = 0;
-                }
-                currLongLongs[segment].clear();
-
-                if(CC.ASSERT && currLongLongs[segment].size()!=0)
-                    throw new AssertionError();
-
-                currDataLongs[segment].clear();
-                prevDataLongs[segment].clear();
-                prevLongLongs[segment].clear();
-            }
-            structuralLock.lock();
-            try {
-                //flush modified Long Stack Pages into WAL
-                {
-                    long[] set = dirtyStackPages.set;
-                    for(int i=0;i<set.length;i++){
-                        long offset = set[i];
-                        if(offset==0)
-                            continue;
-                        byte[] val = (byte[]) dirtyStackPages.values[i];
-
-                        if (CC.ASSERT && offset < PAGE_SIZE)
-                            throw new DBException.DataCorruption();
-                        if (CC.ASSERT && val.length % 16 != 0)
-                            throw new DBException.DataCorruption();
-                        if (CC.ASSERT && val.length <= 0 || val.length > MAX_REC_SIZE)
-                            throw new DBException.DataCorruption();
-
-                        putDataSingleWithoutLink(-1, offset, val, 0, val.length);
+                    if(CC.PARANOID){
+                        //check this is index page
+                        if(!Fun.arrayContains(indexPages,Fun.roundUp(recidOffset,PAGE_SIZE)-PAGE_SIZE));
+                            throw new AssertionError("not index page");
                     }
-                    dirtyStackPages.clear();
                 }
-                if(CC.ASSERT && dirtyStackPages.size!=0)
-                    throw new AssertionError();
+                committedIndexTable[lockPos].clear();
 
-                pageLongStack.clear();
+                //write data
+                table = committedDataLongs[lockPos].table;
+                dataLoop:
+                for(int pos=0;pos<table.length;){
+                    long volOffset = table[pos++];
+                    long walPointer = table[pos++];
+                    if(volOffset==0)
+                        continue dataLoop;
 
-                //update index checksum
-                headVol.putInt(HEAD_CHECKSUM, headChecksum(headVol));
+                    byte[] b = wal.walGetByteArray2(walPointer);
+                    if(CC.ASSERT)
+                        assertRecord(volOffset, b);
 
-                // flush headVol into WAL
-                byte[] b = new byte[(int) HEAD_END-4];
-                //TODO use direct copy
-                headVol.getData(4, b, 0, b.length);
-                //put headVol into WAL
-                putDataSingleWithoutLink(-1, 4L, b, 0, b.length);
+                    realVol.ensureAvailable(volOffset+b.length);
+                    realVol.putData(volOffset, b, 0, b.length);
+                    if(CC.ASSERT && b.length>MAX_REC_SIZE)
+                        throw new AssertionError();
 
-                //make copy of current headVol
-                headVolBackup.putData(4, b, 0, b.length);
-                indexPagesBackup = indexPages.clone();
-
-                wal.seal();
-
-                //now replay full WAL
-                replayWAL();
-
-                walStartNextFile();
-            } finally {
-                structuralLock.unlock();
+                    if(CC.PARANOID)
+                        written.add((volOffset<<16) | b.length);
+                }
+                committedDataLongs[lockPos].clear();
+            }finally {
+                locks[lockPos].writeLock().unlock();
             }
+        }
+        structuralLock.lock();
+        try{
+            //flush modified Long Stack pages
+            dataLoop:
+            for(int pos=0;pos<committedPageLongStack.table.length;){
+                long volOffset = committedPageLongStack.table[pos++];
+                long walPointer = committedPageLongStack.table[pos++];
+                if(volOffset==0)
+                    continue dataLoop;
+
+                byte[] b = wal.walGetByteArray2(walPointer);
+                if(CC.ASSERT)
+                    assertLongStackPage(volOffset, b);
+
+                realVol.ensureAvailable(volOffset+b.length);
+                realVol.putData(volOffset, b, 0, b.length);
+
+                if(CC.PARANOID)
+                    written.add((volOffset<<16) | b.length);
+            }
+            committedPageLongStack.clear();
+
+            //update page header
+            realVol.putData(0,headVolBackup,0,headVolBackup.length);
         }finally {
-            for(int i=locks.length-1;i>=0;i--){
-                locks[i].writeLock().unlock();
+            structuralLock.unlock();
+        }
+
+        if(CC.PARANOID){
+            //check for overlaps
+            long[] w = Arrays.copyOf(written.array,written.size);
+            Arrays.sort(w);
+            for(int i=0;i<w.length-1;i++){
+                long offset1 = w[i]>>>16;
+                long size1 = w[i] & 0xFF;
+                long offset2 = w[i+1]>>>16;
+
+                if(offset1+size1>offset2){
+                    throw new AssertionError("write overlap conflict");
+                }
             }
         }
+
     }
 
-    protected class Replay2 implements WriteAheadLog.WALReplay {
-        @Override
-        public void beforeReplayStart() {
-            if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
-                throw new AssertionError();
-            if(CC.ASSERT && !commitLock.isHeldByCurrentThread())
-                throw new AssertionError();
-        }
-
-        @Override
-        public void writeLong(long offset, long value) {
-            realVol.ensureAvailable(offset+8);
-            realVol.putLong(offset, value);
-        }
-
-        @Override
-        public void writeRecord(long recid, long walId, Volume vol, long volOffset, int length) {
+    private void assertRecord(long volOffset, byte[] b) {
+        if(CC.ASSERT && volOffset<PAGE_SIZE)
             throw new AssertionError();
-        }
-
-
-        @Override
-        public void writeByteArray(long offset, long walId, Volume vol, long volOffset, int length) {
-            byte[] val = new byte[length];
-            vol.getData(volOffset,val,0, val.length);
-            realVol.ensureAvailable(offset+val.length);
-            realVol.putData(offset, val, 0, val.length);
-        }
-
-        @Override
-        public void beforeDestroyWAL() {
-            realVol.sync();
-        }
-
-        @Override
-        public void commit() {
+        if(CC.ASSERT && b.length>MAX_REC_SIZE)
             throw new AssertionError();
-        }
-
-        @Override
-        public void rollback() {
-            throw new AssertionError();
-        }
-
-        @Override
-        public void writeTombstone(long recid) {
-            throw new AssertionError();
-        }
-
-        @Override
-        public void writePreallocate(long recid) {
-            throw new AssertionError();
-        }
     }
-
-    protected void replayWAL(){
-        WriteAheadLog.WALReplay replay = new Replay2();
-        wal.replayWAL(replay);
-        wal.destroyWalFiles();
-    }
-
-
-
 
 
     @Override
@@ -795,19 +725,11 @@ public class StoreWAL extends StoreCached {
                 if(hasUncommitedData()){
                     LOG.warning("Closing storage with uncommited data, this data will be discarded.");
                 }
-                wal.rollback();
-                //TODO do not replay if not dirty
+
                 if(!readonly) {
-                    structuralLock.lock();
-                    try {
-                        replayWAL();
-                    } finally {
-                        structuralLock.unlock();
-                    }
+                    replaySoft();
+                    wal.destroyWalFiles();
                 }
-
-
-                wal.destroyWalFiles();
                 wal.close();
 
                 vol.close();
@@ -815,11 +737,9 @@ public class StoreWAL extends StoreCached {
 
                 headVol.close();
                 headVol = null;
-                headVolBackup.close();
                 headVolBackup = null;
 
-
-                dirtyStackPages.clear();
+                uncommittedStackPages.clear();
 
                 if(caches!=null){
                     for(Cache c:caches){
@@ -848,8 +768,8 @@ public class StoreWAL extends StoreCached {
             final Lock lock  = locks[i].readLock();
             lock.lock();
             try{
-                if(currLongLongs[i].size()!=0 ||
-                        currDataLongs[i].size()!=0 ||
+                if(uncommittedIndexTable[i].size()!=0 ||
+                        uncommittedDataLongs[i].size()!=0 ||
                         writeCache[i].size!=0)
                     return true;
             }finally {

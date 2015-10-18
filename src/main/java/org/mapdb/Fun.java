@@ -110,6 +110,14 @@ public final class Fun {
             return keys.toString();
     }
 
+    public static boolean arrayContains(long[] longs, long val) {
+        for(long val2:longs){
+            if(val==val2)
+                return true;
+        }
+        return false;
+    }
+
     static public final class Pair<A,B> implements Comparable<Pair<A,B>>, Serializable {
 
     	private static final long serialVersionUID = -8816277286657643283L;

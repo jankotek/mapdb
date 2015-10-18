@@ -435,16 +435,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.longStackPut(FREE_RECID_STACK, 111, false);
         e.structuralLock.unlock();
         e.commit();
-
-        if(e instanceof StoreWAL){
-            //force replay wal
-            e.commitLock.lock();
-            e.structuralLock.lock();
-            ((StoreWAL)e).replayWAL();
-            clearEverything();
-            e.structuralLock.unlock();
-            e.commitLock.unlock();
-        }
+        forceFullReplay(e);
 
         long pageId = e.vol.getLong(FREE_RECID_STACK);
         assertEquals(8+2, pageId>>>48);
@@ -465,14 +456,8 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.longStackPut(FREE_RECID_STACK, 115,false);
         e.structuralLock.unlock();
         e.commit();
-        if(e instanceof  StoreWAL){
-            e.commitLock.lock();
-            e.structuralLock.lock();
-            ((StoreWAL)e).replayWAL();
-            clearEverything();
-            e.structuralLock.unlock();
-            e.commitLock.unlock();
-        }
+        forceFullReplay(e);
+
         long pageId = e.vol.getLong(FREE_RECID_STACK);
         long currPageSize = pageId>>>48;
         pageId = pageId & StoreDirect.MOFFSET;
@@ -495,28 +480,13 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.longStackPut(FREE_RECID_STACK, 111, false);
         e.structuralLock.unlock();
         e.commit();
-        if(e instanceof  StoreWAL){
-            e.commitLock.lock();
-            e.structuralLock.lock();
-            ((StoreWAL)e).replayWAL();
-            clearEverything();
-            ((StoreWAL)e).walStartNextFile();
-            ((StoreWAL) e).structuralLock.unlock();
-            ((StoreWAL) e).commitLock.unlock();
-        }
+        forceFullReplay(e);
+
         e.structuralLock.lock();
         assertEquals(111L, e.longStackTake(FREE_RECID_STACK, false));
         e.structuralLock.unlock();
         e.commit();
-        if(e instanceof  StoreWAL){
-            ((StoreWAL) e).commitLock.lock();
-            ((StoreWAL) e).structuralLock.lock();
-            ((StoreWAL) e).replayWAL();
-            clearEverything();
-            ((StoreWAL)e).walStartNextFile();
-            ((StoreWAL) e).structuralLock.unlock();
-            ((StoreWAL) e).commitLock.unlock();
-        }
+        forceFullReplay(e);
 
         assertEquals(0L, DataIO.parity1Get(e.headVol.getLong(FREE_RECID_STACK)));
     }
@@ -531,14 +501,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         assertEquals(111L, e.longStackTake(FREE_RECID_STACK, false));
         e.structuralLock.unlock();
         e.commit();
-        if(e instanceof  StoreWAL){
-            e.commitLock.lock();
-            e.structuralLock.lock();
-            ((StoreWAL)e).replayWAL();
-            clearEverything();
-            ((StoreWAL) e).structuralLock.unlock();
-            ((StoreWAL) e).commitLock.unlock();
-        }
+        forceFullReplay(e);
 
         assertEquals(0L, DataIO.parity1Get(e.headVol.getLong(FREE_RECID_STACK)));
     }
@@ -563,13 +526,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.commitLock.lock();
         e.structuralLock.lock();
 
-        if(e instanceof  StoreWAL){
-            //TODO method to commit and force WAL replay
-            ((StoreWAL)e).replayWAL();
-            clearEverything();
-            ((StoreWAL)e).walStartNextFile();
-        }
-
+        forceFullReplay(e);
         //check content
         long pageId = e.headVol.getLong(FREE_RECID_STACK);
         assertEquals(actualChunkSize, pageId>>>48);
@@ -593,11 +550,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.commitLock.lock();
         e.structuralLock.lock();
 
-        if(e instanceof  StoreWAL){
-            ((StoreWAL)e).replayWAL();
-            clearEverything();
-            ((StoreWAL)e).walStartNextFile();
-        }
+        forceFullReplay(e);
 
         //check page overflowed
         pageId = e.headVol.getLong(FREE_RECID_STACK);
@@ -615,6 +568,19 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         }
         e.structuralLock.unlock();
         e.commitLock.unlock();
+    }
+
+    private void forceFullReplay(E e) {
+        if(e instanceof  StoreWAL) {
+            StoreWAL wal = (StoreWAL) e;
+            if (wal.commitLock.isHeldByCurrentThread()){
+                wal.replaySoft();
+            }else {
+                wal.commitLock.lock();
+                wal.replaySoft();
+                wal.commitLock.unlock();
+            }
+        }
     }
 
 
@@ -720,16 +686,13 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
         wal.structuralLock.lock();
         try {
-            wal.dirtyStackPages.clear();
+            wal.uncommittedStackPages.clear();
 
             //restore headVol from backup
-            byte[] b = new byte[(int) HEAD_END];
-            //TODO use direct copy
-            wal.headVolBackup.getData(0,b,0,b.length);
-            wal.headVol.putData(0,b,0,b.length);
+            wal.headVol.putData(0,wal.headVolBackup,0,wal.headVolBackup.length);
 
             wal.indexPages = wal.indexPagesBackup.clone();
-            wal.pageLongStack.clear();
+            wal.committedPageLongStack.clear();
         } finally {
             wal.structuralLock.unlock();
         }

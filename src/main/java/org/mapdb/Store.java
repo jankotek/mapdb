@@ -1913,6 +1913,21 @@ public abstract class Store implements Engine {
         }
     }
 
+    public static final class LongList{
+        long[] array=new long[16];
+        int size=0;
+
+        public int add(long val){
+            size++;
+            if(array.length==size){
+                array = Arrays.copyOf(array,array.length*4);
+            }
+            array[size]=val;
+            return size-1;
+        }
+
+    }
+
     /**
      * <p>
      * Open Hash Map which uses primitive long as keys.

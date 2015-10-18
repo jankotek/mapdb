@@ -1122,6 +1122,9 @@ public class StoreDirect extends Store {
     protected void flush() {
         if(isReadOnly())
             return;
+        if(CC.ASSERT && !commitLock.isHeldByCurrentThread())
+            throw new AssertionError();
+
         structuralLock.lock();
         try{
             //and set header checksum
@@ -1373,7 +1376,7 @@ public class StoreDirect extends Store {
                         this.vol = volumeFactory.makeVolume(this.fileName, readonly, fileLockDisable);
                         this.headVol = vol;
                         if(isStoreCached){
-                            ((StoreCached)this).dirtyStackPages.clear();
+                            ((StoreCached)this).uncommittedStackPages.clear();
                         }
 
                         //delete old file
