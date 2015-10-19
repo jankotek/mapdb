@@ -60,16 +60,14 @@ public class CrashTest {
     @Parameterized.Parameters
     public static List<Object[]> params() throws IOException {
         List ret = new ArrayList();
-        if(TT.shortTest())
-            return ret;
 
         int index=0;
 
         for( boolean notAppend:TT.BOOLS)
-        for( boolean mmap:TT.BOOLS)
-        for( boolean cache : TT.BOOLS)
-        for( boolean largeVals : TT.BOOLS)
-        for( boolean clearMap : TT.BOOLS)
+        for( boolean mmap:TT.boolsOrFalseIfQuick())
+        for( boolean cache : TT.boolsOrFalseIfQuick())
+        for( boolean largeVals : TT.boolsOrFalseIfQuick())
+        for( boolean clearMap : TT.boolsOrFalseIfQuick())
         for( boolean hashMap : TT.BOOLS)
         for( int mapSize :new int[]{10,0,1000})
         {
@@ -100,8 +98,6 @@ public class CrashTest {
 
     @Test
     public void test() throws IOException, InterruptedException {
-        if(TT.scale()==0)
-            return;
         //create folders
         p.dir.mkdirs();
 
