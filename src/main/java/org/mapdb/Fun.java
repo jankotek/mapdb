@@ -88,6 +88,10 @@ public final class Fun {
         return ((number+roundUpToMultipleOf-1)/(roundUpToMultipleOf))*roundUpToMultipleOf;
     }
 
+    public static long roundDown(long number, long roundDownToMultipleOf) {
+        return number  - number % roundDownToMultipleOf;
+    }
+
     /** Convert object to string, even if it is primitive array */
     static String toString(Object keys) {
         if(keys instanceof long[])

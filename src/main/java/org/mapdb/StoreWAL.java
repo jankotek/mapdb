@@ -615,7 +615,7 @@ public class StoreWAL extends StoreCached {
                 for(int pos=0;pos<table.length;){
                     long recidOffset = table[pos++];
                     long val = table[pos++];
-                    if(recidOffset==0)
+                    if(recidOffset==0 || val==-1)
                         continue indexValLoop;
 
                     realVol.ensureAvailable(recidOffset+8);
@@ -623,8 +623,9 @@ public class StoreWAL extends StoreCached {
 
                     if(CC.PARANOID){
                         //check this is index page
-                        if(!Fun.arrayContains(indexPages,Fun.roundUp(recidOffset,PAGE_SIZE)-PAGE_SIZE));
+                        if(!Fun.arrayContains(indexPages,Fun.roundDown(recidOffset,PAGE_SIZE))) {
                             throw new AssertionError("not index page");
+                        }
                     }
                 }
                 committedIndexTable[lockPos].clear();
@@ -635,7 +636,7 @@ public class StoreWAL extends StoreCached {
                 for(int pos=0;pos<table.length;){
                     long volOffset = table[pos++];
                     long walPointer = table[pos++];
-                    if(volOffset==0)
+                    if(volOffset==0 || walPointer==-1)
                         continue dataLoop;
 
                     byte[] b = wal.walGetByteArray2(walPointer);
@@ -691,9 +692,10 @@ public class StoreWAL extends StoreCached {
                 long offset1 = w[i]>>>16;
                 long size1 = w[i] & 0xFF;
                 long offset2 = w[i+1]>>>16;
+                long size2 = w[i+1] & 0xFF;
 
                 if(offset1+size1>offset2){
-                    throw new AssertionError("write overlap conflict");
+                    throw new AssertionError("write overlap conflict at: "+offset1+" + "+size1+" > "+offset2 + " ("+size2+")");
                 }
             }
         }
@@ -777,5 +779,14 @@ public class StoreWAL extends StoreCached {
             }
         }
         return false;
+    }
+
+    @Override
+    protected void freeDataPut(int segment, long offset, int size) {
+        if(CC.ASSERT && segment>=0)
+            assertWriteLocked(segment);
+        if(uncommittedDataLongs[segment].get(offset)!=0)
+            uncommittedDataLongs[segment].put(offset, -1);
+        super.freeDataPut(segment, offset, size);
     }
 }

@@ -406,7 +406,7 @@ public class StoreDirect extends Store {
             structuralLock.lock();
             try {
                 if(releaseOld && oldOffsets!=null)
-                    freeDataPut(oldOffsets);
+                    freeDataPut(pos, oldOffsets);
                 newOffsets = newSize==0?null:freeDataTake(out.pos);
 
             } finally {
@@ -515,7 +515,7 @@ public class StoreDirect extends Store {
         if(offsets!=null && releaseOld) {
             structuralLock.lock();
             try {
-                freeDataPut(offsets);
+                freeDataPut(pos, offsets);
             } finally {
                 structuralLock.unlock();
             }
@@ -731,18 +731,18 @@ public class StoreDirect extends Store {
         vol.putData(offset + 8, buf, bufPos, size);
     }
 
-    protected void freeDataPut(long[] linkedOffsets) {
+    protected void freeDataPut(int segment, long[] linkedOffsets) {
         if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
         for(long v:linkedOffsets){
             int size = round16Up((int) (v >>> 48));
             v &= MOFFSET;
-            freeDataPut(v,size);
+            freeDataPut(segment, v,size);
         }
     }
 
 
-    protected void freeDataPut(long offset, int size) {
+    protected void freeDataPut(int segment, long offset, int size) {
         if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
         if(CC.ASSERT && size%16!=0 )
@@ -862,7 +862,7 @@ public class StoreDirect extends Store {
             lastAllocatedDataSet(0);
 
             //mark space at end of this page as free
-            freeDataPut(offsetToFree, (int) sizeToFree);
+            freeDataPut(-1, offsetToFree, (int) sizeToFree);
             return freeDataTakeSingle(size, recursive);
         }
         //yes it fits here, increase pointer
@@ -1033,7 +1033,7 @@ public class StoreDirect extends Store {
         headVol.putLong(masterLinkOffset, parity4Set(currSize<<48 | prevPageOffset));
 
         //release old page, size is stored as part of prev page value
-        freeDataPut(pageOffset, currPageSize);
+        freeDataPut(-1, pageOffset, currPageSize);
 
         return ret;
     }

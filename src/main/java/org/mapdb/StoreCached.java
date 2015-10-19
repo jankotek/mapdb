@@ -229,7 +229,7 @@ public class StoreCached extends StoreDirect {
 
         //release old page, size is stored as part of prev page value
         uncommittedStackPages.remove(pageOffset);
-        freeDataPut(pageOffset, currPageSize);
+        freeDataPut(-1, pageOffset, currPageSize);
         //TODO how TX should handle this
 
         return ret;

@@ -6,6 +6,7 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -258,5 +259,29 @@ public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
         s.wal.walPutLong(111L, 1111L);
         assertEquals(StoreWAL.HEADER,s.vol.getInt(0));
         assertEquals(WriteAheadLog.WAL_HEADER,s.wal.curVol.getInt(0));
+    }
+
+    @Test public void freed_remove_creates_tomstone(){
+        e = openEngine();
+
+        long recid = e.put("aaaa",Serializer.STRING_NOSIZE);
+        int segment = e.lockPos(recid);
+        e.commitLock.lock();
+        e.flushWriteCache();
+        e.commitLock.unlock();
+        long[] orig = e.uncommittedDataLongs[segment].table.clone();
+        assertEquals(1,e.uncommittedDataLongs[segment].size());
+
+        e.delete(recid,Serializer.STRING_NOSIZE);
+        e.commitLock.lock();
+        e.flushWriteCache();
+        e.commitLock.unlock();
+        assertEquals(1,e.uncommittedDataLongs[segment].size());
+        assertFalse(Arrays.equals(orig, e.uncommittedDataLongs[segment].table));
+
+        e.commit();
+        e.commitLock.lock();
+        e.replaySoft();
+        e.commitLock.unlock();
     }
 }

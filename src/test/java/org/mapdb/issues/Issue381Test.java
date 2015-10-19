@@ -18,8 +18,9 @@ public class Issue381Test {
     {
 
         File f = TT.tempDbFile();
+        int max = 10+TT.scale()*1000;
 
-        for(int j=0;j<10;j++) {
+        for(int j=0;j<max;j++) {
             final int INSTANCES = 1000;
             TxMaker txMaker  = DBMaker.fileDB(f).makeTxMaker();
           
