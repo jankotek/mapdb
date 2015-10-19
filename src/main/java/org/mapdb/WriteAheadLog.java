@@ -272,7 +272,7 @@ public class WriteAheadLog {
 
     protected Volume curVol;
 
-    protected int fileNum = -1;
+    protected long fileNum = -1;
 
     void open(WALReplay replay){
         //replay WAL files
@@ -294,7 +294,9 @@ public class WriteAheadLog {
                 volumes.add(volumeFactory.makeVolume(wname, false, true));
             }
 
-            replayWALSkipRollbacks(replay);
+            long walId = replayWALSkipRollbacks(replay);
+            fileNum = walPointerToFileNum(walId);
+            walOffset.set(walPointerToOffset(walId));
 
 //            for(Volume v:walRec){
 //                v.close();
@@ -313,7 +315,7 @@ public class WriteAheadLog {
     /** replays wall, but skips section between rollbacks. That means only commited transactions will be passed to
      * replay callback
      */
-    void replayWALSkipRollbacks(WALReplay replay) {
+    long replayWALSkipRollbacks(WALReplay replay) {
         replay.beforeReplayStart();
 
         long start = skipRollbacks(16);
@@ -384,9 +386,8 @@ public class WriteAheadLog {
                 }
 
             }
-
         }
-
+        return start;
     }
 
     /**
@@ -586,7 +587,8 @@ public class WriteAheadLog {
     }
 
     private long instRecord(Volume wal, long pos, int checksum, long fileNum2, WALReplay replay) {
-        long walId = walPointer(0, fileNum2, pos-1);
+        long pos2 = pos-1;
+        long walId = walPointer(0, fileNum2, pos2);
 
         // read record
         long recid = wal.getPackedLong(pos);
@@ -596,6 +598,10 @@ public class WriteAheadLog {
         long size = wal.getPackedLong(pos);
         pos += size >>> 60;
         size &= DataIO.PACK_LONG_RESULT_MASK;
+
+        if(((1+Long.bitCount(recid)+Long.bitCount(size)+Long.bitCount(pos2))&15)!=checksum){
+            throw new InternalError("WAL corrupted");
+        }
 
         if (size == 0) {
             if(replay!=null)
@@ -717,6 +723,9 @@ public class WriteAheadLog {
 
     //TODO return DataInput
     public byte[] walGetRecord(long walPointer, long expectedRecid) {
+
+
+
         long fileNum = walPointerToFileNum(walPointer);
         long dataOffset = (walPointerToOffset(walPointer));
 
@@ -823,10 +832,10 @@ public class WriteAheadLog {
         }
 
         curVol.ensureAvailable(walOffset2+plusSize);
-        int checksum = 1;//+Integer.bitCount(size)+Long.bitCount(recid)+sum(buf,bufPos,size);
+        int checksum = 1+Long.bitCount(recid)+Long.bitCount(sizeToWrite)+Long.bitCount(walOffset2);
         checksum &= 15;
         curVol.putUnsignedByte(walOffset2, (I_RECORD << 4)|checksum);
-        walOffset2+=1;
+        walOffset2++;
 
         walOffset2+=curVol.putPackedLong(walOffset2, recid);
         walOffset2+=curVol.putPackedLong(walOffset2, sizeToWrite);
