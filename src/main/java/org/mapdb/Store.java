@@ -273,9 +273,9 @@ public abstract class Store implements Engine {
         //serialize outside lock
         DataIO.DataOutputByteArray out = serialize(value, serializer);
 
-        if (CC.LOG_STORE && LOG.isLoggable(Level.FINEST)) {
-            LOG.log(Level.FINEST, "Update: recid={0}, serializer={1}, serSize={2}, rec={3}", new Object[]{recid, serializer, out.pos, value});
-        }
+        if(CC.LOG_STORE_RECORD && LOG.isLoggable(Level.FINER))
+            LOG.log(Level.FINER, "REC PUT recid={0}, val={1}, serializer={2}",new Object[]{recid, value, serializer});
+
 
         int lockPos = lockPos(recid);
         final Lock lock = locks[lockPos].writeLock();
@@ -558,10 +558,9 @@ public abstract class Store implements Engine {
         if(closed)
             throw new IllegalAccessError("closed");
 
+        if(CC.LOG_STORE_RECORD && LOG.isLoggable(Level.FINER))
+            LOG.log(Level.FINER, "REC DEL recid={0}, serializer={1}",new Object[]{recid,  serializer});
 
-        if (CC.LOG_STORE && LOG.isLoggable(Level.FINEST)) {
-            LOG.log(Level.FINEST, "Delete: recid={0}, serializer={1}", new Object[]{recid, serializer});
-        }
 
         final int lockPos = lockPos(recid);
         final Lock lock = locks[lockPos].writeLock();

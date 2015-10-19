@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
+import java.util.logging.Level;
 
 import static org.mapdb.DataIO.*;
 
@@ -12,6 +13,8 @@ import static org.mapdb.DataIO.*;
  */
 public class StoreCached extends StoreDirect {
 
+
+    protected static final byte[] LONG_STACK_PAGE_TOMBSTONE = new byte[0];
 
     /**
      * stores modified stack pages.
@@ -228,7 +231,8 @@ public class StoreCached extends StoreDirect {
         headVol.putLong(masterLinkOffset, parity4Set(currSize << 48 | prevPageOffset));
 
         //release old page, size is stored as part of prev page value
-        uncommittedStackPages.remove(pageOffset);
+        uncommittedStackPages.put(pageOffset,LONG_STACK_PAGE_TOMBSTONE);
+        
         freeDataPut(-1, pageOffset, currPageSize);
         //TODO how TX should handle this
 
@@ -359,6 +363,8 @@ public class StoreCached extends StoreDirect {
                 if(offset==0)
                     continue;
                 byte[] val = (byte[]) uncommittedStackPages.values[i];
+                if(val==LONG_STACK_PAGE_TOMBSTONE)
+                    continue;
 
                 if(CC.ASSERT)
                     assertLongStackPage(offset, val);
@@ -471,6 +477,9 @@ public class StoreCached extends StoreDirect {
 
     @Override
     protected <A> void delete2(long recid, Serializer<A> serializer) {
+        if(CC.LOG_STORE_RECORD && LOG.isLoggable(Level.FINER))
+            LOG.log(Level.FINER, "REC DEL recid={0}, serializer={1}",new Object[]{recid,serializer});
+
         if (serializer == null)
             throw new NullPointerException();
         int lockPos = lockPos(recid);
@@ -491,6 +500,10 @@ public class StoreCached extends StoreDirect {
         //TODO this causes double locking, merge two methods into single method
         long recid = preallocate();
         update(recid, value, serializer);
+
+        if(CC.LOG_STORE_RECORD && LOG.isLoggable(Level.FINER))
+            LOG.log(Level.FINER, "REC PUT recid={0}, value={1}, serializer={2}",new Object[]{recid,value, serializer});
+
         return recid;
     }
 
@@ -498,6 +511,9 @@ public class StoreCached extends StoreDirect {
     public <A> void update(long recid, A value, Serializer<A> serializer) {
         if (serializer == null)
             throw new NullPointerException();
+
+        if(CC.LOG_STORE_RECORD && LOG.isLoggable(Level.FINER))
+            LOG.log(Level.FINER, "REC UPDATE recid={0}, value={1}, serializer={2}",new Object[]{recid,value, serializer});
 
         int lockPos = lockPos(recid);
         Cache cache = caches==null ? null : caches[lockPos];
@@ -545,9 +561,14 @@ public class StoreCached extends StoreDirect {
                 if(flushInThread && map.size>writeQueueSizePerSegment){
                     flushWriteCacheSegment(lockPos);
                 }
+                if(CC.LOG_STORE_RECORD && LOG.isLoggable(Level.FINER))
+                    LOG.log(Level.FINER, "REC CAS DONE recid={0}, oldVal={1}, newVal={2},serializer={3}",new Object[]{recid,expectedOldValue, newValue, serializer});
 
                 return true;
             }
+            if(CC.LOG_STORE_RECORD && LOG.isLoggable(Level.FINER))
+                LOG.log(Level.FINER, "REC CAS FAIL recid={0}, oldVal={1}, newVal={2},serializer={3}",new Object[]{recid,expectedOldValue, newValue, serializer});
+
             return false;
         }finally {
             lock.unlock();

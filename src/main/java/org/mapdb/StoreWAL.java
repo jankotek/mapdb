@@ -125,17 +125,14 @@ public class StoreWAL extends StoreCached {
 
         committedIndexTable = new LongLongMap[this.lockScale];
         uncommittedIndexTable = new LongLongMap[this.lockScale];
+        committedDataLongs = new LongLongMap[this.lockScale];
+        uncommittedDataLongs = new LongLongMap[this.lockScale];
         for (int i = 0; i < committedIndexTable.length; i++) {
             committedIndexTable[i] = new LongLongMap();
             uncommittedIndexTable[i] = new LongLongMap();
-        }
-        committedDataLongs = new LongLongMap[this.lockScale];
-        uncommittedDataLongs = new LongLongMap[this.lockScale];
-        for (int i = 0; i < committedDataLongs.length; i++) {
             committedDataLongs[i] = new LongLongMap();
             uncommittedDataLongs[i] = new LongLongMap();
         }
-
     }
 
 
@@ -567,11 +564,16 @@ public class StoreWAL extends StoreCached {
                     if (offset == 0)
                         continue longStackPagesLoop;
                     byte[] val = (byte[]) uncommittedStackPages.values[i];
-                    if (CC.ASSERT)
-                        assertLongStackPage(offset, val);
 
-                    long walPointer = wal.walPutByteArray(offset, val, 0, val.length);
-                    committedPageLongStack.put(offset, walPointer);
+                    if(val==LONG_STACK_PAGE_TOMBSTONE)
+                        committedPageLongStack.put(offset,-1);
+                    else {
+                        if (CC.ASSERT)
+                            assertLongStackPage(offset, val);
+
+                        long walPointer = wal.walPutByteArray(offset, val, 0, val.length);
+                        committedPageLongStack.put(offset, walPointer);
+                    }
                 }
                 uncommittedStackPages.clear();
 
@@ -663,7 +665,7 @@ public class StoreWAL extends StoreCached {
             for(int pos=0;pos<committedPageLongStack.table.length;){
                 long volOffset = committedPageLongStack.table[pos++];
                 long walPointer = committedPageLongStack.table[pos++];
-                if(volOffset==0)
+                if(volOffset==0 || walPointer==-1)
                     continue dataLoop;
 
                 byte[] b = wal.walGetByteArray2(walPointer);
@@ -785,8 +787,9 @@ public class StoreWAL extends StoreCached {
     protected void freeDataPut(int segment, long offset, int size) {
         if(CC.ASSERT && segment>=0)
             assertWriteLocked(segment);
-        if(uncommittedDataLongs[segment].get(offset)!=0)
+        if(segment>=0) {
             uncommittedDataLongs[segment].put(offset, -1);
+        }
         super.freeDataPut(segment, offset, size);
     }
 }

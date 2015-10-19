@@ -495,6 +495,9 @@ public class StoreDirect extends Store {
         if(CC.ASSERT)
             assertWriteLocked(lockPos(recid));
 
+        if(CC.LOG_STORE_RECORD && LOG.isLoggable(Level.FINER))
+            LOG.log(Level.FINER, "REC DEL recid={0}, serializer={}",new Object[]{recid, serializer});
+
         final int pos = lockPos(recid);
         long oldIndexVal = indexValGet(recid);
         long[] offsets = offsetsGet(pos,oldIndexVal);
@@ -663,11 +666,9 @@ public class StoreDirect extends Store {
             commitLock.unlock();
         }
 
+        if(CC.LOG_STORE_RECORD && LOG.isLoggable(Level.FINER))
+            LOG.log(Level.FINER, "REC PUT recid={}, val={}, serializer={}",new Object[]{recid, value, serializer});
 
-        if (CC.LOG_STORE && LOG.isLoggable(Level.FINEST)) {
-            LOG.log(Level.FINEST, "recid={0}, serSize={1}, serializer={2}",
-                    new Object[]{recid, notalloc?0:out.pos, serializer});
-        }
         return recid;
     }
 
@@ -751,16 +752,15 @@ public class StoreDirect extends Store {
             throw new DBException.DataCorruption("wrong offset");
 
 
-        if (CC.LOG_STORE && LOG.isLoggable(Level.FINEST)) {
-            LOG.log(Level.FINEST, "offset={0}, size={1}",
-                    new Object[]{offset, size});
-        }
 
         if(!(this instanceof  StoreWAL)) //TODO WAL needs to handle record clear, perhaps WAL instruction?
             vol.clear(offset,offset+size);
 
         //shrink store if this is last record
         if(offset+size== lastAllocatedDataGet()){
+            if (CC.LOG_STORE_ALLOC && LOG.isLoggable(Level.FINER))
+                LOG.log(Level.FINEST, "ALLOC PUT shrink offset={0}, size={1}, segment={2}", new Object[]{offset, size, segment});
+
             if(offset%PAGE_SIZE==0){
                 //shrink current page
                 if(CC.ASSERT && offset+PAGE_SIZE!=storeSizeGet())
@@ -774,6 +774,9 @@ public class StoreDirect extends Store {
         }
 
         freeSizeIncrement(size);
+
+        if (CC.LOG_STORE_ALLOC && LOG.isLoggable(Level.FINER))
+            LOG.log(Level.FINEST, "ALLOC PUT longStack offset={0}, size={1}, segment={2}", new Object[]{offset, size, segment});
 
         longStackPut(
                 longStackMasterLinkOffset(size),
@@ -848,6 +851,9 @@ public class StoreDirect extends Store {
                         new Object[]{size, Long.toHexString(ret)});
             }
 
+            if (CC.LOG_STORE_ALLOC && LOG.isLoggable(Level.FINER))
+                LOG.log(Level.FINEST, "ALLOC TAKE page offset={0}, size={1}, recursive={2}", new Object[]{page, size, recursive});
+
             return page;
         }
 
@@ -863,7 +869,10 @@ public class StoreDirect extends Store {
 
             //mark space at end of this page as free
             freeDataPut(-1, offsetToFree, (int) sizeToFree);
-            return freeDataTakeSingle(size, recursive);
+            long retOffset =  freeDataTakeSingle(size, recursive);
+            if (CC.LOG_STORE_ALLOC && LOG.isLoggable(Level.FINER))
+                LOG.log(Level.FINEST, "ALLOC TAKE pagefit offset={0}, size={1}, recursive={2}", new Object[]{retOffset, size, recursive});
+            return retOffset;
         }
         //yes it fits here, increase pointer
         long lastAllocatedData = lastAllocatedDataGet();
@@ -887,6 +896,9 @@ public class StoreDirect extends Store {
             long size2 = ret>>>48;
             assertZeroes(offset,offset+size2);
         }
+
+        if (CC.LOG_STORE_ALLOC && LOG.isLoggable(Level.FINER))
+            LOG.log(Level.FINEST, "ALLOC TAKE longStack offset={0}, size={1}, recursive={2}", new Object[]{ret, size, recursive});
 
         return ret;
     }
