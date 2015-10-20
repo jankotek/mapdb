@@ -95,8 +95,10 @@ public class VolumeTest {
         @Parameterized.Parameters
         public static Iterable params() throws IOException {
             List ret = new ArrayList();
-            if (TT.shortTest())
+            if (TT.shortTest()){
+                ret.add(new Object[]{VOL_FABS[0]});
                 return ret;
+            }
 
             for (Object o : VOL_FABS) {
                 ret.add(new Object[]{o});
@@ -235,9 +237,23 @@ public class VolumeTest {
         @Parameterized.Parameters
         public static Iterable params() throws IOException {
             List ret = new ArrayList();
-            if (TT.shortTest())
+            if (TT.shortTest()) {
+                ret.add(new Object[]{
+                    new Fun.Function1<Volume, String>() {
+                        @Override
+                        public Volume run(String file) {
+                            return new Volume.ByteArrayVol(CC.VOLUME_PAGE_SHIFT,0L);
+                        }
+                    },
+                    new Fun.Function1<Volume, String>() {
+                        @Override
+                        public Volume run(String file) {
+                            return new Volume.FileChannelVol(new File(file), false, false, CC.VOLUME_PAGE_SHIFT,0L);
+                        }
+                    }
+                });
                 return ret;
-
+            }
             for (Object o : VOL_FABS) {
                 for (Object o2 : VOL_FABS) {
                     ret.add(new Object[]{o, o2});
