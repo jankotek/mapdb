@@ -887,7 +887,7 @@ public class HTreeMap<K,V>
         }finally {
             consistencyLock.unlock();
         }
-
+        notifyAfter(key, ret, value);
         if(expireSingleThreadFlag)
             expirePurge();
 
@@ -1059,7 +1059,8 @@ public class HTreeMap<K,V>
         }finally {
             consistencyLock.unlock();
         }
-
+        if(ret != null)
+          notifyAfter((K) key, ret, (V) null);
         if(expireSingleThreadFlag)
             expirePurge();
         return ret;
@@ -1709,7 +1710,6 @@ public class HTreeMap<K,V>
 
         final int h = HTreeMap.this.hash(key);
         final int segment = h >>>28;
-
         consistencyLock.lock();
         try {
             segmentLocks[segment].writeLock().lock();
@@ -1726,6 +1726,8 @@ public class HTreeMap<K,V>
             consistencyLock.unlock();
         }
 
+        if(ret)
+            notifyAfter((K) key, (V) value, null);
         if(expireSingleThreadFlag)
             expirePurge();
 
@@ -1758,6 +1760,8 @@ public class HTreeMap<K,V>
             consistencyLock.unlock();
         }
 
+        if (ret)
+            notifyAfter(key, oldValue, newValue);
         if(expireSingleThreadFlag)
             expirePurge();
 
@@ -1787,6 +1791,8 @@ public class HTreeMap<K,V>
             consistencyLock.unlock();
         }
 
+        if(ret != null)
+            notifyAfter(key, ret, value);
         if(expireSingleThreadFlag)
             expirePurge();
 
@@ -2257,6 +2263,37 @@ public class HTreeMap<K,V>
         if(CC.ASSERT && ! (segmentLocks[hash(key)>>>28].isWriteLockedByCurrentThread()))
             throw new AssertionError();
         Bind.MapListener<K,V>[] modListeners2  = modListeners;
+        for(Bind.MapListener<K,V> listener:modListeners2){
+            if(listener!=null)
+                listener.update(key, oldValue, newValue);
+        }
+    }
+    
+    protected final Object modListenersAfterLock = new Object();
+    protected Bind.MapListener<K,V>[] modAfterListeners = new Bind.MapListener[0];
+
+    @Override
+    public void modificationListenerAfterAdd(Bind.MapListener<K, V> listener) {
+        synchronized (modListenersAfterLock){
+            Bind.MapListener<K,V>[] modListeners2 =
+                    Arrays.copyOf(modAfterListeners,modAfterListeners.length+1);
+            modListeners2[modListeners2.length-1] = listener;
+            modAfterListeners = modListeners2;
+        }
+
+    }
+
+    @Override
+    public void modificationListenerAfterRemove(Bind.MapListener<K, V> listener) {
+        synchronized (modListenersAfterLock){
+            for(int i=0;i<modAfterListeners.length;i++){
+                if(modAfterListeners[i]==listener) modAfterListeners[i]=null;
+            }
+        }
+    }
+
+    protected void notifyAfter(K key, V oldValue, V newValue) {
+        Bind.MapListener<K,V>[] modListeners2  = modAfterListeners;
         for(Bind.MapListener<K,V> listener:modListeners2){
             if(listener!=null)
                 listener.update(key, oldValue, newValue);

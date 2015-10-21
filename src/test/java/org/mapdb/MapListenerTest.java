@@ -12,15 +12,23 @@ import static org.junit.Assert.assertTrue;
 public class MapListenerTest {
 
         @Test public void hashMap(){
-            tt(DBMaker.memoryDB().transactionDisable().cacheHashTableEnable().make().hashMap("test"));
+            tt(DBMaker.memoryDB().transactionDisable().cacheHashTableEnable().make().hashMap("test"), false);
         }
 
         @Test public void treeMap(){
-            tt(DBMaker.memoryDB().transactionDisable().cacheHashTableEnable().make().treeMap("test"));
+            tt(DBMaker.memoryDB().transactionDisable().cacheHashTableEnable().make().treeMap("test"), false);
+        }
+        
+        @Test public void hashMapAfter(){
+            tt(DBMaker.memoryDB().transactionDisable().cacheHashTableEnable().make().hashMap("test"), true);
+        }
+
+        @Test public void treeMapAfter(){
+            tt(DBMaker.memoryDB().transactionDisable().cacheHashTableEnable().make().treeMap("test"), true);
         }
 
 
-        void tt(Bind.MapWithModificationListener m){
+        void tt(Bind.MapWithModificationListener m, boolean after){
             final AtomicReference key = new AtomicReference(null);
             final AtomicReference newVal = new AtomicReference(null);
             final AtomicReference oldVal = new AtomicReference(null);
@@ -35,7 +43,12 @@ public class MapListenerTest {
                 }
             };
 
-            m.modificationListenerAdd(listener);
+            if (after){
+                m.modificationListenerAfterAdd(listener);
+            }else{
+                m.modificationListenerAdd(listener);
+            }
+            
 
             //check CRUD
             m.put("aa","bb");
@@ -47,18 +60,23 @@ public class MapListenerTest {
             m.remove("aa");
             assertTrue(key.get()=="aa" && newVal.get()==null && oldVal.get()=="cc" && counter.get()==3);
 
-            //check clear()
-            m.put("aa","bb");
-            assertTrue(key.get()=="aa" && newVal.get()=="bb" && oldVal.get()==null && counter.get()==4);
-            m.clear();
-            assertTrue(key.get()=="aa" && newVal.get()==null && oldVal.get()=="bb" && counter.get()==5);
-
+            if (!after){
+                //check clear()
+                m.put("aa","bb");
+                assertTrue(key.get()=="aa" && newVal.get()=="bb" && oldVal.get()==null && counter.get()==4);
+                m.clear();
+                assertTrue(key.get()=="aa" && newVal.get()==null && oldVal.get()=="bb" && counter.get()==5);
+            }
 
             //check it was unregistered
             counter.set(0);
-            m.modificationListenerRemove(listener);
+            if (after){
+                m.modificationListenerAfterRemove(listener);
+            }else{
+                m.modificationListenerRemove(listener);
+            }
             m.put("aa","bb");
             assertEquals(0, counter.get());
-    }
+        }
 
 }
