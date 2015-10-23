@@ -154,14 +154,57 @@ public class StoreWAL extends StoreCached {
         if(readonly && !Volume.isEmptyFile(fileName+".wal.0"))
             throw new DBException.WrongConfig("There is dirty WAL file, but storage is read-only. Can not replay file");
 
-        //TODO replay
-//        wal.open(new Replay2(){
-//            @Override
-//            public void beforeReplayStart() {
-//                super.beforeReplayStart();
-//                initOpenPost();
-//            }
-//        });
+        wal.open(new WriteAheadLog.WALReplay(){
+
+            @Override
+            public void beforeReplayStart() {
+
+            }
+
+            @Override
+            public void writeLong(long offset, long value) {
+                realVol.ensureAvailable(offset+8);
+                realVol.putLong(offset,value);
+            }
+
+            @Override
+            public void writeRecord(long recid, long walId, Volume vol, long volOffset, int length) {
+                throw new DBException.DataCorruption();
+            }
+
+            @Override
+            public void writeByteArray(long offset, long walId, Volume vol, long volOffset, int length) {
+                realVol.ensureAvailable(offset + length);
+                vol.transferInto(volOffset, realVol, offset,length);
+            }
+
+            @Override
+            public void beforeDestroyWAL() {
+
+            }
+
+            @Override
+            public void commit() {
+
+            }
+
+            @Override
+            public void rollback() {
+                throw new DBException.DataCorruption();
+            }
+
+            @Override
+            public void writeTombstone(long recid) {
+                throw new DBException.DataCorruption();
+            }
+
+            @Override
+            public void writePreallocate(long recid) {
+                throw new DBException.DataCorruption();
+            }
+        });
+        realVol.sync();
+        wal.destroyWalFiles();
 
         initOpenPost();
     }
@@ -188,17 +231,6 @@ public class StoreWAL extends StoreCached {
         headVolBackup = new byte[(int) HEAD_END];
         headVol.getData(0, headVolBackup, 0, headVolBackup.length);
     }
-
-    protected void walStartNextFile() {
-        if (CC.ASSERT && !structuralLock.isHeldByCurrentThread())
-            throw new AssertionError();
-
-        wal.startNextFile();
-    }
-
-
-
-
 
     @Override
     protected void putDataSingleWithLink(int segment, long offset, long link, byte[] buf, int bufPos, int size) {
@@ -526,6 +558,7 @@ public class StoreWAL extends StoreCached {
                 indexPages = indexPagesBackup.clone();
 
                 wal.rollback();
+                wal.sync();
             } finally {
                 structuralLock.unlock();
             }
@@ -581,7 +614,11 @@ public class StoreWAL extends StoreCached {
                 headVol.putInt(HEAD_CHECKSUM, headChecksum(headVol));
                 //take backup of headVol
                 headVol.getData(0,headVolBackup,0,headVolBackup.length);
-
+                wal.walPutByteArray(0, headVolBackup,0, headVolBackup.length);
+                wal.commit();
+                wal.sync();
+                replaySoft();
+                wal.destroyWalFiles();
             }finally {
                 structuralLock.unlock();
             }

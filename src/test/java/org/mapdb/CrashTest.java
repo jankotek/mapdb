@@ -24,8 +24,8 @@ import static org.junit.Assert.*;
 @RunWith(Parameterized.class)
 public class CrashTest {
 
-    static final int MIN_RUNTIME = 1000*1;
-    static final int MAX_RUNTIME = 1000*6;
+    static final int MIN_RUNTIME = 1000*3;
+    static final int MAX_RUNTIME = 1000*10;
 
 
     public static File DIR;
@@ -69,7 +69,7 @@ public class CrashTest {
         for( boolean largeVals : TT.boolsOrFalseIfQuick())
         for( boolean clearMap : TT.boolsOrFalseIfQuick())
         for( boolean hashMap : TT.BOOLS)
-        for( int mapSize :new int[]{10,0,1000})
+        for( int mapSize : TT.shortTest()? new int[]{100}:new int[]{10,0,1000})
         {
             File f = DIR !=null? DIR :
                 new File(System.getProperty("java.io.tmpdir")
@@ -80,6 +80,7 @@ public class CrashTest {
                     DBMaker.appendFileDB(new File(f,"store"));
 
             maker.fileLockDisable();
+            maker.checksumEnable();
 
             if (mmap)
                 maker.fileMmapEnableIfSupported().fileMmapCleanerHackEnable();
@@ -101,7 +102,7 @@ public class CrashTest {
         //create folders
         p.dir.mkdirs();
 
-        long end = TT.nowPlusMinutes(10);
+        long end = TT.nowPlusMinutes(1+TT.scale()*9);
         if(p.dir.getFreeSpace()<10e9)
             fail("not enough free disk space, at least 10GB needed: "+p.dir.getFreeSpace());
 
@@ -166,10 +167,10 @@ public class CrashTest {
                         seedEndFiles.length>0?
                                 getSeed(seedEndDir,0):
                                 oldSeed;
-                assertTrue(minimalSeed<=dbSeed.get());
+                assertTrue(""+minimalSeed+"<=" +dbSeed.get(), minimalSeed<=dbSeed.get());
 
                 //either last started commit succeeded or commit before that succeeded
-                assertTrue(dbSeed.get()==getSeed(seedStartDir, 0) || dbSeed.get()==getSeed(seedStartDir, 1));
+                assertTrue(" "+dbSeed.get(), dbSeed.get()==getSeed(seedStartDir, 0) || dbSeed.get()==getSeed(seedStartDir, 1));
             }
 
             if(dbSeed.get()!=oldSeed)

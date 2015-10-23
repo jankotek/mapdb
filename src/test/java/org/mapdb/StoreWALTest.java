@@ -284,4 +284,25 @@ public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
         e.replaySoft();
         e.commitLock.unlock();
     }
+
+    @Test public void crash_recovery(){
+        long c = 0;
+        e = (E) DBMaker.fileDB(f).fileLockDisable().makeEngine();
+        long recid = e.put(0L, Serializer.LONG);
+        e.commit();
+        e.close();
+        for(int i=0;i<50;i++){
+            e = (E) DBMaker.fileDB(f).fileLockDisable().makeEngine();
+            assertEquals(new Long(c), e.get(recid,Serializer.LONG));
+
+            if(i%5==0){
+                //no commit
+                e.update(recid, -c, Serializer.LONG);
+            }else{
+                c++;
+                e.update(recid, c, Serializer.LONG);
+                e.commit();
+            }
+        }
+    }
 }

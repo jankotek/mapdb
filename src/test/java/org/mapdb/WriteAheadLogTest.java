@@ -12,34 +12,38 @@ import static org.junit.Assert.*;
 public class WriteAheadLogTest {
 
 
-    @Test public void null_record(){
+    @Test
+    public void null_record() {
         testRecord(11111L, null);
     }
 
-    @Test public void zero_record(){
+    @Test
+    public void zero_record() {
         testRecord(11111L, new byte[0]);
     }
 
-    @Test public void ten_record(){
+    @Test
+    public void ten_record() {
         testRecord(11111L, TT.randomByteArray(10));
     }
 
 
-    @Test public void large_record(){
+    @Test
+    public void large_record() {
         testRecord(11111L, TT.randomByteArray(1000000));
     }
 
 
-    void testRecord(final long recid, final byte[] data){
+    void testRecord(final long recid, final byte[] data) {
         WriteAheadLog wal = new WriteAheadLog(null);
         wal.open(WriteAheadLog.NOREPLAY);
         wal.startNextFile();
 
         final AtomicBoolean called = new AtomicBoolean();
 
-        final long pointer = wal.walPutRecord(recid,data,0, data==null?0:data.length);
+        final long pointer = wal.walPutRecord(recid, data, 0, data == null ? 0 : data.length);
 
-        for(int i=0;i<1;i++) {
+        for (int i = 0; i < 1; i++) {
             byte[] val = wal.walGetRecord(pointer, recid);
 
             if (data == null)
@@ -65,12 +69,12 @@ public class WriteAheadLogTest {
                 assertFalse(called.getAndSet(true));
 
                 assertEquals(recid, recid2);
-                if(data==null) {
+                if (data == null) {
                     assertNull(vol);
-                    assertEquals(walId,0);
-                    assertEquals(volOffset,0);
-                    assertEquals(length,0);
-                }else {
+                    assertEquals(walId, 0);
+                    assertEquals(volOffset, 0);
+                    assertEquals(length, 0);
+                } else {
                     byte[] data = new byte[length];
                     vol.getData(volOffset, data, 0, data.length);
                     assertTrue(Arrays.equals(data, data));
@@ -114,7 +118,8 @@ public class WriteAheadLogTest {
     }
 
 
-    @Test public void tombstone(){
+    @Test
+    public void tombstone() {
         WriteAheadLog wal = new WriteAheadLog(null);
         wal.open(WriteAheadLog.NOREPLAY);
         wal.startNextFile();
@@ -169,10 +174,11 @@ public class WriteAheadLogTest {
                 fail();
             }
         });
-        assertEquals(1,c.get());
+        assertEquals(1, c.get());
     }
 
-    @Test public void preallocate(){
+    @Test
+    public void preallocate() {
         WriteAheadLog wal = new WriteAheadLog(null);
         wal.open(WriteAheadLog.NOREPLAY);
         wal.startNextFile();
@@ -227,30 +233,32 @@ public class WriteAheadLogTest {
                 assertEquals(111111L, recid);
             }
         });
-        assertEquals(1,c.get());
+        assertEquals(1, c.get());
     }
 
-    @Test public void commit(){
+    @Test
+    public void commit() {
         WriteAheadLog wal = new WriteAheadLog(null);
         wal.open(WriteAheadLog.NOREPLAY);
-        wal.walPutLong(111L,1111L);
+        wal.walPutLong(111L, 1111L);
         wal.commit();
         wal.seal();
 
         wal.replayWAL(new WALSequence(
                 new Object[]{WALSequence.beforeReplayStart},
-                new Object[]{WALSequence.writeLong, 111L,1111L},
+                new Object[]{WALSequence.writeLong, 111L, 1111L},
                 new Object[]{WALSequence.commit},
                 new Object[]{WALSequence.beforeDestroyWAL}
         ));
     }
 
-    @Test public void rollback(){
+    @Test
+    public void rollback() {
         WriteAheadLog wal = new WriteAheadLog(null);
         wal.open(WriteAheadLog.NOREPLAY);
         wal.startNextFile();
 
-        wal.walPutLong(111L,1000);
+        wal.walPutLong(111L, 1000);
         wal.rollback();
         wal.seal();
 
@@ -263,7 +271,8 @@ public class WriteAheadLogTest {
     }
 
 
-    @Test public void commitChecksum() {
+    @Test
+    public void commitChecksum() {
         WriteAheadLog wal = new WriteAheadLog(null);
         wal.open(WriteAheadLog.NOREPLAY);
         wal.startNextFile();
@@ -271,19 +280,19 @@ public class WriteAheadLogTest {
         wal.walPutLong(111L, 1000);
         wal.commit();
         long offset1 = wal.walOffset.get() - 5;
-        int checksum1 = DataIO.longHash(wal.curVol.hash(16, offset1-16, wal.fileNum+1));
+        int checksum1 = DataIO.longHash(wal.curVol.hash(16, offset1 - 16, 111L));
 
         assertEquals(checksum1, wal.curVol.getInt(offset1 + 1));
         wal.walPutLong(111L, 1000);
         wal.commit();
         long offset2 = wal.walOffset.get() - 5;
-        int checksum2 = checksum1 + DataIO.longHash(wal.curVol.hash(offset1 + 5, offset2-offset1-5, wal.fileNum+1));
+        int checksum2 = checksum1 + DataIO.longHash(wal.curVol.hash(offset1 + 5, offset2 - offset1 - 5, 111L));
         assertEquals(checksum2, wal.curVol.getInt(offset2 + 1));
     }
 
 
     @Test
-    public void test_sequence(){
+    public void test_sequence() {
         WALSequence s = new WALSequence(
                 new Object[]{WALSequence.commit},
                 new Object[]{WALSequence.rollback}
@@ -297,10 +306,11 @@ public class WriteAheadLogTest {
 
     //*******************************************
 
-    @Test public void lazy_file_create(){
+    @Test
+    public void lazy_file_create() {
         File f = TT.tempDbFile();
         f.delete();
-        File f2 = new File(f.getPath()+".wal.0");
+        File f2 = new File(f.getPath() + ".wal.0");
         WriteAheadLog wal = new WriteAheadLog(f.getPath());
         wal.open(WriteAheadLog.NOREPLAY);
 
@@ -311,52 +321,55 @@ public class WriteAheadLogTest {
         f2.delete();
     }
 
-    @Test public void overflow_byte_array(){
+    @Test
+    public void overflow_byte_array() {
         File f = TT.tempDbFile();
         f.delete();
-        File f0 = new File(f.getPath()+".wal.0");
-        File f1 = new File(f.getPath()+".wal.1");
+        File f0 = new File(f.getPath() + ".wal.0");
+        File f1 = new File(f.getPath() + ".wal.1");
         WriteAheadLog wal = new WriteAheadLog(f.getPath());
         wal.open(WriteAheadLog.NOREPLAY);
 
-        long lastPos=0;
-        while(!f1.exists()){
-            lastPos=wal.walOffset.get();
-            wal.walPutByteArray(111L, new byte[100],0,100);
+        long lastPos = 0;
+        while (!f1.exists()) {
+            lastPos = wal.walOffset.get();
+            wal.walPutByteArray(111L, new byte[100], 0, 100);
             assertTrue(f0.exists());
         }
-        assertTrue(WriteAheadLog.MAX_FILE_SIZE-1000 < lastPos);
-        assertTrue(WriteAheadLog.MAX_FILE_SIZE+120>lastPos);
+        assertTrue(WriteAheadLog.MAX_FILE_SIZE - 1000 < lastPos);
+        assertTrue(WriteAheadLog.MAX_FILE_SIZE + 120 > lastPos);
         wal.destroyWalFiles();
     }
 
-    @Test public void overflow_record(){
+    @Test
+    public void overflow_record() {
         File f = TT.tempDbFile();
         f.delete();
-        File f0 = new File(f.getPath()+".wal.0");
-        File f1 = new File(f.getPath()+".wal.1");
+        File f0 = new File(f.getPath() + ".wal.0");
+        File f1 = new File(f.getPath() + ".wal.1");
         WriteAheadLog wal = new WriteAheadLog(f.getPath());
         wal.open(WriteAheadLog.NOREPLAY);
 
-        long lastPos=0;
-        while(!f1.exists()){
-            lastPos=wal.walOffset.get();
-            wal.walPutRecord(111L, new byte[100],0,100);
+        long lastPos = 0;
+        while (!f1.exists()) {
+            lastPos = wal.walOffset.get();
+            wal.walPutRecord(111L, new byte[100], 0, 100);
             assertTrue(f0.exists());
         }
-        assertTrue(WriteAheadLog.MAX_FILE_SIZE-1000 < lastPos);
-        assertTrue(WriteAheadLog.MAX_FILE_SIZE+120>lastPos);
+        assertTrue(WriteAheadLog.MAX_FILE_SIZE - 1000 < lastPos);
+        assertTrue(WriteAheadLog.MAX_FILE_SIZE + 120 > lastPos);
         wal.destroyWalFiles();
     }
 
-    @Test public void open_ignores_rollback(){
+    @Test
+    public void open_ignores_rollback() {
         File f = TT.tempDbFile();
         WriteAheadLog wal = new WriteAheadLog(f.getPath());
-        wal.walPutLong(1L,11L);
+        wal.walPutLong(1L, 11L);
         wal.commit();
-        wal.walPutLong(2L,33L);
+        wal.walPutLong(2L, 33L);
         wal.rollback();
-        wal.walPutLong(3L,33L);
+        wal.walPutLong(3L, 33L);
         wal.commit();
         wal.seal();
         wal.close();
@@ -377,15 +390,16 @@ public class WriteAheadLogTest {
         f.delete();
     }
 
-    @Test public void skip_rollback(){
+    @Test
+    public void skip_rollback() {
         WriteAheadLog wal = new WriteAheadLog(null);
-        wal.walPutLong(1L,11L);
+        wal.walPutLong(1L, 11L);
         wal.commit();
         long o1 = wal.walOffset.get();
-        wal.walPutLong(2L,33L);
+        wal.walPutLong(2L, 33L);
         wal.rollback();
         long o2 = wal.walOffset.get();
-        wal.walPutLong(3L,33L);
+        wal.walPutLong(3L, 33L);
         wal.commit();
         long o3 = wal.walOffset.get();
         wal.seal();
@@ -396,19 +410,69 @@ public class WriteAheadLogTest {
         assertEquals(0, wal.skipRollbacks(o3));
     }
 
-    @Test public void skip_rollback_last_rollback(){
+    @Test
+    public void skip_rollback_last_rollback() {
         WriteAheadLog wal = new WriteAheadLog(null);
-        wal.walPutLong(1L,11L);
+        wal.walPutLong(1L, 11L);
         wal.commit();
         long o1 = wal.walOffset.get();
-        wal.walPutLong(2L,33L);
+        wal.walPutLong(2L, 33L);
         wal.commit();
         long o2 = wal.walOffset.get();
-        wal.walPutLong(3L,33L);
+        wal.walPutLong(3L, 33L);
         wal.rollback();
         wal.seal();
 
         assertEquals(o1, wal.skipRollbacks(o1));
         assertEquals(0, wal.skipRollbacks(o2));
+    }
+
+    @Test
+    public void cut_broken_end() {
+        String f = TT.tempDbFile().getPath();
+        WriteAheadLog wal = new WriteAheadLog(f);
+        wal.walPutLong(1L, 11L);
+        wal.commit();
+        wal.walPutLong(2L, 22L);
+        wal.rollback();
+        wal.walPutLong(3L, 33L);
+        wal.commit();
+        wal.walPutLong(4L, 44L);
+        wal.curVol.sync();
+        wal.close();
+
+        wal = new WriteAheadLog(f);
+        wal.open(new WALSequence(
+                new Object[]{WALSequence.beforeReplayStart},
+                new Object[]{WALSequence.writeLong, 1L, 11L},
+                new Object[]{WALSequence.commit},
+                new Object[]{WALSequence.writeLong, 3L, 33L},
+                new Object[]{WALSequence.commit}
+        ));
+    }
+
+    @Test
+    public void cut_broken_end_rollback() {
+        String f = TT.tempDbFile().getPath();
+        WriteAheadLog wal = new WriteAheadLog(f);
+        wal.walPutLong(1L, 11L);
+        wal.commit();
+        wal.walPutLong(2L, 22L);
+        wal.commit();
+        wal.walPutLong(3L, 33L);
+        wal.rollback();
+        wal.walPutLong(4L, 44L);
+        wal.curVol.sync();
+        wal.close();
+
+        wal = new WriteAheadLog(f);
+        wal.open(new WALSequence(
+                new Object[]{WALSequence.beforeReplayStart},
+                new Object[]{WALSequence.writeLong, 1L, 11L},
+                new Object[]{WALSequence.commit},
+                new Object[]{WALSequence.writeLong, 2L, 22L},
+                new Object[]{WALSequence.commit}
+        ));
+
     }
 }

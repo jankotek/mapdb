@@ -146,7 +146,7 @@ public class WriteAheadLog {
 
         if(lastChecksumOffset==0)
             lastChecksumOffset=16;
-        int checksum =  lastChecksum+DataIO.longHash(curVol2.hash(lastChecksumOffset, walOffset2-lastChecksumOffset, fileNum+2));
+        int checksum =  lastChecksum+checksum(curVol2, lastChecksumOffset, walOffset2);
         lastChecksumOffset=walOffset2+plusSize;
         lastChecksum = checksum;
 
@@ -175,7 +175,7 @@ public class WriteAheadLog {
             lastChecksumOffset=16;
         if(walOffset2==lastChecksumOffset)
             return;
-        int checksum =  lastChecksum+DataIO.longHash(curVol2.hash(lastChecksumOffset, walOffset2-lastChecksumOffset, fileNum+1));
+        int checksum =  lastChecksum+checksum(curVol2, lastChecksumOffset, walOffset2);
         lastChecksumOffset=walOffset2+plusSize;
         lastChecksum = checksum;
 
@@ -186,12 +186,20 @@ public class WriteAheadLog {
         curVol2.putInt(walOffset2,checksum);
     }
 
+    protected int checksum(Volume vol, long startOffset, long endOffset){
+        return DataIO.longHash(vol.hash(startOffset, endOffset-startOffset, 111L));
+    }
+
     public boolean fileLoad() {
         boolean ret=false;
         for(Volume vol:volumes){
             ret = vol.fileLoad();
         }
         return ret;
+    }
+
+    public void sync() {
+        curVol.sync();
     }
 
 
@@ -277,12 +285,12 @@ public class WriteAheadLog {
     void open(WALReplay replay){
         //replay WAL files
         String wal0Name = getWalFileName("0");
-        String walCompSeal = getWalFileName("c");
-        boolean walCompSealExists =
-                walCompSeal!=null &&
-                        new File(walCompSeal).exists();
+//        String walCompSeal = getWalFileName("c");
+//        boolean walCompSealExists =
+//                walCompSeal!=null &&
+//                        new File(walCompSeal).exists();
 
-        if(walCompSealExists ||
+        if(/*walCompSealExists ||*/
                 (wal0Name!=null &&
                         new File(wal0Name).exists())){
 
@@ -296,7 +304,9 @@ public class WriteAheadLog {
 
             long walId = replayWALSkipRollbacks(replay);
             fileNum = walPointerToFileNum(walId);
+            curVol = volumes.get((int) fileNum);
             walOffset.set(walPointerToOffset(walId));
+
 
 //            for(Volume v:walRec){
 //                v.close();
@@ -312,17 +322,19 @@ public class WriteAheadLog {
     }
 
 
-    /** replays wall, but skips section between rollbacks. That means only commited transactions will be passed to
+    /** replays wall, but skips section between rollbacks. That means only committed transactions will be passed to
      * replay callback
      */
     long replayWALSkipRollbacks(WALReplay replay) {
         replay.beforeReplayStart();
 
         long start = skipRollbacks(16);
+        long ret =  start;
         commitLoop: while(start!=0){
             long fileNum2 = walPointerToFileNum(start);
             Volume wal = volumes.get((int) fileNum2);
             long pos = walPointerToOffset(start);
+            ret = start;
 
             instLoop: for(;;) {
                 int checksum = wal.getUnsignedByte(pos++);
@@ -332,7 +344,11 @@ public class WriteAheadLog {
                     case I_EOF: {
                         //EOF
                         if ((Long.bitCount(pos - 1) & 15) != checksum)
-                            throw new InternalError("WAL corrupted");
+                            throw new DBException.DataCorruption("WAL corrupted "+fileNum2+" - "+pos);
+
+                        if(CC.LOG_WAL_CONTENT && LOG.isLoggable(Level.FINER)){
+                            LOG.log(Level.FINER, "WAL EOF: file="+fileNum2+", pos="+(pos-1));
+                        }
                         //start at new file
                         start = walPointer(0, fileNum2 + 1, 16);
                         continue commitLoop;
@@ -347,15 +363,22 @@ public class WriteAheadLog {
                     case I_SKIP_MANY: {
                         //skip N bytes
                         int skipN = wal.getInt(pos - 1) & 0xFFFFFF; //read 3 bytes
+
+                        if(CC.LOG_WAL_CONTENT && LOG.isLoggable(Level.FINER))
+                            LOG.log(Level.FINER, "WAL SKIPN: file="+fileNum2+", pos="+(pos-1)+", skipN="+skipN);
+
                         if ((Integer.bitCount(skipN) & 15) != checksum)
-                            throw new InternalError("WAL corrupted");
+                            throw new  DBException.DataCorruption("WAL corrupted");
                         pos += 3 + skipN;
                         break;
                     }
                     case I_SKIP_SINGLE: {
+                        if(CC.LOG_WAL_CONTENT && LOG.isLoggable(Level.FINER))
+                            LOG.log(Level.FINER, "WAL SKIP: file="+fileNum2+", pos="+(pos-1));
+
                         //skip single byte
                         if ((Long.bitCount(pos - 1) & 15) != checksum)
-                            throw new InternalError("WAL corrupted");
+                            throw new  DBException.DataCorruption("WAL corrupted");
                         break;
                     }
                     case I_RECORD:
@@ -370,10 +393,15 @@ public class WriteAheadLog {
                     case I_COMMIT: {
                         int checksum2 = wal.getInt(pos);
                         pos += 4;
+                        if(CC.LOG_WAL_CONTENT && LOG.isLoggable(Level.FINER))
+                            LOG.log(Level.FINER, "WAL COMMIT: file="+fileNum2+", pos="+(pos-5));
+
                         if (((1 + Long.bitCount(pos - 5) + Integer.bitCount(checksum2)) & 15) != checksum)
-                            throw new InternalError("WAL corrupted");
-                        replay.commit();
+                            throw new  DBException.DataCorruption("WAL corrupted");
+                        if(replay!=null)
+                            replay.commit();
                         long currentPos = walPointer(0, fileNum2, pos);
+                        ret = currentPos;
                         //skip next rollbacks if there are any
                         start = skipRollbacks(currentPos);
                         continue commitLoop;
@@ -382,12 +410,12 @@ public class WriteAheadLog {
                     case I_ROLLBACK:
                         throw new DBException.DataCorruption("Rollback should be skipped");
                     default:
-                        throw new InternalError("WAL corrupted, unknown instruction");
+                        throw new  DBException.DataCorruption("WAL corrupted, unknown instruction");
                 }
 
             }
         }
-        return start;
+        return ret;
     }
 
     /**
@@ -419,7 +447,7 @@ public class WriteAheadLog {
                     case I_EOF: {
                         //EOF
                         if ((Long.bitCount(pos - 1) & 15) != checksum)
-                            throw new InternalError("WAL corrupted");
+                            throw new  DBException.DataCorruption("WAL corrupted "+fileNum2+" - "+pos);
                         start = walPointer(0, fileNum2 + 1, 16);
                         continue commitLoop;
                         //break;
@@ -434,14 +462,14 @@ public class WriteAheadLog {
                         //skip N bytes
                         int skipN = wal.getInt(pos - 1) & 0xFFFFFF; //read 3 bytes
                         if ((Integer.bitCount(skipN) & 15) != checksum)
-                            throw new InternalError("WAL corrupted");
+                            throw new  DBException.DataCorruption("WAL corrupted");
                         pos += 3 + skipN;
                         break;
                     }
                     case I_SKIP_SINGLE: {
                         //skip single byte
                         if ((Long.bitCount(pos - 1) & 15) != checksum)
-                            throw new InternalError("WAL corrupted");
+                            throw new  DBException.DataCorruption("WAL corrupted");
                         break;
                     }
                     case I_RECORD:
@@ -457,8 +485,10 @@ public class WriteAheadLog {
                         int checksum2 = wal.getInt(pos);
                         pos += 4;
                         if (((1 + Long.bitCount(pos - 5) + Integer.bitCount(checksum2)) & 15) != checksum)
-                            throw new InternalError("WAL corrupted");
+                            throw new  DBException.DataCorruption("WAL corrupted");
                         //TODO checksums
+                        if(CC.LOG_WAL_CONTENT && LOG.isLoggable(Level.FINER))
+                            LOG.log(Level.FINER, "WAL SKIP: ret="+start);
                         return start;
                         //break;
                     }
@@ -466,21 +496,27 @@ public class WriteAheadLog {
                         int checksum2 = wal.getInt(pos);
                         pos += 4;
                         if (((1 + Long.bitCount(pos - 5) + Integer.bitCount(checksum2)) & 15) != checksum)
-                            throw new InternalError("WAL corrupted");
+                            throw new  DBException.DataCorruption("WAL corrupted");
+
+
                         //rollback instruction pushes last valid to current offset
-                        //TODO checksum
                         start = walPointer(0, fileNum2, pos);
                         continue commitLoop;
                         //break;
                     }
                     default:
-                        throw new InternalError("WAL corrupted, unknown instruction");
+                        throw new  DBException.DataCorruption("WAL corrupted, unknown instruction");
                 }
-            }}catch(DBException.VolumeIOError e){
+            }
+            }catch(DBException e){
                 LOG.log(Level.INFO, "WAL corrupted, skipping",e);
                 return 0;
             }
+
         }
+
+        if(CC.LOG_WAL_CONTENT && LOG.isLoggable(Level.FINER))
+            LOG.log(Level.FINER, "WAL SKIP: ret=0");
 
         return 0;
     }
@@ -506,7 +542,7 @@ public class WriteAheadLog {
                     case I_EOF: {
                         //EOF
                         if ((Long.bitCount(pos - 1) & 15) != checksum)
-                            throw new InternalError("WAL corrupted");
+                            throw new  DBException.DataCorruption("WAL corrupted");
                         continue file;
                     }
                     case I_LONG:
@@ -519,14 +555,14 @@ public class WriteAheadLog {
                         //skip N bytes
                         int skipN = wal.getInt(pos - 1) & 0xFFFFFF; //read 3 bytes
                         if ((Integer.bitCount(skipN) & 15) != checksum)
-                            throw new InternalError("WAL corrupted");
+                            throw new  DBException.DataCorruption("WAL corrupted");
                         pos += 3 + skipN;
                         break;
                     }
                     case I_SKIP_SINGLE: {
                         //skip single byte
                         if ((Long.bitCount(pos - 1) & 15) != checksum)
-                            throw new InternalError("WAL corrupted");
+                            throw new  DBException.DataCorruption("WAL corrupted");
                         break;
                     }
                     case I_RECORD:
@@ -542,7 +578,7 @@ public class WriteAheadLog {
                         int checksum2 = wal.getInt(pos);
                         pos += 4;
                         if (((1 + Long.bitCount(pos - 5) + Integer.bitCount(checksum2)) & 15) != checksum)
-                            throw new InternalError("WAL corrupted");
+                            throw new  DBException.DataCorruption("WAL corrupted");
                         replay.commit();
                         break;
                     }
@@ -550,12 +586,12 @@ public class WriteAheadLog {
                         int checksum2 = wal.getInt(pos);
                         pos += 4;
                         if (((1 + Long.bitCount(pos - 5) + Integer.bitCount(checksum2)) & 15) != checksum)
-                            throw new InternalError("WAL corrupted");
+                            throw new  DBException.DataCorruption("WAL corrupted");
                         replay.rollback();
                         break;
                     }
                     default:
-                        throw new InternalError("WAL corrupted, unknown instruction");
+                        throw new  DBException.DataCorruption("WAL corrupted, unknown instruction");
                 }
 
             }
@@ -567,8 +603,12 @@ public class WriteAheadLog {
         long recid = wal.getPackedLong(pos);
         pos += recid >>> 60;
         recid &= DataIO.PACK_LONG_RESULT_MASK;
+
+        if(CC.LOG_WAL_CONTENT && LOG.isLoggable(Level.FINER))
+            LOG.log(Level.FINER, "WAL TOMBSTONE: pos="+(pos-1-DataIO.packLongSize(recid))+", recid="+recid);
+
         if(((1+Long.bitCount(recid))&15)!=checksum)
-            throw new InternalError("WAL corrupted");
+            throw new  DBException.DataCorruption("WAL corrupted");
 
         if(replay!=null)
             replay.writeTombstone(recid);
@@ -579,8 +619,13 @@ public class WriteAheadLog {
         long recid = wal.getPackedLong(pos);
         pos += recid >>> 60;
         recid &= DataIO.PACK_LONG_RESULT_MASK;
+
+        if(CC.LOG_WAL_CONTENT && LOG.isLoggable(Level.FINER))
+            LOG.log(Level.FINER, "WAL PREALLOC: pos="+(pos-1-DataIO.packLongSize(recid))+", recid="+recid);
+
+
         if (((1 + Long.bitCount(recid)) & 15) != checksum)
-            throw new InternalError("WAL corrupted");
+            throw new  DBException.DataCorruption("WAL corrupted");
         if(replay!=null)
             replay.writePreallocate(recid);
         return pos;
@@ -599,8 +644,11 @@ public class WriteAheadLog {
         pos += size >>> 60;
         size &= DataIO.PACK_LONG_RESULT_MASK;
 
+        if(CC.LOG_WAL_CONTENT && LOG.isLoggable(Level.FINER))
+            LOG.log(Level.FINER, "WAL RECORD: pos="+(pos2)+", recid="+recid+", size="+size);
+
         if(((1+Long.bitCount(recid)+Long.bitCount(size)+Long.bitCount(pos2))&15)!=checksum){
-            throw new InternalError("WAL corrupted");
+            throw new  DBException.DataCorruption("WAL corrupted");
         }
 
         if (size == 0) {
@@ -627,8 +675,12 @@ public class WriteAheadLog {
         pos += 6;
 //                    byte[] data = new byte[dataSize];
 //                    wal.getData(pos, data, 0, data.length);
+        if(CC.LOG_WAL_CONTENT && LOG.isLoggable(Level.FINER))
+            LOG.log(Level.FINER, "WAL BYTE[]: pos="+(pos-1-8)+", size="+dataSize+", offset="+offset);
+
+
         if(((1+Integer.bitCount(dataSize)+Long.bitCount(offset))&15)!=checksum)
-            throw new InternalError("WAL corrupted");
+            throw new  DBException.DataCorruption("WAL corrupted");
         long val = ((long)fileNum)<<(pointerOffsetBites);
         val |=pos;
 
@@ -645,8 +697,12 @@ public class WriteAheadLog {
         pos += 8;
         long offset = wal.getSixLong(pos);
         pos += 6;
+
+        if(CC.LOG_WAL_CONTENT && LOG.isLoggable(Level.FINER))
+            LOG.log(Level.FINER, "WAL LONG: pos="+(pos-1-8-6)+", val="+val+", offset="+offset);
+
         if(((1+Long.bitCount(val)+Long.bitCount(offset))&15)!=checksum)
-            throw new InternalError("WAL corrupted");
+            throw new  DBException.DataCorruption("WAL corrupted");
         if(replay!=null)
             replay.writeLong(offset,val);
         return pos;
@@ -844,7 +900,8 @@ public class WriteAheadLog {
             curVol.putDataOverlap(walOffset2, buf, bufPos, size);
         }
 
-        return walPointer(0, fileNum,startPos);
+        long ret =  walPointer(0, fileNum,startPos);
+        return ret;
     }
 
 
@@ -947,20 +1004,28 @@ public class WriteAheadLog {
             return false; //no, does not, all fine
         }
 
-        //is there enough space for 4 byte skip N bytes instruction?
-        while((walOffset2&StoreWAL.PAGE_MASK) >= StoreWAL.PAGE_SIZE-4 || plusSize<5){
-            //pad with single byte skip instructions, until end of page is reached
+        //put skip instruction until plusSize
+        while(plusSize>0){
             int singleByteSkip = (I_SKIP_SINGLE<<4)|(Long.bitCount(walOffset2)&15);
             curVol.putUnsignedByte(walOffset2++, singleByteSkip);
             plusSize--;
-            if(CC.ASSERT && plusSize<0)
-                throw new DBException.DataCorruption();
         }
 
-        //now new page starts, so add skip instruction for remaining bits
-        int val = (I_SKIP_MANY<<(4+3*8)) | (plusSize-4) | ((Integer.bitCount(plusSize-4)&15)<<(3*8));
-        curVol.ensureAvailable(walOffset2 + 4);
-        curVol.putInt(walOffset2, val);
+        //TODO instead of using many Single Byte Skip, use SkipN
+//        //is there enough space for 4 byte skip N bytes instruction?
+//        while((walOffset2&StoreWAL.PAGE_MASK) >= StoreWAL.PAGE_SIZE-4 || plusSize<5){
+//            //pad with single byte skip instructions, until end of page is reached
+//            int singleByteSkip = (I_SKIP_SINGLE<<4)|(Long.bitCount(walOffset2)&15);
+//            curVol.putUnsignedByte(walOffset2++, singleByteSkip);
+//            plusSize--;
+//            if(CC.ASSERT && plusSize<0)
+//                throw new DBException.DataCorruption();
+//        }
+//
+//        //now new page starts, so add skip instruction for remaining bits
+//        int val = (I_SKIP_MANY<<(4+3*8)) | (plusSize-4) | ((Integer.bitCount(plusSize-4)&15)<<(3*8));
+//        curVol.ensureAvailable(walOffset2 + 4);
+//        curVol.putInt(walOffset2, val);
 
         return true;
     }

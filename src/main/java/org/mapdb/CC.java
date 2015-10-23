@@ -58,6 +58,8 @@ interface CC {
 
     boolean LOG_STORE_ALLOC = false;
 
+    boolean LOG_WAL_CONTENT = false;
+
     /**
      * Compile-in detailed log messages from Engine Wrappers
      */
