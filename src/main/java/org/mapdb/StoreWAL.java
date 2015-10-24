@@ -616,8 +616,8 @@ public class StoreWAL extends StoreCached {
                 headVol.getData(0,headVolBackup,0,headVolBackup.length);
                 wal.walPutByteArray(0, headVolBackup,0, headVolBackup.length);
                 wal.commit();
-                wal.sync();
                 replaySoft();
+                realVol.sync();
                 wal.destroyWalFiles();
             }finally {
                 structuralLock.unlock();

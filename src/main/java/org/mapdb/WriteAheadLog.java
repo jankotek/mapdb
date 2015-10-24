@@ -155,6 +155,7 @@ public class WriteAheadLog {
         curVol2.putUnsignedByte(walOffset2, (I_ROLLBACK << 4)|parity);
         walOffset2++;
         curVol2.putInt(walOffset2,checksum);
+        curVol2.sync();
     }
 
     public void commit() {
@@ -184,6 +185,7 @@ public class WriteAheadLog {
         curVol2.putUnsignedByte(walOffset2, (I_COMMIT << 4)|parity);
         walOffset2++;
         curVol2.putInt(walOffset2,checksum);
+        curVol2.sync();
     }
 
     protected int checksum(Volume vol, long startOffset, long endOffset){
@@ -415,6 +417,11 @@ public class WriteAheadLog {
 
             }
         }
+
+        Volume vol = volumes.get((int) walPointerToFileNum(ret));
+        long offset = walPointerToOffset(ret);
+        if(offset!=0 && offset!=vol.length())
+            vol.clear(offset, vol.length());
         return ret;
     }
 
@@ -505,7 +512,7 @@ public class WriteAheadLog {
                         //break;
                     }
                     default:
-                        throw new  DBException.DataCorruption("WAL corrupted, unknown instruction");
+                        throw new  DBException.DataCorruption("WAL corrupted, unknown instruction: "+pos);
                 }
             }
             }catch(DBException e){
@@ -625,7 +632,7 @@ public class WriteAheadLog {
 
 
         if (((1 + Long.bitCount(recid)) & 15) != checksum)
-            throw new  DBException.DataCorruption("WAL corrupted");
+            throw new  DBException.DataCorruption("WAL corrupted: "+pos);
         if(replay!=null)
             replay.writePreallocate(recid);
         return pos;

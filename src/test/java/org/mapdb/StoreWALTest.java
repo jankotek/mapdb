@@ -26,7 +26,7 @@ public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
 
 
 
-    @Test
+    @Test @Ignore //TODO do not replay on every commit
     public void WAL_created(){
         File wal0 = new File(f.getPath()+".wal.0");
         File wal1 = new File(f.getPath()+".wal.1");
