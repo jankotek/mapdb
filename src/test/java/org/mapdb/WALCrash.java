@@ -74,7 +74,7 @@ public class WALCrash {
                 @Override
                 public void writeRecord(long recid, long walId, Volume vol, long volOffset, int length) {
                     long old = dbSeed.getAndSet(recid);
-                    System.err.println("aa "+old+" < "+recid+ " - "+volOffset);
+                    //System.err.println("aa "+old+" < "+recid+ " - "+volOffset);
                     assertTrue(old<recid);
                     byte[] b = new byte[31];
                     vol.getData(volOffset, b,0,length);
