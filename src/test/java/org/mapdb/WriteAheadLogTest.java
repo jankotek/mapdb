@@ -279,13 +279,13 @@ public class WriteAheadLogTest {
 
         wal.walPutLong(111L, 1000);
         wal.commit();
-        long offset1 = wal.walOffset.get() - 5;
+        long offset1 = wal.fileOffset - 5;
         int checksum1 = DataIO.longHash(wal.curVol.hash(16, offset1 - 16, 111L));
 
         assertEquals(checksum1, wal.curVol.getInt(offset1 + 1));
         wal.walPutLong(111L, 1000);
         wal.commit();
-        long offset2 = wal.walOffset.get() - 5;
+        long offset2 = wal.fileOffset - 5;
         int checksum2 = checksum1 + DataIO.longHash(wal.curVol.hash(offset1 + 5, offset2 - offset1 - 5, 111L));
         assertEquals(checksum2, wal.curVol.getInt(offset2 + 1));
     }
@@ -332,7 +332,7 @@ public class WriteAheadLogTest {
 
         long lastPos = 0;
         while (!f1.exists()) {
-            lastPos = wal.walOffset.get();
+            lastPos = wal.fileOffset;
             wal.walPutByteArray(111L, new byte[100], 0, 100);
             assertTrue(f0.exists());
         }
@@ -352,7 +352,7 @@ public class WriteAheadLogTest {
 
         long lastPos = 0;
         while (!f1.exists()) {
-            lastPos = wal.walOffset.get();
+            lastPos = wal.fileOffset;
             wal.walPutRecord(111L, new byte[100], 0, 100);
             assertTrue(f0.exists());
         }
@@ -395,13 +395,13 @@ public class WriteAheadLogTest {
         WriteAheadLog wal = new WriteAheadLog(null);
         wal.walPutLong(1L, 11L);
         wal.commit();
-        long o1 = wal.walOffset.get();
+        long o1 = wal.fileOffset;
         wal.walPutLong(2L, 33L);
         wal.rollback();
-        long o2 = wal.walOffset.get();
+        long o2 = wal.fileOffset;
         wal.walPutLong(3L, 33L);
         wal.commit();
-        long o3 = wal.walOffset.get();
+        long o3 = wal.fileOffset;
         wal.seal();
 
 
@@ -415,10 +415,10 @@ public class WriteAheadLogTest {
         WriteAheadLog wal = new WriteAheadLog(null);
         wal.walPutLong(1L, 11L);
         wal.commit();
-        long o1 = wal.walOffset.get();
+        long o1 = wal.fileOffset;
         wal.walPutLong(2L, 33L);
         wal.commit();
-        long o2 = wal.walOffset.get();
+        long o2 = wal.fileOffset;
         wal.walPutLong(3L, 33L);
         wal.rollback();
         wal.seal();

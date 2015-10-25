@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -101,7 +101,7 @@ public class WriteAheadLog {
 
     public void seal() {
         ensureFileReady(false);
-        long finalOffset = walOffset.get();
+        long finalOffset = allocate(0,1);
         curVol.ensureAvailable(finalOffset+1); //TODO overlap here
         //put EOF instruction
         curVol.putUnsignedByte(finalOffset, (I_EOF<<4) | (Long.bitCount(finalOffset)&15));
@@ -122,7 +122,7 @@ public class WriteAheadLog {
         nextVol.putInt(0, WAL_HEADER);
         nextVol.putLong(8, featureBitMap);
 
-        walOffset.set(16);
+        fileOffsetSet(16);
         volumes.add(nextVol);
         lastChecksum=0;
         lastChecksumOffset=0;
@@ -133,15 +133,10 @@ public class WriteAheadLog {
     public void rollback() {
         ensureFileReady(false);
         final int plusSize = +1+4;
-        long walOffset2 = walOffset.getAndAdd(plusSize);
+        long walOffset2 = allocate(plusSize,0);
 
         Volume curVol2 = curVol;
 
-        //in case of overlap, put Skip Bytes instruction and try again
-        if(hadToSkip(walOffset2, plusSize)){
-            rollback();
-            return;
-        }
         curVol2.ensureAvailable(walOffset2+plusSize);
 
         if(lastChecksumOffset==0)
@@ -161,15 +156,10 @@ public class WriteAheadLog {
     public void commit() {
         ensureFileReady(false);
         final int plusSize = +1+4;
-        long walOffset2 = walOffset.getAndAdd(plusSize);
+        long walOffset2 = allocate(plusSize, 0);
 
         Volume curVol2 = curVol;
 
-        //in case of overlap, put Skip Bytes instruction and try again
-        if(hadToSkip(walOffset2, plusSize)){
-            commit();
-            return;
-        }
         curVol2.ensureAvailable(walOffset2+plusSize);
 
         if(lastChecksumOffset==0)
@@ -271,8 +261,8 @@ public class WriteAheadLog {
     final Volume.VolumeFactory volumeFactory;
 
 
-    //TODO how to protect concurrrently file offset when file is being swapped?
-    protected final AtomicLong walOffset = new AtomicLong(16);
+    protected volatile long fileOffset = 16;
+    protected ReentrantLock fileOffsetLock = new ReentrantLock(CC.FAIR_LOCKS);
 
     protected final List<Volume> volumes = Collections.synchronizedList(new ArrayList<Volume>());
 
@@ -283,6 +273,55 @@ public class WriteAheadLog {
     protected Volume curVol;
 
     protected long fileNum = -1;
+
+    /**
+     * Allocate space in WAL
+     *
+     * @param reqSize space which can not cross page boundaries
+     * @param optSize space which can cross page boundaries
+     * @return allocated fileOffset
+     */
+    protected long allocate(final int reqSize, final int optSize){
+        if(CC.ASSERT && reqSize>=StoreDirect.PAGE_SIZE)
+            throw new AssertionError();
+        fileOffsetLock.lock();
+        try{
+            while (fileOffset >>> CC.VOLUME_PAGE_SHIFT != (fileOffset + reqSize) >>> CC.VOLUME_PAGE_SHIFT) {
+                int singleByteSkip = (I_SKIP_SINGLE << 4) | (Long.bitCount(fileOffset) & 15);
+                curVol.putUnsignedByte(fileOffset, singleByteSkip);
+                fileOffset++;
+            }
+            //long ret =  walPointer(0, fileNum, fileOffset);
+            long ret = fileOffset;
+            fileOffset+=reqSize+optSize;
+            return ret;
+        }finally{
+            fileOffsetLock.unlock();
+        }
+    }
+
+    protected void fileOffsetSet(long fileOffset){
+        fileOffsetLock.lock();
+        try{
+            this.fileOffset = fileOffset;
+        }finally {
+            fileOffsetLock.unlock();
+        }
+    }
+/*
+    //does it overlap page boundaries?
+    if((walOffset2>>>CC.VOLUME_PAGE_SHIFT)==(walOffset2+plusSize)>>>CC.VOLUME_PAGE_SHIFT){
+        return false; //no, does not, all fine
+    }
+    new Exception("SKIP").printStackTrace();
+    //put skip instruction until plusSize
+    while(plusSize>0){
+        int singleByteSkip = (I_SKIP_SINGLE<<4)|(Long.bitCount(walOffset2)&15);
+        curVol.putUnsignedByte(walOffset2, singleByteSkip);
+        walOffset2++;
+        plusSize--;
+    }
+*/
 
     void open(WALReplay replay){
         //replay WAL files
@@ -307,7 +346,7 @@ public class WriteAheadLog {
             long walId = replayWALSkipRollbacks(replay);
             fileNum = walPointerToFileNum(walId);
             curVol = volumes.get((int) fileNum);
-            walOffset.set(walPointerToOffset(walId));
+            fileOffsetSet(walPointerToOffset(walId));
 
 
 //            for(Volume v:walRec){
@@ -420,8 +459,10 @@ public class WriteAheadLog {
 
         Volume vol = volumes.get((int) walPointerToFileNum(ret));
         long offset = walPointerToOffset(ret);
-        if(offset!=0 && offset!=vol.length())
+        if(offset!=0 && offset!=vol.length()) {
             vol.clear(offset, vol.length());
+            vol.sync();
+        }
         return ret;
     }
 
@@ -842,11 +883,7 @@ public class WriteAheadLog {
     public long walPutByteArray(long offset, byte[] buf, int bufPos, int size){
         ensureFileReady(true);
         final int plusSize = +1+2+6+size;
-        long walOffset2 = walOffset.getAndAdd(plusSize);
-
-        if(hadToSkip(walOffset2, plusSize)){
-            return walPutByteArray(offset,buf,bufPos,size);
-        }
+        long walOffset2 = allocate(plusSize,0);
 
         curVol.ensureAvailable(walOffset2+plusSize);
         int checksum = 1+Integer.bitCount(size)+Long.bitCount(offset);
@@ -885,14 +922,11 @@ public class WriteAheadLog {
         ensureFileReady(true);
         long sizeToWrite = buf==null?0:(size+1);
         final int plusSize = +1+ DataIO.packLongSize(recid)+DataIO.packLongSize(sizeToWrite)+size;
-        long walOffset2 = walOffset.getAndAdd(plusSize);
+        long walOffset2 = allocate(plusSize-size, size);
         long startPos = walOffset2;
         if(CC.ASSERT && startPos>=MAX_FILE_SIZE)
             throw new AssertionError();
 
-        if(hadToSkip(walOffset2, plusSize-size)){
-            return walPutRecord(recid,buf,bufPos,size);
-        }
 
         curVol.ensureAvailable(walOffset2+plusSize);
         int checksum = 1+Long.bitCount(recid)+Long.bitCount(sizeToWrite)+Long.bitCount(walOffset2);
@@ -921,15 +955,9 @@ public class WriteAheadLog {
     protected void walPutLong(long offset, long value){
         ensureFileReady(false);
         final int plusSize = +1+8+6;
-        long walOffset2 = walOffset.getAndAdd(plusSize);
+        long walOffset2 = allocate(plusSize,0);
 
         Volume curVol2 = curVol;
-
-        //in case of overlap, put Skip Bytes instruction and try again
-        if(hadToSkip(walOffset2, plusSize)){
-            walPutLong(offset, value);
-            return;
-        }
 
         if(CC.ASSERT && offset>>>48!=0)
             throw new DBException.DataCorruption();
@@ -950,7 +978,8 @@ public class WriteAheadLog {
         }
 
         if(addressable){
-            if(walOffset.get()+MAX_FILE_RESERVE>MAX_FILE_SIZE){
+            //TODO fileOffset should be under lock, perhaps this entire section should be under lock
+            if(fileOffset+MAX_FILE_RESERVE>MAX_FILE_SIZE){
                 //EOF and move on
                 seal();
                 startNextFile();
@@ -962,15 +991,10 @@ public class WriteAheadLog {
     public void walPutTombstone(long recid) {
         ensureFileReady(false);
         int plusSize = 1+DataIO.packLongSize(recid);
-        long walOffset2 = walOffset.getAndAdd(plusSize);
+        long walOffset2 = allocate(plusSize, 0);
 
         Volume curVol2 = curVol;
 
-        //in case of overlap, put Skip Bytes instruction and try again
-        if(hadToSkip(walOffset2, plusSize)){
-            walPutTombstone(recid);
-            return;
-        }
 
         curVol2.ensureAvailable(walOffset2+plusSize);
         int checksum = 1+Long.bitCount(recid);
@@ -984,15 +1008,9 @@ public class WriteAheadLog {
     public void walPutPreallocate(long recid) {
         ensureFileReady(false);
         int plusSize = 1+DataIO.packLongSize(recid);
-        long walOffset2 = walOffset.getAndAdd(plusSize);
+        long walOffset2 = allocate(plusSize,0);
 
         Volume curVol2 = curVol;
-
-        //in case of overlap, put Skip Bytes instruction and try again
-        if(hadToSkip(walOffset2, plusSize)){
-            walPutPreallocate(recid);
-            return;
-        }
 
         curVol2.ensureAvailable(walOffset2+plusSize);
         int checksum = 1+Long.bitCount(recid);
@@ -1005,36 +1023,5 @@ public class WriteAheadLog {
 
 
 
-    protected boolean hadToSkip(long walOffset2, int plusSize) {
-        //does it overlap page boundaries?
-        if((walOffset2>>>CC.VOLUME_PAGE_SHIFT)==(walOffset2+plusSize)>>>CC.VOLUME_PAGE_SHIFT){
-            return false; //no, does not, all fine
-        }
-
-        //put skip instruction until plusSize
-        while(plusSize>0){
-            int singleByteSkip = (I_SKIP_SINGLE<<4)|(Long.bitCount(walOffset2)&15);
-            curVol.putUnsignedByte(walOffset2++, singleByteSkip);
-            plusSize--;
-        }
-
-        //TODO instead of using many Single Byte Skip, use SkipN
-//        //is there enough space for 4 byte skip N bytes instruction?
-//        while((walOffset2&StoreWAL.PAGE_MASK) >= StoreWAL.PAGE_SIZE-4 || plusSize<5){
-//            //pad with single byte skip instructions, until end of page is reached
-//            int singleByteSkip = (I_SKIP_SINGLE<<4)|(Long.bitCount(walOffset2)&15);
-//            curVol.putUnsignedByte(walOffset2++, singleByteSkip);
-//            plusSize--;
-//            if(CC.ASSERT && plusSize<0)
-//                throw new DBException.DataCorruption();
-//        }
-//
-//        //now new page starts, so add skip instruction for remaining bits
-//        int val = (I_SKIP_MANY<<(4+3*8)) | (plusSize-4) | ((Integer.bitCount(plusSize-4)&15)<<(3*8));
-//        curVol.ensureAvailable(walOffset2 + 4);
-//        curVol.putInt(walOffset2, val);
-
-        return true;
-    }
 
 }

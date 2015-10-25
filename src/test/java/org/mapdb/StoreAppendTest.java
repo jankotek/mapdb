@@ -171,11 +171,11 @@ public class StoreAppendTest<E extends StoreAppend> extends EngineTest<E>{
                 e.update(recids.get(i), TT.randomByteArray(20, i+loop), Serializer.BYTE_ARRAY_NOSIZE);
             }
             e.commit();
-            long initOffset = e.wal.walOffset.get();
+            long initOffset = e.wal.fileOffset;
             for (int i = 0; i < recids.size(); i++) {
                 e.update(recids.get(i), TT.randomByteArray(30, i+loop), Serializer.BYTE_ARRAY_NOSIZE);
             }
-            long preCommitOffset = e.wal.walOffset.get();
+            long preCommitOffset = e.wal.fileOffset;
             File file = e.wal.curVol.getFile();
             e.commit();
             e.close();
@@ -187,7 +187,7 @@ public class StoreAppendTest<E extends StoreAppend> extends EngineTest<E>{
             vol.close();
 
             e = openEngine();
-            assertEquals(initOffset, e.wal.walOffset.get());
+            assertEquals(initOffset, e.wal.fileOffset);
             for (int i = 0; i < recids.size(); i++) {
                 byte[] b = e.get(recids.get(i), Serializer.BYTE_ARRAY_NOSIZE);
                 assertEquals(20, b.length);
