@@ -910,7 +910,12 @@ public class WriteAheadLog {
         long val = (size)<<(pointerOffsetBites+pointerFileBites);
         val |= (fileNum)<<(pointerOffsetBites);
         val |= offset;
-        if(CC.ASSERT && offset>=MAX_FILE_SIZE)
+
+        if(CC.ASSERT && offset!=walPointerToOffset(val))
+            throw new AssertionError();
+        if(CC.ASSERT && fileNum!=walPointerToOffset(fileNum))
+            throw new AssertionError();
+        if(CC.ASSERT && size!=walPointerToOffset(size))
             throw new AssertionError();
 
         return val;
