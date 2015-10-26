@@ -134,4 +134,28 @@ public class IssuesTest {
         }
     }
 
+    @Test public void issue614(){
+        if(TT.shortTest())
+            return;
+
+
+        DBMaker.Maker dbMaker = DBMaker.memoryDB()
+                .fileMmapEnable()
+                .closeOnJvmShutdown();
+        DB db = dbMaker.make();
+
+        HTreeMap<Object, Object> nodeStats = db.hashMapCreate("nodeStats").makeOrGet();
+
+        int cnt = 0;
+        while (true) {
+            for (int i = 0; i < 10000; i++) {
+                int[] data = new int[1000];
+                data[0] = cnt;
+                nodeStats.put(i, data);
+            }
+            db.commit();
+            cnt++;
+        }
+    }
+
 }
