@@ -3004,23 +3004,25 @@ public abstract class Volume implements Closeable{
                     long v2 = seed + PRIME64_2;
                     long v3 = seed + 0;
                     long v4 = seed - PRIME64_1;
+                    byte[] buf = new byte[32];
                     do {
-                        v1 += Long.reverseBytes(raf.readLong()) * PRIME64_2;
+                        raf.readFully(buf); //reading single byte[] is faster than 4xreadLong
+                        v1 += Long.reverseBytes(DataIO.getLong(buf,0)) * PRIME64_2;
                         v1 = rotateLeft(v1, 31);
                         v1 *= PRIME64_1;
                         off += 8;
 
-                        v2 += Long.reverseBytes(raf.readLong()) * PRIME64_2;
+                        v2 += Long.reverseBytes(DataIO.getLong(buf,8)) * PRIME64_2;
                         v2 = rotateLeft(v2, 31);
                         v2 *= PRIME64_1;
                         off += 8;
 
-                        v3 += Long.reverseBytes(raf.readLong()) * PRIME64_2;
+                        v3 += Long.reverseBytes(DataIO.getLong(buf,16)) * PRIME64_2;
                         v3 = rotateLeft(v3, 31);
                         v3 *= PRIME64_1;
                         off += 8;
 
-                        v4 += Long.reverseBytes(raf.readLong()) * PRIME64_2;
+                        v4 += Long.reverseBytes(DataIO.getLong(buf,24)) * PRIME64_2;
                         v4 = rotateLeft(v4, 31);
                         v4 *= PRIME64_1;
                         off += 8;
