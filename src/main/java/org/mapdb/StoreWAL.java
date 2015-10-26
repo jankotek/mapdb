@@ -163,6 +163,8 @@ public class StoreWAL extends StoreCached {
 
             @Override
             public void writeLong(long offset, long value) {
+                if(CC.ASSERT && offset%8!=0)
+                    throw new AssertionError();
                 realVol.ensureAvailable(offset+8);
                 realVol.putLong(offset,value);
             }
@@ -174,6 +176,8 @@ public class StoreWAL extends StoreCached {
 
             @Override
             public void writeByteArray(long offset, long walId, Volume vol, long volOffset, int length) {
+                if(CC.ASSERT && offset%8!=0)
+                    throw new AssertionError();
                 realVol.ensureAvailable(offset + length);
                 vol.transferInto(volOffset, realVol, offset,length);
             }
@@ -207,6 +211,8 @@ public class StoreWAL extends StoreCached {
         wal.destroyWalFiles();
 
         initOpenPost();
+        if(CC.PARANOID)
+            storeCheck();
     }
 
     @Override
@@ -579,6 +585,16 @@ public class StoreWAL extends StoreCached {
             for(int segment=0;segment<locks.length;segment++){
                 locks[segment].writeLock().lock();
                 try{
+                    //dump index vals into WAL
+                    long[] table = uncommittedIndexTable[segment].table;
+                    for(int i=0;i<table.length;){
+                        long offset = table[i++];
+                        long val = table[i++];
+                        if(offset==0)
+                            continue;
+                        wal.walPutLong(offset,val);
+                    }
+
                     moveAndClear(uncommittedIndexTable[segment], committedIndexTable[segment]);
                     moveAndClear(uncommittedDataLongs[segment], committedDataLongs[segment]);
 
@@ -616,6 +632,7 @@ public class StoreWAL extends StoreCached {
                 headVol.getData(0,headVolBackup,0,headVolBackup.length);
                 wal.walPutByteArray(0, headVolBackup,0, headVolBackup.length);
                 wal.commit();
+                wal.seal();
                 replaySoft();
                 realVol.sync();
                 wal.destroyWalFiles();
@@ -717,6 +734,13 @@ public class StoreWAL extends StoreCached {
             }
             committedPageLongStack.clear();
 
+            if(CC.PARANOID){
+                byte[] headVolBuf = new byte[headVolBackup.length];
+                headVol.getData(0, headVolBuf, 0, headVolBuf.length);
+                if(!Arrays.equals(headVolBuf, headVolBackup))
+                    throw new AssertionError();
+            }
+
             //update page header
             realVol.putData(0,headVolBackup,0,headVolBackup.length);
         }finally {
@@ -766,6 +790,8 @@ public class StoreWAL extends StoreCached {
                 if(hasUncommitedData()){
                     LOG.warning("Closing storage with uncommited data, this data will be discarded.");
                 }
+
+                headVol.putData(0,headVolBackup,0,headVolBackup.length);
 
                 if(!readonly) {
                     replaySoft();

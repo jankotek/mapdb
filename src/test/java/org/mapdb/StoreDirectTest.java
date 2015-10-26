@@ -433,6 +433,8 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e = openEngine();
         e.structuralLock.lock();
         e.longStackPut(FREE_RECID_STACK, 111, false);
+        //update max recid, so paranoid check does not complain
+        e.maxRecidSet(111L);
         e.structuralLock.unlock();
         e.commit();
         forceFullReplay(e);
@@ -815,6 +817,9 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     }
 
     @Test public void index_pages_init(){
+        if(CC.PARANOID)
+            return; //generates broken store, does not work in paranoid mode
+
         e=openEngine();
         e.close();
 

@@ -4,8 +4,8 @@ package org.mapdb;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
+import java.nio.channels.FileChannel;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -14,6 +14,61 @@ import static org.junit.Assert.*;
 
 @SuppressWarnings({"rawtypes","unchecked"})
 public class StoreWALTest<E extends StoreWAL> extends StoreCachedTest<E>{
+
+    @Ignore //TODO finish this test
+    public static class ReplaySoftEqualsReplayHard extends StoreWALTest{
+        @Override
+        protected StoreWAL openEngine() {
+
+            StoreWAL e =new StoreWAL(f.getPath()){
+                @Override
+                protected void replaySoft() {
+                    //take copy of all files including WAL before replay
+                    File curFile = new File(fileName);
+                    if(!curFile.exists()){
+                        super.replaySoft();
+                        return;
+                    }
+                    File dir = TT.tempDbDir();
+
+                    for(File from:curFile.getParentFile().listFiles()){
+                        if(from.getName().contains(curFile.getName())) {
+                            copyFile(from, new File(dir, from.getName()));
+                        }
+                    }
+
+                    assertTrue(dir.listFiles().length>0);
+
+                    super.replaySoft();
+                    storeCheck();
+
+                    //open the other file, that will replay WAL
+                    StoreWAL walCopy = new StoreWAL(dir.getPath()+"/"+curFile.getName());
+                    walCopy.init();
+                    walCopy.storeCheck();
+                    walCopy.close();
+
+                    //TODO compare records from both files
+
+                    TT.dirDelete(dir);
+                }
+            };
+            e.init();
+            return e;
+        }
+
+        static void copyFile(File from, File to){
+            try {
+                FileChannel inputChannel = new FileInputStream(from).getChannel();
+                FileChannel outputChannel = new FileOutputStream(to).getChannel();
+                outputChannel.transferFrom(inputChannel, 0, inputChannel.size());
+                inputChannel.close();
+                outputChannel.close();
+            }catch( IOException e ) {
+                throw new IOError(e);
+            }
+        }
+    }
 
     @Override boolean canRollback(){return true;}
 
