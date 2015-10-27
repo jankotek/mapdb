@@ -215,8 +215,6 @@ public class WALCrash {
 
             }
         } catch (Throwable e) {
-            if (DIR != null)
-                System.err.println("Free space: " + DIR.getFreeSpace());
             e.printStackTrace();
             System.exit(-1111);
         }

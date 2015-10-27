@@ -27,22 +27,17 @@ public class CrashTest {
     static final int MIN_RUNTIME = 3000;
     static final int MAX_RUNTIME = 10000;
 
-
-    public static File DIR;
-
     public static final class Params implements Serializable{
 
         final int index;
-        final File dir;
         final DBMaker.Maker dbMaker;
         final boolean clearMap;
         final boolean hashMap;
         final boolean largeVals;
         final int mapSize;
 
-        public Params(int index, File dir, DBMaker.Maker dbMaker, boolean clearMap, boolean hashMap, boolean largeVals, int mapSize) throws IOException {
+        public Params(int index, DBMaker.Maker dbMaker, boolean clearMap, boolean hashMap, boolean largeVals, int mapSize) throws IOException {
             this.index = index;
-            this.dir = dir;
             this.dbMaker = dbMaker;
             this.clearMap = clearMap;
             this.hashMap = hashMap;
@@ -50,6 +45,10 @@ public class CrashTest {
             this.mapSize = mapSize;
         }
     }
+
+    static final File nonExistent = TT.tempDbFile();
+
+    File dir;
 
     final Params p;
 
@@ -71,13 +70,10 @@ public class CrashTest {
         for( boolean hashMap : TT.BOOLS)
         for( int mapSize : TT.shortTest()? new int[]{100}:new int[]{10,0,1000})
         {
-            File f = DIR !=null? DIR :
-                new File(System.getProperty("java.io.tmpdir")
-                +"/mapdbTest"+System.currentTimeMillis()+Math.random());
 
             DBMaker.Maker maker = notAppend ?
-                    DBMaker.fileDB(new File(f, "store")) :
-                    DBMaker.appendFileDB(new File(f,"store"));
+                    DBMaker.fileDB(nonExistent) :
+                    DBMaker.appendFileDB(nonExistent);
 
             maker.fileLockDisable();
             maker.checksumEnable();
@@ -89,7 +85,7 @@ public class CrashTest {
                 maker.cacheHashTableEnable();
 
             ret.add(new Object[]{
-                    new Params(index++, f, maker, clearMap,
+                    new Params(index++, maker, clearMap,
                             hashMap, largeVals, mapSize)});
 
         }
@@ -99,14 +95,23 @@ public class CrashTest {
 
     @Test
     public void test() throws IOException, InterruptedException {
+        dir =
+                new File(System.getProperty("java.io.tmpdir")
+                        +"/mapdbTest"+System.currentTimeMillis()+Math.random());
+
+
         //create folders
-        p.dir.mkdirs();
+        dir.mkdirs();
+
+        File seedStartDir = new File(dir,"seedStart");
+        File seedEndDir = new File(dir,"seedEnd");
+
 
         long end = TT.nowPlusMinutes(1+TT.scale()*9);
-        if(p.dir.getFreeSpace()<10e9)
-            fail("not enough free disk space, at least 10GB needed: "+p.dir.getFreeSpace());
+        if(dir.getFreeSpace()<10e9)
+            fail("not enough free disk space, at least 10GB needed: "+dir.getFreeSpace());
 
-        assertTrue(p.dir.exists() && p.dir.isDirectory() && p.dir.canWrite());
+        assertTrue(dir.exists() && dir.isDirectory() && dir.canWrite());
 
 
         long oldSeed=0;
@@ -121,7 +126,7 @@ public class CrashTest {
                         System.getProperty("java.class.path"),
                         "-Dmdbtest=" + TT.scale(),
                         this.getClass().getName(),
-                        p.dir.getAbsolutePath(),
+                        dir.getAbsolutePath(),
                         "" + this.p.index);
                 Process pr = b.start();
                 pr.waitFor(); //it should kill itself after some time
@@ -138,16 +143,18 @@ public class CrashTest {
             }
 
             //now reopen file and check its content
+            p.dbMaker.props.put(DBMaker.Keys.file,dir.getPath()+"/store");
             DB db = p.dbMaker.make();
             Atomic.Long dbSeed = db.atomicLong("seed");
 
             assertTrue(dbSeed.get()>=oldSeed);
 
-            File seedStartDir = new File(p.dir,"seedStart");
-            File seedEndDir = new File(p.dir,"seedEnd");
+            seedEndDir.mkdirs();
+            seedStartDir.mkdirs();
 
             File[] seedStartFiles = seedStartDir.listFiles();
             File[] seedEndFiles = seedEndDir.listFiles();
+
 
             if(seedStartFiles.length==0) {
                 // JVM interrupted before creating any seed files
@@ -192,11 +199,11 @@ public class CrashTest {
             TT.dirDelete(seedEndDir);
             TT.dirDelete(seedStartDir);
 
-            if(p.dir.getFreeSpace()<1e9){
+            if(dir.getFreeSpace()<1e9){
                 System.out.println("Not enough free space, delete store and start over");
-                TT.dirDelete(p.dir);
-                p.dir.mkdirs();
-                assertTrue(p.dir.exists() && p.dir.isDirectory() && p.dir.canWrite());
+                TT.dirDelete(dir);
+                dir.mkdirs();
+                assertTrue(dir.exists() && dir.isDirectory() && dir.canWrite());
             }
 
         }
@@ -206,25 +213,27 @@ public class CrashTest {
 
     @After
     public void clean(){
-        TT.dirDelete(p.dir);
+        TT.dirDelete(dir);
     }
 
     public static void main(String[] args) throws IOException {
+        File dir = new File(args[0]);
         try {
             //start kill timer
             killThisJVM(MIN_RUNTIME + new Random().nextInt(MAX_RUNTIME - MIN_RUNTIME));
 
             System.out.print("started_");
             //collect all parameters
-            DIR = new File(args[0]);
+
              int index = Integer.valueOf(args[1]);
             Params p = (Params) params().get(index)[0];
 
-            File seedStartDir = new File(p.dir,"seedStart");
-            File seedEndDir = new File(p.dir,"seedEnd");
+            File seedStartDir = new File(dir,"seedStart");
+            File seedEndDir = new File(dir,"seedEnd");
             seedStartDir.mkdirs();
             seedEndDir.mkdirs();
 
+            p.dbMaker.props.put(DBMaker.Keys.file,dir.getPath()+"/store");
             DB db = p.dbMaker.make();
             Atomic.Long dbSeed = db.atomicLong("seed");
 
@@ -260,8 +269,8 @@ public class CrashTest {
                     m.clear();
             }
         }catch(Throwable e){
-            if(DIR !=null)
-                System.err.println("Free space: "+ DIR.getFreeSpace());
+            if(dir !=null)
+                System.err.println("Free space: "+ dir.getFreeSpace());
             e.printStackTrace();
             System.exit(-1111);
         }
