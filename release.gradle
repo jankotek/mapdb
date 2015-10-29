@@ -1,8 +1,14 @@
-task(release) << {
-    // make mapdb-renamed
-    def destDir = file("target/mapdb-renamed");
-    destDir.mkdirs()
 
+/** builds destDir and adds it to git*/
+def gitAndRelease(destDir){
+
+    println "Doing GIT and build stuff at: "+destDir
+
+    //clean
+    exec {
+        commandLine 'rm'
+        args 'release-misc','-rf'
+    }
 
     //checkout
     exec {
@@ -15,6 +21,47 @@ task(release) << {
         args 'target/release-misc/.git','target/mapdb-renamed/'
     }
 
+
+    //add all files
+    exec {
+        commandLine 'git'
+        args 'add','-A','.'
+        workingDir destDir
+    }
+
+    //commit
+    exec {
+        commandLine 'git'
+        args 'commit','-m','switch-source'
+        workingDir destDir
+    }
+
+    exec{
+        commandLine 'mvn'
+        if(rel=="1") {
+            args 'clean', 'test', '-DthreadCount=4','release:prepare','release:perform'
+        }
+        else {
+            args 'clean','test','-DthreadCount=4'//,'release:prepare','release:perform'
+        }
+        workingDir destDir
+    }
+
+
+    if(rel=="1") {
+        exec {
+            commandLine 'git'
+            args 'push'
+            workingDir destDir
+        }
+    }
+
+}
+
+task(release_renamed) << {
+    // make mapdb-renamed
+    def destDir = file("target/mapdb-renamed");
+    destDir.mkdirs()
 
     //copy folder
     copy{
@@ -55,30 +102,45 @@ task(release) << {
         workingDir destDir
     }
 
-    //add all files
-    exec {
-        commandLine 'git'
-        args 'add','-A'
-        workingDir destDir
-    }
 
-    //commit
-    exec {
-        commandLine 'git'
-        args 'commit','-m','switch-source'
-        workingDir destDir
-    }
+    gitAndRelease(destDir)
 
-    exec {
-        commandLine 'git'
-        args 'push'
-        workingDir destDir
-    }
-
-/*    exec{
-        commandLine 'mvn'
-        args 'clean','test','release:prepare','release:perform'
-        workingDir destDir
-    }
-  */
 }
+
+task(release_nounsafe) << {
+    def destDir = file("target/mapdb-nounsafe");
+    destDir.mkdirs()
+
+    //copy folder
+    copy{
+        from '.'
+        into destDir
+        exclude 'target'
+        include '**/*.java'
+        exclude '.git'
+        exclude '**/Unsafe*.java'
+    }
+
+    copy{
+        from '.'
+        into destDir
+        exclude 'target'
+        exclude '**/*.java'
+        exclude '.git'
+        filter{
+            String line -> line
+                    .replaceAll("<artifactId>mapdb</artifactId>","<artifactId>mapdb-nounsafe</artifactId>")
+                    .replaceAll("<name>mapdb</name>","<name>mapdb-nounsafe</name>")
+        }
+    }
+
+
+    gitAndRelease(destDir)
+}
+
+
+task (release) << {
+    println 'DONE'
+}
+release.dependsOn release_renamed
+release.dependsOn release_nounsafe
