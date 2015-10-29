@@ -23,7 +23,7 @@ public class WALCrash {
     public void crash() throws InterruptedException, IOException {
     dir = TT.tempDbDir();
 
-        long end = TT.nowPlusMinutes(1+TT.scale()*9);
+        long end = TT.nowPlusMinutes(0.5+TT.scale()*9);
         if(dir.getFreeSpace()<10e9)
             fail("not enough free disk space, at least 10GB needed: "+dir.getFreeSpace());
 

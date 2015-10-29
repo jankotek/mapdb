@@ -107,7 +107,7 @@ public class CrashTest {
         File seedEndDir = new File(dir,"seedEnd");
 
 
-        long end = TT.nowPlusMinutes(1+TT.scale()*9);
+        long end = TT.nowPlusMinutes(0.5+TT.scale()*9);
         if(dir.getFreeSpace()<10e9)
             fail("not enough free disk space, at least 10GB needed: "+dir.getFreeSpace());
 
