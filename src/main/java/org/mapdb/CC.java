@@ -49,38 +49,40 @@ interface CC {
     boolean PARANOID = false;
 
 
+    /** default value for FINE logging */
+    boolean LOG_FINE = false;
     /**
      * Compile-in detailed log messages from store.
      */
-    boolean LOG_STORE = false;
+    boolean LOG_STORE = LOG_FINE;
 
-    boolean LOG_STORE_RECORD = false;
+    boolean LOG_STORE_RECORD = LOG_FINE;
 
-    boolean LOG_STORE_ALLOC = false;
+    boolean LOG_STORE_ALLOC = LOG_FINE;
 
-    boolean LOG_WAL_CONTENT = false;
+    boolean LOG_WAL_CONTENT = LOG_FINE;
 
     /**
      * Compile-in detailed log messages from Engine Wrappers
      */
-    boolean LOG_EWRAP = false;
+    boolean LOG_EWRAP = LOG_FINE;
 
 //    /**
 //     * Log lock/unlock events. Useful to diagnose deadlocks
 //     */
-//    boolean LOG_LOCKS = false;
+//    boolean LOG_LOCKS = LOG_FINE;
 //
 //    /**
 //     * If true MapDB will display warnings if user is using MapDB API wrong way.
 //     */
-//    boolean LOG_HINTS = true;
+//    boolean LOG_HINTS = LOG_FINE;
 
 
 
     /**
      * Compile-in detailed log messages from HTreeMap.
      */
-    boolean LOG_HTREEMAP = false;
+    boolean LOG_HTREEMAP = LOG_FINE;
 
 
     /**

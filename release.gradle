@@ -1,3 +1,21 @@
+/*
+
+RELEASE SCRIPT FOR MAPDB.
+
+Invocation:
+
+rm target -rf; gradle -b release.gradle release -Prel=0 -Prelv=2.0-betatest8 -Pdevv=2.0.0-SNAPSHOT
+
+
+Properties
+
+ rel - 0 is dry run, 1 is actual release
+ relv - release version applied to released maven artifacts
+ devv - version left in GIT repository after this build finishes
+
+ */
+
+
 
 /** builds destDir and adds it to git*/
 def gitAndRelease(destDir){
@@ -21,7 +39,7 @@ def gitAndRelease(destDir){
     //clean
     exec {
         commandLine 'rm'
-        args 'release-misc','-rf'
+        args 'target/release-misc','-rf'
     }
 
     //checkout
@@ -55,10 +73,10 @@ def gitAndRelease(destDir){
         def tagname = destDir.name+"-"+relv;
 
         if(rel=="1") {
-            args 'clean',  '-DthreadCount=4','release:prepare','release:perform', '--batch-mode',  '-Dtag='+tagname, '-DreleaseVersion='+relv, '-DdevelopmentVersion='+devv
+            args 'clean',  '-Darguments="-DthreadCount=4"','release:prepare','release:perform', '--batch-mode',  '-Dtag='+tagname, '-DreleaseVersion='+relv, '-DdevelopmentVersion='+devv
         }
         else {
-            args 'clean', '-DthreadCount=4', 'release:prepare', '-DdryRun=true',  '--batch-mode',  '-Dtag='+tagname, '-DreleaseVersion='+relv, '-DdevelopmentVersion='+devv
+            args 'clean', '-Darguments="-DthreadCount=4"', 'release:prepare', '-DdryRun=true',  '--batch-mode',  '-Dtag='+tagname, '-DreleaseVersion='+relv, '-DdevelopmentVersion='+devv
         }
         workingDir destDir
     }
@@ -70,6 +88,22 @@ def gitAndRelease(destDir){
             args 'push'
             workingDir destDir
         }
+    }
+
+}
+
+task(release_this) << {
+    exec{
+        commandLine 'mvn'
+        def tagname = "mapdb-"+relv;
+
+        if(rel=="1") {
+            args 'clean',  '-Darguments="-DthreadCount=4"','release:prepare','release:perform', '--batch-mode',  '-Dtag='+tagname, '-DreleaseVersion='+relv, '-DdevelopmentVersion='+devv
+        }
+        else {
+            args 'clean', '-Darguments="-DthreadCount=4"', 'release:prepare', '-DdryRun=true',  '--batch-mode',  '-Dtag='+tagname, '-DreleaseVersion='+relv, '-DdevelopmentVersion='+devv
+        }
+        workingDir '.'
     }
 
 }
@@ -125,20 +159,42 @@ task(release_nounsafe) << {
         exclude '**/Unsafe*.java'
     }
 
-    copy{
+    gitAndRelease(destDir)
+}
+
+
+task(release_noassert) << {
+    def destDir = file("target/mapdb-noassert/");
+    destDir.mkdirs()
+
+    //copy folder
+    copy {
         from '.'
         into destDir
         exclude 'target'
-        exclude '**/*.java'
+        include '**/*.java'
         exclude '.git'
-        filter{
-            String line -> line
-                    .replaceAll("<artifactId>mapdb</artifactId>","<artifactId>mapdb-nounsafe</artifactId>")
-                    .replaceAll("<name>mapdb</name>","<name>mapdb-nounsafe</name>")
-        }
     }
 
+    ant.replace(file: destDir+path+'/src/main/java/org/mapdb/CC.java', token: 'boolean ASSERT = true;', value: 'boolean ASSERT = false;')
+    gitAndRelease(destDir)
+}
 
+task(release_debug) << {
+    def destDir = file("target/mapdb-debug/");
+    destDir.mkdirs()
+
+    //copy folder
+    copy {
+        from '.'
+        into destDir
+        exclude 'target'
+        include '**/*.java'
+        exclude '.git'
+    }
+
+    ant.replace(file: destDir.path+'/src/main/java/org/mapdb/CC.java', token: 'boolean PARANOID = false;', value: 'boolean PARANOID = true;')
+    ant.replace(file: destDir.path+'/src/main/java/org/mapdb/CC.java', token: 'boolean LOG_FINE = false;', value: 'boolean LOG_FINE = true;')
     gitAndRelease(destDir)
 }
 
@@ -146,5 +202,9 @@ task(release_nounsafe) << {
 task (release) << {
     println 'DONE'
 }
+
+release.dependsOn release_this
 release.dependsOn release_renamed
 release.dependsOn release_nounsafe
+release.dependsOn release_noassert
+release.dependsOn release_debug
