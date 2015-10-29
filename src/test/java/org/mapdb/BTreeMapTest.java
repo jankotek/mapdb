@@ -632,8 +632,8 @@ public class BTreeMapTest{
             int max = i*100;
             File f = TT.tempDbFile();
             DB db = DBMaker.fileDB(f)
+                    .transactionDisable()
                     .fileMmapEnableIfSupported()
-                    .deleteFilesAfterClose()
                     .make();
             Map m = db
                     .treeMapCreate("map")
@@ -649,8 +649,8 @@ public class BTreeMapTest{
             db.close();
             db = DBMaker.fileDB(f)
                     .deleteFilesAfterClose()
-                    .fileMmapEnableIfSupported()
                     .transactionDisable()
+                    .fileMmapEnableIfSupported()
                     .make();
             m = db.treeMap("map");
 
