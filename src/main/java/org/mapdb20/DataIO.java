@@ -236,78 +236,62 @@ public final class DataIO {
     public static final long PACK_LONG_RESULT_MASK = 0xFFFFFFFFFFFFFFFL;
 
 
-    public static int packLongBidi(DataOutput out, long value) throws IOException {
-        out.write((((int) value & 0x7F)) | 0x80);
-        value >>>= 7;
-        int counter = 2;
-
+    /**
+     * Pack long into output.
+     * It will occupy 1-10 bytes depending on value (lower values occupy smaller space)
+     *
+     * @param b byte[] to put value into
+     * @param pos array index where value will start
+     * @param value to be serialized, must be non-negative
+     *
+     * @return number of bytes written
+     */
+    public static int packLongBidi(byte[] b, int pos, long value) {
         //$DELAY$
-        while ((value & ~0x7FL) != 0) {
-            out.write((((int) value & 0x7F)));
-            value >>>= 7;
+        int ret = 0;
+        int shift = 63-Long.numberOfLeadingZeros(value);
+        shift -= shift%7; // round down to nearest multiple of 7
+        while(shift!=0){
+            b[pos+(ret++)]=((byte) (((value>>>shift) & 0x7F)));
             //$DELAY$
-            counter++;
+            shift-=7;
         }
-        //$DELAY$
-        out.write((byte) value| 0x80);
-        return counter;
+        b[pos+(ret++)]=((byte) ((value & 0x7F) | 0x80));
+        return ret;
     }
 
-    public static int packLongBidi(byte[] buf, int pos, long value) {
-        buf[pos++] = (byte) ((((int) value & 0x7F))| 0x80);
-        value >>>= 7;
-        int counter = 2;
+    /**
+     * Unpack long value. Highest 4 bits sed to indicate number of bytes read.
+     * One can use {@code result & DataIO.PACK_LONG_RESULT_MASK} to remove size.
+     * This method uses reverse bit flag, which is not compatible with other methods.
+     *
+     * @param b byte[] to get data from
+     * @param pos position to get data from
+     * @return long value with highest 4 bits used to indicate number of bytes read
+     */
+    public static long unpackLongBidi(byte[] b, int pos){
+        long ret = 0;
+        int pos2 = 0;
+        byte v;
+        do{
+            v = b[pos + (pos2++)];
+            ret = (ret<<7 ) | (v & 0x7F);
+        }while(v>=0);
 
-        //$DELAY$
-        while ((value & ~0x7FL) != 0) {
-            buf[pos++] = (byte) (((int) value & 0x7F));
-            value >>>= 7;
-            //$DELAY$
-            counter++;
+        return (((long)pos2)<<60) | ret;
+    }
+
+
+    public static long unpackLongBidiReverse(byte[] bb, int pos, int limit){
+        if(CC.ASSERT && pos==limit)
+            throw new AssertionError();
+        //find new position
+        int pos2 = pos-2;
+        while(pos2>=limit && (bb[pos2]&0x80)==0){
+            pos2--;
         }
-        //$DELAY$
-        buf[pos++] = (byte) ((byte) value| 0x80);
-        return counter;
-    }
-
-
-    public static long unpackLongBidi(byte[] bb, int pos){
-        //$DELAY$
-        long b = bb[pos++];
-        if(CC.ASSERT && (b&0x80)==0)
-            throw new DBException.DataCorruption("long pack bidi wrong header");
-        long result = (b & 0x7F) ;
-        int offset = 7;
-        do {
-            //$DELAY$
-            b = bb[pos++];
-            result |= (b & 0x7F) << offset;
-            if(CC.ASSERT && offset>64)
-                throw new DBException.DataCorruption("long pack bidi too long");
-            offset += 7;
-        }while((b & 0x80) == 0);
-        //$DELAY$
-        return (((long)(offset/7))<<60) | result;
-    }
-
-
-    public static long unpackLongBidiReverse(byte[] bb, int pos){
-        //$DELAY$
-        long b = bb[--pos];
-        if(CC.ASSERT && (b&0x80)==0)
-            throw new DBException.DataCorruption("long pack bidi wrong header");
-        long result = (b & 0x7F) ;
-        int counter = 1;
-        do {
-            //$DELAY$
-            b = bb[--pos];
-            result = (b & 0x7F) | (result<<7);
-            if(CC.ASSERT && counter>8)
-                throw new DBException.DataCorruption("long pack bidi too long");
-            counter++;
-        }while((b & 0x80) == 0);
-        //$DELAY$
-        return (((long)counter)<<60) | result;
+        pos2++;
+        return unpackLongBidi(bb, pos2);
     }
 
     public static long getLong(byte[] buf, int pos) {
@@ -381,6 +365,14 @@ public final class DataIO {
     
     public static void skipFully(InputStream in, long length) throws IOException {
         while ((length -= in.skip(length)) > 0);
+    }
+
+    public static long fillLowBits(int bitCount) {
+        long ret = 0;
+        for(;bitCount>0;bitCount--){
+            ret = (ret<<1)|1;
+        }
+        return ret;
     }
 
 

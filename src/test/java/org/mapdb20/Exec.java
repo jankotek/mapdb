@@ -1,6 +1,5 @@
 package org.mapdb20;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 
@@ -13,7 +12,7 @@ public class Exec {
         ExecutorService s = Executors.newFixedThreadPool(n);
         final CountDownLatch wait = new CountDownLatch(n);
 
-        List<Future> f = new ArrayList();
+        List<Future> f = new CopyOnWriteArrayList<Future>();
 
         Runnable r2 = new Runnable(){
 
@@ -39,13 +38,17 @@ public class Exec {
 
         s.shutdown();
 
-        for(Future ff:f){
-            try {
-                ff.get();
-            } catch (Exception e) {
-                throw new Error(e);
+        while(!f.isEmpty()) {
+            for (Future ff : f) {
+                try {
+                    ff.get(1, TimeUnit.SECONDS);
+                    f.remove(ff);
+                } catch (TimeoutException e) {
+                    //ignored
+                } catch (Exception e) {
+                    throw new AssertionError(e);
+                }
             }
         }
-
     }
 }

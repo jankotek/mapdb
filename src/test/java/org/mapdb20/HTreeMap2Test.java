@@ -11,6 +11,7 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.*;
@@ -88,7 +89,7 @@ public class HTreeMap2Test {
 
         Engine[] engines = HTreeMap.fillEngineArray(engine);
         HTreeMap m = new HTreeMap(engines,
-                false, null,0,HTreeMap.preallocateSegments(engines),Serializer.BASIC, Serializer.BASIC,0,0,0,0,0,null,null,null, null, 0L,false, null);
+                false, null,0,HTreeMap.preallocateSegments(engines),Serializer.BASIC, Serializer.BASIC,0,0,0,0,0,0,null,null,null, null, 0L,false, null);
 
         m.put(111L, 222L);
         m.put(333L, 444L);
@@ -105,7 +106,7 @@ public class HTreeMap2Test {
     @Test public void test_hash_collision(){
         Engine[] engines = HTreeMap.fillEngineArray(engine);
         HTreeMap m = new HTreeMap(engines,
-                false, null,0,HTreeMap.preallocateSegments(engines),Serializer.BASIC, Serializer.BASIC,0,0,0,0,0,null,null,null,null, 0L,false, null){
+                false, null,0,HTreeMap.preallocateSegments(engines),Serializer.BASIC, Serializer.BASIC,0,0,0,0,0,0,null,null,null,null, 0L,false, null){
             @Override
             protected int hash(Object key) {
                 return 0;
@@ -128,7 +129,7 @@ public class HTreeMap2Test {
     @Test public void test_hash_dir_expand(){
         Engine[] engines = HTreeMap.fillEngineArray(engine);
         HTreeMap m = new HTreeMap(engines,
-                false, null,0,HTreeMap.preallocateSegments(engines),Serializer.BASIC, Serializer.BASIC,0,0,0,0,0,null,null,null,null, 0L,false, null){
+                false, null,0,HTreeMap.preallocateSegments(engines),Serializer.BASIC, Serializer.BASIC,0,0,0,0,0,0,null,null,null,null, 0L,false, null){
             @Override
             protected int hash(Object key) {
                 return 0;
@@ -206,7 +207,7 @@ public class HTreeMap2Test {
     @Test public void test_delete(){
         Engine[] engines = HTreeMap.fillEngineArray(engine);
         HTreeMap m = new HTreeMap(engines,
-                false, null,0,HTreeMap.preallocateSegments(engines),Serializer.BASIC, Serializer.BASIC,0,0,0,0,0,null,null,null,null,0L, false,null){
+                false, null,0,HTreeMap.preallocateSegments(engines),Serializer.BASIC, Serializer.BASIC,0,0,0,0,0,0,null,null,null,null,0L, false,null){
             @Override
             protected int hash(Object key) {
                 return 0;
@@ -236,7 +237,7 @@ public class HTreeMap2Test {
     @Test public void clear(){
         Engine[] engines = HTreeMap.fillEngineArray(engine);
         HTreeMap m = new HTreeMap(engines,
-                false, null,0,HTreeMap.preallocateSegments(engines),Serializer.BASIC, Serializer.BASIC,0,0,0,0,0,null,null,null,null, 0L,false,null);
+                false, null,0,HTreeMap.preallocateSegments(engines),Serializer.BASIC, Serializer.BASIC,0,0,0,0,0,0,null,null,null,null, 0L,false,null);
         for(Integer i=0;i<100;i++){
             m.put(i,i);
         }
@@ -252,7 +253,7 @@ public class HTreeMap2Test {
 
         Engine[] engines = HTreeMap.fillEngineArray(engine);
         HTreeMap m = new HTreeMap(engines,
-                false, null,0,HTreeMap.preallocateSegments(engines),Serializer.BASIC,Serializer.BASIC,0,0,0,0,0,null,null,null,null,0L, false,null){
+                false, null,0,HTreeMap.preallocateSegments(engines),Serializer.BASIC,Serializer.BASIC,0,0,0,0,0,0,null,null,null,null,0L, false,null){
             @Override
             protected int hash(Object key) {
                 return (Integer) key;
@@ -1188,6 +1189,46 @@ public class HTreeMap2Test {
         assertTrue(m.containsAll(m2));
     }
 
+
+    @Test public void valueCreator(){
+        Map<Integer,Integer> m = DBMaker.memoryDB().transactionDisable().make().hashMapCreate("map")
+                .valueCreator(new Fun.Function1<Integer, Integer>() {
+                    @Override
+                    public Integer run(Integer integer) {
+                        return integer * 100;
+                    }
+                }).make();
+
+        m.put(1,1);
+        m.put(2,2);
+        m.put(3, 3);
+
+        assertEquals(new Integer(1), m.get(1));
+        assertEquals(new Integer(500), m.get(5));
+    }
+
+    @Test public void valueCreator_not_executed(){
+        final AtomicLong c = new AtomicLong();
+
+        Map<Integer,Integer> m = DBMaker.memoryDB().transactionDisable().make().hashMapCreate("map")
+                .valueCreator(new Fun.Function1<Integer, Integer>() {
+                    @Override
+                    public Integer run(Integer integer) {
+                        c.incrementAndGet();
+                        return integer*100;
+                    }
+                }).make();
+
+        m.put(1,1);
+        m.put(2,2);
+        m.put(3,3);
+
+        assertEquals(0, c.get());
+        assertEquals(new Integer(1), m.get(1));
+        assertEquals(0, c.get());
+        assertEquals(new Integer(500), m.get(5));
+        assertEquals(1,c.get());
+    }
 }
 
 

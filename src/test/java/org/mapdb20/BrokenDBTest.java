@@ -34,9 +34,9 @@ public class BrokenDBTest {
         try {
             DBMaker.fileDB(index).make();
             Assert.fail("Expected exception not thrown");
-        } catch (final DBException.DataCorruption e) {
+        } catch (final DBException.WrongConfig e) {
             // will fail!
-            Assert.assertTrue("Wrong message", e.getMessage().contains("wrong header in file"));
+            Assert.assertTrue("Wrong message", e.getMessage().contains("This is not MapDB file"));
         }
 
         index.delete();

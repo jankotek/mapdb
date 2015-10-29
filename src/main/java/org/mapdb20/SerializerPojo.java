@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Logger;
 
 /**
  * Serializer which handles POJO, object graphs etc.
@@ -32,6 +33,14 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class SerializerPojo extends SerializerBase implements Serializable{
 
+    private static final Logger LOG = Logger.getLogger(SerializerPojo.class.getName());
+
+    static{
+        String ver = System.getProperty("java.version");
+        if(ver!=null && ver.toLowerCase().contains("jrockit")){
+            LOG.warning("POJO serialization might not work on JRockit JVM. See https://github.com/jankotek/mapdb/issues/572");
+        }
+    }
 
     protected final Serializer<ClassInfo> classInfoSerializer = new Serializer<ClassInfo>() {
 
@@ -346,7 +355,10 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         } catch (NoSuchMethodException e) {
         }
 
-        return false;
+        Class su = clazz.getSuperclass();
+        if(su==Object.class || su==null)
+            return false;
+        return usesAdvancedSerialization(su);
     }
 
 

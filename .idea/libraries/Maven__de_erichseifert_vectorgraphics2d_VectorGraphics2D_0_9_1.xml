@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: de.erichseifert.vectorgraphics2d:VectorGraphics2D:0.9.1">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/de/erichseifert/vectorgraphics2d/VectorGraphics2D/0.9.1/VectorGraphics2D-0.9.1.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$MAVEN_REPOSITORY$/de/erichseifert/vectorgraphics2d/VectorGraphics2D/0.9.1/VectorGraphics2D-0.9.1-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$MAVEN_REPOSITORY$/de/erichseifert/vectorgraphics2d/VectorGraphics2D/0.9.1/VectorGraphics2D-0.9.1-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

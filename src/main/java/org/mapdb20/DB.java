@@ -65,6 +65,7 @@ public class DB implements Closeable {
         String expireStoreSize = ".expireStoreSize";
         String expireHeads = ".expireHeads";
         String expireTails = ".expireTails";
+        String expireTick = ".expireTick";
         String expireTimeStart = ".expireTimeStart";
 
         String rootRecidRef = ".rootRecidRef";
@@ -316,6 +317,7 @@ public class DB implements Closeable {
         protected long expire = 0L;
         protected long expireAccess = 0L;
         protected long expireStoreSize;
+        protected long expireTick = 1000L;
         protected Bind.MapWithModificationListener ondisk;
         protected boolean ondiskOverwrite;
 
@@ -359,6 +361,15 @@ public class DB implements Closeable {
             this.counter = true;
             return this;
         }
+
+        /** Calling expiration cleanup too often reduces performance. This is minimal interval between cleanups. Larger value could cause OutOfMemoryError if values are not released fast enough. Default value is 1000ms
+         * @param expireTick minimal time between   expiration cleanup in milliseconds
+         * @return this */
+        public HTreeMapMaker expireTick(long expireTick){
+            this.expireTick = expireTick;
+            return this;
+        }
+
 
         /** Specifies that each entry should be automatically removed from the map once a fixed duration has elapsed after the entry's creation, or the most recent replacement of its value.  */
         public HTreeMapMaker expireAfterWrite(long interval, TimeUnit timeUnit){
@@ -499,6 +510,7 @@ public class DB implements Closeable {
         protected long expireStoreSize = 0L;
         protected long expire = 0L;
         protected long expireAccess = 0L;
+        protected long expireTick = 1000L;
 
         protected Iterator pumpSource;
         protected int pumpPresortBatchSize = (int) 1e7;
@@ -558,6 +570,15 @@ public class DB implements Closeable {
             this.expireAccess = interval;
             return this;
         }
+
+        /** Calling expiration cleanup too often reduces performance. This is minimal interval between cleanups. Larger value could cause OutOfMemoryError if values are not released fast enough. Default value is 1000ms
+         * @param expireTick minimal time between   expiration cleanup in milliseconds
+         * @return this */
+        public HTreeSetMaker expireTick(long expireTick){
+            this.expireTick = expireTick;
+            return this;
+        }
+
 
 
         public HTreeSetMaker pumpSource(Iterator<?> source){
@@ -724,6 +745,7 @@ public class DB implements Closeable {
                 catGet(name+Keys.expireAccess,0L),
                 catGet(name+Keys.expireMaxSize,0L),
                 catGet(name+Keys.expireStoreSize,0L),
+                catGet(name+Keys.expireTick,0L),
                 (long[])catGet(name+Keys.expireHeads,null),
                 (long[])catGet(name+Keys.expireTails,null),
                 valueCreator,
@@ -794,7 +816,7 @@ public class DB implements Closeable {
         String name = m.name;
         checkNameNotExists(name);
         //$DELAY$
-        long expireTimeStart=0, expire=0, expireAccess=0, expireMaxSize = 0, expireStoreSize=0;
+        long expireTimeStart=0, expire=0, expireAccess=0, expireMaxSize = 0, expireStoreSize=0, expireTick=0;
         long[] expireHeads=null, expireTails=null;
 
 
@@ -817,6 +839,7 @@ public class DB implements Closeable {
             expireAccess = catPut(name+Keys.expireAccess,m.expireAccess);
             expireMaxSize = catPut(name+Keys.expireMaxSize,m.expireMaxSize);
             expireStoreSize = catPut(name+Keys.expireStoreSize,m.expireStoreSize);
+            expireTick = catPut(name+Keys.expireTick,m.expireTick);
             //$DELAY$
             expireHeads = new long[HTreeMap.SEG];
             expireTails = new long[HTreeMap.SEG];
@@ -856,7 +879,8 @@ public class DB implements Closeable {
                 catPut(name+Keys.segmentRecids,HTreeMap.preallocateSegments(m.engines)),
                 (Serializer<K>)m.keySerializer,
                 (Serializer<V>)m.valueSerializer,
-                expireTimeStart,expire,expireAccess,expireMaxSize, expireStoreSize, expireHeads ,expireTails,
+                expireTimeStart,expire,expireAccess,expireMaxSize, expireStoreSize, expireTick,
+                expireHeads ,expireTails,
                 (Fun.Function1<V, K>) m.valueCreator,
                 m.executor,
                 m.executorPeriod,
@@ -964,6 +988,7 @@ public class DB implements Closeable {
                 catGet(name+Keys.expireAccess,0L),
                 catGet(name+Keys.expireMaxSize,0L),
                 catGet(name+Keys.expireStoreSize,0L),
+                catGet(name+Keys.expireTick,0L),
                 (long[])catGet(name+Keys.expireHeads,null),
                 (long[])catGet(name+Keys.expireTails,null),
                 null,
@@ -999,7 +1024,7 @@ public class DB implements Closeable {
         String name = m.name;
         checkNameNotExists(name);
 
-        long expireTimeStart=0, expire=0, expireAccess=0, expireMaxSize = 0, expireStoreSize = 0;
+        long expireTimeStart=0, expire=0, expireAccess=0, expireMaxSize = 0, expireStoreSize = 0, expireTick = 0;
         long[] expireHeads=null, expireTails=null;
 
         if(m.expire!=0 || m.expireAccess!=0 || m.expireMaxSize !=0){
@@ -1008,6 +1033,7 @@ public class DB implements Closeable {
             expireAccess = catPut(name+Keys.expireAccess,m.expireAccess);
             expireMaxSize = catPut(name+Keys.expireMaxSize,m.expireMaxSize);
             expireStoreSize = catPut(name+Keys.expireStoreSize,m.expireStoreSize);
+            expireTick = catPut(name+Keys.expireTick,m.expireTick);
             expireHeads = new long[HTreeMap.SEG];
             //$DELAY$
             expireTails = new long[HTreeMap.SEG];
@@ -1042,7 +1068,7 @@ public class DB implements Closeable {
                 catPut(name+Keys.segmentRecids,HTreeMap.preallocateSegments(engines)),
                 (Serializer)m.serializer,
                 null,
-                expireTimeStart,expire,expireAccess,expireMaxSize, expireStoreSize, expireHeads ,expireTails,
+                expireTimeStart,expire,expireAccess,expireMaxSize, expireStoreSize, expireTick, expireHeads ,expireTails,
                 null,
                 m.executor,
                 m.executorPeriod,

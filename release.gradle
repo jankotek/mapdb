@@ -69,16 +69,18 @@ task(release) << {
         workingDir destDir
     }
 
+    exec{
+        commandLine 'mvn'
+        args 'clean','test','-DthreadCount=4'//,'release:prepare','release:perform'
+        workingDir destDir
+    }
+
+
     exec {
         commandLine 'git'
         args 'push'
         workingDir destDir
     }
 
-/*    exec{
-        commandLine 'mvn'
-        args 'clean','test','release:prepare','release:perform'
-        workingDir destDir
-    }
-  */
+
 }

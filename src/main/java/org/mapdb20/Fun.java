@@ -88,6 +88,10 @@ public final class Fun {
         return ((number+roundUpToMultipleOf-1)/(roundUpToMultipleOf))*roundUpToMultipleOf;
     }
 
+    public static long roundDown(long number, long roundDownToMultipleOf) {
+        return number  - number % roundDownToMultipleOf;
+    }
+
     /** Convert object to string, even if it is primitive array */
     static String toString(Object keys) {
         if(keys instanceof long[])
@@ -108,6 +112,14 @@ public final class Fun {
             return Arrays.toString((Object[]) keys);
         else
             return keys.toString();
+    }
+
+    public static boolean arrayContains(long[] longs, long val) {
+        for(long val2:longs){
+            if(val==val2)
+                return true;
+        }
+        return false;
     }
 
     static public final class Pair<A,B> implements Comparable<Pair<A,B>>, Serializable {

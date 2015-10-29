@@ -10,7 +10,6 @@ import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
-import java.util.logging.Level;
 
 /**
  * append only store
@@ -24,22 +23,15 @@ public class StoreAppend extends Store {
     protected static final int HEADER = (0xAB3D<<16) | STORE_VERSION;
 
 
-    protected static final int I_UPDATE = 1;
-    protected static final int I_INSERT = 3;
-    protected static final int I_DELETE = 2;
-    protected static final int I_PREALLOC = 4;
-    protected static final int I_SKIP_SINGLE_BYTE = 6;
-    protected static final int I_SKIP_MULTI_BYTE = 7;
-
-    protected static final int I_TX_VALID = 8;
-    protected static final int I_TX_ROLLBACK = 9;
-
     protected static final long headerSize = 16;
 
     protected static final StoreAppend[] STORE_APPENDS_ZERO_ARRAY = new StoreAppend[0];
 
 
-    protected Volume vol;
+    protected WriteAheadLog wal;
+
+    protected Volume headVol;
+
 
     /**
      * In memory table which maps recids into their offsets. Positive values are offsets.
@@ -56,8 +48,6 @@ public class StoreAppend extends Store {
     //TODO this is in-memory, move to temporary file or something
     protected Volume indexTable;
 
-    //guarded by StructuralLock
-    protected long eof = 0;
     protected final AtomicLong highestRecid = new AtomicLong(0);
     protected final boolean tx;
 
@@ -89,7 +79,7 @@ public class StoreAppend extends Store {
                           ScheduledExecutorService compactionExecutor,
                           long startSize,
                           long sizeIncrement
-                    ) {
+    ) {
         super(fileName, volumeFactory, cache, lockScale,lockingStrategy, checksum, compress, password, readonly,
                 snapshotEnable,fileLockDisable, fileLockHeartbeat);
         this.tx = !txDisabled;
@@ -144,7 +134,8 @@ public class StoreAppend extends Store {
                 null);
 
         indexTable = host.indexTable;
-        vol = host.vol;
+        this.wal = host.wal;
+
 
         //replace locks, so reads on snapshots are not performed while host is updated
         for(int i=0;i<locks.length;i++){
@@ -183,12 +174,15 @@ public class StoreAppend extends Store {
         super.init();
         structuralLock.lock();
         try {
-            boolean empty = Volume.isEmptyFile(fileName);
+            boolean empty = Volume.isEmptyFile(fileName+".wal.0"); //TODO do not use file name
 
-            vol = volumeFactory.makeVolume(fileName, readonly,fileLockDisable,sliceShift, startSize, false);
+            wal = new WriteAheadLog(fileName, volumeFactory, makeFeaturesBitmap());
+
+//            vol = volumeFactory.makeVolume(fileName, readonly,fileLockDisable,sliceShift, startSize, false);
+//            eof = headerSize;
             indexTable = new Volume.ByteArrayVol(CC.VOLUME_PAGE_SHIFT,0L);
             indexTable.ensureAvailable(RECID_LAST_RESERVED*8);
-            eof = headerSize;
+
             for (int i = 0; i <= RECID_LAST_RESERVED; i++) {
                 indexTable.ensureAvailable(i * 8);
                 indexTable.putLong(i * 8, -3);
@@ -205,134 +199,95 @@ public class StoreAppend extends Store {
     }
 
     protected void initCreate() {
-        vol.ensureAvailable(headerSize);
-
+        headVol = volumeFactory.makeVolume(fileName, false,true);
+        headVol.ensureAvailable(16);
+        headVol.putInt(0,HEADER);
+        headVol.putLong(8, makeFeaturesBitmap());
+        headVol.sync();
+        wal.open(WriteAheadLog.NOREPLAY);
+//        wal.startNextFile();
+        for(long recid=1;recid<=Store.RECID_LAST_RESERVED;recid++){
+            wal.walPutPreallocate(recid);
+        }
+        wal.commit();
+//        wal.seal();
+//        wal.startNextFile();
         highestRecid.set(RECID_LAST_RESERVED);
-        vol.putInt(0,HEADER);
-        long feat = makeFeaturesBitmap();
-        vol.putLong(HEAD_FEATURES, feat);
-        vol.sync();
+
+//        vol.ensureAvailable(headerSize);
+//
+//        vol.putInt(0,HEADER);
+//        long feat = makeFeaturesBitmap();
+//        vol.putLong(HEAD_FEATURES, feat);
+//        vol.sync();
     }
 
     protected void initOpen() {
-        if (!readonly)
-            vol.ensureAvailable(headerSize);
-
-        checkFeaturesBitmap(vol.getLong(HEAD_FEATURES));
-
-        //replay log
-        long pos = headerSize;
-        final long volumeSize = vol.length();
-        long lastValidPos= pos;
-        long lastValidCommitOffset = 0;
-        long highestRecid2 = RECID_LAST_RESERVED;
-        LongLongMap commitData = tx?new LongLongMap():null;
-
-        try{
-
-            while(true) {
-                lastValidPos = pos;
-                if(pos>=volumeSize)
-                    break;
-                final long instPos = pos;
-                final int inst = vol.getUnsignedByte(pos++);
-
-                if (inst == I_INSERT || inst == I_UPDATE) {
-
-                    long recid = vol.getPackedLong(pos);
-                    pos += recid>>>60;
-                    recid =  longParityGet(recid & DataIO.PACK_LONG_RESULT_MASK);
-
-                    highestRecid2 = Math.max(highestRecid2, recid);
-
-                    commitData.put(recid, instPos);
-
-                    //skip rest of the record
-                    long size = vol.getPackedLong(pos);
-                    long dataLen = longParityGet(size & DataIO.PACK_LONG_RESULT_MASK) - 1;
-                    dataLen = Math.max(0,dataLen);
-                    pos = pos + (size>>>60) + dataLen;
-                } else if (inst == I_DELETE) {
-                    long recid = vol.getPackedLong(pos);
-                    pos += recid>>>60;
-                    recid =  longParityGet(recid & DataIO.PACK_LONG_RESULT_MASK);
-
-                    highestRecid2 = Math.max(highestRecid2, recid);
-
-                    commitData.put(recid, -1);
-
-                } else if (inst == I_SKIP_SINGLE_BYTE) {
-                    //do nothing, just skip single byte
-                } else if (inst == I_SKIP_MULTI_BYTE) {
-                    //read size and skip it
-                    //skip rest of the record
-                    long size = vol.getPackedLong(pos);
-                    pos += (size>>>60) + longParityGet(size & DataIO.PACK_LONG_RESULT_MASK);
-                } else if (inst == I_TX_VALID) {
-                    if (tx){
-                        lastValidCommitOffset = pos;
-                        //apply changes from commitData to indexTable
-                        for(int i=0;i<commitData.table.length;i+=2){
-                            long recidOffset = commitData.table[i]*8;
-                            if(recidOffset==0)
-                                continue;
-                            indexTable.ensureAvailable(recidOffset + 8);
-                            indexTable.putLong(recidOffset, commitData.table[i+1]);
-                        }
-                        commitData.clear();
-                    }
-                } else if (inst == I_TX_ROLLBACK) {
-                    if (tx) {
-                        commitData.clear();
-                    }
-                } else if (inst == 0) {
-                    //rollback last changes if that is necessary
-                    if (tx) {
-                        //rollback changes in index table since last valid tx
-                        commitData.clear();
-                    }
-
-                    break;
-                } else {
-                    //TODO log here?
-                    LOG.warning("Unknown instruction " + inst);
-                    break;
-                }
-            }
-        }catch (RuntimeException e){
-            //log replay failed for some reason
-            if(tx) {
-                LOG.log(Level.WARNING, "Log corrupted, most likely last TX was not committed. " +
-                        "Rolling back to last valid commit at offset: "+lastValidCommitOffset,e);
-
-                //rollback changes in index table since last valid tx
-                commitData.clear();
-            }else{
-                LOG.warning("AppendStore has transactions disabled, which means no crash protection. Data corruption at offset: "+pos);
-                //TODO data recovery possible, but needs documentation and tooling. For now just hard fail.
-                throw e;
-            }
-
+        headVol = volumeFactory.makeVolume(fileName, false,true);
+        if(headVol.getInt(0)!=HEADER){
+            //TODO handle version numbers
+            throw new DBException.DataCorruption("Wrong header at:"+fileName);
         }
-        eof = lastValidPos;
 
-        highestRecid.set(highestRecid2);
-    }
+        long featuresBitMap = headVol.getLong(8);
+        checkFeaturesBitmap(featuresBitMap);
 
-    protected long alloc(int headSize, int totalSize){
-        structuralLock.lock();
-        try{
-            while(eof/StoreDirect.PAGE_SIZE != (eof+headSize)/StoreDirect.PAGE_SIZE){
-                //add skip instructions
-                vol.ensureAvailable(eof+1);
-                vol.putUnsignedByte(eof++, I_SKIP_SINGLE_BYTE);
+        final AtomicLong highestRecid2 = new AtomicLong(RECID_LAST_RESERVED);
+
+        final WriteAheadLog.WALReplay replay = new WriteAheadLog.WALReplay() {
+            @Override
+            public void beforeReplayStart() {
+
             }
-            long ret = eof;
-            eof+=totalSize;
-            return ret;
-        }finally {
-            structuralLock.unlock();
-        }
+
+            @Override
+            public void writeLong(long offset, long value) {
+                throw new DBException.DataCorruption();
+            }
+
+            @Override
+            public void writeByteArray(long offset, long walId, Volume vol, long volOffset, int length) {
+                throw new DBException.DataCorruption();
+            }
+
+            @Override
+            public void writeRecord(long recid, long walId, Volume vol, long volOffset, int length) {
+                highestRecid2.set(Math.max(highestRecid2.get(),recid));
+                long recidOffset = recid*8;
+                indexTable.ensureAvailable(recidOffset + 8);
+                indexTable.putLong(recidOffset, walId);
+            }
+
+            @Override
+            public void beforeDestroyWAL() {
+
+            }
+
+            @Override
+            public void commit() {
+
+            }
+
+            @Override
+            public void rollback() {
+                throw new DBException.DataCorruption();
+            }
+
+            @Override
+            public void writeTombstone(long recid) {
+                indexTable.ensureAvailable(recid*8+8);
+                indexTable.putLong(recid*8,-1);
+            }
+
+            @Override
+            public void writePreallocate(long recid) {
+                indexTable.ensureAvailable(recid*8+8);
+                indexTable.putLong(recid*8,-3);
+            }
+        };
+        wal.open(replay);
+
+        highestRecid.set(highestRecid2.get());
     }
 
     @Override
@@ -340,61 +295,29 @@ public class StoreAppend extends Store {
         if(CC.ASSERT)
             assertReadLocked(recid);
 
-        long offset = tx?
+        long walId= tx?
                 modified[lockPos(recid)].get(recid):
                 0;
-        if(offset==0) {
+        if(walId==0) {
             try {
-                offset = indexTable.getLong(recid * 8);
+                walId = indexTable.getLong(recid * 8);
             } catch (ArrayIndexOutOfBoundsException e) {
                 //TODO this code should be aware if indexTable internals?
                 throw new DBException.EngineGetVoid();
             }
         }
 
-        if(offset==-3||offset==-1) //null, preallocated or deleted
-            return null;
-        if(offset == 0){ //non existent
+        if(walId==0){
             throw new DBException.EngineGetVoid();
         }
-        if(offset == -2){
-            //zero size record
-            return deserialize(serializer,0,new DataIO.DataInputByteArray(new byte[0]));
-        }
+        if(walId==-1||walId==-3)
+            return null;
 
-        final long packedRecidSize = DataIO.packLongSize(longParitySet(recid));
-
-        if(CC.ASSERT){
-            int instruction = vol.getUnsignedByte(offset);
-
-            if(instruction!= I_UPDATE && instruction!= I_INSERT)
-                throw new DBException.DataCorruption("wrong instruction "+instruction);
-
-            long recid2 = vol.getPackedLong(offset+1);
-
-            if(packedRecidSize!=recid2>>>60)
-                throw new DBException.DataCorruption("inconsistent recid len");
-
-            recid2 = longParityGet(recid2&DataIO.PACK_LONG_RESULT_MASK);
-            if(recid!=recid2)
-                throw new DBException.DataCorruption("recid does not match");
-        }
-
-        offset += 1 + //instruction size
-                packedRecidSize; // recid size
-
-
-        //read size
-        long size = vol.getPackedLong(offset);
-        offset+=size>>>60;
-        size = longParityGet(size & DataIO.PACK_LONG_RESULT_MASK);
-
-        size -= 1; //normalize size
-        if(CC.ASSERT && size<=0)
-            throw new DBException.DataCorruption("wrong size");
-
-        DataInput input = vol.getDataInputOverlap(offset, (int) size);
-        return deserialize(serializer, (int) size, input);
+        byte[] b = wal.walGetRecord(walId,recid);
+        if(b==null)
+            return null;
+        DataInput input = new DataIO.DataInputByteArray(b);
+        return deserialize(serializer, b.length, input);
     }
 
     @Override
@@ -408,30 +331,8 @@ public class StoreAppend extends Store {
 
         //TODO assert indexTable state, record should already exist/not exist
 
-        final int realSize = out==null ? 0: out.pos;
-        final int shiftedSize = out==null ?0 : realSize+1;  //one additional state to indicate null
-        final int headSize = 1 +  //instruction
-                DataIO.packLongSize(longParitySet(recid)) + //recid
-                DataIO.packLongSize(longParitySet(shiftedSize));   //length
-
-        long offset = alloc(headSize, headSize+realSize);
-        final long origOffset = offset;
-        //ensure available worst case scenario
-        vol.ensureAvailable(offset+headSize+realSize);
-        //instruction
-        vol.putUnsignedByte(offset, isInsert ? I_INSERT : I_UPDATE);
-        offset++;
-        //recid
-        offset+=vol.putPackedLong(offset,longParitySet(recid));
-        //size
-        offset+=vol.putPackedLong(offset,longParitySet(shiftedSize));
-
-        if(realSize!=0)
-            vol.putDataOverlap(offset, out.buf,0,out.pos);
-
-        // -3 is null record
-        // -2 is zero size record
-        indexTablePut(recid, out==null? -3 : (realSize==0) ? -2:origOffset);
+        long walId = wal.walPutRecord(recid, out==null?null:out.buf, 0, out==null?0:out.pos);
+        indexTablePut(recid, walId);
     }
 
     @Override
@@ -439,13 +340,7 @@ public class StoreAppend extends Store {
         if(CC.ASSERT)
             assertWriteLocked(lockPos(recid));
 
-        final int headSize = 1 + DataIO.packLongSize(longParitySet(recid));
-        long offset = alloc(headSize,headSize);
-        vol.ensureAvailable(offset + headSize);
-
-        vol.putUnsignedByte(offset, I_DELETE); //delete instruction
-        offset++;
-        vol.putPackedLong(offset,longParitySet(recid));
+        wal.walPutTombstone(recid);
 
         indexTablePut(recid, -1); // -1 is deleted record
     }
@@ -462,7 +357,7 @@ public class StoreAppend extends Store {
 
     @Override
     public boolean fileLoad() {
-        return vol.fileLoad();
+        return wal.fileLoad();
     }
 
     @Override
@@ -471,14 +366,7 @@ public class StoreAppend extends Store {
         Lock lock = locks[lockPos(recid)].writeLock();
         lock.lock();
         try{
-            final int headSize = 1 + DataIO.packLongSize(longParitySet(recid));
-            long offset = alloc(headSize,headSize);
-            vol.ensureAvailable(offset + headSize);
-
-            vol.putUnsignedByte(offset, I_PREALLOC);
-            offset++;
-            vol.putPackedLong(offset, longParitySet(recid));
-
+            wal.walPutPreallocate(recid);
             indexTablePut(recid,-3);
         }finally {
             lock.unlock();
@@ -487,12 +375,12 @@ public class StoreAppend extends Store {
         return recid;
     }
 
-    protected void indexTablePut(long recid, long offset) {
+    protected void indexTablePut(long recid, long walId) {
         if(tx){
-            modified[lockPos(recid)].put(recid,offset);
+            modified[lockPos(recid)].put(recid,walId);
         }else {
             indexTable.ensureAvailable(recid*8+8);
-            indexTable.putLong(recid * 8, offset);
+            indexTable.putLong(recid * 8, walId);
         }
     }
 
@@ -531,9 +419,14 @@ public class StoreAppend extends Store {
                 return;
             }
 
-            vol.sync();
-            vol.close();
+            if(!readonly) {
+                if (tx)
+                    wal.rollback();
+                wal.seal();
+            }
+            wal.close();
             indexTable.close();
+            headVol.close();
 
             if(caches!=null){
                 for(Cache c:caches){
@@ -557,7 +450,7 @@ public class StoreAppend extends Store {
             return;
 
         if(!tx){
-            vol.sync();
+            wal.commit();
             return;
         }
 
@@ -593,9 +486,8 @@ public class StoreAppend extends Store {
                     lock.unlock();
                 }
             }
-            long offset = alloc(1,1);
-            vol.putUnsignedByte(offset,I_TX_VALID);
-            vol.sync();
+            wal.commit();
+
         }finally {
             commitLock.unlock();
         }
@@ -616,9 +508,7 @@ public class StoreAppend extends Store {
                     lock.unlock();
                 }
             }
-            long offset = alloc(1,1);
-            vol.putUnsignedByte(offset,I_TX_ROLLBACK);
-            vol.sync();
+            wal.rollback();
         }finally {
             commitLock.unlock();
         }

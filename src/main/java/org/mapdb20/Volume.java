@@ -250,58 +250,42 @@ public abstract class Volume implements Closeable{
 
 
     public int putLongPackBidi(long offset, long value) {
-        putUnsignedByte(offset++, (((int) value & 0x7F)) | 0x80);
-        value >>>= 7;
-        int counter = 2;
-
         //$DELAY$
-        while ((value & ~0x7FL) != 0) {
-            putUnsignedByte(offset++, (((int) value & 0x7F)));
-            value >>>= 7;
+        long origOffset = offset;
+        int shift = 63-Long.numberOfLeadingZeros(value);
+        shift -= shift%7; // round down to nearest multiple of 7
+        while(shift!=0){
+            putByte(offset++,(byte) (((value>>>shift) & 0x7F)));
             //$DELAY$
-            counter++;
+            shift-=7;
         }
-        //$DELAY$
-        putUnsignedByte(offset, (byte) value | 0x80);
-        return counter;
+        putByte(offset++,(byte) ((value & 0x7F) | 0x80));
+        return (int) (offset-origOffset);
+
     }
 
     public long getLongPackBidi(long offset){
-        //$DELAY$
-        long b = getUnsignedByte(offset++); //TODO this could be inside loop, change all implementations
-        if(CC.ASSERT && (b&0x80)==0)
-            throw new DBException.DataCorruption();
-        long result = (b & 0x7F) ;
-        int shift = 7;
-        do {
-            //$DELAY$
-            b = getUnsignedByte(offset++);
-            result |= (b & 0x7F) << shift;
-            if(CC.ASSERT && shift>64)
-                throw new DBException.DataCorruption();
-            shift += 7;
-        }while((b & 0x80) == 0);
-        //$DELAY$
-        return (((long)(shift/7))<<60) | result;
+        long ret = 0;
+        int pos2 = 0;
+        byte v;
+        do{
+            v = getByte(offset + (pos2++));
+            ret = (ret<<7 ) | (v & 0x7F);
+        }while(v>=0);
+
+        return (((long)pos2)<<60) | ret;
     }
 
-    public long getLongPackBidiReverse(long offset){
-        //$DELAY$
-        long b = getUnsignedByte(--offset);
-        if(CC.ASSERT && (b&0x80)==0)
-            throw new DBException.DataCorruption();
-        long result = (b & 0x7F) ;
-        int counter = 1;
-        do {
-            //$DELAY$
-            b = getUnsignedByte(--offset);
-            result = (b & 0x7F) | (result<<7);
-            if(CC.ASSERT && counter>8)
-                throw new DBException.DataCorruption();
-            counter++;
-        }while((b & 0x80) == 0);
-        //$DELAY$
-        return (((long)counter)<<60) | result;
+    public long getLongPackBidiReverse(long offset, long limitOffset){
+        if(CC.ASSERT && offset==limitOffset)
+            throw new AssertionError();
+        //find new position
+        long offset2 = offset-2;
+        while(offset2>=limitOffset && (getByte(offset2)&0x80)==0){
+            offset2--;
+        }
+        offset2++;
+        return getLongPackBidi(offset2);
     }
 
     public long getSixLong(long pos) {
@@ -444,10 +428,21 @@ public abstract class Volume implements Closeable{
         if (len < 0) {
             throw new IllegalArgumentException("lengths must be >= 0");
         }
+        if(len==0)
+            return seed;
+
         long bufLen = length();
         if(off<0 || off>=bufLen || off+len<0 || off+len>bufLen){
             throw new IndexOutOfBoundsException();
         }
+
+        while((off&0x7)!=0 && len>0){
+            //scroll until offset is not dividable by 8
+            seed = (seed<<8) | getUnsignedByte(off);
+            off++;
+            len--;
+        }
+
 
         final long end = off + len;
         long h64;
@@ -745,73 +740,6 @@ public abstract class Volume implements Closeable{
         protected static byte toByte(long l) {
             return (byte) (l & 0xff);
         }
-        @Override
-        public int putLongPackBidi(long offset, long value) {
-            final ByteBuffer b = getSlice(offset);
-            int bpos = (int) (offset & sliceSizeModMask);
-
-            b.put(bpos++, toByte((value & 0x7F) | 0x80));
-            value >>>= 7;
-            int counter = 2;
-
-            //$DELAY$
-            while ((value & ~0x7FL) != 0) {
-                b.put(bpos++, toByte(value & 0x7F));
-                value >>>= 7;
-                //$DELAY$
-                counter++;
-            }
-            //$DELAY$
-            b.put(bpos, toByte(value | 0x80));
-            return counter;
-        }
-
-        @Override
-        public long getLongPackBidi(long offset) {
-            final ByteBuffer bb = getSlice(offset);
-            int bpos = (int) (offset & sliceSizeModMask);
-
-            //$DELAY$
-            long b = bb.get(bpos++) & 0xffL; //TODO this could be inside loop, change all implementations
-            if(CC.ASSERT && (b&0x80)==0)
-                throw new DBException.DataCorruption();
-            long result = (b & 0x7F) ;
-            int shift = 7;
-            do {
-                //$DELAY$
-                b = bb.get(bpos++) & 0xffL;
-                result |= (b & 0x7F) << shift;
-                if(CC.ASSERT && shift>64)
-                    throw new DBException.DataCorruption();
-                shift += 7;
-            }while((b & 0x80) == 0);
-            //$DELAY$
-            return (((long)(shift/7))<<60) | result;
-        }
-
-        @Override
-        public long getLongPackBidiReverse(long offset) {
-            final ByteBuffer bb = getSlice(offset);
-            int bpos = (int) (offset & sliceSizeModMask);
-
-            //$DELAY$
-            long b = bb.get(--bpos) & 0xffL;
-            if(CC.ASSERT && (b&0x80)==0)
-                throw new DBException.DataCorruption();
-            long result = (b & 0x7F) ;
-            int counter = 1;
-            do {
-                //$DELAY$
-                b = bb.get(--bpos) & 0xffL;
-                result = (b & 0x7F) | (result<<7);
-                if(CC.ASSERT && counter>8)
-                    throw new DBException.DataCorruption();
-                counter++;
-            }while((b & 0x80) == 0);
-            //$DELAY$
-            return (((long)counter)<<60) | result;
-        }
-
         @Override
         public long getSixLong(long pos) {
             final ByteBuffer bb = getSlice(pos);
@@ -2652,8 +2580,8 @@ public abstract class Volume implements Closeable{
         }
 
         @Override
-        public long getLongPackBidiReverse(long offset) {
-            return vol.getLongPackBidiReverse(offset);
+        public long getLongPackBidiReverse(long offset, long limitOffset) {
+            return vol.getLongPackBidiReverse(offset, limitOffset);
         }
 
         @Override
@@ -2966,82 +2894,6 @@ public abstract class Volume implements Closeable{
         }
 
         @Override
-        public synchronized int putLongPackBidi(long offset, long value) {
-            try {
-                raf.seek(offset);
-                raf.write((((int) value & 0x7F)) | 0x80);
-                value >>>= 7;
-                int counter = 2;
-
-                //$DELAY$
-                while ((value & ~0x7FL) != 0) {
-                    raf.write(((int) value & 0x7F));
-                    value >>>= 7;
-                    //$DELAY$
-                    counter++;
-                }
-                //$DELAY$
-                raf.write((int) (value | 0x80));
-                return counter;
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
-        }
-
-        @Override
-        public synchronized long getLongPackBidi(long offset) {
-            try {
-                raf.seek(offset);
-                //$DELAY$
-                long b = raf.readUnsignedByte(); //TODO this could be inside loop, change all implementations
-                if(CC.ASSERT && (b&0x80)==0)
-                    throw new DBException.DataCorruption();
-                long result = (b & 0x7F) ;
-                int shift = 7;
-                do {
-                    //$DELAY$
-                    b = raf.readUnsignedByte();
-                    result |= (b & 0x7F) << shift;
-                    if(CC.ASSERT && shift>64)
-                        throw new DBException.DataCorruption();
-                    shift += 7;
-                }while((b & 0x80) == 0);
-                //$DELAY$
-                return (((long)(shift/7))<<60) | result;
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
-
-        }
-
-        @Override
-        public synchronized long getLongPackBidiReverse(long offset) {
-            try {
-                //$DELAY$
-                raf.seek(--offset);
-                long b = raf.readUnsignedByte();
-                if(CC.ASSERT && (b&0x80)==0)
-                    throw new DBException.DataCorruption();
-                long result = (b & 0x7F) ;
-                int counter = 1;
-                do {
-                    //$DELAY$
-                    raf.seek(--offset);
-                    b = raf.readUnsignedByte();
-                    result = (b & 0x7F) | (result<<7);
-                    if(CC.ASSERT && counter>8)
-                        throw new DBException.DataCorruption();
-                    counter++;
-                }while((b & 0x80) == 0);
-                //$DELAY$
-                return (((long)counter)<<60) | result;
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
-
-        }
-
-        @Override
         public synchronized long getSixLong(long offset) {
             try {
                 raf.seek(offset);
@@ -3127,16 +2979,24 @@ public abstract class Volume implements Closeable{
             if (len < 0) {
                 throw new IllegalArgumentException("lengths must be >= 0");
             }
+            if(len==0)
+                return seed;
             long bufLen = length();
             if(off<0 || off>=bufLen || off+len<0 || off+len>bufLen){
                 throw new IndexOutOfBoundsException();
             }
-
-            final long end = off + len;
-            long h64;
-
             try {
                 raf.seek(off);
+
+                while((off&0x7)!=0 && len>0){
+                    //scroll until offset is not dividable by 8
+                    seed = (seed<<8) | raf.readUnsignedByte();
+                    off++;
+                    len--;
+                }
+
+                final long end = off + len;
+                long h64;
 
                 if (len >= 32) {
                     final long limit = end - 32;
@@ -3144,23 +3004,25 @@ public abstract class Volume implements Closeable{
                     long v2 = seed + PRIME64_2;
                     long v3 = seed + 0;
                     long v4 = seed - PRIME64_1;
+                    byte[] buf = new byte[32];
                     do {
-                        v1 += Long.reverseBytes(raf.readLong()) * PRIME64_2;
+                        raf.readFully(buf); //reading single byte[] is faster than 4xreadLong
+                        v1 += Long.reverseBytes(DataIO.getLong(buf,0)) * PRIME64_2;
                         v1 = rotateLeft(v1, 31);
                         v1 *= PRIME64_1;
                         off += 8;
 
-                        v2 += Long.reverseBytes(raf.readLong()) * PRIME64_2;
+                        v2 += Long.reverseBytes(DataIO.getLong(buf,8)) * PRIME64_2;
                         v2 = rotateLeft(v2, 31);
                         v2 *= PRIME64_1;
                         off += 8;
 
-                        v3 += Long.reverseBytes(raf.readLong()) * PRIME64_2;
+                        v3 += Long.reverseBytes(DataIO.getLong(buf,16)) * PRIME64_2;
                         v3 = rotateLeft(v3, 31);
                         v3 *= PRIME64_1;
                         off += 8;
 
-                        v4 += Long.reverseBytes(raf.readLong()) * PRIME64_2;
+                        v4 += Long.reverseBytes(DataIO.getLong(buf,24)) * PRIME64_2;
                         v4 = rotateLeft(v4, 31);
                         v4 *= PRIME64_1;
                         off += 8;

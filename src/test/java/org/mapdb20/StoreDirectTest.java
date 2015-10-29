@@ -317,7 +317,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.longStackPut(FREE_RECID_STACK, 1, false);
         e.structuralLock.unlock();
         e.commit();
-        assertEquals(8 + 2,
+        assertEquals(8 + 1,
                 e.headVol.getLong(FREE_RECID_STACK)>>>48);
 
     }
@@ -332,7 +332,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         }
 
         for(long i = max-1;i>0;i--){
-            assertEquals(i, e.longStackTake(FREE_RECID_STACK,false));
+            assertEquals(i, e.longStackTake(FREE_RECID_STACK, false));
         }
 
         assertEquals(0, getLongStack(FREE_RECID_STACK).size());
@@ -350,7 +350,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     @Test public void test_long_stack_put_take_simple() throws IOException {
         e = openEngine();
         e.structuralLock.lock();
-        e.longStackPut(FREE_RECID_STACK, 111,false);
+        e.longStackPut(FREE_RECID_STACK, 111, false);
         assertEquals(111L, e.longStackTake(FREE_RECID_STACK, false));
         e.structuralLock.unlock();
     }
@@ -433,24 +433,17 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e = openEngine();
         e.structuralLock.lock();
         e.longStackPut(FREE_RECID_STACK, 111, false);
+        //update max recid, so paranoid check does not complain
+        e.maxRecidSet(111L);
         e.structuralLock.unlock();
         e.commit();
-
-        if(e instanceof StoreWAL){
-            //force replay wal
-            e.commitLock.lock();
-            e.structuralLock.lock();
-            ((StoreWAL)e).replayWAL();
-            clearEverything();
-            e.structuralLock.unlock();
-            e.commitLock.unlock();
-        }
+        forceFullReplay(e);
 
         long pageId = e.vol.getLong(FREE_RECID_STACK);
         assertEquals(8+2, pageId>>>48);
         pageId = pageId & StoreDirect.MOFFSET;
         assertEquals(PAGE_SIZE, pageId);
-        assertEquals(CHUNKSIZE, DataIO.parity4Get(e.vol.getLong(pageId))>>>48);
+        assertEquals(LONG_STACK_PREF_SIZE, DataIO.parity4Get(e.vol.getLong(pageId))>>>48);
         assertEquals(0, DataIO.parity4Get(e.vol.getLong(pageId))&MOFFSET);
         assertEquals(DataIO.parity1Set(111 << 1), e.vol.getLongPackBidi(pageId + 8) & DataIO.PACK_LONG_RESULT_MASK);
     }
@@ -459,26 +452,20 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e = openEngine();
         e.structuralLock.lock();
         e.longStackPut(FREE_RECID_STACK, 111,false);
-        e.longStackPut(FREE_RECID_STACK, 112,false);
-        e.longStackPut(FREE_RECID_STACK, 113,false);
+        e.longStackPut(FREE_RECID_STACK, 112, false);
+        e.longStackPut(FREE_RECID_STACK, 113, false);
         e.longStackPut(FREE_RECID_STACK, 114,false);
         e.longStackPut(FREE_RECID_STACK, 115,false);
         e.structuralLock.unlock();
         e.commit();
-        if(e instanceof  StoreWAL){
-            e.commitLock.lock();
-            e.structuralLock.lock();
-            ((StoreWAL)e).replayWAL();
-            clearEverything();
-            e.structuralLock.unlock();
-            e.commitLock.unlock();
-        }
+        forceFullReplay(e);
+
         long pageId = e.vol.getLong(FREE_RECID_STACK);
         long currPageSize = pageId>>>48;
         pageId = pageId & StoreDirect.MOFFSET;
         assertEquals(PAGE_SIZE, pageId);
-        assertEquals(CHUNKSIZE, e.vol.getLong(pageId)>>>48);
-        assertEquals(0, e.vol.getLong(pageId)&MOFFSET); //next link
+        assertEquals(LONG_STACK_PREF_SIZE, e.vol.getLong(pageId) >>> 48);
+        assertEquals(0, e.vol.getLong(pageId) & MOFFSET); //next link
         long offset = pageId + 8;
         for(int i=111;i<=115;i++){
             long val = e.vol.getLongPackBidi(offset);
@@ -495,28 +482,13 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.longStackPut(FREE_RECID_STACK, 111, false);
         e.structuralLock.unlock();
         e.commit();
-        if(e instanceof  StoreWAL){
-            e.commitLock.lock();
-            e.structuralLock.lock();
-            ((StoreWAL)e).replayWAL();
-            clearEverything();
-            ((StoreWAL)e).walStartNextFile();
-            ((StoreWAL) e).structuralLock.unlock();
-            ((StoreWAL) e).commitLock.unlock();
-        }
+        forceFullReplay(e);
+
         e.structuralLock.lock();
         assertEquals(111L, e.longStackTake(FREE_RECID_STACK, false));
         e.structuralLock.unlock();
         e.commit();
-        if(e instanceof  StoreWAL){
-            ((StoreWAL) e).commitLock.lock();
-            ((StoreWAL) e).structuralLock.lock();
-            ((StoreWAL) e).replayWAL();
-            clearEverything();
-            ((StoreWAL)e).walStartNextFile();
-            ((StoreWAL) e).structuralLock.unlock();
-            ((StoreWAL) e).commitLock.unlock();
-        }
+        forceFullReplay(e);
 
         assertEquals(0L, DataIO.parity1Get(e.headVol.getLong(FREE_RECID_STACK)));
     }
@@ -531,14 +503,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         assertEquals(111L, e.longStackTake(FREE_RECID_STACK, false));
         e.structuralLock.unlock();
         e.commit();
-        if(e instanceof  StoreWAL){
-            e.commitLock.lock();
-            e.structuralLock.lock();
-            ((StoreWAL)e).replayWAL();
-            clearEverything();
-            ((StoreWAL) e).structuralLock.unlock();
-            ((StoreWAL) e).commitLock.unlock();
-        }
+        forceFullReplay(e);
 
         assertEquals(0L, DataIO.parity1Get(e.headVol.getLong(FREE_RECID_STACK)));
     }
@@ -555,7 +520,7 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
             long val = 1000L+i;
             e.longStackPut(FREE_RECID_STACK, val ,false);
             actualChunkSize += DataIO.packLongBidi(new byte[8],0,val<<1);
-            if(e.headVol.getLong(FREE_RECID_STACK)>>48 >CHUNKSIZE-10)
+            if(e.headVol.getLong(FREE_RECID_STACK)>>48 >LONG_STACK_PREF_SIZE-10)
                 break;
         }
         e.structuralLock.unlock();
@@ -563,19 +528,13 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.commitLock.lock();
         e.structuralLock.lock();
 
-        if(e instanceof  StoreWAL){
-            //TODO method to commit and force WAL replay
-            ((StoreWAL)e).replayWAL();
-            clearEverything();
-            ((StoreWAL)e).walStartNextFile();
-        }
-
+        forceFullReplay(e);
         //check content
         long pageId = e.headVol.getLong(FREE_RECID_STACK);
         assertEquals(actualChunkSize, pageId>>>48);
         pageId = pageId & StoreDirect.MOFFSET;
         assertEquals(PAGE_SIZE, pageId);
-        assertEquals(StoreDirect.CHUNKSIZE, e.vol.getLong(pageId)>>>48);
+        assertEquals(StoreDirect.LONG_STACK_PREF_SIZE, e.vol.getLong(pageId)>>>48);
         for(long i=1000,pos=8;;i++){
             long val = e.vol.getLongPackBidi(pageId+pos);
             assertEquals(i, DataIO.parity1Get(val&DataIO.PACK_LONG_RESULT_MASK)>>>1);
@@ -593,34 +552,37 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.commitLock.lock();
         e.structuralLock.lock();
 
-        if(e instanceof  StoreWAL){
-            ((StoreWAL)e).replayWAL();
-            clearEverything();
-            ((StoreWAL)e).walStartNextFile();
-        }
+        forceFullReplay(e);
 
         //check page overflowed
         pageId = e.headVol.getLong(FREE_RECID_STACK);
-        assertEquals(8+2, pageId>>>48);
+        assertEquals(8+1, pageId>>>48);
         pageId = pageId & StoreDirect.MOFFSET;
-        assertEquals(PAGE_SIZE + StoreDirect.CHUNKSIZE, pageId);
+        assertEquals(PAGE_SIZE + StoreDirect.LONG_STACK_PREF_SIZE, pageId);
         assertEquals(PAGE_SIZE, DataIO.parity4Get(e.vol.getLong(pageId)) & StoreDirect.MOFFSET); //prev link
-        assertEquals(CHUNKSIZE, e.vol.getLong(pageId)>>>48); //cur page size
+        assertEquals(LONG_STACK_PREF_SIZE, e.vol.getLong(pageId)>>>48); //cur page size
         //overflow value
         assertEquals(11L, DataIO.parity1Get(e.vol.getLongPackBidi(pageId+8)&DataIO.PACK_LONG_RESULT_MASK)>>>1);
 
         //remaining bytes should be zero
-        for(long offset = pageId+8+2;offset<pageId+CHUNKSIZE;offset++){
+        for(long offset = pageId+8+2;offset<pageId+LONG_STACK_PREF_SIZE;offset++){
             assertEquals(0,e.vol.getByte(offset));
         }
         e.structuralLock.unlock();
         e.commitLock.unlock();
     }
 
-
-    @Test public void test_constants(){
-        assertTrue(StoreDirect.CHUNKSIZE % 16 == 0);
-        
+    private void forceFullReplay(E e) {
+        if(e instanceof  StoreWAL) {
+            StoreWAL wal = (StoreWAL) e;
+            if (wal.commitLock.isHeldByCurrentThread()){
+                wal.replaySoft();
+            }else {
+                wal.commitLock.lock();
+                wal.replaySoft();
+                wal.commitLock.unlock();
+            }
+        }
     }
 
 
@@ -726,16 +688,13 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
         wal.structuralLock.lock();
         try {
-            wal.dirtyStackPages.clear();
+            wal.uncommittedStackPages.clear();
 
             //restore headVol from backup
-            byte[] b = new byte[(int) HEAD_END];
-            //TODO use direct copy
-            wal.headVolBackup.getData(0,b,0,b.length);
-            wal.headVol.putData(0,b,0,b.length);
+            wal.headVol.putData(0,wal.headVolBackup,0,wal.headVolBackup.length);
 
             wal.indexPages = wal.indexPagesBackup.clone();
-            wal.pageLongStack.clear();
+            wal.committedPageLongStack.clear();
         } finally {
             wal.structuralLock.unlock();
         }
@@ -858,6 +817,9 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
     }
 
     @Test public void index_pages_init(){
+        if(CC.PARANOID)
+            return; //generates broken store, does not work in paranoid mode
+
         e=openEngine();
         e.close();
 

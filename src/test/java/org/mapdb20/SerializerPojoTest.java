@@ -525,5 +525,11 @@ public class SerializerPojoTest{
         TT.clone(new WriteReplaceBB(), db.getDefaultSerializer());
     }
 
+    static  class ExtHashMap extends HashMap<String,String>{}
 
+
+
+    @Test public void java_serialization(){
+        assertTrue(SerializerPojo.usesAdvancedSerialization(ExtHashMap.class));
+    }
 }

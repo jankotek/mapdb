@@ -4,6 +4,8 @@ import org.junit.After;
 import org.junit.Test;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.Assert.*;
 @SuppressWarnings({"rawtypes","unchecked"})
@@ -145,11 +147,70 @@ public class StoreAppendTest<E extends StoreAppend> extends EngineTest<E>{
 
     @Test public void header(){
         StoreAppend s = openEngine();
-        assertEquals(StoreAppend.HEADER,s.vol.getInt(0));
+        assertEquals(WriteAheadLog.WAL_HEADER,s.wal.curVol.getInt(0));
+        assertEquals(StoreAppend.HEADER, new Volume.RandomAccessFileVol(f,false,true,0).getInt(0));
     }
 
     @Override
     public void commit_huge() {
         //TODO this test is ignored, causes OOEM
     }
+
+    @Test public void patch_on_broken(){
+        e = openEngine();
+        List<Long> recids = new ArrayList<Long>();
+        for(int i=0;i<100;i++){
+            long recid = e.put(TT.randomByteArray(10,i),Serializer.BYTE_ARRAY_NOSIZE);
+            recids.add(recid);
+        }
+        e.commit();
+
+        for(int loop=0;loop<100;loop++) {
+            reopen();
+            for (int i = 0; i < recids.size(); i++) {
+                e.update(recids.get(i), TT.randomByteArray(20, i+loop), Serializer.BYTE_ARRAY_NOSIZE);
+            }
+            e.commit();
+            long initOffset = e.wal.fileOffset;
+            for (int i = 0; i < recids.size(); i++) {
+                e.update(recids.get(i), TT.randomByteArray(30, i+loop), Serializer.BYTE_ARRAY_NOSIZE);
+            }
+            long preCommitOffset = e.wal.fileOffset;
+            File file = e.wal.curVol.getFile();
+            e.commit();
+            e.close();
+
+            //corrupt last file, destroy commit
+            Volume vol = Volume.RandomAccessFileVol.FACTORY.makeVolume(file.getPath(), false);
+            vol.clear(preCommitOffset, vol.length());
+            vol.sync();
+            vol.close();
+
+            e = openEngine();
+            assertEquals(initOffset, e.wal.fileOffset);
+            for (int i = 0; i < recids.size(); i++) {
+                byte[] b = e.get(recids.get(i), Serializer.BYTE_ARRAY_NOSIZE);
+                assertEquals(20, b.length);
+                assertArrayEquals(TT.randomByteArray(20, i+loop), b);
+            }
+
+            for (int i = 0; i < recids.size(); i++) {
+                e.update(recids.get(i), TT.randomByteArray(40, i+loop), Serializer.BYTE_ARRAY_NOSIZE);
+            }
+            e.commit();
+            for (int i = 0; i < recids.size(); i++) {
+                e.update(recids.get(i), TT.randomByteArray(41, i+loop), Serializer.BYTE_ARRAY_NOSIZE);
+            }
+            e.commit();
+            reopen();
+
+            for (int i = 0; i < recids.size(); i++) {
+                byte[] b = e.get(recids.get(i), Serializer.BYTE_ARRAY_NOSIZE);
+                assertEquals(41, b.length);
+                assertArrayEquals(TT.randomByteArray(41, i+loop), b);
+            }
+        }
+
+    }
+
 }

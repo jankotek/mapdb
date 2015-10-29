@@ -158,6 +158,7 @@ public abstract class DBHeaderTest {
             maker().checksumEnable().make();
             fail();
         }catch(DBException.WrongConfig e){
+            e.printStackTrace();
             assertEquals("Checksum us enabled, but store was created without it.",e.getMessage());
         }
     }

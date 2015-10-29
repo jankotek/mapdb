@@ -51,7 +51,13 @@ public class TT {
 
     public static final boolean[] BOOLS = {true, false};
 
+    public static boolean[] boolsOrTrueIfQuick(){
+        return shortTest()? new boolean[]{true}:BOOLS;
+    }
 
+    public static boolean[] boolsOrFalseIfQuick(){
+        return shortTest()? new boolean[]{false}:BOOLS;
+    }
 
     @Test public void testPackInt() throws Exception {
 
