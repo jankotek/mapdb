@@ -179,7 +179,8 @@ public class WriteAheadLog {
     }
 
     protected int checksum(Volume vol, long startOffset, long endOffset){
-        return DataIO.longHash(vol.hash(startOffset, endOffset-startOffset, 111L));
+        int ret =  DataIO.longHash(vol.hash(startOffset, endOffset-startOffset, 111L));
+        return ret==0?1:ret;
     }
 
     public boolean fileLoad() {
