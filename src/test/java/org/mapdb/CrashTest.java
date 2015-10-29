@@ -95,6 +95,9 @@ public class CrashTest {
 
     @Test
     public void test() throws IOException, InterruptedException {
+        if(TT.shortTest())
+            return;
+
         dir =
                 new File(System.getProperty("java.io.tmpdir")
                         +"/mapdbTest"+System.currentTimeMillis()+Math.random());

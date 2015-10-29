@@ -21,7 +21,10 @@ public class WALCrash {
 
     @Test
     public void crash() throws InterruptedException, IOException {
-    dir = TT.tempDbDir();
+        if(TT.shortTest())
+            return;
+
+        dir = TT.tempDbDir();
 
         long end = TT.nowPlusMinutes(0.5+TT.scale()*9);
         if(dir.getFreeSpace()<10e9)
