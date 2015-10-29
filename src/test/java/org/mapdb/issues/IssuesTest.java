@@ -32,7 +32,7 @@ public class IssuesTest {
         DB db = DBMaker
                 .fileDB(file)
                 .fileMmapEnable()
-
+                .fileMmapCleanerHackEnable()
                 .transactionDisable()
                 .cacheSize(128)
                 .closeOnJvmShutdown()
