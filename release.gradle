@@ -71,15 +71,22 @@ task(release) << {
 
     exec{
         commandLine 'mvn'
-        args 'clean','test','-DthreadCount=4'//,'release:prepare','release:perform'
+        if(rel==1) {
+            args 'clean', 'test', '-DthreadCount=4'//,'release:prepare','release:perform'
+        }
+        else {
+            args 'clean'//,'test','-DthreadCount=4'//,'release:prepare','release:perform'
+        }
         workingDir destDir
     }
 
 
-    exec {
-        commandLine 'git'
-        args 'push'
-        workingDir destDir
+    if(rel!=1) {
+        exec {
+            commandLine 'git'
+            args 'push'
+            workingDir destDir
+        }
     }
 
 

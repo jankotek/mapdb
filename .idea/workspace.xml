@@ -84,8 +84,8 @@
           <file leaf-file-name="release.gradle" pinned="false" current-in-tab="true">
             <entry file="file://$PROJECT_DIR$/release.gradle">
               <provider selected="true" editor-type-id="text-editor">
-                <state vertical-scroll-proportion="0.6721195">
-                  <caret line="63" column="0" selection-start-line="58" selection-start-column="0" selection-end-line="63" selection-end-column="0" />
+                <state vertical-scroll-proportion="0.83214796">
+                  <caret line="78" column="9" selection-start-line="78" selection-start-column="9" selection-end-line="78" selection-end-column="9" />
                   <folding />
                 </state>
               </provider>
@@ -1704,8 +1704,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/release.gradle">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.6721195">
-          <caret line="63" column="0" selection-start-line="58" selection-start-column="0" selection-end-line="63" selection-end-column="0" />
+        <state vertical-scroll-proportion="0.83214796">
+          <caret line="78" column="9" selection-start-line="78" selection-start-column="9" selection-end-line="78" selection-end-column="9" />
           <folding />
         </state>
       </provider>
