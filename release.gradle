@@ -176,7 +176,7 @@ task(release_noassert) << {
         exclude '.git'
     }
 
-    ant.replace(file: destDir+path+'/src/main/java/org/mapdb/CC.java', token: 'boolean ASSERT = true;', value: 'boolean ASSERT = false;')
+    ant.replace(file: destDir.path+'/src/main/java/org/mapdb/CC.java', token: 'boolean ASSERT = true;', value: 'boolean ASSERT = false;')
     gitAndRelease(destDir)
 }
 
