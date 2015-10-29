@@ -623,14 +623,17 @@ public class BTreeMapTest{
 
 
 
-    @Test @org.junit.Ignore
+    @Test
     public void large_node_size(){
+        if(TT.shortTest())
+            return;
         for(int i :new int[]{10,200,6000}){
 
             int max = i*100;
             File f = TT.tempDbFile();
             DB db = DBMaker.fileDB(f)
                     .transactionDisable()
+                    .deleteFilesAfterClose()
                     .make();
             Map m = db
                     .treeMapCreate("map")
