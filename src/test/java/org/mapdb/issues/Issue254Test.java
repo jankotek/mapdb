@@ -41,8 +41,9 @@ public class Issue254Test {
 
     {
         File f = TT.tempDbFile();
-        ro = DBMaker.fileDB(f).transactionDisable().transactionDisable().make();
-        ro = DBMaker.fileDB(f).transactionDisable().transactionDisable().readOnly().make();
+        ro = DBMaker.fileDB(f).transactionDisable().make();
+        ro.close();
+        ro = DBMaker.fileDB(f).transactionDisable().readOnly().make();
     }
 
     @Test

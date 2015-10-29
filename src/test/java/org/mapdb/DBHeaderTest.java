@@ -46,11 +46,13 @@ public abstract class DBHeaderTest {
     abstract DBMaker.Maker maker();
 
 
-    public long getBitField() {
-        Volume v = new Volume.RandomAccessFileVol(file,true,false,0L);
-        long ret = v.getLong(8);
-        v.close();
-        return ret;
+    public long getBitField(DB db) {
+        Volume v =
+                db.getEngine() instanceof StoreDirect ?
+                        ((StoreDirect)db.getEngine()).headVol :
+                        ((StoreAppend)db.getEngine()).wal.volumes.get(0);
+
+        return v.getLong(8);
     }
 
 
@@ -63,7 +65,7 @@ public abstract class DBHeaderTest {
 
         db.hashMap("aa").put("aa", "bb");
         db.commit();
-        assertEquals(1L<<Store.FEAT_COMP_LZF,getBitField());
+        assertEquals(1L<<Store.FEAT_COMP_LZF,getBitField(db));
         db.close();
         try {
             maker().make();
@@ -80,7 +82,7 @@ public abstract class DBHeaderTest {
 
         db.hashMap("aa").put("aa", "bb");
         db.commit();
-        assertEquals(0L,getBitField());
+        assertEquals(0L,getBitField(db));
         db.close();
         try {
             maker().compressionEnable().make();
@@ -99,7 +101,7 @@ public abstract class DBHeaderTest {
 
         db.hashMap("aa").put("aa", "bb");
         db.commit();
-        assertEquals(1L<<Store.FEAT_ENC_XTEA,getBitField());
+        assertEquals(1L<<Store.FEAT_ENC_XTEA,getBitField(db));
         db.close();
         try {
             maker().make();
@@ -116,7 +118,7 @@ public abstract class DBHeaderTest {
 
         db.hashMap("aa").put("aa", "bb");
         db.commit();
-        assertEquals(0L,getBitField());
+        assertEquals(0L,getBitField(db));
         db.close();
         try {
             maker().encryptionEnable("password").make();
@@ -135,7 +137,7 @@ public abstract class DBHeaderTest {
 
         db.hashMap("aa").put("aa", "bb");
         db.commit();
-        assertEquals(1L<<Store.FEAT_CRC,getBitField());
+        assertEquals(1L<<Store.FEAT_CRC,getBitField(db));
         db.close();
         try {
             maker().make();
@@ -152,7 +154,7 @@ public abstract class DBHeaderTest {
 
         db.hashMap("aa").put("aa", "bb");
         db.commit();
-        assertEquals(0L,getBitField());
+        assertEquals(0L,getBitField(db));
         db.close();
         try {
             maker().checksumEnable().make();
@@ -169,7 +171,7 @@ public abstract class DBHeaderTest {
 
         db.hashMap("aa").put("aa", "bb");
         db.commit();
-        assertEquals(0L, getBitField());
+        assertEquals(0L, getBitField(db));
         db.close();
 
         //fake bitfield

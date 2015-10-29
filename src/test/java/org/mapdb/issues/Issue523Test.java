@@ -22,7 +22,7 @@ public class Issue523Test {
     }
 
     private void testCreate(File dbFile) {
-        DB db = DBMaker.fileDB(dbFile).transactionDisable().mmapFileEnable().make();
+        DB db = DBMaker.fileDB(dbFile).transactionDisable().fileMmapEnable().fileMmapCleanerHackEnable().make();
 
             BTreeMap<Integer, String> map = db.treeMapCreate("aa").makeOrGet();
             for (int i = 0; i < NUM_ENTRIES; i++) {
@@ -36,7 +36,7 @@ public class Issue523Test {
     }
 
     private void testRead(File dbFile) {
-        DB db = DBMaker.fileDB(dbFile).transactionDisable().readOnly().mmapFileEnable().make();
+        DB db = DBMaker.fileDB(dbFile).transactionDisable().readOnly().fileMmapCleanerHackEnable().make();
 
             BTreeMap<Integer, String> map = db.treeMapCreate("aa").makeOrGet();
             for (int i = 0; i < NUM_ENTRIES; i++) {
