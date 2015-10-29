@@ -173,7 +173,8 @@ public class WALCrash {
 
     @After
     public void clean(){
-        TT.dirDelete(dir);
+        if(dir!=null)
+            TT.dirDelete(dir);
     }
 
 

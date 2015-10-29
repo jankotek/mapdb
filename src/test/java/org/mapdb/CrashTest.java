@@ -216,7 +216,8 @@ public class CrashTest {
 
     @After
     public void clean(){
-        TT.dirDelete(dir);
+        if(dir!=null)
+            TT.dirDelete(dir);
     }
 
     public static void main(String[] args) throws IOException {

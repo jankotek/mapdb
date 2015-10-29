@@ -4,6 +4,20 @@ def gitAndRelease(destDir){
 
     println "Doing GIT and build stuff at: "+destDir
 
+    copy{
+        from '.'
+        into destDir
+        exclude 'target'
+        exclude '**/*.java'
+        exclude '.git'
+        filter{
+            String line -> line
+                    .replaceAll("<artifactId>mapdb</artifactId>","<artifactId>"+destDir.name+"</artifactId>")
+                    .replaceAll("<name>mapdb</name>","<name>"+destDir.name+"</name>")
+        }
+    }
+
+
     //clean
     exec {
         commandLine 'rm'
@@ -18,7 +32,7 @@ def gitAndRelease(destDir){
 
     exec {
         commandLine 'mv'
-        args 'target/release-misc/.git','target/mapdb-renamed/'
+        args 'target/release-misc/.git', destDir
     }
 
 
@@ -38,11 +52,13 @@ def gitAndRelease(destDir){
 
     exec{
         commandLine 'mvn'
+        def tagname = destDir.name+"-"+relv;
+
         if(rel=="1") {
-            args 'clean', 'test', '-DthreadCount=4','release:prepare','release:perform'
+            args 'clean',  '-DthreadCount=4','release:prepare','release:perform', '--batch-mode',  '-Dtag='+tagname, '-DreleaseVersion='+relv, '-DdevelopmentVersion='+devv
         }
         else {
-            args 'clean','test','-DthreadCount=4'//,'release:prepare','release:perform'
+            args 'clean', '-DthreadCount=4', 'release:prepare', '-DdryRun=true',  '--batch-mode',  '-Dtag='+tagname, '-DreleaseVersion='+relv, '-DdevelopmentVersion='+devv
         }
         workingDir destDir
     }
@@ -60,7 +76,7 @@ def gitAndRelease(destDir){
 
 task(release_renamed) << {
     // make mapdb-renamed
-    def destDir = file("target/mapdb-renamed");
+    def destDir = file("target/mapdb-renamed/");
     destDir.mkdirs()
 
     //copy folder
@@ -76,18 +92,6 @@ task(release_renamed) << {
         }
     }
 
-    copy{
-        from '.'
-        into destDir
-        exclude 'target'
-        exclude '**/*.java'
-        exclude '.git'
-        filter{
-            String line -> line
-                    .replaceAll("<artifactId>mapdb</artifactId>","<artifactId>mapdb-renamed</artifactId>")
-                    .replaceAll("<name>mapdb</name>","<name>mapdb-renamed</name>")
-        }
-    }
 
     //rename folders
     exec {
@@ -108,7 +112,7 @@ task(release_renamed) << {
 }
 
 task(release_nounsafe) << {
-    def destDir = file("target/mapdb-nounsafe");
+    def destDir = file("target/mapdb-nounsafe/");
     destDir.mkdirs()
 
     //copy folder
