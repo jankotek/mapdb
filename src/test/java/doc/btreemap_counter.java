@@ -1,8 +1,8 @@
 package doc;
 
-import org.mapdb.BTreeMap;
-import org.mapdb.DB;
-import org.mapdb.DBMaker;
+import org.mapdb20.BTreeMap;
+import org.mapdb20.DB;
+import org.mapdb20.DBMaker;
 
 
 public class btreemap_counter {
