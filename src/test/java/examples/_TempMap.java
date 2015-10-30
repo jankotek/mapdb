@@ -1,6 +1,6 @@
 package examples;
 
-import org.mapdb20.DBMaker;
+import org.mapdb.DBMaker;
 
 import java.util.Map;
 

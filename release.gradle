@@ -1,8 +1,46 @@
-task(release) << {
-    // make mapdb-renamed
-    def destDir = file("target/mapdb-renamed");
-    destDir.mkdirs()
+/*
 
+RELEASE SCRIPT FOR MAPDB.
+
+Invocation:
+
+rm target -rf; gradle -b release.gradle release -Prel=0 -Prelv=2.0-betatest8 -Pdevv=2.0.0-SNAPSHOT
+
+
+Properties
+
+ rel - 0 is dry run, 1 is actual release
+ relv - release version applied to released maven artifacts
+ devv - version left in GIT repository after this build finishes
+
+ */
+
+
+
+/** builds destDir and adds it to git*/
+def gitAndRelease(destDir){
+
+    println "Doing GIT and build stuff at: "+destDir
+
+    copy{
+        from '.'
+        into destDir
+        exclude 'target'
+        exclude '**/*.java'
+        exclude '.git'
+        filter{
+            String line -> line
+                    .replaceAll("<artifactId>mapdb-debug</artifactId>","<artifactId>"+destDir.name+"</artifactId>")
+                    .replaceAll("<name>mapdb-debug</name>","<name>"+destDir.name+"</name>")
+        }
+    }
+
+
+    //clean
+    exec {
+        commandLine 'rm'
+        args 'target/release-misc','-rf'
+    }
 
     //checkout
     exec {
@@ -12,9 +50,68 @@ task(release) << {
 
     exec {
         commandLine 'mv'
-        args 'target/release-misc/.git','target/mapdb-renamed/'
+        args 'target/release-misc/.git', destDir
     }
 
+
+    //add all files
+    exec {
+        commandLine 'git'
+        args 'add','-A','.'
+        workingDir destDir
+    }
+
+    //commit
+    exec {
+        commandLine 'git'
+        args 'commit','-m','switch-source'
+        workingDir destDir
+    }
+
+    exec{
+        commandLine 'mvn'
+        def tagname = destDir.name+"-"+relv;
+
+        if(rel=="1") {
+            args '-e', 'clean',  '-Darguments="-DthreadCount=4"','release:prepare','release:perform', '--batch-mode',  '-Dtag='+tagname, '-DreleaseVersion='+relv, '-DdevelopmentVersion='+devv
+        }
+        else {
+            args 'clean', '-Darguments="-DthreadCount=4"', 'release:prepare', '-DdryRun=true',  '--batch-mode',  '-Dtag='+tagname, '-DreleaseVersion='+relv, '-DdevelopmentVersion='+devv
+        }
+        workingDir destDir
+    }
+
+
+    if(rel=="1") {
+        exec {
+            commandLine 'git'
+            args 'push'
+            workingDir destDir
+        }
+    }
+
+}
+
+task(release_this) << {
+    exec{
+        commandLine 'mvn'
+        def tagname = "mapdb-"+relv;
+
+        if(rel=="1") {
+            args 'clean',  '-Darguments="-DthreadCount=4"','release:prepare','release:perform', '--batch-mode',  '-Dtag='+tagname, '-DreleaseVersion='+relv, '-DdevelopmentVersion='+devv
+        }
+        else {
+            args 'clean', '-Darguments="-DthreadCount=4"', 'release:prepare', '-DdryRun=true',  '--batch-mode',  '-Dtag='+tagname, '-DreleaseVersion='+relv, '-DdevelopmentVersion='+devv
+        }
+        workingDir '.'
+    }
+
+}
+
+task(release_renamed) << {
+    // make mapdb-renamed
+    def destDir = file("target/mapdb-renamed/");
+    destDir.mkdirs()
 
     //copy folder
     copy{
@@ -29,18 +126,6 @@ task(release) << {
         }
     }
 
-    copy{
-        from '.'
-        into destDir
-        exclude 'target'
-        exclude '**/*.java'
-        exclude '.git'
-        filter{
-            String line -> line
-                    .replaceAll("<artifactId>mapdb-renamed</artifactId>","<artifactId>mapdb-renamed</artifactId>")
-                    .replaceAll("<name>mapdb-renamed</name>","<name>mapdb-renamed</name>")
-        }
-    }
 
     //rename folders
     exec {
@@ -55,39 +140,71 @@ task(release) << {
         workingDir destDir
     }
 
-    //add all files
-    exec {
-        commandLine 'git'
-        args 'add','-A'
-        workingDir destDir
-    }
 
-    //commit
-    exec {
-        commandLine 'git'
-        args 'commit','-m','switch-source'
-        workingDir destDir
-    }
-
-    exec{
-        commandLine 'mvn'
-        if(rel==1) {
-            args 'clean', 'test', '-DthreadCount=4'//,'release:prepare','release:perform'
-        }
-        else {
-            args 'clean'//,'test','-DthreadCount=4'//,'release:prepare','release:perform'
-        }
-        workingDir destDir
-    }
-
-
-    if(rel!=1) {
-        exec {
-            commandLine 'git'
-            args 'push'
-            workingDir destDir
-        }
-    }
-
+    gitAndRelease(destDir)
 
 }
+
+task(release_nounsafe) << {
+    def destDir = file("target/mapdb-nounsafe/");
+    destDir.mkdirs()
+
+    //copy folder
+    copy{
+        from '.'
+        into destDir
+        exclude 'target'
+        include '**/*.java'
+        exclude '.git'
+        exclude '**/Unsafe*.java'
+    }
+
+    gitAndRelease(destDir)
+}
+
+
+task(release_noassert) << {
+    def destDir = file("target/mapdb-noassert/");
+    destDir.mkdirs()
+
+    //copy folder
+    copy {
+        from '.'
+        into destDir
+        exclude 'target'
+        include '**/*.java'
+        exclude '.git'
+    }
+
+    ant.replace(file: destDir.path+'/src/main/java/org/mapdb/CC.java', token: 'boolean ASSERT = true;', value: 'boolean ASSERT = false;')
+    gitAndRelease(destDir)
+}
+
+task(release_debug) << {
+    def destDir = file("target/mapdb-debug/");
+    destDir.mkdirs()
+
+    //copy folder
+    copy {
+        from '.'
+        into destDir
+        exclude 'target'
+        include '**/*.java'
+        exclude '.git'
+    }
+
+    ant.replace(file: destDir.path+'/src/main/java/org/mapdb/CC.java', token: 'boolean PARANOID = false;', value: 'boolean PARANOID = true;')
+    ant.replace(file: destDir.path+'/src/main/java/org/mapdb/CC.java', token: 'boolean LOG_FINE = false;', value: 'boolean LOG_FINE = true;')
+    gitAndRelease(destDir)
+}
+
+
+task (release) << {
+    println 'DONE'
+}
+
+release.dependsOn release_this
+release.dependsOn release_renamed
+release.dependsOn release_nounsafe
+release.dependsOn release_noassert
+release.dependsOn release_debug

@@ -1,8 +1,8 @@
 package doc;
 
-import org.mapdb20.DB;
-import org.mapdb20.DBMaker;
-import org.mapdb20.TxMaker;
+import org.mapdb.DB;
+import org.mapdb.DBMaker;
+import org.mapdb.TxMaker;
 
 import java.util.Map;
 

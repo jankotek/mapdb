@@ -1,7 +1,7 @@
 package doc;
 
-import org.mapdb20.DBMaker;
-import org.mapdb20.Serializer;
+import org.mapdb.DBMaker;
+import org.mapdb.Serializer;
 
 import java.util.Map;
 
