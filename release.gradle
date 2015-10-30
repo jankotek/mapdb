@@ -30,8 +30,8 @@ def gitAndRelease(destDir){
         exclude '.git'
         filter{
             String line -> line
-                    .replaceAll("<artifactId>mapdb-debug</artifactId>","<artifactId>"+destDir.name+"</artifactId>")
-                    .replaceAll("<name>mapdb-debug</name>","<name>"+destDir.name+"</name>")
+                    .replaceAll("<artifactId>mapdb-noassert</artifactId>","<artifactId>"+destDir.name+"</artifactId>")
+                    .replaceAll("<name>mapdb-noassert</name>","<name>"+destDir.name+"</name>")
         }
     }
 
