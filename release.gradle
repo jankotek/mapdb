@@ -30,8 +30,8 @@ def gitAndRelease(destDir){
         exclude '.git'
         filter{
             String line -> line
-                    .replaceAll("<artifactId>mapdb-noassert</artifactId>","<artifactId>"+destDir.name+"</artifactId>")
-                    .replaceAll("<name>mapdb-noassert</name>","<name>"+destDir.name+"</name>")
+                    .replaceAll("<artifactId>mapdb-nounsafe</artifactId>","<artifactId>"+destDir.name+"</artifactId>")
+                    .replaceAll("<name>mapdb-nounsafe</name>","<name>"+destDir.name+"</name>")
         }
     }
 
@@ -73,7 +73,7 @@ def gitAndRelease(destDir){
         def tagname = destDir.name+"-"+relv;
 
         if(rel=="1") {
-            args '-e', 'clean',  '-Darguments="-DthreadCount=4"','release:prepare','release:perform', '--batch-mode',  '-Dtag='+tagname, '-DreleaseVersion='+relv, '-DdevelopmentVersion='+devv
+            args 'clean',  '-Darguments="-DthreadCount=4"','release:prepare','release:perform', '--batch-mode',  '-Dtag='+tagname, '-DreleaseVersion='+relv, '-DdevelopmentVersion='+devv
         }
         else {
             args 'clean', '-Darguments="-DthreadCount=4"', 'release:prepare', '-DdryRun=true',  '--batch-mode',  '-Dtag='+tagname, '-DreleaseVersion='+relv, '-DdevelopmentVersion='+devv
