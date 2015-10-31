@@ -93,7 +93,11 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             final ClassLoader loader = Thread.currentThread().getContextClassLoader();
             return Class.forName(className, true,loader);
         } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
+        	try {
+				return Class.forName(className, true, SerializerPojo.class.getClassLoader());
+			} catch (ClassNotFoundException e1) {
+				throw new RuntimeException(e1);
+			}
         }
     }
 
