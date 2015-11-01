@@ -461,7 +461,7 @@ public class WriteAheadLog {
         Volume vol = volumes.get((int) walPointerToFileNum(ret));
         long offset = walPointerToOffset(ret);
         if(offset!=0 && offset!=vol.length()) {
-            vol.clear(offset, vol.length());
+            vol.clearOverlap(offset, vol.length());
             vol.sync();
         }
         return ret;

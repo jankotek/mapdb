@@ -387,8 +387,31 @@ public abstract class Volume implements Closeable{
      * Set all bytes between {@code startOffset} and {@code endOffset} to zero.
      * Area between offsets must be ready for write once clear finishes.
      */
-    public abstract void clear(long startOffset, long endOffset);
+    public abstract void clear(final long startOffset, final long endOffset);
 
+    public void clearOverlap(final long startOffset, final long endOffset) {
+        if (CC.ASSERT && startOffset > endOffset)
+            throw new AssertionError();
+
+        final long bufSize = 1L << CC.VOLUME_PAGE_SHIFT;
+
+        long offset = Math.min(endOffset, Fun.roundUp(startOffset, bufSize));
+        if (offset != startOffset) {
+            clear(startOffset, offset);
+        }
+
+        long prevOffset = offset;
+        offset = Math.min(endOffset, Fun.roundUp(offset + 1, bufSize));
+
+        while (prevOffset < endOffset){
+            clear(prevOffset, offset);
+            prevOffset = offset;
+            offset = Math.min(endOffset, Fun.roundUp(offset + 1, bufSize));
+        }
+
+        if(CC.ASSERT && prevOffset!=endOffset)
+            throw new AssertionError();
+}
 
 
     /**
@@ -552,7 +575,7 @@ public abstract class Volume implements Closeable{
             ByteBuffer[] slices = this.slices;
             int pos = (int)(offset >>> sliceShift);
             if(pos>=slices.length)
-                throw new DBException.VolumeEOF("Get/Set beyong file size. Requested offset: "+offset+", volume size: "+length());
+                throw new DBException.VolumeEOF("Get/Set beyond file size. Requested offset: "+offset+", volume size: "+length());
             return slices[pos];
         }
 

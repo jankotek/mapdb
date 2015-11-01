@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
@@ -635,4 +636,82 @@ public class VolumeTest {
 
         }
     }
+
+    @Test public void clearOverlap(){
+        if(TT.scale()<100)
+            return;
+
+        Volume.ByteArrayVol v = new Volume.ByteArrayVol();
+        v.ensureAvailable(5 * 1024 * 1024);
+        long vLength = v.length();
+        byte[] ones = new byte[1024];
+        Arrays.fill(ones, (byte) 1);
+
+        for(long size : new long[]{100, 1024*1024, 3*1024*1024, 3*1024*1024+6000}){
+            for(long startPos=0;startPos<vLength-size;startPos++){
+                //fill with ones
+                for(long pos=0;pos<vLength;pos+=ones.length){
+                    v.putData(pos,ones,0,ones.length);
+                }
+
+                //clear section of the volume
+                v.clearOverlap(startPos, startPos+size);
+                //ensure zeroes
+                v.assertZeroes(startPos,startPos+size);
+
+                //ensure ones before
+                for(long pos=0;pos<startPos;pos++){
+                    if(v.getByte(pos)!=1)
+                        throw new AssertionError();
+                }
+
+                //ensure ones after
+                for(long pos=startPos+size;pos<vLength;pos++){
+                    if(v.getByte(pos)!=1)
+                        throw new AssertionError();
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testClearOverlap2(){
+        clearOverlap(0, 1000);
+        clearOverlap(0,10000000);
+        clearOverlap(100,10000000);
+        clearOverlap(StoreDirect.PAGE_SIZE,10000000);
+        clearOverlap(StoreDirect.PAGE_SIZE-1,StoreDirect.PAGE_SIZE*3);
+        clearOverlap(StoreDirect.PAGE_SIZE+1,StoreDirect.PAGE_SIZE*3);
+    }
+
+    void clearOverlap(long startPos, long size){
+        Volume.ByteArrayVol v = new Volume.ByteArrayVol();
+        v.ensureAvailable(startPos+size+10000);
+        byte[] ones = new byte[1024];
+        Arrays.fill(ones, (byte) 1);
+        long vLength = v.length();
+
+        //fill with ones
+        for(long pos=0;pos<vLength;pos+=ones.length){
+            v.putData(pos,ones,0,ones.length);
+        }
+
+        //clear section of the volume
+        v.clearOverlap(startPos, startPos+size);
+        //ensure zeroes
+        v.assertZeroes(startPos,startPos+size);
+
+        //ensure ones before
+        for(long pos=0;pos<startPos;pos++){
+            if(v.getByte(pos)!=1)
+                throw new AssertionError();
+        }
+
+        //ensure ones after
+        for(long pos=startPos+size;pos<vLength;pos++){
+            if(v.getByte(pos)!=1)
+                throw new AssertionError();
+        }
+    }
+
 }
