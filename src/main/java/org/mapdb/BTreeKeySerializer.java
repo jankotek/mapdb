@@ -638,6 +638,19 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
 
         protected final Comparator comparator;
 
+
+        public ArrayKeySerializer(Serializer... serializers) {
+            this(nComparableComparators(serializers.length), serializers);
+        }
+
+        private static Comparator[] nComparableComparators(int length) {
+            Comparator[] comparators = new Comparator[length];
+            for(int i=0;i<comparators.length;i++){
+                comparators[i] = Fun.COMPARATOR;
+            }
+            return comparators;
+        }
+
         public ArrayKeySerializer(Comparator[] comparators, Serializer[] serializers) {
             if(comparators.length!=serializers.length){
                 throw new IllegalArgumentException("array sizes do not match");
