@@ -45,6 +45,22 @@ public final class Pump {
      * @return iterator over sorted data set
      */
     public static <E> Iterator<E> sort(Iterator<E> source, boolean mergeDuplicates, final int batchSize,
+                                       Comparator comparator, final Serializer<E> serializer) {
+        return sort(source,mergeDuplicates,batchSize, comparator, serializer, null);
+    }
+
+        /**
+         * Sorts large data set by given {@code Comparator}. Data are sorted with in-memory cache and temporary files.
+         *
+         * @param source iterator over unsorted data
+         * @param mergeDuplicates should be duplicate keys merged into single one?
+         * @param batchSize how much items can fit into heap memory
+         * @param comparator used to sort data
+         * @param serializer used to store data in temporary files
+         * @param executor for parallel sort
+         * @return iterator over sorted data set
+         */
+    public static <E> Iterator<E> sort(Iterator<E> source, boolean mergeDuplicates, final int batchSize,
             Comparator comparator, final Serializer<E> serializer, Executor executor){
         if(batchSize<=0) throw new IllegalArgumentException();
         if(comparator==null)
