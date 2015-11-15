@@ -687,6 +687,30 @@ public abstract class EngineTest<ENGINE extends Engine>{
         e.close();
     }
 
+    @Test public void insert_many_reopen_check() throws InterruptedException {
+        e = openEngine();
+        int max = 1000;
+        int size = 100000;
+        Random r = new Random(0);
+        List<Long> recids = new ArrayList<Long>();
+        for(int j=0;j<max;j++){
+            byte[] b = new byte[r.nextInt(size)];
+            r.nextBytes(b);
+            long recid = e.put(b,Serializer.BYTE_ARRAY_NOSIZE);
+            recids.add(recid);
+        }
+        e.commit();
+
+        reopen();
+
+        r = new Random(0);
+        for (long recid : recids) {
+            byte[] b = new byte[r.nextInt(size)];
+            r.nextBytes(b);
+            byte[] b2 = e.get(recid, Serializer.BYTE_ARRAY_NOSIZE);
+            assertTrue("Data were not commited recid="+recid, Arrays.equals(b, b2));
+        }
+    }
 
     @Test public void recover_with_interrupt() throws InterruptedException {
         int scale = TT.scale();
@@ -696,17 +720,21 @@ public abstract class EngineTest<ENGINE extends Engine>{
         if(!e.canRollback() || e instanceof StoreHeap) //TODO engine might have crash recovery, but no rollbacks
             return;
 
-        final long counterRecid = e.put(0L, Serializer.LONG);
 
         //fill recids
         final int max = scale*1000;
         final ArrayList<Long> recids = new ArrayList<Long>();
+        final AtomicLong a = new AtomicLong(10);
+        final long counterRecid = e.put(a.get(), Serializer.LONG);
+        Random r = new Random(a.get());
         for(int j=0;j<max;j++){
-            long recid = e.put(new byte[0],Serializer.BYTE_ARRAY_NOSIZE);
+            byte[] b = new byte[r.nextInt(100000)];
+            r.nextBytes(b);
+            long recid = e.put(b,Serializer.BYTE_ARRAY_NOSIZE);
             recids.add(recid);
         }
 
-        final AtomicLong a = new AtomicLong(10);
+        e.commit();
 
         long endTime = TT.nowPlusMinutes(10);
 
@@ -747,14 +775,15 @@ public abstract class EngineTest<ENGINE extends Engine>{
 
             //check if A-1 was commited
             long A = e.get(counterRecid, Serializer.LONG);
-            assertTrue(A == a.get() || A == a.get() - 1);
-            Random r = new Random(A);
+            assertTrue(""+A+" - "+a.get(), A == a.get() || A == a.get() - 1);
+            r = new Random(A);
             for (long recid : recids) {
                 byte[] b = new byte[r.nextInt(100000)];
                 r.nextBytes(b);
                 byte[] b2 = e.get(recid, Serializer.BYTE_ARRAY_NOSIZE);
-                assertTrue("Data were not commited", Arrays.equals(b, b2));
+                assertTrue("Data were not commited recid="+recid, Arrays.equals(b, b2));
             }
+            a.set(A);
         }
         e.close();
 

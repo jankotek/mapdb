@@ -308,7 +308,7 @@ public class StoreDirect extends Store {
     @Override
     protected <A> A get2(long recid, Serializer<A> serializer) {
         if (CC.ASSERT)
-            assertReadLocked(recid);
+            assertReadLocked(lockPos(recid));
 
         long[] offsets = offsetsGet(lockPos(recid),indexValGet(recid));
         return getFromOffset(serializer, offsets);
@@ -1601,7 +1601,7 @@ public class StoreDirect extends Store {
 
     protected long indexValGet(long recid) {
         if(CC.ASSERT)
-            assertReadLocked(recid);
+            assertReadLocked(lockPos(recid));
 
         long offset = recidToOffset(recid);
         long indexVal = vol.getLong(offset);
@@ -1615,7 +1615,7 @@ public class StoreDirect extends Store {
 
     protected long indexValGetRaw(long recid) {
         if(CC.ASSERT)
-            assertReadLocked(recid);
+            assertReadLocked(lockPos(recid));
 
         long offset = recidToOffset(recid);
         return vol.getLong(offset);

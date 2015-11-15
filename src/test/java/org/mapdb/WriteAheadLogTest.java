@@ -475,4 +475,23 @@ public class WriteAheadLogTest {
         ));
 
     }
+
+    @Test public void replay_commit_over_file_edge(){
+        String f = TT.tempDbFile().getPath();
+        WriteAheadLog wal = new WriteAheadLog(f);
+
+        byte[] b = TT.randomByteArray(20 * 1024 * 1024);
+        wal.walPutRecord(11L, b, 0, b.length);
+        wal.walPutRecord(33L, b, 0, b.length);
+        wal.commit();
+        wal.close();
+
+        wal = new WriteAheadLog(f);
+        wal.open(new WALSequence(
+                new Object[]{WALSequence.beforeReplayStart},
+                new Object[]{WALSequence.writeRecord, 11L, 16L,  b},
+                new Object[]{WALSequence.writeRecord, 33L, 4294967312L, b},
+                new Object[]{WALSequence.commit}
+        ));
+    }
 }

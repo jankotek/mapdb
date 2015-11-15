@@ -229,6 +229,8 @@ public class StoreAppend extends Store {
             throw new DBException.DataCorruption("Wrong header at:"+fileName);
         }
 
+        //TODO lock all for write
+
         long featuresBitMap = headVol.getLong(8);
         checkFeaturesBitmap(featuresBitMap);
 
@@ -293,7 +295,7 @@ public class StoreAppend extends Store {
     @Override
     protected <A> A get2(long recid, Serializer<A> serializer) {
         if(CC.ASSERT)
-            assertReadLocked(recid);
+            assertReadLocked(lockPos(recid));
 
         long walId= tx?
                 modified[lockPos(recid)].get(recid):
@@ -376,6 +378,8 @@ public class StoreAppend extends Store {
     }
 
     protected void indexTablePut(long recid, long walId) {
+        if(CC.ASSERT)
+            assertWriteLocked(lockPos(recid));
         if(tx){
             modified[lockPos(recid)].put(recid,walId);
         }else {

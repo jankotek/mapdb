@@ -591,10 +591,23 @@ public abstract class Store implements Engine {
         return h & lockMask;
     }
 
-    protected void assertReadLocked(long recid) {
-//        if(locks[lockPos(recid)].writeLock().getHoldCount()!=0){
-//            throw new AssertionError();
-//        }
+    protected void assertReadLocked(int segment) {
+        if(!(locks[segment] instanceof ReentrantLock))
+            return;
+
+        ReentrantReadWriteLock lock = (ReentrantReadWriteLock) locks[segment];
+
+        if(lock.isWriteLockedByCurrentThread())
+            return;
+
+        if(lock.isWriteLocked()){
+            throw new AssertionError();
+        }
+
+        if(lock.getReadHoldCount()<=0){
+            throw new AssertionError();
+        }
+
     }
 
     protected void assertWriteLocked(int segment) {

@@ -476,9 +476,10 @@ public class WriteAheadLog {
      * @return offset after last rollback
      */
     long skipRollbacks(long start){
+        long fileNum2 = walPointerToFileNum(start);
+        long pos = walPointerToOffset(start);
+
         commitLoop:for(;;){
-            long fileNum2 = walPointerToFileNum(start);
-            long pos = walPointerToOffset(start);
             if(volumes.size()<=fileNum2)
                 return 0; //there will be no commit in this file
             Volume wal = volumes.get((int) fileNum2);
@@ -497,7 +498,9 @@ public class WriteAheadLog {
                         //EOF
                         if ((Long.bitCount(pos - 1) & 15) != checksum)
                             throw new  DBException.DataCorruption("WAL corrupted "+fileNum2+" - "+pos);
-                        start = walPointer(0, fileNum2 + 1, 16);
+                        fileNum2++;
+                        pos = 16;
+                        //TODO check next file seal?
                         continue commitLoop;
                         //break;
                     }

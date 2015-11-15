@@ -61,7 +61,7 @@ public class StoreHeap extends Store{
     @Override
     protected <A> A get2(long recid, Serializer<A> serializer) {
         if(CC.ASSERT)
-            assertReadLocked(recid);
+            assertReadLocked(lockPos(recid));
 
         int pos = lockPos(recid);
         A ret =  (A) data[pos].get(recid);

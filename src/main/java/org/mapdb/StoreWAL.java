@@ -283,7 +283,7 @@ public class StoreWAL extends StoreCached {
     @Override
     protected long indexValGet(long recid) {
         if(CC.ASSERT)
-            assertReadLocked(recid);
+            assertReadLocked(lockPos(recid));
         int segment = lockPos(recid);
         long offset = recidToOffset(recid);
         long ret = uncommittedIndexTable[segment].get(offset);
@@ -299,7 +299,7 @@ public class StoreWAL extends StoreCached {
     @Override
     protected long indexValGetRaw(long recid) {
         if(CC.ASSERT)
-            assertReadLocked(recid);
+            assertReadLocked(lockPos(recid));
         int segment = lockPos(recid);
         long offset = recidToOffset(recid);
         long ret = uncommittedIndexTable[segment].get(offset);
@@ -433,7 +433,7 @@ public class StoreWAL extends StoreCached {
     @Override
     protected <A> A get2(long recid, Serializer<A> serializer) {
         if (CC.ASSERT)
-            assertReadLocked(recid);
+            assertReadLocked(lockPos(recid));
         int segment = lockPos(recid);
 
         //is in write cache?
