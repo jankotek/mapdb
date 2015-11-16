@@ -830,10 +830,7 @@ public class WriteAheadLog {
     }
 
     //TODO return DataInput
-    public byte[] walGetRecord(long walPointer, long expectedRecid) {
-
-
-
+    synchronized public byte[] walGetRecord(long walPointer, long expectedRecid) {
         long fileNum = walPointerToFileNum(walPointer);
         long dataOffset = (walPointerToOffset(walPointer));
 
@@ -925,7 +922,8 @@ public class WriteAheadLog {
         return val;
     }
 
-    public long walPutRecord(long recid, byte[] buf, int bufPos, int size){
+    //TODO walPutRecord and walGetRecord are both synchronized, that is just broken
+    synchronized public long walPutRecord(long recid, byte[] buf, int bufPos, int size){
         if(CC.ASSERT && buf==null && size!=0)
             throw new AssertionError();
         ensureFileReady(true);
