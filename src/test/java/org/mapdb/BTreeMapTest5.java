@@ -245,11 +245,11 @@ public class BTreeMapTest5 extends JSR166TestCase {
         while (it.hasNext()) {
             Map.Entry e = (Map.Entry) it.next();
             assertTrue(
-                    (e.getKey().equals(one) && e.getValue().equals("A")) ||
-                            (e.getKey().equals(two) && e.getValue().equals("B")) ||
-                            (e.getKey().equals(three) && e.getValue().equals("C")) ||
-                            (e.getKey().equals(four) && e.getValue().equals("D")) ||
-                            (e.getKey().equals(five) && e.getValue().equals("E")));
+                    (e.getKey().equals(one) && "A".equals(e.getValue())) ||
+                            (e.getKey().equals(two) && "B".equals(e.getValue())) ||
+                            (e.getKey().equals(three) && "C".equals(e.getValue())) ||
+                            (e.getKey().equals(four) && "D".equals(e.getValue())) ||
+                            (e.getKey().equals(five) && "E".equals(e.getValue())));
         }
     }
 
@@ -919,11 +919,11 @@ public class BTreeMapTest5 extends JSR166TestCase {
         while (it.hasNext()) {
             Map.Entry e = (Map.Entry) it.next();
             assertTrue(
-                    (e.getKey().equals(m1) && e.getValue().equals("A")) ||
-                            (e.getKey().equals(m2) && e.getValue().equals("B")) ||
-                            (e.getKey().equals(m3) && e.getValue().equals("C")) ||
-                            (e.getKey().equals(m4) && e.getValue().equals("D")) ||
-                            (e.getKey().equals(m5) && e.getValue().equals("E")));
+                    (e.getKey().equals(m1) && "A".equals(e.getValue())) ||
+                            (e.getKey().equals(m2) && "B".equals(e.getValue())) ||
+                            (e.getKey().equals(m3) && "C".equals(e.getValue())) ||
+                            (e.getKey().equals(m4) && "D".equals(e.getValue())) ||
+                            (e.getKey().equals(m5) && "E".equals(e.getValue())));
         }
     }
 
