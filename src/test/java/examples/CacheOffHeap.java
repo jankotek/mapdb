@@ -48,7 +48,7 @@ public class CacheOffHeap {
             cache.put(key,value);
 
             if(counter%1e5==0){
-                System.out.printf("Map size: %,d, counter %,d, store size: %,d, store free size: %,d\n",
+                System.out.printf("Map size: %,d, counter %,d, store size: %,d, store free size: %,d%n",
                         cache.sizeLong(), counter, store.getCurrSize(),  store.getFreeSize());
             }
 
