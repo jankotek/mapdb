@@ -35,7 +35,7 @@ import java.util.Random;
 public class TreeMap_Performance_Tunning {
 
 
-    static final int[] nodeSizes = {6, 18, 32, 64, 120};
+    private static final int[] nodeSizes = {6, 18, 32, 64, 120};
 
 
     public static void main(String[] args) {

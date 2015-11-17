@@ -25,7 +25,7 @@ public class StoreAppend extends Store {
 
     protected static final long headerSize = 16;
 
-    protected static final StoreAppend[] STORE_APPENDS_ZERO_ARRAY = new StoreAppend[0];
+    private static final StoreAppend[] STORE_APPENDS_ZERO_ARRAY = new StoreAppend[0];
 
 
     protected WriteAheadLog wal;
