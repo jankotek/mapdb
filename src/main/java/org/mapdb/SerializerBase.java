@@ -79,7 +79,7 @@ public class SerializerBase extends Serializer<Object>{
 
         public DeserSerializer(Serializer serializer) {
             if(serializer==null)
-                throw new NullPointerException();
+                throw new IllegalArgumentException("serializer = NULL");
             this.serializer = serializer;
         }
 
@@ -168,7 +168,7 @@ public class SerializerBase extends Serializer<Object>{
 
         public SerHeaderSerializer(int header, Serializer serializer) {
             if(serializer==null)
-                throw new NullPointerException();
+                throw new IllegalArgumentException("serializer = NULL");
             this.header = (byte) header;
             this.serializer = serializer;
         }

@@ -177,7 +177,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
 
         public BasicKeySerializer(Serializer serializer, Comparator comparator) {
             if(serializer == null || comparator == null)
-                throw new  NullPointerException();
+                throw new IllegalArgumentException("serializer or comparator is null");
             this.serializer = serializer;
             this.comparator = comparator;
         }
@@ -188,7 +188,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             serializer = (Serializer) serializerBase.deserialize(is,objectStack);
             comparator = (Comparator) serializerBase.deserialize(is,objectStack);
             if(serializer == null || comparator == null)
-                throw new  NullPointerException();
+                throw new IllegalArgumentException("serializer or comparator is null");
         }
 
         @Override
@@ -2021,7 +2021,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
 
         public Compress(BTreeKeySerializer wrapped) {
             if(wrapped == null)
-                throw new  NullPointerException();
+                throw new IllegalArgumentException("wrapped = NULL");
 
             this.wrapped = wrapped;
         }
@@ -2030,7 +2030,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             objectStack.add(this);
             wrapped = (BTreeKeySerializer) serializerBase.deserialize(in,objectStack);
             if(wrapped == null)
-                throw new  NullPointerException();
+                throw new IllegalArgumentException("wrapped = NULL");
         }
 
         @Override

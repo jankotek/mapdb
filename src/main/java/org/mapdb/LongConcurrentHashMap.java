@@ -707,11 +707,11 @@ class LongConcurrentHashMap< V>
      * @param value value whose presence in this map is to be tested
      * @return <tt>true</tt> if this map maps one or more keys to the
      *         specified value
-     * @throws NullPointerException if the specified value is null
+     * @throws IllegalArgumentException if the specified value is null
      */
     public boolean containsValue(Object value) {
         if (value == null)
-            throw new NullPointerException();
+            throw new IllegalArgumentException("value = NULL");
 
         // See explanation of modCount use above
 
@@ -769,12 +769,12 @@ class LongConcurrentHashMap< V>
      * @param value value to be associated with the specified key
      * @return the previous value associated with <tt>key</tt>, or
      *         <tt>null</tt> if there was no mapping for <tt>key</tt>
-     * @throws NullPointerException if the specified key or value is null
+     * @throws IllegalArgumentException if the specified key or value is null
      */
     
     public V put(long key, V value) {
         if (value == null)
-            throw new NullPointerException();
+            throw new IllegalArgumentException("value = NULL");
         final int hash = DataIO.longHash(key ^ hashSalt);
         return segmentFor(hash).put(key, hash, value, false);
     }
@@ -784,11 +784,11 @@ class LongConcurrentHashMap< V>
      *
      * @return the previous value associated with the specified key,
      *         or <tt>null</tt> if there was no mapping for the key
-     * @throws NullPointerException if the specified key or value is null
+     * @throws IllegalArgumentException if the specified key or value is null
      */
     public V putIfAbsent(long key, V value) {
         if (value == null)
-            throw new NullPointerException();
+            throw new IllegalArgumentException("value = NULL");
         final int hash = DataIO.longHash(key ^ hashSalt);
         return segmentFor(hash).put(key, hash, value, true);
     }
@@ -822,11 +822,11 @@ class LongConcurrentHashMap< V>
     /**
      *
      *
-     * @throws NullPointerException if any of the arguments are null
+     * @throws IllegalArgumentException if any of the arguments are null
      */
     public boolean replace(long key, V oldValue, V newValue) {
         if (oldValue == null || newValue == null)
-            throw new NullPointerException();
+            throw new IllegalArgumentException("oldValue or newValue is null");
         final int hash = DataIO.longHash(key ^ hashSalt);
         return segmentFor(hash).replace(key, hash, oldValue, newValue);
     }
@@ -836,11 +836,11 @@ class LongConcurrentHashMap< V>
      *
      * @return the previous value associated with the specified key,
      *         or <tt>null</tt> if there was no mapping for the key
-     * @throws NullPointerException if the specified key or value is null
+     * @throws IllegalArgumentException if the specified key or value is null
      */
     public V replace(long key, V value) {
         if (value == null)
-            throw new NullPointerException();
+            throw new IllegalArgumentException("value = NULL");
         final int hash = DataIO.longHash(key ^ hashSalt);
         return segmentFor(hash).replace(key, hash, value);
     }

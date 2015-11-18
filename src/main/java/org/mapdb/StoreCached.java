@@ -481,7 +481,7 @@ public class StoreCached extends StoreDirect {
             LOG.log(Level.FINER, "REC DEL recid={0}, serializer={1}",new Object[]{recid,serializer});
 
         if (serializer == null)
-            throw new NullPointerException();
+            throw new IllegalArgumentException("serializer = NULL");
         int lockPos = lockPos(recid);
 
         LongObjectObjectMap map = writeCache[lockPos];
@@ -495,7 +495,7 @@ public class StoreCached extends StoreDirect {
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
         if (serializer == null)
-            throw new NullPointerException();
+            throw new IllegalArgumentException("serializer = NULL");
 
         //TODO this causes double locking, merge two methods into single method
         long recid = preallocate();
@@ -510,7 +510,7 @@ public class StoreCached extends StoreDirect {
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
         if (serializer == null)
-            throw new NullPointerException();
+            throw new IllegalArgumentException("serializer = NULL");
 
         if(CC.LOG_STORE_RECORD && LOG.isLoggable(Level.FINER))
             LOG.log(Level.FINER, "REC UPDATE recid={0}, value={1}, serializer={2}",new Object[]{recid,value, serializer});
@@ -538,7 +538,7 @@ public class StoreCached extends StoreDirect {
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
         if(serializer==null)
-            throw new NullPointerException();
+            throw new IllegalArgumentException("serializer = NULL");
 
         //TODO binary CAS & serialize outside lock
         final int lockPos = lockPos(recid);
