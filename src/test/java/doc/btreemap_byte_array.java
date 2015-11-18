@@ -1,6 +1,6 @@
 package doc;
 
-import org.mapdb.*;
+import org.mapdb20.*;
 
 public class btreemap_byte_array {
 

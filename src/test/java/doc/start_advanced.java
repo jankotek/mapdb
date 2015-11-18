@@ -1,7 +1,7 @@
 package doc;
 
-import org.mapdb.DB;
-import org.mapdb.DBMaker;
+import org.mapdb20.DB;
+import org.mapdb20.DBMaker;
 
 import java.io.File;
 import java.util.concurrent.ConcurrentNavigableMap;
@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 public class start_advanced {
     public static void main(String[] args) {
         //a
-        // import org.mapdb.*;
+        // import org.mapdb20.*;
 
         // configure and open database using builder pattern.
         // all options are available with code auto-completion.

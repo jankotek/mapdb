@@ -1,7 +1,7 @@
 package doc;
 
-import org.mapdb.DB;
-import org.mapdb.DBMaker;
+import org.mapdb20.DB;
+import org.mapdb20.DBMaker;
 
 
 public class cache_lru {
