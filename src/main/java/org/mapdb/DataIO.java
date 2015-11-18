@@ -7,6 +7,9 @@ import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import org.mapdb.util.ArrayUtils;
+
 import static java.lang.Long.rotateLeft;
 
 /**
@@ -416,7 +419,7 @@ public final class DataIO {
 
         public DataInputByteArray(byte[] bb, int pos) {
             //$DELAY$
-            buf = bb;
+            buf = ArrayUtils.copyOf(bb);
             this.pos = pos;
         }
 

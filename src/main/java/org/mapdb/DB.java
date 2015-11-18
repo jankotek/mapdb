@@ -29,6 +29,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.mapdb.util.ArrayUtils;
+
 /**
  * A database with easy access to named maps and other collections.
  *
@@ -305,7 +307,7 @@ public class DB implements Closeable {
         public HTreeMapMaker(DB db, String name, Engine[] engines) {
             this.db = db;
             this.name = name;
-            this.engines = engines;
+            this.engines = ArrayUtils.copyOf(engines);
             this.executor = db.executor;
         }
 
