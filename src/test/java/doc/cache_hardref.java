@@ -1,7 +1,7 @@
 package doc;
 
-import org.mapdb20.DB;
-import org.mapdb20.DBMaker;
+import org.mapdb.DB;
+import org.mapdb.DBMaker;
 
 
 public class cache_hardref {

@@ -1,9 +1,9 @@
 package examples;
 
-import org.mapdb20.Bind;
-import org.mapdb20.DBMaker;
-import org.mapdb20.Fun;
-import org.mapdb20.HTreeMap;
+import org.mapdb.Bind;
+import org.mapdb.DBMaker;
+import org.mapdb.Fun;
+import org.mapdb.HTreeMap;
 
 import java.util.HashMap;
 import java.util.Map;

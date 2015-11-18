@@ -1,6 +1,6 @@
 package examples;
 
-import org.mapdb20.*;
+import org.mapdb.*;
 
 import java.util.Random;
 

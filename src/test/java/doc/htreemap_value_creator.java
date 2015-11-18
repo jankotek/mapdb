@@ -1,9 +1,9 @@
 package doc;
 
-import org.mapdb20.DB;
-import org.mapdb20.DBMaker;
-import org.mapdb20.Fun;
-import org.mapdb20.HTreeMap;
+import org.mapdb.DB;
+import org.mapdb.DBMaker;
+import org.mapdb.Fun;
+import org.mapdb.HTreeMap;
 
 
 public class htreemap_value_creator {

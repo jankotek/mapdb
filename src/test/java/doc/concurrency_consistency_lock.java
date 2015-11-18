@@ -1,6 +1,6 @@
 package doc;
 
-import org.mapdb20.*;
+import org.mapdb.*;
 
 
 public class concurrency_consistency_lock {
@@ -18,7 +18,8 @@ public class concurrency_consistency_lock {
         db.consistencyLock().readLock().lock(); //note readLock
         try{
             a.incrementAndGet();
-            // if snapshot or commit would happen here, two counters would be inconsistent
+            // 'a' is incremented, 'b' not yet. If commit or rollback would happen here
+            // data stored on disk would become inconsistent.
             b.incrementAndGet();
         }finally {
             db.consistencyLock().readLock().unlock();
