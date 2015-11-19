@@ -130,7 +130,7 @@ public final class DataIO {
         shift -= shift%7; // round down to nearest multiple of 7
         int ret = 1;
         while(shift!=0){
-            //TODO remove cycle, just count zeroes
+            //PERF remove cycle, just count zeroes
             shift-=7;
             ret++;
         }
@@ -936,7 +936,7 @@ public final class DataIO {
 
         public DataOutputByteArray(){
             pos = 0;
-            buf = new byte[128]; //TODO take hint from serializer for initial size
+            buf = new byte[128]; //PERF take hint from serializer for initial size
             sizeMask = 0xFFFFFFFF-(buf.length-1);
         }
 

@@ -48,7 +48,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
     public abstract int compare(KEYS keys, int pos, KEY key);
 
     public boolean compareIsSmaller(KEYS keys, int pos, KEY key) {
-        //TODO override in Strings and other implementations
+        //PERF override in Strings and other implementations
         return compare(keys,pos,key)<0;
     }
 
@@ -991,7 +991,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         void serialize(DataOutput out, int prefixLen) throws IOException;
     }
 
-    //TODO right now byte[] contains 7 bit characters, but it should be expandable to 8bit.
+    //PERF right now byte[] contains 7 bit characters, but it should be expandable to 8bit.
     public static final class ByteArrayKeys implements StringArrayKeys {
         final int[] offset;
         final byte[] array;

@@ -1268,15 +1268,6 @@ public final class DBMaker{
         }
 
 
-        /**
-         * @deprecated this setting does nothing, recidReuse is now enabled by default
-         * TODO remove this option in a few weeks, beta4 added this
-         * @return this builder
-         */
-        public Maker allocateRecidReuseEnable(){
-            return this;
-        }
-
         /** constructs DB using current settings */
         public DB make(){
             boolean strictGet = propsGetBool(Keys.strictDBGet);

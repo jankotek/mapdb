@@ -1191,7 +1191,7 @@ public class HTreeMap<K,V>
 
                     if (expireFlag)
                         while (expireLinkRemoveLast(i) != null) {
-                        } //TODO speedup remove all
+                        } //PERF speedup remove all
 
                 } finally {
                     segmentLocks[i].writeLock().unlock();
@@ -1899,7 +1899,7 @@ public class HTreeMap<K,V>
                         (expireAccess==0? n.time : expireAccess+System.currentTimeMillis()-expireTimeStart):
                         (expire==0?n.time : expire+System.currentTimeMillis()-expireTimeStart);
 
-        //TODO optimize bellow, but what if there is only size limit?
+        //PERF optimize bellow, but what if there is only size limit?
         //if(n.time>newTime) return; // older time greater than new one, do not update
 
         if(n.next==0){
@@ -1923,7 +1923,7 @@ public class HTreeMap<K,V>
             next=next.copyPrev(n.prev);
             engine.update(n.next,next,ExpireLinkNode.SERIALIZER);
 
-            //TODO optimize if oldHead==next
+            //PERF optimize if oldHead==next
 
             //now insert node as new head
             long oldHeadRecid = engine.get(expireHeads[segment],Serializer.LONG);

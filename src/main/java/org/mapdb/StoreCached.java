@@ -375,7 +375,7 @@ public class StoreCached extends StoreDirect {
             //set header checksum
             headVol.putInt(HEAD_CHECKSUM, headChecksum(headVol));
             //and flush head
-            byte[] buf = new byte[(int) HEAD_END]; //TODO copy directly
+            byte[] buf = new byte[(int) HEAD_END]; //PERF copy directly
             headVol.getData(0, buf, 0, buf.length);
             vol.putData(0, buf, 0, buf.length);
         } finally {
@@ -450,7 +450,7 @@ public class StoreCached extends StoreDirect {
                 super.delete2(recid, Serializer.ILLEGAL_ACCESS);
             } else {
                 Serializer s = (Serializer) values[i*2+1];
-                DataOutputByteArray buf = serialize(value, s); //TODO somehow serialize outside lock?
+                DataOutputByteArray buf = serialize(value, s); //PERF somehow serialize outside lock?
                 super.update2(recid, buf);
                 recycledDataOut.lazySet(buf);
             }
@@ -497,7 +497,7 @@ public class StoreCached extends StoreDirect {
         if (serializer == null)
             throw new NullPointerException();
 
-        //TODO this causes double locking, merge two methods into single method
+        //PERF this causes double locking, merge two methods into single method
         long recid = preallocate();
         update(recid, value, serializer);
 
@@ -540,7 +540,7 @@ public class StoreCached extends StoreDirect {
         if(serializer==null)
             throw new NullPointerException();
 
-        //TODO binary CAS & serialize outside lock
+        //PERF binary CAS & serialize outside lock
         final int lockPos = lockPos(recid);
         final Lock lock = locks[lockPos].writeLock();
         final Cache cache = caches==null ? null : caches[lockPos];

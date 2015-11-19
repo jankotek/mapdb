@@ -129,7 +129,7 @@ public abstract class Store implements Engine {
         }
         if(Integer.bitCount(lockScale)!=1)
             throw new IllegalArgumentException("Lock Scale must be power of two");
-        //TODO replace with incrementer on java 8
+        //PERF replace with incrementer on java 8
         metricsDataWrite = new AtomicLong();
         metricsRecordWrite = new AtomicLong();
         metricsDataRead = new AtomicLong();
@@ -395,7 +395,7 @@ public abstract class Store implements Engine {
 
     protected <A> A deserialize(Serializer<A> serializer, int size, DataInput input){
         try {
-            //TODO return future and finish deserialization outside lock, does even bring any performance bonus?
+            //PERF return future and finish deserialization outside lock, does even bring any performance bonus?
 
             DataIO.DataInputInternal di = (DataIO.DataInputInternal) input;
             if (size > 0 && deserializeExtra)  {
@@ -480,7 +480,7 @@ public abstract class Store implements Engine {
                 DataIO.DataOutputByteArray out = newDataOut2();
                 out.ensureAvail(decompSize);
                 CompressLZF lzf = LZF.get();
-                //TODO copy to heap if Volume is not mapped
+                //PERF copy to heap if Volume is not mapped
                 //argument is not needed; unpackedSize= size-(di.pos-origPos),
                 byte[] b = di.internalByteArray();
                 if (b != null) {
@@ -525,7 +525,7 @@ public abstract class Store implements Engine {
             LOG.log(Level.FINEST, "CAS: recid={0}, serializer={1}, expectedRec={2}, newRec={3}", new Object[]{recid, serializer, expectedOldValue, newValue});
         }
 
-        //TODO binary CAS & serialize outside lock
+        //PERF binary CAS & serialize outside lock
         final int lockPos = lockPos(recid);
         final Lock lock = locks[lockPos].writeLock();
         final Cache cache = caches==null ? null : caches[lockPos];
@@ -1003,7 +1003,7 @@ public abstract class Store implements Engine {
             if(lock!=null)
                 lock.lock();
             try{
-                items.clear(); //TODO more efficient method, which would bypass queue
+                items.clear(); //PERF more efficient method, which would bypass queue
             }finally {
                 if(lock!=null)
                     lock.unlock();
@@ -1212,7 +1212,7 @@ public abstract class Store implements Engine {
 
             protected final int cacheSize;
 
-            //TODO specialized version of LinkedHashMap to use primitive longs
+            //PERF specialized version of LinkedHashMap to use primitive longs
             protected final LinkedHashMap<Long, Object> items = new LinkedHashMap<Long,Object>();
 
             public LRU(int cacheSize, boolean disableLocks) {

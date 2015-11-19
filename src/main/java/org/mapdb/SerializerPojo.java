@@ -155,7 +155,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
      */
     protected static final class ClassInfo {
 
-        //TODO optimize deserialization cost here.
+        //PERF optimize deserialization cost here.
 
         protected final String name;
         protected final FieldInfo[] fields;

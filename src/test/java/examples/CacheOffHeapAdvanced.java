@@ -26,8 +26,7 @@ public class CacheOffHeapAdvanced {
                 .memoryDirectDB()
             // make it faster
                 .transactionDisable()
-                .allocateRecidReuseEnable()
-            //some additional options for DB
+              //some additional options for DB
                // .asyncWriteEnable()
                // .cacheSize(100000)
                 .make();

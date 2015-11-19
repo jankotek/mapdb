@@ -244,7 +244,7 @@ public class StoreWAL extends StoreCached {
     protected void putDataSingleWithLink(int segment, long offset, long link, byte[] buf, int bufPos, int size) {
         if(CC.ASSERT && (size&0xFFFF)!=size)
             throw new DBException.DataCorruption();
-        //TODO optimize so array copy is not necessary, that means to clone and modify putDataSingleWithoutLink method
+        //PERF optimize so array copy is not necessary, that means to clone and modify putDataSingleWithoutLink method
         byte[] buf2 = new  byte[size+8];
         DataIO.putLong(buf2,0,link);
         System.arraycopy(buf,bufPos,buf2,8,size);

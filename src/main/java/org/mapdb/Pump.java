@@ -338,7 +338,7 @@ public final class Pump {
                         while (ret.hasNext())
                             q.put(ret.next());
                     } finally {
-                        q.put(poisonPill); //TODO poison pill should be send in non blocking way, perhaps remove elements?
+                        q.put(poisonPill); //PERF poison pill should be send in non blocking way, perhaps remove elements?
                     }
                 } catch (InterruptedException e) {
                     LOG.log(Level.SEVERE, "feeder failed", e);
@@ -425,7 +425,7 @@ public final class Pump {
                                              Serializer<V> valueSerializer,
                                              Executor executor){
 
-        //TODO upper levels of tree  could be created in separate thread
+        //PERF upper levels of tree  could be created in separate thread
 
         if(keyExtractor==null)
             keyExtractor= (Fun.Function1<K, E>) Fun.extractNoTransform();

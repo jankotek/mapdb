@@ -34,7 +34,7 @@ import java.util.logging.Logger;
  *
  * @author Jan Kotek
  */
-//TODO DB uses global lock, replace it with ReadWrite lock or fine grained locking.
+//PERF DB uses global lock, replace it with ReadWrite lock or fine grained locking.
 @SuppressWarnings("unchecked")
 public class DB implements Closeable {
 
@@ -1064,7 +1064,7 @@ public class DB implements Closeable {
                 engines,
                 m.closeEngine,
                 counterRecids == null ? null : catPut(name + Keys.counterRecids, counterRecids),
-                catPut(name+Keys.hashSalt, new SecureRandom().nextInt()), //TODO investigate if hashSalt actually prevents collision attack
+                catPut(name+Keys.hashSalt, new SecureRandom().nextInt()),
                 catPut(name+Keys.segmentRecids,HTreeMap.preallocateSegments(engines)),
                 (Serializer)m.serializer,
                 null,

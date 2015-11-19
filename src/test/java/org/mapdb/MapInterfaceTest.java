@@ -732,7 +732,6 @@ public abstract class MapInterfaceTest<K, V> extends TestCase {
     }
 
     public void testEntrySetSetValue() {
-        // TODO: Investigate the extent to which, in practice, maps that support
         // put() also support Entry.setValue().
         if (!supportsPut || !supportsEntrySetValue) {
             return;
@@ -760,7 +759,6 @@ public abstract class MapInterfaceTest<K, V> extends TestCase {
 
     public void testEntrySetSetValueSameValue() {
 
-        // TODO: Investigate the extent to which, in practice, maps that support
         // put() also support Entry.setValue().
         if (!supportsPut || !supportsEntrySetValue) {
             return;
@@ -920,7 +918,6 @@ public abstract class MapInterfaceTest<K, V> extends TestCase {
         Map<K, V> map = makeEitherMap();
         if (allowsNullKeys) {
             if (allowsNullValues) {
-                // TODO: decide what to test here.
             } else {
                 assertEquals(map.containsKey(null), map.get(null) != null);
             }

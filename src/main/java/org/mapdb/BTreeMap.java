@@ -271,7 +271,7 @@ public class BTreeMap<K,V>
 
         @Override
         public Object valueArrayDeserialize(DataInput in, int size) throws IOException {
-            //TODO six-byte long[]
+            //PERF six-byte long[]
             long[] ret = new long[size];
             for(int i=0;i<size;i++){
                 ret[i] = DataIO.unpackLong(in);
@@ -706,7 +706,14 @@ public class BTreeMap<K,V>
             //$DELAY$
             Object vals2 = valser.valueArrayCopyOfRange(vals, 0, splitPos);
             //$DELAY$
-            //TODO check high/low keys overlap
+            if(CC.PARANOID){
+                //check high and low keys do nto overlap
+                int lastKey = keyser.length(keys2)-1;
+                if(keyser.compare(keys2, 0, lastKey)>0){
+                    throw new AssertionError();
+                }
+            }
+
             return new LeafNode(keys2, isLeftEdge(), false, false, vals2, newNext);
         }
 
@@ -1975,7 +1982,7 @@ public class BTreeMap<K,V>
     }
 
     private Entry<K, V> findSmallerRecur(BNode n, K key, boolean inclusive) {
-        //TODO optimize comparation in this method
+        //PERF optimize comparation in this method
         final boolean leaf = n.isLeaf();
         final int start = leaf ? n.keysLen(keySerializer)-2 : n.keysLen(keySerializer)-1;
         final int end = leaf?1:0;
@@ -2025,7 +2032,7 @@ public class BTreeMap<K,V>
 
     protected Fun.Pair<Integer,BNode> findSmallerNodeRecur(
             BNode n, K key, boolean inclusive) {
-        //TODO optimize comparation in this method
+        //PERF optimize comparation in this method
         final boolean leaf = n.isLeaf();
         final int start = leaf ? n.keysLen(keySerializer)-2 : n.keysLen(keySerializer)-1;
         final int end = leaf?1:0;
@@ -2676,7 +2683,7 @@ public class BTreeMap<K,V>
         }
 
         public long sizeLong() {
-            //TODO use counted btrees once they become available
+            //PERF use counted btrees once they become available
             if(hi==null && lo==null)
                 return m.sizeLong();
 

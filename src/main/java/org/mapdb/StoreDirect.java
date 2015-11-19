@@ -65,7 +65,7 @@ public class StoreDirect extends Store {
     protected volatile Volume vol;
     protected volatile Volume headVol;
 
-    //TODO this only grows under structural lock, but reads are outside structural lock, does it have to be volatile?
+    //PERF this only grows under structural lock, but reads are outside structural lock, does it have to be volatile?
     protected volatile long[] indexPages;
 
     protected final ScheduledExecutorService executor;
@@ -911,7 +911,7 @@ public class StoreDirect extends Store {
     protected void longStackPut(final long masterLinkOffset, final long value, boolean recursive){
         if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw new AssertionError();
-        if(CC.ASSERT && (masterLinkOffset<=0 || masterLinkOffset>PAGE_SIZE || masterLinkOffset % 8!=0)) //TODO perhaps remove the last check
+        if(CC.ASSERT && (masterLinkOffset<=0 || masterLinkOffset>PAGE_SIZE || masterLinkOffset % 8!=0)) //PERF perhaps remove the last check
             throw new DBException.DataCorruption("wrong master link");
 
         long masterLinkVal = parity4Get(headVol.getLong(masterLinkOffset));
@@ -1364,7 +1364,7 @@ public class StoreDirect extends Store {
                         //close everything
                         target.vol.sync();
                         target.close();
-                        //TODO manipulation with `vol` must be under write segment lock. Find way to swap under read lock
+                        //PERF manipulation with `vol` must be under write segment lock. Find way to swap under read lock
                         this.vol.sync();
                         this.vol.close();
                         //rename current file
@@ -1516,7 +1516,7 @@ public class StoreDirect extends Store {
         final long indexPageEnd = indexPage+PAGE_SIZE;
 
        //iterate over indexOffset values
-        //TODO check if preloading and caching of all indexVals on this index page would improve performance
+        //PERF check if preloading and caching of all indexVals on this index page would improve performance
         indexVal:
         for( long indexOffset=indexPageStart;
                 indexOffset<indexPageEnd;
@@ -1649,7 +1649,7 @@ public class StoreDirect extends Store {
         }
 
         //align for every other page
-        //TODO optimize away loop
+        //PERF optimize away loop
         for(long page=PAGE_SIZE*2;recid+ INDEX_VAL_SIZE >page;page+=PAGE_SIZE){
             recid+=8+(PAGE_SIZE-8)% INDEX_VAL_SIZE;
         }

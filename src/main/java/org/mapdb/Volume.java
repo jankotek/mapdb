@@ -55,7 +55,7 @@ import static org.mapdb.DataIO.PRIME64_5;
 public abstract class Volume implements Closeable{
 
     static int sliceShiftFromSize(long sizeIncrement) {
-        //TODO optimize this method with bitcount operation
+        //PERF optimize this method with bitcount operation
         sizeIncrement = DataIO.nextPowTwo(sizeIncrement);
         for(int i=0;i<32;i++){
             if((1L<<i)==sizeIncrement){

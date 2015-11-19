@@ -279,7 +279,7 @@ public abstract class Serializer<A> {
             if(comparator!=null && comparator!=Fun.COMPARATOR) {
                 return super.getBTreeKeySerializer(comparator);
             }
-            return BTreeKeySerializer.STRING; //TODO ascii specific serializer?
+            return BTreeKeySerializer.STRING; //PERF ascii specific serializer?
         }
 
     };

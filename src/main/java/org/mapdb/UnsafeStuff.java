@@ -195,7 +195,7 @@ class UnsafeStuff {
                     long address = buf.address();
 
                     //TODO is cleanup necessary here?
-                    //TODO speedup  by copying an array
+                    //PERF speedup  by copying an array
                     for(long i=0;i<sliceSize;i+=8) {
                         UNSAFE.putLong(address + i, 0L);
                     }
@@ -430,7 +430,7 @@ class UnsafeStuff {
         @Override
         public void clear(long startOffset, long endOffset) {
             while(startOffset<endOffset){
-                putByte(startOffset++, (byte) 0); //TODO use batch copy
+                putByte(startOffset++, (byte) 0); //PERF use batch copy
             }
         }
 
