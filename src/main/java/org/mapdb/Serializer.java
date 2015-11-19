@@ -2146,7 +2146,7 @@ public abstract class Serializer<A> {
 
         public Array(Serializer<T> serializer) {
             if(serializer==null)
-                throw new NullPointerException("null serializer");
+                throw new IllegalArgumentException("serializer = NULL");
             this.serializer = serializer;
         }
 

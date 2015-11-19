@@ -768,7 +768,7 @@ public class BTreeMap<K,V>
 
         public NodeSerializer(boolean valsOutsideNodes, BTreeKeySerializer keySerializer, Serializer valueSerializer,  int numberOfNodeMetas) {
             if(keySerializer==null)
-                throw new NullPointerException("keySerializer not set");
+                throw new IllegalArgumentException("keySerializer is not set");
             this.hasValues = valueSerializer!=null;
             this.valsOutsideNodes = valsOutsideNodes;
             this.keySerializer = keySerializer;
@@ -945,7 +945,7 @@ public class BTreeMap<K,V>
         if(rootRecidRef<=0||counterRecid<0 || numberOfNodeMetas<0)
             throw new IllegalArgumentException();
         if(keySerializer==null)
-            throw new NullPointerException();
+            throw new IllegalArgumentException("keySerializer is not set");
 
         this.rootRecidRef = rootRecidRef;
         this.hasValues = valueSerializer!=null;
@@ -1014,7 +1014,7 @@ public class BTreeMap<K,V>
     }
 
     protected Object get(Object key, boolean expandValue) {
-        if(key==null) throw new NullPointerException();
+        if(key==null) throw new IllegalArgumentException("key = NULL");
         K v = (K) key;
         long current = engine.get(rootRecidRef, Serializer.RECID); //get root
         //$DELAY$
@@ -1075,7 +1075,7 @@ public class BTreeMap<K,V>
 
     @Override
     public V put(K key, V value){
-        if(key==null||value==null) throw new NullPointerException();
+        if(key==null||value==null) throw new IllegalArgumentException("key or value is null");
         return put2(key, value, false);
     }
 
@@ -1552,7 +1552,7 @@ public class BTreeMap<K,V>
 
     private V removeOrReplace(final Object key, final Object value, final  Object putNewValue) {
         if(key==null)
-            throw new NullPointerException("null key");
+            throw new IllegalArgumentException("key = NULL");
         long current = engine.get(rootRecidRef, Serializer.RECID);
 
         BNode A = engine.get(current, nodeSerializer);
@@ -1862,26 +1862,26 @@ public class BTreeMap<K,V>
 
     @Override
     public V putIfAbsent(K key, V value) {
-        if(key == null || value == null) throw new NullPointerException();
+        if(key == null || value == null) throw new IllegalArgumentException("key or value is null");
         return put2(key, value, true);
     }
 
     @Override
     public boolean remove(Object key, Object value) {
-        if(key == null) throw new NullPointerException();
+        if(key == null) throw new IllegalArgumentException("key = NULL");
         return value != null && removeOrReplace(key, value, null) != null;
     }
 
     @Override
     public boolean replace(final K key, final V oldValue, final V newValue) {
-        if(key == null || oldValue == null || newValue == null ) throw new NullPointerException();
+        if(key == null || oldValue == null || newValue == null ) throw new IllegalArgumentException("key, oldValue, or newValue is null");
 
         return removeOrReplace(key,oldValue,newValue)!=null;
     }
 
     @Override
     public V replace(final K key, final V value) {
-        if(key == null || value == null) throw new NullPointerException();
+        if(key == null || value == null) throw new IllegalArgumentException("key or value is null");
 
         return removeOrReplace(key, null, value);
     }
@@ -1963,7 +1963,7 @@ public class BTreeMap<K,V>
 
 
     protected Entry<K,V> findSmaller(K key,boolean inclusive){
-        if(key==null) throw new NullPointerException();
+        if(key==null) throw new IllegalArgumentException("key = NULL");
         final long rootRecid = engine.get(rootRecidRef, Serializer.RECID);
         //$DELAY$
         BNode n = engine.get(rootRecid, nodeSerializer);
@@ -2015,7 +2015,7 @@ public class BTreeMap<K,V>
 
     protected Fun.Pair<Integer,BNode> findSmallerNode(K key,boolean inclusive){
         if(key==null)
-            throw new NullPointerException();
+            throw new IllegalArgumentException("key = NULL");
         final long rootRecid = engine.get(rootRecidRef, Serializer.RECID);
         //$DELAY$
         BNode n = engine.get(rootRecid, nodeSerializer);
@@ -2086,7 +2086,7 @@ public class BTreeMap<K,V>
                     return ret;
             }
 
-            //iterate over keys to find last non null key
+            //iterate over keys to find last non key = NULL
             for(int i=n.keysLen(keySerializer)-2; i>0;i--){
                 Object k = n.key(keySerializer,i);
                 if(k!=null && n.valSize(valueNodeSerializer)>0) {
@@ -2116,7 +2116,7 @@ public class BTreeMap<K,V>
 
     @Override
 	public Map.Entry<K,V> lowerEntry(K key) {
-        if(key==null) throw new NullPointerException();
+        if(key==null) throw new IllegalArgumentException("key = NULL");
         return findSmaller(key, false);
     }
 
@@ -2128,7 +2128,7 @@ public class BTreeMap<K,V>
 
     @Override
 	public Map.Entry<K,V> floorEntry(K key) {
-        if(key==null) throw new NullPointerException();
+        if(key==null) throw new IllegalArgumentException("key = NULL");
         return findSmaller(key, true);
     }
 
@@ -2140,7 +2140,7 @@ public class BTreeMap<K,V>
 
     @Override
 	public Map.Entry<K,V> ceilingEntry(K key) {
-        if(key==null) throw new NullPointerException();
+        if(key==null) throw new IllegalArgumentException("key = NULL");
         return findLarger(key, true);
     }
 
@@ -2219,33 +2219,33 @@ public class BTreeMap<K,V>
 
     @Override
 	public K ceilingKey(K key) {
-        if(key==null) throw new NullPointerException();
+        if(key==null) throw new IllegalArgumentException("key = NULL");
         Entry<K,V> n = ceilingEntry(key);
         return (n == null)? null : n.getKey();
     }
 
     @Override
 	public Map.Entry<K,V> higherEntry(K key) {
-        if(key==null) throw new NullPointerException();
+        if(key==null) throw new IllegalArgumentException("key = NULL");
         return findLarger(key, false);
     }
 
     @Override
 	public K higherKey(K key) {
-        if(key==null) throw new NullPointerException();
+        if(key==null) throw new IllegalArgumentException("key = NULL");
         Entry<K,V> n = higherEntry(key);
         return (n == null)? null : n.getKey();
     }
 
     @Override
     public boolean containsKey(Object key) {
-        if(key==null) throw new NullPointerException();
+        if(key==null) throw new IllegalArgumentException("key = NULL");
         return get(key, false)!=null;
     }
 
     @Override
     public boolean containsValue(Object value){
-        if(value ==null) throw new NullPointerException();
+        if(value ==null) throw new IllegalArgumentException("value = NULL");
         Iterator<V> valueIter = valueIterator();
         //$DELAY$
         while(valueIter.hasNext()){
@@ -2272,7 +2272,7 @@ public class BTreeMap<K,V>
                                               K toKey,
                                               boolean toInclusive) {
         if (fromKey == null || toKey == null)
-            throw new NullPointerException();
+            throw new IllegalArgumentException("fromKey or toKey is null");
         return new SubMap<K,V>
                 ( this, fromKey, fromInclusive, toKey, toInclusive);
     }
@@ -2281,7 +2281,7 @@ public class BTreeMap<K,V>
     public ConcurrentNavigableMap<K,V> headMap(K toKey,
                                                boolean inclusive) {
         if (toKey == null)
-            throw new NullPointerException();
+            throw new IllegalArgumentException("toKey is null");
         return new SubMap<K,V>
                 (this, null, false, toKey, inclusive);
     }
@@ -2290,7 +2290,7 @@ public class BTreeMap<K,V>
     public ConcurrentNavigableMap<K,V> tailMap(K fromKey,
                                                boolean inclusive) {
         if (fromKey == null)
-            throw new NullPointerException();
+            throw new IllegalArgumentException("fromKey is null");
         return new SubMap<K,V>
                 (this, fromKey, inclusive, null, false);
     }
@@ -2644,14 +2644,14 @@ public class BTreeMap<K,V>
 
         @Override
 		public boolean containsKey(Object key) {
-            if (key == null) throw new NullPointerException();
+            if (key == null) throw new IllegalArgumentException("key = NULL");
             K k = (K)key;
             return inBounds(k) && m.containsKey(k);
         }
 
         @Override
 		public V get(Object key) {
-            if (key == null) throw new NullPointerException();
+            if (key == null) throw new IllegalArgumentException("key = NULL");
             K k = (K)key;
             return ((!inBounds(k)) ? null : m.get(k));
         }
@@ -2665,7 +2665,7 @@ public class BTreeMap<K,V>
         @Override
 		public V remove(Object key) {
             if(key==null)
-                throw new NullPointerException("key null");
+                throw new IllegalArgumentException("key = NULL");
             K k = (K)key;
             return (!inBounds(k))? null : m.remove(k);
         }
@@ -2697,7 +2697,7 @@ public class BTreeMap<K,V>
 
         @Override
 		public boolean containsValue(Object value) {
-            if(value==null) throw new NullPointerException();
+            if(value==null) throw new IllegalArgumentException("value = NULL");
             Iterator<V> i = valueIterator();
             while(i.hasNext()){
                 if(m.valueSerializer.equals((V)value,i.next()))
@@ -2753,7 +2753,7 @@ public class BTreeMap<K,V>
 
         @Override
 		public Map.Entry<K,V> lowerEntry(K key) {
-            if(key==null)throw new NullPointerException();
+            if(key==null)throw new IllegalArgumentException("key = NULL");
             if(tooLow(key))return null;
 
             if(tooHigh(key))
@@ -2771,7 +2771,7 @@ public class BTreeMap<K,V>
 
         @Override
 		public Map.Entry<K,V> floorEntry(K key) {
-            if(key==null) throw new NullPointerException();
+            if(key==null) throw new IllegalArgumentException("key = NULL");
             if(tooLow(key)) return null;
 
             if(tooHigh(key)){
@@ -2792,7 +2792,7 @@ public class BTreeMap<K,V>
 
         @Override
 		public Map.Entry<K,V> ceilingEntry(K key) {
-            if(key==null) throw new NullPointerException();
+            if(key==null) throw new IllegalArgumentException("key = NULL");
             if(tooHigh(key)) return null;
 
             if(tooLow(key)){
@@ -2928,7 +2928,7 @@ public class BTreeMap<K,V>
                                   K toKey,
                                   boolean toInclusive) {
             if (fromKey == null || toKey == null)
-                throw new NullPointerException();
+                throw new IllegalArgumentException("fromKey or toKey is null");
             return newSubMap(fromKey, fromInclusive, toKey, toInclusive);
         }
 
@@ -2936,7 +2936,7 @@ public class BTreeMap<K,V>
 		public SubMap<K,V> headMap(K toKey,
                                    boolean inclusive) {
             if (toKey == null)
-                throw new NullPointerException();
+                throw new IllegalArgumentException("toKey = NULL");
             return newSubMap(null, false, toKey, inclusive);
         }
 
@@ -2944,7 +2944,7 @@ public class BTreeMap<K,V>
 		public SubMap<K,V> tailMap(K fromKey,
                                    boolean inclusive) {
             if (fromKey == null)
-                throw new NullPointerException();
+                throw new IllegalArgumentException("fromKey = NULL");
             return newSubMap(fromKey, inclusive, null, false);
         }
 
@@ -3002,7 +3002,7 @@ public class BTreeMap<K,V>
 
         private void checkKeyBounds(K key) throws IllegalArgumentException {
             if (key == null)
-                throw new NullPointerException();
+                throw new IllegalArgumentException("key = NULL");
             if (!inBounds(key))
                 throw new IllegalArgumentException("key out of range");
         }
@@ -3073,14 +3073,14 @@ public class BTreeMap<K,V>
 
         @Override
         public boolean containsKey(Object key) {
-            if (key == null) throw new NullPointerException();
+            if (key == null) throw new IllegalArgumentException("key = NULL");
             K k = (K)key;
             return inBounds(k) && m.containsKey(k);
         }
 
         @Override
         public V get(Object key) {
-            if (key == null) throw new NullPointerException();
+            if (key == null) throw new IllegalArgumentException("key = NULL");
             K k = (K)key;
             return ((!inBounds(k)) ? null : m.get(k));
         }
@@ -3118,7 +3118,7 @@ public class BTreeMap<K,V>
 
         @Override
         public boolean containsValue(Object value) {
-            if(value==null) throw new NullPointerException();
+            if(value==null) throw new IllegalArgumentException("value = NULL");
             Iterator<V> i = valueIterator();
             while(i.hasNext()){
                 if(m.valueSerializer.equals((V) value,i.next()))
@@ -3174,7 +3174,7 @@ public class BTreeMap<K,V>
 
         @Override
         public Map.Entry<K,V> higherEntry(K key) {
-            if(key==null)throw new NullPointerException();
+            if(key==null)throw new IllegalArgumentException("key = NULL");
             if(tooLow(key))return null;
 
             if(tooHigh(key))
@@ -3192,7 +3192,7 @@ public class BTreeMap<K,V>
 
         @Override
         public Map.Entry<K,V> ceilingEntry(K key) {
-            if(key==null) throw new NullPointerException();
+            if(key==null) throw new IllegalArgumentException("key = NULL");
             if(tooLow(key)) return null;
 
             if(tooHigh(key)){
@@ -3213,7 +3213,7 @@ public class BTreeMap<K,V>
 
         @Override
         public Map.Entry<K,V> floorEntry(K key) {
-            if(key==null) throw new NullPointerException();
+            if(key==null) throw new IllegalArgumentException("key = NULL");
             if(tooHigh(key)) return null;
 
             if(tooLow(key)){
@@ -3350,7 +3350,7 @@ public class BTreeMap<K,V>
                                   K toKey,
                                   boolean toInclusive) {
             if (fromKey == null || toKey == null)
-                throw new NullPointerException();
+                throw new IllegalArgumentException("fromKey or toKey is null");
             return newSubMap(fromKey, fromInclusive, toKey, toInclusive);
         }
 
@@ -3358,7 +3358,7 @@ public class BTreeMap<K,V>
         public DescendingMap<K,V> headMap(K toKey,
                                    boolean inclusive) {
             if (toKey == null)
-                throw new NullPointerException();
+                throw new IllegalArgumentException("toKey = NULL");
             return newSubMap(null, false, toKey, inclusive);
         }
 
@@ -3366,7 +3366,7 @@ public class BTreeMap<K,V>
         public DescendingMap<K,V> tailMap(K fromKey,
                                    boolean inclusive) {
             if (fromKey == null)
-                throw new NullPointerException();
+                throw new IllegalArgumentException("fromKey = NULL");
             return newSubMap(fromKey, inclusive, null, false);
         }
 
@@ -3425,7 +3425,7 @@ public class BTreeMap<K,V>
 
         private void checkKeyBounds(K key) throws IllegalArgumentException {
             if (key == null)
-                throw new NullPointerException();
+                throw new IllegalArgumentException("key = NULL");
             if (!inBounds(key))
                 throw new IllegalArgumentException("key out of range");
         }

@@ -232,7 +232,7 @@ public abstract class Store implements Engine {
     @Override
     public <A> A get(long recid, Serializer<A> serializer) {
         if(serializer==null)
-            throw new NullPointerException();
+            throw new IllegalArgumentException("serializer = NULL");
         if(closed)
             throw new IllegalAccessError("closed");
 
@@ -265,7 +265,7 @@ public abstract class Store implements Engine {
     @Override
     public <A> void update(long recid, A value, Serializer<A> serializer) {
         if(serializer==null)
-            throw new NullPointerException();
+            throw new IllegalArgumentException("serializer = NULL");
         if(closed)
             throw new IllegalAccessError("closed");
 
@@ -517,7 +517,7 @@ public abstract class Store implements Engine {
     @Override
     public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
         if(serializer==null)
-            throw new NullPointerException();
+            throw new IllegalArgumentException("serializer = NULL");
         if(closed)
             throw new IllegalAccessError("closed");
 
@@ -554,7 +554,7 @@ public abstract class Store implements Engine {
     @Override
     public <A> void delete(long recid, Serializer<A> serializer) {
         if(serializer==null)
-            throw new NullPointerException();
+            throw new IllegalArgumentException("serializer = NULL");
         if(closed)
             throw new IllegalAccessError("closed");
 

@@ -328,13 +328,13 @@ public class HTreeMap<K,V>
         if(counterRecids!=null && counterRecids.length!=SEG)
             throw new IllegalArgumentException();
         if(engines==null)
-            throw new NullPointerException();
+            throw new IllegalArgumentException("engines is not set");
         if(engines.length!=SEG)
             throw new IllegalArgumentException("engines wrong length");
         if(segmentRecids==null)
-            throw new NullPointerException();
+            throw new IllegalArgumentException("segmentRecids is not set");
         if(keySerializer==null)
-            throw new NullPointerException();
+            throw new IllegalArgumentException("keySerializer is not set");
 
         this.hasValues = valueSerializer!=null;
 
@@ -868,10 +868,10 @@ public class HTreeMap<K,V>
     @Override
     public V put(final K key, final V value){
         if (key == null)
-            throw new IllegalArgumentException("null key");
+            throw new IllegalArgumentException("key = NULL");
 
         if (value == null)
-            throw new IllegalArgumentException("null value");
+            throw new IllegalArgumentException("value = NULL");
 
         V ret;
         final int h = hash(key);
@@ -1398,7 +1398,7 @@ public class HTreeMap<K,V>
         public boolean add(Entry<K, V> kvEntry) {
             K key = kvEntry.getKey();
             V value = kvEntry.getValue();
-            if(key==null || value == null) throw new NullPointerException();
+            if(key==null || value == null) throw new IllegalArgumentException("key or value is null");
             HTreeMap.this.put(key, value);
             return true;
         }
@@ -1670,7 +1670,7 @@ public class HTreeMap<K,V>
     @Override
     public V putIfAbsent(K key, V value) {
         if(key==null||value==null)
-            throw new NullPointerException();
+            throw new IllegalArgumentException("key or value is null");
 
         final int h = HTreeMap.this.hash(key);
         final int segment = h >>>28;
@@ -1703,7 +1703,7 @@ public class HTreeMap<K,V>
     @Override
     public boolean remove(Object key, Object value) {
         if(key==null||value==null)
-            throw new NullPointerException();
+            throw new IllegalArgumentException("key or value is null");
 
         boolean ret;
 
@@ -1735,7 +1735,7 @@ public class HTreeMap<K,V>
     @Override
     public boolean replace(K key, V oldValue, V newValue) {
         if(key==null||oldValue==null||newValue==null)
-            throw new NullPointerException();
+            throw new IllegalArgumentException("key, oldValue, or newValue is null");
 
         boolean ret;
 
@@ -1767,7 +1767,7 @@ public class HTreeMap<K,V>
     @Override
     public V replace(K key, V value) {
         if(key==null||value==null)
-            throw new NullPointerException();
+            throw new IllegalArgumentException("key or value is null");
         V ret;
         final int h = HTreeMap.this.hash(key);
         final int segment =  h >>>28;
