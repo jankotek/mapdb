@@ -16,8 +16,6 @@ import java.util.concurrent.*;
 /*
  * https://github.com/jankotek/MapDB/issues/41
  * @author Laurent Pellegrino
- *
- * TODO fully investigate this concurrent issue.
  */
 public class Issue41Test {
 
@@ -37,6 +35,8 @@ public class Issue41Test {
 
     @Before
     public void setUp() {
+        if(TT.shortTest())
+            return;
         db =
                 DBMaker.fileDB(DB_PATH)
                         .cacheSoftRefEnable()
@@ -60,6 +60,8 @@ public class Issue41Test {
 
     @Test
     public void test1() throws InterruptedException {
+        if(TT.shortTest())
+            return;
         final Value value = new Value();
         final Key key = new Key(value, "http://www.mapdb.org/");
 
@@ -83,6 +85,8 @@ public class Issue41Test {
 
     @Test
     public void test2() throws InterruptedException {
+        if(TT.shortTest())
+            return;
         final ConcurrentMap<Key, Value> alreadyAdded =
                 new ConcurrentHashMap<Key, Value>();
 
@@ -118,6 +122,8 @@ public class Issue41Test {
 
     @After
     public void tearDown() throws InterruptedException {
+        if(TT.shortTest())
+            return;
         doneSignal.await();
         threadPool.shutdown();
         db.close();
