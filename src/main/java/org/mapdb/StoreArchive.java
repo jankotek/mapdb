@@ -250,7 +250,7 @@ public final class StoreArchive extends Store{
                     "But here old=null, new!=null");
         }
 
-        if(recSize!=out.pos){
+        if(out!=null && recSize!=out.pos){
             //TODO better exception
             throw new DBException.WrongConfig(
                     "StoreArchive supports updates only if old and new record has the same size." +
