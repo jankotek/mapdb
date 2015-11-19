@@ -8,6 +8,8 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.UUID;
 
+import org.mapdb.util.ArrayUtils;
+
 /**
  * Custom serializer for BTreeMap keys which enables [Delta encoding](https://en.wikipedia.org/wiki/Delta_encoding).
  *
@@ -658,7 +660,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
 
             this.tsize = comparators.length;
             this.comparators = comparators;
-            this.serializers = serializers;
+            this.serializers = ArrayUtils.copyOf(serializers);
 
             this.comparator = new Fun.ArrayComparator(comparators);
         }
@@ -997,15 +999,15 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         final byte[] array;
 
         ByteArrayKeys(int[] offset, byte[] array) {
-            this.offset = offset;
-            this.array = array;
+            this.offset = ArrayUtils.copyOf(offset);
+            this.array = ArrayUtils.copyOf(array);
 
             if(CC.ASSERT && ! (array.length==0 || array.length == offset[offset.length-1]))
                 throw new DBException.DataCorruption("inconsistent array size");
         }
 
         ByteArrayKeys(DataInput in, int[] offsets, int prefixLen) throws IOException {
-            this.offset = offsets;
+            this.offset = ArrayUtils.copyOf(offsets);
             array = new byte[offsets[offsets.length-1]];
 
             in.readFully(array, 0, prefixLen);
@@ -1023,7 +1025,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         }
 
         ByteArrayKeys(int[] offsets, Object[] keys) {
-            this.offset = offsets;
+            this.offset = ArrayUtils.copyOf(offsets);
             //fill large array
             array = new byte[offsets[offsets.length-1]];
             int bbOffset = 0;
@@ -1240,15 +1242,15 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         final char[] array;
 
         CharArrayKeys(int[] offset, char[] array) {
-            this.offset = offset;
-            this.array = array;
+            this.offset = ArrayUtils.copyOf(offset);
+            this.array = ArrayUtils.copyOf(array);
 
             if(CC.ASSERT && ! (array.length==0 || array.length == offset[offset.length-1]))
                 throw new DBException.DataCorruption("inconsistent array size");
         }
 
         public CharArrayKeys(DataInput in, int[] offsets, int prefixLen) throws IOException {
-            this.offset = offsets;
+            this.offset = ArrayUtils.copyOf(offsets);
             array = new char[offsets[offsets.length-1]];
 
             inReadFully(in, 0, prefixLen);
@@ -1265,7 +1267,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         }
 
         CharArrayKeys(int[] offsets, Object[] keys) {
-            this.offset = offsets;
+            this.offset = ArrayUtils.copyOf(offsets);
             //fill large array
             array = new char[offsets[offsets.length-1]];
             int bbOffset = 0;

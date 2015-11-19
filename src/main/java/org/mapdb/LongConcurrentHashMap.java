@@ -29,6 +29,8 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.mapdb.util.ArrayUtils;
+
 /**
  * Thread safe LongMap. Is refactored version of 'ConcurrentHashMap'
  *
@@ -255,7 +257,7 @@ class LongConcurrentHashMap< V>
          */
         void setTable(HashEntry<V>[] newTable) {
             threshold = (int)(newTable.length * loadFactor);
-            table = newTable;
+            table = ArrayUtils.copyOf(newTable);
         }
 
         /**

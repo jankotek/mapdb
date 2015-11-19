@@ -26,6 +26,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
+import org.mapdb.util.ArrayUtils;
+
 /**
  * Serializer which handles POJO, object graphs etc.
  *
@@ -722,7 +724,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
         protected ObjectOutputStream2(OutputStream out, ClassInfo[] classes) throws IOException, SecurityException {
             super(out);
-            this.classes = classes;
+            this.classes = ArrayUtils.copyOf(classes);
         }
 
         @Override
@@ -750,7 +752,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
         protected ObjectInputStream2(DataInput in, ClassInfo[] classes) throws IOException, SecurityException {
             super(new DataIO.DataInputToStream(in));
-            this.classes = classes;
+            this.classes = ArrayUtils.copyOf(classes);
         }
 
         @Override
