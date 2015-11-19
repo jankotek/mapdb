@@ -28,8 +28,6 @@ import static org.mapdb.DataIO.PRIME64_5;
  */
 class UnsafeStuff {
 
-    static final Logger LOG = Logger.getLogger(UnsafeStuff.class.getName());
-
     static final sun.misc.Unsafe UNSAFE = getUnsafe();
 
     @SuppressWarnings("restriction")
@@ -48,6 +46,8 @@ class UnsafeStuff {
             return null;
         }
     }
+    
+	private static final Logger LOG = Logger.getLogger(UnsafeStuff.class.getName());
 
     private static final long BYTE_ARRAY_OFFSET;
     private static final int BYTE_ARRAY_SCALE;
