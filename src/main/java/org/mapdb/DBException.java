@@ -95,7 +95,7 @@ public class DBException extends RuntimeException{
     public static class OutOfMemory extends VolumeIOError{
         public OutOfMemory(Throwable e){
             super(
-                    e.getMessage().equals("Direct buffer memory")?
+                    "Direct buffer memory".equals(e.getMessage())?
                             "Out of Direct buffer memory. Increase it with JVM option '-XX:MaxDirectMemorySize=10G'":
                             e.getMessage(),
                     e);
