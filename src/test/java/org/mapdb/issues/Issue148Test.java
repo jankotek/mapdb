@@ -104,7 +104,7 @@ public class Issue148Test {
 
         for( String key : keyset ){
             CustomValue cv = users.get(key);
-            System.out.format("%s(%b) : %d\n", key, key.equals(cv.name), cv.age);
+            System.out.format("%s(%b) : %d%n", key, key.equals(cv.name), cv.age);
         }
 
         System.out.println("");
