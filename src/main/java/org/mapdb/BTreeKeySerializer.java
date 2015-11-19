@@ -320,7 +320,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
 
         @Override
         public Long getKey(long[] keys, int pos) {
-            return new Long(keys[pos]);
+            return Long.valueOf(keys[pos]);
         }
 
         @Override
@@ -492,7 +492,7 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
 
         @Override
         public Integer getKey(int[] keys, int pos) {
-            return new Integer(keys[pos]);
+            return Integer.valueOf(keys[pos]);
         }
 
         @Override
