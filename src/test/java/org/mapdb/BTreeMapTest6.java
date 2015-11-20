@@ -1247,7 +1247,7 @@ public class BTreeMapTest6 extends JSR166TestCase {
         }
 
         // Test extrema
-        if (map.size() != 0) {
+        if (!map.isEmpty()) {
             assertEq(map.firstKey(), rs.first());
             assertEq(map.lastKey(), rs.last());
         } else {

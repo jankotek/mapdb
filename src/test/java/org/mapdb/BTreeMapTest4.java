@@ -1872,7 +1872,7 @@ public class BTreeMapTest4 extends junit.framework.TestCase {
     public void test_empty_subMap() throws Exception {
         BTreeMap<Float, List<Integer>> tm = newBTreeMap();
         SortedMap<Float, List<Integer>> sm = tm.tailMap(1.1f);
-        assertTrue(sm.values().size() == 0);
+        assertTrue(sm.values().isEmpty());
     }
     
 
