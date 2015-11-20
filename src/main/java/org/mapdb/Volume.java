@@ -2657,7 +2657,7 @@ public abstract class Volume implements Closeable{
         public RandomAccessFileVol(File file, boolean readOnly, boolean fileLockDisable, long initSize) {
             this.file = file;
             try {
-                this.raf = new RandomAccessFile(file,readOnly?"r":"rw");
+                this.raf = new RandomAccessFile(file,readOnly?"r":"rw"); //TODO rwd, rws? etc
                 this.fileLock = Volume.lockFile(file, raf, readOnly, fileLockDisable);
 
                 //grow file if needed
