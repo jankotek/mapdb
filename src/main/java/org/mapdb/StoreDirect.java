@@ -1510,8 +1510,8 @@ public class StoreDirect extends Store {
     protected void compactIndexPage(StoreDirect target, int indexPageI, long maxRecid) {
         final long indexPage = indexPages[indexPageI];
 
-        long recid = (indexPageI==0? 0 : indexPageI * (PAGE_SIZE-8)/ INDEX_VAL_SIZE - HEAD_END/ INDEX_VAL_SIZE);
-        final long indexPageStart = (indexPage==0?HEAD_END+8 : indexPage+8);
+        long recid = (indexPageI==0? 0 : (((indexPageI * (PAGE_SIZE - 16)) - HEAD_END + INDEX_VAL_SIZE) / INDEX_VAL_SIZE));
+        final long indexPageStart = (indexPage==0?HEAD_END+INDEX_VAL_SIZE : indexPage+16);
 
         final long indexPageEnd = indexPage+PAGE_SIZE;
 
@@ -1629,7 +1629,7 @@ public class StoreDirect extends Store {
         //there is no zero recid, but that position will be used for zero Index Page checksum
 
         //convert recid to offset
-        recid = HEAD_END + recid * 8 ;
+        recid = HEAD_END + recid * INDEX_VAL_SIZE ;
 
         //compensate for 16 bytes at start of each index page (next page link and checksum)
         recid+= Math.min(1, recid/PAGE_SIZE)*    //min servers as replacement for if(recid>=PAGE_SIZE)
@@ -1722,7 +1722,7 @@ public class StoreDirect extends Store {
         //convert recid into Index Page number
         //TODO is this correct?
         recid = recid * INDEX_VAL_SIZE + HEAD_END;
-        recid = recid / (PAGE_SIZE-8);
+        recid = recid / (PAGE_SIZE-16);
 
         while(indexPages.length<=recid)
             pageIndexExtend();
