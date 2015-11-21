@@ -425,7 +425,7 @@ public abstract class Serializer<A> {
 
         @Override
         protected Long unpack(long l) {
-            return new Long(l);
+            return Long.valueOf(l);
         }
 
         @Override
