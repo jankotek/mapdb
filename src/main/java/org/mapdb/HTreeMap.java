@@ -50,7 +50,7 @@ public class HTreeMap<K,V>
         Bind.MapWithModificationListener<K,V>,
         Closeable, Serializable {
 
-    protected static final Logger LOG = Logger.getLogger(HTreeMap.class.getName());
+	private static final Logger LOG = Logger.getLogger(HTreeMap.class.getName());
 
     protected static final int BUCKET_OVERFLOW = 4;
 

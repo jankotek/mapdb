@@ -38,7 +38,7 @@ import java.util.logging.Logger;
 @SuppressWarnings("unchecked")
 public class DB implements Closeable {
 
-    protected static final Logger LOG = Logger.getLogger(DB.class.getName());
+    private static final Logger LOG = Logger.getLogger(DB.class.getName());
     public static final String METRICS_DATA_WRITE = "data.write";
     public static final String METRICS_RECORD_WRITE = "record.write";
     public static final String METRICS_DATA_READ = "data.read";

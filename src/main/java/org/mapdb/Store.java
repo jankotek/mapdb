@@ -24,7 +24,7 @@ import java.util.zip.CRC32;
  */
 public abstract class Store implements Engine {
 
-    protected static final Logger LOG = Logger.getLogger(Store.class.getName());
+    private static final Logger LOG = Logger.getLogger(Store.class.getName());
 
     protected static final long FEAT_COMP_LZF = 64L-1L;
     protected static final long FEAT_ENC_XTEA = 64L-2L;

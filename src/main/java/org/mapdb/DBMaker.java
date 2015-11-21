@@ -49,7 +49,7 @@ import java.util.logging.Logger;
  */
 public final class DBMaker{
 
-    protected static final Logger LOG = Logger.getLogger(DBMaker.class.getName());
+	private static final Logger LOG = Logger.getLogger(DBMaker.class.getName());
 
     protected static final String TRUE = "true";
 

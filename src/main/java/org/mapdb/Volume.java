@@ -118,7 +118,7 @@ public abstract class Volume implements Closeable{
 
     private static final byte[] CLEAR = new byte[1024];
 
-    protected static final Logger LOG = Logger.getLogger(Volume.class.getName());
+    private static final Logger LOG = Logger.getLogger(Volume.class.getName());
 
     /**
      * If {@code sun.misc.Unsafe} is available it will use Volume based on Unsafe.
