@@ -10,7 +10,6 @@ import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.locks.Lock;
 
 import static org.junit.Assert.*;
@@ -880,9 +879,10 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         long filledSize = e.getCurrSize();
 
         // Randomly select a bunch of recids to delete to create gaps for compacting
+        Random rand  = new Random();
         List<Long> toDelete = new ArrayList<Long>();
         for(Long recid : recids.keySet()) {
-            if(ThreadLocalRandom.current().nextBoolean()) {
+            if(rand.nextBoolean()) {
                 toDelete.add(recid);
             }
         }
