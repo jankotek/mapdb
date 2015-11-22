@@ -1510,7 +1510,7 @@ public class StoreDirect extends Store {
     protected void compactIndexPage(StoreDirect target, int indexPageI, long maxRecid) {
         final long indexPage = indexPages[indexPageI];
 
-        long recid = (indexPageI==0? 0 : (((indexPageI * (PAGE_SIZE - 16)) - HEAD_END + INDEX_VAL_SIZE) / INDEX_VAL_SIZE));
+        long recid = (indexPageI==0? 0 : (((indexPageI * (PAGE_SIZE - 16)) - HEAD_END + 8) / INDEX_VAL_SIZE));
         final long indexPageStart = (indexPage==0?HEAD_END+INDEX_VAL_SIZE : indexPage+16);
 
         final long indexPageEnd = indexPage+PAGE_SIZE;
@@ -1737,7 +1737,7 @@ public class StoreDirect extends Store {
 
         //add link to previous page
         long nextPagePointerOffset = indexPages[indexPages.length-1];
-        //if zero page, put offset to end of page
+        //if zero page, set offset to end of page header
         nextPagePointerOffset = Math.max(nextPagePointerOffset, HEAD_END);
         indexLongPut(nextPagePointerOffset, parity16Set(indexPage));
 
