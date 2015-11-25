@@ -44,7 +44,7 @@ interface CC {
      * For example HashMap may check if keys implements hash function correctly.
      * This will slow down MapDB significantly.
      */
-    boolean ASSERT = false;
+    boolean ASSERT = true;
 
     boolean PARANOID = false;
 
