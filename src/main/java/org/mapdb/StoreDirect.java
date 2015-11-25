@@ -1639,26 +1639,6 @@ public class StoreDirect extends Store {
         recid = indexPages[(int) (recid / PAGE_SIZE)] + recid%PAGE_SIZE;
         return recid;
     }
-    private long recidToOffsetChecksum(long recid) {
-        //convert recid to offset
-        recid = (recid-1) * INDEX_VAL_SIZE + HEAD_END + 8;
-
-        if(recid+ INDEX_VAL_SIZE >PAGE_SIZE){
-            //align from zero page
-            recid+=2+8;
-        }
-
-        //align for every other page
-        //PERF optimize away loop
-        for(long page=PAGE_SIZE*2;recid+ INDEX_VAL_SIZE >page;page+=PAGE_SIZE){
-            recid+=8+(PAGE_SIZE-8)% INDEX_VAL_SIZE;
-        }
-
-        //look up real offset
-        recid = indexPages[((int) (recid / PAGE_SIZE))] + recid%PAGE_SIZE;
-        return recid;
-
-    }
 
     /** check if recid offset fits into current allocated structure */
     protected boolean recidTooLarge(long recid) {
