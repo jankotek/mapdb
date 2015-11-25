@@ -1155,6 +1155,7 @@ public final class DataIO {
     public static long parity16Set(long i) {
         if(CC.ASSERT && (i&0xFFFF)!=0)
             throw new DBException.PointerChecksumBroken();
+        //TODO parity of 0 is 0, but we should not allow zero values, format change???
         return i | (DataIO.longHash(i)&0xFFFFL);
     }
 

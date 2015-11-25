@@ -61,6 +61,9 @@ public class StoreWAL extends StoreCached {
      */
     protected final LongLongMap[] uncommittedDataLongs;
 
+    /** modified page pointers, must be accessed under structuralLock */
+    protected final LongLongMap uncommitedIndexLong = new LongLongMap();
+
     /**
      * Contains modified Long Stack Pages from previous committed transactions, which are not yet replayed into vol.
      * Key is offset in vol, value is walPointer returned by {@link WriteAheadLog#walPutByteArray(long, byte[], int, int)}
@@ -328,7 +331,9 @@ public class StoreWAL extends StoreCached {
     protected void indexLongPut(long offset, long val) {
         if(CC.ASSERT && !structuralLock.isHeldByCurrentThread())
             throw  new AssertionError();
-        wal.walPutLong(offset,val);
+        if(val==0)
+            val=Long.MIN_VALUE;
+        uncommitedIndexLong.put(offset,val);
     }
 
     @Override
@@ -560,6 +565,7 @@ public class StoreWAL extends StoreCached {
             structuralLock.lock();
             try {
                 uncommittedStackPages.clear();
+                uncommitedIndexLong.clear();
 
                 //restore headVol from backup
                 headVol.putData(0,headVolBackup,0,headVolBackup.length);
@@ -607,6 +613,16 @@ public class StoreWAL extends StoreCached {
 
             structuralLock.lock();
             try {
+                for(int i=0;i<uncommitedIndexLong.table.length;) {
+                    long offset = uncommitedIndexLong.table[i++];
+                    long val = uncommitedIndexLong.table[i++];
+                    if(offset==0)
+                        continue;
+                    if(val==Long.MIN_VALUE)
+                        val = 0;
+                    wal.walPutLong(offset, val);
+                }
+
                 //flush modified Long Stack pages into WAL
                 long[] set = uncommittedStackPages.set;
                 longStackPagesLoop:
@@ -716,6 +732,17 @@ public class StoreWAL extends StoreCached {
         }
         structuralLock.lock();
         try{
+            for(int i=0;i<uncommitedIndexLong.table.length;) {
+                long offset = uncommitedIndexLong.table[i++];
+                long val = uncommitedIndexLong.table[i++];
+                if(offset==0)
+                    continue;
+                if(val==Long.MIN_VALUE)
+                    val = 0;
+                realVol.putLong(offset, val);
+            }
+            uncommitedIndexLong.clear();
+
             //flush modified Long Stack pages
             dataLoop:
             for(int pos=0;pos<committedPageLongStack.table.length;){
