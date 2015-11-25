@@ -983,7 +983,7 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="1047" y="24" width="2566" height="1580" extended-state="6" />
-    <editor active="true" />
+    <editor active="false" />
     <layout>
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32714775" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Messages" active="false" anchor="bottom" auto_hide="true" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.31348392" sideWeight="0.49642575" order="1" side_tool="false" content_ui="tabs" />
