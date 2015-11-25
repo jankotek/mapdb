@@ -81,6 +81,7 @@ public final class DBMaker{
         String volume_unsafe = "unsafe";
 
         String fileMmapCleanerHack = "fileMmapCleanerHack";
+        String fileMmapPreclearDisable = "fileMmapPreclearDisable";
 
         String fileLockDisable = "fileLockDisable";
         String fileLockHeartbeatEnable = "fileLockHeartbeatEnable";
@@ -839,6 +840,20 @@ public final class DBMaker{
          */
         public Maker fileMmapCleanerHackEnable() {
             props.setProperty(Keys.fileMmapCleanerHack,TRUE);
+            return this;
+        }
+
+
+        /**
+         * <p>
+         * Disables preclear workaround for JVM crash. This will speedup inserts on mmap files, if store is expanded.
+         * As sideffect JVM might crash if there is not enough free space.
+         * TODO document more, links
+         * </p>
+         * @return this builder
+         */
+        public Maker fileMmapPreclearDisable() {
+            props.setProperty(Keys.fileMmapPreclearDisable,TRUE);
             return this;
         }
 
@@ -1643,6 +1658,7 @@ public final class DBMaker{
         protected Volume.VolumeFactory  extendStoreVolumeFactory(boolean index) {
             String volume = props.getProperty(Keys.volume);
             boolean cleanerHackEnabled = propsGetBool(Keys.fileMmapCleanerHack);
+            boolean mmapPreclearDisabled = propsGetBool(Keys.fileMmapPreclearDisable);
             if(Keys.volume_byteBuffer.equals(volume))
                 return Volume.ByteArrayVol.FACTORY;
             else if(Keys.volume_directByteBuffer.equals(volume))
@@ -1660,11 +1676,8 @@ public final class DBMaker{
 
             return raf?
                     Volume.RandomAccessFileVol.FACTORY:
-                    (cleanerHackEnabled?
-                            Volume.MappedFileVol.FACTORY_WITH_CLEANER_HACK:
-                            Volume.MappedFileVol.FACTORY);
+                    new Volume.MappedFileVol.MappedFileFactory(cleanerHackEnabled, mmapPreclearDisabled);
         }
-
     }
 
 

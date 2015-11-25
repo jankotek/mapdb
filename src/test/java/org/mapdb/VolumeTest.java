@@ -67,7 +67,7 @@ public class VolumeTest {
             new Fun.Function1<Volume, String>() {
                 @Override
                 public Volume run(String file) {
-                    return new Volume.MappedFileVol(new File(file), false, false, CC.VOLUME_PAGE_SHIFT, false, 0L);
+                    return new Volume.MappedFileVol(new File(file), false, false, CC.VOLUME_PAGE_SHIFT, false, 0L,false);
                 }
             },
             new Fun.Function1<Volume, String>() {
@@ -489,14 +489,14 @@ public class VolumeTest {
         raf.close();
 
         //open mmap file, size should grow to multiple of chunk size
-        Volume.MappedFileVol m = new Volume.MappedFileVol(f, false,false, CC.VOLUME_PAGE_SHIFT,true, 0L);
+        Volume.MappedFileVol m = new Volume.MappedFileVol(f, false,false, CC.VOLUME_PAGE_SHIFT,true, 0L, false);
         assertEquals(1, m.slices.length);
         m.sync();
         m.close();
         assertEquals(chunkSize, f.length());
 
         //open mmap file, size should grow to multiple of chunk size
-        m = new Volume.MappedFileVol(f, false,false, CC.VOLUME_PAGE_SHIFT,true, 0L);
+        m = new Volume.MappedFileVol(f, false,false, CC.VOLUME_PAGE_SHIFT,true, 0L, false);
         assertEquals(1, m.slices.length);
         m.ensureAvailable(add + 4);
         assertEquals(11, m.getInt(add));
@@ -509,7 +509,7 @@ public class VolumeTest {
         raf.writeInt(11);
         raf.close();
 
-        m = new Volume.MappedFileVol(f, false,false, CC.VOLUME_PAGE_SHIFT,true, 0L);
+        m = new Volume.MappedFileVol(f, false,false, CC.VOLUME_PAGE_SHIFT,true, 0L, false);
         assertEquals(2, m.slices.length);
         m.sync();
         m.ensureAvailable(chunkSize + add + 4);
@@ -519,7 +519,7 @@ public class VolumeTest {
         m.close();
         assertEquals(chunkSize * 2, f.length());
 
-        m = new Volume.MappedFileVol(f, false,false, CC.VOLUME_PAGE_SHIFT,true, 0L) ;
+        m = new Volume.MappedFileVol(f, false,false, CC.VOLUME_PAGE_SHIFT,true, 0L, false) ;
         m.sync();
         assertEquals(chunkSize * 2, f.length());
         m.ensureAvailable(chunkSize + add + 4);

@@ -772,4 +772,32 @@ public class DBMakerTest{
     @Test public void cc() throws IllegalAccessException {
         assertEquals(CC.DEFAULT_CACHE, DBMaker.CC().get("DEFAULT_CACHE"));
     }
+
+    @Test public void fileMmapPreclearDisable1(){
+        File f = TT.tempDbFile();
+        StoreDirect d = (StoreDirect) DBMaker
+                .fileDB(f)
+                .fileMmapEnable()
+                .fileMmapPreclearDisable()
+                .transactionDisable()
+                .makeEngine();
+
+        assertTrue(((Volume.MappedFileVol)d.vol).preclearDisabled);
+        d.close();
+        f.delete();
+    }
+
+    @Test public void fileMmapPreclearDisable2(){
+        File f = TT.tempDbFile();
+        StoreDirect d = (StoreDirect) DBMaker
+                .fileDB(f)
+                .fileMmapEnable()
+                .transactionDisable()
+                .makeEngine();
+
+        assertFalse(((Volume.MappedFileVol)d.vol).preclearDisabled);
+        d.close();
+        f.delete();
+    }
+
 }

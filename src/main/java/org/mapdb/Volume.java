@@ -1077,49 +1077,54 @@ public abstract class Volume implements Closeable{
 
     public static final class MappedFileVol extends ByteBufferVol {
 
-        public static final VolumeFactory FACTORY = new VolumeFactory() {
+        public static final VolumeFactory FACTORY = new MappedFileFactory(false, false);
+
+        public static class MappedFileFactory extends VolumeFactory{
+
+            final boolean cleanerHackEnabled;
+            final boolean preclearDisabled;
+
+            public MappedFileFactory(boolean cleanerHackEnabled, boolean preclearDisabled) {
+                this.cleanerHackEnabled = cleanerHackEnabled;
+                this.preclearDisabled = preclearDisabled;
+            }
+
             @Override
             public Volume makeVolume(String file, boolean readOnly, boolean fileLockDisabled, int sliceShift, long initSize, boolean fixedSize) {
-                return factory(file, readOnly, fileLockDisabled, sliceShift, false, initSize);
+                return factory(file, readOnly, fileLockDisabled, sliceShift, cleanerHackEnabled, initSize, preclearDisabled);
             }
-        };
 
-
-        public static final VolumeFactory FACTORY_WITH_CLEANER_HACK = new VolumeFactory() {
-            @Override
-            public Volume makeVolume(String file, boolean readOnly, boolean fileLockDisabled, int sliceShift, long initSize, boolean fixedSize) {
-                return factory(file, readOnly, fileLockDisabled, sliceShift, true,initSize);
-            }
-        };
-
-
-        private static Volume factory(String file, boolean readOnly, boolean fileLockDisabled, int sliceShift,
-                                      boolean cleanerHackEnabled, long initSize) {
-            File f = new File(file);
-            if(readOnly){
-                long flen = f.length();
-                if(flen <= Integer.MAX_VALUE) {
-                    return new MappedFileVolSingle(f, readOnly, fileLockDisabled,
-                            Math.max(flen,initSize),
-                            cleanerHackEnabled);
+            private static Volume factory(String file, boolean readOnly, boolean fileLockDisabled, int sliceShift,
+                                          boolean cleanerHackEnabled, long initSize, boolean preclearDisabled) {
+                File f = new File(file);
+                if(readOnly){
+                    long flen = f.length();
+                    if(flen <= Integer.MAX_VALUE) {
+                        return new MappedFileVolSingle(f, readOnly, fileLockDisabled,
+                                Math.max(flen,initSize),
+                                cleanerHackEnabled);
+                    }
                 }
+                //TODO prealocate initsize
+                return new MappedFileVol(f,readOnly,fileLockDisabled, sliceShift,cleanerHackEnabled,initSize, preclearDisabled);
             }
-            //TODO prealocate initsize
-            return new MappedFileVol(f,readOnly,fileLockDisabled, sliceShift,cleanerHackEnabled,initSize);
-        }
 
+        }
 
         protected final File file;
         protected final FileChannel fileChannel;
         protected final FileChannel.MapMode mapMode;
         protected final java.io.RandomAccessFile raf;
         protected final FileLock fileLock;
+        protected final boolean preclearDisabled;
 
         public MappedFileVol(File file, boolean readOnly, boolean fileLockDisable,
-                             int sliceShift, boolean cleanerHackEnabled, long initSize) {
+                             int sliceShift, boolean cleanerHackEnabled, long initSize,
+                             boolean preclearDisabled) {
             super(readOnly,sliceShift, cleanerHackEnabled);
             this.file = file;
             this.mapMode = readOnly? FileChannel.MapMode.READ_ONLY: FileChannel.MapMode.READ_WRITE;
+            this.preclearDisabled = preclearDisabled;
             try {
                 FileChannelVol.checkFolder(file, readOnly);
                 this.raf = new java.io.RandomAccessFile(file, readOnly?"r":"rw");
@@ -1173,10 +1178,12 @@ public abstract class Volume implements Closeable{
 
                 int oldSize = slices.length;
 
-                // fill with zeroes from  old size to new size
-                // this will prevent file from growing via mmap operation
-                RandomAccessFileVol.clearRAF(raf, 1L*oldSize*sliceSize, offset);
-                raf.getFD().sync();
+                if(!preclearDisabled) {
+                    // fill with zeroes from  old size to new size
+                    // this will prevent file from growing via mmap operation
+                    RandomAccessFileVol.clearRAF(raf, 1L * oldSize * sliceSize, offset);
+                    raf.getFD().sync();
+                }
 
                 //grow slices
                 ByteBuffer[] slices2 = slices;
