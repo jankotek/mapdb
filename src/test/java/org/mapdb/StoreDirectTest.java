@@ -907,4 +907,26 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
         e.close();
     }
+
+    @Test public void many_recids(){
+        if(TT.shortTest())
+            return;
+
+        long recidCount = 1024*1024/8+1000;
+
+        e = openEngine();
+        List<Long> recids = new ArrayList<Long>();
+        for(long i=0;i<recidCount;i++){
+            long recid = e.put(i, Serializer.LONG);
+            recids.add(recid);
+        }
+        e.commit();
+        reopen();
+        for(long i=0;i<recidCount;i++){
+            long recid = recids.get((int) i);
+            assertEquals(new Long(i), e.get(recid,Serializer.LONG));
+        }
+
+        e.close();
+    }
 }
