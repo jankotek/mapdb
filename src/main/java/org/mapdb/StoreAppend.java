@@ -243,6 +243,11 @@ public class StoreAppend extends Store {
             }
 
             @Override
+            public void afterReplayFinished() {
+
+            }
+
+            @Override
             public void writeLong(long offset, long value) {
                 throw new DBException.DataCorruption();
             }
@@ -258,11 +263,6 @@ public class StoreAppend extends Store {
                 long recidOffset = recid*8;
                 indexTable.ensureAvailable(recidOffset + 8);
                 indexTable.putLong(recidOffset, walId);
-            }
-
-            @Override
-            public void beforeDestroyWAL() {
-
             }
 
             @Override

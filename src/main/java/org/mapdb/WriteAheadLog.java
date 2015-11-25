@@ -164,8 +164,6 @@ public class WriteAheadLog {
 
         if(lastChecksumOffset==0)
             lastChecksumOffset=16;
-        if(walOffset2==lastChecksumOffset)
-            return;
         int checksum =  lastChecksum+checksum(curVol2, lastChecksumOffset, walOffset2);
         lastChecksumOffset=walOffset2+plusSize;
         lastChecksum = checksum;
@@ -199,14 +197,13 @@ public class WriteAheadLog {
     public interface WALReplay{
 
         void beforeReplayStart();
+        void afterReplayFinished();
 
         void writeLong(long offset, long value);
 
         void writeRecord(long recid, long walId, Volume vol, long volOffset, int length);
 
         void writeByteArray(long offset, long walId, Volume vol, long volOffset, int length);
-
-        void beforeDestroyWAL();
 
         void commit();
 
@@ -225,6 +222,11 @@ public class WriteAheadLog {
         }
 
         @Override
+        public void afterReplayFinished() {
+
+        }
+
+        @Override
         public void writeLong(long offset, long value) {
         }
 
@@ -234,10 +236,6 @@ public class WriteAheadLog {
 
         @Override
         public void writeByteArray(long offset, long walId, Volume vol, long volOffset, int length) {
-        }
-
-        @Override
-        public void beforeDestroyWAL() {
         }
 
         @Override
@@ -464,6 +462,8 @@ public class WriteAheadLog {
             vol.clearOverlap(offset, vol.length());
             vol.sync();
         }
+
+        replay.afterReplayFinished();
         return ret;
     }
 
@@ -648,7 +648,7 @@ public class WriteAheadLog {
 
             }
         }
-        replay.beforeDestroyWAL();
+        replay.afterReplayFinished();
     }
 
     private long instTombstone(Volume wal, long pos, int checksum, WALReplay replay) {

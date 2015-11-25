@@ -17,7 +17,6 @@ public class WALSequence implements WriteAheadLog.WALReplay {
     static final String writeLong = "writeLong";
     static final String writeRecord = "writeRecord";
     static final String writeByteArray = "writeByteArray";
-    static final String beforeDestroyWAL = "beforeDestroyWal";
     static final String commit = "commit";
     static final String rollback = "rollback";
     static final String writeTombstone = "writeTombstone";
@@ -75,10 +74,8 @@ public class WALSequence implements WriteAheadLog.WALReplay {
     }
 
     @Override
-    public void beforeDestroyWAL() {
-        Object[] r = seq.remove();
-        assertEquals(beforeDestroyWAL, r[0]);
-        assertEquals(1,r.length);
+    public void afterReplayFinished() {
+        assertTrue(seq.isEmpty());
     }
 
     @Override

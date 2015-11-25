@@ -67,6 +67,11 @@ public class WALTruncate {
             }
 
             @Override
+            public void afterReplayFinished() {
+
+            }
+
+            @Override
             public void writeLong(long offset, long value) {
                 assertEquals(111L, offset);
                 assertEquals(i.get(), value);
@@ -80,11 +85,6 @@ public class WALTruncate {
 
             @Override
             public void writeByteArray(long offset, long walId, Volume vol, long volOffset, int length) {
-                fail();
-            }
-
-            @Override
-            public void beforeDestroyWAL() {
                 fail();
             }
 

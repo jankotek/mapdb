@@ -11,6 +11,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.junit.Assert.assertArrayEquals;
+
 public class IssuesTest {
 
     @Test public void issue130(){
@@ -134,6 +136,30 @@ public class IssuesTest {
             m.headMap(i).descendingMap();
         }
     }
+
+    @Test public void issue634_1(){
+        File f = TT.tempDbFile();
+
+        for(int j=0;j<10;j++) {
+
+            DB db = DBMaker.appendFileDB(f).checksumEnable().make();
+
+            Map m = db.hashMapCreate("segment").makeOrGet();
+
+            for (int i = 0; i < 10; i++) {
+                if(j>0){
+                    assertArrayEquals(TT.randomByteArray(100,(j-1)*i), (byte[])m.get(i));
+                }
+                m.put(i, TT.randomByteArray(100,j*i));
+                db.commit();
+            }
+            db.commit();
+            db.close();
+        }
+
+        f.delete();
+    }
+
 
 
 }

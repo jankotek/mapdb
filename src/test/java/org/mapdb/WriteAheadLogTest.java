@@ -59,6 +59,11 @@ public class WriteAheadLogTest {
             }
 
             @Override
+            public void afterReplayFinished() {
+
+            }
+
+            @Override
             public void writeLong(long offset, long value) {
                 fail();
             }
@@ -85,10 +90,6 @@ public class WriteAheadLogTest {
             @Override
             public void writeByteArray(long offset2, long walId, Volume vol, long volOffset, int length) {
                 fail();
-            }
-
-            @Override
-            public void beforeDestroyWAL() {
             }
 
             @Override
@@ -135,6 +136,11 @@ public class WriteAheadLogTest {
             }
 
             @Override
+            public void afterReplayFinished() {
+
+            }
+
+            @Override
             public void writeLong(long offset, long value) {
                 fail();
             }
@@ -147,10 +153,6 @@ public class WriteAheadLogTest {
             @Override
             public void writeByteArray(long offset, long walId, Volume vol, long volOffset, int length) {
                 fail();
-            }
-
-            @Override
-            public void beforeDestroyWAL() {
             }
 
             @Override
@@ -194,6 +196,11 @@ public class WriteAheadLogTest {
             }
 
             @Override
+            public void afterReplayFinished() {
+
+            }
+
+            @Override
             public void writeLong(long offset, long value) {
                 fail();
             }
@@ -206,10 +213,6 @@ public class WriteAheadLogTest {
             @Override
             public void writeByteArray(long offset, long walId, Volume vol, long volOffset, int length) {
                 fail();
-            }
-
-            @Override
-            public void beforeDestroyWAL() {
             }
 
             @Override
@@ -247,8 +250,7 @@ public class WriteAheadLogTest {
         wal.replayWAL(new WALSequence(
                 new Object[]{WALSequence.beforeReplayStart},
                 new Object[]{WALSequence.writeLong, 111L, 1111L},
-                new Object[]{WALSequence.commit},
-                new Object[]{WALSequence.beforeDestroyWAL}
+                new Object[]{WALSequence.commit}
         ));
     }
 
@@ -265,8 +267,7 @@ public class WriteAheadLogTest {
         wal.replayWAL(new WALSequence(
                 new Object[]{WALSequence.beforeReplayStart},
                 new Object[]{WALSequence.writeLong, 111L, 1000L},
-                new Object[]{WALSequence.rollback},
-                new Object[]{WALSequence.beforeDestroyWAL}
+                new Object[]{WALSequence.rollback}
         ));
     }
 
@@ -381,8 +382,7 @@ public class WriteAheadLogTest {
                 new Object[]{WALSequence.commit},
                 // 2L is ignored, rollback section is skipped on hard replay
                 new Object[]{WALSequence.writeLong, 3L, 33L},
-                new Object[]{WALSequence.commit},
-                new Object[]{WALSequence.beforeDestroyWAL}
+                new Object[]{WALSequence.commit}
         ));
         wal.destroyWalFiles();
         wal.close();
@@ -491,6 +491,26 @@ public class WriteAheadLogTest {
                 new Object[]{WALSequence.beforeReplayStart},
                 new Object[]{WALSequence.writeRecord, 11L, 16L,  b},
                 new Object[]{WALSequence.writeRecord, 33L, 4294967312L, b},
+                new Object[]{WALSequence.commit}
+        ));
+    }
+
+    @Test public void empty_commit(){
+        String f = TT.tempDbFile().getPath();
+        WriteAheadLog wal = new WriteAheadLog(f);
+
+        byte[] b = TT.randomByteArray(1024);
+        wal.walPutRecord(33L, b, 0, b.length);
+        wal.commit();
+        wal.commit();
+        wal.seal();
+        wal.close();
+
+        wal = new WriteAheadLog(f);
+        wal.open(new WALSequence(
+                new Object[]{WALSequence.beforeReplayStart},
+                new Object[]{WALSequence.writeRecord, 33L, 16L,  b},
+                new Object[]{WALSequence.commit},
                 new Object[]{WALSequence.commit}
         ));
     }

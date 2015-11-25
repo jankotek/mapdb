@@ -165,6 +165,11 @@ public class StoreWAL extends StoreCached {
             }
 
             @Override
+            public void afterReplayFinished() {
+
+            }
+
+            @Override
             public void writeLong(long offset, long value) {
                 if(CC.ASSERT && offset%8!=0)
                     throw new AssertionError();
@@ -185,10 +190,6 @@ public class StoreWAL extends StoreCached {
                 vol.transferInto(volOffset, realVol, offset,length);
             }
 
-            @Override
-            public void beforeDestroyWAL() {
-
-            }
 
             @Override
             public void commit() {
