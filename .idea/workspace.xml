@@ -12,10 +12,6 @@
       <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/../mapdb-tools/src/main/java/org/mapdb/tools/Utils.kt" />
       <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/../mapdb-tools/src/test/java/org/mapdb/org/mapdb/tools/Export20Test.kt" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../mapdb-tools/pom.xml" afterPath="$PROJECT_DIR$/../mapdb-tools/pom.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/java/org/mapdb/DBMaker.java" afterPath="$PROJECT_DIR$/src/main/java/org/mapdb/DBMaker.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/java/org/mapdb/Volume.java" afterPath="$PROJECT_DIR$/src/main/java/org/mapdb/Volume.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/test/java/org/mapdb/DBMakerTest.java" afterPath="$PROJECT_DIR$/src/test/java/org/mapdb/DBMakerTest.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/test/java/org/mapdb/VolumeTest.java" afterPath="$PROJECT_DIR$/src/test/java/org/mapdb/VolumeTest.java" />
     </list>
     <ignored path="mapdb.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -75,16 +71,6 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="DBMaker.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/DBMaker.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="854" column="33" selection-start-line="854" selection-start-column="33" selection-end-line="854" selection-end-column="33" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
       <file leaf-file-name="DBMakerTest.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/DBMakerTest.java">
           <provider selected="true" editor-type-id="text-editor">
@@ -97,11 +83,21 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="VolumeTest.java" pinned="false" current-in-tab="true">
+      <file leaf-file-name="VolumeTest.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/VolumeTest.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.5404463">
+            <state vertical-scroll-proportion="0.0">
               <caret line="521" column="89" selection-start-line="521" selection-start-column="89" selection-end-line="521" selection-end-column="89" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="CC.java" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/CC.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.35564855">
+              <caret line="48" column="27" selection-start-line="48" selection-start-column="27" selection-end-line="48" selection-end-column="27" />
               <folding />
             </state>
           </provider>
@@ -987,7 +983,7 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="1047" y="24" width="2566" height="1580" extended-state="6" />
-    <editor active="false" />
+    <editor active="true" />
     <layout>
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32714775" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Messages" active="false" anchor="bottom" auto_hide="true" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.31348392" sideWeight="0.49642575" order="1" side_tool="false" content_ui="tabs" />
@@ -997,7 +993,7 @@
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.22245038" sideWeight="0.49841145" order="3" side_tool="false" content_ui="tabs" x="-3" y="17" width="1056" height="1666" />
       <window_info id="Run" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.35861796" sideWeight="0.49563146" order="6" side_tool="false" content_ui="tabs" x="599" y="398" width="82" height="60" />
       <window_info id="Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.21247022" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" x="0" y="27" width="525" height="773" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.21247022" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" x="0" y="27" width="525" height="773" />
       <window_info id="JProfiler" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32565528" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.2717317" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" x="2142" y="608" width="375" height="411" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.18943606" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" x="525" y="27" width="525" height="773" />
@@ -1404,13 +1400,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/CC.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="48" column="27" selection-start-line="48" selection-start-column="27" selection-end-line="48" selection-end-column="27" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/StoreCached.java">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
@@ -1757,8 +1746,16 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/test/java/org/mapdb/VolumeTest.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.5404463">
+        <state vertical-scroll-proportion="0.0">
           <caret line="521" column="89" selection-start-line="521" selection-start-column="89" selection-end-line="521" selection-end-column="89" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/mapdb/CC.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.35564855">
+          <caret line="48" column="27" selection-start-line="48" selection-start-column="27" selection-end-line="48" selection-end-column="27" />
           <folding />
         </state>
       </provider>
