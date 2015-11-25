@@ -1,6 +1,6 @@
 package examples;
 
-import org.mapdb.*;
+import org.mapdb20.*;
 
 import java.io.File;
 import java.io.IOException;

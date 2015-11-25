@@ -1,8 +1,8 @@
 package examples;
 
-import org.mapdb.DB;
-import org.mapdb.DBMaker;
-import org.mapdb.Serializer;
+import org.mapdb20.DB;
+import org.mapdb20.DBMaker;
+import org.mapdb20.Serializer;
 
 import java.io.*;
 import java.util.Map;

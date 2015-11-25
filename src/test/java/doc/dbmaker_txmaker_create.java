@@ -1,7 +1,7 @@
 package doc;
 
-import org.mapdb.DBMaker;
-import org.mapdb.TxMaker;
+import org.mapdb20.DBMaker;
+import org.mapdb20.TxMaker;
 
 
 public class dbmaker_txmaker_create {
