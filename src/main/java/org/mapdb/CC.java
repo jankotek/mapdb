@@ -44,13 +44,13 @@ interface CC {
      * For example HashMap may check if keys implements hash function correctly.
      * This will slow down MapDB significantly.
      */
-    boolean ASSERT = false;
+    boolean ASSERT = true;
 
-    boolean PARANOID = false;
+    boolean PARANOID = true;
 
 
     /** default value for FINE logging */
-    boolean LOG_FINE = false;
+    boolean LOG_FINE = true;
     /**
      * Compile-in detailed log messages from store.
      */
