@@ -1,6 +1,6 @@
 package examples;
 
-import org.mapdb20.*;
+import org.mapdb.*;
 
 import java.util.Random;
 
@@ -26,8 +26,7 @@ public class CacheOffHeapAdvanced {
                 .memoryDirectDB()
             // make it faster
                 .transactionDisable()
-                .allocateRecidReuseEnable()
-            //some additional options for DB
+              //some additional options for DB
                // .asyncWriteEnable()
                // .cacheSize(100000)
                 .make();
@@ -58,7 +57,7 @@ public class CacheOffHeapAdvanced {
             cache.put(key,value);
 
             if(counter%1e5==0){
-                System.out.printf("Map size: %,d, counter %,d, curr store size: %,d, store free size: %,d\n",
+                System.out.printf("Map size: %,d, counter %,d, curr store size: %,d, store free size: %,d%n",
                         cache.sizeLong(), counter, store.getCurrSize(),  store.getFreeSize());
             }
 

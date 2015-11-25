@@ -1,6 +1,6 @@
 package doc;
 
-import org.mapdb20.*;
+import org.mapdb.*;
 
 
 public class htreemap_serializer {

@@ -1,9 +1,9 @@
 package doc;
 
-import org.mapdb20.Atomic;
-import org.mapdb20.DB;
-import org.mapdb20.DBMaker;
-import org.mapdb20.Serializer;
+import org.mapdb.Atomic;
+import org.mapdb.DB;
+import org.mapdb.DBMaker;
+import org.mapdb.Serializer;
 
 import java.io.DataInput;
 import java.io.DataOutput;

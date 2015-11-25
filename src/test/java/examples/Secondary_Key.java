@@ -1,9 +1,9 @@
 package examples;
 
-import org.mapdb20.BTreeMap;
-import org.mapdb20.Bind;
-import org.mapdb20.DBMaker;
-import org.mapdb20.Fun;
+import org.mapdb.BTreeMap;
+import org.mapdb.Bind;
+import org.mapdb.DBMaker;
+import org.mapdb.Fun;
 
 import java.util.NavigableSet;
 import java.util.TreeSet;

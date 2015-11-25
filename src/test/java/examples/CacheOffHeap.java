@@ -1,8 +1,8 @@
 package examples;
 
-import org.mapdb20.DBMaker;
-import org.mapdb20.HTreeMap;
-import org.mapdb20.Store;
+import org.mapdb.DBMaker;
+import org.mapdb.HTreeMap;
+import org.mapdb.Store;
 
 import java.util.Random;
 
@@ -48,7 +48,7 @@ public class CacheOffHeap {
             cache.put(key,value);
 
             if(counter%1e5==0){
-                System.out.printf("Map size: %,d, counter %,d, store size: %,d, store free size: %,d\n",
+                System.out.printf("Map size: %,d, counter %,d, store size: %,d, store free size: %,d%n",
                         cache.sizeLong(), counter, store.getCurrSize(),  store.getFreeSize());
             }
 
