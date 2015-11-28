@@ -182,4 +182,15 @@ public class DBException extends RuntimeException{
             super("Class not found! Check classpath or register your class with DBMaker.serializerRegisterClass()",e);
         }
     }
+
+    public static class InconsistentState extends DBException {
+        public InconsistentState() {
+            super("Previous commit or rollback failed, store is in inconsistent state and needs to be restarted");
+        }
+
+        public InconsistentState(Throwable e) {
+            super("Previous commit or rollback failed, store is in inconsistent state and needs to be restarted",e);
+        }
+    }
+
 }

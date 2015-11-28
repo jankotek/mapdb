@@ -23,9 +23,22 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
 
     File f = TT.tempDbFile();
 
+
     @After
     public void deleteFile(){
+        if(e!=null && !e.isClosed()){
+            e.close();
+            e = null;
+        }
+        if(f==null)
+            return;
+
         f.delete();
+        String name = f.getName();
+        for(File f2:f.getParentFile().listFiles()){
+            if(f2.getName().startsWith(name))
+                f2.delete();
+        }
     }
 
 //    static final long FREE_RECID_STACK = StoreDirect.IO_FREE_RECID+32;

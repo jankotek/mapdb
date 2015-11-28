@@ -82,6 +82,13 @@ public class StoreWAL extends StoreCached {
 
     protected final WriteAheadLog wal;
 
+    /**
+     * If true commit/rollback dies with an exception.
+     * Store write cache is likely in inconsistent state,
+     * WAL needs to be fully replayed. Right now we only support that when Store is reopened.
+     */
+    protected volatile boolean diedViolently = false;
+
     public StoreWAL(String fileName) {
         this(fileName,
                 fileName == null ? CC.DEFAULT_MEMORY_VOLUME_FACTORY : CC.DEFAULT_FILE_VOLUME_FACTORY,
@@ -547,6 +554,9 @@ public class StoreWAL extends StoreCached {
     public void rollback() throws UnsupportedOperationException {
         commitLock.lock();
         try {
+            if(diedViolently)
+                throw new DBException.InconsistentState();
+
             //flush modified records
             for (int segment = 0; segment < locks.length; segment++) {
                 Lock lock = locks[segment].writeLock();
@@ -577,6 +587,9 @@ public class StoreWAL extends StoreCached {
             } finally {
                 structuralLock.unlock();
             }
+        }catch(Throwable e){
+            diedViolently = true;
+            throw new DBException.InconsistentState(e);
         }finally {
             commitLock.unlock();
         }
@@ -586,40 +599,43 @@ public class StoreWAL extends StoreCached {
     @Override
     public void commit() {
         commitLock.lock();
-        try{
+        try {
+            if(diedViolently)
+                throw new DBException.InconsistentState();
+
             //flush write caches into write ahead log
             flushWriteCache();
 
             //move uncommited data to committed
-            for(int segment=0;segment<locks.length;segment++){
+            for (int segment = 0; segment < locks.length; segment++) {
                 locks[segment].writeLock().lock();
-                try{
+                try {
                     //dump index vals into WAL
                     long[] table = uncommittedIndexTable[segment].table;
-                    for(int i=0;i<table.length;){
+                    for (int i = 0; i < table.length; ) {
                         long offset = table[i++];
                         long val = table[i++];
-                        if(offset==0)
+                        if (offset == 0)
                             continue;
-                        wal.walPutLong(offset,val);
+                        wal.walPutLong(offset, val);
                     }
 
                     moveAndClear(uncommittedIndexTable[segment], committedIndexTable[segment]);
                     moveAndClear(uncommittedDataLongs[segment], committedDataLongs[segment]);
 
-                }finally {
+                } finally {
                     locks[segment].writeLock().unlock();
                 }
             }
 
             structuralLock.lock();
             try {
-                for(int i=0;i<uncommitedIndexLong.table.length;) {
+                for (int i = 0; i < uncommitedIndexLong.table.length; ) {
                     long offset = uncommitedIndexLong.table[i++];
                     long val = uncommitedIndexLong.table[i++];
-                    if(offset==0)
+                    if (offset == 0)
                         continue;
-                    if(val==Long.MIN_VALUE)
+                    if (val == Long.MIN_VALUE)
                         val = 0;
                     wal.walPutLong(offset, val);
                 }
@@ -633,8 +649,8 @@ public class StoreWAL extends StoreCached {
                         continue longStackPagesLoop;
                     byte[] val = (byte[]) uncommittedStackPages.values[i];
 
-                    if(val==LONG_STACK_PAGE_TOMBSTONE)
-                        committedPageLongStack.put(offset,-1);
+                    if (val == LONG_STACK_PAGE_TOMBSTONE)
+                        committedPageLongStack.put(offset, -1);
                     else {
                         if (CC.ASSERT)
                             assertLongStackPage(offset, val);
@@ -655,9 +671,12 @@ public class StoreWAL extends StoreCached {
                 replaySoft();
                 realVol.sync();
                 wal.destroyWalFiles();
-            }finally {
+            } finally {
                 structuralLock.unlock();
             }
+        }catch(Throwable e){
+            diedViolently = true;
+            throw new DBException.InconsistentState(e);
         }finally {
             commitLock.unlock();
         }
@@ -811,22 +830,25 @@ public class StoreWAL extends StoreCached {
     @Override
     public void close() {
             commitLock.lock();
-            try{
+            try {
 
-                if(closed) {
+                if (closed) {
                     return;
                 }
 
-                if(hasUncommitedData()){
+                if (hasUncommitedData()) {
                     LOG.warning("Closing storage with uncommited data, this data will be discarded.");
                 }
 
-                headVol.putData(0,headVolBackup,0,headVolBackup.length);
+                if (!diedViolently){
+                    headVol.putData(0, headVolBackup, 0, headVolBackup.length);
 
-                if(!readonly) {
-                    replaySoft();
-                    wal.destroyWalFiles();
+                    if (!readonly) {
+                        replaySoft();
+                        wal.destroyWalFiles();
+                    }
                 }
+
                 wal.close();
 
                 vol.close();
