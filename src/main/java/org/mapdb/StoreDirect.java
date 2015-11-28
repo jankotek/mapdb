@@ -1306,9 +1306,14 @@ public class StoreDirect extends Store {
         commitLock.lock();
 
         try{
+
+
             for(int i=0;i<locks.length;i++){
                 Lock lock = locks[i].writeLock();
                 lock.lock();
+                if(this instanceof StoreCached) {
+                    ((StoreCached) this).flushWriteCacheSegment(i);
+                }
             }
 
             try {

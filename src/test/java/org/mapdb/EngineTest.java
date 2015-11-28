@@ -805,4 +805,15 @@ public abstract class EngineTest<ENGINE extends Engine>{
         }
         e.close();
     }
+
+    @Test public void dirty_compact(){
+        e = openEngine();
+        long recid1 = e.put(new byte[1000 * 1000 ], Serializer.BYTE_ARRAY_NOSIZE);
+        long recid2 = e.put(new byte[1000 * 1000], Serializer.BYTE_ARRAY_NOSIZE);
+        e.delete(recid1, Serializer.BYTE_ARRAY_NOSIZE);
+        e.compact();
+        e.commit();
+        assertArrayEquals(new byte[1000*1000], e.get(recid2, Serializer.BYTE_ARRAY_NOSIZE));
+        e.close();
+    }
 }
