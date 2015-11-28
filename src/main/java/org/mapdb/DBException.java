@@ -183,6 +183,29 @@ public class DBException extends RuntimeException{
         }
     }
 
+    public static class SerializationIOError extends DBException{
+
+        public SerializationIOError(Exception e) {
+            this("Exception during (de)serialization",e);
+        }
+
+        public SerializationIOError(String msg, Exception e) {
+            super(msg,e);
+        }
+
+        public SerializationIOError(String msg) {
+            super(msg);
+        }
+    }
+
+    public static class ClassNotSerializable extends SerializationIOError{
+
+        public ClassNotSerializable(Class clazz) {
+            super("Class does not implement serializable interface: "+clazz.getName());
+        }
+    }
+
+
     public static class InconsistentState extends DBException {
         public InconsistentState() {
             super("Previous commit or rollback failed, store is in inconsistent state and needs to be restarted");
@@ -192,5 +215,7 @@ public class DBException extends RuntimeException{
             super("Previous commit or rollback failed, store is in inconsistent state and needs to be restarted",e);
         }
     }
+
+
 
 }

@@ -380,7 +380,7 @@ public abstract class Store implements Engine {
 
             return out;
         } catch (IOException e) {
-            throw new IOError(e);
+            throw new DBException.SerializationIOError(e);
         }
 
     }
@@ -425,7 +425,7 @@ public abstract class Store implements Engine {
 
             return ret;
         }catch(IOException e){
-            throw new IOError(e);
+            throw new DBException.SerializationIOError(e);
         }
     }
 

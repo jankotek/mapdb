@@ -407,7 +407,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             return;
 
         if (!Serializable.class.isAssignableFrom(clazz))
-            throw new NotSerializableException(clazz.getName());
+            throw new DBException.ClassNotSerializable(clazz);
 
     }
 

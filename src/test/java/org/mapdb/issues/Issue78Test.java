@@ -4,10 +4,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mapdb.DB;
+import org.mapdb.DBException;
 import org.mapdb.DBMaker;
 import org.mapdb.HTreeMap;
-
-import java.io.IOError;
 
 /*
  * https://github.com/jankotek/MapDB/issues/78
@@ -24,13 +23,24 @@ public class Issue78Test {
     public void tearDown() {
     }
 
-    @Test(expected = IOError.class, timeout = 10000)
+    @Test(expected = DBException.ClassNotSerializable.class, timeout = 10000)
     public void testIssue() {
-        DB db = DBMaker.tempFileDB().make();
+        DB db = DBMaker.memoryDB().make();
         HTreeMap<String, NotSerializable> usersMap = db.hashMap("values");
         usersMap.put("thisKillsTheAsyncWriteThread", new NotSerializable());
         db.commit();
+        db.close();
     }
+
+    @Test(expected = DBException.ClassNotSerializable.class, timeout = 10000)
+    public void testIssueAsync() {
+        DB db = DBMaker.memoryDB().asyncWriteEnable().make();
+        HTreeMap<String, NotSerializable> usersMap = db.hashMap("values");
+        usersMap.put("thisKillsTheAsyncWriteThread", new NotSerializable());
+        db.commit();
+        db.close();
+    }
+
 
     class NotSerializable {
     }

@@ -589,7 +589,13 @@ public class StoreWAL extends StoreCached {
             }
         }catch(Throwable e){
             diedViolently = true;
-            throw new DBException.InconsistentState(e);
+            if(e instanceof  RuntimeException){
+                throw (RuntimeException) e;
+            }else if(e instanceof  Error){
+                throw (Error) e;
+            }else {
+                throw new DBException.InconsistentState(e);
+            }
         }finally {
             commitLock.unlock();
         }
@@ -676,7 +682,13 @@ public class StoreWAL extends StoreCached {
             }
         }catch(Throwable e){
             diedViolently = true;
-            throw new DBException.InconsistentState(e);
+            if(e instanceof  RuntimeException){
+                throw (RuntimeException) e;
+            }else if(e instanceof  Error){
+                throw (Error) e;
+            }else {
+                throw new DBException.InconsistentState(e);
+            }
         }finally {
             commitLock.unlock();
         }
