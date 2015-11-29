@@ -10,10 +10,9 @@ import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.locks.Lock;
 
 import static org.junit.Assert.*;
-import static org.mapdb.DataIO.parity16Set;
+import static org.mapdb.DataIO.*;
 import static org.mapdb.StoreDirect.*;
 
 @SuppressWarnings({"rawtypes","unchecked"})
@@ -685,36 +684,6 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
             assertTrue(e2.getMessage().contains("version"));
         }
     }
-
-    //TODO hack remove
-    protected void clearEverything(){
-        StoreWAL wal = (StoreWAL)e;
-        //flush modified records
-        for (int segment = 0; segment < wal.locks.length; segment++) {
-            Lock lock = wal.locks[segment].writeLock();
-            lock.lock();
-            try {
-                wal.writeCache[segment].clear();
-            } finally {
-                lock.unlock();
-            }
-        }
-
-        wal.structuralLock.lock();
-        try {
-            wal.uncommittedStackPages.clear();
-
-            //restore headVol from backup
-            wal.headVol.putData(0,wal.headVolBackup,0,wal.headVolBackup.length);
-
-            wal.indexPages = wal.indexPagesBackup.clone();
-            wal.committedPageLongStack.clear();
-        } finally {
-            wal.structuralLock.unlock();
-        }
-
-    }
-
 
     @Test public void compact_keeps_volume_type(){
         if(TT.scale()==0)
