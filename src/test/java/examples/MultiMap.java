@@ -20,13 +20,13 @@ public class MultiMap {
         // this is wrong, do not do it !!!
         //  Map<String,List<Long>> map
 
-        //correct way is to use composite set, where 'map key' is primary key and 'map value' is secondary value
-        NavigableSet<Object[]> multiMap = db.treeSet("test");
-
-        //optionally you can use set with Delta Encoding. This may save lot of space
-        multiMap = db.treeSetCreate("test2")
+        // Correct way is to use composite set, where 'map key' is primary key and 'map value' is secondary value
+        // Composite keys are done with arrays.
+        NavigableSet<Object[]> multiMap = db.treeSetCreate("test2")
                 .serializer(BTreeKeySerializer.ARRAY2)
                 .make();
+
+        //TODO there is Pair class, update example to include it
 
         multiMap.add(new Object[]{"aa",1});
         multiMap.add(new Object[]{"aa",2});
@@ -39,10 +39,10 @@ public class MultiMap {
         }
 
         //check if pair exists
-
         boolean found = multiMap.contains(new Object[]{"bb",1});
         System.out.println("Found: " + found);
 
+        db.commit();
         db.close();
 
     }
