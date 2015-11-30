@@ -3,8 +3,6 @@ package org.mapdb;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
@@ -1471,46 +1469,11 @@ public class StoreDirect extends Store {
 
         //iterate over index pages
         long maxRecidOffset = recidToOffset(maxRecid.get());
-        if(executor == null) {
-            for (int indexPageI = 0;
-                 indexPageI < lastIndexPage && indexPages[indexPageI]<=maxRecidOffset;
-                 indexPageI++) {
 
-                compactIndexPage(target, indexPageI, maxRecid.get());
-            }
-        }else {
-            //compact pages in multiple threads.
-            //there are N tasks (index pages) running in parallel.
-            //main thread checks number of tasks in interval, if one is finished it will
-            //schedule next one
-            final List<Future> tasks = new ArrayList();
-            for (int indexPageI = 0;
-                 indexPageI < lastIndexPage && indexPages[indexPageI]<=maxRecidOffset;
-                 indexPageI++) {
-                final int indexPageI2 = indexPageI;
-                //now submit tasks to executor, it will compact single page
-                //TODO handle RejectedExecutionException?
-                Future f = executor.submit(new Runnable() {
-                    @Override
-                    public void run() {
-                      compactIndexPage(target, indexPageI2, maxRecid.get());
-                    }
-                });
-                tasks.add(f);
-            }
-            //all index pages are running or were scheduled
-            //wait for all index pages to finish
-            for(Future f:tasks){
-                try {
-                    f.get();
-                } catch (InterruptedException e) {
-                    throw new DBException.Interrupted(e);
-                } catch (ExecutionException e) {
-                    //TODO check cause and rewrap it
-                    throw new RuntimeException(e);
-                }
-            }
-
+        for (int indexPageI = 0;
+            indexPageI < lastIndexPage && indexPages[indexPageI]<=maxRecidOffset;
+            indexPageI++) {
+            compactIndexPage(target, indexPageI, maxRecid.get());
         }
     }
 
