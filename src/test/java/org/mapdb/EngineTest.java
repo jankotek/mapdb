@@ -8,7 +8,10 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.Assert.*;
@@ -548,6 +551,63 @@ public abstract class EngineTest<ENGINE extends Engine>{
         }
         e.close();
     }
+
+    @Test
+    public void par_update_get_compact() throws InterruptedException {
+        int scale = TT.scale();
+        if(scale==0)
+            return;
+        int threadNum = Math.min(4,scale*4);
+        final long end = TT.nowPlusMinutes(10);
+        e = openEngine();
+        final BlockingQueue<Fun.Pair<Long,byte[]>> q = new ArrayBlockingQueue(threadNum*10);
+        for(int i=0;i<threadNum;i++){
+            byte[] b = TT.randomByteArray(new Random().nextInt(10000));
+            long recid = e.put(b,BYTE_ARRAY_NOSIZE);
+            q.put(new Fun.Pair(recid,b));
+        }
+
+        final CountDownLatch l = new CountDownLatch(2);
+        Thread tt = new Thread(){
+            @Override
+            public void run() {
+                try {
+                    while (l.getCount() > 1)
+                        e.compact();
+                }finally {
+                    l.countDown();
+                }
+            }
+        };
+        tt.setDaemon(true);
+        tt.run();
+
+        Exec.execNTimes(threadNum, new Callable() {
+            @Override
+            public Object call() throws Exception {
+                Random r = new Random();
+                while (System.currentTimeMillis() < end) {
+                    Fun.Pair<Long, byte[]> t = q.take();
+                    assertTrue(Serializer.BYTE_ARRAY.equals(t.b, e.get(t.a, Serializer.BYTE_ARRAY_NOSIZE)));
+                    int size = r.nextInt(1000);
+                    if (r.nextInt(10) == 1)
+                        size = size * 100;
+                    byte[] b = TT.randomByteArray(size);
+                    e.update(t.a, b, Serializer.BYTE_ARRAY_NOSIZE);
+                    q.put(new Fun.Pair<Long, byte[]>(t.a, b));
+                }
+                return null;
+            }
+        });
+        l.countDown();
+        l.await();
+
+        for( Fun.Pair<Long,byte[]> t :q){
+            assertTrue(Serializer.BYTE_ARRAY.equals(t.b, e.get(t.a, Serializer.BYTE_ARRAY_NOSIZE)));
+        }
+        e.close();
+    }
+
 
     @Test public void update_reserved_recid(){
         e = openEngine();
