@@ -1311,12 +1311,14 @@ public class StoreDirect extends Store {
             for(int i=0;i<locks.length;i++){
                 Lock lock = locks[i].writeLock();
                 lock.lock();
-                if(this instanceof StoreCached) {
-                    ((StoreCached) this).flushWriteCacheSegment(i);
-                }
             }
 
             try {
+                for(int i=0;i<locks.length;i++){
+                    if(this instanceof StoreCached) {
+                        ((StoreCached) this).flushWriteCacheSegment(i);
+                    }
+                }
 
                 //clear caches, so freed recids throw an exception, instead of returning null
                 if(caches!=null) {
