@@ -574,6 +574,8 @@ public class SerializerBaseTest{
             Object a = f.get(null);
             assertTrue("field: "+f.getName(), b.mapdb_all.containsKey(a));
             assertTrue("field: "+f.getName(),a == clone(a));
+
+            assertTrue("field: "+f.getName(),((BTreeKeySerializer)a).isTrusted());
         }
     }
     @Test public void test_Named(){

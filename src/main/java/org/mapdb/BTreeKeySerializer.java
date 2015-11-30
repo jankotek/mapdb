@@ -266,6 +266,11 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             //$DELAY$
             return keys2;
         }
+
+        @Override
+        public boolean isTrusted() {
+            return serializer.isTrusted();
+        }
     }
 
 
@@ -436,6 +441,12 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             }
         }
 
+        @Override
+        public boolean isTrusted() {
+            return true;
+        }
+
+
     };
 
     /**
@@ -604,6 +615,13 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
                 }
             }
         }
+
+        @Override
+        public boolean isTrusted() {
+            return true;
+        }
+
+
     };
 
     /**
@@ -860,6 +878,16 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             result = 31 * result + Arrays.hashCode(serializers);
             return result;
         }
+
+
+        @Override
+        public boolean isTrusted() {
+            for(Serializer s:serializers){
+                if(!s.isTrusted())
+                    return false;
+            }
+            return true;
+        }
     }
 
     public static final BTreeKeySerializer<java.util.UUID,long[]> UUID = new BTreeKeySerializer<java.util.UUID,long[]>() {
@@ -964,6 +992,12 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             System.arraycopy(keys,pos+2,ret,pos,ret.length-pos);
             return ret;
         }
+
+        @Override
+        public boolean isTrusted() {
+            return true;
+        }
+
     };
 
     public interface StringArrayKeys {
@@ -1634,6 +1668,12 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             System.arraycopy(keys, pos+1, keys2, pos, keys2.length-pos);
             return keys2;
         }
+
+        @Override
+        public boolean isTrusted() {
+            return true;
+        }
+
     };
 
     protected static int commonPrefixLen(byte[][] bytes) {
@@ -1775,6 +1815,12 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         public StringArrayKeys deleteKey(StringArrayKeys byteArrayKeys, int pos) {
             return byteArrayKeys.deleteKey(pos);
         }
+
+        @Override
+        public boolean isTrusted() {
+            return true;
+        }
+
     };
 
     public static final  BTreeKeySerializer<byte[], byte[][]> BYTE_ARRAY2 = new BTreeKeySerializer<byte[], byte[][]>() {
@@ -1891,6 +1937,12 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
             System.arraycopy(keys, pos+1, keys2, pos, keys2.length-pos);
             return keys2;
         }
+
+        @Override
+        public boolean isTrusted() {
+            return true;
+        }
+
     };
 
     public static final BTreeKeySerializer<byte[],ByteArrayKeys> BYTE_ARRAY = new BTreeKeySerializer<byte[],ByteArrayKeys>() {
@@ -2012,6 +2064,12 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         public ByteArrayKeys deleteKey(ByteArrayKeys byteArrayKeys, int pos) {
             return byteArrayKeys.deleteKey(pos);
         }
+
+        @Override
+        public boolean isTrusted() {
+            return true;
+        }
+
     };
 
     public static class Compress extends BTreeKeySerializer {
@@ -2121,6 +2179,11 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
         @Override
         public Object[] keysToArray(Object o) {
             return wrapped.keysToArray(o);
+        }
+
+        @Override
+        public boolean isTrusted() {
+            return true;
         }
 
     }
