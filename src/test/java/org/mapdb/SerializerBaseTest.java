@@ -553,6 +553,10 @@ public class SerializerBaseTest{
             Object a = f.get(null);
             assertTrue("field: "+f.getName(), b.mapdb_all.containsKey(a));
             assertTrue("field: "+f.getName(),a == clone(a));
+            if("JAVA".equals(f.getName()))
+                continue;
+            assertTrue("field: "+f.getName(),((Serializer)a).isTrusted());
+            assertTrue("field: "+f.getName(),((Serializer)a).getBTreeKeySerializer(Fun.COMPARATOR).isTrusted());
         }
     }
 
