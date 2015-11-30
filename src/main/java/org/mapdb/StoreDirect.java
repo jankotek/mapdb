@@ -1388,13 +1388,11 @@ public class StoreDirect extends Store {
                         }
 
                         //and reopen volume
-                        if(this instanceof StoreCached)
-                            this.headVol.close();
-                        this.vol = volumeFactory.makeVolume(this.fileName, readonly, fileLockDisable);
-                        this.headVol = vol;
                         if(isStoreCached){
                             ((StoreCached)this).uncommittedStackPages.clear();
                         }
+                        this.vol = volumeFactory.makeVolume(this.fileName, readonly, fileLockDisable);
+                        initHeadVol();
 
                         //delete old file
                         if(!currFileRenamed.delete()){
