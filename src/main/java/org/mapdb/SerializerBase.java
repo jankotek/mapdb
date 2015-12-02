@@ -1600,9 +1600,9 @@ public class SerializerBase extends Serializer<Object>{
 
             mapdb_add(66, Serializer.RECID);
             mapdb_add(67, Serializer.LONG_PACKED);
-            mapdb_add(68, Serializer.LONG_PACKED_ZIGZAG);
+//            mapdb_add(68, Serializer.LONG_PACKED_ZIGZAG);
             mapdb_add(69, Serializer.INTEGER_PACKED);
-            mapdb_add(70, Serializer.INTEGER_PACKED_ZIGZAG);
+//            mapdb_add(70, Serializer.INTEGER_PACKED_ZIGZAG);
             mapdb_add(71, Serializer.RECID_ARRAY);
 
             //72

@@ -497,57 +497,6 @@ public abstract class Serializer<A> {
     };
 
 
-    /** packs Long so small values occupy less than 8 bytes. Large (positive and negative)
-     * values could occupy more 8 to 9 bytes. It uses zigzag conversion before packing,
-     * number is multiplied by two, with last bite indicating negativity.
-     */
-    public static final Serializer<Long> LONG_PACKED_ZIGZAG = new LongSerializer(){
-
-        long wrap(long i){
-            long plus = i<0?1:0; //this could be improved by eliminating condition
-            return Math.abs(i*2)+plus;
-        }
-
-        long unwrap(long i){
-            long m = 1 - 2 * (i&1); // +1 if even, -1 if odd
-            return (i>>>1) * m;
-        }
-
-        @Override
-        public void serialize(DataOutput out, Long value) throws IOException {
-            ((DataIO.DataOutputByteArray) out).packLong(wrap(value));
-        }
-
-        @Override
-        public Long deserialize(DataInput in, int available) throws IOException {
-            return unwrap(((DataIO.DataInputInternal) in).unpackLong());
-        }
-
-        @Override
-        public void valueArraySerialize(DataOutput out, Object vals) throws IOException {
-            DataIO.DataOutputByteArray out2 = (DataIO.DataOutputByteArray) out;
-            for(long o:(long[]) vals){
-                out2.packLong(wrap(o));
-            }
-        }
-
-        @Override
-        public Object valueArrayDeserialize(DataInput in, int size) throws IOException {
-            DataIO.DataInputInternal i = (DataIO.DataInputInternal) in;
-            long[] ret = new long[size];
-            i.unpackLongArray(ret,0,size);
-            for(int a=0;a<size;a++){
-                ret[a] = unwrap(ret[a]);
-            }
-            return ret;
-        }
-
-        @Override
-        public int fixedSize() {
-            return -1;
-        }
-    };
-
 
     abstract protected static class FourByteSerializer<E> extends Serializer<E>{
 
@@ -717,57 +666,6 @@ public abstract class Serializer<A> {
         }
 
     };
-
-    /** packs Integer so small values occupy less than 4 bytes. Large (positive and negative)
-     * values could occupy more 4 to 5 bytes. It uses zigzag conversion before packing,
-     * number is multiplied by two, with last bite indicating negativity.
-     */
-    public static final Serializer<Integer> INTEGER_PACKED_ZIGZAG = new IntegerSerializer(){
-
-        long wrap(int i){
-            long plus = i<0?1:0; //this could be improved by eliminating condition
-            return Math.abs(i*2)+plus;
-        }
-
-        int unwrap(long i){
-            long m = 1 - 2 * (i&1); // +1 if even, -1 if odd
-            return (int) ((i>>>1) * m);
-        }
-
-        @Override
-        public void serialize(DataOutput out, Integer value) throws IOException {
-            ((DataIO.DataOutputByteArray) out).packLong(wrap(value));
-        }
-
-        @Override
-        public Integer deserialize(DataInput in, int available) throws IOException {
-            return unwrap(((DataIO.DataInputInternal)in).unpackLong());
-        }
-
-        @Override
-        public void valueArraySerialize(DataOutput out, Object vals) throws IOException {
-            DataIO.DataOutputByteArray out2 = (DataIO.DataOutputByteArray) out;
-            for(int o:(int[]) vals){
-                out2.packLong(wrap(o));
-            }
-        }
-
-        @Override
-        public Object valueArrayDeserialize(DataInput in, int size) throws IOException {
-            DataIO.DataInputInternal i = (DataIO.DataInputInternal) in;
-            int[] ret = new int[size];
-            for(int a=0;a<size;a++){
-                ret[a] = unwrap(i.unpackLong());
-            }
-            return ret;
-        }
-
-        @Override
-        public int fixedSize() {
-            return -1;
-        }
-    };
-
 
     public static final Serializer<Boolean> BOOLEAN = new BooleanSer();
 

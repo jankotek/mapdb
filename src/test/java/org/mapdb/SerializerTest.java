@@ -80,6 +80,13 @@ public class SerializerTest {
             assertEquals(i, TT.clone(i, ser));
             assertEquals(new Long(-i), TT.clone(-i, ser));
         }
+
+        Random r = new Random();
+        for(int i=0;i<1e6;i++){
+            Long a = r.nextLong();
+            assertEquals(a, TT.clone(a, ser));
+        }
+
     }
 
     @Test public void Long(){
@@ -91,9 +98,6 @@ public class SerializerTest {
         testLong(Serializer.LONG_PACKED);
     }
 
-    @Test public void Long_packed_zigzag(){
-        testLong(Serializer.LONG_PACKED_ZIGZAG);
-    }
 
 
     void testInt(Serializer<Integer> ser){
@@ -105,6 +109,12 @@ public class SerializerTest {
             assertEquals(i, TT.clone(i, ser));
             assertEquals(new Long(-i), TT.clone(-i, ser));
         }
+
+        Random r = new Random();
+        for(int i=0;i<1e6;i++){
+            Integer a = r.nextInt();
+            assertEquals(a, TT.clone(a, ser));
+        }
     }
 
     @Test public void Int(){
@@ -114,10 +124,6 @@ public class SerializerTest {
 
     @Test public void Int_packed(){
         testInt(Serializer.INTEGER_PACKED);
-    }
-
-    @Test public void Int_packed_zigzag(){
-        testInt(Serializer.INTEGER_PACKED_ZIGZAG);
     }
 
     @Test public void deflate_wrapper(){
