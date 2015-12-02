@@ -1803,6 +1803,16 @@ public abstract class Serializer<A> {
             return serializer.getBTreeKeySerializer(comparator);
         }
 
+        @Override
+        public boolean equals(E a1, E a2) {
+            return serializer.equals(a1, a2);
+        }
+
+        @Override
+        public int hashCode(E e, int seed) {
+            return serializer.hashCode(e, seed);
+        }
+
     }
 
 
@@ -2035,6 +2045,17 @@ public abstract class Serializer<A> {
             //TODO compress BTreeKey serializer?
             return serializer.getBTreeKeySerializer(comparator);
         }
+
+        @Override
+        public boolean equals(E a1, E a2) {
+            return serializer.equals(a1, a2);
+        }
+
+        @Override
+        public int hashCode(E e, int seed) {
+            return serializer.hashCode(e, seed);
+        }
+
     }
 
     public static final class Array<T> extends Serializer<T[]> implements  Serializable{
