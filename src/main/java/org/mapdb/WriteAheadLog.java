@@ -561,7 +561,7 @@ public class WriteAheadLog {
                 }
             }
             }catch(DBException e){
-                LOG.log(Level.INFO, "WAL corrupted, skipping",e);
+                LOG.log(Level.INFO, "Skip incomplete WAL");
                 return 0;
             }
 
