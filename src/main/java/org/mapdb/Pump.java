@@ -512,7 +512,7 @@ public final class Pump {
             lastLeafRecid = engine.put(leaf,nodeSerializer);
 
             //handle case when there is only single leaf and no dirs, in that case it will become root
-            if(isLeftMost && dirKeys.get(0).size()==0){
+            if(isLeftMost && dirKeys.get(0).isEmpty()){
                 rootRecid = lastLeafRecid;
                 break SOURCE_LOOP;
             }

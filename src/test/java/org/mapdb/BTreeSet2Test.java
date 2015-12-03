@@ -958,7 +958,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         }
 
         // Test extrema
-        if (set.size() != 0) {
+        if (!set.isEmpty()) {
             assertEq(set.first(), rs.first());
             assertEq(set.last(), rs.last());
         } else {
