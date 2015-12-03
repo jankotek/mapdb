@@ -1030,7 +1030,8 @@ public abstract class Volume {
         @Override
         public void sync() {
             try{
-                channel.force(true);
+                if(channel!=null)
+                    channel.force(true);
             }catch(IOException e){
                 throw new IOError(e);
             }
