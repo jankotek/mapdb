@@ -61,7 +61,7 @@ public class SerializerBase extends Serializer<Object>{
     /** always returns single object without reading anything*/
     protected final class DeserSingleton extends Deser{
 
-        protected final Object singleton;
+        private final Object singleton;
 
         public DeserSingleton(Object singleton) {
             this.singleton = singleton;
@@ -105,8 +105,8 @@ public class SerializerBase extends Serializer<Object>{
 
     protected static final class DeserInt extends Deser{
 
-        protected final int digits;
-        protected final boolean minus;
+        private final int digits;
+        private final boolean minus;
 
         public DeserInt(int digits, boolean minus) {
             this.digits = digits;
@@ -127,8 +127,8 @@ public class SerializerBase extends Serializer<Object>{
 
     protected static final class DeserLong extends Deser{
 
-        protected final int digits;
-        protected final boolean minus;
+        private final int digits;
+        private final boolean minus;
 
         public DeserLong(int digits, boolean minus) {
             this.digits = digits;

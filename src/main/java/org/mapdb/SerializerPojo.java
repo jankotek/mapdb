@@ -157,15 +157,15 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
         //PERF optimize deserialization cost here.
 
-        protected final String name;
-        protected final FieldInfo[] fields;
-        protected final Map<String, FieldInfo> name2fieldInfo = new HashMap<String, FieldInfo>();
-        protected final Map<String, Integer> name2fieldId = new HashMap<String, Integer>();
-        protected ObjectStreamField[] objectStreamFields;
+        private final String name;
+        private final FieldInfo[] fields;
+        private final Map<String, FieldInfo> name2fieldInfo = new HashMap<String, FieldInfo>();
+        private final Map<String, Integer> name2fieldId = new HashMap<String, Integer>();
+        private ObjectStreamField[] objectStreamFields;
 
-        protected final boolean isEnum;
+        private final boolean isEnum;
 
-        protected final boolean useObjectStream;
+        private final boolean useObjectStream;
 
         public ClassInfo(final String name, final FieldInfo[] fields, final boolean isEnum, final boolean isExternalizable) {
             this.name = name;

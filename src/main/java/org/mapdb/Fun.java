@@ -335,7 +335,7 @@ public final class Fun {
 
     /** compares two arrays using given comparators*/
     public static final class ArrayComparator implements Comparator<Object[]>{
-        protected final Comparator[] comparators;
+        public final Comparator[] comparators;
 
         public ArrayComparator(Comparator... comparators2) {
             this.comparators = comparators2.clone();

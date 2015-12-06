@@ -777,10 +777,10 @@ public abstract class Store implements Engine {
         public static final class HashTable extends Cache {
 
 
-            protected final long[] recids; //TODO 6 byte longs
-            protected final Object[] items;
+        	public final long[] recids; //TODO 6 byte longs
+        	public final Object[] items;
 
-            protected final int cacheMaxSizeMask;
+        	public final int cacheMaxSizeMask;
 
 
             public HashTable(int cacheMaxSize, boolean disableLocks) {
@@ -833,7 +833,7 @@ public abstract class Store implements Engine {
                 }
             }
 
-            protected int pos(long recid) {
+            public int pos(long recid) {
                 return DataIO.longHash(recid)&cacheMaxSizeMask;
             }
 
@@ -1079,16 +1079,16 @@ public abstract class Store implements Engine {
      */
     public static final class HardRef extends  Store.Cache{
 
-        protected final static int CHECK_EVERY_N = 0xFFFF;
+        private final static int CHECK_EVERY_N = 0xFFFF;
 
-        protected int counter;
+        private int counter;
 
-        protected final Store.LongObjectMap cache;
+        private final Store.LongObjectMap cache;
 
-        protected final int initialCapacity;
+        private final int initialCapacity;
 
-        protected final ScheduledExecutorService executor;
-        protected final long executorPeriod;
+        private final ScheduledExecutorService executor;
+        private final long executorPeriod;
 
 
         public HardRef(int initialCapacity, boolean disableLocks, ScheduledExecutorService executor, long executorPeriod) {
@@ -1210,7 +1210,7 @@ public abstract class Store implements Engine {
 
         public static final class LRU extends Cache {
 
-            protected final int cacheSize;
+            private final int cacheSize;
 
             //PERF specialized version of LinkedHashMap to use primitive longs
             protected final LinkedHashMap<Long, Object> items = new LinkedHashMap<Long,Object>();
@@ -1752,10 +1752,10 @@ public abstract class Store implements Engine {
     public static final class LongQueue {
         static final int MAX_PACKED_LEN = 10;
 
-        protected int size;
-        protected byte[] b;
-        protected int start = 0;
-        protected int end = 0;
+        public int size;
+        public byte[] b;
+        public int start = 0;
+        public int end = 0;
 
         public LongQueue(){
             this(1023);
@@ -1850,7 +1850,7 @@ public abstract class Store implements Engine {
     /** fake read/write lock which in fact locks on single write lock */
     public static final class ReadWriteSingleLock implements ReadWriteLock{
 
-        protected final Lock lock;
+        private final Lock lock;
 
         public ReadWriteSingleLock(Lock lock) {
             this.lock = lock;
@@ -1873,7 +1873,7 @@ public abstract class Store implements Engine {
 
         final static int WAIT_NANOS = 100;
 
-        final protected AtomicLong lockedThread = new AtomicLong(Long.MAX_VALUE); //MAX_VALUE indicates null,
+        final private AtomicLong lockedThread = new AtomicLong(Long.MAX_VALUE); //MAX_VALUE indicates null,
 
         @Override
         public void lock() {

@@ -16,9 +16,9 @@ import java.util.NavigableMap;
 //TODO instance cache for reads
 public final class StoreArchive extends Store{
 
-    protected static final long FILE_SIZE_OFFSET = 16;
-    protected static final long FIRST_RESERVED_RECID_OFFSET = FILE_SIZE_OFFSET+9*8;
-    protected static final long DATA_START_OFFSET = FIRST_RESERVED_RECID_OFFSET+7*8;
+    private static final long FILE_SIZE_OFFSET = 16;
+    private static final long FIRST_RESERVED_RECID_OFFSET = FILE_SIZE_OFFSET+9*8;
+    private static final long DATA_START_OFFSET = FIRST_RESERVED_RECID_OFFSET+7*8;
 
     public StoreArchive(
             String fileName,
@@ -69,8 +69,8 @@ public final class StoreArchive extends Store{
                 fileLockHeartbeat);
     }
 
-    protected Volume vol;
-    protected long volSize;
+    private Volume vol;
+    private long volSize;
 
     @Override
     public void init() {
@@ -147,7 +147,7 @@ public final class StoreArchive extends Store{
         return add2(out);
     }
 
-    protected long add2(DataIO.DataOutputByteArray out) {
+    public long add2(DataIO.DataOutputByteArray out) {
         long size = DataIO.parity1Set((1L + out.pos) << 1);
 
         //make sure that size will not overlap, there must be at least 10 bytes before overlap
@@ -185,7 +185,7 @@ public final class StoreArchive extends Store{
         }
     }
 
-    protected void rewriteNamedCatalog(NavigableMap<String, Object> catalog) {
+    public void rewriteNamedCatalog(NavigableMap<String, Object> catalog) {
         if(readonly) {
             throw new UnsupportedOperationException("StoreArchive is read-only");
         }

@@ -172,8 +172,8 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
 
         private static final long serialVersionUID = 1654710710946309279L;
 
-        protected final Serializer serializer;
-        protected final Comparator comparator;
+        public final Serializer serializer;
+        public final Comparator comparator;
 
         public BasicKeySerializer(Serializer serializer, Comparator comparator) {
             if(serializer == null || comparator == null)
@@ -650,11 +650,11 @@ public abstract class BTreeKeySerializer<KEY,KEYS>{
 
         private static final long serialVersionUID = 998929894238939892L;
 
-        protected final int tsize;
-        protected final Comparator[] comparators;
-        protected final Serializer[] serializers;
+        public final int tsize;
+        public final Comparator[] comparators;
+        public final Serializer[] serializers;
 
-        protected final Comparator comparator;
+        public final Comparator comparator;
 
 
         public ArrayKeySerializer(Serializer... serializers) {

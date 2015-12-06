@@ -1111,12 +1111,12 @@ public abstract class Volume implements Closeable{
 
         }
 
-        protected final File file;
-        protected final FileChannel fileChannel;
-        protected final FileChannel.MapMode mapMode;
-        protected final java.io.RandomAccessFile raf;
-        protected final FileLock fileLock;
-        protected final boolean preclearDisabled;
+        public final File file;
+        public final FileChannel fileChannel;
+        public final FileChannel.MapMode mapMode;
+        public final java.io.RandomAccessFile raf;
+        public final FileLock fileLock;
+        public final boolean preclearDisabled;
 
         public MappedFileVol(File file, boolean readOnly, boolean fileLockDisable,
                              int sliceShift, boolean cleanerHackEnabled, long initSize,
@@ -1361,7 +1361,7 @@ public abstract class Volume implements Closeable{
     public static final class MappedFileVolSingle extends ByteBufferVolSingle {
 
 
-        protected final static VolumeFactory FACTORY = new VolumeFactory() {
+        public final static VolumeFactory FACTORY = new VolumeFactory() {
             @Override
             public Volume makeVolume(String file, boolean readOnly, boolean fileLockDisabled, int sliceShift, long initSize, boolean fixedSize) {
                 if(initSize>Integer.MAX_VALUE)
@@ -1375,7 +1375,7 @@ public abstract class Volume implements Closeable{
             }
         };
 
-        protected final static VolumeFactory FACTORY_WITH_CLEANER_HACK = new VolumeFactory() {
+        public final static VolumeFactory FACTORY_WITH_CLEANER_HACK = new VolumeFactory() {
             @Override
             public Volume makeVolume(String file, boolean readOnly, boolean fileLockDisabled, int sliceShift, long initSize, boolean fixedSize) {
                 if(initSize>Integer.MAX_VALUE)
@@ -1390,10 +1390,10 @@ public abstract class Volume implements Closeable{
         };
 
 
-        protected final File file;
-        protected final FileChannel.MapMode mapMode;
-        protected final RandomAccessFile raf;
-        protected final FileLock fileLock;
+        private final File file;
+        private final FileChannel.MapMode mapMode;
+        private final RandomAccessFile raf;
+        private final FileLock fileLock;
 
         public MappedFileVolSingle(File file, boolean readOnly, boolean fileLockDisabled, long maxSize,
                                    boolean cleanerHackEnabled) {
@@ -1513,7 +1513,7 @@ public abstract class Volume implements Closeable{
             }
         };
 
-        protected final boolean useDirectBuffer;
+        private final boolean useDirectBuffer;
 
         @Override
         public String toString() {
@@ -1634,7 +1634,7 @@ public abstract class Volume implements Closeable{
 
     public static final class MemoryVolSingle extends ByteBufferVolSingle {
 
-        protected final boolean useDirectBuffer;
+        private final boolean useDirectBuffer;
 
         @Override
         public String toString() {
@@ -1701,15 +1701,15 @@ public abstract class Volume implements Closeable{
             }
         };
 
-        protected final File file;
-        protected final int sliceSize;
-        protected RandomAccessFile raf;
-        protected FileChannel channel;
-        protected final boolean readOnly;
-        protected final FileLock fileLock;
+        private final File file;
+        private final int sliceSize;
+        private RandomAccessFile raf;
+        private FileChannel channel;
+        private final boolean readOnly;
+        private final FileLock fileLock;
 
-        protected volatile long size;
-        protected final Lock growLock = new ReentrantLock(CC.FAIR_LOCKS);
+        private volatile long size;
+        private final Lock growLock = new ReentrantLock(CC.FAIR_LOCKS);
 
         public FileChannelVol(File file, boolean readOnly, boolean fileLockDisabled, int sliceShift, long initSize){
             this.file = file;
@@ -1751,7 +1751,7 @@ public abstract class Volume implements Closeable{
             this(file, false, false, CC.VOLUME_PAGE_SHIFT,0L);
         }
 
-        protected static void checkFolder(File file, boolean readOnly) throws IOException {
+        public static void checkFolder(File file, boolean readOnly) throws IOException {
             File parent = file.getParentFile();
             if(parent == null) {
                 parent = file.getCanonicalFile().getParentFile();
@@ -1801,7 +1801,7 @@ public abstract class Volume implements Closeable{
             }
         }
 
-        protected void writeFully(long offset, ByteBuffer buf){
+        public void writeFully(long offset, ByteBuffer buf){
             int remaining = buf.limit()-buf.position();
             if(CC.VOLUME_PRINT_STACK_AT_OFFSET!=0 && CC.VOLUME_PRINT_STACK_AT_OFFSET>=offset && CC.VOLUME_PRINT_STACK_AT_OFFSET <= offset+remaining){
                 new IOException("VOL STACK:").printStackTrace();
@@ -1868,7 +1868,7 @@ public abstract class Volume implements Closeable{
             writeFully(offset,buf);
         }
 
-        protected void readFully(long offset, ByteBuffer buf){
+        public void readFully(long offset, ByteBuffer buf){
             int remaining = buf.limit()-buf.position();
             try{
                 while(remaining>0){
@@ -2033,13 +2033,13 @@ public abstract class Volume implements Closeable{
             }
         };
 
-        protected final ReentrantLock growLock = new ReentrantLock(CC.FAIR_LOCKS);
+        private final ReentrantLock growLock = new ReentrantLock(CC.FAIR_LOCKS);
 
-        protected final int sliceShift;
-        protected final int sliceSizeModMask;
-        protected final int sliceSize;
+        private final int sliceShift;
+        private final int sliceSizeModMask;
+        private final int sliceSize;
 
-        protected volatile byte[][] slices = new byte[0][];
+        private volatile byte[][] slices = new byte[0][];
 
         protected ByteArrayVol() {
             this(CC.VOLUME_PAGE_SHIFT, 0L);
@@ -2055,7 +2055,7 @@ public abstract class Volume implements Closeable{
             }
         }
 
-        protected final byte[] getSlice(long offset){
+        public final byte[] getSlice(long offset){
             byte[][] slices = this.slices;
             int pos = ((int) (offset >>> sliceShift));
             if(pos>=slices.length)
@@ -2314,7 +2314,7 @@ public abstract class Volume implements Closeable{
       */
     public static final class SingleByteArrayVol extends Volume{
 
-        protected final static VolumeFactory FACTORY = new VolumeFactory() {
+        public final static VolumeFactory FACTORY = new VolumeFactory() {
             @Override
             public Volume makeVolume(String file, boolean readOnly, boolean fileLockDisabled, int sliceShift, long initSize, boolean fixedSize) {
                 if(initSize>Integer.MAX_VALUE)
@@ -2323,7 +2323,7 @@ public abstract class Volume implements Closeable{
             }
         };
 
-        protected final byte[] data;
+        private final byte[] data;
 
         public SingleByteArrayVol(int size) {
             this(new byte[size]);
@@ -2470,7 +2470,7 @@ public abstract class Volume implements Closeable{
 
     public static final class ReadOnly extends Volume{
 
-        protected final Volume vol;
+        private final Volume vol;
 
         public ReadOnly(Volume vol) {
             this.vol = vol;
@@ -2656,9 +2656,9 @@ public abstract class Volume implements Closeable{
                 return new RandomAccessFileVol(new File(file), readOnly, fileLockDisable, initSize);
             }
         };
-        protected final File file;
-        protected final RandomAccessFile raf;
-        protected final FileLock fileLock;
+        private final File file;
+        private final RandomAccessFile raf;
+        private final FileLock fileLock;
 
 
         public RandomAccessFileVol(File file, boolean readOnly, boolean fileLockDisable, long initSize) {
@@ -2891,7 +2891,7 @@ public abstract class Volume implements Closeable{
             }
         }
 
-        protected static void clearRAF(RandomAccessFile raf, long startOffset, long endOffset) throws IOException {
+        public static void clearRAF(RandomAccessFile raf, long startOffset, long endOffset) throws IOException {
             raf.seek(startOffset);
             while(startOffset<endOffset){
                 long remaining = Math.min(CLEAR.length, endOffset - startOffset);

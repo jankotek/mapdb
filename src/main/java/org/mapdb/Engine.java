@@ -355,7 +355,7 @@ public interface Engine  extends Closeable {
     final class ReadOnlyWrapper extends ReadOnly{
 
 
-        protected final Engine engine;
+        private final Engine engine;
 
 
         public ReadOnlyWrapper(Engine engine){

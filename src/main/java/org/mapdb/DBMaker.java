@@ -49,9 +49,9 @@ import java.util.logging.Logger;
  */
 public final class DBMaker{
 
-    protected static final Logger LOG = Logger.getLogger(DBMaker.class.getName());
+    private static final Logger LOG = Logger.getLogger(DBMaker.class.getName());
 
-    protected static final String TRUE = "true";
+    private static final String TRUE = "true";
 
 
     protected interface Keys{
@@ -405,17 +405,17 @@ public final class DBMaker{
 
 
     public static final class Maker {
-        protected Fun.RecordCondition cacheCondition;
-        protected ScheduledExecutorService executor;
-        protected ScheduledExecutorService metricsExecutor;
-        protected ScheduledExecutorService cacheExecutor;
+        private Fun.RecordCondition cacheCondition;
+        private ScheduledExecutorService executor;
+        private ScheduledExecutorService metricsExecutor;
+        private ScheduledExecutorService cacheExecutor;
 
-        protected ScheduledExecutorService storeExecutor;
-        protected ClassLoader serializerClassLoader;
-        protected Map<String,ClassLoader> serializerClassLoaderRegistry;
+        private ScheduledExecutorService storeExecutor;
+        private ClassLoader serializerClassLoader;
+        private Map<String,ClassLoader> serializerClassLoaderRegistry;
 
 
-        protected Properties props = new Properties();
+        public Properties props = new Properties();
 
         /** use static factory methods, or make subclass */
         protected Maker(){}
@@ -1314,7 +1314,7 @@ public final class DBMaker{
             }
         }
 
-        protected Fun.Function1<Class, String> makeClassLoader() {
+        public Fun.Function1<Class, String> makeClassLoader() {
             if(serializerClassLoader==null &&
                     (serializerClassLoaderRegistry==null || serializerClassLoaderRegistry.isEmpty())){
                 return null;
@@ -1553,7 +1553,7 @@ public final class DBMaker{
             return engine;
         }
 
-        protected Store.Cache createCache(boolean disableLocks, int lockScale) {
+        public Store.Cache createCache(boolean disableLocks, int lockScale) {
             final String cache = props.getProperty(Keys.cache, CC.DEFAULT_CACHE);
             if(cacheExecutor==null) {
                 cacheExecutor = executor;
@@ -1582,25 +1582,25 @@ public final class DBMaker{
         }
 
 
-        protected int propsGetInt(String key, int defValue){
+        public int propsGetInt(String key, int defValue){
             String ret = props.getProperty(key);
             if(ret==null) return defValue;
             return Integer.valueOf(ret);
         }
 
-        protected long propsGetLong(String key, long defValue){
+        public long propsGetLong(String key, long defValue){
             String ret = props.getProperty(key);
             if(ret==null) return defValue;
             return Long.valueOf(ret);
         }
 
 
-        protected boolean propsGetBool(String key){
+        public boolean propsGetBool(String key){
             String ret = props.getProperty(key);
             return ret!=null && ret.equals(TRUE);
         }
 
-        protected byte[] propsGetXteaEncKey(){
+        public byte[] propsGetXteaEncKey(){
             if(!Keys.encryption_xtea.equals(props.getProperty(Keys.encryption)))
                 return null;
             return DataIO.fromHexa(props.getProperty(Keys.encryptionKey));
@@ -1612,7 +1612,7 @@ public final class DBMaker{
          * so for 32bit JVM this function returns false.
          *
          */
-        protected static boolean JVMSupportsLargeMappedFiles() {
+        public static boolean JVMSupportsLargeMappedFiles() {
             String prop = System.getProperty("os.arch");
             if(prop!=null && prop.contains("64")) {
                 String os = System.getProperty("os.name");
@@ -1626,7 +1626,7 @@ public final class DBMaker{
         }
 
 
-        protected int propsGetRafMode(){
+        public int propsGetRafMode(){
             String volume = props.getProperty(Keys.volume);
             if(volume==null||Keys.volume_raf.equals(volume)){
                 return 2;
@@ -1644,18 +1644,18 @@ public final class DBMaker{
         }
 
 
-        protected Engine extendSnapshotEngine(Engine engine, int lockScale) {
+        public Engine extendSnapshotEngine(Engine engine, int lockScale) {
             return new TxEngine(engine,propsGetBool(Keys.fullTx), lockScale);
         }
 
 
 
-        protected Engine extendWrapSnapshotEngine(Engine engine) {
+        public Engine extendWrapSnapshotEngine(Engine engine) {
             return engine;
         }
 
 
-        protected Volume.VolumeFactory  extendStoreVolumeFactory(boolean index) {
+        public Volume.VolumeFactory  extendStoreVolumeFactory(boolean index) {
             String volume = props.getProperty(Keys.volume);
             boolean cleanerHackEnabled = propsGetBool(Keys.fileMmapCleanerHack);
             boolean mmapPreclearDisabled = propsGetBool(Keys.fileMmapPreclearDisable);

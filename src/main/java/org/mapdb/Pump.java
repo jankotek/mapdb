@@ -165,7 +165,7 @@ public final class Pump {
         }
     }
 
-    protected static void arraySort(Object[] array, int arrayLen, Comparator comparator,  Executor executor) {
+    public static void arraySort(Object[] array, int arrayLen, Comparator comparator,  Executor executor) {
         //if executor is specified, try to use parallel method in java 8
         if(executor!=null && parallelSortMethod!=null){
             //TODO this uses common pool, but perhaps we should use Executor instead
@@ -889,7 +889,7 @@ public final class Pump {
     }
 
 
-    protected static String nameWithoutExt(File f) {
+    public static String nameWithoutExt(File f) {
         String num = f.getName();
         num = num.substring(0, num.indexOf('.'));
         return num;
