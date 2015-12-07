@@ -122,8 +122,8 @@ public final class Queues {
 
         protected static final class Node<E>{
 
-            final protected long next;
-            final protected E value;
+            final private long next;
+            final private E value;
 
             public Node(long next, E value) {
                 this.next = next;

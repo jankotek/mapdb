@@ -759,19 +759,19 @@ public class BTreeMap<K,V>
 
     protected static final class NodeSerializer<A,B> extends Serializer<BNode>{
 
-        protected static final int LEAF_MASK = 1<<15;
-        protected static final int LEFT_SHIFT = 14;
-        protected static final int LEFT_MASK = 1<< LEFT_SHIFT;
-        protected static final int RIGHT_SHIFT = 13;
-        protected static final int RIGHT_MASK = 1<< RIGHT_SHIFT;
-        protected static final int SIZE_MASK = RIGHT_MASK - 1;
+        public static final int LEAF_MASK = 1<<15;
+        public static final int LEFT_SHIFT = 14;
+        public static final int LEFT_MASK = 1<< LEFT_SHIFT;
+        public static final int RIGHT_SHIFT = 13;
+        public static final int RIGHT_MASK = 1<< RIGHT_SHIFT;
+        public static final int SIZE_MASK = RIGHT_MASK - 1;
 
 
-        protected final boolean hasValues;
-        protected final boolean valsOutsideNodes;
-        protected final BTreeKeySerializer keySerializer;
-        protected final Serializer<Object> valueSerializer;
-        protected final int numberOfNodeMetas;
+        public final boolean hasValues;
+        public final boolean valsOutsideNodes;
+        public final BTreeKeySerializer keySerializer;
+        public final Serializer<Object> valueSerializer;
+        public final int numberOfNodeMetas;
 
         public NodeSerializer(boolean valsOutsideNodes, BTreeKeySerializer keySerializer, Serializer valueSerializer,  int numberOfNodeMetas) {
             if(keySerializer==null)
@@ -826,7 +826,7 @@ public class BTreeMap<K,V>
 
         }
 
-        protected void serializeChildArray(DataOutput out, Object childArray) throws IOException {
+        public void serializeChildArray(DataOutput out, Object childArray) throws IOException {
             if(childArray instanceof int[]){
                 int[] cc = (int[]) childArray;
                 DataIO.packLong(out, (((long)cc[0]) << 1) | 1L); //pack first value mixed with int flag
@@ -2379,7 +2379,7 @@ public class BTreeMap<K,V>
             implements NavigableSet<E>,
             Closeable, Serializable{
 
-        protected final ConcurrentNavigableMap<E,Object> m;
+        public final ConcurrentNavigableMap<E,Object> m;
         private final boolean hasValues;
         KeySet(ConcurrentNavigableMap<E,Object> map, boolean hasValues) {
             m = map;

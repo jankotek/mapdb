@@ -129,16 +129,16 @@ class UnsafeStuff {
 
 
 
-        protected volatile long[] addresses= new long[0];
-        protected volatile sun.nio.ch.DirectBuffer[] buffers = new sun.nio.ch.DirectBuffer[0];
+        private volatile long[] addresses= new long[0];
+        private volatile sun.nio.ch.DirectBuffer[] buffers = new sun.nio.ch.DirectBuffer[0];
 
-        protected final long sizeLimit;
-        protected final boolean hasLimit;
-        protected final int sliceShift;
-        protected final int sliceSizeModMask;
-        protected final int sliceSize;
+        private final long sizeLimit;
+        private final boolean hasLimit;
+        private final int sliceShift;
+        private final int sliceSizeModMask;
+        private final int sliceSize;
 
-        protected final ReentrantLock growLock = new ReentrantLock(CC.FAIR_LOCKS);
+        private final ReentrantLock growLock = new ReentrantLock(CC.FAIR_LOCKS);
 
 
         public UnsafeVolume() {
@@ -436,8 +436,8 @@ class UnsafeStuff {
 
         public static final class DataInputUnsafe implements DataIO.DataInputInternal{
 
-            protected final long baseAdress;
-            protected long pos2;
+            private final long baseAdress;
+            private long pos2;
 
             public DataInputUnsafe(long baseAdress, int pos) {
                 this.baseAdress = baseAdress;

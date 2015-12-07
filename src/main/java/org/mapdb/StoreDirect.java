@@ -1721,8 +1721,8 @@ public class StoreDirect extends Store {
 
     public static final class Snapshot extends ReadOnly{
 
-        protected StoreDirect engine;
-        protected LongLongMap[] oldRecids;
+        private StoreDirect engine;
+        private LongLongMap[] oldRecids;
 
         public Snapshot(StoreDirect engine){
             this.engine = engine;

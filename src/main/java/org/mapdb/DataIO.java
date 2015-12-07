@@ -406,8 +406,8 @@ public final class DataIO {
 
     /** DataInput on top of {@code byte[]} */
     static public final class DataInputByteArray implements DataInput, DataInputInternal {
-        protected final byte[] buf;
-        protected int pos;
+        public final byte[] buf;
+        public int pos;
 
 
         public DataInputByteArray(byte[] b) {
@@ -650,7 +650,7 @@ public final class DataIO {
      */
     public static final class DataInputToStream extends InputStream {
 
-        protected final DataInput in;
+        private final DataInput in;
 
         public DataInputToStream(DataInput in) {
             this.in = in;
@@ -1430,7 +1430,7 @@ public final class DataIO {
             }
         }
 
-        protected void delete() {
+        private void delete() {
             for (int i = 0; i < CC.FILE_RETRY; i++) { //TODO use delete/retry mapdb wide, in compaction!
                 boolean ok = file.delete();
                 if (ok || !file.exists()) {

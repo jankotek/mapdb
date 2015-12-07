@@ -1598,8 +1598,8 @@ public abstract class Serializer<A> {
     public final static class CompressionWrapper<E> extends Serializer<E> implements Serializable {
 
         private static final long serialVersionUID = 4440826457939614346L;
-        protected final Serializer<E> serializer;
-        protected final ThreadLocal<CompressLZF> LZF = new ThreadLocal<CompressLZF>() {
+        public final Serializer<E> serializer;
+        public final ThreadLocal<CompressLZF> LZF = new ThreadLocal<CompressLZF>() {
             @Override protected CompressLZF initialValue() {
                 return new CompressLZF();
             }
@@ -1608,7 +1608,7 @@ public abstract class Serializer<A> {
         // this flag is here for compatibility with 2.0-beta1 and beta2. Value compression was not added back then
         // this flag should be removed some time in future, and replaced with default value 'true'.
         // value 'false' is format used in 2.0
-        protected final boolean compressValues;
+        public final boolean compressValues;
 
         public CompressionWrapper(Serializer<E> serializer) {
             this.serializer = serializer;
@@ -1810,9 +1810,9 @@ public abstract class Serializer<A> {
     public final static class CompressionDeflateWrapper<E> extends Serializer<E> implements Serializable {
 
         private static final long serialVersionUID = 8529699349939823553L;
-        protected final Serializer<E> serializer;
-        protected final int compressLevel;
-        protected final byte[] dictionary;
+        public final Serializer<E> serializer;
+        public final int compressLevel;
+        public final byte[] dictionary;
 
         public CompressionDeflateWrapper(Serializer<E> serializer) {
             this(serializer, Deflater.DEFAULT_STRATEGY, null);
@@ -2040,7 +2040,7 @@ public abstract class Serializer<A> {
     public static final class Array<T> extends Serializer<T[]> implements  Serializable{
 
 		private static final long serialVersionUID = -7443421486382532062L;
-		protected final Serializer<T> serializer;
+		public final Serializer<T> serializer;
 
         public Array(Serializer<T> serializer) {
             if(serializer==null)

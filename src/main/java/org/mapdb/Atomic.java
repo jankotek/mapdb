@@ -110,8 +110,8 @@ final public class Atomic {
 
 		private static final long serialVersionUID = 4615119399830853054L;
 		
-		protected final Engine engine;
-        protected final long recid;
+		public final Engine engine;
+		public final long recid;
 
         public Integer(Engine engine, long recid) {
             this.engine = engine;
@@ -332,8 +332,8 @@ final public class Atomic {
 
 		private static final long serialVersionUID = 2882620413591274781L;
 		
-		protected final Engine engine;
-        protected final long recid;
+		public final Engine engine;
+		public final long recid;
 
         public Long(Engine engine, long recid) {
             this.engine = engine;
@@ -549,8 +549,8 @@ final public class Atomic {
      */
     public final static class Boolean {
 
-        protected final Engine engine;
-        protected final long recid;
+        public final Engine engine;
+        public final long recid;
 
         public Boolean(Engine engine, long recid) {
             this.engine = engine;
@@ -632,8 +632,8 @@ final public class Atomic {
     */
     public final static class String{
 
-        protected final Engine engine;
-        protected final long recid;
+    	public final Engine engine;
+    	public final long recid;
 
         public String(Engine engine, long recid) {
             this.engine = engine;
@@ -711,9 +711,9 @@ final public class Atomic {
      */
     public static final class Var<E> {
 
-        protected final Engine engine;
-        protected final long recid;
-        protected final Serializer<E> serializer;
+        public final Engine engine;
+        public final long recid;
+        public final Serializer<E> serializer;
 
         public Var(Engine engine, long recid, Serializer<E> serializer) {
             this.engine = engine;
