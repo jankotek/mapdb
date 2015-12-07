@@ -1502,7 +1502,7 @@ public class HTreeMap<K,V>
                         }else
                             lastHash +=1;
                         if(lastHash==0){
-                            return null;
+                            return new LinkedNode[0];
                         }
                         break;
                     }
@@ -1545,13 +1545,13 @@ public class HTreeMap<K,V>
                 }
             }
 
-            return null;
+            return new LinkedNode[0];
         }
 
         private LinkedNode[] findNextLinkedNodeRecur(Engine engine,long dirRecid, int newHash, int level){
             final Object dir = engine.get(dirRecid, DIR_SERIALIZER);
             if(dir == null)
-                return null;
+                return new LinkedNode[0];
             int offset = Math.abs(
                     dirOffsetFromSlot(dir,
                             (newHash >>> (level * 7)) & 0x7F));
@@ -1590,7 +1590,7 @@ public class HTreeMap<K,V>
                 first = false;
                 offset+=1;
             }
-            return null;
+            return new LinkedNode[0];
         }
     }
 
