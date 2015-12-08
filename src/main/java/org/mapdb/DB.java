@@ -291,7 +291,7 @@ public class DB implements Closeable {
      * @param obj object to get name for
      * @return name for this object, if it has name and was instanciated by this DB
      */
-    public String getNameForObject(Object obj) {
+    public final String getNameForObject(Object obj) {
         return namesLookup.get(new IdentityWrapper(obj));
     }
 
@@ -2710,7 +2710,7 @@ public class DB implements Closeable {
     /**
      * @return underlying engine which takes care of persistence for this DB.
      */
-    public Engine getEngine() {
+    public final Engine getEngine() {
         return engine;
     }
 
