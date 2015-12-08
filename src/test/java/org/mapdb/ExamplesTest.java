@@ -9,7 +9,7 @@ import java.io.IOException;
 
 public class ExamplesTest {
 
-    static final String[] args= new String[0];
+    private static final String[] args= new String[0];
 
     @Test public void all_examples_test(){
         File f = new File("src/test/java/examples");
