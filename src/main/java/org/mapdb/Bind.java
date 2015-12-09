@@ -101,6 +101,19 @@ public final class Bind {
          * @param listener  callback interface notified when map changes
          */
         public void modificationListenerRemove(MapListener<K, V> listener);
+        
+        /**
+         * Add new modification listener notified after Map has been updated
+         * @param listener callback interface notified when map changes
+         */
+        public void modificationListenerAfterAdd(MapListener<K, V> listener);
+
+        /**
+         * Remove registered notification listener
+         *
+         * @param listener  callback interface notified when map changes
+         */
+        public void modificationListenerAfterRemove(MapListener<K, V> listener);
 
 
         /**

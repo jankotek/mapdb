@@ -1162,6 +1162,7 @@ public class BTreeMap<K,V>
                     //$DELAY$
                     notify(key, (V) oldVal, value2);
                     unlock(nodeLocks, current);
+                    notifyAfter(key, (V) oldVal, value2);
                     //$DELAY$
                     if(CC.ASSERT)
                         assertNoLocks(nodeLocks);
@@ -1213,6 +1214,7 @@ public class BTreeMap<K,V>
                 notify(key,  null, value2);
                 //$DELAY$
                 unlock(nodeLocks, current);
+                notifyAfter(key,  null, value2);
                 if(CC.ASSERT) assertNoLocks(nodeLocks);
                 return null;
             }else{
@@ -1276,6 +1278,7 @@ public class BTreeMap<K,V>
                     //$DELAY$
                     unlock(nodeLocks, rootRecidRef);
                     //$DELAY$
+                    notifyAfter(key,  null, value2);
                     if(CC.ASSERT) assertNoLocks(nodeLocks);
                     //$DELAY$
                     return null;
@@ -1612,6 +1615,7 @@ public class BTreeMap<K,V>
 
                 notify((K)key, (V)oldVal, (V)putNewValue);
                 unlock(nodeLocks, current);
+                notifyAfter((K)key, (V)oldVal, (V)putNewValue);
                 return (V) oldVal;
             }else if(pos<=0 && -pos-1!=A.keysLen(keySerializer)-1){
                 //not found
@@ -3536,6 +3540,43 @@ public class BTreeMap<K,V>
             throw new AssertionError();
 
         Bind.MapListener<K,V>[] modListeners2  = modListeners;
+        for(Bind.MapListener<K,V> listener:modListeners2){
+            if(listener!=null)
+                listener.update(key, oldValue, newValue);
+        }
+    }
+    
+    protected final Object modAfterListenersLock = new Object();
+    protected Bind.MapListener<K,V>[] modAfterListeners = new Bind.MapListener[0];
+
+    @Override
+    public void modificationListenerAfterAdd(Bind.MapListener<K, V> listener) {
+        synchronized (modAfterListenersLock){
+            Bind.MapListener<K,V>[] modListeners2 =
+                    Arrays.copyOf(modAfterListeners,modAfterListeners.length+1);
+            modListeners2[modListeners2.length-1] = listener;
+            modAfterListeners = modListeners2;
+        }
+
+    }
+
+    @Override
+    public void modificationListenerAfterRemove(Bind.MapListener<K, V> listener) {
+        synchronized (modAfterListenersLock){
+            for(int i=0;i<modAfterListeners.length;i++){
+                if(modAfterListeners[i]==listener) modAfterListeners[i]=null;
+            }
+        }
+    }
+
+    //TODO check  references to notify
+    protected void notifyAfter(K key, V oldValue, V newValue) {
+        if(CC.ASSERT && ! (!(oldValue instanceof ValRef)))
+            throw new AssertionError();
+        if(CC.ASSERT && ! (!(newValue instanceof ValRef)))
+            throw new AssertionError();
+
+        Bind.MapListener<K,V>[] modListeners2  = modAfterListeners;
         for(Bind.MapListener<K,V> listener:modListeners2){
             if(listener!=null)
                 listener.update(key, oldValue, newValue);
