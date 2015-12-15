@@ -17,7 +17,9 @@
 package org.mapdb;
 
 import java.io.Closeable;
+import java.io.File;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Logger;
 
 /**
  * <p>
@@ -620,4 +622,114 @@ public interface Engine  extends Closeable {
 
 
     };
+    
+    final class DeleteFileEngine implements Engine {
+
+        private final Engine engine;
+        private final String file;
+    	private boolean isClosed = false;
+        
+		public DeleteFileEngine(Engine engine, String file) {
+			super();
+			this.engine = engine;
+			if (file == null) {
+				throw new NullPointerException();
+			}
+			this.file = file;
+		}
+
+		@Override
+		public long preallocate() {
+			return engine.preallocate();
+		}
+
+		@Override
+		public <A> long put(A value, Serializer<A> serializer) {
+			return engine.put(value, serializer);
+		}
+
+		@Override
+		public <A> A get(long recid, Serializer<A> serializer) {
+			return engine.get(recid, serializer);
+		}
+
+		@Override
+		public <A> void update(long recid, A value, Serializer<A> serializer) {
+			engine.update(recid, value, serializer);
+		}
+
+		@Override
+		public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+			return engine.compareAndSwap(recid, expectedOldValue, newValue, serializer);
+		}
+
+		@Override
+		public <A> void delete(long recid, Serializer<A> serializer) {
+			engine.delete(recid, serializer);
+		}
+
+		@Override
+		public void close() {
+			if (isClosed) {
+				return;
+			}
+			isClosed = true;
+			engine.close();
+			final File deletedFile = new File(file);
+			if (deletedFile.exists() && !deletedFile.delete()) {
+				Logger.getLogger(getClass().getName()).warning(
+						"Could not delete file: " + deletedFile.getAbsolutePath());
+			}
+		}
+
+		@Override
+		public boolean isClosed() {
+			return isClosed;
+		}
+
+		@Override
+		public void commit() {
+			engine.commit();
+		}
+
+		@Override
+		public void rollback() {
+			engine.rollback();
+		}
+
+		@Override
+		public boolean isReadOnly() {
+			return engine.isReadOnly();
+		}
+
+		@Override
+		public boolean canRollback() {
+			return engine.canRollback();
+		}
+
+		@Override
+		public boolean canSnapshot() {
+			return engine.canSnapshot();
+		}
+
+		@Override
+		public Engine snapshot() {
+			return engine.snapshot();
+		}
+
+		@Override
+		public Engine getWrappedEngine() {
+			return engine;
+		}
+
+		@Override
+		public void clearCache() {
+			engine.clearCache();
+		}
+
+		@Override
+		public void compact() {
+			engine.compact();
+		}
+    }
 }

@@ -2559,20 +2559,11 @@ public class DB implements Closeable {
                     ((Closeable) rr).close();
             }
 
-            String fileName = deleteFilesAfterClose ? Store.forEngine(engine).fileName : null;
             engine.close();
             //dereference db to prevent memory leaks
             engine = Engine.CLOSED_ENGINE;
             namesInstanciated = Collections.unmodifiableMap(new HashMap());
             namesLookup = Collections.unmodifiableMap(new HashMap());
-
-            if (deleteFilesAfterClose && fileName != null) {
-                File f = new File(fileName);
-                if (f.exists() && !f.delete()) {
-                    //TODO file was not deleted, log warning
-                }
-                //TODO delete WAL files and append-only files
-            }
         } catch (IOException e) {
             throw new IOError(e);
         } catch (InterruptedException e) {
