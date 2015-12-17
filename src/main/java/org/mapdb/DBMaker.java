@@ -1519,6 +1519,9 @@ public final class DBMaker{
             if(readOnly)
                 engine = new Engine.ReadOnlyWrapper(engine);
 
+            if (!readOnly && propsGetBool(Keys.deleteFilesAfterClose)) {
+            	engine = new Engine.DeleteFileEngine(engine, file);
+            }
 
             if(propsGetBool(Keys.closeOnJvmShutdown)){
                 engine = new Engine.CloseOnJVMShutdown(engine);
