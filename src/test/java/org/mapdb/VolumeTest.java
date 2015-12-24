@@ -713,5 +713,15 @@ public class VolumeTest {
                 throw new AssertionError();
         }
     }
-
+	
+    @Test
+    public void testMakeVolume() throws IOException{
+    	File file = TT.tempDbFile();
+    	long initSize = 20*1024*1024;
+    	Volume volume = Volume.MappedFileVol.FACTORY.makeVolume(file.getPath(), false, true, 
+    			CC.VOLUME_PAGE_SHIFT, initSize, false);
+    	assertEquals("Initial size and size of volume are not same", initSize, volume.length());
+    	volume.close();
+    	file.delete();
+    }
 }

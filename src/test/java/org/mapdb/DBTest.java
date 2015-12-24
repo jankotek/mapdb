@@ -1,6 +1,7 @@
 package org.mapdb;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -8,6 +9,8 @@ import java.io.*;
 import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.WeakHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -656,4 +659,33 @@ public class DBTest {
         db = DBMaker.fileDB(f).transactionDisable().make();
         s = db.hashSetCreate("set").serializer(new Issue546_SerializableSerializer()).makeOrGet();
     }
+    
+    @Test public void testSerializableOrPlaceHolderString() throws IOException{
+    	//String should be serializable
+    	Object placeHolderEmptyString = db.serializableOrPlaceHolder("");
+    	assertNotEquals("String must be serializable", Fun.PLACEHOLDER, placeHolderEmptyString);
+    }
+
+    @Test public void testSerializableOrPlaceHolderWeakHashMap() throws IOException{
+    	WeakHashMap<String, String> weakHashMap = new WeakHashMap<String, String>();
+    	weakHashMap.put("1", "one");
+    	//A weak hash map is not serializable, so test it
+    	Object placeHolderWeakHashMap = db.serializableOrPlaceHolder(weakHashMap);
+    	assertEquals("Weak HashMap must not be serializable", Fun.PLACEHOLDER, placeHolderWeakHashMap);
+    }
+
+    @Test public void testSerializableOrPlaceHolderTreeMap() throws IOException{
+    	TreeMap<String, String> treeMap = new TreeMap<String, String>();
+    	treeMap.put("Name", "Tree");
+    	//A tree map is serializable, so test it
+    	Object placeHolderTreeMap = db.serializableOrPlaceHolder(treeMap);
+    	assertNotEquals("Tree map must be serializable", Fun.PLACEHOLDER, placeHolderTreeMap);
+    }
+
+    @Test public void testSerializableOrPlaceHolderInteger() throws IOException{
+    	//Integer is serializable, so test it
+    	Object placeHolderInteger = db.serializableOrPlaceHolder(2);
+    	assertNotEquals("Integer must be serializable", Fun.PLACEHOLDER, placeHolderInteger);
+    }
+
 }

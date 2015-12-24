@@ -1,8 +1,10 @@
 package org.mapdb;
 
 import org.junit.Test;
+import org.mapdb.DataIO.DataOutputByteArray;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 import static org.junit.Assert.assertEquals;
@@ -152,5 +154,26 @@ public class StoreArchiveTest {
         assertTrue(m.entrySet().containsAll(source.entrySet()));
         db.close();
         f.delete();
+    }
+    
+    @Test public void testUpdate2() throws IOException{
+    	File file = TT.tempDbFile();
+    	StoreArchive store = new StoreArchive(
+    			file.getPath(),
+    			Volume.RandomAccessFileVol.FACTORY,
+    			false);
+    	store.init();
+    	for (int counter=0; counter<1000; counter++) { // test with random arrays for 1000 times
+    		byte[] expected = TT.randomByteArray(1000);
+    		long recordId = store.put(expected,Serializer.BYTE_ARRAY_NOSIZE);
+    		DataOutputByteArray output = new DataOutputByteArray();
+    		output.write(expected);
+    		store.update2(recordId, output);
+    		byte actual[] = store.get(recordId,Serializer.BYTE_ARRAY_NOSIZE);
+    		assertTrue("Updated and original arrays must be same. Expected " + Arrays.toString(expected) + 
+    				", but was " + Arrays.toString(actual), Arrays.equals(expected, actual));
+    	}
+    	store.close();
+    	file.delete();
     }
 }
