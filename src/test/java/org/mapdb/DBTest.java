@@ -3,6 +3,7 @@ package org.mapdb;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mapdb.Atomic.Boolean;
 
 import java.io.*;
 import java.lang.reflect.Field;
@@ -655,5 +656,48 @@ public class DBTest {
         db.close();
         db = DBMaker.fileDB(f).transactionDisable().make();
         s = db.hashSetCreate("set").serializer(new Issue546_SerializableSerializer()).makeOrGet();
+    }
+    
+    @Test(expected = IllegalArgumentException.class)
+    public void test_BTreeMapMaker_setNodeSize_throws_exception_when_parameter_exceeds_maximum() {
+        int sizeLargerThanSerializerSizeMask = BTreeMap.NodeSerializer.SIZE_MASK + 1;
+        new DB.BTreeMapMaker("test").nodeSize(sizeLargerThanSerializerSizeMask);
+    }
+
+    @Test(expected = IllegalAccessError.class)
+    public void test_BTreeMapMaker_make_throws_exception_when_no_db_attached(){
+        new DB.BTreeMapMaker("test", null).make();
+    }
+
+    @Test(expected = IllegalAccessError.class)
+    public void test_BTreeMapMaker_makeOrGet_throws_exception_when_no_db_attached(){
+        new DB.BTreeMapMaker("test", null).makeOrGet();
+    }
+
+    @Test public void test_delete() {
+        db.atomicBooleanCreate("test", true);
+        db.delete("test");
+        db.checkNameNotExists("test");
+    }
+
+    @Test public void test_create_delete_createSameName(){
+        db.atomicBooleanCreate("test", true);
+        db.delete("test");
+        db.atomicBooleanCreate("test", true);
+    }
+
+    @Test public void test_exists_returns_false_for_non_existent(){
+        assertFalse("DB should return false from exists method for non-existent object name", db.exists("non_existent"));
+    }
+
+    @Test public void test_exists_returns_true_for_existing(){
+        db.atomicBoolean("test");
+        assertTrue("DB should return true from exists method if the named object exists",db.exists("test"));
+    }
+
+    @Test public void test_getNameForObject() {
+        String objectName = "test";
+        Boolean object = db.atomicBoolean(objectName);
+        assertEquals("getNameForObject should return the name used to create the object", objectName, db.getNameForObject(object));
     }
 }

@@ -1,15 +1,28 @@
 package org.mapdb;
 
+import org.junit.Before;
 import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataOutput;
+import java.io.EOFException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.util.Random;
 
 import static org.junit.Assert.*;
 import static org.mapdb.DataIO.*;
 
 public class DataIOTest {
+	
+	private Random random;
+
+	@Before
+	public void setUp(){
+		this.random = new Random();
+	}
 
     @Test public void parity1() {
         assertEquals(Long.parseLong("1", 2), parity1Set(0));
@@ -198,5 +211,87 @@ public class DataIOTest {
         }
 
     }
+    
+    @Test public void testInternalByteArrayFromDataInputByteArray() throws IOException {
+        DataInputByteArray dataInputByteArray = new DataInputByteArray(new byte[0]);
+        assertNotNull("Internal byte array should not be null since it was passed in the constructor",
+        		dataInputByteArray.internalByteArray());
+   }
+    
+    @Test public void testPackLong_WithStreams() throws IOException{
+		for (long valueToPack = 0; valueToPack < Long.MAX_VALUE
+				&& valueToPack >= 0; valueToPack = random.nextInt(2) + valueToPack * 2) {
+			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+			DataIO.packLong(outputStream, valueToPack);
+			DataIO.packLong(outputStream, -valueToPack);
+			ByteArrayInputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
+			long unpackedLong = DataIO.unpackLong(inputStream);
+			assertEquals("Packed and unpacked values do not match", valueToPack, unpackedLong);
+			unpackedLong = DataIO.unpackLong(inputStream);
+			assertEquals("Packed and unpacked values do not match", -valueToPack, unpackedLong);
+		}
+    }
+
+	@Test(expected = EOFException.class)
+	public void testUnpackLong_withInputStream_throws_exception_when_stream_is_empty() throws IOException {
+		DataIO.unpackLong(new ByteArrayInputStream(new byte[0]));
+		fail("An EOFException should have occurred by now since there are no bytes to read from the InputStream");
+	}
+	
+	@Test public void testPackLongSize() {
+		assertEquals("packLongSize should have returned 1 since number 1 can be represented using 1 byte when packed",
+				1, DataIO.packLongSize(1));
+		assertEquals("packLongSize should have returned 2 since 1 << 7 can be represented using 2 bytes when packed", 2,
+				DataIO.packLongSize(1 << 7));
+		assertEquals("packLongSize should have returned 10 since 1 << 63 can be represented using 10 bytes when packed", 10,
+				DataIO.packLongSize(1 << 63));
+	}
+
+	@Test public void testPutLong() throws IOException {
+		for (long valueToPut = 0; valueToPut < Long.MAX_VALUE
+				&& valueToPut >= 0; valueToPut = random.nextInt(2) + valueToPut * 2) {
+			byte[] buffer = new byte[20];
+			DataIO.putLong(buffer, 2, valueToPut);
+			long returned = DataIO.getLong(buffer, 2);
+			assertEquals("The value that was put and the value returned from getLong do not match", valueToPut, returned);
+			DataIO.putLong(buffer, 2, -valueToPut);
+			returned = DataIO.getLong(buffer, 2);
+			assertEquals("The value that was put and the value returned from getLong do not match", -valueToPut, returned);
+		}
+	}
+	
+	@Test public void testFillLowBits(){
+		for (int bitCount = 0; bitCount < 64; bitCount++) {
+			assertEquals(
+					"fillLowBits should return a long value with 'bitCount' least significant bits set to one",
+					(1L << bitCount) - 1, DataIO.fillLowBits(bitCount));
+		}
+	}
+
+	@Test(expected = EOFException.class)
+	public void testReadFully_throws_exception_if_not_enough_data() throws IOException {
+		InputStream inputStream = new ByteArrayInputStream(new byte[0]);
+		DataIO.readFully(inputStream, new byte[1]);
+		fail("An EOFException should have occurred by now since there are not enough bytes to read from the InputStream");
+	}
+
+	@Test public void testReadFully_with_too_much_data() throws IOException {
+		byte[] inputBuffer = new byte[] { 1, 2, 3, 4 };
+		InputStream in = new ByteArrayInputStream(inputBuffer);
+		byte[] outputBuffer = new byte[3];
+		DataIO.readFully(in, outputBuffer);
+		byte[] expected = new byte[] { 1, 2, 3 };
+		assertArrayEquals("The passed buffer should be filled with the first three bytes read from the InputStream",
+				expected, outputBuffer);
+	}
+	
+	@Test public void testReadFully_with_data_length_same_as_buffer_length() throws IOException {
+		byte[] inputBuffer = new byte[] { 1, 2, 3, 4 };
+		InputStream in = new ByteArrayInputStream(inputBuffer);
+		byte[] outputBuffer = new byte[4];
+		DataIO.readFully(in, outputBuffer);
+		assertArrayEquals("The passed buffer should be filled with the whole content of the InputStream"
+				+ " since the buffer length is exactly same as the data length", inputBuffer, outputBuffer);
+	}
 
 }

@@ -195,7 +195,9 @@ public class SerializerTest {
 
     static final class StringSSerializer extends Serializer<StringS> implements Serializable {
 
-        @Override
+		private static final long serialVersionUID = 4930213105522089451L;
+
+		@Override
         public void serialize(DataOutput out, StringS value) throws IOException {
             out.writeUTF(value.s);
         }
@@ -242,5 +244,296 @@ public class SerializerTest {
         db.close();
 
     }
+
+	@Test
+	public void testLongUnpack() {
+		final Serializer<java.lang.Long> serializer = Serializer.LONG;
+		final int TEST_DATA_SIZE = 5;
+		final long[] testData = new long[TEST_DATA_SIZE];
+
+		for (int testDataIndex = 0; testDataIndex < TEST_DATA_SIZE; testDataIndex++) {
+			testData[testDataIndex] = (long) (testDataIndex + 1);
+		}
+
+		for (int testDataIndex = 0; testDataIndex < TEST_DATA_SIZE; testDataIndex++) {
+			assertEquals("The returned data for the indexed key for Serializer did not match the data for the key.", 
+					(long)serializer.valueArrayGet(testData, testDataIndex), testData[testDataIndex]);
+		}
+	}
+
+
+	@Test public void testCharSerializer() {
+		for (char character = 0; character < Character.MAX_VALUE; character++) {
+			assertEquals("Serialized and de-serialized characters do not match the original", (int) character,
+					(int) TT.clone(character, Serializer.CHAR));
+		}
+	}
+
+	@Test public void testStringXXHASHSerializer() {
+		String randomString = UUID.randomUUID().toString();
+		for (int executionCount = 0; executionCount < 100; randomString = UUID.randomUUID()
+				.toString(), executionCount++) {
+			assertEquals("Serialized and de-serialized Strings do not match the original", randomString,
+					TT.clone(randomString, Serializer.STRING_XXHASH));
+		}
+	}
+	
+
+	@Test public void testStringInternSerializer() {
+		String randomString = UUID.randomUUID().toString();
+		for (int executionCount = 0; executionCount < 100; randomString = UUID.randomUUID()
+				.toString(), executionCount++) {
+			assertEquals("Serialized and de-serialized Strings do not match the original", randomString,
+					TT.clone(randomString, Serializer.STRING_INTERN));
+		}
+	}
+	
+	@Test public void testBooleanSerializer() {
+		assertTrue("When boolean value 'true' is serialized and de-serialized, it should still be true",
+				TT.clone(true, Serializer.BOOLEAN));
+		assertFalse("When boolean value 'false' is serialized and de-serialized, it should still be false",
+				TT.clone(false, Serializer.BOOLEAN));
+	}
+	
+	@Test public void testRecIDSerializer() {
+		for (Long positiveLongValue = 0L; positiveLongValue > 0; positiveLongValue += 1 + positiveLongValue / 10000) {
+			assertEquals("Serialized and de-serialized record ids do not match the original", positiveLongValue,
+					TT.clone(positiveLongValue, Serializer.RECID));
+		}
+	}
+    
+	@Test public void testLongArraySerializer(){
+		(new ArraySerializerTester<long[]>() {
+
+			@Override
+			void populateValue(long[] array, int index) {
+				array[index] = random.nextLong();
+			}
+
+			@Override
+			long[] instantiateArray(int size) {
+				return new long[size];
+			}
+
+			@Override
+			void verify(long[] array) {
+				assertArrayEquals("Serialized and de-serialized long arrays do not match the original", array,
+						TT.clone(array, Serializer.LONG_ARRAY));				
+			}
+		
+		}).test();
+	}
+	
+	@Test public void testCharArraySerializer(){
+		(new ArraySerializerTester<char[]>() {
+
+			@Override
+			void populateValue(char[] array, int index) {
+				array[index] = (char) (random.nextInt(26) + 'a');
+			}
+
+			@Override
+			char[] instantiateArray(int size) {
+				return new char[size];
+			}
+
+			@Override
+			void verify(char[] array) {
+				assertArrayEquals("Serialized and de-serialized char arrays do not match the original", array,
+						TT.clone(array, Serializer.CHAR_ARRAY));
+			}
+		}).test();
+	}
+	
+	@Test public void testIntArraySerializer(){
+		(new ArraySerializerTester<int[]>() {
+
+			@Override
+			void populateValue(int[] array, int index) {
+				array[index] = random.nextInt();
+			}
+
+			@Override
+			int[] instantiateArray(int size) {
+				return new int[size];
+			}
+
+			@Override
+			void verify(int[] array) {
+				assertArrayEquals("Serialized and de-serialized int arrays do not match the original", array,
+						TT.clone(array, Serializer.INT_ARRAY));
+			}
+		}).test();
+	}
+	
+	@Test public void testDoubleArraySerializer() {
+		(new ArraySerializerTester<double[]>() {
+
+			@Override
+			void populateValue(double[] array, int index) {
+				array[index] = random.nextDouble();
+			}
+
+			@Override
+			double[] instantiateArray(int size) {
+				return new double[size];
+			}
+
+			void verify(double[] array) {
+				assertArrayEquals("Serialized and de-serialized double arrays do not match the original", array,
+						TT.clone(array, Serializer.DOUBLE_ARRAY), 0);
+			}
+		}).test();
+	}
+	
+	@Test public void testBooleanArraySerializer(){
+		(new ArraySerializerTester<boolean[]>() {
+
+			@Override
+			void populateValue(boolean[] array, int index) {
+				array[index] = random.nextBoolean();
+			}
+
+			@Override
+			boolean[] instantiateArray(int size) {
+				return new boolean[size];
+			}
+
+			@Override
+			void verify(boolean[] array) {
+				assertArrayEquals("Serialized and de-serialized boolean arrays do not match the original", array,
+						TT.clone(array, Serializer.BOOLEAN_ARRAY));
+			}
+		}).test();
+	}
+
+	@Test public void testShortArraySerializer() {
+		(new ArraySerializerTester<short[]>() {
+
+			@Override
+			void populateValue(short[] array, int index) {
+				array[index] = (short) random.nextInt();
+			}
+
+			@Override
+			short[] instantiateArray(int size) {
+				return new short[size];
+			}
+
+			@Override
+			void verify(short[] array) {
+				assertArrayEquals("Serialized and de-serialized short arrays do not match the original", array,
+						TT.clone(array, Serializer.SHORT_ARRAY));
+			}
+		}).test();
+	}
+	
+	@Test public void testFloatArraySerializer() {
+		(new ArraySerializerTester<float[]>() {
+
+			@Override
+			void populateValue(float[] array, int index) {
+				array[index] = random.nextFloat();
+			}
+
+			@Override
+			float[] instantiateArray(int size) {
+				return new float[size];
+			}
+
+			@Override
+			void verify(float[] array) {
+				assertArrayEquals("Serialized and de-serialized float arrays do not match the original", array,
+						TT.clone(array, Serializer.FLOAT_ARRAY), 0);
+			}
+
+		}).test();
+	}
+
+	private abstract class ArraySerializerTester<A> {
+		Random random = new Random();
+		abstract void populateValue(A array, int index);
+
+		abstract A instantiateArray(int size);
+
+		abstract void verify(A array);
+		
+		void test() {
+			verify(getArray());
+		}
+
+		private A getArray() {
+			int size = random.nextInt(100);
+			A array = instantiateArray(size);
+			for (int i = 0; i < size; i++) {
+				populateValue(array, i);
+			}
+			return array;
+		}
+	}
+
+    @Test public void testValueArrayDeleteValue_WhenArraySizeIsOne(){
+		Object[] array = new Object[1];
+		array[0] = new Object();
+		Object[] result = (Object[]) new TestSerializer().valueArrayDeleteValue(array, 1);
+		assertEquals("When the only element is deleted from array, it's length should be zero", 0, result.length);
+	}
+    
+	@Test public void testValueArrayDeleteValue_WhenArraySizeIsTwo() {
+		int arraySize = 2;
+		Object[] array = new Object[arraySize];
+		array[0] = new Object();
+		array[1] = new Object();
+		Object[] result = (Object[]) new TestSerializer().valueArrayDeleteValue(array, 1);
+		assertEquals("When an element is deleted, the array size should be one less the original size", arraySize - 1,
+				result.length);
+		assertEquals("When first element is deleted from array, the second should become the first", array[1],
+				result[0]);
+
+		result = (Object[]) new TestSerializer().valueArrayDeleteValue(array, arraySize);
+		assertEquals("When an element is deleted, the array size should be one less the original size", arraySize - 1,
+				result.length);
+		assertEquals("When last element is deleted from array, the one before last should become the first",
+				array[arraySize - 2], result[result.length - 1]);
+	}
+	
+	@Test public void testValueArrayDeleteValue_DeleteElementFromMiddleOfArray() {
+		int arraySize = 10;
+		Object[] array = new Object[arraySize];
+		for (int i = 0; i < array.length; i++) {
+			array[i] = new Object();
+		}
+		
+		Object[] result = (Object[]) new TestSerializer().valueArrayDeleteValue(array, 5);
+		assertEquals("Deleting element should not have an effect on the previous element", array[3], result[3]);
+		assertEquals("When element is deleted, next element should take its place", array[5], result[4]);
+		
+		result = (Object[]) new TestSerializer().valueArrayDeleteValue(array, 1);
+		assertEquals("When an element is deleted, the array size should be one less the original size", arraySize - 1,
+				result.length);
+		assertEquals("When first element is deleted from array, the second should become the first", array[1],
+				result[0]);
+
+		result = (Object[]) new TestSerializer().valueArrayDeleteValue(array, arraySize);
+		assertEquals("When an element is deleted, the array size should be one less the original size", arraySize - 1,
+				result.length);
+		assertEquals("When last element is deleted from array, the one before last should become the first",
+				array[arraySize - 2], result[result.length - 1]);
+	}
+
+	@Test public void testValueArrayUpdateValue() {
+		int arraySize = 10;
+		Object[] array = new Object[arraySize];
+		for (int index = 0; index < array.length; index++) {
+			array[index] = new Integer(index);
+		}
+		TestSerializer testSerializer = new TestSerializer();
+		Object[] expectedArray = new Object[arraySize];
+		for (int index = 0; index < expectedArray.length; index++) {
+			expectedArray[index] = new Integer(index + 1);
+			array = (Object[]) testSerializer.valueArrayUpdateVal(array, index, expectedArray[index]);
+		}
+		assertArrayEquals("Array should contain updated values after values are updated", expectedArray, array);
+	}
 
 }
