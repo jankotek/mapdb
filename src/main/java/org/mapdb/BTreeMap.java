@@ -1634,7 +1634,7 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
 
 
-    static final class KeySet<E> extends AbstractSet<E> implements NavigableSet<E> {
+    public static final class KeySet<E> extends AbstractSet<E> implements NavigableSet<E> {
 
         protected final ConcurrentNavigableMap<E,Object> m;
         private final boolean hasValues;
@@ -1643,7 +1643,15 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
             this.hasValues = hasValues;
         }
         @Override
-		public int size() { return m.size(); }
+        public int size() { return m.size(); }
+
+        public long sizeLong(){
+            if (m instanceof BTreeMap)
+                return ((BTreeMap<Object,E>)m).sizeLong();
+            else
+                return ((SubMap<Object,E>)m).sizeLong();
+        }
+
         @Override
 		public boolean isEmpty() { return m.isEmpty(); }
         @Override
@@ -1909,8 +1917,16 @@ public class BTreeMap<K,V> extends AbstractMap<K,V>
 
         @Override
         public int size() {
+            return (int) Math.min(sizeLong(), Integer.MAX_VALUE);
+        }
+
+        public long sizeLong() {
+            //TODO use counted btrees once they become available
+            if(hi==null && lo==null)
+                return m.sizeLong();
+
             Iterator<K> i = keyIterator();
-            int counter = 0;
+            long counter = 0;
             while(i.hasNext()){
                 counter++;
                 i.next();

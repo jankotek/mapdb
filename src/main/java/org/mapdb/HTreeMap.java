@@ -796,11 +796,15 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
 
 
-    protected class KeySet extends AbstractSet<K> {
+    public class KeySet extends AbstractSet<K> {
 
         @Override
         public int size() {
             return HTreeMap.this.size();
+        }
+
+        public long sizeLong() {
+            return HTreeMap.this.sizeLong();
         }
 
         @Override

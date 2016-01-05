@@ -691,6 +691,11 @@ public class HTreeMap2Test {
         assertEquals(Integer.valueOf(Integer.MIN_VALUE), v1);
     }
 
+    @Test public void setLong(){
+        HTreeMap.KeySet k = (HTreeMap.KeySet) DBMaker.newHeapDB().transactionDisable().make().createHashSet("test").make();
+        k.add(11);
+        assertEquals(1,k.sizeLong());
+    }
 
 }
 
