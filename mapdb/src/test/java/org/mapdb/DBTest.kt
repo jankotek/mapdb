@@ -122,7 +122,7 @@ class DBTest{
                 .map { (it as IndexTreeLongLongMap).rootRecid.toString()}
                 .fold("",{str, it-> str+",$it"})
 
-        assertEquals(16, TT.identityCount(hmap.indexTrees))
+        assertEquals(8, TT.identityCount(hmap.indexTrees))
         assertEquals(1, hmap.stores.toSet().size)
         assertEquals(rootRecids, ","+p["aa"+DB.Keys.rootRecids])
         assertEquals("HashMap", p["aa"+DB.Keys.type])
@@ -130,9 +130,9 @@ class DBTest{
         assertEquals("org.mapdb.Serializer#JAVA", p["aa"+DB.Keys.valueSerializer])
         assertEquals("false", p["aa"+DB.Keys.keyInline])
         assertEquals("false", p["aa"+DB.Keys.valueInline])
-        assertEquals("4", p["aa"+DB.Keys.concShift])
+        assertEquals("3", p["aa"+DB.Keys.concShift])
         assertEquals("4", p["aa"+DB.Keys.levels])
-        assertEquals("7", p["aa"+DB.Keys.dirShift])
+        assertEquals("4", p["aa"+DB.Keys.dirShift])
         assertTrue(p["aa"+DB.Keys.hashSeed]!!.toInt() != 0)
         assertEquals("0", p["aa"+DB.Keys.expireCreateTTL])
         assertEquals("0", p["aa"+DB.Keys.expireUpdateTTL])
@@ -158,8 +158,8 @@ class DBTest{
         val p = db.nameCatalogParamsFor("aa")
 
         assertEquals(14, p.size)
-        assertEquals(16, hmap.indexTrees.size)
-        assertEquals(16, TT.identityCount(hmap.indexTrees))
+        assertEquals(8, hmap.indexTrees.size)
+        assertEquals(8, TT.identityCount(hmap.indexTrees))
         assertEquals(1, hmap.stores.toSet().size)
 
         val rootRecids = hmap.indexTrees
@@ -169,9 +169,9 @@ class DBTest{
         assertEquals("HashMap", p["aa"+DB.Keys.type])
         assertEquals("org.mapdb.Serializer#JAVA", p["aa"+DB.Keys.keySerializer])
         assertEquals("org.mapdb.Serializer#JAVA", p["aa"+DB.Keys.valueSerializer])
-        assertEquals("4", p["aa"+DB.Keys.concShift])
+        assertEquals("3", p["aa"+DB.Keys.concShift])
         assertEquals("4", p["aa"+DB.Keys.levels])
-        assertEquals("7", p["aa"+DB.Keys.dirShift])
+        assertEquals("4", p["aa"+DB.Keys.dirShift])
         assertTrue(p["aa"+DB.Keys.hashSeed]!!.toInt() != 0)
         assertEquals("10", p["aa"+DB.Keys.expireCreateTTL])
         assertEquals("20", p["aa"+DB.Keys.expireUpdateTTL])
@@ -195,7 +195,7 @@ class DBTest{
                 expireRecids.add(it.headPrevRecid)
             }
         }
-        assertEquals(16*3*3, expireRecids.size())
+        assertEquals(8*3*3, expireRecids.size())
 
     }
 
