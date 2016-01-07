@@ -11,6 +11,8 @@ org.jsr107.tck.management.CacheMBStatisticsBeanTest#testPutIfAbsent
 
 
 #
+# MapDB does not support Counting Expiration Policy, so following tests can not be satisfied
+#
 # MapDB-JCache copies expiration settings.
 # Also TTL in HTreeMap is immutable and can not be changed.
 # So following test which count number of access to ExpiryPolicy are broken
@@ -33,7 +35,8 @@ org.jsr107.tck.expiry.CacheExpiryTest#invokeAllSetValueShouldCallGetExpiry
 org.jsr107.tck.expiry.CacheExpiryTest#iteratorNextShouldCallGetExpiryForAccessedEntry
 org.jsr107.tck.expiry.CacheExpiryTest#getShouldCallGetExpiryForAccessedEntry
 org.jsr107.tck.expiry.CacheExpiryTest#getAndPutShouldCallEitherCreatedOrModifiedExpiryPolicy
-
+org.jsr107.tck.expiry.CacheExpiryTest#invokeAllReadThroughEnabledGetOnNonExistentEntry
+org.jsr107.tck.expiry.CacheExpiryTest#loadAllWithReadThroughEnabledShouldCallGetExpiryForCreatedEntry
 
 #
 # MapDB-JCache does not allow zero expiration time (instant removal).
@@ -51,8 +54,3 @@ org.jsr107.tck.integration.CacheLoaderWithExpiryTest#shouldLoadWhenMissCausedByE
 
 org.jsr107.tck.management.CacheMBStatisticsBeanTest#testExpiryOnCreation
 
-#
-# MapDB does not support Counting Expiration Policy, so following tests can not be satisfied
-#
-org.jsr107.tck.expiry.CacheExpiryTest#invokeAllReadThroughEnabledGetOnNonExistentEntry
-org.jsr107.tck.expiry.CacheExpiryTest#loadAllWithReadThroughEnabledShouldCallGetExpiryForCreatedEntry
