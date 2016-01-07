@@ -1,0 +1,90 @@
+{#
+    sphinxdoc/layout.html
+    ~~~~~~~~~~~~~~~~~~~~~
+
+    Sphinx layout template for the sphinxdoc theme.
+
+    :copyright: Copyright 2007-2013 by the Sphinx team, see AUTHORS.
+    :license: BSD, see LICENSE for details.
+#}
+{%- extends "basic/layout.html" %}
+
+{# put the sidebar before the body #}
+{% block sidebar1 %}{{ sidebar() }}{% endblock %}
+{% block sidebar2 %}{% endblock %}
+
+{% block extrahead %}
+{{ super() }}
+{%- if not embedded %}
+    <style type="text/css">
+      table.right { float: right; margin-left: 20px; }
+      table.right td { border: 1px solid #ccc; }
+      {% if pagename == 'index' %}
+      .related { display: none; }
+      {% endif %}
+    </style>
+    <script type="text/javascript">
+      // intelligent scrolling of the sidebar content
+      $(window).scroll(function() {
+        var sb = $('.sphinxsidebarwrapper');
+        var win = $(window);
+        var sbh = sb.height();
+        var offset = $('.sphinxsidebar').position()['top'];
+        var wintop = win.scrollTop();
+        var winbot = wintop + win.innerHeight();
+        var curtop = sb.position()['top'];
+        var curbot = curtop + sbh;
+        // does sidebar fit in window?
+        if (sbh < win.innerHeight()) {
+          // yes: easy case -- always keep at the top
+          sb.css('top', $u.min([$u.max([0, wintop - offset - 10]),
+                                $(document).height() - sbh - 200]));
+        } else {
+          // no: only scroll if top/bottom edge of sidebar is at
+          // top/bottom edge of window
+          if (curtop > wintop && curbot > winbot) {
+            sb.css('top', $u.max([wintop - offset - 10, 0]));
+          } else if (curtop < wintop && curbot < winbot) {
+            sb.css('top', $u.min([winbot - sbh - offset - 20,
+                                  $(document).height() - sbh - 200]));
+          }
+        }
+      });
+    </script>
+
+<!-- google analytics-->
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-42074659-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+
+{%- endif %}
+{% endblock %}
+
+{% block rootrellink %}
+        <li><a href="{{ pathto('index') }}">Home</a>&nbsp;|</li>
+        <li><a href="{{ pathto('contents') }}">Documentation</a> &raquo;</li>
+{% endblock %}
+
+{% block header %}
+<div class="pageheader">
+  <ul>
+    <li><a href="{{ pathto('index') }}">Home</a></li>
+    <li><a href="{{ pathto('doc/getting-started') }}">Intro</a></li>
+    <li><a href="{{ pathto('doc/index') }}">Docs</a></li>
+    <li><a href="/blog.html">Blog</a></li>
+    <li><a href="https://github.com/jankotek/mapdb">Github</a></li>
+  </ul>
+  <div>
+    <a href="{{ pathto('index') }}">
+      <img src="{{ pathto('_static/logo.png', 1) }}" alt="MapDB" />
+    </a>
+  </div>
+</div>
+{% endblock %}

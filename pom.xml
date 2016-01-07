@@ -1,181 +1,50 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project
+        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+        xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.mapdb</groupId>
-    <artifactId>mapdb</artifactId>
-    <version>2.0.0-SNAPSHOT</version>
-    <name>mapdb</name>
-    <description>MapDB provides concurrent Maps, Sets and Queues backed by disk storage or off-heap memory. It is a fast, scalable and easy to use embedded Java database.</description>
-    <url>http://www.mapdb.org</url>
+    <artifactId>mapdb-root</artifactId>
+    <version>3.0.0-SNAPSHOT</version>
 
-    <packaging>bundle</packaging>
+    <packaging>pom</packaging>
 
-    <licenses>
-        <license>
-            <name>The Apache Software License, Version 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-            <distribution>repo</distribution>
-        </license>
-    </licenses>
-
-    <developers>
-        <developer>
-            <name>Jan Kotek</name>
-            <id>jan</id>
-        </developer>
-    </developers>
-
-    <scm>
-        <connection>scm:git:git@github.com:jankotek/mapdb.git</connection>
-        <developerConnection>scm:git:git@github.com:jankotek/mapdb.git</developerConnection>
-        <url>git@github.com:jankotek/mapdb.git</url>
-    </scm>
 
     <properties>
+        <kotlin.version>1.0.0-beta-4584</kotlin.version>
+        <dokka.version>0.9.3</dokka.version>
+
+        <java.target.version>1.8</java.target.version>
+        <java.source.version>1.8</java.source.version>
+
+
+        <junit.version>4.12</junit.version>
+	    <gsc.version>7.0.0</gsc.version>
+        <jcache.api.version>1.0.0</jcache.api.version>
+        <jcache.tck.version>1.0.1</jcache.tck.version>
+
+        <threadCount>3</threadCount>
+        <argline></argline>
+
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <threadCount>1</threadCount>
-        <argLine />
     </properties>
-
-    <dependencies>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.12</version>
-            <type>jar</type>
-            <scope>test</scope>
-            <optional>false</optional>
-        </dependency>
-    </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.felix</groupId>
-                <artifactId>maven-bundle-plugin</artifactId>
-                <version>2.3.7</version>
-                <extensions>true</extensions>
-                <configuration>
-                    <instructions>
-                        <Bundle-SymbolicName>${project.groupId}.${project.artifactId}</Bundle-SymbolicName>
-                        <Bundle-Name>${project.name}</Bundle-Name>
-                        <Bundle-Version>${project.version}</Bundle-Version>
-                        <Import-Package>*</Import-Package>
-                    </instructions>
-                </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.0</version>
-                <configuration>
-                    <target>1.6</target>
-                    <source>1.6</source>
-                    <encoding>${project.build.sourceEncoding}</encoding>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-resources-plugin</artifactId>
-                <version>2.5</version>
-                <configuration>
-                    <encoding>${project.build.sourceEncoding}</encoding>
-                </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>2.1.2</version>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>jar</goal>
-                            <goal>test-jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.18.1</version>
-                <configuration>
-                    <parallel>all</parallel>
-                    <threadCount>${threadCount}</threadCount>
-                    <perCoreThreadCount>false</perCoreThreadCount>
-                    <argLine>${argLine}</argLine>
-
-                    <includes>
-                        <include>**/*</include>
-                    </includes>
-                    <excludes>
-                        <!-- must be here, otherwise inner classes are ignored-->
-                        <exclude>AAAAAAAAAA</exclude>
-                    </excludes>
-
-                </configuration>
-            </plugin>
-
-
-            <plugin>
-                <artifactId>maven-clean-plugin</artifactId>
-                <version>2.6.1</version>
-                <configuration>
-                    <filesets>
-                        <fileset>
-                            <directory>/tmp/</directory>
-                            <includes>
-                                <include>mapdbTest*</include>
-                                <include>mapdbTest*/*</include>
-                            </includes>
-                            <followSymlinks>false</followSymlinks>
-                        </fileset>
-                    </filesets>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
-
-
-    <reporting>
-        <plugins>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-project-info-reports-plugin</artifactId>
-                <version>2.7</version>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.9</version>
-                <reportSets>
-                    <reportSet>
-                        <id>html</id>
-                        <reports>
-                            <report>javadoc</report>
-                        </reports>
-                    </reportSet>
-                </reportSets>
-            </plugin>
-
-        </plugins>
-
-    </reporting>
-
-
 
     <parent>
         <groupId>org.sonatype.oss</groupId>
         <artifactId>oss-parent</artifactId>
         <version>7</version>
     </parent>
+
+
+    <modules>
+        <module>mapdb</module>
+        <module>mapdb-benchmark</module>
+        <module>mapdb-jcache</module>
+        <module>mapdb-jcache-tck-test</module>
+        <module>mapdb-site</module>
+    </modules>
+
 
 </project>

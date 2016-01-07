@@ -1,0 +1,58 @@
+#List tests to be excluded.
+#Lines beginning with a '#' are comments
+#Enter One method per line with syntax FULL_CLASS_NAME#METHOD_NAME as in the example below
+
+# This is a dummy test that fails if not in the exclude list.
+org.jsr107.tck.CachingTest#dummyTest
+
+
+# see https://github.com/jsr107/jsr107tck/issues/63
+org.jsr107.tck.management.CacheMBStatisticsBeanTest#testPutIfAbsent
+
+
+#
+# MapDB-JCache copies expiration settings.
+# Also TTL in HTreeMap is immutable and can not be changed.
+# So following test which count number of access to ExpiryPolicy are broken
+#
+org.jsr107.tck.expiry.CacheExpiryTest#getAndReplaceShouldCallGetExpiryForModifiedEntry
+org.jsr107.tck.expiry.CacheExpiryTest#containsKeyShouldNotCallExpiryPolicyMethods
+org.jsr107.tck.expiry.CacheExpiryTest#removeEntryShouldNotCallExpiryPolicyMethods
+org.jsr107.tck.expiry.CacheExpiryTest#putIfAbsentShouldCallGetExpiry
+org.jsr107.tck.expiry.CacheExpiryTest#invokeSetValueShouldCallGetExpiry
+org.jsr107.tck.expiry.CacheExpiryTest#replaceSpecificShouldCallGetExpiry
+org.jsr107.tck.expiry.CacheExpiryTest#getAllShouldCallGetExpiryForAccessedEntry
+org.jsr107.tck.expiry.CacheExpiryTest#invokeGetValueShouldCallGetExpiry
+org.jsr107.tck.expiry.CacheExpiryTest#invokeGetValueWithReadThroughForNonExistentEntryShouldCallGetExpiryForCreatedEntry
+org.jsr107.tck.expiry.CacheExpiryTest#putShouldCallGetExpiry
+org.jsr107.tck.expiry.CacheExpiryTest#getAndRemoveShouldNotCallExpiryPolicyMethods
+org.jsr107.tck.expiry.CacheExpiryTest#removeSpecifiedEntryShouldNotCallExpiryPolicyMethods
+org.jsr107.tck.expiry.CacheExpiryTest#replaceShouldCallGetExpiryForModifiedEntry
+org.jsr107.tck.expiry.CacheExpiryTest#putAllShouldCallGetExpiry
+org.jsr107.tck.expiry.CacheExpiryTest#invokeAllSetValueShouldCallGetExpiry
+org.jsr107.tck.expiry.CacheExpiryTest#iteratorNextShouldCallGetExpiryForAccessedEntry
+org.jsr107.tck.expiry.CacheExpiryTest#getShouldCallGetExpiryForAccessedEntry
+org.jsr107.tck.expiry.CacheExpiryTest#getAndPutShouldCallEitherCreatedOrModifiedExpiryPolicy
+
+
+#
+# MapDB-JCache does not allow zero expiration time (instant removal).
+# So following tests can not be satisfied.
+#
+org.jsr107.tck.expiry.CacheExpiryTest#expire_whenModified
+org.jsr107.tck.expiry.CacheExpiryTest#expire_whenCreated_ModifiedExpiryPolicy
+org.jsr107.tck.expiry.CacheExpiryTest#expire_whenCreated_ParameterizedExpiryPolicy
+org.jsr107.tck.expiry.CacheExpiryTest#expire_whenCreated_TouchedExpiryPolicy
+org.jsr107.tck.expiry.CacheExpiryTest#expire_whenCreated_CreatedExpiryPolicy
+org.jsr107.tck.expiry.CacheExpiryTest#expire_whenCreated_AccessedExpiryPolicy
+org.jsr107.tck.expiry.CacheExpiryTest#expire_whenAccessed
+
+org.jsr107.tck.integration.CacheLoaderWithExpiryTest#shouldLoadWhenMissCausedByExpiry
+
+org.jsr107.tck.management.CacheMBStatisticsBeanTest#testExpiryOnCreation
+
+#
+# MapDB does not support Counting Expiration Policy, so following tests can not be satisfied
+#
+org.jsr107.tck.expiry.CacheExpiryTest#invokeAllReadThroughEnabledGetOnNonExistentEntry
+org.jsr107.tck.expiry.CacheExpiryTest#loadAllWithReadThroughEnabledShouldCallGetExpiryForCreatedEntry
