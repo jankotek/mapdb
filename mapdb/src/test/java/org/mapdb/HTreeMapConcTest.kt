@@ -22,7 +22,9 @@ class HTreeMapConcTest(val mapMaker:(generic:Boolean)-> ConcurrentMap<Any?, Any?
     }
     @Test fun basicTest(){
         val map = mapMaker(false);
-        val max = 10000+1e6.toInt()*TT.testScale()
+        var max = 10000;
+        if(map is HTreeMap && map.keySerializer == Serializer.INTEGER)
+            max += 1e6.toInt()*TT.testScale()
         val threadCount = 16
 
         TT.fork(threadCount){i->
