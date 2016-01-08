@@ -279,14 +279,19 @@ class StoreDirect(
 
         if(CC.ASSERT && size>MAX_RECORD_SIZE)
             throw AssertionError()
+        if(CC.ASSERT && size<=0)
+            throw AssertionError()
         if(CC.ASSERT && size%16!=0)
             throw AssertionError()
+
 
         val reusedDataOffset = if(recursive) 0L else
             longStackTake(longStackMasterLinkOffset(size.toLong()), recursive)
         if(reusedDataOffset!=0L){
             if(CC.ZEROS)
                 volume.assertZeroes(reusedDataOffset, reusedDataOffset+size)
+            if(CC.ASSERT && reusedDataOffset%16!=0L)
+                throw DBException.DataCorruption("wrong offset")
             return reusedDataOffset
         }
 
@@ -299,6 +304,8 @@ class StoreDirect(
             dataTail = page+size
             if(CC.ZEROS)
                 volume.assertZeroes(page, page+size)
+            if(CC.ASSERT && page%16!=0L)
+                throw DBException.DataCorruption("wrong offset")
             return page;
         }
 
@@ -314,6 +321,8 @@ class StoreDirect(
 
             if(CC.ZEROS)
                 volume.assertZeroes(dataTail2, dataTail2+size)
+            if(CC.ASSERT && dataTail2%16!=0L)
+                throw DBException.DataCorruption("wrong offset")
             return dataTail2
         }
 
@@ -672,7 +681,9 @@ class StoreDirect(
 
             val offset = indexValToOffset(indexVal);
 
-            val di = volume.getDataInput(offset, size.toInt())
+            val di =
+                    if(size==0L) DataInput2.ByteArray(ByteArray(0))
+                    else volume.getDataInput(offset, size.toInt())
             return deserialize(serializer, di, size)
         }
     }
@@ -729,11 +740,15 @@ class StoreDirect(
             }
 
             //allocate space for data
-            val offset = Utils.lock(structuralLock) {
-                allocateData(roundUp(di.pos, 16), false)
+            val offset = if(di.pos==0) 0L
+                else{
+                Utils.lock(structuralLock) {
+                    allocateData(roundUp(di.pos, 16), false)
+                }
             }
             //and write data
-            volume.putData(offset, di.buf, 0, di.pos)
+            if(offset!=0L)
+                volume.putData(offset, di.buf, 0, di.pos)
 
             setIndexVal(recid, indexValCompose(size = di.pos.toLong(), offset = offset, linked = 0, unused = 0, archive = 1))
             return recid;
@@ -784,7 +799,9 @@ class StoreDirect(
                     if(newUpSize==roundUp(oldSize,16) ){
                         //reuse existing offset
                         indexValToOffset(oldIndexVal)
-                    }else {
+                    }else if(size==0){
+                        0L
+                    }else{
                         Utils.lock(structuralLock) {
                             allocateData(roundUp(size, 16), false)
                         }
@@ -826,14 +843,15 @@ class StoreDirect(
                 Utils.lock(structuralLock) {
                     if (indexValFlagLinked(oldIndexVal)) {
                         linkedRecordDelete(oldIndexVal)
-                    } else {
+                    } else if(oldSize!=0L){
                         val oldOffset = indexValToOffset(oldIndexVal);
                         val sizeUp = roundUp(oldSize, 16)
+
                         if(CC.ZEROS)
                             volume.clear(oldOffset,oldOffset+sizeUp)
                         releaseData(sizeUp, oldOffset, false)
-                        releaseRecid(recid)
                     }
+                    releaseRecid(recid)
                 }
             }
 
