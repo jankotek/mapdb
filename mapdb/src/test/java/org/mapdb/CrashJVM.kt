@@ -257,7 +257,7 @@ class CrashJVMTest:CrashJVM(){
     }
 
     @Test fun test(){
-        val runtime = 4000L;
+        val runtime = 4000L + TT.testScale()*60*1000;
         val start = System.currentTimeMillis()
         CrashJVM.run(this, time=runtime, killDelay = 200)
         assertTrue(System.currentTimeMillis()-start >= runtime)
