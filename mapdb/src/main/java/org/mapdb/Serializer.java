@@ -65,7 +65,7 @@ public abstract class Serializer<A> {
      * Stores string size so can be used as collection serializer.
      * Does not handle null values
      * </p><p>
-     * Unlike {@link Serializer#STRING} this method hashes String with more reliable XXHash.
+     * Unlike {@link Serializer#STRING} this method hashes String with {@link String#hashCode()}
      * </p>
      */
     public static final Serializer<String> STRING_XXHASH = new StringValueSerializer (){
@@ -92,10 +92,10 @@ public abstract class Serializer<A> {
 //            return BTreeKeySerializer.STRING;
 //        }
 
+
         @Override
-        public int hashCode(String s, int seed) {
-            char[] c = s.toCharArray();
-            return CHAR_ARRAY.hashCode(c, seed);
+        public int hashCode(@NotNull String s, int seed) {
+            return DataIO.intHash(s.hashCode()+seed);
         }
     };
 
@@ -211,6 +211,13 @@ public abstract class Serializer<A> {
             System.arraycopy(vals,0,vals2, 0, pos-1);
             System.arraycopy(vals, pos, vals2, pos-1, vals2.length-(pos-1));
             return vals2;
+        }
+
+
+        @Override
+        public int hashCode(String s, int seed) {
+            char[] c = s.toCharArray();
+            return CHAR_ARRAY.hashCode(c, seed);
         }
     }
 
