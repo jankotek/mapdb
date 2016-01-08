@@ -11,7 +11,7 @@ class HTreeMapWeaverTest {
 
     val DEBUG = false;
 
-    val classes = listOf(HTreeMap::class.java,  IndexTreeLongLongMap::class.java, IndexTreeListJava::class.java)
+    fun classes() = listOf(HTreeMap::class.java,  IndexTreeLongLongMap::class.java, IndexTreeListJava::class.java)
 
     companion object{
         fun mapCreate():HTreeMap<Int?,Int?>{
@@ -60,7 +60,7 @@ class HTreeMapWeaverTest {
         val runner = AnnotatedTestRunner()
         runner.setMethodOption(MethodOption.ALL_METHODS, null)
         runner.setDebug(DEBUG)
-        runner.runTests(PutIfAbsent::class.java, classes)
+        runner.runTests(PutIfAbsent::class.java, classes())
     }
 
 
@@ -99,7 +99,7 @@ class HTreeMapWeaverTest {
         val runner = AnnotatedTestRunner()
         runner.setMethodOption(MethodOption.ALL_METHODS, null)
         runner.setDebug(DEBUG)
-        runner.runTests(PutIfAbsent::class.java, classes)
+        runner.runTests(PutIfAbsent::class.java, classes())
     }
 
     @Test fun remove() {
@@ -139,7 +139,7 @@ class HTreeMapWeaverTest {
         val runner = AnnotatedTestRunner()
         runner.setMethodOption(MethodOption.ALL_METHODS, null)
         runner.setDebug(DEBUG)
-        runner.runTests(Remove::class.java, classes)
+        runner.runTests(Remove::class.java, classes())
     }
 
 
@@ -179,7 +179,7 @@ class HTreeMapWeaverTest {
         val runner = AnnotatedTestRunner()
         runner.setMethodOption(MethodOption.ALL_METHODS, null)
         runner.setDebug(DEBUG)
-        runner.runTests(Remove2::class.java, classes)
+        runner.runTests(Remove2::class.java, classes())
     }
 
 
@@ -218,7 +218,7 @@ class HTreeMapWeaverTest {
         val runner = AnnotatedTestRunner()
         runner.setMethodOption(MethodOption.ALL_METHODS, null)
         runner.setDebug(DEBUG)
-        runner.runTests(Weaved::class.java, classes)
+        runner.runTests(Weaved::class.java, classes())
     }
 
     @Test fun replace() {
@@ -258,7 +258,7 @@ class HTreeMapWeaverTest {
         val runner = AnnotatedTestRunner()
         runner.setMethodOption(MethodOption.ALL_METHODS, null)
         runner.setDebug(DEBUG)
-        runner.runTests(Weaved::class.java, classes)
+        runner.runTests(Weaved::class.java, classes())
     }
 
 
