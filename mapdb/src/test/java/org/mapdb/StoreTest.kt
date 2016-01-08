@@ -241,6 +241,8 @@ abstract class StoreTest {
     }
 
     @Test fun randomUpdates() {
+        if(TT.shortTest())
+            return;
         val s = openStore()
         val random = Random(1);
         val endTime = TT.nowPlusMinutes(10.0)
