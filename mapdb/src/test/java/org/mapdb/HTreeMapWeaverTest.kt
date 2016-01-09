@@ -24,6 +24,9 @@ class HTreeMapWeaverTest {
     }
 
     @Test fun putIfAbsent() {
+        if(TT.shortTest())
+            return;
+
         class PutIfAbsent {
 
             var map = mapCreate()
@@ -65,6 +68,9 @@ class HTreeMapWeaverTest {
 
 
     @Test fun putIfAbsentBoolean() {
+        if(TT.shortTest())
+            return;
+
         class PutIfAbsent {
 
             var map = mapCreate()
@@ -103,6 +109,9 @@ class HTreeMapWeaverTest {
     }
 
     @Test fun remove() {
+        if(TT.shortTest())
+            return;
+
         class Remove{
 
             var map = mapCreate()
@@ -145,6 +154,9 @@ class HTreeMapWeaverTest {
 
 
     @Test fun remove2() {
+        if(TT.shortTest())
+            return;
+
         class Remove2{
 
             var map = mapCreate()
@@ -184,6 +196,9 @@ class HTreeMapWeaverTest {
 
 
     @Test fun replace2() {
+        if(TT.shortTest())
+            return;
+
         class Weaved{
 
             var map = mapCreate()
@@ -222,6 +237,9 @@ class HTreeMapWeaverTest {
     }
 
     @Test fun replace() {
+        if(TT.shortTest())
+            return;
+
         class Weaved{
 
             var map = mapCreate()
