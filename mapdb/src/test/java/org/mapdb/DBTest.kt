@@ -5,6 +5,7 @@ import org.junit.Assert.*
 import org.junit.Test
 import java.math.BigDecimal
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 class DBTest{
 
@@ -79,9 +80,9 @@ class DBTest{
                 .valueInline()
                 .layout(0, 2,4)
                 .hashSeed(1000)
-                .expireCreateTTL(11L)
-                .expireUpdateTTL(22L)
-                .expireGetTTL(33L)
+                .expireAfterCreate(11L)
+                .expireAfterUpdate(22L)
+                .expireAfterGet(33L)
                 .counterEnable()
                 .create()
 
@@ -150,9 +151,9 @@ class DBTest{
         val db = DB(store=StoreTrivial(), storeOpened = false)
 
         val hmap = db.hashMap("aa")
-                .expireCreateTTL(10)
-                .expireUpdateTTL(20)
-                .expireGetTTL(30)
+                .expireAfterCreate(10)
+                .expireAfterUpdate(20)
+                .expireAfterGet(30)
                 .create()
 
         val p = db.nameCatalogParamsFor("aa")
@@ -202,9 +203,9 @@ class DBTest{
     @Test fun hashMap_Create_Multi_Store(){
         val hmap = DBMaker
                 .memorySegmentedHashMap(8)
-                .expireCreateTTL(10)
-                .expireUpdateTTL(10)
-                .expireGetTTL(10)
+                .expireAfterCreate(10)
+                .expireAfterUpdate(10)
+                .expireAfterGet(10)
                 .create()
         assertEquals(8, hmap.concShift)
         assertEquals(256, hmap.stores.size)
@@ -223,13 +224,25 @@ class DBTest{
         }
     }
 
+    @Test fun hashMap_expireUnit(){
+        val hmap = DBMaker.heapDB().make().hashMap("aa")
+                .expireAfterCreate(1, TimeUnit.SECONDS)
+                .expireAfterUpdate(2, TimeUnit.DAYS)
+                .expireAfterGet(3, TimeUnit.HOURS)
+                .create()
+
+        assertEquals(TimeUnit.SECONDS.toMillis(1), hmap.expireCreateTTL)
+        assertEquals(TimeUnit.DAYS.toMillis(2), hmap.expireUpdateTTL)
+        assertEquals(TimeUnit.HOURS.toMillis(3), hmap.expireGetTTL)
+    }
+
 
     @Test fun executors(){
         val db = DBMaker.heapDB().make()
         assertEquals(0, db.executors.size)
         val exec = Executors.newSingleThreadScheduledExecutor()
         val htreemap = db.hashMap("map")
-                .expireCreateTTL(1)
+                .expireAfterCreate(1)
                 .expireExecutor(exec)
                 .expireExecutorPeriod(10000)
                 .create()

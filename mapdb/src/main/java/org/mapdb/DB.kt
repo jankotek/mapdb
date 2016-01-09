@@ -264,20 +264,36 @@ open class DB(
             return this
         }
 
-        fun expireCreateTTL(ttl:Long):HashMapMaker<K,V>{
+        fun expireAfterCreate(ttl:Long):HashMapMaker<K,V>{
             _expireCreateTTL = ttl
             return this
         }
 
-        fun expireUpdateTTL(ttl:Long):HashMapMaker<K,V>{
+
+        fun expireAfterCreate(ttl:Long, unit:TimeUnit):HashMapMaker<K,V> {
+            return expireAfterCreate(unit.toMillis(ttl))
+        }
+
+        fun expireAfterUpdate(ttl:Long):HashMapMaker<K,V>{
             _expireUpdateTTL = ttl
             return this
         }
 
-        fun expireGetTTL(ttl:Long):HashMapMaker<K,V>{
+        fun expireAfterUpdate(ttl:Long, unit:TimeUnit):HashMapMaker<K,V> {
+            return expireAfterUpdate(unit.toMillis(ttl))
+        }
+
+
+        fun expireAfterGet(ttl:Long):HashMapMaker<K,V>{
             _expireGetTTL = ttl
             return this
         }
+
+
+        fun expireAfterGet(ttl:Long, unit:TimeUnit):HashMapMaker<K,V> {
+            return expireAfterGet(unit.toMillis(ttl))
+        }
+
 
         fun expireExecutor(executor: ScheduledExecutorService?):HashMapMaker<K,V>{
             _expireExecutor = executor;

@@ -121,17 +121,17 @@ class MJCache<K,V>(
             if (expirePolicy.expiryForCreation != null && expirePolicy.expiryForCreation.isEternal.not()) {
                 val ttl = expirePolicy.expiryForCreation.timeUnit.toMillis(expirePolicy.expiryForCreation.durationAmount);
                 period = Math.min(ttl/4, period)
-                c = c.expireCreateTTL(ttl)
+                c = c.expireAfterCreate(ttl)
             }
             if (expirePolicy.expiryForUpdate != null && expirePolicy.expiryForUpdate.isEternal.not()) {
                 val ttl = expirePolicy.expiryForUpdate.timeUnit.toMillis(expirePolicy.expiryForUpdate.durationAmount);
                 period = Math.min(ttl/4, period)
-                c = c.expireUpdateTTL(ttl)
+                c = c.expireAfterUpdate(ttl)
             }
             if (expirePolicy.expiryForAccess != null && expirePolicy.expiryForAccess.isEternal.not()) {
                 val ttl = expirePolicy.expiryForAccess.timeUnit.toMillis(expirePolicy.expiryForAccess.durationAmount);
                 period = Math.min(ttl/4, period)
-                c = c.expireGetTTL(ttl)
+                c = c.expireAfterGet(ttl)
             }
 
 

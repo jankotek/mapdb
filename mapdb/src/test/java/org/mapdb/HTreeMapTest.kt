@@ -108,11 +108,11 @@ class Guava(val mapMaker:(generic:Boolean)->ConcurrentMap<Any?, Any?> ) :
                         maker.valueInline()
 
                     if(createExpire)
-                        maker.expireCreateTTL(Integer.MAX_VALUE.toLong())
+                        maker.expireAfterCreate(Integer.MAX_VALUE.toLong())
                     if(updateExpire)
-                        maker.expireUpdateTTL(Integer.MAX_VALUE.toLong())
+                        maker.expireAfterUpdate(Integer.MAX_VALUE.toLong())
                     if(getExpire)
-                        maker.expireGetTTL(Integer.MAX_VALUE.toLong())
+                        maker.expireAfterGet(Integer.MAX_VALUE.toLong())
                     if(counter)
                         maker.counterEnable()
 
