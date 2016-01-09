@@ -208,9 +208,10 @@ open class DB(
         private var _keyInline = false
         private var _valueInline = false
 
-        private var _concShift = 3
-        private var _dirShift = 4
-        private var _levels = 4
+        private var _concShift = CC.HTREEMAP_CONC_SHIFT
+        private var _dirShift = CC.HTREEMAP_DIR_SHIFT
+        private var _levels = CC.HTREEMAP_LEVELS
+
         private var _hashSeed:Int? = null
         private var _expireCreateTTL:Long = 0L
         private var _expireUpdateTTL:Long = 0L

@@ -1,5 +1,7 @@
 package org.mapdb;
 
+import org.jetbrains.annotations.NotNull;
+
 /**
  * Compilation Configuration. Uses dead code elimination to remove `if(CONSTANT){code}` blocks
  */
@@ -29,4 +31,7 @@ interface CC{
     Volume.VolumeFactory DEFAULT_FILE_VOLUME_FACTORY = Volume.RandomAccessFileVol.FACTORY;
 
 
+    int HTREEMAP_CONC_SHIFT = 3;
+    int HTREEMAP_DIR_SHIFT = 4;
+    int HTREEMAP_LEVELS = 4;
 }

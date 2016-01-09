@@ -202,20 +202,20 @@ class DBTest{
 
     @Test fun hashMap_Create_Multi_Store(){
         val hmap = DBMaker
-                .memorySegmentedHashMap(8)
+                .memorySegmentedHashMap(3)
                 .expireAfterCreate(10)
                 .expireAfterUpdate(10)
                 .expireAfterGet(10)
                 .create()
-        assertEquals(8, hmap.concShift)
-        assertEquals(256, hmap.stores.size)
-        assertEquals(256, TT.identityCount(hmap.stores))
-        assertEquals(256, TT.identityCount(hmap.indexTrees))
-        assertEquals(256, TT.identityCount(hmap.expireCreateQueues!!))
-        assertEquals(256, TT.identityCount(hmap.expireUpdateQueues!!))
-        assertEquals(256, TT.identityCount(hmap.expireGetQueues!!))
+        assertEquals(3, hmap.concShift)
+        assertEquals(8, hmap.stores.size)
+        assertEquals(8, TT.identityCount(hmap.stores))
+        assertEquals(8, TT.identityCount(hmap.indexTrees))
+        assertEquals(8, TT.identityCount(hmap.expireCreateQueues!!))
+        assertEquals(8, TT.identityCount(hmap.expireUpdateQueues!!))
+        assertEquals(8, TT.identityCount(hmap.expireGetQueues!!))
 
-        for(segment in 0 until 256){
+        for(segment in 0 until 8){
             val store = hmap.stores[segment]
             assertTrue(store===(hmap.indexTrees[segment] as IndexTreeLongLongMap).store)
             assertTrue(store===hmap.expireCreateQueues!![segment].store)
