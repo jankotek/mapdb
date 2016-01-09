@@ -1,6 +1,7 @@
 package org.mapdb
 
 import com.gs.collections.impl.list.mutable.primitive.LongArrayList
+import com.gs.collections.impl.set.mutable.primitive.LongHashSet
 import org.junit.Test
 import org.junit.Assert.*
 import java.io.File
@@ -241,4 +242,47 @@ class StoreDirectTest:StoreReopenTest(){
     }
 
 
+    @Test fun freeSpace(){
+        val count = 100000
+        val arraySize = 1024
+        val div = count * arraySize / 100
+
+        val s = openStore()
+        val recids = LongHashSet()
+        for(i in 0..count){
+            val recid = s.put(ByteArray(arraySize), Serializer.BYTE_ARRAY_NOSIZE)
+            recids.add(recid)
+        }
+
+        recids.forEach { recid->
+            s.delete(recid, Serializer.BYTE_ARRAY_NOSIZE)
+        }
+
+        assertTrue( Math.abs(count*arraySize - s.getFreeSize())<div)
+        s.freeSize.set(-1L)
+        assertTrue( Math.abs(count*arraySize - s.getFreeSize())<div)
+    }
+
+
+    @Test fun freeSpace2(){
+        val count = 100000
+        val arraySize = 1024
+        val div = count * arraySize / 100
+
+        val s = openStore()
+        val recids = LongHashSet()
+        s.getFreeSize()
+        for(i in 0..count){
+            val recid = s.put(ByteArray(arraySize), Serializer.BYTE_ARRAY_NOSIZE)
+            recids.add(recid)
+        }
+
+        recids.forEach { recid->
+            s.delete(recid, Serializer.BYTE_ARRAY_NOSIZE)
+        }
+
+        assertTrue( Math.abs(count*arraySize - s.getFreeSize())<div)
+        s.freeSize.set(-1L)
+        assertTrue( Math.abs(count*arraySize - s.getFreeSize())<div)
+    }
 }

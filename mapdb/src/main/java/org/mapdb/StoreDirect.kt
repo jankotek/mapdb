@@ -6,6 +6,7 @@ import org.mapdb.StoreDirectJava.*
 import org.mapdb.DataIO.*
 import java.io.IOException
 import java.util.*
+import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.locks.ReadWriteLock
 
 /**
@@ -41,6 +42,7 @@ class StoreDirect(
         )
     }
 
+    internal val freeSize = AtomicLong(-1L)
 
     private val segmentCount = 1.shl(concShift)
     private val segmentMask = 1L.shl(concShift)-1
@@ -292,6 +294,8 @@ class StoreDirect(
                 volume.assertZeroes(reusedDataOffset, reusedDataOffset+size)
             if(CC.ASSERT && reusedDataOffset%16!=0L)
                 throw DBException.DataCorruption("wrong offset")
+
+            freeSizeIncrement(-size.toLong())
             return reusedDataOffset
         }
 
@@ -306,6 +310,8 @@ class StoreDirect(
                 volume.assertZeroes(page, page+size)
             if(CC.ASSERT && page%16!=0L)
                 throw DBException.DataCorruption("wrong offset")
+
+            freeSizeIncrement(CC.PAGE_SIZE-size)
             return page;
         }
 
@@ -323,6 +329,7 @@ class StoreDirect(
                 volume.assertZeroes(dataTail2, dataTail2+size)
             if(CC.ASSERT && dataTail2%16!=0L)
                 throw DBException.DataCorruption("wrong offset")
+            freeSizeIncrement(-size.toLong())
             return dataTail2
         }
 
@@ -336,6 +343,8 @@ class StoreDirect(
         if(remSize!=0L){
             releaseData(remSize, dataTail2, recursive)
         }
+
+        freeSizeIncrement(CC.PAGE_SIZE-size)
 
         //now start new allocation on fresh page
         return allocateData(size, recursive);
@@ -352,6 +361,8 @@ class StoreDirect(
 
         if(CC.ZEROS)
             volume.assertZeroes(offset, offset+size)
+
+        freeSizeIncrement(size)
 
         longStackPut(longStackMasterLinkOffset(size), offset, recursive);
     }
@@ -639,6 +650,36 @@ class StoreDirect(
         if(CC.ASSERT && masterLinkOffset!=RECID_LONG_STACK && ret and 7 !=0L)
             throw AssertionError()
         return ret;
+    }
+
+
+    internal fun longStackForEach(masterLinkOffset: Long, body: (value: Long) -> Unit) {
+
+        // assert first page
+        val linkVal = parity4Get(volume.getLong(masterLinkOffset))
+        var endSize = indexValToSize(linkVal)
+        var offset = indexValToOffset(linkVal)
+
+
+        while (offset != 0L) {
+            var currHead = parity4Get(volume.getLong(offset))
+            val currSize = indexValToSize(currHead)
+
+            //iterate over values
+            for (pos in 8 until endSize step 8) {
+                val stackVal = volume.getLong(offset + pos)
+                if (stackVal.ushr(48) != 0L)
+                    throw AssertionError()
+                if (masterLinkOffset!=RECID_LONG_STACK && stackVal % 16L != 0L)
+                    throw AssertionError()
+                body(stackVal)
+            }
+
+            //set values for next page
+            offset = indexValToOffset(currHead)
+            if (offset != 0L)
+                endSize = indexValToSize(parity4Get(volume.getLong(offset)))
+        }
     }
 
     override fun preallocate(): Long {
@@ -1028,5 +1069,48 @@ class StoreDirect(
         }
 
     }
+
+
+
+    protected fun freeSizeIncrement(increment: Long) {
+        while (true) {
+            val v = freeSize.get()
+            if (v == -1L || freeSize.compareAndSet(v, v + increment))
+                return
+        }
+    }
+
+
+    fun getFreeSize(): Long {
+        var ret = freeSize.get()
+        if (ret != -1L)
+            return ret
+        Utils.lock(structuralLock){
+            //try one more time under lock
+            ret = freeSize.get()
+            if (ret != -1L)
+                return ret
+
+            //traverse list of records
+            for(size in 16 .. StoreDirectJava.MAX_RECORD_SIZE step 16){
+                val masterLinkOffset = longStackMasterLinkOffset(size)
+                longStackForEach(masterLinkOffset){ v->
+                    ret += size
+                }
+            }
+
+            //set rest of data page
+            val dataTail = dataTail
+            if(dataTail%CC.PAGE_SIZE!=0L){
+                ret += CC.PAGE_SIZE - dataTail%CC.PAGE_SIZE
+            }
+
+            freeSize.set(ret)
+
+            return ret
+        }
+    }
+
+    fun getTotalSize():Long = fileTail
 
 }
