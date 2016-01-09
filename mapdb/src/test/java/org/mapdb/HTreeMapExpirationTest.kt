@@ -197,12 +197,12 @@ class HTreeMapExpirationTest {
     }
 
     @Test(timeout = 100000)
-    fun maxSizeMultiSeg(){
+    fun maxSizeSingleSeg(){
         val map = DBMaker.memoryDB().make()
                 .hashMap("aa", Serializer.INTEGER, Serializer.INTEGER)
                 .expireAfterCreate()
                 .expireMaxSize(1000)
-                .layout(1, 4,4)
+                .layout(0, 4,4)
                 .create()
 
         maxSizeTest(map)
