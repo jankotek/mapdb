@@ -31,6 +31,8 @@ class HTreeMap<K,V>(
         val expireCreateTTL:Long,
         val expireUpdateTTL:Long,
         val expireGetTTL:Long,
+        val expireMaxSize:Long,
+        val expireStoreSize:Long,
         val expireCreateQueues:Array<QueueLong>?,
         val expireUpdateQueues:Array<QueueLong>?,
         val expireGetQueues:Array<QueueLong>?,
@@ -62,6 +64,8 @@ class HTreeMap<K,V>(
                 expireCreateTTL:Long = 0L,
                 expireUpdateTTL:Long = 0L,
                 expireGetTTL:Long = 0L,
+                expireMaxSize:Long = 0L,
+                expireStoreSize:Long = 0L,
                 expireCreateQueues:Array<QueueLong>? = if(expireCreateTTL<=0L) null else Array(stores.size, {i->QueueLong.make(store = stores[i])}),
                 expireUpdateQueues:Array<QueueLong>? = if(expireUpdateTTL<=0L) null else Array(stores.size, {i->QueueLong.make(store = stores[i])}),
                 expireGetQueues:Array<QueueLong>? = if(expireGetTTL<=0L) null else Array(stores.size, {i->QueueLong.make(store = stores[i])}),
@@ -85,6 +89,8 @@ class HTreeMap<K,V>(
                 expireCreateTTL = expireCreateTTL,
                 expireUpdateTTL = expireUpdateTTL,
                 expireGetTTL = expireGetTTL,
+                expireMaxSize = expireMaxSize,
+                expireStoreSize = expireStoreSize,
                 expireCreateQueues = expireCreateQueues,
                 expireUpdateQueues = expireUpdateQueues,
                 expireGetQueues = expireGetQueues,
@@ -361,7 +367,9 @@ class HTreeMap<K,V>(
                         // expiration is involved, and there is cyclic dependency between expireRecid and leafRecid
                         // must use preallocation and update to solve it
                         val leafRecid2 = store.preallocate()
-                        val expireRecid = expireCreateQueues[segment].put(System.currentTimeMillis() + expireCreateTTL, leafRecid2)
+                        val expireRecid = expireCreateQueues[segment].put(
+                                if(expireCreateTTL==-1L) 0L else System.currentTimeMillis()+expireCreateTTL,
+                                leafRecid2)
                         val leaf = arrayOf(wrappedKey, wrappedValue, expireId(expireRecid, QUEUE_CREATE))
                         store.update(leafRecid2, leaf, leafSerializer)
                         leafRecid2
@@ -394,13 +402,15 @@ class HTreeMap<K,V>(
                         val nodeRecid = expireNodeRecidFor(expireId)
                         if (oldQueue === expireUpdateQueues[segment]) {
                             //just bump
-                            oldQueue.bump(nodeRecid, System.currentTimeMillis() + expireUpdateTTL)
+                            oldQueue.bump(nodeRecid, if(expireUpdateTTL==-1L) 0L else System.currentTimeMillis()+expireUpdateTTL)
                         } else {
                             //remove from old queue
                             val oldNode = oldQueue.remove(nodeRecid, removeNode = false)
 
                             //and put into new queue, reuse recid
-                            expireUpdateQueues[segment].put(timestamp = System.currentTimeMillis()+expireUpdateTTL, value=oldNode.value, nodeRecid = nodeRecid )
+                            expireUpdateQueues[segment].put(
+                                    timestamp = if(expireUpdateTTL==-1L) 0L else System.currentTimeMillis()+expireUpdateTTL,
+                                    value=oldNode.value, nodeRecid = nodeRecid )
 
                             leaf = leaf.clone()
                             leaf[i + 2] = expireId(nodeRecid, QUEUE_UPDATE)
@@ -408,7 +418,9 @@ class HTreeMap<K,V>(
                         }
                     } else {
                         //does not exist in old queue, insert new
-                        val expireRecid = expireUpdateQueues[segment].put(System.currentTimeMillis() + expireUpdateTTL, leafRecid);
+                        val expireRecid = expireUpdateQueues[segment].put(
+                                if(expireUpdateTTL==-1L) 0L else System.currentTimeMillis()+expireUpdateTTL,
+                                leafRecid);
                         leaf = leaf.clone()
                         leaf[i + 2] = expireId(expireRecid, QUEUE_UPDATE)
                         store.update(leafRecid, leaf, leafSerializer)
@@ -439,7 +451,9 @@ class HTreeMap<K,V>(
         leaf[leaf.size-1] = 0L
 
         if (expireCreateQueues != null) {
-            val expireRecid = expireCreateQueues[segment].put(System.currentTimeMillis() + expireCreateTTL, leafRecid);
+            val expireRecid = expireCreateQueues[segment].put(
+                    if(expireCreateTTL==-1L) 0L else System.currentTimeMillis()+expireCreateTTL,
+                    leafRecid);
             leaf[leaf.size-1] = expireId(expireRecid, QUEUE_CREATE)
         }
 
@@ -652,12 +666,14 @@ class HTreeMap<K,V>(
             val nodeRecid = expireNodeRecidFor(expireId)
             if (oldQueue === expireGetQueues[segment]) {
                 //just bump
-                oldQueue.bump(nodeRecid, System.currentTimeMillis() + expireGetTTL)
+                oldQueue.bump(nodeRecid, if(expireGetTTL==-1L) 0L else System.currentTimeMillis()+expireGetTTL)
             } else {
                 //remove from old queue
                 val oldNode = oldQueue.remove(nodeRecid, removeNode = false)
                 //and put into new queue, reuse recid
-                expireGetQueues[segment].put(timestamp = System.currentTimeMillis() + expireGetTTL, value = oldNode.value, nodeRecid = nodeRecid)
+                expireGetQueues[segment].put(
+                        timestamp = if(expireGetTTL==-1L) 0L else System.currentTimeMillis()+expireGetTTL,
+                        value = oldNode.value, nodeRecid = nodeRecid)
                 //update queue id
                 leaf1 = leaf1.clone()
                 leaf1[i + 2] = expireId(nodeRecid, QUEUE_GET)
@@ -665,7 +681,9 @@ class HTreeMap<K,V>(
             }
         } else {
             //does not exist in old queue, insert new
-            val expireRecid = expireGetQueues[segment].put(System.currentTimeMillis() + expireGetTTL, leafRecid);
+            val expireRecid = expireGetQueues[segment].put(
+                    if(expireGetTTL==-1L) 0L else System.currentTimeMillis()+expireGetTTL,
+                    leafRecid);
             leaf1 = leaf1.clone()
             leaf1[i + 2] = expireId(expireRecid, QUEUE_GET)
             store.update(leafRecid, leaf1, leafSerializer)
@@ -836,9 +854,18 @@ class HTreeMap<K,V>(
             Utils.assertWriteLock(locks[segment])
 
         val currTimestamp = System.currentTimeMillis()
+        var numberToTake:Long =
+                if(expireMaxSize==0L) 0L
+                else{
+                    val segmentSize = stores[segment].get(counterRecids!![segment], Serializer.LONG_PACKED)
+                        ?: throw DBException.DataCorruption("Counter not found")
+                    Math.max(0L, (segmentSize*segmentCount-expireMaxSize)/segmentCount)
+                }
         for (q in arrayOf(expireCreateQueues?.get(segment), expireUpdateQueues?.get(segment), expireGetQueues?.get(segment))) {
+            //TODO in what order the queues should be expired?
             q?.takeUntil(QueueLongTakeUntil { nodeRecid, node ->
-                if (node.timestamp < currTimestamp) {
+                if ((node.timestamp!=0L && node.timestamp < currTimestamp) || numberToTake>0) {
+                    numberToTake--
                     //remove key corresponding to node
                     expireEvictEntry(segment=segment, leafRecid = node.value, nodeRecid = nodeRecid)
                     true

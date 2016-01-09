@@ -217,6 +217,9 @@ open class DB(
         private var _expireGetTTL:Long = 0L
         private var _expireExecutor:ScheduledExecutorService? = null
         private var _expireExecutorPeriod:Long = 10000
+        private var _expireMaxSize:Long = 0
+        private var _expireStoreSize:Long = 0
+
         private var _counterEnable: Boolean = false
 
         private var _storeFactory:(segment:Int)->Store = {i->_db.store}
@@ -264,6 +267,10 @@ open class DB(
             return this
         }
 
+        fun expireAfterCreate():HashMapMaker<K,V>{
+            return expireAfterCreate(-1)
+        }
+
         fun expireAfterCreate(ttl:Long):HashMapMaker<K,V>{
             _expireCreateTTL = ttl
             return this
@@ -274,6 +281,11 @@ open class DB(
             return expireAfterCreate(unit.toMillis(ttl))
         }
 
+        fun expireAfterUpdate():HashMapMaker<K,V>{
+            return expireAfterUpdate(-1)
+        }
+
+
         fun expireAfterUpdate(ttl:Long):HashMapMaker<K,V>{
             _expireUpdateTTL = ttl
             return this
@@ -283,6 +295,9 @@ open class DB(
             return expireAfterUpdate(unit.toMillis(ttl))
         }
 
+        fun expireAfterGet():HashMapMaker<K,V>{
+            return expireAfterGet(-1)
+        }
 
         fun expireAfterGet(ttl:Long):HashMapMaker<K,V>{
             _expireGetTTL = ttl
@@ -305,6 +320,15 @@ open class DB(
             return this
         }
 
+        fun expireMaxSize(maxSize:Long):HashMapMaker<K,V>{
+            _expireMaxSize = maxSize;
+            return counterEnable()
+        }
+
+        fun expireStoreSize(storeSize:Long):HashMapMaker<K,V>{
+            _expireStoreSize = storeSize;
+            return this
+        }
 
         internal fun storeFactory(storeFactory:(segment:Int)->Store):HashMapMaker<K,V>{
             _storeFactory = storeFactory
@@ -344,6 +368,8 @@ open class DB(
                 expireCreateTTL = _expireCreateTTL,
                 expireUpdateTTL = _expireUpdateTTL,
                 expireGetTTL = _expireGetTTL,
+                expireMaxSize = _expireMaxSize,
+                expireStoreSize = _expireStoreSize,
                 expireExecutor = _expireExecutor,
                 expireExecutorPeriod = _expireExecutorPeriod,
                 storeFactory = _storeFactory,
@@ -379,6 +405,8 @@ open class DB(
             expireCreateTTL:Long,
             expireUpdateTTL:Long,
             expireGetTTL:Long,
+            expireMaxSize:Long,
+            expireStoreSize:Long,
             expireExecutor: ScheduledExecutorService?,
             expireExecutorPeriod:Long,
             storeFactory:(segment:Int)->Store,
@@ -447,15 +475,15 @@ open class DB(
         }
 
         val expireCreateQueues:Array<QueueLong>? =
-                if(expireCreateTTL<=0) null
+                if(expireCreateTTL==0L) null
                 else Array(segmentCount,{emptyLongQueue(it)})
 
         val expireUpdateQueues:Array<QueueLong>? =
-                if(expireUpdateTTL<=0) null
+                if(expireUpdateTTL==0L) null
                 else Array(segmentCount,{emptyLongQueue(it)})
 
         val expireGetQueues:Array<QueueLong>? =
-                if(expireGetTTL<=0) null
+                if(expireGetTTL==0L) null
                 else Array(segmentCount,{emptyLongQueue(it)})
 
         if(expireExecutor!=null)
@@ -485,6 +513,8 @@ open class DB(
                 expireCreateTTL = expireCreateTTL,
                 expireUpdateTTL = expireUpdateTTL,
                 expireGetTTL = expireGetTTL,
+                expireMaxSize = expireMaxSize,
+                expireStoreSize = expireStoreSize,
                 expireCreateQueues = expireCreateQueues,
                 expireUpdateQueues = expireUpdateQueues,
                 expireGetQueues = expireGetQueues,
